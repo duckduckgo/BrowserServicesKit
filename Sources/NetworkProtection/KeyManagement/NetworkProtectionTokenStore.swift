@@ -89,6 +89,7 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
 
     public func deleteToken() throws {
         do {
+            // Skip deleting DDG-access-token as it's used for entitlement validity check
             guard isSubscriptionEnabled, let token = try? fetchToken(), !Self.isAccessToken(token) else { return }
             try keychainStore.deleteAll()
         } catch {
@@ -112,7 +113,7 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
 
 extension NetworkProtectionTokenStore {
     private static var authTokenPrefix: String { "ddg:" }
-    
+
     public static func makeToken(from accessToken: String) -> String {
         "\(authTokenPrefix)\(accessToken)"
     }

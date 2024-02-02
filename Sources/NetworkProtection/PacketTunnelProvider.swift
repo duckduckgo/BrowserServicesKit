@@ -42,12 +42,12 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         case failure
     }
 
-    public struct SubscriptionConfig {
-        public let isEnabled: Bool
+    public struct SubscriptionConfiguration {
+        public let isSubscriptionEnabled: Bool
         public let isEntitlementValid: () async -> Bool
 
-        public init(isEnabled: Bool, isEntitlementValid: @escaping () async -> Bool) {
-            self.isEnabled = isEnabled
+        public init(isSubscriptionEnabled: Bool, isEntitlementValid: @escaping () async -> Bool) {
+            self.isSubscriptionEnabled = isSubscriptionEnabled
             self.isEntitlementValid = isEntitlementValid
         }
     }
@@ -286,7 +286,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private let keychainType: KeychainType
     private let debugEvents: EventMapping<NetworkProtectionError>?
     private let providerEvents: EventMapping<Event>
-    private let subscriptionConfig: SubscriptionConfig
+    private let subscriptionConfiguration: SubscriptionConfiguration
 
     public init(notificationsPresenter: NetworkProtectionNotificationsPresenter,
                 tunnelHealthStore: NetworkProtectionTunnelHealthStore,
@@ -296,7 +296,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 debugEvents: EventMapping<NetworkProtectionError>?,
                 providerEvents: EventMapping<Event>,
                 settings: VPNSettings,
-                subscriptionConfig: SubscriptionConfig) {
+                subscriptionConfiguration: SubscriptionConfiguration) {
         os_log("[+] PacketTunnelProvider", log: .networkProtectionMemoryLog, type: .debug)
 
         self.notificationsPresenter = notificationsPresenter
@@ -307,7 +307,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         self.tunnelHealth = tunnelHealthStore
         self.controllerErrorStore = controllerErrorStore
         self.settings = settings
-        self.subscriptionConfig = subscriptionConfig
+        self.subscriptionConfiguration = subscriptionConfiguration
 
         super.init()
 
@@ -721,16 +721,16 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
         do {
             let networkClient = NetworkProtectionBackendClient(environment: environment,
-                                                               isSubscriptionEnabled: subscriptionConfig.isEnabled)
+                                                               isSubscriptionEnabled: subscriptionConfiguration.isSubscriptionEnabled)
             let deviceManager = NetworkProtectionDeviceManager(networkClient: networkClient,
                                                                tokenStore: tokenStore,
                                                                keyStore: keyStore,
                                                                errorEvents: debugEvents,
-                                                               subscriptionConfig: subscriptionConfig)
+                                                               subscriptionConfiguration: subscriptionConfiguration)
 
             configurationResult = try await deviceManager.generateTunnelConfiguration(selectionMethod: serverSelectionMethod, includedRoutes: includedRoutes, excludedRoutes: excludedRoutes, isKillSwitchEnabled: isKillSwitchEnabled)
         } catch {
-            if subscriptionConfig.isEnabled, let error = error as? NetworkProtectionError, case .vpnAccessRevoked = error {
+            if subscriptionConfiguration.isSubscriptionEnabled, let error = error as? NetworkProtectionError, case .vpnAccessRevoked = error {
                 os_log("🔵 Expired subscription", log: .networkProtection, type: .error)
                 settings.apply(change: .setShouldShowExpiredEntitlementMessaging(.init(showsAlert: true, showsNotification: true)))
                 throw TunnelError.vpnAccessRevoked
@@ -817,7 +817,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         handleSettingsChange(change, completionHandler: completionHandler)
     }
 
-    // swiftlint:disable:next cyclomatic_complexity
+    // swiftlint:disable:next cyclomatic_complexity function_body_length
     private func handleSettingsChange(_ change: VPNSettings.Change, completionHandler: ((Data?) -> Void)? = nil) {
         switch change {
         case .setExcludeLocalNetworks:

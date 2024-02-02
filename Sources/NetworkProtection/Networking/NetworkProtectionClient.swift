@@ -172,8 +172,7 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
     init(environment: VPNSettings.SelectedEnvironment = .default, isSubscriptionEnabled: Bool) {
         self.isSubscriptionEnabled = isSubscriptionEnabled
 
-        // TODO: Switch this back to production URL when BE is ready
-        // https://app.asana.com/0/0/1206470585910129/f
+        // todo - https://app.asana.com/0/0/1206470585910129/f
         if isSubscriptionEnabled {
             self.endpointURL = URL(string: "https://staging1.netp.duckduckgo.com")!
         } else {

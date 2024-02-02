@@ -57,20 +57,20 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
 
     private let errorEvents: EventMapping<NetworkProtectionError>?
 
-    private let subscriptionConfig: PacketTunnelProvider.SubscriptionConfig
+    private let subscriptionConfiguration: PacketTunnelProvider.SubscriptionConfiguration
 
     public init(environment: VPNSettings.SelectedEnvironment,
                 tokenStore: NetworkProtectionTokenStore,
                 keyStore: NetworkProtectionKeyStore,
                 serverListStore: NetworkProtectionServerListStore? = nil,
                 errorEvents: EventMapping<NetworkProtectionError>?,
-                subscriptionConfig: PacketTunnelProvider.SubscriptionConfig) {
-        self.init(networkClient: NetworkProtectionBackendClient(environment: environment, isSubscriptionEnabled: subscriptionConfig.isEnabled),
+                subscriptionConfiguration: PacketTunnelProvider.SubscriptionConfiguration) {
+        self.init(networkClient: NetworkProtectionBackendClient(environment: environment, isSubscriptionEnabled: subscriptionConfiguration.isSubscriptionEnabled),
                   tokenStore: tokenStore,
                   keyStore: keyStore,
                   serverListStore: serverListStore,
                   errorEvents: errorEvents,
-                  subscriptionConfig: subscriptionConfig)
+                  subscriptionConfiguration: subscriptionConfiguration)
     }
 
     init(networkClient: NetworkProtectionClient,
@@ -78,13 +78,13 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
          keyStore: NetworkProtectionKeyStore,
          serverListStore: NetworkProtectionServerListStore? = nil,
          errorEvents: EventMapping<NetworkProtectionError>?,
-         subscriptionConfig: PacketTunnelProvider.SubscriptionConfig) {
+         subscriptionConfiguration: PacketTunnelProvider.SubscriptionConfiguration) {
         self.networkClient = networkClient
         self.tokenStore = tokenStore
         self.keyStore = keyStore
         self.serverListStore = serverListStore ?? NetworkProtectionServerListFileSystemStore(errorEvents: errorEvents)
         self.errorEvents = errorEvents
-        self.subscriptionConfig = subscriptionConfig
+        self.subscriptionConfiguration = subscriptionConfiguration
     }
 
     /// Requests a new server list from the backend and updates it locally.
@@ -159,12 +159,11 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     //
     // - Throws:`NetworkProtectionError`
     // This cannot be a doc comment because of the swiftlint command below
-    // swiftlint:disable cyclomatic_complexity
+    // swiftlint:disable cyclomatic_complexity function_body_length
     private func register(selectionMethod: NetworkProtectionServerSelectionMethod) async throws -> (server: NetworkProtectionServer,
                                                                                                     keyPair: KeyPair) {
 
         guard let token = try? tokenStore.fetchToken() else { throw NetworkProtectionError.noAuthTokenFound }
-
         var keyPair = keyStore.currentKeyPair()
 
         let serverSelection: RegisterServerSelection
@@ -226,7 +225,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
 
             return (selectedServer, keyPair)
         case .failure(let error):
-            if subscriptionConfig.isEnabled, case .accessDenied = error {
+            if subscriptionConfiguration.isSubscriptionEnabled, case .accessDenied = error {
                 try tokenStore.deleteToken()
                 errorEvents?.fire(.vpnAccessRevoked)
                 throw NetworkProtectionError.vpnAccessRevoked
@@ -238,7 +237,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
             return (cachedServer, keyPair)
         }
     }
-    // swiftlint:enable cyclomatic_complexity
+    // swiftlint:enable cyclomatic_complexity function_body_length
 
     /// Retrieves the first cached server that's registered with the specified key pair.
     ///
