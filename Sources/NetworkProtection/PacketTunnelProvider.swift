@@ -860,6 +860,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 completionHandler?(nil)
             }
         case .setShouldShowExpiredEntitlementMessaging:
+            // todo - https://app.asana.com/0/0/1206409081785857/f
             notificationsPresenter.showExpiredEntitlementNotification()
             adapter.stop { _ in }
             completionHandler?(nil)
