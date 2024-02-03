@@ -235,6 +235,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     private var isConnectionTesterEnabled: Bool = true
 
+    @MainActor
     private lazy var connectionTester: NetworkProtectionConnectionTester = {
         NetworkProtectionConnectionTester(timerQueue: timerQueue, log: .networkProtectionConnectionTesterLog) { @MainActor [weak self] result in
             guard let self else { return }
@@ -335,6 +336,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         loadKeyValidity(from: options)
         loadSelectedEnvironment(from: options)
         loadSelectedServer(from: options)
+        loadSelectedLocation(from: options)
         loadTesterEnabled(from: options)
         try loadAuthToken(from: options)
     }
@@ -382,6 +384,17 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
+    private func loadSelectedLocation(from options: StartupOptions) {
+        switch options.selectedLocation {
+        case .set(let selectedServer):
+            settings.selectedLocation = selectedServer
+        case .useExisting:
+            break
+        case .reset:
+            settings.selectedServer = .automatic
+        }
+    }
+
     private func loadTesterEnabled(from options: StartupOptions) {
         switch options.enableTester {
         case .set(let value):
@@ -395,8 +408,12 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     private func loadAuthToken(from options: StartupOptions) throws {
         switch options.authToken {
-        case .set(let authToken):
-            try tokenStore.store(authToken)
+        case .set(let newAuthToken):
+            if let currentAuthToken = try? tokenStore.fetchToken(), currentAuthToken == newAuthToken {
+                return
+            }
+
+            try tokenStore.store(newAuthToken)
         case .useExisting:
             break
         case .reset:
@@ -532,6 +549,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             do {
                 os_log("🔵 Generating tunnel config", log: .networkProtection, type: .info)
                 os_log("🔵 Excluded ranges are: %{public}@", log: .networkProtection, type: .info, String(describing: settings.excludedRanges))
+                os_log("🔵 Server selection method: %{public}@", log: .networkProtection, type: .info, currentServerSelectionMethod.debugDescription)
                 let tunnelConfiguration = try await generateTunnelConfiguration(environment: environment,
                                                                                 serverSelectionMethod: currentServerSelectionMethod,
                                                                                 includedRoutes: includedRoutes ?? [],
@@ -825,6 +843,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 .setSelectedEnvironment,
                 .setShowInMenuBar,
                 .setVPNFirstEnabled,
+                .setNetworkPathChange,
                 .setDisableRekeying:
             // Intentional no-op, as some setting changes don't require any further operation
             break
@@ -974,8 +993,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     private func simulateConnectionInterruption(completionHandler: ((Data?) -> Void)? = nil) {
-        connectionTester.failNextTest()
-        completionHandler?(nil)
+        Task { @MainActor in
+            connectionTester.failNextTest()
+            completionHandler?(nil)
+        }
     }
 
     // MARK: - Adapter start completion handling
@@ -989,14 +1010,17 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     /// Called when the adapter reports that the tunnel was successfully started.
     ///
+    @MainActor
     private func handleAdapterStarted(startReason: AdapterStartReason) async throws {
         if startReason != .reconnected && startReason != .wake {
             connectionStatus = .connected(connectedDate: Date())
         }
 
-        guard !isKeyExpired else {
-            await rekey()
-            return
+        if !settings.disableRekeying {
+            guard !isKeyExpired else {
+                await rekey()
+                return
+            }
         }
 
         os_log("🔵 Tunnel interface is %{public}@", log: .networkProtection, type: .info, adapter.interfaceName ?? "unknown")

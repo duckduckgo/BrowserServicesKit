@@ -58,7 +58,7 @@ final class BookmarksFaviconsFetcherTests: XCTestCase {
             XCTFail("Failed to load model")
             return
         }
-        bookmarksDatabase = CoreDataDatabase(name: className, containerLocation: location, model: model)
+        bookmarksDatabase = CoreDataDatabase(name: type(of: self).description(), containerLocation: location, model: model)
         bookmarksDatabase.loadStore()
 
         faviconStore = MockFaviconStore()
@@ -220,15 +220,12 @@ final class BookmarksFaviconsFetcherTests: XCTestCase {
 
         await runAfterOperationsFinished {
             XCTAssertEqual(results.count, 1)
-            guard case .failure = results.first else {
-                XCTFail("Expected failure")
-                return
-            }
-            XCTAssertEqual(MockBookmarksFaviconsFetcherEventMapper.errors.count, 1)
-            guard MockBookmarksFaviconsFetcherEventMapper.errors[0].underlyingError is CancellationError else {
+            guard case .failure(let error) = results.first, error is CancellationError else {
                 XCTFail("Expected CancellationError")
                 return
             }
+            // Cancellation errors are not reported
+            XCTAssertTrue(MockBookmarksFaviconsFetcherEventMapper.errors.isEmpty)
         }
         cancellable.cancel()
     }
