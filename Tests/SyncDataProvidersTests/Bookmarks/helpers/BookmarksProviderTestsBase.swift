@@ -19,6 +19,7 @@
 import XCTest
 import Bookmarks
 import Common
+import Foundation
 import DDGSync
 import Persistence
 @testable import SyncDataProviders
@@ -41,7 +42,7 @@ internal class BookmarksProviderTestsBase: XCTestCase {
             XCTFail("Failed to load model")
             return
         }
-        bookmarksDatabase = CoreDataDatabase(name: className, containerLocation: bookmarksDatabaseLocation, model: model)
+        bookmarksDatabase = CoreDataDatabase(name: type(of: self).description(), containerLocation: bookmarksDatabaseLocation, model: model)
         bookmarksDatabase.loadStore()
     }
 
@@ -53,7 +54,7 @@ internal class BookmarksProviderTestsBase: XCTestCase {
             XCTFail("Failed to load model")
             return
         }
-        metadataDatabase = CoreDataDatabase(name: className, containerLocation: metadataDatabaseLocation, model: model)
+        metadataDatabase = CoreDataDatabase(name: type(of: self).description(), containerLocation: metadataDatabaseLocation, model: model)
         metadataDatabase.loadStore()
     }
 
