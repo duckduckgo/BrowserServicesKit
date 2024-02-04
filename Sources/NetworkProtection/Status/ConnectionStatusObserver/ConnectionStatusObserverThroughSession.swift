@@ -119,8 +119,7 @@ public class ConnectionStatusObserverThroughSession: ConnectionStatusObserver {
     }
 
     private func handleStatusChangeNotification(_ notification: Notification) {
-        guard let session = ConnectionSessionUtilities.session(from: notification),
-              session.manager is NETunnelProviderManager else {
+        guard let session = ConnectionSessionUtilities.session(from: notification) else {
             return
         }
 
