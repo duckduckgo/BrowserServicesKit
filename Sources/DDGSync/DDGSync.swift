@@ -336,7 +336,7 @@ public class DDGSync: DDGSyncing {
         } catch {
             // swiftlint:disable:next line_length
             os_log(.error, log: dependencies.log, "Failed to delete account upon unauthenticated server response: %{public}s", error.localizedDescription)
-            if let syncError = error as? SyncError {
+            if error is SyncError {
                 throw error
             }
         }
