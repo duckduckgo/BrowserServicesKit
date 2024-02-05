@@ -271,6 +271,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     public lazy var tunnelFailureMonitor = NetworkProtectionTunnelFailureMonitor(tunnelProvider: self)
     public lazy var latencyMonitor = NetworkProtectionLatencyMonitor()
+    public lazy var entitlementMonitor = NetworkProtectionEntitlementMonitor()
 
     private var lastTestFailed = false
     private let bandwidthAnalyzer = NetworkProtectionConnectionBandwidthAnalyzer()
@@ -1056,6 +1057,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
         await startTunnelFailureMonitor()
         await startLatencyMonitor()
+        await startEntitlementMonitor()
 
         do {
             // These cases only make sense in the context of a connection that had trouble
@@ -1074,6 +1076,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         await self.connectionTester.stop()
         await self.tunnelFailureMonitor.stop()
         await self.latencyMonitor.stop()
+        await self.entitlementMonitor.stop()
     }
 
     // MARK: - Monitors
@@ -1103,6 +1106,18 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 self?.providerEvents.fire(.reportLatency(result: .error))
             case .quality(let quality):
                 self?.providerEvents.fire(.reportLatency(result: .quality(quality)))
+            }
+        }
+    }
+
+    private func startEntitlementMonitor() async {
+        if await entitlementMonitor.isStarted {
+            await entitlementMonitor.stop()
+        }
+
+        await entitlementMonitor.start(isEntitlementValid: subscriptionConfiguration.isEntitlementValid) { [weak self] result in
+            if case .error(let error) = result, error == .invalid {
+                self?.settings.apply(change: .setShouldShowExpiredEntitlementMessaging(.init(showsAlert: true, showsNotification: true)))
             }
         }
     }
