@@ -193,7 +193,7 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
             switch response.statusCode {
             case 200: downloadedData = data
             case 401: return .failure(.invalidAuthToken)
-            default: return (response.statusCode == 403 && isSubscriptionEnabled) ? .failure(.accessDenied) : .failure(.failedToFetchLocationList(nil))
+            default: return .failure(.failedToFetchLocationList(nil))
             }
         } catch {
             return .failure(NetworkProtectionClientError.failedToFetchLocationList(error))
@@ -220,7 +220,7 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
             switch response.statusCode {
             case 200: downloadedData = data
             case 401: return .failure(.invalidAuthToken)
-            default: return (response.statusCode == 403 && isSubscriptionEnabled) ? .failure(.accessDenied) : .failure(.failedToFetchServerList(nil))
+            default: return .failure(.failedToFetchServerList(nil))
             }
         } catch {
             return .failure(NetworkProtectionClientError.failedToFetchServerList(error))
