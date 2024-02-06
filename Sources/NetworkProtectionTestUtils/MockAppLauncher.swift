@@ -23,7 +23,7 @@ public final class MockAppLauncher: AppLaunching {
     public init() {
     }
 
-    public var spyLaunchAppCommand: AppLaunchCommand? = nil
+    public var spyLaunchAppCommand: AppLaunchCommand?
     public func launchApp(withCommand command: AppLaunchCommand) async {
         spyLaunchAppCommand = command
     }
