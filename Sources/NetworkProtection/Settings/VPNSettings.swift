@@ -41,7 +41,7 @@ public final class VPNSettings {
         case setVPNFirstEnabled(_ vpnFirstEnabled: Date?)
         case setNetworkPathChange(_ newPath: String?)
         case setDisableRekeying(_ disableRekeying: Bool)
-        case setShouldShowExpiredEntitlementMessaging(_ settings: UserDefaults.ExpiredEntitlementMessaging)
+        case setShouldShowExpiredEntitlementMessaging(_ settings: UserDefaults.ExpiredEntitlementMessaging?)
     }
 
     public enum RegistrationKeyValidity: Codable, Equatable {
@@ -502,11 +502,11 @@ public final class VPNSettings {
 
     // MARK: - Whether to show expired entitlement alert
 
-    public var shouldShowExpiredEntitlementMessagingPublisher: AnyPublisher<UserDefaults.ExpiredEntitlementMessaging, Never> {
+    public var shouldShowExpiredEntitlementMessagingPublisher: AnyPublisher<UserDefaults.ExpiredEntitlementMessaging?, Never> {
         defaults.shouldShowExpiredEntitlementMessagingPublisher
     }
 
-    public var shouldShowExpiredEntitlementMessaging: UserDefaults.ExpiredEntitlementMessaging {
+    public var shouldShowExpiredEntitlementMessaging: UserDefaults.ExpiredEntitlementMessaging? {
         get {
             defaults.shouldShowExpiredEntitlementMessaging
         }

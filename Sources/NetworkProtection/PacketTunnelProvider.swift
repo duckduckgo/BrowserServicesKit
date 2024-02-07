@@ -863,7 +863,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         case .setShouldShowExpiredEntitlementMessaging:
             // todo - https://app.asana.com/0/0/1206409081785857/f
             notificationsPresenter.showExpiredEntitlementNotification()
-            adapter.stop { _ in }
             completionHandler?(nil)
         case .setConnectOnLogin,
                 .setIncludeAllNetworks,
@@ -1116,8 +1115,13 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
 
         await entitlementMonitor.start(isEntitlementValid: subscriptionConfiguration.isEntitlementValid) { [weak self] result in
-            if case .error(let error) = result, error == .invalid {
-                self?.settings.apply(change: .setShouldShowExpiredEntitlementMessaging(.init(showsAlert: true, showsNotification: true)))
+            switch result {
+            case .validEntitlement:
+                self?.settings.apply(change: .setShouldShowExpiredEntitlementMessaging(nil))
+            case .error(let error):
+                if error == .invalid {
+                    self?.settings.apply(change: .setShouldShowExpiredEntitlementMessaging(.init(showsAlert: true, showsNotification: true)))
+                }
             }
         }
     }

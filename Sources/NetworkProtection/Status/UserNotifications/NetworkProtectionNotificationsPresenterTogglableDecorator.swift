@@ -58,9 +58,9 @@ final public class NetworkProtectionNotificationsPresenterTogglableDecorator: Ne
     }
 
     public func showExpiredEntitlementNotification() {
-        if settings.shouldShowExpiredEntitlementMessaging.showsNotification {
+        if let messaging = settings.shouldShowExpiredEntitlementMessaging, messaging.showsNotification {
             wrappeePresenter.showExpiredEntitlementNotification()
-            settings.apply(change: .setShouldShowExpiredEntitlementMessaging(.init(showsAlert: settings.shouldShowExpiredEntitlementMessaging.showsAlert, showsNotification: false)))
+            settings.apply(change: .setShouldShowExpiredEntitlementMessaging(.init(showsAlert: messaging.showsAlert, showsNotification: false)))
         }
     }
 }

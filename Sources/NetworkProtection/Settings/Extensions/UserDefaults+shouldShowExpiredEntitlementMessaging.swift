@@ -24,7 +24,7 @@ extension UserDefaults {
         public let showsAlert: Bool
         public let showsNotification: Bool
 
-        init(showsAlert: Bool = false, showsNotification: Bool = false) {
+        public init(showsAlert: Bool = false, showsNotification: Bool = false) {
             self.showsAlert = showsAlert
             self.showsNotification = showsNotification
         }
@@ -35,10 +35,11 @@ extension UserDefaults {
     }
 
     @objc
-    dynamic var shouldShowExpiredEntitlementMessaging: ExpiredEntitlementMessaging {
+    dynamic var shouldShowExpiredEntitlementMessaging: ExpiredEntitlementMessaging? {
         get {
             guard let data = data(forKey: shouldShowExpiredEntitlementMessagingKey),
-                  let value = try? JSONDecoder().decode(ExpiredEntitlementMessaging.self, from: data) else { return .init()
+                  let value = try? JSONDecoder().decode(ExpiredEntitlementMessaging.self, from: data) else {
+                return nil
             }
             return value
         }
@@ -49,7 +50,7 @@ extension UserDefaults {
         }
     }
 
-    var shouldShowExpiredEntitlementMessagingPublisher: AnyPublisher<ExpiredEntitlementMessaging, Never> {
+    var shouldShowExpiredEntitlementMessagingPublisher: AnyPublisher<ExpiredEntitlementMessaging?, Never> {
         publisher(for: \.shouldShowExpiredEntitlementMessaging).eraseToAnyPublisher()
     }
 }
