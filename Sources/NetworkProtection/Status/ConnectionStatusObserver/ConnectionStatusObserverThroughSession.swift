@@ -33,6 +33,8 @@ public class ConnectionStatusObserverThroughSession: ConnectionStatusObserver {
 
     private let subject = CurrentValueSubject<ConnectionStatus, Never>(.disconnected)
 
+    private let tunnelSessionProvider: TunnelSessionProvider
+
     // MARK: - Notifications
     private let notificationCenter: NotificationCenter
     private let platformNotificationCenter: NotificationCenter
@@ -45,7 +47,8 @@ public class ConnectionStatusObserverThroughSession: ConnectionStatusObserver {
 
     // MARK: - Initialization
 
-    public init(notificationCenter: NotificationCenter = .default,
+    public init(tunnelSessionProvider: TunnelSessionProvider,
+                notificationCenter: NotificationCenter = .default,
                 platformNotificationCenter: NotificationCenter,
                 platformDidWakeNotification: Notification.Name,
                 log: OSLog = .networkProtection) {
@@ -53,6 +56,7 @@ public class ConnectionStatusObserverThroughSession: ConnectionStatusObserver {
         self.notificationCenter = notificationCenter
         self.platformNotificationCenter = platformNotificationCenter
         self.platformDidWakeNotification = platformDidWakeNotification
+        self.tunnelSessionProvider = tunnelSessionProvider
         self.log = log
 
         start()
@@ -90,7 +94,7 @@ public class ConnectionStatusObserverThroughSession: ConnectionStatusObserver {
     }
 
     private func loadInitialStatus() async {
-        guard let session = try? await ConnectionSessionUtilities.activeSession() else {
+        guard let session = await tunnelSessionProvider.activeSession() else {
             return
         }
 
@@ -101,15 +105,11 @@ public class ConnectionStatusObserverThroughSession: ConnectionStatusObserver {
 
     private func handleDidWake(_ notification: Notification) {
         Task {
-            do {
-                guard let session = try await ConnectionSessionUtilities.activeSession() else {
-                    return
-                }
-
-                handleStatusChange(in: session)
-            } catch {
-                os_log("%{public}@: failed to handle wake %{public}@", log: log, type: .error, String(describing: self), error.localizedDescription)
+            guard let session = await tunnelSessionProvider.activeSession() else {
+                return
             }
+
+            handleStatusChange(in: session)
         }
     }
 

@@ -22,6 +22,7 @@ import NetworkExtension
 /// These are only usable from the App that owns the tunnel.
 ///
 public class ConnectionSessionUtilities {
+    /*
     public static func activeSession(networkExtensionBundleID: String) async throws -> NETunnelProviderSession? {
         let managers = try await NETunnelProviderManager.loadAllFromPreferences()
 
@@ -54,7 +55,7 @@ public class ConnectionSessionUtilities {
         }
 
         return session
-    }
+    }*/
 
     /// Retrieves a session from a `NEVPNStatusDidChange` notification.
     ///
