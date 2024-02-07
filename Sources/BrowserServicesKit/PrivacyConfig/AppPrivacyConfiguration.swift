@@ -195,27 +195,24 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         let subfeatures = subfeatures(for: subfeature.parent)
         let subfeatureData = subfeatures[subfeature.rawValue]
 
-        // Handle Rollouts
-        if let rollout = subfeatureData?.rollout {
-            if !isRolloutEnabled(subfeature: subfeature, rolloutSteps: rollout.steps, randomizer: randomizer) {
-                return .disabled(.stillInRollout)
-            }
-        }
-
         let satisfiesMinVersion = satisfiesMinVersion(subfeatureData?.minSupportedVersion, versionProvider: versionProvider)
 
         switch subfeatureData?.state {
         case PrivacyConfigurationData.State.enabled:
             guard satisfiesMinVersion else { return .disabled(.appVersionNotSupported) }
-
-            return .enabled
         case PrivacyConfigurationData.State.internal:
             guard internalUserDecider.isInternalUser else { return .disabled(.limitedToInternalUsers) }
             guard satisfiesMinVersion else { return .disabled(.appVersionNotSupported) }
-
-            return .enabled
         default: return .disabled(.disabledInConfig)
         }
+
+        // Handle Rollouts
+        if let rollout = subfeatureData?.rollout,
+           !isRolloutEnabled(subfeature: subfeature, rolloutSteps: rollout.steps, randomizer: randomizer) {
+            return .disabled(.stillInRollout)
+        }
+
+        return .enabled
     }
 
     private func subfeatures(for feature: PrivacyFeature) -> PrivacyConfigurationData.PrivacyFeature.Features {
