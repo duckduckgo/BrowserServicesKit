@@ -30,6 +30,7 @@ extension WKWebpagePreferences {
         || self.instancesRespond(to: NSSelectorFromString(Self.customHeaderFieldsKey))
     }
 
+    /// used to add custom request headers to `WKNavigationAction` before the request is sent
     public var customHeaderFields: [CustomHeaderFields]? {
         get {
             guard Self.customHeaderFieldsSupported else { return nil }

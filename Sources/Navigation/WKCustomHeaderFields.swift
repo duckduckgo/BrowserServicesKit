@@ -19,6 +19,27 @@
 import Foundation
 
 #if _WEBPAGE_PREFS_CUSTOM_HEADERS_ENABLED
+/// `_WKCustomHeaderFields` class bridge to use from Swift context
+/// used to add custom request headers to `WKNavigationAction` before the request is sent
+///
+/// Usage within the Navigation framework in `decidePolicy(for: NavigationAction, preferences: inout NavigationPreferences)`
+/// ```
+/// if NavigationPreferences.customHeadersSupported,
+///    let customHeaders = CustomHeaderFields(fields: ["X-Key": "Value"]) {
+///     preferences.customHeaders = [customHeaders]
+/// }
+/// ```
+///
+/// Direct WebKit Usage in `decidePolicy(for: WKNavigationAction, preferences: WKWebpagePreferences)`
+///  ```
+///  if WKWebpagePreferences.customHeaderFieldsSupported,
+///     let customHeaders = CustomHeaderFields(fields: ["X-Key": "Value"]) {
+///      preferences.customHeaderFields = [customHeaders]
+///  }
+///  ```
+///
+///  - Note: Obj-C bridging is used to make this data-storage struct implicitly converted into `_WKCustomHeaderFields` 
+///  when passed to the WK Obj-C layer hiding the `NSClassFromString`-backed object allocation and and setting values by key
 public struct CustomHeaderFields: _ObjectiveCBridgeable, Hashable {
 
     public var fields: [String: String]
