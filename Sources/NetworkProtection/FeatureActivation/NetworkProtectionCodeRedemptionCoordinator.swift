@@ -41,10 +41,8 @@ public final class NetworkProtectionCodeRedemptionCoordinator: NetworkProtection
                             tokenStore: NetworkProtectionTokenStore,
                             versionStore: NetworkProtectionLastVersionRunStore = .init(),
                             isManualCodeRedemptionFlow: Bool = false,
-                            errorEvents: EventMapping<NetworkProtectionError>) {
-        // Code redemption flow isn't used in subscription build
-        let isSubscriptionEnabled = false
-
+                            errorEvents: EventMapping<NetworkProtectionError>,
+                            isSubscriptionEnabled: Bool) {
         self.init(networkClient: NetworkProtectionBackendClient(environment: environment, isSubscriptionEnabled: isSubscriptionEnabled),
                   tokenStore: tokenStore,
                   versionStore: versionStore,
