@@ -412,6 +412,7 @@ extension DistributedNavigationDelegateTestsBase {
             guard event1 != nil || event2 != nil else { continue }
             if let diff = compare(Mirror(reflecting: event1 ?? event2!).children.first!.label!, event1, event2) {
                 printEncoded(responder: responderIdx)
+                let diff2 = compare(Mirror(reflecting: event1 ?? event2!).children.first!.label!, event1, event2)
                 XCTFail("\n#\(idx): " + diff, file: file, line: line)
             }
         }
