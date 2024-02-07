@@ -1716,7 +1716,7 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
         waitForExpectations(timeout: 5)
 
         assertHistory(ofResponderAt: 0, equalsTo: [
-            .navigationAction(req(urls.local1), .other, src: main()),
+            .navigationAction(req(urls.local1), .other, src: main(responderIdx: 0)),
             .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local1, data.html.count, headers: .default + ["Content-Type": "text/html"]))),

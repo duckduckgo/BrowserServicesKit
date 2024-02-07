@@ -154,6 +154,10 @@ public struct NavigationAction {
         return self.init(request: URLRequest(url: webView.url ?? .empty), navigationType: .sessionRestoration, currentHistoryItemIdentity: nil, redirectHistory: nil, isUserInitiated: false, sourceFrame: .mainFrame(for: webView), targetFrame: .mainFrame(for: webView), shouldDownload: false, mainFrameNavigation: mainFrameNavigation)
     }
 
+    internal static func alternateHtmlLoadNavigation(webView: WKWebView, mainFrameNavigation: Navigation?) -> Self {
+        return self.init(request: URLRequest(url: webView.url ?? .empty), navigationType: .alternateHtmlLoad, currentHistoryItemIdentity: nil, redirectHistory: nil, isUserInitiated: false, sourceFrame: .mainFrame(for: webView), targetFrame: .mainFrame(for: webView), shouldDownload: false, mainFrameNavigation: mainFrameNavigation)
+    }
+
 }
 
 public extension NavigationAction {
