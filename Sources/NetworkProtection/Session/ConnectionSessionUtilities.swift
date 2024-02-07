@@ -23,6 +23,8 @@ import NetworkExtension
 ///
 public class ConnectionSessionUtilities {
 
+    /// Ideally we should remove these for iOS too.
+    ///
     /// This has been deprecated in macOS to avoid making multiple calls to
     /// `NEPacketTunnelProviderManager.loadAllFromPreferences` since it causes notification
     /// degradation issues over time.  Also, I tried removing this for both platforms, but iOS doesn't have
@@ -49,6 +51,8 @@ public class ConnectionSessionUtilities {
         return session
     }
 
+    /// Ideally we should remove these for iOS too.
+    ///
     /// This has been deprecated in macOS to avoid making multiple calls to
     /// `NEPacketTunnelProviderManager.loadAllFromPreferences` since it causes notification
     /// degradation issues over time.  Also, I tried removing this for both platforms, but iOS doesn't have
