@@ -43,7 +43,7 @@ let package = Package(
         .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "4.59.2"),
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
         .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
-        .package(url: "https://github.com/duckduckgo/wireguard-apple", revision: "38c44b063d57ee9ebc4ea2bb3fc99d204ff42957"),
+        .package(url: "https://github.com/duckduckgo/wireguard-apple", revision: "8bd6e546df83a365fa93e0cc1109b3d215bcf043"),
     ],
     targets: [
         .target(
