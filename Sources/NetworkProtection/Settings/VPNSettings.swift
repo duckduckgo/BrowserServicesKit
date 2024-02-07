@@ -39,6 +39,7 @@ public final class VPNSettings {
         case setSelectedEnvironment(_ selectedEnvironment: SelectedEnvironment)
         case setShowInMenuBar(_ showInMenuBar: Bool)
         case setVPNFirstEnabled(_ vpnFirstEnabled: Date?)
+        case setVPNCustomDNS(_ dns: String?)
         case setNetworkPathChange(_ newPath: String?)
         case setDisableRekeying(_ disableRekeying: Bool)
     }
@@ -169,6 +170,13 @@ public final class VPNSettings {
                 Change.setVPNFirstEnabled(vpnFirstEnabled)
             }.eraseToAnyPublisher()
 
+        let customDNSPublisher = customDNSPublisher
+            .dropFirst()
+            .removeDuplicates()
+            .map { dns in
+                Change.setVPNCustomDNS(dns)
+            }.eraseToAnyPublisher()
+
         let networkPathChangePublisher = networkPathChangePublisher
             .dropFirst()
             .removeDuplicates()
@@ -194,6 +202,7 @@ public final class VPNSettings {
             environmentChangePublisher,
             showInMenuBarPublisher,
             vpnFirstEnabledPublisher,
+            customDNSPublisher,
             networkPathChangePublisher,
             disableRekeyingPublisher).eraseToAnyPublisher()
     }()
@@ -243,6 +252,8 @@ public final class VPNSettings {
             self.showInMenuBar = showInMenuBar
         case .setVPNFirstEnabled(let vpnFirstEnabled):
             self.vpnFirstEnabled = vpnFirstEnabled
+        case .setVPNCustomDNS(let dns):
+            self.customDNS = dns
         case .setNetworkPathChange(let newPath):
             self.networkPathChange = UserDefaults.NetworkPathChange(
                 oldPath: networkPathChange?.newPath ?? "unknown",
@@ -454,6 +465,22 @@ public final class VPNSettings {
 
         set {
             defaults.vpnFirstEnabled = newValue
+        }
+    }
+
+    // MARK: - Custom DNS server
+
+    public var customDNSPublisher: AnyPublisher<String?, Never> {
+        defaults.vpnCustomDNSPublisher
+    }
+
+    public var customDNS: String? {
+        get {
+            defaults.vpnCustomDNS
+        }
+
+        set {
+            defaults.vpnCustomDNS = newValue
         }
     }
 

@@ -51,6 +51,7 @@ public protocol NetworkProtectionDeviceManagement {
 
 public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     private let networkClient: NetworkProtectionClient
+    private let customDNS: String?
     private let tokenStore: NetworkProtectionTokenStore
     private let keyStore: NetworkProtectionKeyStore
     private let serverListStore: NetworkProtectionServerListStore
@@ -58,11 +59,13 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     private let errorEvents: EventMapping<NetworkProtectionError>?
 
     public init(environment: VPNSettings.SelectedEnvironment,
+                customDNS: String?,
                 tokenStore: NetworkProtectionTokenStore,
                 keyStore: NetworkProtectionKeyStore,
                 serverListStore: NetworkProtectionServerListStore? = nil,
                 errorEvents: EventMapping<NetworkProtectionError>?) {
         self.init(networkClient: NetworkProtectionBackendClient(environment: environment),
+                  customDNS: customDNS,
                   tokenStore: tokenStore,
                   keyStore: keyStore,
                   serverListStore: serverListStore,
@@ -70,11 +73,13 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     }
 
     init(networkClient: NetworkProtectionClient,
+         customDNS: String?,
          tokenStore: NetworkProtectionTokenStore,
          keyStore: NetworkProtectionKeyStore,
          serverListStore: NetworkProtectionServerListStore? = nil,
          errorEvents: EventMapping<NetworkProtectionError>?) {
         self.networkClient = networkClient
+        self.customDNS = customDNS
         self.tokenStore = tokenStore
         self.keyStore = keyStore
         self.serverListStore = serverListStore ?? NetworkProtectionServerListFileSystemStore(errorEvents: errorEvents)
@@ -286,11 +291,17 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
             throw NetworkProtectionError.couldNotGetInterfaceAddressRange
         }
 
+        let dns: [DNSServer]
+        if let customDNS, let address = IPv4Address(customDNS) {
+            dns = [DNSServer(address: address)]
+        } else {
+            dns = [DNSServer(address: server.serverInfo.internalIP)]
+        }
         let interface = interfaceConfiguration(privateKey: interfacePrivateKey,
                                                addressRange: interfaceAddressRange,
                                                includedRoutes: includedRoutes,
                                                excludedRoutes: excludedRoutes,
-                                               dns: [DNSServer(address: server.serverInfo.internalIP)],
+                                               dns: dns,
                                                isKillSwitchEnabled: isKillSwitchEnabled)
 
         return TunnelConfiguration(name: "Network Protection", interface: interface, peers: [peerConfiguration])

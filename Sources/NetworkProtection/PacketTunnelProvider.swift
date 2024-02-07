@@ -518,6 +518,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
         os_log("Starting tunnel %{public}@", log: .networkProtection, options.startupMethod.debugDescription)
         startTunnel(environment: settings.selectedEnvironment,
+                    customDNS: settings.customDNS,
                     onDemand: onDemand,
                     completionHandler: completionHandler)
     }
@@ -544,13 +545,14 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         return serverSelectionMethod
     }
 
-    private func startTunnel(environment: VPNSettings.SelectedEnvironment, onDemand: Bool, completionHandler: @escaping (Error?) -> Void) {
+    private func startTunnel(environment: VPNSettings.SelectedEnvironment, customDNS: String?, onDemand: Bool, completionHandler: @escaping (Error?) -> Void) {
         Task {
             do {
                 os_log("🔵 Generating tunnel config", log: .networkProtection, type: .info)
                 os_log("🔵 Excluded ranges are: %{public}@", log: .networkProtection, type: .info, String(describing: settings.excludedRanges))
                 os_log("🔵 Server selection method: %{public}@", log: .networkProtection, type: .info, currentServerSelectionMethod.debugDescription)
                 let tunnelConfiguration = try await generateTunnelConfiguration(environment: environment,
+                                                                                customDNS: customDNS,
                                                                                 serverSelectionMethod: currentServerSelectionMethod,
                                                                                 includedRoutes: includedRoutes ?? [],
                                                                                 excludedRoutes: settings.excludedRanges)
@@ -659,13 +661,14 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     @MainActor
     public func updateTunnelConfiguration(reassert: Bool = true) async throws {
-        try await updateTunnelConfiguration(environment: settings.selectedEnvironment, serverSelectionMethod: currentServerSelectionMethod, reassert: reassert)
+        try await updateTunnelConfiguration(environment: settings.selectedEnvironment, customDNS: settings.customDNS, serverSelectionMethod: currentServerSelectionMethod, reassert: reassert)
     }
 
     @MainActor
-    public func updateTunnelConfiguration(environment: VPNSettings.SelectedEnvironment = .default, serverSelectionMethod: NetworkProtectionServerSelectionMethod, reassert: Bool = true) async throws {
+    public func updateTunnelConfiguration(environment: VPNSettings.SelectedEnvironment = .default, customDNS: String?, serverSelectionMethod: NetworkProtectionServerSelectionMethod, reassert: Bool = true) async throws {
 
         let tunnelConfiguration = try await generateTunnelConfiguration(environment: environment,
+                                                                        customDNS: customDNS,
                                                                         serverSelectionMethod: serverSelectionMethod,
                                                                         includedRoutes: includedRoutes ?? [],
                                                                         excludedRoutes: settings.excludedRanges)
@@ -699,13 +702,14 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     @MainActor
-    private func generateTunnelConfiguration(environment: VPNSettings.SelectedEnvironment = .default, serverSelectionMethod: NetworkProtectionServerSelectionMethod, includedRoutes: [IPAddressRange], excludedRoutes: [IPAddressRange]) async throws -> TunnelConfiguration {
+    private func generateTunnelConfiguration(environment: VPNSettings.SelectedEnvironment = .default, customDNS: String?, serverSelectionMethod: NetworkProtectionServerSelectionMethod, includedRoutes: [IPAddressRange], excludedRoutes: [IPAddressRange]) async throws -> TunnelConfiguration {
 
         let configurationResult: (TunnelConfiguration, NetworkProtectionServerInfo)
 
         do {
             let networkClient = NetworkProtectionBackendClient(environment: environment)
             let deviceManager = NetworkProtectionDeviceManager(networkClient: networkClient,
+                                                               customDNS: customDNS,
                                                                tokenStore: tokenStore,
                                                                keyStore: keyStore,
                                                                errorEvents: debugEvents)
@@ -815,7 +819,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
             Task {
                 if case .connected = connectionStatus {
-                    try? await updateTunnelConfiguration(environment: settings.selectedEnvironment, serverSelectionMethod: serverSelectionMethod)
+                    try? await updateTunnelConfiguration(environment: settings.selectedEnvironment, customDNS: settings.customDNS, serverSelectionMethod: serverSelectionMethod)
                 }
                 completionHandler?(nil)
             }
@@ -831,7 +835,14 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
             Task {
                 if case .connected = connectionStatus {
-                    try? await updateTunnelConfiguration(environment: settings.selectedEnvironment, serverSelectionMethod: serverSelectionMethod)
+                    try? await updateTunnelConfiguration(environment: settings.selectedEnvironment, customDNS: settings.customDNS, serverSelectionMethod: serverSelectionMethod)
+                }
+                completionHandler?(nil)
+            }
+        case .setVPNCustomDNS:
+            Task {
+                if case .connected = connectionStatus {
+                    try? await updateTunnelConfiguration(reassert: true)
                 }
                 completionHandler?(nil)
             }
@@ -925,7 +936,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
             settings.selectedServer = .endpoint(serverName)
             if case .connected = connectionStatus {
-                try? await updateTunnelConfiguration(environment: settings.selectedEnvironment, serverSelectionMethod: .preferredServer(serverName: serverName))
+                try? await updateTunnelConfiguration(environment: settings.selectedEnvironment, customDNS: settings.customDNS, serverSelectionMethod: .preferredServer(serverName: serverName))
             }
             completionHandler?(nil)
         }
