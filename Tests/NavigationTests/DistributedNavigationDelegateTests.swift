@@ -32,6 +32,53 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
 
     // MARK: - Basic Responder Chain
 
+#if _WEBPAGE_PREFS_CUSTOM_HEADERS_ENABLED
+    func testWhenCustomHeadersAreSet_headersAreSent() throws {
+        var shouldAddHeaders = true
+        let headers = ["x-custom-header": "val", "x-another-header": "test"]
+        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
+        responder(at: 0).onNavigationAction = { _, preferences in
+            if shouldAddHeaders {
+                preferences.customHeaders = [CustomHeaderFields(fields: headers)!]
+            }
+            return .allow
+        }
+        var eDidFinish = expectation(description: "onDidFinish")
+        responder(at: 0).onDidFinish = { nav in
+            eDidFinish.fulfill()
+        }
+
+        var eDidReceiveRequest = expectation(description: "request received")
+        server.middleware = [{ [data] request in
+            eDidReceiveRequest.fulfill()
+            if shouldAddHeaders {
+                XCTAssertEqual(request.headers.filter { headers[$0.key] != nil }, headers)
+            } else {
+                XCTAssertEqual(request.headers.filter { headers[$0.key] != nil }, [:])
+            }
+
+            return .ok(.data(data.html))
+        }]
+
+        // regular navigation from an empty state
+        try server.start(8084)
+        withWebView { webView in
+            _=webView.load(req(urls.local))
+        }
+        waitForExpectations(timeout: 5)
+
+        // send again without headers
+        shouldAddHeaders = false
+        eDidFinish = expectation(description: "onDidFinish 2")
+        eDidReceiveRequest = expectation(description: "request received 2")
+        withWebView { webView in
+            _=webView.load(req(urls.local))
+        }
+        waitForExpectations(timeout: 5)
+
+    }
+#endif
+
     func testWhenNavigationFinished_didFinishIsCalled() throws {
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
 
