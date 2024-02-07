@@ -1,8 +1,9 @@
-// swift-tools-version:5.7
+// swift-tools-version: 5.9
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
-import PackageDescription
+import CompilerPluginSupport
 import Foundation
+import PackageDescription
 
 let package = Package(
     name: "BrowserServicesKit",
@@ -32,6 +33,7 @@ let package = Package(
         .library(name: "NetworkProtectionTestUtils", targets: ["NetworkProtectionTestUtils"]),
         .library(name: "SecureStorage", targets: ["SecureStorage"]),
         .plugin(name: "SwiftLintPlugin", targets: ["SwiftLintPlugin"]),
+        .library(name: "Macros", targets: ["Macros"]),
     ],
     dependencies: [
         .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "10.1.0"),
@@ -44,6 +46,9 @@ let package = Package(
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
         .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
         .package(url: "https://github.com/duckduckgo/wireguard-apple", exact: "1.1.1"),
+        // Depend on the Swift 5.9 release of SwiftSyntax
+        .package(url: "https://github.com/apple/swift-syntax.git", from: "509.0.0"),
+        .package(url: "https://github.com/pointfreeco/swift-macro-testing.git", from: "0.2.2"),
     ],
     targets: [
         .target(
@@ -304,6 +309,22 @@ let package = Package(
             plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
 
+        // Macro implementation that performs the source transformation of a macro.
+        .macro(
+            name: "MacrosImplementation",
+            dependencies: [
+                .product(name: "SwiftSyntaxMacros", package: "swift-syntax"),
+                .product(name: "SwiftCompilerPlugin", package: "swift-syntax")
+            ],
+            plugins: [.plugin(name: "SwiftLintPlugin")]
+        ),
+        // Library that exposes a macro as part of its API, which is used in client programs.
+        .target(
+            name: "Macros",
+            dependencies: ["MacrosImplementation"],
+            plugins: [.plugin(name: "SwiftLintPlugin")]
+        ),
+
         // MARK: - Test Targets
 
         .testTarget(
@@ -460,6 +481,15 @@ let package = Package(
             dependencies: [
                 "PrivacyDashboard",
                 "TestUtils"
+            ],
+            plugins: [.plugin(name: "SwiftLintPlugin")]
+        ),
+        .testTarget(
+            name: "MacrosTests",
+            dependencies: [
+                "MacrosImplementation",
+                .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
+                .product(name: "MacroTesting", package: "swift-macro-testing"),
             ],
             plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
