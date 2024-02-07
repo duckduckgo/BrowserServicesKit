@@ -31,6 +31,7 @@ let package = Package(
         .library(name: "NetworkProtection", targets: ["NetworkProtection"]),
         .library(name: "NetworkProtectionTestUtils", targets: ["NetworkProtectionTestUtils"]),
         .library(name: "SecureStorage", targets: ["SecureStorage"]),
+        .library(name: "Subscription", targets: ["Subscription"]),
         .plugin(name: "SwiftLintPlugin", targets: ["SwiftLintPlugin"]),
     ],
     dependencies: [
@@ -300,6 +301,16 @@ let package = Package(
             name: "NetworkProtectionTestUtils",
             dependencies: [
                 "NetworkProtection"
+            ],
+            plugins: [.plugin(name: "SwiftLintPlugin")]
+        ),
+        .target(
+            name: "Subscription",
+            dependencies: [
+                "BrowserServicesKit",
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
             ],
             plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
