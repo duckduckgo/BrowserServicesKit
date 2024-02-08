@@ -554,7 +554,7 @@ extension FrameInfo: TestComparable {
     }
 }
 
-extension NavigationPreferences {
+extension NavigationPreferences: TestComparable {
     enum JSDisabled {
         case jsDisabled
     }
@@ -566,6 +566,19 @@ extension NavigationPreferences {
             return nil
         }
         return ".init(\(userAgent ?? "")\(contentMode == .recommended ? "" : ((userAgent == nil ? "" : ",") + (contentMode == .mobile ? ":mobile" : "desktop")))\(javaScriptEnabled == false ? ((userAgent != nil || contentMode != .recommended ? "," : "") + ".jsDisabled") : ""))"
+    }
+
+    static func difference(between lhs: NavigationPreferences, and rhs: NavigationPreferences) -> String? {
+        if let diff = compare("userAgent", lhs.userAgent, rhs.userAgent)
+            ?? compare("contentMode", lhs.contentMode, rhs.contentMode)
+            ?? compare("javaScriptEnabled", lhs.javaScriptEnabled, rhs.javaScriptEnabled) {
+            return diff
+        }
+#if _WEBPAGE_PREFS_CUSTOM_HEADERS_ENABLED
+        return compare("customHeaders", lhs.customHeaders ?? [], rhs.customHeaders ?? [])
+#else
+        return nil
+#endif
     }
 }
 
@@ -754,6 +767,8 @@ extension NavigationType {
             return ".other"
         case .custom(let name):
             return "<##custom: \(name.rawValue)>"
+        case .alternateHtmlLoad:
+            return ".alternateHtmlLoad"
         }
     }
 }

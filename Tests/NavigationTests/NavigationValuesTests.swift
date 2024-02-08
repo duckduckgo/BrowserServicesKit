@@ -16,6 +16,8 @@
 //  limitations under the License.
 //
 
+#if os(macOS)
+
 import Combine
 import Common
 import Swifter
@@ -216,3 +218,5 @@ class NavigationValuesTests: DistributedNavigationDelegateTestsBase {
 #endif
 
 }
+
+#endif

@@ -85,6 +85,15 @@ enum TestsNavigationEvent: TestComparable {
         Mirror(reflecting: Mirror(reflecting: self).children.first!.value).children.first(where: { $0.label == "line" })?.value as! UInt
     }
 
+    var type: String {
+        let descr = String(describing: self)
+        if let idx = descr.range(of: ".")?.lowerBound {
+            return String(descr[..<idx])
+        } else {
+            return descr
+        }
+    }
+
     static func difference(between lhs: TestsNavigationEvent, and rhs: TestsNavigationEvent) -> String? {
         let caseMirror1 = Mirror(reflecting: lhs).children.first!
         let caseMirror2 = Mirror(reflecting: rhs).children.first!
@@ -174,6 +183,18 @@ class NavigationResponderMock: NavigationResponder {
         fatalError("not handled: \($0)")
     }
     var defaultHandler: ((TestsNavigationEvent) -> Void)
+
+    var mainFrame: FrameInfo? {
+        for event in history {
+            if case .navigationAction(let navAction, _, _) = event,
+               // sometimes main frame id is 2
+               [4, 2].contains(navAction.navigationAction.sourceFrame.handle.frameID) {
+
+                return navAction.navigationAction.sourceFrame
+            }
+        }
+        return nil
+    }
 
     init(defaultHandler: @escaping ((TestsNavigationEvent) -> Void) = NavigationResponderMock.defaultHandler) {
         self.defaultHandler = defaultHandler

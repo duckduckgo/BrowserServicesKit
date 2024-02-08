@@ -16,6 +16,8 @@
 //  limitations under the License.
 //
 
+#if os(macOS)
+
 import Combine
 import Common
 import Swifter
@@ -365,8 +367,11 @@ extension DistributedNavigationDelegateTestsBase {
 
     // MARK: FrameInfo mocking
 
-    func main(webView webViewArg: WKWebView? = nil, _ current: URL = .empty, secOrigin: SecurityOrigin? = nil) -> FrameInfo {
-        withWebView { webView in
+    func main(webView webViewArg: WKWebView? = nil, _ current: URL = .empty, secOrigin: SecurityOrigin? = nil, responderIdx: Int? = nil) -> FrameInfo {
+        if let responderIdx, let mainFrame = responder(at: responderIdx).mainFrame {
+            return mainFrame
+        }
+        return withWebView { webView in
             FrameInfo(webView: webViewArg ?? webView, handle: webViewArg?.mainFrameHandle ?? webView.mainFrameHandle, isMainFrame: true, url: current, securityOrigin: secOrigin ?? current.securityOrigin)
         }
     }
@@ -385,6 +390,7 @@ extension DistributedNavigationDelegateTestsBase {
         let lhs = responder(at: responderIdx).history
         var rhs = rhs
         var lastEventLine = line
+        let rhsMap = rhs.enumerated().reduce(into: [Int: TestsNavigationEvent]()) { $0[$1.offset] = $1.element }
         for idx in 0..<max(lhs.count, rhs.count) {
             let event1 = lhs.indices.contains(idx) ? lhs[idx] : nil
             var idx2: Int! = (event1 != nil ? rhs.firstIndex(where: { event2 in compare("", event1, event2) == nil }) : nil)
@@ -392,6 +398,9 @@ extension DistributedNavigationDelegateTestsBase {
                 // events are equal
                 rhs.remove(at: idx2)
                 continue
+            } else if let originalEvent2 = rhsMap[idx], originalEvent2.type == event1?.type,
+                      let idx = rhs.firstIndex(where: { event2 in compare("", originalEvent2, event2) == nil }) {
+                idx2 = idx
             } else {
                 idx2 = idx
             }
@@ -403,6 +412,7 @@ extension DistributedNavigationDelegateTestsBase {
             guard event1 != nil || event2 != nil else { continue }
             if let diff = compare(Mirror(reflecting: event1 ?? event2!).children.first!.label!, event1, event2) {
                 printEncoded(responder: responderIdx)
+                let diff2 = compare(Mirror(reflecting: event1 ?? event2!).children.first!.label!, event1, event2)
                 XCTFail("\n#\(idx): " + diff, file: file, line: line)
             }
         }
@@ -426,3 +436,5 @@ extension DistributedNavigationDelegateTestsBase {
     }
 
 }
+
+#endif

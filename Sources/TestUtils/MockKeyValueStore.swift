@@ -21,7 +21,7 @@ import Persistence
 
 public class MockKeyValueStore: KeyValueStoring {
 
-    var store = [String: Any?]()
+    public var store = [String: Any?]()
 
     public init() { }
 
@@ -37,4 +37,11 @@ public class MockKeyValueStore: KeyValueStoring {
         store[defaultName] = nil
     }
 
+}
+
+extension MockKeyValueStore: DictionaryRepresentable {
+
+    public func dictionaryRepresentation() -> [String: Any] {
+        return store as [String: Any]
+    }
 }

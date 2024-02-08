@@ -34,13 +34,13 @@ let package = Package(
         .plugin(name: "SwiftLintPlugin", targets: ["SwiftLintPlugin"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "10.0.3"),
+        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "10.1.0"),
         .package(url: "https://github.com/duckduckgo/GRDB.swift.git", exact: "2.3.0"),
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "1.2.2"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.2.0"),
         .package(url: "https://github.com/gumob/PunycodeSwift.git", exact: "2.1.0"),
-        .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "3.1.1" ),
-        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "4.59.1"),
+        .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "3.2.0"),
+        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "4.61.0"),
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
         .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
         .package(url: "https://github.com/duckduckgo/wireguard-apple", exact: "1.1.1"),
@@ -178,6 +178,7 @@ let package = Package(
                 .define("_FRAME_HANDLE_ENABLED", .when(platforms: [.macOS])),
                 .define("PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED", .when(platforms: [.macOS])),
                 .define("TERMINATE_WITH_REASON_ENABLED", .when(platforms: [.macOS])),
+                .define("_WEBPAGE_PREFS_CUSTOM_HEADERS_ENABLED", .when(platforms: [.macOS])),
             ],
             plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
@@ -198,6 +199,7 @@ let package = Package(
                 "TrackerRadarKit",
                 "UserScript",
                 "ContentBlocking",
+                "Persistence",
                 .product(name: "PrivacyDashboardResources", package: "privacy-dashboard")
             ],
             path: "Sources/PrivacyDashboard",
@@ -381,6 +383,7 @@ let package = Package(
                 .define("_IS_USER_INITIATED_ENABLED", .when(platforms: [.macOS])),
                 .define("_FRAME_HANDLE_ENABLED", .when(platforms: [.macOS])),
                 .define("PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED", .when(platforms: [.macOS])),
+                .define("_WEBPAGE_PREFS_CUSTOM_HEADERS_ENABLED", .when(platforms: [.macOS])),
             ],
             plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
@@ -449,6 +452,14 @@ let package = Package(
             dependencies: [
                 "SecureStorage",
                 "SecureStorageTestsUtils"
+            ],
+            plugins: [.plugin(name: "SwiftLintPlugin")]
+        ),
+        .testTarget(
+            name: "PrivacyDashboardTests",
+            dependencies: [
+                "PrivacyDashboard",
+                "TestUtils"
             ],
             plugins: [.plugin(name: "SwiftLintPlugin")]
         ),
