@@ -967,7 +967,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             try await manager.saveToPreferences()
             try await manager.loadFromPreferences()
 
-            manager.connection.stopVPNTunnel()
+            let error = NSError(domain: "com.duckduckgo.vpn", code: 0)
+            stopTunnel(with: error)
         }
 
         completionHandler?(nil)
