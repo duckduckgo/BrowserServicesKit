@@ -40,7 +40,7 @@ public actor NetworkProtectionTunnelFailureMonitor {
         }
     }
 
-    private static let monitoringInterval: TimeInterval = .seconds(10)
+    private static let monitoringInterval: TimeInterval = .minutes(1)
 
     private var task: Task<Never, Error>? {
         willSet {
@@ -114,10 +114,12 @@ public actor NetworkProtectionTunnelFailureMonitor {
             if failureReported {
                 os_log("⚫️ Tunnel failure already reported", log: .networkProtectionTunnelFailureMonitorLog, type: .debug)
             } else {
+                os_log("⚫️ Tunnel failure reported", log: .networkProtectionTunnelFailureMonitorLog, type: .debug)
                 callback(.failureDetected)
                 failureReported = true
             }
         } else if difference <= Result.failureRecovered.threshold, failureReported {
+            os_log("⚫️ Tunnel failure recovery", log: .networkProtectionTunnelFailureMonitorLog, type: .debug)
             callback(.failureRecovered)
             failureReported = false
         }
