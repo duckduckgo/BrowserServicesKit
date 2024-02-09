@@ -33,13 +33,14 @@ final class URLMacroTests: XCTestCase {
             "https://example.com",
             "http://localhost",
             "http://localdomain",
-            "https://dax%40duck.com:123%3A456A@www.duckduckgo.com/test.php?test=S&info=test#fragment",
-            "user@somehost.local:9091/index.html",
+            "https://dax%40duck.com:123%3A456A@www.duckduckgo.com/te-st.php?test=S&info=test#fragment",
             "user:@something.local:9100",
-            "user:%20@localhost:5000",
             "user:passwOrd@localhost:5000",
+            "user:%20@localhost:5000",
+            "https://user:@something.local:9100",
+            "https://user:passwOrd@localhost:5000",
+            "https://user:%20@localhost:5000",
             "mailto:test@example.com",
-            "192.168.1.1",
             "http://192.168.1.1",
             "http://sheep%2B:P%40%24swrd@192.168.1.1",
             "data:text/vnd-example+xyz;foo=bar;base64,R0lGODdh",
@@ -66,10 +67,6 @@ final class URLMacroTests: XCTestCase {
             "about:bookmarks",
             "about:user:pass@blank",
             "data:user:pass@text/vnd-example+xyz;foo=bar;base64,R0lGODdh",
-            "duckduckgo.com",
-            "example.com",
-            "localhost",
-            "localdomain",
         ]
 
         for (idx, url) in urls.enumerated() {
@@ -87,6 +84,35 @@ final class URLMacroTests: XCTestCase {
         }
     }
 
+    func testWhenURLMacroAppliedToURLWithoutScheme_diagnosticsErrorIsReturned() {
+        let startLine = #line + 2
+        let urls = [
+            "user@somehost.local:9091/index.html",
+            "192.168.1.1",
+            "duckduckgo.com",
+            "example.com",
+            "localhost",
+            "localdomain",
+        ]
+
+        for (idx, url) in urls.enumerated() {
+            assertMacroExpansion(
+                """
+                #URL("\(url)")
+                """,
+                expandedSource:
+                """
+                #URL("\(url)")
+                """,
+                diagnostics: [
+                    DiagnosticSpec(message: "URL must contain a scheme", line: 1, column: 1)
+                ],
+                macros: macros,
+                line: UInt(startLine + idx)
+            )
+        }
+    }
+
     func testWhenURLMacroAppliedToInvalidURLs_diagnosticsErrorIsReturned() {
         let startLine = #line + 2
         let urls = [
@@ -95,9 +121,7 @@ final class URLMacroTests: XCTestCase {
             "sheep%2B:P%40%24swrd@192.168.1.1",
             "sheep%2B:P%40%24swrd@192.168.1.1/",
             "sheep%2B:P%40%24swrd@192.168.1.1:8900/",
-            "sheep%2B:P%40%24swrd@💩.la?arg=b#1",
             "sheep%2B:P%40%24swrd@xn--ls8h.la/?arg=b#1",
-            "https://www.duckduckgo .com/html?q=search",
         ]
 
         for (idx, url) in urls.enumerated() {
@@ -118,44 +142,36 @@ final class URLMacroTests: XCTestCase {
                 line: UInt(startLine + idx)
             )
         }
-
     }
 
-    func testWhenExpandedURLStringIsDifferentFromProvidedString_diagnosticsErrorIsReturned() {
-        assertMacro(macros, record: false) {
-            """
-            #URL("https://sheep%2B:P%40%24swrd@💩.la")
-            """
-        } diagnostics: {
-            """
-            #URL("https://sheep%2B:P%40%24swrd@💩.la")
-            ┬───────────────────────────────────────────
-            ╰─ 🛑 Resulting URL "https://sheep%2B:P%40%24swrd@xn--ls8h.la" is not equal to "https://sheep%2B:P%40%24swrd@💩.la"
-            """
-        }
+    func testWhenURLMacroAppliedToURLsWithInvalidCharacter_diagnosticsErrorIsReturned() {
+        let startLine = #line + 2
+        let urls: [(String, invalidCharacter: Character)] = [
+            ("sheep%2B:P%40%24swrd@💩.la?arg=b#1", "💩"),
+            ("https://www.duckduckgo .com/html?q=search", " "),
+            ("мвд.рф", "м"),
+            ("https://мвд.рф", "м"),
+            ("https://sheep%2B:P%40%24swrd@💩.la", "💩"),
+            ("https://www.duckduckgo.com/html?q =search", " "),
+        ]
 
-        assertMacro(macros, record: false) {
-            """
-            #URL("мвд.рф")
-            """
-        } diagnostics: {
-            """
-            #URL("мвд.рф")
-            ┬──────────────────
-            ╰─ 🛑 Resulting URL "%D0%BC%D0%B2%D0%B4.%D1%80%D1%84" is not equal to "мвд.рф"
-            """
-        }
-
-        assertMacro(macros, record: false) {
-            """
-            #URL("https://www.duckduckgo.com/html?q =search")
-            """
-        } diagnostics: {
-            """
-            #URL("https://www.duckduckgo.com/html?q =search")
-            ┬────────────────────────────────────────────────
-            ╰─ 🛑 Resulting URL "https://www.duckduckgo.com/html?q%20=search" is not equal to "https://www.duckduckgo.com/html?q =search"
-            """
+        for (idx, (url, char)) in urls.enumerated() {
+            assertMacroExpansion(
+                """
+                #URL("\(url)")
+                """,
+                expandedSource:
+                """
+                #URL("\(url)")
+                """,
+                diagnostics: [
+                    DiagnosticSpec(message: """
+                    "\(url)" has invalid character at index \(url.distance(from: url.startIndex, to: url.firstIndex(of: char)!)) (\(char))
+                    """, line: 1, column: 1)
+                ],
+                macros: macros,
+                line: UInt(startLine + idx)
+            )
         }
     }
 

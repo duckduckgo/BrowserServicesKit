@@ -26,6 +26,10 @@ import SwiftSyntaxMacros
 /// - Usage: `let url = #URL("https://duckduckgo.com")`
 public struct URLMacro: ExpressionMacro {
 
+    static let invalidCharacters = CharacterSet.urlQueryAllowed
+        .union(CharacterSet(charactersIn: "%+?#[]"))
+        .inverted
+
     public static func expansion(of node: some SwiftSyntax.FreestandingMacroExpansionSyntax, in context: some SwiftSyntaxMacros.MacroExpansionContext) throws -> SwiftSyntax.ExprSyntax {
 
         guard node.argumentList.count == 1 else {
@@ -37,8 +41,14 @@ public struct URLMacro: ExpressionMacro {
             throw MacroError.message("#URL argument should be a String literal")
         }
 
+        if let idx = string.text.rangeOfCharacter(from: Self.invalidCharacters)?.lowerBound {
+            throw MacroError.message("\"\(string.text)\" has invalid character at index \(string.text.distance(from: string.text.startIndex, to: idx)) (\(string.text[idx]))")
+        }
         guard let url = URL(string: string.text) else {
             throw MacroError.message("\"\(string.text)\" is not a valid URL")
+        }
+        guard url.scheme?.isEmpty == false else {
+            throw MacroError.message("URL must contain a scheme")
         }
         guard url.absoluteString == string.text else {
             throw MacroError.message("Resulting URL \"\(url.absoluteString)\" is not equal to \"\(string.text)\"")
