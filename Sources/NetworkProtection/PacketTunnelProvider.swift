@@ -955,7 +955,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         completionHandler?(nil)
     }
 
-    private func handleShutDown(completionHandler: ((Data?) -> Void)? = nil) {
+    public func handleShutDown(completionHandler: ((Data?) -> Void)? = nil) {
         Task {
             let managers = try await NETunnelProviderManager.loadAllFromPreferences()
 
@@ -969,9 +969,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
             let error = NSError(domain: "com.duckduckgo.vpn", code: 0)
             stopTunnel(with: error)
-        }
 
-        completionHandler?(nil)
+            completionHandler?(nil)
+        }
     }
 
     private func setIncludedRoutes(_ includedRoutes: [IPAddressRange], completionHandler: ((Data?) -> Void)? = nil) {
