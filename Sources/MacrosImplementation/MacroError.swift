@@ -1,6 +1,5 @@
 //
-//  File.swift
-//  DuckDuckGo
+//  MacroError.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -20,7 +19,7 @@
 import Foundation
 
 enum MacroError: Error, CustomStringConvertible {
-    
+
     case message(String)
 
     var description: String {
