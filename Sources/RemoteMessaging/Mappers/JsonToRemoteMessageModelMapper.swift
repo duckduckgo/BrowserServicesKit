@@ -99,7 +99,8 @@ struct JsonToRemoteMessageModelMapper {
 
             return .medium(titleText: content.titleText,
                            descriptionText: content.descriptionText,
-                           placeholder: mapToPlaceholder(content.placeholder))
+                           placeholder: mapToPlaceholder(content.placeholder),
+                           image: mapToImage(content.image))
         case .bigSingleAction:
             guard let primaryActionText = content.primaryActionText,
                   !primaryActionText.isEmpty,
@@ -111,6 +112,7 @@ struct JsonToRemoteMessageModelMapper {
             return .bigSingleAction(titleText: content.titleText,
                                     descriptionText: content.descriptionText,
                                     placeholder: mapToPlaceholder(content.placeholder),
+                                    image: mapToImage(content.image),
                                     primaryActionText: primaryActionText,
                                     primaryAction: action)
         case .bigTwoAction:
@@ -127,6 +129,7 @@ struct JsonToRemoteMessageModelMapper {
             return .bigTwoAction(titleText: content.titleText,
                                  descriptionText: content.descriptionText,
                                  placeholder: mapToPlaceholder(content.placeholder),
+                                 image: mapToImage(content.image),
                                  primaryActionText: primaryActionText,
                                  primaryAction: primaryAction,
                                  secondaryActionText: secondaryActionText,
@@ -142,6 +145,7 @@ struct JsonToRemoteMessageModelMapper {
             return .promoSingleAction(titleText: content.titleText,
                                       descriptionText: content.descriptionText,
                                       placeholder: mapToPlaceholder(content.placeholder),
+                                      image: mapToImage(content.image),
                                       actionText: actionText,
                                       action: action)
 
@@ -170,6 +174,18 @@ struct JsonToRemoteMessageModelMapper {
         case .none:
             return nil
         }
+    }
+
+    static func mapToImage(_ json: RemoteMessageResponse.JsonRemoteImage?) -> RemoteImage? {
+        guard let json else { return nil }
+
+        func mapToURLs(_ json: RemoteMessageResponse.JsonRemoteImage.JsonRemoteImageURLs?) -> RemoteImage.ImageURLs? {
+            guard let json, let light = json.light else { return nil }
+            return .init(light: light, dark: json.dark)
+        }
+
+        guard let highRes = mapToURLs(json.highRes) else { return nil }
+        return RemoteImage(highRes: highRes)
     }
 
     static func mapToPlaceholder(_ jsonPlaceholder: String?) -> RemotePlaceholder {

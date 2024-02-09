@@ -42,6 +42,7 @@ public enum RemoteMessageResponse {
         let titleText: String
         let descriptionText: String
         let placeholder: String?
+        let image: JsonRemoteImage?
         let actionText: String?
         let action: JsonMessageAction?
         let primaryActionText: String?
@@ -93,6 +94,19 @@ public enum RemoteMessageResponse {
         case macComputer = "MacComputer"
         case newForMacAndWindows = "NewForMacAndWindows"
         case vpnAnnounce = "VPNAnnounce"
+    }
+
+    struct JsonRemoteImage: Decodable {
+
+            struct JsonRemoteImageURLs: Decodable {
+
+            let light: String?
+            let dark: String?
+
+        }
+
+        let highRes: JsonRemoteImageURLs?
+
     }
 
     public enum StatusError: Error {

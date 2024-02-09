@@ -32,22 +32,6 @@ public struct RemoteMessageModel: Equatable, Codable {
         self.exclusionRules = exclusionRules
     }
 
-    public static func == (lhs: RemoteMessageModel, rhs: RemoteMessageModel) -> Bool {
-        if lhs.id != rhs.id {
-            return false
-        }
-        if lhs.content != rhs.content {
-            return false
-        }
-        if lhs.matchingRules != rhs.matchingRules {
-            return false
-        }
-        if lhs.exclusionRules != rhs.exclusionRules {
-            return false
-        }
-        return true
-    }
-
     mutating func localizeContent(translation: RemoteMessageResponse.JsonContentTranslation) {
         guard let content = content else {
             return
@@ -57,31 +41,35 @@ public struct RemoteMessageModel: Equatable, Codable {
         case .small(let titleText, let descriptionText):
             self.content = .small(titleText: translation.titleText ?? titleText,
                                   descriptionText: translation.descriptionText ?? descriptionText)
-        case .medium(let titleText, let descriptionText, let placeholder):
+        case .medium(let titleText, let descriptionText, let placeholder, let image):
             self.content = .medium(titleText: translation.titleText ?? titleText,
                                    descriptionText: translation.descriptionText ?? descriptionText,
-                                   placeholder: placeholder)
-        case .bigSingleAction(let titleText, let descriptionText, let placeholder, let primaryActionText, let primaryAction):
+                                   placeholder: placeholder,
+                                   image: image)
+        case .bigSingleAction(let titleText, let descriptionText, let placeholder, let image, let primaryActionText, let primaryAction):
             self.content = .bigSingleAction(titleText: translation.titleText ?? titleText,
                                             descriptionText: translation.descriptionText ?? descriptionText,
                                             placeholder: placeholder,
+                                            image: image,
                                             primaryActionText: translation.primaryActionText ?? primaryActionText,
                                             primaryAction: primaryAction)
-        case .bigTwoAction(let titleText, let descriptionText, let placeholder, let primaryActionText, let primaryAction,
+        case .bigTwoAction(let titleText, let descriptionText, let placeholder, let image, let primaryActionText, let primaryAction,
                            let secondaryActionText, let secondaryAction):
             self.content = .bigTwoAction(titleText: translation.titleText ?? titleText,
                                          descriptionText: translation.descriptionText ?? descriptionText,
                                          placeholder: placeholder,
+                                         image: image,
                                          primaryActionText: translation.primaryActionText ?? primaryActionText,
                                          primaryAction: primaryAction,
                                          secondaryActionText: translation.secondaryActionText ?? secondaryActionText,
                                          secondaryAction: secondaryAction)
-        case .promoSingleAction(let titleText, let descriptionText, let placeholder, let actionText, let action):
+        case .promoSingleAction(let titleText, let descriptionText, let placeholder, let image, let actionText, let action):
             self.content = .promoSingleAction(titleText: translation.titleText ?? titleText,
-                                            descriptionText: translation.descriptionText ?? descriptionText,
-                                            placeholder: placeholder,
-                                            actionText: translation.primaryActionText ?? actionText,
-                                            action: action)
+                                              descriptionText: translation.descriptionText ?? descriptionText,
+                                              placeholder: placeholder,
+                                              image: image,
+                                              actionText: translation.primaryActionText ?? actionText,
+                                              action: action)
 
         }
     }
@@ -89,13 +77,13 @@ public struct RemoteMessageModel: Equatable, Codable {
 
 public enum RemoteMessageModelType: Codable, Equatable {
     case small(titleText: String, descriptionText: String)
-    case medium(titleText: String, descriptionText: String, placeholder: RemotePlaceholder)
-    case bigSingleAction(titleText: String, descriptionText: String, placeholder: RemotePlaceholder,
+    case medium(titleText: String, descriptionText: String, placeholder: RemotePlaceholder, image: RemoteImage?)
+    case bigSingleAction(titleText: String, descriptionText: String, placeholder: RemotePlaceholder, image: RemoteImage?,
                          primaryActionText: String, primaryAction: RemoteAction)
-    case bigTwoAction(titleText: String, descriptionText: String, placeholder: RemotePlaceholder,
+    case bigTwoAction(titleText: String, descriptionText: String, placeholder: RemotePlaceholder, image: RemoteImage?,
                       primaryActionText: String, primaryAction: RemoteAction, secondaryActionText: String,
                       secondaryAction: RemoteAction)
-    case promoSingleAction(titleText: String, descriptionText: String, placeholder: RemotePlaceholder,
+    case promoSingleAction(titleText: String, descriptionText: String, placeholder: RemotePlaceholder, image: RemoteImage?,
                            actionText: String, action: RemoteAction)
 }
 
@@ -115,4 +103,17 @@ public enum RemotePlaceholder: String, Codable {
     case macComputer = "RemoteMessageMacComputer"
     case newForMacAndWindows = "RemoteMessageNewForMacAndWindows"
     case vpnAnnounce = "RemoteMessageVPNAnnounce"
+}
+
+public struct RemoteImage: Codable, Equatable {
+
+    public struct ImageURLs: Codable, Equatable {
+
+        public let light: String
+        public let dark: String?
+
+    }
+
+    let highRes: ImageURLs?
+
 }
