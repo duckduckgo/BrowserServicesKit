@@ -67,6 +67,7 @@ final class URLMacroTests: XCTestCase {
             "about:bookmarks",
             "about:user:pass@blank",
             "data:user:pass@text/vnd-example+xyz;foo=bar;base64,R0lGODdh",
+            "x-apple.systempreferences:com.apple.preference.security?Privacy_Camera",
         ]
 
         for (idx, url) in urls.enumerated() {

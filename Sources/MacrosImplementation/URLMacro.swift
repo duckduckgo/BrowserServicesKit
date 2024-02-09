@@ -29,6 +29,7 @@ public struct URLMacro: ExpressionMacro {
     static let invalidCharacters = CharacterSet.urlQueryAllowed
         .union(CharacterSet(charactersIn: "%+?#[]"))
         .inverted
+    static let urlSchemeAllowedCharacters = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: ".-"))
 
     public static func expansion(of node: some SwiftSyntax.FreestandingMacroExpansionSyntax, in context: some SwiftSyntaxMacros.MacroExpansionContext) throws -> SwiftSyntax.ExprSyntax {
 
@@ -45,7 +46,7 @@ public struct URLMacro: ExpressionMacro {
             throw MacroError.message("\"\(string.text)\" has invalid character at index \(string.text.distance(from: string.text.startIndex, to: idx)) (\(string.text[idx]))")
         }
         guard let scheme = string.text.range(of: ":").map({ string.text[..<$0.lowerBound] }),
-              scheme.rangeOfCharacter(from: .alphanumerics.inverted) == nil else {
+              scheme.rangeOfCharacter(from: Self.urlSchemeAllowedCharacters.inverted) == nil else {
             throw MacroError.message("URL must contain a scheme")
         }
         guard let url = URL(string: string.text) else {
