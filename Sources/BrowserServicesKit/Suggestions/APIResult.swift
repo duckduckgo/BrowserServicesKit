@@ -21,7 +21,31 @@ import Foundation
 /// A structure representing suggestions fetched from duckduckgo.com/ac
 public struct APIResult: Codable {
 
-    var items = [[String: String]]()
+    enum Value: Codable {
+        case string(String)
+        case int(Int)
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.singleValueContainer()
+            if let intValue = try? container.decode(Int.self) {
+                self = .int(intValue)
+            } else if let stringValue = try? container.decode(String.self) {
+                self = .string(stringValue)
+            } else {
+                throw DecodingError.typeMismatch(Value.self, DecodingError.Context(codingPath: decoder.codingPath, debugDescription: "Expected a String or an Int"))
+            }
+        }
+
+        var stringValue: String? {
+            switch self {
+            case .string(let value): return value
+            default: return nil
+            }
+        }
+    }
+
+    typealias Item = [String: Value]
+    var items = [Item]()
 
     init() {}
 
@@ -29,7 +53,7 @@ public struct APIResult: Codable {
         var container = try decoder.unkeyedContainer()
 
         while !container.isAtEnd {
-            let item = try container.decode([String: String].self)
+            let item = try container.decode(Item.self)
             items.append(item)
         }
     }

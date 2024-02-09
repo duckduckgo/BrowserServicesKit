@@ -40,7 +40,7 @@ final class SuggestionProcessing {
 
         // Get domain suggestions from the DuckDuckGo Suggestions section (for the Top Hits section)
         let duckDuckGoDomainSuggestions = duckDuckGoSuggestions.compactMap { suggestion -> Suggestion? in
-            guard case let .phrase(phrase) = suggestion, let url = urlFactory(phrase) else {
+            guard case let .phrase(phrase, imageUrl: imageURL) = suggestion, let url = urlFactory(phrase) else {
                 return nil
             }
 
@@ -80,9 +80,7 @@ final class SuggestionProcessing {
     // MARK: - DuckDuckGo Suggestions
 
     private func duckDuckGoSuggestions(from result: APIResult?) throws -> [Suggestion]? {
-        return result?.items
-            .joined()
-            .map { Suggestion(key: $0.key, value: $0.value) }
+        return result?.items.compactMap { Suggestion(apiResultItem: $0) }
     }
 
     // MARK: - History and Bookmarks
@@ -203,7 +201,7 @@ final class SuggestionProcessing {
                 newSuggestion = findBookmarkDuplicate(to: suggestion, nakedUrl: suggestionNakedUrl, from: suggestions)
             case .bookmark:
                 newSuggestion = findAndMergeHistoryDuplicate(with: suggestion, nakedUrl: suggestionNakedUrl, from: suggestions)
-            case .phrase, .website, .unknown:
+            case .phrase, .website:
                 break
             }
 
@@ -212,7 +210,7 @@ final class SuggestionProcessing {
                 switch suggestion {
                 case .historyEntry:
                     newSuggestion = findDuplicateContainingTitle(suggestion, nakedUrl: suggestionNakedUrl, from: suggestions)
-                case .bookmark, .phrase, .website, .unknown:
+                case .bookmark, .phrase, .website:
                     break
                 }
             }

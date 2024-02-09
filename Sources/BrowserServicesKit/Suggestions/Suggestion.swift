@@ -20,11 +20,10 @@ import Foundation
 
 public enum Suggestion: Equatable {
 
-    case phrase(phrase: String)
+    case phrase(phrase: String, imageUrl: URL?)
     case website(url: URL)
     case bookmark(title: String, url: URL, isFavorite: Bool, allowedInTopHits: Bool)
     case historyEntry(title: String?, url: URL, allowedInTopHits: Bool)
-    case unknown(value: String)
 
     var url: URL? {
         switch self {
@@ -32,7 +31,7 @@ public enum Suggestion: Equatable {
              .historyEntry(title: _, url: let url, allowedInTopHits: _),
              .bookmark(title: _, url: let url, isFavorite: _, allowedInTopHits: _):
             return url
-        case .phrase, .unknown:
+        case .phrase:
             return nil
         }
     }
@@ -43,7 +42,7 @@ public enum Suggestion: Equatable {
             return title
         case .bookmark(title: let title, url: _, isFavorite: _, allowedInTopHits: _):
             return title
-        case .phrase, .website, .unknown:
+        case .phrase, .website:
             return nil
         }
     }
@@ -56,8 +55,17 @@ public enum Suggestion: Equatable {
             return allowedInTopHits
         case .bookmark(title: _, url: _, isFavorite: _, allowedInTopHits: let allowedInTopHits):
             return allowedInTopHits
-        case .phrase, .unknown:
+        case .phrase:
             return false
+        }
+    }
+
+    public var imageUrl: URL? {
+        switch self {
+        case .phrase(_ ,imageUrl: let imageUrl):
+            return imageUrl
+        default:
+            return nil
         }
     }
 
@@ -87,13 +95,16 @@ extension Suggestion {
     }
 
     static let phraseKey = "phrase"
+    static let imageKey = "image"
 
-    init(key: String, value: String) {
-        if key == Self.phraseKey {
-            self = .phrase(phrase: value)
-        } else {
-            self = .unknown(value: value)
+    init?(apiResultItem: APIResult.Item) {
+        guard let phrase = apiResultItem[Self.phraseKey]?.stringValue else {
+            return nil
         }
+
+        let imageUrlString = apiResultItem[Self.imageKey]?.stringValue ?? ""
+        let url = URL(string: imageUrlString)
+        self = .phrase(phrase: phrase, imageUrl: url)
     }
 
 }
