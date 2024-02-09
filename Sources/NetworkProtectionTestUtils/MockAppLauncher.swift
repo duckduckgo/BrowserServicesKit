@@ -1,7 +1,7 @@
 //
-//  AppLaunching.swift
+//  MockAppLauncher.swift
 //
-//  Copyright © 2022 DuckDuckGo. All rights reserved.
+//  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -16,23 +16,15 @@
 //  limitations under the License.
 //
 
-// SPDX-License-Identifier: MIT
-// Copyright © 2018-2021 WireGuard LLC. All Rights Reserved.
-
 import Foundation
+import NetworkProtection
 
-public enum AppLaunchCommand: Codable {
-    case justOpen
-    case shareFeedback
-    case showStatus
-    case showSettings
-    case showVPNLocations
-    case startVPN
-    case stopVPN
-    case enableOnDemand
-    case moveAppToApplications
-}
+public final class MockAppLauncher: AppLaunching {
+    public init() {
+    }
 
-public protocol AppLaunching {
-    func launchApp(withCommand command: AppLaunchCommand) async
+    public var spyLaunchAppCommand: AppLaunchCommand?
+    public func launchApp(withCommand command: AppLaunchCommand) async {
+        spyLaunchAppCommand = command
+    }
 }
