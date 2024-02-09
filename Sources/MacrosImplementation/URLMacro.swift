@@ -44,10 +44,14 @@ public struct URLMacro: ExpressionMacro {
         if let idx = string.text.rangeOfCharacter(from: Self.invalidCharacters)?.lowerBound {
             throw MacroError.message("\"\(string.text)\" has invalid character at index \(string.text.distance(from: string.text.startIndex, to: idx)) (\(string.text[idx]))")
         }
+        guard let scheme = string.text.range(of: ":").map({ string.text[..<$0.lowerBound] }),
+              scheme.rangeOfCharacter(from: .alphanumerics.inverted) == nil else {
+            throw MacroError.message("URL must contain a scheme")
+        }
         guard let url = URL(string: string.text) else {
             throw MacroError.message("\"\(string.text)\" is not a valid URL")
         }
-        guard url.scheme?.isEmpty == false else {
+        guard url.scheme == String(scheme) else {
             throw MacroError.message("URL must contain a scheme")
         }
         guard url.absoluteString == string.text else {

@@ -93,29 +93,6 @@ final class URLMacroTests: XCTestCase {
             "example.com",
             "localhost",
             "localdomain",
-        ]
-
-        for (idx, url) in urls.enumerated() {
-            assertMacroExpansion(
-                """
-                #URL("\(url)")
-                """,
-                expandedSource:
-                """
-                #URL("\(url)")
-                """,
-                diagnostics: [
-                    DiagnosticSpec(message: "URL must contain a scheme", line: 1, column: 1)
-                ],
-                macros: macros,
-                line: UInt(startLine + idx)
-            )
-        }
-    }
-
-    func testWhenURLMacroAppliedToInvalidURLs_diagnosticsErrorIsReturned() {
-        let startLine = #line + 2
-        let urls = [
             "user%40local:pa%24%24s@localhost:5000",
             "user%40local:pa%24%24s@localhost:5000",
             "sheep%2B:P%40%24swrd@192.168.1.1",
@@ -134,9 +111,7 @@ final class URLMacroTests: XCTestCase {
                 #URL("\(url)")
                 """,
                 diagnostics: [
-                    DiagnosticSpec(message: """
-                    "\(url)" is not a valid URL
-                    """, line: 1, column: 1)
+                    DiagnosticSpec(message: "URL must contain a scheme", line: 1, column: 1)
                 ],
                 macros: macros,
                 line: UInt(startLine + idx)
