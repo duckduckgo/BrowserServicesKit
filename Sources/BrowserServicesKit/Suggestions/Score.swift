@@ -34,6 +34,9 @@ extension Score {
         let domain = url.host?.droppingWwwPrefix() ?? ""
         let nakedUrl = url.nakedString ?? ""
 
+        // Extract path segments from URL, excluding the leading '/'
+        let pathSegments = url.pathComponents.filter { $0 != "/" }
+
         // Full matches
         if nakedUrl.starts(with: query) {
             score += 300
@@ -47,28 +50,36 @@ extension Score {
         } else if queryCount > 2 && lowercasedTitle.contains(" \(query)") { // Exact match from the begining of the word within string.
             score += 100
         } else {
-            // Tokenized matches
-            if queryTokens.count > 1 {
-                var matchesAllTokens = true
-                for token in queryTokens {
-                    // Match only from the begining of the word to avoid unintuitive matches.
-                    if !lowercasedTitle.starts(with: token) && !lowercasedTitle.contains(" \(token)") && !nakedUrl.starts(with: token) {
-                        matchesAllTokens = false
-                        break
-                    }
+            // Check each path segment for a match with the query
+            for segment in pathSegments {
+                if segment.lowercased().contains(query.lowercased()) {
+                    score += 20 // Adjust the score for a path segment match
+                    break // Optional: break after the first match to avoid over-scoring
                 }
+            }
+        }
 
-                if matchesAllTokens {
-                    // Score tokenized matches
-                    score += 10
+        // Tokenized matches
+        if queryTokens.count > 1 {
+            var matchesAllTokens = true
+            for token in queryTokens {
+                // Match only from the begining of the word to avoid unintuitive matches.
+                if !lowercasedTitle.starts(with: token) && !lowercasedTitle.contains(" \(token)") && !nakedUrl.starts(with: token) && !pathSegments.contains(where: { $0.lowercased().contains(token.lowercased()) }) {
+                    matchesAllTokens = false
+                    break
+                }
+            }
 
-                    // Boost score if first token matches:
-                    if let firstToken = queryTokens.first { // nakedUrlString - high score boost
-                        if nakedUrl.starts(with: firstToken) {
-                            score += 70
-                        } else if lowercasedTitle.starts(with: firstToken) { // begining of the title - moderate score boost
-                            score += 50
-                        }
+            if matchesAllTokens {
+                // Score tokenized matches
+                score += 10
+
+                // Boost score if first token matches:
+                if let firstToken = queryTokens.first {
+                    if nakedUrl.starts(with: firstToken) {
+                        score += 70
+                    } else if lowercasedTitle.starts(with: firstToken) { // begining of the title - moderate score boost
+                        score += 50
                     }
                 }
             }
