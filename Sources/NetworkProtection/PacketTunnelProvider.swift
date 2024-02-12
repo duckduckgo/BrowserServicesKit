@@ -960,6 +960,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             let managers = try await NETunnelProviderManager.loadAllFromPreferences()
 
             guard let manager = managers.first else {
+                completionHandler?(nil)
                 return
             }
 
