@@ -620,7 +620,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     /// Do not cancel, directly... call this method so that the adapter and tester are stopped too.
-    private func stopTunnel(with stopError: Error) {
+    private func cancelTunnel(with stopError: Error) {
         connectionStatus = .disconnecting
 
         os_log("Stopping tunnel with error %{public}@", log: .networkProtection, type: .info, stopError.localizedDescription)
@@ -969,7 +969,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             try await manager.loadFromPreferences()
 
             let error = NSError(domain: "com.duckduckgo.vpn", code: 0)
-            stopTunnel(with: error)
+            cancelTunnel(with: error)
 
             completionHandler?(nil)
         }
