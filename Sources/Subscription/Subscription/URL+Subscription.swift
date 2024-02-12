@@ -46,4 +46,10 @@ public extension URL {
     static var manageSubscriptionsInAppStoreAppURL: URL {
         URL(string: "macappstores://apps.apple.com/account/subscriptions")!
     }
+
+     // MARK: - Identity Theft Restoration
+
+    static var identityTheftRestoration: URL {
+        URL(string: "https://abrown.duckduckgo.com/identity-theft-restoration")!
+    }
 }
