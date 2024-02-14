@@ -197,6 +197,7 @@ final class NetworkProtectionConnectionTester {
             self?.timer = nil
         }
 
+        isRunning = true
         timer.resume()
     }
 
@@ -242,7 +243,7 @@ final class NetworkProtectionConnectionTester {
         let onlyVPNIsDown = simulateFailure || (!vpnIsConnected && localIsConnected)
         simulateFailure = false
 
-        // After completing the conection tests we check if the tester is still supposed to be running
+        // After completing the connection tests we check if the tester is still supposed to be running
         // to avoid giving results when it should not be running.
         guard isRunning else {
             os_log("Tester skipped returning results as it was stopped while running the tests", log: log, type: .info)
