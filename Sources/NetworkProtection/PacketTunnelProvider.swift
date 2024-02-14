@@ -461,11 +461,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         // no-op: abstract method to be overridden in subclass
     }
 
-    @MainActor
-    open func handleConnected(with tunnelConfiguration: TunnelConfiguration) {
-        // no-op: abstract method to be overridden in subclass
-    }
-
     // MARK: - Tunnel Start
 
     open override func startTunnel(options: [String: NSObject]?, completionHandler: @escaping (Error?) -> Void) {
@@ -590,8 +585,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 completionHandler(nil)
 
                 guard let self else { return }
-
-                self.handleConnected(with: tunnelConfiguration)
 
                 do {
                     let startReason: AdapterStartReason = onDemand ? .onDemand : .manual
