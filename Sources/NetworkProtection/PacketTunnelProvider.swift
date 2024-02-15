@@ -203,12 +203,12 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         Task {
             await updateBandwidthAnalyzer()
 
+            // This provides a more frequent active user pixel check
+            providerEvents.fire(.userBecameActive)
+
             guard self.bandwidthAnalyzer.isConnectionIdle() else {
                 return
             }
-
-            // This provides a more frequent active user pixel check
-            providerEvents.fire(.userBecameActive)
 
             await rekeyIfExpired()
         }
