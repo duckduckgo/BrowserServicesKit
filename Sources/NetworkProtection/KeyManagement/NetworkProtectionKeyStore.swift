@@ -111,7 +111,10 @@ public final class NetworkProtectionKeychainKeyStore: NetworkProtectionKeyStore 
     }
 
     public func newKeyPair() -> KeyPair {
-        return newCurrentKeyPair()
+        let newPrivateKey = PrivateKey()
+        let newExpirationDate = Date().addingTimeInterval(validityInterval)
+
+        return KeyPair(privateKey: newPrivateKey, expirationDate: newExpirationDate)
     }
 
     private var validityInterval = Defaults.validityInterval
