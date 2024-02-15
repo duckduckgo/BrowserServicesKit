@@ -175,7 +175,7 @@ public struct WebsiteBreakage {
                 let error = $0 as NSError
                 return "\(error.code) - \(error.localizedDescription)"
             }
-            result["errorDescription"] = errorDescriptions.joined(separator: ",")
+            result["errorDescriptions"] = errorDescriptions.joined(separator: ",")
         }
 
 #if os(iOS)
