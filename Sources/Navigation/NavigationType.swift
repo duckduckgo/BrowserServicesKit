@@ -39,6 +39,7 @@ public enum NavigationType: Equatable {
 
     case redirect(RedirectType)
     case sessionRestoration
+    case alternateHtmlLoad
     case sameDocumentNavigation
 
     case other
@@ -186,6 +187,7 @@ extension NavigationType: CustomDebugStringConvertible {
         case .reload: return "reload"
         case .formResubmitted: return "formResubmitted"
         case .sessionRestoration: return "sessionRestoration"
+        case .alternateHtmlLoad: return "alternateHtmlLoad"
         case .other: return "other"
         case .redirect(let redirect):
             return "redirect(\(redirect))"
