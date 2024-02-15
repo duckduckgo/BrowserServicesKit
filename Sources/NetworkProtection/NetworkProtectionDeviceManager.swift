@@ -223,6 +223,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
             }
 
             selectedServer = registeredServer
+            return (selectedServer, selectedServer.expirationDate)
         case .failure(let error):
             handle(clientError: error)
 
@@ -230,7 +231,6 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
             return (cachedServer, nil)
         }
     }
-    // swiftlint:enable cyclomatic_complexity
 
     /// Retrieves the first cached server that's registered with the specified key pair.
     ///
