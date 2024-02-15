@@ -33,7 +33,6 @@ public class DefaultAutofillSourceProvider: AutofillUserScriptSourceProvider {
 
     let privacyConfigurationManager: PrivacyConfigurationManaging
     let properties: ContentScopeProperties
-    let isDebug: Bool
     private var sourceStr: String = ""
 
     public var source: String {
@@ -43,10 +42,9 @@ public class DefaultAutofillSourceProvider: AutofillUserScriptSourceProvider {
     public init(privacyConfigurationManager: PrivacyConfigurationManaging, properties: ContentScopeProperties, isDebug: Bool) {
         self.privacyConfigurationManager = privacyConfigurationManager
         self.properties = properties
-        self.isDebug = isDebug
     }
 
-    public func loadJS() {
+    public func loadJS(isDebug: Bool) {
         guard let replacements = buildReplacementsString() else {
             sourceStr = ""
             return
@@ -133,7 +131,7 @@ public class DefaultAutofillSourceProvider: AutofillUserScriptSourceProvider {
                                                          isDebug: isDebug)
 
             if shouldLoadJS {
-                provider.loadJS()
+                provider.loadJS(isDebug: isDebug)
             }
 
             return provider
