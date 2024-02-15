@@ -33,6 +33,8 @@ public class ConnectionServerInfoObserverThroughSession: ConnectionServerInfoObs
 
     private let subject = CurrentValueSubject<NetworkProtectionStatusServerInfo, Never>(.unknown)
 
+    private let tunnelSessionProvider: TunnelSessionProvider
+
     // MARK: - Notifications
 
     private let notificationCenter: NotificationCenter
@@ -46,7 +48,8 @@ public class ConnectionServerInfoObserverThroughSession: ConnectionServerInfoObs
 
     // MARK: - Initialization
 
-    public init(notificationCenter: NotificationCenter = .default,
+    public init(tunnelSessionProvider: TunnelSessionProvider,
+                notificationCenter: NotificationCenter = .default,
                 platformNotificationCenter: NotificationCenter,
                 platformDidWakeNotification: Notification.Name,
                 log: OSLog = .networkProtection) {
@@ -54,6 +57,7 @@ public class ConnectionServerInfoObserverThroughSession: ConnectionServerInfoObs
         self.notificationCenter = notificationCenter
         self.platformNotificationCenter = platformNotificationCenter
         self.platformDidWakeNotification = platformDidWakeNotification
+        self.tunnelSessionProvider = tunnelSessionProvider
         self.log = log
 
         start()
@@ -73,15 +77,11 @@ public class ConnectionServerInfoObserverThroughSession: ConnectionServerInfoObs
 
     private func handleDidWake(_ notification: Notification) {
         Task {
-            do {
-                guard let session = try await ConnectionSessionUtilities.activeSession() else {
-                    return
-                }
-
-                await updateServerInfo(session: session)
-            } catch {
-                os_log("Failed to handle wake %{public}@", log: log, type: .error, error.localizedDescription)
+            guard let session = await tunnelSessionProvider.activeSession() else {
+                return
             }
+
+            await updateServerInfo(session: session)
         }
     }
 
