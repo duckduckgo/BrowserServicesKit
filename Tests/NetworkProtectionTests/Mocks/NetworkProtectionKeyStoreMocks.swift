@@ -36,7 +36,15 @@ final class NetworkProtectionKeyStoreMock: NetworkProtectionKeyStore {
         }
     }
 
-    func updateCurrentKeyPair(newExpirationDate: Date) -> NetworkProtection.KeyPair {
+    func newKeyPair() -> NetworkProtection.KeyPair {
+        return KeyPair(privateKey: PrivateKey(), expirationDate: Date().addingTimeInterval(.day))
+    }
+
+    public func updateKeyPair(_ newKeyPair: KeyPair) {
+        self.keyPair = newKeyPair
+    }
+
+    func updateKeyPairExpirationDate(_ newExpirationDate: Date) -> NetworkProtection.KeyPair {
         let keyPair = KeyPair(privateKey: keyPair?.privateKey ?? PrivateKey(), expirationDate: newExpirationDate)
         self.keyPair = keyPair
         return keyPair

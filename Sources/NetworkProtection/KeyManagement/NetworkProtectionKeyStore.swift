@@ -25,19 +25,26 @@ public protocol NetworkProtectionKeyStore {
     ///
     func currentKeyPair() -> KeyPair
 
+    /// Create a new `KeyPair`.
+    ///
+    func newKeyPair() -> KeyPair
+
     /// Sets the validity interval for keys
     ///
-
     func setValidityInterval(_ validityInterval: TimeInterval?)
+
+    /// Updates the existing KeyPair.
+    ///
+    func updateKeyPair(_ newKeyPair: KeyPair)
 
     /// Updates the current `KeyPair` to have the specified expiration date
     ///
     /// - Parameters:
-    ///     - newExpirationDate: the new expiration date for the keypair
+    ///     - newExpirationDate: the new expiration date for the KeyPair
     ///
-    /// - Returns: a new keypair with the specified updates
+    /// - Returns: a new KeyPair with the specified updates
     ///
-    func updateCurrentKeyPair(newExpirationDate: Date) -> KeyPair
+    func updateKeyPairExpirationDate(_ newDate: Date) -> KeyPair
 
     /// Resets the current `KeyPair` so a new one will be generated when requested.
     ///
@@ -103,6 +110,10 @@ public final class NetworkProtectionKeychainKeyStore: NetworkProtectionKeyStore 
         return KeyPair(privateKey: currentPrivateKey, expirationDate: currentExpirationDate)
     }
 
+    public func newKeyPair() -> KeyPair {
+        return newCurrentKeyPair()
+    }
+
     private var validityInterval = Defaults.validityInterval
 
     public func setValidityInterval(_ validityInterval: TimeInterval?) {
@@ -123,8 +134,13 @@ public final class NetworkProtectionKeychainKeyStore: NetworkProtectionKeyStore 
         return KeyPair(privateKey: currentPrivateKey, expirationDate: currentExpirationDate)
     }
 
-    public func updateCurrentKeyPair(newExpirationDate: Date) -> KeyPair {
-        currentExpirationDate = newExpirationDate
+    public func updateKeyPair(_ newKeyPair: KeyPair) {
+        self.currentPrivateKey = newKeyPair.privateKey
+        self.currentExpirationDate = newKeyPair.expirationDate
+    }
+
+    public func updateKeyPairExpirationDate(_ newDate: Date) -> KeyPair {
+        self.currentExpirationDate = Date().addingTimeInterval(.seconds(30)) // newDate
         return currentKeyPair()
     }
 
