@@ -45,7 +45,7 @@ public struct NetworkProtectionServer: Codable, Equatable, Sendable {
 
     /// The last date at which registration took place. This may be used to determine whether a key needs to be refreshed.
     public let registrationDate = Date()
-    public let expirationDate: Date
+    public let expirationDate: Date?
 
     public let serverInfo: NetworkProtectionServerInfo
 
@@ -58,7 +58,7 @@ public struct NetworkProtectionServer: Codable, Equatable, Sendable {
         case expirationDate = "expiresAt"
     }
 
-    init(registeredPublicKey: String?, allowedIPs: [String]?, serverInfo: NetworkProtectionServerInfo, expirationDate: Date) {
+    init(registeredPublicKey: String?, allowedIPs: [String]?, serverInfo: NetworkProtectionServerInfo, expirationDate: Date?) {
         self.registeredPublicKey = registeredPublicKey
         self.allowedIPs = allowedIPs
         self.expirationDate = expirationDate
