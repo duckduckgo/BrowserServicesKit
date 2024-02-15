@@ -1,7 +1,7 @@
 //
-//  AppLaunching.swift
+//  AccountStorage.swift
 //
-//  Copyright © 2022 DuckDuckGo. All rights reserved.
+//  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -16,23 +16,16 @@
 //  limitations under the License.
 //
 
-// SPDX-License-Identifier: MIT
-// Copyright © 2018-2021 WireGuard LLC. All Rights Reserved.
-
 import Foundation
 
-public enum AppLaunchCommand: Codable {
-    case justOpen
-    case shareFeedback
-    case showStatus
-    case showSettings
-    case showVPNLocations
-    case startVPN
-    case stopVPN
-    case enableOnDemand
-    case moveAppToApplications
-}
-
-public protocol AppLaunching {
-    func launchApp(withCommand command: AppLaunchCommand) async
+public protocol AccountStorage: AnyObject {
+    func getAuthToken() throws -> String?
+    func store(authToken: String) throws
+    func getAccessToken() throws -> String?
+    func store(accessToken: String) throws
+    func getEmail() throws -> String?
+    func store(email: String?) throws
+    func getExternalID() throws -> String?
+    func store(externalID: String?) throws
+    func clearAuthenticationState() throws
 }

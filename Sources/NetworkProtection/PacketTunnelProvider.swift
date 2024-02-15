@@ -620,7 +620,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     /// Do not cancel, directly... call this method so that the adapter and tester are stopped too.
-    private func stopTunnel(with stopError: Error) {
+    private func cancelTunnel(with stopError: Error) {
         connectionStatus = .disconnecting
 
         os_log("Stopping tunnel with error %{public}@", log: .networkProtection, type: .info, stopError.localizedDescription)
@@ -859,6 +859,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             handleExpireRegistrationKey(completionHandler: completionHandler)
         case .sendTestNotification:
             handleSendTestNotification(completionHandler: completionHandler)
+        case .disableConnectOnDemandAndShutDown:
+            handleShutDown(completionHandler: completionHandler)
         case .removeVPNConfiguration:
             // Since the VPN configuration is being removed we may as well reset all state
             handleResetAllState(completionHandler: completionHandler)
@@ -951,6 +953,26 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private func handleSendTestNotification(completionHandler: ((Data?) -> Void)? = nil) {
         notificationsPresenter.showTestNotification()
         completionHandler?(nil)
+    }
+
+    public func handleShutDown(completionHandler: ((Data?) -> Void)? = nil) {
+        Task {
+            let managers = try await NETunnelProviderManager.loadAllFromPreferences()
+
+            guard let manager = managers.first else {
+                completionHandler?(nil)
+                return
+            }
+
+            manager.isOnDemandEnabled = false
+            try await manager.saveToPreferences()
+            try await manager.loadFromPreferences()
+
+            let error = NSError(domain: "com.duckduckgo.vpn", code: 0)
+            cancelTunnel(with: error)
+
+            completionHandler?(nil)
+        }
     }
 
     private func setIncludedRoutes(_ includedRoutes: [IPAddressRange], completionHandler: ((Data?) -> Void)? = nil) {
