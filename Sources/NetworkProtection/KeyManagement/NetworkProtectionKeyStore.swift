@@ -52,7 +52,7 @@ public final class NetworkProtectionKeychainKeyStore: NetworkProtectionKeyStore 
     private struct Defaults {
         static let label = "DuckDuckGo Network Protection Private Key"
         static let service = "\(Bundle.main.bundleIdentifier!).privateKey"
-        static let validityInterval = TimeInterval(20) //TimeInterval.day
+        static let validityInterval = TimeInterval.day
     }
 
     private enum UserDefaultKeys {
