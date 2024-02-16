@@ -134,6 +134,7 @@ final class NetworkProtectionConnectionTester {
     func stop() async {
         os_log("🔴 Stopping connection tester", log: log)
         await stopScheduledTimer()
+        isRunning = false
     }
 
     // MARK: - Obtaining the interface
@@ -197,12 +198,10 @@ final class NetworkProtectionConnectionTester {
             self?.timer = nil
         }
 
-        isRunning = true
         timer.resume()
     }
 
     private func stopScheduledTimer() async {
-        isRunning = false
         cancelTimerImmediately()
     }
 
