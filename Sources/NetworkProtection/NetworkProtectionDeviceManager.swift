@@ -132,10 +132,11 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
         if regenerateKey {
             keyPair = keyStore.newKeyPair()
         } else {
-            keyPair = keyStore.currentKeyPair()
+            keyPair = keyStore.currentKeyPair() ?? keyStore.newKeyPair()
         }
 
         let (selectedServer, newExpiration) = try await register(keyPair: keyPair, selectionMethod: selectionMethod)
+        os_log("Server registration successul", log: .networkProtection)
 
         // If we're regenerating the key, then we know at this point it has been successfully registered. It's now safe to replace the old key.
         if regenerateKey {
@@ -143,7 +144,8 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
         }
 
         if let newExpiration {
-            keyPair = keyStore.updateKeyPairExpirationDate(newExpiration)
+            keyPair = KeyPair(privateKey: keyPair.privateKey, expirationDate: newExpiration)
+            keyStore.updateKeyPair(keyPair)
         }
 
         do {

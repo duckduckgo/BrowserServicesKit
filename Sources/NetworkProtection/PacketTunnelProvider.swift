@@ -148,7 +148,11 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     private var isKeyExpired: Bool {
-        keyStore.currentKeyPair().expirationDate <= Date()
+        guard let currentExpirationDate = keyStore.currentExpirationDate else {
+            return true
+        }
+
+        return currentExpirationDate <= Date()
     }
 
     private func rekeyIfExpired() async {
