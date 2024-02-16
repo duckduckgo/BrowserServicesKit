@@ -19,6 +19,8 @@
 // SPDX-License-Identifier: MIT
 // Copyright © 2018-2021 WireGuard LLC. All Rights Reserved.
 
+// swiftlint:disable file_length
+
 import Combine
 import Common
 import Foundation
@@ -150,7 +152,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     private func rekeyIfExpired() async {
+        os_log("Checking if rekey is necessary...", log: .networkProtectionKeyManagement)
+
         guard isKeyExpired else {
+            os_log("The key is not expired", log: .networkProtectionKeyManagement)
             return
         }
 
@@ -162,6 +167,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
         // Experimental option to disable rekeying.
         guard !settings.disableRekeying else {
+            os_log("Rekeying disabled", log: .networkProtectionKeyManagement)
             return
         }
 
@@ -756,7 +762,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
         switch message {
         case .request(let request):
-            handleRequest(request)
+            handleRequest(request, completionHandler: completionHandler)
         case .expireRegistrationKey:
             handleExpireRegistrationKey(completionHandler: completionHandler)
         case .getLastErrorMessage:
@@ -862,6 +868,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 .setNetworkPathChange,
                 .setDisableRekeying:
             // Intentional no-op, as some setting changes don't require any further operation
+            completionHandler?(nil)
             break
         }
     }
