@@ -131,7 +131,6 @@ struct AccountManager: AccountManaging {
                     devices.append(RegisteredDevice(id: device.id, name: name, type: type))
                 } catch {
                     // Invalid devices should be automatically logged out
-                    // https://app.asana.com/0/0/1206475427266739/f
                     try await logout(deviceId: device.id, token: token)
                 }
             }
