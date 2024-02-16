@@ -203,8 +203,11 @@ final class BookmarksResponseHandler {
                 assertionFailure("Bookmark folder passed to \(#function)")
                 continue
             }
-
-            try processEntity(with: syncable)
+            do {
+                try processEntity(with: syncable)
+            } catch SyncError.failedToDecryptValue(let message) where message.contains("invalid ciphertext length") {
+                continue
+            }
         }
     }
 
@@ -279,12 +282,7 @@ final class BookmarksResponseHandler {
 
     private func updateEntity(_ entity: BookmarkEntity, with syncable: SyncableBookmarkAdapter) throws {
         let url = entity.url
-        do {
-            try entity.update(with: syncable, in: context, decryptedUsing: decrypt)
-        } catch SyncError.failedToDecryptValue(let message) where message.contains("invalid ciphertext length") {
-            // Delete bookmarks that don't decrypt to prevent nil values
-            entity.markPendingDeletion()
-        }
+        try entity.update(with: syncable, in: context, decryptedUsing: decrypt)
         if let uuid = entity.uuid {
             if entity.isDeleted {
                 idsOfDeletedBookmarks.insert(uuid)
