@@ -869,7 +869,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 .setDisableRekeying:
             // Intentional no-op, as some setting changes don't require any further operation
             completionHandler?(nil)
-            break
         }
     }
 
