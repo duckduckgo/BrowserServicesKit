@@ -23,7 +23,7 @@ public protocol NetworkProtectionKeyStore {
 
     /// Obtain the current `KeyPair`.
     ///
-    func currentKeyPair() -> KeyPair
+    func currentKeyPair() -> KeyPair?
 
     /// Create a new `KeyPair`.
     ///
@@ -36,15 +36,6 @@ public protocol NetworkProtectionKeyStore {
     /// Updates the existing KeyPair.
     ///
     func updateKeyPair(_ newKeyPair: KeyPair)
-
-    /// Updates the current `KeyPair` to have the specified expiration date
-    ///
-    /// - Parameters:
-    ///     - newExpirationDate: the new expiration date for the KeyPair
-    ///
-    /// - Returns: a new KeyPair with the specified updates
-    ///
-    func updateKeyPairExpirationDate(_ newDate: Date) -> KeyPair
 
     /// Resets the current `KeyPair` so a new one will be generated when requested.
     ///
@@ -82,29 +73,26 @@ public final class NetworkProtectionKeychainKeyStore: NetworkProtectionKeyStore 
 
     // MARK: - NetworkProtectionKeyStore
 
-    public func currentKeyPair() -> KeyPair {
+    public func currentKeyPair() -> KeyPair? {
         os_log("Querying the current key pair (publicKey: %{public}@, expirationDate: %{public}@)",
                log: .networkProtectionKeyManagement,
                String(describing: currentPublicKey),
                String(describing: currentExpirationDate))
 
         guard let currentPrivateKey = currentPrivateKey else {
-            let keyPair = newCurrentKeyPair()
-            os_log("Returning a new key pair as there's no current private key (newPublicKey: %{public}@)",
-                   log: .networkProtectionKeyManagement,
-                   String(describing: keyPair.publicKey.base64Key))
-            return keyPair
+            os_log("There's no current private key.",
+                   log: .networkProtectionKeyManagement)
+            return nil
         }
 
         guard let currentExpirationDate = currentExpirationDate,
               Date().addingTimeInterval(validityInterval) >= currentExpirationDate else {
 
-            let keyPair = newCurrentKeyPair()
-            os_log("Returning a new key pair as the expirationDate date is missing, or we're past it (now: %{public}@, expirationDate: %{public}@)",
+            os_log("The expirationDate date is missing, or we're past it (now: %{public}@, expirationDate: %{public}@)",
                    log: .networkProtectionKeyManagement,
                    String(describing: Date()),
                    String(describing: currentExpirationDate))
-            return keyPair
+            return nil
         }
 
         return KeyPair(privateKey: currentPrivateKey, expirationDate: currentExpirationDate)
@@ -138,13 +126,13 @@ public final class NetworkProtectionKeychainKeyStore: NetworkProtectionKeyStore 
     }
 
     public func updateKeyPair(_ newKeyPair: KeyPair) {
-        self.currentPrivateKey = newKeyPair.privateKey
-        self.currentExpirationDate = newKeyPair.expirationDate
-    }
+        if currentPrivateKey != newKeyPair.privateKey {
+            self.currentPrivateKey = newKeyPair.privateKey
+        }
 
-    public func updateKeyPairExpirationDate(_ newDate: Date) -> KeyPair {
-        self.currentExpirationDate = Date().addingTimeInterval(.seconds(30)) // newDate
-        return currentKeyPair()
+        if currentExpirationDate != newKeyPair.expirationDate {
+            self.currentExpirationDate = newKeyPair.expirationDate
+        }
     }
 
     public func resetCurrentKeyPair() {
