@@ -195,6 +195,33 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
         XCTAssertNotNil(networkClient.spyRegister)
     }
 
+    func testWhenGeneratingTunnelConfiguration_AndKeyIsStillValid_AndKeyIsRegenerated_AndRegistrationFails_ThenKeyDoesNotChange() async {
+        let server = NetworkProtectionServer.mockBaseServer
+        let registeredServer = NetworkProtectionServer.mockRegisteredServer
+
+        networkClient.stubGetServers = .success([server])
+        networkClient.stubRegister = .success([registeredServer])
+
+        XCTAssertNil(try? keyStore.storedPrivateKey())
+        XCTAssertEqual(try? serverListStore.storedNetworkProtectionServerList(), [])
+        XCTAssertNil(networkClient.spyRegister)
+        _ = try? await manager.generateTunnelConfiguration(selectionMethod: .automatic, regenerateKey: false)
+
+        let firstKey = try? keyStore.storedPrivateKey()
+        XCTAssertNotNil(firstKey)
+        XCTAssertEqual(try? serverListStore.storedNetworkProtectionServerList(), [registeredServer])
+        XCTAssertNotNil(networkClient.spyRegister)
+
+        networkClient.stubRegister = .failure(.failedToEncodeRegisterKeyRequest)
+        _ = try? await manager.generateTunnelConfiguration(selectionMethod: .automatic, regenerateKey: true)
+
+        let secondKey = try? keyStore.storedPrivateKey()
+        XCTAssertNotNil(secondKey)
+        XCTAssertEqual(firstKey, secondKey) // Check that the key did NOT change, even though we tried to regenerate it
+        XCTAssertEqual(try? serverListStore.storedNetworkProtectionServerList(), [registeredServer])
+        XCTAssertNotNil(networkClient.spyRegister)
+    }
+
 }
 
 extension NetworkProtectionDeviceManager {
