@@ -135,67 +135,16 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Registration Key
 
-    private lazy var keyStore = NetworkProtectionKeychainKeyStore(keychainType: keychainType,
-                                                                  errorEvents: debugEvents)
-
+    private lazy var registrationKeyManager: RegistrationKeyManager = {
+        RegistrationKeyManager(
+            keychainType: keychainType,
+            settings: settings,
+            providerEvents: providerEvents,
+            debugEvents: debugEvents) { [weak self] in
+                try await self?.updateTunnelConfiguration(reassert: false)
+            }
+    }()
     private let tokenStore: NetworkProtectionTokenStore
-
-    private func resetRegistrationKey() {
-        os_log("Resetting the current registration key", log: .networkProtectionKeyManagement)
-        keyStore.resetCurrentKeyPair()
-    }
-
-    private var isKeyExpired: Bool {
-        keyStore.currentKeyPair().expirationDate <= Date()
-    }
-
-    private func rekeyIfExpired() async {
-        guard isKeyExpired else {
-            return
-        }
-
-        await rekey()
-    }
-
-    private func rekey() async {
-        providerEvents.fire(.userBecameActive)
-
-        // Experimental option to disable rekeying.
-        guard !settings.disableRekeying else {
-            return
-        }
-
-        os_log("Rekeying...", log: .networkProtectionKeyManagement)
-
-        providerEvents.fire(.rekeyCompleted)
-        self.resetRegistrationKey()
-
-        do {
-            try await updateTunnelConfiguration(reassert: false)
-        } catch {
-            os_log("Rekey attempt failed.  This is not an error if you're using debug Key Management options: %{public}@", log: .networkProtectionKeyManagement, type: .error, String(describing: error))
-        }
-    }
-
-    private func setKeyValidity(_ interval: TimeInterval?) {
-        if let interval {
-            let firstExpirationDate = Date().addingTimeInterval(interval)
-
-            os_log("Setting key validity interval to %{public}@ seconds (next expiration date %{public}@)",
-                   log: .networkProtectionKeyManagement,
-                   String(describing: interval),
-                   String(describing: firstExpirationDate))
-
-            settings.registrationKeyValidity = .custom(interval)
-        } else {
-            os_log("Resetting key validity interval",
-                   log: .networkProtectionKeyManagement)
-
-            settings.registrationKeyValidity = .automatic
-        }
-
-        keyStore.setValidityInterval(interval)
-    }
 
     // MARK: - Bandwidth Analyzer
 
@@ -210,7 +159,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             // This provides a more frequent active user pixel check
             providerEvents.fire(.userBecameActive)
 
-            await rekeyIfExpired()
+            await registrationKeyManager.rekeyIfExpired()
         }
     }
 
@@ -354,11 +303,11 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private func loadKeyValidity(from options: StartupOptions) {
         switch options.keyValidity {
         case .set(let validity):
-            setKeyValidity(validity)
+            registrationKeyManager.setKeyValidity(validity)
         case .useExisting:
             break
         case .reset:
-            setKeyValidity(nil)
+            registrationKeyManager.setKeyValidity(nil)
         }
     }
 
@@ -707,7 +656,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             let networkClient = NetworkProtectionBackendClient(environment: environment)
             let deviceManager = NetworkProtectionDeviceManager(networkClient: networkClient,
                                                                tokenStore: tokenStore,
-                                                               keyStore: keyStore,
+                                                               keyStore: registrationKeyManager.keyStore,
                                                                errorEvents: debugEvents)
 
             configurationResult = try await deviceManager.generateTunnelConfiguration(selectionMethod: serverSelectionMethod, includedRoutes: includedRoutes, excludedRoutes: excludedRoutes, isKillSwitchEnabled: isKillSwitchEnabled)
@@ -871,13 +820,13 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     private func handleExpireRegistrationKey(completionHandler: ((Data?) -> Void)? = nil) {
         Task {
-            await rekey()
+            await registrationKeyManager.rekey()
             completionHandler?(nil)
         }
     }
 
     private func handleResetAllState(completionHandler: ((Data?) -> Void)? = nil) {
-        resetRegistrationKey()
+        registrationKeyManager.resetAllState()
 
         let serverCache = NetworkProtectionServerListFileSystemStore(errorEvents: nil)
         serverCache.removeServerList()
@@ -945,7 +894,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     private func handleSetKeyValidity(_ keyValidity: TimeInterval?, completionHandler: ((Data?) -> Void)? = nil) {
         Task {
-            setKeyValidity(keyValidity)
+            registrationKeyManager.setKeyValidity(keyValidity)
             completionHandler?(nil)
         }
     }
@@ -1039,10 +988,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
 
         if !settings.disableRekeying {
-            guard !isKeyExpired else {
-                await rekey()
-                return
-            }
+            await registrationKeyManager.rekeyIfExpired()
         }
 
         os_log("🔵 Tunnel interface is %{public}@", log: .networkProtection, type: .info, adapter.interfaceName ?? "unknown")
