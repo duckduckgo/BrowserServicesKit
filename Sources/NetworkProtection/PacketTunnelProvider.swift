@@ -1204,3 +1204,5 @@ extension WireGuardAdapterError: LocalizedError, CustomDebugStringConvertible {
     }
 
 }
+
+// swiftlint:enable file_length
