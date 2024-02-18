@@ -170,17 +170,23 @@ public class AccountManager: AccountManaging {
 
     // MARK: -
 
-    public func hasEntitlement(for name: String) async -> Bool {
-        await fetchEntitlements().contains(name)
+    public enum Entitlement: String {
+        case networkProtection = "Network Protection"
+        case dataBrokerProtection = "Data Broker Protection"
+        case identityTheftRestoration = "Identity Theft Restoration"
     }
 
-    public func fetchEntitlements() async -> [String] {
+    public func hasEntitlement(for entitlement: Entitlement) async -> Bool {
+        await fetchEntitlements().contains(entitlement)
+    }
+
+    public func fetchEntitlements() async -> [Entitlement] {
         guard let accessToken else { return [] }
 
         switch await AuthService.validateToken(accessToken: accessToken) {
         case .success(let response):
             let entitlements = response.account.entitlements
-            return entitlements.map { $0.name }
+            return entitlements.compactMap { Entitlement(rawValue: $0.product) }
 
         case .failure(let error):
             os_log(.error, log: .subscription, "[AccountManager] fetchEntitlements error: %{public}@", error.localizedDescription)
