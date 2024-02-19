@@ -124,7 +124,6 @@ final class BookmarksResponseHandler {
             } catch SyncError.failedToDecryptValue(let message) where message.contains("invalid ciphertext length") {
                 continue
             }
-            
         }
         try processOrphanedBookmarks()
         processReceivedFavorites()

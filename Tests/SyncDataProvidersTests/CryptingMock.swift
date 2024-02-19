@@ -21,9 +21,9 @@ import DDGSync
 import Foundation
 
 struct CryptingMock: Crypting {
-    
+
     var exceptionStr: String?
-    
+
     mutating func throwsException(exceptionString: String?) {
         self.exceptionStr = exceptionString
     }
@@ -39,7 +39,7 @@ struct CryptingMock: Crypting {
         }
         return "encrypted_\(value)"
     }
-    
+
     func _base64DecodeAndDecrypt(_ value: String) throws -> String {
         if self.exceptionStr != nil {
             throw SyncError.failedToDecryptValue(exceptionStr!)
