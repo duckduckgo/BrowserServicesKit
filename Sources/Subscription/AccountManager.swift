@@ -176,21 +176,30 @@ public class AccountManager: AccountManaging {
         case identityTheftRestoration = "Identity Theft Restoration"
     }
 
-    public func hasEntitlement(for entitlement: Entitlement) async -> Bool {
-        await fetchEntitlements().contains(entitlement)
+    public enum EntitlementsError: Error {
+        case noAccessToken
     }
 
-    public func fetchEntitlements() async -> [Entitlement] {
-        guard let accessToken else { return [] }
+    public func hasEntitlement(for entitlement: Entitlement) async -> Result<Bool, Error> {
+        switch await fetchEntitlements() {
+        case .success(let entitlements):
+            return .success(entitlements.contains(entitlement))
+        case .failure(let error):
+            return .failure(error)
+        }
+    }
+
+    public func fetchEntitlements() async -> Result<[Entitlement], Error> {
+        guard let accessToken else { return .failure(EntitlementsError.noAccessToken) }
 
         switch await AuthService.validateToken(accessToken: accessToken) {
         case .success(let response):
-            let entitlements = response.account.entitlements
-            return entitlements.compactMap { Entitlement(rawValue: $0.product) }
+            let entitlements = response.account.entitlements.compactMap { Entitlement(rawValue: $0.product) }
+            return .success(entitlements)
 
         case .failure(let error):
             os_log(.error, log: .subscription, "[AccountManager] fetchEntitlements error: %{public}@", error.localizedDescription)
-            return []
+            return .failure(error)
         }
     }
 
@@ -234,7 +243,12 @@ public class AccountManager: AccountManaging {
         var hasEntitlements = false
 
         repeat {
-            hasEntitlements = await !AccountManager().fetchEntitlements().isEmpty
+            switch await AccountManager().fetchEntitlements() {
+            case .success(let entitlements):
+                hasEntitlements = !entitlements.isEmpty
+            case .failure:
+                hasEntitlements = false
+            }
 
             if hasEntitlements {
                 break
