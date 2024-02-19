@@ -34,6 +34,7 @@ public protocol AutofillDatabaseProvider: SecureStorageDatabaseProvider {
     func websiteAccountsForDomain(_ domain: String) throws -> [SecureVaultModels.WebsiteAccount]
     func websiteAccountsForTopLevelDomain(_ eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount]
     func deleteWebsiteCredentialsForAccountId(_ accountId: Int64) throws
+    func deleteAllWebsiteCredentials() throws
 
     func neverPromptWebsites() throws -> [SecureVaultModels.NeverPromptWebsites]
     func hasNeverPromptWebsitesFor(domain: String) throws -> Bool
@@ -214,6 +215,15 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
             WHERE
                 \(SecureVaultModels.WebsiteAccount.Columns.id.name) = ?
             """, arguments: [accountId])
+    }
+
+    public func deleteAllWebsiteCredentials() throws {
+        try db.write {
+            try $0.execute(sql: """
+                DELETE FROM
+                    \(SecureVaultModels.WebsiteAccount.databaseTableName)
+                """)
+        }
     }
 
     func updateWebsiteCredentials(in database: Database,
