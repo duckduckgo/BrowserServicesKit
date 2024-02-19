@@ -177,6 +177,7 @@ final class BookmarksResponseHandler {
 
             while !queue.isEmpty {
                 let syncableUUID = queue.removeFirst()
+
                 if let syncable = receivedByUUID[syncableUUID] {
                     try processEntity(with: syncable, parent: parent)
                     if syncable.isFolder, !syncable.children.isEmpty {
@@ -215,22 +216,14 @@ final class BookmarksResponseHandler {
         guard let syncableUUID = syncable.uuid else {
             return
         }
-        if shouldDeduplicateEntities {
-            try processDeduplicatedEntity(with: syncable, parent: parent, syncableUUID: syncableUUID)
-        } else if let existingEntity = entitiesByUUID[syncableUUID] {
-            try processExistingEntity(with: syncable, parent: parent, existingEntity: existingEntity)
-        } else if !syncable.isDeleted {
-            try processNewEntity(with: syncable, parent: parent, syncableUUID: syncableUUID)
-        }
-    }
 
-    private func processDeduplicatedEntity(with syncable: SyncableBookmarkAdapter, parent: BookmarkEntity?, syncableUUID: String) throws {
-        if let deduplicatedEntity = try BookmarkEntity.deduplicatedEntity(
+        if shouldDeduplicateEntities, let deduplicatedEntity = try BookmarkEntity.deduplicatedEntity(
             with: syncable,
             parentUUID: parent?.uuid,
             in: context,
             decryptedUsing: decrypt
         ) {
+
             if let oldUUID = deduplicatedEntity.uuid {
                 entitiesByUUID.removeValue(forKey: oldUUID)
             }
@@ -245,39 +238,38 @@ final class BookmarksResponseHandler {
             }
 
             deduplicatedEntity.updateLastChildrenSyncPayload(with: syncable.children)
-        }
-    }
 
-    private func processExistingEntity(with syncable: SyncableBookmarkAdapter, parent: BookmarkEntity?, existingEntity: BookmarkEntity) throws {
-        let isModifiedAfterSyncTimestamp: Bool = {
-            guard let clientTimestamp, let modifiedAt = existingEntity.modifiedAt else {
-                return false
+        } else if let existingEntity = entitiesByUUID[syncableUUID] {
+            let isModifiedAfterSyncTimestamp: Bool = {
+                guard let clientTimestamp, let modifiedAt = existingEntity.modifiedAt else {
+                    return false
+                }
+                return modifiedAt > clientTimestamp
+            }()
+            if isModifiedAfterSyncTimestamp {
+                metricsEvents?.fire(.localTimestampResolutionTriggered(feature: feature))
+            } else {
+                try updateEntity(existingEntity, with: syncable)
             }
-            return modifiedAt > clientTimestamp
-        }()
-        if isModifiedAfterSyncTimestamp {
-            metricsEvents?.fire(.localTimestampResolutionTriggered(feature: feature))
-        } else {
-            try updateEntity(existingEntity, with: syncable)
+
+            if parent != nil, !existingEntity.isDeleted {
+                existingEntity.parent?.removeFromChildren(existingEntity)
+                parent?.addToChildren(existingEntity)
+            }
+
+            existingEntity.updateLastChildrenSyncPayload(with: syncable.children)
+
+        } else if !syncable.isDeleted {
+
+            assert(syncable.uuid != BookmarkEntity.Constants.rootFolderID, "Trying to make another root folder")
+
+            let newEntity = BookmarkEntity.make(withUUID: syncableUUID, isFolder: syncable.isFolder, in: context)
+            parent?.addToChildren(newEntity)
+            try updateEntity(newEntity, with: syncable)
+            entitiesByUUID[syncableUUID] = newEntity
+
+            newEntity.updateLastChildrenSyncPayload(with: syncable.children)
         }
-
-        if parent != nil, !existingEntity.isDeleted {
-            existingEntity.parent?.removeFromChildren(existingEntity)
-            parent?.addToChildren(existingEntity)
-        }
-
-        existingEntity.updateLastChildrenSyncPayload(with: syncable.children)
-    }
-
-    private func processNewEntity(with syncable: SyncableBookmarkAdapter, parent: BookmarkEntity?, syncableUUID: String) throws {
-        assert(syncable.uuid != BookmarkEntity.Constants.rootFolderID, "Trying to make another root folder")
-
-        let newEntity = BookmarkEntity.make(withUUID: syncableUUID, isFolder: syncable.isFolder, in: context)
-        parent?.addToChildren(newEntity)
-        try updateEntity(newEntity, with: syncable)
-        entitiesByUUID[syncableUUID] = newEntity
-
-        newEntity.updateLastChildrenSyncPayload(with: syncable.children)
     }
 
     private func updateEntity(_ entity: BookmarkEntity, with syncable: SyncableBookmarkAdapter) throws {
