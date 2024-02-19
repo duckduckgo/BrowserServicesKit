@@ -73,7 +73,7 @@ class CrypterTests: XCTestCase {
 
         XCTAssertThrowsError(try crypter.base64DecodeAndDecrypt(message))
     }
-    
+
     func testWhenDecryptingGarbageBase64DataThenErrorIsThrown() throws {
         let storage = SecureStorageStub()
         let primaryKey = Data([UInt8]((0 ..< DDGSYNCCRYPTO_PRIMARY_KEY_SIZE.rawValue).map { _ in UInt8.random(in: 0 ..< UInt8.max )}))
@@ -88,10 +88,9 @@ class CrypterTests: XCTestCase {
                                                state: .active))
         let randomMessage = SymmetricKey(size: .bits256).withUnsafeBytes { Data(Array($0)).base64EncodedString() }
 
-
         let crypter = Crypter(secureStore: storage)
 
-        XCTAssertThrowsError(try crypter.base64DecodeAndDecrypt(message))
+        XCTAssertThrowsError(try crypter.base64DecodeAndDecrypt(randomMessage))
     }
 
     func testWhenEncryptingValueThenItIsBase64AndCanBeDecrypted() throws {
