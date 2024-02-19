@@ -119,10 +119,14 @@ final class BookmarksResponseHandler {
         }
 
         for topLevelFolderSyncable in topLevelFoldersSyncables {
-            try processTopLevelFolder(topLevelFolderSyncable)
+            do {
+                try processTopLevelFolder(topLevelFolderSyncable)
+            } catch SyncError.failedToDecryptValue(let message) where message.contains("invalid ciphertext length") {
+                continue
+            }
+            
         }
         try processOrphanedBookmarks()
-
         processReceivedFavorites()
     }
 
