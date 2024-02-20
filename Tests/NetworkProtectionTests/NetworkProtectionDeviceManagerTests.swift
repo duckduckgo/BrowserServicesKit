@@ -43,7 +43,7 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
             keyStore: keyStore,
             serverListStore: serverListStore,
             errorEvents: nil,
-            subscriptionConfiguration: .init(isSubscriptionEnabled: false, isEntitlementValid: { true })
+            isSubscriptionEnabled: false
         )
     }
 

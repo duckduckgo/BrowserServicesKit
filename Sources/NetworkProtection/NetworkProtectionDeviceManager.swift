@@ -58,20 +58,20 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
 
     private let errorEvents: EventMapping<NetworkProtectionError>?
 
-    private let subscriptionConfiguration: PacketTunnelProvider.SubscriptionConfiguration
+    private let isSubscriptionEnabled: Bool
 
     public init(environment: VPNSettings.SelectedEnvironment,
                 tokenStore: NetworkProtectionTokenStore,
                 keyStore: NetworkProtectionKeyStore,
                 serverListStore: NetworkProtectionServerListStore? = nil,
                 errorEvents: EventMapping<NetworkProtectionError>?,
-                subscriptionConfiguration: PacketTunnelProvider.SubscriptionConfiguration) {
-        self.init(networkClient: NetworkProtectionBackendClient(environment: environment, isSubscriptionEnabled: subscriptionConfiguration.isSubscriptionEnabled),
+                isSubscriptionEnabled: Bool) {
+        self.init(networkClient: NetworkProtectionBackendClient(environment: environment, isSubscriptionEnabled: isSubscriptionEnabled),
                   tokenStore: tokenStore,
                   keyStore: keyStore,
                   serverListStore: serverListStore,
                   errorEvents: errorEvents,
-                  subscriptionConfiguration: subscriptionConfiguration)
+                  isSubscriptionEnabled: isSubscriptionEnabled)
     }
 
     init(networkClient: NetworkProtectionClient,
@@ -79,13 +79,13 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
          keyStore: NetworkProtectionKeyStore,
          serverListStore: NetworkProtectionServerListStore? = nil,
          errorEvents: EventMapping<NetworkProtectionError>?,
-         subscriptionConfiguration: PacketTunnelProvider.SubscriptionConfiguration) {
+         isSubscriptionEnabled: Bool) {
         self.networkClient = networkClient
         self.tokenStore = tokenStore
         self.keyStore = keyStore
         self.serverListStore = serverListStore ?? NetworkProtectionServerListFileSystemStore(errorEvents: errorEvents)
         self.errorEvents = errorEvents
-        self.subscriptionConfiguration = subscriptionConfiguration
+        self.isSubscriptionEnabled = isSubscriptionEnabled
     }
 
     /// Requests a new server list from the backend and updates it locally.
@@ -230,7 +230,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
             selectedServer = registeredServer
             return (selectedServer, selectedServer.expirationDate)
         case .failure(let error):
-            if subscriptionConfiguration.isSubscriptionEnabled, case .accessDenied = error {
+            if isSubscriptionEnabled, case .accessDenied = error {
                 errorEvents?.fire(.vpnAccessRevoked)
                 throw NetworkProtectionError.vpnAccessRevoked
             }

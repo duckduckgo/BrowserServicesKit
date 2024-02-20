@@ -44,16 +44,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         case failure
     }
 
-    public struct SubscriptionConfiguration {
-        public let isSubscriptionEnabled: Bool
-        public let isEntitlementValid: () async -> Bool
-
-        public init(isSubscriptionEnabled: Bool, isEntitlementValid: @escaping () async -> Bool) {
-            self.isSubscriptionEnabled = isSubscriptionEnabled
-            self.isEntitlementValid = isEntitlementValid
-        }
-    }
-
     // MARK: - Error Handling
 
     enum TunnelError: LocalizedError {
@@ -294,7 +284,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private let keychainType: KeychainType
     private let debugEvents: EventMapping<NetworkProtectionError>?
     private let providerEvents: EventMapping<Event>
-    private let subscriptionConfiguration: SubscriptionConfiguration
+
+    public let isSubscriptionEnabled: Bool
 
     public init(notificationsPresenter: NetworkProtectionNotificationsPresenter,
                 tunnelHealthStore: NetworkProtectionTunnelHealthStore,
@@ -304,7 +295,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 debugEvents: EventMapping<NetworkProtectionError>?,
                 providerEvents: EventMapping<Event>,
                 settings: VPNSettings,
-                subscriptionConfiguration: SubscriptionConfiguration) {
+                isSubscriptionEnabled: Bool) {
         os_log("[+] PacketTunnelProvider", log: .networkProtectionMemoryLog, type: .debug)
 
         self.notificationsPresenter = notificationsPresenter
@@ -315,7 +306,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         self.tunnelHealth = tunnelHealthStore
         self.controllerErrorStore = controllerErrorStore
         self.settings = settings
-        self.subscriptionConfiguration = subscriptionConfiguration
+        self.isSubscriptionEnabled = isSubscriptionEnabled
 
         super.init()
 
@@ -743,12 +734,12 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
         do {
             let networkClient = NetworkProtectionBackendClient(environment: environment,
-                                                               isSubscriptionEnabled: subscriptionConfiguration.isSubscriptionEnabled)
+                                                               isSubscriptionEnabled: isSubscriptionEnabled)
             let deviceManager = NetworkProtectionDeviceManager(networkClient: networkClient,
                                                                tokenStore: tokenStore,
                                                                keyStore: keyStore,
                                                                errorEvents: debugEvents,
-                                                               subscriptionConfiguration: subscriptionConfiguration)
+                                                               isSubscriptionEnabled: isSubscriptionEnabled)
 
             configurationResult = try await deviceManager.generateTunnelConfiguration(
                 selectionMethod: serverSelectionMethod,
@@ -758,7 +749,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 regenerateKey: regenerateKey
             )
         } catch {
-            if subscriptionConfiguration.isSubscriptionEnabled, let error = error as? NetworkProtectionError, case .vpnAccessRevoked = error {
+            if isSubscriptionEnabled, let error = error as? NetworkProtectionError, case .vpnAccessRevoked = error {
                 os_log("🔵 Expired subscription", log: .networkProtection, type: .error)
                 settings.apply(change: .setShouldShowExpiredEntitlementMessaging(.init(showsAlert: true, showsNotification: true)))
                 throw TunnelError.vpnAccessRevoked
