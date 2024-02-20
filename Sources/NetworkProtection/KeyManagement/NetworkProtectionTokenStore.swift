@@ -35,11 +35,13 @@ public protocol NetworkProtectionTokenStore {
 
     /// Convert DDG-access-token to NetP-auth-token
     ///
-    static func makeToken(from accessToken: String) -> String
+    /// todo - https://app.asana.com/0/0/1206541966681608/f
+    static func makeToken(from subscriptionAccessToken: String) -> String
 
     /// Check if a given token is derived from DDG-access-token
     ///
-    static func isAccessToken(_ token: String) -> Bool
+    /// todo - https://app.asana.com/0/0/1206541966681608/f
+    static func isSubscriptionAccessToken(_ token: String) -> Bool
 }
 
 /// Store an auth token for NetworkProtection on behalf of the user. This key is then used to authenticate requests for registration and server fetches from the Network Protection backend servers.
@@ -90,7 +92,7 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
     public func deleteToken() throws {
         do {
             // Skip deleting DDG-access-token as it's used for entitlement validity check
-            guard isSubscriptionEnabled, let token = try? fetchToken(), !Self.isAccessToken(token) else { return }
+            guard isSubscriptionEnabled, let token = try? fetchToken(), !Self.isSubscriptionAccessToken(token) else { return }
             try keychainStore.deleteAll()
         } catch {
             handle(error)
@@ -114,11 +116,11 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
 extension NetworkProtectionTokenStore {
     private static var authTokenPrefix: String { "ddg:" }
 
-    public static func makeToken(from accessToken: String) -> String {
-        "\(authTokenPrefix)\(accessToken)"
+    public static func makeToken(from subscriptionAccessToken: String) -> String {
+        "\(authTokenPrefix)\(subscriptionAccessToken)"
     }
 
-    public static func isAccessToken(_ token: String) -> Bool {
+    public static func isSubscriptionAccessToken(_ token: String) -> Bool {
         token.hasPrefix(authTokenPrefix)
     }
 }

@@ -40,7 +40,7 @@ public actor NetworkProtectionTunnelFailureMonitor {
         }
     }
 
-    private static let monitoringInterval: TimeInterval = .seconds(10)
+    private static let monitoringInterval: TimeInterval = .minutes(1)
 
     private var task: Task<Never, Error>? {
         willSet {
@@ -57,6 +57,7 @@ public actor NetworkProtectionTunnelFailureMonitor {
     private let networkMonitor = NWPathMonitor()
 
     private var failureReported = false
+    private var firstCheckSkipped = false
 
     // MARK: - Init & deinit
 
@@ -80,6 +81,7 @@ public actor NetworkProtectionTunnelFailureMonitor {
         os_log("⚫️ Starting tunnel failure monitor", log: .networkProtectionTunnelFailureMonitorLog)
 
         failureReported = false
+        firstCheckSkipped = false
 
         networkMonitor.pathUpdateHandler = { path in
             callback(.networkPathChanged(path.debugDescription))
@@ -100,6 +102,14 @@ public actor NetworkProtectionTunnelFailureMonitor {
     // MARK: - Handshake monitor
 
     private func monitorHandshakes(callback: @escaping (Result) -> Void) async {
+        guard firstCheckSkipped else {
+            // Avoid running the first tunnel failure check after startup to avoid reading the first handshake after sleep, which will almost always
+            // be out of date. In normal operation, the first check will frequently be 0 as WireGuard hasn't had the chance to handshake yet.
+            os_log("⚫️ Skipping first tunnel failure check", log: .networkProtectionTunnelFailureMonitorLog, type: .debug)
+            firstCheckSkipped = true
+            return
+        }
+
         let mostRecentHandshake = await tunnelProvider?.mostRecentHandshake() ?? 0
 
         guard mostRecentHandshake > 0 else {
@@ -114,10 +124,12 @@ public actor NetworkProtectionTunnelFailureMonitor {
             if failureReported {
                 os_log("⚫️ Tunnel failure already reported", log: .networkProtectionTunnelFailureMonitorLog, type: .debug)
             } else {
+                os_log("⚫️ Tunnel failure reported", log: .networkProtectionTunnelFailureMonitorLog, type: .debug)
                 callback(.failureDetected)
                 failureReported = true
             }
         } else if difference <= Result.failureRecovered.threshold, failureReported {
+            os_log("⚫️ Tunnel failure recovery", log: .networkProtectionTunnelFailureMonitorLog, type: .debug)
             callback(.failureRecovered)
             failureReported = false
         }

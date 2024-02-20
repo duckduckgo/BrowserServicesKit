@@ -17,6 +17,7 @@
 //
 
 import Foundation
+import NetworkExtension
 
 /// This protocol offers an interface to control the tunnel.
 ///
@@ -35,4 +36,13 @@ public protocol TunnelController {
     /// Whether the tunnel is connected
     ///
     var isConnected: Bool { get async }
+}
+
+/// A convenience tunnel session provider protocol.
+///
+/// This should eventually be unified onto `TunnelController`, so that all these requests can be made
+/// directly or through IPC, but this protocol is added to avoid having to tackle that right now..
+///
+public protocol TunnelSessionProvider {
+    func activeSession() async -> NETunnelProviderSession?
 }

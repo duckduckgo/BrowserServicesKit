@@ -1,7 +1,7 @@
 //
-//  NetworkProtectionTokenStoreMocks.swift
+//  AccountStorage.swift
 //
-//  Copyright © 2021 DuckDuckGo. All rights reserved.
+//  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -17,22 +17,15 @@
 //
 
 import Foundation
-@testable import NetworkProtection
 
-final class NetworkProtectionTokenStoreMock: NetworkProtectionTokenStore {
-
-    var token: String?
-
-    func store(_ token: String) {
-        self.token = token
-    }
-
-    func fetchToken() -> String? {
-        token
-    }
-
-    func deleteToken() {
-        guard let token = fetchToken(), !Self.isSubscriptionAccessToken(token) else { return }
-        self.token = nil
-    }
+public protocol AccountStorage: AnyObject {
+    func getAuthToken() throws -> String?
+    func store(authToken: String) throws
+    func getAccessToken() throws -> String?
+    func store(accessToken: String) throws
+    func getEmail() throws -> String?
+    func store(email: String?) throws
+    func getExternalID() throws -> String?
+    func store(externalID: String?) throws
+    func clearAuthenticationState() throws
 }
