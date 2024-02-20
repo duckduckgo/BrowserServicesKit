@@ -25,11 +25,8 @@ public protocol SubscriptionAccountManaging {
 
 public actor NetworkProtectionEntitlementMonitor {
     public enum Result {
-        public enum Error {
-            case invalid
-        }
-
         case validEntitlement
+        case invalidEntitlement
         case error(Error)
     }
 
@@ -59,14 +56,20 @@ public actor NetworkProtectionEntitlementMonitor {
 
     // MARK: - Start/Stop monitoring
 
-    public func start(isEntitlementValid: @escaping () async -> Bool, callback: @escaping (Result) -> Void) {
+    public func start(entitlementCheck: @escaping () async -> Swift.Result<Bool, Error>, callback: @escaping (Result) -> Void) {
         os_log("⚫️ Starting entitlement monitor", log: .networkProtectionEntitlementMonitorLog)
 
         task = Task.periodic(interval: Self.monitoringInterval) {
-            if await isEntitlementValid() {
-                callback(.validEntitlement)
-            } else {
-                callback(.error(.invalid))
+            let result = await entitlementCheck()
+            switch result {
+            case .success(let hasEntitlement):
+                if hasEntitlement {
+                    callback(.validEntitlement)
+                } else {
+                    callback(.invalidEntitlement)
+                }
+            case .failure(let error):
+                callback(.error(error))
             }
         }
     }

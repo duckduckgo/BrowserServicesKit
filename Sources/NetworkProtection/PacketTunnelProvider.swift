@@ -26,6 +26,7 @@ import Common
 import Foundation
 import NetworkExtension
 import UserNotifications
+import Subscription
 
 // swiftlint:disable:next type_body_length
 open class PacketTunnelProvider: NEPacketTunnelProvider {
@@ -1153,15 +1154,27 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             await entitlementMonitor.stop()
         }
 
-        await entitlementMonitor.start(isEntitlementValid: subscriptionConfiguration.isEntitlementValid) { [weak self] result in
+        await entitlementMonitor.start(entitlementCheck: entitlementCheck) { [weak self] result in
             switch result {
             case .validEntitlement:
                 self?.settings.apply(change: .setShouldShowExpiredEntitlementMessaging(nil))
+            case .invalidEntitlement:
+                self?.settings.apply(change: .setShouldShowExpiredEntitlementMessaging(.init(showsAlert: true, showsNotification: true)))
             case .error(let error):
-                if error == .invalid {
-                    self?.settings.apply(change: .setShouldShowExpiredEntitlementMessaging(.init(showsAlert: true, showsNotification: true)))
-                }
+                break
             }
+        }
+    }
+
+    // MARK: - Entitlement check
+
+    private func entitlementCheck() async -> Result<Bool, Error> {
+        let result = await AccountManager().hasEntitlement(for: .networkProtection)
+        switch result {
+        case .success(let hasEntitlement):
+            return .success(hasEntitlement)
+        case .failure(let error):
+            return .failure(error)
         }
     }
 
