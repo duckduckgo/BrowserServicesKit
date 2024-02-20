@@ -173,7 +173,7 @@ public struct WebsiteBreakage {
         if let errors {
             let errorDescriptions: [String] = errors.map {
                 let error = $0 as NSError
-                return "\(error.code) - \(error.localizedDescription)"
+                return "\(error.code) - \(error.domain):\(error.localizedDescription)"
             }
             result["errorDescriptions"] = errorDescriptions.joined(separator: ",")
         }
