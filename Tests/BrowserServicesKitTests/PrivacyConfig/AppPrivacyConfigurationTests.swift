@@ -880,9 +880,76 @@ class AppPrivacyConfigurationTests: XCTestCase {
         let config = manager.privacyConfig
 
         clearRolloutData(feature: "autofill", subFeature: "accessCredentialManagement")
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.accessCredentialManagement), "Subfeature should be enabled if rollouts array is empty")
-        XCTAssertEqual(config.stateFor(AutofillSubfeature.accessCredentialManagement), .disabled(.stillInRollout))
+        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.accessCredentialManagement, randomizer: mockRandom(in:)), "Subfeature should be disabled by state setting")
+        XCTAssertEqual(config.stateFor(AutofillSubfeature.accessCredentialManagement, randomizer: mockRandom(in:)), .disabled(.disabledInConfig))
     }
+
+    func testWhenCheckingSubfeatureStateWithRolloutsAndSubfeatureDisabledWhenPreviouslyInRollout_SubfeatureShouldBeDisabled() {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleEnabledSubfeatureWithRollout, etag: "test")
+        let manager = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider())
+
+        let config = manager.privacyConfig
+
+        clearRolloutData(feature: "autofill", subFeature: "credentialsSaving")
+        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving), "Subfeature should be enabled with 100% rollout")
+        XCTAssertEqual(config.stateFor(AutofillSubfeature.credentialsSaving), .enabled)
+
+        // Update remote config
+        manager.reload(etag: "foo", data: exampleDisabledSubfeatureWithRollout)
+
+        let configAfterUpdate = manager.privacyConfig
+
+        XCTAssertFalse(configAfterUpdate.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving), "Subfeature should be disabled")
+        XCTAssertEqual(configAfterUpdate.stateFor(AutofillSubfeature.credentialsSaving, randomizer: mockRandom(in:)), .disabled(.disabledInConfig))
+    }
+
+    let exampleEnabledSubfeatureWithRollout =
+    """
+    {
+        "features": {
+            "autofill": {
+                "state": "enabled",
+                "exceptions": [],
+                "features": {
+                    "credentialsSaving": {
+                        "state": "enabled",
+                        "rollout": {
+                            "steps": [{
+                                "percent": 100
+                            }]
+                        }
+                    }
+                }
+            }
+        }
+    }
+    """.data(using: .utf8)!
+
+    let exampleDisabledSubfeatureWithRollout =
+    """
+    {
+        "features": {
+            "autofill": {
+                "state": "enabled",
+                "exceptions": [],
+                "features": {
+                    "credentialsSaving": {
+                        "state": "disabled",
+                        "rollout": {
+                            "steps": [{
+                                "percent": 100
+                            }]
+                        }
+                    }
+                }
+            }
+        },
+    }
+    """.data(using: .utf8)!
 
     func exampleTrackerAllowlistConfig(with state: String) -> Data {
         return
