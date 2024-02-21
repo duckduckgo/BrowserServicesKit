@@ -24,11 +24,8 @@ public class SubscriptionTokenKeychainStorage: SubscriptionTokenStorage {
     private let keychainType: KeychainType
 
     public init() {
-        self.label = "DuckDuckGo Subscription Access Token Test 1"
-
-//        self.keychainType = .dataProtection(.named("asd"))
+        self.label = "DuckDuckGo Subscription Access Token"
         self.keychainType = .fileBased
-
     }
 
     public func getAccessToken() throws -> String? {
@@ -113,12 +110,10 @@ private extension SubscriptionTokenKeychainStorage {
         if status != errSecSuccess {
             throw AccountKeychainAccessError.keychainSaveFailure(status)
         }
-
-
     }
 
     func deleteItem(forField field: AccountKeychainField, useDataProtectionKeychain: Bool = true) throws {
-        var query = defaultAttributes()
+        let query = defaultAttributes()
 
         let status = SecItemDelete(query as CFDictionary)
 
