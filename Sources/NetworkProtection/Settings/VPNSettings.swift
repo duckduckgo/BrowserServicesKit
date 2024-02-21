@@ -259,7 +259,7 @@ public final class VPNSettings {
         case .setDisableRekeying(let disableRekeying):
             self.disableRekeying = disableRekeying
         case .setShouldShowExpiredEntitlementMessaging(let shouldShowExpiredEntitlementMessaging):
-            self.shouldShowExpiredEntitlementMessaging = shouldShowExpiredEntitlementMessaging
+            self.setNeedsExpiredEntitlementMessaging(shouldShowExpiredEntitlementMessaging)
         }
     }
     // swiftlint:enable cyclomatic_complexity
@@ -514,5 +514,15 @@ public final class VPNSettings {
         set {
             defaults.shouldShowExpiredEntitlementMessaging = newValue
         }
+    }
+
+    private func setNeedsExpiredEntitlementMessaging(_ messaging: UserDefaults.ExpiredEntitlementMessaging?) {
+        // Ignore new messaging if we already queued one
+        if let messaging, messaging.showsAlert, messaging.showsNotification,
+           shouldShowExpiredEntitlementMessaging != nil {
+            return
+        }
+
+        shouldShowExpiredEntitlementMessaging = messaging
     }
 }
