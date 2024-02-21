@@ -219,6 +219,7 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
 
     public func deleteAllWebsiteCredentials() throws {
         try db.write {
+            try updateSyncTimestampForAllObjects(in: $0, tableName: SecureVaultModels.SyncableCredentialsRecord.databaseTableName)
             try $0.execute(sql: """
                 DELETE FROM
                     \(SecureVaultModels.WebsiteAccount.databaseTableName)
@@ -577,6 +578,18 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
                 \(SecureVaultSyncableColumns.objectId.name) = ?
 
         """, arguments: [timestamp?.withMillisecondPrecision, objectId])
+    }
+
+    public func updateSyncTimestampForAllObjects(in database: Database, tableName: String, timestamp: Date? = Date()) throws {
+        assert(database.isInsideTransaction)
+
+        try database.execute(sql: """
+            UPDATE
+                \(tableName)
+            SET
+                \(SecureVaultSyncableColumns.lastModified.name) = ?
+
+        """, arguments: [timestamp?.withMillisecondPrecision])
     }
 
 }
