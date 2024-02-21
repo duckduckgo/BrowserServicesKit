@@ -20,18 +20,27 @@ import Foundation
 
 public class SubscriptionTokenKeychainStorage: SubscriptionTokenStorage {
 
-    public init() {}
+    private let label: String
+    private let keychainType: KeychainType
+
+    public init() {
+        self.label = "DuckDuckGo Subscription Access Token Test 1"
+
+//        self.keychainType = .dataProtection(.named("asd"))
+        self.keychainType = .fileBased
+
+    }
 
     public func getAccessToken() throws -> String? {
-        try Self.getString(forField: .accessToken)
+        try getString(forField: .accessToken)
     }
 
     public func store(accessToken: String) throws {
-        try Self.set(string: accessToken, forField: .accessToken)
+        try set(string: accessToken, forField: .accessToken)
     }
 
     public func removeAccessToken() throws {
-        try Self.deleteItem(forField: .accessToken)
+        try deleteItem(forField: .accessToken)
     }
 
 }
@@ -43,17 +52,14 @@ private extension SubscriptionTokenKeychainStorage {
      multiple accounts/tokens at the same time
     */
     enum AccountKeychainField: String, CaseIterable {
-        case authToken = "account.authToken"
         case accessToken = "account.accessToken"
-        case email = "account.email"
-        case externalID = "account.external_id"
 
         var keyValue: String {
             (Bundle.main.bundleIdentifier ?? "com.duckduckgo") + "." + rawValue
         }
     }
 
-    static func getString(forField field: AccountKeychainField) throws -> String? {
+    func getString(forField field: AccountKeychainField) throws -> String? {
         guard let data = try retrieveData(forField: field) else {
             return nil
         }
@@ -65,14 +71,11 @@ private extension SubscriptionTokenKeychainStorage {
         }
     }
 
-    static func retrieveData(forField field: AccountKeychainField, useDataProtectionKeychain: Bool = true) throws -> Data? {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecMatchLimit as String: kSecMatchLimitOne,
-            kSecAttrService as String: field.keyValue,
-            kSecReturnData as String: true,
-            kSecUseDataProtectionKeychain as String: useDataProtectionKeychain
-        ]
+    func retrieveData(forField field: AccountKeychainField) throws -> Data? {
+        var query = defaultAttributes()
+        query[kSecAttrService] = field.keyValue
+        query[kSecMatchLimit] = kSecMatchLimitOne
+        query[kSecReturnData] = true
 
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
@@ -90,7 +93,7 @@ private extension SubscriptionTokenKeychainStorage {
         }
     }
 
-    static func set(string: String, forField field: AccountKeychainField) throws {
+    func set(string: String, forField field: AccountKeychainField) throws {
         guard let stringData = string.data(using: .utf8) else {
             return
         }
@@ -99,32 +102,74 @@ private extension SubscriptionTokenKeychainStorage {
         try store(data: stringData, forField: field)
     }
 
-    static func store(data: Data, forField field: AccountKeychainField, useDataProtectionKeychain: Bool = true) throws {
-        let query = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrSynchronizable: false,
-            kSecAttrService: field.keyValue,
-            kSecAttrAccessible: kSecAttrAccessibleAfterFirstUnlock,
-            kSecValueData: data,
-            kSecUseDataProtectionKeychain: useDataProtectionKeychain] as [String: Any]
+    func store(data: Data, forField field: AccountKeychainField) throws {
+        var query = defaultAttributes()
+        query[kSecAttrService] = field.keyValue
+        query[kSecAttrAccessible] = kSecAttrAccessibleAfterFirstUnlock
+        query[kSecValueData] = data
 
         let status = SecItemAdd(query as CFDictionary, nil)
 
         if status != errSecSuccess {
             throw AccountKeychainAccessError.keychainSaveFailure(status)
         }
+
+
     }
 
-    static func deleteItem(forField field: AccountKeychainField, useDataProtectionKeychain: Bool = true) throws {
-        let query: [String: Any] = [
-            kSecClass as String: kSecClassGenericPassword,
-            kSecAttrService as String: field.keyValue,
-            kSecUseDataProtectionKeychain as String: useDataProtectionKeychain]
+    func deleteItem(forField field: AccountKeychainField, useDataProtectionKeychain: Bool = true) throws {
+        var query = defaultAttributes()
 
         let status = SecItemDelete(query as CFDictionary)
 
         if status != errSecSuccess && status != errSecItemNotFound {
             throw AccountKeychainAccessError.keychainDeleteFailure(status)
+        }
+    }
+
+    private func defaultAttributes() -> [CFString: Any] {
+        var attributes: [CFString: Any] = [
+            kSecClass: kSecClassGenericPassword,
+            kSecAttrSynchronizable: false,
+            kSecAttrLabel: label,
+        ]
+
+        attributes.merge(keychainType.queryAttributes()) { $1 }
+
+        return attributes
+    }
+}
+
+public enum KeychainType {
+    case dataProtection(_ accessGroup: AccessGroup)
+
+    /// Uses the system keychain.
+    ///
+    case system
+
+    case fileBased
+
+    public enum AccessGroup {
+        case unspecified
+        case named(_ name: String)
+    }
+
+    func queryAttributes() -> [CFString: Any] {
+        switch self {
+        case .dataProtection(let accessGroup):
+            switch accessGroup {
+            case .unspecified:
+                return [kSecUseDataProtectionKeychain: true]
+            case .named(let accessGroup):
+                return [
+                    kSecUseDataProtectionKeychain: true,
+                    kSecAttrAccessGroup: accessGroup
+                ]
+            }
+        case .system:
+            return [kSecUseDataProtectionKeychain: false]
+        case .fileBased:
+            return [kSecUseDataProtectionKeychain: false]
         }
     }
 }
