@@ -37,7 +37,7 @@ public protocol AccountManaging {
 public class AccountManager: AccountManaging {
 
     private let storage: AccountStorage
-    private let tokenStorage: SubscriptionTokenStorage
+//    private let tokenStorage: SubscriptionTokenStorage
 
     public weak var delegate: AccountManagerKeychainAccessDelegate?
 
@@ -47,7 +47,7 @@ public class AccountManager: AccountManaging {
 
     public init(storage: AccountStorage = AccountKeychainStorage()) {
         self.storage = storage
-        self.tokenStorage = SubscriptionTokenKeychainStorage()
+//        self.tokenStorage = SubscriptionTokenKeychainStorage()
     }
 
     public var authToken: String? {
@@ -66,8 +66,8 @@ public class AccountManager: AccountManaging {
 
     public var accessToken: String? {
         do {
-//            return try storage.getAccessToken()
-            return try tokenStorage.getAccessToken()
+            return try storage.getAccessToken()
+//            return try tokenStorage.getAccessToken()
         } catch {
             if let error = error as? AccountKeychainAccessError {
                 delegate?.accountManagerKeychainAccessFailed(accessType: .getAccessToken, error: error)
@@ -125,8 +125,8 @@ public class AccountManager: AccountManaging {
         os_log(.info, log: .subscription, "[AccountManager] storeAccount")
 
         do {
-//            try storage.store(accessToken: token)
-            try tokenStorage.store(accessToken: token)
+            try storage.store(accessToken: token)
+//            try tokenStorage.store(accessToken: token)
         } catch {
             if let error = error as? AccountKeychainAccessError {
                 delegate?.accountManagerKeychainAccessFailed(accessType: .storeAccessToken, error: error)
@@ -162,7 +162,7 @@ public class AccountManager: AccountManaging {
 
         do {
             try storage.clearAuthenticationState()
-            try tokenStorage.removeAccessToken()
+//            try tokenStorage.removeAccessToken()
         } catch {
             if let error = error as? AccountKeychainAccessError {
                 delegate?.accountManagerKeychainAccessFailed(accessType: .clearAuthenticationData, error: error)
