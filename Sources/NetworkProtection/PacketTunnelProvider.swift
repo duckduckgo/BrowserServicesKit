@@ -349,10 +349,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         try loadAuthToken(from: options)
     }
 
-    open func prepareToConnect(using provider: NETunnelProviderProtocol?) {
-        // no-op
-    }
-
     open func loadVendorOptions(from provider: NETunnelProviderProtocol?) throws {
         let vendorOptions = provider?.providerConfiguration
 
@@ -465,6 +461,12 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 }
             }
             .store(in: &cancellables)
+    }
+
+    // MARK: - Overrideable Connection Events
+
+    open func prepareToConnect(using provider: NETunnelProviderProtocol?) {
+        // no-op: abstract method to be overridden in subclass
     }
 
     // MARK: - Tunnel Start
@@ -585,17 +587,19 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 return
             }
 
-            Task { [weak self] in
+            Task { @MainActor [weak self] in
                 // It's important to call this completion handler before running the tester
                 // as if we don't, the tester will just fail.  It seems like the connection
                 // won't fully work until the completion handler is called.
                 completionHandler(nil)
 
+                guard let self else { return }
+
                 do {
                     let startReason: AdapterStartReason = onDemand ? .onDemand : .manual
-                    try await self?.handleAdapterStarted(startReason: startReason)
+                    try await self.handleAdapterStarted(startReason: startReason)
                 } catch {
-                    self?.cancelTunnelWithError(error)
+                    self.cancelTunnelWithError(error)
                     return
                 }
             }
@@ -1202,7 +1206,6 @@ extension WireGuardAdapterError: LocalizedError, CustomDebugStringConvertible {
     public var debugDescription: String {
         errorDescription!
     }
-
 }
 
 // swiftlint:enable file_length
