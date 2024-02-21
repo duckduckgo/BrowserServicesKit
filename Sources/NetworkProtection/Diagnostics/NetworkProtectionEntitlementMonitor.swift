@@ -19,10 +19,6 @@
 import Foundation
 import Common
 
-public protocol SubscriptionAccountManaging {
-    func hasEntitlement(for name: String) async -> Bool
-}
-
 public actor NetworkProtectionEntitlementMonitor {
     public enum Result {
         case validEntitlement
@@ -64,11 +60,14 @@ public actor NetworkProtectionEntitlementMonitor {
             switch result {
             case .success(let hasEntitlement):
                 if hasEntitlement {
+                    os_log("⚫️ Valid entitlement", log: .networkProtectionEntitlementMonitorLog)
                     callback(.validEntitlement)
                 } else {
+                    os_log("⚫️ Invalid entitlement", log: .networkProtectionEntitlementMonitorLog)
                     callback(.invalidEntitlement)
                 }
             case .failure(let error):
+                os_log("⚫️ Error retrieving entitlement: %{public}@", log: .networkProtectionEntitlementMonitorLog, error.localizedDescription)
                 callback(.error(error))
             }
         }

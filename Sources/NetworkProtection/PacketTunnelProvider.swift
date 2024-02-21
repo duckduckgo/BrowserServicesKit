@@ -1160,7 +1160,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 self?.settings.apply(change: .setShouldShowExpiredEntitlementMessaging(nil))
             case .invalidEntitlement:
                 self?.settings.apply(change: .setShouldShowExpiredEntitlementMessaging(.init(showsAlert: true, showsNotification: true)))
-            case .error(let error):
+            case .error:
                 break
             }
         }
