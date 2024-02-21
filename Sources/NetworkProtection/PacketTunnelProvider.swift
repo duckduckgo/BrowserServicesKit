@@ -26,7 +26,6 @@ import Common
 import Foundation
 import NetworkExtension
 import UserNotifications
-import Subscription
 
 // swiftlint:disable:next type_body_length
 open class PacketTunnelProvider: NEPacketTunnelProvider {
@@ -288,6 +287,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private let providerEvents: EventMapping<Event>
 
     public let isSubscriptionEnabled: Bool
+    public let entitlementCheck: (() async -> Result<Bool, Error>)?
 
     public init(notificationsPresenter: NetworkProtectionNotificationsPresenter,
                 tunnelHealthStore: NetworkProtectionTunnelHealthStore,
@@ -297,7 +297,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 debugEvents: EventMapping<NetworkProtectionError>?,
                 providerEvents: EventMapping<Event>,
                 settings: VPNSettings,
-                isSubscriptionEnabled: Bool) {
+                isSubscriptionEnabled: Bool,
+                entitlementCheck: (() async -> Result<Bool, Error>)?) {
         os_log("[+] PacketTunnelProvider", log: .networkProtectionMemoryLog, type: .debug)
 
         self.notificationsPresenter = notificationsPresenter
@@ -309,6 +310,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         self.controllerErrorStore = controllerErrorStore
         self.settings = settings
         self.isSubscriptionEnabled = isSubscriptionEnabled
+        self.entitlementCheck = isSubscriptionEnabled ? entitlementCheck : nil
 
         super.init()
 
@@ -1158,6 +1160,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             await entitlementMonitor.stop()
         }
 
+        guard isSubscriptionEnabled, let entitlementCheck else { return }
+
         await entitlementMonitor.start(entitlementCheck: entitlementCheck) { [weak self] result in
             switch result {
             case .validEntitlement:
@@ -1167,18 +1171,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             case .error:
                 break
             }
-        }
-    }
-
-    // MARK: - Entitlement check
-
-    private func entitlementCheck() async -> Result<Bool, Error> {
-        let result = await AccountManager().hasEntitlement(for: .networkProtection)
-        switch result {
-        case .success(let hasEntitlement):
-            return .success(hasEntitlement)
-        case .failure(let error):
-            return .failure(error)
         }
     }
 
