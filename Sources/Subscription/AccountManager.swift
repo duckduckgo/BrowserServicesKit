@@ -37,6 +37,8 @@ public protocol AccountManaging {
 public class AccountManager: AccountManaging {
 
     private let storage: AccountStorage
+    private let tokenStorage: SubscriptionTokenStorage
+
     public weak var delegate: AccountManagerKeychainAccessDelegate?
 
     public var isUserAuthenticated: Bool {
@@ -45,6 +47,7 @@ public class AccountManager: AccountManaging {
 
     public init(storage: AccountStorage = AccountKeychainStorage()) {
         self.storage = storage
+        self.tokenStorage = SubscriptionTokenKeychainStorage()
     }
 
     public var authToken: String? {
@@ -122,6 +125,7 @@ public class AccountManager: AccountManaging {
 
         do {
             try storage.store(accessToken: token)
+            try tokenStorage.store(accessToken: token)
         } catch {
             if let error = error as? AccountKeychainAccessError {
                 delegate?.accountManagerKeychainAccessFailed(accessType: .storeAccessToken, error: error)
@@ -157,6 +161,7 @@ public class AccountManager: AccountManaging {
 
         do {
             try storage.clearAuthenticationState()
+            try tokenStorage.removeAccessToken()
         } catch {
             if let error = error as? AccountKeychainAccessError {
                 delegate?.accountManagerKeychainAccessFailed(accessType: .clearAuthenticationData, error: error)
