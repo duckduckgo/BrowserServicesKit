@@ -175,6 +175,8 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     //     - keyPair: the key pair that was used to register with the server, and that should be used to configure the tunnel
     //
     // - Throws:`NetworkProtectionError`
+    //
+    // swiftlint:disable:next cyclomatic_complexity
     private func register(keyPair: KeyPair,
                           selectionMethod: NetworkProtectionServerSelectionMethod) async throws -> (server: NetworkProtectionServer,
                                                                                                     newExpiration: Date?) {
