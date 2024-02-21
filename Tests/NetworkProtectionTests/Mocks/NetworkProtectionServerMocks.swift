@@ -67,7 +67,7 @@ extension NetworkProtectionServerInfo {
 
 extension NetworkProtectionServer {
 
-    static let mockBaseServer = NetworkProtectionServer(registeredPublicKey: nil, allowedIPs: nil, serverInfo: .mock, expirationDate: nil)
+    static let mockBaseServer = NetworkProtectionServer(registeredPublicKey: nil, allowedIPs: nil, serverInfo: .mock, expirationDate: Date())
     static let mockRegisteredServer = NetworkProtectionServer(registeredPublicKey: "ovn9RpzUuvQ4XLQt6B3RKuEXGIxa5QpTnehjduZlcSE=",
                                                               allowedIPs: ["0.0.0.0/0", "::/0"],
                                                               serverInfo: .mock,

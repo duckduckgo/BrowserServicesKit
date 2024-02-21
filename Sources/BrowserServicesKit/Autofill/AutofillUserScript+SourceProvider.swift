@@ -39,17 +39,19 @@ public class DefaultAutofillSourceProvider: AutofillUserScriptSourceProvider {
         return sourceStr
     }
 
-    public init(privacyConfigurationManager: PrivacyConfigurationManaging, properties: ContentScopeProperties) {
+    public init(privacyConfigurationManager: PrivacyConfigurationManaging, properties: ContentScopeProperties, isDebug: Bool) {
         self.privacyConfigurationManager = privacyConfigurationManager
         self.properties = properties
     }
 
-    public func loadJS() {
+    public func loadJS(isDebug: Bool) {
         guard let replacements = buildReplacementsString() else {
             sourceStr = ""
             return
         }
-        sourceStr = AutofillUserScript.loadJS("assets/autofill", from: Autofill.bundle, withReplacements: replacements)
+        sourceStr = AutofillUserScript.loadJS(isDebug ? "assets/autofill-debug" : "assets/autofill",
+                                              from: Autofill.bundle,
+                                              withReplacements: replacements)
     }
 
     public func buildRuntimeConfigResponse() -> String? {
@@ -111,19 +113,25 @@ public class DefaultAutofillSourceProvider: AutofillUserScriptSourceProvider {
     public class Builder {
         private var privacyConfigurationManager: PrivacyConfigurationManaging
         private var properties: ContentScopeProperties
+        private var isDebug: Bool = false
         private var sourceStr: String = ""
         private var shouldLoadJS: Bool = false
 
-        public init(privacyConfigurationManager: PrivacyConfigurationManaging, properties: ContentScopeProperties) {
+        public init(privacyConfigurationManager: PrivacyConfigurationManaging,
+                    properties: ContentScopeProperties,
+                    isDebug: Bool = false) {
             self.privacyConfigurationManager = privacyConfigurationManager
             self.properties = properties
+            self.isDebug = isDebug
         }
 
         public func build() -> DefaultAutofillSourceProvider {
-            let provider = DefaultAutofillSourceProvider(privacyConfigurationManager: privacyConfigurationManager, properties: properties)
+            let provider = DefaultAutofillSourceProvider(privacyConfigurationManager: privacyConfigurationManager,
+                                                         properties: properties,
+                                                         isDebug: isDebug)
 
             if shouldLoadJS {
-                provider.loadJS()
+                provider.loadJS(isDebug: isDebug)
             }
 
             return provider
