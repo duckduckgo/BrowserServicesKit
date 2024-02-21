@@ -20,11 +20,9 @@ import Foundation
 
 public class SubscriptionTokenKeychainStorage: SubscriptionTokenStorage {
 
-    private let label: String
     private let keychainType: KeychainType
 
     public init() {
-        self.label = "DuckDuckGo Subscription Access Token"
         self.keychainType = .fileBased
     }
 
@@ -40,6 +38,24 @@ public class SubscriptionTokenKeychainStorage: SubscriptionTokenStorage {
         try deleteItem(forField: .accessToken)
     }
 
+    public func getTestString() throws -> String? {
+        try getString(forField: .testString)
+    }
+
+    public func updateTestString() throws {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateStyle = .medium
+        dateFormatter.timeStyle = .medium
+        let testString = dateFormatter.string(from: Date())
+
+        print(testString)
+
+        try set(string: testString, forField: .testString)
+    }
+
+    public func removeTestString() throws {
+        try deleteItem(forField: .testString)
+    }
 }
 
 private extension SubscriptionTokenKeychainStorage {
@@ -49,7 +65,8 @@ private extension SubscriptionTokenKeychainStorage {
      multiple accounts/tokens at the same time
     */
     enum AccountKeychainField: String, CaseIterable {
-        case accessToken = "account.accessToken"
+        case accessToken = "subscription.account.accessToken"
+        case testString = "subscription.account.testString"
 
         var keyValue: String {
             (Bundle.main.bundleIdentifier ?? "com.duckduckgo") + "." + rawValue
@@ -95,7 +112,6 @@ private extension SubscriptionTokenKeychainStorage {
             return
         }
 
-        try deleteItem(forField: field)
         try store(data: stringData, forField: field)
     }
 
@@ -107,9 +123,30 @@ private extension SubscriptionTokenKeychainStorage {
 
         let status = SecItemAdd(query as CFDictionary, nil)
 
-        if status != errSecSuccess {
+        switch status {
+        case errSecSuccess:
+            return
+        case errSecDuplicateItem:
+            let updateStatus = updateData(data, forField: field)
+
+            if updateStatus != errSecSuccess {
+                throw AccountKeychainAccessError.keychainSaveFailure(status)
+            }
+        default:
             throw AccountKeychainAccessError.keychainSaveFailure(status)
         }
+    }
+
+    private func updateData(_ data: Data, forField field: AccountKeychainField) -> OSStatus {
+        var query = defaultAttributes()
+        query[kSecAttrService] = field.keyValue
+
+        let newAttributes = [
+          kSecValueData: data,
+          kSecAttrAccessible: kSecAttrAccessibleAfterFirstUnlock
+        ] as [CFString: Any]
+
+        return SecItemUpdate(query as CFDictionary, newAttributes as CFDictionary)
     }
 
     func deleteItem(forField field: AccountKeychainField, useDataProtectionKeychain: Bool = true) throws {
@@ -125,8 +162,7 @@ private extension SubscriptionTokenKeychainStorage {
     private func defaultAttributes() -> [CFString: Any] {
         var attributes: [CFString: Any] = [
             kSecClass: kSecClassGenericPassword,
-            kSecAttrSynchronizable: false,
-            kSecAttrLabel: label,
+            kSecAttrSynchronizable: false
         ]
 
         attributes.merge(keychainType.queryAttributes()) { $1 }
