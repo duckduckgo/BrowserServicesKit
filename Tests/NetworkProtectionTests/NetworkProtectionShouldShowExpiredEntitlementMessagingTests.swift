@@ -1,5 +1,5 @@
 //
-//  NetworkProtectionShouldShowExpiredMessagingTests.swift
+//  NetworkProtectionShouldShowExpiredEntitlementMessagingTests.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -19,7 +19,7 @@
 import XCTest
 @testable import NetworkProtection
 
-final class NetworkProtectionShouldShowExpiredMessagingTests: XCTestCase {
+final class NetworkProtectionShouldShowExpiredEntitlementMessagingTests: XCTestCase {
     var testDefaults: UserDefaults!
 
     private static let showsAlertAndNotification = UserDefaults.ExpiredEntitlementMessaging(showsAlert: true, showsNotification: true)
