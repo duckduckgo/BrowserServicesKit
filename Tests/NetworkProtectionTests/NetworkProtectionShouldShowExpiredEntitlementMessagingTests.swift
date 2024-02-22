@@ -41,10 +41,10 @@ final class NetworkProtectionShouldShowExpiredMessagingTests: XCTestCase {
 
         testDefaults.shouldShowExpiredEntitlementMessaging = Self.showsAlertOnly
         XCTAssertEqual(testDefaults.shouldShowExpiredEntitlementMessaging, Self.showsAlertOnly)
-        
+
         testDefaults.shouldShowExpiredEntitlementMessaging = Self.showsNotificationOnly
         XCTAssertEqual(testDefaults.shouldShowExpiredEntitlementMessaging, Self.showsNotificationOnly)
-        
+
         testDefaults.shouldShowExpiredEntitlementMessaging = Self.showsAlertAndNotification
         XCTAssertNotEqual(testDefaults.shouldShowExpiredEntitlementMessaging, Self.showsAlertAndNotification)
 
@@ -72,12 +72,12 @@ final class NetworkProtectionShouldShowExpiredMessagingTests: XCTestCase {
         // Failed attempt to show another notification
         presenter.showExpiredEntitlementNotification()
         XCTAssertNil(wrappee.message)
-        
+
         // Failed attempt to queue another notification
         settings.apply(change: .setShouldShowExpiredEntitlementMessaging(Self.showsAlertAndNotification))
         presenter.showExpiredEntitlementNotification()
         XCTAssertNil(wrappee.message)
-        
+
         // Reset the queue before adding another notification
         settings.apply(change: .setShouldShowExpiredEntitlementMessaging(nil))
         settings.apply(change: .setShouldShowExpiredEntitlementMessaging(Self.showsAlertAndNotification))
