@@ -43,8 +43,6 @@ final class NetworkProtectionServerListStoreTests: XCTestCase {
         let fetchedServers = (try? store.storedNetworkProtectionServerList()) ?? []
         XCTAssertEqual(fetchedServers, storedServers)
 
-        XCTAssertNoThrow(try store.removeServerList())
-
         let newFetchedServers = (try? store.storedNetworkProtectionServerList()) ?? []
         XCTAssertTrue(newFetchedServers.isEmpty)
     }

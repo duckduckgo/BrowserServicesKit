@@ -32,7 +32,7 @@ extension UserDefaults {
     ///   3. `(showsAlert: false, showsNotification: false)` -> Expired entitlement messaging already shown.
     ///
     /// Valid transitions: 1 -> 2 -> 2a/2b -> 3 -> 1
-    /// Messaging isn't shown more than once so something like 3 -> 2 isn't a valid transition.
+    /// Messaging isn't shown more than once so something like 3/2a/2b -> 2 isn't a valid transition.
     public final class ExpiredEntitlementMessaging: NSObject, Codable {
         public let showsAlert: Bool
         public let showsNotification: Bool
@@ -58,6 +58,12 @@ extension UserDefaults {
         }
 
         set {
+            // Messaging already queued, skip
+            if let newValue, newValue.showsAlert, newValue.showsNotification,
+               shouldShowExpiredEntitlementMessaging != nil {
+                return
+            }
+
             guard let data = try? JSONEncoder().encode(newValue) else { return }
             set(data, forKey: shouldShowExpiredEntitlementMessagingKey)
         }
