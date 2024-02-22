@@ -1213,6 +1213,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         await connectionTester.stop()
         await tunnelFailureMonitor.stop()
         await latencyMonitor.stop()
+        await entitlementMonitor.stop()
     }
 
     public override func wake() {
