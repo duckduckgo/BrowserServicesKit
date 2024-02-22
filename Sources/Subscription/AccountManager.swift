@@ -170,21 +170,36 @@ public class AccountManager: AccountManaging {
 
     // MARK: -
 
-    public func hasEntitlement(for name: String) async -> Bool {
-        await fetchEntitlements().contains(name)
+    public enum Entitlement: String {
+        case networkProtection = "Network Protection"
+        case dataBrokerProtection = "Data Broker Protection"
+        case identityTheftRestoration = "Identity Theft Restoration"
     }
 
-    public func fetchEntitlements() async -> [String] {
-        guard let accessToken else { return [] }
+    public enum EntitlementsError: Error {
+        case noAccessToken
+    }
+
+    public func hasEntitlement(for entitlement: Entitlement) async -> Result<Bool, Error> {
+        switch await fetchEntitlements() {
+        case .success(let entitlements):
+            return .success(entitlements.contains(entitlement))
+        case .failure(let error):
+            return .failure(error)
+        }
+    }
+
+    public func fetchEntitlements() async -> Result<[Entitlement], Error> {
+        guard let accessToken else { return .failure(EntitlementsError.noAccessToken) }
 
         switch await AuthService.validateToken(accessToken: accessToken) {
         case .success(let response):
-            let entitlements = response.account.entitlements
-            return entitlements.map { $0.name }
+            let entitlements = response.account.entitlements.compactMap { Entitlement(rawValue: $0.product) }
+            return .success(entitlements)
 
         case .failure(let error):
             os_log(.error, log: .subscription, "[AccountManager] fetchEntitlements error: %{public}@", error.localizedDescription)
-            return []
+            return .failure(error)
         }
     }
 
@@ -228,7 +243,12 @@ public class AccountManager: AccountManaging {
         var hasEntitlements = false
 
         repeat {
-            hasEntitlements = await !AccountManager().fetchEntitlements().isEmpty
+            switch await AccountManager().fetchEntitlements() {
+            case .success(let entitlements):
+                hasEntitlements = !entitlements.isEmpty
+            case .failure:
+                hasEntitlements = false
+            }
 
             if hasEntitlements {
                 break
