@@ -862,7 +862,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
             Task { @MainActor in
                 if case .connected = connectionStatus {
-                    os_log("⚫️🔴 1", log: .networkProtectionPixel, type: .debug)
                     try? await updateTunnelConfiguration(environment: settings.selectedEnvironment, serverSelectionMethod: serverSelectionMethod, reassert: true)
                 }
                 completionHandler?(nil)
@@ -879,7 +878,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
             Task { @MainActor in
                 if case .connected = connectionStatus {
-                    os_log("⚫️🔴 4", log: .networkProtectionPixel, type: .debug)
                     try? await updateTunnelConfiguration(environment: settings.selectedEnvironment, serverSelectionMethod: serverSelectionMethod, reassert: true)
                 }
                 completionHandler?(nil)
@@ -962,7 +960,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                     settings.selectedServer = .automatic
 
                     if case .connected = connectionStatus {
-                        os_log("⚫️🔴 2", log: .networkProtectionPixel, type: .debug)
                         try? await updateTunnelConfiguration(reassert: true)
                     }
                 }
@@ -977,7 +974,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
             settings.selectedServer = .endpoint(serverName)
             if case .connected = connectionStatus {
-                os_log("⚫️🔴 3", log: .networkProtectionPixel, type: .debug)
                 try? await updateTunnelConfiguration(environment: settings.selectedEnvironment, serverSelectionMethod: .preferredServer(serverName: serverName), reassert: true)
             }
             completionHandler?(nil)
