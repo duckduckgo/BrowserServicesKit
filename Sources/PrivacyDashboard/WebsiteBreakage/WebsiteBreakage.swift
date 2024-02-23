@@ -52,8 +52,8 @@ public struct WebsiteBreakage {
     let reportFlow: Source
     let protectionsState: Bool
     var lastSentDay: String?
-    let error: Error?
-    let httpStatusCode: Int?
+    let errors: [Error]?
+    let httpStatusCodes: [Int]?
 #if os(iOS)
     let siteType: SiteType // ?? not in documentation
     let atb: String
@@ -76,8 +76,8 @@ public struct WebsiteBreakage {
         urlParametersRemoved: Bool,
         protectionsState: Bool,
         reportFlow: Source,
-        error: Error?,
-        httpStatusCode: Int?
+        errors: [Error]?,
+        httpStatusCodes: [Int]?
     ) {
         self.siteUrl = siteUrl
         self.category = category
@@ -93,8 +93,8 @@ public struct WebsiteBreakage {
         self.protectionsState = protectionsState
         self.urlParametersRemoved = urlParametersRemoved
         self.reportFlow = reportFlow
-        self.error = error
-        self.httpStatusCode = httpStatusCode
+        self.errors = errors
+        self.httpStatusCodes = httpStatusCodes
     }
 #endif
 
@@ -117,8 +117,8 @@ public struct WebsiteBreakage {
         siteType: SiteType,
         atb: String,
         model: String,
-        error: Error?,
-        httpStatusCode: Int?
+        errors: [Error]?,
+        httpStatusCodes: [Int]?
     ) {
         self.siteUrl = siteUrl
         self.category = category
@@ -137,8 +137,8 @@ public struct WebsiteBreakage {
         self.siteType = siteType
         self.atb = atb
         self.model = model
-        self.error = error
-        self.httpStatusCode = httpStatusCode
+        self.errors = errors
+        self.httpStatusCodes = httpStatusCodes
     }
 #endif
 
@@ -165,15 +165,17 @@ public struct WebsiteBreakage {
             result["lastSentDay"] = lastSentDay
         }
 
-        if let httpStatusCode {
-            result["httpErrorCode"] = String(httpStatusCode)
+        if let httpStatusCodes {
+            let codes: [String] = httpStatusCodes.map { String($0) }
+            result["httpErrorCodes"] = codes.joined(separator: ",")
         }
 
-        if let error = error as NSError? {
-            let errorDescription = "\(error.code) - \(error.localizedDescription)"
-            result["errorDescription"] = errorDescription
-        } else if let error {
-            result["errorDescription"] = error.localizedDescription
+        if let errors {
+            let errorDescriptions: [String] = errors.map {
+                let error = $0 as NSError
+                return "\(error.code) - \(error.domain):\(error.localizedDescription)"
+            }
+            result["errorDescriptions"] = errorDescriptions.joined(separator: ",")
         }
 
 #if os(iOS)
