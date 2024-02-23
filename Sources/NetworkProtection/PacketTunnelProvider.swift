@@ -681,6 +681,50 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     @MainActor
+    public func updatePlaceholderTunnelConfiguration() async throws {
+        let interface = InterfaceConfiguration(
+            privateKey: PrivateKey(),
+            addresses: [IPAddressRange(from: "10.64.0.1/8")!],
+            includedRoutes: [],
+            excludedRoutes: [],
+            listenPort: 0,
+            dns: [DNSServer(address: IPv4Address.loopback)]
+        )
+
+        var peerConfiguration = PeerConfiguration(publicKey: PrivateKey().publicKey)
+        peerConfiguration.endpoint = Endpoint(host: "127.0.0.1", port: 9090)
+
+        let tunnelConfiguration = TunnelConfiguration(name: "Placeholder", interface: interface, peers: [peerConfiguration])
+
+        try await withCheckedThrowingContinuation { [weak self] (continuation: CheckedContinuation<Void, Error>) in
+            guard let self = self else {
+                continuation.resume()
+                return
+            }
+
+            self.adapter.update(tunnelConfiguration: tunnelConfiguration, reassert: true) { [weak self] error in
+                if let error = error {
+                    os_log("🔵 Failed to update the placeholder configuration: %{public}@", type: .error, error.localizedDescription)
+                    self?.debugEvents?.fire(error.networkProtectionError)
+                    continuation.resume(throwing: error)
+                    return
+                }
+
+                Task { [weak self] in
+                    do {
+                        try await self?.handleAdapterStarted(startReason: .reconnected)
+                    } catch {
+                        continuation.resume(throwing: error)
+                        return
+                    }
+
+                    continuation.resume()
+                }
+            }
+        }
+    }
+
+    @MainActor
     public func updateTunnelConfiguration(environment: VPNSettings.SelectedEnvironment = .default,
                                           serverSelectionMethod: NetworkProtectionServerSelectionMethod,
                                           reassert: Bool = true,
@@ -894,6 +938,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         case .removeVPNConfiguration:
             // Since the VPN configuration is being removed we may as well reset all state
             handleResetAllState(completionHandler: completionHandler)
+        case .blockAllTraffic:
+            handleBlockAllTraffic(completionHandler: completionHandler)
         }
     }
 
@@ -917,6 +963,13 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         // This is not really an error, we received a command to reset the connection
         cancelTunnelWithError(nil)
         completionHandler?(nil)
+    }
+
+    private func handleBlockAllTraffic(completionHandler: ((Data?) -> Void)? = nil) {
+        Task {
+            try? await updatePlaceholderTunnelConfiguration()
+            completionHandler?(nil)
+        }
     }
 
     private func handleGetLastErrorMessage(completionHandler: ((Data?) -> Void)? = nil) {

@@ -24,6 +24,7 @@ public enum DebugCommand: Codable {
     case removeVPNConfiguration
     case sendTestNotification
     case disableConnectOnDemandAndShutDown
+    case blockAllTraffic
 }
 
 public enum ExtensionRequest: Codable {
