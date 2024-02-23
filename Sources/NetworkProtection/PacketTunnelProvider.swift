@@ -778,6 +778,54 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         return configurationResult.0
     }
 
+    /// Placeholder configuration to switch to when the entitlement expires
+    /// This will block all traffic
+    @MainActor
+    private func updatePlaceholderTunnelConfiguration() async throws {
+        let interface = InterfaceConfiguration(
+            privateKey: PrivateKey(),
+            addresses: [IPAddressRange(from: "10.64.0.1/8")!],
+            includedRoutes: [],
+            excludedRoutes: [],
+            listenPort: 0,
+            dns: [DNSServer(address: IPv4Address.loopback)]
+        )
+
+        var peerConfiguration = PeerConfiguration(publicKey: PrivateKey().publicKey)
+        peerConfiguration.endpoint = Endpoint(host: "127.0.0.1", port: 9090)
+
+        let tunnelConfiguration = TunnelConfiguration(name: "Placeholder", interface: interface, peers: [peerConfiguration])
+
+        try await withCheckedThrowingContinuation { [weak self] (continuation: CheckedContinuation<Void, Error>) in
+            guard let self = self else {
+                continuation.resume()
+                return
+            }
+            
+            os_log("🔵 Switching to the placeholder tunnel configuration", log: .networkProtection, type: .info)
+
+            self.adapter.update(tunnelConfiguration: tunnelConfiguration, reassert: true) { [weak self] error in
+                if let error = error {
+                    os_log("🔵 Failed to update the placeholder configuration: %{public}@", type: .error, error.localizedDescription)
+                    self?.debugEvents?.fire(error.networkProtectionError)
+                    continuation.resume(throwing: error)
+                    return
+                }
+
+                Task { [weak self] in
+                    do {
+                        try await self?.handleAdapterStarted(startReason: .reconnected)
+                    } catch {
+                        continuation.resume(throwing: error)
+                        return
+                    }
+
+                    continuation.resume()
+                }
+            }
+        }
+    }
+
     // MARK: - App Messages
 
     // swiftlint:disable:next cyclomatic_complexity
@@ -913,7 +961,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         case .sendTestNotification:
             handleSendTestNotification(completionHandler: completionHandler)
         case .disableConnectOnDemandAndShutDown:
-            handleShutDown(completionHandler: completionHandler)
+            if #available(iOS 17, *) {
+                handleShutDown(completionHandler: completionHandler)
+            }
         case .removeVPNConfiguration:
             // Since the VPN configuration is being removed we may as well reset all state
             handleResetAllState(completionHandler: completionHandler)
@@ -1008,6 +1058,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         completionHandler?(nil)
     }
 
+    @available(iOS 17, *)
     public func handleShutDown(completionHandler: ((Data?) -> Void)? = nil) {
         Task {
             let managers = try await NETunnelProviderManager.loadAllFromPreferences()
@@ -1016,6 +1067,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 completionHandler?(nil)
                 return
             }
+
+            os_log("🔵 Disabling Connect On Demand and shutting down the tunnel", log: .networkProtection, type: .info)
 
             manager.isOnDemandEnabled = false
             try await manager.saveToPreferences()
@@ -1131,6 +1184,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             await tunnelFailureMonitor.stop()
         }
 
+        if isSubscriptionEnabled, await isEntitlementInvalid() {
+            return
+        }
+
         await tunnelFailureMonitor.start { [weak self] result in
             self?.providerEvents.fire(.reportTunnelFailure(result: result))
         }
@@ -1143,6 +1200,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
         if await latencyMonitor.isStarted {
             await latencyMonitor.stop()
+        }
+
+        if isSubscriptionEnabled, await isEntitlementInvalid() {
+            return
         }
 
         await latencyMonitor.start(serverIP: ip) { [weak self] result in
@@ -1168,9 +1229,29 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 self?.settings.apply(change: .setShouldShowExpiredEntitlementMessaging(nil))
             case .invalidEntitlement:
                 self?.settings.apply(change: .setShouldShowExpiredEntitlementMessaging(.init(showsAlert: true, showsNotification: true)))
+                Task { [weak self] in
+                    await self?.attemptToShutdown()
+                }
             case .error:
                 break
             }
+        }
+    }
+
+    private func isEntitlementInvalid() async -> Bool {
+        guard let entitlementCheck, case .success(false) = await entitlementCheck() else { return false }
+        return true
+    }
+
+    private func attemptToShutdown() async {
+        await tunnelFailureMonitor.stop()
+        await latencyMonitor.stop()
+        await entitlementMonitor.stop()
+
+        if #available(iOS 17, *) {
+            handleShutDown()
+        } else {
+            try? await updatePlaceholderTunnelConfiguration()
         }
     }
 
