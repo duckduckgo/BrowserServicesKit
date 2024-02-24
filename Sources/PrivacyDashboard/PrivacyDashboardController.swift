@@ -80,6 +80,7 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
     private weak var webView: WKWebView?
     private let privacyDashboardScript = PrivacyDashboardUserScript()
     private var cancellables = Set<AnyCancellable>()
+    var prevProtectionState: ProtectionState? = nil;
 
     public init(privacyInfo: PrivacyInfo?) {
         self.privacyInfo = privacyInfo
@@ -121,6 +122,13 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
     public func didFinishRulesCompilation() {
         guard let webView = self.webView else { return }
         privacyDashboardScript.setIsPendingUpdates(false, webView: webView)
+    }
+
+    public func viewDidDisappear() {
+        if let state = prevProtectionState  {
+            self.privacyDashboardDelegate?.privacyDashboardController(self, didChangeProtectionSwitch: state)
+            self.prevProtectionState = nil;
+        }
     }
 
     private func setupPrivacyDashboardUserScript() {
@@ -273,9 +281,30 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
             privacyDashboardDelegate?.privacyDashboardController(self, didChangeProtectionSwitch: protectionState)
         case .breakageForm:
             privacyDashboardReportBrokenSiteDelegate?.privacyDashboardController(self, reportBrokenSiteDidChangeProtectionSwitch: protectionState)
+        case .simpleBreakageReport:
+            print("ignored")
+        }
+    }
+
+    func userScriptDidRequestSimpleRequestReport(_ userScript: PrivacyDashboardUserScript) {
+        guard let webview = webView else {
+            print("webview absent")
+            return
+        };
+
+        if #available(macOS 13.3, *) {
+            webview.isInspectable = true
+        } else {
+            // Fallback on earlier versions
         }
 
+        guard var url = Bundle.privacyDashboardURL else { return }
+        url = url.appendingParameter(name: "screen", value: ProtectionState.EventOriginScreen.simpleBreakageReport.rawValue)
+        url = url.appendingParameter(name: "opener", value: "dashboard")
+
+        webView?.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent().deletingLastPathComponent())
     }
+
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestOpenUrlInNewTab url: URL) {
         privacyDashboardDelegate?.privacyDashboardController(self, didRequestOpenUrlInNewTab: url)
@@ -287,6 +316,53 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
 
     func userScriptDidRequestShowReportBrokenSite(_ userScript: PrivacyDashboardUserScript) {
         privacyDashboardDelegate?.privacyDashboardControllerDidRequestShowReportBrokenSite(self)
+    }
+
+    func userScriptDidRequestSimpleReportData(_ userScript: PrivacyDashboardUserScript) {
+        guard let webview = webView else {
+            print("webview absent")
+            return
+        };
+
+        // reset
+        prevProtectionState = nil;
+
+        let js = """
+                 const json = {
+                     "data": [
+                         {
+                             "id": "siteUrl",
+                             "additional": {
+                                 "url": "https://example.com/a/b/c"
+                             }
+                         },
+                         {"id": "wvVersion"},
+                         {"id": "requests"},
+                         {"id": "features"},
+                         {"id": "appVersion"},
+                         {"id": "atb"},
+                         {"id": "errorDescriptions"},
+                         {"id": "extensionVersion"},
+                         {"id": "httpErrorCodes"},
+                         {"id": "lastSentDay"},
+                         {"id": "device"},
+                         {"id": "os"},
+                         {"id": "reportFlow"}
+                     ]
+                 }
+                 window.onGetSimpleReportOptionsResponse(json);
+                 """
+        webview.evaluateJavaScript(js)
+    }
+
+    func userScriptDidRequestSendSimpleBreakageReport(_ userScript: PrivacyDashboardUserScript, protectionState: ProtectionState) {
+        print("send report here, but don't close dashboard until it's dismissed")
+        prevProtectionState = protectionState;
+    }
+
+    func userScriptDidRequestRejectSimpleBreakageReport(_ userScript: PrivacyDashboardUserScript) {
+        prevProtectionState = nil;
+        print("don't send report here + and also don't close the dashboard until it's dismissed")
     }
 
     func userScript(_ userScript: PrivacyDashboardUserScript, setHeight height: Int) {

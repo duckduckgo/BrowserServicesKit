@@ -27,6 +27,10 @@ protocol PrivacyDashboardUserScriptDelegate: AnyObject {
     func userScript(_ userScript: PrivacyDashboardUserScript, setHeight height: Int)
     func userScriptDidRequestClosing(_ userScript: PrivacyDashboardUserScript)
     func userScriptDidRequestShowReportBrokenSite(_ userScript: PrivacyDashboardUserScript)
+    func userScriptDidRequestSimpleReportData(_ userScript: PrivacyDashboardUserScript)
+    func userScriptDidRequestSendSimpleBreakageReport(_ userScript: PrivacyDashboardUserScript, protectionState: ProtectionState)
+    func userScriptDidRequestRejectSimpleBreakageReport(_ userScript: PrivacyDashboardUserScript)
+    func userScriptDidRequestSimpleRequestReport(_ userScript: PrivacyDashboardUserScript)
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestSubmitBrokenSiteReportWithCategory category: String, description: String)
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestOpenUrlInNewTab: URL)
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestOpenSettings: String)
@@ -50,6 +54,7 @@ public struct ProtectionState: Decodable {
     public enum EventOriginScreen: String, Decodable {
         case primaryScreen
         case breakageForm
+        case simpleBreakageReport
     }
 }
 
@@ -65,6 +70,9 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         case privacyDashboardOpenSettings
         case privacyDashboardSetPermission
         case privacyDashboardSetPermissionPaused
+        case privacyDashboardGetSimpleReportOptions
+        case privacyDashboardSendSimpleBreakageReport
+        case privacyDashboardRejectSimpleBreakageReport
     }
 
     static var injectionTime: WKUserScriptInjectionTime { .atDocumentStart }
@@ -74,6 +82,7 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
     var messageNames: [String] { MessageNames.allCases.map(\.rawValue) }
 
     weak var delegate: PrivacyDashboardUserScriptDelegate?
+    var prevProtectionState: ProtectionState? = nil;
 
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         guard let messageType = MessageNames(rawValue: message.name) else {
@@ -100,6 +109,12 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             handleSetPermissionPaused(message: message)
         case .privacyDashboardOpenSettings:
             handleOpenSettings(message: message)
+        case .privacyDashboardGetSimpleReportOptions:
+            handleGetSimpleReportOptions(message: message)
+        case .privacyDashboardSendSimpleBreakageReport:
+            handleSendSimpleBreakageReport(message: message)
+        case .privacyDashboardRejectSimpleBreakageReport:
+            handleRejectSimpleBreakageReport(message: message)
         }
     }
 
@@ -112,7 +127,13 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             return
         }
 
-        delegate?.userScript(self, didChangeProtectionState: protectionState)
+        prevProtectionState = protectionState;
+
+        if !protectionState.isProtected {
+            delegate?.userScriptDidRequestSimpleRequestReport(self)
+        } else {
+            delegate?.userScript(self, didChangeProtectionState: protectionState)
+        }
     }
 
     private func handleSetSize(message: WKScriptMessage) {
@@ -165,6 +186,31 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         }
 
         delegate?.userScript(self, didRequestOpenSettings: target)
+    }
+
+    private func handleGetSimpleReportOptions(message: WKScriptMessage) {
+        delegate?.userScriptDidRequestSimpleReportData(self)
+    }
+
+    // send
+    private func handleSendSimpleBreakageReport(message: WKScriptMessage) {
+        print("received handleSendSimpleBreakageReport");
+        guard let prevProtectionState = prevProtectionState else {
+            print("missing prevProtections")
+            return
+        }
+        delegate?.userScriptDidRequestSendSimpleBreakageReport(self, protectionState: prevProtectionState)
+    }
+
+    // reject
+    private func handleRejectSimpleBreakageReport(message: WKScriptMessage) {
+        print("received handleRejectSimpleBreakageReport");
+        guard let prevProtectionState = prevProtectionState else {
+            print("missing prevProtections")
+            return
+        }
+        delegate?.userScriptDidRequestRejectSimpleBreakageReport(self)
+        delegate?.userScript(self, didChangeProtectionState: prevProtectionState)
     }
 
     private func handleSetPermission(message: WKScriptMessage) {
