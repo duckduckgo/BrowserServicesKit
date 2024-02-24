@@ -40,7 +40,7 @@ let package = Package(
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "1.2.2"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.2.0"),
         .package(url: "https://github.com/gumob/PunycodeSwift.git", exact: "2.1.0"),
-        .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "3.2.0"),
+        .package(url: "https://github.com/duckduckgo/privacy-dashboard", branch: "02-22-simple_report_screen"),
         .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "4.64.0"),
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
         .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
