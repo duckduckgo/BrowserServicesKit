@@ -69,6 +69,7 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
 
     static var injectionTime: WKUserScriptInjectionTime { .atDocumentStart }
     static var forMainFrameOnly: Bool { false }
+    @MainActor
     static var source: String = ""
     static var script: WKUserScript = PrivacyDashboardUserScript.makeWKUserScript()
     var messageNames: [String] { MessageNames.allCases.map(\.rawValue) }
