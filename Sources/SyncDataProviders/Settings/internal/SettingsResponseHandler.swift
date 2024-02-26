@@ -83,7 +83,11 @@ final class SettingsResponseHandler {
         }
 
         for syncable in received {
-            try processEntity(with: syncable)
+            do {
+                try processEntity(with: syncable)
+            } catch SyncError.failedToDecryptValue(let message) where message.contains("invalid ciphertext length") {
+                continue
+            }
         }
     }
 

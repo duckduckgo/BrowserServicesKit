@@ -480,6 +480,28 @@ final class BookmarksRegularSyncResponseHandlerTests: BookmarksProviderTestsBase
         })
     }
 
+    // MARK: - Handling Decryption Failures
+    func testThatDecryptionFailureDoesntAffectBookmarksOrCrash() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark(id: "1")
+            Bookmark(id: "2")
+        }
+
+        let received: [Syncable] = [.rootFolder(children: ["3", "4"])]
+
+        crypter.throwsException(exceptionString: "ddgSyncDecrypt failed: invalid ciphertext length: X")
+
+        let rootFolder = try await createEntitiesAndHandleSyncResponse(with: bookmarkTree, received: received, in: context)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: nil) {
+            Bookmark(id: "1")
+            Bookmark(id: "2")
+        })
+
+        crypter.throwsException(exceptionString: nil)
+    }
+
     // MARK: - Handling Orphans
 
     func testWhenOrphanedBookmarkIsReceivedThenItIsSaved() async throws {
