@@ -36,8 +36,8 @@ struct WebsiteBreakageMoks {
                         urlParametersRemoved: true,
                         protectionsState: true,
                         reportFlow: .appMenu,
-                        error: nil,
-                        httpStatusCode: nil)
+                        errors: nil,
+                        httpStatusCodes: nil)
     }
 
     static var testBreakage2: WebsiteBreakage {
@@ -55,8 +55,8 @@ struct WebsiteBreakageMoks {
                         urlParametersRemoved: true,
                         protectionsState: true,
                         reportFlow: .appMenu,
-                        error: nil,
-                        httpStatusCode: nil)
+                        errors: nil,
+                        httpStatusCodes: nil)
     }
 
     static var testBreakage3: WebsiteBreakage {
@@ -74,7 +74,7 @@ struct WebsiteBreakageMoks {
                         urlParametersRemoved: true,
                         protectionsState: true,
                         reportFlow: .appMenu,
-                        error: nil,
-                        httpStatusCode: nil)
+                        errors: nil,
+                        httpStatusCodes: nil)
     }
 }
