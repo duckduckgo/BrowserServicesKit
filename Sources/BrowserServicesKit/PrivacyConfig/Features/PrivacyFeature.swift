@@ -42,6 +42,7 @@ public enum PrivacyFeature: String {
     case networkProtection
     case dbp
     case sync
+    case history
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
