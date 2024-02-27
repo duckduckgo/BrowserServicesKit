@@ -25,7 +25,7 @@ public final class SubscriptionPurchaseEnvironment {
         case production
         case staging
 
-        public static var `default`: ServiceEnvironment = .staging
+        public static var `default`: ServiceEnvironment = .production
 
         public var description: String {
             switch self {
