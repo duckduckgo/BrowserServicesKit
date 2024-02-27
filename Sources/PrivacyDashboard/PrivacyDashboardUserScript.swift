@@ -21,6 +21,7 @@ import WebKit
 import TrackerRadarKit
 import UserScript
 import Common
+import BrowserServicesKit
 
 protocol PrivacyDashboardUserScriptDelegate: AnyObject {
 
@@ -101,6 +102,11 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
     var messageNames: [String] { MessageNames.allCases.map(\.rawValue) }
 
     weak var delegate: PrivacyDashboardUserScriptDelegate?
+    private let privacyConfigurationManager: PrivacyConfigurationManaging
+
+    init(privacyConfigurationManager: PrivacyConfigurationManaging) {
+        self.privacyConfigurationManager = privacyConfigurationManager
+    }
 
     // swiftlint:disable:next cyclomatic_complexity
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
@@ -141,6 +147,10 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
 
     private func handleSetProtection(message: WKScriptMessage) {
         guard let protectionState = getProtectionState(from: message) else { return }
+        guard privacyConfigurationManager.privacyConfig.isEnabled(featureKey: .simplifiedReports) else {
+            delegate?.userScript(self, didChangeProtectionState: protectionState)
+            return
+        }
         if !protectionState.isProtected {
             delegate?.userScript(self, didRequestSimpleRequestReportWithProtectionState: protectionState)
         } else {

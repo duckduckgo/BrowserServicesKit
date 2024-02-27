@@ -20,6 +20,7 @@ import Foundation
 import WebKit
 import Combine
 import PrivacyDashboardResources
+import BrowserServicesKit
 
 public enum PrivacyDashboardOpenSettingsTarget: String {
     case general
@@ -74,12 +75,13 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
     public private(set) weak var privacyInfo: PrivacyInfo?
 
     private weak var webView: WKWebView?
-    private let privacyDashboardScript = PrivacyDashboardUserScript()
+    private let privacyDashboardScript: PrivacyDashboardUserScript
     private var cancellables = Set<AnyCancellable>()
     private var protectionState: ProtectionState?
 
-    public init(privacyInfo: PrivacyInfo?) {
+    public init(privacyInfo: PrivacyInfo?, privacyConfigurationManager: PrivacyConfigurationManaging) {
         self.privacyInfo = privacyInfo
+        privacyDashboardScript = PrivacyDashboardUserScript(privacyConfigurationManager: privacyConfigurationManager)
     }
 
     public func setup(for webView: WKWebView, screen: Screen) {
