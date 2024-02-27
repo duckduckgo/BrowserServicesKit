@@ -25,7 +25,7 @@ public extension URL {
         case .production:
             URL(string: "https://duckduckgo.com/subscriptions")!
         case .staging:
-            URL(string: "https://abrown.duckduckgo.com/subscriptions")!
+            URL(string: "https://duckduckgo.com/subscriptions?environment=staging")!
         }
     }
 
@@ -59,6 +59,11 @@ public extension URL {
     // MARK: - Identity Theft Restoration
 
     static var identityTheftRestoration: URL {
-        URL(string: "https://abrown.duckduckgo.com/identity-theft-restoration")!
+        switch SubscriptionPurchaseEnvironment.currentServiceEnvironment {
+        case .production:
+            URL(string: "https://duckduckgo.com/identity-theft-restoration")!
+        case .staging:
+            URL(string: "https://duckduckgo.com/identity-theft-restoration?environment=staging")!
+        }
     }
 }
