@@ -21,7 +21,12 @@ import Foundation
 public extension URL {
 
     static var subscriptionBaseURL: URL {
-        URL(string: "https://abrown.duckduckgo.com/subscriptions")!
+        switch SubscriptionPurchaseEnvironment.currentServiceEnvironment {
+        case .production:
+            URL(string: "https://duckduckgo.com/subscriptions")!
+        case .staging:
+            URL(string: "https://abrown.duckduckgo.com/subscriptions")!
+        }
     }
 
     static var subscriptionPurchase: URL {
