@@ -23,6 +23,7 @@ import UserScript
 import Common
 
 protocol PrivacyDashboardUserScriptDelegate: AnyObject {
+
     func userScript(_ userScript: PrivacyDashboardUserScript, didChangeProtectionState protectionState: ProtectionState)
     func userScript(_ userScript: PrivacyDashboardUserScript, setHeight height: Int)
     func userScriptDidRequestClosing(_ userScript: PrivacyDashboardUserScript)
@@ -32,24 +33,47 @@ protocol PrivacyDashboardUserScriptDelegate: AnyObject {
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestOpenSettings: String)
     func userScript(_ userScript: PrivacyDashboardUserScript, didSetPermission permission: String, to state: PermissionAuthorizationState)
     func userScript(_ userScript: PrivacyDashboardUserScript, setPermission permission: String, paused: Bool)
+    // Toggle reporting
+    func userScript(_ userScript: PrivacyDashboardUserScript, didRequestSimpleRequestReportWithProtectionState protectionState: ProtectionState)
+    func userScriptDidRequestSimpleReportOptions(_ userScript: PrivacyDashboardUserScript)
+    func userScriptDidRequestSendSimpleBreakageReport(_ userScript: PrivacyDashboardUserScript)
+    func userScriptDidRequestRejectSimpleBreakageReport(_ userScript: PrivacyDashboardUserScript)
+
 }
 
 public enum PrivacyDashboardTheme: String, Encodable {
+
     case light
     case dark
+
+}
+
+public enum Screen: String, Decodable {
+
+    case primaryScreen
+    case breakageForm
+
 }
 
 public struct ProtectionState: Decodable {
+
     public let isProtected: Bool
     public let eventOrigin: EventOrigin
 
     public struct EventOrigin: Decodable {
-        public let screen: EventOriginScreen
+
+        public let screen: Screen
+
     }
 
-    public enum EventOriginScreen: String, Decodable {
-        case primaryScreen
-        case breakageForm
+}
+
+struct ReportOptions: Decodable {
+    var data: [Option]
+
+    struct Option: Decodable {
+        let id: String
+        let additional: [String: String]
     }
 }
 
@@ -65,6 +89,9 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         case privacyDashboardOpenSettings
         case privacyDashboardSetPermission
         case privacyDashboardSetPermissionPaused
+        case privacyDashboardGetSimpleReportOptions
+        case privacyDashboardSendSimpleBreakageReport
+        case privacyDashboardRejectSimpleBreakageReport
     }
 
     static var injectionTime: WKUserScriptInjectionTime { .atDocumentStart }
@@ -75,6 +102,7 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
 
     weak var delegate: PrivacyDashboardUserScriptDelegate?
 
+    // swiftlint:disable:next cyclomatic_complexity
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         guard let messageType = MessageNames(rawValue: message.name) else {
             assertionFailure("PrivacyDashboardUserScript: unexpected message name \(message.name)")
@@ -100,19 +128,44 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             handleSetPermissionPaused(message: message)
         case .privacyDashboardOpenSettings:
             handleOpenSettings(message: message)
+        case .privacyDashboardGetSimpleReportOptions:
+            handleGetSimpleReportOptions(message: message)
+        case .privacyDashboardSendSimpleBreakageReport:
+            handleSendSimpleBreakageReport()
+        case .privacyDashboardRejectSimpleBreakageReport:
+            handleRejectSimpleBreakageReport()
         }
     }
 
     // MARK: - JS message handlers
 
     private func handleSetProtection(message: WKScriptMessage) {
+        guard let protectionState = getProtectionState(from: message) else { return }
+        if !protectionState.isProtected {
+            delegate?.userScript(self, didRequestSimpleRequestReportWithProtectionState: protectionState)
+        } else {
+            delegate?.userScript(self, didChangeProtectionState: protectionState)
+        }
+    }
 
+    private func getProtectionState(from message: WKScriptMessage) -> ProtectionState? {
         guard let protectionState: ProtectionState = DecodableHelper.decode(from: message.messageBody) else {
             assertionFailure("privacyDashboardSetProtection: expected ProtectionState")
-            return
+            return nil
         }
+        return protectionState
+    }
 
-        delegate?.userScript(self, didChangeProtectionState: protectionState)
+    private func handleGetSimpleReportOptions(message: WKScriptMessage) {
+        delegate?.userScriptDidRequestSimpleReportOptions(self)
+    }
+
+    private func handleSendSimpleBreakageReport() {
+        delegate?.userScriptDidRequestSendSimpleBreakageReport(self)
+    }
+
+    private func handleRejectSimpleBreakageReport() {
+        delegate?.userScriptDidRequestRejectSimpleBreakageReport(self)
     }
 
     private func handleSetSize(message: WKScriptMessage) {

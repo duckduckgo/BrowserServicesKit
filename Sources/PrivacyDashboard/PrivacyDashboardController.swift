@@ -61,10 +61,6 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
 #endif
 }
 
-/// This controller provides two type of user experiences
-/// 1- `Privacy Dashboard` with the possibility to navigate to the `Report broken site` page
-/// 2- Direct access to the `Report broken site` page
-/// Which flow is used is decided at `setup(...)` time, where if `reportBrokenSiteOnly` is true then the `Report broken site` page is opened directly.
 @MainActor public final class PrivacyDashboardController: NSObject {
 
     // Delegates
@@ -80,21 +76,18 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
     private weak var webView: WKWebView?
     private let privacyDashboardScript = PrivacyDashboardUserScript()
     private var cancellables = Set<AnyCancellable>()
+    private var protectionState: ProtectionState?
 
     public init(privacyInfo: PrivacyInfo?) {
         self.privacyInfo = privacyInfo
     }
 
-    /// Configure the webview for showing `Privacy Dasboard` or `Report broken site`
-    /// - Parameters:
-    ///   - webView: The webview to use
-    ///   - reportBrokenSiteOnly: true = `Report broken site`, false = `Privacy Dasboard`
-    public func setup(for webView: WKWebView, reportBrokenSiteOnly: Bool) {
+    public func setup(for webView: WKWebView, screen: Screen) {
         self.webView = webView
         webView.navigationDelegate = self
 
         setupPrivacyDashboardUserScript()
-        loadPrivacyDashboardHTML(reportBrokenSiteOnly: reportBrokenSiteOnly)
+        loadPrivacyDashboardHTML(screen: screen)
     }
 
     public func updatePrivacyInfo(_ privacyInfo: PrivacyInfo?) {
@@ -135,12 +128,9 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
         }
     }
 
-    private func loadPrivacyDashboardHTML(reportBrokenSiteOnly: Bool) {
+    private func loadPrivacyDashboardHTML(screen: Screen) {
         guard var url = Bundle.privacyDashboardURL else { return }
-
-        if reportBrokenSiteOnly {
-            url = url.appendingParameter(name: "screen", value: ProtectionState.EventOriginScreen.breakageForm.rawValue)
-        }
+        url = url.appendingParameter(name: "screen", value: screen.rawValue)
 
         webView?.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent().deletingLastPathComponent())
     }
@@ -261,20 +251,73 @@ extension PrivacyDashboardController: WKNavigationDelegate {
 
 extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
 
+    func loadSimpleBreakageReportScreen(with protectionState: ProtectionState) {
+        guard var url = Bundle.privacyDashboardURL else { return }
+        url = url.appendingParameters(["screen": "simpleBreakageReport",
+                                       "opener": "dashboard"])
+
+        webView?.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent().deletingLastPathComponent())
+        self.protectionState = protectionState
+    }
+
+    func userScript(_ userScript: PrivacyDashboardUserScript, didRequestSimpleRequestReportWithProtectionState protectionState: ProtectionState) {
+        loadSimpleBreakageReportScreen(with: protectionState)
+    }
+
+    func userScriptDidRequestSendSimpleBreakageReport(_ userScript: PrivacyDashboardUserScript) {
+        guard let protectionState else { return }
+        self.userScript(userScript, didChangeProtectionState: protectionState)
+    }
+
+    func userScriptDidRequestRejectSimpleBreakageReport(_ userScript: PrivacyDashboardUserScript) {
+        guard let protectionState else { return }
+        self.userScript(userScript, didChangeProtectionState: protectionState)
+    }
+
+    func userScriptDidRequestSimpleReportOptions(_ userScript: PrivacyDashboardUserScript) {
+        guard let webview = webView else { return }
+        let siteURL = privacyInfo?.url.trimmingQueryItemsAndFragment().absoluteString ?? ""
+        // todo: {"id": "listVersions"}, missing after atb
+        let js = """
+                     const json = {
+                         "data": [
+                             {
+                                 "id": "siteUrl",
+                                 "additional": {
+                                     "url": "\(siteURL)"
+                                 }
+                             },
+                             {"id": "device"},
+                             {"id": "os"},
+                             {"id": "appVersion"},
+                             {"id": "atb"},
+
+                             {"id": "wvVersion"},
+                             {"id": "features"},
+                             {"id": "requests"},
+                             {"id": "errorDescriptions"},
+                             {"id": "httpErrorCodes"},
+                             {"id": "reportFlow"},
+                             {"id": "lastSentDay"}
+                         ]
+                     }
+                     window.onGetSimpleReportOptionsResponse(json);
+                     """
+        webview.evaluateJavaScript(js)
+    }
+
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestOpenSettings target: String) {
         let settingsTarget = PrivacyDashboardOpenSettingsTarget(rawValue: target) ?? .general
         privacyDashboardDelegate?.privacyDashboardController(self, didRequestOpenSettings: settingsTarget)
     }
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didChangeProtectionState protectionState: ProtectionState) {
-
         switch protectionState.eventOrigin.screen {
         case .primaryScreen:
             privacyDashboardDelegate?.privacyDashboardController(self, didChangeProtectionSwitch: protectionState)
         case .breakageForm:
             privacyDashboardReportBrokenSiteDelegate?.privacyDashboardController(self, reportBrokenSiteDidChangeProtectionSwitch: protectionState)
         }
-
     }
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestOpenUrlInNewTab url: URL) {
