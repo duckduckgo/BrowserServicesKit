@@ -201,6 +201,7 @@ let package = Package(
                 "UserScript",
                 "ContentBlocking",
                 "Persistence",
+                "BrowserServicesKit",
                 .product(name: "PrivacyDashboardResources", package: "privacy-dashboard")
             ],
             path: "Sources/PrivacyDashboard",

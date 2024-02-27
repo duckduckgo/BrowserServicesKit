@@ -43,7 +43,7 @@ public protocol PrivacyDashboardReportBrokenSiteDelegate: AnyObject {
                                     reportBrokenSiteDidChangeProtectionSwitch protectionState: ProtectionState)
 }
 
-/// `Privacy Dasboard` web page delegate
+/// `Privacy Dashboard` web page delegate
 public protocol PrivacyDashboardControllerDelegate: AnyObject {
 
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
