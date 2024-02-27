@@ -51,7 +51,7 @@ public class MockNotificationPresenter: NetworkProtectionNotificationsPresenter 
         message = .test
     }
 
-    public func showExpiredEntitlementNotification() {
+    public func showEntitlementNotification() {
         message = .entitlementExpired
     }
 }

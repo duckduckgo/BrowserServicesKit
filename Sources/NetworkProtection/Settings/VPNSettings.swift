@@ -41,7 +41,8 @@ public final class VPNSettings {
         case setVPNFirstEnabled(_ vpnFirstEnabled: Date?)
         case setNetworkPathChange(_ newPath: String?)
         case setDisableRekeying(_ disableRekeying: Bool)
-        case setShouldShowExpiredEntitlementMessaging(_ settings: UserDefaults.ExpiredEntitlementMessaging?)
+        case setShowEntitlementAlert(_ showsAlert: Bool)
+        case setShowEntitlementNotification(_ showsNotification: Bool)
     }
 
     public enum RegistrationKeyValidity: Codable, Equatable {
@@ -184,11 +185,18 @@ public final class VPNSettings {
                 Change.setDisableRekeying(disableRekeying)
             }.eraseToAnyPublisher()
 
-        let shouldShowExpiredEntitlementMessagingPublisher = shouldShowExpiredEntitlementMessagingPublisher
+        let showEntitlementAlertPublisher = showEntitlementAlertPublisher
             .dropFirst()
             .removeDuplicates()
-            .map { shouldShowExpiredEntitlementMessaging in
-                Change.setShouldShowExpiredEntitlementMessaging(shouldShowExpiredEntitlementMessaging)
+            .map { showsAlert in
+                Change.setShowEntitlementAlert(showsAlert)
+            }.eraseToAnyPublisher()
+
+        let showEntitlementNotificationPublisher = showEntitlementNotificationPublisher
+            .dropFirst()
+            .removeDuplicates()
+            .map { showsNotification in
+                Change.setShowEntitlementNotification(showsNotification)
             }.eraseToAnyPublisher()
 
         return Publishers.MergeMany(
@@ -203,7 +211,8 @@ public final class VPNSettings {
             showInMenuBarPublisher,
             vpnFirstEnabledPublisher,
             networkPathChangePublisher,
-            shouldShowExpiredEntitlementMessagingPublisher,
+            showEntitlementAlertPublisher,
+            showEntitlementNotificationPublisher,
             disableRekeyingPublisher).eraseToAnyPublisher()
     }()
 
@@ -258,8 +267,10 @@ public final class VPNSettings {
                 newPath: newPath ?? "unknown")
         case .setDisableRekeying(let disableRekeying):
             self.disableRekeying = disableRekeying
-        case .setShouldShowExpiredEntitlementMessaging(let shouldShowExpiredEntitlementMessaging):
-            self.shouldShowExpiredEntitlementMessaging = shouldShowExpiredEntitlementMessaging
+        case .setShowEntitlementAlert(let showsAlert):
+            self.showEntitlementAlert = showsAlert
+        case .setShowEntitlementNotification(let showsNotification):
+            self.showEntitlementNotification = showsNotification
         }
     }
     // swiftlint:enable cyclomatic_complexity
@@ -500,19 +511,42 @@ public final class VPNSettings {
         }
     }
 
-    // MARK: - Whether to show expired entitlement alert
+    // MARK: - Whether to show expired entitlement messaging
 
-    public var shouldShowExpiredEntitlementMessagingPublisher: AnyPublisher<UserDefaults.ExpiredEntitlementMessaging?, Never> {
-        defaults.shouldShowExpiredEntitlementMessagingPublisher
+    public var showEntitlementAlertPublisher: AnyPublisher<Bool, Never> {
+        defaults.showEntitlementAlertPublisher
     }
 
-    public var shouldShowExpiredEntitlementMessaging: UserDefaults.ExpiredEntitlementMessaging? {
+    public var showEntitlementAlert: Bool {
         get {
-            defaults.shouldShowExpiredEntitlementMessaging
+            defaults.showEntitlementAlert
         }
 
         set {
-            defaults.shouldShowExpiredEntitlementMessaging = newValue
+            defaults.showEntitlementAlert = newValue
         }
+    }
+
+    public var showEntitlementNotificationPublisher: AnyPublisher<Bool, Never> {
+        defaults.showEntitlementNotificationPublisher
+    }
+
+    public var showEntitlementNotification: Bool {
+        get {
+            defaults.showEntitlementNotification
+        }
+
+        set {
+            defaults.showEntitlementNotification = newValue
+        }
+    }
+
+    public func enableEntitlementMessaging() {
+        apply(change: .setShowEntitlementAlert(true))
+        apply(change: .setShowEntitlementNotification(true))
+    }
+
+    public func resetEntitlementMessaging() {
+        defaults.resetEntitlementMessaging()
     }
 }

@@ -776,7 +776,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         } catch {
             if isSubscriptionEnabled, let error = error as? NetworkProtectionError, case .vpnAccessRevoked = error {
                 os_log("🔵 Expired subscription", log: .networkProtection, type: .error)
-                settings.apply(change: .setShouldShowExpiredEntitlementMessaging(.init(showsAlert: true, showsNotification: true)))
+                settings.enableEntitlementMessaging()
                 throw TunnelError.vpnAccessRevoked
             }
 
@@ -908,9 +908,14 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 }
                 completionHandler?(nil)
             }
-        case .setShouldShowExpiredEntitlementMessaging:
+        case .setShowEntitlementNotification(let showsNotification):
             // todo - https://app.asana.com/0/0/1206409081785857/f
-            notificationsPresenter.showExpiredEntitlementNotification()
+            if showsNotification {
+                notificationsPresenter.showEntitlementNotification { [weak self] error in
+                    guard error == nil else { return }
+                    self?.settings.apply(change: .setShowEntitlementNotification(false))
+                }
+            }
             completionHandler?(nil)
         case .setConnectOnLogin,
                 .setIncludeAllNetworks,
@@ -921,7 +926,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 .setShowInMenuBar,
                 .setVPNFirstEnabled,
                 .setNetworkPathChange,
-                .setDisableRekeying:
+                .setDisableRekeying,
+                .setShowEntitlementAlert:
             // Intentional no-op, as some setting changes don't require any further operation
             completionHandler?(nil)
         }
@@ -1189,9 +1195,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         await entitlementMonitor.start(entitlementCheck: entitlementCheck) { [weak self] result in
             switch result {
             case .validEntitlement:
-                self?.settings.apply(change: .setShouldShowExpiredEntitlementMessaging(nil))
+                self?.settings.resetEntitlementMessaging()
             case .invalidEntitlement:
-                self?.settings.apply(change: .setShouldShowExpiredEntitlementMessaging(.init(showsAlert: true, showsNotification: true)))
+                self?.settings.enableEntitlementMessaging()
                 Task { [weak self] in
                     await self?.attemptToShutdown()
                 }

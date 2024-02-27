@@ -39,5 +39,5 @@ public protocol NetworkProtectionNotificationsPresenter {
     func showTestNotification()
 
     /// Present a "expired subscription" notification to the user.
-    func showExpiredEntitlementNotification()
+    func showEntitlementNotification(completion: @escaping (Error?) -> Void)
 }
