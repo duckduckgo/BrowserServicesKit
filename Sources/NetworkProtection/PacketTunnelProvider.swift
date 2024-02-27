@@ -908,9 +908,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 }
                 completionHandler?(nil)
             }
-        case .setShowEntitlementNotification(let showsNotification):
+        case .setShowEntitlementNotification:
             // todo - https://app.asana.com/0/0/1206409081785857/f
-            if showsNotification {
+            if settings.showEntitlementNotification {
                 notificationsPresenter.showEntitlementNotification { [weak self] error in
                     guard error == nil else { return }
                     self?.settings.apply(change: .setShowEntitlementNotification(false))

@@ -32,7 +32,14 @@ extension UserDefaults {
         }
 
         set {
-            set(newValue, forKey: showEntitlementAlertKey)
+            if newValue == true {
+                /// Only show alert if it hasn't been shown before
+                if value(forKey: showEntitlementAlertKey) == nil {
+                    set(newValue, forKey: showEntitlementAlertKey)
+                }
+            } else {
+                set(newValue, forKey: showEntitlementAlertKey)
+            }
         }
     }
 
@@ -51,7 +58,14 @@ extension UserDefaults {
         }
 
         set {
-            set(newValue, forKey: showEntitlementNotificationKey)
+            if newValue == true {
+                /// Only show notification if it hasn't been shown before
+                if value(forKey: showEntitlementNotificationKey) == nil {
+                    set(newValue, forKey: showEntitlementNotificationKey)
+                }
+            } else {
+                set(newValue, forKey: showEntitlementNotificationKey)
+            }
         }
     }
 
