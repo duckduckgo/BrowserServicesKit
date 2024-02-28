@@ -24,6 +24,8 @@ public typealias History = [HistoryEntry]
 
 public protocol HistoryCoordinating: AnyObject {
 
+    func loadHistory(onCleanFinished: @escaping () -> Void)
+
     var history: History? { get }
     var allHistoryVisits: [Visit]? { get }
     var historyDictionaryPublisher: Published<[URL: HistoryEntry]?>.Publisher { get }
@@ -49,7 +51,10 @@ final public class HistoryCoordinator: HistoryCoordinating {
     public init(historyStoring: HistoryStoring) {
         self.historyStoring = historyStoring
         historyDictionary = [:]
-        cleanOldAndLoad()
+    }
+
+    public func loadHistory(onCleanFinished: @escaping () -> Void) {
+        cleanOldAndLoad(onCleanFinished: onCleanFinished)
         scheduleRegularCleaning()
     }
 
@@ -189,11 +194,11 @@ final public class HistoryCoordinator: HistoryCoordinating {
         clean(until: cleaningDate)
     }
 
-    private func cleanOldAndLoad() {
-        clean(until: cleaningDate)
+    private func cleanOldAndLoad(onCleanFinished: @escaping () -> Void) {
+        clean(until: cleaningDate, onCleanFinished: onCleanFinished)
     }
 
-    private func clean(until date: Date) {
+    private func clean(until date: Date, onCleanFinished: (() -> Void)? = nil) {
         historyStoring.cleanOld(until: date)
             .receive(on: DispatchQueue.main)
             .sink(receiveCompletion: { completion in
@@ -204,6 +209,7 @@ final public class HistoryCoordinator: HistoryCoordinating {
                     // This should really be a pixel
                     os_log("Cleaning of history failed: %s", log: .history, type: .error, error.localizedDescription)
                 }
+                onCleanFinished?()
             }, receiveValue: { [weak self] history in
                 self?.historyDictionary = self?.makeHistoryDictionary(from: history)
             })
