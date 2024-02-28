@@ -109,8 +109,6 @@ public final class AppStorePurchaseFlow {
         }
     }
     // swiftlint:enable cyclomatic_complexity
-    
-    
 
     @discardableResult
     public static func completeSubscriptionPurchase() async -> Result<PurchaseUpdate, AppStorePurchaseFlow.Error> {
