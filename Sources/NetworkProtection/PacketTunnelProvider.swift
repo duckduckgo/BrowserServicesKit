@@ -777,6 +777,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             if isSubscriptionEnabled, let error = error as? NetworkProtectionError, case .vpnAccessRevoked = error {
                 os_log("🔵 Expired subscription", log: .networkProtection, type: .error)
                 settings.enableEntitlementMessaging()
+
+                /// We add a delay here so the notification has a chance to show up
+                try? await Task.sleep(interval: .seconds(5))
+
                 throw TunnelError.vpnAccessRevoked
             }
 
@@ -909,7 +913,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 completionHandler?(nil)
             }
         case .setShowEntitlementNotification:
-            // todo - https://app.asana.com/0/0/1206409081785857/f
             if settings.showEntitlementNotification {
                 notificationsPresenter.showEntitlementNotification { [weak self] error in
                     guard error == nil else { return }

@@ -22,7 +22,7 @@ import Common
 
 extension UserDefaults {
     private var showEntitlementAlertKey: String {
-        "networkProtectionShowEntitlementAlertRawValue"
+        "showEntitlementAlert"
     }
 
     @objc
@@ -48,7 +48,7 @@ extension UserDefaults {
     }
 
     private var showEntitlementNotificationKey: String {
-        "networkProtectionShowEntitlementNotificationRawValue"
+        "showEntitlementNotification"
     }
 
     @objc

@@ -18,6 +18,7 @@
 
 import Combine
 import Foundation
+import Common
 
 /// Persists and publishes changes to tunnel settings.
 ///
@@ -544,9 +545,15 @@ public final class VPNSettings {
     public func enableEntitlementMessaging() {
         apply(change: .setShowEntitlementAlert(true))
         apply(change: .setShowEntitlementNotification(true))
+        os_log("🔵 Posting vpnEntitlementMessagingDidChange", log: .networkProtection)
+        NotificationCenter.default.post(name: .vpnEntitlementMessagingDidChange, object: nil)
     }
 
     public func resetEntitlementMessaging() {
         defaults.resetEntitlementMessaging()
     }
+}
+
+public extension Notification.Name {
+    static let vpnEntitlementMessagingDidChange = Notification.Name("com.duckduckgo.network-protection.entitlement-messaging-changed")
 }
