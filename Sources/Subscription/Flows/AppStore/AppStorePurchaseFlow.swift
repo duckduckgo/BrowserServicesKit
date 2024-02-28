@@ -56,6 +56,7 @@ public final class AppStorePurchaseFlow {
                                             features: features))
     }
 
+    // swiftlint:disable cyclomatic_complexity
     public static func purchaseSubscription(with subscriptionIdentifier: String, emailAccessToken: String?) async -> Result<Void, AppStorePurchaseFlow.Error> {
         os_log(.info, log: .subscription, "[AppStorePurchaseFlow] purchaseSubscription")
 
@@ -107,6 +108,7 @@ public final class AppStorePurchaseFlow {
             }
         }
     }
+    // swiftlint:disable:next cyclomatic_complexity
 
     @discardableResult
     public static func completeSubscriptionPurchase() async -> Result<PurchaseUpdate, AppStorePurchaseFlow.Error> {
