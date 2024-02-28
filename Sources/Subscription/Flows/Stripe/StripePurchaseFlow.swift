@@ -61,7 +61,7 @@ public final class StripePurchaseFlow {
                                             features: features))
     }
 
-    public static func prepareSubscriptionPurchase(emailAccessToken: String?) async -> Result<PurchaseUpdate, StripePurchaseFlow.Error> {
+    public static func prepareSubscriptionPurchase(emailAccessToken: String?, subscriptionAppGroup: String) async -> Result<PurchaseUpdate, StripePurchaseFlow.Error> {
         os_log(.info, log: .subscription, "[StripePurchaseFlow] prepareSubscriptionPurchase")
 
         var authToken: String = ""
@@ -69,7 +69,7 @@ public final class StripePurchaseFlow {
         switch await AuthService.createAccount(emailAccessToken: emailAccessToken) {
         case .success(let response):
             authToken = response.authToken
-            AccountManager().storeAuthToken(token: authToken)
+            AccountManager(appGroup: subscriptionAppGroup).storeAuthToken(token: authToken)
         case .failure:
             os_log(.error, log: .subscription, "[StripePurchaseFlow] Error: accountCreationFailed")
             return .failure(.accountCreationFailed)
@@ -78,10 +78,10 @@ public final class StripePurchaseFlow {
         return .success(PurchaseUpdate(type: "redirect", token: authToken))
     }
 
-    public static func completeSubscriptionPurchase() async {
+    public static func completeSubscriptionPurchase(subscriptionAppGroup: String) async {
         os_log(.info, log: .subscription, "[StripePurchaseFlow] completeSubscriptionPurchase")
 
-        let accountManager = AccountManager()
+        let accountManager = AccountManager(appGroup: subscriptionAppGroup)
 
         if let authToken = accountManager.authToken {
             if case let .success(accessToken) = await accountManager.exchangeAuthTokenToAccessToken(authToken),
@@ -91,6 +91,6 @@ public final class StripePurchaseFlow {
             }
         }
 
-        await AccountManager.checkForEntitlements(wait: 2.0, retry: 5)
+        await AccountManager.checkForEntitlements(subscriptionAppGroup: subscriptionAppGroup, wait: 2.0, retry: 5)
     }
 }
