@@ -22,8 +22,4 @@ public protocol SubscriptionTokenStorage: AnyObject {
     func getAccessToken() throws -> String?
     func store(accessToken: String) throws
     func removeAccessToken() throws
-
-    func getTestString() throws -> String?
-    func updateTestString() throws
-    func removeTestString() throws
 }

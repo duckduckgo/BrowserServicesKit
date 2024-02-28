@@ -37,25 +37,6 @@ public class SubscriptionTokenKeychainStorage: SubscriptionTokenStorage {
     public func removeAccessToken() throws {
         try deleteItem(forField: .accessToken)
     }
-
-    public func getTestString() throws -> String? {
-        try getString(forField: .testString)
-    }
-
-    public func updateTestString() throws {
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateStyle = .medium
-        dateFormatter.timeStyle = .medium
-        let testString = dateFormatter.string(from: Date())
-
-        print(testString)
-
-        try set(string: testString, forField: .testString)
-    }
-
-    public func removeTestString() throws {
-        try deleteItem(forField: .testString)
-    }
 }
 
 private extension SubscriptionTokenKeychainStorage {
