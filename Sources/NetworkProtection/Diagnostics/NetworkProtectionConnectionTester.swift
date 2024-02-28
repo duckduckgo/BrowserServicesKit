@@ -194,9 +194,17 @@ final class NetworkProtectionConnectionTester {
             }
         }
 
-        timer.setCancelHandler { [weak self] in
-            self?.timer = nil
-        }
+        // Enable back if needed.  The only reason this commented code is left in is because it has
+        // documentation purposes, and while the timer should not be released here, it's ok to enable
+        // back the cancellation handler if it's needed for other purposes.
+        //
+        // timer.setCancelHandler { [weak self] in
+            // Do not re-enable this.
+            // Releasing the timer here is causing a crash.  I'm leaving this here for documentation
+            // purposes, so that we're not tempted to add this back.
+            //
+            // self?.timer = nil
+        // }
 
         timer.resume()
     }
