@@ -476,9 +476,15 @@ for target in package.targets {
         "WireGuardC",
     ]
     guard !targetsWithSwiftlintDisabled.contains(target.name) else { continue }
-    guard target.plugins?.contains(where: { "\($0)" == "\(Target.PluginUsage.plugin(name: "SwiftLintPlugin", package: "apple-toolbox"))" }) == true else {
-        assertionFailure("\nTarget \(target.name) is missing SwiftLintPlugin dependency.\nIf this is intended, add \"\(target.name)\" to targetsWithSwiftlintDisabled\nTarget plugins: "
-                         + (target.plugins?.map { "\($0)" }.joined(separator: ", ") ?? "<nil>"))
+    guard target.plugins?.contains(where: {
+        "\($0)" == "\(Target.PluginUsage.plugin(name: "SwiftLintPlugin", package: "apple-toolbox"))"
+    }) == true else {
+        assertionFailure("""
+
+        Target \(target.name) is missing SwiftLintPlugin dependency.
+        If this is intended, add \"\(target.name)\" to targetsWithSwiftlintDisabled
+        Target plugins: \(target.plugins?.map { "\($0)" }.joined(separator: ", ") ?? "<nil>")
+        """)
         continue
     }
 }
