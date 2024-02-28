@@ -50,7 +50,7 @@ private extension SubscriptionTokenKeychainStorage {
         case testString = "subscription.account.testString"
 
         var keyValue: String {
-            (Bundle.main.bundleIdentifier ?? "com.duckduckgo") + "." + rawValue
+            "com.duckduckgo" + "." + rawValue
         }
     }
 
