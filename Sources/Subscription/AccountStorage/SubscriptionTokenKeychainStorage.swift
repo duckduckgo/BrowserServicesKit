@@ -65,17 +65,11 @@ private extension SubscriptionTokenKeychainStorage {
             throw AccountKeychainAccessError.failedToDecodeKeychainDataAsString
         }
     }
-
-    struct Defaults {
-        static let tokenStoreEntryLabel = "DuckDuckGo Privacy Pro Auth Token"
-    }
-
     func retrieveData(forField field: AccountKeychainField) throws -> Data? {
         var query = defaultAttributes()
         query[kSecAttrService] = field.keyValue
         query[kSecMatchLimit] = kSecMatchLimitOne
         query[kSecReturnData] = true
-        //query[kSecAttrLabel] = Defaults.tokenStoreEntryLabel
 
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
