@@ -29,6 +29,7 @@ public final class AppStorePurchaseFlow {
         case authenticatingWithTransactionFailed
         case accountCreationFailed
         case purchaseFailed
+        case cancelledByUser
         case missingEntitlements
     }
 
@@ -98,7 +99,12 @@ public final class AppStorePurchaseFlow {
         case .failure(let error):
             os_log(.error, log: .subscription, "[AppStorePurchaseFlow] purchaseSubscription error: %{public}s", String(reflecting: error))
             AccountManager().signOut()
-            return .failure(.purchaseFailed)
+            switch error {
+            case .purchaseCancelledByUser:
+                return .failure(.cancelledByUser)
+            default:
+                return .failure(.purchaseFailed)
+            }
         }
     }
 
