@@ -34,11 +34,9 @@ protocol PrivacyDashboardUserScriptDelegate: AnyObject {
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestOpenSettings: String)
     func userScript(_ userScript: PrivacyDashboardUserScript, didSetPermission permission: String, to state: PermissionAuthorizationState)
     func userScript(_ userScript: PrivacyDashboardUserScript, setPermission permission: String, paused: Bool)
-    // Toggle reporting
-    func userScript(_ userScript: PrivacyDashboardUserScript, didRequestSimpleRequestReportWithProtectionState protectionState: ProtectionState)
-    func userScriptDidRequestSimpleReportOptions(_ userScript: PrivacyDashboardUserScript)
-    func userScriptDidRequestSendSimpleBreakageReport(_ userScript: PrivacyDashboardUserScript)
-    func userScriptDidRequestRejectSimpleBreakageReport(_ userScript: PrivacyDashboardUserScript)
+    // Toggle reports
+    func userScriptDidRequestToggleReportOptions(_ userScript: PrivacyDashboardUserScript)
+    func userScript(_ userScript: PrivacyDashboardUserScript, didSelectReportAction shouldSendReport: Bool)
 
 }
 
@@ -53,6 +51,7 @@ public enum Screen: String, Decodable {
 
     case primaryScreen
     case breakageForm
+    case simpleBreakageReport
 
 }
 
@@ -81,6 +80,7 @@ struct ReportOptions: Decodable {
 final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
 
     enum MessageNames: String, CaseIterable {
+
         case privacyDashboardSetProtection
         case privacyDashboardSetSize
         case privacyDashboardClose
@@ -93,6 +93,7 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         case privacyDashboardGetSimpleReportOptions
         case privacyDashboardSendSimpleBreakageReport
         case privacyDashboardRejectSimpleBreakageReport
+
     }
 
     static var injectionTime: WKUserScriptInjectionTime { .atDocumentStart }
@@ -135,11 +136,11 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         case .privacyDashboardOpenSettings:
             handleOpenSettings(message: message)
         case .privacyDashboardGetSimpleReportOptions:
-            handleGetSimpleReportOptions(message: message)
+            handleGetToggleReportOptions(message: message)
         case .privacyDashboardSendSimpleBreakageReport:
-            handleSendSimpleBreakageReport()
+            handleSendToggleReport()
         case .privacyDashboardRejectSimpleBreakageReport:
-            handleRejectSimpleBreakageReport()
+            handleDoNotSendToggleReport()
         }
     }
 
@@ -147,15 +148,7 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
 
     private func handleSetProtection(message: WKScriptMessage) {
         guard let protectionState = getProtectionState(from: message) else { return }
-        guard privacyConfigurationManager.privacyConfig.isEnabled(featureKey: .simplifiedReports) else {
-            delegate?.userScript(self, didChangeProtectionState: protectionState)
-            return
-        }
-        if !protectionState.isProtected {
-            delegate?.userScript(self, didRequestSimpleRequestReportWithProtectionState: protectionState)
-        } else {
-            delegate?.userScript(self, didChangeProtectionState: protectionState)
-        }
+        delegate?.userScript(self, didChangeProtectionState: protectionState)
     }
 
     private func getProtectionState(from message: WKScriptMessage) -> ProtectionState? {
@@ -164,18 +157,6 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             return nil
         }
         return protectionState
-    }
-
-    private func handleGetSimpleReportOptions(message: WKScriptMessage) {
-        delegate?.userScriptDidRequestSimpleReportOptions(self)
-    }
-
-    private func handleSendSimpleBreakageReport() {
-        delegate?.userScriptDidRequestSendSimpleBreakageReport(self)
-    }
-
-    private func handleRejectSimpleBreakageReport() {
-        delegate?.userScriptDidRequestRejectSimpleBreakageReport(self)
     }
 
     private func handleSetSize(message: WKScriptMessage) {
@@ -254,7 +235,50 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         delegate?.userScript(self, setPermission: permission, paused: paused)
     }
 
+    // Toggle reports
+
+    private func handleGetToggleReportOptions(message: WKScriptMessage) {
+        delegate?.userScriptDidRequestToggleReportOptions(self)
+    }
+
+    private func handleSendToggleReport() {
+        delegate?.userScript(self, didSelectReportAction: true)
+    }
+
+    private func handleDoNotSendToggleReport() {
+        delegate?.userScript(self, didSelectReportAction: false)
+    }
+
     // MARK: - Calls to script's JS API
+
+    func setToggleReportOptions(forSite site: String, webView: WKWebView) {
+        let js = """
+                     const json = {
+                         "data": [
+                             {
+                                 "id": "siteUrl",
+                                 "additional": {
+                                     "url": "\(site)"
+                                 }
+                             },
+                             {"id": "device"},
+                             {"id": "os"},
+                             {"id": "appVersion"},
+                             {"id": "atb"},
+                             {"id": "listVersions"},
+                             {"id": "wvVersion"},
+                             {"id": "features"},
+                             {"id": "requests"},
+                             {"id": "errorDescriptions"},
+                             {"id": "httpErrorCodes"},
+                             {"id": "reportFlow"},
+                             {"id": "lastSentDay"}
+                         ]
+                     }
+                     window.onGetSimpleReportOptionsResponse(json);
+                     """
+        evaluate(js: js, in: webView)
+    }
 
     func setTrackerInfo(_ tabUrl: URL, trackerInfo: TrackerInfo, webView: WKWebView) {
         guard let trackerBlockingDataJson = try? JSONEncoder().encode(trackerInfo).utf8String() else {

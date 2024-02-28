@@ -64,7 +64,6 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
 
 @MainActor public final class PrivacyDashboardController: NSObject {
 
-    // Delegates
     public weak var privacyDashboardDelegate: PrivacyDashboardControllerDelegate?
     public weak var privacyDashboardNavigationDelegate: PrivacyDashboardNavigationDelegate?
     public weak var privacyDashboardReportBrokenSiteDelegate: PrivacyDashboardReportBrokenSiteDelegate?
@@ -73,23 +72,25 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
     public var preferredLocale: String?
     @Published public var allowedPermissions: [AllowedPermission] = []
     public private(set) weak var privacyInfo: PrivacyInfo?
+    public let dashboardMode: PrivacyDashboardMode
 
     private weak var webView: WKWebView?
     private let privacyDashboardScript: PrivacyDashboardUserScript
     private var cancellables = Set<AnyCancellable>()
     private var protectionState: ProtectionState?
 
-    public init(privacyInfo: PrivacyInfo?, privacyConfigurationManager: PrivacyConfigurationManaging) {
+    public init(privacyInfo: PrivacyInfo?, dashboardMode: PrivacyDashboardMode, privacyConfigurationManager: PrivacyConfigurationManaging) {
         self.privacyInfo = privacyInfo
+        self.dashboardMode = dashboardMode
         privacyDashboardScript = PrivacyDashboardUserScript(privacyConfigurationManager: privacyConfigurationManager)
     }
 
-    public func setup(for webView: WKWebView, screen: Screen) {
+    public func setup(for webView: WKWebView) {
         self.webView = webView
         webView.navigationDelegate = self
 
         setupPrivacyDashboardUserScript()
-        loadPrivacyDashboardHTML(screen: screen)
+        loadPrivacyDashboardHTML(screen: dashboardMode.screen)
     }
 
     public func updatePrivacyInfo(_ privacyInfo: PrivacyInfo?) {
@@ -253,73 +254,39 @@ extension PrivacyDashboardController: WKNavigationDelegate {
 
 extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
 
-    func loadSimpleBreakageReportScreen(with protectionState: ProtectionState) {
-        guard var url = Bundle.privacyDashboardURL else { return }
-        url = url.appendingParameters(["screen": "simpleBreakageReport",
-                                       "opener": "dashboard"])
-
-        webView?.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent().deletingLastPathComponent())
-        self.protectionState = protectionState
-    }
-
-    func userScript(_ userScript: PrivacyDashboardUserScript, didRequestSimpleRequestReportWithProtectionState protectionState: ProtectionState) {
-        loadSimpleBreakageReportScreen(with: protectionState)
-    }
-
-    func userScriptDidRequestSendSimpleBreakageReport(_ userScript: PrivacyDashboardUserScript) {
-        guard let protectionState else { return }
-        self.userScript(userScript, didChangeProtectionState: protectionState)
-    }
-
-    func userScriptDidRequestRejectSimpleBreakageReport(_ userScript: PrivacyDashboardUserScript) {
-        guard let protectionState else { return }
-        self.userScript(userScript, didChangeProtectionState: protectionState)
-    }
-
-    func userScriptDidRequestSimpleReportOptions(_ userScript: PrivacyDashboardUserScript) {
-        guard let webview = webView else { return }
-        let siteURL = privacyInfo?.url.trimmingQueryItemsAndFragment().absoluteString ?? ""
-        // todo: {"id": "listVersions"}, missing after atb
-        let js = """
-                     const json = {
-                         "data": [
-                             {
-                                 "id": "siteUrl",
-                                 "additional": {
-                                     "url": "\(siteURL)"
-                                 }
-                             },
-                             {"id": "device"},
-                             {"id": "os"},
-                             {"id": "appVersion"},
-                             {"id": "atb"},
-
-                             {"id": "wvVersion"},
-                             {"id": "features"},
-                             {"id": "requests"},
-                             {"id": "errorDescriptions"},
-                             {"id": "httpErrorCodes"},
-                             {"id": "reportFlow"},
-                             {"id": "lastSentDay"}
-                         ]
-                     }
-                     window.onGetSimpleReportOptionsResponse(json);
-                     """
-        webview.evaluateJavaScript(js)
-    }
-
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestOpenSettings target: String) {
         let settingsTarget = PrivacyDashboardOpenSettingsTarget(rawValue: target) ?? .general
         privacyDashboardDelegate?.privacyDashboardController(self, didRequestOpenSettings: settingsTarget)
     }
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didChangeProtectionState protectionState: ProtectionState) {
+
+
+        if !protectionState.isProtected {
+            loadSimpleBreakageReportScreen(with: protectionState)
+        } else {
+            didChangeProtectionState(protectionState)
+        }
+    }
+
+    private func didChangeProtectionState(_ protectionState: ProtectionState) {
         switch protectionState.eventOrigin.screen {
         case .primaryScreen:
             privacyDashboardDelegate?.privacyDashboardController(self, didChangeProtectionSwitch: protectionState)
         case .breakageForm:
             privacyDashboardReportBrokenSiteDelegate?.privacyDashboardController(self, reportBrokenSiteDidChangeProtectionSwitch: protectionState)
+        case .simpleBreakageReport:
+            assertionFailure("Simple Breakage report screen doesn't have toggling capability")
         }
+    }
+
+    private func loadSimpleBreakageReportScreen(with protectionState: ProtectionState) {
+        guard var url = Bundle.privacyDashboardURL else { return }
+        url = url.appendingParameters(["screen": Screen.simpleBreakageReport.rawValue,
+                                       "opener": "dashboard"])
+
+        webView?.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent().deletingLastPathComponent())
+        self.protectionState = protectionState
     }
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestOpenUrlInNewTab url: URL) {
@@ -327,6 +294,9 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     }
 
     func userScriptDidRequestClosing(_ userScript: PrivacyDashboardUserScript) {
+        if case .toggleReport(onAnyAction: let action) = dashboardMode {
+            action()
+        }
         privacyDashboardNavigationDelegate?.privacyDashboardControllerDidTapClose(self)
     }
 
@@ -354,4 +324,23 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
         privacyDashboardDelegate?.privacyDashboardController(self, setPermission: permission, paused: paused)
 #endif
     }
+
+    // Toggle reports
+
+    func userScriptDidRequestToggleReportOptions(_ userScript: PrivacyDashboardUserScript) {
+        guard let webView = self.webView else { return }
+        let site = privacyInfo?.url.trimmingQueryItemsAndFragment().absoluteString ?? ""
+        privacyDashboardScript.setToggleReportOptions(forSite: site, webView: webView)
+    }
+
+    func userScript(_ userScript: PrivacyDashboardUserScript, didSelectReportAction shouldSendReport: Bool) {
+        if case .toggleReport(onAnyAction: let action) = dashboardMode {
+            action()
+            privacyDashboardNavigationDelegate?.privacyDashboardControllerDidTapClose(self)
+        } else {
+            guard let protectionState else { return }
+            didChangeProtectionState(protectionState)
+        }
+    }
+
 }
