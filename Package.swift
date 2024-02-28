@@ -32,6 +32,7 @@ let package = Package(
         .library(name: "NetworkProtectionTestUtils", targets: ["NetworkProtectionTestUtils"]),
         .library(name: "SecureStorage", targets: ["SecureStorage"]),
         .library(name: "Subscription", targets: ["Subscription"]),
+        .library(name: "History", targets: ["History"]),
         .plugin(name: "SwiftLintPlugin", targets: ["SwiftLintPlugin"]),
     ],
     dependencies: [
@@ -90,6 +91,21 @@ let package = Package(
             resources: [
                 .process("BookmarksModel.xcdatamodeld")
             ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
+            ],
+            plugins: [.plugin(name: "SwiftLintPlugin")]
+        ),
+        .target(
+            name: "History",
+            dependencies: [
+                "Persistence",
+                "Common"
+            ],
+            // TODO remove if not needed
+//            resources: [
+//                .process("BookmarksModel.xcdatamodeld")
+//            ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
             ],

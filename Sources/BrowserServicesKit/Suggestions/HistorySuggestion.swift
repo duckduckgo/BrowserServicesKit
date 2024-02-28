@@ -1,5 +1,5 @@
 //
-//  HistoryEntry.swift
+//  HistorySuggestion.swift
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -18,7 +18,7 @@
 
 import Foundation
 
-public protocol HistoryEntry {
+public protocol HistorySuggestion {
 
     var identifier: UUID { get }
     var url: URL { get }

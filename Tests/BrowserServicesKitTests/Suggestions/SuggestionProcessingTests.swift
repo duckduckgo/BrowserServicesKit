@@ -38,7 +38,7 @@ final class SuggestionProcessingTests: XCTestCase {
 
 extension HistoryEntryMock {
 
-    static var aHistory: [HistoryEntry] {
+    static var aHistory: [HistorySuggestion] {
         [ HistoryEntryMock(identifier: UUID(),
                            url: URL(string: "http://www.duckduckgo.com")!,
                            title: nil,
