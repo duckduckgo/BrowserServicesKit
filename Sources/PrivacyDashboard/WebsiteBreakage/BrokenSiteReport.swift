@@ -1,5 +1,5 @@
 //
-//  WebsiteBreakage.swift
+//  BrokenSiteReport.swift
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -18,22 +18,40 @@
 //  Implementation guidelines: https://app.asana.com/0/1198207348643509/1200202563872939/f
 
 import Foundation
+import Common
 
-/// Model containing all the info required for a report broken site submission
-public struct WebsiteBreakage {
+public struct BrokenSiteReport {
 
-    /// The source of the broken site report
-    public enum Source: String {
-        /// The app menu
-        case appMenu = "menu"
-        /// From the privacy dashboard
-        case dashboard
+    public enum `Type` {
+
+        case regular
+        case toggle
+
     }
 
+    public enum Source: String {
+
+        /// From the app menu's "Report Broken Site"
+        case appMenu = "menu"
+        /// From the privacy dashboard's "Website not working?"
+        case dashboard
+        /// From the app menu's "Disable Privacy Protection"
+        case onProtectionsOffMenu = "on_protections_off_menu"
+        /// From the privacy dashboard's on protections toggle off
+        case onProtectionsOffDashboard = "on_protections_off_dashboard_main"
+        /// From the privacy dashboard's report screen on protections toggle off
+        case onProtectionsOffDashboardBrokenSite = "on_protections_off_dashboard_broken_site"
+
+    }
+
+#if os(iOS)
     public enum SiteType: String {
+
         case desktop
         case mobile
+
     }
+#endif
 
     public static let allowedQueryReservedCharacters = CharacterSet(charactersIn: ",")
 
@@ -55,7 +73,7 @@ public struct WebsiteBreakage {
     let errors: [Error]?
     let httpStatusCodes: [Int]?
 #if os(iOS)
-    let siteType: SiteType // ?? not in documentation
+    let siteType: SiteType
     let atb: String
     let model: String
 #endif
@@ -143,23 +161,28 @@ public struct WebsiteBreakage {
 #endif
 
     /// A dictionary containing all the parameters needed from the Report Broken Site Pixel
-    public var requestParameters: [String: String] {
+    public var requestParameters: [String: String] { getRequestParameters(forReportType: .regular) }
+
+    public func getRequestParameters(forReportType type: `Type`) -> [String: String] {
         var result: [String: String] = [
             "siteUrl": siteUrl.trimmingQueryItemsAndFragment().absoluteString,
-            "category": category,
-            "description": description ?? "",
-            "upgradedHttps": upgradedHttps ? "true" : "false",
+            "upgradedHttps": upgradedHttps.stringValue,
             "tds": tdsETag?.trimmingCharacters(in: CharacterSet(charactersIn: "\"")) ?? "",
             "blockedTrackers": blockedTrackerDomains.joined(separator: ","),
             "surrogates": installedSurrogates.joined(separator: ","),
-            "gpc": isGPCEnabled ? "true" : "false",
+            "gpc": isGPCEnabled.stringValue,
             "ampUrl": ampURL,
-            "urlParametersRemoved": urlParametersRemoved ? "true" : "false",
+            "urlParametersRemoved": urlParametersRemoved.stringValue,
             "os": osVersion,
             "manufacturer": manufacturer,
-            "reportFlow": reportFlow.rawValue,
-            "protectionsState": protectionsState ? "true" : "false"
+            "reportFlow": reportFlow.rawValue
         ]
+
+        if type == .regular {
+            result["category"] = category
+            result["description"] = description ?? ""
+            result["protectionsState"] = protectionsState.stringValue
+        }
 
         if let lastSentDay = lastSentDay {
             result["lastSentDay"] = lastSentDay
@@ -185,4 +208,5 @@ public struct WebsiteBreakage {
 #endif
         return result
     }
+
 }

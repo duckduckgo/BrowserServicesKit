@@ -68,15 +68,6 @@ public struct ProtectionState: Decodable {
 
 }
 
-struct ReportOptions: Decodable {
-    var data: [Option]
-
-    struct Option: Decodable {
-        let id: String
-        let additional: [String: String]
-    }
-}
-
 final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
 
     enum MessageNames: String, CaseIterable {
@@ -258,7 +249,7 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
                              {
                                  "id": "siteUrl",
                                  "additional": {
-                                     "url": "SIAJDOIASJD OAISJD OAIJS DOAISJ DOIAJS FOIDJS FOISJD FOIJSD FOIJSD FOIDJ FOAISJ DOAIJS FOIDJ FOIJS DOFJ SDOIFJ SODJF OIASJ DOIQJW OJOWIJOQJWOEJQWOEJQWOEJ OQWJ EOQIWJ EOQWIJE OQWE://///////{}"
+                                     "url": "\(site)"
                                  }
                              },
                              {"id": "device"},

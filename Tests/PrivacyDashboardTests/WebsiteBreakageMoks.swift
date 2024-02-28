@@ -1,5 +1,5 @@
 //
-//  WebsiteBreakageMoks.swift
+//  BrokenSiteReportMocs.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -19,62 +19,62 @@
 import Foundation
 import PrivacyDashboard
 
-struct WebsiteBreakageMoks {
+struct BrokenSiteReportMocs {
 
-    static var testBreakage: WebsiteBreakage {
-        WebsiteBreakage(siteUrl: URL(string: "https://duckduckgo.com")!,
-                        category: "test",
-                        description: "test",
-                        osVersion: "test",
-                        manufacturer: "Apple",
-                        upgradedHttps: true,
-                        tdsETag: "test",
-                        blockedTrackerDomains: [],
-                        installedSurrogates: [],
-                        isGPCEnabled: true,
-                        ampURL: "test",
-                        urlParametersRemoved: true,
-                        protectionsState: true,
-                        reportFlow: .appMenu,
-                        errors: nil,
-                        httpStatusCodes: nil)
+    static var report: BrokenSiteReport {
+        BrokenSiteReport(siteUrl: URL(string: "https://duckduckgo.com")!,
+                         category: "test",
+                         description: "test",
+                         osVersion: "test",
+                         manufacturer: "Apple",
+                         upgradedHttps: true,
+                         tdsETag: "test",
+                         blockedTrackerDomains: [],
+                         installedSurrogates: [],
+                         isGPCEnabled: true,
+                         ampURL: "test",
+                         urlParametersRemoved: true,
+                         protectionsState: true,
+                         reportFlow: .appMenu,
+                         errors: nil,
+                         httpStatusCodes: nil)
     }
 
-    static var testBreakage2: WebsiteBreakage {
-        WebsiteBreakage(siteUrl: URL(string: "https://somethingelse.zz")!,
-                        category: "test",
-                        description: "test",
-                        osVersion: "test",
-                        manufacturer: "Apple",
-                        upgradedHttps: true,
-                        tdsETag: "test",
-                        blockedTrackerDomains: [],
-                        installedSurrogates: [],
-                        isGPCEnabled: true,
-                        ampURL: "test",
-                        urlParametersRemoved: true,
-                        protectionsState: true,
-                        reportFlow: .appMenu,
-                        errors: nil,
-                        httpStatusCodes: nil)
+    static var report2: BrokenSiteReport {
+        BrokenSiteReport(siteUrl: URL(string: "https://somethingelse.zz")!,
+                         category: "test",
+                         description: "test",
+                         osVersion: "test",
+                         manufacturer: "Apple",
+                         upgradedHttps: true,
+                         tdsETag: "test",
+                         blockedTrackerDomains: [],
+                         installedSurrogates: [],
+                         isGPCEnabled: true,
+                         ampURL: "test",
+                         urlParametersRemoved: true,
+                         protectionsState: true,
+                         reportFlow: .appMenu,
+                         errors: nil,
+                         httpStatusCodes: nil)
     }
 
-    static var testBreakage3: WebsiteBreakage {
-        WebsiteBreakage(siteUrl: URL(string: "https://www.subdomain.example.com/some/pathname?t=param#aaa")!,
-                        category: "test",
-                        description: "test",
-                        osVersion: "test",
-                        manufacturer: "Apple",
-                        upgradedHttps: true,
-                        tdsETag: "test",
-                        blockedTrackerDomains: [],
-                        installedSurrogates: [],
-                        isGPCEnabled: true,
-                        ampURL: "test",
-                        urlParametersRemoved: true,
-                        protectionsState: true,
-                        reportFlow: .appMenu,
-                        errors: nil,
-                        httpStatusCodes: nil)
+    static var report3: BrokenSiteReport {
+        BrokenSiteReport(siteUrl: URL(string: "https://www.subdomain.example.com/some/pathname?t=param#aaa")!,
+                         category: "test",
+                         description: "test",
+                         osVersion: "test",
+                         manufacturer: "Apple",
+                         upgradedHttps: true,
+                         tdsETag: "test",
+                         blockedTrackerDomains: [],
+                         installedSurrogates: [],
+                         isGPCEnabled: true,
+                         ampURL: "test",
+                         urlParametersRemoved: true,
+                         protectionsState: true,
+                         reportFlow: .appMenu,
+                         errors: nil,
+                         httpStatusCodes: nil)
     }
 }
