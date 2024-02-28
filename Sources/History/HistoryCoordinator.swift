@@ -48,17 +48,21 @@ public protocol HistoryCoordinating: AnyObject {
 /// Coordinates access to History. Uses its own queue with high qos for all operations.
 final public class HistoryCoordinator: HistoryCoordinating {
 
-    public init(historyStoring: HistoryStoring) {
-        self.historyStoring = historyStoring
-        historyDictionary = [:]
+    let _historyStoring: () -> HistoryStoring
+
+    public init(historyStoring: @autoclosure @escaping () -> HistoryStoring) {
+        self._historyStoring = historyStoring
     }
 
     public func loadHistory(onCleanFinished: @escaping () -> Void) {
+        historyDictionary = [:]
         cleanOldAndLoad(onCleanFinished: onCleanFinished)
         scheduleRegularCleaning()
     }
 
-    private let historyStoring: HistoryStoring
+    private lazy var historyStoring: HistoryStoring = {
+        return _historyStoring()
+    }()
     private var regularCleaningTimer: Timer?
 
     // Source of truth
