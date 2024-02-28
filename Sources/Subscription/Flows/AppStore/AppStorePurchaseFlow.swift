@@ -57,14 +57,14 @@ public final class AppStorePurchaseFlow {
     }
 
     // swiftlint:disable cyclomatic_complexity
-    public static func purchaseSubscription(with subscriptionIdentifier: String, emailAccessToken: String?) async -> Result<Void, AppStorePurchaseFlow.Error> {
+    public static func purchaseSubscription(with subscriptionIdentifier: String, emailAccessToken: String?, subscriptionAppGroup: String) async -> Result<Void, AppStorePurchaseFlow.Error> {
         os_log(.info, log: .subscription, "[AppStorePurchaseFlow] purchaseSubscription")
 
-        let accountManager = AccountManager()
+        let accountManager = AccountManager(appGroup: subscriptionAppGroup)
         let externalID: String
 
         // Check for past transactions most recent
-        switch await AppStoreRestoreFlow.restoreAccountFromPastPurchase() {
+        switch await AppStoreRestoreFlow.restoreAccountFromPastPurchase(appGroup: subscriptionAppGroup) {
         case .success:
             os_log(.info, log: .subscription, "[AppStorePurchaseFlow] purchaseSubscription -> restoreAccountFromPastPurchase: activeSubscriptionAlreadyPresent")
             return .failure(.activeSubscriptionAlreadyPresent)
@@ -99,7 +99,7 @@ public final class AppStorePurchaseFlow {
             return .success(())
         case .failure(let error):
             os_log(.error, log: .subscription, "[AppStorePurchaseFlow] purchaseSubscription error: %{public}s", String(reflecting: error))
-            AccountManager().signOut()
+            AccountManager(appGroup: subscriptionAppGroup).signOut()
             switch error {
             case .purchaseCancelledByUser:
                 return .failure(.cancelledByUser)
@@ -111,10 +111,10 @@ public final class AppStorePurchaseFlow {
     // swiftlint:enable cyclomatic_complexity
 
     @discardableResult
-    public static func completeSubscriptionPurchase() async -> Result<PurchaseUpdate, AppStorePurchaseFlow.Error> {
+    public static func completeSubscriptionPurchase(subscriptionAppGroup: String) async -> Result<PurchaseUpdate, AppStorePurchaseFlow.Error> {
         os_log(.info, log: .subscription, "[AppStorePurchaseFlow] completeSubscriptionPurchase")
 
-        let result = await AccountManager.checkForEntitlements(wait: 2.0, retry: 20)
+        let result = await AccountManager.checkForEntitlements(subscriptionAppGroup: subscriptionAppGroup, wait: 2.0, retry: 20)
 
         return result ? .success(PurchaseUpdate(type: "completed")) : .failure(.missingEntitlements)
     }

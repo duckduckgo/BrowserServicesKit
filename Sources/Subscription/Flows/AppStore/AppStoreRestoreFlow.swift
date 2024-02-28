@@ -34,7 +34,7 @@ public final class AppStoreRestoreFlow {
         case subscriptionExpired(accountDetails: RestoredAccountDetails)
     }
 
-    public static func restoreAccountFromPastPurchase() async -> Result<Void, AppStoreRestoreFlow.Error> {
+    public static func restoreAccountFromPastPurchase(appGroup: String) async -> Result<Void, AppStoreRestoreFlow.Error> {
         os_log(.info, log: .subscription, "[AppStoreRestoreFlow] restoreAccountFromPastPurchase")
 
         guard let lastTransactionJWSRepresentation = await PurchaseManager.mostRecentTransaction() else {
@@ -42,7 +42,7 @@ public final class AppStoreRestoreFlow {
             return .failure(.missingAccountOrTransactions)
         }
 
-        let accountManager = AccountManager()
+        let accountManager = AccountManager(appGroup: appGroup)
 
         // Do the store login to get short-lived token
         let authToken: String

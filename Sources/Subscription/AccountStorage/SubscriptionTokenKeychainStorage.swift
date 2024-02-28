@@ -22,8 +22,8 @@ public class SubscriptionTokenKeychainStorage: SubscriptionTokenStorage {
 
     private let keychainType: KeychainType
 
-    public init() {
-        self.keychainType = .fileBased
+    public init(keychainType: KeychainType = .dataProtection(.unspecified)) {
+        self.keychainType = keychainType
     }
 
     public func getAccessToken() throws -> String? {
@@ -85,11 +85,16 @@ private extension SubscriptionTokenKeychainStorage {
         }
     }
 
+    struct Defaults {
+        static let tokenStoreEntryLabel = "DuckDuckGo Privacy Pro Auth Token"
+    }
+
     func retrieveData(forField field: AccountKeychainField) throws -> Data? {
         var query = defaultAttributes()
         query[kSecAttrService] = field.keyValue
         query[kSecMatchLimit] = kSecMatchLimitOne
         query[kSecReturnData] = true
+        //query[kSecAttrLabel] = Defaults.tokenStoreEntryLabel
 
         var item: CFTypeRef?
         let status = SecItemCopyMatching(query as CFDictionary, &item)
