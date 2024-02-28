@@ -35,7 +35,6 @@ let package = Package(
         .library(name: "SecureStorage", targets: ["SecureStorage"]),
         .library(name: "Subscription", targets: ["Subscription"]),
         .library(name: "History", targets: ["History"]),
-        .plugin(name: "SwiftLintPlugin", targets: ["SwiftLintPlugin"]),
     ],
     dependencies: [
         .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "10.1.0"),
@@ -108,7 +107,7 @@ let package = Package(
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
             ],
-            plugins: [.plugin(name: "SwiftLintPlugin")]
+            plugins: [swiftlintPlugin]
         ),
         .executableTarget(
             name: "BookmarksTestDBBuilder",
