@@ -102,10 +102,6 @@ let package = Package(
                 "Persistence",
                 "Common"
             ],
-            // TODO remove if not needed
-//            resources: [
-//                .process("BookmarksModel.xcdatamodeld")
-//            ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
             ],
