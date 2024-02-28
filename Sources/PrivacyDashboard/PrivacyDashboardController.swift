@@ -32,6 +32,7 @@ public protocol PrivacyDashboardNavigationDelegate: AnyObject {
 
     func privacyDashboardControllerDidTapClose(_ privacyDashboardController: PrivacyDashboardController)
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didSetHeight height: Int)
+
 }
 
 /// `Report broken site` web page delegate
@@ -41,6 +42,7 @@ public protocol PrivacyDashboardReportBrokenSiteDelegate: AnyObject {
                                     didRequestSubmitBrokenSiteReportWithCategory category: String, description: String)
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
                                     reportBrokenSiteDidChangeProtectionSwitch protectionState: ProtectionState)
+
 }
 
 /// `Privacy Dashboard` web page delegate
@@ -60,6 +62,7 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
                                     setPermission permissionName: String, paused: Bool)
 #endif
+
 }
 
 @MainActor public final class PrivacyDashboardController: NSObject {
@@ -77,7 +80,7 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
     private weak var webView: WKWebView?
     private let privacyDashboardScript: PrivacyDashboardUserScript
     private var cancellables = Set<AnyCancellable>()
-    private var protectionState: ProtectionState?
+    private var protectionStateToSubmit: ProtectionState?
 
     public init(privacyInfo: PrivacyInfo?, dashboardMode: PrivacyDashboardMode, privacyConfigurationManager: PrivacyConfigurationManaging) {
         self.privacyInfo = privacyInfo
@@ -134,7 +137,6 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
     private func loadPrivacyDashboardHTML(screen: Screen) {
         guard var url = Bundle.privacyDashboardURL else { return }
         url = url.appendingParameter(name: "screen", value: screen.rawValue)
-
         webView?.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent().deletingLastPathComponent())
     }
 }
@@ -260,8 +262,6 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     }
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didChangeProtectionState protectionState: ProtectionState) {
-
-
         if !protectionState.isProtected {
             loadSimpleBreakageReportScreen(with: protectionState)
         } else {
@@ -280,13 +280,13 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
         }
     }
 
-    private func loadSimpleBreakageReportScreen(with protectionState: ProtectionState) {
+    private func loadSimpleBreakageReportScreen(with protectionStateToSubmit: ProtectionState) {
         guard var url = Bundle.privacyDashboardURL else { return }
         url = url.appendingParameters(["screen": Screen.simpleBreakageReport.rawValue,
                                        "opener": "dashboard"])
 
         webView?.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent().deletingLastPathComponent())
-        self.protectionState = protectionState
+        self.protectionStateToSubmit = protectionStateToSubmit
     }
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestOpenUrlInNewTab url: URL) {
@@ -294,9 +294,28 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     }
 
     func userScriptDidRequestClosing(_ userScript: PrivacyDashboardUserScript) {
+        handleUserScriptClosing()
+    }
+
+    private func handleUserScriptClosing() {
+        performToggleReportActionIfNeeded()
+        submitProtectionStateChangeIfNeeded()
+        closeDashboard()
+    }
+
+    private func performToggleReportActionIfNeeded() {
         if case .toggleReport(onAnyAction: let action) = dashboardMode {
             action()
         }
+    }
+
+    private func submitProtectionStateChangeIfNeeded() {
+        if let protectionStateToSubmit {
+            didChangeProtectionState(protectionStateToSubmit)
+        }
+    }
+
+    private func closeDashboard() {
         privacyDashboardNavigationDelegate?.privacyDashboardControllerDidTapClose(self)
     }
 
@@ -334,13 +353,7 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     }
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectReportAction shouldSendReport: Bool) {
-        if case .toggleReport(onAnyAction: let action) = dashboardMode {
-            action()
-            privacyDashboardNavigationDelegate?.privacyDashboardControllerDidTapClose(self)
-        } else {
-            guard let protectionState else { return }
-            didChangeProtectionState(protectionState)
-        }
+        handleUserScriptClosing()
     }
 
 }

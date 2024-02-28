@@ -258,7 +258,7 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
                              {
                                  "id": "siteUrl",
                                  "additional": {
-                                     "url": "\(site)"
+                                     "url": "SIAJDOIASJD OAISJD OAIJS DOAISJ DOIAJS FOIDJS FOISJD FOIJSD FOIJSD FOIDJ FOAISJ DOAIJS FOIDJ FOIJS DOFJ SDOIFJ SODJF OIASJ DOIQJW OJOWIJOQJWOEJQWOEJQWOEJ OQWJ EOQIWJ EOQWIJE OQWE://///////{}"
                                  }
                              },
                              {"id": "device"},
