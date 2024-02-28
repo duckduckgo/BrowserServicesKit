@@ -124,6 +124,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     private let settings: VPNSettings
 
+    // MARK: - User Defaults
+
+    private let defaults: UserDefaults
+
     // MARK: - Server Selection
 
     public var lastSelectedServerInfo: NetworkProtectionServerInfo? {
@@ -299,6 +303,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 debugEvents: EventMapping<NetworkProtectionError>?,
                 providerEvents: EventMapping<Event>,
                 settings: VPNSettings,
+                defaults: UserDefaults,
                 isSubscriptionEnabled: Bool,
                 entitlementCheck: (() async -> Result<Bool, Error>)?) {
         os_log("[+] PacketTunnelProvider", log: .networkProtectionMemoryLog, type: .debug)
@@ -311,6 +316,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         self.tunnelHealth = tunnelHealthStore
         self.controllerErrorStore = controllerErrorStore
         self.settings = settings
+        self.defaults = defaults
         self.isSubscriptionEnabled = isSubscriptionEnabled
         self.entitlementCheck = isSubscriptionEnabled ? entitlementCheck : nil
 
@@ -776,7 +782,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         } catch {
             if isSubscriptionEnabled, let error = error as? NetworkProtectionError, case .vpnAccessRevoked = error {
                 os_log("🔵 Expired subscription", log: .networkProtection, type: .error)
-                settings.enableEntitlementMessaging()
+                defaults.enableEntitlementMessaging()
 
                 /// We add a delay here so the notification has a chance to show up
                 try? await Task.sleep(interval: .seconds(5))
@@ -912,14 +918,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 }
                 completionHandler?(nil)
             }
-        case .setShowEntitlementNotification:
-            if settings.showEntitlementNotification {
-                notificationsPresenter.showEntitlementNotification { [weak self] error in
-                    guard error == nil else { return }
-                    self?.settings.apply(change: .setShowEntitlementNotification(false))
-                }
-            }
-            completionHandler?(nil)
         case .setConnectOnLogin,
                 .setIncludeAllNetworks,
                 .setEnforceRoutes,
@@ -929,8 +927,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 .setShowInMenuBar,
                 .setVPNFirstEnabled,
                 .setNetworkPathChange,
-                .setDisableRekeying,
-                .setShowEntitlementAlert:
+                .setDisableRekeying:
             // Intentional no-op, as some setting changes don't require any further operation
             completionHandler?(nil)
         }
@@ -1198,9 +1195,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         await entitlementMonitor.start(entitlementCheck: entitlementCheck) { [weak self] result in
             switch result {
             case .validEntitlement:
-                self?.settings.resetEntitlementMessaging()
+                self?.defaults.resetEntitlementMessaging()
             case .invalidEntitlement:
-                self?.settings.enableEntitlementMessaging()
+                self?.defaults.enableEntitlementMessaging()
                 Task { [weak self] in
                     await self?.attemptToShutdown()
                 }
