@@ -59,12 +59,10 @@ final public class NetworkProtectionNotificationsPresenterTogglableDecorator: Ne
         }
     }
 
-    public func showEntitlementNotification(completion: @escaping (Error?) -> Void) {
+    public func showEntitlementNotification() {
         if defaults.showEntitlementNotification {
-            wrappeePresenter.showEntitlementNotification { [weak self] error in
-                guard error == nil else { return }
-                self?.defaults.showEntitlementNotification = false
-            }
+            defaults.showEntitlementNotification = false
+            wrappeePresenter.showEntitlementNotification()
         }
     }
 }
