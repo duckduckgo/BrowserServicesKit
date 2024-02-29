@@ -69,9 +69,11 @@ extension UserDefaults {
         showEntitlementAlert = true
         showEntitlementNotification = true
 
+#if os(iOS)
         CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(),
                                              CFNotificationName(rawValue: Notification.Name.vpnEntitlementMessagingDidChange.rawValue as CFString),
                                              nil, nil, true)
+#endif
     }
 
     public func resetEntitlementMessaging() {
