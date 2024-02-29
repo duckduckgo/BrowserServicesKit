@@ -330,7 +330,13 @@ let package = Package(
         ),
 
         // MARK: - Test Targets
-
+        .testTarget(
+            name: "HistoryTests",
+            dependencies: [
+                "History",
+            ],
+            plugins: [swiftlintPlugin]
+        ),
         .testTarget(
             name: "BookmarksTests",
             dependencies: [

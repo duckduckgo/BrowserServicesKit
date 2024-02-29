@@ -20,13 +20,13 @@ import Foundation
 import Combine
 import Common
 
-public typealias History = [HistoryEntry]
+public typealias BrowsingHistory = [HistoryEntry]
 
 public protocol HistoryCoordinating: AnyObject {
 
     func loadHistory(onCleanFinished: @escaping () -> Void)
 
-    var history: History? { get }
+    var history: BrowsingHistory? { get }
     var allHistoryVisits: [Visit]? { get }
     var historyDictionaryPublisher: Published<[URL: HistoryEntry]?>.Publisher { get }
 
@@ -70,7 +70,7 @@ final public class HistoryCoordinator: HistoryCoordinating {
     public var historyDictionaryPublisher: Published<[URL: HistoryEntry]?>.Publisher { $historyDictionary }
 
     // Output
-    public var history: History? {
+    public var history: BrowsingHistory? {
         guard let historyDictionary = historyDictionary else {
             return nil
         }
@@ -297,16 +297,16 @@ final public class HistoryCoordinator: HistoryCoordinating {
         regularCleaningTimer = timer
     }
 
-    private func makeHistoryDictionary(from history: History) -> [URL: HistoryEntry] {
+    private func makeHistoryDictionary(from history: BrowsingHistory) -> [URL: HistoryEntry] {
         dispatchPrecondition(condition: .onQueue(.main))
 
         return history.reduce(into: [URL: HistoryEntry](), { $0[$1.url] = $1 })
     }
 
-    private func makeHistory(from dictionary: [URL: HistoryEntry]) -> History {
+    private func makeHistory(from dictionary: [URL: HistoryEntry]) -> BrowsingHistory {
         dispatchPrecondition(condition: .onQueue(.main))
 
-        return History(dictionary.values)
+        return BrowsingHistory(dictionary.values)
     }
 
     /// Public for some custom macOS migration
