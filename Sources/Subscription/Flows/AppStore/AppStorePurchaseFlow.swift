@@ -29,6 +29,7 @@ public final class AppStorePurchaseFlow {
         case authenticatingWithTransactionFailed
         case accountCreationFailed
         case purchaseFailed
+        case cancelledByUser
         case missingEntitlements
     }
 
@@ -55,6 +56,7 @@ public final class AppStorePurchaseFlow {
                                             features: features))
     }
 
+    // swiftlint:disable cyclomatic_complexity
     public static func purchaseSubscription(with subscriptionIdentifier: String, emailAccessToken: String?) async -> Result<Void, AppStorePurchaseFlow.Error> {
         os_log(.info, log: .subscription, "[AppStorePurchaseFlow] purchaseSubscription")
 
@@ -98,9 +100,15 @@ public final class AppStorePurchaseFlow {
         case .failure(let error):
             os_log(.error, log: .subscription, "[AppStorePurchaseFlow] purchaseSubscription error: %{public}s", String(reflecting: error))
             AccountManager().signOut()
-            return .failure(.purchaseFailed)
+            switch error {
+            case .purchaseCancelledByUser:
+                return .failure(.cancelledByUser)
+            default:
+                return .failure(.purchaseFailed)
+            }
         }
     }
+    // swiftlint:enable cyclomatic_complexity
 
     @discardableResult
     public static func completeSubscriptionPurchase() async -> Result<PurchaseUpdate, AppStorePurchaseFlow.Error> {
