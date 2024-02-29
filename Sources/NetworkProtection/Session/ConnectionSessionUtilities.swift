@@ -22,6 +22,17 @@ import NetworkExtension
 /// These are only usable from the App that owns the tunnel.
 ///
 public class ConnectionSessionUtilities {
+
+    /// Ideally we should remove these for iOS too.
+    ///
+    /// This has been deprecated in macOS to avoid making multiple calls to
+    /// `NEPacketTunnelProviderManager.loadAllFromPreferences` since it causes notification
+    /// degradation issues over time.  Also, I tried removing this for both platforms, but iOS doesn't have
+    /// good ways to pass the tunnel controller where we need the session.
+    ///
+    /// Ref: https://app.asana.com/0/1203137811378537/1206513608690551/f
+    ///
+    @available(macOS, deprecated: 10.0, message: "Use NetworkProtectionTunnelController.activeSession instead.")
     public static func activeSession(networkExtensionBundleID: String) async throws -> NETunnelProviderSession? {
         let managers = try await NETunnelProviderManager.loadAllFromPreferences()
 
@@ -40,6 +51,16 @@ public class ConnectionSessionUtilities {
         return session
     }
 
+    /// Ideally we should remove these for iOS too.
+    ///
+    /// This has been deprecated in macOS to avoid making multiple calls to
+    /// `NEPacketTunnelProviderManager.loadAllFromPreferences` since it causes notification
+    /// degradation issues over time.  Also, I tried removing this for both platforms, but iOS doesn't have
+    /// good ways to pass the tunnel controller where we need the session.
+    ///
+    /// Ref: https://app.asana.com/0/1203137811378537/1206513608690551/f
+    ///
+    @available(macOS, deprecated: 10.0, message: "Use NetworkProtectionTunnelController.activeSession instead.")
     public static func activeSession() async throws -> NETunnelProviderSession? {
         let managers = try await NETunnelProviderManager.loadAllFromPreferences()
 
@@ -59,7 +80,8 @@ public class ConnectionSessionUtilities {
     /// Retrieves a session from a `NEVPNStatusDidChange` notification.
     ///
     public static func session(from notification: Notification) -> NETunnelProviderSession? {
-        guard let session = (notification.object as? NETunnelProviderSession) else {
+        guard let session = (notification.object as? NETunnelProviderSession),
+              session.manager is NETunnelProviderManager else {
             return nil
         }
 

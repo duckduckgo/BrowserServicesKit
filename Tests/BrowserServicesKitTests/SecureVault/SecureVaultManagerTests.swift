@@ -46,7 +46,8 @@ class SecureVaultManagerTests: XCTestCase {
         let privacyConfig = AutofillTestHelper.preparePrivacyConfig(embeddedConfig: embeddedConfig)
         let properties = ContentScopeProperties(gpcEnabled: false, sessionKey: "1234", featureToggles: ContentScopeFeatureToggles.allTogglesOn)
         let sourceProvider = DefaultAutofillSourceProvider(privacyConfigurationManager: privacyConfig,
-                                                           properties: properties)
+                                                           properties: properties,
+                                                           isDebug: false)
         return AutofillUserScript(scriptSourceProvider: sourceProvider, encrypter: MockEncrypter(), hostProvider: SecurityOriginHostProvider())
     }()
 
