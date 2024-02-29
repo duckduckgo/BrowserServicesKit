@@ -47,7 +47,7 @@ let package = Package(
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
         .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
         .package(url: "https://github.com/duckduckgo/wireguard-apple", exact: "1.1.1"),
-        .package(url: "https://github.com/duckduckgo/apple-toolbox.git", exact: "1.0.0"),
+        .package(url: "https://github.com/duckduckgo/apple-toolbox.git", revision: "b438ac3ca6c04209e93467f7b3e0aeaed6c442f1"),
     ],
     targets: [
         .target(
@@ -62,6 +62,7 @@ let package = Package(
                 "UserScript",
                 "ContentBlocking",
                 "SecureStorage",
+                .product(name: "Macros", package: "apple-toolbox"),
             ],
             resources: [
                 .process("ContentBlocking/UserScripts/contentblockerrules.js"),
@@ -135,6 +136,7 @@ let package = Package(
                 "Common",
                 .product(name: "DDGSyncCrypto", package: "sync_crypto"),
                 "Networking",
+                .product(name: "Macros", package: "apple-toolbox"),
             ],
             resources: [
                 .process("SyncMetadata.xcdatamodeld"),
@@ -266,6 +268,7 @@ let package = Package(
             dependencies: [
                 "Networking",
                 "Persistence",
+                .product(name: "Macros", package: "apple-toolbox"),
             ],
             plugins: [swiftlintPlugin]
         ),
@@ -275,6 +278,7 @@ let package = Package(
                 .target(name: "WireGuardC"),
                 .product(name: "WireGuard", package: "wireguard-apple"),
                 "Common",
+                .product(name: "Macros", package: "apple-toolbox"),
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
@@ -311,6 +315,7 @@ let package = Package(
             name: "Subscription",
             dependencies: [
                 "Common",
+                .product(name: "Macros", package: "apple-toolbox"),
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
@@ -349,6 +354,7 @@ let package = Package(
                 "RemoteMessaging", // Move tests later (lots of test dependencies in BSK)
                 "SecureStorageTestsUtils",
                 "TestUtils",
+                .product(name: "Macros", package: "apple-toolbox"),
             ],
             resources: [
                 .copy("Resources")
@@ -360,6 +366,7 @@ let package = Package(
             dependencies: [
                 "DDGSync",
                 "TestUtils",
+                .product(name: "Macros", package: "apple-toolbox"),
             ],
             plugins: [swiftlintPlugin]
         ),
@@ -374,6 +381,7 @@ let package = Package(
             name: "CommonTests",
             dependencies: [
                 "Common",
+                .product(name: "Macros", package: "apple-toolbox"),
             ],
             plugins: [swiftlintPlugin]
         ),
@@ -389,6 +397,7 @@ let package = Package(
             dependencies: [
                 "Navigation",
                 .product(name: "Swifter", package: "swifter"),
+                .product(name: "Macros", package: "apple-toolbox"),
             ],
             resources: [
                 .copy("Resources")
@@ -454,6 +463,7 @@ let package = Package(
             dependencies: [
                 "SecureStorage",
                 "SecureStorageTestsUtils",
+                .product(name: "Macros", package: "apple-toolbox"),
             ],
             plugins: [swiftlintPlugin]
         ),
@@ -462,6 +472,7 @@ let package = Package(
             dependencies: [
                 "PrivacyDashboard",
                 "TestUtils",
+                .product(name: "Macros", package: "apple-toolbox"),
             ],
             plugins: [swiftlintPlugin]
         ),

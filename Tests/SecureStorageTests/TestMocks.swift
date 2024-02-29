@@ -17,8 +17,9 @@
 //
 
 import Foundation
-import SecureStorage
 import GRDB
+import Macros
+import SecureStorage
 
 protocol MockDatabaseProvider: SecureStorageDatabaseProvider {
 
@@ -32,7 +33,7 @@ final class ConcreteMockDatabaseProvider: MockDatabaseProvider {
 
     var db: GRDB.DatabaseWriter
 
-    init(file: URL = URL(string: "https://duckduckgo.com/")!, key: Data = Data()) throws {
+    init(file: URL = #URL("https://duckduckgo.com/"), key: Data = Data()) throws {
         self.db = try! DatabaseQueue(named: "MockQueue")
     }
 

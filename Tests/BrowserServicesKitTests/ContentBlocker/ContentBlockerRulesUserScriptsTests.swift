@@ -16,11 +16,12 @@
 //  limitations under the License.
 //
 
-import XCTest
-import WebKit
 import BrowserServicesKit
-import TrackerRadarKit
 import Common
+import Macros
+import TrackerRadarKit
+import WebKit
+import XCTest
 
 class ContentBlockerRulesUserScriptsTests: XCTestCase {
 
@@ -78,9 +79,9 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
 
     var webView: WKWebView?
 
-    let nonTrackerURL = URL(string: "test://nontracker.com/1.png")!
-    let trackerURL = URL(string: "test://tracker.com/1.png")!
-    let subTrackerURL = URL(string: "test://sub.tracker.com/1.png")!
+    let nonTrackerURL = #URL("test://nontracker.com/1.png")
+    let trackerURL = #URL("test://tracker.com/1.png")
+    let subTrackerURL = #URL("test://sub.tracker.com/1.png")
 
     var website: MockWebsite!
 
@@ -177,7 +178,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
                                                                   exceptions: [])
 
         let websiteLoaded = self.expectation(description: "Website Loaded")
-        let websiteURL = URL(string: "test://example.com")!
+        let websiteURL = #URL("test://example.com")
 
         navigationDelegateMock.onDidFinishNavigation = {
             websiteLoaded.fulfill()
@@ -204,7 +205,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
                                                                   exceptions: [])
 
         let websiteLoaded = self.expectation(description: "Website Loaded")
-        let websiteURL = URL(string: "test://tracker.com")!
+        let websiteURL = #URL("test://tracker.com")
 
         navigationDelegateMock.onDidFinishNavigation = {
             websiteLoaded.fulfill()
@@ -238,7 +239,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
                                                                   exceptions: [])
 
         let websiteLoaded = self.expectation(description: "Website Loaded")
-        let websiteURL = URL(string: "test://nontracker.com")!
+        let websiteURL = #URL("test://nontracker.com")
 
         navigationDelegateMock.onDidFinishNavigation = {
             websiteLoaded.fulfill()
@@ -268,7 +269,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
                                                                   exceptions: [])
 
         let websiteLoaded = self.expectation(description: "Website Loaded")
-        let websiteURL = URL(string: "test://example.com/index.html")!
+        let websiteURL = #URL("test://example.com/index.html")
 
         navigationDelegateMock.onDidFinishNavigation = {
             websiteLoaded.fulfill()
@@ -300,7 +301,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
                                                                   exceptions: [])
 
         let websiteLoaded = self.expectation(description: "Website Loaded")
-        let websiteURL = URL(string: "test://example.com")!
+        let websiteURL = #URL("test://example.com")
 
         navigationDelegateMock.onDidFinishNavigation = {
             websiteLoaded.fulfill()
@@ -330,7 +331,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
                                                                   exceptions: [])
 
         let websiteLoaded = self.expectation(description: "Website Loaded")
-        let websiteURL = URL(string: "test://sub.example.com")!
+        let websiteURL = #URL("test://sub.example.com")
 
         navigationDelegateMock.onDidFinishNavigation = {
             websiteLoaded.fulfill()
@@ -357,7 +358,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
                                                                   exceptions: [])
 
         let websiteLoaded = self.expectation(description: "Website Loaded")
-        let websiteURL = URL(string: "test://someexample.com")!
+        let websiteURL = #URL("test://someexample.com")
 
         navigationDelegateMock.onDidFinishNavigation = {
             websiteLoaded.fulfill()
@@ -384,7 +385,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
                                                                   exceptions: [])
 
         let websiteLoaded = self.expectation(description: "Website Loaded")
-        let websiteURL = URL(string: "test://example.com/index.html")!
+        let websiteURL = #URL("test://example.com/index.html")
 
         navigationDelegateMock.onDidFinishNavigation = {
             websiteLoaded.fulfill()
@@ -414,7 +415,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
                                                                   exceptions: [])
 
         let websiteLoaded = self.expectation(description: "Website Loaded")
-        let websiteURL = URL(string: "test://sub.example.com/index.html")!
+        let websiteURL = #URL("test://sub.example.com/index.html")
 
         navigationDelegateMock.onDidFinishNavigation = {
             websiteLoaded.fulfill()
@@ -444,7 +445,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
                                                                   exceptions: [])
 
         let websiteLoaded = self.expectation(description: "Website Loaded")
-        let websiteURL = URL(string: "test://someexample.com")!
+        let websiteURL = #URL("test://someexample.com")
 
         navigationDelegateMock.onDidFinishNavigation = {
             websiteLoaded.fulfill()
@@ -471,7 +472,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
                                                                   exceptions: ["example.com"])
 
         let websiteLoaded = self.expectation(description: "Website Loaded")
-        let websiteURL = URL(string: "test://example.com/index.html")!
+        let websiteURL = #URL("test://example.com/index.html")
 
         navigationDelegateMock.onDidFinishNavigation = {
             websiteLoaded.fulfill()
@@ -501,7 +502,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
                                                                   exceptions: ["example.com"])
 
         let websiteLoaded = self.expectation(description: "Website Loaded")
-        let websiteURL = URL(string: "test://sub.example.com/index.html")!
+        let websiteURL = #URL("test://sub.example.com/index.html")
 
         navigationDelegateMock.onDidFinishNavigation = {
             websiteLoaded.fulfill()
@@ -531,7 +532,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
                                                                   exceptions: [])
 
         let websiteLoaded = self.expectation(description: "Website Loaded")
-        let websiteURL = URL(string: "test://example.com")!
+        let websiteURL = #URL("test://example.com")
 
         navigationDelegateMock.onDidFinishNavigation = {
             websiteLoaded.fulfill()

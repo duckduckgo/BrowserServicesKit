@@ -16,8 +16,9 @@
 //  limitations under the License.
 //
 
-import Foundation
 import Common
+import Foundation
+import Macros
 
 public struct SubscriptionService: APIService {
 
@@ -29,9 +30,9 @@ public struct SubscriptionService: APIService {
     public static var baseURL: URL {
         switch SubscriptionPurchaseEnvironment.currentServiceEnvironment {
         case .production:
-            URL(string: "https://subscriptions.duckduckgo.com/api")!
+            #URL("https://subscriptions.duckduckgo.com/api")
         case .staging:
-            URL(string: "https://subscriptions-dev.duckduckgo.com/api")!
+            #URL("https://subscriptions-dev.duckduckgo.com/api")
         }
     }
 
