@@ -6,7 +6,7 @@ DuckDuckGo is growing fast and we continue to expand our fully distributed team.
 
 ## What is it?
 
-`BrowserServicesKit` is a narrowly scoped package that contains modules shared between DuckDuckGo projects.
+`BrowserServicesKit` package that contains modules shared between DuckDuckGo projects.
 
 ## Building
 
