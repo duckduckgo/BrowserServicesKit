@@ -32,12 +32,12 @@ public class ToggleProtectionsCounter {
     }
 
     private let store: KeyValueStoring
-    private let onSend: (_ toggleOnCount: Int, _ toggleOffCount: Int) -> Void
+    private let onSend: (_ parameters: [String: String]) -> Void
     private let sendInterval: Double
 
     public init(store: KeyValueStoring = ToggleProtectionsCounterStore(),
                 sendInterval: Double = Constant.sendInterval,
-                onSendRequest: @escaping (_ toggleOnCount: Int, _ toggleOffCount: Int) -> Void) {
+                onSendRequest: @escaping (_ parameters: [String: String]) -> Void) {
         self.store = store
         self.onSend = onSendRequest
         self.sendInterval = sendInterval
@@ -60,7 +60,12 @@ public class ToggleProtectionsCounter {
         }
 
         if abs(currentTime.timeIntervalSince(lastSendAt)) > sendInterval {
-            onSend(toggleOnCount, toggleOffCount)
+            onSend(
+                [
+                    Constant.toggleOnCountKey: String(toggleOnCount),
+                    Constant.toggleOffCountKey: String(toggleOffCount)
+                ]
+            )
             resetStats(currentTime: currentTime)
         }
     }
@@ -90,4 +95,3 @@ public class ToggleProtectionsCounter {
     }
 
 }
-

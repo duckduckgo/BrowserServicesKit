@@ -32,6 +32,7 @@ public protocol PrivacyConfigurationManaging: AnyObject {
     var updatesPublisher: AnyPublisher<Void, Never> { get }
     var privacyConfig: PrivacyConfiguration { get }
     var internalUserDecider: InternalUserDecider { get }
+    var toggleProtectionsCounter: ToggleProtectionsCounter { get }
 
     @discardableResult func reload(etag: String?, data: Data?) -> PrivacyConfigurationManager.ReloadResult
 }
@@ -54,8 +55,12 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
     private let embeddedDataProvider: EmbeddedDataProvider
     private let localProtection: DomainsProtectionStore
     private let errorReporting: EventMapping<ContentBlockerDebugEvents>?
-    public let internalUserDecider: InternalUserDecider
     private let installDate: Date?
+
+    public lazy var toggleProtectionsCounter = ToggleProtectionsCounter { [weak self] parameters in
+        self?.errorReporting?.fire(.toggleProtectionsDailyCount, parameters: parameters)
+    }
+    public let internalUserDecider: InternalUserDecider
 
     private let updatesSubject = PassthroughSubject<Void, Never>()
     public var updatesPublisher: AnyPublisher<Void, Never> {
@@ -116,6 +121,7 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
         self.errorReporting = errorReporting
         self.internalUserDecider = internalUserDecider
         self.installDate = installDate
+        self.toggleProtectionsCounter = toggleProtectionsCounter
 
         reload(etag: fetchedETag, data: fetchedData)
     }
@@ -126,6 +132,7 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
                                            identifier: fetchedData.etag,
                                            localProtection: localProtection,
                                            internalUserDecider: internalUserDecider,
+                                           toggleProtectionsCounter: toggleProtectionsCounter,
                                            installDate: installDate)
         }
 
@@ -133,6 +140,7 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
                                        identifier: embeddedConfigData.etag,
                                        localProtection: localProtection,
                                        internalUserDecider: internalUserDecider,
+                                       toggleProtectionsCounter: toggleProtectionsCounter,
                                        installDate: installDate)
     }
 

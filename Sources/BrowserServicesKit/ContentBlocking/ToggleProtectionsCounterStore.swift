@@ -30,4 +30,3 @@ public struct ToggleProtectionsCounterStore: KeyValueStoring {
     public func removeObject(forKey defaultName: String) { userDefaults?.removeObject(forKey: defaultName) }
 
 }
-
