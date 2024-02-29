@@ -783,6 +783,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             if isSubscriptionEnabled, let error = error as? NetworkProtectionError, case .vpnAccessRevoked = error {
                 os_log("🔵 Expired subscription", log: .networkProtection, type: .error)
                 defaults.enableEntitlementMessaging()
+                notificationsPresenter.showEntitlementNotification { [weak self] error in
+                    guard error == nil else { return }
+                    self?.defaults.showEntitlementNotification = false
+                }
 
                 /// We add a delay here so the notification has a chance to show up
                 try? await Task.sleep(interval: .seconds(5))
@@ -1198,6 +1202,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 self?.defaults.resetEntitlementMessaging()
             case .invalidEntitlement:
                 self?.defaults.enableEntitlementMessaging()
+                self?.notificationsPresenter.showEntitlementNotification { [weak self] error in
+                    guard error == nil else { return }
+                    self?.defaults.showEntitlementNotification = false
+                }
                 Task { [weak self] in
                     await self?.attemptToShutdown()
                 }
