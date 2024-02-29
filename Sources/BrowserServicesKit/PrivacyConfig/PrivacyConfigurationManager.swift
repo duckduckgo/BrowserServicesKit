@@ -57,9 +57,7 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
     private let errorReporting: EventMapping<ContentBlockerDebugEvents>?
     private let installDate: Date?
 
-    public lazy var toggleProtectionsCounter = ToggleProtectionsCounter { [weak self] parameters in
-        self?.errorReporting?.fire(.toggleProtectionsDailyCount, parameters: parameters)
-    }
+    public let toggleProtectionsCounter: ToggleProtectionsCounter
     public let internalUserDecider: InternalUserDecider
 
     private let updatesSubject = PassthroughSubject<Void, Never>()
@@ -113,6 +111,7 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
                 embeddedDataProvider: EmbeddedDataProvider,
                 localProtection: DomainsProtectionStore,
                 errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil,
+                toggleProtectionsCounterEventReporting: EventMapping<ToggleProtectionsCounterEvent>,
                 internalUserDecider: InternalUserDecider,
                 installDate: Date? = nil
     ) {
@@ -121,7 +120,7 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
         self.errorReporting = errorReporting
         self.internalUserDecider = internalUserDecider
         self.installDate = installDate
-        self.toggleProtectionsCounter = toggleProtectionsCounter
+        self.toggleProtectionsCounter = ToggleProtectionsCounter(eventReporting: toggleProtectionsCounterEventReporting)
 
         reload(etag: fetchedETag, data: fetchedData)
     }

@@ -21,7 +21,7 @@ import Persistence
 
 public struct ToggleProtectionsCounterStore: KeyValueStoring {
 
-    private var userDefaults: UserDefaults? { UserDefaults(suiteName: "com.duckduckgo.app.toggleProtections") }
+    private var userDefaults: UserDefaults? { UserDefaults(suiteName: "com.duckduckgo.app.toggleProtectionsCounter") }
 
     public init() {}
 

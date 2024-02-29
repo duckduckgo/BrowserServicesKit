@@ -48,6 +48,4 @@ public enum ContentBlockerDebugEvents {
 
     case contentBlockingCompilationTime
 
-    case toggleProtectionsDailyCount
-
 }

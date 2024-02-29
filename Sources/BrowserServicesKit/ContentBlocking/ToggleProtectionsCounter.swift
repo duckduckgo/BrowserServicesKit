@@ -18,29 +18,43 @@
 
 import Foundation
 import Persistence
+import Common
+
+public enum ToggleProtectionsCounterEvent {
+
+    enum Parameter {
+
+        static let onCountKey = "onCount"
+        static let offCountKey = "offCount"
+
+    }
+
+    case toggleProtectionsCounterDaily
+
+}
 
 /// This class aggregates protection toggles and stores that count over 24 hours.
 public class ToggleProtectionsCounter {
 
     public enum Constant {
 
-        public static let toggleOnCountKey = "ToggleProtectionsCounter_On_Count"
-        public static let toggleOffCountKey = "ToggleProtectionsCounter_Off_Count"
+        public static let onCountKey = "ToggleProtectionsCounter_On_Count"
+        public static let offCountKey = "ToggleProtectionsCounter_Off_Count"
         public static let lastSendAtKey = "ToggleProtectionsCounter_Date"
         public static let sendInterval: Double = 60 * 60 * 24 // 24 hours
 
     }
 
     private let store: KeyValueStoring
-    private let onSend: (_ parameters: [String: String]) -> Void
     private let sendInterval: Double
+    private let eventReporting: EventMapping<ToggleProtectionsCounterEvent>
 
     public init(store: KeyValueStoring = ToggleProtectionsCounterStore(),
                 sendInterval: Double = Constant.sendInterval,
-                onSendRequest: @escaping (_ parameters: [String: String]) -> Void) {
+                eventReporting: EventMapping<ToggleProtectionsCounterEvent>) {
         self.store = store
-        self.onSend = onSendRequest
         self.sendInterval = sendInterval
+        self.eventReporting = eventReporting
     }
 
     public func onToggleOn(currentTime: Date = Date()) {
@@ -60,12 +74,10 @@ public class ToggleProtectionsCounter {
         }
 
         if abs(currentTime.timeIntervalSince(lastSendAt)) > sendInterval {
-            onSend(
-                [
-                    Constant.toggleOnCountKey: String(toggleOnCount),
-                    Constant.toggleOffCountKey: String(toggleOffCount)
-                ]
-            )
+            eventReporting.fire(.toggleProtectionsCounterDaily, parameters: [
+                ToggleProtectionsCounterEvent.Parameter.onCountKey: String(toggleOnCount),
+                ToggleProtectionsCounterEvent.Parameter.offCountKey: String(toggleOffCount)
+            ])
             resetStats(currentTime: currentTime)
         }
     }
@@ -79,19 +91,19 @@ public class ToggleProtectionsCounter {
     // MARK: - Store
 
     private var lastSendAt: Date? { store.object(forKey: Constant.lastSendAtKey) as? Date }
-    private var toggleOnCount: Int { store.object(forKey: Constant.toggleOnCountKey) as? Int ?? 0 }
-    private var toggleOffCount: Int { store.object(forKey: Constant.toggleOffCountKey) as? Int ?? 0 }
+    private var toggleOnCount: Int { store.object(forKey: Constant.onCountKey) as? Int ?? 0 }
+    private var toggleOffCount: Int { store.object(forKey: Constant.offCountKey) as? Int ?? 0 }
 
     private func save(lastSendAt: Date) {
         store.set(lastSendAt, forKey: Constant.lastSendAtKey)
     }
 
     private func save(toggleOnCount: Int) {
-        store.set(toggleOnCount, forKey: Constant.toggleOnCountKey)
+        store.set(toggleOnCount, forKey: Constant.onCountKey)
     }
 
     private func save(toggleOffCount: Int) {
-        store.set(toggleOffCount, forKey: Constant.toggleOffCountKey)
+        store.set(toggleOffCount, forKey: Constant.offCountKey)
     }
 
 }
