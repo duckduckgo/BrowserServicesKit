@@ -72,15 +72,7 @@ public class AccountManager: AccountManaging {
 
     public var accessToken: String? {
         do {
-            // This migration is to prevent breaking internal tests and should be removed before launch
-            if let newAccessToken = try accessTokenStorage.getAccessToken() {
-                return newAccessToken
-            } else if let oldAccessToken = try storage.getAccessToken() {
-                try accessTokenStorage.store(accessToken: oldAccessToken)
-                return oldAccessToken
-            } else {
-                return nil
-            }
+            return try accessTokenStorage.getAccessToken()
         } catch {
             if let error = error as? AccountKeychainAccessError {
                 delegate?.accountManagerKeychainAccessFailed(accessType: .getAccessToken, error: error)
@@ -184,6 +176,24 @@ public class AccountManager: AccountManaging {
         }
 
         NotificationCenter.default.post(name: .accountDidSignOut, object: self, userInfo: nil)
+    }
+
+    public func migrateAccessTokenToNewStore() throws {
+        // This migration is to prevent breaking internal tests and should be removed before launch
+        do {
+            if let newAccessToken = try accessTokenStorage.getAccessToken() {
+                throw MigrationError.noMigrationNeeded
+            } else if let oldAccessToken = try storage.getAccessToken() {
+                try accessTokenStorage.store(accessToken: oldAccessToken)
+            }
+        } catch {
+            throw MigrationError.migrationFailed
+        }
+    }
+
+    public enum MigrationError: Error {
+        case migrationFailed
+        case noMigrationNeeded
     }
 
     // MARK: -
