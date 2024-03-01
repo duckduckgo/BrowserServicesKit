@@ -31,7 +31,7 @@ final class SuggestionProcessing {
     }
 
     func result(for query: Query,
-                from history: [HistoryEntry],
+                from history: [HistorySuggestion],
                 bookmarks: [Bookmark],
                 apiResult: APIResult?) -> SuggestionResult? {
         let query = query.lowercased()
@@ -87,7 +87,7 @@ final class SuggestionProcessing {
 
     // MARK: - History and Bookmarks
 
-    private func historyAndBookmarkSuggestions(from history: [HistoryEntry], bookmarks: [Bookmark], query: Query) -> [Suggestion] {
+    private func historyAndBookmarkSuggestions(from history: [HistorySuggestion], bookmarks: [Bookmark], query: Query) -> [Suggestion] {
         let historyAndBookmarks: [Any] = bookmarks + history
         let queryTokens = Score.tokens(from: query)
 
@@ -98,7 +98,7 @@ final class SuggestionProcessing {
                 switch item {
                 case let bookmark as Bookmark:
                     score = Score(bookmark: bookmark, query: query, queryTokens: queryTokens)
-                case let historyEntry as HistoryEntry:
+                case let historyEntry as HistorySuggestion:
                     score = Score(historyEntry: historyEntry, query: query, queryTokens: queryTokens)
                 default:
                     score = 0
@@ -115,7 +115,7 @@ final class SuggestionProcessing {
                 switch $0.item {
                 case let bookmark as Bookmark:
                     return Suggestion(bookmark: bookmark)
-                case let historyEntry as HistoryEntry:
+                case let historyEntry as HistorySuggestion:
                     return Suggestion(historyEntry: historyEntry)
                 default:
                     return nil
