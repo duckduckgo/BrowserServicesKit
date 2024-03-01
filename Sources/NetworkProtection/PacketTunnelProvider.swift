@@ -810,7 +810,46 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     /// This will block all traffic
     @MainActor
     private func updatePlaceholderTunnelConfiguration() async throws {
-        // todo
+        let interface = InterfaceConfiguration(
+            privateKey: PrivateKey(),
+            addresses: [IPAddressRange(from: "0.0.0.0/0")!],
+            includedRoutes: [],
+            excludedRoutes: [],
+            listenPort: 0,
+            dns: [DNSServer(address: IPv4Address.loopback)]
+        )
+
+        var peerConfiguration = PeerConfiguration(publicKey: PrivateKey().publicKey)
+        peerConfiguration.endpoint = Endpoint(host: "127.0.0.1", port: 9090)
+
+        let tunnelConfiguration = TunnelConfiguration(name: "Placeholder", interface: interface, peers: [peerConfiguration])
+
+        try await withCheckedThrowingContinuation { [weak self] (continuation: CheckedContinuation<Void, Error>) in
+            guard let self = self else {
+                continuation.resume()
+                return
+            }
+
+            self.adapter.update(tunnelConfiguration: tunnelConfiguration, reassert: true) { [weak self] error in
+                if let error = error {
+                    os_log("🔵 Failed to update the placeholder configuration: %{public}@", type: .error, error.localizedDescription)
+                    self?.debugEvents?.fire(error.networkProtectionError)
+                    continuation.resume(throwing: error)
+                    return
+                }
+
+                Task { [weak self] in
+                    do {
+                        try await self?.handleAdapterStarted(startReason: .reconnected)
+                    } catch {
+                        continuation.resume(throwing: error)
+                        return
+                    }
+
+                    continuation.resume()
+                }
+            }
+        }
     }
 
     // MARK: - App Messages
@@ -943,6 +982,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             handleExpireRegistrationKey(completionHandler: completionHandler)
         case .sendTestNotification:
             handleSendTestNotification(completionHandler: completionHandler)
+        case .blockAllTraffic:
+            handleBlockAllTraffic(completionHandler: completionHandler)
         case .disableConnectOnDemandAndShutDown:
             if #available(iOS 17, *) {
                 handleShutDown(completionHandler: completionHandler)
@@ -1039,6 +1080,14 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private func handleSendTestNotification(completionHandler: ((Data?) -> Void)? = nil) {
         notificationsPresenter.showTestNotification()
         completionHandler?(nil)
+    }
+
+    public func handleBlockAllTraffic(completionHandler: ((Data?) -> Void)? = nil) {
+        Task { @MainActor [weak self] in
+            await self?.stopMonitors()
+            try? await self?.updatePlaceholderTunnelConfiguration()
+            completionHandler?(nil)
+        }
     }
 
     @available(iOS 17, *)
@@ -1201,11 +1250,13 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 self?.defaults.enableEntitlementMessaging()
                 self?.notificationsPresenter.showEntitlementNotification()
 
-                Task { [weak self] in
+                Task { @MainActor [weak self] in
+                    await self?.stopMonitors()
+
                     // We add a delay here so the notification has a chance to show up
                     try? await Task.sleep(interval: .seconds(5))
 
-                    await self?.attemptToShutdown()
+                    try? await self?.updatePlaceholderTunnelConfiguration()
                 }
             case .error:
                 break
@@ -1240,16 +1291,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private func isEntitlementInvalid() async -> Bool {
         guard let entitlementCheck, case .success(false) = await entitlementCheck() else { return false }
         return true
-    }
-
-    private func attemptToShutdown() async {
-        await stopMonitors()
-
-        if #available(iOS 17, *) {
-            handleShutDown()
-        } else {
-            try? await updatePlaceholderTunnelConfiguration()
-        }
     }
 
     // MARK: - Connection Tester
