@@ -72,8 +72,15 @@ public class AccountManager: AccountManaging {
 
     public var accessToken: String? {
         do {
-//            return try storage.getAccessToken()
-            return try accessTokenStorage.getAccessToken()
+            // This migration is to prevent breaking internal tests and should be removed before launch
+            if let newAccessToken = try accessTokenStorage.getAccessToken() {
+                return newAccessToken
+            } else if let oldAccessToken = try storage.getAccessToken() {
+                try accessTokenStorage.store(accessToken: oldAccessToken)
+                return oldAccessToken
+            } else {
+                return nil
+            }
         } catch {
             if let error = error as? AccountKeychainAccessError {
                 delegate?.accountManagerKeychainAccessFailed(accessType: .getAccessToken, error: error)
@@ -131,7 +138,6 @@ public class AccountManager: AccountManaging {
         os_log(.info, log: .subscription, "[AccountManager] storeAccount")
 
         do {
-//            try storage.store(accessToken: token)
             try accessTokenStorage.store(accessToken: token)
         } catch {
             if let error = error as? AccountKeychainAccessError {
