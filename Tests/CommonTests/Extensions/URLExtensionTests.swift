@@ -21,6 +21,14 @@ import XCTest
 
 final class URLExtensionTests: XCTestCase {
 
+    override func setUpWithError() throws {
+        try super.setUpWithError()
+
+        if #available(macOS 14, *) {
+            throw XCTSkip("This test can't run on macOS 14 or higher")
+        }
+    }
+
     func test_external_urls_are_valid() {
         XCTAssertTrue("mailto://user@host.tld".url!.isValid)
         XCTAssertTrue("sms://+44776424232323".url!.isValid)
