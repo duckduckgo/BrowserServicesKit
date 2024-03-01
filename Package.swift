@@ -34,6 +34,7 @@ let package = Package(
         .library(name: "NetworkProtectionTestUtils", targets: ["NetworkProtectionTestUtils"]),
         .library(name: "SecureStorage", targets: ["SecureStorage"]),
         .library(name: "Subscription", targets: ["Subscription"]),
+        .library(name: "History", targets: ["History"]),
     ],
     dependencies: [
         .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "10.1.0"),
@@ -91,6 +92,17 @@ let package = Package(
             ],
             resources: [
                 .process("BookmarksModel.xcdatamodeld")
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
+            ],
+            plugins: [swiftlintPlugin]
+        ),
+        .target(
+            name: "History",
+            dependencies: [
+                "Persistence",
+                "Common"
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
