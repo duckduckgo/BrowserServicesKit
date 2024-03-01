@@ -28,7 +28,7 @@ public enum StoreError: Error {
     case failedVerification
 }
 
-enum PurchaseManagerError: Error {
+public enum PurchaseManagerError: Error {
     case productNotFound
     case externalIDisNotAValidUUID
     case purchaseFailed
@@ -165,7 +165,7 @@ public final class PurchaseManager: ObservableObject {
     }
 
     @MainActor
-    public func purchaseSubscription(with identifier: String, externalID: String) async -> Result<Void, Error> {
+    public func purchaseSubscription(with identifier: String, externalID: String) async -> Result<Void, PurchaseManagerError> {
 
         guard let product = availableProducts.first(where: { $0.id == identifier }) else { return .failure(PurchaseManagerError.productNotFound) }
 
