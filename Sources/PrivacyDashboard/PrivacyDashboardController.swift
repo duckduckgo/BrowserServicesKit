@@ -275,14 +275,14 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
             privacyDashboardDelegate?.privacyDashboardController(self, didChangeProtectionSwitch: protectionState)
         case .breakageForm:
             privacyDashboardReportBrokenSiteDelegate?.privacyDashboardController(self, reportBrokenSiteDidChangeProtectionSwitch: protectionState)
-        case .simpleBreakageReport:
+        case .toggleReport:
             assertionFailure("Simple Breakage report screen doesn't have toggling capability")
         }
     }
 
     private func loadSimpleBreakageReportScreen(with protectionStateToSubmit: ProtectionState) {
         guard var url = Bundle.privacyDashboardURL else { return }
-        url = url.appendingParameters(["screen": Screen.simpleBreakageReport.rawValue,
+        url = url.appendingParameters(["screen": Screen.toggleReport.rawValue,
                                        "opener": "dashboard"])
 
         webView?.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent().deletingLastPathComponent())

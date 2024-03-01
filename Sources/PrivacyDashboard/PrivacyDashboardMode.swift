@@ -27,7 +27,7 @@ public enum PrivacyDashboardMode: Equatable {
         switch self {
         case .dashboard: return .primaryScreen
         case .report: return .breakageForm
-        case .toggleReport: return .simpleBreakageReport
+        case .toggleReport: return .toggleReport
         }
     }
 

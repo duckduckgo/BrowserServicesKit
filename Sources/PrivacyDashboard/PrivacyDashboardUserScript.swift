@@ -51,7 +51,7 @@ public enum Screen: String, Decodable {
 
     case primaryScreen
     case breakageForm
-    case simpleBreakageReport
+    case toggleReport
 
 }
 
@@ -81,9 +81,9 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         case privacyDashboardOpenSettings
         case privacyDashboardSetPermission
         case privacyDashboardSetPermissionPaused
-        case privacyDashboardGetSimpleReportOptions
-        case privacyDashboardSendSimpleBreakageReport
-        case privacyDashboardRejectSimpleBreakageReport
+        case privacyDashboardGetToggleReportOptions
+        case privacyDashboardSendToggleReport
+        case privacyDashboardRejectToggleReport
 
     }
 
@@ -126,11 +126,11 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             handleSetPermissionPaused(message: message)
         case .privacyDashboardOpenSettings:
             handleOpenSettings(message: message)
-        case .privacyDashboardGetSimpleReportOptions:
+        case .privacyDashboardGetToggleReportOptions:
             handleGetToggleReportOptions(message: message)
-        case .privacyDashboardSendSimpleBreakageReport:
+        case .privacyDashboardSendToggleReport:
             handleSendToggleReport()
-        case .privacyDashboardRejectSimpleBreakageReport:
+        case .privacyDashboardRejectToggleReport:
             handleDoNotSendToggleReport()
         }
     }
@@ -266,7 +266,7 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
                              {"id": "lastSentDay"}
                          ]
                      }
-                     window.onGetSimpleReportOptionsResponse(json);
+                     window.onGetToggleReportOptionsResponse(json);
                      """
         evaluate(js: js, in: webView)
     }
