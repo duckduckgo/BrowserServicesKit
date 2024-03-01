@@ -73,7 +73,7 @@ extension Suggestion {
                          allowedInTopHits: bookmark.isFavorite)
     }
 
-    init(historyEntry: HistoryEntry) {
+    init(historyEntry: HistorySuggestion) {
         let areVisitsLow = historyEntry.numberOfVisits < 4
         let allowedInTopHits = !(historyEntry.failedToLoad ||
                                  (areVisitsLow && !historyEntry.url.isRoot))
