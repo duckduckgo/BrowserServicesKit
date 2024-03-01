@@ -23,6 +23,7 @@ public enum DebugCommand: Codable {
     case removeSystemExtension
     case removeVPNConfiguration
     case sendTestNotification
+    case blockAllTraffic
     case disableConnectOnDemandAndShutDown
 }
 
