@@ -50,7 +50,7 @@ public class BrokenSiteReporter {
     }
 
     /// Report the site breakage
-    public func report(_ report: BrokenSiteReport) throws {
+    public func report(_ report: BrokenSiteReport, reportMode: BrokenSiteReport.Mode) throws {
 
         let now = Date()
         let removedCount = persistencyManager.removeExpiredItems(currentDate: now)
@@ -74,7 +74,7 @@ public class BrokenSiteReporter {
             os_log(.debug, "Broken site report sent on the \(report.lastSentDay ?? "?") for \(entry.identifier)")
         }
 
-        let pixelParams = report.requestParameters
+        let pixelParams = report.getRequestParameters(forReportMode: reportMode)
 
         // report the breakage
         pixelHandler(pixelParams)

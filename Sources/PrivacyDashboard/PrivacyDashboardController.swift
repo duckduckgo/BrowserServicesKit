@@ -40,9 +40,16 @@ public protocol PrivacyDashboardNavigationDelegate: AnyObject {
 public protocol PrivacyDashboardReportBrokenSiteDelegate: AnyObject {
 
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
-                                    didRequestSubmitBrokenSiteReportWithCategory category: String, description: String)
+                                    didRequestSubmitBrokenSiteReportWithCategory category: String, 
+                                    description: String)
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
                                     reportBrokenSiteDidChangeProtectionSwitch protectionState: ProtectionState)
+
+}
+
+public protocol PrivacyDashboardToggleReportDelegate: AnyObject {
+
+    func privacyDashboardControllerDidRequestSubmitToggleReport(_ privacyDashboardController: PrivacyDashboardController)
 
 }
 
@@ -87,6 +94,7 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
     public weak var privacyDashboardDelegate: PrivacyDashboardControllerDelegate?
     public weak var privacyDashboardNavigationDelegate: PrivacyDashboardNavigationDelegate?
     public weak var privacyDashboardReportBrokenSiteDelegate: PrivacyDashboardReportBrokenSiteDelegate?
+    public weak var privacyDashboardToggleReportDelegate: PrivacyDashboardToggleReportDelegate?
 
     @Published public var theme: PrivacyDashboardTheme?
     public var preferredLocale: String?
@@ -374,6 +382,9 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     }
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectReportAction shouldSendReport: Bool) {
+        if shouldSendReport {
+            privacyDashboardToggleReportDelegate?.privacyDashboardControllerDidRequestSubmitToggleReport(self)
+        }
         let toggleReportDismissType: ToggleReportDismissType = shouldSendReport ? .send : .doNotSend
         handleUserScriptClosing(toggleReportDismissType: toggleReportDismissType)
     }

@@ -22,7 +22,7 @@ import Common
 
 public struct BrokenSiteReport {
 
-    public enum `Type` {
+    public enum Mode {
 
         case regular
         case toggle
@@ -161,9 +161,9 @@ public struct BrokenSiteReport {
 #endif
 
     /// A dictionary containing all the parameters needed from the Report Broken Site Pixel
-    public var requestParameters: [String: String] { getRequestParameters(forReportType: .regular) }
+    public var requestParameters: [String: String] { getRequestParameters(forReportMode: .regular) }
 
-    public func getRequestParameters(forReportType type: `Type`) -> [String: String] {
+    public func getRequestParameters(forReportMode mode: Mode) -> [String: String] {
         var result: [String: String] = [
             "siteUrl": siteUrl.trimmingQueryItemsAndFragment().absoluteString,
             "upgradedHttps": upgradedHttps.stringValue,
@@ -178,7 +178,7 @@ public struct BrokenSiteReport {
             "reportFlow": reportFlow.rawValue
         ]
 
-        if type == .regular {
+        if mode == .regular {
             result["category"] = category
             result["description"] = description ?? ""
             result["protectionsState"] = protectionsState.stringValue
