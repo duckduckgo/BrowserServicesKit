@@ -23,7 +23,7 @@ final class BrokenSiteReportHistoryEntryTests: XCTestCase {
 
     func testDates() throws {
         let testDate = Date(timeIntervalSince1970: 1704795829)
-        let entry = BrokenSiteReportEntry(report: BrokenSiteReportMocs.report, currentDate: testDate)
+        let entry = BrokenSiteReportEntry(report: BrokenSiteReportMocks.report, currentDate: testDate)
 
         XCTAssertNotNil(entry)
         XCTAssertEqual("2024-01-09", entry?.lastSentDayString)
@@ -32,16 +32,16 @@ final class BrokenSiteReportHistoryEntryTests: XCTestCase {
 
     func testUniqueIdentifier() throws {
         let testDate = Date(timeIntervalSince1970: 1704795829)
-        let entry = BrokenSiteReportEntry(report: BrokenSiteReportMocs.report, currentDate: testDate)
-        let entry2 = BrokenSiteReportEntry(report: BrokenSiteReportMocs.report2, currentDate: testDate)
+        let entry = BrokenSiteReportEntry(report: BrokenSiteReportMocks.report, currentDate: testDate)
+        let entry2 = BrokenSiteReportEntry(report: BrokenSiteReportMocks.report2, currentDate: testDate)
         XCTAssertNotEqual(entry?.identifier, entry2?.identifier)
 
-        let entry3 = BrokenSiteReportEntry(report: BrokenSiteReportMocs.report3, currentDate: testDate)
+        let entry3 = BrokenSiteReportEntry(report: BrokenSiteReportMocks.report3, currentDate: testDate)
         XCTAssertEqual(entry?.identifier, entry3?.identifier)
     }
 
     func testURLSanitation() {
-        let report = BrokenSiteReportMocs.report3
+        let report = BrokenSiteReportMocks.report3
 
         let trimmedURL = report.siteUrl.trimmingQueryItemsAndFragment()
         XCTAssertEqual(trimmedURL.absoluteString, "https://www.subdomain.example.com/some/pathname")

@@ -41,10 +41,10 @@ final class BrokenSiteReporterTests: XCTestCase {
             }
         }, keyValueStoring: keyValueStore)
 
-        try reporter.report(BrokenSiteReportMocs.report)
+        try reporter.report(BrokenSiteReportMocks.report)
 
         // test second report, the pixel must have `lastSeenDate` param
-        try reporter.report(BrokenSiteReportMocs.report)
+        try reporter.report(BrokenSiteReportMocks.report)
 
         waitForExpectations(timeout: 3)
     }

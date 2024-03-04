@@ -1,5 +1,5 @@
 //
-//  BrokenSiteReportMocs.swift
+//  BrokenSiteReportMocks.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -19,9 +19,30 @@
 import Foundation
 import PrivacyDashboard
 
-struct BrokenSiteReportMocs {
+struct BrokenSiteReportMocks {
 
     static var report: BrokenSiteReport {
+#if os(iOS)
+        BrokenSiteReport(siteUrl: URL(string: "https://duckduckgo.com")!,
+                         category: "test",
+                         description: "test",
+                         osVersion: "test",
+                         manufacturer: "Apple",
+                         upgradedHttps: true,
+                         tdsETag: "test",
+                         blockedTrackerDomains: [],
+                         installedSurrogates: [],
+                         isGPCEnabled: true,
+                         ampURL: "test",
+                         urlParametersRemoved: true,
+                         protectionsState: true,
+                         reportFlow: .appMenu,
+                         siteType: .desktop,
+                         atb: "test",
+                         model: "test",
+                         errors: nil,
+                         httpStatusCodes: nil)
+#else
         BrokenSiteReport(siteUrl: URL(string: "https://duckduckgo.com")!,
                          category: "test",
                          description: "test",
@@ -38,9 +59,31 @@ struct BrokenSiteReportMocs {
                          reportFlow: .appMenu,
                          errors: nil,
                          httpStatusCodes: nil)
+#endif
     }
 
     static var report2: BrokenSiteReport {
+#if os(iOS)
+        BrokenSiteReport(siteUrl: URL(string: "https://somethingelse.zz")!,
+                         category: "test",
+                         description: "test",
+                         osVersion: "test",
+                         manufacturer: "Apple",
+                         upgradedHttps: true,
+                         tdsETag: "test",
+                         blockedTrackerDomains: [],
+                         installedSurrogates: [],
+                         isGPCEnabled: true,
+                         ampURL: "test",
+                         urlParametersRemoved: true,
+                         protectionsState: true,
+                         reportFlow: .appMenu,
+                         siteType: .desktop,
+                         atb: "test",
+                         model: "test",
+                         errors: nil,
+                         httpStatusCodes: nil)
+#else
         BrokenSiteReport(siteUrl: URL(string: "https://somethingelse.zz")!,
                          category: "test",
                          description: "test",
@@ -57,9 +100,31 @@ struct BrokenSiteReportMocs {
                          reportFlow: .appMenu,
                          errors: nil,
                          httpStatusCodes: nil)
+#endif
     }
 
     static var report3: BrokenSiteReport {
+#if os(iOS)
+        BrokenSiteReport(siteUrl: URL(string: "https://www.subdomain.example.com/some/pathname?t=param#aaa")!,
+                         category: "test",
+                         description: "test",
+                         osVersion: "test",
+                         manufacturer: "Apple",
+                         upgradedHttps: true,
+                         tdsETag: "test",
+                         blockedTrackerDomains: [],
+                         installedSurrogates: [],
+                         isGPCEnabled: true,
+                         ampURL: "test",
+                         urlParametersRemoved: true,
+                         protectionsState: true,
+                         reportFlow: .appMenu,
+                         siteType: .desktop,
+                         atb: "test",
+                         model: "test",
+                         errors: nil,
+                         httpStatusCodes: nil)
+#else
         BrokenSiteReport(siteUrl: URL(string: "https://www.subdomain.example.com/some/pathname?t=param#aaa")!,
                          category: "test",
                          description: "test",
@@ -76,5 +141,6 @@ struct BrokenSiteReportMocs {
                          reportFlow: .appMenu,
                          errors: nil,
                          httpStatusCodes: nil)
+#endif
     }
 }

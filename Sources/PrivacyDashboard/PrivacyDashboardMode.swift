@@ -21,7 +21,7 @@ public enum PrivacyDashboardMode: Equatable {
 
     case dashboard
     case report
-    case toggleReport(onAnyAction: () -> Void)
+    case toggleReport(completionHandler: () -> Void)
 
     var screen: PrivacyDashboard.Screen {
         switch self {

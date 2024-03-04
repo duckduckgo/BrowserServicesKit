@@ -40,7 +40,7 @@ public protocol PrivacyDashboardNavigationDelegate: AnyObject {
 public protocol PrivacyDashboardReportBrokenSiteDelegate: AnyObject {
 
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
-                                    didRequestSubmitBrokenSiteReportWithCategory category: String, 
+                                    didRequestSubmitBrokenSiteReportWithCategory category: String,
                                     description: String)
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
                                     reportBrokenSiteDidChangeProtectionSwitch protectionState: ProtectionState)
@@ -106,6 +106,7 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
     private let privacyDashboardScript: PrivacyDashboardUserScript
     private var cancellables = Set<AnyCancellable>()
     private var protectionStateToSubmitOnToggleReportDismiss: ProtectionState?
+    private let privacyConfigurationManager: PrivacyConfigurationManaging
     private let eventMapping: EventMapping<ToggleReportEvents>
 
     public init(privacyInfo: PrivacyInfo?,
@@ -114,6 +115,7 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
                 eventMapping: EventMapping<ToggleReportEvents>) {
         self.privacyInfo = privacyInfo
         self.dashboardMode = dashboardMode
+        self.privacyConfigurationManager = privacyConfigurationManager
         privacyDashboardScript = PrivacyDashboardUserScript(privacyConfigurationManager: privacyConfigurationManager)
         self.eventMapping = eventMapping
     }
@@ -292,11 +294,15 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     }
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didChangeProtectionState protectionState: ProtectionState) {
-        if !protectionState.isProtected {
+        if isToggleReportsFeatureEnabled && !protectionState.isProtected {
             loadToggleReportScreen(with: protectionState)
         } else {
             didChangeProtectionState(protectionState)
         }
+    }
+
+    private var isToggleReportsFeatureEnabled: Bool {
+        return ToggleReportsFeature(privacyConfiguration: privacyConfigurationManager.privacyConfig).isEnabled
     }
 
     private func didChangeProtectionState(_ protectionState: ProtectionState) {
@@ -328,8 +334,8 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     }
 
     private func handleUserScriptClosing(toggleReportDismissType: ToggleReportDismissType) {
-        if case .toggleReport(onAnyAction: let action) = dashboardMode {
-            action()
+        if case .toggleReport(completionHandler: let completionHandler) = dashboardMode {
+            completionHandler()
             fireToggleReportEventIfNeeded(for: toggleReportDismissType)
         } else if let protectionStateToSubmitOnToggleReportDismiss {
             didChangeProtectionState(protectionStateToSubmitOnToggleReportDismiss)

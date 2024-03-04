@@ -243,6 +243,10 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
     // MARK: - Calls to script's JS API
 
     func setToggleReportOptions(forSite site: String, webView: WKWebView) {
+        var atbEntry = "{\"id\": \"atb\"},"
+#if os(macOS)
+        atbEntry = ""
+#endif
         let js = """
                      const json = {
                          "data": [
@@ -255,7 +259,7 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
                              {"id": "device"},
                              {"id": "os"},
                              {"id": "appVersion"},
-                             {"id": "atb"},
+                             \(atbEntry)
                              {"id": "listVersions"},
                              {"id": "wvVersion"},
                              {"id": "features"},

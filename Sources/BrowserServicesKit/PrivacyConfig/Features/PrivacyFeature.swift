@@ -43,6 +43,7 @@ public enum PrivacyFeature: String {
     case dbp
     case sync
     case simplifiedReports
+    case privacyDashboard
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -102,4 +103,12 @@ public enum AutoconsentSubfeature: String, PrivacySubfeature {
     }
 
     case onByDefault
+}
+
+public enum PrivacyDashboardSubfeature: String, PrivacySubfeature {
+
+    public var parent: PrivacyFeature { .privacyDashboard }
+    
+    case toggleReports
+
 }
