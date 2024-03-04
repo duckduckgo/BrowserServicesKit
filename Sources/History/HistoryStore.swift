@@ -21,9 +21,9 @@ import Foundation
 import CoreData
 import Combine
 
-final class HistoryStore: HistoryStoring {
+final public class HistoryStore: HistoryStoring {
 
-    init(context: NSManagedObjectContext) {
+    public init(context: NSManagedObjectContext) {
         self.context = context
     }
 
@@ -34,7 +34,7 @@ final class HistoryStore: HistoryStoring {
 
     let context: NSManagedObjectContext
 
-    func removeEntries(_ entries: [HistoryEntry]) -> Future<Void, Error> {
+    public func removeEntries(_ entries: [HistoryEntry]) -> Future<Void, Error> {
         return Future { [weak self] promise in
             self?.context.perform {
                 guard let self = self else {
@@ -54,7 +54,7 @@ final class HistoryStore: HistoryStoring {
         }
     }
 
-    func cleanOld(until date: Date) -> Future<BrowsingHistory, Error> {
+    public func cleanOld(until date: Date) -> Future<BrowsingHistory, Error> {
         return Future { [weak self] promise in
             self?.context.perform {
                 guard let self = self else {
@@ -155,7 +155,7 @@ final class HistoryStore: HistoryStoring {
     }
 
     // swiftlint:disable:next function_body_length
-    func save(entry: HistoryEntry) -> Future<[(id: Visit.ID, date: Date)], Error> {
+    public func save(entry: HistoryEntry) -> Future<[(id: Visit.ID, date: Date)], Error> {
         return Future { [weak self] promise in
             self?.context.perform { [weak self] in
                 guard let self = self else {
@@ -265,7 +265,7 @@ final class HistoryStore: HistoryStoring {
         return .success(visitMO)
     }
 
-    func removeVisits(_ visits: [Visit]) -> Future<Void, Error> {
+    public func removeVisits(_ visits: [Visit]) -> Future<Void, Error> {
         return Future { [weak self] promise in
             self?.context.perform {
                 guard let self = self else {
