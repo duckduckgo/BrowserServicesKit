@@ -30,7 +30,7 @@ public protocol HistoryCoordinating: AnyObject {
     var allHistoryVisits: [Visit]? { get }
     var historyDictionaryPublisher: Published<[URL: HistoryEntry]?>.Publisher { get }
 
-    func addVisit(of url: URL) -> Visit?
+    @discardableResult func addVisit(of url: URL) -> Visit?
     func addBlockedTracker(entityName: String, on url: URL)
     func trackerFound(on: URL)
     func updateTitleIfNeeded(title: String, url: URL)
