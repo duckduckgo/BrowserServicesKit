@@ -122,11 +122,20 @@ struct AccountManager: AccountManaging {
             throw SyncError.unableToDecodeResponse("Failed to decode devices")
         }
 
-        return try result.devices?.entries.map {
-            RegisteredDevice(id: $0.id,
-                             name: try crypter.base64DecodeAndDecrypt($0.name, using: account.primaryKey),
-                             type: try crypter.base64DecodeAndDecrypt($0.type, using: account.primaryKey))
-        } ?? []
+        var devices = [RegisteredDevice]()
+        if let entries = result.devices?.entries {
+            for device in entries {
+                do {
+                    let name = try crypter.base64DecodeAndDecrypt(device.name, using: account.primaryKey)
+                    let type = try crypter.base64DecodeAndDecrypt(device.type, using: account.primaryKey)
+                    devices.append(RegisteredDevice(id: device.id, name: name, type: type))
+                } catch {
+                    // Invalid devices should be automatically logged out
+                    try await logout(deviceId: device.id, token: token)
+                }
+            }
+        }
+        return devices
     }
 
     func refreshToken(_ account: SyncAccount, deviceName: String) async throws -> LoginResult {

@@ -24,7 +24,7 @@ final class SuggestionLoadingTests: XCTestCase {
     class SuggestionLoadingDataSourceMock: SuggestionLoadingDataSource {
 
         private var bookmarks = [Bookmark]()
-        private var history = [HistoryEntry]()
+        private var history = [HistorySuggestion]()
 
         private var completionData: Data?
         private var completionError: Error?
@@ -37,7 +37,7 @@ final class SuggestionLoadingTests: XCTestCase {
 
         init(data: Data? = nil,
              error: Error? = nil,
-             history: [HistoryEntry] = [],
+             history: [HistorySuggestion] = [],
              bookmarks: [Bookmark] = [],
              delay: TimeInterval? = 0.01) {
             self.completionData = data
@@ -47,7 +47,7 @@ final class SuggestionLoadingTests: XCTestCase {
             self.asyncDelay = delay
         }
 
-        func history(for suggestionLoading: SuggestionLoading) -> [HistoryEntry] {
+        func history(for suggestionLoading: SuggestionLoading) -> [HistorySuggestion] {
             historyCallCount += 1
             return history
         }

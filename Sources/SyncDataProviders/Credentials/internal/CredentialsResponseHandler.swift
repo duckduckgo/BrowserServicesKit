@@ -79,7 +79,11 @@ final class CredentialsResponseHandler {
         let hashingSalt = try secureVault.getHashingSalt()
 
         for syncable in received {
-            try processEntity(with: syncable, secureVaultEncryptionKey: encryptionKey, secureVaultHashingSalt: hashingSalt)
+            do {
+                try processEntity(with: syncable, secureVaultEncryptionKey: encryptionKey, secureVaultHashingSalt: hashingSalt)
+            } catch SyncError.failedToDecryptValue(let message) where message.contains("invalid ciphertext length") {
+                continue
+            }
         }
     }
 

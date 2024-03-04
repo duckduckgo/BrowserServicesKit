@@ -25,7 +25,15 @@ public struct SubscriptionService: APIService {
         let configuration = URLSessionConfiguration.ephemeral
         return URLSession(configuration: configuration)
     }()
-    public static let baseURL = URL(string: "https://subscriptions-dev.duckduckgo.com/api")!
+
+    public static var baseURL: URL {
+        switch SubscriptionPurchaseEnvironment.currentServiceEnvironment {
+        case .production:
+            URL(string: "https://subscriptions.duckduckgo.com/api")!
+        case .staging:
+            URL(string: "https://subscriptions-dev.duckduckgo.com/api")!
+        }
+    }
 
     // MARK: -
 

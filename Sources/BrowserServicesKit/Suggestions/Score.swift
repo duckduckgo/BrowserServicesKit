@@ -91,7 +91,7 @@ extension Score {
         self.init(title: bookmark.title, url: urlObject, visitCount: 0, query: query, queryTokens: queryTokens)
     }
 
-    init(historyEntry: HistoryEntry, query: Query, queryTokens: [Query]? = nil) {
+    init(historyEntry: HistorySuggestion, query: Query, queryTokens: [Query]? = nil) {
         self.init(title: historyEntry.title ?? "",
                   url: historyEntry.url,
                   visitCount: historyEntry.numberOfVisits,

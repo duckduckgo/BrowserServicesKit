@@ -25,7 +25,15 @@ public struct AuthService: APIService {
         let configuration = URLSessionConfiguration.ephemeral
         return URLSession(configuration: configuration)
     }()
-    public static let baseURL = URL(string: "https://quackdev.duckduckgo.com/api/auth")!
+
+    public static var baseURL: URL {
+        switch SubscriptionPurchaseEnvironment.currentServiceEnvironment {
+        case .production:
+            URL(string: "https://quack.duckduckgo.com/api/auth")!
+        case .staging:
+            URL(string: "https://quackdev.duckduckgo.com/api/auth")!
+        }
+    }
 
     // MARK: -
 

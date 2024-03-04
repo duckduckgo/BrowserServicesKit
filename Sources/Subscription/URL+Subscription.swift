@@ -21,7 +21,12 @@ import Foundation
 public extension URL {
 
     static var subscriptionBaseURL: URL {
-        URL(string: "https://abrown.duckduckgo.com/subscriptions")!
+        switch SubscriptionPurchaseEnvironment.currentServiceEnvironment {
+        case .production:
+            URL(string: "https://duckduckgo.com/subscriptions")!
+        case .staging:
+            URL(string: "https://duckduckgo.com/subscriptions?environment=staging")!
+        }
     }
 
     static var subscriptionPurchase: URL {
@@ -54,6 +59,11 @@ public extension URL {
     // MARK: - Identity Theft Restoration
 
     static var identityTheftRestoration: URL {
-        URL(string: "https://abrown.duckduckgo.com/identity-theft-restoration")!
+        switch SubscriptionPurchaseEnvironment.currentServiceEnvironment {
+        case .production:
+            URL(string: "https://duckduckgo.com/identity-theft-restoration")!
+        case .staging:
+            URL(string: "https://duckduckgo.com/identity-theft-restoration?environment=staging")!
+        }
     }
 }

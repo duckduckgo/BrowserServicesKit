@@ -1,7 +1,7 @@
 //
-//  HistoryEntryMock.swift
+//  HistoryStoring.swift
 //
-//  Copyright © 2021 DuckDuckGo. All rights reserved.
+//  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -17,17 +17,13 @@
 //
 
 import Foundation
+import Combine
 
-@testable import BrowserServicesKit
+public protocol HistoryStoring {
 
-struct HistoryEntryMock: HistorySuggestion {
-
-    var identifier: UUID
-    var url: URL
-    var title: String?
-    var numberOfVisits: Int
-    var lastVisit: Date
-    var failedToLoad: Bool
-    var isDownload: Bool
+    func cleanOld(until date: Date) -> Future<History, Error>
+    func save(entry: HistoryEntry) -> Future<[(id: Visit.ID, date: Date)], Error>
+    func removeEntries(_ entries: [HistoryEntry]) -> Future<Void, Error>
+    func removeVisits(_ visits: [Visit]) -> Future<Void, Error>
 
 }

@@ -120,4 +120,21 @@ final class SettingsRegularSyncResponseHandlerTests: SettingsProviderTestsBase {
         XCTAssertNil(testSettingMetadata.lastModified)
         XCTAssertEqual(testSettingSyncHandler.syncedValue, "remote")
     }
+
+    func testThatDecryptionFailureDoesntAffectSettingsOrCrash() async throws {
+        let received: [Syncable] = [
+            .emailProtection(username: "dax", token: "secret-token")
+        ]
+
+        crypter.throwsException(exceptionString: "ddgSyncDecrypt failed: invalid ciphertext length: X")
+
+        try await handleSyncResponse(received: received)
+
+        let context = metadataDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        let settingsMetadata = fetchAllSettingsMetadata(in: context)
+        XCTAssertTrue(settingsMetadata.isEmpty)
+        XCTAssertEqual(emailManagerStorage.mockUsername, nil)
+        XCTAssertEqual(emailManagerStorage.mockToken, nil)
+        crypter.throwsException(exceptionString: nil)
+    }
 }
