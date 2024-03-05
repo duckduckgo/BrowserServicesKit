@@ -319,6 +319,7 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
             loadToggleReportScreen(with: protectionState)
         } else {
             didChangeProtectionState(protectionState)
+            closeDashboard()
         }
     }
 
