@@ -29,9 +29,19 @@ public protocol NetworkProtectionTokenStore {
     ///
     func fetchToken() throws -> String?
 
-    /// Obtain the stored auth token.
+    /// Delete the stored auth token.
     ///
     func deleteToken() throws
+
+    /// Convert DDG-access-token to NetP-auth-token
+    ///
+    /// todo - https://app.asana.com/0/0/1206541966681608/f
+    static func makeToken(from subscriptionAccessToken: String) -> String
+
+    /// Check if a given token is derived from DDG-access-token
+    ///
+    /// todo - https://app.asana.com/0/0/1206541966681608/f
+    static func isSubscriptionAccessToken(_ token: String) -> Bool
 }
 
 /// Store an auth token for NetworkProtection on behalf of the user. This key is then used to authenticate requests for registration and server fetches from the Network Protection backend servers.
@@ -39,6 +49,7 @@ public protocol NetworkProtectionTokenStore {
 public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenStore {
     private let keychainStore: NetworkProtectionKeychainStore
     private let errorEvents: EventMapping<NetworkProtectionError>?
+    private let isSubscriptionEnabled: Bool
 
     public struct Defaults {
         static let tokenStoreEntryLabel = "DuckDuckGo Network Protection Auth Token"
@@ -48,11 +59,13 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
 
     public init(keychainType: KeychainType,
                 serviceName: String = Defaults.tokenStoreService,
-                errorEvents: EventMapping<NetworkProtectionError>?) {
+                errorEvents: EventMapping<NetworkProtectionError>?,
+                isSubscriptionEnabled: Bool) {
         keychainStore = NetworkProtectionKeychainStore(label: Defaults.tokenStoreEntryLabel,
                                                        serviceName: serviceName,
                                                        keychainType: keychainType)
         self.errorEvents = errorEvents
+        self.isSubscriptionEnabled = isSubscriptionEnabled
     }
 
     public func store(_ token: String) throws {
@@ -78,6 +91,8 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
 
     public func deleteToken() throws {
         do {
+            // Skip deleting DDG-access-token as it's used for entitlement validity check
+            guard isSubscriptionEnabled, let token = try? fetchToken(), !Self.isSubscriptionAccessToken(token) else { return }
             try keychainStore.deleteAll()
         } catch {
             handle(error)
@@ -95,5 +110,17 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
         }
 
         errorEvents?.fire(error.networkProtectionError)
+    }
+}
+
+extension NetworkProtectionTokenStore {
+    private static var authTokenPrefix: String { "ddg:" }
+
+    public static func makeToken(from subscriptionAccessToken: String) -> String {
+        "\(authTokenPrefix)\(subscriptionAccessToken)"
+    }
+
+    public static func isSubscriptionAccessToken(_ token: String) -> Bool {
+        token.hasPrefix(authTokenPrefix)
     }
 }
