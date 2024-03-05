@@ -20,6 +20,7 @@ import XCTest
 import CoreData
 import Combine
 import Persistence
+import Common
 @testable import History
 
 @MainActor
@@ -185,7 +186,7 @@ class HistoryCoordinatorTests: XCTestCase {
             return
         }
 
-        let historyStore = HistoryStore(context: context)
+        let historyStore = HistoryStore(context: context, eventMapper: MockHistoryStoreEventMapper())
         let historyCoordinator = HistoryCoordinator(historyStoring: historyStore)
         historyCoordinator.loadHistory { }
 
@@ -356,4 +357,16 @@ final class HistoryStoringMock: HistoryStoring {
         }
     }
 
+}
+
+class MockHistoryStoreEventMapper: EventMapping<HistoryStore.HistoryStoreEvents> {
+    public init() {
+        super.init { _, _, _, _ in
+            // no-op
+        }
+    }
+
+    override init(mapping: @escaping EventMapping<HistoryStore.HistoryStoreEvents>.Mapping) {
+        fatalError("Use init()")
+    }
 }

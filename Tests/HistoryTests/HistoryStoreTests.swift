@@ -42,7 +42,7 @@ final class HistoryStoreTests: XCTestCase {
             }
         }
         context = database.makeContext(concurrencyType: .mainQueueConcurrencyType)
-        historyStore = HistoryStore(context: context)
+        historyStore = HistoryStore(context: context, eventMapper: MockHistoryStoreEventMapper())
     }
 
     override func tearDownWithError() throws {
