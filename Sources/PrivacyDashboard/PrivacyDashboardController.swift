@@ -102,6 +102,13 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
 
     }
 
+    private enum ToggleReportDismissSource {
+
+        case userScript
+        case viewWillDisappear
+
+    }
+
     public weak var privacyDashboardDelegate: PrivacyDashboardControllerDelegate?
     public weak var privacyDashboardNavigationDelegate: PrivacyDashboardNavigationDelegate?
     public weak var privacyDashboardReportBrokenSiteDelegate: PrivacyDashboardReportBrokenSiteDelegate?
@@ -308,7 +315,7 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     }
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didChangeProtectionState protectionState: ProtectionState) {
-        if isToggleReportsFeatureEnabled && !protectionState.isProtected {
+        if !protectionState.isProtected && isToggleReportsFeatureEnabled {
             loadToggleReportScreen(with: protectionState)
         } else {
             didChangeProtectionState(protectionState)
@@ -348,23 +355,24 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     }
 
     private func handleUserScriptClosing(toggleReportDismissType: ToggleReportDismissType) {
-        handleDismiss(with: toggleReportDismissType)
+        handleDismiss(with: toggleReportDismissType, source: .userScript)
     }
 
-    private func handleDismiss(with type: ToggleReportDismissType) {
+    private func handleDismiss(with type: ToggleReportDismissType, source: ToggleReportDismissSource) {
         if case .toggleReport(completionHandler: let completionHandler) = initDashboardMode {
             completionHandler()
             fireToggleReportEventIfNeeded(for: type)
         } else if let protectionStateToSubmitOnToggleReportDismiss {
             didChangeProtectionState(protectionStateToSubmitOnToggleReportDismiss)
             fireToggleReportEventIfNeeded(for: type)
-        } else {
+        }
+        if source == .userScript {
             closeDashboard()
         }
     }
 
     public func handleViewWillDisappear() {
-        handleDismiss(with: .dismiss)
+        handleDismiss(with: .dismiss, source: .viewWillDisappear)
     }
 
     private func fireToggleReportEventIfNeeded(for toggleReportDismissType: ToggleReportDismissType) {

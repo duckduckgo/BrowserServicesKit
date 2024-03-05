@@ -28,7 +28,7 @@ public struct ToggleReportsFeature {
 
     public var isEnabled: Bool {
         return true
-        let isFeatureEnabledInConfig = privacyConfiguration.isEnabled(featureKey: .privacyDashboard) && privacyConfiguration.isSubfeatureEnabled(PrivacyDashboardSubfeature.toggleReports)
+        let isFeatureEnabledInConfig = privacyConfiguration.isSubfeatureEnabled(PrivacyDashboardSubfeature.toggleReports)
         let isCurrentLanguageEnglish = Locale.current.languageCode == "en"
         return isFeatureEnabledInConfig && isCurrentLanguageEnglish
     }
