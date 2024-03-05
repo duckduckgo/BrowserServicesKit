@@ -355,7 +355,6 @@ fileprivate extension HistoryEntry {
         guard let url = historyEntryMO.url,
               let identifier = historyEntryMO.identifier,
               let lastVisit = historyEntryMO.lastVisit else {
-            // TODO Pixel.fire(.debug(event: .historyEntryDecryptionFailedUnique), limitTo: .dailyFirst)
             assertionFailure("HistoryEntry: Failed to init HistoryEntry from BrowsingHistoryEntryManagedObject")
             return nil
         }
