@@ -36,7 +36,7 @@ final class BrokenSiteReportHistoryEntryTests: XCTestCase {
         let entry2 = BrokenSiteReportEntry(report: BrokenSiteReportMocks.report2, currentDate: testDate)
         XCTAssertNotEqual(entry?.identifier, entry2?.identifier)
 
-        let entry3 = BrokenSiteReportEntry(report: BrokenSiteReportMocks.report3, currentDate: testDate)
+        let entry3 = BrokenSiteReportEntry(report: BrokenSiteReportMocks.report, currentDate: testDate)
         XCTAssertEqual(entry?.identifier, entry3?.identifier)
     }
 
