@@ -76,6 +76,11 @@ internal class MockAutofillDatabaseProvider: AutofillDatabaseProvider {
         self._accounts = self._accounts.filter { $0.id != String(accountId) }
     }
 
+    func deleteAllWebsiteCredentials() throws {
+        self._credentialsDict.removeAll()
+        self._accounts.removeAll()
+    }
+
     func accounts() throws -> [SecureVaultModels.WebsiteAccount] {
         return _accounts
     }
