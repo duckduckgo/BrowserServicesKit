@@ -60,6 +60,6 @@ extension BrowsingHistoryEntryManagedObject {
 
 }
 
-extension BrowsingHistoryEntryManagedObject : Identifiable {
+extension BrowsingHistoryEntryManagedObject: Identifiable {
 
 }

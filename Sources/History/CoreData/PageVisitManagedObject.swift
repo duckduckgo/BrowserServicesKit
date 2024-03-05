@@ -35,6 +35,6 @@ extension PageVisitManagedObject {
 
 }
 
-extension PageVisitManagedObject : Identifiable {
+extension PageVisitManagedObject: Identifiable {
 
 }
