@@ -56,8 +56,10 @@ public final class AppStorePurchaseFlow {
                                             features: features))
     }
 
+    public typealias TransactionJWS = String
+
     // swiftlint:disable cyclomatic_complexity
-    public static func purchaseSubscription(with subscriptionIdentifier: String, emailAccessToken: String?) async -> Result<Void, AppStorePurchaseFlow.Error> {
+    public static func purchaseSubscription(with subscriptionIdentifier: String, emailAccessToken: String?) async -> Result<TransactionJWS, AppStorePurchaseFlow.Error> {
         os_log(.info, log: .subscription, "[AppStorePurchaseFlow] purchaseSubscription")
 
         let accountManager = AccountManager()
@@ -95,8 +97,8 @@ public final class AppStorePurchaseFlow {
 
         // Make the purchase
         switch await PurchaseManager.shared.purchaseSubscription(with: subscriptionIdentifier, externalID: externalID) {
-        case .success:
-            return .success(())
+        case .success(let transactionJWS):
+            return .success(transactionJWS)
         case .failure(let error):
             os_log(.error, log: .subscription, "[AppStorePurchaseFlow] purchaseSubscription error: %{public}s", String(reflecting: error))
             AccountManager().signOut()
@@ -108,14 +110,24 @@ public final class AppStorePurchaseFlow {
             }
         }
     }
-    // swiftlint:enable cyclomatic_complexity
 
+    // swiftlint:enable cyclomatic_complexity
     @discardableResult
-    public static func completeSubscriptionPurchase() async -> Result<PurchaseUpdate, AppStorePurchaseFlow.Error> {
+    public static func completeSubscriptionPurchase(with transactionJWS: TransactionJWS) async -> Result<PurchaseUpdate, AppStorePurchaseFlow.Error> {
         os_log(.info, log: .subscription, "[AppStorePurchaseFlow] completeSubscriptionPurchase")
 
-        let result = await AccountManager.checkForEntitlements(wait: 2.0, retry: 20)
+        guard let accessToken = AccountManager().accessToken else { return .failure(.missingEntitlements) }
+
+        let result: Bool
+
+        switch await SubscriptionService.confirmPurchase(accessToken: accessToken, signature: transactionJWS) {
+        case .success(let response):
+            result = true
+        case .failure(let error):
+            result = false
+        }
 
         return result ? .success(PurchaseUpdate(type: "completed")) : .failure(.missingEntitlements)
     }
+
 }
