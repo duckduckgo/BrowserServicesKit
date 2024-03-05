@@ -480,6 +480,45 @@ final class BookmarksRegularSyncResponseHandlerTests: BookmarksProviderTestsBase
         })
     }
 
+    // MARK: - Responses with parts of data structure missing
+
+    func testWhenChildIsMissingAndReceivedLaterThenRelationIsPersisted() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {}
+
+        let received: [Syncable] = [
+            .rootFolder(children: ["1", "2"]),
+            .favoritesFolder(favorites: ["1, 2"]),
+            .mobileFavoritesFolder(favorites: ["1"]),
+            .desktopFavoritesFolder(favorites: ["2"])
+        ]
+
+        _ = try await createEntitiesAndHandleSyncResponse(with: bookmarkTree, received: received, in: context)
+
+        let received2: [Syncable] = [
+            .bookmark(id: "1"),
+            .bookmark(id: "2")
+        ]
+
+        let root = try await handleSyncResponse(received: received2, in: context)
+
+        context.performAndWait {
+            XCTAssertEqual(root.childrenArray.count, 2)
+
+            let unified = BookmarkUtils.fetchFavoritesFolder(withUUID: FavoritesFolderID.unified.rawValue, in: context)
+            XCTAssertEqual((unified?.favoritesArray ?? []).count, 2)
+
+            let mobile = BookmarkUtils.fetchFavoritesFolder(withUUID: FavoritesFolderID.mobile.rawValue, in: context)
+            XCTAssertEqual((mobile?.favoritesArray ?? []).count, 1)
+            XCTAssertEqual(mobile?.favoritesArray.first?.uuid, "1")
+
+            let desktop = BookmarkUtils.fetchFavoritesFolder(withUUID: FavoritesFolderID.desktop.rawValue, in: context)
+            XCTAssertEqual((desktop?.favoritesArray ?? []).count, 1)
+            XCTAssertEqual(desktop?.favoritesArray.first?.uuid, "2")
+        }
+    }
+
     // MARK: - Handling Decryption Failures
     func testThatDecryptionFailureDoesntAffectBookmarksOrCrash() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
