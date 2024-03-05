@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <model type="com.apple.IDECoreDataModeler.DataModel" documentVersion="1.0" lastSavedToolsVersion="22522" systemVersion="23B92" minimumToolsVersion="Automatic" sourceLanguage="Swift" usedWithSwiftData="YES" userDefinedModelVersionIdentifier="">
-    <entity name="BrowsingHistoryEntryManagedObject" representedClassName="BrowsingHistoryEntryManagedObject" syncable="YES" codeGenerationType="class">
+    <entity name="BrowsingHistoryEntryManagedObject" representedClassName="BrowsingHistoryEntryManagedObject" syncable="YES">
         <attribute name="blockedTrackingEntities" optional="YES" attributeType="String"/>
         <attribute name="failedToLoad" attributeType="Boolean" defaultValueString="NO" usesScalarValueType="YES"/>
         <attribute name="identifier" attributeType="UUID" usesScalarValueType="NO"/>
@@ -12,7 +12,7 @@
         <attribute name="url" attributeType="URI" valueTransformerName="NSURLTransformer"/>
         <relationship name="visits" optional="YES" toMany="YES" deletionRule="Cascade" destinationEntity="PageVisitManagedObject" inverseName="historyEntry" inverseEntity="PageVisitManagedObject"/>
     </entity>
-    <entity name="PageVisitManagedObject" representedClassName="PageVisitManagedObject" syncable="YES" codeGenerationType="class">
+    <entity name="PageVisitManagedObject" representedClassName="PageVisitManagedObject" syncable="YES">
         <attribute name="date" attributeType="Date" usesScalarValueType="NO"/>
         <relationship name="historyEntry" maxCount="1" deletionRule="Nullify" destinationEntity="BrowsingHistoryEntryManagedObject" inverseName="visits" inverseEntity="BrowsingHistoryEntryManagedObject"/>
     </entity>

@@ -105,7 +105,7 @@ let package = Package(
                 "Common"
             ],
             resources: [
-                .process("BrowsingHistory.xcdatamodeld")
+                .process("CoreData/BrowsingHistory.xcdatamodeld")
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
