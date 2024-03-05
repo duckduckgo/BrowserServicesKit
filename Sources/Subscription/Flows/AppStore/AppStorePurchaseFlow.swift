@@ -118,16 +118,33 @@ public final class AppStorePurchaseFlow {
 
         guard let accessToken = AccountManager().accessToken else { return .failure(.missingEntitlements) }
 
-        let result: Bool
-
-        switch await SubscriptionService.confirmPurchase(accessToken: accessToken, signature: transactionJWS) {
-        case .success(let response):
-            result = true
-        case .failure(let error):
-            result = false
+        let result = await callWithRetries(wait: 0.5, retry: 3) {
+            switch await SubscriptionService.confirmPurchase(accessToken: accessToken, signature: transactionJWS) {
+            case .success:
+                return true
+            case .failure:
+                return false
+            }
         }
 
         return result ? .success(PurchaseUpdate(type: "completed")) : .failure(.missingEntitlements)
     }
 
+    private static func callWithRetries(wait waitTime: Double, retry retryCount: Int, conditionToCheck: () async -> Bool) async -> Bool {
+        var count = 0
+        var successful = false
+
+        repeat {
+            successful = await conditionToCheck()
+
+            if successful {
+                break
+            } else {
+                count += 1
+                try? await Task.sleep(seconds: waitTime)
+            }
+        } while !successful && count < retryCount
+
+        return successful
+    }
 }
