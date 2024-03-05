@@ -123,7 +123,7 @@ public struct BookmarkUtils {
         request.resultType = .dictionaryResultType
         request.propertiesToFetch = [#keyPath(BookmarkEntity.uuid)]
 
-        let result = (try? context.fetch(request) as? [Dictionary<String, Any>]) ?? []
+        let result = (try? context.fetch(request) as? [[String: Any]]) ?? []
         return result.compactMap { $0[#keyPath(BookmarkEntity.uuid)] as? String }
     }
 

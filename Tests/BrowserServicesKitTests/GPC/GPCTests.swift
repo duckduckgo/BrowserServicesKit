@@ -38,7 +38,7 @@ final class GPCTests: XCTestCase {
                                                    unprotectedTemporary: [],
                                                    trackerAllowlist: [:])
         let localProtection = MockDomainsProtectionStore()
-        appConfig = AppPrivacyConfiguration(data: privacyData, 
+        appConfig = AppPrivacyConfiguration(data: privacyData,
                                             identifier: "",
                                             localProtection: localProtection,
                                             internalUserDecider: DefaultInternalUserDecider(),

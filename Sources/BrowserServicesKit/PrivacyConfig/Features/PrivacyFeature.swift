@@ -108,7 +108,7 @@ public enum AutoconsentSubfeature: String, PrivacySubfeature {
 public enum PrivacyDashboardSubfeature: String, PrivacySubfeature {
 
     public var parent: PrivacyFeature { .privacyDashboard }
-    
+
     case toggleReports
 
 }
