@@ -104,6 +104,9 @@ let package = Package(
                 "Persistence",
                 "Common"
             ],
+            resources: [
+                .process("BrowsingHistory.xcdatamodeld")
+            ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
             ],
