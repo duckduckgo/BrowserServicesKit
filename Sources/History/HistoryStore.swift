@@ -23,16 +23,30 @@ import Combine
 
 final public class HistoryStore: HistoryStoring {
 
-    public init(context: NSManagedObjectContext) {
+    public enum HistoryStoreEvents {
+
+        case removeFailed
+        case reloadFailed
+        case cleanEntriesFailed
+        case cleanVisitsFailed
+        case saveFailed
+        case insertVisitFailed
+        case removeVisitsFailed
+
+    }
+
+    let context: NSManagedObjectContext
+    let eventMapper: EventMapping<HistoryStoreEvents>
+
+    public init(context: NSManagedObjectContext, eventMapper: EventMapping<HistoryStoreEvents>) {
         self.context = context
+        self.eventMapper = eventMapper
     }
 
     enum HistoryStoreError: Error {
         case storeDeallocated
         case savingFailed
     }
-
-    let context: NSManagedObjectContext
 
     public func removeEntries(_ entries: [HistoryEntry]) -> Future<Void, Error> {
         return Future { [weak self] promise in
@@ -90,7 +104,7 @@ final public class HistoryStore: HistoryStoring {
                 }
                 os_log("%d items cleaned from history", log: .history, entriesToDelete.count)
             } catch {
-                // TODO Pixel.fire(.debug(event: .historyRemoveFailed, error: error))
+                eventMapper.fire(.removeFailed, error: error)
                 self.context.reset()
                 return .failure(error)
             }
@@ -99,7 +113,7 @@ final public class HistoryStore: HistoryStoring {
         do {
             try context.save()
         } catch {
-            // TODO Pixel.fire(.debug(event: .historyRemoveFailed, error: error))
+            eventMapper.fire(.removeFailed, error: error)
             context.reset()
             return .failure(error)
         }
@@ -116,7 +130,7 @@ final public class HistoryStore: HistoryStoring {
             let history = BrowsingHistory(historyEntries: historyEntries)
             return .success(history)
         } catch {
-            // TODO Pixel.fire(.debug(event: .historyReloadFailed, error: error))
+            eventMapper.fire(.reloadFailed, error: error)
             return .failure(error)
         }
     }
@@ -132,7 +146,7 @@ final public class HistoryStore: HistoryStoring {
             }
             try context.save()
         } catch {
-            // TODO Pixel.fire(.debug(event: .historyCleanEntriesFailed, error: error))
+            eventMapper.fire(.cleanEntriesFailed, error: error)
             context.reset()
             return .failure(error)
         }
@@ -148,7 +162,7 @@ final public class HistoryStore: HistoryStoring {
             try context.save()
             return .success(())
         } catch {
-            // TODO Pixel.fire(.debug(event: .historyCleanVisitsFailed, error: error))
+            eventMapper.fire(.cleanVisitsFailed, error: error)
             context.reset()
             return .failure(error)
         }
@@ -172,7 +186,7 @@ final public class HistoryStore: HistoryStoring {
                 do {
                     fetchedObjects = try self.context.fetch(fetchRequest)
                 } catch {
-                    // TODO Pixel.fire(.debug(event: .historySaveFailed, error: error))
+                    eventMapper.fire(.saveFailed, error: error)
                     promise(.failure(error))
                     return
                 }
@@ -200,14 +214,14 @@ final public class HistoryStore: HistoryStoring {
                                                            context: self.context)
                 switch insertionResult {
                 case .failure(let error):
-                    // TODO Pixel.fire(.debug(event: .historySaveFailed, error: error))
+                    eventMapper.fire(.saveFailed, error: error)
                     context.reset()
                     promise(.failure(error))
                 case .success(let visitMOs):
                     do {
                         try self.context.save()
                     } catch {
-                        // TODO Pixel.fire(.debug(event: .historySaveFailed, error: error))
+                        eventMapper.fire(.saveFailed, error: error)
                         context.reset()
                         promise(.failure(HistoryStoreError.savingFailed))
                         return
@@ -257,7 +271,7 @@ final public class HistoryStore: HistoryStoring {
                         context: NSManagedObjectContext) -> Result<PageVisitManagedObject, Error> {
         let insertedObject = NSEntityDescription.insertNewObject(forEntityName: PageVisitManagedObject.entityName, into: context)
         guard let visitMO = insertedObject as? PageVisitManagedObject else {
-            // TODO Pixel.fire(.debug(event: .historyInsertVisitFailed))
+            eventMapper.fire(.insertVisitFailed)
             context.reset()
             return .failure(HistoryStoreError.savingFailed)
         }
@@ -305,7 +319,7 @@ final public class HistoryStore: HistoryStoring {
                     context.delete(visit)
                 }
             } catch {
-                // TODO Pixel.fire(.debug(event: .historyRemoveVisitsFailed, error: error))
+                eventMapper.fire(.removeVisitsFailed, error: error)
                 return .failure(error)
             }
         }
@@ -313,7 +327,7 @@ final public class HistoryStore: HistoryStoring {
         do {
             try context.save()
         } catch {
-            // TODO Pixel.fire(.debug(event: .historyRemoveVisitsFailed, error: error))
+            eventMapper.fire(.removeVisitsFailed, error: error)
             context.reset()
             return .failure(error)
         }
