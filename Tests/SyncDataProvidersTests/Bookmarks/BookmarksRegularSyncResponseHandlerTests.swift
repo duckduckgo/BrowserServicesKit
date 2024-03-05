@@ -489,16 +489,17 @@ final class BookmarksRegularSyncResponseHandlerTests: BookmarksProviderTestsBase
 
         let received: [Syncable] = [
             .rootFolder(children: ["1", "2"]),
-            .favoritesFolder(favorites: ["1, 2"]),
+            .favoritesFolder(favorites: ["1", "2", "3"]),
             .mobileFavoritesFolder(favorites: ["1"]),
-            .desktopFavoritesFolder(favorites: ["2"])
+            .desktopFavoritesFolder(favorites: ["2", "3"])
         ]
 
         _ = try await createEntitiesAndHandleSyncResponse(with: bookmarkTree, received: received, in: context)
 
         let received2: [Syncable] = [
             .bookmark(id: "1"),
-            .bookmark(id: "2")
+            .bookmark(id: "2"),
+            .bookmark(id: "3"),
         ]
 
         let root = try await handleSyncResponse(received: received2, in: context)
@@ -507,15 +508,13 @@ final class BookmarksRegularSyncResponseHandlerTests: BookmarksProviderTestsBase
             XCTAssertEqual(root.childrenArray.count, 2)
 
             let unified = BookmarkUtils.fetchFavoritesFolder(withUUID: FavoritesFolderID.unified.rawValue, in: context)
-            XCTAssertEqual((unified?.favoritesArray ?? []).count, 2)
+            XCTAssertEqual(Set((unified?.favoritesArray.map { $0.uuid }) ?? []), Set(["1", "2", "3"]))
 
             let mobile = BookmarkUtils.fetchFavoritesFolder(withUUID: FavoritesFolderID.mobile.rawValue, in: context)
-            XCTAssertEqual((mobile?.favoritesArray ?? []).count, 1)
-            XCTAssertEqual(mobile?.favoritesArray.first?.uuid, "1")
+            XCTAssertEqual(Set((mobile?.favoritesArray.map { $0.uuid }) ?? []), Set(["1"]))
 
             let desktop = BookmarkUtils.fetchFavoritesFolder(withUUID: FavoritesFolderID.desktop.rawValue, in: context)
-            XCTAssertEqual((desktop?.favoritesArray ?? []).count, 1)
-            XCTAssertEqual(desktop?.favoritesArray.first?.uuid, "2")
+            XCTAssertEqual(Set((desktop?.favoritesArray.map { $0.uuid }) ?? []), Set(["2", "3"]))
         }
     }
 

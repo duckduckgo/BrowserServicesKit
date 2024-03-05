@@ -151,6 +151,13 @@ final class BookmarksResponseHandler {
                 if let bookmark = entitiesByUUID[uuid] {
                     bookmark.removeFromFavorites(favoritesRoot: favoritesFolder)
                     bookmark.addToFavorites(favoritesRoot: favoritesFolder)
+                } else {
+                    let newStubEntity = BookmarkEntity.make(withUUID: uuid,
+                                                            isFolder: false,
+                                                            in: context)
+                    newStubEntity.isStub = true
+                    newStubEntity.addToFavorites(favoritesRoot: favoritesFolder)
+                    entitiesByUUID[uuid] = newStubEntity
                 }
             }
 
@@ -195,6 +202,13 @@ final class BookmarksResponseHandler {
                 } else if let existingEntity = entitiesByUUID[syncableUUID] {
                     existingEntity.parent?.removeFromChildren(existingEntity)
                     parent?.addToChildren(existingEntity)
+                } else {
+                    let newStubEntity = BookmarkEntity.make(withUUID: syncableUUID,
+                                                            isFolder: false,
+                                                            in: context)
+                    newStubEntity.isStub = true
+                    parent?.addToChildren(newStubEntity)
+                    entitiesByUUID[syncableUUID] = newStubEntity
                 }
             }
         }
