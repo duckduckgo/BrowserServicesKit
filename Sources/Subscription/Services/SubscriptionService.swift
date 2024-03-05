@@ -126,4 +126,24 @@ public struct SubscriptionService: APIService {
         public let customerPortalUrl: String
     }
 
+    // MARK: -
+
+    public static func confirmPurchase(accessToken: String, signature: String) async -> Result<ConfirmPurchaseResponse, APIServiceError> {
+        let headers = makeAuthorizationHeader(for: accessToken)
+        let bodyDict = ["signedTransactionInfo": signature]
+
+        guard let bodyData = try? JSONEncoder().encode(bodyDict) else { return .failure(.encodingError) }
+        return await executeAPICall(method: "POST", endpoint: "purchase/confirm/apple", headers: headers, body: bodyData)
+    }
+
+    public struct ConfirmPurchaseResponse: Decodable {
+        public let email: String?
+        public let entitlements: [Entitlement]
+        public let subscription: GetSubscriptionDetailsResponse
+
+        public struct Entitlement: Decodable {
+            let name: String
+            let product: String
+        }
+    }
 }
