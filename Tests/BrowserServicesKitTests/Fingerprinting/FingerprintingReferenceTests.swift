@@ -54,6 +54,7 @@ final class FingerprintingReferenceTests: XCTestCase {
                                                             etag: "embedded")
         let localProtection = MockDomainsProtectionStore()
         localProtection.unprotectedDomains = []
+
         return PrivacyConfigurationManager(fetchedETag: nil,
                                            fetchedData: nil,
                                            embeddedDataProvider: embeddedDataProvider,

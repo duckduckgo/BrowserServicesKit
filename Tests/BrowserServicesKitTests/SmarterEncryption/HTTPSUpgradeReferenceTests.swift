@@ -19,6 +19,7 @@
 import Foundation
 import XCTest
 import os.log
+import Common
 @testable import BrowserServicesKit
 @testable import BloomFilterWrapper
 

@@ -47,11 +47,11 @@ public class ToggleProtectionsCounter {
 
     private let store: KeyValueStoring
     private let sendInterval: Double
-    private let eventReporting: EventMapping<ToggleProtectionsCounterEvent>
+    private let eventReporting: EventMapping<ToggleProtectionsCounterEvent>?
 
     public init(store: KeyValueStoring = ToggleProtectionsCounterStore(),
                 sendInterval: Double = Constant.sendInterval,
-                eventReporting: EventMapping<ToggleProtectionsCounterEvent>) {
+                eventReporting: EventMapping<ToggleProtectionsCounterEvent>?) {
         self.store = store
         self.sendInterval = sendInterval
         self.eventReporting = eventReporting
@@ -74,7 +74,7 @@ public class ToggleProtectionsCounter {
         }
 
         if abs(currentTime.timeIntervalSince(lastSendAt)) > sendInterval {
-            eventReporting.fire(.toggleProtectionsCounterDaily, parameters: [
+            eventReporting?.fire(.toggleProtectionsCounterDaily, parameters: [
                 ToggleProtectionsCounterEvent.Parameter.onCountKey: String(toggleOnCount),
                 ToggleProtectionsCounterEvent.Parameter.offCountKey: String(toggleOffCount)
             ])

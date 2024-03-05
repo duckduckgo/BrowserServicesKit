@@ -111,7 +111,7 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
                 embeddedDataProvider: EmbeddedDataProvider,
                 localProtection: DomainsProtectionStore,
                 errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil,
-                toggleProtectionsCounterEventReporting: EventMapping<ToggleProtectionsCounterEvent>,
+                toggleProtectionsCounterEventReporting: EventMapping<ToggleProtectionsCounterEvent>? = nil,
                 internalUserDecider: InternalUserDecider,
                 installDate: Date? = nil
     ) {

@@ -38,7 +38,11 @@ final class GPCTests: XCTestCase {
                                                    unprotectedTemporary: [],
                                                    trackerAllowlist: [:])
         let localProtection = MockDomainsProtectionStore()
-        appConfig = AppPrivacyConfiguration(data: privacyData, identifier: "", localProtection: localProtection, internalUserDecider: DefaultInternalUserDecider())
+        appConfig = AppPrivacyConfiguration(data: privacyData, 
+                                            identifier: "",
+                                            localProtection: localProtection,
+                                            internalUserDecider: DefaultInternalUserDecider(),
+                                            toggleProtectionsCounter: ToggleProtectionsCounter(eventReporting: nil))
     }
 
     func testWhenGPCEnableDomainIsHttpThenISGPCEnabledTrue() {

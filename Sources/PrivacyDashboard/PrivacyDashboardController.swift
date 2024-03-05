@@ -349,7 +349,6 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
 
     private func handleUserScriptClosing(toggleReportDismissType: ToggleReportDismissType) {
         handleDismiss(with: toggleReportDismissType)
-        closeDashboard()
     }
 
     private func handleDismiss(with type: ToggleReportDismissType) {
@@ -359,6 +358,8 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
         } else if let protectionStateToSubmitOnToggleReportDismiss {
             didChangeProtectionState(protectionStateToSubmitOnToggleReportDismiss)
             fireToggleReportEventIfNeeded(for: type)
+        } else {
+            closeDashboard()
         }
     }
 
