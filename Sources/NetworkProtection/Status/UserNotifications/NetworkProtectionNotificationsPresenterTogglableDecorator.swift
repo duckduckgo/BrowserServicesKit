@@ -56,4 +56,8 @@ final public class NetworkProtectionNotificationsPresenterTogglableDecorator: Ne
             wrappeePresenter.showTestNotification()
         }
     }
+
+    public func showEntitlementNotification(completion: @escaping (Error?) -> Void) {
+        wrappeePresenter.showEntitlementNotification(completion: completion)
+    }
 }

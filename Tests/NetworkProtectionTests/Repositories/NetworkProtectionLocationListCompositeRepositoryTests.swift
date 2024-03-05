@@ -37,7 +37,8 @@ class NetworkProtectionLocationListCompositeRepositoryTests: XCTestCase {
             tokenStore: tokenStore,
             errorEvents: .init { [weak self] event, _, _, _ in
                 self?.verifyErrorEvent?(event)
-        })
+        },
+        isSubscriptionEnabled: false)
     }
 
     @MainActor

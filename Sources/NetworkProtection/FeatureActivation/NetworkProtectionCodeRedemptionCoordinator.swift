@@ -41,8 +41,9 @@ public final class NetworkProtectionCodeRedemptionCoordinator: NetworkProtection
                             tokenStore: NetworkProtectionTokenStore,
                             versionStore: NetworkProtectionLastVersionRunStore = .init(),
                             isManualCodeRedemptionFlow: Bool = false,
-                            errorEvents: EventMapping<NetworkProtectionError>) {
-        self.init(networkClient: NetworkProtectionBackendClient(environment: environment),
+                            errorEvents: EventMapping<NetworkProtectionError>,
+                            isSubscriptionEnabled: Bool) {
+        self.init(networkClient: NetworkProtectionBackendClient(environment: environment, isSubscriptionEnabled: isSubscriptionEnabled),
                   tokenStore: tokenStore,
                   versionStore: versionStore,
                   isManualCodeRedemptionFlow: isManualCodeRedemptionFlow,
