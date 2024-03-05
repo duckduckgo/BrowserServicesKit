@@ -179,15 +179,19 @@ public class AccountManager: AccountManaging {
     }
 
     public func migrateAccessTokenToNewStore() throws {
-        // This migration is to prevent breaking internal tests and should be removed before launch
+        var errorToThrow: Error?
         do {
             if let newAccessToken = try accessTokenStorage.getAccessToken() {
-                throw MigrationError.noMigrationNeeded
+                errorToThrow = MigrationError.noMigrationNeeded
             } else if let oldAccessToken = try storage.getAccessToken() {
                 try accessTokenStorage.store(accessToken: oldAccessToken)
             }
         } catch {
-            throw MigrationError.migrationFailed
+            errorToThrow = MigrationError.migrationFailed
+        }
+
+        if let errorToThrow {
+            throw errorToThrow
         }
     }
 
