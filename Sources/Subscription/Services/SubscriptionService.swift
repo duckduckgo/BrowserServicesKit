@@ -50,51 +50,7 @@ public struct SubscriptionService: APIService {
         return result
     }
 
-    public struct GetSubscriptionDetailsResponse: Decodable {
-        public let productId: String
-        public let name: String
-        public let billingPeriod: BillingPeriod
-        public let startedAt: Date
-        public let expiresOrRenewsAt: Date
-        public let platform: Platform
-        public let status: Status
-
-        public var isSubscriptionActive: Bool {
-            status != .expired && status != .inactive
-        }
-
-        public enum BillingPeriod: String, Codable {
-            case monthly = "Monthly"
-            case yearly = "Yearly"
-            case unknown
-
-            public init(from decoder: Decoder) throws {
-                self = try Self(rawValue: decoder.singleValueContainer().decode(RawValue.self)) ?? .unknown
-            }
-        }
-
-        public enum Platform: String, Codable {
-            case apple, google, stripe
-            case unknown
-
-            public init(from decoder: Decoder) throws {
-                self = try Self(rawValue: decoder.singleValueContainer().decode(RawValue.self)) ?? .unknown
-            }
-        }
-
-        public enum Status: String, Codable {
-            case autoRenewable = "Auto-Renewable"
-            case notAutoRenewable = "Not Auto-Renewable"
-            case gracePeriod = "Grace Period"
-            case inactive = "Inactive"
-            case expired = "Expired"
-            case unknown
-
-            public init(from decoder: Decoder) throws {
-                self = try Self(rawValue: decoder.singleValueContainer().decode(RawValue.self)) ?? .unknown
-            }
-        }
-    }
+    public typealias GetSubscriptionDetailsResponse = Subscription
 
     public static var cachedSubscriptionDetailsResponse: GetSubscriptionDetailsResponse?
 
@@ -139,11 +95,6 @@ public struct SubscriptionService: APIService {
     public struct ConfirmPurchaseResponse: Decodable {
         public let email: String?
         public let entitlements: [Entitlement]
-        public let subscription: GetSubscriptionDetailsResponse
-
-        public struct Entitlement: Decodable {
-            let name: String
-            let product: String
-        }
+        public let subscription: Subscription
     }
 }
