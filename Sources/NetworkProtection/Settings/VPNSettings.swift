@@ -18,7 +18,6 @@
 
 import Combine
 import Foundation
-import Common
 
 /// Persists and publishes changes to tunnel settings.
 ///
