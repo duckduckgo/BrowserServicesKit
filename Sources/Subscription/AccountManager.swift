@@ -45,8 +45,8 @@ public class AccountManager: AccountManaging {
         return accessToken != nil
     }
 
-    public convenience init(appGroup: String) {
-        let accessTokenStorage = SubscriptionTokenKeychainStorage(keychainType: .dataProtection(.named(appGroup)))
+    public convenience init(subscriptionAppGroup: String) {
+        let accessTokenStorage = SubscriptionTokenKeychainStorage(keychainType: .dataProtection(.named(subscriptionAppGroup)))
         self.init(accessTokenStorage: accessTokenStorage)
     }
 
@@ -179,15 +179,19 @@ public class AccountManager: AccountManaging {
     }
 
     public func migrateAccessTokenToNewStore() throws {
-        // This migration is to prevent breaking internal tests and should be removed before launch
+        var errorToThrow: Error?
         do {
             if let newAccessToken = try accessTokenStorage.getAccessToken() {
-                throw MigrationError.noMigrationNeeded
+                errorToThrow = MigrationError.noMigrationNeeded
             } else if let oldAccessToken = try storage.getAccessToken() {
                 try accessTokenStorage.store(accessToken: oldAccessToken)
             }
         } catch {
-            throw MigrationError.migrationFailed
+            errorToThrow = MigrationError.migrationFailed
+        }
+
+        if let errorToThrow {
+            throw errorToThrow
         }
     }
 
@@ -258,8 +262,8 @@ public class AccountManager: AccountManaging {
 
         guard let token = accessToken else { return }
 
-        if case .success(let response) = await SubscriptionService.getSubscriptionDetails(token: token) {
-            if !response.isSubscriptionActive {
+        if case .success(let subscription) = await SubscriptionService.getSubscription(accessToken: token) {
+            if !subscription.isActive {
                 signOut()
             }
         }
@@ -271,7 +275,7 @@ public class AccountManager: AccountManaging {
         var hasEntitlements = false
 
         repeat {
-            switch await AccountManager(appGroup: subscriptionAppGroup).fetchEntitlements() {
+            switch await AccountManager(subscriptionAppGroup: subscriptionAppGroup).fetchEntitlements() {
             case .success(let entitlements):
                 hasEntitlements = !entitlements.isEmpty
             case .failure:

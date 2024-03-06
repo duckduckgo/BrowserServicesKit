@@ -69,7 +69,7 @@ public final class StripePurchaseFlow {
         switch await AuthService.createAccount(emailAccessToken: emailAccessToken) {
         case .success(let response):
             authToken = response.authToken
-            AccountManager(appGroup: subscriptionAppGroup).storeAuthToken(token: authToken)
+            AccountManager(subscriptionAppGroup: subscriptionAppGroup).storeAuthToken(token: authToken)
         case .failure:
             os_log(.error, log: .subscription, "[StripePurchaseFlow] Error: accountCreationFailed")
             return .failure(.accountCreationFailed)
@@ -81,7 +81,7 @@ public final class StripePurchaseFlow {
     public static func completeSubscriptionPurchase(subscriptionAppGroup: String) async {
         os_log(.info, log: .subscription, "[StripePurchaseFlow] completeSubscriptionPurchase")
 
-        let accountManager = AccountManager(appGroup: subscriptionAppGroup)
+        let accountManager = AccountManager(subscriptionAppGroup: subscriptionAppGroup)
 
         if let authToken = accountManager.authToken {
             if case let .success(accessToken) = await accountManager.exchangeAuthTokenToAccessToken(authToken),
