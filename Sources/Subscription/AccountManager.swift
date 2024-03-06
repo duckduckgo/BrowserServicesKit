@@ -37,14 +37,23 @@ public protocol AccountManaging {
 public class AccountManager: AccountManaging {
 
     private let storage: AccountStorage
+    private let accessTokenStorage: SubscriptionTokenStorage
+
     public weak var delegate: AccountManagerKeychainAccessDelegate?
 
     public var isUserAuthenticated: Bool {
         return accessToken != nil
     }
 
-    public init(storage: AccountStorage = AccountKeychainStorage()) {
+    public convenience init(subscriptionAppGroup: String) {
+        let accessTokenStorage = SubscriptionTokenKeychainStorage(keychainType: .dataProtection(.named(subscriptionAppGroup)))
+        self.init(accessTokenStorage: accessTokenStorage)
+    }
+
+    public init(storage: AccountStorage = AccountKeychainStorage(),
+                accessTokenStorage: SubscriptionTokenStorage) {
         self.storage = storage
+        self.accessTokenStorage = accessTokenStorage
     }
 
     public var authToken: String? {
@@ -63,7 +72,7 @@ public class AccountManager: AccountManaging {
 
     public var accessToken: String? {
         do {
-            return try storage.getAccessToken()
+            return try accessTokenStorage.getAccessToken()
         } catch {
             if let error = error as? AccountKeychainAccessError {
                 delegate?.accountManagerKeychainAccessFailed(accessType: .getAccessToken, error: error)
@@ -121,7 +130,7 @@ public class AccountManager: AccountManaging {
         os_log(.info, log: .subscription, "[AccountManager] storeAccount")
 
         do {
-            try storage.store(accessToken: token)
+            try accessTokenStorage.store(accessToken: token)
         } catch {
             if let error = error as? AccountKeychainAccessError {
                 delegate?.accountManagerKeychainAccessFailed(accessType: .storeAccessToken, error: error)
@@ -157,6 +166,7 @@ public class AccountManager: AccountManaging {
 
         do {
             try storage.clearAuthenticationState()
+            try accessTokenStorage.removeAccessToken()
         } catch {
             if let error = error as? AccountKeychainAccessError {
                 delegate?.accountManagerKeychainAccessFailed(accessType: .clearAuthenticationData, error: error)
@@ -166,6 +176,28 @@ public class AccountManager: AccountManaging {
         }
 
         NotificationCenter.default.post(name: .accountDidSignOut, object: self, userInfo: nil)
+    }
+
+    public func migrateAccessTokenToNewStore() throws {
+        var errorToThrow: Error?
+        do {
+            if let newAccessToken = try accessTokenStorage.getAccessToken() {
+                errorToThrow = MigrationError.noMigrationNeeded
+            } else if let oldAccessToken = try storage.getAccessToken() {
+                try accessTokenStorage.store(accessToken: oldAccessToken)
+            }
+        } catch {
+            errorToThrow = MigrationError.migrationFailed
+        }
+
+        if let errorToThrow {
+            throw errorToThrow
+        }
+    }
+
+    public enum MigrationError: Error {
+        case migrationFailed
+        case noMigrationNeeded
     }
 
     // MARK: -
@@ -238,12 +270,12 @@ public class AccountManager: AccountManaging {
     }
 
     @discardableResult
-    public static func checkForEntitlements(wait waitTime: Double, retry retryCount: Int) async -> Bool {
+    public static func checkForEntitlements(subscriptionAppGroup: String, wait waitTime: Double, retry retryCount: Int) async -> Bool {
         var count = 0
         var hasEntitlements = false
 
         repeat {
-            switch await AccountManager().fetchEntitlements() {
+            switch await AccountManager(subscriptionAppGroup: subscriptionAppGroup).fetchEntitlements() {
             case .success(let entitlements):
                 hasEntitlements = !entitlements.isEmpty
             case .failure:
