@@ -137,7 +137,6 @@ public struct WebsiteBreakage {
         model: String,
         errors: [Error]?,
         httpStatusCodes: [Int]?,
-        httpStatusCodes: [Int]?,
         openerContext: OpenerContext?,
         vpnOn: Bool,
         jsPerformance: [Double]?,
