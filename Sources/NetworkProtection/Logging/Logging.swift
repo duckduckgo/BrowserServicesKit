@@ -68,6 +68,10 @@ extension OSLog {
     public static var networkProtectionSleepLog: OSLog {
         Logging.networkProtectionSleepLoggingEnabled ? Logging.networkProtectionSleepLog : .disabled
     }
+
+    public static var networkProtectionEntitlementMonitorLog: OSLog {
+        Logging.networkProtectionEntitlementLoggingEnabled ? Logging.networkProtectionEntitlementLog : .disabled
+    }
 }
 
 // swiftlint:disable line_length
@@ -111,5 +115,7 @@ struct Logging {
     fileprivate static let networkProtectionSleepLoggingEnabled = true
     fileprivate static let networkProtectionSleepLog: OSLog = OSLog(subsystem: subsystem, category: "Network Protection: Sleep and Wake")
 
+    fileprivate static let networkProtectionEntitlementLoggingEnabled = true
+    fileprivate static let networkProtectionEntitlementLog: OSLog = OSLog(subsystem: subsystem, category: "Network Protection: Entitlement Monitor")
 }
 // swiftlint:enable line_length

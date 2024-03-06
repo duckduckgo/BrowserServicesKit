@@ -58,28 +58,34 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
 
     private let errorEvents: EventMapping<NetworkProtectionError>?
 
+    private let isSubscriptionEnabled: Bool
+
     public init(environment: VPNSettings.SelectedEnvironment,
                 tokenStore: NetworkProtectionTokenStore,
                 keyStore: NetworkProtectionKeyStore,
                 serverListStore: NetworkProtectionServerListStore? = nil,
-                errorEvents: EventMapping<NetworkProtectionError>?) {
-        self.init(networkClient: NetworkProtectionBackendClient(environment: environment),
+                errorEvents: EventMapping<NetworkProtectionError>?,
+                isSubscriptionEnabled: Bool) {
+        self.init(networkClient: NetworkProtectionBackendClient(environment: environment, isSubscriptionEnabled: isSubscriptionEnabled),
                   tokenStore: tokenStore,
                   keyStore: keyStore,
                   serverListStore: serverListStore,
-                  errorEvents: errorEvents)
+                  errorEvents: errorEvents,
+                  isSubscriptionEnabled: isSubscriptionEnabled)
     }
 
     init(networkClient: NetworkProtectionClient,
          tokenStore: NetworkProtectionTokenStore,
          keyStore: NetworkProtectionKeyStore,
          serverListStore: NetworkProtectionServerListStore? = nil,
-         errorEvents: EventMapping<NetworkProtectionError>?) {
+         errorEvents: EventMapping<NetworkProtectionError>?,
+         isSubscriptionEnabled: Bool) {
         self.networkClient = networkClient
         self.tokenStore = tokenStore
         self.keyStore = keyStore
         self.serverListStore = serverListStore ?? NetworkProtectionServerListFileSystemStore(errorEvents: errorEvents)
         self.errorEvents = errorEvents
+        self.isSubscriptionEnabled = isSubscriptionEnabled
     }
 
     /// Requests a new server list from the backend and updates it locally.
@@ -169,6 +175,8 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     //     - keyPair: the key pair that was used to register with the server, and that should be used to configure the tunnel
     //
     // - Throws:`NetworkProtectionError`
+    //
+    // swiftlint:disable:next cyclomatic_complexity
     private func register(keyPair: KeyPair,
                           selectionMethod: NetworkProtectionServerSelectionMethod) async throws -> (server: NetworkProtectionServer,
                                                                                                     newExpiration: Date?) {
@@ -224,6 +232,11 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
             selectedServer = registeredServer
             return (selectedServer, selectedServer.expirationDate)
         case .failure(let error):
+            if isSubscriptionEnabled, case .accessDenied = error {
+                errorEvents?.fire(.vpnAccessRevoked)
+                throw NetworkProtectionError.vpnAccessRevoked
+            }
+
             handle(clientError: error)
 
             let cachedServer = try cachedServer(registeredWith: keyPair)

@@ -45,6 +45,7 @@ public enum NetworkProtectionClientError: Error, NetworkProtectionErrorConvertib
     case failedToRetrieveAuthToken(AuthenticationFailureResponse)
     case failedToParseRedeemResponse(Error)
     case invalidAuthToken
+    case accessDenied
 
     var networkProtectionError: NetworkProtectionError {
         switch self {
@@ -61,6 +62,7 @@ public enum NetworkProtectionClientError: Error, NetworkProtectionErrorConvertib
         case .failedToRetrieveAuthToken(let response): return .failedToRetrieveAuthToken(response)
         case .failedToParseRedeemResponse(let error): return .failedToParseRedeemResponse(error)
         case .invalidAuthToken: return .invalidAuthToken
+        case .accessDenied: return .vpnAccessRevoked
         }
     }
 }
@@ -164,9 +166,17 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
     }()
 
     private let endpointURL: URL
+    private let isSubscriptionEnabled: Bool
 
-    init(environment: VPNSettings.SelectedEnvironment = .default) {
-        endpointURL = environment.endpointURL
+    init(environment: VPNSettings.SelectedEnvironment = .default, isSubscriptionEnabled: Bool) {
+        self.isSubscriptionEnabled = isSubscriptionEnabled
+
+        // todo - https://app.asana.com/0/0/1206470585910129/f
+        if isSubscriptionEnabled {
+            self.endpointURL = URL(string: "https://staging1.netp.duckduckgo.com")!
+        } else {
+            self.endpointURL = environment.endpointURL
+        }
     }
 
     func getLocations(authToken: String) async -> Result<[NetworkProtectionLocation], NetworkProtectionClientError> {
@@ -249,7 +259,7 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
             switch response.statusCode {
             case 200: responseData = data
             case 401: return .failure(.invalidAuthToken)
-            default: return .failure(.failedToFetchRegisteredServers(nil))
+            default: return (response.statusCode == 403 && isSubscriptionEnabled) ? .failure(.accessDenied) : .failure(.failedToFetchRegisteredServers(nil))
             }
         } catch {
             return .failure(NetworkProtectionClientError.failedToFetchRegisteredServers(error))

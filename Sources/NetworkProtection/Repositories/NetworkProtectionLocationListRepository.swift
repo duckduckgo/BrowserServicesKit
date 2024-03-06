@@ -28,23 +28,28 @@ final public class NetworkProtectionLocationListCompositeRepository: NetworkProt
     private let client: NetworkProtectionClient
     private let tokenStore: NetworkProtectionTokenStore
     private let errorEvents: EventMapping<NetworkProtectionError>
+    private let isSubscriptionEnabled: Bool
 
     convenience public init(environment: VPNSettings.SelectedEnvironment,
                             tokenStore: NetworkProtectionTokenStore,
-                            errorEvents: EventMapping<NetworkProtectionError>) {
+                            errorEvents: EventMapping<NetworkProtectionError>,
+                            isSubscriptionEnabled: Bool) {
         self.init(
-            client: NetworkProtectionBackendClient(environment: environment),
+            client: NetworkProtectionBackendClient(environment: environment, isSubscriptionEnabled: isSubscriptionEnabled),
             tokenStore: tokenStore,
-            errorEvents: errorEvents
+            errorEvents: errorEvents,
+            isSubscriptionEnabled: isSubscriptionEnabled
         )
     }
 
     init(client: NetworkProtectionClient,
          tokenStore: NetworkProtectionTokenStore,
-         errorEvents: EventMapping<NetworkProtectionError>) {
+         errorEvents: EventMapping<NetworkProtectionError>,
+         isSubscriptionEnabled: Bool) {
         self.client = client
         self.tokenStore = tokenStore
         self.errorEvents = errorEvents
+        self.isSubscriptionEnabled = isSubscriptionEnabled
     }
 
     @MainActor

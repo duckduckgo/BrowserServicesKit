@@ -1,7 +1,7 @@
 //
-//  NetworkProtectionTokenStoreMocks.swift
+//  Entitlement.swift
 //
-//  Copyright © 2021 DuckDuckGo. All rights reserved.
+//  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -17,22 +17,8 @@
 //
 
 import Foundation
-@testable import NetworkProtection
 
-final class NetworkProtectionTokenStoreMock: NetworkProtectionTokenStore {
-
-    var token: String?
-
-    func store(_ token: String) {
-        self.token = token
-    }
-
-    func fetchToken() -> String? {
-        token
-    }
-
-    func deleteToken() {
-        guard let token = fetchToken(), !Self.isSubscriptionAccessToken(token) else { return }
-        self.token = nil
-    }
+public struct Entitlement: Decodable {
+    let name: String
+    let product: String
 }
