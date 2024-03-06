@@ -78,9 +78,9 @@ public final class AppStoreRestoreFlow {
 
         var isSubscriptionActive = false
 
-        switch await SubscriptionService.getSubscriptionDetails(token: accessToken) {
-        case .success(let response):
-            isSubscriptionActive = response.isSubscriptionActive
+        switch await SubscriptionService.getSubscription(accessToken: accessToken) {
+        case .success(let subscription):
+            isSubscriptionActive = subscription.isActive
         case .failure:
             os_log(.error, log: .subscription, "[AppStoreRestoreFlow] Error: failedToFetchSubscriptionDetails")
             return .failure(.failedToFetchSubscriptionDetails)
