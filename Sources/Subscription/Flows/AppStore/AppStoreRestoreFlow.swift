@@ -42,7 +42,7 @@ public final class AppStoreRestoreFlow {
             return .failure(.missingAccountOrTransactions)
         }
 
-        let accountManager = AccountManager(subscriptionAppGroup: appGroup)
+        let accountManager = AccountManager(subscriptionAppGroup: subscriptionAppGroup)
 
         // Do the store login to get short-lived token
         let authToken: String

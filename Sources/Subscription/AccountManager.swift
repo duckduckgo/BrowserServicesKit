@@ -46,7 +46,7 @@ public class AccountManager: AccountManaging {
     }
 
     public convenience init(subscriptionAppGroup: String) {
-        let accessTokenStorage = SubscriptionTokenKeychainStorage(keychainType: .dataProtection(.named(appGroup)))
+        let accessTokenStorage = SubscriptionTokenKeychainStorage(keychainType: .dataProtection(.named(subscriptionAppGroup)))
         self.init(accessTokenStorage: accessTokenStorage)
     }
 
