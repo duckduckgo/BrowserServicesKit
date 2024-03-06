@@ -45,7 +45,7 @@ public class AccountManager: AccountManaging {
         return accessToken != nil
     }
 
-    public convenience init(appGroup: String) {
+    public convenience init(subscriptionAppGroup: String) {
         let accessTokenStorage = SubscriptionTokenKeychainStorage(keychainType: .dataProtection(.named(appGroup)))
         self.init(accessTokenStorage: accessTokenStorage)
     }
@@ -275,7 +275,7 @@ public class AccountManager: AccountManaging {
         var hasEntitlements = false
 
         repeat {
-            switch await AccountManager(appGroup: subscriptionAppGroup).fetchEntitlements() {
+            switch await AccountManager(subscriptionAppGroup: subscriptionAppGroup).fetchEntitlements() {
             case .success(let entitlements):
                 hasEntitlements = !entitlements.isEmpty
             case .failure:

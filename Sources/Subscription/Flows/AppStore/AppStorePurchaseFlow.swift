@@ -60,11 +60,11 @@ public final class AppStorePurchaseFlow {
     public static func purchaseSubscription(with subscriptionIdentifier: String, emailAccessToken: String?, subscriptionAppGroup: String) async -> Result<Void, AppStorePurchaseFlow.Error> {
         os_log(.info, log: .subscription, "[AppStorePurchaseFlow] purchaseSubscription")
 
-        let accountManager = AccountManager(appGroup: subscriptionAppGroup)
+        let accountManager = AccountManager(subscriptionAppGroup: subscriptionAppGroup)
         let externalID: String
 
         // Check for past transactions most recent
-        switch await AppStoreRestoreFlow.restoreAccountFromPastPurchase(appGroup: subscriptionAppGroup) {
+        switch await AppStoreRestoreFlow.restoreAccountFromPastPurchase(subscriptionAppGroup: subscriptionAppGroup) {
         case .success:
             os_log(.info, log: .subscription, "[AppStorePurchaseFlow] purchaseSubscription -> restoreAccountFromPastPurchase: activeSubscriptionAlreadyPresent")
             return .failure(.activeSubscriptionAlreadyPresent)
@@ -99,7 +99,7 @@ public final class AppStorePurchaseFlow {
             return .success(())
         case .failure(let error):
             os_log(.error, log: .subscription, "[AppStorePurchaseFlow] purchaseSubscription error: %{public}s", String(reflecting: error))
-            AccountManager(appGroup: subscriptionAppGroup).signOut()
+            AccountManager(subscriptionAppGroup: subscriptionAppGroup).signOut()
             switch error {
             case .purchaseCancelledByUser:
                 return .failure(.cancelledByUser)
