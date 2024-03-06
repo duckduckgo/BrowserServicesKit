@@ -37,22 +37,22 @@ public struct SubscriptionService: APIService {
 
     // MARK: -
 
-    public static func getSubscriptionDetails(token: String) async -> Result<GetSubscriptionDetailsResponse, APIServiceError> {
-        let result: Result<GetSubscriptionDetailsResponse, APIServiceError> = await executeAPICall(method: "GET", endpoint: "subscription", headers: makeAuthorizationHeader(for: token))
+    public static func getSubscription(accessToken: String) async -> Result<GetSubscriptionResponse, APIServiceError> {
+        let result: Result<GetSubscriptionResponse, APIServiceError> = await executeAPICall(method: "GET", endpoint: "subscription", headers: makeAuthorizationHeader(for: accessToken))
 
         switch result {
         case .success(let response):
-            cachedSubscriptionDetailsResponse = response
+            cachedGetSubscriptionResponse = response
         case .failure:
-            cachedSubscriptionDetailsResponse = nil
+            cachedGetSubscriptionResponse = nil
         }
 
         return result
     }
 
-    public typealias GetSubscriptionDetailsResponse = Subscription
+    public typealias GetSubscriptionResponse = Subscription
 
-    public static var cachedSubscriptionDetailsResponse: GetSubscriptionDetailsResponse?
+    public static var cachedGetSubscriptionResponse: GetSubscriptionResponse?
 
     // MARK: -
 
