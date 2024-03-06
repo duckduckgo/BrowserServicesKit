@@ -1019,8 +1019,19 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     private func handleGetServerLocation(completionHandler: ((Data?) -> Void)? = nil) {
-        let response = lastSelectedServerInfo.map { ExtensionMessageString($0.serverLocation) }
-        completionHandler?(response?.rawValue)
+        guard let attributes = lastSelectedServerInfo?.attributes else {
+            completionHandler?(nil)
+            return
+        }
+
+        let encoder = JSONEncoder()
+        guard let encoded = try? encoder.encode(attributes), let encodedJSONString = String(data: encoded, encoding: .utf8) else {
+            assertionFailure("Failed to encode server attributes")
+            completionHandler?(nil)
+            return
+        }
+
+        completionHandler?(ExtensionMessageString(encodedJSONString).rawValue)
     }
 
     private func handleGetServerAddress(completionHandler: ((Data?) -> Void)? = nil) {

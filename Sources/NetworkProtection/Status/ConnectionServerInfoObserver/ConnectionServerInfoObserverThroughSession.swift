@@ -119,11 +119,18 @@ public class ConnectionServerInfoObserverThroughSession: ConnectionServerInfoObs
         }
     }
 
-    private func serverLocation(from session: NETunnelProviderSession) async -> String? {
+    private func serverLocation(from session: NETunnelProviderSession) async -> NetworkProtectionServerInfo.ServerAttributes? {
         await withCheckedContinuation { continuation in
             do {
                 try session.sendProviderMessage(.getServerLocation) { (serverLocation: ExtensionMessageString?) in
-                    continuation.resume(returning: serverLocation?.value)
+                    guard let locationData = serverLocation?.rawValue else {
+                        continuation.resume(returning: nil)
+                        return
+                    }
+
+                    let decoder = JSONDecoder()
+                    let decoded = try? decoder.decode(NetworkProtectionServerInfo.ServerAttributes.self, from: locationData)
+                    continuation.resume(returning: decoded)
                 }
             } catch {
                 // Cannot communicate with session, this is acceptable in case the session is down
