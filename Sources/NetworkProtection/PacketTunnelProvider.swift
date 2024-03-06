@@ -781,13 +781,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             )
         } catch {
             if isSubscriptionEnabled, let error = error as? NetworkProtectionError, case .vpnAccessRevoked = error {
-                os_log("🔵 Expired subscription", log: .networkProtection, type: .error)
-                defaults.enableEntitlementMessaging()
-                notificationsPresenter.showEntitlementNotification()
-
-                // We add a delay here so the notification has a chance to show up
-                try? await Task.sleep(interval: .seconds(5))
-
+                await handleInvalidEntitlement(attemptsShutdown: false)
                 throw TunnelError.vpnAccessRevoked
             }
 
@@ -1196,28 +1190,31 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             /// Ignore otherwise
             switch result {
             case .invalidEntitlement:
-                self?.handleInvalidEntitlement()
+                Task { [weak self] in
+                    await self?.handleInvalidEntitlement(attemptsShutdown: true)
+                }
             case .validEntitlement, .error:
                 break
             }
         }
     }
 
-    private func handleInvalidEntitlement() {
+    @MainActor
+    private func handleInvalidEntitlement(attemptsShutdown: Bool) async {
         defaults.enableEntitlementMessaging()
         notificationsPresenter.showEntitlementNotification()
 
-        Task { @MainActor [weak self] in
-            await self?.stopMonitors()
+        await stopMonitors()
 
-            // We add a delay here so the notification has a chance to show up
-            try? await Task.sleep(interval: .seconds(5))
+        // We add a delay here so the notification has a chance to show up
+        try? await Task.sleep(interval: .seconds(5))
 
-            if #available(iOS 17, *) {
-                self?.handleShutDown()
-            } else {
-                await self?.rekey()
-            }
+        guard attemptsShutdown else { return }
+
+        if #available(iOS 17, *) {
+            handleShutDown()
+        } else {
+            await rekey()
         }
     }
 
