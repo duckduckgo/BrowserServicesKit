@@ -35,6 +35,12 @@ public struct WebsiteBreakage {
         case mobile
     }
 
+    public enum OpenerContext: String {
+        case serp
+        case external
+        case navigation
+    }
+
     public static let allowedQueryReservedCharacters = CharacterSet(charactersIn: ",")
 
     let siteUrl: URL
@@ -54,6 +60,10 @@ public struct WebsiteBreakage {
     var lastSentDay: String?
     let errors: [Error]?
     let httpStatusCodes: [Int]?
+    let openerContext: OpenerContext?
+    let vpnOn: Bool
+    let jsPerformance: [Double]?
+    let userRefreshCount: Int
 #if os(iOS)
     let siteType: SiteType // ?? not in documentation
     let atb: String
@@ -77,7 +87,11 @@ public struct WebsiteBreakage {
         protectionsState: Bool,
         reportFlow: Source,
         errors: [Error]?,
-        httpStatusCodes: [Int]?
+        httpStatusCodes: [Int]?,
+        openerContext: OpenerContext?,
+        vpnOn: Bool,
+        jsPerformance: [Double]?,
+        userRefreshCount: Int
     ) {
         self.siteUrl = siteUrl
         self.category = category
@@ -95,6 +109,10 @@ public struct WebsiteBreakage {
         self.reportFlow = reportFlow
         self.errors = errors
         self.httpStatusCodes = httpStatusCodes
+        self.openerContext = openerContext
+        self.vpnOn = vpnOn
+        self.jsPerformance = jsPerformance
+        self.userRefreshCount = userRefreshCount
     }
 #endif
 
@@ -118,7 +136,12 @@ public struct WebsiteBreakage {
         atb: String,
         model: String,
         errors: [Error]?,
-        httpStatusCodes: [Int]?
+        httpStatusCodes: [Int]?,
+        httpStatusCodes: [Int]?,
+        openerContext: OpenerContext?,
+        vpnOn: Bool,
+        jsPerformance: [Double]?,
+        userRefreshCount: Int
     ) {
         self.siteUrl = siteUrl
         self.category = category
@@ -139,6 +162,10 @@ public struct WebsiteBreakage {
         self.model = model
         self.errors = errors
         self.httpStatusCodes = httpStatusCodes
+        self.openerContext = openerContext
+        self.vpnOn = vpnOn
+        self.jsPerformance = jsPerformance
+        self.userRefreshCount = userRefreshCount
     }
 #endif
 
@@ -158,7 +185,10 @@ public struct WebsiteBreakage {
             "os": osVersion,
             "manufacturer": manufacturer,
             "reportFlow": reportFlow.rawValue,
-            "protectionsState": protectionsState ? "true" : "false"
+            "protectionsState": protectionsState ? "true" : "false",
+            "openerContext": openerContext?.rawValue ?? "",
+            "vpnOn": vpnOn ? "true" : "false",
+            "userRefreshCount": String(userRefreshCount)
         ]
 
         if let lastSentDay = lastSentDay {
@@ -176,6 +206,11 @@ public struct WebsiteBreakage {
                 return "\(error.code) - \(error.domain):\(error.localizedDescription)"
             }
             result["errorDescriptions"] = errorDescriptions.joined(separator: ",")
+        }
+
+        if let jsPerformance {
+            let perf = jsPerformance.map { String($0) }.joined(separator: ",")
+            result["jsPerformance"] = perf
         }
 
 #if os(iOS)
