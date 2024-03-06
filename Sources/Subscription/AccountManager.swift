@@ -230,8 +230,8 @@ public class AccountManager: AccountManaging {
 
         guard let token = accessToken else { return }
 
-        if case .success(let response) = await SubscriptionService.getSubscriptionDetails(token: token) {
-            if !response.isSubscriptionActive {
+        if case .success(let subscription) = await SubscriptionService.getSubscription(accessToken: token) {
+            if !subscription.isActive {
                 signOut()
             }
         }

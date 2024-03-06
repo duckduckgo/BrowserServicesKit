@@ -37,41 +37,22 @@ public struct SubscriptionService: APIService {
 
     // MARK: -
 
-    public static func getSubscriptionDetails(token: String) async -> Result<GetSubscriptionDetailsResponse, APIServiceError> {
-        let result: Result<GetSubscriptionDetailsResponse, APIServiceError> = await executeAPICall(method: "GET", endpoint: "subscription", headers: makeAuthorizationHeader(for: token))
+    public static func getSubscription(accessToken: String) async -> Result<GetSubscriptionResponse, APIServiceError> {
+        let result: Result<GetSubscriptionResponse, APIServiceError> = await executeAPICall(method: "GET", endpoint: "subscription", headers: makeAuthorizationHeader(for: accessToken))
 
         switch result {
         case .success(let response):
-            cachedSubscriptionDetailsResponse = response
+            cachedGetSubscriptionResponse = response
         case .failure:
-            cachedSubscriptionDetailsResponse = nil
+            cachedGetSubscriptionResponse = nil
         }
 
         return result
     }
 
-    public struct GetSubscriptionDetailsResponse: Decodable {
-        public let productId: String
-        public let startedAt: Date
-        public let expiresOrRenewsAt: Date
-        public let platform: Platform
-        public let status: String
+    public typealias GetSubscriptionResponse = Subscription
 
-        public var isSubscriptionActive: Bool {
-            status.lowercased() != "expired" && status.lowercased() != "inactive"
-        }
-
-        public enum Platform: String, Codable {
-            case apple, google, stripe
-            case unknown
-
-            public init(from decoder: Decoder) throws {
-                self = try Self(rawValue: decoder.singleValueContainer().decode(RawValue.self)) ?? .unknown
-            }
-        }
-    }
-
-    public static var cachedSubscriptionDetailsResponse: GetSubscriptionDetailsResponse?
+    public static var cachedGetSubscriptionResponse: GetSubscriptionResponse?
 
     // MARK: -
 
@@ -101,4 +82,19 @@ public struct SubscriptionService: APIService {
         public let customerPortalUrl: String
     }
 
+    // MARK: -
+
+    public static func confirmPurchase(accessToken: String, signature: String) async -> Result<ConfirmPurchaseResponse, APIServiceError> {
+        let headers = makeAuthorizationHeader(for: accessToken)
+        let bodyDict = ["signedTransactionInfo": signature]
+
+        guard let bodyData = try? JSONEncoder().encode(bodyDict) else { return .failure(.encodingError) }
+        return await executeAPICall(method: "POST", endpoint: "purchase/confirm/apple", headers: headers, body: bodyData)
+    }
+
+    public struct ConfirmPurchaseResponse: Decodable {
+        public let email: String?
+        public let entitlements: [Entitlement]
+        public let subscription: Subscription
+    }
 }
