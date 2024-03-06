@@ -807,6 +807,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     // swiftlint:disable:next cyclomatic_complexity
     public override func handleAppMessage(_ messageData: Data, completionHandler: ((Data?) -> Void)? = nil) {
         guard let message = ExtensionMessage(rawValue: messageData) else {
+            os_log("⚠️ NO MESSAGE", log: .networkProtection, type: .error)
             completionHandler?(nil)
             return
         }
@@ -847,6 +848,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             simulateTunnelMemoryOveruse(completionHandler: completionHandler)
         case .simulateConnectionInterruption:
             simulateConnectionInterruption(completionHandler: completionHandler)
+        case .getConnectionThroughput:
+            os_log("⚠️ GETTING THROUGHPUT MESSAGE", log: .networkProtection, type: .error)
+            getConnectionThroughput(completionHandler: completionHandler)
         }
     }
 
@@ -1018,6 +1022,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
+    // SAMDEBUG: Encode data and send it over
     private func handleGetServerLocation(completionHandler: ((Data?) -> Void)? = nil) {
         guard let attributes = lastSelectedServerInfo?.attributes else {
             completionHandler?(nil)
@@ -1117,6 +1122,18 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         Task { @MainActor in
             connectionTester.failNextTest()
             completionHandler?(nil)
+        }
+    }
+
+    private func getConnectionThroughput(completionHandler: ((Data?) -> Void)? = nil) {
+        Task { @MainActor in
+            guard let (received, sent) = try? await adapter.getBytesTransmitted() else {
+                completionHandler?(nil)
+                return
+            }
+
+            let string = "\(received),\(sent)"
+            completionHandler?(ExtensionMessageString(string).rawValue)
         }
     }
 
