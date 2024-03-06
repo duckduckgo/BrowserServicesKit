@@ -931,11 +931,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         case .sendTestNotification:
             handleSendTestNotification(completionHandler: completionHandler)
         case .disableConnectOnDemandAndShutDown:
-            if #available(iOS 17, *) {
-                handleShutDown(completionHandler: completionHandler)
-            } else {
-                Task {
-                    await rekey()
+            Task { [weak self] in
+                await self?.attemptShutdown {
                     completionHandler?(nil)
                 }
             }
@@ -1209,13 +1206,21 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         // We add a delay here so the notification has a chance to show up
         try? await Task.sleep(interval: .seconds(5))
 
-        guard attemptsShutdown else { return }
+        if attemptsShutdown {
+            await attemptShutdown()
+        }
+    }
 
+    // Attempt to shut down the tunnel
+    // On iOS 16 and below, as a workaround, we rekey to force a 403 error so that the tunnel fails to restart
+    @MainActor
+    private func attemptShutdown(completion: (() -> Void)? = nil) async {
         if #available(iOS 17, *) {
             handleShutDown()
         } else {
             await rekey()
         }
+        completion?()
     }
 
     @MainActor
