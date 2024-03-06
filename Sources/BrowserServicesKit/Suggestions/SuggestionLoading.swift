@@ -111,7 +111,7 @@ public protocol SuggestionLoadingDataSource: AnyObject {
 
     func bookmarks(for suggestionLoading: SuggestionLoading) -> [Bookmark]
 
-    func history(for suggestionLoading: SuggestionLoading) -> [HistoryEntry]
+    func history(for suggestionLoading: SuggestionLoading) -> [HistorySuggestion]
 
     func suggestionLoading(_ suggestionLoading: SuggestionLoading,
                            suggestionDataFromUrl url: URL,

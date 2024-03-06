@@ -42,6 +42,8 @@ public final class VPNSettings {
         case setVPNFirstEnabled(_ vpnFirstEnabled: Date?)
         case setNetworkPathChange(_ newPath: String?)
         case setDisableRekeying(_ disableRekeying: Bool)
+        case setShowEntitlementAlert(_ showsAlert: Bool)
+        case setShowEntitlementNotification(_ showsNotification: Bool)
     }
 
     public enum RegistrationKeyValidity: Codable, Equatable {
@@ -184,6 +186,20 @@ public final class VPNSettings {
                 Change.setDisableRekeying(disableRekeying)
             }.eraseToAnyPublisher()
 
+        let showEntitlementAlertPublisher = showEntitlementAlertPublisher
+            .dropFirst()
+            .removeDuplicates()
+            .map { showsAlert in
+                Change.setShowEntitlementAlert(showsAlert)
+            }.eraseToAnyPublisher()
+
+        let showEntitlementNotificationPublisher = showEntitlementNotificationPublisher
+            .dropFirst()
+            .removeDuplicates()
+            .map { showsNotification in
+                Change.setShowEntitlementNotification(showsNotification)
+            }.eraseToAnyPublisher()
+
         return Publishers.MergeMany(
             connectOnLoginPublisher,
             includeAllNetworksPublisher,
@@ -196,6 +212,8 @@ public final class VPNSettings {
             showInMenuBarPublisher,
             vpnFirstEnabledPublisher,
             networkPathChangePublisher,
+            showEntitlementAlertPublisher,
+            showEntitlementNotificationPublisher,
             disableRekeyingPublisher).eraseToAnyPublisher()
     }()
 
@@ -250,6 +268,10 @@ public final class VPNSettings {
                 newPath: newPath ?? "unknown")
         case .setDisableRekeying(let disableRekeying):
             self.disableRekeying = disableRekeying
+        case .setShowEntitlementAlert(let showsAlert):
+            self.showEntitlementAlert = showsAlert
+        case .setShowEntitlementNotification(let showsNotification):
+            self.showEntitlementNotification = showsNotification
         }
     }
     // swiftlint:enable cyclomatic_complexity
@@ -488,5 +510,44 @@ public final class VPNSettings {
         set {
             defaults.networkProtectionSettingDisableRekeying = newValue
         }
+    }
+
+    // MARK: - Whether to show expired entitlement messaging
+
+    public var showEntitlementAlertPublisher: AnyPublisher<Bool, Never> {
+        defaults.showEntitlementAlertPublisher
+    }
+
+    public var showEntitlementAlert: Bool {
+        get {
+            defaults.showEntitlementAlert
+        }
+
+        set {
+            defaults.showEntitlementAlert = newValue
+        }
+    }
+
+    public var showEntitlementNotificationPublisher: AnyPublisher<Bool, Never> {
+        defaults.showEntitlementNotificationPublisher
+    }
+
+    public var showEntitlementNotification: Bool {
+        get {
+            defaults.showEntitlementNotification
+        }
+
+        set {
+            defaults.showEntitlementNotification = newValue
+        }
+    }
+
+    public func enableEntitlementMessaging() {
+        apply(change: .setShowEntitlementAlert(true))
+        apply(change: .setShowEntitlementNotification(true))
+    }
+
+    public func resetEntitlementMessaging() {
+        defaults.resetEntitlementMessaging()
     }
 }
