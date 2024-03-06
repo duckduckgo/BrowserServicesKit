@@ -26,7 +26,7 @@ extension UserDefaults {
     }
 
     @objc
-    public dynamic var showEntitlementAlert: Bool {
+    dynamic var showEntitlementAlert: Bool {
         get {
             value(forKey: showEntitlementAlertKey) as? Bool ?? false
         }
@@ -48,7 +48,7 @@ extension UserDefaults {
     }
 
     @objc
-    public dynamic var showEntitlementNotification: Bool {
+    dynamic var showEntitlementNotification: Bool {
         get {
             value(forKey: showEntitlementNotificationKey) as? Bool ?? false
         }
