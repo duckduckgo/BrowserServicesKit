@@ -23,6 +23,10 @@ import SecureStorage
 
 @testable import BrowserServicesKit
 
+private extension URL {
+    static let duckduckgo = #URL("https://duckduckgo.com/")
+}
+
 internal class MockAutofillDatabaseProvider: AutofillDatabaseProvider {
 
     var _accounts = [SecureVaultModels.WebsiteAccount]()
@@ -36,7 +40,7 @@ internal class MockAutofillDatabaseProvider: AutofillDatabaseProvider {
 
     var db: DatabaseWriter
 
-    required init(file: URL = #URL("https://duckduckgo.com/"), key: Data = Data()) throws {
+    required init(file: URL = .duckduckgo, key: Data = Data()) throws {
         self.db = try! DatabaseQueue(named: "TestQueue")
     }
 

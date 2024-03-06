@@ -91,7 +91,7 @@ class AdClickAttributionFeatureTests: XCTestCase {
         XCTAssertFalse(feature.isMatchingAttributionFormat(#URL("https://sub.good.first-party.site/y.js?u3=2")))
 
         // No ad domain param
-        XCTAssertFalse(feature.isMatchingAttributionFormat(#URL("https://good.first-party.example/y.js?test_param=tst.com")))
+        XCTAssertFalse(feature.isMatchingAttributionFormat(#URL("https://good.first-party.example/y.js?test_param=test.com")))
 
         // Testing for hardcoded value
         XCTAssertFalse(feature.isMatchingAttributionFormat(#URL("https://other.first-party.com/m.js?ad_domain=a.com")))
@@ -99,8 +99,8 @@ class AdClickAttributionFeatureTests: XCTestCase {
 
         // Dropping parameters tests
         XCTAssertTrue(feature.isMatchingAttributionFormat(#URL("https://different.party.com/y.js?test_param=&foo=&bar=")))
-        XCTAssertTrue(feature.isMatchingAttributionFormat(#URL("https://different.party.com/y.js?test_param=examle.com&foo=&bar=")))
-        XCTAssertTrue(feature.isMatchingAttributionFormat(#URL("https://different.party.co/y.js?test_param=&foo=&bar=&u3=xyz")))
+        XCTAssertTrue(feature.isMatchingAttributionFormat(#URL("https://different.party.com/y.js?test_param=example.com&foo=&bar=")))
+        XCTAssertTrue(feature.isMatchingAttributionFormat(#URL("https://different.party.com/y.js?test_param=&foo=&bar=&u3=xyz")))
         XCTAssertFalse(feature.isMatchingAttributionFormat(#URL("https://different.party.com/y.js?foo=&bar=&u3=xyz")))
         XCTAssertFalse(feature.isMatchingAttributionFormat(#URL("https://different.party.com/y.js?foo=&bar=")))
     }
