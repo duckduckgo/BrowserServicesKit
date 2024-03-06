@@ -48,7 +48,7 @@ let package = Package(
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
         .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
         .package(url: "https://github.com/duckduckgo/wireguard-apple", exact: "1.1.1"),
-        .package(url: "https://github.com/duckduckgo/apple-toolbox.git", revision: "b438ac3ca6c04209e93467f7b3e0aeaed6c442f1"),
+        .package(url: "https://github.com/duckduckgo/apple-toolbox.git", revision: "2c598d005facc8799178853c6b5d63c231b897d1"),
     ],
     targets: [
         .target(
