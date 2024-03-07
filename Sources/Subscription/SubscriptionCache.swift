@@ -23,7 +23,7 @@ public class SubscriptionCache {
 
     public enum Component: String, CustomStringConvertible, CaseIterable {
         public var description: String { rawValue }
- 
+
         case entitlements
     }
 

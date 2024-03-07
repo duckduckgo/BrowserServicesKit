@@ -256,17 +256,17 @@ public class AccountManager: AccountManaging {
         }
 
         public func fetchEntitlements(skipCache: Bool = false) async -> Result<[Entitlement], Error> {
-            
+
             if skipCache {
                 return await fetchRemoteEntitlements()
             }
-            
+
             guard let cachedEntitlements: [Entitlement] = subscriptionCache.object(forKey: Constants.cachedEntitlementsKey) else {
                 return await fetchRemoteEntitlements()
             }
-            
+
             return .success(cachedEntitlements)
-            
+
         }
 
     public func exchangeAuthTokenToAccessToken(_ authToken: String) async -> Result<String, Error> {
