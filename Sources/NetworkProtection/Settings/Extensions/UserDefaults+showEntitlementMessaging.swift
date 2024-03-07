@@ -22,11 +22,11 @@ import Common
 
 extension UserDefaults {
     private var showEntitlementAlertKey: String {
-        "networkProtectionShowEntitlementAlertRawValue"
+        "showEntitlementAlert"
     }
 
     @objc
-    dynamic var showEntitlementAlert: Bool {
+    public dynamic var showEntitlementAlert: Bool {
         get {
             value(forKey: showEntitlementAlertKey) as? Bool ?? false
         }
@@ -43,16 +43,12 @@ extension UserDefaults {
         }
     }
 
-    var showEntitlementAlertPublisher: AnyPublisher<Bool, Never> {
-        publisher(for: \.showEntitlementAlert).eraseToAnyPublisher()
-    }
-
     private var showEntitlementNotificationKey: String {
-        "networkProtectionShowEntitlementNotificationRawValue"
+        "showEntitlementNotification"
     }
 
     @objc
-    dynamic var showEntitlementNotification: Bool {
+    public dynamic var showEntitlementNotification: Bool {
         get {
             value(forKey: showEntitlementNotificationKey) as? Bool ?? false
         }
@@ -69,12 +65,23 @@ extension UserDefaults {
         }
     }
 
-    var showEntitlementNotificationPublisher: AnyPublisher<Bool, Never> {
-        publisher(for: \.showEntitlementNotification).eraseToAnyPublisher()
+    public func enableEntitlementMessaging() {
+        showEntitlementAlert = true
+        showEntitlementNotification = true
+
+#if os(iOS)
+        CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(),
+                                             CFNotificationName(rawValue: Notification.Name.vpnEntitlementMessagingDidChange.rawValue as CFString),
+                                             nil, nil, true)
+#endif
     }
 
-    func resetEntitlementMessaging() {
+    public func resetEntitlementMessaging() {
         removeObject(forKey: showEntitlementAlertKey)
         removeObject(forKey: showEntitlementNotificationKey)
     }
+}
+
+public extension Notification.Name {
+    static let vpnEntitlementMessagingDidChange = Notification.Name("com.duckduckgo.network-protection.entitlement-messaging-changed")
 }
