@@ -19,7 +19,7 @@
 import Foundation
 import Persistence
 
-public struct SubscriptionCache: KeyValueStoring {
+public class SubscriptionCache: KeyValueStoring {
 
     public enum Component: String, CustomStringConvertible, CaseIterable {
         public var description: String { rawValue }
@@ -27,9 +27,12 @@ public struct SubscriptionCache: KeyValueStoring {
         case entitlements
     }
 
-    private var userDefaults: UserDefaults? { UserDefaults(suiteName: "com.duckduckgo.app.subscriptions") }
+    private var appGroup: String
+    lazy private var userDefaults: UserDefaults? = UserDefaults(suiteName: appGroup)
 
-    public init() {}
+    public init(appGroup: String) {
+        self.appGroup = appGroup
+    }
 
     public func object(forKey defaultName: String) -> Any? { userDefaults?.object(forKey: defaultName) }
     public func set(_ value: Any?, forKey defaultName: String) { userDefaults?.set(value, forKey: defaultName) }
