@@ -17,15 +17,16 @@
 //
 
 import Foundation
+import Macros
 
 public extension URL {
 
     static var subscriptionBaseURL: URL {
         switch SubscriptionPurchaseEnvironment.currentServiceEnvironment {
         case .production:
-            URL(string: "https://duckduckgo.com/subscriptions")!
+            #URL("https://duckduckgo.com/subscriptions")
         case .staging:
-            URL(string: "https://duckduckgo.com/subscriptions?environment=staging")!
+            #URL("https://duckduckgo.com/subscriptions?environment=staging")
         }
     }
 
@@ -34,7 +35,7 @@ public extension URL {
     }
 
     static var subscriptionFAQ: URL {
-        URL(string: "https://duckduckgo.com/about")!
+        #URL("https://duckduckgo.com/about")
     }
 
     // MARK: - Subscription Email
@@ -53,7 +54,7 @@ public extension URL {
     // MARK: - App Store app manage subscription URL
 
     static var manageSubscriptionsInAppStoreAppURL: URL {
-        URL(string: "macappstores://apps.apple.com/account/subscriptions")!
+        #URL("macappstores://apps.apple.com/account/subscriptions")
     }
 
     // MARK: - Identity Theft Restoration
@@ -61,9 +62,9 @@ public extension URL {
     static var identityTheftRestoration: URL {
         switch SubscriptionPurchaseEnvironment.currentServiceEnvironment {
         case .production:
-            URL(string: "https://duckduckgo.com/identity-theft-restoration")!
+            #URL("https://duckduckgo.com/identity-theft-restoration")
         case .staging:
-            URL(string: "https://duckduckgo.com/identity-theft-restoration?environment=staging")!
+            #URL("https://duckduckgo.com/identity-theft-restoration?environment=staging")
         }
     }
 }

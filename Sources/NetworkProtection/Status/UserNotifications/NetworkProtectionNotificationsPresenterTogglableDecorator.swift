@@ -20,10 +20,12 @@ import Foundation
 
 final public class NetworkProtectionNotificationsPresenterTogglableDecorator: NetworkProtectionNotificationsPresenter {
     private let settings: VPNSettings
+    private let defaults: UserDefaults
     private let wrappeePresenter: NetworkProtectionNotificationsPresenter
 
-    public init(settings: VPNSettings, wrappee: NetworkProtectionNotificationsPresenter) {
+    public init(settings: VPNSettings, defaults: UserDefaults, wrappee: NetworkProtectionNotificationsPresenter) {
         self.settings = settings
+        self.defaults = defaults
         self.wrappeePresenter = wrappee
     }
 
@@ -57,7 +59,10 @@ final public class NetworkProtectionNotificationsPresenterTogglableDecorator: Ne
         }
     }
 
-    public func showEntitlementNotification(completion: @escaping (Error?) -> Void) {
-        wrappeePresenter.showEntitlementNotification(completion: completion)
+    public func showEntitlementNotification() {
+        if defaults.showEntitlementNotification {
+            defaults.showEntitlementNotification = false
+            wrappeePresenter.showEntitlementNotification()
+        }
     }
 }

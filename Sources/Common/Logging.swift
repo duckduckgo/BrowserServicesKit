@@ -105,7 +105,6 @@ extension ProcessInfo {
     }
 }
 
-// swiftlint:disable line_length
 // swiftlint:disable function_parameter_count
 
 // MARK: - message first
@@ -322,5 +321,4 @@ public func os_log(_ message: @autoclosure () -> String, _ visibility: LogVisibi
     os_log(.default, log: .default, message(), visibility)
 }
 
-// swiftlint:enable line_length
 // swiftlint:enable function_parameter_count

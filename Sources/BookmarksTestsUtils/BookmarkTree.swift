@@ -21,7 +21,7 @@ import CoreData
 import Foundation
 import XCTest
 
-// swiftlint:disable cyclomatic_complexity function_body_length line_length
+// swiftlint:disable cyclomatic_complexity function_body_length
 public struct ModifiedAtConstraint {
     var check: (Date?) -> Void
 
@@ -384,4 +384,4 @@ public extension XCTestCase {
         }
     }
 }
-// swiftlint:enable cyclomatic_complexity function_body_length line_length
+// swiftlint:enable cyclomatic_complexity function_body_length

@@ -95,11 +95,3 @@ public enum SyncSubfeature: String, PrivacySubfeature {
     case level2AllowSetupFlows
     case level3AllowCreateAccount
 }
-
-public enum AutoconsentSubfeature: String, PrivacySubfeature {
-    public var parent: PrivacyFeature {
-        .autoconsent
-    }
-
-    case onByDefault
-}

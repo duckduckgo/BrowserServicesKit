@@ -17,6 +17,7 @@
 //
 
 import Foundation
+import Macros
 
 public enum NetworkProtectionAuthenticationMethod {
     case inviteCode(String)
@@ -118,8 +119,8 @@ public struct AuthenticationFailureResponse: Decodable {
 final class NetworkProtectionBackendClient: NetworkProtectionClient {
 
     enum Constants {
-        static let productionEndpoint = URL(string: "https://controller.netp.duckduckgo.com")!
-        static let stagingEndpoint = URL(string: "https://staging.netp.duckduckgo.com")!
+        static let productionEndpoint = #URL("https://controller.netp.duckduckgo.com")
+        static let stagingEndpoint = #URL("https://staging.netp.duckduckgo.com")
     }
 
     private enum DecoderError: Error {

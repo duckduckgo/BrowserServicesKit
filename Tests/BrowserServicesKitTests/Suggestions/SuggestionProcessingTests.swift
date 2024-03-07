@@ -16,7 +16,9 @@
 //  limitations under the License.
 //
 
+import Macros
 import XCTest
+
 @testable import BrowserServicesKit
 
 final class SuggestionProcessingTests: XCTestCase {
@@ -40,7 +42,7 @@ extension HistoryEntryMock {
 
     static var aHistory: [HistorySuggestion] {
         [ HistoryEntryMock(identifier: UUID(),
-                           url: URL(string: "http://www.duckduckgo.com")!,
+                           url: #URL("http://www.duckduckgo.com"),
                            title: nil,
                            numberOfVisits: 1000,
                            lastVisit: Date(),
