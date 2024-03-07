@@ -291,6 +291,11 @@ extension URL {
         return components.url
     }
 
+    /// returns true if URLs are equal except the #fragment part
+    public func isSameDocument(_ other: URL) -> Bool {
+        self.absoluteString.droppingHashedSuffix() == other.absoluteString.droppingHashedSuffix()
+    }
+
     // MARK: - HTTP/HTTPS
 
     public enum URLProtocol: String {

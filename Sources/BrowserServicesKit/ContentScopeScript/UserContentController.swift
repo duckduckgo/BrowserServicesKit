@@ -20,8 +20,6 @@ import WebKit
 import Combine
 import UserScript
 
-// swiftlint:disable line_length
-
 public protocol UserContentControllerDelegate: AnyObject {
     @MainActor
     func userContentController(_ userContentController: UserContentController,
@@ -301,5 +299,3 @@ private class PermanentScriptMessageHandler: NSObject, WKScriptMessageHandler, W
     }
 
 }
-
-// swiftlint:enable line_length

@@ -489,8 +489,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
             resetIssueStateOnTunnelStart(startupOptions)
 
-            let startTime = DispatchTime.now()
-
             let internalCompletionHandler = { [weak self] (error: Error?) in
                 guard let self else {
                     completionHandler(error)

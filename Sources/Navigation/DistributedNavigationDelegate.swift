@@ -121,7 +121,7 @@ private extension DistributedNavigationDelegate {
 
         // cancel the decision making Task if WebView deallocates before it‘s finished
         let webViewDeinitObserver = webView.deinitObservers.insert(NSObject.DeinitObserver()).memberAfterInsert
-        let webViewDebugRef = Unmanaged.passUnretained(webView).toOpaque()
+        let webViewDebugRef = Unmanaged.passUnretained(webView).toOpaque().hexValue
 
         // TO DO: ideally the Task should be executed synchronously until the first await, check it later when custom Executors arrive to Swift
         let task = Task.detached { @MainActor [responders, weak webView, weak webViewDeinitObserver] in
@@ -131,7 +131,7 @@ private extension DistributedNavigationDelegate {
                     guard !Task.isCancelled else { return }
 #if DEBUG
                     let longDecisionMakingCheckCancellable = Self.checkLongDecisionMaking(performedBy: responder) {
-                        "<WKWebView: \(webViewDebugRef.hexValue)>: " + actionDebugInfo.debugDescription
+                        "<WKWebView: \(webViewDebugRef)>: " + actionDebugInfo.debugDescription
                     }
                     defer {
                         longDecisionMakingCheckCancellable?.cancel()
@@ -164,7 +164,7 @@ private extension DistributedNavigationDelegate {
 
         // cancel the Task if WebView deallocates before it‘s finished
         webViewDeinitObserver.onDeinit { [log] in
-            os_log("cancelling \(actionDebugInfo.debugDescription) decision making due to <WKWebView: \(webViewDebugRef.hexValue)> deallocation", log: log, type: .error)
+            os_log("cancelling \(actionDebugInfo.debugDescription) decision making due to <WKWebView: \(webViewDebugRef)> deallocation", log: log, type: .error)
             task.cancel()
         }
 
@@ -240,11 +240,19 @@ private extension DistributedNavigationDelegate {
         let wkNavigation = webView.expectedMainFrameNavigation(for: wkNavigationAction)
 #endif
         let navigation: Navigation = {
-            if let navigation = wkNavigation?.navigation,
-               // same-document NavigationActions have a previous WKNavigation mainFrameNavigation
-               !wkNavigationAction.isSameDocumentNavigation {
-                // it‘s a server-redirect or a developer-initiated navigation, so the WKNavigation already has an associated Navigation object
-                return navigation
+            if let navigation = wkNavigation?.navigation {
+                // same-document NavigationActions have a previous WKNavigation mainFrameNavigation
+                // use the same Navigation for finished navigations (as they won‘t receive `didFinish`)
+                // but create a new Navigation and client-redirect an old one for non-finished navigations
+                if wkNavigationAction.isSameDocumentNavigation {
+                    if navigation === startedNavigation, !navigation.state.isFinished {
+                        navigation.willPerformClientRedirect(to: wkNavigationAction.request.url ?? .empty, delay: 0)
+                    }
+                    // continue to new Navigation object creation
+                } else {
+                    // it‘s a server-redirect or a developer-initiated navigation, so the WKNavigation already has an associated Navigation object
+                    return navigation
+                }
 
             // server-redirected navigation continues with the same WKNavigation identity
             } else if let startedNavigation,
@@ -259,7 +267,7 @@ private extension DistributedNavigationDelegate {
             return Navigation(identity: NavigationIdentity(wkNavigation), responders: responders, state: .expected(nil), isCurrent: false)
         }()
         // wkNavigation.navigation = navigation
-        if wkNavigation?.navigation == nil {
+        if wkNavigation?.navigation == nil || wkNavigation?.navigation?.state.isFinished == true {
             navigation.associate(with: wkNavigation)
         }
 
@@ -372,6 +380,9 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
                 if let mainFrameNavigation, !mainFrameNavigation.isCurrent {
                     // another navigation is starting
                     self.startedNavigation?.didResignCurrent()
+                    guard case .navigationActionReceived = mainFrameNavigation.state else {
+                        return // navigation cancelled
+                    }
                     self.willStart(mainFrameNavigation)
                 }
 
@@ -428,7 +439,12 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
     private func willStart(_ navigation: Navigation) {
         os_log("willStart %s", log: log, type: .default, navigation.debugDescription)
 
-        if case .redirect(.client) = navigation.navigationAction.navigationType {
+        if navigation.navigationAction.navigationType.redirect?.isClient == true // is client redirect?
+            // is same document navigation received as client redirect?
+            || (startedNavigation !== navigation
+                && navigation.navigationAction.navigationType == .sameDocumentNavigation(.anchorNavigation)
+                && startedNavigation?.url.isSameDocument(navigation.url) == true) {
+
             // notify the original (redirected) Navigation about the redirect NavigationAction received
             // this should call the overriden ResponderChain inside `willPerformClientRedirect`
             // that in turn notifies the original responders and finishes the Navigation
@@ -439,7 +455,14 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
         for responder in navigation.navigationResponders {
             responder.willStart(navigation)
         }
-        navigationExpectedToStart = navigation
+        // same-document navigations won‘t receive didStartProvisionalNavigation, so change the state here
+        if navigation.navigationAction.navigationType.isSameDocumentNavigation {
+            navigation.started(nil)
+            startedNavigation = navigation
+            navigationExpectedToStart = nil
+        } else {
+            navigationExpectedToStart = navigation
+        }
     }
 
     @MainActor
@@ -790,18 +813,79 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
 #if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
     @MainActor
     @objc(_webView:navigation:didSameDocumentNavigation:)
-    public func webView(_ webView: WKWebView, wkNavigation: WKNavigation?, didSameDocumentNavigation navigationType: Int) {
-        os_log("didSameDocumentNavigation %s: %d", log: log, type: .default, wkNavigation.debugDescription, navigationType)
-
+    public func webView(_ webView: WKWebView, wkNavigation: WKNavigation?, didSameDocumentNavigation wkNavigationType: Int) {
         // currentHistoryItemIdentity should only change for completed navigation, not while in progress
-        let navigationType = WKSameDocumentNavigationType(rawValue: navigationType)
-        if case .anchorNavigation = navigationType {
-            updateCurrentHistoryItemIdentity(webView.backForwardList.currentItem)
+        let navigationType = WKSameDocumentNavigationType(rawValue: wkNavigationType) ?? {
+            assertionFailure("Unsupported SameDocumentNavigationType \(wkNavigationType)")
+            return .anchorNavigation
+        }()
+
+        //
+        // Anchor navigations are using the original WKNavigation object that was used to load current document,
+        //   but its `.request` will contain an updated URL with a #fragment.
+        //
+        // - These navigations go through the standard `decidePolicyFor` and `willStart` sequence and stored
+        //   in the `startedNavigation` var. Such navigations have their `isCurrent` flag set.
+        // - In case of Anchor navigations there‘s a preceding State Pop event received, it‘s probably used
+        //   to manage navigation history and is not really of our interest.
+        //   Those navigations won‘t have `isCurrent` flag set (see below)
+        //
+        // Session State push/replace/pop navigations don‘t receive `decidePolicyFor` but their WKNavigation (new one) contains a valid request.
+        //
+        // - In case of a Session State Pop navigation, an additional Anchor Navigation event will be received.
+        //   Its WKNavigation is set to the original document load navigation (finished long before).
+        //   Such navigations have `isCurrent` unset when the original document has loaded allowing us to distinguish
+        //   the real State Pop events
+        //
+        let navigation: Navigation
+        if let associatedNavigation = wkNavigation?.navigation {
+            // Anchor navigations will have an associated Navigation set in `decidePolicyFor`
+            if let startedNavigation, startedNavigation.identity == associatedNavigation.identity {
+                // client-redirect to the same document - same WKNavigation (identity) is used for different Navigation object
+                // so instead use `startedNavigation` set in `willStart`
+                navigation = startedNavigation
+            } else {
+                navigation = associatedNavigation
+            }
+            // mark Navigation as finished as we‘re in __did__SameDocumentNavigation
+            if navigation.isCurrent, navigation.navigationAction.navigationType.isSameDocumentNavigation, !navigation.isCompleted {
+                navigation.didFinish()
+            }
+
+        } else {
+            // don‘t mark extra Session State Pop navigations as `current` when there‘s a `current` Anchor navigation stored in `startedNavigation`
+            let isCurrent = startedNavigation.map { $0.navigationAction.navigationType.isSameDocumentNavigation && $0.isCurrent } != true
+
+            assert(wkNavigation != nil)
+            navigation = Navigation(identity: NavigationIdentity(wkNavigation), responders: responders, state: .expected(nil), isCurrent: isCurrent)
+            let request = wkNavigation?.request ?? URLRequest(url: webView.url ?? .empty)
+            let navigationAction = NavigationAction(request: request, navigationType: .sameDocumentNavigation(navigationType), currentHistoryItemIdentity: currentHistoryItemIdentity, redirectHistory: nil, isUserInitiated: wkNavigation?.isUserInitiated ?? false, sourceFrame: .mainFrame(for: webView), targetFrame: .mainFrame(for: webView), shouldDownload: false, mainFrameNavigation: navigation)
+            navigation.navigationActionReceived(navigationAction)
+            os_log("new same-doc navigation(.%d): %s (%s): %s, isCurrent: %d", log: log, type: .debug, wkNavigationType, wkNavigation.debugDescription, navigation.debugDescription, navigationAction.debugDescription, isCurrent ? 1 : 0)
+
+            // store `current` navigations in `startedNavigation` to get `currentNavigation` published
+            if isCurrent {
+                self.startedNavigation = navigation
+            }
+            // mark Navigation as finished as we‘re in __did__SameDocumentNavigation
+            navigation.didFinish()
         }
+
+        os_log("didSameDocumentNavigation: %s.%s: %s", log: log, type: .default, wkNavigation.debugDescription, navigationType.debugDescription, navigation.debugDescription)
 
         for responder in responders {
-            responder.navigation(wkNavigation?.navigation, didSameDocumentNavigationOf: navigationType)
+            responder.navigation(navigation, didSameDocumentNavigationOf: navigationType)
         }
+
+        if navigation.navigationAction.navigationType.isSameDocumentNavigation {
+            if self.startedNavigation === navigation {
+                self.startedNavigation = nil // will call `didResignCurrent`
+            } else {
+                navigation.didResignCurrent()
+            }
+        }
+
+        updateCurrentHistoryItemIdentity(webView.backForwardList.currentItem)
     }
 
     @MainActor

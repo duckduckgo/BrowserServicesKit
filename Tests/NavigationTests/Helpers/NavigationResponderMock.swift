@@ -57,6 +57,7 @@ enum TestsNavigationEvent: TestComparable {
     case navResponseWillBecomeDownload(Int, line: UInt = #line)
     case navResponseBecameDownload(Int, URL, line: UInt = #line)
     case didCommit(Nav, line: UInt = #line)
+    case didSameDocumentNavigation(Nav?, Int, line: UInt = #line)
     case didReceiveRedirect(NavAction, Nav, line: UInt = #line)
     case didFinish(Nav, line: UInt = #line)
     case didFail(Nav, /*code:*/ Int, line: UInt = #line)
@@ -346,6 +347,17 @@ class NavigationResponderMock: NavigationResponder {
     func didCommit(_ navigation: Navigation) {
         let event = append(.didCommit(Nav(navigation)))
         onDidCommit?(navigation) ?? defaultHandler(event)
+    }
+
+    var onSameDocumentNavigation: (@MainActor (Navigation?, WKSameDocumentNavigationType?) -> Void)?
+    func navigation(_ navigation: Navigation, didSameDocumentNavigationOf navigationType: WKSameDocumentNavigationType) {
+        if navigationActionsCache.dict[navigation.navigationAction.identifier] == nil {
+            navigationActionsCache.dict[navigation.navigationAction.identifier] = .init(navigation.navigationAction)
+            navigationActionsCache.max = max(navigationActionsCache.max, navigation.navigationAction.identifier)
+        }
+
+        let event = append(.didSameDocumentNavigation(Nav(navigation), navigationType.rawValue))
+        onSameDocumentNavigation?(navigation, navigationType) ?? defaultHandler(event)
     }
 
     var onDidFinish: (@MainActor (Navigation) -> Void)?
