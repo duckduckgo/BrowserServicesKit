@@ -36,6 +36,8 @@ public class SecureVaultFactory<Vault: SecureVault> {
     public let makeKeyStoreProvider: KeyStoreProviderInitialization
     public let makeDatabaseProvider: DatabaseProviderInitialization
 
+    var dummyCount = 0
+
     /// You should really use the `default` accessor.
     public init(makeCryptoProvider: @escaping CryptoProviderInitialization,
                 makeKeyStoreProvider: @escaping KeyStoreProviderInitialization,
@@ -56,26 +58,37 @@ public class SecureVaultFactory<Vault: SecureVault> {
         if let vault = self.vault {
             return vault
         } else {
-            lock.lock()
-            defer {
-                lock.unlock()
+
+            dummyCount += 1
+
+            if dummyCount % 2 == 0 {
+                errorReporter?.secureVaultInitFailed(.noL1Key)
+                throw SecureStorageError.initFailed(cause: NSError(domain: "com.duckduckgo.securevault", code: 4, userInfo: nil))
+            } else {
+                errorReporter?.secureVaultInitFailed(.noL2Key)
+                throw SecureStorageError.initFailed(cause: NSError(domain: "com.duckduckgo.securevault", code: 5, userInfo: nil))
             }
 
-            do {
-                let providers = try makeSecureStorageProviders()
-                let vault = Vault(providers: providers)
-
-                self.vault = vault
-
-                return vault
-
-            } catch let error as SecureStorageError {
-                errorReporter?.secureVaultInitFailed(error)
-                throw error
-            } catch {
-                errorReporter?.secureVaultInitFailed(SecureStorageError.initFailed(cause: error))
-                throw SecureStorageError.initFailed(cause: error)
-            }
+//            lock.lock()
+//            defer {
+//                lock.unlock()
+//            }
+//
+//            do {
+//                let providers = try makeSecureStorageProviders()
+//                let vault = Vault(providers: providers)
+//
+//                self.vault = vault
+//
+//                return vault
+//
+//            } catch let error as SecureStorageError {
+//                errorReporter?.secureVaultInitFailed(error)
+//                throw error
+//            } catch {
+//                errorReporter?.secureVaultInitFailed(SecureStorageError.initFailed(cause: error))
+//                throw SecureStorageError.initFailed(cause: error)
+//            }
         }
     }
 
