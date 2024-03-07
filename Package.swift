@@ -35,6 +35,7 @@ let package = Package(
         .library(name: "SecureStorage", targets: ["SecureStorage"]),
         .library(name: "Subscription", targets: ["Subscription"]),
         .library(name: "History", targets: ["History"]),
+        .library(name: "Suggestions", targets: ["Suggestions"]),
     ],
     dependencies: [
         .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "10.1.0"),
@@ -107,6 +108,16 @@ let package = Package(
             ],
             resources: [
                 .process("CoreData/BrowsingHistory.xcdatamodeld")
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
+            ],
+            plugins: [swiftlintPlugin]
+        ),
+        .target(
+            name: "Suggestions",
+            dependencies: [
+                "Common"
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
@@ -342,6 +353,13 @@ let package = Package(
             name: "HistoryTests",
             dependencies: [
                 "History",
+            ],
+            plugins: [swiftlintPlugin]
+        ),
+        .testTarget(
+            name: "SuggestionsTests",
+            dependencies: [
+                "Suggestions",
             ],
             plugins: [swiftlintPlugin]
         ),
