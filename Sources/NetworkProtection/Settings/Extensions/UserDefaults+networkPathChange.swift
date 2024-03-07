@@ -41,7 +41,7 @@ extension UserDefaults {
     }
 
     @objc
-    dynamic var networkPathChange: NetworkPathChange? {
+    private(set) dynamic var networkPathChange: NetworkPathChange? {
         get {
             guard let data = data(forKey: networkPathChangeKey) else { return nil }
             return try? JSONDecoder().decode(NetworkPathChange.self, from: data)
@@ -53,7 +53,8 @@ extension UserDefaults {
         }
     }
 
-    var networkPathChangePublisher: AnyPublisher<NetworkPathChange?, Never> {
-        publisher(for: \.networkPathChange).eraseToAnyPublisher()
+    public func updateNetworkPath(with newPath: String?) {
+        networkPathChange = NetworkPathChange(oldPath: networkPathChange?.newPath ?? "unknown",
+                                              newPath: newPath ?? "unknown")
     }
 }
