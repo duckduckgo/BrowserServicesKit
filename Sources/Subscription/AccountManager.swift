@@ -227,24 +227,25 @@ public class AccountManager: AccountManaging {
     }
 
     private func fetchRemoteEntitlements() async -> Result<[Entitlement], Error> {
-        guard let accessToken else {
+        guard let accessToken = fetchAccessToken() else {
             subscriptionCache.cleanup()
             return .failure(EntitlementsError.noAccessToken)
         }
-        switch await AuthService.validateToken(accessToken: accessToken) {
-        case .success(let response):
-
-            let cachedEntitlements = subscriptionCache.object(forKey: SubscriptionCache.Component.entitlements.rawValue) as? [AuthService.ValidateTokenResponse.Entitlement]
-
-            if response.account.entitlements != cachedEntitlements {
-                subscriptionCache.set(response.account.entitlements, forKey: SubscriptionCache.Component.entitlements.rawValue)
+        do {
+            let response = try await AuthService.validateToken(accessToken: accessToken)
+                        
+            let cachedEntitlementsKey = SubscriptionCache.Component.entitlements.rawValue
+            
+            // If entitlements have changed, update the cache and send a notification
+            if let cachedEntitlements = subscriptionCache.object(forKey: cachedEntitlementsKey) as? [String],
+               cachedEntitlements != response.account.entitlements.map({ $0.product }) {
+                subscriptionCache.set(response.account.entitlements.map({ $0.product }), forKey: cachedEntitlementsKey)
                 NotificationCenter.default.post(name: .entitlementsUpdated, object: self, userInfo: nil)
             }
 
             let entitlements = response.account.entitlements.compactMap { Entitlement(rawValue: $0.product) }
             return .success(entitlements)
-
-        case .failure(let error):
+        } catch {
             subscriptionCache.cleanup()
             os_log(.error, log: .subscription, "[AccountManager] fetchEntitlements error: %{public}@", error.localizedDescription)
             return .failure(error)
@@ -252,9 +253,9 @@ public class AccountManager: AccountManaging {
     }
 
     public func fetchEntitlements(skipCache: Bool = false) async -> Result<[Entitlement], Error> {
-
+        let cachedEntitlementsKey = SubscriptionCache.Component.entitlements.rawValue
         if !skipCache,
-           let cachedEntitlements = subscriptionCache.object(forKey: SubscriptionCache.Component.entitlements.rawValue) as? [Entitlement] {
+           let cachedEntitlements = subscriptionCache.object(forKey: cachedEntitlementsKey) as? [Entitlement] {
             return .success(cachedEntitlements)
         } else {
             return await fetchRemoteEntitlements()
