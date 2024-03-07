@@ -31,6 +31,7 @@ public enum AppLaunchCommand: Codable {
     case stopVPN
     case enableOnDemand
     case moveAppToApplications
+    case showPrivacyPro
 }
 
 public protocol AppLaunching {
