@@ -17,12 +17,13 @@
 //
 
 import Foundation
+import Macros
 import PrivacyDashboard
 
 struct WebsiteBreakageMoks {
 
     static var testBreakage: WebsiteBreakage {
-        WebsiteBreakage(siteUrl: URL(string: "https://duckduckgo.com")!,
+        WebsiteBreakage(siteUrl: #URL("https://duckduckgo.com"),
                         category: "test",
                         description: "test",
                         osVersion: "test",
@@ -41,7 +42,7 @@ struct WebsiteBreakageMoks {
     }
 
     static var testBreakage2: WebsiteBreakage {
-        WebsiteBreakage(siteUrl: URL(string: "https://somethingelse.zz")!,
+        WebsiteBreakage(siteUrl: #URL("https://somethingelse.zz"),
                         category: "test",
                         description: "test",
                         osVersion: "test",
@@ -60,7 +61,7 @@ struct WebsiteBreakageMoks {
     }
 
     static var testBreakage3: WebsiteBreakage {
-        WebsiteBreakage(siteUrl: URL(string: "https://www.subdomain.example.com/some/pathname?t=param#aaa")!,
+        WebsiteBreakage(siteUrl: #URL("https://www.subdomain.example.com/some/pathname?t=param#aaa"),
                         category: "test",
                         description: "test",
                         osVersion: "test",

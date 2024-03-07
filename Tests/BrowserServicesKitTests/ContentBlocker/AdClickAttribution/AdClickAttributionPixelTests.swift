@@ -16,10 +16,11 @@
 //  limitations under the License.
 //
 
-import XCTest
 import BrowserServicesKit
-import ContentBlocking
 import Common
+import ContentBlocking
+import Macros
+import XCTest
 
 final class AdClickAttributionPixelTests: XCTestCase {
 
@@ -30,10 +31,10 @@ final class AdClickAttributionPixelTests: XCTestCase {
 
     static let domainParameterName = "ad_domain_param.com"
     static let linkUrlWithParameter = URL(string: "https://example.com/test.html?\(domainParameterName)=test.com")!
-    static let linkUrlWithoutParameter = URL(string: "https://example.com/test.html")!
+    static let linkUrlWithoutParameter = #URL("https://example.com/test.html")
 
-    static let matchedVendorURL = URL(string: "https://test.com/site")!
-    static let mismatchedVendorURL = URL(string: "https://other.com/site")!
+    static let matchedVendorURL = #URL("https://test.com/site")
+    static let mismatchedVendorURL = #URL("https://other.com/site")
 
     var currentEventHandler: (AdClickAttributionEvents, [String: String]?) -> Void = { _, _ in }
 

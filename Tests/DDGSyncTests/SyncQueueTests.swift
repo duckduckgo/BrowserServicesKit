@@ -16,7 +16,9 @@
 //  limitations under the License.
 //
 
+import Macros
 import XCTest
+
 @testable import DDGSync
 
 class SyncQueueTests: XCTestCase {
@@ -33,7 +35,7 @@ class SyncQueueTests: XCTestCase {
         apiMock = RemoteAPIRequestCreatingMock()
         request = HTTPRequestingMock()
         apiMock.request = request
-        endpoints = Endpoints(baseURL: URL(string: "https://example.com")!)
+        endpoints = Endpoints(baseURL: #URL("https://example.com"))
         storage = SecureStorageStub()
         crypter = CryptingMock()
         try storage.persistAccount(

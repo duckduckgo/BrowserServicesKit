@@ -20,9 +20,11 @@
 
 import Combine
 import Common
+import Macros
 import Swifter
 import WebKit
 import XCTest
+
 @testable import Navigation
 
 @available(macOS 12.0, iOS 15.0, *)
@@ -102,25 +104,25 @@ extension DistributedNavigationDelegateTestsBase {
     }
 
     struct URLs {
-        let https = URL(string: "https://duckduckgo.com/")!
+        let https = #URL("https://duckduckgo.com/")
 
         let testScheme = URL(string: TestNavigationSchemeHandler.scheme + "://duckduckgo.com")!
 
-        let local = URL(string: "http://localhost:8084")!
-        let local1 = URL(string: "http://localhost:8084/1")!
-        let local2 = URL(string: "http://localhost:8084/2")!
-        let local3 = URL(string: "http://localhost:8084/3")!
-        let local4 = URL(string: "http://localhost:8084/4")!
+        let local = #URL("http://localhost:8084")
+        let local1 = #URL("http://localhost:8084/1")
+        let local2 = #URL("http://localhost:8084/2")
+        let local3 = #URL("http://localhost:8084/3")
+        let local4 = #URL("http://localhost:8084/4")
 
-        let localHashed = URL(string: "http://localhost:8084#")!
-        let localHashed1 = URL(string: "http://localhost:8084#navlink")!
-        let localHashed2 = URL(string: "http://localhost:8084#navlink2")!
-        let local3Hashed = URL(string: "http://localhost:8084/3#navlink")!
+        let localHashed = #URL("http://localhost:8084#")
+        let localHashed1 = #URL("http://localhost:8084#navlink")
+        let localHashed2 = #URL("http://localhost:8084#navlink2")
+        let local3Hashed = #URL("http://localhost:8084/3#navlink")
 
-        let aboutBlank = URL(string: "about:blank")!
-        let aboutPrefs = URL(string: "about:prefs")!
+        let aboutBlank = #URL("about:blank")
+        let aboutPrefs = #URL("about:prefs")
 
-        let post3 = URL(string: "http://localhost:8084/post3.html")!
+        let post3 = #URL("http://localhost:8084/post3.html")
     }
 
     struct DataSource {
@@ -412,7 +414,7 @@ extension DistributedNavigationDelegateTestsBase {
             guard event1 != nil || event2 != nil else { continue }
             if let diff = compare(Mirror(reflecting: event1 ?? event2!).children.first!.label!, event1, event2) {
                 printEncoded(responder: responderIdx)
-                let diff2 = compare(Mirror(reflecting: event1 ?? event2!).children.first!.label!, event1, event2)
+
                 XCTFail("\n#\(idx): " + diff, file: file, line: line)
             }
         }

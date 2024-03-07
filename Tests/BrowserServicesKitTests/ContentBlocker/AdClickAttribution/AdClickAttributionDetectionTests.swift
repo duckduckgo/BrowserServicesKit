@@ -16,9 +16,10 @@
 //  limitations under the License.
 //
 
-import XCTest
 import BrowserServicesKit
 import Common
+import Macros
+import XCTest
 
 final class MockAttributing: AdClickAttributing {
 
@@ -80,9 +81,9 @@ final class AdClickAttributionDetectionTests: XCTestCase {
         let detection = AdClickAttributionDetection(feature: feature, tld: Self.tld)
         detection.delegate = delegate
 
-        detection.onStartNavigation(url: URL(string: "https://example.com"))
-        detection.on2XXResponse(url: URL(string: "https://test.com"))
-        detection.onDidFinishNavigation(url: URL(string: "https://test.com"))
+        detection.onStartNavigation(url: #URL("https://example.com"))
+        detection.on2XXResponse(url: #URL("https://test.com"))
+        detection.onDidFinishNavigation(url: #URL("https://test.com"))
     }
 
     func testWhenHeuristicOptionIsDisabledThenNothingIsDetected() {
@@ -96,9 +97,9 @@ final class AdClickAttributionDetectionTests: XCTestCase {
         let detection = AdClickAttributionDetection(feature: feature, tld: Self.tld)
         detection.delegate = delegate
 
-        detection.onStartNavigation(url: URL(string: "https://example.com"))
-        detection.on2XXResponse(url: URL(string: "https://test.com"))
-        detection.onDidFinishNavigation(url: URL(string: "https://test.com"))
+        detection.onStartNavigation(url: #URL("https://example.com"))
+        detection.on2XXResponse(url: #URL("https://test.com"))
+        detection.onDidFinishNavigation(url: #URL("https://test.com"))
     }
 
     func testWhenDomainDetectionOptionIsDisabledThenFallbackToHeuristic() {
@@ -124,8 +125,8 @@ final class AdClickAttributionDetectionTests: XCTestCase {
         }
         detection.delegate = delegate
 
-        detection.on2XXResponse(url: URL(string: "https://test.com"))
-        detection.onDidFinishNavigation(url: URL(string: "https://test.com"))
+        detection.on2XXResponse(url: #URL("https://test.com"))
+        detection.onDidFinishNavigation(url: #URL("https://test.com"))
 
         wait(for: [delegateCalled], timeout: 0.1)
     }
@@ -141,9 +142,9 @@ final class AdClickAttributionDetectionTests: XCTestCase {
         let detection = AdClickAttributionDetection(feature: feature, tld: Self.tld)
         detection.delegate = delegate
 
-        detection.onStartNavigation(url: URL(string: "https://example.com"))
-        detection.on2XXResponse(url: URL(string: "https://test.com"))
-        detection.onDidFinishNavigation(url: URL(string: "https://test.com"))
+        detection.onStartNavigation(url: #URL("https://example.com"))
+        detection.on2XXResponse(url: #URL("https://test.com"))
+        detection.onDidFinishNavigation(url: #URL("https://test.com"))
     }
 
     func testWhenThereAreMatchesThenVendorIsDetected_Heuristic() {
@@ -160,9 +161,9 @@ final class AdClickAttributionDetectionTests: XCTestCase {
         let detection = AdClickAttributionDetection(feature: feature, tld: Self.tld)
         detection.delegate = delegate
 
-        detection.onStartNavigation(url: URL(string: "https://example.com"))
-        detection.on2XXResponse(url: URL(string: "https://test.com"))
-        detection.onDidFinishNavigation(url: URL(string: "https://test.com"))
+        detection.onStartNavigation(url: #URL("https://example.com"))
+        detection.on2XXResponse(url: #URL("https://test.com"))
+        detection.onDidFinishNavigation(url: #URL("https://test.com"))
 
         waitForExpectations(timeout: 0.1)
     }
@@ -184,8 +185,8 @@ final class AdClickAttributionDetectionTests: XCTestCase {
         detection.delegate = delegate
 
         detection.onStartNavigation(url: URL(string: "https://example.com?\(domainParameterName)=domain.net"))
-        detection.on2XXResponse(url: URL(string: "https://test.com"))
-        detection.onDidFinishNavigation(url: URL(string: "https://test.com"))
+        detection.on2XXResponse(url: #URL("https://test.com"))
+        detection.onDidFinishNavigation(url: #URL("https://test.com"))
 
         waitForExpectations(timeout: 0.1)
     }
@@ -204,9 +205,9 @@ final class AdClickAttributionDetectionTests: XCTestCase {
         let detection = AdClickAttributionDetection(feature: feature, tld: Self.tld)
         detection.delegate = delegate
 
-        detection.onStartNavigation(url: URL(string: "https://example.com"))
-        detection.on2XXResponse(url: URL(string: "https://a.sub.test.com"))
-        detection.onDidFinishNavigation(url: URL(string: "https://a.sub.test.com"))
+        detection.onStartNavigation(url: #URL("https://example.com"))
+        detection.on2XXResponse(url: #URL("https://a.sub.test.com"))
+        detection.onDidFinishNavigation(url: #URL("https://a.sub.test.com"))
 
         waitForExpectations(timeout: 0.1)
     }
@@ -228,8 +229,8 @@ final class AdClickAttributionDetectionTests: XCTestCase {
         detection.delegate = delegate
 
         detection.onStartNavigation(url: URL(string: "https://example.com?\(domainParameterName)=a.domain.net"))
-        detection.on2XXResponse(url: URL(string: "https://sub.test.com"))
-        detection.onDidFinishNavigation(url: URL(string: "https://sub.test.com"))
+        detection.on2XXResponse(url: #URL("https://sub.test.com"))
+        detection.onDidFinishNavigation(url: #URL("https://sub.test.com"))
 
         waitForExpectations(timeout: 0.1)
     }
@@ -252,12 +253,12 @@ final class AdClickAttributionDetectionTests: XCTestCase {
         detection.delegate = delegate
 
         detection.onStartNavigation(url: URL(string: "https://example.com?\(domainParameterName)=com"))
-        detection.on2XXResponse(url: URL(string: "https://sub.test.com"))
+        detection.on2XXResponse(url: #URL("https://sub.test.com"))
 
         // Should match and notify only once
-        detection.on2XXResponse(url: URL(string: "https://another.test.com"))
+        detection.on2XXResponse(url: #URL("https://another.test.com"))
 
-        detection.onDidFinishNavigation(url: URL(string: "https://another.test.com"))
+        detection.onDidFinishNavigation(url: #URL("https://another.test.com"))
 
         waitForExpectations(timeout: 0.1)
     }
@@ -274,15 +275,15 @@ final class AdClickAttributionDetectionTests: XCTestCase {
         detection.delegate = delegate
 
         // First matching requests that fails
-        detection.onStartNavigation(url: URL(string: "https://example.com"))
+        detection.onStartNavigation(url: #URL("https://example.com"))
         detection.onDidFailNavigation()
 
         // Simulate non-matching request - nothing should be detected
         feature.onFormatMatching = { _ in return false }
 
-        detection.onStartNavigation(url: URL(string: "https://other.com"))
-        detection.on2XXResponse(url: URL(string: "https://test.com"))
-        detection.onDidFinishNavigation(url: URL(string: "https://test.com"))
+        detection.onStartNavigation(url: #URL("https://other.com"))
+        detection.on2XXResponse(url: #URL("https://test.com"))
+        detection.onDidFinishNavigation(url: #URL("https://test.com"))
 
         // Simulate matching request - it should be detected
         feature.onFormatMatching = { _ in return true }
@@ -294,9 +295,9 @@ final class AdClickAttributionDetectionTests: XCTestCase {
         }
         detection.delegate = delegate
 
-        detection.onStartNavigation(url: URL(string: "https://domain.com"))
-        detection.on2XXResponse(url: URL(string: "https://a.something.com"))
-        detection.onDidFinishNavigation(url: URL(string: "https://a.something.com"))
+        detection.onStartNavigation(url: #URL("https://domain.com"))
+        detection.on2XXResponse(url: #URL("https://a.something.com"))
+        detection.onDidFinishNavigation(url: #URL("https://a.something.com"))
 
         waitForExpectations(timeout: 0.1)
     }

@@ -92,7 +92,11 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
     public func deleteToken() throws {
         do {
             // Skip deleting DDG-access-token as it's used for entitlement validity check
-            guard isSubscriptionEnabled, let token = try? fetchToken(), !Self.isSubscriptionAccessToken(token) else { return }
+            // todo - https://app.asana.com/0/0/1206541966681608/f
+            if let token = try? fetchToken(), Self.isSubscriptionAccessToken(token) {
+                return
+            }
+
             try keychainStore.deleteAll()
         } catch {
             handle(error)
