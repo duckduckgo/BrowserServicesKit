@@ -37,9 +37,9 @@ public protocol UserContentControllerNewContent {
     var makeUserScripts: @MainActor (SourceProvider) -> UserScripts { get }
 }
 
-@MainActor
 final public class UserContentController: WKUserContentController {
     public let privacyConfigurationManager: PrivacyConfigurationManaging
+    @MainActor
     public weak var delegate: UserContentControllerDelegate?
 
     public struct ContentBlockingAssets {
@@ -60,12 +60,13 @@ final public class UserContentController: WKUserContentController {
         }
     }
 
-    @Published public private(set) var contentBlockingAssets: ContentBlockingAssets? {
+    @Published @MainActor public private(set) var contentBlockingAssets: ContentBlockingAssets? {
         willSet {
             self.removeAllContentRuleLists()
             self.removeAllUserScripts()
         }
     }
+    @MainActor
     private func installContentBlockingAssets(_ contentBlockingAssets: ContentBlockingAssets) {
         // don‘t install ContentBlockingAssets (especially Message Handlers retaining `self`) after cleanUpBeforeClosing was called
         guard assetsPublisherCancellable != nil else { return }
@@ -81,11 +82,14 @@ final public class UserContentController: WKUserContentController {
                                         updateEvent: contentBlockingAssets.updateEvent)
     }
 
+    @MainActor
     private var localRuleLists = [String: WKContentRuleList]()
-
+    @MainActor
     private var assetsPublisherCancellable: AnyCancellable?
+    @MainActor
     private let scriptMessageHandler = PermanentScriptMessageHandler()
 
+    @MainActor
     public init<Pub, Content>(assetsPublisher: Pub, privacyConfigurationManager: PrivacyConfigurationManaging)
     where Pub: Publisher, Content: UserContentControllerNewContent, Pub.Output == Content, Pub.Failure == Never {
 
@@ -111,6 +115,7 @@ final public class UserContentController: WKUserContentController {
         fatalError("init(coder:) has not been implemented")
     }
 
+    @MainActor
     private func installGlobalContentRuleLists(_ contentRuleLists: [String: WKContentRuleList]) {
         guard self.privacyConfigurationManager.privacyConfig.isEnabled(featureKey: .contentBlocking) else {
             removeAllContentRuleLists()
@@ -121,6 +126,7 @@ final public class UserContentController: WKUserContentController {
     }
 
     public struct ContentRulesNotFoundError: Error {}
+    @MainActor
     public func enableGlobalContentRuleList(withIdentifier identifier: String) throws {
         guard let ruleList = self.contentBlockingAssets?.globalRuleLists[identifier] else {
             throw ContentRulesNotFoundError()
@@ -129,6 +135,7 @@ final public class UserContentController: WKUserContentController {
     }
 
     public struct ContentRulesNotEnabledError: Error {}
+    @MainActor
     public func disableGlobalContentRuleList(withIdentifier identifier: String) throws {
         guard let ruleList = self.contentBlockingAssets?.globalRuleLists[identifier] else {
             throw ContentRulesNotEnabledError()
@@ -136,11 +143,13 @@ final public class UserContentController: WKUserContentController {
         self.remove(ruleList)
     }
 
+    @MainActor
     public func installLocalContentRuleList(_ ruleList: WKContentRuleList, identifier: String) {
         localRuleLists[identifier] = ruleList
         self.add(ruleList)
     }
 
+    @MainActor
     public func removeLocalContentRuleList(withIdentifier identifier: String) {
         guard let ruleList = localRuleLists.removeValue(forKey: identifier) else {
             return
@@ -148,16 +157,19 @@ final public class UserContentController: WKUserContentController {
         self.remove(ruleList)
     }
 
+    @MainActor
     public override func removeAllContentRuleLists() {
         localRuleLists = [:]
         super.removeAllContentRuleLists()
     }
 
+    @MainActor
     private func installUserScripts(_ wkUserScripts: [WKUserScript], handlers: [UserScript]) {
         handlers.forEach { self.addHandler($0) }
         wkUserScripts.forEach(self.addUserScript)
     }
 
+    @MainActor
     public func cleanUpBeforeClosing() {
         self.removeAllUserScripts()
 
@@ -173,6 +185,7 @@ final public class UserContentController: WKUserContentController {
         self.removeAllContentRuleLists()
     }
 
+    @MainActor
     func addHandler(_ userScript: UserScript) {
         for messageName in userScript.messageNames {
             assert(scriptMessageHandler.messageHandler(for: messageName) == nil || type(of: scriptMessageHandler.messageHandler(for: messageName)!) == type(of: userScript),
@@ -200,11 +213,13 @@ final public class UserContentController: WKUserContentController {
 
 public extension UserContentController {
 
+    @MainActor
     var contentBlockingAssetsInstalled: Bool {
         contentBlockingAssets != nil
     }
 
     // func awaitContentBlockingAssetsInstalled() async non-retaining `self`
+    @MainActor
     var awaitContentBlockingAssetsInstalled: () async -> Void {
         guard !contentBlockingAssetsInstalled else { return {} }
         return { [weak self] in

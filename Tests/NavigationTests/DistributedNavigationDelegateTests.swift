@@ -897,7 +897,7 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
             case .sessionStatePop:
                 eStatePop.fulfill()
                 XCTAssertFalse(navigation.isCurrent)
-            default: XCTFail("Unexpected \(type.debugDescription ?? "<nil>")")
+            default: XCTFail("Unexpected \(type.debugDescription)")
             }
         }
         withWebView { webView in
