@@ -494,11 +494,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     open override func startTunnel(options: [String: NSObject]?, completionHandler: @escaping (Error?) -> Void) {
         Task { @MainActor in
-            os_log("🚀 Options are: %{public}@", String(reflecting: options))
-            os_log("🚀 Error 1: %{public}@", String((TunnelError.startingTunnelWithoutAuthToken as NSError).code))
-            os_log("🚀 Error 2: %{public}@", String((TunnelError.couldNotGenerateTunnelConfiguration(internalError: NSError(domain: "asd", code: 0)) as NSError).code))
-            os_log("🚀 Error 3: %{public}@", String((TunnelError.simulateTunnelFailureError as NSError).code))
-
             providerEvents.fire(.tunnelStartAttempt(.begin))
             prepareToConnect(using: tunnelProviderProtocol)
 
