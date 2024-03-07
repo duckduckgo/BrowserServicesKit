@@ -848,13 +848,18 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
                 navigation = associatedNavigation
             }
             // mark Navigation as finished as we‘re in __did__SameDocumentNavigation
+            // if we‘ve got the main-document load Navigation (which may be the case) - we don‘t want to finish it here.
             if navigation.isCurrent, navigation.navigationAction.navigationType.isSameDocumentNavigation, !navigation.isCompleted {
                 navigation.didFinish()
             }
 
         } else {
             // don‘t mark extra Session State Pop navigations as `current` when there‘s a `current` Anchor navigation stored in `startedNavigation`
-            let isCurrent = startedNavigation.map { $0.navigationAction.navigationType.isSameDocumentNavigation && $0.isCurrent } != true
+            let isCurrent = if let startedNavigation {
+                !(startedNavigation.navigationAction.navigationType.isSameDocumentNavigation && startedNavigation.isCurrent)
+            } else {
+                true
+            }
 
             assert(wkNavigation != nil)
             navigation = Navigation(identity: NavigationIdentity(wkNavigation), responders: responders, state: .expected(nil), isCurrent: isCurrent)
@@ -877,6 +882,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
             responder.navigation(navigation, didSameDocumentNavigationOf: navigationType)
         }
 
+        // same as above, main-document load navigations sometimes passed to this method shouldn‘t have `isCurrent` unset
         if navigation.navigationAction.navigationType.isSameDocumentNavigation {
             if self.startedNavigation === navigation {
                 self.startedNavigation = nil // will call `didResignCurrent`
