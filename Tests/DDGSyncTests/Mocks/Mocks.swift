@@ -20,8 +20,10 @@ import BrowserServicesKit
 import Combine
 import Common
 import Foundation
+import Macros
 import Persistence
 import TestUtils
+
 @testable import DDGSync
 
 extension SyncAccount {
@@ -194,7 +196,7 @@ class MockPrivacyConfiguration: PrivacyConfiguration {
 }
 
 struct MockSyncDependencies: SyncDependencies, SyncDependenciesDebuggingSupport {
-    var endpoints: Endpoints = Endpoints(baseURL: URL(string: "https://dev.null")!)
+    var endpoints: Endpoints = Endpoints(baseURL: #URL("https://dev.null"))
     var account: AccountManaging = AccountManagingMock()
     var api: RemoteAPIRequestCreating = RemoteAPIRequestCreatingMock()
     var secureStore: SecureStoring = SecureStorageStub()

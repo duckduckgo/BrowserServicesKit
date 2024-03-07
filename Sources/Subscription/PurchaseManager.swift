@@ -164,8 +164,10 @@ public final class PurchaseManager: ObservableObject {
         return !transactions.isEmpty
     }
 
+    public typealias TransactionJWS = String
+
     @MainActor
-    public func purchaseSubscription(with identifier: String, externalID: String) async -> Result<Void, PurchaseManagerError> {
+    public func purchaseSubscription(with identifier: String, externalID: String) async -> Result<TransactionJWS, PurchaseManagerError> {
 
         guard let product = availableProducts.first(where: { $0.id == identifier }) else { return .failure(PurchaseManagerError.productNotFound) }
 
@@ -182,9 +184,9 @@ public final class PurchaseManager: ObservableObject {
             return .failure(PurchaseManagerError.externalIDisNotAValidUUID)
         }
 
-        let result: Product.PurchaseResult
+        let purchaseResult: Product.PurchaseResult
         do {
-            result = try await product.purchase(options: options)
+            purchaseResult = try await product.purchase(options: options)
         } catch {
             os_log(.error, log: .subscription, "[PurchaseManager] Error: %{public}s", String(reflecting: error))
             return .failure(PurchaseManagerError.purchaseFailed)
@@ -194,18 +196,21 @@ public final class PurchaseManager: ObservableObject {
 
         purchaseQueue.removeAll()
 
-        switch result {
-        case let .success(.verified(transaction)):
-            os_log(.info, log: .subscription, "[PurchaseManager] purchaseSubscription result: success")
-            // Successful purchase
-            await transaction.finish()
-            await self.updatePurchasedProducts()
-            return .success(())
-        case let .success(.unverified(_, error)):
-            os_log(.info, log: .subscription, "[PurchaseManager] purchaseSubscription result: success /unverified/ - %{public}s", String(reflecting: error))
-            // Successful purchase but transaction/receipt can't be verified
-            // Could be a jailbroken phone
-            return .failure(PurchaseManagerError.transactionCannotBeVerified)
+        switch purchaseResult {
+        case let .success(verificationResult):
+            switch verificationResult {
+            case let .verified(transaction):
+                os_log(.info, log: .subscription, "[PurchaseManager] purchaseSubscription result: success")
+                // Successful purchase
+                await transaction.finish()
+                await self.updatePurchasedProducts()
+                return .success(verificationResult.jwsRepresentation)
+            case let .unverified(_, error):
+                os_log(.info, log: .subscription, "[PurchaseManager] purchaseSubscription result: success /unverified/ - %{public}s", String(reflecting: error))
+                // Successful purchase but transaction/receipt can't be verified
+                // Could be a jailbroken phone
+                return .failure(PurchaseManagerError.transactionCannotBeVerified)
+            }
         case .pending:
             os_log(.info, log: .subscription, "[PurchaseManager] purchaseSubscription result: pending")
             // Transaction waiting on SCA (Strong Customer Authentication) or

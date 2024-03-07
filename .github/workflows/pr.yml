@@ -160,6 +160,7 @@ jobs:
             -destination 'platform=iOS Simulator,name=iPhone 15' \
             -derivedDataPath DerivedData \
             -skipPackagePluginValidation \
+            -skipMacroValidation \
             CODE_SIGNING_ALLOWED=NO \
             | tee -a ios-build-log.txt \
             | xcbeautify --report junit --report-path . --junit-report-filename ios-unittests.xml 
