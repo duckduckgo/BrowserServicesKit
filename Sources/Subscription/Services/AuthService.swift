@@ -66,7 +66,7 @@ public struct AuthService: APIService {
             }
         }
 
-        struct Entitlement: Decodable {
+        struct Entitlement: Decodable, Equatable {
             let id: Int
             let name: String
             let product: String

@@ -22,6 +22,7 @@ import Common
 public extension Notification.Name {
     static let accountDidSignIn = Notification.Name("com.duckduckgo.subscription.AccountDidSignIn")
     static let accountDidSignOut = Notification.Name("com.duckduckgo.subscription.AccountDidSignOut")
+    static let entitlementsUpdated = Notification.Name("com.duckduckgo.subscription.EntitlementsUpdated")
 }
 
 public protocol AccountManagerKeychainAccessDelegate: AnyObject {
@@ -31,16 +32,15 @@ public protocol AccountManagerKeychainAccessDelegate: AnyObject {
 public protocol AccountManaging {
 
     var accessToken: String? { get }
-    var cache: SubscriptionCache
 
 }
 
 public class AccountManager: AccountManaging {
 
     private let storage: AccountStorage
-    private let cache: SubscriptionCache
+    private let subscriptionCache: SubscriptionCache
     private let accessTokenStorage: SubscriptionTokenStorage
-    
+
     public weak var delegate: AccountManagerKeychainAccessDelegate?
 
     public var isUserAuthenticated: Bool {
@@ -56,7 +56,7 @@ public class AccountManager: AccountManaging {
                 accessTokenStorage: SubscriptionTokenStorage,
                 cache: SubscriptionCache = SubscriptionCache()) {
         self.storage = storage
-        self.cache = cache
+        self.subscriptionCache = cache
         self.accessTokenStorage = accessTokenStorage
     }
 
@@ -171,7 +171,7 @@ public class AccountManager: AccountManaging {
         do {
             try storage.clearAuthenticationState()
             try accessTokenStorage.removeAccessToken()
-            cache.cleanup()
+            subscriptionCache.cleanup()
         } catch {
             if let error = error as? AccountKeychainAccessError {
                 delegate?.accountManagerKeychainAccessFailed(accessType: .clearAuthenticationData, error: error)
@@ -225,32 +225,39 @@ public class AccountManager: AccountManaging {
             return .failure(error)
         }
     }
-   
+
     private func fetchRemoteEntitlements() async -> Result<[Entitlement], Error> {
+        guard let accessToken else {
+            subscriptionCache.cleanup()
+            return .failure(EntitlementsError.noAccessToken)
+        }
         switch await AuthService.validateToken(accessToken: accessToken) {
         case .success(let response):
+
+            let cachedEntitlements = subscriptionCache.object(forKey: SubscriptionCache.Component.entitlements.rawValue) as? [AuthService.ValidateTokenResponse.Entitlement]
+
+            if response.account.entitlements != cachedEntitlements {
+                subscriptionCache.set(response.account.entitlements, forKey: SubscriptionCache.Component.entitlements.rawValue)
+                NotificationCenter.default.post(name: .entitlementsUpdated, object: self, userInfo: nil)
+            }
+
             let entitlements = response.account.entitlements.compactMap { Entitlement(rawValue: $0.product) }
-            cache.set(entitlements, forKey: SubscriptionCache.Component.entitlements)
-            return entitlements
+            return .success(entitlements)
 
         case .failure(let error):
-            cache.cleanup()
+            subscriptionCache.cleanup()
             os_log(.error, log: .subscription, "[AccountManager] fetchEntitlements error: %{public}@", error.localizedDescription)
             return .failure(error)
         }
     }
 
     public func fetchEntitlements(skipCache: Bool = false) async -> Result<[Entitlement], Error> {
-        guard let accessToken else { return .failure(EntitlementsError.noAccessToken) }
-        
-        let entitlements: [Entitlement]?
-        
+
         if !skipCache,
-           let cachedEntitlements = cache.object(forKey: Cache.entitlements) {
-            entitlements = cachedEntitlements
-            return .success(entitlements)
+           let cachedEntitlements = subscriptionCache.object(forKey: SubscriptionCache.Component.entitlements.rawValue) as? [Entitlement] {
+            return .success(cachedEntitlements)
         } else {
-            return fetchRemoteEntitlements()
+            return await fetchRemoteEntitlements()
         }
     }
 

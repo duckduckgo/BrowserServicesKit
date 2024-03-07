@@ -17,15 +17,16 @@
 //
 
 import Foundation
+import Persistence
 
 public struct SubscriptionCache: KeyValueStoring {
-    
+
     public enum Component: String, CustomStringConvertible, CaseIterable {
         public var description: String { rawValue }
-        
+  
         case entitlements
     }
-    
+
     private var userDefaults: UserDefaults? { UserDefaults(suiteName: "com.duckduckgo.app.subscriptions") }
 
     public init() {}
@@ -33,7 +34,6 @@ public struct SubscriptionCache: KeyValueStoring {
     public func object(forKey defaultName: String) -> Any? { userDefaults?.object(forKey: defaultName) }
     public func set(_ value: Any?, forKey defaultName: String) { userDefaults?.set(value, forKey: defaultName) }
     public func removeObject(forKey defaultName: String) { userDefaults?.removeObject(forKey: defaultName) }
-
 
     public func cleanup() {
         for component in Component.allCases {
