@@ -18,6 +18,7 @@
 
 import Combine
 import Foundation
+import Macros
 
 /// Persists and publishes changes to tunnel settings.
 ///
@@ -81,9 +82,9 @@ public final class VPNSettings {
         public var endpointURL: URL {
             switch self {
             case .production:
-                return URL(string: "https://controller.netp.duckduckgo.com")!
+                return #URL("https://controller.netp.duckduckgo.com")
             case .staging:
-                return URL(string: "https://staging1.netp.duckduckgo.com")!
+                return #URL("https://staging1.netp.duckduckgo.com")
             }
         }
     }
