@@ -33,10 +33,22 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     public enum Event {
         case userBecameActive
         case reportConnectionAttempt(attempt: ConnectionAttempt)
+        case tunnelStartAttempt(_ step: TunnelStartAttemptStep)
+        case tunnelUpdateAttempt(_ step: TunnelUpdateAttemptStep)
         case reportTunnelFailure(result: NetworkProtectionTunnelFailureMonitor.Result)
         case reportLatency(result: NetworkProtectionLatencyMonitor.Result)
-        case rekeyCompleted
+        case rekeyAttempt(_ step: RekeyAttemptStep)
     }
+
+    public enum AttemptStep {
+        case begin
+        case success
+        case failure(_ error: Error)
+    }
+
+    public typealias TunnelStartAttemptStep = AttemptStep
+    public typealias TunnelUpdateAttemptStep = AttemptStep
+    public typealias RekeyAttemptStep = AttemptStep
 
     public enum ConnectionAttempt {
         case connecting
@@ -185,12 +197,14 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
 
         os_log("Rekeying...", log: .networkProtectionKeyManagement)
+        providerEvents.fire(.rekeyAttempt(.begin))
 
         do {
             try await updateTunnelConfiguration(reassert: false, regenerateKey: true)
-            providerEvents.fire(.rekeyCompleted)
+            providerEvents.fire(.rekeyAttempt(.success))
         } catch {
             os_log("Rekey attempt failed.  This is not an error if you're using debug Key Management options: %{public}@", log: .networkProtectionKeyManagement, type: .error, String(describing: error))
+            providerEvents.fire(.rekeyAttempt(.failure(error)))
         }
     }
 
@@ -486,6 +500,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     open override func startTunnel(options: [String: NSObject]?, completionHandler: @escaping (Error?) -> Void) {
         Task { @MainActor in
+            providerEvents.fire(.tunnelStartAttempt(.begin))
             prepareToConnect(using: tunnelProviderProtocol)
 
             connectionStatus = .connecting
@@ -495,14 +510,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
             resetIssueStateOnTunnelStart(startupOptions)
 
-            let internalCompletionHandler = { [weak self] (error: Error?) in
-                guard let self else {
-                    completionHandler(error)
-                    return
-                }
-
+            let internalCompletionHandler = { [weak self, providerEvents] (error: Error?) in
                 guard let error else {
                     completionHandler(nil)
+                    providerEvents.fire(.tunnelStartAttempt(.success))
                     return
                 }
 
@@ -510,9 +521,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                     let errorDescription = (error as? LocalizedError)?.localizedDescription ?? String(describing: error)
 
                     os_log("Tunnel startup error: %{public}@", type: .error, errorDescription)
-                    self.controllerErrorStore.lastErrorMessage = errorDescription
-                    self.connectionStatus = .disconnected
+                    self?.controllerErrorStore.lastErrorMessage = errorDescription
+                    self?.connectionStatus = .disconnected
 
+                    providerEvents.fire(.tunnelStartAttempt(.failure(error)))
                     completionHandler(error)
                 }
 
@@ -712,43 +724,51 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                                           reassert: Bool,
                                           regenerateKey: Bool = false) async throws {
 
+        providerEvents.fire(.tunnelUpdateAttempt(.begin))
+
         if reassert {
             await stopMonitors()
         }
 
-        let tunnelConfiguration = try await generateTunnelConfiguration(environment: environment,
-                                                                        serverSelectionMethod: serverSelectionMethod,
-                                                                        includedRoutes: includedRoutes ?? [],
-                                                                        excludedRoutes: settings.excludedRanges,
-                                                                        regenerateKey: regenerateKey)
+        do {
+            let tunnelConfiguration = try await generateTunnelConfiguration(environment: environment,
+                                                                            serverSelectionMethod: serverSelectionMethod,
+                                                                            includedRoutes: includedRoutes ?? [],
+                                                                            excludedRoutes: settings.excludedRanges,
+                                                                            regenerateKey: regenerateKey)
 
-        try await withCheckedThrowingContinuation { [weak self] (continuation: CheckedContinuation<Void, Error>) in
-            guard let self = self else {
-                continuation.resume()
-                return
-            }
-
-            self.adapter.update(tunnelConfiguration: tunnelConfiguration, reassert: reassert) { [weak self] error in
-                if let error = error {
-                    os_log("🔵 Failed to update the configuration: %{public}@", type: .error, error.localizedDescription)
-                    self?.debugEvents?.fire(error.networkProtectionError)
-                    continuation.resume(throwing: error)
+            try await withCheckedThrowingContinuation { [weak self] (continuation: CheckedContinuation<Void, Error>) in
+                guard let self = self else {
+                    continuation.resume()
                     return
                 }
 
-                Task { [weak self] in
-                    if reassert {
-                        do {
-                            try await self?.handleAdapterStarted(startReason: .reconnected)
-                        } catch {
-                            continuation.resume(throwing: error)
-                            return
-                        }
+                self.adapter.update(tunnelConfiguration: tunnelConfiguration, reassert: reassert) { [weak self] error in
+                    if let error = error {
+                        os_log("🔵 Failed to update the configuration: %{public}@", type: .error, error.localizedDescription)
+                        self?.debugEvents?.fire(error.networkProtectionError)
+                        continuation.resume(throwing: error)
+                        return
                     }
 
-                    continuation.resume()
+                    Task { [weak self] in
+                        if reassert {
+                            do {
+                                try await self?.handleAdapterStarted(startReason: .reconnected)
+                            } catch {
+                                continuation.resume(throwing: error)
+                                return
+                            }
+                        }
+
+                        continuation.resume()
+                    }
                 }
             }
+
+            providerEvents.fire(.tunnelUpdateAttempt(.success))
+        } catch {
+            providerEvents.fire(.tunnelUpdateAttempt(.failure(error)))
         }
     }
 
