@@ -19,29 +19,50 @@
 import Foundation
 import Persistence
 
-public class SubscriptionCache: KeyValueStoring {
+public class SubscriptionCache {
 
     public enum Component: String, CustomStringConvertible, CaseIterable {
         public var description: String { rawValue }
-
+ 
         case entitlements
     }
 
     private var appGroup: String
-    lazy private var userDefaults: UserDefaults? = UserDefaults(suiteName: appGroup)
+    private lazy var userDefaults: UserDefaults? = UserDefaults(suiteName: appGroup)
 
     public init(appGroup: String) {
         self.appGroup = appGroup
     }
 
-    public func object(forKey defaultName: String) -> Any? { userDefaults?.object(forKey: defaultName) }
-    public func set(_ value: Any?, forKey defaultName: String) { userDefaults?.set(value, forKey: defaultName) }
-    public func removeObject(forKey defaultName: String) { userDefaults?.removeObject(forKey: defaultName) }
+    public func set<T: Codable>(_ object: T, forKey defaultName: String) {
+        let encoder = JSONEncoder()
+        do {
+            let data = try encoder.encode(object)
+            userDefaults?.set(data, forKey: defaultName)
+        } catch {
+            assertionFailure("Failed to encode object of type \(T.self): \(error)")
+        }
+    }
+
+    public func object<T: Codable>(forKey defaultName: String) -> T? {
+        guard let data = userDefaults?.data(forKey: defaultName) else { return nil }
+        let decoder = JSONDecoder()
+        do {
+            let object = try decoder.decode(T.self, from: data)
+            return object
+        } catch {
+            assertionFailure("Failed to decode object of type \(T.self): \(error)")
+            return nil
+        }
+    }
+
+    public func removeObject(forKey defaultName: String) {
+        userDefaults?.removeObject(forKey: defaultName)
+    }
 
     public func cleanup() {
         for component in Component.allCases {
             removeObject(forKey: component.rawValue)
         }
     }
-
 }
