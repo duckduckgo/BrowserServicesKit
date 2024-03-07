@@ -764,8 +764,13 @@ extension NavigationType {
             return ".redirect(.developer)"
         case .sessionRestoration:
             return ".restore"
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
         case .sameDocumentNavigation(let navigationType):
             return ".sameDocumentNavigation(.\(navigationType.debugDescription))"
+#else
+        case .sameDocumentNavigation:
+            return ".sameDocumentNavigation"
+#endif
         case .other:
             return ".other"
         case .custom(let name):

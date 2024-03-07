@@ -201,8 +201,13 @@ extension NavigationType: CustomDebugStringConvertible {
         case .other: return "other"
         case .redirect(let redirect):
             return "redirect(\(redirect))"
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
         case .sameDocumentNavigation(let navigationType):
             return "sameDocumentNavigation(\(navigationType.debugDescription))"
+#else
+        case .sameDocumentNavigation:
+            return "sameDocumentNavigation"
+#endif
         case .custom(let name):
             return "custom(\(name.rawValue))"
         }
