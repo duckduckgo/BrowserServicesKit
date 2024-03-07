@@ -1,5 +1,5 @@
 //
-//  SubscriptionCache.swift
+//  UserDefaultsCache.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -17,52 +17,46 @@
 //
 
 import Foundation
-import Persistence
 
-public class SubscriptionCache {
+public enum UserDefaultsCacheKey: String {
+    case subscriptionEntitlements
+}
 
-    public enum Component: String, CustomStringConvertible, CaseIterable {
-        public var description: String { rawValue }
-
-        case entitlements
-    }
-
+/// A generic UserDefaults cache for storing and retrieving Codable objects.
+public class UserDefaultsCache<ObjectType: Codable> {
     private var appGroup: String
     private lazy var userDefaults: UserDefaults? = UserDefaults(suiteName: appGroup)
+    private let key: UserDefaultsCacheKey
 
-    public init(appGroup: String) {
+    public init(appGroup: String, key: UserDefaultsCacheKey) {
         self.appGroup = appGroup
+        self.key = key
     }
 
-    public func set<T: Codable>(_ object: T, forKey defaultName: String) {
+    public func set(_ object: ObjectType) {
         let encoder = JSONEncoder()
         do {
             let data = try encoder.encode(object)
-            userDefaults?.set(data, forKey: defaultName)
+            userDefaults?.set(data, forKey: key.rawValue)
         } catch {
-            assertionFailure("Failed to encode object of type \(T.self): \(error)")
+            assertionFailure("Failed to encode object of type \(ObjectType.self): \(error)")
         }
     }
 
-    public func object<T: Codable>(forKey defaultName: String) -> T? {
-        guard let data = userDefaults?.data(forKey: defaultName) else { return nil }
+    public func get() -> ObjectType? {
+        guard let data = userDefaults?.data(forKey: key.rawValue) else { return nil }
         let decoder = JSONDecoder()
         do {
-            let object = try decoder.decode(T.self, from: data)
+            let object = try decoder.decode(ObjectType.self, from: data)
             return object
         } catch {
-            assertionFailure("Failed to decode object of type \(T.self): \(error)")
+            assertionFailure("Failed to decode object of type \(ObjectType.self): \(error)")
             return nil
         }
     }
 
-    public func removeObject(forKey defaultName: String) {
-        userDefaults?.removeObject(forKey: defaultName)
+    public func reset() {
+        userDefaults?.removeObject(forKey: key.rawValue)
     }
 
-    public func cleanup() {
-        for component in Component.allCases {
-            removeObject(forKey: component.rawValue)
-        }
-    }
 }

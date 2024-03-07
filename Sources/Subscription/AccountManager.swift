@@ -22,7 +22,7 @@ import Common
 public extension Notification.Name {
     static let accountDidSignIn = Notification.Name("com.duckduckgo.subscription.AccountDidSignIn")
     static let accountDidSignOut = Notification.Name("com.duckduckgo.subscription.AccountDidSignOut")
-    static let entitlementsUpdated = Notification.Name("com.duckduckgo.subscription.EntitlementsUpdated")
+    static let entitlementsUpdated = Notification.Name("com.duckduckgo.subscription.EntitlementsDidChange")
 }
 
 public protocol AccountManagerKeychainAccessDelegate: AnyObject {
@@ -37,13 +37,15 @@ public protocol AccountManaging {
 
 public class AccountManager: AccountManaging {
 
-    private let storage: AccountStorage
-    private let subscriptionCache: SubscriptionCache
-    private let accessTokenStorage: SubscriptionTokenStorage
-
-    enum Constants {
-        static let cachedEntitlementsKey = SubscriptionCache.Component.entitlements.rawValue
+    public enum CachePolicy {
+        case reloadIgnoringLocalCacheData
+        case returnCacheDataElseLoad
+        case returnCacheDataDontLoad
     }
+
+    private let storage: AccountStorage
+    private let entitlementsCache: UserDefaultsCache<[Entitlement]>
+    private let accessTokenStorage: SubscriptionTokenStorage
 
     public weak var delegate: AccountManagerKeychainAccessDelegate?
 
@@ -53,14 +55,15 @@ public class AccountManager: AccountManaging {
 
     public convenience init(subscriptionAppGroup: String) {
         let accessTokenStorage = SubscriptionTokenKeychainStorage(keychainType: .dataProtection(.named(subscriptionAppGroup)))
-        self.init(accessTokenStorage: accessTokenStorage, subscriptionCache: SubscriptionCache(appGroup: subscriptionAppGroup))
+        self.init(accessTokenStorage: accessTokenStorage,
+                  entitlementsCache: UserDefaultsCache<[Entitlement]>(appGroup: subscriptionAppGroup, key: UserDefaultsCacheKey.subscriptionEntitlements))
     }
 
     public init(storage: AccountStorage = AccountKeychainStorage(),
                 accessTokenStorage: SubscriptionTokenStorage,
-                subscriptionCache: SubscriptionCache) {
+                entitlementsCache: UserDefaultsCache<[Entitlement]>) {
         self.storage = storage
-        self.subscriptionCache = subscriptionCache
+        self.entitlementsCache = entitlementsCache
         self.accessTokenStorage = accessTokenStorage
     }
 
@@ -175,7 +178,7 @@ public class AccountManager: AccountManaging {
         do {
             try storage.clearAuthenticationState()
             try accessTokenStorage.removeAccessToken()
-            subscriptionCache.cleanup()
+            entitlementsCache.reset()
         } catch {
             if let error = error as? AccountKeychainAccessError {
                 delegate?.accountManagerKeychainAccessFailed(accessType: .clearAuthenticationData, error: error)
@@ -219,6 +222,7 @@ public class AccountManager: AccountManaging {
 
     public enum EntitlementsError: Error {
         case noAccessToken
+        case noCachedData
     }
 
     public func hasEntitlement(for entitlement: Entitlement) async -> Result<Bool, Error> {
@@ -232,42 +236,49 @@ public class AccountManager: AccountManaging {
 
     private func fetchRemoteEntitlements() async -> Result<[Entitlement], Error> {
         guard let accessToken else {
-            subscriptionCache.cleanup()
+            entitlementsCache.reset()
             return .failure(EntitlementsError.noAccessToken)
         }
 
-        let cachedEntitlements: [Entitlement]? = subscriptionCache.object(forKey: Constants.cachedEntitlementsKey)
+        let cachedEntitlements: [Entitlement]? = entitlementsCache.get()
 
         switch await AuthService.validateToken(accessToken: accessToken) {
-
-            case .success(let response):
-            let entitlements = response.account.entitlements.compactMap { Entitlement(rawValue: $0.product) }
-                if entitlements != cachedEntitlements {
-                    subscriptionCache.set(entitlements, forKey: SubscriptionCache.Component.entitlements.rawValue)
-                    NotificationCenter.default.post(name: .entitlementsUpdated, object: self, userInfo: nil)
-                }
-                return .success(entitlements)
-
-            case .failure(let error):
-                subscriptionCache.cleanup()
-                os_log(.error, log: .subscription, "[AccountManager] fetchEntitlements error: %{public}@", error.localizedDescription)
-                return .failure(error)
+        case .success(let response):
+        let entitlements = response.account.entitlements.compactMap { Entitlement(rawValue: $0.product) }
+            if entitlements != cachedEntitlements {
+                entitlementsCache.set(entitlements)
+                NotificationCenter.default.post(name: .entitlementsUpdated, object: self, userInfo: [UserDefaultsCacheKey.subscriptionEntitlements: entitlements])
             }
+            return .success(entitlements)
+
+        case .failure(let error):
+            os_log(.error, log: .subscription, "[AccountManager] fetchEntitlements error: %{public}@", error.localizedDescription)
+            return .failure(error)
         }
+    }
 
-        public func fetchEntitlements(skipCache: Bool = false) async -> Result<[Entitlement], Error> {
+    public func fetchEntitlements(policy: CachePolicy = .returnCacheDataElseLoad) async -> Result<[Entitlement], Error> {
 
-            if skipCache {
+        switch policy {
+        case .reloadIgnoringLocalCacheData:
+            return await fetchRemoteEntitlements()
+
+        case .returnCacheDataElseLoad:
+            if let cachedEntitlements: [Entitlement] = entitlementsCache.get() {
+                return .success(cachedEntitlements)
+            } else {
                 return await fetchRemoteEntitlements()
             }
 
-            guard let cachedEntitlements: [Entitlement] = subscriptionCache.object(forKey: Constants.cachedEntitlementsKey) else {
-                return await fetchRemoteEntitlements()
+        case .returnCacheDataDontLoad:
+            if let cachedEntitlements: [Entitlement] = entitlementsCache.get() {
+                return .success(cachedEntitlements)
+            } else {
+                return .failure(EntitlementsError.noCachedData)
             }
-
-            return .success(cachedEntitlements)
-
         }
+
+    }
 
     public func exchangeAuthTokenToAccessToken(_ authToken: String) async -> Result<String, Error> {
         switch await AuthService.getAccessToken(token: authToken) {
