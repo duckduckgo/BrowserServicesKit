@@ -24,12 +24,12 @@ public enum UserDefaultsCacheKey: String {
 
 /// A generic UserDefaults cache for storing and retrieving Codable objects.
 public class UserDefaultsCache<ObjectType: Codable> {
-    private var appGroup: String
-    private lazy var userDefaults: UserDefaults? = UserDefaults(suiteName: appGroup)
+    private var subscriptionAppGroup: String
+    private lazy var userDefaults: UserDefaults? = UserDefaults(suiteName: subscriptionAppGroup)
     private let key: UserDefaultsCacheKey
 
-    public init(appGroup: String, key: UserDefaultsCacheKey) {
-        self.appGroup = appGroup
+    public init(subscriptionAppGroup: String, key: UserDefaultsCacheKey) {
+        self.subscriptionAppGroup = subscriptionAppGroup
         self.key = key
     }
 
