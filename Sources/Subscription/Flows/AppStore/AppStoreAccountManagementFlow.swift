@@ -29,10 +29,11 @@ public final class AppStoreAccountManagementFlow {
         }
 
     @discardableResult
-    public static func refreshAuthTokenIfNeeded() async -> Result<String, AppStoreAccountManagementFlow.Error> {
+    public static func refreshAuthTokenIfNeeded(subscriptionAppGroup: String) async -> Result<String, AppStoreAccountManagementFlow.Error> {
         os_log(.info, log: .subscription, "[AppStoreAccountManagementFlow] refreshAuthTokenIfNeeded")
+        let accountManager = AccountManager(subscriptionAppGroup: subscriptionAppGroup)
 
-        var authToken = AccountManager().authToken ?? ""
+        var authToken = accountManager.authToken ?? ""
 
         // Check if auth token if still valid
         if case let .failure(validateTokenError) = await AuthService.validateToken(accessToken: authToken) {
@@ -43,9 +44,9 @@ public final class AppStoreAccountManagementFlow {
 
             switch await AuthService.storeLogin(signature: lastTransactionJWSRepresentation) {
             case .success(let response):
-                if response.externalID == AccountManager().externalID {
+                if response.externalID == accountManager.externalID {
                     authToken = response.authToken
-                    AccountManager().storeAuthToken(token: authToken)
+                    accountManager.storeAuthToken(token: authToken)
                 }
             case .failure(let storeLoginError):
                 os_log(.error, log: .subscription, "[AppStoreAccountManagementFlow] storeLogin error: %{public}s", String(reflecting: storeLoginError))

@@ -74,7 +74,6 @@ extension OSLog {
     }
 }
 
-// swiftlint:disable line_length
 struct Logging {
 
     static let subsystem = "com.duckduckgo.macos.browser.network-protection"
@@ -118,4 +117,3 @@ struct Logging {
     fileprivate static let networkProtectionEntitlementLoggingEnabled = true
     fileprivate static let networkProtectionEntitlementLog: OSLog = OSLog(subsystem: subsystem, category: "Network Protection: Entitlement Monitor")
 }
-// swiftlint:enable line_length

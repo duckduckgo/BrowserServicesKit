@@ -22,7 +22,6 @@ import BrowserServicesKit
 import WebKit
 import Common
 
-// swiftlint:disable unused_closure_parameter
 class ContentBlockerRulesManagerMultipleRulesTests: ContentBlockerRulesManagerTests {
 
     let firstRules = """
@@ -353,4 +352,3 @@ class ContentBlockerRulesManagerMultipleRulesTests: ContentBlockerRulesManagerTe
     }
 
 }
-// swiftlint:enable unused_closure_parameter

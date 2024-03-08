@@ -1,7 +1,7 @@
 //
-//  NetworkProtectionTokenStoreMocks.swift
+//  SubscriptionTokenStorage.swift
 //
-//  Copyright © 2021 DuckDuckGo. All rights reserved.
+//  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -17,24 +17,9 @@
 //
 
 import Foundation
-@testable import NetworkProtection
 
-final class NetworkProtectionTokenStoreMock: NetworkProtectionTokenStore {
-
-    var token: String?
-
-    func store(_ token: String) {
-        self.token = token
-    }
-
-    func fetchToken() -> String? {
-        token
-    }
-
-    func deleteToken() {
-        if let token = fetchToken(), Self.isSubscriptionAccessToken(token) {
-            return
-        }
-        self.token = nil
-    }
+public protocol SubscriptionTokenStorage: AnyObject {
+    func getAccessToken() throws -> String?
+    func store(accessToken: String) throws
+    func removeAccessToken() throws
 }

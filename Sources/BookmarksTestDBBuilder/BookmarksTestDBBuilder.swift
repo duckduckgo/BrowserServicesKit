@@ -22,7 +22,6 @@ import Persistence
 import Bookmarks
 
 // swiftlint:disable force_try
-// swiftlint:disable line_length
 // swiftlint:disable function_body_length
 
 @main
@@ -320,5 +319,4 @@ public extension BookmarkEntity {
 }
 
 // swiftlint:enable force_try
-// swiftlint:enable line_length
 // swiftlint:enable function_body_length
