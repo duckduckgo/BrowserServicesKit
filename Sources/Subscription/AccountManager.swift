@@ -214,21 +214,15 @@ public class AccountManager: AccountManaging {
 
     // MARK: -
 
-    public enum Entitlement: String, Codable {
-        case networkProtection = "Network Protection"
-        case dataBrokerProtection = "Data Broker Protection"
-        case identityTheftRestoration = "Identity Theft Restoration"
-    }
-
     public enum EntitlementsError: Error {
         case noAccessToken
         case noCachedData
     }
 
-    public func hasEntitlement(for entitlement: Entitlement) async -> Result<Bool, Error> {
+    public func hasEntitlement(for entitlement: Entitlement.ProductName) async -> Result<Bool, Error> {
         switch await fetchEntitlements() {
         case .success(let entitlements):
-            return .success(entitlements.contains(entitlement))
+            return .success(entitlements.compactMap { $0.product }.contains(entitlement))
         case .failure(let error):
             return .failure(error)
         }
@@ -244,7 +238,7 @@ public class AccountManager: AccountManaging {
 
         switch await AuthService.validateToken(accessToken: accessToken) {
         case .success(let response):
-        let entitlements = response.account.entitlements.compactMap { Entitlement(rawValue: $0.product) }
+            let entitlements = response.account.entitlements
             if entitlements != cachedEntitlements {
                 entitlementsCache.set(entitlements)
                 NotificationCenter.default.post(name: .entitlementsDidChange, object: self, userInfo: [UserDefaultsCacheKey.subscriptionEntitlements: entitlements])
