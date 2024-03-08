@@ -20,6 +20,12 @@ import Foundation
 
 public enum ToggleReportEvents {
 
+    public enum Parameters {
+
+        public static let didOpenReportInfo = "didOpenReportInfo"
+
+    }
+
     case toggleReportDoNotSend
     case toggleReportDismiss
 

@@ -37,6 +37,7 @@ protocol PrivacyDashboardUserScriptDelegate: AnyObject {
     // Toggle reports
     func userScriptDidRequestToggleReportOptions(_ userScript: PrivacyDashboardUserScript)
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectReportAction shouldSendReport: Bool)
+    func userScriptDidOpenReportInfo(_ userScript: PrivacyDashboardUserScript)
 
 }
 
@@ -84,6 +85,7 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         case privacyDashboardGetToggleReportOptions
         case privacyDashboardSendToggleReport
         case privacyDashboardRejectToggleReport
+        case privacyDashboardSeeWhatIsSent
 
     }
 
@@ -133,6 +135,8 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             handleSendToggleReport()
         case .privacyDashboardRejectToggleReport:
             handleDoNotSendToggleReport()
+        case .privacyDashboardSeeWhatIsSent:
+            handleDidOpenReportInfo()
         }
     }
 
@@ -241,6 +245,10 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         delegate?.userScript(self, didSelectReportAction: false)
     }
 
+    private func handleDidOpenReportInfo() {
+        delegate?.userScriptDidOpenReportInfo(self)
+    }
+
     // MARK: - Calls to script's JS API
 
     func setToggleReportOptions(forSite site: String, webView: WKWebView) {
@@ -268,7 +276,8 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
                              {"id": "errorDescriptions"},
                              {"id": "httpErrorCodes"},
                              {"id": "reportFlow"},
-                             {"id": "lastSentDay"}
+                             {"id": "lastSentDay"},
+                             {"id": "didOpenReportInfo"}
                          ]
                      }
                      window.onGetToggleReportOptionsResponse(json);

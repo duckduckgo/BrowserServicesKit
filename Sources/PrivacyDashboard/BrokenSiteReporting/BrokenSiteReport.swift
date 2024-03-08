@@ -39,8 +39,6 @@ public struct BrokenSiteReport {
         case onProtectionsOffMenu = "on_protections_off_menu"
         /// From the privacy dashboard's on protections toggle off
         case onProtectionsOffDashboard = "on_protections_off_dashboard_main"
-        /// From the privacy dashboard's report screen on protections toggle off
-        case onProtectionsOffDashboardBrokenSite = "on_protections_off_dashboard_broken_site"
 
     }
 
@@ -72,6 +70,7 @@ public struct BrokenSiteReport {
     var lastSentDay: String?
     let errors: [Error]?
     let httpStatusCodes: [Int]?
+    let didOpenReportInfo: Bool
 #if os(iOS)
     let siteType: SiteType
     let atb: String
@@ -95,7 +94,8 @@ public struct BrokenSiteReport {
         protectionsState: Bool,
         reportFlow: Source,
         errors: [Error]?,
-        httpStatusCodes: [Int]?
+        httpStatusCodes: [Int]?,
+        didOpenReportInfo: Bool
     ) {
         self.siteUrl = siteUrl
         self.category = category
@@ -113,6 +113,7 @@ public struct BrokenSiteReport {
         self.reportFlow = reportFlow
         self.errors = errors
         self.httpStatusCodes = httpStatusCodes
+        self.didOpenReportInfo = didOpenReportInfo
     }
 #endif
 
@@ -136,7 +137,8 @@ public struct BrokenSiteReport {
         atb: String,
         model: String,
         errors: [Error]?,
-        httpStatusCodes: [Int]?
+        httpStatusCodes: [Int]?,
+        didOpenReportInfo: Bool
     ) {
         self.siteUrl = siteUrl
         self.category = category
@@ -157,6 +159,7 @@ public struct BrokenSiteReport {
         self.model = model
         self.errors = errors
         self.httpStatusCodes = httpStatusCodes
+        self.didOpenReportInfo = didOpenReportInfo
     }
 #endif
 
@@ -166,13 +169,13 @@ public struct BrokenSiteReport {
     public func getRequestParameters(forReportMode mode: Mode) -> [String: String] {
         var result: [String: String] = [
             "siteUrl": siteUrl.trimmingQueryItemsAndFragment().absoluteString,
-            "upgradedHttps": upgradedHttps.stringValue,
+            "upgradedHttps": upgradedHttps.description,
             "tds": tdsETag?.trimmingCharacters(in: CharacterSet(charactersIn: "\"")) ?? "",
             "blockedTrackers": blockedTrackerDomains.joined(separator: ","),
             "surrogates": installedSurrogates.joined(separator: ","),
-            "gpc": isGPCEnabled.stringValue,
+            "gpc": isGPCEnabled.description,
             "ampUrl": ampURL,
-            "urlParametersRemoved": urlParametersRemoved.stringValue,
+            "urlParametersRemoved": urlParametersRemoved.description,
             "os": osVersion,
             "manufacturer": manufacturer,
             "reportFlow": reportFlow.rawValue
@@ -181,7 +184,9 @@ public struct BrokenSiteReport {
         if mode == .regular {
             result["category"] = category
             result["description"] = description ?? ""
-            result["protectionsState"] = protectionsState.stringValue
+            result["protectionsState"] = protectionsState.description
+        } else {
+            result["didOpenReportInfo"] = didOpenReportInfo.description
         }
 
         if let lastSentDay = lastSentDay {
