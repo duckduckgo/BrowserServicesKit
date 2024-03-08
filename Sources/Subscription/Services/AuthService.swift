@@ -65,12 +65,6 @@ public struct AuthService: APIService {
                 case email, entitlements, externalID = "externalId" // no underscores due to keyDecodingStrategy = .convertFromSnakeCase
             }
         }
-
-        struct Entitlement: Decodable, Equatable {
-            let id: Int
-            let name: String
-            let product: String
-        }
     }
     // swiftlint:enable nesting
 

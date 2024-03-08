@@ -18,7 +18,8 @@
 
 import Foundation
 
-public struct Entitlement: Decodable {
+public struct Entitlement: Codable, Equatable {
+    let id: Int
     let name: String
     let product: String
 }
