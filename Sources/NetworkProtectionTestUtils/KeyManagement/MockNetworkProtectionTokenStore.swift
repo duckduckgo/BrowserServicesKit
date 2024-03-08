@@ -46,7 +46,7 @@ public final class MockNetworkProtectionTokenStorage: NetworkProtectionTokenStor
     public func deleteToken() throws {
         didCallDeleteToken = true
     }
-    
+
     public func fetchSubscriptionToken() throws -> String? {
         try fetchToken()
     }
