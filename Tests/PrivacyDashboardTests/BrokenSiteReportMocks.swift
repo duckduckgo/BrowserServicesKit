@@ -102,7 +102,7 @@ struct BrokenSiteReportMocks {
                          protectionsState: true,
                          reportFlow: .appMenu,
                          errors: nil,
-                         httpStatusCodes: nil, 
+                         httpStatusCodes: nil,
                          didOpenReportInfo: true)
 #endif
     }
