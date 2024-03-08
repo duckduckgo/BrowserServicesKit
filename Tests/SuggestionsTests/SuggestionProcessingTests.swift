@@ -19,7 +19,7 @@
 import Macros
 import XCTest
 
-@testable import BrowserServicesKit
+@testable import Suggestions
 
 final class SuggestionProcessingTests: XCTestCase {
 
