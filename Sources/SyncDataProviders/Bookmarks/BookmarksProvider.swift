@@ -29,7 +29,6 @@ public struct FaviconsFetcherInput {
     public var deletedBookmarksUUIDs: Set<String>
 }
 
-// swiftlint:disable line_length
 public final class BookmarksProvider: DataProvider {
 
     public private(set) var faviconsFetcherInput: FaviconsFetcherInput = .init(modifiedBookmarksUUIDs: [], deletedBookmarksUUIDs: [])
@@ -239,4 +238,3 @@ public final class BookmarksProvider: DataProvider {
 #endif
 
 }
-// swiftlint:enable line_length

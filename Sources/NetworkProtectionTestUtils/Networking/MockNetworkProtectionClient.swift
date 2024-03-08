@@ -19,7 +19,6 @@
 import Foundation
 @testable import NetworkProtection
 
-// swiftlint:disable line_length
 public final class MockNetworkProtectionClient: NetworkProtectionClient {
     public init() {
     }
@@ -85,4 +84,3 @@ public final class MockNetworkProtectionClient: NetworkProtectionClient {
         return stubRegister
     }
 }
-// swiftlint:enable line_length

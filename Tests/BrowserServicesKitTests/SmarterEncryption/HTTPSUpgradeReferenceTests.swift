@@ -17,11 +17,14 @@
 //
 
 import Foundation
-import XCTest
+import Macros
 import os.log
 import Common
 @testable import BrowserServicesKit
+import XCTest
+
 @testable import BloomFilterWrapper
+@testable import BrowserServicesKit
 
 private struct HTTPSUpgradesRefTests: Decodable {
     struct HTTPSUpgradesTests: Decodable {
@@ -139,7 +142,7 @@ final class HTTPSUpgradeReferenceTests: XCTestCase {
         let httpsUpgrade = HTTPSUpgrade(store: mockStore, privacyManager: makePrivacyManager(config: nil, unprotectedDomains: ["secure.thirdtest.com"]))
         await httpsUpgrade.loadData()
 
-        let url = URL(string: "http://secure.thirdtest.com")!
+        let url = #URL("http://secure.thirdtest.com")
 
         var resultURL = url
         let result = await httpsUpgrade.upgrade(url: url)
@@ -154,7 +157,7 @@ final class HTTPSUpgradeReferenceTests: XCTestCase {
         let httpsUpgrade = HTTPSUpgrade(store: mockStore, privacyManager: makePrivacyManager(config: nil, unprotectedDomains: ["thirdtest.com"]))
         await httpsUpgrade.loadData()
 
-        let url = URL(string: "http://secure.thirdtest.com")!
+        let url = #URL("http://secure.thirdtest.com")
 
         var resultURL = url
         let result = await httpsUpgrade.upgrade(url: url)

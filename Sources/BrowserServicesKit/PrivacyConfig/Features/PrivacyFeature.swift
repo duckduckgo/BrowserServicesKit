@@ -97,14 +97,6 @@ public enum SyncSubfeature: String, PrivacySubfeature {
     case level3AllowCreateAccount
 }
 
-public enum AutoconsentSubfeature: String, PrivacySubfeature {
-    public var parent: PrivacyFeature {
-        .autoconsent
-    }
-
-    case onByDefault
-}
-
 public enum PrivacyDashboardSubfeature: String, PrivacySubfeature {
 
     public var parent: PrivacyFeature { .privacyDashboard }

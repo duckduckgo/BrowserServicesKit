@@ -40,7 +40,12 @@ public enum NavigationType: Equatable {
     case redirect(RedirectType)
     case sessionRestoration
     case alternateHtmlLoad
+
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
+    case sameDocumentNavigation(WKSameDocumentNavigationType)
+#else
     case sameDocumentNavigation
+#endif
 
     case other
 
@@ -51,7 +56,7 @@ public enum NavigationType: Equatable {
         switch navigationAction.navigationType {
         case .linkActivated where navigationAction.isSameDocumentNavigation,
              .other where navigationAction.isSameDocumentNavigation:
-            self = .sameDocumentNavigation
+            self = .sameDocumentNavigation(.anchorNavigation)
 
         case .linkActivated:
 #if os(macOS)
@@ -137,6 +142,11 @@ public extension NavigationType {
         return false
     }
 
+    var isSameDocumentNavigation: Bool {
+        if case .sameDocumentNavigation = self { return true }
+        return false
+    }
+
 }
 
 public protocol WebViewNavigationAction {
@@ -191,10 +201,26 @@ extension NavigationType: CustomDebugStringConvertible {
         case .other: return "other"
         case .redirect(let redirect):
             return "redirect(\(redirect))"
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
+        case .sameDocumentNavigation(let navigationType):
+            return "sameDocumentNavigation(\(navigationType.debugDescription))"
+#else
         case .sameDocumentNavigation:
             return "sameDocumentNavigation"
+#endif
         case .custom(let name):
             return "custom(\(name.rawValue))"
+        }
+    }
+}
+
+extension WKSameDocumentNavigationType: CustomDebugStringConvertible {
+    public var debugDescription: String {
+        switch self {
+        case .anchorNavigation: "anchorNavigation"
+        case .sessionStatePush: "sessionStatePush"
+        case .sessionStateReplace: "sessionStateReplace"
+        case .sessionStatePop: "sessionStatePop"
         }
     }
 }

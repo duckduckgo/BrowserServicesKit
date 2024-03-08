@@ -25,10 +25,6 @@ import WebKit
 import XCTest
 @testable import Navigation
 
-// swiftlint:disable unused_closure_parameter
-// swiftlint:disable opening_brace
-// swiftlint:disable trailing_comma
-
 @available(macOS 12.0, iOS 15.0, *)
 class NavigationAuthChallengeTests: DistributedNavigationDelegateTestsBase {
 
@@ -296,9 +292,5 @@ class NavigationAuthChallengeTests: DistributedNavigationDelegateTestsBase {
     }
 
 }
-
-// swiftlint:enable unused_closure_parameter
-// swiftlint:enable opening_brace
-// swiftlint:enable trailing_comma
 
 #endif

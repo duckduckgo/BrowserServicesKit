@@ -17,9 +17,15 @@
 //
 
 import Foundation
-import SecureStorage
 import GRDB
+import Macros
+import SecureStorage
+
 @testable import BrowserServicesKit
+
+private extension URL {
+    static let duckduckgo = #URL("https://duckduckgo.com/")
+}
 
 internal class MockAutofillDatabaseProvider: AutofillDatabaseProvider {
 
@@ -34,12 +40,12 @@ internal class MockAutofillDatabaseProvider: AutofillDatabaseProvider {
 
     var db: DatabaseWriter
 
-    required init(file: URL = URL(string: "https://duckduckgo.com/")!, key: Data = Data()) throws {
+    required init(file: URL = .duckduckgo, key: Data = Data()) throws {
         self.db = try! DatabaseQueue(named: "TestQueue")
     }
 
     static func recreateDatabase(withKey key: Data) throws -> Self {
-        return try MockAutofillDatabaseProvider(file: URL(string: "https://duck.com")!, key: Data()) as! Self
+        return try MockAutofillDatabaseProvider(file: #URL("https://duck.com"), key: Data()) as! Self
     }
 
     func hasAccountFor(username: String?, domain: String?) throws -> Bool {
@@ -74,6 +80,11 @@ internal class MockAutofillDatabaseProvider: AutofillDatabaseProvider {
     func deleteWebsiteCredentialsForAccountId(_ accountId: Int64) throws {
         self._credentialsDict.removeValue(forKey: accountId)
         self._accounts = self._accounts.filter { $0.id != String(accountId) }
+    }
+
+    func deleteAllWebsiteCredentials() throws {
+        self._credentialsDict.removeAll()
+        self._accounts.removeAll()
     }
 
     func accounts() throws -> [SecureVaultModels.WebsiteAccount] {
