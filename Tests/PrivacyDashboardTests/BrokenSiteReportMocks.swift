@@ -41,7 +41,8 @@ struct BrokenSiteReportMocks {
                          atb: "test",
                          model: "test",
                          errors: nil,
-                         httpStatusCodes: nil)
+                         httpStatusCodes: nil,
+                         didOpenReportInfo: true)
 #else
         BrokenSiteReport(siteUrl: URL(string: "https://duckduckgo.com")!,
                          category: "test",
@@ -58,7 +59,8 @@ struct BrokenSiteReportMocks {
                          protectionsState: true,
                          reportFlow: .appMenu,
                          errors: nil,
-                         httpStatusCodes: nil)
+                         httpStatusCodes: nil,
+                         didOpenReportInfo: true)
 #endif
     }
 
@@ -82,7 +84,8 @@ struct BrokenSiteReportMocks {
                          atb: "test",
                          model: "test",
                          errors: nil,
-                         httpStatusCodes: nil)
+                         httpStatusCodes: nil,
+                         didOpenReportInfo: true)
 #else
         BrokenSiteReport(siteUrl: URL(string: "https://somethingelse.zz")!,
                          category: "test",
@@ -99,7 +102,8 @@ struct BrokenSiteReportMocks {
                          protectionsState: true,
                          reportFlow: .appMenu,
                          errors: nil,
-                         httpStatusCodes: nil)
+                         httpStatusCodes: nil, 
+                         didOpenReportInfo: true)
 #endif
     }
 
@@ -123,7 +127,8 @@ struct BrokenSiteReportMocks {
                          atb: "test",
                          model: "test",
                          errors: nil,
-                         httpStatusCodes: nil)
+                         httpStatusCodes: nil,
+                         didOpenReportInfo: true)
 #else
         BrokenSiteReport(siteUrl: URL(string: "https://www.subdomain.example.com/some/pathname?t=param#aaa")!,
                          category: "test",
@@ -140,7 +145,8 @@ struct BrokenSiteReportMocks {
                          protectionsState: true,
                          reportFlow: .appMenu,
                          errors: nil,
-                         httpStatusCodes: nil)
+                         httpStatusCodes: nil,
+                         didOpenReportInfo: true)
 #endif
     }
 }
