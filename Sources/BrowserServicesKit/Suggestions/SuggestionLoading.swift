@@ -17,6 +17,7 @@
 //
 
 import Foundation
+import Macros
 
 public protocol SuggestionLoading: AnyObject {
 
@@ -29,7 +30,7 @@ public protocol SuggestionLoading: AnyObject {
 
 public class SuggestionLoader: SuggestionLoading {
 
-    static let remoteSuggestionsUrl = URL(string: "https://duckduckgo.com/ac/")!
+    static let remoteSuggestionsUrl = #URL("https://duckduckgo.com/ac/")
     static let searchParameter = "q"
 
     public enum SuggestionLoaderError: Error {

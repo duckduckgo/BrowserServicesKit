@@ -18,7 +18,9 @@
 
 import Combine
 import Common
+import Macros
 import XCTest
+
 @testable import DDGSync
 
 enum SyncOperationEvent: Equatable {
@@ -49,9 +51,9 @@ final class DDGSyncTests: XCTestCase {
         dataProvidersSource = MockDataProvidersSource()
         dependencies = MockSyncDependencies()
         (dependencies.api as! RemoteAPIRequestCreatingMock).fakeRequests = [
-            URL(string: "https://dev.null/sync/credentials")!: HTTPRequestingMock(result: .init(data: "{\"credentials\":{\"last_modified\":\"1234\",\"entries\":[]}}".data(using: .utf8)!, response: .init())),
-            URL(string: "https://dev.null/sync/bookmarks")!: HTTPRequestingMock(result: .init(data: "{\"bookmarks\":{\"last_modified\":\"1234\",\"entries\":[]}}".data(using: .utf8)!, response: .init())),
-            URL(string: "https://dev.null/sync/data")!: HTTPRequestingMock(result: .init(data: "{\"bookmarks\":{\"last_modified\":\"1234\",\"entries\":[]},\"credentials\":{\"last_modified\":\"1234\",\"entries\":[]}}".data(using: .utf8)!, response: .init()))
+            #URL("https://dev.null/sync/credentials"): HTTPRequestingMock(result: .init(data: "{\"credentials\":{\"last_modified\":\"1234\",\"entries\":[]}}".data(using: .utf8)!, response: .init())),
+            #URL("https://dev.null/sync/bookmarks"): HTTPRequestingMock(result: .init(data: "{\"bookmarks\":{\"last_modified\":\"1234\",\"entries\":[]}}".data(using: .utf8)!, response: .init())),
+            #URL("https://dev.null/sync/data"): HTTPRequestingMock(result: .init(data: "{\"bookmarks\":{\"last_modified\":\"1234\",\"entries\":[]},\"credentials\":{\"last_modified\":\"1234\",\"entries\":[]}}".data(using: .utf8)!, response: .init()))
         ]
 
         (dependencies.secureStore as! SecureStorageStub).theAccount = .mock
@@ -455,7 +457,7 @@ final class DDGSyncTests: XCTestCase {
 
         dataProvidersSource.dataProviders = [dataProvider]
         (dependencies.api as! RemoteAPIRequestCreatingMock).fakeRequests = [:]
-        let http401Response = HTTPURLResponse(url: URL(string: "https://example.com")!, statusCode: 401, httpVersion: nil, headerFields: [:])!
+        let http401Response = HTTPURLResponse(url: #URL("https://example.com"), statusCode: 401, httpVersion: nil, headerFields: [:])!
         dependencies.request.result = HTTPResult(data: Data(), response: http401Response)
 
         let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)

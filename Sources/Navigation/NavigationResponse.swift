@@ -19,7 +19,6 @@
 import Foundation
 import WebKit
 
-// swiftlint:disable line_length
 public struct NavigationResponse {
 
     public let response: URLResponse
@@ -85,5 +84,3 @@ extension NavigationResponsePolicy? {
     /// Pass decision making to next responder
     public static let next = NavigationResponsePolicy?.none
 }
-
-// swiftlint:enable line_length

@@ -16,7 +16,9 @@
 //  limitations under the License.
 //
 
+import Macros
 import XCTest
+
 @testable import BrowserServicesKit
 
 final class ScoreTests: XCTestCase {
@@ -44,7 +46,7 @@ final class ScoreTests: XCTestCase {
     func testWhenURLMatchesWithQuery_ThenScoreIsIncreased() {
         let query = "testcase.com/no"
         let score1 = Score(title: "Test case website",
-                           url: URL(string: "https://www.testcase.com/notroot")!,
+                           url: #URL("https://www.testcase.com/notroot"),
                            visitCount: 100,
                            query: query)
 
@@ -54,12 +56,12 @@ final class ScoreTests: XCTestCase {
     func testWhenTitleMatchesFromTheBeginning_ThenScoreIsIncreased() {
         let query = "test"
         let score1 = Score(title: "Test case website",
-                           url: URL(string: "https://www.website.com")!,
+                           url: #URL("https://www.website.com"),
                            visitCount: 100,
                            query: query)
 
         let score2 = Score(title: "Case test website 2",
-                           url: URL(string: "https://www.website2.com")!,
+                           url: #URL("https://www.website2.com"),
                            visitCount: 100,
                            query: query)
 
@@ -69,12 +71,12 @@ final class ScoreTests: XCTestCase {
     func testWhenDomainMatchesFromTheBeginning_ThenScoreIsIncreased() {
         let query = "test"
         let score1 = Score(title: "Website",
-                           url: URL(string: "https://www.test.com")!,
+                           url: #URL("https://www.test.com"),
                            visitCount: 100,
                            query: query)
 
         let score2 = Score(title: "Website 2",
-                           url: URL(string: "https://www.websitetest.com")!,
+                           url: #URL("https://www.websitetest.com"),
                            visitCount: 100,
                            query: query)
 
@@ -84,12 +86,12 @@ final class ScoreTests: XCTestCase {
     func testWhenThereIsMoreVisitCount_ThenScoreIsIncreased() {
         let query = "website"
         let score1 = Score(title: "Website",
-                           url: URL(string: "https://www.website.com")!,
+                           url: #URL("https://www.website.com"),
                            visitCount: 100,
                            query: query)
 
         let score2 = Score(title: "Website 2",
-                           url: URL(string: "https://www.website2.com")!,
+                           url: #URL("https://www.website2.com"),
                            visitCount: 101,
                            query: query)
 

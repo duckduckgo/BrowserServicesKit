@@ -62,6 +62,7 @@ public protocol AutofillSecureVault: SecureVault {
     @discardableResult
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64
     func deleteWebsiteCredentialsFor(accountId: Int64) throws
+    func deleteAllWebsiteCredentials() throws
 
     func neverPromptWebsites() throws -> [SecureVaultModels.NeverPromptWebsites]
     func hasNeverPromptWebsitesFor(domain: String) throws -> Bool
@@ -362,6 +363,12 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
     public func deleteWebsiteCredentialsFor(accountId: Int64) throws {
         try executeThrowingDatabaseOperation {
             try self.providers.database.deleteWebsiteCredentialsForAccountId(accountId)
+        }
+    }
+
+    public func deleteAllWebsiteCredentials() throws {
+        try executeThrowingDatabaseOperation {
+            try self.providers.database.deleteAllWebsiteCredentials()
         }
     }
 

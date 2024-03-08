@@ -20,7 +20,6 @@ import Common
 import Foundation
 import WebKit
 
-// swiftlint:disable line_length
 @MainActor
 public final class Navigation {
 
@@ -291,6 +290,8 @@ extension Navigation {
         case .responseReceived:
             // regular flow
             self.state = .finished
+        case .navigationActionReceived where navigationAction.navigationType.isSameDocumentNavigation:
+            self.state = .finished
         case .expected, .navigationActionReceived, .approved, .finished, .failed:
             assertionFailure("unexpected state \(self.state)")
         }
@@ -381,7 +382,7 @@ extension Navigation {
 
 extension Navigation: CustomDebugStringConvertible {
     public var debugDescription: String {
-        "<\(identity) #\(navigationAction.identifier): url:\(url.absoluteString) state:\(state)\(isCommitted ? "(committed)" : "") type:\(navigationActions.last?.navigationType.debugDescription ?? "<nil>")>"
+        "<\(identity) #\(navigationAction.identifier): url:\(url.absoluteString) state:\(state)\(isCommitted ? "(committed)" : "") type:\(navigationActions.last?.navigationType.debugDescription ?? "<nil>")\(isCurrent ? "" : " non-current")>"
     }
 }
 
@@ -390,4 +391,3 @@ extension NavigationIdentity: CustomStringConvertible {
         "WKNavigation: " + (value?.hexValue ?? "nil")
     }
 }
-// swiftlint:enable line_length

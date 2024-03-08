@@ -20,8 +20,6 @@ import Common
 import Foundation
 import WebKit
 
-// swiftlint:disable line_length
-
 public struct MainFrame {
     fileprivate init() {}
 }
@@ -274,7 +272,12 @@ extension NavigationAction: CustomDebugStringConvertible {
 #else
         let sourceFrame = sourceFrame.debugDescription + " -> "
 #endif
-        return "<NavigationAction #\(identifier)\(isUserInitiatedStr): url: \"\(url.absoluteString)\" type: \(navigationType.debugDescription)\(shouldDownload ? " Download" : "") frame: \(sourceFrame)\(targetFrame.debugDescription)>"
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
+        let fromHistoryItem = fromHistoryItemIdentity != nil ? " from: " + fromHistoryItemIdentity!.debugDescription : ""
+#else
+        let fromHistoryItem = ""
+#endif
+        return "<NavigationAction #\(identifier)\(isUserInitiatedStr): url: \"\(url.absoluteString)\" type: \(navigationType.debugDescription)\(shouldDownload ? " Download" : "") frame: \(sourceFrame)\(targetFrame.debugDescription)\(fromHistoryItem)>"
     }
 }
 
@@ -295,4 +298,16 @@ extension NavigationPreferences: CustomDebugStringConvertible {
     }
 }
 
-// swiftlint:enable line_length
+extension HistoryItemIdentity: CustomDebugStringConvertible {
+    public var debugDescription: String {
+        "\(object)".replacingOccurrences(of: "WKBackForwardListItem: ", with: "").dropping(suffix: ">")
+        + {
+            guard let backForwardListItem = object as? WKBackForwardListItem else { return "" }
+            var url = " " + backForwardListItem.url.absoluteString
+            if backForwardListItem.initialURL != backForwardListItem.url {
+                url += " (initial: \(backForwardListItem.initialURL.absoluteString))"
+            }
+            return url
+        }() + ">"
+    }
+}

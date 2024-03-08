@@ -34,7 +34,7 @@ public final class AppStoreRestoreFlow {
         case subscriptionExpired(accountDetails: RestoredAccountDetails)
     }
 
-    public static func restoreAccountFromPastPurchase() async -> Result<Void, AppStoreRestoreFlow.Error> {
+    public static func restoreAccountFromPastPurchase(subscriptionAppGroup: String) async -> Result<Void, AppStoreRestoreFlow.Error> {
         os_log(.info, log: .subscription, "[AppStoreRestoreFlow] restoreAccountFromPastPurchase")
 
         guard let lastTransactionJWSRepresentation = await PurchaseManager.mostRecentTransaction() else {
@@ -42,7 +42,7 @@ public final class AppStoreRestoreFlow {
             return .failure(.missingAccountOrTransactions)
         }
 
-        let accountManager = AccountManager()
+        let accountManager = AccountManager(subscriptionAppGroup: subscriptionAppGroup)
 
         // Do the store login to get short-lived token
         let authToken: String
@@ -78,9 +78,9 @@ public final class AppStoreRestoreFlow {
 
         var isSubscriptionActive = false
 
-        switch await SubscriptionService.getSubscriptionDetails(token: accessToken) {
-        case .success(let response):
-            isSubscriptionActive = response.isSubscriptionActive
+        switch await SubscriptionService.getSubscription(accessToken: accessToken) {
+        case .success(let subscription):
+            isSubscriptionActive = subscription.isActive
         case .failure:
             os_log(.error, log: .subscription, "[AppStoreRestoreFlow] Error: failedToFetchSubscriptionDetails")
             return .failure(.failedToFetchSubscriptionDetails)

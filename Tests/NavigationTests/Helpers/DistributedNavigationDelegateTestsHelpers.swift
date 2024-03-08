@@ -20,9 +20,11 @@
 
 import Combine
 import Common
+import Macros
 import Swifter
 import WebKit
 import XCTest
+
 @testable import Navigation
 
 @available(macOS 12.0, iOS 15.0, *)
@@ -89,38 +91,43 @@ extension DistributedNavigationDelegateTestsBase {
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.navigationDelegate = navigationDelegateProxy
 #if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
-        currentHistoryItemIdentityCancellable = navigationDelegate.$currentHistoryItemIdentity.sink { [unowned self] historyItem in
+        currentHistoryItemIdentityCancellable = navigationDelegate.$currentHistoryItemIdentity.sink { [unowned self] (historyItem: HistoryItemIdentity?) in
             guard let historyItem,
                   !self.history.contains(where: { $0.value == historyItem }),
                   let lastNavigationAction = self.responder(at: 0)?.navigationActionsCache.max
             else { return }
 
             self.history[lastNavigationAction] = historyItem
+            // os_log("added history item #%d: %s", type: .debug, Int(lastNavigationAction), historyItem.debugDescription)
         }
 #endif
         return webView
     }
 
     struct URLs {
-        let https = URL(string: "https://duckduckgo.com/")!
+        let https = #URL("https://duckduckgo.com/")
 
         let testScheme = URL(string: TestNavigationSchemeHandler.scheme + "://duckduckgo.com")!
 
-        let local = URL(string: "http://localhost:8084")!
-        let local1 = URL(string: "http://localhost:8084/1")!
-        let local2 = URL(string: "http://localhost:8084/2")!
-        let local3 = URL(string: "http://localhost:8084/3")!
-        let local4 = URL(string: "http://localhost:8084/4")!
+        let local = #URL("http://localhost:8084")
+        let local1 = #URL("http://localhost:8084/1")
+        let local2 = #URL("http://localhost:8084/2")
+        let local3 = #URL("http://localhost:8084/3")
+        let local4 = #URL("http://localhost:8084/4")
 
         let localHashed = URL(string: "http://localhost:8084#")!
         let localHashed1 = URL(string: "http://localhost:8084#navlink")!
         let localHashed2 = URL(string: "http://localhost:8084#navlink2")!
+        let localHashed3 = URL(string: "http://localhost:8084#navlink3")!
         let local3Hashed = URL(string: "http://localhost:8084/3#navlink")!
 
-        let aboutBlank = URL(string: "about:blank")!
-        let aboutPrefs = URL(string: "about:prefs")!
+        let localTarget = URL(string: "http://localhost:8084/#target")!
+        let localTarget2 = URL(string: "http://localhost:8084/#target2")!
+        let localTarget3 = URL(string: "http://localhost:8084/#target3")!
 
-        let post3 = URL(string: "http://localhost:8084/post3.html")!
+        let aboutBlank = URL(string: "about:blank")!
+
+        let post3 = #URL("http://localhost:8084/post3.html")
     }
 
     struct DataSource {
@@ -128,8 +135,10 @@ extension DistributedNavigationDelegateTestsBase {
         let html = """
             <html>
                 <body>
-                    some data
-                    <a id="navlink" />
+                    some data<br/>
+                    <a id="navlink" /><br/>
+                    <a id="navlink2" /><br/>
+                    <a id="navlink3" /><br/>
                 </body>
             </html>
         """.data(using: .utf8)!
@@ -197,6 +206,61 @@ extension DistributedNavigationDelegateTestsBase {
             </body></html>
         """.data(using: .utf8)!
 
+        let sessionStatePushClientRedirectData: Data = """
+            <html><body>
+            <script language='JavaScript'>
+                history.pushState({ page: 1 }, "navlink", "#navlink");
+            </script>
+            </body></html>
+        """.data(using: .utf8)!
+
+        let sameDocumentTestData: Data = """
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+        <meta charset="UTF-8">
+        <title>Same-document Navigation Test</title>
+        </head>
+        <body>
+
+        <h1 id="target">Target Element</h1><br />
+        <h1 id="target2">Target Element 2</h1><br />
+        <h1 id="target3">Target Element 3</h1><br />
+
+        <script>
+          // Function to simulate same-document navigation
+          function performNavigation(type) {
+            switch (type) {
+            case 'anchorNavigation':
+              // Trigger anchor navigation
+              window.location.href = '#target';
+              break;
+
+            case 'sessionStatePush':
+              // Trigger session state push
+              history.pushState({ page: 1 }, "title 1", "#target2");
+              break;
+
+            case 'sessionStateReplace':
+              // Trigger session state replace
+              history.replaceState({ page: 2 }, "title 2", "#target3");
+              break;
+
+            case 'sessionStatePop':
+              // Trigger session state pop
+              history.back();
+              break;
+
+            default:
+              console.error('Invalid navigation type');
+            }
+          }
+        </script>
+
+        </body>
+        </html>
+        """.data(using: .utf8)!
+
         let customSchemeInteractionStateData = Data.sessionRestorationMagic + """
             <?xml version="1.0" encoding="UTF-8"?>
             <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -226,7 +290,7 @@ extension DistributedNavigationDelegateTestsBase {
                     <key>SessionHistoryEntryTitle</key>
                     <string></string>
                     <key>SessionHistoryEntryURL</key>
-                    <string>about:prefs</string>
+                    <string>about:blank</string>
                 </dict>
             </array>
             <key>SessionHistoryVersion</key>
@@ -236,7 +300,7 @@ extension DistributedNavigationDelegateTestsBase {
             </plist>
         """.data(using: .utf8)!
 
-        let aboutPrefsAfterRegularNavigationInteractionStateData = Data.sessionRestorationMagic + """
+        let aboutBlankAfterRegularNavigationInteractionStateData = Data.sessionRestorationMagic + """
             <?xml version="1.0" encoding="UTF-8"?>
             <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
             <plist version="1.0">
@@ -354,8 +418,10 @@ extension DistributedNavigationDelegateTestsBase {
         return nil
     }
 
-    func navAct(_ idx: UInt64) -> NavAction {
-        return responder(at: 0).navigationActionsCache.dict[idx]!
+    func navAct(_ idx: UInt64, file: StaticString = #file, line: UInt = #line) -> NavAction {
+        return responder(at: 0).navigationActionsCache.dict[idx] ?? {
+            fatalError("No navigation action at index #\(idx): \(file):\(line)")
+        }()
     }
     func resp(_ idx: Int) -> NavResponse {
         return responder(at: 0).navigationResponses[idx]
@@ -412,7 +478,7 @@ extension DistributedNavigationDelegateTestsBase {
             guard event1 != nil || event2 != nil else { continue }
             if let diff = compare(Mirror(reflecting: event1 ?? event2!).children.first!.label!, event1, event2) {
                 printEncoded(responder: responderIdx)
-                let diff2 = compare(Mirror(reflecting: event1 ?? event2!).children.first!.label!, event1, event2)
+
                 XCTFail("\n#\(idx): " + diff, file: file, line: line)
             }
         }
