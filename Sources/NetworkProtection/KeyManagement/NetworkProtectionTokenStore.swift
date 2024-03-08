@@ -19,15 +19,7 @@
 import Foundation
 import Common
 
-#if os(iOS)
-import Subscription
-#endif
-
 public protocol NetworkProtectionTokenStore {
-    /// Fetch the access token from the subscription library and convert it into a NetP auth token
-    ///
-    func fetchSubscriptionToken() throws -> String?
-
     /// Store an auth token.
     ///
     @available(*, deprecated, message: "[NetP Subscription] Do not manually manage auth token")
@@ -35,7 +27,6 @@ public protocol NetworkProtectionTokenStore {
 
     /// Obtain the current auth token.
     ///
-    @available(*, deprecated, renamed: "fetchSubscriptionToken")
     func fetchToken() throws -> String?
 
     /// Delete the stored auth token.
@@ -50,27 +41,9 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
     private let keychainStore: NetworkProtectionKeychainStore
     private let errorEvents: EventMapping<NetworkProtectionError>?
     private let isSubscriptionEnabled: Bool
-#if os(iOS)
-    private let accountManager: AccountManaging
-#endif
-
-    public func fetchSubscriptionToken() throws -> String? {
-#if os(iOS)
-        if isSubscriptionEnabled, let accessToken = accountManager.accessToken {
-            return makeToken(from: accessToken)
-        }
-#endif
-
-        return try fetchToken()
-    }
+    private let accessTokenProvider: () -> String?
 
     private static var authTokenPrefix: String { "ddg:" }
-
-    private func makeToken(from subscriptionAccessToken: String) -> String {
-        Self.authTokenPrefix + subscriptionAccessToken
-    }
-
-    // MARK: - Deprecated stuff
 
     public struct Defaults {
         static let tokenStoreEntryLabel = "DuckDuckGo Network Protection Auth Token"
@@ -82,15 +55,13 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
                 serviceName: String = Defaults.tokenStoreService,
                 errorEvents: EventMapping<NetworkProtectionError>?,
                 isSubscriptionEnabled: Bool,
-                subscriptionAppGroup: String) {
+                accessTokenProvider: @escaping () -> String?) {
         keychainStore = NetworkProtectionKeychainStore(label: Defaults.tokenStoreEntryLabel,
                                                        serviceName: serviceName,
                                                        keychainType: keychainType)
         self.errorEvents = errorEvents
         self.isSubscriptionEnabled = isSubscriptionEnabled
-#if os(iOS)
-        self.accountManager = AccountManager(subscriptionAppGroup: subscriptionAppGroup)
-#endif
+        self.accessTokenProvider = accessTokenProvider
     }
 
     public func store(_ token: String) throws {
@@ -103,7 +74,15 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
         }
     }
 
+    public func makeToken(from subscriptionAccessToken: String) -> String {
+        Self.authTokenPrefix + subscriptionAccessToken
+    }
+
     public func fetchToken() throws -> String? {
+        if isSubscriptionEnabled, let authToken = accessTokenProvider() {
+            return makeToken(from: authToken)
+        }
+
         do {
             return try keychainStore.readData(named: Defaults.tokenStoreName).flatMap {
                 String(data: $0, encoding: .utf8)
@@ -134,4 +113,7 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
 
         errorEvents?.fire(error.networkProtectionError)
     }
+}
+
+extension NetworkProtectionTokenStore {
 }

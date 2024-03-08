@@ -445,7 +445,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private func loadAuthToken(from options: StartupOptions) throws {
         switch options.authToken {
         case .set(let newAuthToken):
-            if let currentAuthToken = try? tokenStore.fetchSubscriptionToken(), currentAuthToken == newAuthToken {
+            if let currentAuthToken = try? tokenStore.fetchToken(), currentAuthToken == newAuthToken {
                 return
             }
 

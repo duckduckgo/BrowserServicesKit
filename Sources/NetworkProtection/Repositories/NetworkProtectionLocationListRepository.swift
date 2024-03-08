@@ -58,7 +58,7 @@ final public class NetworkProtectionLocationListCompositeRepository: NetworkProt
             return Self.locationList
         }
         do {
-            guard let authToken = try tokenStore.fetchSubscriptionToken() else {
+            guard let authToken = try tokenStore.fetchToken() else {
                 throw NetworkProtectionError.noAuthTokenFound
             }
             Self.locationList = try await client.getLocations(authToken: authToken).get()
