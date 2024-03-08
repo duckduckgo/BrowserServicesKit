@@ -59,7 +59,8 @@ public protocol PrivacyDashboardToggleReportDelegate: AnyObject {
 public protocol PrivacyDashboardControllerDelegate: AnyObject {
 
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
-                                    didChangeProtectionSwitch protectionState: ProtectionState)
+                                    didChangeProtectionSwitch protectionState: ProtectionState,
+                                    didSendReport: Bool)
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
                                     didRequestOpenUrlInNewTab url: URL)
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
@@ -334,10 +335,10 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
         return ToggleReportsFeature(privacyConfiguration: privacyConfigurationManager.privacyConfig).isEnabled
     }
 
-    private func didChangeProtectionState(_ protectionState: ProtectionState) {
+    private func didChangeProtectionState(_ protectionState: ProtectionState, didSendReport: Bool = false) {
         switch protectionState.eventOrigin.screen {
         case .primaryScreen:
-            privacyDashboardDelegate?.privacyDashboardController(self, didChangeProtectionSwitch: protectionState)
+            privacyDashboardDelegate?.privacyDashboardController(self, didChangeProtectionSwitch: protectionState, didSendReport: didSendReport)
         case .breakageForm:
             privacyDashboardReportBrokenSiteDelegate?.privacyDashboardController(self, reportBrokenSiteDidChangeProtectionSwitch: protectionState)
         case .toggleReport:
@@ -371,10 +372,10 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     private func handleDismiss(with type: ToggleReportDismissType, source: ToggleReportDismissSource) {
 #if os(iOS)
         if case .toggleReport(completionHandler: let completionHandler) = initDashboardMode {
-            completionHandler()
+            completionHandler(type == .send)
             fireToggleReportEventIfNeeded(for: type)
         } else if let protectionStateToSubmitOnToggleReportDismiss {
-            didChangeProtectionState(protectionStateToSubmitOnToggleReportDismiss)
+            didChangeProtectionState(protectionStateToSubmitOnToggleReportDismiss, didSendReport: type == .send)
             fireToggleReportEventIfNeeded(for: type)
         }
         if source == .userScript {
