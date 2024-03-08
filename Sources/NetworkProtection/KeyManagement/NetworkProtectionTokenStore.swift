@@ -18,7 +18,10 @@
 
 import Foundation
 import Common
+
+#if os(iOS)
 import Subscription
+#endif
 
 public protocol NetworkProtectionTokenStore {
     /// Fetch the access token from the subscription library and convert it into a NetP auth token
@@ -47,12 +50,16 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
     private let keychainStore: NetworkProtectionKeychainStore
     private let errorEvents: EventMapping<NetworkProtectionError>?
     private let isSubscriptionEnabled: Bool
+#if os(iOS)
     private let accountManager: AccountManaging
+#endif
 
     public func fetchSubscriptionToken() throws -> String? {
+#if os(iOS)
         if isSubscriptionEnabled, let accessToken = accountManager.accessToken {
             return makeToken(from: accessToken)
         }
+#endif
 
         return try fetchToken()
     }
@@ -81,7 +88,9 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
                                                        keychainType: keychainType)
         self.errorEvents = errorEvents
         self.isSubscriptionEnabled = isSubscriptionEnabled
+#if os(iOS)
         self.accountManager = AccountManager(subscriptionAppGroup: subscriptionAppGroup)
+#endif
     }
 
     public func store(_ token: String) throws {
