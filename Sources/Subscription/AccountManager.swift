@@ -22,7 +22,7 @@ import Common
 public extension Notification.Name {
     static let accountDidSignIn = Notification.Name("com.duckduckgo.subscription.AccountDidSignIn")
     static let accountDidSignOut = Notification.Name("com.duckduckgo.subscription.AccountDidSignOut")
-    static let entitlementsUpdated = Notification.Name("com.duckduckgo.subscription.EntitlementsDidChange")
+    static let entitlementsDidChange = Notification.Name("com.duckduckgo.subscription.EntitlementsDidChange")
 }
 
 public protocol AccountManagerKeychainAccessDelegate: AnyObject {
@@ -247,7 +247,7 @@ public class AccountManager: AccountManaging {
         let entitlements = response.account.entitlements.compactMap { Entitlement(rawValue: $0.product) }
             if entitlements != cachedEntitlements {
                 entitlementsCache.set(entitlements)
-                NotificationCenter.default.post(name: .entitlementsUpdated, object: self, userInfo: [UserDefaultsCacheKey.subscriptionEntitlements: entitlements])
+                NotificationCenter.default.post(name: .entitlementsDidChange, object: self, userInfo: [UserDefaultsCacheKey.subscriptionEntitlements: entitlements])
             }
             return .success(entitlements)
 
