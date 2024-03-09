@@ -30,9 +30,9 @@ public final class SubscriptionService: APIService {
     public static var baseURL: URL {
         switch SubscriptionPurchaseEnvironment.currentServiceEnvironment {
         case .production:
-            return URL(string: "https://subscriptions.duckduckgo.com/api")!
+            #URL("https://subscriptions.duckduckgo.com/api")
         case .staging:
-            return URL(string: "https://subscriptions-dev.duckduckgo.com/api")!
+            #URL("https://subscriptions-dev.duckduckgo.com/api")
         }
     }
     
