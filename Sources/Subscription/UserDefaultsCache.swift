@@ -19,16 +19,23 @@
 import Foundation
 
 public enum UserDefaultsCacheKey: String {
-    case subscriptionEntitlements
+    case subscriptionEntitlements = "com.duckduckgo.bsk.subscription.entitlements"
+    case subscription = "com.duckduckgo.bsk.subscription.info"
 }
 
 /// A generic UserDefaults cache for storing and retrieving Codable objects.
 public class UserDefaultsCache<ObjectType: Codable> {
-    private var subscriptionAppGroup: String
-    private lazy var userDefaults: UserDefaults? = UserDefaults(suiteName: subscriptionAppGroup)
+    private var subscriptionAppGroup: String?
+    private lazy var userDefaults: UserDefaults? = {
+        if let appGroup = subscriptionAppGroup {
+            return UserDefaults(suiteName: appGroup)
+        } else {
+            return UserDefaults.standard
+        }
+    }()
     private let key: UserDefaultsCacheKey
 
-    public init(subscriptionAppGroup: String, key: UserDefaultsCacheKey) {
+    public init(subscriptionAppGroup: String? = nil, key: UserDefaultsCacheKey) {
         self.subscriptionAppGroup = subscriptionAppGroup
         self.key = key
     }
@@ -58,5 +65,4 @@ public class UserDefaultsCache<ObjectType: Codable> {
     public func reset() {
         userDefaults?.removeObject(forKey: key.rawValue)
     }
-
 }

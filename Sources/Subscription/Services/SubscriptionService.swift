@@ -20,7 +20,7 @@ import Common
 import Foundation
 import Macros
 
-public struct SubscriptionService: APIService {
+public final class SubscriptionService: APIService {
 
     public static let session = {
         let configuration = URLSessionConfiguration.ephemeral
@@ -30,25 +30,59 @@ public struct SubscriptionService: APIService {
     public static var baseURL: URL {
         switch SubscriptionPurchaseEnvironment.currentServiceEnvironment {
         case .production:
-            #URL("https://subscriptions.duckduckgo.com/api")
+            return URL(string: "https://subscriptions.duckduckgo.com/api")!
         case .staging:
-            #URL("https://subscriptions-dev.duckduckgo.com/api")
+            return URL(string: "https://subscriptions-dev.duckduckgo.com/api")!
         }
     }
+    
+    private static let subscriptionCache = UserDefaultsCache<GetSubscriptionResponse>(key: UserDefaultsCacheKey.subscription)
 
-    // MARK: -
+    public enum CachePolicy {
+        case reloadIgnoringLocalCacheData
+        case returnCacheDataElseLoad
+        case returnCacheDataDontLoad
+    }
 
-    public static func getSubscription(accessToken: String) async -> Result<GetSubscriptionResponse, APIServiceError> {
+    public enum SubscriptionServiceError: Error {
+        case noCachedData
+        case apiError(APIServiceError)
+    }
+
+    // MARK: - Subscription fetching with caching
+
+    private static func getRemoteSubscription(accessToken: String) async -> Result<GetSubscriptionResponse, SubscriptionServiceError> {
         let result: Result<GetSubscriptionResponse, APIServiceError> = await executeAPICall(method: "GET", endpoint: "subscription", headers: makeAuthorizationHeader(for: accessToken))
 
         switch result {
-        case .success(let response):
-            cachedGetSubscriptionResponse = response
-        case .failure:
-            cachedGetSubscriptionResponse = nil
+        case .success(let subscriptionResponse):
+            subscriptionCache.set(subscriptionResponse)
+            return .success(subscriptionResponse)
+        case .failure(let error):
+            return .failure(.apiError(error))
         }
+    }
 
-        return result
+    public static func getSubscription(accessToken: String, cachePolicy: CachePolicy = .returnCacheDataElseLoad) async -> Result<GetSubscriptionResponse, SubscriptionServiceError> {
+
+        switch cachePolicy {
+        case .reloadIgnoringLocalCacheData:
+            return await getRemoteSubscription(accessToken: accessToken)
+
+        case .returnCacheDataElseLoad:
+            if let cachedSubscription = subscriptionCache.get() {
+                return .success(cachedSubscription)
+            } else {
+                return await getRemoteSubscription(accessToken: accessToken)
+            }
+
+        case .returnCacheDataDontLoad:
+            if let cachedSubscription = subscriptionCache.get() {
+                return .success(cachedSubscription)
+            } else {
+                return .failure(.noCachedData)
+            }
+        }
     }
 
     public typealias GetSubscriptionResponse = Subscription

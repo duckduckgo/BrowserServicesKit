@@ -251,9 +251,9 @@ public class AccountManager: AccountManaging {
         }
     }
 
-    public func fetchEntitlements(policy: CachePolicy = .returnCacheDataElseLoad) async -> Result<[Entitlement], Error> {
+    public func fetchEntitlements(cachePolicy: CachePolicy = .returnCacheDataElseLoad) async -> Result<[Entitlement], Error> {
 
-        switch policy {
+        switch cachePolicy {
         case .reloadIgnoringLocalCacheData:
             return await fetchRemoteEntitlements()
 
