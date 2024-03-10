@@ -36,7 +36,7 @@ public final class SubscriptionService: APIService {
         }
     }
     
-    private static let subscriptionCache = UserDefaultsCache<GetSubscriptionResponse>(key: UserDefaultsCacheKey.subscription)
+    private static let subscriptionCache = UserDefaultsCache<Subscription>(key: UserDefaultsCacheKey.subscription)
 
     public enum CachePolicy {
         case reloadIgnoringLocalCacheData
@@ -51,7 +51,7 @@ public final class SubscriptionService: APIService {
 
     // MARK: - Subscription fetching with caching
 
-    private static func getRemoteSubscription(accessToken: String) async -> Result<GetSubscriptionResponse, SubscriptionServiceError> {
+    private static func getRemoteSubscription(accessToken: String) async -> Result<Subscription, SubscriptionServiceError> {
         let result: Result<GetSubscriptionResponse, APIServiceError> = await executeAPICall(method: "GET", endpoint: "subscription", headers: makeAuthorizationHeader(for: accessToken))
 
         switch result {
@@ -63,7 +63,7 @@ public final class SubscriptionService: APIService {
         }
     }
 
-    public static func getSubscription(accessToken: String, cachePolicy: CachePolicy = .returnCacheDataElseLoad) async -> Result<GetSubscriptionResponse, SubscriptionServiceError> {
+    public static func getSubscription(accessToken: String, cachePolicy: CachePolicy = .returnCacheDataElseLoad) async -> Result<Subscription, SubscriptionServiceError> {
 
         switch cachePolicy {
         case .reloadIgnoringLocalCacheData:
@@ -90,8 +90,6 @@ public final class SubscriptionService: APIService {
     }
 
     public typealias GetSubscriptionResponse = Subscription
-
-    public static var cachedGetSubscriptionResponse: GetSubscriptionResponse?
 
     // MARK: -
 
