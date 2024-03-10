@@ -64,6 +64,9 @@ public final class AppStorePurchaseFlow {
 
         let accountManager = AccountManager(subscriptionAppGroup: subscriptionAppGroup)
         let externalID: String
+        
+        // Clear the Subscription cache
+        SubscriptionService.signOut()
 
         // Check for past transactions most recent
         switch await AppStoreRestoreFlow.restoreAccountFromPastPurchase(subscriptionAppGroup: subscriptionAppGroup) {
