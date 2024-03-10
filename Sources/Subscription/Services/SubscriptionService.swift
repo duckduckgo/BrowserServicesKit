@@ -84,6 +84,10 @@ public final class SubscriptionService: APIService {
             }
         }
     }
+    
+    public static func signOut() {
+        subscriptionCache.reset()
+    }
 
     public typealias GetSubscriptionResponse = Subscription
 

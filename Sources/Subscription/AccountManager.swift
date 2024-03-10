@@ -178,6 +178,7 @@ public class AccountManager: AccountManaging {
         do {
             try storage.clearAuthenticationState()
             try accessTokenStorage.removeAccessToken()
+            SubscriptionService.signOut()
             entitlementsCache.reset()
         } catch {
             if let error = error as? AccountKeychainAccessError {
