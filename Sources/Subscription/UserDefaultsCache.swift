@@ -19,10 +19,10 @@
 import Foundation
 
 public struct UserDefaultsCacheSettings {
-    
+
     // Default expiration interval set to 24 hours
     public let defaultExpirationInterval: TimeInterval
-    
+
     public init(defaultExpirationInterval: TimeInterval = 24 * 60 * 60) {
         self.defaultExpirationInterval = defaultExpirationInterval
     }
@@ -35,12 +35,12 @@ public enum UserDefaultsCacheKey: String {
 
 /// A generic UserDefaults cache for storing and retrieving Codable objects
 public class UserDefaultsCache<ObjectType: Codable> {
-    
+
     private struct CacheObject: Codable {
         let expires: Date
         let object: ObjectType
     }
-    
+
     private var subscriptionAppGroup: String?
     private var settings: UserDefaultsCacheSettings
     private lazy var userDefaults: UserDefaults? = {
@@ -50,10 +50,10 @@ public class UserDefaultsCache<ObjectType: Codable> {
             return UserDefaults.standard
         }
     }()
-    
+
     private let key: UserDefaultsCacheKey
 
-    public init(subscriptionAppGroup: String? = nil, key: UserDefaultsCacheKey, 
+    public init(subscriptionAppGroup: String? = nil, key: UserDefaultsCacheKey,
                 settings: UserDefaultsCacheSettings = UserDefaultsCacheSettings()) {
         self.subscriptionAppGroup = subscriptionAppGroup
         self.key = key

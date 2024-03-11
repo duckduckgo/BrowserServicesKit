@@ -35,7 +35,7 @@ public final class SubscriptionService: APIService {
             #URL("https://subscriptions-dev.duckduckgo.com/api")
         }
     }
-    
+
     private static let subscriptionCache = UserDefaultsCache<Subscription>(key: UserDefaultsCacheKey.subscription)
 
     public enum CachePolicy {
@@ -84,7 +84,7 @@ public final class SubscriptionService: APIService {
             }
         }
     }
-    
+
     public static func signOut() {
         subscriptionCache.reset()
     }
