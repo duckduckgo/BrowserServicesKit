@@ -105,6 +105,9 @@ let package = Package(
                 "Persistence",
                 "Common"
             ],
+            resources: [
+                .process("CoreData/BrowsingHistory.xcdatamodeld")
+            ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
             ],
@@ -336,7 +339,13 @@ let package = Package(
         ),
 
         // MARK: - Test Targets
-
+        .testTarget(
+            name: "HistoryTests",
+            dependencies: [
+                "History",
+            ],
+            plugins: [swiftlintPlugin]
+        ),
         .testTarget(
             name: "BookmarksTests",
             dependencies: [
