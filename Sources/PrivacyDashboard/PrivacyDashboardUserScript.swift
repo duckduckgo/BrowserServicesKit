@@ -277,7 +277,8 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
                              {"id": "httpErrorCodes"},
                              {"id": "reportFlow"},
                              {"id": "lastSentDay"},
-                             {"id": "didOpenReportInfo"}
+                             {"id": "didOpenReportInfo"},
+                             {"id": "toggleReportCounter"}
                          ]
                      }
                      window.onGetToggleReportOptionsResponse(json);
