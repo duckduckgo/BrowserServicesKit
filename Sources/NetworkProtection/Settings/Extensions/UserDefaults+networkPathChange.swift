@@ -41,7 +41,7 @@ extension UserDefaults {
     }
 
     @objc
-    private(set) dynamic var networkPathChange: NetworkPathChange? {
+    public dynamic var networkPathChange: NetworkPathChange? {
         get {
             guard let data = data(forKey: networkPathChangeKey) else { return nil }
             return try? JSONDecoder().decode(NetworkPathChange.self, from: data)
