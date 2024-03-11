@@ -23,6 +23,7 @@ public enum ToggleReportEvents {
     public enum Parameters {
 
         public static let didOpenReportInfo = "didOpenReportInfo"
+        public static let toggleReportCounter = "toggleReportCounter"
 
     }
 

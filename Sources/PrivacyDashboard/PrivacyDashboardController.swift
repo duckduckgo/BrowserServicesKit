@@ -51,7 +51,8 @@ public protocol PrivacyDashboardToggleReportDelegate: AnyObject {
 
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
                                     didRequestSubmitToggleReportWithSource source: BrokenSiteReport.Source,
-                                    didOpenReportInfo: Bool)
+                                    didOpenReportInfo: Bool,
+                                    toggleReportCounter: Int?)
 
 }
 
@@ -85,6 +86,8 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
 
         static let menuScreenKey = "menu"
         static let dashboardScreenKey = "dashboard"
+
+        static let toggleReportsCounter = "com.duckduckgo.toggle-reports-counter"
 
     }
 
@@ -129,17 +132,31 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
     private let privacyConfigurationManager: PrivacyConfigurationManaging
     private let eventMapping: EventMapping<ToggleReportEvents>
 
+    private var storedToggleReportCounter: Int {
+        get {
+            userDefaults.integer(forKey: Constant.toggleReportsCounter)
+        }
+        set {
+            userDefaults.set(newValue, forKey: Constant.toggleReportsCounter)
+        }
+    }
+
+    private var toggleReportCounter: Int? { storedToggleReportCounter > 20 ? nil : storedToggleReportCounter }
+
+    private let userDefaults: UserDefaults
     private var didOpenReportInfo: Bool = false
 
     public init(privacyInfo: PrivacyInfo?,
                 dashboardMode: PrivacyDashboardMode,
                 privacyConfigurationManager: PrivacyConfigurationManaging,
-                eventMapping: EventMapping<ToggleReportEvents>) {
+                eventMapping: EventMapping<ToggleReportEvents>,
+                userDefaults: UserDefaults = UserDefaults.standard) {
         self.privacyInfo = privacyInfo
         self.initDashboardMode = dashboardMode
         self.privacyConfigurationManager = privacyConfigurationManager
         privacyDashboardScript = PrivacyDashboardUserScript(privacyConfigurationManager: privacyConfigurationManager)
         self.eventMapping = eventMapping
+        self.userDefaults = userDefaults
     }
 
     public func setup(for webView: WKWebView) {
@@ -321,6 +338,7 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     func userScript(_ userScript: PrivacyDashboardUserScript, didChangeProtectionState protectionState: ProtectionState) {
         if shouldSegueToToggleReportScreen(with: protectionState) {
             segueToToggleReportScreen(with: protectionState)
+            storedToggleReportCounter += 1
         } else {
             didChangeProtectionState(protectionState)
             closeDashboard()
@@ -400,7 +418,11 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
 
     private func fireToggleReportEventIfNeeded(for toggleReportDismissType: ToggleReportDismissType) {
         if let eventToFire = toggleReportDismissType.event {
-            eventMapping.fire(eventToFire, parameters: [ToggleReportEvents.Parameters.didOpenReportInfo: didOpenReportInfo.description])
+            var parameters = [ToggleReportEvents.Parameters.didOpenReportInfo: didOpenReportInfo.description]
+            if let toggleReportCounter {
+                parameters[ToggleReportEvents.Parameters.toggleReportCounter] = String(toggleReportCounter)
+            }
+            eventMapping.fire(eventToFire, parameters: parameters)
         }
     }
 
@@ -445,7 +467,8 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
         if shouldSendReport {
             privacyDashboardToggleReportDelegate?.privacyDashboardController(self,
                                                                              didRequestSubmitToggleReportWithSource: source,
-                                                                             didOpenReportInfo: didOpenReportInfo)
+                                                                             didOpenReportInfo: didOpenReportInfo,
+                                                                             toggleReportCounter: toggleReportCounter)
         }
         let toggleReportDismissType: ToggleReportDismissType = shouldSendReport ? .send : .doNotSend
         handleUserScriptClosing(toggleReportDismissType: toggleReportDismissType)

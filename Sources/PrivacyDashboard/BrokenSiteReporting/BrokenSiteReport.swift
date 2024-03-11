@@ -71,6 +71,7 @@ public struct BrokenSiteReport {
     let errors: [Error]?
     let httpStatusCodes: [Int]?
     let didOpenReportInfo: Bool
+    let toggleReportCounter: Int?
 #if os(iOS)
     let siteType: SiteType
     let atb: String
@@ -95,7 +96,8 @@ public struct BrokenSiteReport {
         reportFlow: Source,
         errors: [Error]?,
         httpStatusCodes: [Int]?,
-        didOpenReportInfo: Bool
+        didOpenReportInfo: Bool,
+        toggleReportCounter: Int?
     ) {
         self.siteUrl = siteUrl
         self.category = category
@@ -114,6 +116,7 @@ public struct BrokenSiteReport {
         self.errors = errors
         self.httpStatusCodes = httpStatusCodes
         self.didOpenReportInfo = didOpenReportInfo
+        self.toggleReportCounter = toggleReportCounter
     }
 #endif
 
@@ -138,7 +141,8 @@ public struct BrokenSiteReport {
         model: String,
         errors: [Error]?,
         httpStatusCodes: [Int]?,
-        didOpenReportInfo: Bool
+        didOpenReportInfo: Bool,
+        toggleReportCounter: Int?
     ) {
         self.siteUrl = siteUrl
         self.category = category
@@ -160,6 +164,7 @@ public struct BrokenSiteReport {
         self.errors = errors
         self.httpStatusCodes = httpStatusCodes
         self.didOpenReportInfo = didOpenReportInfo
+        self.toggleReportCounter = toggleReportCounter
     }
 #endif
 
@@ -187,6 +192,9 @@ public struct BrokenSiteReport {
             result["protectionsState"] = protectionsState.description
         } else {
             result["didOpenReportInfo"] = didOpenReportInfo.description
+            if let toggleReportCounter {
+                result["toggleReportCounter"] = String(toggleReportCounter)
+            }
         }
 
         if let lastSentDay = lastSentDay {
