@@ -1,5 +1,5 @@
 //
-//  HistoryStoring.swift
+//  ToggleReportsFeature.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -17,13 +17,19 @@
 //
 
 import Foundation
-import Combine
+import BrowserServicesKit
 
-public protocol HistoryStoring {
+public struct ToggleReportsFeature {
 
-    func cleanOld(until date: Date) -> Future<BrowsingHistory, Error>
-    func save(entry: HistoryEntry) -> Future<[(id: Visit.ID, date: Date)], Error>
-    func removeEntries(_ entries: [HistoryEntry]) -> Future<Void, Error>
-    func removeVisits(_ visits: [Visit]) -> Future<Void, Error>
+    public var privacyConfiguration: PrivacyConfiguration
+    public init(privacyConfiguration: PrivacyConfiguration) {
+        self.privacyConfiguration = privacyConfiguration
+    }
+
+    public var isEnabled: Bool {
+        let isFeatureEnabledInConfig = privacyConfiguration.isSubfeatureEnabled(PrivacyDashboardSubfeature.toggleReports)
+        let isCurrentLanguageEnglish = Locale.current.languageCode == "en"
+        return isFeatureEnabledInConfig && isCurrentLanguageEnglish
+    }
 
 }
