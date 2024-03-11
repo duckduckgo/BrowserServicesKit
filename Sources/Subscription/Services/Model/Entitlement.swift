@@ -18,8 +18,7 @@
 
 import Foundation
 
-public struct Entitlement: Codable, Equatable {
-    let id: Int
+public struct Entitlement: Codable, Equatable {    
     let name: String
     public let product: ProductName
 
