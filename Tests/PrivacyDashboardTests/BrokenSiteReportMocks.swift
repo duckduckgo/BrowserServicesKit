@@ -43,8 +43,7 @@ struct BrokenSiteReportMocks {
                          errors: nil,
                          httpStatusCodes: nil,
                          didOpenReportInfo: true,
-                         toggleReportCounter: 0
-        )
+                         toggleReportCounter: 0)
 #else
         BrokenSiteReport(siteUrl: URL(string: "https://duckduckgo.com")!,
                          category: "test",
