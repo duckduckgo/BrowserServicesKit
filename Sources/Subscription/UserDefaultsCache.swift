@@ -83,7 +83,6 @@ public class UserDefaultsCache<ObjectType: Codable> {
                 return nil
             }
         } catch {
-            assertionFailure("Failed to decode CacheObject: \(error)")
             return nil
         }
     }
