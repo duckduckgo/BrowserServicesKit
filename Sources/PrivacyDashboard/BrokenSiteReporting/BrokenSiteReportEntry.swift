@@ -1,5 +1,5 @@
 //
-//  WebsiteBreakageHistoryEntry.swift
+//  BrokenSiteReportEntry.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -19,10 +19,8 @@
 import Foundation
 import CryptoKit
 
-// public typealias WebsiteBreakageDomainIdentifier = String
-
-/// Storage for the last time a WebsiteBreakage has been sent
-public struct WebsiteBreakageHistoryEntry {
+/// Storage for the last time a BrokenSiteReport has been sent
+public struct BrokenSiteReportEntry {
 
     /// first 6 chars of the sha256 hash of www.example.com
     let identifier: String
@@ -31,14 +29,14 @@ public struct WebsiteBreakageHistoryEntry {
     /// Object Creation + 30 days
     let expiryDate: Date?
 
-    public init?(withBreakage breakage: WebsiteBreakage, currentDate: Date) {
+    public init?(report: BrokenSiteReport, currentDate: Date) {
 
-        guard let domainIdentifier = breakage.siteUrl.privacySafeDomainIdentifier,
+        guard let domainIdentifier = report.siteUrl.privacySafeDomainIdentifier,
               let expiryDate = Calendar.current.date(byAdding: .day, value: 30, to: currentDate) else {
             return nil
         }
         self.identifier = domainIdentifier
-        self.lastSentDayString = currentDate.websiteBreakageFormattedString
+        self.lastSentDayString = currentDate.formattedDateString
         self.expiryDate = expiryDate
     }
 
@@ -49,6 +47,7 @@ public struct WebsiteBreakageHistoryEntry {
         self.lastSentDayString = lastSentDayString
         self.expiryDate = nil
     }
+
 }
 
 fileprivate extension URL {
@@ -77,9 +76,10 @@ fileprivate extension URL {
 fileprivate extension Date {
 
     /// A string with the date formatted as `yyyy-MM-dd`
-    var websiteBreakageFormattedString: String {
+    var formattedDateString: String {
         let dateFormatter = DateFormatter()
         dateFormatter.dateFormat = "yyyy-MM-dd"
         return dateFormatter.string(from: self)
     }
+
 }

@@ -19,10 +19,10 @@
 import Foundation
 import Macros
 import os.log
+import Common
 import XCTest
-
-@testable import BloomFilterWrapper
 @testable import BrowserServicesKit
+@testable import BloomFilterWrapper
 
 private struct HTTPSUpgradesRefTests: Decodable {
     struct HTTPSUpgradesTests: Decodable {

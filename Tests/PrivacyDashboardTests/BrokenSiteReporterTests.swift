@@ -1,5 +1,5 @@
 //
-//  WebsiteBreakageReporterTests.swift
+//  BrokenSiteReporterTests.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -20,7 +20,7 @@ import XCTest
 @testable import PrivacyDashboard
 import TestUtils
 
-final class WebsiteBreakageReporterTests: XCTestCase {
+final class BrokenSiteReporterTests: XCTestCase {
 
     func testReport() throws {
 
@@ -29,7 +29,7 @@ final class WebsiteBreakageReporterTests: XCTestCase {
         var pixelCount = 0
 
         let keyValueStore = MockKeyValueStore()
-        let reporter = WebsiteBreakageReporter(pixelHandler: { parameters in
+        let reporter = BrokenSiteReporter(pixelHandler: { parameters in
             // Send pixel
             print("PIXEL SENT: \n\(parameters)")
             pixelCount += 1
@@ -41,10 +41,10 @@ final class WebsiteBreakageReporterTests: XCTestCase {
             }
         }, keyValueStoring: keyValueStore)
 
-        try reporter.report(breakage: WebsiteBreakageMoks.testBreakage)
+        try reporter.report(BrokenSiteReportMocks.report, reportMode: .regular)
 
         // test second report, the pixel must have `lastSeenDate` param
-        try reporter.report(breakage: WebsiteBreakageMoks.testBreakage)
+        try reporter.report(BrokenSiteReportMocks.report, reportMode: .regular)
 
         waitForExpectations(timeout: 3)
     }
