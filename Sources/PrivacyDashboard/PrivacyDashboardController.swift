@@ -23,6 +23,19 @@ import PrivacyDashboardResources
 import BrowserServicesKit
 import Common
 
+extension UserDefaults {
+
+    var toggleReportCounter: Int {
+        get {
+            integer(forKey: PrivacyDashboardController.Constant.toggleReportsCounter)
+        }
+        set {
+            set(newValue, forKey: PrivacyDashboardController.Constant.toggleReportsCounter)
+        }
+    }
+
+}
+
 public enum PrivacyDashboardOpenSettingsTarget: String {
     case general
     case cookiePopupManagement = "cpm"
@@ -79,7 +92,7 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
 
 @MainActor public final class PrivacyDashboardController: NSObject {
 
-    private enum Constant {
+    fileprivate enum Constant {
 
         static let screenKey = "screen"
         static let openerKey = "opener"
@@ -132,16 +145,7 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
     private let privacyConfigurationManager: PrivacyConfigurationManaging
     private let eventMapping: EventMapping<ToggleReportEvents>
 
-    private var storedToggleReportCounter: Int {
-        get {
-            userDefaults.integer(forKey: Constant.toggleReportsCounter)
-        }
-        set {
-            userDefaults.set(newValue, forKey: Constant.toggleReportsCounter)
-        }
-    }
-
-    private var toggleReportCounter: Int? { storedToggleReportCounter > 20 ? nil : storedToggleReportCounter }
+    private var toggleReportCounter: Int? { userDefaults.toggleReportCounter > 20 ? nil : userDefaults.toggleReportCounter }
 
     private let userDefaults: UserDefaults
     private var didOpenReportInfo: Bool = false
@@ -210,6 +214,7 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
         url = url.appendingParameter(name: Constant.screenKey, value: initDashboardMode.screen.rawValue)
         if case .toggleReport = initDashboardMode {
             url = url.appendingParameter(name: Constant.openerKey, value: Constant.menuScreenKey)
+            userDefaults.toggleReportCounter += 1
         }
         webView?.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent().deletingLastPathComponent())
     }
@@ -338,7 +343,6 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     func userScript(_ userScript: PrivacyDashboardUserScript, didChangeProtectionState protectionState: ProtectionState) {
         if shouldSegueToToggleReportScreen(with: protectionState) {
             segueToToggleReportScreen(with: protectionState)
-            storedToggleReportCounter += 1
         } else {
             didChangeProtectionState(protectionState)
             closeDashboard()
@@ -373,6 +377,7 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
 
         webView?.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent().deletingLastPathComponent())
         self.protectionStateToSubmitOnToggleReportDismiss = protectionStateToSubmit
+        userDefaults.toggleReportCounter += 1
     }
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestOpenUrlInNewTab url: URL) {
