@@ -931,8 +931,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 .setRegistrationKeyValidity,
                 .setSelectedEnvironment,
                 .setShowInMenuBar,
-                .setVPNFirstEnabled,
-                .setNetworkPathChange,
                 .setDisableRekeying:
             // Intentional no-op, as some setting changes don't require any further operation
             completionHandler?(nil)
