@@ -25,7 +25,7 @@ extension UserDefaults {
     }
 
     @objc
-    dynamic var vpnFirstEnabled: Date? {
+    public dynamic var vpnFirstEnabled: Date? {
         get {
             value(forKey: vpnFirstEnabledKey) as? Date
         }
@@ -33,9 +33,5 @@ extension UserDefaults {
         set {
             set(newValue, forKey: vpnFirstEnabledKey)
         }
-    }
-
-    var vpnFirstEnabledPublisher: AnyPublisher<Date?, Never> {
-        publisher(for: \.vpnFirstEnabled).eraseToAnyPublisher()
     }
 }
