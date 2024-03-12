@@ -172,9 +172,14 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
     init(environment: VPNSettings.SelectedEnvironment = .default, isSubscriptionEnabled: Bool) {
         self.isSubscriptionEnabled = isSubscriptionEnabled
 
-        // todo - https://app.asana.com/0/0/1206470585910129/f
         if isSubscriptionEnabled {
-            self.endpointURL = URL(string: "https://staging1.netp.duckduckgo.com")!
+            // todo - https://app.asana.com/0/0/1206811466624632/f
+            let usesStaging = true
+            if usesStaging {
+                self.endpointURL = VPNSettings.SelectedEnvironment.staging.endpointURL
+            } else {
+                self.endpointURL = VPNSettings.SelectedEnvironment.production.endpointURL
+            }
         } else {
             self.endpointURL = environment.endpointURL
         }
