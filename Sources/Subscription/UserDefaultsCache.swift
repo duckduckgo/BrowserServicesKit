@@ -18,28 +18,56 @@
 
 import Foundation
 
-public enum UserDefaultsCacheKey: String {
-    case subscriptionEntitlements
+public struct UserDefaultsCacheSettings {
+
+    // Default expiration interval set to 24 hours
+    public let defaultExpirationInterval: TimeInterval
+
+    public init(defaultExpirationInterval: TimeInterval = 24 * 60 * 60) {
+        self.defaultExpirationInterval = defaultExpirationInterval
+    }
 }
 
-/// A generic UserDefaults cache for storing and retrieving Codable objects.
-public class UserDefaultsCache<ObjectType: Codable> {
-    private var subscriptionAppGroup: String
-    private lazy var userDefaults: UserDefaults? = UserDefaults(suiteName: subscriptionAppGroup)
-    private let key: UserDefaultsCacheKey
+public enum UserDefaultsCacheKey: String {
+    case subscriptionEntitlements = "com.duckduckgo.bsk.subscription.entitlements"
+    case subscription = "com.duckduckgo.bsk.subscription.info"
+}
 
-    public init(subscriptionAppGroup: String, key: UserDefaultsCacheKey) {
-        self.subscriptionAppGroup = subscriptionAppGroup
-        self.key = key
+/// A generic UserDefaults cache for storing and retrieving Codable objects
+public class UserDefaultsCache<ObjectType: Codable> {
+
+    private struct CacheObject: Codable {
+        let expires: Date
+        let object: ObjectType
     }
 
-    public func set(_ object: ObjectType) {
+    private var subscriptionAppGroup: String?
+    private var settings: UserDefaultsCacheSettings
+    private lazy var userDefaults: UserDefaults? = {
+        if let appGroup = subscriptionAppGroup {
+            return UserDefaults(suiteName: appGroup)
+        } else {
+            return UserDefaults.standard
+        }
+    }()
+
+    private let key: UserDefaultsCacheKey
+
+    public init(subscriptionAppGroup: String? = nil, key: UserDefaultsCacheKey,
+                settings: UserDefaultsCacheSettings = UserDefaultsCacheSettings()) {
+        self.subscriptionAppGroup = subscriptionAppGroup
+        self.key = key
+        self.settings = settings
+    }
+
+    public func set(_ object: ObjectType, expires: Date = Date().addingTimeInterval(UserDefaultsCacheSettings().defaultExpirationInterval)) {
+        let cacheObject = CacheObject(expires: expires, object: object)
         let encoder = JSONEncoder()
         do {
-            let data = try encoder.encode(object)
+            let data = try encoder.encode(cacheObject)
             userDefaults?.set(data, forKey: key.rawValue)
         } catch {
-            assertionFailure("Failed to encode object of type \(ObjectType.self): \(error)")
+            assertionFailure("Failed to encode CacheObject: \(error)")
         }
     }
 
@@ -47,10 +75,14 @@ public class UserDefaultsCache<ObjectType: Codable> {
         guard let data = userDefaults?.data(forKey: key.rawValue) else { return nil }
         let decoder = JSONDecoder()
         do {
-            let object = try decoder.decode(ObjectType.self, from: data)
-            return object
+            let cacheObject = try decoder.decode(CacheObject.self, from: data)
+            if cacheObject.expires > Date() {
+                return cacheObject.object
+            } else {
+                reset()  // Clear expired data
+                return nil
+            }
         } catch {
-            assertionFailure("Failed to decode object of type \(ObjectType.self): \(error)")
             return nil
         }
     }
@@ -58,5 +90,4 @@ public class UserDefaultsCache<ObjectType: Codable> {
     public func reset() {
         userDefaults?.removeObject(forKey: key.rawValue)
     }
-
 }
