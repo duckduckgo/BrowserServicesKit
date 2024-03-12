@@ -1,7 +1,7 @@
 //
 //  SubscriptionManager.swift
 //
-//  Copyright © 2023 DuckDuckGo. All rights reserved.
+//  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -23,39 +23,21 @@ import Macros
 public protocol SubscriptionManaging {
     var configuration: SubscriptionConfiguration { get }
     var accountManager: AccountManaging { get }
+    var urlProvider: SubscriptionURLProviding { get }
 }
 
 public final class SubscriptionManager: SubscriptionManaging {
 
-    public var configuration: SubscriptionConfiguration
-    public var accountManager: AccountManaging
+    public private(set) var configuration: SubscriptionConfiguration
+    public private(set) var accountManager: AccountManaging
+    public private(set) var urlProvider: SubscriptionURLProviding
 
     public init(configuration: SubscriptionConfiguration,
-                accountManager: AccountManaging) {
-//        self.subscriptionConfiguration = subscriptionConfiguration
+                accountManager: AccountManaging,
+                urlProvider: SubscriptionURLProviding? = nil) {
         self.configuration = configuration
         self.accountManager = accountManager
+        self.urlProvider = urlProvider ?? SubscriptionURLProvider(configuration: configuration)
     }
 
 }
-
-
-//public protocol SubscriptionURLProviding {
-//    var subscriptionBaseURL: URL { get }
-////    var subscriptionPurchase: URL { get }
-//}
-//
-//public final class SubscriptionURLProvider: SubscriptionURLProviding {
-//
-//    
-//}
-
-
-// MARK: -
-
-//public protocol SubscriptionAccountManaging {
-//    var accessToken: String? { get }
-//}
-
-// MARK: -
-
