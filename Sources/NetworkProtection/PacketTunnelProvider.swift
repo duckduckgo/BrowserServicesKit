@@ -595,7 +595,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                                                                                 serverSelectionMethod: currentServerSelectionMethod,
                                                                                 includedRoutes: includedRoutes ?? [],
                                                                                 excludedRoutes: settings.excludedRanges,
-                                                                                regenerateKey: false)
+                                                                                regenerateKey: true)
                 startTunnel(with: tunnelConfiguration, onDemand: onDemand, completionHandler: completionHandler)
                 os_log("🔵 Done generating tunnel config", log: .networkProtection, type: .info)
             } catch {
