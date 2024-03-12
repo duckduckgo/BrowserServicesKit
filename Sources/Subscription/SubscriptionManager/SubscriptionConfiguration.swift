@@ -21,10 +21,25 @@ import Common
 
 public protocol SubscriptionConfiguration {
     var currentPurchasePlatform: SubscriptionPurchasePlatform { get }
+    var currentServiceEnvironment: SubscriptionServiceEnvironment { get }
 }
 
 public enum SubscriptionPurchasePlatform: String {
-    case appStore, stripe
+    case appStore
+    case stripe
+}
+
+public enum SubscriptionServiceEnvironment: String, Codable {
+    case production
+    case staging
+
+    public static var `default`: Self = {
+#if DEBUG
+        .staging
+#else
+        .production
+#endif
+    }()
 }
 
 public final class DefaultSubscriptionConfiguration: SubscriptionConfiguration {
@@ -39,8 +54,12 @@ public final class DefaultSubscriptionConfiguration: SubscriptionConfiguration {
         }
     }
 
-    public init(currentPurchasePlatform: SubscriptionPurchasePlatform) {
+    public private(set) var currentServiceEnvironment: SubscriptionServiceEnvironment
+
+    public init(currentPurchasePlatform: SubscriptionPurchasePlatform,
+                currentServiceEnvironment: SubscriptionServiceEnvironment) {
         self.currentPurchasePlatform = currentPurchasePlatform
+        self.currentServiceEnvironment = currentServiceEnvironment
     }
 
     private func setupForAppStore() {
@@ -55,11 +74,16 @@ public final class DefaultSubscriptionConfiguration: SubscriptionConfiguration {
 // MARK: - Debug
 
 public protocol DebugSubscriptionConfiguration {
-    func updateCurrentPurchasePlatform(to platform: SubscriptionPurchasePlatform)
+    func updatePurchasePlatform(to platform: SubscriptionPurchasePlatform)
+    func updateServiceEnvironment(to environment: SubscriptionServiceEnvironment)
 }
 
 extension DefaultSubscriptionConfiguration: DebugSubscriptionConfiguration {
-    public func updateCurrentPurchasePlatform(to platform: SubscriptionPurchasePlatform) {
+    public func updatePurchasePlatform(to platform: SubscriptionPurchasePlatform) {
         self.currentPurchasePlatform = platform
+    }
+
+    public func updateServiceEnvironment(to environment: SubscriptionServiceEnvironment) {
+        self.currentServiceEnvironment = environment
     }
 }

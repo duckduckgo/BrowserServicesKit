@@ -47,32 +47,7 @@ public final class SubscriptionManager: SubscriptionManaging {
 //
 //public final class SubscriptionURLProvider: SubscriptionURLProviding {
 //
-//    public static var currentServiceEnvironment: ServiceEnvironment = .default
-//
-//    public enum ServiceEnvironment: String, Codable {
-//        case production
-//        case staging
-//
-//        public static var `default`: ServiceEnvironment = .production
-//
-//        public var description: String {
-//            switch self {
-//            case .production: return "Production"
-//            case .staging: return "Staging"
-//            }
-//        }
-//    }
-//
-//    public var subscriptionBaseURL: URL {
-////        switch SubscriptionPurchaseEnvironment.currentServiceEnvironment {
-////        case .production:
-////            #URL("https://duckduckgo.com/subscriptions")
-////        case .staging:
-//            #URL("https://duckduckgo.com/subscriptions?environment=staging")
-////        }
-//    }
-//
-////    public var subscriptionPurchase: URL
+//    
 //}
 
 
