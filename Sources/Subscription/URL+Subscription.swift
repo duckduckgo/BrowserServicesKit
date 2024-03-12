@@ -36,18 +36,4 @@ public extension URL {
     static var manageSubscriptionsInAppStoreAppURL: URL {
         #URL("macappstores://apps.apple.com/account/subscriptions")
     }
-
-    // MARK: - Subscription Email
-
-    static var activateSubscriptionViaEmail: URL {
-        subscriptionBaseURL.appendingPathComponent("activate")
-    }
-
-    static var addEmailToSubscription: URL {
-        subscriptionBaseURL.appendingPathComponent("add-email")
-    }
-
-    static var manageSubscriptionEmail: URL {
-        subscriptionBaseURL.appendingPathComponent("manage")
-    }
 }
