@@ -24,6 +24,8 @@ public protocol SubscriptionManaging {
     var configuration: SubscriptionConfiguration { get }
     var accountManager: AccountManaging { get }
     var urlProvider: SubscriptionURLProviding { get }
+    var serviceProvider: SubscriptionServiceProvider { get }
+    var flowProvider: SubscriptionFlowProviding { get }
 }
 
 public final class SubscriptionManager: SubscriptionManaging {
@@ -31,13 +33,32 @@ public final class SubscriptionManager: SubscriptionManaging {
     public private(set) var configuration: SubscriptionConfiguration
     public private(set) var accountManager: AccountManaging
     public private(set) var urlProvider: SubscriptionURLProviding
+    public private(set) var serviceProvider: SubscriptionServiceProvider
+    public private(set) var flowProvider: SubscriptionFlowProviding
+
+    public convenience init(configuration: SubscriptionConfiguration,
+                            accountManager: AccountManaging) {
+        let urlProvider = SubscriptionURLProvider(configuration: configuration)
+        let serviceProvider = SubscriptionServiceProvider(configuration: configuration)
+        let flowProvider = SubscriptionFlowProvider(accountManager: accountManager,
+                                                    serviceProvider: serviceProvider)
+        self.init(configuration: configuration,
+                  accountManager: accountManager,
+                  urlProvider: urlProvider,
+                  serviceProvider: serviceProvider,
+                  flowProvider: flowProvider)
+    }
 
     public init(configuration: SubscriptionConfiguration,
                 accountManager: AccountManaging,
-                urlProvider: SubscriptionURLProviding? = nil) {
+                urlProvider: SubscriptionURLProviding,
+                serviceProvider: SubscriptionServiceProvider,
+                flowProvider: SubscriptionFlowProviding) {
         self.configuration = configuration
         self.accountManager = accountManager
-        self.urlProvider = urlProvider ?? SubscriptionURLProvider(configuration: configuration)
+        self.urlProvider = urlProvider
+        self.serviceProvider = serviceProvider
+        self.flowProvider = flowProvider
     }
 
 }
