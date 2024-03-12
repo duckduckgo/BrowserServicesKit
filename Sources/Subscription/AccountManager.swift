@@ -29,10 +29,27 @@ public protocol AccountManagerKeychainAccessDelegate: AnyObject {
     func accountManagerKeychainAccessFailed(accessType: AccountKeychainAccessType, error: AccountKeychainAccessError)
 }
 
+public typealias AccountDetails = (email: String?, externalID: String)
+
 public protocol AccountManaging {
 
-    var accessToken: String? { get }
+    var isUserAuthenticated: Bool { get }
 
+    var accessToken: String? { get }
+    var authToken: String? { get }
+    var email: String? { get }
+    var externalID: String? { get }
+
+    func storeAuthToken(token: String)
+    func storeAccount(token: String, email: String?, externalID: String?)
+
+    func signOut()
+
+    func exchangeAuthTokenToAccessToken(_ authToken: String) async -> Result<String, Error>
+    func fetchAccountDetails(with accessToken: String) async -> Result<AccountDetails, Error>
+    func checkSubscriptionState() async
+
+    func hasEntitlement(for entitlement: Entitlement.ProductName) async -> Result<Bool, Error>
 }
 
 public class AccountManager: AccountManaging {
@@ -220,7 +237,11 @@ public class AccountManager: AccountManaging {
         case noCachedData
     }
 
-    public func hasEntitlement(for entitlement: Entitlement.ProductName, cachePolicy: CachePolicy = .returnCacheDataElseLoad) async -> Result<Bool, Error> {
+    public func hasEntitlement(for entitlement: Entitlement.ProductName) async -> Result<Bool, Error> {
+        return await hasEntitlement(for: entitlement, cachePolicy: .returnCacheDataElseLoad)
+    }
+
+    public func hasEntitlement(for entitlement: Entitlement.ProductName, cachePolicy: CachePolicy) async -> Result<Bool, Error> {
         switch await fetchEntitlements(cachePolicy: cachePolicy) {
         case .success(let entitlements):
             return .success(entitlements.compactMap { $0.product }.contains(entitlement))
