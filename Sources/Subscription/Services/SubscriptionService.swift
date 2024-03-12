@@ -16,10 +16,11 @@
 //  limitations under the License.
 //
 
-import Foundation
 import Common
+import Foundation
+import Macros
 
-public struct SubscriptionService: APIService {
+public final class SubscriptionService: APIService {
 
     public static let session = {
         let configuration = URLSessionConfiguration.ephemeral
@@ -29,49 +30,66 @@ public struct SubscriptionService: APIService {
     public static var baseURL: URL {
         switch SubscriptionPurchaseEnvironment.currentServiceEnvironment {
         case .production:
-            URL(string: "https://subscriptions.duckduckgo.com/api")!
+            #URL("https://subscriptions.duckduckgo.com/api")
         case .staging:
-            URL(string: "https://subscriptions-dev.duckduckgo.com/api")!
+            #URL("https://subscriptions-dev.duckduckgo.com/api")
         }
     }
 
-    // MARK: -
+    private static let subscriptionCache = UserDefaultsCache<Subscription>(key: UserDefaultsCacheKey.subscription)
 
-    public static func getSubscriptionDetails(token: String) async -> Result<GetSubscriptionDetailsResponse, APIServiceError> {
-        let result: Result<GetSubscriptionDetailsResponse, APIServiceError> = await executeAPICall(method: "GET", endpoint: "subscription", headers: makeAuthorizationHeader(for: token))
+    public enum CachePolicy {
+        case reloadIgnoringLocalCacheData
+        case returnCacheDataElseLoad
+        case returnCacheDataDontLoad
+    }
+
+    public enum SubscriptionServiceError: Error {
+        case noCachedData
+        case apiError(APIServiceError)
+    }
+
+    // MARK: - Subscription fetching with caching
+
+    private static func getRemoteSubscription(accessToken: String) async -> Result<Subscription, SubscriptionServiceError> {
+        let result: Result<GetSubscriptionResponse, APIServiceError> = await executeAPICall(method: "GET", endpoint: "subscription", headers: makeAuthorizationHeader(for: accessToken))
 
         switch result {
-        case .success(let response):
-            cachedSubscriptionDetailsResponse = response
-        case .failure:
-            cachedSubscriptionDetailsResponse = nil
+        case .success(let subscriptionResponse):
+            subscriptionCache.set(subscriptionResponse)
+            return .success(subscriptionResponse)
+        case .failure(let error):
+            return .failure(.apiError(error))
         }
-
-        return result
     }
 
-    public struct GetSubscriptionDetailsResponse: Decodable {
-        public let productId: String
-        public let startedAt: Date
-        public let expiresOrRenewsAt: Date
-        public let platform: Platform
-        public let status: String
+    public static func getSubscription(accessToken: String, cachePolicy: CachePolicy = .returnCacheDataElseLoad) async -> Result<Subscription, SubscriptionServiceError> {
 
-        public var isSubscriptionActive: Bool {
-            status.lowercased() != "expired" && status.lowercased() != "inactive"
-        }
+        switch cachePolicy {
+        case .reloadIgnoringLocalCacheData:
+            return await getRemoteSubscription(accessToken: accessToken)
 
-        public enum Platform: String, Codable {
-            case apple, google, stripe
-            case unknown
+        case .returnCacheDataElseLoad:
+            if let cachedSubscription = subscriptionCache.get() {
+                return .success(cachedSubscription)
+            } else {
+                return await getRemoteSubscription(accessToken: accessToken)
+            }
 
-            public init(from decoder: Decoder) throws {
-                self = try Self(rawValue: decoder.singleValueContainer().decode(RawValue.self)) ?? .unknown
+        case .returnCacheDataDontLoad:
+            if let cachedSubscription = subscriptionCache.get() {
+                return .success(cachedSubscription)
+            } else {
+                return .failure(.noCachedData)
             }
         }
     }
 
-    public static var cachedSubscriptionDetailsResponse: GetSubscriptionDetailsResponse?
+    public static func signOut() {
+        subscriptionCache.reset()
+    }
+
+    public typealias GetSubscriptionResponse = Subscription
 
     // MARK: -
 
@@ -101,4 +119,19 @@ public struct SubscriptionService: APIService {
         public let customerPortalUrl: String
     }
 
+    // MARK: -
+
+    public static func confirmPurchase(accessToken: String, signature: String) async -> Result<ConfirmPurchaseResponse, APIServiceError> {
+        let headers = makeAuthorizationHeader(for: accessToken)
+        let bodyDict = ["signedTransactionInfo": signature]
+
+        guard let bodyData = try? JSONEncoder().encode(bodyDict) else { return .failure(.encodingError) }
+        return await executeAPICall(method: "POST", endpoint: "purchase/confirm/apple", headers: headers, body: bodyData)
+    }
+
+    public struct ConfirmPurchaseResponse: Decodable {
+        public let email: String?
+        public let entitlements: [Entitlement]
+        public let subscription: Subscription
+    }
 }

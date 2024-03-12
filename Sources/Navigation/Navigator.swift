@@ -19,7 +19,6 @@
 import Foundation
 import WebKit
 
-// swiftlint:disable line_length
 @MainActor
 public struct Navigator {
 
@@ -181,4 +180,3 @@ extension WKWebView {
     }
 
 }
-// swiftlint:enable line_length

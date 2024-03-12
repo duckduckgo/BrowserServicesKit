@@ -20,7 +20,6 @@ import Common
 import Foundation
 import WebKit
 
-// swiftlint:disable line_length
 public struct FrameInfo {
 
     public weak var webView: WKWebView?
@@ -100,4 +99,3 @@ extension FrameInfo: CustomDebugStringConvertible {
         return "<Frame \(webViewPtr)_\(handle)\(isMainFrame ? ": Main" : ""); current url: \(url.absoluteString.isEmpty ? "empty" : url.absoluteString)>"
     }
 }
-// swiftlint:enable line_length

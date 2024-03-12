@@ -42,6 +42,7 @@ public enum PrivacyFeature: String {
     case networkProtection
     case dbp
     case sync
+    case privacyDashboard
     case history
 }
 
@@ -96,10 +97,10 @@ public enum SyncSubfeature: String, PrivacySubfeature {
     case level3AllowCreateAccount
 }
 
-public enum AutoconsentSubfeature: String, PrivacySubfeature {
-    public var parent: PrivacyFeature {
-        .autoconsent
-    }
+public enum PrivacyDashboardSubfeature: String, PrivacySubfeature {
 
-    case onByDefault
+    public var parent: PrivacyFeature { .privacyDashboard }
+
+    case toggleReports
+
 }

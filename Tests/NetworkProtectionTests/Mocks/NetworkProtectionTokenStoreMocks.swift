@@ -32,7 +32,9 @@ final class NetworkProtectionTokenStoreMock: NetworkProtectionTokenStore {
     }
 
     func deleteToken() {
-        guard let token = fetchToken(), !Self.isSubscriptionAccessToken(token) else { return }
+        if let token = fetchToken(), Self.isSubscriptionAccessToken(token) {
+            return
+        }
         self.token = nil
     }
 }

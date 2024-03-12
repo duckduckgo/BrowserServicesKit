@@ -20,8 +20,10 @@ import BrowserServicesKit
 import Combine
 import Common
 import Foundation
+import Macros
 import Persistence
 import TestUtils
+
 @testable import DDGSync
 
 extension SyncAccount {
@@ -149,6 +151,7 @@ class MockPrivacyConfigurationManager: PrivacyConfigurationManaging {
     let updatesPublisher: AnyPublisher<Void, Never>
     var privacyConfig: PrivacyConfiguration = MockPrivacyConfiguration()
     let internalUserDecider: InternalUserDecider = DefaultInternalUserDecider()
+    var toggleProtectionsCounter = ToggleProtectionsCounter(eventReporting: EventMapping<ToggleProtectionsCounterEvent> { _, _, _, _ in })
     func reload(etag: String?, data: Data?) -> PrivacyConfigurationManager.ReloadResult {
         .downloaded
     }
@@ -194,7 +197,7 @@ class MockPrivacyConfiguration: PrivacyConfiguration {
 }
 
 struct MockSyncDependencies: SyncDependencies, SyncDependenciesDebuggingSupport {
-    var endpoints: Endpoints = Endpoints(baseURL: URL(string: "https://dev.null")!)
+    var endpoints: Endpoints = Endpoints(baseURL: #URL("https://dev.null"))
     var account: AccountManaging = AccountManagingMock()
     var api: RemoteAPIRequestCreating = RemoteAPIRequestCreatingMock()
     var secureStore: SecureStoring = SecureStorageStub()

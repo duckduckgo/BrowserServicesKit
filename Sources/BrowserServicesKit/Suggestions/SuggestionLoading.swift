@@ -17,6 +17,7 @@
 //
 
 import Foundation
+import Macros
 
 public protocol SuggestionLoading: AnyObject {
 
