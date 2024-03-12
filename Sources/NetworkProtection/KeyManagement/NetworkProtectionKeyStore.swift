@@ -42,7 +42,7 @@ public protocol NetworkProtectionKeyStore {
     func resetCurrentKeyPair()
 }
 
-/// Generates and stores instances of a PrivateKey on behalf of the user. This key is used to derive a PublicKey which is then used for registration with the Network Protection backend servers.
+/// Generates and stores instances of a PrivateKey on behalf of the user. This key is used to derive a PublicKey which is then used for registration with the VPN backend servers.
 /// The key is reused between servers (that is, each user currently gets a single key), though this will change in the future to periodically refresh the key.
 public final class NetworkProtectionKeychainKeyStore: NetworkProtectionKeyStore {
     private let keychainStore: NetworkProtectionKeychainStore
@@ -225,7 +225,7 @@ public final class NetworkProtectionKeychainKeyStore: NetworkProtectionKeyStore 
 
     private func handle(_ error: Error) {
         guard let error = error as? NetworkProtectionKeychainStoreError else {
-            assertionFailure("Failed to cast Network Protection Keychain store error")
+            assertionFailure("Failed to cast VPN Keychain store error")
             errorEvents?.fire(NetworkProtectionError.unhandledError(function: #function, line: #line, error: error))
             return
         }

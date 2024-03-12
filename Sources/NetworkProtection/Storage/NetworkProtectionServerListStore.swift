@@ -21,13 +21,13 @@ import Foundation
 
 public protocol NetworkProtectionServerListStore {
 
-    /// Replace the existing stored Network Protection server list, if one exists. If any servers exist on disk but not in this array, then the ones on disk will be removed.
+    /// Replace the existing stored VPN server list, if one exists. If any servers exist on disk but not in this array, then the ones on disk will be removed.
     func store(serverList: [NetworkProtectionServer]) throws
 
     /// Update the existing server cache with a list of registered servers. This will update existing servers if they are found, or will add them into the list otherwise.
     func updateServerListCache(with registeredServers: [NetworkProtectionServer]) throws
 
-    /// Returns the list of stored Network Protection servers.
+    /// Returns the list of stored VPN servers.
     ///
     /// - Note: This list is sorted by server name alphabetically.
     func storedNetworkProtectionServerList() throws -> [NetworkProtectionServer]
@@ -54,7 +54,7 @@ public enum NetworkProtectionServerListStoreError: Error, NetworkProtectionError
     }
 }
 
-/// Stores the most recent Network Protection server list.
+/// Stores the most recent VPN server list.
 ///
 /// This list is used to present a list of servers to the user. Because this list is cached, it may not represent the true list of servers and should be periodically refreshed.
 /// This list also remembers which servers have been registered with, and can be used to check whether registration is needed before connecting.

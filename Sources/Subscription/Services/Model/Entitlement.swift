@@ -23,7 +23,7 @@ public struct Entitlement: Codable, Equatable {
     public let product: ProductName
 
     public enum ProductName: String, Codable {
-        case networkProtection = "Network Protection"
+        case networkProtection = "VPN"
         case dataBrokerProtection = "Data Broker Protection"
         case identityTheftRestoration = "Identity Theft Restoration"
         case unknown

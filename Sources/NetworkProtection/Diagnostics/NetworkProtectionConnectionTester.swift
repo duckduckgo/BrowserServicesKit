@@ -21,7 +21,7 @@ import Network
 import NetworkExtension
 import Common
 
-/// This class takes care of testing whether the Network Protection connection is working or not.  Results are handled by
+/// This class takes care of testing whether the VPN connection is working or not.  Results are handled by
 /// an injected object that implements ``NetworkProtectionConnectionTestResultsHandler``.
 ///
 /// In order to test that the connection is working, this class test creating a TCP connection to "www.duckduckgo.com" using

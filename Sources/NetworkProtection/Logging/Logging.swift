@@ -79,41 +79,41 @@ struct Logging {
     static let subsystem = "com.duckduckgo.macos.browser.network-protection"
 
     fileprivate static let networkProtectionLoggingEnabled = true
-    fileprivate static let networkProtection: OSLog = OSLog(subsystem: subsystem, category: "Network Protection")
+    fileprivate static let networkProtection: OSLog = OSLog(subsystem: subsystem, category: "VPN")
 
     fileprivate static let networkProtectionBandwidthAnalysisLoggingEnabled = true
-    fileprivate static let networkProtectionBandwidthAnalysis: OSLog = OSLog(subsystem: subsystem, category: "Network Protection: Bandwidth Analysis")
+    fileprivate static let networkProtectionBandwidthAnalysis: OSLog = OSLog(subsystem: subsystem, category: "VPN: Bandwidth Analysis")
 
     fileprivate static let networkProtectionLatencyMonitorLoggingEnabled = true
-    fileprivate static let networkProtectionLatencyMonitor: OSLog = OSLog(subsystem: subsystem, category: "Network Protection: Latency Monitor")
+    fileprivate static let networkProtectionLatencyMonitor: OSLog = OSLog(subsystem: subsystem, category: "VPN: Latency Monitor")
 
     fileprivate static let networkProtectionTunnelFailureMonitorLoggingEnabled = true
-    fileprivate static let networkProtectionTunnelFailureMonitor: OSLog = OSLog(subsystem: subsystem, category: "Network Protection: Tunnel Failure Monitor")
+    fileprivate static let networkProtectionTunnelFailureMonitor: OSLog = OSLog(subsystem: subsystem, category: "VPN: Tunnel Failure Monitor")
 
     fileprivate static let networkProtectionConnectionTesterLoggingEnabled = true
-    fileprivate static let networkProtectionConnectionTesterLog: OSLog = OSLog(subsystem: subsystem, category: "Network Protection: Connection Tester")
+    fileprivate static let networkProtectionConnectionTesterLog: OSLog = OSLog(subsystem: subsystem, category: "VPN: Connection Tester")
 
     fileprivate static let networkProtectionDistributedNotificationsLoggingEnabled = true
-    fileprivate static let networkProtectionDistributedNotificationsLog: OSLog = OSLog(subsystem: subsystem, category: "Network Protection: Distributed Notifications")
+    fileprivate static let networkProtectionDistributedNotificationsLog: OSLog = OSLog(subsystem: subsystem, category: "VPN: Distributed Notifications")
 
     fileprivate static let networkProtectionIPCLoggingEnabled = true
-    fileprivate static let networkProtectionIPCLog: OSLog = OSLog(subsystem: subsystem, category: "Network Protection: IPC")
+    fileprivate static let networkProtectionIPCLog: OSLog = OSLog(subsystem: subsystem, category: "VPN: IPC")
 
     fileprivate static let networkProtectionKeyManagementLoggingEnabled = true
-    fileprivate static let networkProtectionKeyManagement: OSLog = OSLog(subsystem: subsystem, category: "Network Protection: Key Management")
+    fileprivate static let networkProtectionKeyManagement: OSLog = OSLog(subsystem: subsystem, category: "VPN: Key Management")
 
     fileprivate static let networkProtectionMemoryLoggingEnabled = true
-    fileprivate static let networkProtectionMemoryLog: OSLog = OSLog(subsystem: subsystem, category: "Network Protection: Memory")
+    fileprivate static let networkProtectionMemoryLog: OSLog = OSLog(subsystem: subsystem, category: "VPN: Memory")
 
     fileprivate static let networkProtectionPixelLoggingEnabled = true
-    fileprivate static let networkProtectionPixel: OSLog = OSLog(subsystem: subsystem, category: "Network Protection: Pixel")
+    fileprivate static let networkProtectionPixel: OSLog = OSLog(subsystem: subsystem, category: "VPN: Pixel")
 
     fileprivate static let networkProtectionStatusReporterLoggingEnabled = true
-    fileprivate static let networkProtectionStatusReporterLog: OSLog = OSLog(subsystem: subsystem, category: "Network Protection: Status Reporter")
+    fileprivate static let networkProtectionStatusReporterLog: OSLog = OSLog(subsystem: subsystem, category: "VPN: Status Reporter")
 
     fileprivate static let networkProtectionSleepLoggingEnabled = true
-    fileprivate static let networkProtectionSleepLog: OSLog = OSLog(subsystem: subsystem, category: "Network Protection: Sleep and Wake")
+    fileprivate static let networkProtectionSleepLog: OSLog = OSLog(subsystem: subsystem, category: "VPN: Sleep and Wake")
 
     fileprivate static let networkProtectionEntitlementLoggingEnabled = true
-    fileprivate static let networkProtectionEntitlementLog: OSLog = OSLog(subsystem: subsystem, category: "Network Protection: Entitlement Monitor")
+    fileprivate static let networkProtectionEntitlementLog: OSLog = OSLog(subsystem: subsystem, category: "VPN: Entitlement Monitor")
 }

@@ -21,7 +21,7 @@ import Common
 
 public protocol NetworkProtectionCodeRedeeming {
 
-    /// Redeems an invite code with the Network Protection backend and stores the resulting auth token
+    /// Redeems an invite code with the VPN backend and stores the resulting auth token
     func redeem(_ code: String) async throws
 
     /// Exchanges an access token for an auth token, and stores the resulting auth token

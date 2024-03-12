@@ -121,7 +121,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
         return completeServerList
     }
 
-    /// Registers the device with the Network Protection backend.
+    /// Registers the device with the VPN backend.
     ///
     /// The flow for registration is as follows:
     /// 1. Look for an existing private key, and if one does not exist then generate it and store it in the Keychain
@@ -310,7 +310,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
                                                dns: [DNSServer(address: server.serverInfo.internalIP)],
                                                isKillSwitchEnabled: isKillSwitchEnabled)
 
-        return TunnelConfiguration(name: "Network Protection", interface: interface, peers: [peerConfiguration])
+        return TunnelConfiguration(name: "DuckDuckGo VPN", interface: interface, peers: [peerConfiguration])
     }
 
     func peerConfiguration(serverPublicKey: PublicKey, serverEndpoint: Endpoint) -> PeerConfiguration {

@@ -53,7 +53,7 @@ public struct DistributedNotificationObjectDecoder<T: Decodable> {
 
     public init() {}
 
-    /// Decodes the object from a Network Protection distributed notification.
+    /// Decodes the object from a VPN distributed notification.
     ///
     public func decodeObject(from notification: Notification) throws -> T {
         guard let string = notification.object as? String else {
@@ -63,7 +63,7 @@ public struct DistributedNotificationObjectDecoder<T: Decodable> {
         return try decode(string)
     }
 
-    /// Decodes the object from a Network Protection distributed notification.
+    /// Decodes the object from a VPN distributed notification.
     ///
     public func decode(_ payload: String) throws -> T {
         let jsonData = payload.data(using: defaultJSONEncoding)!

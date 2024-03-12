@@ -25,11 +25,11 @@ public protocol TunnelController {
 
     // MARK: - Starting & Stopping the VPN
 
-    /// Starts the VPN connection used for Network Protection
+    /// Starts the VPN connection
     ///
     func start() async
 
-    /// Stops the VPN connection used for Network Protection
+    /// Stops the VPN connection
     ///
     func stop() async
 

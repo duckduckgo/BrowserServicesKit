@@ -44,7 +44,7 @@ public protocol NetworkProtectionTokenStore {
     static func isSubscriptionAccessToken(_ token: String) -> Bool
 }
 
-/// Store an auth token for NetworkProtection on behalf of the user. This key is then used to authenticate requests for registration and server fetches from the Network Protection backend servers.
+/// Store an auth token for NetworkProtection on behalf of the user. This key is then used to authenticate requests for registration and server fetches from the VPN backend servers.
 /// Writing a new auth token will replace the old one.
 public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenStore {
     private let keychainStore: NetworkProtectionKeychainStore
@@ -108,7 +108,7 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
 
     private func handle(_ error: Error) {
         guard let error = error as? NetworkProtectionKeychainStoreError else {
-            assertionFailure("Failed to cast Network Protection Token store error")
+            assertionFailure("Failed to cast VPN Token store error")
             errorEvents?.fire(NetworkProtectionError.unhandledError(function: #function, line: #line, error: error))
             return
         }

@@ -205,7 +205,7 @@ class UserAttributeMatcherTests: XCTestCase {
                        .fail)
     }
 
-    // MARK: - Network Protection Waitlist
+    // MARK: - VPN Waitlist
 
     func testWhenIsNetPWaitlistUserMatchesThenReturnMatch() throws {
         XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: IsNetPWaitlistUserMatchingAttribute(value: true, fallback: nil)),
