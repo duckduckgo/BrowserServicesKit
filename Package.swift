@@ -365,6 +365,9 @@ let package = Package(
                 .copy("Resources/Bookmarks_V4.sqlite"),
                 .copy("Resources/Bookmarks_V4.sqlite-shm"),
                 .copy("Resources/Bookmarks_V4.sqlite-wal"),
+                .copy("Resources/Bookmarks_V5.sqlite"),
+                .copy("Resources/Bookmarks_V5.sqlite-shm"),
+                .copy("Resources/Bookmarks_V5.sqlite-wal"),
             ],
             plugins: [swiftlintPlugin]
         ),
