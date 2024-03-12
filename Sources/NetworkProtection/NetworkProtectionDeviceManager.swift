@@ -146,7 +146,11 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
 
         keyStore.updateKeyPair(keyPair)
 
-        if let newExpiration {
+        // We only update the expiration date if it happens before our client-set expiration date.
+        // This way we respect the client-set expiration date, unless the server has set an earlier
+        // expiration for whatever reason (like if the subscription is known to expire).
+        //
+        if let newExpiration, newExpiration < keyPair.expirationDate {
             keyPair = KeyPair(privateKey: keyPair.privateKey, expirationDate: newExpiration)
             keyStore.updateKeyPair(keyPair)
         }
@@ -224,9 +228,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
                 // If we're looking to exclude a server we should have a few other options available.  If we can't find any
                 // then it means theres an inconsistency in the server list that was returned.
                 errorEvents?.fire(NetworkProtectionError.serverListInconsistency)
-
-                let cachedServer = try cachedServer(registeredWith: keyPair)
-                return (cachedServer, nil)
+                throw NetworkProtectionError.serverListInconsistency
             }
 
             selectedServer = registeredServer
@@ -238,9 +240,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
             }
 
             handle(clientError: error)
-
-            let cachedServer = try cachedServer(registeredWith: keyPair)
-            return (cachedServer, nil)
+            throw error
         }
     }
 
