@@ -37,45 +37,4 @@ public final class SubscriptionPurchaseEnvironment {
 
     public static var currentServiceEnvironment: ServiceEnvironment = .default
 
-    public enum Environment: String {
-        case appStore, stripe
-    }
-
-    public static var current: Environment = .appStore {
-        didSet {
-            os_log(.info, log: .subscription, "[SubscriptionPurchaseEnvironment] Setting to %{public}s", current.rawValue)
-
-            canPurchase = false
-
-            switch current {
-            case .appStore:
-                setupForAppStore()
-            case .stripe:
-                setupForStripe()
-            }
-        }
-    }
-
-    public static var canPurchase: Bool = false {
-        didSet {
-            os_log(.info, log: .subscription, "[SubscriptionPurchaseEnvironment] canPurchase %{public}s", (canPurchase ? "true" : "false"))
-        }
-    }
-
-    private static func setupForAppStore() {
-        if #available(macOS 12.0, iOS 15.0, *) {
-            Task {
-                await PurchaseManager.shared.updateAvailableProducts()
-                canPurchase = !PurchaseManager.shared.availableProducts.isEmpty
-            }
-        }
-    }
-
-    private static func setupForStripe() {
-        Task {
-            if case let .success(products) = await SubscriptionService.getProducts() {
-                canPurchase = !products.isEmpty
-            }
-        }
-    }
 }
