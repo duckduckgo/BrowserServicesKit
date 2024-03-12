@@ -20,21 +20,21 @@ import Foundation
 import UserScript
 import WebKit
 
-class WebVitalsSubfeature: Subfeature {
+public class WebVitalsSubfeature: Subfeature {
 
-    var messageOriginPolicy: MessageOriginPolicy = .all
-    var featureName: String = "webVitalsSubfeature"
-    var broker: UserScriptMessageBroker?
+    public var messageOriginPolicy: MessageOriginPolicy = .all
+    public var featureName: String = "webVitalsSubfeature"
+    public var broker: UserScriptMessageBroker?
 
     var completionHandler: (([Double]?) -> Void)?
 
-    func handler(forMethodNamed methodName: String) -> Handler? {
+    public func handler(forMethodNamed methodName: String) -> Handler? {
         guard methodName == "vitalsResult" else { return nil }
 
         return vitalsResult
     }
 
-    func vitalsResult(params: Any, original: WKScriptMessage) async throws -> Encodable? {
+    public func vitalsResult(params: Any, original: WKScriptMessage) async throws -> Encodable? {
         guard let payload = params as? [String:Any] else {
             completionHandler?(nil)
             return nil
@@ -44,7 +44,7 @@ class WebVitalsSubfeature: Subfeature {
         return nil
     }
 
-    func notifyHandler(from webView: WKWebView, handler: @escaping ([Double]?) -> Void) {
+    public func notifyHandler(from webView: WKWebView, handler: @escaping ([Double]?) -> Void) {
         completionHandler = handler
         broker?.push(method: "getVitals", params: nil, for: self, into: webView)
     }
