@@ -1,7 +1,7 @@
 //
-//  Entitlement.swift
+//  ToggleReportEvents.swift
 //
-//  Copyright © 2023 DuckDuckGo. All rights reserved.
+//  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -18,18 +18,16 @@
 
 import Foundation
 
-public struct Entitlement: Codable, Equatable {
-    let name: String
-    public let product: ProductName
+public enum ToggleReportEvents {
 
-    public enum ProductName: String, Codable {
-        case networkProtection = "Network Protection"
-        case dataBrokerProtection = "Data Broker Protection"
-        case identityTheftRestoration = "Identity Theft Restoration"
-        case unknown
+    public enum Parameters {
 
-        public init(from decoder: Decoder) throws {
-            self = try Self(rawValue: decoder.singleValueContainer().decode(RawValue.self)) ?? .unknown
-        }
+        public static let didOpenReportInfo = "didOpenReportInfo"
+        public static let toggleReportCounter = "toggleReportCounter"
+
     }
+
+    case toggleReportDoNotSend
+    case toggleReportDismiss
+
 }
