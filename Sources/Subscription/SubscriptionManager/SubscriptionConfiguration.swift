@@ -56,10 +56,9 @@ public final class DefaultSubscriptionConfiguration: SubscriptionConfiguration {
 
     public private(set) var currentServiceEnvironment: SubscriptionServiceEnvironment
 
-    public init(currentPurchasePlatform: SubscriptionPurchasePlatform,
-                currentServiceEnvironment: SubscriptionServiceEnvironment) {
-        self.currentPurchasePlatform = currentPurchasePlatform
-        self.currentServiceEnvironment = currentServiceEnvironment
+    public init(purchasePlatform: SubscriptionPurchasePlatform, serviceEnvironment: SubscriptionServiceEnvironment) {
+        self.currentPurchasePlatform = purchasePlatform
+        self.currentServiceEnvironment = serviceEnvironment
     }
 
     private func setupForAppStore() {
