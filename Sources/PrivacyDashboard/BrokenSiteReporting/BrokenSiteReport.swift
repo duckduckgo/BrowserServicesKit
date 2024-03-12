@@ -109,7 +109,7 @@ public struct BrokenSiteReport {
         openerContext: OpenerContext?,
         vpnOn: Bool,
         jsPerformance: [Double]?,
-        userRefreshCount: Int
+        userRefreshCount: Int,
         didOpenReportInfo: Bool,
         toggleReportCounter: Int?
     ) {
@@ -162,7 +162,7 @@ public struct BrokenSiteReport {
         openerContext: OpenerContext?,
         vpnOn: Bool,
         jsPerformance: [Double]?,
-        userRefreshCount: Int
+        userRefreshCount: Int,
         didOpenReportInfo: Bool,
         toggleReportCounter: Int?
     ) {
