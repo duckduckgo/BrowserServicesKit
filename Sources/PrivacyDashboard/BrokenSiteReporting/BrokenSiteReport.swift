@@ -1,5 +1,5 @@
 //
-//  WebsiteBreakage.swift
+//  BrokenSiteReport.swift
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -18,22 +18,38 @@
 //  Implementation guidelines: https://app.asana.com/0/1198207348643509/1200202563872939/f
 
 import Foundation
+import Common
 
-/// Model containing all the info required for a report broken site submission
-public struct WebsiteBreakage {
+public struct BrokenSiteReport {
 
-    /// The source of the broken site report
-    public enum Source: String {
-        /// The app menu
-        case appMenu = "menu"
-        /// From the privacy dashboard
-        case dashboard
+    public enum Mode {
+
+        case regular
+        case toggle
+
     }
 
+    public enum Source: String {
+
+        /// From the app menu's "Report Broken Site"
+        case appMenu = "menu"
+        /// From the privacy dashboard's "Website not working?"
+        case dashboard
+        /// From the app menu's "Disable Privacy Protection"
+        case onProtectionsOffMenu = "on_protections_off_menu"
+        /// From the privacy dashboard's on protections toggle off
+        case onProtectionsOffDashboard = "on_protections_off_dashboard_main"
+
+    }
+
+#if os(iOS)
     public enum SiteType: String {
+
         case desktop
         case mobile
+
     }
+#endif
 
     public enum OpenerContext: String {
         case serp
@@ -64,8 +80,10 @@ public struct WebsiteBreakage {
     let vpnOn: Bool
     let jsPerformance: [Double]?
     let userRefreshCount: Int
+    let didOpenReportInfo: Bool
+    let toggleReportCounter: Int?
 #if os(iOS)
-    let siteType: SiteType // ?? not in documentation
+    let siteType: SiteType
     let atb: String
     let model: String
 #endif
@@ -92,6 +110,8 @@ public struct WebsiteBreakage {
         vpnOn: Bool,
         jsPerformance: [Double]?,
         userRefreshCount: Int
+        didOpenReportInfo: Bool,
+        toggleReportCounter: Int?
     ) {
         self.siteUrl = siteUrl
         self.category = category
@@ -113,6 +133,8 @@ public struct WebsiteBreakage {
         self.vpnOn = vpnOn
         self.jsPerformance = jsPerformance
         self.userRefreshCount = userRefreshCount
+        self.didOpenReportInfo = didOpenReportInfo
+        self.toggleReportCounter = toggleReportCounter
     }
 #endif
 
@@ -141,6 +163,8 @@ public struct WebsiteBreakage {
         vpnOn: Bool,
         jsPerformance: [Double]?,
         userRefreshCount: Int
+        didOpenReportInfo: Bool,
+        toggleReportCounter: Int?
     ) {
         self.siteUrl = siteUrl
         self.category = category
@@ -165,30 +189,42 @@ public struct WebsiteBreakage {
         self.vpnOn = vpnOn
         self.jsPerformance = jsPerformance
         self.userRefreshCount = userRefreshCount
+        self.didOpenReportInfo = didOpenReportInfo
+        self.toggleReportCounter = toggleReportCounter
     }
 #endif
 
     /// A dictionary containing all the parameters needed from the Report Broken Site Pixel
-    public var requestParameters: [String: String] {
+    public var requestParameters: [String: String] { getRequestParameters(forReportMode: .regular) }
+
+    public func getRequestParameters(forReportMode mode: Mode) -> [String: String] {
         var result: [String: String] = [
             "siteUrl": siteUrl.trimmingQueryItemsAndFragment().absoluteString,
-            "category": category,
-            "description": description ?? "",
-            "upgradedHttps": upgradedHttps ? "true" : "false",
+            "upgradedHttps": upgradedHttps.description,
             "tds": tdsETag?.trimmingCharacters(in: CharacterSet(charactersIn: "\"")) ?? "",
             "blockedTrackers": blockedTrackerDomains.joined(separator: ","),
             "surrogates": installedSurrogates.joined(separator: ","),
-            "gpc": isGPCEnabled ? "true" : "false",
+            "gpc": isGPCEnabled.description,
             "ampUrl": ampURL,
-            "urlParametersRemoved": urlParametersRemoved ? "true" : "false",
+            "urlParametersRemoved": urlParametersRemoved.description,
             "os": osVersion,
             "manufacturer": manufacturer,
             "reportFlow": reportFlow.rawValue,
-            "protectionsState": protectionsState ? "true" : "false",
             "openerContext": openerContext?.rawValue ?? "",
             "vpnOn": vpnOn ? "true" : "false",
             "userRefreshCount": String(userRefreshCount)
         ]
+
+        if mode == .regular {
+            result["category"] = category
+            result["description"] = description ?? ""
+            result["protectionsState"] = protectionsState.description
+        } else {
+            result["didOpenReportInfo"] = didOpenReportInfo.description
+            if let toggleReportCounter {
+                result["toggleReportCounter"] = String(toggleReportCounter)
+            }
+        }
 
         if let lastSentDay = lastSentDay {
             result["lastSentDay"] = lastSentDay
@@ -219,4 +255,5 @@ public struct WebsiteBreakage {
 #endif
         return result
     }
+
 }

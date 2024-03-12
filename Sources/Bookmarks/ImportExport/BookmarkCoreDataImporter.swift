@@ -73,7 +73,7 @@ public class BookmarkCoreDataImporter {
 
         fetch.propertiesToFetch = [idDescription, #keyPath(BookmarkEntity.url)]
 
-        let dict = try context.fetch(fetch) as? [Dictionary<String, Any>]
+        let dict = try context.fetch(fetch) as? [[String: Any]]
 
         if let result = dict?.reduce(into: [String: NSManagedObjectID](), { partialResult, data in
             guard let urlString = data[#keyPath(BookmarkEntity.url)] as? String,

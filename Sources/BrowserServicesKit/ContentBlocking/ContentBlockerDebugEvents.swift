@@ -47,4 +47,5 @@ public enum ContentBlockerDebugEvents {
     case contentBlockingCompilationFailed(listName: String, component: Component)
 
     case contentBlockingCompilationTime
+
 }
