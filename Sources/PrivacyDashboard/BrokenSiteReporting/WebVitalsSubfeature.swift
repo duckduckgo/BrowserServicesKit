@@ -28,6 +28,8 @@ public class WebVitalsSubfeature: Subfeature {
 
     var completionHandler: (([Double]?) -> Void)?
 
+    public init() {}
+
     public func handler(forMethodNamed methodName: String) -> Handler? {
         guard methodName == "vitalsResult" else { return nil }
 
