@@ -105,10 +105,10 @@ public enum PrivacyDashboardSubfeature: String, PrivacySubfeature {
     case toggleReports
 
 }
- 
+
 public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {
     public var parent: PrivacyFeature { .privacyPro }
-    
+
     case isLaunched
     case isLaunchedStripe
     case allowPurchase
