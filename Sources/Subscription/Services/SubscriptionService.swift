@@ -18,7 +18,6 @@
 
 import Common
 import Foundation
-import Macros
 
 public final class SubscriptionService: APIService {
 
@@ -30,9 +29,9 @@ public final class SubscriptionService: APIService {
     public static var baseURL: URL {
         switch SubscriptionPurchaseEnvironment.currentServiceEnvironment {
         case .production:
-            #URL("https://subscriptions.duckduckgo.com/api")
+            URL(string: "https://subscriptions.duckduckgo.com/api")!
         case .staging:
-            #URL("https://subscriptions-dev.duckduckgo.com/api")
+            URL(string: "https://subscriptions-dev.duckduckgo.com/api")!
         }
     }
 
