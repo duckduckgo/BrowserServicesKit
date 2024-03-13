@@ -16,7 +16,6 @@
 //  limitations under the License.
 //
 
-import Macros
 import XCTest
 
 @testable import BrowserServicesKit
@@ -48,32 +47,32 @@ final class GPCTests: XCTestCase {
     }
 
     func testWhenGPCEnableDomainIsHttpThenISGPCEnabledTrue() {
-        let result = GPCRequestFactory().isGPCEnabled(url: #URL("https://www.washingtonpost.com"), config: appConfig)
+        let result = GPCRequestFactory().isGPCEnabled(url: URL(string: "https://www.washingtonpost.com")!, config: appConfig)
         XCTAssertTrue(result)
     }
 
     func testWhenGPCEnableDomainIsHttpsThenISGPCEnabledTrue() {
-        let result = GPCRequestFactory().isGPCEnabled(url: #URL("http://www.washingtonpost.com"), config: appConfig)
+        let result = GPCRequestFactory().isGPCEnabled(url: URL(string: "http://www.washingtonpost.com")!, config: appConfig)
         XCTAssertTrue(result)
     }
 
     func testWhenGPCEnableDomainHasNoSubDomainThenISGPCEnabledTrue() {
-        let result = GPCRequestFactory().isGPCEnabled(url: #URL("http://washingtonpost.com"), config: appConfig)
+        let result = GPCRequestFactory().isGPCEnabled(url: URL(string: "http://washingtonpost.com")!, config: appConfig)
         XCTAssertTrue(result)
     }
 
     func testWhenGPCEnableDomainHasPathThenISGPCEnabledTrue() {
-        let result = GPCRequestFactory().isGPCEnabled(url: #URL("http://www.washingtonpost.com/test/somearticle.html"), config: appConfig)
+        let result = GPCRequestFactory().isGPCEnabled(url: URL(string: "http://www.washingtonpost.com/test/somearticle.html")!, config: appConfig)
         XCTAssertTrue(result)
     }
 
     func testWhenGPCEnableDomainHasCorrectSubdomainThenISGPCEnabledTrue() {
-        let result = GPCRequestFactory().isGPCEnabled(url: #URL("http://global-privacy-control.glitch.me"), config: appConfig)
+        let result = GPCRequestFactory().isGPCEnabled(url: URL(string: "http://global-privacy-control.glitch.me")!, config: appConfig)
         XCTAssertTrue(result)
     }
 
     func testWhenGPCEnableDomainHasWrongSubdomainThenISGPCEnabledFalse() {
-        let result = GPCRequestFactory().isGPCEnabled(url: #URL("http://glitch.me"), config: appConfig)
+        let result = GPCRequestFactory().isGPCEnabled(url: URL(string: "http://glitch.me")!, config: appConfig)
         XCTAssertFalse(result)
     }
 
