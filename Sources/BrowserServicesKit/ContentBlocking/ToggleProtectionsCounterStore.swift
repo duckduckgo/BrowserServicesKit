@@ -1,5 +1,5 @@
 //
-//  HistoryStoring.swift
+//  ToggleProtectionsCounterStore.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -17,13 +17,16 @@
 //
 
 import Foundation
-import Combine
+import Persistence
 
-public protocol HistoryStoring {
+public struct ToggleProtectionsCounterStore: KeyValueStoring {
 
-    func cleanOld(until date: Date) -> Future<BrowsingHistory, Error>
-    func save(entry: HistoryEntry) -> Future<[(id: Visit.ID, date: Date)], Error>
-    func removeEntries(_ entries: [HistoryEntry]) -> Future<Void, Error>
-    func removeVisits(_ visits: [Visit]) -> Future<Void, Error>
+    private var userDefaults: UserDefaults? { UserDefaults(suiteName: "com.duckduckgo.app.toggleProtectionsCounter") }
+
+    public init() {}
+
+    public func object(forKey defaultName: String) -> Any? { userDefaults?.object(forKey: defaultName) }
+    public func set(_ value: Any?, forKey defaultName: String) { userDefaults?.set(value, forKey: defaultName) }
+    public func removeObject(forKey defaultName: String) { userDefaults?.removeObject(forKey: defaultName) }
 
 }

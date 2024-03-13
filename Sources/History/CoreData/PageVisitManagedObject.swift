@@ -1,5 +1,5 @@
 //
-//  HistoryStoring.swift
+//  PageVisitManagedObject.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -17,13 +17,24 @@
 //
 
 import Foundation
-import Combine
+import CoreData
 
-public protocol HistoryStoring {
+@objc(PageVisitManagedObject)
+public class PageVisitManagedObject: NSManagedObject {
 
-    func cleanOld(until date: Date) -> Future<BrowsingHistory, Error>
-    func save(entry: HistoryEntry) -> Future<[(id: Visit.ID, date: Date)], Error>
-    func removeEntries(_ entries: [HistoryEntry]) -> Future<Void, Error>
-    func removeVisits(_ visits: [Visit]) -> Future<Void, Error>
+}
+
+extension PageVisitManagedObject {
+
+    @nonobjc public class func fetchRequest() -> NSFetchRequest<PageVisitManagedObject> {
+        return NSFetchRequest<PageVisitManagedObject>(entityName: "PageVisitManagedObject")
+    }
+
+    @NSManaged public var date: Date?
+    @NSManaged public var historyEntry: BrowsingHistoryEntryManagedObject?
+
+}
+
+extension PageVisitManagedObject: Identifiable {
 
 }
