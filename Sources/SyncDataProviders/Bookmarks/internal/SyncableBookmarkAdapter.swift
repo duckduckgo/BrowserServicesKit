@@ -70,7 +70,14 @@ struct SyncableBookmarkAdapter {
 extension Syncable {
 
     enum SyncableBookmarkError: Error {
+        case validationFailed
         case bookmarkEntityMissingUUID
+    }
+
+    enum Const {
+        static let maxFolderTitleLength = 2000
+        static let maxEncryptedBookmarkTitleLength = 3000
+        static let maxEncryptedBookmarkURLLength = 3000
     }
 
     init(bookmark: BookmarkEntity, encryptedUsing encrypt: (String) throws -> String) throws {
@@ -84,10 +91,11 @@ extension Syncable {
         if bookmark.isPendingDeletion {
             payload["deleted"] = ""
         } else {
-            if let title = bookmark.title {
-                payload["title"] = try encrypt(title)
-            }
             if bookmark.isFolder {
+                if let title = bookmark.title {
+                    payload["title"] = try encrypt(String(title.prefix(Const.maxFolderTitleLength)))
+                }
+
                 let children: [String] = {
                     if BookmarkEntity.Constants.favoriteFoldersIDs.contains(uuid) {
                         return bookmark.favoritesArray.compactMap(\.uuid)
@@ -109,9 +117,22 @@ extension Syncable {
                 }
 
                 payload["folder"] = ["children": childrenDict]
+            } else {
 
-            } else if let url = bookmark.url {
-                payload["page"] = ["url": try encrypt(url)]
+                if let title = bookmark.title {
+                    let encryptedTitle = try encrypt(title)
+                    guard encryptedTitle.count <= Const.maxEncryptedBookmarkTitleLength else {
+                        throw SyncableBookmarkError.validationFailed
+                    }
+                    payload["title"] = encryptedTitle
+                }
+                if let url = bookmark.url {
+                    let encryptedURL = try encrypt(url)
+                    guard encryptedURL.count <= Const.maxEncryptedBookmarkURLLength else {
+                        throw SyncableBookmarkError.validationFailed
+                    }
+                    payload["page"] = ["url": encryptedURL]
+                }
             }
             if let modifiedAt = bookmark.modifiedAt {
                 payload["client_last_modified"] = Self.dateFormatter.string(from: modifiedAt)
