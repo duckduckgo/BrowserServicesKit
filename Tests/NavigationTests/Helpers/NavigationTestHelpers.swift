@@ -19,7 +19,6 @@
 import Combine
 import Common
 import Foundation
-import Macros
 import Navigation
 import WebKit
 
@@ -362,7 +361,7 @@ var defaultHeaders: [String: String] = {
 
     let delegate = DefaultHeadersRetreiverNavigationDelegate()
     webView.navigationDelegate = delegate
-    webView.load(URLRequest(url: #URL("https://duckduckgo.com")))
+    webView.load(URLRequest(url: URL(string: "https://duckduckgo.com")!))
     while delegate.headers == nil {
         RunLoop.current.run(until: Date().addingTimeInterval(0.05))
     }
