@@ -42,6 +42,7 @@ public enum PrivacyFeature: String {
     case networkProtection
     case dbp
     case sync
+    case privacyDashboard
     case history
 }
 
@@ -94,4 +95,12 @@ public enum SyncSubfeature: String, PrivacySubfeature {
     case level1AllowDataSyncing
     case level2AllowSetupFlows
     case level3AllowCreateAccount
+}
+
+public enum PrivacyDashboardSubfeature: String, PrivacySubfeature {
+
+    public var parent: PrivacyFeature { .privacyDashboard }
+
+    case toggleReports
+
 }
