@@ -37,7 +37,7 @@ public class WebVitalsSubfeature: Subfeature {
     }
 
     public func vitalsResult(params: Any, original: WKScriptMessage) async throws -> Encodable? {
-        guard let payload = params as? [String:Any] else {
+        guard let payload = params as? [String: Any] else {
             completionHandler?(nil)
             return nil
         }
