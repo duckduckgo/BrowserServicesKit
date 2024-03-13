@@ -23,8 +23,10 @@ import WebKit
 public class WebVitalsSubfeature: Subfeature {
 
     public var messageOriginPolicy: MessageOriginPolicy = .all
-    public var featureName: String = "webVitalsSubfeature"
+    public var featureName: String = "webVitals"
     public var broker: UserScriptMessageBroker?
+
+    public var targetWebview: WKWebView?
 
     var completionHandler: (([Double]?) -> Void)?
 
@@ -46,8 +48,18 @@ public class WebVitalsSubfeature: Subfeature {
         return nil
     }
 
-    public func notifyHandler(from webView: WKWebView, handler: @escaping ([Double]?) -> Void) {
-        completionHandler = handler
-        broker?.push(method: "getVitals", params: nil, for: self, into: webView)
+    public func notifyHandler(completion: @escaping ([Double]?) -> Void) {
+        guard let broker else { completion(nil); return }
+
+        completionHandler = completion
+        if let targetWebview {
+            broker.push(method: "getVitals", params: nil, for: self, into: targetWebview)
+        } else {
+            completion(nil)
+        }
+    }
+
+    public func with(broker: UserScriptMessageBroker) {
+        self.broker = broker
     }
 }
