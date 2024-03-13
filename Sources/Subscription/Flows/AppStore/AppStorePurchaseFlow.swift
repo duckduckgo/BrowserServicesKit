@@ -117,6 +117,10 @@ public final class AppStorePurchaseFlow {
     // swiftlint:enable cyclomatic_complexity
     @discardableResult
     public static func completeSubscriptionPurchase(with transactionJWS: TransactionJWS, subscriptionAppGroup: String) async -> Result<PurchaseUpdate, AppStorePurchaseFlow.Error> {
+        
+        // Clear subscription Cache
+        SubscriptionService.signOut()
+        
         os_log(.info, log: .subscription, "[AppStorePurchaseFlow] completeSubscriptionPurchase")
 
         guard let accessToken = AccountManager(subscriptionAppGroup: subscriptionAppGroup).accessToken else { return .failure(.missingEntitlements) }

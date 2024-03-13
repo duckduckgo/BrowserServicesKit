@@ -17,6 +17,7 @@
 //
 
 import Foundation
+import Common
 
 public struct UserDefaultsCacheSettings {
 
@@ -66,6 +67,7 @@ public class UserDefaultsCache<ObjectType: Codable> {
         do {
             let data = try encoder.encode(cacheObject)
             userDefaults?.set(data, forKey: key.rawValue)
+            os_log(.debug, log: .subscription, "Cache Set: \(cacheObject)")
         } catch {
             assertionFailure("Failed to encode CacheObject: \(error)")
         }
@@ -77,8 +79,10 @@ public class UserDefaultsCache<ObjectType: Codable> {
         do {
             let cacheObject = try decoder.decode(CacheObject.self, from: data)
             if cacheObject.expires > Date() {
+                os_log(.debug, log: .subscription, "Cache Hit: \(ObjectType.self)")
                 return cacheObject.object
             } else {
+                os_log(.debug, log: .subscription, "Cache Miss: \(ObjectType.self)")
                 reset()  // Clear expired data
                 return nil
             }
@@ -88,6 +92,7 @@ public class UserDefaultsCache<ObjectType: Codable> {
     }
 
     public func reset() {
+        os_log(.debug, log: .subscription, "Cache Clean: \(ObjectType.self)")
         userDefaults?.removeObject(forKey: key.rawValue)
     }
 }
