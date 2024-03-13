@@ -82,11 +82,15 @@ public final class CredentialsProvider: DataProvider {
         let secureVault = try secureVaultFactory.makeVault(errorReporter: secureVaultErrorReporter)
         let syncableCredentials = try secureVault.modifiedSyncableCredentials()
         let encryptionKey = try crypter.fetchSecretKey()
-        return try syncableCredentials.map { credentials in
-            try Syncable(
-                syncableCredentials: credentials,
-                encryptedUsing: { try crypter.encryptAndBase64Encode($0, using: encryptionKey) }
-            )
+        return try syncableCredentials.compactMap { credentials in
+            do {
+                return try Syncable(
+                    syncableCredentials: credentials,
+                    encryptedUsing: { try crypter.encryptAndBase64Encode($0, using: encryptionKey) }
+                )
+            } catch Syncable.SyncableCredentialError.validationFailed {
+                return nil
+            }
         }
     }
 

@@ -59,6 +59,19 @@ struct SyncableCredentialsAdapter {
 
 extension Syncable {
 
+    enum SyncableCredentialError: Error {
+        case validationFailed
+    }
+
+    private enum Const {
+        static let maxEncryptedTitleLength = 3000
+        static let maxEncryptedDomainLength = 1000
+        static let maxEncryptedUsernameLength = 1000
+        static let maxEncryptedPasswordLength = 1000
+        static let maxEncryptedNotesLength = 1000
+    }
+
+    // swiftlint:disable:next cyclomatic_complexity
     init(syncableCredentials: SecureVaultModels.SyncableCredentials, encryptedUsing encrypt: (String) throws -> String) throws {
         var payload: [String: Any] = [:]
 
@@ -71,20 +84,40 @@ extension Syncable {
         }
 
         if let title = credential.account.title {
-            payload["title"] = try encrypt(title)
+            let encryptedTitle = try encrypt(title)
+            guard encryptedTitle.count <= Const.maxEncryptedTitleLength else {
+                throw SyncableCredentialError.validationFailed
+            }
+            payload["title"] = encryptedTitle
         }
         if let domain = credential.account.domain {
-            payload["domain"] = try encrypt(domain)
+            let encryptedDomain = try encrypt(domain)
+            guard encryptedDomain.count <= Const.maxEncryptedDomainLength else {
+                throw SyncableCredentialError.validationFailed
+            }
+            payload["domain"] = encryptedDomain
         }
         if let username = credential.account.username {
-            payload["username"] = try encrypt(username)
+            let encryptedUsername = try encrypt(username)
+            guard encryptedUsername.count <= Const.maxEncryptedUsernameLength else {
+                throw SyncableCredentialError.validationFailed
+            }
+            payload["username"] = encryptedUsername
         }
         if let notes = credential.account.notes {
-            payload["notes"] = try encrypt(notes)
+            let encryptedNotes = try encrypt(notes)
+            guard encryptedNotes.count <= Const.maxEncryptedNotesLength else {
+                throw SyncableCredentialError.validationFailed
+            }
+            payload["notes"] = encryptedNotes
         }
 
         if let passwordData = credential.password, let password = String(data: passwordData, encoding: .utf8) {
-            payload["password"] = try encrypt(password)
+            let encryptedPassword = try encrypt(password)
+            guard encryptedPassword.count <= Const.maxEncryptedPasswordLength else {
+                throw SyncableCredentialError.validationFailed
+            }
+            payload["password"] = encryptedPassword
         }
 
         if let modifiedAt = syncableCredentials.metadata.lastModified {
