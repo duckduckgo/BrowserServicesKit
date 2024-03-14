@@ -50,6 +50,7 @@ public struct SecureVaultModels {
         public var notes: String?
         public let created: Date
         public let lastUpdated: Date
+        public var lastUsed: Date?
 
         public enum CommonTitlePatterns: String, CaseIterable {
             /*
@@ -64,7 +65,7 @@ public struct SecureVaultModels {
             case hostFromTitle = #"^(?:https?:\/\/?)?(?:www\.)?([^\s\/\?]+?\.[^\s\/\?]+)(?=\s*\(|\s*\/|\s*\?|$)"#
         }
 
-        public init(title: String? = nil, username: String?, domain: String?, signature: String? = nil, notes: String? = nil) {
+        public init(title: String? = nil, username: String?, domain: String?, signature: String? = nil, notes: String? = nil, lastUsed: Date? = nil) {
             self.id = nil
             self.title = title
             self.username = username
@@ -73,6 +74,7 @@ public struct SecureVaultModels {
             self.notes = notes
             self.created = Date()
             self.lastUpdated = self.created
+            self.lastUsed = lastUsed
         }
 
         public init(id: String,
@@ -82,7 +84,8 @@ public struct SecureVaultModels {
                     signature: String? = nil,
                     notes: String? = nil,
                     created: Date,
-                    lastUpdated: Date) {
+                    lastUpdated: Date,
+                    lastUsed: Date? = nil) {
             self.id = id
             self.title = title
             self.username = username
@@ -91,6 +94,7 @@ public struct SecureVaultModels {
             self.notes = notes
             self.created = created
             self.lastUpdated = lastUpdated
+            self.lastUsed = lastUsed
         }
 
         private var tld: String {
