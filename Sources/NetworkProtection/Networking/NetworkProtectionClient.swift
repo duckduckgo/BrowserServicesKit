@@ -182,7 +182,8 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
 
     func getLocations(authToken: String) async -> Result<[NetworkProtectionLocation], NetworkProtectionClientError> {
         var request = URLRequest(url: locationsURL)
-        request.setValue("bearer \(authToken)", forHTTPHeaderField: "Authorization")
+        let adaptedToken = adaptTokenIfNeeded(authToken)
+        request.setValue("bearer \(adaptedToken)", forHTTPHeaderField: "Authorization")
         let downloadedData: Data
 
         do {
@@ -209,7 +210,8 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
 
     func getServers(authToken: String) async -> Result<[NetworkProtectionServer], NetworkProtectionClientError> {
         var request = URLRequest(url: serversURL)
-        request.setValue("bearer \(authToken)", forHTTPHeaderField: "Authorization")
+        let adaptedToken = adaptTokenIfNeeded(authToken)
+        request.setValue("bearer \(adaptedToken)", forHTTPHeaderField: "Authorization")
         let downloadedData: Data
 
         do {
@@ -245,7 +247,8 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
         }
 
         var request = URLRequest(url: registerKeyURL)
-        request.setValue("bearer \(authToken)", forHTTPHeaderField: "Authorization")
+        let adaptedToken = adaptTokenIfNeeded(authToken)
+        request.setValue("bearer \(adaptedToken)", forHTTPHeaderField: "Authorization")
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpMethod = "POST"
         request.httpBody = requestBodyData
@@ -342,7 +345,26 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
             return .failure(NetworkProtectionClientError.failedToParseRedeemResponse(error))
         }
     }
+}
 
+fileprivate extension NetworkProtectionBackendClient {
+    private static var authTokenPrefix: String { "ddg:" }
+
+    func adaptTokenIfNeeded(_ accessToken: String) -> String {
+        if isSubscriptionEnabled && !Self.isSubscriptionAccessToken(accessToken) {
+            return Self.makeToken(from: accessToken)
+        } else {
+            return accessToken
+        }
+    }
+
+    private static func makeToken(from subscriptionAccessToken: String) -> String {
+        "\(authTokenPrefix)\(subscriptionAccessToken)"
+    }
+
+    private static func isSubscriptionAccessToken(_ token: String) -> Bool {
+        token.hasPrefix(authTokenPrefix)
+    }
 }
 
 extension URL {
