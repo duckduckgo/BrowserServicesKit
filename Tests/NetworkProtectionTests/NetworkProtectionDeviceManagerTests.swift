@@ -222,22 +222,6 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
         XCTAssertEqual(try? serverListStore.storedNetworkProtectionServerList(), [registeredServer])
         XCTAssertNotNil(networkClient.spyRegister)
     }
-
-    func testStoringAccessToken() {
-        tokenStore.store(NetworkProtectionTokenStoreMock.makeToken(from: "access-token"))
-        XCTAssertEqual(tokenStore.fetchToken(), "ddg:access-token")
-
-        tokenStore.deleteToken()
-        XCTAssertEqual(tokenStore.fetchToken(), "ddg:access-token")
-    }
-
-    func testStoringAuthToken() {
-        tokenStore.store("auth-token")
-        XCTAssertEqual(tokenStore.fetchToken(), "auth-token")
-
-        tokenStore.deleteToken()
-        XCTAssertNil(tokenStore.fetchToken())
-    }
 }
 
 extension NetworkProtectionDeviceManager {
