@@ -396,12 +396,12 @@ class DataProvidingMock: DataProvider {
 
     override func handleInitialSyncResponse(received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
         try await handleInitialSyncResponse(received, clientTimestamp, serverTimestamp, crypter)
-        updateTimestamps(server: serverTimestamp, local: clientTimestamp)
+        updateSyncTimestamps(server: serverTimestamp, local: clientTimestamp)
     }
 
     override func handleSyncResponse(sent: [Syncable], received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
         try await handleSyncResponse(sent, received, clientTimestamp, serverTimestamp, crypter)
-        updateTimestamps(server: serverTimestamp, local: clientTimestamp)
+        updateSyncTimestamps(server: serverTimestamp, local: clientTimestamp)
     }
 
     override func handleSyncError(_ error: Error) {

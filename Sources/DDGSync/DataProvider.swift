@@ -137,7 +137,10 @@ public protocol DataProviding: AnyObject {
      */
     var lastSyncLocalTimestamp: Date? { get }
 
-    func updateTimestamps(server: String?, local: Date?)
+    /**
+     * Update server and local timestamps of the last successful sync of a given feature.
+     */
+    func updateSyncTimestamps(server: String?, local: Date?)
 
     /**
      * Handle to the logger instance for the data provider.
@@ -260,7 +263,7 @@ open class DataProvider: DataProviding {
         metadataStore.localTimestamp(forFeatureNamed: feature.name)
     }
 
-    public func updateTimestamps(server: String?, local: Date?) {
+    public func updateSyncTimestamps(server: String?, local: Date?) {
         metadataStore.update(server, local, .readyToSync, forFeatureNamed: feature.name)
     }
 

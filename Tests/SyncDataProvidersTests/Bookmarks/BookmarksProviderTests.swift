@@ -35,7 +35,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
     func testThatLastSyncTimestampIsPersisted() throws {
         try provider.registerFeature(withState: .readyToSync)
         let date = Date()
-        provider.updateTimestamps(server: "12345", local: date)
+        provider.updateSyncTimestamps(server: "12345", local: date)
         XCTAssertEqual(provider.lastSyncTimestamp, "12345")
         XCTAssertEqual(provider.lastSyncLocalTimestamp, date)
     }
@@ -59,7 +59,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
             try! context.save()
         }
 
-        provider.updateTimestamps(server: "12345", local: nil)
+        provider.updateSyncTimestamps(server: "12345", local: nil)
         try provider.prepareForFirstSync()
         XCTAssertNil(provider.lastSyncTimestamp)
 

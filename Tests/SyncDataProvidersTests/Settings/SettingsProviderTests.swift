@@ -34,7 +34,7 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
     func testThatLastSyncTimestampIsPersisted() throws {
         try provider.registerFeature(withState: .readyToSync)
         let date = Date()
-        provider.updateTimestamps(server: "12345", local: date)
+        provider.updateSyncTimestamps(server: "12345", local: date)
         XCTAssertEqual(provider.lastSyncTimestamp, "12345")
         XCTAssertEqual(provider.lastSyncLocalTimestamp, date)
     }

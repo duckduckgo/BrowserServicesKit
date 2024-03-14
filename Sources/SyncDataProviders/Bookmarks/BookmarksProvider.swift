@@ -179,7 +179,7 @@ public final class BookmarksProvider: DataProvider {
         }
 
         if let serverTimestamp {
-            updateTimestamps(server: serverTimestamp, local: clientTimestamp)
+            updateSyncTimestamps(server: serverTimestamp, local: clientTimestamp)
             syncDidUpdateData()
         }
         syncDidFinish()

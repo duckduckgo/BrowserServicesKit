@@ -269,7 +269,7 @@ public final class SettingsProvider: DataProvider, SettingSyncHandlingDelegate {
         }
 
         if let serverTimestamp {
-            updateTimestamps(server: serverTimestamp, local: clientTimestamp)
+            updateSyncTimestamps(server: serverTimestamp, local: clientTimestamp)
             syncDidUpdateData()
         }
         syncDidFinish()
