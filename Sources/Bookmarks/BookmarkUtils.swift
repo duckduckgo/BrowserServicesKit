@@ -156,7 +156,9 @@ public struct BookmarkUtils {
 
     public static func fetchModifiedBookmarks(_ context: NSManagedObjectContext) -> [BookmarkEntity] {
         let request = BookmarkEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "%K != nil", #keyPath(BookmarkEntity.modifiedAt))
+        request.predicate = NSPredicate(format: "%K != nil AND (%K == NO OR %K == nil)",
+                                        #keyPath(BookmarkEntity.modifiedAt),
+                                        #keyPath(BookmarkEntity.isStub), #keyPath(BookmarkEntity.isStub))
 
         return (try? context.fetch(request)) ?? []
     }

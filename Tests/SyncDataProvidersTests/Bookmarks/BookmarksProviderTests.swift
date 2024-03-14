@@ -815,6 +815,55 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         })
     }
 
+    // MARK: - Stubs
+
+    func testThatLastChildrenArrayTakesIntoAccountStubs() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {}
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+        }
+
+        let received: [Syncable] = [
+            .rootFolder(children: ["1", "2"]), // Creates a Stub with id 2
+            .bookmark(id: "1")
+        ]
+
+        let rootFolder = try await handleInitialSyncResponse(received: received, clientTimestamp: Date(), serverTimestamp: "1234", in: context)
+//        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["1", "2"]) {
+//            Bookmark(id: "1")
+//            Bookmark(id: "2", isStub: true)
+//        })
+
+        // Add new bookmark with id 3
+        context.performAndWait {
+            let root = BookmarkUtils.fetchRootFolder(context)!
+            let newBookmark = BookmarkEntity.makeBookmark(title: "3", url: "3", parent: root, context: context)
+            newBookmark.uuid = "3"
+            try! context.save()
+        }
+
+        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+
+        // Only Root and "3" should be sent
+        XCTAssertEqual(sent.count, 2)
+
+        let sentRootData = sent.first(where: { $0.payload["id"] as? String == rootFolder.uuid })
+        XCTAssertNotNil(sentRootData)
+        let folderChanges = sentRootData?.payload["folder"] as? [String: [String: [String]]]
+        XCTAssertNotNil(folderChanges)
+
+        // We expect to send create for 3
+        XCTAssertEqual(folderChanges?["children"]?["insert"], ["3"])
+
+        // Ensure there is no removal for 2
+        XCTAssertNil(folderChanges?["children"]?["remove"])
+    }
+
     // MARK: - Helpers
 
     func handleInitialSyncResponse(

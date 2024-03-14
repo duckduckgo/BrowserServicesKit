@@ -92,7 +92,11 @@ extension Syncable {
                     if BookmarkEntity.Constants.favoriteFoldersIDs.contains(uuid) {
                         return bookmark.favoritesArray.compactMap(\.uuid)
                     }
-                    return bookmark.childrenArray.compactMap(\.uuid)
+                    let validChildrenIds = bookmark.childrenArray.compactMap(\.uuid)
+
+                    // Take stubs into account - we don't want to remove them.
+                    let stubIds = (bookmark.children?.array as? [BookmarkEntity] ?? []).filter({ $0.isStub }).compactMap(\.uuid)
+                    return validChildrenIds + stubIds
                 }()
 
                 let lastReceivedChildren = bookmark.lastChildrenArrayReceivedFromSync ?? []
