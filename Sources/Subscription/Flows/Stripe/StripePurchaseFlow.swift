@@ -66,7 +66,7 @@ public final class StripePurchaseFlow {
 
         // Clear subscription Cache
         SubscriptionService.signOut()
-        
+
         var authToken: String = ""
 
         switch await AuthService.createAccount(emailAccessToken: emailAccessToken) {
@@ -82,10 +82,10 @@ public final class StripePurchaseFlow {
     }
 
     public static func completeSubscriptionPurchase(subscriptionAppGroup: String) async {
-        
+
         // Clear subscription Cache
         SubscriptionService.signOut()
-        
+
         os_log(.info, log: .subscription, "[StripePurchaseFlow] completeSubscriptionPurchase")
 
         let accountManager = AccountManager(subscriptionAppGroup: subscriptionAppGroup)
