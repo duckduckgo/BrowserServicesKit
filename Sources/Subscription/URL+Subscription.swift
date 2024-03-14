@@ -34,7 +34,7 @@ public extension URL {
     }
 
     static var subscriptionFAQ: URL {
-        URL("https://duckduckgo.com/duckduckgo-help-pages/privacy-pro/")!
+        URL(string: "https://duckduckgo.com/duckduckgo-help-pages/privacy-pro/")!
     }
 
     // MARK: - Subscription Email
