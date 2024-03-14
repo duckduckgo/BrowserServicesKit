@@ -178,6 +178,7 @@ public class AccountManager: AccountManaging {
         do {
             try storage.clearAuthenticationState()
             try accessTokenStorage.removeAccessToken()
+            SubscriptionService.signOut()
             entitlementsCache.reset()
         } catch {
             if let error = error as? AccountKeychainAccessError {
@@ -220,7 +221,7 @@ public class AccountManager: AccountManaging {
     }
 
     public func hasEntitlement(for entitlement: Entitlement.ProductName, cachePolicy: CachePolicy = .returnCacheDataElseLoad) async -> Result<Bool, Error> {
-        switch await fetchEntitlements(policy: cachePolicy) {
+        switch await fetchEntitlements(cachePolicy: cachePolicy) {
         case .success(let entitlements):
             return .success(entitlements.compactMap { $0.product }.contains(entitlement))
         case .failure(let error):
@@ -251,9 +252,9 @@ public class AccountManager: AccountManaging {
         }
     }
 
-    public func fetchEntitlements(policy: CachePolicy = .returnCacheDataElseLoad) async -> Result<[Entitlement], Error> {
+    public func fetchEntitlements(cachePolicy: CachePolicy = .returnCacheDataElseLoad) async -> Result<[Entitlement], Error> {
 
-        switch policy {
+        switch cachePolicy {
         case .reloadIgnoringLocalCacheData:
             return await fetchRemoteEntitlements()
 
