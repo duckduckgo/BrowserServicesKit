@@ -156,6 +156,16 @@ public struct BookmarkUtils {
         return (try? context.fetch(request)) ?? []
     }
 
+    public static func fetchModifiedBookmarksTitles(before date: Date, in context: NSManagedObjectContext) -> [String] {
+        let request = BookmarkEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "%K < %@", #keyPath(BookmarkEntity.modifiedAt), date as NSDate)
+        request.resultType = .dictionaryResultType
+        request.propertiesToFetch = [#keyPath(BookmarkEntity.title)]
+
+        let result = (try? context.fetch(request) as? [[String: Any]]) ?? []
+        return result.compactMap { $0[#keyPath(BookmarkEntity.title)] as? String }
+    }
+
     // MARK: Internal
 
     @discardableResult

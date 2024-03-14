@@ -49,6 +49,21 @@ public final class BookmarksProvider: DataProvider {
         }
     }
 
+    public override func fetchTitlesForObjectsThatFailedValidation() -> [String] {
+        guard let lastSyncLocalTimestamp else {
+            return []
+        }
+
+        let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        var titles: [String] = []
+
+        context.performAndWait {
+            titles = BookmarkUtils.fetchModifiedBookmarksTitles(before: lastSyncLocalTimestamp, in: context)
+        }
+        return titles
+    }
+
     // MARK: - DataProviding
 
     public override func prepareForFirstSync() throws {
@@ -164,7 +179,7 @@ public final class BookmarksProvider: DataProvider {
         }
 
         if let serverTimestamp {
-            lastSyncTimestamp = serverTimestamp
+            updateTimestamps(server: serverTimestamp, local: clientTimestamp)
             syncDidUpdateData()
         }
         syncDidFinish()

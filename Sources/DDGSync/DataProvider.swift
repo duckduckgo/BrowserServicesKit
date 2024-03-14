@@ -129,6 +129,17 @@ public protocol DataProviding: AnyObject {
     var lastSyncTimestamp: String? { get }
 
     /**
+     * Local timestamp of the last successful sync of a given feature.
+     *
+     * This timestamp should only be used to identify objects that failed to sync
+     * (see `fetchTitlesForObjectsThatFailedValidation`) as it is not immune to
+     * changing date/time on client devices.
+     */
+    var lastSyncLocalTimestamp: Date? { get }
+
+    func updateTimestamps(server: String?, local: Date?)
+
+    /**
      * Handle to the logger instance for the data provider.
      */
     var log: OSLog { get }
@@ -139,6 +150,15 @@ public protocol DataProviding: AnyObject {
      * This function is called before the initial sync is performed.
      */
     func prepareForFirstSync() throws
+
+    /**
+     * Find objects that failed local validation and weren't synced with the server.
+     *
+     * Instead of returning entire syncable objects, this function is supposed to return
+     * a property of the object that would hint the user which object it is. The strings
+     * returned by this function should be safe to be displayed verbatim in the app UI.
+     */
+    func fetchTitlesForObjectsThatFailedValidation() throws -> [String]
 
     /**
      * Return objects that have changed since last sync, or all objects in case of the initial sync.
@@ -233,16 +253,15 @@ open class DataProvider: DataProviding {
     }
 
     public var lastSyncTimestamp: String? {
-        get {
-            metadataStore.timestamp(forFeatureNamed: feature.name)
-        }
-        set {
-            if newValue == nil {
-                metadataStore.updateTimestamp(nil, forFeatureNamed: feature.name)
-            } else {
-                metadataStore.update(newValue, .readyToSync, forFeatureNamed: feature.name)
-            }
-        }
+        metadataStore.timestamp(forFeatureNamed: feature.name)
+    }
+
+    public var lastSyncLocalTimestamp: Date? {
+        metadataStore.localTimestamp(forFeatureNamed: feature.name)
+    }
+
+    public func updateTimestamps(server: String?, local: Date?) {
+        metadataStore.update(server, local, .readyToSync, forFeatureNamed: feature.name)
     }
 
     public var log: OSLog {
@@ -267,6 +286,11 @@ open class DataProvider: DataProviding {
 
     open func prepareForFirstSync() throws {
         assertionFailure("\(#function) is not implemented")
+    }
+
+    open func fetchTitlesForObjectsThatFailedValidation() throws -> [String] {
+        assertionFailure("\(#function) is not implemented")
+        return []
     }
 
     open func fetchChangedObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable] {

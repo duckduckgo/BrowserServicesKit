@@ -31,8 +31,9 @@ public class SyncFeatureEntity: NSManagedObject {
     }
 
     @NSManaged public var name: String
-    @NSManaged public internal(set) var lastModified: String?
     @NSManaged private var state: String
+    @NSManaged public internal(set) var lastModified: String?
+    @NSManaged public internal(set) var lastSynced: Date?
 
     public var featureState: FeatureSetupState {
         get {

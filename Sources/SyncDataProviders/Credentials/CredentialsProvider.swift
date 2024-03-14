@@ -79,6 +79,15 @@ public final class CredentialsProvider: DataProvider {
         }
     }
 
+    public override func fetchTitlesForObjectsThatFailedValidation() throws -> [String] {
+        guard let lastSyncLocalTimestamp else {
+            return []
+        }
+
+        let secureVault = try secureVaultFactory.makeVault(errorReporter: secureVaultErrorReporter)
+        return try secureVault.modifiedSyncableCredentialsTitles(before: lastSyncLocalTimestamp)
+    }
+
     public override func fetchChangedObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable] {
         let secureVault = try secureVaultFactory.makeVault(errorReporter: secureVaultErrorReporter)
         let syncableCredentials = try secureVault.modifiedSyncableCredentials()
@@ -195,7 +204,7 @@ public final class CredentialsProvider: DataProvider {
         }
 
         if let serverTimestamp {
-            lastSyncTimestamp = serverTimestamp
+            updateTimestamps(server: serverTimestamp, local: clientTimestamp)
             syncDidUpdateData()
         }
         syncDidFinish()

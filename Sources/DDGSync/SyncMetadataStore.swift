@@ -28,9 +28,12 @@ public protocol SyncMetadataStore {
     func timestamp(forFeatureNamed name: String) -> String?
     func updateTimestamp(_ timestamp: String?, forFeatureNamed name: String)
 
+    func localTimestamp(forFeatureNamed name: String) -> Date?
+    func updateLocalTimestamp(_ timestamp: Date?, forFeatureNamed name: String)
+
     func state(forFeatureNamed name: String) -> FeatureSetupState
 
-    func update(_ timestamp: String?, _ state: FeatureSetupState, forFeatureNamed name: String)
+    func update(_ serverTimestamp: String?, _ localTimestamp: Date?, _ state: FeatureSetupState, forFeatureNamed name: String)
 }
 
 public final class LocalSyncMetadataStore: SyncMetadataStore {
@@ -113,6 +116,24 @@ public final class LocalSyncMetadataStore: SyncMetadataStore {
         }
     }
 
+    public func localTimestamp(forFeatureNamed name: String) -> Date? {
+        var lastSynced: Date?
+        context.performAndWait {
+            let feature = SyncFeatureUtils.fetchFeature(with: name, in: context)
+            lastSynced = feature?.lastSynced
+        }
+        return lastSynced
+    }
+
+    public func updateLocalTimestamp(_ timestamp: Date?, forFeatureNamed name: String) {
+        context.performAndWait {
+            let feature = SyncFeatureUtils.fetchFeature(with: name, in: context)
+            feature?.lastSynced = timestamp
+
+            try? context.save()
+        }
+    }
+
     public func state(forFeatureNamed name: String) -> FeatureSetupState {
         var state: FeatureSetupState?
         context.performAndWait {
@@ -122,10 +143,11 @@ public final class LocalSyncMetadataStore: SyncMetadataStore {
         return state ?? .readyToSync
     }
 
-    public func update(_ timestamp: String?, _ state: FeatureSetupState, forFeatureNamed name: String) {
+    public func update(_ serverTimestamp: String?, _ localTimestamp: Date?, _ state: FeatureSetupState, forFeatureNamed name: String) {
         context.performAndWait {
             let feature = SyncFeatureUtils.fetchFeature(with: name, in: context)
-            feature?.lastModified = timestamp
+            feature?.lastModified = serverTimestamp
+            feature?.lastSynced = localTimestamp
             feature?.featureState = state
 
             try? context.save()

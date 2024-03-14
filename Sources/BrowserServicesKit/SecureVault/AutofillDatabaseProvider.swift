@@ -67,6 +67,7 @@ public protocol AutofillDatabaseProvider: SecureStorageDatabaseProvider {
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, in database: Database) throws -> Int64
 
     func modifiedSyncableCredentials() throws -> [SecureVaultModels.SyncableCredentials]
+    func modifiedSyncableCredentials(before date: Date) throws -> [SecureVaultModels.SyncableCredentials]
     func syncableCredentialsForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.SyncableCredentials]
     func websiteCredentialsForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.WebsiteCredentials?
     func syncableCredentialsForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.SyncableCredentials?
@@ -300,6 +301,14 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
         try db.read { database in
             try SecureVaultModels.SyncableCredentials.query
                 .filter(SecureVaultModels.SyncableCredentialsRecord.Columns.lastModified != nil)
+                .fetchAll(database)
+        }
+    }
+
+    public func modifiedSyncableCredentials(before date: Date) throws -> [SecureVaultModels.SyncableCredentials] {
+        try db.read { database in
+            try SecureVaultModels.SyncableCredentials.query
+                .filter(SecureVaultModels.SyncableCredentialsRecord.Columns.lastModified < date)
                 .fetchAll(database)
         }
     }

@@ -126,6 +126,10 @@ public final class SettingsProvider: DataProvider, SettingSyncHandlingDelegate {
         }
     }
 
+    public override func fetchTitlesForObjectsThatFailedValidation() throws -> [String] {
+        []
+    }
+
     public override func fetchChangedObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable] {
         var syncableSettings = [Syncable]()
         var fetchError: Error?
@@ -265,7 +269,7 @@ public final class SettingsProvider: DataProvider, SettingSyncHandlingDelegate {
         }
 
         if let serverTimestamp {
-            lastSyncTimestamp = serverTimestamp
+            updateTimestamps(server: serverTimestamp, local: clientTimestamp)
             syncDidUpdateData()
         }
         syncDidFinish()
