@@ -26,7 +26,7 @@ public protocol NetworkProtectionLocationListRepository {
 final public class NetworkProtectionLocationListCompositeRepository: NetworkProtectionLocationListRepository {
     @MainActor private static var locationList: [NetworkProtectionLocation] = []
     private let client: NetworkProtectionClient
-    private let tokenStore: NetworkProtectionTokenStore
+    private let fetchToken: () throws -> String?
     private let errorEvents: EventMapping<NetworkProtectionError>
     private let isSubscriptionEnabled: Bool
 
@@ -36,18 +36,30 @@ final public class NetworkProtectionLocationListCompositeRepository: NetworkProt
                             isSubscriptionEnabled: Bool) {
         self.init(
             client: NetworkProtectionBackendClient(environment: environment, isSubscriptionEnabled: isSubscriptionEnabled),
-            tokenStore: tokenStore,
+            fetchToken: tokenStore.fetchToken,
+            errorEvents: errorEvents,
+            isSubscriptionEnabled: isSubscriptionEnabled
+        )
+    }
+
+    convenience public init(environment: VPNSettings.SelectedEnvironment,
+                            fetchToken: @escaping () throws -> String?,
+                            errorEvents: EventMapping<NetworkProtectionError>,
+                            isSubscriptionEnabled: Bool) {
+        self.init(
+            client: NetworkProtectionBackendClient(environment: environment, isSubscriptionEnabled: isSubscriptionEnabled),
+            fetchToken: fetchToken,
             errorEvents: errorEvents,
             isSubscriptionEnabled: isSubscriptionEnabled
         )
     }
 
     init(client: NetworkProtectionClient,
-         tokenStore: NetworkProtectionTokenStore,
+         fetchToken: @escaping () throws -> String?,
          errorEvents: EventMapping<NetworkProtectionError>,
          isSubscriptionEnabled: Bool) {
         self.client = client
-        self.tokenStore = tokenStore
+        self.fetchToken = fetchToken
         self.errorEvents = errorEvents
         self.isSubscriptionEnabled = isSubscriptionEnabled
     }
@@ -58,7 +70,7 @@ final public class NetworkProtectionLocationListCompositeRepository: NetworkProt
             return Self.locationList
         }
         do {
-            guard let authToken = try tokenStore.fetchToken() else {
+            guard let authToken = try fetchToken() else {
                 throw NetworkProtectionError.noAuthTokenFound
             }
             Self.locationList = try await client.getLocations(authToken: authToken).get()
