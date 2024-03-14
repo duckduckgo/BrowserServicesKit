@@ -290,6 +290,7 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
         do {
             var account = credentials.account
             account.title = account.patternMatchedTitle()
+            account.lastUsed = Date()
 
             try account.insert(database)
             let id = database.lastInsertedRowID

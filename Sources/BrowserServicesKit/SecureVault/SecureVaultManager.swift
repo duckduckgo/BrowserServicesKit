@@ -619,7 +619,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
 
     private func createAccount(username: String, password: Data, domain: String) -> SecureVaultModels.WebsiteAccount {
         let vault = try? self.vault ?? AutofillSecureVaultFactory.makeVault(errorReporter: self.delegate)
-        var account = SecureVaultModels.WebsiteAccount(username: username, domain: domain)
+        var account = SecureVaultModels.WebsiteAccount(username: username, domain: domain, lastUsed: Date())
         let credentials = try? vault?.storeWebsiteCredentials(SecureVaultModels.WebsiteCredentials(account: account, password: password))
         account.id = String(credentials ?? -1)
         return account
