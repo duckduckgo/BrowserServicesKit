@@ -22,7 +22,7 @@ import Common
 public protocol NetworkProtectionTokenStore {
     /// Store an auth token.
     ///
-    @available(*, deprecated, message: "[NetP Subscription] Do not manually manage auth token")
+    @available(iOS, deprecated, message: "[NetP Subscription] Use subscription access token instead")
     func store(_ token: String) throws
 
     /// Obtain the current auth token.
@@ -31,7 +31,7 @@ public protocol NetworkProtectionTokenStore {
 
     /// Delete the stored auth token.
     ///
-    @available(*, deprecated, message: "[NetP Subscription] Do not manually manage auth token")
+    @available(iOS, deprecated, message: "[NetP Subscription] Use subscription access token instead")
     func deleteToken() throws
 }
 

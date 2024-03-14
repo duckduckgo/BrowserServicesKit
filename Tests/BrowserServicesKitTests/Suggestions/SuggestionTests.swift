@@ -16,7 +16,6 @@
 //  limitations under the License.
 //
 
-import Macros
 import XCTest
 
 @testable import BrowserServicesKit
@@ -183,8 +182,8 @@ final class SuggestionTests: XCTestCase {
 
 fileprivate extension URL {
 
-    static let aURL = #URL("https://www.duckduckgo.com")
+    static let aURL = URL(string: "https://www.duckduckgo.com")!
     static let aRootUrl = aURL
-    static let aNonRootUrl = #URL("https://www.duckduckgo.com/traffic")
+    static let aNonRootUrl = URL(string: "https://www.duckduckgo.com/traffic")!
 
 }
