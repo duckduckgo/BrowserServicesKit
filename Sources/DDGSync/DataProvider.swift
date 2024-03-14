@@ -16,8 +16,9 @@
 //  limitations under the License.
 //
 
-import Foundation
 import Combine
+import Common
+import Foundation
 
 /**
  * Defines sync feature, i.e. type of synced data.
@@ -126,6 +127,11 @@ public protocol DataProviding: AnyObject {
      * and as such used in comparing timestamps. It's merely an identifier of the last sync operation.
      */
     var lastSyncTimestamp: String? { get }
+
+    /**
+     * Handle to the logger instance for the data provider.
+     */
+    var log: OSLog { get }
 
     /**
      * Prepare data models for first sync.
@@ -239,14 +245,21 @@ open class DataProvider: DataProviding {
         }
     }
 
+    public var log: OSLog {
+        getLog()
+    }
+    private let getLog: () -> OSLog
+
     public init(
         feature: Feature,
         metadataStore: SyncMetadataStore,
+        log: @escaping @autoclosure () -> OSLog = .disabled,
         syncDidUpdateData: @escaping () -> Void = {},
         syncDidFinish: @escaping () -> Void = {}
     ) {
         self.feature = feature
         self.metadataStore = metadataStore
+        self.getLog = log
         self.syncDidUpdateData = syncDidUpdateData
         self.syncDidFinish = syncDidFinish
         self.syncErrorPublisher = syncErrorSubject.eraseToAnyPublisher()

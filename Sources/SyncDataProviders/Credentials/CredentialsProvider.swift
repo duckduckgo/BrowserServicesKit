@@ -31,12 +31,13 @@ public final class CredentialsProvider: DataProvider {
         secureVaultErrorReporter: SecureVaultErrorReporting,
         metadataStore: SyncMetadataStore,
         metricsEvents: EventMapping<MetricsEvent>? = nil,
+        log: @escaping @autoclosure () -> OSLog = .disabled,
         syncDidUpdateData: @escaping () -> Void
     ) throws {
         self.secureVaultFactory = secureVaultFactory
         self.secureVaultErrorReporter = secureVaultErrorReporter
         self.metricsEvents = metricsEvents
-        super.init(feature: .init(name: "credentials"), metadataStore: metadataStore, syncDidUpdateData: syncDidUpdateData)
+        super.init(feature: .init(name: "credentials"), metadataStore: metadataStore, log: log(), syncDidUpdateData: syncDidUpdateData)
     }
 
     // MARK: - DataProviding

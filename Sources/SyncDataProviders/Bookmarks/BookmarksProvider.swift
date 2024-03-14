@@ -37,12 +37,13 @@ public final class BookmarksProvider: DataProvider {
         database: CoreDataDatabase,
         metadataStore: SyncMetadataStore,
         metricsEvents: EventMapping<MetricsEvent>? = nil,
+        log: @escaping @autoclosure () -> OSLog = .disabled,
         syncDidUpdateData: @escaping () -> Void,
         syncDidFinish: @escaping (FaviconsFetcherInput?) -> Void
     ) {
         self.database = database
         self.metricsEvents = metricsEvents
-        super.init(feature: .init(name: "bookmarks"), metadataStore: metadataStore, syncDidUpdateData: syncDidUpdateData)
+        super.init(feature: .init(name: "bookmarks"), metadataStore: metadataStore, log: log(), syncDidUpdateData: syncDidUpdateData)
         self.syncDidFinish = { [weak self] in
             syncDidFinish(self?.faviconsFetcherInput)
         }
