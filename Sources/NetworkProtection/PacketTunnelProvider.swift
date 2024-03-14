@@ -1026,7 +1026,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
-    // SAMDEBUG: Encode data and send it over
     private func handleGetServerLocation(completionHandler: ((Data?) -> Void)? = nil) {
         guard let attributes = lastSelectedServerInfo?.attributes else {
             completionHandler?(nil)
