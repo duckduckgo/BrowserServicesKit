@@ -18,7 +18,6 @@
 
 import Common
 import ContentBlocking
-import Macros
 import TrackerRadarKit
 import XCTest
 
@@ -32,7 +31,7 @@ class TrackerResolverTests: XCTestCase {
 
         let rule = KnownTracker.Rule.Matching(domains: [], types: [])
 
-        let urlOne = #URL("https://www.one.com")
+        let urlOne = URL(string: "https://www.one.com")!
 
         XCTAssertFalse(TrackerResolver.isMatching(rule,
                                                  host: urlOne.host!,
@@ -43,9 +42,9 @@ class TrackerResolverTests: XCTestCase {
 
         let rule = KnownTracker.Rule.Matching(domains: ["one.com", "two.com"], types: nil)
 
-        let urlOne = #URL("https://www.one.com")
-        let urlTwo = #URL("https://two.com")
-        let urlThree = #URL("https://www.three.com")
+        let urlOne = URL(string: "https://www.one.com")!
+        let urlTwo = URL(string: "https://two.com")!
+        let urlThree = URL(string: "https://www.three.com")!
 
         XCTAssertTrue(TrackerResolver.isMatching(rule,
                                                  host: urlOne.host!,
@@ -62,9 +61,9 @@ class TrackerResolverTests: XCTestCase {
 
         let rule = KnownTracker.Rule.Matching(domains: [], types: ["image", "script"])
 
-        let urlOne = #URL("https://www.one.com")
-        let urlTwo = #URL("https://two.com")
-        let urlThree = #URL("https://www.three.com")
+        let urlOne = URL(string: "https://www.one.com")!
+        let urlTwo = URL(string: "https://two.com")!
+        let urlThree = URL(string: "https://www.three.com")!
 
         XCTAssertTrue(TrackerResolver.isMatching(rule,
                                                  host: urlOne.host!,
@@ -84,9 +83,9 @@ class TrackerResolverTests: XCTestCase {
 
         let rule = KnownTracker.Rule.Matching(domains: ["one.com", "two.com"], types: ["image", "script"])
 
-        let urlOne = #URL("https://www.one.com")
-        let urlTwo = #URL("https://two.com")
-        let urlThree = #URL("https://www.three.com")
+        let urlOne = URL(string: "https://www.one.com")!
+        let urlTwo = URL(string: "https://two.com")!
+        let urlThree = URL(string: "https://www.three.com")!
 
         XCTAssertTrue(TrackerResolver.isMatching(rule,
                                                  host: urlOne.host!,

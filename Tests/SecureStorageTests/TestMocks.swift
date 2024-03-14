@@ -18,7 +18,6 @@
 
 import Foundation
 import GRDB
-import Macros
 import SecureStorage
 
 protocol MockDatabaseProvider: SecureStorageDatabaseProvider {
@@ -30,7 +29,7 @@ protocol MockDatabaseProvider: SecureStorageDatabaseProvider {
 }
 
 private extension URL {
-    static let duckduckgo = #URL("https://duckduckgo.com/")
+    static let duckduckgo = URL(string: "https://duckduckgo.com/")!
 }
 
 final class ConcreteMockDatabaseProvider: MockDatabaseProvider {
