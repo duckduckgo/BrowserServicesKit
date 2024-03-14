@@ -26,10 +26,7 @@ public protocol SyncMetadataStore {
     func deregisterFeature(named name: String) throws
 
     func timestamp(forFeatureNamed name: String) -> String?
-    func updateTimestamp(_ timestamp: String?, forFeatureNamed name: String)
-
     func localTimestamp(forFeatureNamed name: String) -> Date?
-    func updateLocalTimestamp(_ timestamp: Date?, forFeatureNamed name: String)
 
     func state(forFeatureNamed name: String) -> FeatureSetupState
 
@@ -107,15 +104,6 @@ public final class LocalSyncMetadataStore: SyncMetadataStore {
         return lastModified
     }
 
-    public func updateTimestamp(_ timestamp: String?, forFeatureNamed name: String) {
-        context.performAndWait {
-            let feature = SyncFeatureUtils.fetchFeature(with: name, in: context)
-            feature?.lastModified = timestamp
-
-            try? context.save()
-        }
-    }
-
     public func localTimestamp(forFeatureNamed name: String) -> Date? {
         var lastSynced: Date?
         context.performAndWait {
@@ -123,15 +111,6 @@ public final class LocalSyncMetadataStore: SyncMetadataStore {
             lastSynced = feature?.lastSynced
         }
         return lastSynced
-    }
-
-    public func updateLocalTimestamp(_ timestamp: Date?, forFeatureNamed name: String) {
-        context.performAndWait {
-            let feature = SyncFeatureUtils.fetchFeature(with: name, in: context)
-            feature?.lastSynced = timestamp
-
-            try? context.save()
-        }
     }
 
     public func state(forFeatureNamed name: String) -> FeatureSetupState {
