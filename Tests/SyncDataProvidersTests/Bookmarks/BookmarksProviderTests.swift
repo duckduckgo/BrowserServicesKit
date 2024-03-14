@@ -834,10 +834,10 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         ]
 
         let rootFolder = try await handleInitialSyncResponse(received: received, clientTimestamp: Date(), serverTimestamp: "1234", in: context)
-//        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["1", "2"]) {
-//            Bookmark(id: "1")
-//            Bookmark(id: "2", isStub: true)
-//        })
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["1", "2"]) {
+            Bookmark(id: "1")
+            Bookmark(id: "2", isStub: true)
+        })
 
         // Add new bookmark with id 3
         context.performAndWait {
@@ -862,6 +862,79 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
 
         // Ensure there is no removal for 2
         XCTAssertNil(folderChanges?["children"]?["remove"])
+    }
+
+    func testThatRemoteRemovalOfStubReferenceRemovesTheStub() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {}
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+        }
+
+        let received: [Syncable] = [
+            .rootFolder(children: ["1", "2", "3"]), // Creates a Stub with id 2
+            .bookmark(id: "1")
+        ]
+
+        var rootFolder = try await handleInitialSyncResponse(received: received, clientTimestamp: Date(), serverTimestamp: "1234", in: context)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["1", "2", "3"]) {
+            Bookmark(id: "1")
+            Bookmark(id: "2", isStub: true)
+            Bookmark(id: "3", isStub: true)
+        })
+
+        // Simulate two kinds of "removal":
+        // - Removal only from children list.
+        // - Removal of entity and from children list.
+        let receivedUpdate: [Syncable] = [
+            .rootFolder(children: ["1"]),
+            .bookmark(id: "3", isDeleted: true)
+        ]
+
+        rootFolder = try await handleSyncResponse(sent: [], received: receivedUpdate, clientTimestamp: Date(), serverTimestamp: "1234", in: context)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["1"]) {
+            Bookmark(id: "1")
+        })
+    }
+
+    func testThatRemoteRemovalOfFolderRemovesTheStub() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {}
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+        }
+
+        let received: [Syncable] = [
+            .rootFolder(children: ["1"]),
+            .folder(id: "1", children: ["2"])
+        ]
+
+        var rootFolder = try await handleInitialSyncResponse(received: received, clientTimestamp: Date(), serverTimestamp: "1234", in: context)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["1"]) {
+            Folder(id: "1", lastChildrenArrayReceivedFromSync: ["2"]) {
+                Bookmark(id: "2", isStub: true)
+            }
+        })
+
+        // Simulate two kinds of "removal":
+        // - Removal only from children list.
+        // - Removal of entity and from children list.
+        let receivedUpdate: [Syncable] = [
+            .rootFolder(children: []),
+            .folder(id: "1", isDeleted: true)
+        ]
+
+        rootFolder = try await handleSyncResponse(sent: [], received: receivedUpdate, clientTimestamp: Date(), serverTimestamp: "1234", in: context)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: []) {
+        })
     }
 
     // MARK: - Helpers

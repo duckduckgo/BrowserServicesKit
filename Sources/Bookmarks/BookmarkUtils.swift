@@ -72,6 +72,17 @@ public struct BookmarkUtils {
         return (try? context.fetch(request)) ?? []
     }
 
+    public static func fetchStubbedEntities(_ context: NSManagedObjectContext) -> [BookmarkEntity] {
+        let request = BookmarkEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "%K == YES",
+                                        #keyPath(BookmarkEntity.isStub)
+        )
+        request.sortDescriptors = [NSSortDescriptor(key: #keyPath(BookmarkEntity.uuid), ascending: true)]
+        request.returnsObjectsAsFaults = false
+
+        return (try? context.fetch(request)) ?? []
+    }
+
     public static func prepareFoldersStructure(in context: NSManagedObjectContext) {
 
         if fetchRootFolder(context) == nil {
