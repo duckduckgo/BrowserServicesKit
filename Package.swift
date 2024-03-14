@@ -116,8 +116,7 @@ let package = Package(
         .target(
             name: "Suggestions",
             dependencies: [
-                "Common",
-                .product(name: "Macros", package: "apple-toolbox"),
+                "Common"
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
