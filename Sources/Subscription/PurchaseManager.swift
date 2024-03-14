@@ -42,8 +42,9 @@ public enum PurchaseManagerError: Error {
 public final class PurchaseManager: ObservableObject {
 
     static let productIdentifiers = ["ios.subscription.1month", "ios.subscription.1year",
-                                     "subscription.1week", "subscription.1month", "subscription.1year",
-                                     "review.subscription.1week", "review.subscription.1month", "review.subscription.1year"]
+                                     "subscription.1month", "subscription.1year",
+                                     "review.subscription.1month", "review.subscription.1year",
+                                     "ddg.privacy.pro.monthly.renews.us", "ddg.privacy.pro.yearly.renews.us"]
 
     public static let shared = PurchaseManager()
 
