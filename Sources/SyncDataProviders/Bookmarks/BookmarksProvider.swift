@@ -83,7 +83,22 @@ public final class BookmarksProvider: DataProvider {
         let encryptionKey = try crypter.fetchSecretKey()
         context.performAndWait {
             let bookmarks = BookmarkUtils.fetchModifiedBookmarks(context)
-            syncableBookmarks = bookmarks.compactMap { try? Syncable(bookmark: $0, encryptedUsing: { try crypter.encryptAndBase64Encode($0, using: encryptionKey)}) }
+            syncableBookmarks = bookmarks.compactMap { bookmarkEntity in
+                do {
+                    return try Syncable(bookmark: bookmarkEntity, encryptedUsing: { try crypter.encryptAndBase64Encode($0, using: encryptionKey)})
+                } catch {
+                    if case Syncable.SyncableBookmarkError.validationFailed = error {
+                        os_log(
+                            .error,
+                            log: log,
+                            "Validation failed for bookmark %{public}s with title: %{public}s",
+                            bookmarkEntity.uuid ?? "",
+                            bookmarkEntity.title.flatMap { String($0.prefix(100)) } ?? ""
+                        )
+                    }
+                    return nil
+                }
+            }
         }
         return syncableBookmarks
     }

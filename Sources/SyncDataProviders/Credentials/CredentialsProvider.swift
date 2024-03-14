@@ -90,6 +90,13 @@ public final class CredentialsProvider: DataProvider {
                     encryptedUsing: { try crypter.encryptAndBase64Encode($0, using: encryptionKey) }
                 )
             } catch Syncable.SyncableCredentialError.validationFailed {
+                os_log(
+                    .error,
+                    log: log,
+                    "Validation failed for credential %{public}s with title: %{public}s",
+                    credentials.metadata.uuid,
+                    credentials.account?.title.flatMap { String($0.prefix(100)) } ?? ""
+                )
                 return nil
             }
         }
