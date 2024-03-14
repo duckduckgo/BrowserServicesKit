@@ -17,13 +17,12 @@
 //
 
 import Foundation
-import Macros
 import Networking
 
 extension HTTPURLResponse {
 
     static let testEtag = "test-etag"
-    static let testUrl = #URL("http://www.example.com")
+    static let testUrl = URL(string: "http://www.example.com")!
 
     static let ok = HTTPURLResponse(url: testUrl,
                                     statusCode: 200,

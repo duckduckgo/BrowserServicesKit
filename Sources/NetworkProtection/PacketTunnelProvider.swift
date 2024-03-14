@@ -799,7 +799,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             )
         } catch {
             if isSubscriptionEnabled, let error = error as? NetworkProtectionError, case .vpnAccessRevoked = error {
-                await handleInvalidEntitlement(attemptsShutdown: false)
+                await handleInvalidEntitlement(attemptsShutdown: true)
                 throw TunnelError.vpnAccessRevoked
             }
 

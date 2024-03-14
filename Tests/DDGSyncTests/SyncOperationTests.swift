@@ -16,7 +16,6 @@
 //  limitations under the License.
 //
 
-import Macros
 import XCTest
 
 @testable import DDGSync
@@ -35,7 +34,7 @@ class SyncOperationTests: XCTestCase {
         apiMock = RemoteAPIRequestCreatingMock()
         request = HTTPRequestingMock()
         apiMock.request = request
-        endpoints = Endpoints(baseURL: #URL("https://example.com"))
+        endpoints = Endpoints(baseURL: URL(string: "https://example.com")!)
         storage = SecureStorageStub()
         crypter = CryptingMock()
         try storage.persistAccount(
@@ -240,7 +239,7 @@ class SyncOperationTests: XCTestCase {
 
         let syncOperation = SyncOperation(dataProviders: [dataProvider], storage: storage, crypter: crypter, requestMaker: requestMaker)
 
-        request.result = .init(data: nil, response: HTTPURLResponse(url: #URL("https://example.com"), statusCode: 304, httpVersion: nil, headerFields: nil)!)
+        request.result = .init(data: nil, response: HTTPURLResponse(url: URL(string: "https://example.com")!, statusCode: 304, httpVersion: nil, headerFields: nil)!)
 
         try await syncOperation.sync(fetchOnly: false)
 

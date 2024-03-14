@@ -20,7 +20,6 @@ import BrowserServicesKit
 import Combine
 import DDGSyncCrypto
 import Foundation
-import Macros
 
 public enum SyncAuthState: String, Sendable, Codable {
     /// Sync engine is not initialized.
@@ -177,9 +176,9 @@ public enum ServerEnvironment: LosslessStringConvertible {
     var baseURL: URL {
         switch self {
         case .development:
-            return #URL("https://dev-sync-use.duckduckgo.com")
+            return URL(string: "https://dev-sync-use.duckduckgo.com")!
         case .production:
-            return #URL("https://sync.duckduckgo.com")
+            return URL(string: "https://sync.duckduckgo.com")!
         }
     }
 
