@@ -20,9 +20,9 @@ import Foundation
 import Common
 
 public protocol NetworkProtectionTokenStore {
-
     /// Store an auth token.
     ///
+    @available(iOS, deprecated, message: "[NetP Subscription] Use subscription access token instead")
     func store(_ token: String) throws
 
     /// Obtain the current auth token.
@@ -31,17 +31,8 @@ public protocol NetworkProtectionTokenStore {
 
     /// Delete the stored auth token.
     ///
+    @available(iOS, deprecated, message: "[NetP Subscription] Use subscription access token instead")
     func deleteToken() throws
-
-    /// Convert DDG-access-token to NetP-auth-token
-    ///
-    /// todo - https://app.asana.com/0/0/1206541966681608/f
-    static func makeToken(from subscriptionAccessToken: String) -> String
-
-    /// Check if a given token is derived from DDG-access-token
-    ///
-    /// todo - https://app.asana.com/0/0/1206541966681608/f
-    static func isSubscriptionAccessToken(_ token: String) -> Bool
 }
 
 /// Store an auth token for NetworkProtection on behalf of the user. This key is then used to authenticate requests for registration and server fetches from the Network Protection backend servers.
@@ -50,6 +41,9 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
     private let keychainStore: NetworkProtectionKeychainStore
     private let errorEvents: EventMapping<NetworkProtectionError>?
     private let isSubscriptionEnabled: Bool
+    private let accessTokenProvider: () -> String?
+
+    private static var authTokenPrefix: String { "ddg:" }
 
     public struct Defaults {
         static let tokenStoreEntryLabel = "DuckDuckGo Network Protection Auth Token"
@@ -60,12 +54,14 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
     public init(keychainType: KeychainType,
                 serviceName: String = Defaults.tokenStoreService,
                 errorEvents: EventMapping<NetworkProtectionError>?,
-                isSubscriptionEnabled: Bool) {
+                isSubscriptionEnabled: Bool,
+                accessTokenProvider: @escaping () -> String?) {
         keychainStore = NetworkProtectionKeychainStore(label: Defaults.tokenStoreEntryLabel,
                                                        serviceName: serviceName,
                                                        keychainType: keychainType)
         self.errorEvents = errorEvents
         self.isSubscriptionEnabled = isSubscriptionEnabled
+        self.accessTokenProvider = accessTokenProvider
     }
 
     public func store(_ token: String) throws {
@@ -78,7 +74,15 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
         }
     }
 
+    public func makeToken(from subscriptionAccessToken: String) -> String {
+        Self.authTokenPrefix + subscriptionAccessToken
+    }
+
     public func fetchToken() throws -> String? {
+        if isSubscriptionEnabled, let authToken = accessTokenProvider() {
+            return makeToken(from: authToken)
+        }
+
         do {
             return try keychainStore.readData(named: Defaults.tokenStoreName).flatMap {
                 String(data: $0, encoding: .utf8)
@@ -91,12 +95,6 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
 
     public func deleteToken() throws {
         do {
-            // Skip deleting DDG-access-token as it's used for entitlement validity check
-            // todo - https://app.asana.com/0/0/1206541966681608/f
-            if let token = try? fetchToken(), Self.isSubscriptionAccessToken(token) {
-                return
-            }
-
             try keychainStore.deleteAll()
         } catch {
             handle(error)
@@ -118,13 +116,4 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
 }
 
 extension NetworkProtectionTokenStore {
-    private static var authTokenPrefix: String { "ddg:" }
-
-    public static func makeToken(from subscriptionAccessToken: String) -> String {
-        "\(authTokenPrefix)\(subscriptionAccessToken)"
-    }
-
-    public static func isSubscriptionAccessToken(_ token: String) -> Bool {
-        token.hasPrefix(authTokenPrefix)
-    }
 }
