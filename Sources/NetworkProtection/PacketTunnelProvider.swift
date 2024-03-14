@@ -823,7 +823,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     // swiftlint:disable:next cyclomatic_complexity
     public override func handleAppMessage(_ messageData: Data, completionHandler: ((Data?) -> Void)? = nil) {
         guard let message = ExtensionMessage(rawValue: messageData) else {
-            os_log("⚠️ NO MESSAGE", log: .networkProtection, type: .error)
             completionHandler?(nil)
             return
         }
@@ -865,7 +864,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         case .simulateConnectionInterruption:
             simulateConnectionInterruption(completionHandler: completionHandler)
         case .getConnectionThroughput:
-            os_log("⚠️ GETTING THROUGHPUT MESSAGE", log: .networkProtection, type: .error)
             getConnectionThroughput(completionHandler: completionHandler)
         }
     }
