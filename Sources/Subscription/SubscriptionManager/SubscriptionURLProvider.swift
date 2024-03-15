@@ -18,7 +18,6 @@
 
 import Foundation
 import Common
-import Macros
 
 public protocol SubscriptionURLProviding {
     func url(for type: SubscriptionURLType) -> URL

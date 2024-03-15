@@ -21,18 +21,18 @@ import Foundation
 public extension URL {
 
     static var subscriptionBaseURL: URL {
-        #URL("https://duckduckgo.com/subscriptions")
+        URL(string: "https://duckduckgo.com/subscriptions")!
     }
 
     static var identityTheftRestorationBaseURL: URL {
-        #URL("https://duckduckgo.com/identity-theft-restoration")
+        URL(string: "https://duckduckgo.com/identity-theft-restoration")!
     }
 
     static var subscriptionFAQ: URL {
-        #URL("https://duckduckgo.com/duckduckgo-help-pages/privacy-pro/")
+        URL(string: "https://duckduckgo.com/duckduckgo-help-pages/privacy-pro/")!
     }
 
     static var manageSubscriptionsInAppStoreAppURL: URL {
-        #URL("macappstores://apps.apple.com/account/subscriptions")
+        URL(string: "macappstores://apps.apple.com/account/subscriptions")!
     }
 }

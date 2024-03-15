@@ -18,7 +18,6 @@
 
 import Foundation
 import Common
-import Macros
 
 public protocol SubscriptionManaging {
     var configuration: SubscriptionConfiguration { get }
