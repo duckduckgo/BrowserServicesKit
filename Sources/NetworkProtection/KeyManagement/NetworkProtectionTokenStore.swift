@@ -43,7 +43,7 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
     private let isSubscriptionEnabled: Bool
     private let accessTokenProvider: () -> String?
 
-    private static var authTokenPrefix: String { "ddg:" }
+    public static var authTokenPrefix: String { "ddg:" }
 
     public struct Defaults {
         static let tokenStoreEntryLabel = "DuckDuckGo Network Protection Auth Token"
@@ -74,7 +74,7 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
         }
     }
 
-    public func makeToken(from subscriptionAccessToken: String) -> String {
+    private func makeToken(from subscriptionAccessToken: String) -> String {
         Self.authTokenPrefix + subscriptionAccessToken
     }
 
@@ -113,7 +113,4 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
 
         errorEvents?.fire(error.networkProtectionError)
     }
-}
-
-extension NetworkProtectionTokenStore {
 }
