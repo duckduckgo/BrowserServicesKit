@@ -106,6 +106,14 @@ public enum PrivacyDashboardSubfeature: String, PrivacySubfeature {
 
 }
 
+public enum AutoconsentSubfeature: String, PrivacySubfeature {
+    public var parent: PrivacyFeature {
+        .autoconsent
+    }
+
+    case onByDefault
+}
+
 public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {
     public var parent: PrivacyFeature { .privacyPro }
 

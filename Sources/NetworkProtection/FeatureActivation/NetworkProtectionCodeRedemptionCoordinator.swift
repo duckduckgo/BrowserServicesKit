@@ -25,6 +25,7 @@ public protocol NetworkProtectionCodeRedeeming {
     func redeem(_ code: String) async throws
 
     /// Exchanges an access token for an auth token, and stores the resulting auth token
+    @available(*, deprecated, message: "[NetP Subscription] Use subscription access token instead")
     func exchange(accessToken: String) async throws
 
 }
