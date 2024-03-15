@@ -22,6 +22,11 @@ public struct SubscriptionOptions: Encodable {
     let platform: String
     let options: [SubscriptionOption]
     let features: [SubscriptionFeature]
+    
+    // Empty options
+    static var empty: SubscriptionOptions {
+        return SubscriptionOptions(platform: "", options: [], features: [])
+    }
 }
 
 public struct SubscriptionOption: Encodable {
