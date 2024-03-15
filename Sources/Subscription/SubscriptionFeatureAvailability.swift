@@ -28,7 +28,7 @@ public final class DefaultSubscriptionFeatureAvailability: SubscriptionFeatureAv
     private let privacyConfigurationManager: PrivacyConfigurationManaging
     private let purchasePlatform: SubscriptionPurchaseEnvironment.Environment
 
-    init(privacyConfigurationManager: PrivacyConfigurationManaging, purchasePlatform: SubscriptionPurchaseEnvironment.Environment) {
+    public init(privacyConfigurationManager: PrivacyConfigurationManaging, purchasePlatform: SubscriptionPurchaseEnvironment.Environment) {
         self.privacyConfigurationManager = privacyConfigurationManager
         self.purchasePlatform = purchasePlatform
     }
