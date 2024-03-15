@@ -900,7 +900,6 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
 
         let patchData = try await provider.fetchChangedObjects(encryptedUsing: crypter)
 
-        print("%@", patchData)
         let changedObjects = patchData.map(SyncableBookmarkAdapter.init(syncable:))
 
         XCTAssertEqual(changedObjects.count, 2)
