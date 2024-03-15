@@ -876,7 +876,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         }
 
         let received: [Syncable] = [
-            .rootFolder(children: ["2", "1", "3"]), // Creates a Stubs with id 2 and 3
+            .rootFolder(children: ["2", "1", "3"]), // Create Stubs with id 2 and 3
             .favoritesFolder(favorites: ["3", "1", "2"]),
             .bookmark(id: "1")
         ]
@@ -922,7 +922,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         }
 
         let received: [Syncable] = [
-            .rootFolder(children: ["1", "2", "3"]), // Creates a Stub with id 2
+            .rootFolder(children: ["1", "2", "3"]), // Create Stubs with id 2 and 3
             .bookmark(id: "1")
         ]
 
