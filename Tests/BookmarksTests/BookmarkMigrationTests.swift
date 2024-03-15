@@ -91,6 +91,10 @@ class BookmarkMigrationTests: XCTestCase {
         try commonMigrationTestForDatabase(name: "Bookmarks_V4")
     }
 
+    func testWhenMigratingFromV5ThenRootFoldersContentsArePreservedInOrder() throws {
+        try commonMigrationTestForDatabase(name: "Bookmarks_V5")
+    }
+
     func commonMigrationTestForDatabase(name: String) throws {
 
         try copyDatabase(name: name, formDirectory: resourceURLDir, toDirectory: location)
@@ -111,6 +115,9 @@ class BookmarkMigrationTests: XCTestCase {
 
             let mobileFavoritesArray = BookmarkUtils.fetchFavoritesFolder(withUUID: FavoritesFolderID.mobile.rawValue, in: latestContext)?.favoritesArray.compactMap(\.uuid)
             XCTAssertEqual(legacyFavoritesInOrder, mobileFavoritesArray)
+
+            let uuids = BookmarkUtils.fetchAllBookmarksUUIDs(in: latestContext)
+            XCTAssert(!uuids.isEmpty)
         })
 
         // Test whole structure
