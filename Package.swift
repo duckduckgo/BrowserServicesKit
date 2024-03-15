@@ -325,6 +325,7 @@ let package = Package(
         .target(
             name: "Subscription",
             dependencies: [
+                "BrowserServicesKit",
                 "Common",
             ],
             swiftSettings: [
