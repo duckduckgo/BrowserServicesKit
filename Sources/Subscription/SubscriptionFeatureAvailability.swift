@@ -18,7 +18,7 @@
 
 import BrowserServicesKit
 
-protocol SubscriptionFeatureAvailability {
+public protocol SubscriptionFeatureAvailability {
     var isFeatureAvailable: Bool { get }
     var isSubscriptionPurchaseAllowed: Bool { get }
 }
