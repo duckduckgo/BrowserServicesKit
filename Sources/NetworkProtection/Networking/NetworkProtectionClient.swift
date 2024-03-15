@@ -173,8 +173,8 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
 
         if isSubscriptionEnabled {
             // todo - https://app.asana.com/0/0/1206811466624632/f
-            let usesStaging = true
-            if usesStaging {
+            let usesSubscriptionStaging = true
+            if usesSubscriptionStaging {
                 self.endpointURL = VPNSettings.SelectedEnvironment.staging.endpointURL
             } else {
                 self.endpointURL = VPNSettings.SelectedEnvironment.production.endpointURL
