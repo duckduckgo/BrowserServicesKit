@@ -22,10 +22,10 @@ public struct SubscriptionOptions: Encodable {
     let platform: String
     let options: [SubscriptionOption]
     let features: [SubscriptionFeature]
-    
-    // Empty options
-    static var empty: SubscriptionOptions {
-        return SubscriptionOptions(platform: "", options: [], features: [])
+        
+    public static var empty: SubscriptionOptions {
+        let features = SubscriptionFeatureName.allCases.map { SubscriptionFeature(name: $0.rawValue) }
+        return SubscriptionOptions(platform: "macos", options: [], features: features)
     }
 }
 
