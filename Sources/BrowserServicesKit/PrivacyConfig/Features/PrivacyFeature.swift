@@ -113,4 +113,6 @@ public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {
     case isLaunchedStripe
     case allowPurchase
     case allowPurchaseStripe
+    case isLaunchedOverride
+    case isLaunchedOverrideStripe
 }
