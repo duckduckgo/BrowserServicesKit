@@ -127,6 +127,7 @@ final class BookmarksResponseHandler {
         }
         try processOrphanedBookmarks()
         processReceivedFavorites()
+        cleanupOrphanedStubs()
     }
 
     // MARK: - Private
@@ -140,7 +141,8 @@ final class BookmarksResponseHandler {
 
             // For non-first sync we rely fully on the server response
             if !shouldDeduplicateEntities {
-                favoritesFolder.favoritesArray.forEach { $0.removeFromFavorites(favoritesRoot: favoritesFolder) }
+                let favorites = favoritesFolder.favorites?.array as? [BookmarkEntity] ?? []
+                favorites.forEach { $0.removeFromFavorites(favoritesRoot: favoritesFolder) }
             } else if !favoritesFolder.favoritesArray.isEmpty {
                 // If we're deduplicating and there are favorites locally, we'll need to sync favorites folder back later.
                 // Let's keep its modifiedAt.
@@ -151,10 +153,25 @@ final class BookmarksResponseHandler {
                 if let bookmark = entitiesByUUID[uuid] {
                     bookmark.removeFromFavorites(favoritesRoot: favoritesFolder)
                     bookmark.addToFavorites(favoritesRoot: favoritesFolder)
+                } else {
+                    let newStubEntity = BookmarkEntity.make(withUUID: uuid,
+                                                            isFolder: false,
+                                                            in: context)
+                    newStubEntity.isStub = true
+                    newStubEntity.addToFavorites(favoritesRoot: favoritesFolder)
+                    entitiesByUUID[uuid] = newStubEntity
                 }
             }
 
             favoritesFolder.updateLastChildrenSyncPayload(with: favoritesUUIDs)
+        }
+    }
+
+    private func cleanupOrphanedStubs() {
+        let stubs = BookmarkUtils.fetchStubbedEntities(context)
+
+        for stub in stubs where stub.parent == nil && (stub.favoriteFolders?.count ?? 0) == 0 {
+            context.delete(stub)
         }
     }
 
@@ -171,11 +188,10 @@ final class BookmarksResponseHandler {
             var queue = queues.removeFirst()
             let parentUUID = parentUUIDs.removeFirst()
             let parent = BookmarkEntity.fetchFolder(withUUID: parentUUID, in: context)
-            assert(parent != nil)
 
             // For non-first sync we rely fully on the server response
             if !shouldDeduplicateEntities {
-                parent?.childrenArray.forEach { parent?.removeFromChildren($0) }
+                (parent?.children?.array as? [BookmarkEntity] ?? []).forEach { parent?.removeFromChildren($0) }
             }
 
             while !queue.isEmpty {
@@ -195,6 +211,13 @@ final class BookmarksResponseHandler {
                 } else if let existingEntity = entitiesByUUID[syncableUUID] {
                     existingEntity.parent?.removeFromChildren(existingEntity)
                     parent?.addToChildren(existingEntity)
+                } else {
+                    let newStubEntity = BookmarkEntity.make(withUUID: syncableUUID,
+                                                            isFolder: false,
+                                                            in: context)
+                    newStubEntity.isStub = true
+                    parent?.addToChildren(newStubEntity)
+                    entitiesByUUID[syncableUUID] = newStubEntity
                 }
             }
         }
