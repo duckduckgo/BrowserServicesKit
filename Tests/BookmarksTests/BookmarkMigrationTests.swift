@@ -116,8 +116,8 @@ class BookmarkMigrationTests: XCTestCase {
             let mobileFavoritesArray = BookmarkUtils.fetchFavoritesFolder(withUUID: FavoritesFolderID.mobile.rawValue, in: latestContext)?.favoritesArray.compactMap(\.uuid)
             XCTAssertEqual(legacyFavoritesInOrder, mobileFavoritesArray)
 
-            let uudis = BookmarkUtils.fetchAllBookmarksUUIDs(in: latestContext)
-            XCTAssert(!uudis.isEmpty)
+            let uuids = BookmarkUtils.fetchAllBookmarksUUIDs(in: latestContext)
+            XCTAssert(!uuids.isEmpty)
         })
 
         // Test whole structure

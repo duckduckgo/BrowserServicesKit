@@ -864,6 +864,52 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         XCTAssertNil(folderChanges?["children"]?["remove"])
     }
 
+    func testThatPatchPreservesOrderWithStubs() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {}
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+        }
+
+        let received: [Syncable] = [
+            .rootFolder(children: ["2", "1", "3"]), // Creates a Stubs with id 2 and 3
+            .favoritesFolder(favorites: ["3", "1", "2"]),
+            .bookmark(id: "1")
+        ]
+
+        let rootFolder = try await handleInitialSyncResponse(received: received, clientTimestamp: Date(), serverTimestamp: "1234", in: context)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["2", "1", "3"]) {
+            Bookmark(id: "2", favoritedOn: [.unified], isStub: true)
+            Bookmark(id: "1", favoritedOn: [.unified])
+            Bookmark(id: "3", favoritedOn: [.unified], isStub: true)
+        })
+
+        context.performAndWait {
+            let bookmarks = BookmarkEntity.fetchBookmarks(with: ["1", "2", "3"], in: context)
+            bookmarks.forEach { $0.modifiedAt = nil }
+
+            let favoriteFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: FavoritesFolderID.unified.rawValue, in: context)
+            favoriteFolder?.modifiedAt = Date()
+            rootFolder.modifiedAt = Date()
+            try! context.save()
+        }
+
+        let patchData = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+
+        print("%@", patchData)
+        let changedObjects = patchData.map(SyncableBookmarkAdapter.init(syncable:))
+
+        XCTAssertEqual(changedObjects.count, 2)
+        let changedRoot = changedObjects.first(where: { $0.uuid == BookmarkEntity.Constants.rootFolderID })
+        let changedFavRoot = changedObjects.first(where: { BookmarkEntity.Constants.favoriteFoldersIDs.contains($0.uuid!) })
+        XCTAssertEqual(changedRoot?.children, ["2", "1", "3"])
+        XCTAssertEqual(changedFavRoot?.children, ["3", "1", "2"])
+    }
+
     func testThatRemoteRemovalOfStubReferenceRemovesTheStub() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
@@ -888,8 +934,8 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         })
 
         // Simulate two kinds of "removal":
-        // - Removal only from children list.
-        // - Removal of entity and from children list.
+        // - "2" is only removed from children list.
+        // - "3" is removed from children list and deleted.
         let receivedUpdate: [Syncable] = [
             .rootFolder(children: ["1"]),
             .bookmark(id: "3", isDeleted: true)
@@ -924,9 +970,6 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
             }
         })
 
-        // Simulate two kinds of "removal":
-        // - Removal only from children list.
-        // - Removal of entity and from children list.
         let receivedUpdate: [Syncable] = [
             .rootFolder(children: []),
             .folder(id: "1", isDeleted: true)
