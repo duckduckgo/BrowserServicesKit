@@ -136,10 +136,11 @@ public class MenuBookmarksViewModel: MenuBookmarksInteracting {
         }
         return BookmarkUtils.fetchBookmark(for: url,
                                     predicate: NSPredicate(
-                                        format: "ANY %K CONTAINS %@ AND %K == NO",
+                                        format: "ANY %K CONTAINS %@ AND %K == NO AND (%K == NO OR %K == nil)",
                                         #keyPath(BookmarkEntity.favoriteFolders),
                                         favoritesFolder,
-                                        #keyPath(BookmarkEntity.isPendingDeletion)
+                                        #keyPath(BookmarkEntity.isPendingDeletion),
+                                        #keyPath(BookmarkEntity.isStub), #keyPath(BookmarkEntity.isStub)
                                     ),
                                     context: context)
     }

@@ -480,6 +480,44 @@ final class BookmarksRegularSyncResponseHandlerTests: BookmarksProviderTestsBase
         })
     }
 
+    // MARK: - Responses with parts of data structure missing
+
+    func testWhenChildIsMissingAndReceivedLaterThenRelationIsPersisted() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {}
+
+        let received: [Syncable] = [
+            .rootFolder(children: ["1", "2"]),
+            .favoritesFolder(favorites: ["1", "2", "3"]),
+            .mobileFavoritesFolder(favorites: ["1"]),
+            .desktopFavoritesFolder(favorites: ["2", "3"])
+        ]
+
+        _ = try await createEntitiesAndHandleSyncResponse(with: bookmarkTree, received: received, in: context)
+
+        let received2: [Syncable] = [
+            .bookmark(id: "1"),
+            .bookmark(id: "2"),
+            .bookmark(id: "3"),
+        ]
+
+        let root = try await handleSyncResponse(received: received2, in: context)
+
+        context.performAndWait {
+            XCTAssertEqual(root.childrenArray.count, 2)
+
+            let unified = BookmarkUtils.fetchFavoritesFolder(withUUID: FavoritesFolderID.unified.rawValue, in: context)
+            XCTAssertEqual(Set((unified?.favoritesArray.map { $0.uuid }) ?? []), Set(["1", "2", "3"]))
+
+            let mobile = BookmarkUtils.fetchFavoritesFolder(withUUID: FavoritesFolderID.mobile.rawValue, in: context)
+            XCTAssertEqual(Set((mobile?.favoritesArray.map { $0.uuid }) ?? []), Set(["1"]))
+
+            let desktop = BookmarkUtils.fetchFavoritesFolder(withUUID: FavoritesFolderID.desktop.rawValue, in: context)
+            XCTAssertEqual(Set((desktop?.favoritesArray.map { $0.uuid }) ?? []), Set(["2", "3"]))
+        }
+    }
+
     // MARK: - Handling Decryption Failures
     func testThatDecryptionFailureDoesntAffectBookmarksOrCrash() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
