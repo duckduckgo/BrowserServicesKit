@@ -37,7 +37,7 @@ final public class Visit {
 
     public let date: Date
     public var identifier: ID?
-    public var historyEntry: HistoryEntry?
+    public weak var historyEntry: HistoryEntry?
 
 }
 
