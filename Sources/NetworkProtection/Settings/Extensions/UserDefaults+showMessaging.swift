@@ -101,4 +101,8 @@ extension UserDefaults {
             set(newValue, forKey: vpnEarlyAccessOverAlertAlreadyShownKey)
         }
     }
+
+    public func resetThankYouMessaging() {
+        removeObject(forKey: vpnEarlyAccessOverAlertAlreadyShownKey)
+    }
 }
