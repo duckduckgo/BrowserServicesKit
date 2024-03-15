@@ -89,10 +89,13 @@ extension Syncable {
             }
             if bookmark.isFolder {
                 let children: [String] = {
+                    let allChildren: [BookmarkEntity]
                     if BookmarkEntity.Constants.favoriteFoldersIDs.contains(uuid) {
-                        return bookmark.favoritesArray.compactMap(\.uuid)
+                        allChildren = bookmark.favorites?.array as? [BookmarkEntity] ?? []
+                    } else {
+                        allChildren = bookmark.children?.array as? [BookmarkEntity] ?? []
                     }
-                    return bookmark.childrenArray.compactMap(\.uuid)
+                    return allChildren.filter { $0.isPendingDeletion == false }.compactMap(\.uuid)
                 }()
 
                 let lastReceivedChildren = bookmark.lastChildrenArrayReceivedFromSync ?? []
