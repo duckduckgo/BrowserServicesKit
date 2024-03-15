@@ -38,12 +38,16 @@ public final class DefaultSubscriptionFeatureAvailability: SubscriptionFeatureAv
     }
 
     public var isSubscriptionPurchaseAllowed: Bool {
+        let isPurchaseAllowed: Bool
+
         switch purchasePlatform {
         case .appStore:
-            privacyConfigurationManager.privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.allowPurchase)
+            isPurchaseAllowed = privacyConfigurationManager.privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.allowPurchase)
         case .stripe:
-            privacyConfigurationManager.privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.allowPurchaseStripe)
+            isPurchaseAllowed = privacyConfigurationManager.privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.allowPurchaseStripe)
         }
+
+        return isPurchaseAllowed || isInternalUser
     }
 
 // MARK: - Conditions
