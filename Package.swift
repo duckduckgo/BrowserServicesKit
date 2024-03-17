@@ -491,6 +491,13 @@ let package = Package(
             ],
             plugins: [swiftlintPlugin]
         ),
+        .testTarget(
+            name: "SubscriptionTests",
+            dependencies: [
+                "Subscription",
+            ],
+            plugins: [swiftlintPlugin]
+        ),
     ],
     cxxLanguageStandard: .cxx11
 )
