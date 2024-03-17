@@ -130,7 +130,7 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
         }
     }
 
-    public var errorUserInfo: [String : Any] {
+    public var errorUserInfo: [String: Any] {
         switch self {
         case .noServerRegistrationInfo,
                 .couldNotSelectClosestServer,
