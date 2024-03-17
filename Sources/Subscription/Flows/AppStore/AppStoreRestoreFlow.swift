@@ -34,7 +34,17 @@ public final class AppStoreRestoreFlow {
         case subscriptionExpired(accountDetails: RestoredAccountDetails)
     }
 
-    public static func restoreAccountFromPastPurchase(subscriptionAppGroup: String) async -> Result<Void, AppStoreRestoreFlow.Error> {
+    private var accountManager: AccountManaging
+    private var authService: AuthServiceProtocol
+    private var subscriptionService: SubscriptionServiceProtocol
+
+    init(accountManager: AccountManaging, authService: AuthServiceProtocol, subscriptionService: SubscriptionServiceProtocol) {
+        self.accountManager = accountManager
+        self.authService = authService
+        self.subscriptionService = subscriptionService
+    }
+
+    public func restoreAccountFromPastPurchase(subscriptionAppGroup: String) async -> Result<Void, AppStoreRestoreFlow.Error> {
         os_log(.info, log: .subscription, "[AppStoreRestoreFlow] restoreAccountFromPastPurchase")
 
         guard let lastTransactionJWSRepresentation = await PurchaseManager.mostRecentTransaction() else {
@@ -42,12 +52,10 @@ public final class AppStoreRestoreFlow {
             return .failure(.missingAccountOrTransactions)
         }
 
-        let accountManager = AccountManager(subscriptionAppGroup: subscriptionAppGroup)
-
         // Do the store login to get short-lived token
         let authToken: String
 
-        switch await AuthService.storeLogin(signature: lastTransactionJWSRepresentation) {
+        switch await authService.storeLogin(signature: lastTransactionJWSRepresentation) {
         case .success(let response):
             authToken = response.authToken
         case .failure:
@@ -78,7 +86,7 @@ public final class AppStoreRestoreFlow {
 
         var isSubscriptionActive = false
 
-        switch await SubscriptionService.getSubscription(accessToken: accessToken, cachePolicy: .reloadIgnoringLocalCacheData) {
+        switch await subscriptionService.getSubscription(accessToken: accessToken, cachePolicy: .reloadIgnoringLocalCacheData) {
         case .success(let subscription):
             isSubscriptionActive = subscription.isActive
         case .failure:

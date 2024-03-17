@@ -27,10 +27,20 @@ public final class StripePurchaseFlow {
         case accountCreationFailed
     }
 
-    public static func subscriptionOptions() async -> Result<SubscriptionOptions, StripePurchaseFlow.Error> {
+    private var accountManager: AccountManaging
+    private var authService: AuthServiceProtocol
+    private var subscriptionService: SubscriptionServiceProtocol
+
+    init(accountManager: AccountManaging, authService: AuthServiceProtocol, subscriptionService: SubscriptionServiceProtocol) {
+        self.accountManager = accountManager
+        self.authService = authService
+        self.subscriptionService = subscriptionService
+    }
+
+    public func subscriptionOptions() async -> Result<SubscriptionOptions, StripePurchaseFlow.Error> {
         os_log(.info, log: .subscription, "[StripePurchaseFlow] subscriptionOptions")
 
-        guard case let .success(products) = await SubscriptionService.getProducts(), !products.isEmpty else {
+        guard case let .success(products) = await subscriptionService.getProducts(), !products.isEmpty else {
             os_log(.error, log: .subscription, "[StripePurchaseFlow] Error: noProductsFound")
             return .failure(.noProductsFound)
         }
@@ -61,15 +71,15 @@ public final class StripePurchaseFlow {
                                             features: features))
     }
 
-    public static func prepareSubscriptionPurchase(emailAccessToken: String?, subscriptionAppGroup: String) async -> Result<PurchaseUpdate, StripePurchaseFlow.Error> {
+    public func prepareSubscriptionPurchase(emailAccessToken: String?, subscriptionAppGroup: String) async -> Result<PurchaseUpdate, StripePurchaseFlow.Error> {
         os_log(.info, log: .subscription, "[StripePurchaseFlow] prepareSubscriptionPurchase")
 
         var authToken: String = ""
 
-        switch await AuthService.createAccount(emailAccessToken: emailAccessToken) {
+        switch await authService.createAccount(emailAccessToken: emailAccessToken) {
         case .success(let response):
             authToken = response.authToken
-            AccountManager(subscriptionAppGroup: subscriptionAppGroup).storeAuthToken(token: authToken)
+            accountManager.storeAuthToken(token: authToken)
         case .failure:
             os_log(.error, log: .subscription, "[StripePurchaseFlow] Error: accountCreationFailed")
             return .failure(.accountCreationFailed)
@@ -78,10 +88,8 @@ public final class StripePurchaseFlow {
         return .success(PurchaseUpdate(type: "redirect", token: authToken))
     }
 
-    public static func completeSubscriptionPurchase(subscriptionAppGroup: String) async {
+    public  func completeSubscriptionPurchase(subscriptionAppGroup: String) async {
         os_log(.info, log: .subscription, "[StripePurchaseFlow] completeSubscriptionPurchase")
-
-        let accountManager = AccountManager(subscriptionAppGroup: subscriptionAppGroup)
 
         if let authToken = accountManager.authToken {
             if case let .success(accessToken) = await accountManager.exchangeAuthTokenToAccessToken(authToken),
@@ -91,6 +99,6 @@ public final class StripePurchaseFlow {
             }
         }
 
-        await AccountManager.checkForEntitlements(subscriptionAppGroup: subscriptionAppGroup, wait: 2.0, retry: 5)
+        _ = await accountManager.checkForEntitlements(subscriptionAppGroup: subscriptionAppGroup, wait: 2.0, retry: 5)
     }
 }

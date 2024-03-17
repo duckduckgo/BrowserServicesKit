@@ -23,7 +23,7 @@ public protocol SubscriptionManaging {
     var configuration: SubscriptionConfiguration { get }
     var accountManager: AccountManaging { get }
     var urlProvider: SubscriptionURLProviding { get }
-    var serviceProvider: SubscriptionServiceProvider { get }
+    var serviceProvider: SubscriptionServiceProviding { get }
     var flowProvider: SubscriptionFlowProviding { get }
 }
 
@@ -32,15 +32,20 @@ public final class SubscriptionManager: SubscriptionManaging {
     public private(set) var configuration: SubscriptionConfiguration
     public private(set) var accountManager: AccountManaging
     public private(set) var urlProvider: SubscriptionURLProviding
-    public private(set) var serviceProvider: SubscriptionServiceProvider
+    public private(set) var serviceProvider: SubscriptionServiceProviding
     public private(set) var flowProvider: SubscriptionFlowProviding
 
-    public convenience init(configuration: SubscriptionConfiguration,
-                            accountManager: AccountManaging) {
+    public convenience init(configuration: SubscriptionConfiguration) {
         let urlProvider = SubscriptionURLProvider(configuration: configuration)
         let serviceProvider = SubscriptionServiceProvider(configuration: configuration)
+
+        let accountManager = AccountManager(subscriptionAppGroup: configuration.subscriptionAppGroup,
+                                            authService: serviceProvider.makeAuthService(),
+                                            subscriptionService: serviceProvider.makeSubscriptionService())
+
         let flowProvider = SubscriptionFlowProvider(accountManager: accountManager,
                                                     serviceProvider: serviceProvider)
+
         self.init(configuration: configuration,
                   accountManager: accountManager,
                   urlProvider: urlProvider,

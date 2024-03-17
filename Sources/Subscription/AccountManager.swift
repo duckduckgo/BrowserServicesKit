@@ -50,6 +50,7 @@ public protocol AccountManaging {
     func checkSubscriptionState() async
 
     func hasEntitlement(for entitlement: Entitlement.ProductName) async -> Result<Bool, Error>
+    func checkForEntitlements(subscriptionAppGroup: String, wait waitTime: Double, retry retryCount: Int) async -> Bool
 }
 
 public class AccountManager: AccountManaging {
@@ -66,22 +67,31 @@ public class AccountManager: AccountManaging {
 
     public weak var delegate: AccountManagerKeychainAccessDelegate?
 
+    private let authService: AuthServiceProtocol
+    private let subscriptionService: SubscriptionServiceProtocol
+
     public var isUserAuthenticated: Bool {
         return accessToken != nil
     }
 
-    public convenience init(subscriptionAppGroup: String) {
+    public convenience init(subscriptionAppGroup: String, authService: AuthServiceProtocol, subscriptionService: SubscriptionServiceProtocol) {
         let accessTokenStorage = SubscriptionTokenKeychainStorage(keychainType: .dataProtection(.named(subscriptionAppGroup)))
         self.init(accessTokenStorage: accessTokenStorage,
-                  entitlementsCache: UserDefaultsCache<[Entitlement]>(subscriptionAppGroup: subscriptionAppGroup, key: UserDefaultsCacheKey.subscriptionEntitlements))
+                  entitlementsCache: UserDefaultsCache<[Entitlement]>(subscriptionAppGroup: subscriptionAppGroup, key: UserDefaultsCacheKey.subscriptionEntitlements),
+                  authService: authService,
+                  subscriptionService: subscriptionService)
     }
 
     public init(storage: AccountStorage = AccountKeychainStorage(),
                 accessTokenStorage: SubscriptionTokenStorage,
-                entitlementsCache: UserDefaultsCache<[Entitlement]>) {
+                entitlementsCache: UserDefaultsCache<[Entitlement]>,
+                authService: AuthServiceProtocol,
+                subscriptionService: SubscriptionServiceProtocol) {
         self.storage = storage
         self.entitlementsCache = entitlementsCache
         self.accessTokenStorage = accessTokenStorage
+        self.authService = authService
+        self.subscriptionService = subscriptionService
     }
 
     public var authToken: String? {
@@ -258,7 +268,7 @@ public class AccountManager: AccountManaging {
 
         let cachedEntitlements: [Entitlement]? = entitlementsCache.get()
 
-        switch await AuthService.validateToken(accessToken: accessToken) {
+        switch await authService.validateToken(accessToken: accessToken) {
         case .success(let response):
             let entitlements = response.account.entitlements
             if entitlements != cachedEntitlements {
@@ -297,7 +307,7 @@ public class AccountManager: AccountManaging {
     }
 
     public func exchangeAuthTokenToAccessToken(_ authToken: String) async -> Result<String, Error> {
-        switch await AuthService.getAccessToken(token: authToken) {
+        switch await authService.getAccessToken(token: authToken) {
         case .success(let response):
             return .success(response.accessToken)
         case .failure(let error):
@@ -309,7 +319,7 @@ public class AccountManager: AccountManaging {
     public typealias AccountDetails = (email: String?, externalID: String)
 
     public func fetchAccountDetails(with accessToken: String) async -> Result<AccountDetails, Error> {
-        switch await AuthService.validateToken(accessToken: accessToken) {
+        switch await authService.validateToken(accessToken: accessToken) {
         case .success(let response):
             return .success(AccountDetails(email: response.account.email, externalID: response.account.externalID))
         case .failure(let error):
@@ -323,7 +333,7 @@ public class AccountManager: AccountManaging {
 
         guard let token = accessToken else { return }
 
-        if case .success(let subscription) = await SubscriptionService.getSubscription(accessToken: token) {
+        if case .success(let subscription) = await subscriptionService.getSubscription(accessToken: token) {
             if !subscription.isActive {
                 signOut()
             }
@@ -331,12 +341,12 @@ public class AccountManager: AccountManaging {
     }
 
     @discardableResult
-    public static func checkForEntitlements(subscriptionAppGroup: String, wait waitTime: Double, retry retryCount: Int) async -> Bool {
+    public func checkForEntitlements(subscriptionAppGroup: String, wait waitTime: Double, retry retryCount: Int) async -> Bool {
         var count = 0
         var hasEntitlements = false
 
         repeat {
-            switch await AccountManager(subscriptionAppGroup: subscriptionAppGroup).fetchEntitlements() {
+            switch await fetchEntitlements(cachePolicy: .reloadIgnoringLocalCacheData) {
             case .success(let entitlements):
                 hasEntitlements = !entitlements.isEmpty
             case .failure:

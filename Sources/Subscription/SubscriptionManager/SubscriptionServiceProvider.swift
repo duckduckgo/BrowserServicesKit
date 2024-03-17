@@ -20,7 +20,7 @@ import Foundation
 import Common
 
 public protocol SubscriptionServiceProviding {
-    func makeAuthService() -> AuthService
+    func makeAuthService() -> AuthServiceProtocol
     func makeSubscriptionService() -> SubscriptionService
 }
 
@@ -32,11 +32,11 @@ public final class SubscriptionServiceProvider: SubscriptionServiceProviding {
         self.configuration = configuration
     }
 
-    public func makeAuthService() -> AuthService {
-        AuthService()
+    public func makeAuthService() -> AuthServiceProtocol {
+        AuthService(environment: configuration.currentServiceEnvironment)
     }
 
     public func makeSubscriptionService() -> SubscriptionService {
-        SubscriptionService()
+        SubscriptionService(environment: configuration.currentServiceEnvironment)
     }
 }

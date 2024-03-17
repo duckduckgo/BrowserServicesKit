@@ -20,7 +20,14 @@ import Foundation
 import Common
 
 public protocol SubscriptionFlowProviding {
-    func makeStripePurchaseFlow() -> StripePurchaseFlow
+    var stripePurchaseFlow: StripePurchaseFlow { get }
+
+    @available(macOS 12.0, iOS 15.0, *)
+    var appStorePurchaseFlow: AppStorePurchaseFlow { get }
+    @available(macOS 12.0, iOS 15.0, *)
+    var appStoreRestoreFlow: AppStoreRestoreFlow { get }
+    @available(macOS 12.0, iOS 15.0, *)
+    var appStoreAccountManagementFlow: AppStoreAccountManagementFlow { get }
 }
 
 public final class SubscriptionFlowProvider: SubscriptionFlowProviding {
@@ -33,7 +40,44 @@ public final class SubscriptionFlowProvider: SubscriptionFlowProviding {
         self.serviceProvider = serviceProvider
     }
 
-    public func makeStripePurchaseFlow() -> StripePurchaseFlow {
-        StripePurchaseFlow()
+    public lazy var stripePurchaseFlow: StripePurchaseFlow = {
+        StripePurchaseFlow(accountManager: accountManager,
+                           authService: serviceProvider.makeAuthService(),
+                           subscriptionService: serviceProvider.makeSubscriptionService())
+    }()
+
+    private var _appStorePurchaseFlow: Any?
+    @available(macOS 12.0, *)
+    public var appStorePurchaseFlow: AppStorePurchaseFlow {
+        if _appStorePurchaseFlow == nil {
+            _appStorePurchaseFlow = AppStorePurchaseFlow(accountManager: accountManager,
+                                                         authService: serviceProvider.makeAuthService(),
+                                                         subscriptionService: serviceProvider.makeSubscriptionService())
+        }
+        // swiftlint:disable:next force_cast
+        return _appStorePurchaseFlow as! AppStorePurchaseFlow
+    }
+
+    private var _appStoreRestoreFlow: Any?
+    @available(macOS 12.0, *)
+    public var appStoreRestoreFlow: AppStoreRestoreFlow {
+        if _appStoreRestoreFlow == nil {
+            _appStoreRestoreFlow = AppStoreRestoreFlow(accountManager: accountManager,
+                                                       authService: serviceProvider.makeAuthService(),
+                                                       subscriptionService: serviceProvider.makeSubscriptionService())
+        }
+        // swiftlint:disable:next force_cast
+        return _appStoreRestoreFlow as! AppStoreRestoreFlow
+    }
+
+    private var _appStoreAccountManagementFlow: Any?
+    @available(macOS 12.0, *)
+    public var appStoreAccountManagementFlow: AppStoreAccountManagementFlow {
+        if _appStoreAccountManagementFlow == nil {
+            _appStoreAccountManagementFlow = AppStoreAccountManagementFlow(accountManager: accountManager,
+                                                                           authService: serviceProvider.makeAuthService())
+        }
+        // swiftlint:disable:next force_cast
+        return _appStoreAccountManagementFlow as! AppStoreAccountManagementFlow
     }
 }

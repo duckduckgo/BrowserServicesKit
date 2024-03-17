@@ -20,6 +20,7 @@ import Foundation
 import Common
 
 public protocol SubscriptionConfiguration {
+    var subscriptionAppGroup: String { get }
     var currentPurchasePlatform: SubscriptionPurchasePlatform { get }
     var currentServiceEnvironment: SubscriptionServiceEnvironment { get }
 }
@@ -44,6 +45,8 @@ public enum SubscriptionServiceEnvironment: String, Codable {
 
 public final class DefaultSubscriptionConfiguration: SubscriptionConfiguration {
 
+    public private(set) var subscriptionAppGroup: String
+
     public private(set) var currentPurchasePlatform: SubscriptionPurchasePlatform {
         didSet {
             os_log(.info, log: .subscription, "[DefaultSubscriptionConfiguration] Setting to %{public}s", currentPurchasePlatform.rawValue)
@@ -56,7 +59,8 @@ public final class DefaultSubscriptionConfiguration: SubscriptionConfiguration {
 
     public private(set) var currentServiceEnvironment: SubscriptionServiceEnvironment
 
-    public init(purchasePlatform: SubscriptionPurchasePlatform, serviceEnvironment: SubscriptionServiceEnvironment) {
+    public init(subscriptionAppGroup: String, purchasePlatform: SubscriptionPurchasePlatform, serviceEnvironment: SubscriptionServiceEnvironment) {
+        self.subscriptionAppGroup = subscriptionAppGroup
         self.currentPurchasePlatform = purchasePlatform
         self.currentServiceEnvironment = serviceEnvironment
 
