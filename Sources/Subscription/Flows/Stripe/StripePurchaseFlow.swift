@@ -71,7 +71,7 @@ public final class StripePurchaseFlow {
                                             features: features))
     }
 
-    public func prepareSubscriptionPurchase(emailAccessToken: String?, subscriptionAppGroup: String) async -> Result<PurchaseUpdate, StripePurchaseFlow.Error> {
+    public func prepareSubscriptionPurchase(emailAccessToken: String?) async -> Result<PurchaseUpdate, StripePurchaseFlow.Error> {
         os_log(.info, log: .subscription, "[StripePurchaseFlow] prepareSubscriptionPurchase")
 
         var authToken: String = ""
@@ -88,7 +88,7 @@ public final class StripePurchaseFlow {
         return .success(PurchaseUpdate(type: "redirect", token: authToken))
     }
 
-    public  func completeSubscriptionPurchase(subscriptionAppGroup: String) async {
+    public  func completeSubscriptionPurchase() async {
         os_log(.info, log: .subscription, "[StripePurchaseFlow] completeSubscriptionPurchase")
 
         if let authToken = accountManager.authToken {
@@ -99,6 +99,6 @@ public final class StripePurchaseFlow {
             }
         }
 
-        _ = await accountManager.checkForEntitlements(subscriptionAppGroup: subscriptionAppGroup, wait: 2.0, retry: 5)
+        _ = await accountManager.checkForEntitlements(wait: 2.0, retry: 5)
     }
 }

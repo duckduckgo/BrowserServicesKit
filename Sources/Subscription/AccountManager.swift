@@ -52,7 +52,7 @@ public protocol AccountManaging {
     func hasEntitlement(for entitlement: Entitlement.ProductName) async -> Result<Bool, Error>
     func hasEntitlement(for entitlement: Entitlement.ProductName, cachePolicy: CachePolicy) async -> Result<Bool, Error>
 
-    func checkForEntitlements(subscriptionAppGroup: String, wait waitTime: Double, retry retryCount: Int) async -> Bool
+    func checkForEntitlements(wait waitTime: Double, retry retryCount: Int) async -> Bool
 }
 
 public class AccountManager: AccountManaging {
@@ -337,7 +337,7 @@ public class AccountManager: AccountManaging {
     }
 
     @discardableResult
-    public func checkForEntitlements(subscriptionAppGroup: String, wait waitTime: Double, retry retryCount: Int) async -> Bool {
+    public func checkForEntitlements(wait waitTime: Double, retry retryCount: Int) async -> Bool {
         var count = 0
         var hasEntitlements = false
 

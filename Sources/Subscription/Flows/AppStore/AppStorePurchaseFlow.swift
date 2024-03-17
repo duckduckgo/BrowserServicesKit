@@ -71,7 +71,7 @@ public final class AppStorePurchaseFlow {
     public typealias TransactionJWS = String
 
     // swiftlint:disable cyclomatic_complexity
-    public func purchaseSubscription(with subscriptionIdentifier: String, emailAccessToken: String?, subscriptionAppGroup: String) async -> Result<TransactionJWS, AppStorePurchaseFlow.Error> {
+    public func purchaseSubscription(with subscriptionIdentifier: String, emailAccessToken: String?) async -> Result<TransactionJWS, AppStorePurchaseFlow.Error> {
         os_log(.info, log: .subscription, "[AppStorePurchaseFlow] purchaseSubscription")
 
         let externalID: String
@@ -80,7 +80,7 @@ public final class AppStorePurchaseFlow {
         SubscriptionService.signOut()
 
         // Check for past transactions most recent
-        switch await appStoreRestoreFlow.restoreAccountFromPastPurchase(subscriptionAppGroup: subscriptionAppGroup) {
+        switch await appStoreRestoreFlow.restoreAccountFromPastPurchase() {
         case .success:
             os_log(.info, log: .subscription, "[AppStorePurchaseFlow] purchaseSubscription -> restoreAccountFromPastPurchase: activeSubscriptionAlreadyPresent")
             return .failure(.activeSubscriptionAlreadyPresent)
@@ -127,7 +127,7 @@ public final class AppStorePurchaseFlow {
 
     // swiftlint:enable cyclomatic_complexity
     @discardableResult
-    public func completeSubscriptionPurchase(with transactionJWS: TransactionJWS, subscriptionAppGroup: String) async -> Result<PurchaseUpdate, AppStorePurchaseFlow.Error> {
+    public func completeSubscriptionPurchase(with transactionJWS: TransactionJWS) async -> Result<PurchaseUpdate, AppStorePurchaseFlow.Error> {
         os_log(.info, log: .subscription, "[AppStorePurchaseFlow] completeSubscriptionPurchase")
 
         guard let accessToken = accountManager.accessToken else { return .failure(.missingEntitlements) }

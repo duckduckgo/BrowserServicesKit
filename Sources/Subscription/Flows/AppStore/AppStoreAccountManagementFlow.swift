@@ -37,7 +37,7 @@ public final class AppStoreAccountManagementFlow {
     }
 
     @discardableResult
-    public func refreshAuthTokenIfNeeded(subscriptionAppGroup: String) async -> Result<String, AppStoreAccountManagementFlow.Error> {
+    public func refreshAuthTokenIfNeeded() async -> Result<String, AppStoreAccountManagementFlow.Error> {
         os_log(.info, log: .subscription, "[AppStoreAccountManagementFlow] refreshAuthTokenIfNeeded")
 
         var authToken = accountManager.authToken ?? ""
