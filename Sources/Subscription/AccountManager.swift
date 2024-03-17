@@ -195,7 +195,7 @@ public class AccountManager: AccountManaging {
         NotificationCenter.default.post(name: .accountDidSignIn, object: self, userInfo: nil)
     }
 
-    public func signOut() {
+    public func signOut(skipNotification: Bool = false) {
         os_log(.info, log: .subscription, "[AccountManager] signOut")
 
         do {
@@ -211,7 +211,9 @@ public class AccountManager: AccountManaging {
             }
         }
 
-        NotificationCenter.default.post(name: .accountDidSignOut, object: self, userInfo: nil)
+        if !skipNotification {
+            NotificationCenter.default.post(name: .accountDidSignOut, object: self, userInfo: nil)
+        }
     }
 
     public func migrateAccessTokenToNewStore() throws {

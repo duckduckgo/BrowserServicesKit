@@ -74,6 +74,9 @@ public final class StripePurchaseFlow {
     public func prepareSubscriptionPurchase(emailAccessToken: String?) async -> Result<PurchaseUpdate, StripePurchaseFlow.Error> {
         os_log(.info, log: .subscription, "[StripePurchaseFlow] prepareSubscriptionPurchase")
 
+        // Clear subscription Cache
+        SubscriptionService.signOut()
+
         var authToken: String = ""
 
         switch await authService.createAccount(emailAccessToken: emailAccessToken) {
@@ -90,6 +93,9 @@ public final class StripePurchaseFlow {
 
     public  func completeSubscriptionPurchase() async {
         os_log(.info, log: .subscription, "[StripePurchaseFlow] completeSubscriptionPurchase")
+
+        // Clear subscription Cache
+        SubscriptionService.signOut()
 
         if let authToken = accountManager.authToken {
             if case let .success(accessToken) = await accountManager.exchangeAuthTokenToAccessToken(authToken),
