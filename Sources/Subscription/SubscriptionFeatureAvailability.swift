@@ -68,9 +68,9 @@ public final class DefaultSubscriptionFeatureAvailability: SubscriptionFeatureAv
     private var isSubscriptionLaunchedOverride: Bool {
         switch purchasePlatform {
         case .appStore:
-            privacyConfigurationManager.privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.isLaunched)
+            privacyConfigurationManager.privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.isLaunchedOverride)
         case .stripe:
-            privacyConfigurationManager.privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.isLaunchedStripe)
+            privacyConfigurationManager.privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.isLaunchedOverrideStripe)
         }
     }
 }
