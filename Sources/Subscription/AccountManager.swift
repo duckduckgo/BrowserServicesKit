@@ -50,16 +50,12 @@ public protocol AccountManaging {
     func checkSubscriptionState() async
 
     func hasEntitlement(for entitlement: Entitlement.ProductName) async -> Result<Bool, Error>
+    func hasEntitlement(for entitlement: Entitlement.ProductName, cachePolicy: CachePolicy) async -> Result<Bool, Error>
+
     func checkForEntitlements(subscriptionAppGroup: String, wait waitTime: Double, retry retryCount: Int) async -> Bool
 }
 
 public class AccountManager: AccountManaging {
-
-    public enum CachePolicy {
-        case reloadIgnoringLocalCacheData
-        case returnCacheDataElseLoad
-        case returnCacheDataDontLoad
-    }
 
     private let storage: AccountStorage
     private let entitlementsCache: UserDefaultsCache<[Entitlement]>
