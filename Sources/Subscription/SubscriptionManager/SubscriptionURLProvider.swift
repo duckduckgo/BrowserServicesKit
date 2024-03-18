@@ -21,6 +21,7 @@ import Common
 
 public protocol SubscriptionURLProviding {
     func url(for type: SubscriptionURLType) -> URL
+    func updateURLToCurrentEnvironment(_ url: URL) -> URL
 }
 
 public final class SubscriptionURLProvider: SubscriptionURLProviding {
@@ -32,13 +33,11 @@ public final class SubscriptionURLProvider: SubscriptionURLProviding {
     }
 
     public func url(for type: SubscriptionURLType) -> URL {
-        var url = type.url
+        updateURLToCurrentEnvironment(type.url)
+    }
 
-        if configuration.currentServiceEnvironment == .staging {
-            url = url.appendingParameter(name: "environment", value: "staging")
-        }
-
-        return url
+    public func updateURLToCurrentEnvironment(_ url: URL) -> URL {
+        url.appendingSubscriptionEnvironmentParameter(environment: configuration.currentServiceEnvironment)
     }
 }
 
@@ -117,4 +116,3 @@ public extension URL {
         return removingParameters(named: [Constants.paramNameEnvironment])
     }
 }
-

@@ -19,22 +19,22 @@
 import Foundation
 import Common
 
-public final class SubscriptionPurchaseEnvironment {
-
-    public enum ServiceEnvironment: String, Codable {
-        case production
-        case staging
-
-        public static var `default`: ServiceEnvironment = .production
-
-        public var description: String {
-            switch self {
-            case .production: return "Production"
-            case .staging: return "Staging"
-            }
-        }
-    }
-
-    public static var currentServiceEnvironment: ServiceEnvironment = .default
-
-}
+//public final class SubscriptionPurchaseEnvironment {
+//
+//    public enum ServiceEnvironment: String, Codable {
+//        case production
+//        case staging
+//
+//        public static var `default`: ServiceEnvironment = .production
+//
+//        public var description: String {
+//            switch self {
+//            case .production: return "Production"
+//            case .staging: return "Staging"
+//            }
+//        }
+//    }
+//
+//    public static var currentServiceEnvironment: ServiceEnvironment = .default
+//
+//}
