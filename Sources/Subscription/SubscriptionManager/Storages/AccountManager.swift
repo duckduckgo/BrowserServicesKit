@@ -77,6 +77,8 @@ public class AccountManager: AccountManaging {
                   entitlementsCache: UserDefaultsCache<[Entitlement]>(subscriptionAppGroup: subscriptionAppGroup, key: UserDefaultsCacheKey.subscriptionEntitlements),
                   authService: authService,
                   subscriptionService: subscriptionService)
+
+        accessTokenStorage.delegate = self
     }
 
     public init(storage: AccountStorage = AccountKeychainStorage(),
@@ -106,17 +108,7 @@ public class AccountManager: AccountManaging {
     }
 
     public var accessToken: String? {
-        do {
-            return try accessTokenStorage.getAccessToken()
-        } catch {
-            if let error = error as? AccountKeychainAccessError {
-                delegate?.accountManagerKeychainAccessFailed(accessType: .getAccessToken, error: error)
-            } else {
-                assertionFailure("Expected AccountKeychainAccessError")
-            }
-
-            return nil
-        }
+        accessTokenStorage.accessToken
     }
 
     public var email: String? {
@@ -164,15 +156,7 @@ public class AccountManager: AccountManaging {
     public func storeAccount(token: String, email: String?, externalID: String?) {
         os_log(.info, log: .subscription, "[AccountManager] storeAccount")
 
-        do {
-            try accessTokenStorage.store(accessToken: token)
-        } catch {
-            if let error = error as? AccountKeychainAccessError {
-                delegate?.accountManagerKeychainAccessFailed(accessType: .storeAccessToken, error: error)
-            } else {
-                assertionFailure("Expected AccountKeychainAccessError")
-            }
-        }
+        accessTokenStorage.accessToken = token
 
         do {
             try storage.store(email: email)
@@ -205,7 +189,7 @@ public class AccountManager: AccountManaging {
 
         do {
             try storage.clearAuthenticationState()
-            try accessTokenStorage.removeAccessToken()
+            accessTokenStorage.removeAccessToken()
             SubscriptionService.signOut()
             entitlementsCache.reset()
         } catch {
@@ -219,28 +203,6 @@ public class AccountManager: AccountManaging {
         if !skipNotification {
             NotificationCenter.default.post(name: .accountDidSignOut, object: self, userInfo: nil)
         }
-    }
-
-    public func migrateAccessTokenToNewStore() throws {
-        var errorToThrow: Error?
-        do {
-            if try accessTokenStorage.getAccessToken() != nil {
-                errorToThrow = MigrationError.noMigrationNeeded
-            } else if let oldAccessToken = try storage.getAccessToken() {
-                try accessTokenStorage.store(accessToken: oldAccessToken)
-            }
-        } catch {
-            errorToThrow = MigrationError.migrationFailed
-        }
-
-        if let errorToThrow {
-            throw errorToThrow
-        }
-    }
-
-    public enum MigrationError: Error {
-        case migrationFailed
-        case noMigrationNeeded
     }
 
     // MARK: -
@@ -365,6 +327,13 @@ public class AccountManager: AccountManaging {
         } while !hasEntitlements && count < retryCount
 
         return hasEntitlements
+    }
+}
+
+extension AccountManager: GenericKeychainStorageErrorDelegate {
+    public func keychainAccessFailed(error: GenericKeychainStorageAccessError) {
+        print("=== [GenericKeychainStorageErrorDelegate] \(error.errorDescription)")
+        assertionFailure("🔥 Something went wrong with GenericKeychainStorage! 🔥")
     }
 }
 

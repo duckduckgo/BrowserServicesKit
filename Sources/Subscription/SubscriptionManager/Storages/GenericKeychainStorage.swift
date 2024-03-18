@@ -21,17 +21,28 @@ import Foundation
 public enum GenericKeychainStorageAccessError: Error {
     case failedToDecodeKeychainValueAsData(GenericKeychainStorageFieldName)
     case failedToDecodeKeychainDataAsString(GenericKeychainStorageFieldName)
+    case failedToEncodeDataAsString(GenericKeychainStorageFieldName)
     case keychainSaveFailure(GenericKeychainStorageFieldName, OSStatus)
+    case keychainUpdateFailure(GenericKeychainStorageFieldName, OSStatus)
     case keychainDeleteFailure(GenericKeychainStorageFieldName, OSStatus)
     case keychainLookupFailure(GenericKeychainStorageFieldName, OSStatus)
 
     public var errorDescription: String {
         switch self {
-        case .failedToDecodeKeychainValueAsData: return "failedToDecodeKeychainValueAsData"
-        case .failedToDecodeKeychainDataAsString: return "failedToDecodeKeychainDataAsString"
-        case .keychainSaveFailure: return "keychainSaveFailure"
-        case .keychainDeleteFailure: return "keychainDeleteFailure"
-        case .keychainLookupFailure: return "keychainLookupFailure"
+        case .failedToDecodeKeychainValueAsData(let fieldName):
+            return "failedToDecodeKeychainValueAsData(\(fieldName))"
+        case .failedToDecodeKeychainDataAsString(let fieldName):
+            return "failedToDecodeKeychainDataAsString(\(fieldName))"
+        case .failedToEncodeDataAsString(let fieldName):
+            return "failedToEncodeDataAsString(\(fieldName))"
+        case .keychainSaveFailure(let fieldName, let statusCode):
+            return "keychainSaveFailure(\(fieldName),\(statusCode))"
+        case .keychainUpdateFailure(let fieldName, let statusCode):
+            return "keychainUpdateFailure(\(fieldName),\(statusCode))"
+        case .keychainDeleteFailure(let fieldName, let statusCode):
+            return "keychainDeleteFailure(\(fieldName),\(statusCode))"
+        case .keychainLookupFailure(let fieldName, let statusCode):
+            return "keychainLookupFailure(\(fieldName),\(statusCode))"
         }
     }
 }
@@ -44,24 +55,40 @@ protocol GenericKeychainStorageField where Self: RawRepresentable, RawValue == S
 
 public class GenericKeychainStorage {
 
+    public weak var delegate: GenericKeychainStorageErrorDelegate?
+
     private let keychainType: KeychainType
 
     public init(keychainType: KeychainType = .dataProtection(.unspecified)) {
         self.keychainType = keychainType
     }
 
-    func getString(forField field: any GenericKeychainStorageField) throws -> String? {
-        guard let data = try retrieveData(forField: field) else {
+    func getString(forField field: any GenericKeychainStorageField) -> String? {
+        let data: Data?
+
+        do {
+            data = try retrieveData(forField: field)
+        } catch {
+            if let error = error as? GenericKeychainStorageAccessError {
+                delegate?.keychainAccessFailed(error: error)
+            } else {
+                assertionFailure("Expected GenericKeychainStorageAccessError")
+            }
+
             return nil
         }
 
-        if let decodedString = String(data: data, encoding: String.Encoding.utf8) {
+        if data == nil {
+            return nil
+        } else if let data, let decodedString = String(data: data, encoding: String.Encoding.utf8) {
             return decodedString
         } else {
-            throw GenericKeychainStorageAccessError.failedToDecodeKeychainDataAsString(field.rawValue)
+            delegate?.keychainAccessFailed(error: GenericKeychainStorageAccessError.failedToDecodeKeychainDataAsString(field.rawValue))
+            return nil
         }
     }
-    func retrieveData(forField field: any GenericKeychainStorageField) throws -> Data? {
+
+    private func retrieveData(forField field: any GenericKeychainStorageField) throws -> Data? {
         var query = defaultAttributes()
         query[kSecAttrService] = field.keyValue
         query[kSecMatchLimit] = kSecMatchLimitOne
@@ -83,12 +110,21 @@ public class GenericKeychainStorage {
         }
     }
 
-    func set(string: String, forField field: any GenericKeychainStorageField) throws {
+    func set(string: String, forField field: any GenericKeychainStorageField) {
         guard let stringData = string.data(using: .utf8) else {
+            delegate?.keychainAccessFailed(error: GenericKeychainStorageAccessError.failedToEncodeDataAsString(field.rawValue))
             return
         }
 
-        try store(data: stringData, forField: field)
+        do {
+            try store(data: stringData, forField: field)
+        } catch  {
+            if let error = error as? GenericKeychainStorageAccessError {
+                delegate?.keychainAccessFailed(error: error)
+            } else {
+                assertionFailure("Expected GenericKeychainStorageAccessError")
+            }
+        }
     }
 
     func store(data: Data, forField field: any GenericKeychainStorageField) throws {
@@ -106,7 +142,7 @@ public class GenericKeychainStorage {
             let updateStatus = updateData(data, forField: field)
 
             if updateStatus != errSecSuccess {
-                throw GenericKeychainStorageAccessError.keychainSaveFailure(field.rawValue, status)
+                throw GenericKeychainStorageAccessError.keychainUpdateFailure(field.rawValue, status)
             }
         default:
             throw GenericKeychainStorageAccessError.keychainSaveFailure(field.rawValue, status)
@@ -125,13 +161,13 @@ public class GenericKeychainStorage {
         return SecItemUpdate(query as CFDictionary, newAttributes as CFDictionary)
     }
 
-    func deleteItem(forField field: any GenericKeychainStorageField, useDataProtectionKeychain: Bool = true) throws {
+    func deleteItem(forField field: any GenericKeychainStorageField) {
         let query = defaultAttributes()
 
         let status = SecItemDelete(query as CFDictionary)
 
         if status != errSecSuccess && status != errSecItemNotFound {
-            throw GenericKeychainStorageAccessError.keychainDeleteFailure(field.rawValue, status)
+            delegate?.keychainAccessFailed(error: GenericKeychainStorageAccessError.keychainDeleteFailure(field.rawValue, status))
         }
     }
 
@@ -175,4 +211,8 @@ public enum KeychainType {
             return [kSecUseDataProtectionKeychain: false]
         }
     }
+}
+
+public protocol GenericKeychainStorageErrorDelegate: AnyObject {
+    func keychainAccessFailed(error: GenericKeychainStorageAccessError)
 }
