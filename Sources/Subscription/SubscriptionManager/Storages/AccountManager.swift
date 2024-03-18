@@ -170,8 +170,7 @@ public class AccountManager: AccountManaging {
 
         do {
             try storage.clearAuthenticationState()
-            accessTokenStorage.accessToken = nil
-            accessTokenStorage.authToken = nil
+            accessTokenStorage.clear()
             SubscriptionService.signOut()
             entitlementsCache.reset()
         } catch {

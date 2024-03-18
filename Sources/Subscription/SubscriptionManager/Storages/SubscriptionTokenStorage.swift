@@ -21,11 +21,12 @@ import Foundation
 public protocol SubscriptionTokenStorage: AnyObject {
     var accessToken: String? { get set }
     var authToken: String? { get set }
+    func clear()
 }
 
 public class SubscriptionTokenKeychainStorage: GenericKeychainStorage, SubscriptionTokenStorage {
 
-    enum SubscriptionTokenKeychainField: String, GenericKeychainStorageField {
+    enum SubscriptionTokenKeychainField: String, GenericKeychainStorageField, CaseIterable {
         case accessToken = "subscription.account.accessToken"
         case authToken = "subscription.account.authToken"
 
@@ -43,4 +44,8 @@ public class SubscriptionTokenKeychainStorage: GenericKeychainStorage, Subscript
 
     @GenericKeychainStorageFieldAccessors(field: SubscriptionTokenKeychainField.authToken)
     public var authToken: String?
+
+    public func clear() {
+        SubscriptionTokenKeychainField.allCases.forEach { deleteItem(forField: $0) }
+    }
 }
