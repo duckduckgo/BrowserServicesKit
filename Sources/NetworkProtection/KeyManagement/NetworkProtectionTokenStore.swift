@@ -81,8 +81,8 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
     }
 
     public func fetchToken() throws -> String? {
-        if isSubscriptionEnabled, let authToken = accessTokenProvider() {
-            return makeToken(from: authToken)
+        if isSubscriptionEnabled {
+            return accessTokenProvider().map { makeToken(from: $0) }
         }
 
         do {
