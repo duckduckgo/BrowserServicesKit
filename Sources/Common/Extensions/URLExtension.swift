@@ -382,7 +382,7 @@ extension URL {
 
         var percentEncodedQueryItems = components.percentEncodedQueryItems ?? [URLQueryItem]()
         percentEncodedQueryItems.removeAll { parametersToRemove.contains($0.name) }
-        components.percentEncodedQueryItems = percentEncodedQueryItems
+        components.percentEncodedQueryItems = !percentEncodedQueryItems.isEmpty ? percentEncodedQueryItems : nil
 
         return components.url ?? self
     }
