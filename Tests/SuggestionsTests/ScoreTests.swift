@@ -18,7 +18,7 @@
 
 import XCTest
 
-@testable import BrowserServicesKit
+@testable import Suggestions
 
 final class ScoreTests: XCTestCase {
 
