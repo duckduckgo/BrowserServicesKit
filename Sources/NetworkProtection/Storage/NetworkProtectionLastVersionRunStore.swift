@@ -39,7 +39,6 @@ public final class NetworkProtectionLastVersionRunStore {
         }
     }
 
-    @available(macOS 11.0, *)
     public var lastExtensionVersionRun: String? {
         get {
             userDefaults.string(forKey: Self.lastExtensionVersionRunKey)
