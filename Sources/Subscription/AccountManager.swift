@@ -44,6 +44,7 @@ public protocol AccountManaging {
     func storeAccount(token: String, email: String?, externalID: String?)
 
     func signOut()
+    func signOut(skipNotification: Bool)
 
     func exchangeAuthTokenToAccessToken(_ authToken: String) async -> Result<String, Error>
     func fetchAccountDetails(with accessToken: String) async -> Result<AccountDetails, Error>
@@ -195,7 +196,11 @@ public class AccountManager: AccountManaging {
         NotificationCenter.default.post(name: .accountDidSignIn, object: self, userInfo: nil)
     }
 
-    public func signOut(skipNotification: Bool = false) {
+    public func signOut() {
+        signOut(skipNotification: false)
+    }
+
+    public func signOut(skipNotification: Bool) {
         os_log(.info, log: .subscription, "[AccountManager] signOut")
 
         do {

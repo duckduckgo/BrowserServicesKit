@@ -46,6 +46,7 @@ public enum SubscriptionURLType {
     case purchase
     case welcome
     case activateWithEmail
+    case activateWithEmailSuccess
     case addEmail
     case manageEmail
     case identityTheftRestoration
@@ -58,6 +59,8 @@ public enum SubscriptionURLType {
             URL.subscriptionBaseURL.appendingPathComponent("welcome")
         case .activateWithEmail:
             URL.subscriptionBaseURL.appendingPathComponent("activate")
+        case .activateWithEmailSuccess:
+            URL.subscriptionBaseURL.appendingPathComponent("activate/success")
         case .addEmail:
             URL.subscriptionBaseURL.appendingPathComponent("add-email")
         case .manageEmail:
