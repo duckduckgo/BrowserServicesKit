@@ -162,7 +162,8 @@ public class GenericKeychainStorage {
     }
 
     func deleteItem(forField field: any GenericKeychainStorageField) {
-        let query = defaultAttributes()
+        var query = defaultAttributes()
+        query[kSecAttrService] = field.keyValue
 
         let status = SecItemDelete(query as CFDictionary)
 
