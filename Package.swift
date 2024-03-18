@@ -47,7 +47,7 @@ let package = Package(
         .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "5.4.0"),
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
         .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
-        .package(url: "https://github.com/duckduckgo/wireguard-apple", exact: "1.1.1"),
+        .package(url: "https://github.com/duckduckgo/wireguard-apple", exact: "1.1.3"),
         .package(url: "https://github.com/duckduckgo/apple-toolbox.git", exact: "2.0.0"),
     ],
     targets: [
@@ -378,6 +378,9 @@ let package = Package(
                 .copy("Resources/Bookmarks_V4.sqlite"),
                 .copy("Resources/Bookmarks_V4.sqlite-shm"),
                 .copy("Resources/Bookmarks_V4.sqlite-wal"),
+                .copy("Resources/Bookmarks_V5.sqlite"),
+                .copy("Resources/Bookmarks_V5.sqlite-shm"),
+                .copy("Resources/Bookmarks_V5.sqlite-wal"),
             ],
             plugins: [swiftlintPlugin]
         ),

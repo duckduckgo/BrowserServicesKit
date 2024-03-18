@@ -815,6 +815,170 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         })
     }
 
+    // MARK: - Stubs
+
+    func testThatLastChildrenArrayTakesIntoAccountStubs() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {}
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+        }
+
+        let received: [Syncable] = [
+            .rootFolder(children: ["1", "2"]), // Creates a Stub with id 2
+            .bookmark(id: "1")
+        ]
+
+        let rootFolder = try await handleInitialSyncResponse(received: received, clientTimestamp: Date(), serverTimestamp: "1234", in: context)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["1", "2"]) {
+            Bookmark(id: "1")
+            Bookmark(id: "2", isStub: true)
+        })
+
+        // Add new bookmark with id 3
+        context.performAndWait {
+            let root = BookmarkUtils.fetchRootFolder(context)!
+            let newBookmark = BookmarkEntity.makeBookmark(title: "3", url: "3", parent: root, context: context)
+            newBookmark.uuid = "3"
+            try! context.save()
+        }
+
+        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+
+        // Only Root and "3" should be sent
+        XCTAssertEqual(sent.count, 2)
+
+        let sentRootData = sent.first(where: { $0.payload["id"] as? String == rootFolder.uuid })
+        XCTAssertNotNil(sentRootData)
+        let folderChanges = sentRootData?.payload["folder"] as? [String: [String: [String]]]
+        XCTAssertNotNil(folderChanges)
+
+        // We expect to send create for 3
+        XCTAssertEqual(folderChanges?["children"]?["insert"], ["3"])
+
+        // Ensure there is no removal for 2
+        XCTAssertNil(folderChanges?["children"]?["remove"])
+    }
+
+    func testThatPatchPreservesOrderWithStubs() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {}
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+        }
+
+        let received: [Syncable] = [
+            .rootFolder(children: ["2", "1", "3"]), // Create Stubs with id 2 and 3
+            .favoritesFolder(favorites: ["3", "1", "2"]),
+            .bookmark(id: "1")
+        ]
+
+        let rootFolder = try await handleInitialSyncResponse(received: received, clientTimestamp: Date(), serverTimestamp: "1234", in: context)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["2", "1", "3"]) {
+            Bookmark(id: "2", favoritedOn: [.unified], isStub: true)
+            Bookmark(id: "1", favoritedOn: [.unified])
+            Bookmark(id: "3", favoritedOn: [.unified], isStub: true)
+        })
+
+        context.performAndWait {
+            let bookmarks = BookmarkEntity.fetchBookmarks(with: ["1", "2", "3"], in: context)
+            bookmarks.forEach { $0.modifiedAt = nil }
+
+            let favoriteFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: FavoritesFolderID.unified.rawValue, in: context)
+            favoriteFolder?.modifiedAt = Date()
+            rootFolder.modifiedAt = Date()
+            try! context.save()
+        }
+
+        let patchData = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+
+        let changedObjects = patchData.map(SyncableBookmarkAdapter.init(syncable:))
+
+        XCTAssertEqual(changedObjects.count, 2)
+        let changedRoot = changedObjects.first(where: { $0.uuid == BookmarkEntity.Constants.rootFolderID })
+        let changedFavRoot = changedObjects.first(where: { BookmarkEntity.Constants.favoriteFoldersIDs.contains($0.uuid!) })
+        XCTAssertEqual(changedRoot?.children, ["2", "1", "3"])
+        XCTAssertEqual(changedFavRoot?.children, ["3", "1", "2"])
+    }
+
+    func testThatRemoteRemovalOfStubReferenceRemovesTheStub() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {}
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+        }
+
+        let received: [Syncable] = [
+            .rootFolder(children: ["1", "2", "3"]), // Create Stubs with id 2 and 3
+            .bookmark(id: "1")
+        ]
+
+        var rootFolder = try await handleInitialSyncResponse(received: received, clientTimestamp: Date(), serverTimestamp: "1234", in: context)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["1", "2", "3"]) {
+            Bookmark(id: "1")
+            Bookmark(id: "2", isStub: true)
+            Bookmark(id: "3", isStub: true)
+        })
+
+        // Simulate two kinds of "removal":
+        // - "2" is only removed from children list.
+        // - "3" is removed from children list and deleted.
+        let receivedUpdate: [Syncable] = [
+            .rootFolder(children: ["1"]),
+            .bookmark(id: "3", isDeleted: true)
+        ]
+
+        rootFolder = try await handleSyncResponse(sent: [], received: receivedUpdate, clientTimestamp: Date(), serverTimestamp: "1234", in: context)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["1"]) {
+            Bookmark(id: "1")
+        })
+    }
+
+    func testThatRemoteRemovalOfFolderRemovesTheStub() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {}
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+        }
+
+        let received: [Syncable] = [
+            .rootFolder(children: ["1"]),
+            .folder(id: "1", children: ["2"])
+        ]
+
+        var rootFolder = try await handleInitialSyncResponse(received: received, clientTimestamp: Date(), serverTimestamp: "1234", in: context)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["1"]) {
+            Folder(id: "1", lastChildrenArrayReceivedFromSync: ["2"]) {
+                Bookmark(id: "2", isStub: true)
+            }
+        })
+
+        let receivedUpdate: [Syncable] = [
+            .rootFolder(children: []),
+            .folder(id: "1", isDeleted: true)
+        ]
+
+        rootFolder = try await handleSyncResponse(sent: [], received: receivedUpdate, clientTimestamp: Date(), serverTimestamp: "1234", in: context)
+        assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: []) {
+        })
+    }
+
     // MARK: - Helpers
 
     func handleInitialSyncResponse(
