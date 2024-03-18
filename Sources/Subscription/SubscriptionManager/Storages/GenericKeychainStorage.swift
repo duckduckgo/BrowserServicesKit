@@ -217,3 +217,35 @@ public enum KeychainType {
 public protocol GenericKeychainStorageErrorDelegate: AnyObject {
     func keychainAccessFailed(error: GenericKeychainStorageAccessError)
 }
+
+@propertyWrapper
+public struct GenericKeychainStorageFieldAccessors {
+
+    var field: any GenericKeychainStorageField
+
+    init(field: any GenericKeychainStorageField) {
+        self.field = field
+    }
+
+    public static subscript<EnclosingSelf: GenericKeychainStorage>(_enclosingInstance object: EnclosingSelf,
+                                                                   wrapped wrappedKeyPath: ReferenceWritableKeyPath<EnclosingSelf, String?>,
+                                                                   storage storageKeyPath: ReferenceWritableKeyPath<EnclosingSelf, GenericKeychainStorageFieldAccessors>) -> String? {
+        get {
+            let field = object[keyPath: storageKeyPath].field
+            return object.getString(forField: field)
+        }
+        set {
+            let field = object[keyPath: storageKeyPath].field
+            if let newValue {
+                object.set(string: newValue, forField: field)
+            } else {
+                object.deleteItem(forField: field)
+            }
+        }
+    }
+
+    public var wrappedValue: String? {
+        get { fatalError("called wrappedValue getter") }
+        set { fatalError("called wrappedValue setter") }
+    }
+}
