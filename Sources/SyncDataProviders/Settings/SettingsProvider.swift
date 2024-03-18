@@ -126,7 +126,7 @@ public final class SettingsProvider: DataProvider, SettingSyncHandlingDelegate {
         }
     }
 
-    public override func fetchTitlesForObjectsThatFailedValidation() throws -> [String] {
+    public override func fetchDescriptionsForObjectsThatFailedValidation() throws -> [String] {
         []
     }
 

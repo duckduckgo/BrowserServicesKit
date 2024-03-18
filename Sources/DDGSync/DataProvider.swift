@@ -132,7 +132,7 @@ public protocol DataProviding: AnyObject {
      * Local timestamp of the last successful sync of a given feature.
      *
      * This timestamp should only be used to identify objects that failed to sync
-     * (see `fetchTitlesForObjectsThatFailedValidation`) as it is not immune to
+     * (see `fetchDescriptionsForObjectsThatFailedValidation`) as it is not immune to
      * changing date/time on client devices.
      */
     var lastSyncLocalTimestamp: Date? { get }
@@ -161,7 +161,7 @@ public protocol DataProviding: AnyObject {
      * a property of the object that would hint the user which object it is. The strings
      * returned by this function should be safe to be displayed verbatim in the app UI.
      */
-    func fetchTitlesForObjectsThatFailedValidation() throws -> [String]
+    func fetchDescriptionsForObjectsThatFailedValidation() throws -> [String]
 
     /**
      * Return objects that have changed since last sync, or all objects in case of the initial sync.
@@ -291,7 +291,7 @@ open class DataProvider: DataProviding {
         assertionFailure("\(#function) is not implemented")
     }
 
-    open func fetchTitlesForObjectsThatFailedValidation() throws -> [String] {
+    open func fetchDescriptionsForObjectsThatFailedValidation() throws -> [String] {
         assertionFailure("\(#function) is not implemented")
         return []
     }

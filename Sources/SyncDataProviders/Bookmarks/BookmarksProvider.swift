@@ -49,7 +49,7 @@ public final class BookmarksProvider: DataProvider {
         }
     }
 
-    public override func fetchTitlesForObjectsThatFailedValidation() -> [String] {
+    public override func fetchDescriptionsForObjectsThatFailedValidation() -> [String] {
         guard let lastSyncLocalTimestamp else {
             return []
         }

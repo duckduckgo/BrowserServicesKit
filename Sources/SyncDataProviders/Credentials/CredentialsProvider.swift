@@ -79,7 +79,7 @@ public final class CredentialsProvider: DataProvider {
         }
     }
 
-    public override func fetchTitlesForObjectsThatFailedValidation() throws -> [String] {
+    public override func fetchDescriptionsForObjectsThatFailedValidation() throws -> [String] {
         guard let lastSyncLocalTimestamp else {
             return []
         }
