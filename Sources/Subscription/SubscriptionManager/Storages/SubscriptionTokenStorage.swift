@@ -19,25 +19,15 @@
 import Foundation
 
 public protocol SubscriptionTokenStorage: AnyObject {
-//    func getAccessToken() throws -> String?
-//    func store(accessToken: String) throws
-
     var accessToken: String? { get set }
-    func removeAccessToken()
-//
-//    func getAuthToken() throws -> String?
-//    func store(authToken: String) throws
-//
-//
-//    var authToken: String? { get set }
-//    func removeAuthToken()
+    var authToken: String? { get set }
 }
 
 public class SubscriptionTokenKeychainStorage: GenericKeychainStorage, SubscriptionTokenStorage {
 
     enum SubscriptionTokenKeychainField: String, GenericKeychainStorageField {
         case accessToken = "subscription.account.accessToken"
-//        case authToken = "subscription.account.authToken"
+        case authToken = "subscription.account.authToken"
 
         var keyValue: String {
             "com.duckduckgo" + "." + rawValue
@@ -48,41 +38,9 @@ public class SubscriptionTokenKeychainStorage: GenericKeychainStorage, Subscript
         super.init(keychainType: keychainType)
     }
 
-    public var accessToken: String? {
-        get {
-            getString(forField: SubscriptionTokenKeychainField.accessToken)
-        }
-        set {
-            if let newValue {
-                set(string: newValue, forField: SubscriptionTokenKeychainField.accessToken)
-            } else {
-                removeAccessToken()
-            }
-        }
-    }
+    @GenericKeychainStorageFieldAccessors(field: SubscriptionTokenKeychainField.accessToken)
+    public var accessToken: String?
 
-    public func removeAccessToken() {
-        deleteItem(forField: SubscriptionTokenKeychainField.accessToken)
-    }
-
-//    public func getAccessToken() throws -> String? {
-//        try getString(forField: SubscriptionTokenKeychainField.accessToken)
-//    }
-//
-//    public func store(accessToken: String) throws {
-//        try set(string: accessToken, forField: SubscriptionTokenKeychainField.accessToken)
-//    }
-//
-//    public func removeAccessToken() throws {
-//        try deleteItem(forField: SubscriptionTokenKeychainField.accessToken)
-//    }
-
-//    public var authToken: String? {
-//        get {
-//
-//        }
-//        set {
-//            
-//        }
-//    }
+    @GenericKeychainStorageFieldAccessors(field: SubscriptionTokenKeychainField.authToken)
+    public var authToken: String?
 }

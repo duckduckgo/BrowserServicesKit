@@ -94,17 +94,7 @@ public class AccountManager: AccountManaging {
     }
 
     public var authToken: String? {
-        do {
-            return try storage.getAuthToken()
-        } catch {
-            if let error = error as? AccountKeychainAccessError {
-                delegate?.accountManagerKeychainAccessFailed(accessType: .getAuthToken, error: error)
-            } else {
-                assertionFailure("Expected AccountKeychainAccessError")
-            }
-
-            return nil
-        }
+        accessTokenStorage.authToken
     }
 
     public var accessToken: String? {
@@ -141,16 +131,7 @@ public class AccountManager: AccountManaging {
 
     public func storeAuthToken(token: String) {
         os_log(.info, log: .subscription, "[AccountManager] storeAuthToken")
-
-        do {
-            try storage.store(authToken: token)
-        } catch {
-            if let error = error as? AccountKeychainAccessError {
-                delegate?.accountManagerKeychainAccessFailed(accessType: .storeAuthToken, error: error)
-            } else {
-                assertionFailure("Expected AccountKeychainAccessError")
-            }
-        }
+        accessTokenStorage.authToken = token
     }
 
     public func storeAccount(token: String, email: String?, externalID: String?) {
@@ -189,7 +170,8 @@ public class AccountManager: AccountManaging {
 
         do {
             try storage.clearAuthenticationState()
-            accessTokenStorage.removeAccessToken()
+            accessTokenStorage.accessToken = nil
+            accessTokenStorage.authToken = nil
             SubscriptionService.signOut()
             entitlementsCache.reset()
         } catch {
