@@ -1,5 +1,5 @@
 //
-//  WebVitalsSubfeature.swift
+//  PerformanceMetricsSubfeature.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -28,7 +28,9 @@ public class PerformanceMetricsSubfeature: Subfeature {
 
     public var targetWebview: WKWebView?
 
-    var completionHandler: (([Double]?) -> Void)?
+    private var timer: Timer?
+
+    private var completionHandler: (([Double]?) -> Void)?
 
     public init() {}
 
@@ -39,6 +41,7 @@ public class PerformanceMetricsSubfeature: Subfeature {
     }
 
     public func vitalsResult(params: Any, original: WKScriptMessage) async throws -> Encodable? {
+        timer?.invalidate()
         guard let payload = params as? [String: Any] else {
             completionHandler?(nil)
             return nil
@@ -54,6 +57,15 @@ public class PerformanceMetricsSubfeature: Subfeature {
         completionHandler = completion
         if let targetWebview {
             broker.push(method: "getVitals", params: nil, for: self, into: targetWebview)
+            
+            // On the chance C-S-S doesn't respond to our message, set a timer
+            // to continue the process since the breakage report blocks on this.
+            timer = Timer(timeInterval: 1.0, repeats: false) { [weak self] _ in
+                if let completionHandler = self?.completionHandler {
+                    self?.completionHandler = nil
+                    completionHandler(nil)
+                }
+            }
         } else {
             completion(nil)
         }
