@@ -70,3 +70,51 @@ public enum SubscriptionURLType {
         }
     }
 }
+
+public extension URL {
+
+    static var subscriptionBaseURL: URL {
+        URL(string: "https://duckduckgo.com/subscriptions")!
+    }
+
+    static var identityTheftRestorationBaseURL: URL {
+        URL(string: "https://duckduckgo.com/identity-theft-restoration")!
+    }
+
+    static var subscriptionFAQ: URL {
+        URL(string: "https://duckduckgo.com/duckduckgo-help-pages/privacy-pro/")!
+    }
+
+    static var manageSubscriptionsInAppStoreAppURL: URL {
+        URL(string: "macappstores://apps.apple.com/account/subscriptions")!
+    }
+}
+
+public extension URL {
+
+    enum Constants {
+        static let paramNameEnvironment = "environment"
+        static let paramValueEnvironmentStaging = "staging"
+    }
+
+    func appendingSubscriptionEnvironmentParameter(environment: SubscriptionServiceEnvironment) -> URL {
+        var updatedURL: URL
+
+        switch environment {
+        case .production:
+            updatedURL = self.removingSubscriptionEnvironmentParameter()
+        case .staging:
+            updatedURL = self.removingSubscriptionEnvironmentParameter()
+            updatedURL = updatedURL.appendingParameter(name: Constants.paramNameEnvironment,
+                                                       value: Constants.paramValueEnvironmentStaging)
+        }
+
+        return updatedURL
+    }
+
+    func removingSubscriptionEnvironmentParameter() -> URL {
+        guard self.getParameter(named: Constants.paramNameEnvironment) != nil else { return self }
+        return removingParameters(named: [Constants.paramNameEnvironment])
+    }
+}
+
