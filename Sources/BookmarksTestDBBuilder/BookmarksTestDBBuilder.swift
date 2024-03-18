@@ -28,7 +28,7 @@ import Bookmarks
 struct BookmarksTestDBBuilder {
 
     static func main() {
-        generateDatabase(modelVersion: 3)
+        generateDatabase(modelVersion: 5)
     }
 
     private static func generateDatabase(modelVersion: Int) {

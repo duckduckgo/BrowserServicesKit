@@ -34,7 +34,7 @@ public extension URL {
     }
 
     static var subscriptionFAQ: URL {
-        URL(string: "https://duckduckgo.com/about")!
+        URL(string: "https://duckduckgo.com/duckduckgo-help-pages/privacy-pro/")!
     }
 
     // MARK: - Subscription Email
@@ -48,6 +48,10 @@ public extension URL {
 
     static var manageSubscriptionEmail: URL {
         subscriptionBaseURL.appendingPathComponent("manage")
+    }
+
+    static var subscriptionActivateSuccess: URL {
+        subscriptionBaseURL.appendingPathComponent("activate/success")
     }
 
     // MARK: - App Store app manage subscription URL
@@ -66,4 +70,22 @@ public extension URL {
             URL(string: "https://duckduckgo.com/identity-theft-restoration?environment=staging")!
         }
     }
+
+    func forComparison() -> URL {
+            guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else {
+                return self
+            }
+
+            if let queryItems = components.queryItems, !queryItems.isEmpty {
+                components.queryItems = queryItems.filter { !["environment"].contains($0.name) }
+
+                if components.queryItems?.isEmpty ?? true {
+                    components.queryItems = nil
+                }
+            } else {
+                components.queryItems = nil
+            }
+            return components.url ?? self
+        }
+
 }
