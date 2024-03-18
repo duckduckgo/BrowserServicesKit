@@ -57,7 +57,7 @@ public class PerformanceMetricsSubfeature: Subfeature {
         completionHandler = completion
         if let targetWebview {
             broker.push(method: "getVitals", params: nil, for: self, into: targetWebview)
-            
+
             // On the chance C-S-S doesn't respond to our message, set a timer
             // to continue the process since the breakage report blocks on this.
             timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: false) { [weak self] _ in
