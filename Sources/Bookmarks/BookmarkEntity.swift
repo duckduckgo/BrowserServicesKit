@@ -63,6 +63,7 @@ public class BookmarkEntity: NSManagedObject {
     @NSManaged public var title: String?
     @NSManaged public var url: String?
     @NSManaged public var uuid: String?
+    @NSManaged public var isStub: Bool
     @NSManaged public var children: NSOrderedSet?
     @NSManaged public fileprivate(set) var lastChildrenPayloadReceivedFromSync: String?
     @NSManaged public fileprivate(set) var favoriteFolders: NSSet?
@@ -127,6 +128,16 @@ public class BookmarkEntity: NSManagedObject {
         try validate()
     }
 
+    public override func prepareForDeletion() {
+        super.prepareForDeletion()
+
+        if isFolder {
+            for child in children?.array as? [BookmarkEntity] ?? [] where child.isStub {
+                managedObjectContext?.delete(child)
+            }
+        }
+    }
+
     public var urlObject: URL? {
         guard let url = url else { return nil }
         return url.isBookmarklet() ? url.toEncodedBookmarklet() : URL(string: url)
@@ -138,12 +149,12 @@ public class BookmarkEntity: NSManagedObject {
 
     public var childrenArray: [BookmarkEntity] {
         let children = children?.array as? [BookmarkEntity] ?? []
-        return children.filter { $0.isPendingDeletion == false }
+        return children.filter { $0.isStub == false && $0.isPendingDeletion == false }
     }
 
     public var favoritesArray: [BookmarkEntity] {
         let children = favorites?.array as? [BookmarkEntity] ?? []
-        return children.filter { $0.isPendingDeletion == false }
+        return children.filter { $0.isStub == false && $0.isPendingDeletion == false }
     }
 
     public var favoriteFoldersSet: Set<BookmarkEntity> {
