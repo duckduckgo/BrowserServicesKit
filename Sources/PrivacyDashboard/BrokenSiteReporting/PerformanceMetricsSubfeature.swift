@@ -60,7 +60,7 @@ public class PerformanceMetricsSubfeature: Subfeature {
             
             // On the chance C-S-S doesn't respond to our message, set a timer
             // to continue the process since the breakage report blocks on this.
-            timer = Timer(timeInterval: 1.0, repeats: false) { [weak self] _ in
+            timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: false) { [weak self] _ in
                 if let completionHandler = self?.completionHandler {
                     self?.completionHandler = nil
                     completionHandler(nil)
