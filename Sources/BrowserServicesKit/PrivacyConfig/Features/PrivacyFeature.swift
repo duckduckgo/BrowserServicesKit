@@ -44,6 +44,7 @@ public enum PrivacyFeature: String {
     case sync
     case privacyDashboard
     case history
+    case performanceMetrics
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.

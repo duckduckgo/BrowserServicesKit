@@ -20,10 +20,10 @@ import Foundation
 import UserScript
 import WebKit
 
-public class WebVitalsSubfeature: Subfeature {
+public class PerformanceMetricsSubfeature: Subfeature {
 
     public var messageOriginPolicy: MessageOriginPolicy = .all
-    public var featureName: String = "webVitals"
+    public var featureName: String = "performanceMetrics"
     public var broker: UserScriptMessageBroker?
 
     public var targetWebview: WKWebView?
