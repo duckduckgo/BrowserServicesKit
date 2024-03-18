@@ -1,5 +1,5 @@
 //
-//  HistoryEntryMock.swift
+//  SuggestionResultTests.swift
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -16,18 +16,18 @@
 //  limitations under the License.
 //
 
-import Foundation
+import XCTest
+@testable import Suggestions
 
-@testable import BrowserServicesKit
+final class SuggestionResultTests: XCTestCase {
 
-struct HistoryEntryMock: HistorySuggestion {
+    func testWhenResultContainsNoSuggestions_ThenItIsEmpty() {
+        let emptyResult = SuggestionResult.empty
 
-    var identifier: UUID
-    var url: URL
-    var title: String?
-    var numberOfVisits: Int
-    var lastVisit: Date
-    var failedToLoad: Bool
-    var isDownload: Bool
+        XCTAssert(emptyResult.isEmpty)
+        XCTAssertEqual(emptyResult.topHits.count, 0)
+        XCTAssertEqual(emptyResult.historyAndBookmarks.count, 0)
+        XCTAssertEqual(emptyResult.duckduckgoSuggestions.count, 0)
+    }
 
 }
