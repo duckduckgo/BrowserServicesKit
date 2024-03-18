@@ -104,7 +104,7 @@ public final class AppStorePurchaseFlow {
             return .success(transactionJWS)
         case .failure(let error):
             os_log(.error, log: .subscription, "[AppStorePurchaseFlow] purchaseSubscription error: %{public}s", String(reflecting: error))
-            AccountManager(subscriptionAppGroup: subscriptionAppGroup).signOut()
+            AccountManager(subscriptionAppGroup: subscriptionAppGroup).signOut(skipNotification: true)
             switch error {
             case .purchaseCancelledByUser:
                 return .failure(.cancelledByUser)
@@ -117,6 +117,10 @@ public final class AppStorePurchaseFlow {
     // swiftlint:enable cyclomatic_complexity
     @discardableResult
     public static func completeSubscriptionPurchase(with transactionJWS: TransactionJWS, subscriptionAppGroup: String) async -> Result<PurchaseUpdate, AppStorePurchaseFlow.Error> {
+
+        // Clear subscription Cache
+        SubscriptionService.signOut()
+
         os_log(.info, log: .subscription, "[AppStorePurchaseFlow] completeSubscriptionPurchase")
 
         guard let accessToken = AccountManager(subscriptionAppGroup: subscriptionAppGroup).accessToken else { return .failure(.missingEntitlements) }

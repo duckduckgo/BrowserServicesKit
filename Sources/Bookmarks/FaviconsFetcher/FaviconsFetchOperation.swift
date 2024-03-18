@@ -229,10 +229,11 @@ final class FaviconsFetchOperation: Operation {
     private func mapBookmarkDomainsToUUIDs(for uuids: any Sequence & CVarArg) -> BookmarkDomains {
         let request = BookmarkEntity.fetchRequest()
         request.predicate = NSPredicate(
-            format: "%K IN %@ AND %K == NO AND %K == NO",
+            format: "%K IN %@ AND %K == NO AND %K == NO AND (%K == NO OR %K == nil)",
             #keyPath(BookmarkEntity.uuid), uuids,
             #keyPath(BookmarkEntity.isFolder),
-            #keyPath(BookmarkEntity.isPendingDeletion)
+            #keyPath(BookmarkEntity.isPendingDeletion),
+            #keyPath(BookmarkEntity.isStub), #keyPath(BookmarkEntity.isStub)
         )
         request.propertiesToFetch = [#keyPath(BookmarkEntity.uuid), #keyPath(BookmarkEntity.url)]
         request.relationshipKeyPathsForPrefetching = [#keyPath(BookmarkEntity.favoriteFolders), #keyPath(BookmarkEntity.parent)]
