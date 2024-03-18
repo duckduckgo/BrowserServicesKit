@@ -34,11 +34,13 @@ public final class AppStoreRestoreFlow {
         case subscriptionExpired(accountDetails: RestoredAccountDetails)
     }
 
+    private var tokenStorage: SubscriptionTokenStorage
     private var accountManager: AccountManaging
     private var authService: AuthServiceProtocol
     private var subscriptionService: SubscriptionServiceProtocol
 
-    init(accountManager: AccountManaging, authService: AuthServiceProtocol, subscriptionService: SubscriptionServiceProtocol) {
+    init(tokenStorage: SubscriptionTokenStorage, accountManager: AccountManaging, authService: AuthServiceProtocol, subscriptionService: SubscriptionServiceProtocol) {
+        self.tokenStorage = tokenStorage
         self.accountManager = accountManager
         self.authService = authService
         self.subscriptionService = subscriptionService
@@ -98,7 +100,8 @@ public final class AppStoreRestoreFlow {
         }
 
         if isSubscriptionActive {
-            accountManager.storeAuthToken(token: authToken)
+            tokenStorage.authToken = authToken
+            tokenStorage.accessToken = accessToken
             accountManager.storeAccount(token: accessToken, email: email, externalID: externalID)
             return .success(())
         } else {

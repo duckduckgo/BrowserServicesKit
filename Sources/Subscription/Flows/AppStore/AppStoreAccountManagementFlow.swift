@@ -28,10 +28,12 @@ public final class AppStoreAccountManagementFlow {
             case authenticatingWithTransactionFailed
         }
 
+    private var tokenStorage: SubscriptionTokenStorage
     private var accountManager: AccountManaging
     private var authService: AuthServiceProtocol
 
-    init(accountManager: AccountManaging, authService: AuthServiceProtocol) {
+    init(tokenStorage: SubscriptionTokenStorage, accountManager: AccountManaging, authService: AuthServiceProtocol) {
+        self.tokenStorage = tokenStorage
         self.accountManager = accountManager
         self.authService = authService
     }
@@ -40,7 +42,7 @@ public final class AppStoreAccountManagementFlow {
     public func refreshAuthTokenIfNeeded() async -> Result<String, AppStoreAccountManagementFlow.Error> {
         os_log(.info, log: .subscription, "[AppStoreAccountManagementFlow] refreshAuthTokenIfNeeded")
 
-        var authToken = accountManager.authToken ?? ""
+        var authToken = tokenStorage.authToken ?? ""
 
         // Check if auth token if still valid
         if case let .failure(validateTokenError) = await authService.validateToken(accessToken: authToken) {
@@ -52,8 +54,7 @@ public final class AppStoreAccountManagementFlow {
             switch await authService.storeLogin(signature: lastTransactionJWSRepresentation) {
             case .success(let response):
                 if response.externalID == accountManager.externalID {
-                    authToken = response.authToken
-                    accountManager.storeAuthToken(token: authToken)
+                    tokenStorage.authToken = response.authToken
                 }
             case .failure(let storeLoginError):
                 os_log(.error, log: .subscription, "[AppStoreAccountManagementFlow] storeLogin error: %{public}s", String(reflecting: storeLoginError))

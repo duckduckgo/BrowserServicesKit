@@ -32,16 +32,19 @@ public protocol SubscriptionFlowProviding {
 
 public final class SubscriptionFlowProvider: SubscriptionFlowProviding {
 
+    private let tokenStorage: SubscriptionTokenStorage
     private let accountManager: AccountManaging
     private let serviceProvider: SubscriptionServiceProvider
 
-    init(accountManager: AccountManaging, serviceProvider: SubscriptionServiceProvider) {
+    init(tokenStorage: SubscriptionTokenStorage, accountManager: AccountManaging, serviceProvider: SubscriptionServiceProvider) {
+        self.tokenStorage = tokenStorage
         self.accountManager = accountManager
         self.serviceProvider = serviceProvider
     }
 
     public lazy var stripePurchaseFlow: StripePurchaseFlow = {
-        StripePurchaseFlow(accountManager: accountManager,
+        StripePurchaseFlow(tokenStorage: tokenStorage,
+                           accountManager: accountManager,
                            authService: serviceProvider.makeAuthService(),
                            subscriptionService: serviceProvider.makeSubscriptionService())
     }()
@@ -50,7 +53,8 @@ public final class SubscriptionFlowProvider: SubscriptionFlowProviding {
     @available(macOS 12.0, iOS 15.0, *)
     public var appStorePurchaseFlow: AppStorePurchaseFlow {
         if _appStorePurchaseFlow == nil {
-            _appStorePurchaseFlow = AppStorePurchaseFlow(accountManager: accountManager,
+            _appStorePurchaseFlow = AppStorePurchaseFlow(tokenStorage: tokenStorage,
+                                                         accountManager: accountManager,
                                                          authService: serviceProvider.makeAuthService(),
                                                          subscriptionService: serviceProvider.makeSubscriptionService())
         }
@@ -62,7 +66,8 @@ public final class SubscriptionFlowProvider: SubscriptionFlowProviding {
     @available(macOS 12.0, iOS 15.0, *)
     public var appStoreRestoreFlow: AppStoreRestoreFlow {
         if _appStoreRestoreFlow == nil {
-            _appStoreRestoreFlow = AppStoreRestoreFlow(accountManager: accountManager,
+            _appStoreRestoreFlow = AppStoreRestoreFlow(tokenStorage: tokenStorage,
+                                                       accountManager: accountManager,
                                                        authService: serviceProvider.makeAuthService(),
                                                        subscriptionService: serviceProvider.makeSubscriptionService())
         }
@@ -74,7 +79,8 @@ public final class SubscriptionFlowProvider: SubscriptionFlowProviding {
     @available(macOS 12.0, iOS 15.0, *)
     public var appStoreAccountManagementFlow: AppStoreAccountManagementFlow {
         if _appStoreAccountManagementFlow == nil {
-            _appStoreAccountManagementFlow = AppStoreAccountManagementFlow(accountManager: accountManager,
+            _appStoreAccountManagementFlow = AppStoreAccountManagementFlow(tokenStorage: tokenStorage,
+                                                                           accountManager: accountManager,
                                                                            authService: serviceProvider.makeAuthService())
         }
         // swiftlint:disable:next force_cast

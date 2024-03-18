@@ -27,11 +27,13 @@ public final class StripePurchaseFlow {
         case accountCreationFailed
     }
 
+    private var tokenStorage: SubscriptionTokenStorage
     private var accountManager: AccountManaging
     private var authService: AuthServiceProtocol
     private var subscriptionService: SubscriptionServiceProtocol
 
-    init(accountManager: AccountManaging, authService: AuthServiceProtocol, subscriptionService: SubscriptionServiceProtocol) {
+    init(tokenStorage: SubscriptionTokenStorage, accountManager: AccountManaging, authService: AuthServiceProtocol, subscriptionService: SubscriptionServiceProtocol) {
+        self.tokenStorage = tokenStorage
         self.accountManager = accountManager
         self.authService = authService
         self.subscriptionService = subscriptionService
@@ -82,7 +84,7 @@ public final class StripePurchaseFlow {
         switch await authService.createAccount(emailAccessToken: emailAccessToken) {
         case .success(let response):
             authToken = response.authToken
-            accountManager.storeAuthToken(token: authToken)
+            tokenStorage.authToken = authToken
         case .failure:
             os_log(.error, log: .subscription, "[StripePurchaseFlow] Error: accountCreationFailed")
             return .failure(.accountCreationFailed)
@@ -97,10 +99,11 @@ public final class StripePurchaseFlow {
         // Clear subscription Cache
         SubscriptionService.signOut()
 
-        if let authToken = accountManager.authToken {
+        if let authToken = tokenStorage.authToken {
             if case let .success(accessToken) = await accountManager.exchangeAuthTokenToAccessToken(authToken),
                case let .success(accountDetails) = await accountManager.fetchAccountDetails(with: accessToken) {
-                accountManager.storeAuthToken(token: authToken)
+                tokenStorage.authToken = authToken
+                tokenStorage.accessToken = accessToken
                 accountManager.storeAccount(token: accessToken, email: accountDetails.email, externalID: accountDetails.externalID)
             }
         }

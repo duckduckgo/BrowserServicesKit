@@ -33,13 +33,15 @@ public final class AppStorePurchaseFlow {
         case missingEntitlements
     }
 
+    private var tokenStorage: SubscriptionTokenStorage
     private var accountManager: AccountManaging
     private var authService: AuthServiceProtocol
     private var subscriptionService: SubscriptionServiceProtocol
 
-    private lazy var appStoreRestoreFlow = AppStoreRestoreFlow(accountManager: accountManager, authService: authService, subscriptionService: subscriptionService)
+    private lazy var appStoreRestoreFlow = AppStoreRestoreFlow(tokenStorage: tokenStorage, accountManager: accountManager, authService: authService, subscriptionService: subscriptionService)
 
-    init(accountManager: AccountManaging, authService: AuthServiceProtocol, subscriptionService: SubscriptionServiceProtocol) {
+    init(tokenStorage: SubscriptionTokenStorage, accountManager: AccountManaging, authService: AuthServiceProtocol, subscriptionService: SubscriptionServiceProtocol) {
+        self.tokenStorage = tokenStorage
         self.accountManager = accountManager
         self.authService = authService
         self.subscriptionService = subscriptionService
@@ -89,7 +91,8 @@ public final class AppStorePurchaseFlow {
             switch error {
             case .subscriptionExpired(let expiredAccountDetails):
                 externalID = expiredAccountDetails.externalID
-                accountManager.storeAuthToken(token: expiredAccountDetails.authToken)
+                tokenStorage.authToken = expiredAccountDetails.authToken
+                tokenStorage.accessToken = expiredAccountDetails.accessToken
                 accountManager.storeAccount(token: expiredAccountDetails.accessToken, email: expiredAccountDetails.email, externalID: expiredAccountDetails.externalID)
             default:
                 // No history, create new account
@@ -99,7 +102,8 @@ public final class AppStorePurchaseFlow {
 
                     if case let .success(accessToken) = await accountManager.exchangeAuthTokenToAccessToken(response.authToken),
                        case let .success(accountDetails) = await accountManager.fetchAccountDetails(with: accessToken) {
-                        accountManager.storeAuthToken(token: response.authToken)
+                        tokenStorage.authToken = response.authToken
+                        tokenStorage.accessToken = accessToken
                         accountManager.storeAccount(token: accessToken, email: accountDetails.email, externalID: accountDetails.externalID)
                     }
                 case .failure(let error):
@@ -134,7 +138,7 @@ public final class AppStorePurchaseFlow {
 
         os_log(.info, log: .subscription, "[AppStorePurchaseFlow] completeSubscriptionPurchase")
 
-        guard let accessToken = accountManager.accessToken else { return .failure(.missingEntitlements) }
+        guard let accessToken = tokenStorage.accessToken else { return .failure(.missingEntitlements) }
 
         let result = await callWithRetries(retry: 5, wait: 2.0) {
             switch await subscriptionService.confirmPurchase(accessToken: accessToken, signature: transactionJWS) {

@@ -21,6 +21,7 @@ import Common
 
 public protocol SubscriptionManaging {
     var configuration: SubscriptionConfiguration { get }
+    var tokenStorage: SubscriptionTokenStorage { get }
     var accountManager: AccountManaging { get }
     var urlProvider: SubscriptionURLProviding { get }
     var serviceProvider: SubscriptionServiceProviding { get }
@@ -31,6 +32,7 @@ public final class SubscriptionManager: SubscriptionManaging {
 
     public private(set) var configuration: SubscriptionConfiguration
     public private(set) var accountManager: AccountManaging
+    public private(set) var tokenStorage: SubscriptionTokenStorage
     public private(set) var urlProvider: SubscriptionURLProviding
     public private(set) var serviceProvider: SubscriptionServiceProviding
     public private(set) var flowProvider: SubscriptionFlowProviding
@@ -43,26 +45,40 @@ public final class SubscriptionManager: SubscriptionManaging {
                                             authService: serviceProvider.makeAuthService(),
                                             subscriptionService: serviceProvider.makeSubscriptionService())
 
-        let flowProvider = SubscriptionFlowProvider(accountManager: accountManager,
+        let tokenStorage = SubscriptionTokenKeychainStorage(keychainType: .dataProtection(.named(configuration.subscriptionAppGroup)))
+
+        let flowProvider = SubscriptionFlowProvider(tokenStorage: tokenStorage,
+                                                    accountManager: accountManager,
                                                     serviceProvider: serviceProvider)
 
         self.init(configuration: configuration,
                   accountManager: accountManager,
+                  tokenStorage: tokenStorage,
                   urlProvider: urlProvider,
                   serviceProvider: serviceProvider,
                   flowProvider: flowProvider)
+
+        tokenStorage.delegate = self
     }
 
     public init(configuration: SubscriptionConfiguration,
                 accountManager: AccountManaging,
+                tokenStorage: SubscriptionTokenStorage,
                 urlProvider: SubscriptionURLProviding,
                 serviceProvider: SubscriptionServiceProvider,
                 flowProvider: SubscriptionFlowProviding) {
         self.configuration = configuration
         self.accountManager = accountManager
+        self.tokenStorage = tokenStorage
         self.urlProvider = urlProvider
         self.serviceProvider = serviceProvider
         self.flowProvider = flowProvider
     }
+}
 
+extension SubscriptionManager: GenericKeychainStorageErrorDelegate {
+    public func keychainAccessFailed(error: GenericKeychainStorageAccessError) {
+        os_log(.error, log: .subscription, "[GenericKeychainStorageErrorDelegate] \(error.errorDescription)")
+        assertionFailure("🔥 Something went wrong with GenericKeychainStorage! 🔥")
+    }
 }

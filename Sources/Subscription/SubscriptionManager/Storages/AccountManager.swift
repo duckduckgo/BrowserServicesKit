@@ -35,12 +35,9 @@ public protocol AccountManaging {
 
     var isUserAuthenticated: Bool { get }
 
-    var accessToken: String? { get }
-    var authToken: String? { get }
     var email: String? { get }
     var externalID: String? { get }
 
-    func storeAuthToken(token: String)
     func storeAccount(token: String, email: String?, externalID: String?)
 
     func signOut()
@@ -60,7 +57,7 @@ public class AccountManager: AccountManaging {
 
     private let storage: AccountStorage
     private let entitlementsCache: UserDefaultsCache<[Entitlement]>
-    private let accessTokenStorage: SubscriptionTokenStorage
+
 
     public weak var delegate: AccountManagerKeychainAccessDelegate?
 
@@ -68,37 +65,24 @@ public class AccountManager: AccountManaging {
     private let subscriptionService: SubscriptionServiceProtocol
 
     public var isUserAuthenticated: Bool {
-        return accessToken != nil
+        return false
+//        return tokenStorage.accessToken != nil
     }
 
     public convenience init(subscriptionAppGroup: String, authService: AuthServiceProtocol, subscriptionService: SubscriptionServiceProtocol) {
-        let accessTokenStorage = SubscriptionTokenKeychainStorage(keychainType: .dataProtection(.named(subscriptionAppGroup)))
-        self.init(accessTokenStorage: accessTokenStorage,
-                  entitlementsCache: UserDefaultsCache<[Entitlement]>(subscriptionAppGroup: subscriptionAppGroup, key: UserDefaultsCacheKey.subscriptionEntitlements),
+        self.init(entitlementsCache: UserDefaultsCache<[Entitlement]>(subscriptionAppGroup: subscriptionAppGroup, key: UserDefaultsCacheKey.subscriptionEntitlements),
                   authService: authService,
                   subscriptionService: subscriptionService)
-
-        accessTokenStorage.delegate = self
     }
 
     public init(storage: AccountStorage = AccountKeychainStorage(),
-                accessTokenStorage: SubscriptionTokenStorage,
                 entitlementsCache: UserDefaultsCache<[Entitlement]>,
                 authService: AuthServiceProtocol,
                 subscriptionService: SubscriptionServiceProtocol) {
         self.storage = storage
         self.entitlementsCache = entitlementsCache
-        self.accessTokenStorage = accessTokenStorage
         self.authService = authService
         self.subscriptionService = subscriptionService
-    }
-
-    public var authToken: String? {
-        accessTokenStorage.authToken
-    }
-
-    public var accessToken: String? {
-        accessTokenStorage.accessToken
     }
 
     public var email: String? {
@@ -129,15 +113,15 @@ public class AccountManager: AccountManaging {
         }
     }
 
-    public func storeAuthToken(token: String) {
-        os_log(.info, log: .subscription, "[AccountManager] storeAuthToken")
-        accessTokenStorage.authToken = token
-    }
+//    public func storeAuthToken(token: String) {
+//        os_log(.info, log: .subscription, "[AccountManager] storeAuthToken")
+//        tokenStorage.authToken = token
+//    }
 
     public func storeAccount(token: String, email: String?, externalID: String?) {
         os_log(.info, log: .subscription, "[AccountManager] storeAccount")
 
-        accessTokenStorage.accessToken = token
+//        tokenStorage.accessToken = token
 
         do {
             try storage.store(email: email)
@@ -170,7 +154,7 @@ public class AccountManager: AccountManaging {
 
         do {
             try storage.clearAuthenticationState()
-            accessTokenStorage.clear()
+//            tokenStorage.clear()
             SubscriptionService.signOut()
             entitlementsCache.reset()
         } catch {
@@ -207,10 +191,11 @@ public class AccountManager: AccountManaging {
     }
 
     private func fetchRemoteEntitlements() async -> Result<[Entitlement], Error> {
-        guard let accessToken else {
-            entitlementsCache.reset()
-            return .failure(EntitlementsError.noAccessToken)
-        }
+        let accessToken = "TODO: Fix me"
+//        guard let accessToken = tokenStorage.accessToken else {
+//            entitlementsCache.reset()
+//            return .failure(EntitlementsError.noAccessToken)
+//        }
 
         let cachedEntitlements: [Entitlement]? = entitlementsCache.get()
 
@@ -277,7 +262,8 @@ public class AccountManager: AccountManaging {
     public func checkSubscriptionState() async {
         os_log(.info, log: .subscription, "[AccountManager] checkSubscriptionState")
 
-        guard let token = accessToken else { return }
+        let token = "TODO: Fix me"
+//        guard let token = tokenStorage.accessToken else { return }
 
         if case .success(let subscription) = await subscriptionService.getSubscription(accessToken: token) {
             if !subscription.isActive {
@@ -308,13 +294,6 @@ public class AccountManager: AccountManaging {
         } while !hasEntitlements && count < retryCount
 
         return hasEntitlements
-    }
-}
-
-extension AccountManager: GenericKeychainStorageErrorDelegate {
-    public func keychainAccessFailed(error: GenericKeychainStorageAccessError) {
-        print("=== [GenericKeychainStorageErrorDelegate] \(error.errorDescription)")
-        assertionFailure("🔥 Something went wrong with GenericKeychainStorage! 🔥")
     }
 }
 
