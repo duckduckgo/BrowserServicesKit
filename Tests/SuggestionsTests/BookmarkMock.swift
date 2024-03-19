@@ -1,5 +1,5 @@
 //
-//  SuggestionResultTests.swift
+//  BookmarkMock.swift
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -16,18 +16,13 @@
 //  limitations under the License.
 //
 
-import XCTest
-@testable import BrowserServicesKit
+import Foundation
+@testable import Suggestions
 
-final class SuggestionResultTests: XCTestCase {
+struct BookmarkMock: Bookmark {
 
-    func testWhenResultContainsNoSuggestions_ThenItIsEmpty() {
-        let emptyResult = SuggestionResult.empty
-
-        XCTAssert(emptyResult.isEmpty)
-        XCTAssertEqual(emptyResult.topHits.count, 0)
-        XCTAssertEqual(emptyResult.historyAndBookmarks.count, 0)
-        XCTAssertEqual(emptyResult.duckduckgoSuggestions.count, 0)
-    }
+    var url: String
+    var title: String
+    var isFavorite: Bool
 
 }
