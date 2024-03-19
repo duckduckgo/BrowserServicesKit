@@ -119,7 +119,7 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
 
     enum Constants {
         static let productionEndpoint = URL(string: "https://controller.netp.duckduckgo.com")!
-        static let stagingEndpoint = URL(string: "https://staging.netp.duckduckgo.com")!
+        static let stagingEndpoint = URL(string: "https://staging1.netp.duckduckgo.com")!
     }
 
     private enum DecoderError: Error {
