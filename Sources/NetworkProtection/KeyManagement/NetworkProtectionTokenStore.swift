@@ -43,7 +43,7 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
     private let isSubscriptionEnabled: Bool
     private let accessTokenProvider: () -> String?
 
-    private static var authTokenPrefix: String { "ddg:" }
+    public static var authTokenPrefix: String { "ddg:" }
 
     public struct Defaults {
         static let tokenStoreEntryLabel = "DuckDuckGo Network Protection Auth Token"
@@ -51,6 +51,8 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
         static let tokenStoreName = "com.duckduckgo.networkprotection.token"
     }
 
+    /// - isSubscriptionEnabled: Controls whether the subscription access token is used to authenticate with the NetP backend
+    /// - accessTokenProvider: Defines how to actually retrieve the subscription access token
     public init(keychainType: KeychainType,
                 serviceName: String = Defaults.tokenStoreService,
                 errorEvents: EventMapping<NetworkProtectionError>?,
@@ -74,13 +76,13 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
         }
     }
 
-    public func makeToken(from subscriptionAccessToken: String) -> String {
+    private func makeToken(from subscriptionAccessToken: String) -> String {
         Self.authTokenPrefix + subscriptionAccessToken
     }
 
     public func fetchToken() throws -> String? {
-        if isSubscriptionEnabled, let authToken = accessTokenProvider() {
-            return makeToken(from: authToken)
+        if isSubscriptionEnabled {
+            return accessTokenProvider().map { makeToken(from: $0) }
         }
 
         do {
@@ -113,7 +115,4 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
 
         errorEvents?.fire(error.networkProtectionError)
     }
-}
-
-extension NetworkProtectionTokenStore {
 }
