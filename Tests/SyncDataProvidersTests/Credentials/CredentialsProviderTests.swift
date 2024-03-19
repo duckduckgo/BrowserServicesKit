@@ -140,6 +140,29 @@ final class CredentialsProviderTests: CredentialsProviderTestsBase {
         XCTAssertTrue(syncableCredentials.allSatisfy { $0.metadata.lastModified == nil })
     }
 
+    func testThatItemsThatFailedValidationRetainTheirTimestamps() async throws {
+
+        let longValue = String(repeating: "x", count: 10000)
+        let timestamp = Date().withMillisecondPrecision
+
+        try secureVault.inDatabaseTransaction { database in
+            try self.secureVault.storeSyncableCredentials("10", title: longValue, lastModified: timestamp, in: database)
+            try self.secureVault.storeSyncableCredentials("20", lastModified: timestamp, in: database)
+            try self.secureVault.storeSyncableCredentials("30", title: longValue, lastModified: timestamp, in: database)
+            try self.secureVault.storeSyncableCredentials("40", lastModified: timestamp, in: database)
+        }
+
+        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+        try await provider.handleSyncResponse(sent: sent, received: [], clientTimestamp: Date(), serverTimestamp: "1234", crypter: crypter)
+
+        let syncableCredentials = try fetchAllSyncableCredentials()
+        XCTAssertEqual(syncableCredentials.count, 4)
+        XCTAssertNotNil(syncableCredentials.first(where: { $0.metadata.uuid == "10" })?.metadata.lastModified)
+        XCTAssertNil(syncableCredentials.first(where: { $0.metadata.uuid == "20" })?.metadata.lastModified)
+        XCTAssertNotNil(syncableCredentials.first(where: { $0.metadata.uuid == "30" })?.metadata.lastModified)
+        XCTAssertNil(syncableCredentials.first(where: { $0.metadata.uuid == "40" })?.metadata.lastModified)
+    }
+
     // MARK: - Initial Sync
 
     func testThatInitialSyncIntoEmptyDatabaseClearsModifiedAtFromAllReceivedObjects() async throws {

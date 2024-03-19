@@ -254,6 +254,49 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         }
     }
 
+    func testThatItemsThatFailedValidationRetainTheirTimestamps() async throws {
+
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        let longValue = String(repeating: "x", count: 10000)
+        let timestamp = Date()
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark("Bookmark 1", id: "1", url: longValue, modifiedAt: timestamp)
+            Bookmark("Bookmark 2", id: "2", modifiedAt: timestamp)
+            Folder(longValue, id: "3", modifiedAt: timestamp) {
+                Bookmark("Bookmark 4", id: "4", modifiedAt: timestamp)
+            }
+            Bookmark(longValue, id: "5", modifiedAt: timestamp)
+            Bookmark("Bookmark 6", id: "6", modifiedAt: timestamp)
+        }
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            try! context.save()
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+        }
+
+        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+        try await provider.handleSyncResponse(sent: sent, received: [], clientTimestamp: Date(), serverTimestamp: "1234", crypter: crypter)
+
+        context.performAndWait {
+            context.refreshAllObjects()
+            let rootFolder = BookmarkUtils.fetchRootFolder(context)!
+
+            assertEquivalent(withTimestamps: true, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["1", "2", "3", "5", "6"]) {
+                Bookmark("Bookmark 1", id: "1", url: longValue, modifiedAt: timestamp)
+                Bookmark("Bookmark 2", id: "2")
+                // folder is accepted, its name is truncated for sync but full value is retained locally
+                Folder(longValue, id: "3", lastChildrenArrayReceivedFromSync: ["4"]) {
+                    Bookmark("Bookmark 4", id: "4")
+                }
+                Bookmark(longValue, id: "5", modifiedAt: timestamp)
+                Bookmark("Bookmark 6", id: "6")
+            })
+        }
+    }
+
     // MARK: - Initial Sync
 
     func testThatInitialSyncIntoEmptyDatabaseClearsModifiedAtFromAllReceivedObjects() async throws {
