@@ -336,6 +336,7 @@ let package = Package(
         .target(
             name: "Subscription",
             dependencies: [
+                "BrowserServicesKit",
                 "Common",
             ],
             swiftSettings: [
@@ -505,6 +506,13 @@ let package = Package(
             dependencies: [
                 "PrivacyDashboard",
                 "TestUtils",
+            ],
+            plugins: [swiftlintPlugin]
+        ),
+        .testTarget(
+            name: "SubscriptionTests",
+            dependencies: [
+                "Subscription",
             ],
             plugins: [swiftlintPlugin]
         ),
