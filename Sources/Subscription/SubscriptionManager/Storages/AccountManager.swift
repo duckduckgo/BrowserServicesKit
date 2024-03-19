@@ -33,8 +33,6 @@ public typealias AccountDetails = (email: String?, externalID: String)
 
 public protocol AccountManaging {
 
-    var isUserAuthenticated: Bool { get }
-
     var email: String? { get }
     var externalID: String? { get }
 
@@ -58,16 +56,10 @@ public class AccountManager: AccountManaging {
     private let storage: AccountStorage
     private let entitlementsCache: UserDefaultsCache<[Entitlement]>
 
-
     public weak var delegate: AccountManagerKeychainAccessDelegate?
 
     private let authService: AuthServiceProtocol
     private let subscriptionService: SubscriptionServiceProtocol
-
-    public var isUserAuthenticated: Bool {
-        return false
-//        return tokenStorage.accessToken != nil
-    }
 
     public convenience init(subscriptionAppGroup: String, authService: AuthServiceProtocol, subscriptionService: SubscriptionServiceProtocol) {
         self.init(entitlementsCache: UserDefaultsCache<[Entitlement]>(subscriptionAppGroup: subscriptionAppGroup, key: UserDefaultsCacheKey.subscriptionEntitlements),

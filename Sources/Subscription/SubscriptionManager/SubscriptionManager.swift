@@ -26,6 +26,9 @@ public protocol SubscriptionManaging {
     var urlProvider: SubscriptionURLProviding { get }
     var serviceProvider: SubscriptionServiceProviding { get }
     var flowProvider: SubscriptionFlowProviding { get }
+
+    var isUserAuthenticated: Bool { get }
+    func signOut()
 }
 
 public final class SubscriptionManager: SubscriptionManaging {
@@ -73,6 +76,13 @@ public final class SubscriptionManager: SubscriptionManaging {
         self.urlProvider = urlProvider
         self.serviceProvider = serviceProvider
         self.flowProvider = flowProvider
+    }
+
+    public var isUserAuthenticated: Bool { tokenStorage.accessToken != nil }
+
+    public func signOut() {
+        tokenStorage.clear()
+        NotificationCenter.default.post(name: .accountDidSignOut, object: self, userInfo: nil)
     }
 }
 
