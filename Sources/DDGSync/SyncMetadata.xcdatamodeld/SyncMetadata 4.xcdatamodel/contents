@@ -14,7 +14,7 @@
     </entity>
     <entity name="SyncFeatureEntity" representedClassName="SyncFeatureEntity" syncable="YES">
         <attribute name="lastModified" optional="YES" attributeType="String"/>
-        <attribute name="lastSynced" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
+        <attribute name="lastSyncLocalTimestamp" optional="YES" attributeType="Date" usesScalarValueType="NO"/>
         <attribute name="name" attributeType="String"/>
         <attribute name="state" optional="YES" attributeType="String"/>
         <fetchIndex name="byName">

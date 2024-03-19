@@ -105,12 +105,12 @@ public final class LocalSyncMetadataStore: SyncMetadataStore {
     }
 
     public func localTimestamp(forFeatureNamed name: String) -> Date? {
-        var lastSynced: Date?
+        var lastSyncLocalTimestamp: Date?
         context.performAndWait {
             let feature = SyncFeatureUtils.fetchFeature(with: name, in: context)
-            lastSynced = feature?.lastSynced
+            lastSyncLocalTimestamp = feature?.lastSyncLocalTimestamp
         }
-        return lastSynced
+        return lastSyncLocalTimestamp
     }
 
     public func state(forFeatureNamed name: String) -> FeatureSetupState {
@@ -126,7 +126,7 @@ public final class LocalSyncMetadataStore: SyncMetadataStore {
         context.performAndWait {
             let feature = SyncFeatureUtils.fetchFeature(with: name, in: context)
             feature?.lastModified = serverTimestamp
-            feature?.lastSynced = localTimestamp
+            feature?.lastSyncLocalTimestamp = localTimestamp
             feature?.featureState = state
 
             try? context.save()
