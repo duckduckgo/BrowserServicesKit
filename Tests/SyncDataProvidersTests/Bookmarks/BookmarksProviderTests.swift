@@ -141,6 +141,48 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         )
     }
 
+    func testThatFetchChangedObjectsFiltersOutInvalidBookmarksAndTruncatesFolderTitles() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let longTitle = String(repeating: "x", count: 10000)
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark(id: "1", favoritedOn: [.mobile, .unified])
+            Folder(id: "2") {
+                Bookmark(longTitle, id: "3")
+                Bookmark(id: "4")
+                Folder(longTitle, id: "5") {
+                    Bookmark(id: "6")
+                }
+            }
+            Bookmark(id: "7")
+            Bookmark(id: "8")
+        }
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+
+            // clear modifiedAt for some entities
+            let bookmarks = BookmarkEntity.fetchBookmarks(with: ["1", "4", "8"], in: context)
+            bookmarks.forEach { $0.modifiedAt = nil }
+            try! context.save()
+        }
+
+        let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+            .map(SyncableBookmarkAdapter.init(syncable:))
+
+        XCTAssertEqual(
+            Set(changedObjects.compactMap(\.uuid)),
+            Set(["2", "5", "6", "7"])
+        )
+
+        let folder5Syncable = try XCTUnwrap(changedObjects.first { $0.uuid == "5" })
+        let expectedFolderTitle = try crypter.encryptAndBase64Encode(String(longTitle.prefix(Syncable.BookmarkValidationConstraints.maxFolderTitleLength)))
+        XCTAssertEqual(folder5Syncable.encryptedTitle, expectedFolderTitle)
+    }
+
     func testWhenBookmarkIsSoftDeletedThenFetchChangedObjectsReturnsBookmarkAndItsParent() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 

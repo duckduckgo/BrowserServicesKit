@@ -77,6 +77,29 @@ final class CredentialsProviderTests: CredentialsProviderTestsBase {
         )
     }
 
+    func testThatFetchChangedObjectsFiltersOutInvalidCredentials() async throws {
+
+        let longValue = String(repeating: "x", count: 10000)
+
+        try secureVault.inDatabaseTransaction { database in
+            try self.secureVault.storeSyncableCredentials("1", title: longValue, lastModified: Date(), in: database)
+            try self.secureVault.storeSyncableCredentials("2", in: database)
+            try self.secureVault.storeSyncableCredentials("3", lastModified: Date(), in: database)
+            try self.secureVault.storeSyncableCredentials("4", in: database)
+            try self.secureVault.storeSyncableCredentials("5", domain: longValue, lastModified: Date(), in: database)
+            try self.secureVault.storeSyncableCredentials("6", username: longValue, lastModified: Date(), in: database)
+            try self.secureVault.storeSyncableCredentials("7", password: longValue, lastModified: Date(), in: database)
+            try self.secureVault.storeSyncableCredentials("8", notes: longValue, lastModified: Date(), in: database)
+        }
+
+        let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter).map(SyncableCredentialsAdapter.init)
+
+        XCTAssertEqual(
+            Set(changedObjects.compactMap(\.uuid)),
+            Set(["3"])
+        )
+    }
+
     func testWhenCredentialsAreSoftDeletedThenFetchChangedObjectsContainsDeletedSyncable() async throws {
 
         try secureVault.inDatabaseTransaction { database in
