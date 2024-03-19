@@ -170,13 +170,7 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
 
     init(environment: VPNSettings.SelectedEnvironment = .default, isSubscriptionEnabled: Bool) {
         self.isSubscriptionEnabled = isSubscriptionEnabled
-
-        // todo - https://app.asana.com/0/0/1206470585910129/f
-        if isSubscriptionEnabled {
-            self.endpointURL = URL(string: "https://staging1.netp.duckduckgo.com")!
-        } else {
-            self.endpointURL = environment.endpointURL
-        }
+        self.endpointURL = environment.endpointURL
     }
 
     func getLocations(authToken: String) async -> Result<[NetworkProtectionLocation], NetworkProtectionClientError> {
