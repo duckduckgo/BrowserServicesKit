@@ -119,7 +119,10 @@ public final class AppStorePurchaseFlow {
             return .success(transactionJWS)
         case .failure(let error):
             os_log(.error, log: .subscription, "[AppStorePurchaseFlow] purchaseSubscription error: %{public}s", String(reflecting: error))
-            accountManager.signOut(skipNotification: true)
+//
+//            subscriptionManager.signOut(skipNotification: true)
+            tokenStorage.clear()
+//            Do the silent clean up
             switch error {
             case .purchaseCancelledByUser:
                 return .failure(.cancelledByUser)

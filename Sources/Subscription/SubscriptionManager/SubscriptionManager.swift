@@ -81,7 +81,11 @@ public final class SubscriptionManager: SubscriptionManaging {
     public var isUserAuthenticated: Bool { tokenStorage.accessToken != nil }
 
     public func signOut() {
+//        try? storage.clearAuthenticationState()
         tokenStorage.clear()
+        SubscriptionService.signOut()
+//        entitlementsCache.reset()
+
         NotificationCenter.default.post(name: .accountDidSignOut, object: self, userInfo: nil)
     }
 }

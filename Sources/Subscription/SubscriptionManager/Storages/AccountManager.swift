@@ -38,9 +38,6 @@ public protocol AccountManaging {
 
     func storeAccount(token: String, email: String?, externalID: String?)
 
-    func signOut()
-    func signOut(skipNotification: Bool)
-
     func exchangeAuthTokenToAccessToken(_ authToken: String) async -> Result<String, Error>
     func fetchAccountDetails(with accessToken: String) async -> Result<AccountDetails, Error>
     func checkSubscriptionState() async
@@ -135,31 +132,6 @@ public class AccountManager: AccountManaging {
             }
         }
         NotificationCenter.default.post(name: .accountDidSignIn, object: self, userInfo: nil)
-    }
-
-    public func signOut() {
-        signOut(skipNotification: false)
-    }
-
-    public func signOut(skipNotification: Bool) {
-        os_log(.info, log: .subscription, "[AccountManager] signOut")
-
-        do {
-            try storage.clearAuthenticationState()
-//            tokenStorage.clear()
-            SubscriptionService.signOut()
-            entitlementsCache.reset()
-        } catch {
-            if let error = error as? AccountKeychainAccessError {
-                delegate?.accountManagerKeychainAccessFailed(accessType: .clearAuthenticationData, error: error)
-            } else {
-                assertionFailure("Expected AccountKeychainAccessError")
-            }
-        }
-
-        if !skipNotification {
-            NotificationCenter.default.post(name: .accountDidSignOut, object: self, userInfo: nil)
-        }
     }
 
     // MARK: -
@@ -259,7 +231,7 @@ public class AccountManager: AccountManaging {
 
         if case .success(let subscription) = await subscriptionService.getSubscription(accessToken: token) {
             if !subscription.isActive {
-                signOut()
+//                signOut()
             }
         }
     }
