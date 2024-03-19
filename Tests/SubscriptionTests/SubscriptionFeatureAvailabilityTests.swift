@@ -271,7 +271,6 @@ class MockPrivacyConfiguration: PrivacyConfiguration {
     func userDisabledProtection(forDomain: String) {}
 }
 
-
 class MockPrivacyConfigurationManager: PrivacyConfigurationManaging {
     var currentConfig: Data = .init()
     var updatesSubject = PassthroughSubject<Void, Never>()
