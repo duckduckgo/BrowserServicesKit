@@ -28,7 +28,9 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
 
     func testThatLastSyncTimestampIsNilByDefault() {
         XCTAssertNil(provider.lastSyncTimestamp)
-        XCTAssertNil(provider.lastSyncLocalTimestamp)
+        if DDGSync.isFieldValidationEnabled {
+            XCTAssertNil(provider.lastSyncLocalTimestamp)
+        }
     }
 
     func testThatLastSyncTimestampIsPersisted() throws {
@@ -36,7 +38,9 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
         let date = Date()
         provider.updateSyncTimestamps(server: "12345", local: date)
         XCTAssertEqual(provider.lastSyncTimestamp, "12345")
-        XCTAssertEqual(provider.lastSyncLocalTimestamp, date)
+        if DDGSync.isFieldValidationEnabled {
+            XCTAssertEqual(provider.lastSyncLocalTimestamp, date)
+        }
     }
 
     func testThatPrepareForFirstSyncClearsLastSyncTimestampAndSetsModifiedAtForAllSettings() throws {
