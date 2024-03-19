@@ -1,5 +1,5 @@
 //
-//  SubscriptionTokenStorage.swift
+//  SubscriptionAccountStorage.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -18,17 +18,17 @@
 
 import Foundation
 
-public protocol SubscriptionTokenStorage: AnyObject {
-    var accessToken: String? { get set }
-    var authToken: String? { get set }
+public protocol SubscriptionAccountStorage: AnyObject {
+    var email: String? { get set }
+    var externalID: String? { get set }
     func clear()
 }
 
-public class SubscriptionTokenKeychainStorage: GenericKeychainStorage, SubscriptionTokenStorage {
+public class SubscriptionAccountKeychainStorage: GenericKeychainStorage, SubscriptionAccountStorage {
 
-    enum SubscriptionTokenKeychainField: String, GenericKeychainStorageField, CaseIterable {
-        case accessToken = "subscription.token.accessToken"
-        case authToken = "subscription.token.authToken"
+    enum SubscriptionAccountKeychainField: String, GenericKeychainStorageField, CaseIterable {
+        case email = "subscription.account.email"
+        case externalID = "subscription.account.externalID"
 
         var keyValue: String {
             "com.duckduckgo" + "." + rawValue
@@ -39,13 +39,13 @@ public class SubscriptionTokenKeychainStorage: GenericKeychainStorage, Subscript
         super.init(keychainType: keychainType)
     }
 
-    @GenericKeychainStorageFieldAccessors(field: SubscriptionTokenKeychainField.accessToken)
-    public var accessToken: String?
+    @GenericKeychainStorageFieldAccessors(field: SubscriptionAccountKeychainField.email)
+    public var email: String?
 
-    @GenericKeychainStorageFieldAccessors(field: SubscriptionTokenKeychainField.authToken)
-    public var authToken: String?
+    @GenericKeychainStorageFieldAccessors(field: SubscriptionAccountKeychainField.externalID)
+    public var externalID: String?
 
     public func clear() {
-        SubscriptionTokenKeychainField.allCases.forEach { deleteItem(forField: $0) }
+        SubscriptionAccountKeychainField.allCases.forEach { deleteItem(forField: $0) }
     }
 }

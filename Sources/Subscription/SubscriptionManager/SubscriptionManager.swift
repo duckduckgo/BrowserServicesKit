@@ -22,10 +22,12 @@ import Common
 public protocol SubscriptionManaging {
     var configuration: SubscriptionConfiguration { get }
     var tokenStorage: SubscriptionTokenStorage { get }
-    var accountManager: AccountManaging { get }
+    var accountStorage: SubscriptionAccountStorage { get }
     var urlProvider: SubscriptionURLProviding { get }
     var serviceProvider: SubscriptionServiceProviding { get }
     var flowProvider: SubscriptionFlowProviding { get }
+
+    var accountManager: AccountManaging { get } // to be removed
 
     var isUserAuthenticated: Bool { get }
     func signOut()
@@ -34,11 +36,13 @@ public protocol SubscriptionManaging {
 public final class SubscriptionManager: SubscriptionManaging {
 
     public private(set) var configuration: SubscriptionConfiguration
-    public private(set) var accountManager: AccountManaging
     public private(set) var tokenStorage: SubscriptionTokenStorage
+    public private(set) var accountStorage: SubscriptionAccountStorage
     public private(set) var urlProvider: SubscriptionURLProviding
     public private(set) var serviceProvider: SubscriptionServiceProviding
     public private(set) var flowProvider: SubscriptionFlowProviding
+
+    public private(set) var accountManager: AccountManaging // to be removed
 
     public convenience init(configuration: SubscriptionConfiguration) {
         let urlProvider = SubscriptionURLProvider(configuration: configuration)
@@ -50,29 +54,36 @@ public final class SubscriptionManager: SubscriptionManaging {
 
         let tokenStorage = SubscriptionTokenKeychainStorage(keychainType: .dataProtection(.named(configuration.subscriptionAppGroup)))
 
+        let accountStorage = SubscriptionAccountKeychainStorage(keychainType: .dataProtection(.unspecified))
+
         let flowProvider = SubscriptionFlowProvider(tokenStorage: tokenStorage,
+                                                    accountStorage: accountStorage,
                                                     accountManager: accountManager,
                                                     serviceProvider: serviceProvider)
 
         self.init(configuration: configuration,
                   accountManager: accountManager,
                   tokenStorage: tokenStorage,
+                  accountStorage: accountStorage,
                   urlProvider: urlProvider,
                   serviceProvider: serviceProvider,
                   flowProvider: flowProvider)
 
         tokenStorage.delegate = self
+        accountStorage.delegate = self
     }
 
     public init(configuration: SubscriptionConfiguration,
                 accountManager: AccountManaging,
                 tokenStorage: SubscriptionTokenStorage,
+                accountStorage: SubscriptionAccountStorage,
                 urlProvider: SubscriptionURLProviding,
                 serviceProvider: SubscriptionServiceProvider,
                 flowProvider: SubscriptionFlowProviding) {
         self.configuration = configuration
         self.accountManager = accountManager
         self.tokenStorage = tokenStorage
+        self.accountStorage = accountStorage
         self.urlProvider = urlProvider
         self.serviceProvider = serviceProvider
         self.flowProvider = flowProvider
@@ -81,8 +92,8 @@ public final class SubscriptionManager: SubscriptionManaging {
     public var isUserAuthenticated: Bool { tokenStorage.accessToken != nil }
 
     public func signOut() {
-//        try? storage.clearAuthenticationState()
         tokenStorage.clear()
+        accountStorage.clear()
         SubscriptionService.signOut()
 //        entitlementsCache.reset()
 

@@ -29,11 +29,13 @@ public final class AppStoreAccountManagementFlow {
         }
 
     private var tokenStorage: SubscriptionTokenStorage
+    private var accountStorage: SubscriptionAccountStorage
     private var accountManager: AccountManaging
     private var authService: AuthServiceProtocol
 
-    init(tokenStorage: SubscriptionTokenStorage, accountManager: AccountManaging, authService: AuthServiceProtocol) {
+    init(tokenStorage: SubscriptionTokenStorage, accountStorage: SubscriptionAccountStorage, accountManager: AccountManaging, authService: AuthServiceProtocol) {
         self.tokenStorage = tokenStorage
+        self.accountStorage = accountStorage
         self.accountManager = accountManager
         self.authService = authService
     }
@@ -53,8 +55,9 @@ public final class AppStoreAccountManagementFlow {
 
             switch await authService.storeLogin(signature: lastTransactionJWSRepresentation) {
             case .success(let response):
-                if response.externalID == accountManager.externalID {
-                    tokenStorage.authToken = response.authToken
+                if response.externalID == accountStorage.externalID {
+                    authToken = response.authToken
+                    tokenStorage.authToken = authToken
                 }
             case .failure(let storeLoginError):
                 os_log(.error, log: .subscription, "[AppStoreAccountManagementFlow] storeLogin error: %{public}s", String(reflecting: storeLoginError))

@@ -33,8 +33,8 @@ public typealias AccountDetails = (email: String?, externalID: String)
 
 public protocol AccountManaging {
 
-    var email: String? { get }
-    var externalID: String? { get }
+//    var email: String? { get }
+//    var externalID: String? { get }
 
     func storeAccount(token: String, email: String?, externalID: String?)
 

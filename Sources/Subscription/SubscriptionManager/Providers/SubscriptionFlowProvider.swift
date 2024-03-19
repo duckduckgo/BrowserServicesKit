@@ -33,11 +33,13 @@ public protocol SubscriptionFlowProviding {
 public final class SubscriptionFlowProvider: SubscriptionFlowProviding {
 
     private let tokenStorage: SubscriptionTokenStorage
+    private let accountStorage: SubscriptionAccountStorage
     private let accountManager: AccountManaging
     private let serviceProvider: SubscriptionServiceProvider
 
-    init(tokenStorage: SubscriptionTokenStorage, accountManager: AccountManaging, serviceProvider: SubscriptionServiceProvider) {
+    init(tokenStorage: SubscriptionTokenStorage, accountStorage: SubscriptionAccountStorage, accountManager: AccountManaging, serviceProvider: SubscriptionServiceProvider) {
         self.tokenStorage = tokenStorage
+        self.accountStorage = accountStorage
         self.accountManager = accountManager
         self.serviceProvider = serviceProvider
     }
@@ -80,6 +82,7 @@ public final class SubscriptionFlowProvider: SubscriptionFlowProviding {
     public var appStoreAccountManagementFlow: AppStoreAccountManagementFlow {
         if _appStoreAccountManagementFlow == nil {
             _appStoreAccountManagementFlow = AppStoreAccountManagementFlow(tokenStorage: tokenStorage,
+                                                                           accountStorage: accountStorage,
                                                                            accountManager: accountManager,
                                                                            authService: serviceProvider.makeAuthService())
         }
