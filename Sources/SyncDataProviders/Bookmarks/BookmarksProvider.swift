@@ -59,7 +59,7 @@ public final class BookmarksProvider: DataProvider {
         var titles: [String] = []
 
         context.performAndWait {
-            titles = BookmarkUtils.fetchModifiedBookmarksTitles(before: lastSyncLocalTimestamp, in: context)
+            titles = BookmarkUtils.fetchTitlesForBookmarks(modifiedBefore: lastSyncLocalTimestamp, in: context)
         }
         return titles
     }

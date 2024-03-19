@@ -174,7 +174,7 @@ public struct BookmarkUtils {
         return (try? context.fetch(request)) ?? []
     }
 
-    public static func fetchModifiedBookmarksTitles(before date: Date, in context: NSManagedObjectContext) -> [String] {
+    public static func fetchTitlesForBookmarks(modifiedBefore date: Date, in context: NSManagedObjectContext) -> [String] {
         let request = NSFetchRequest<NSFetchRequestResult>(entityName: "BookmarkEntity")
         request.predicate = NSPredicate(format: "%K < %@", #keyPath(BookmarkEntity.modifiedAt), date as NSDate)
         request.resultType = .dictionaryResultType
