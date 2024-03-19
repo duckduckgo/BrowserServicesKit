@@ -104,7 +104,7 @@ public protocol AutofillSecureVault: SecureVault {
 
     func inDatabaseTransaction(_ block: @escaping (Database) throws -> Void) throws
     func modifiedSyncableCredentials() throws -> [SecureVaultModels.SyncableCredentials]
-    func titlesForSyncableCredentials(modifiedBefore date: Date) throws -> [String]
+    func accountTitlesForSyncableCredentials(modifiedBefore date: Date) throws -> [String]
     func deleteSyncableCredentials(_ syncableCredentials: SecureVaultModels.SyncableCredentials, in database: Database) throws
     func storeSyncableCredentials(
         _ syncableCredentials: SecureVaultModels.SyncableCredentials,
@@ -559,7 +559,7 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
         }
     }
 
-    public func titlesForSyncableCredentials(modifiedBefore date: Date) throws -> [String] {
+    public func accountTitlesForSyncableCredentials(modifiedBefore date: Date) throws -> [String] {
         lock.lock()
         defer {
             lock.unlock()

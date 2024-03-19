@@ -74,7 +74,7 @@ extension Syncable {
         case bookmarkEntityMissingUUID
     }
 
-    private enum Const {
+    enum BookmarkValidationConstraints {
         static let maxFolderTitleLength = 2000
         static let maxEncryptedBookmarkTitleLength = 3000
         static let maxEncryptedBookmarkURLLength = 3000
@@ -94,7 +94,7 @@ extension Syncable {
         } else {
             if bookmark.isFolder {
                 if let title = bookmark.title {
-                    payload["title"] = try encrypt(String(title.prefix(Const.maxFolderTitleLength)))
+                    payload["title"] = try encrypt(String(title.prefix(BookmarkValidationConstraints.maxFolderTitleLength)))
                 }
 
                 let children: [String] = {
@@ -125,14 +125,14 @@ extension Syncable {
 
                 if let title = bookmark.title {
                     let encryptedTitle = try encrypt(title)
-                    guard encryptedTitle.count <= Const.maxEncryptedBookmarkTitleLength else {
+                    guard encryptedTitle.count <= BookmarkValidationConstraints.maxEncryptedBookmarkTitleLength else {
                         throw SyncableBookmarkError.validationFailed
                     }
                     payload["title"] = encryptedTitle
                 }
                 if let url = bookmark.url {
                     let encryptedURL = try encrypt(url)
-                    guard encryptedURL.count <= Const.maxEncryptedBookmarkURLLength else {
+                    guard encryptedURL.count <= BookmarkValidationConstraints.maxEncryptedBookmarkURLLength else {
                         throw SyncableBookmarkError.validationFailed
                     }
                     payload["page"] = ["url": encryptedURL]

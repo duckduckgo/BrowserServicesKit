@@ -85,7 +85,7 @@ public final class CredentialsProvider: DataProvider {
         }
 
         let secureVault = try secureVaultFactory.makeVault(errorReporter: secureVaultErrorReporter)
-        return try secureVault.titlesForSyncableCredentials(modifiedBefore: lastSyncLocalTimestamp)
+        return try secureVault.accountTitlesForSyncableCredentials(modifiedBefore: lastSyncLocalTimestamp)
     }
 
     public override func fetchChangedObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable] {
