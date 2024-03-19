@@ -359,10 +359,6 @@ class SyncMetadataStoreMock: SyncMetadataStore {
         features[name]?.localTimestamp
     }
 
-    func updateLocalTimestamp(_ timestamp: Date?, forFeatureNamed name: String) {
-        features[name]?.localTimestamp = timestamp
-    }
-
     func state(forFeatureNamed name: String) -> FeatureSetupState {
         features[name]?.state ?? .readyToSync
     }

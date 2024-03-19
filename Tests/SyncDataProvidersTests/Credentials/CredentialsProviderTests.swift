@@ -78,6 +78,9 @@ final class CredentialsProviderTests: CredentialsProviderTestsBase {
     }
 
     func testThatFetchChangedObjectsFiltersOutInvalidCredentials() async throws {
+        guard DDGSync.isFieldValidationEnabled else {
+            throw XCTSkip("Field validation is disabled")
+        }
 
         let longValue = String(repeating: "x", count: 10000)
 
@@ -141,6 +144,9 @@ final class CredentialsProviderTests: CredentialsProviderTestsBase {
     }
 
     func testThatItemsThatFailedValidationRetainTheirTimestamps() async throws {
+        guard DDGSync.isFieldValidationEnabled else {
+            throw XCTSkip("Field validation is disabled")
+        }
 
         let longValue = String(repeating: "x", count: 10000)
         let timestamp = Date().withMillisecondPrecision

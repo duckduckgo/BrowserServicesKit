@@ -94,7 +94,11 @@ extension Syncable {
         } else {
             if bookmark.isFolder {
                 if let title = bookmark.title {
-                    payload["title"] = try encrypt(String(title.prefix(BookmarkValidationConstraints.maxFolderTitleLength)))
+                    if DDGSync.isFieldValidationEnabled {
+                        payload["title"] = try encrypt(String(title.prefix(BookmarkValidationConstraints.maxFolderTitleLength)))
+                    } else {
+                        payload["title"] = try encrypt(title)
+                    }
                 }
 
                 let children: [String] = {
@@ -125,15 +129,19 @@ extension Syncable {
 
                 if let title = bookmark.title {
                     let encryptedTitle = try encrypt(title)
-                    guard encryptedTitle.count <= BookmarkValidationConstraints.maxEncryptedBookmarkTitleLength else {
-                        throw SyncableBookmarkError.validationFailed
+                    if DDGSync.isFieldValidationEnabled {
+                        guard encryptedTitle.count <= BookmarkValidationConstraints.maxEncryptedBookmarkTitleLength else {
+                            throw SyncableBookmarkError.validationFailed
+                        }
                     }
                     payload["title"] = encryptedTitle
                 }
                 if let url = bookmark.url {
                     let encryptedURL = try encrypt(url)
-                    guard encryptedURL.count <= BookmarkValidationConstraints.maxEncryptedBookmarkURLLength else {
-                        throw SyncableBookmarkError.validationFailed
+                    if DDGSync.isFieldValidationEnabled {
+                        guard encryptedURL.count <= BookmarkValidationConstraints.maxEncryptedBookmarkURLLength else {
+                            throw SyncableBookmarkError.validationFailed
+                        }
                     }
                     payload["page"] = ["url": encryptedURL]
                 }

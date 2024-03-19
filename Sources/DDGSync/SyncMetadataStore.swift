@@ -126,7 +126,9 @@ public final class LocalSyncMetadataStore: SyncMetadataStore {
         context.performAndWait {
             let feature = SyncFeatureUtils.fetchFeature(with: name, in: context)
             feature?.lastModified = serverTimestamp
-            feature?.lastSyncLocalTimestamp = localTimestamp
+            if DDGSync.isFieldValidationEnabled {
+                feature?.lastSyncLocalTimestamp = localTimestamp
+            }
             feature?.featureState = state
 
             try? context.save()

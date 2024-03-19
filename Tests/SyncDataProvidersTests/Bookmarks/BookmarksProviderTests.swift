@@ -142,6 +142,9 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
     }
 
     func testThatFetchChangedObjectsFiltersOutInvalidBookmarksAndTruncatesFolderTitles() async throws {
+        guard DDGSync.isFieldValidationEnabled else {
+            throw XCTSkip("Field validation is disabled")
+        }
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let longTitle = String(repeating: "x", count: 10000)
@@ -255,6 +258,9 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
     }
 
     func testThatItemsThatFailedValidationRetainTheirTimestamps() async throws {
+        guard DDGSync.isFieldValidationEnabled else {
+            throw XCTSkip("Field validation is disabled")
+        }
 
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
         let longValue = String(repeating: "x", count: 10000)

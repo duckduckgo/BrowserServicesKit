@@ -33,31 +33,55 @@ final class SyncableCredentialsValidationTests: XCTestCase {
         syncableCredentials = SecureVaultModels.SyncableCredentials(credentials: credentials)
     }
 
-    func testWhenCredentialsFieldsPassLengthValidationThenSyncableIsInitializedWithoutThrowingErrors() {
+    func testWhenCredentialsFieldsPassLengthValidationThenSyncableIsInitializedWithoutThrowingErrors() throws {
+        guard DDGSync.isFieldValidationEnabled else {
+            throw XCTSkip("Field validation is disabled")
+        }
+
         XCTAssertNoThrow(try Syncable(syncableCredentials: syncableCredentials, encryptedUsing: { $0 }))
     }
 
-    func testWhenAccountTitleIsTooLongThenSyncableInitializerThrowsError() {
+    func testWhenAccountTitleIsTooLongThenSyncableInitializerThrowsError() throws {
+        guard DDGSync.isFieldValidationEnabled else {
+            throw XCTSkip("Field validation is disabled")
+        }
+
         syncableCredentials.account?.title = String(repeating: "x", count: 10000)
         assertSyncableInitializerThrowsValidationError()
     }
 
-    func testWhenAccountUsernameIsTooLongThenSyncableInitializerThrowsError() {
+    func testWhenAccountUsernameIsTooLongThenSyncableInitializerThrowsError() throws {
+        guard DDGSync.isFieldValidationEnabled else {
+            throw XCTSkip("Field validation is disabled")
+        }
+
         syncableCredentials.account?.username = String(repeating: "x", count: 10000)
         assertSyncableInitializerThrowsValidationError()
     }
 
-    func testWhenAccountDomainIsTooLongThenSyncableInitializerThrowsError() {
+    func testWhenAccountDomainIsTooLongThenSyncableInitializerThrowsError() throws {
+        guard DDGSync.isFieldValidationEnabled else {
+            throw XCTSkip("Field validation is disabled")
+        }
+
         syncableCredentials.account?.domain = String(repeating: "x", count: 10000)
         assertSyncableInitializerThrowsValidationError()
     }
 
-    func testWhenAccountNotesIsTooLongThenSyncableInitializerThrowsError() {
+    func testWhenAccountNotesIsTooLongThenSyncableInitializerThrowsError() throws {
+        guard DDGSync.isFieldValidationEnabled else {
+            throw XCTSkip("Field validation is disabled")
+        }
+
         syncableCredentials.account?.notes = String(repeating: "x", count: 10000)
         assertSyncableInitializerThrowsValidationError()
     }
 
-    func testWhenPasswordIsTooLongThenSyncableInitializerThrowsError() {
+    func testWhenPasswordIsTooLongThenSyncableInitializerThrowsError() throws {
+        guard DDGSync.isFieldValidationEnabled else {
+            throw XCTSkip("Field validation is disabled")
+        }
+
         syncableCredentials.credentials?.password = String(repeating: "x", count: 10000).data(using: .utf8)
         assertSyncableInitializerThrowsValidationError()
     }

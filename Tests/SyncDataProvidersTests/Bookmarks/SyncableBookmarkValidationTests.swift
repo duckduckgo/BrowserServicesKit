@@ -59,21 +59,37 @@ final class SyncableBookmarkValidationTests: XCTestCase {
         bookmarksDatabase.loadStore()
     }
 
-    func testWhenBookmarkFieldsPassLengthValidationThenSyncableIsInitializedWithoutThrowingErrors() {
+    func testWhenBookmarkFieldsPassLengthValidationThenSyncableIsInitializedWithoutThrowingErrors() throws {
+        guard DDGSync.isFieldValidationEnabled else {
+            throw XCTSkip("Field validation is disabled")
+        }
+
         XCTAssertNoThrow(try Syncable(bookmark: bookmark, encryptedUsing: { $0 }))
     }
 
-    func testWhenBookmarkTitleIsTooLongThenSyncableInitializerThrowsError() {
+    func testWhenBookmarkTitleIsTooLongThenSyncableInitializerThrowsError() throws {
+        guard DDGSync.isFieldValidationEnabled else {
+            throw XCTSkip("Field validation is disabled")
+        }
+
         bookmark.title = String(repeating: "x", count: 10000)
         assertSyncableInitializerThrowsValidationError()
     }
 
-    func testWhenBookmarkURLIsTooLongThenSyncableInitializerThrowsError() {
+    func testWhenBookmarkURLIsTooLongThenSyncableInitializerThrowsError() throws {
+        guard DDGSync.isFieldValidationEnabled else {
+            throw XCTSkip("Field validation is disabled")
+        }
+
         bookmark.url = String(repeating: "x", count: 10000)
         assertSyncableInitializerThrowsValidationError()
     }
 
     func testWhenFolderTitleIsTooLongThenItIsTruncated() throws {
+        guard DDGSync.isFieldValidationEnabled else {
+            throw XCTSkip("Field validation is disabled")
+        }
+
         folder.title = String(repeating: "x", count: 10000)
         do {
             let syncable = try Syncable(bookmark: folder, encryptedUsing: { $0 })
