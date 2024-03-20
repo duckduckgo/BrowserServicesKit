@@ -156,6 +156,7 @@ class SecureVaultManagerTests: XCTestCase {
                                              promptUserToAutofillCredentialsForDomain domain: String,
                                              withAccounts accounts: [SecureVaultModels.WebsiteAccount],
                                              withTrigger trigger: AutofillUserScript.GetTriggerType,
+                                             onAccountSelected account: @escaping (SecureVaultModels.WebsiteAccount?) -> Void,
                                              completionHandler: @escaping (SecureVaultModels.WebsiteAccount?) -> Void) {
                 XCTAssertEqual(accounts.count, 1, "The empty username should have been filtered so that it's not shown as an option")
                 completionHandler(accounts[0])
@@ -200,6 +201,7 @@ class SecureVaultManagerTests: XCTestCase {
                                              promptUserToAutofillCredentialsForDomain domain: String,
                                              withAccounts accounts: [SecureVaultModels.WebsiteAccount],
                                              withTrigger trigger: AutofillUserScript.GetTriggerType,
+                                             onAccountSelected account: @escaping (SecureVaultModels.WebsiteAccount?) -> Void,
                                              completionHandler: @escaping (SecureVaultModels.WebsiteAccount?) -> Void) {
                 XCTAssertEqual(accounts.count, 2, "Both accounts should be shown since the subType was `password`")
                 completionHandler(accounts[1])
@@ -737,6 +739,7 @@ private class MockSecureVaultManagerDelegate: SecureVaultManagerDelegate {
                             promptUserToAutofillCredentialsForDomain domain: String,
                             withAccounts accounts: [SecureVaultModels.WebsiteAccount],
                             withTrigger trigger: AutofillUserScript.GetTriggerType,
+                            onAccountSelected account: @escaping (BrowserServicesKit.SecureVaultModels.WebsiteAccount?) -> Void,
                             completionHandler: @escaping (SecureVaultModels.WebsiteAccount?) -> Void) {}
 
     func secureVaultManager(_: BrowserServicesKit.SecureVaultManager, promptUserWithGeneratedPassword password: String, completionHandler: @escaping (Bool) -> Void) {}

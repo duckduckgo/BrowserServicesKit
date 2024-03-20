@@ -33,6 +33,7 @@ public protocol AutofillDatabaseProvider: SecureStorageDatabaseProvider {
     func websiteCredentialsForAccountId(_ accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials?
     func websiteAccountsForDomain(_ domain: String) throws -> [SecureVaultModels.WebsiteAccount]
     func websiteAccountsForTopLevelDomain(_ eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount]
+    func updateLastUsedForAccountId(_ accountId: Int64) throws
     func deleteWebsiteCredentialsForAccountId(_ accountId: Int64) throws
     func deleteAllWebsiteCredentials() throws
 
@@ -100,6 +101,7 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
                 migrator.registerMigration("v10", migrate: Self.migrateV10(database:))
                 migrator.registerMigration("v11", migrate: Self.migrateV11(database:))
                 migrator.registerMigration("v12", migrate: Self.migrateV12(database:))
+                migrator.registerMigration("v13", migrate: Self.migrateV13(database:))
             }
         }
     }
@@ -190,6 +192,26 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
         }
     }
 
+    public func updateLastUsedForAccountId(_ accountId: Int64) throws {
+        try db.write {
+            try updateLastUsed(in: $0, usingId: accountId)
+        }
+    }
+
+    private func updateLastUsed(in database: Database,
+                                usingId id: Int64) throws {
+        assert(database.isInsideTransaction)
+
+        try database.execute(sql: """
+            UPDATE
+                \(SecureVaultModels.WebsiteAccount.databaseTableName)
+            SET
+                \(SecureVaultModels.WebsiteAccount.Columns.lastUsed.name) = ?
+            WHERE
+                \(SecureVaultModels.WebsiteAccount.Columns.id.name) = ?
+        """, arguments: [Date(), id])
+    }
+
     public func deleteSyncableCredentials(_ syncableCredentials: SecureVaultModels.SyncableCredentials, in database: Database) throws {
         assert(database.isInsideTransaction)
 
@@ -268,6 +290,7 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
         do {
             var account = credentials.account
             account.title = account.patternMatchedTitle()
+            account.lastUsed = Date()
 
             try account.insert(database)
             let id = database.lastInsertedRowID
@@ -972,6 +995,12 @@ extension DefaultAutofillDatabaseProvider {
         }
     }
 
+    static func migrateV13(database: Database) throws {
+        try database.alter(table: SecureVaultModels.WebsiteAccount.databaseTableName) {
+            $0.add(column: SecureVaultModels.WebsiteAccount.Columns.lastUsed.name, .date)
+        }
+    }
+
     // Refresh password comparison hashes
     static private func updatePasswordHashes(database: Database) throws {
         let accountRows = try Row.fetchCursor(database, sql: "SELECT * FROM \(SecureVaultModels.WebsiteAccount.databaseTableName)")
@@ -1074,7 +1103,7 @@ struct MigrationUtility {
 extension SecureVaultModels.WebsiteAccount: PersistableRecord, FetchableRecord {
 
     public enum Columns: String, ColumnExpression {
-        case id, title, username, domain, signature, notes, created, lastUpdated
+        case id, title, username, domain, signature, notes, created, lastUpdated, lastUsed
     }
 
     public init(row: Row) {
@@ -1086,6 +1115,7 @@ extension SecureVaultModels.WebsiteAccount: PersistableRecord, FetchableRecord {
         notes = row[Columns.notes]
         created = row[Columns.created]
         lastUpdated = row[Columns.lastUpdated]
+        lastUsed = row[Columns.lastUsed]
     }
 
     public func encode(to container: inout PersistenceContainer) {
@@ -1097,6 +1127,7 @@ extension SecureVaultModels.WebsiteAccount: PersistableRecord, FetchableRecord {
         container[Columns.notes] = notes
         container[Columns.created] = created
         container[Columns.lastUpdated] = Date()
+        container[Columns.lastUsed] = lastUsed
     }
 
     public static var databaseTableName: String = "website_accounts"
