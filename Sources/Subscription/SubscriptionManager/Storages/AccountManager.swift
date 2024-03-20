@@ -29,70 +29,49 @@ public protocol AccountManagerKeychainAccessDelegate: AnyObject {
     func accountManagerKeychainAccessFailed(accessType: AccountKeychainAccessType, error: AccountKeychainAccessError)
 }
 
+public typealias AccountDetails = (email: String?, externalID: String)
+
 public protocol AccountManaging {
 
-    var accessToken: String? { get }
+//    var email: String? { get }
+//    var externalID: String? { get }
 
+    func storeAccount(token: String, email: String?, externalID: String?)
+
+    func exchangeAuthTokenToAccessToken(_ authToken: String) async -> Result<String, Error>
+    func fetchAccountDetails(with accessToken: String) async -> Result<AccountDetails, Error>
+    func checkSubscriptionState() async
+
+    func hasEntitlement(for entitlement: Entitlement.ProductName) async -> Result<Bool, Error>
+    func hasEntitlement(for entitlement: Entitlement.ProductName, cachePolicy: CachePolicy) async -> Result<Bool, Error>
+
+    func checkForEntitlements(wait waitTime: Double, retry retryCount: Int) async -> Bool
 }
 
 public class AccountManager: AccountManaging {
 
-    public enum CachePolicy {
-        case reloadIgnoringLocalCacheData
-        case returnCacheDataElseLoad
-        case returnCacheDataDontLoad
-    }
-
     private let storage: AccountStorage
     private let entitlementsCache: UserDefaultsCache<[Entitlement]>
-    private let accessTokenStorage: SubscriptionTokenStorage
 
     public weak var delegate: AccountManagerKeychainAccessDelegate?
 
-    public var isUserAuthenticated: Bool {
-        return accessToken != nil
-    }
+    private let authService: AuthServiceProtocol
+    private let subscriptionService: SubscriptionServiceProtocol
 
-    public convenience init(subscriptionAppGroup: String) {
-        let accessTokenStorage = SubscriptionTokenKeychainStorage(keychainType: .dataProtection(.named(subscriptionAppGroup)))
-        self.init(accessTokenStorage: accessTokenStorage,
-                  entitlementsCache: UserDefaultsCache<[Entitlement]>(subscriptionAppGroup: subscriptionAppGroup, key: UserDefaultsCacheKey.subscriptionEntitlements))
+    public convenience init(subscriptionAppGroup: String, authService: AuthServiceProtocol, subscriptionService: SubscriptionServiceProtocol) {
+        self.init(entitlementsCache: UserDefaultsCache<[Entitlement]>(subscriptionAppGroup: subscriptionAppGroup, key: UserDefaultsCacheKey.subscriptionEntitlements),
+                  authService: authService,
+                  subscriptionService: subscriptionService)
     }
 
     public init(storage: AccountStorage = AccountKeychainStorage(),
-                accessTokenStorage: SubscriptionTokenStorage,
-                entitlementsCache: UserDefaultsCache<[Entitlement]>) {
+                entitlementsCache: UserDefaultsCache<[Entitlement]>,
+                authService: AuthServiceProtocol,
+                subscriptionService: SubscriptionServiceProtocol) {
         self.storage = storage
         self.entitlementsCache = entitlementsCache
-        self.accessTokenStorage = accessTokenStorage
-    }
-
-    public var authToken: String? {
-        do {
-            return try storage.getAuthToken()
-        } catch {
-            if let error = error as? AccountKeychainAccessError {
-                delegate?.accountManagerKeychainAccessFailed(accessType: .getAuthToken, error: error)
-            } else {
-                assertionFailure("Expected AccountKeychainAccessError")
-            }
-
-            return nil
-        }
-    }
-
-    public var accessToken: String? {
-        do {
-            return try accessTokenStorage.getAccessToken()
-        } catch {
-            if let error = error as? AccountKeychainAccessError {
-                delegate?.accountManagerKeychainAccessFailed(accessType: .getAccessToken, error: error)
-            } else {
-                assertionFailure("Expected AccountKeychainAccessError")
-            }
-
-            return nil
-        }
+        self.authService = authService
+        self.subscriptionService = subscriptionService
     }
 
     public var email: String? {
@@ -123,32 +102,15 @@ public class AccountManager: AccountManaging {
         }
     }
 
-    public func storeAuthToken(token: String) {
-        os_log(.info, log: .subscription, "[AccountManager] storeAuthToken")
-
-        do {
-            try storage.store(authToken: token)
-        } catch {
-            if let error = error as? AccountKeychainAccessError {
-                delegate?.accountManagerKeychainAccessFailed(accessType: .storeAuthToken, error: error)
-            } else {
-                assertionFailure("Expected AccountKeychainAccessError")
-            }
-        }
-    }
+//    public func storeAuthToken(token: String) {
+//        os_log(.info, log: .subscription, "[AccountManager] storeAuthToken")
+//        tokenStorage.authToken = token
+//    }
 
     public func storeAccount(token: String, email: String?, externalID: String?) {
         os_log(.info, log: .subscription, "[AccountManager] storeAccount")
 
-        do {
-            try accessTokenStorage.store(accessToken: token)
-        } catch {
-            if let error = error as? AccountKeychainAccessError {
-                delegate?.accountManagerKeychainAccessFailed(accessType: .storeAccessToken, error: error)
-            } else {
-                assertionFailure("Expected AccountKeychainAccessError")
-            }
-        }
+//        tokenStorage.accessToken = token
 
         do {
             try storage.store(email: email)
@@ -172,49 +134,6 @@ public class AccountManager: AccountManaging {
         NotificationCenter.default.post(name: .accountDidSignIn, object: self, userInfo: nil)
     }
 
-    public func signOut(skipNotification: Bool = false) {
-        os_log(.info, log: .subscription, "[AccountManager] signOut")
-
-        do {
-            try storage.clearAuthenticationState()
-            try accessTokenStorage.removeAccessToken()
-            SubscriptionService.signOut()
-            entitlementsCache.reset()
-        } catch {
-            if let error = error as? AccountKeychainAccessError {
-                delegate?.accountManagerKeychainAccessFailed(accessType: .clearAuthenticationData, error: error)
-            } else {
-                assertionFailure("Expected AccountKeychainAccessError")
-            }
-        }
-
-        if !skipNotification {
-            NotificationCenter.default.post(name: .accountDidSignOut, object: self, userInfo: nil)
-        }
-    }
-
-    public func migrateAccessTokenToNewStore() throws {
-        var errorToThrow: Error?
-        do {
-            if try accessTokenStorage.getAccessToken() != nil {
-                errorToThrow = MigrationError.noMigrationNeeded
-            } else if let oldAccessToken = try storage.getAccessToken() {
-                try accessTokenStorage.store(accessToken: oldAccessToken)
-            }
-        } catch {
-            errorToThrow = MigrationError.migrationFailed
-        }
-
-        if let errorToThrow {
-            throw errorToThrow
-        }
-    }
-
-    public enum MigrationError: Error {
-        case migrationFailed
-        case noMigrationNeeded
-    }
-
     // MARK: -
 
     public enum EntitlementsError: Error {
@@ -222,7 +141,11 @@ public class AccountManager: AccountManaging {
         case noCachedData
     }
 
-    public func hasEntitlement(for entitlement: Entitlement.ProductName, cachePolicy: CachePolicy = .returnCacheDataElseLoad) async -> Result<Bool, Error> {
+    public func hasEntitlement(for entitlement: Entitlement.ProductName) async -> Result<Bool, Error> {
+        return await hasEntitlement(for: entitlement, cachePolicy: .returnCacheDataElseLoad)
+    }
+
+    public func hasEntitlement(for entitlement: Entitlement.ProductName, cachePolicy: CachePolicy) async -> Result<Bool, Error> {
         switch await fetchEntitlements(cachePolicy: cachePolicy) {
         case .success(let entitlements):
             return .success(entitlements.compactMap { $0.product }.contains(entitlement))
@@ -232,14 +155,15 @@ public class AccountManager: AccountManaging {
     }
 
     private func fetchRemoteEntitlements() async -> Result<[Entitlement], Error> {
-        guard let accessToken else {
-            entitlementsCache.reset()
-            return .failure(EntitlementsError.noAccessToken)
-        }
+        let accessToken = "TODO: Fix me"
+//        guard let accessToken = tokenStorage.accessToken else {
+//            entitlementsCache.reset()
+//            return .failure(EntitlementsError.noAccessToken)
+//        }
 
         let cachedEntitlements: [Entitlement]? = entitlementsCache.get()
 
-        switch await AuthService.validateToken(accessToken: accessToken) {
+        switch await authService.validateToken(accessToken: accessToken) {
         case .success(let response):
             let entitlements = response.account.entitlements
             if entitlements != cachedEntitlements {
@@ -278,7 +202,7 @@ public class AccountManager: AccountManaging {
     }
 
     public func exchangeAuthTokenToAccessToken(_ authToken: String) async -> Result<String, Error> {
-        switch await AuthService.getAccessToken(token: authToken) {
+        switch await authService.getAccessToken(token: authToken) {
         case .success(let response):
             return .success(response.accessToken)
         case .failure(let error):
@@ -290,7 +214,7 @@ public class AccountManager: AccountManaging {
     public typealias AccountDetails = (email: String?, externalID: String)
 
     public func fetchAccountDetails(with accessToken: String) async -> Result<AccountDetails, Error> {
-        switch await AuthService.validateToken(accessToken: accessToken) {
+        switch await authService.validateToken(accessToken: accessToken) {
         case .success(let response):
             return .success(AccountDetails(email: response.account.email, externalID: response.account.externalID))
         case .failure(let error):
@@ -302,22 +226,23 @@ public class AccountManager: AccountManaging {
     public func checkSubscriptionState() async {
         os_log(.info, log: .subscription, "[AccountManager] checkSubscriptionState")
 
-        guard let token = accessToken else { return }
+        let token = "TODO: Fix me"
+//        guard let token = tokenStorage.accessToken else { return }
 
-        if case .success(let subscription) = await SubscriptionService.getSubscription(accessToken: token) {
+        if case .success(let subscription) = await subscriptionService.getSubscription(accessToken: token) {
             if !subscription.isActive {
-                signOut()
+//                signOut()
             }
         }
     }
 
     @discardableResult
-    public static func checkForEntitlements(subscriptionAppGroup: String, wait waitTime: Double, retry retryCount: Int) async -> Bool {
+    public func checkForEntitlements(wait waitTime: Double, retry retryCount: Int) async -> Bool {
         var count = 0
         var hasEntitlements = false
 
         repeat {
-            switch await AccountManager(subscriptionAppGroup: subscriptionAppGroup).fetchEntitlements() {
+            switch await fetchEntitlements(cachePolicy: .reloadIgnoringLocalCacheData) {
             case .success(let entitlements):
                 hasEntitlements = !entitlements.isEmpty
             case .failure:

@@ -28,25 +28,36 @@ public final class AppStoreAccountManagementFlow {
             case authenticatingWithTransactionFailed
         }
 
-    @discardableResult
-    public static func refreshAuthTokenIfNeeded(subscriptionAppGroup: String) async -> Result<String, AppStoreAccountManagementFlow.Error> {
-        os_log(.info, log: .subscription, "[AppStoreAccountManagementFlow] refreshAuthTokenIfNeeded")
-        let accountManager = AccountManager(subscriptionAppGroup: subscriptionAppGroup)
+    private var tokenStorage: SubscriptionTokenStorage
+    private var accountStorage: SubscriptionAccountStorage
+    private var accountManager: AccountManaging
+    private var authService: AuthServiceProtocol
 
-        var authToken = accountManager.authToken ?? ""
+    init(tokenStorage: SubscriptionTokenStorage, accountStorage: SubscriptionAccountStorage, accountManager: AccountManaging, authService: AuthServiceProtocol) {
+        self.tokenStorage = tokenStorage
+        self.accountStorage = accountStorage
+        self.accountManager = accountManager
+        self.authService = authService
+    }
+
+    @discardableResult
+    public func refreshAuthTokenIfNeeded() async -> Result<String, AppStoreAccountManagementFlow.Error> {
+        os_log(.info, log: .subscription, "[AppStoreAccountManagementFlow] refreshAuthTokenIfNeeded")
+
+        var authToken = tokenStorage.authToken ?? ""
 
         // Check if auth token if still valid
-        if case let .failure(validateTokenError) = await AuthService.validateToken(accessToken: authToken) {
+        if case let .failure(validateTokenError) = await authService.validateToken(accessToken: authToken) {
             os_log(.error, log: .subscription, "[AppStoreAccountManagementFlow] validateToken error: %{public}s", String(reflecting: validateTokenError))
 
             // In case of invalid token attempt store based authentication to obtain a new one
             guard let lastTransactionJWSRepresentation = await PurchaseManager.mostRecentTransaction() else { return .failure(.noPastTransaction) }
 
-            switch await AuthService.storeLogin(signature: lastTransactionJWSRepresentation) {
+            switch await authService.storeLogin(signature: lastTransactionJWSRepresentation) {
             case .success(let response):
-                if response.externalID == accountManager.externalID {
+                if response.externalID == accountStorage.externalID {
                     authToken = response.authToken
-                    accountManager.storeAuthToken(token: authToken)
+                    tokenStorage.authToken = authToken
                 }
             case .failure(let storeLoginError):
                 os_log(.error, log: .subscription, "[AppStoreAccountManagementFlow] storeLogin error: %{public}s", String(reflecting: storeLoginError))

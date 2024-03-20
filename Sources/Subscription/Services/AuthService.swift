@@ -19,15 +19,61 @@
 import Common
 import Foundation
 
-public struct AuthService: APIService {
+public protocol AuthServiceProtocol {
+    func getAccessToken(token: String) async -> Result<AccessTokenResponse, APIServiceError>
+    func validateToken(accessToken: String) async -> Result<ValidateTokenResponse, APIServiceError>
+    func createAccount(emailAccessToken: String?) async -> Result<CreateAccountResponse, APIServiceError>
+    func storeLogin(signature: String) async -> Result<StoreLoginResponse, APIServiceError>
+}
 
-    public static let session = {
-        let configuration = URLSessionConfiguration.ephemeral
-        return URLSession(configuration: configuration)
-    }()
+public struct AccessTokenResponse: Decodable {
+    public let accessToken: String
+}
 
-    public static var baseURL: URL {
-        switch SubscriptionPurchaseEnvironment.currentServiceEnvironment {
+public struct ValidateTokenResponse: Decodable {
+    public let account: Account
+
+    public struct Account: Decodable {
+        public let email: String?
+        let entitlements: [Entitlement]
+        public let externalID: String
+
+        enum CodingKeys: String, CodingKey {
+            case email, entitlements, externalID = "externalId" // no underscores due to keyDecodingStrategy = .convertFromSnakeCase
+        }
+    }
+}
+
+public struct CreateAccountResponse: Decodable {
+    public let authToken: String
+    public let externalID: String
+    public let status: String
+
+    enum CodingKeys: String, CodingKey {
+        case authToken = "authToken", externalID = "externalId", status // no underscores due to keyDecodingStrategy = .convertFromSnakeCase
+    }
+}
+
+public struct StoreLoginResponse: Decodable {
+    public let authToken: String
+    public let email: String
+    public let externalID: String
+    public let id: Int
+    public let status: String
+
+    enum CodingKeys: String, CodingKey {
+        case authToken = "authToken", email, externalID = "externalId", id, status // no underscores due to keyDecodingStrategy = .convertFromSnakeCase
+    }
+}
+
+// MARK: - Implementation
+
+public struct AuthService: APIService, AuthServiceProtocol {
+
+    let environment: SubscriptionServiceEnvironment
+
+    var baseURL: URL {
+        switch environment {
         case .production:
             URL(string: "https://quack.duckduckgo.com/api/auth")!
         case .staging:
@@ -35,41 +81,30 @@ public struct AuthService: APIService {
         }
     }
 
+    let session = {
+        let configuration = URLSessionConfiguration.ephemeral
+        return URLSession(configuration: configuration)
+    }()
+
+    init(environment: SubscriptionServiceEnvironment) {
+            self.environment = environment
+    }
+
     // MARK: -
 
-    public static func getAccessToken(token: String) async -> Result<AccessTokenResponse, APIServiceError> {
+    public func getAccessToken(token: String) async -> Result<AccessTokenResponse, APIServiceError> {
         await executeAPICall(method: "GET", endpoint: "access-token", headers: makeAuthorizationHeader(for: token))
     }
 
-    public struct AccessTokenResponse: Decodable {
-        public let accessToken: String
-    }
-
     // MARK: -
 
-    public static func validateToken(accessToken: String) async -> Result<ValidateTokenResponse, APIServiceError> {
+    public func validateToken(accessToken: String) async -> Result<ValidateTokenResponse, APIServiceError> {
         await executeAPICall(method: "GET", endpoint: "validate-token", headers: makeAuthorizationHeader(for: accessToken))
     }
 
-    // swiftlint:disable nesting
-    public struct ValidateTokenResponse: Decodable {
-        public let account: Account
-
-        public struct Account: Decodable {
-            public let email: String?
-            let entitlements: [Entitlement]
-            public let externalID: String
-
-            enum CodingKeys: String, CodingKey {
-                case email, entitlements, externalID = "externalId" // no underscores due to keyDecodingStrategy = .convertFromSnakeCase
-            }
-        }
-    }
-    // swiftlint:enable nesting
-
     // MARK: -
 
-    public static func createAccount(emailAccessToken: String?) async -> Result<CreateAccountResponse, APIServiceError> {
+    public func createAccount(emailAccessToken: String?) async -> Result<CreateAccountResponse, APIServiceError> {
         var headers: [String: String]?
 
         if let emailAccessToken {
@@ -79,35 +114,11 @@ public struct AuthService: APIService {
         return await executeAPICall(method: "POST", endpoint: "account/create", headers: headers)
     }
 
-    public struct CreateAccountResponse: Decodable {
-        public let authToken: String
-        public let externalID: String
-        public let status: String
-
-        enum CodingKeys: String, CodingKey {
-            case authToken = "authToken", externalID = "externalId", status // no underscores due to keyDecodingStrategy = .convertFromSnakeCase
-        }
-    }
-
-    // MARK: -
-
-    public static func storeLogin(signature: String) async -> Result<StoreLoginResponse, APIServiceError> {
+    public func storeLogin(signature: String) async -> Result<StoreLoginResponse, APIServiceError> {
         let bodyDict = ["signature": signature,
                         "store": "apple_app_store"]
 
         guard let bodyData = try? JSONEncoder().encode(bodyDict) else { return .failure(.encodingError) }
         return await executeAPICall(method: "POST", endpoint: "store-login", body: bodyData)
-    }
-
-    public struct StoreLoginResponse: Decodable {
-        public let authToken: String
-        public let email: String
-        public let externalID: String
-        public let id: Int
-        public let status: String
-
-        enum CodingKeys: String, CodingKey {
-            case authToken = "authToken", email, externalID = "externalId", id, status // no underscores due to keyDecodingStrategy = .convertFromSnakeCase
-        }
     }
 }

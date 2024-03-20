@@ -34,24 +34,33 @@ public final class AppStoreRestoreFlow {
         case subscriptionExpired(accountDetails: RestoredAccountDetails)
     }
 
-    public static func restoreAccountFromPastPurchase(subscriptionAppGroup: String) async -> Result<Void, AppStoreRestoreFlow.Error> {
+    private var tokenStorage: SubscriptionTokenStorage
+    private var accountManager: AccountManaging
+    private var authService: AuthServiceProtocol
+    private var subscriptionService: SubscriptionServiceProtocol
+
+    init(tokenStorage: SubscriptionTokenStorage, accountManager: AccountManaging, authService: AuthServiceProtocol, subscriptionService: SubscriptionServiceProtocol) {
+        self.tokenStorage = tokenStorage
+        self.accountManager = accountManager
+        self.authService = authService
+        self.subscriptionService = subscriptionService
+    }
+
+    public func restoreAccountFromPastPurchase() async -> Result<Void, AppStoreRestoreFlow.Error> {
+        os_log(.info, log: .subscription, "[AppStoreRestoreFlow] restoreAccountFromPastPurchase")
 
         // Clear subscription Cache
         SubscriptionService.signOut()
-
-        os_log(.info, log: .subscription, "[AppStoreRestoreFlow] restoreAccountFromPastPurchase")
 
         guard let lastTransactionJWSRepresentation = await PurchaseManager.mostRecentTransaction() else {
             os_log(.error, log: .subscription, "[AppStoreRestoreFlow] Error: missingAccountOrTransactions")
             return .failure(.missingAccountOrTransactions)
         }
 
-        let accountManager = AccountManager(subscriptionAppGroup: subscriptionAppGroup)
-
         // Do the store login to get short-lived token
         let authToken: String
 
-        switch await AuthService.storeLogin(signature: lastTransactionJWSRepresentation) {
+        switch await authService.storeLogin(signature: lastTransactionJWSRepresentation) {
         case .success(let response):
             authToken = response.authToken
         case .failure:
@@ -82,7 +91,7 @@ public final class AppStoreRestoreFlow {
 
         var isSubscriptionActive = false
 
-        switch await SubscriptionService.getSubscription(accessToken: accessToken, cachePolicy: .reloadIgnoringLocalCacheData) {
+        switch await subscriptionService.getSubscription(accessToken: accessToken, cachePolicy: .reloadIgnoringLocalCacheData) {
         case .success(let subscription):
             isSubscriptionActive = subscription.isActive
         case .failure:
@@ -91,7 +100,8 @@ public final class AppStoreRestoreFlow {
         }
 
         if isSubscriptionActive {
-            accountManager.storeAuthToken(token: authToken)
+            tokenStorage.authToken = authToken
+            tokenStorage.accessToken = accessToken
             accountManager.storeAccount(token: accessToken, email: email, externalID: externalID)
             return .success(())
         } else {
