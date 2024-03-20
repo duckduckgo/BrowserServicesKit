@@ -45,6 +45,7 @@ public enum PrivacyFeature: String {
     case privacyDashboard
     case history
     case performanceMetrics
+    case privacyPro
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -104,4 +105,23 @@ public enum PrivacyDashboardSubfeature: String, PrivacySubfeature {
 
     case toggleReports
 
+}
+
+public enum AutoconsentSubfeature: String, PrivacySubfeature {
+    public var parent: PrivacyFeature {
+        .autoconsent
+    }
+
+    case onByDefault
+}
+
+public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {
+    public var parent: PrivacyFeature { .privacyPro }
+
+    case isLaunched
+    case isLaunchedStripe
+    case allowPurchase
+    case allowPurchaseStripe
+    case isLaunchedOverride
+    case isLaunchedOverrideStripe
 }

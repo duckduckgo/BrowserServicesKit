@@ -113,6 +113,7 @@ extension BookmarkEntity {
 
         cancelDeletion()
         modifiedAt = nil
+        isStub = false
 
         if let encryptedTitle = syncable.encryptedTitle {
             title = try decrypt(encryptedTitle)

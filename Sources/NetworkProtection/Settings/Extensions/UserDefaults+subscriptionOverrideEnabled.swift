@@ -1,7 +1,7 @@
 //
-//  NetworkProtectionTokenStoreMocks.swift
+//  UserDefaults+subscriptionOverrideEnabled.swift
 //
-//  Copyright © 2021 DuckDuckGo. All rights reserved.
+//  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -16,26 +16,25 @@
 //  limitations under the License.
 //
 
+import Combine
 import Foundation
-@testable import NetworkProtection
 
-final class NetworkProtectionTokenStoreMock: NetworkProtectionTokenStore {
-
-    var token: String?
-
-    func store(_ token: String) {
-        self.token = token
+extension UserDefaults {
+    private var subscriptionOverrideEnabledKey: String {
+        "subscriptionOverrideEnabled"
     }
 
-    func fetchToken() -> String? {
-        token
+    public var subscriptionOverrideEnabled: Bool? {
+        get {
+            value(forKey: subscriptionOverrideEnabledKey) as? Bool
+        }
+
+        set {
+            set(newValue, forKey: subscriptionOverrideEnabledKey)
+        }
     }
 
-    func deleteToken() {
-        self.token = nil
-    }
-
-    func fetchSubscriptionToken() throws -> String? {
-        "ddg:accessToken"
+    public func resetsubscriptionOverrideEnabled() {
+        removeObject(forKey: subscriptionOverrideEnabledKey)
     }
 }

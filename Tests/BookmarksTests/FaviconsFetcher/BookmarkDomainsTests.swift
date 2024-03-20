@@ -164,9 +164,10 @@ private extension BookmarkDomains {
     static func make(withAllBookmarksIn context: NSManagedObjectContext) -> BookmarkDomains {
         let request = BookmarkEntity.fetchRequest()
         request.predicate = NSPredicate(
-            format: "%K == NO AND %K == NO",
+            format: "%K == NO AND %K == NO AND (%K == NO OR %K == nil)",
             #keyPath(BookmarkEntity.isFolder),
-            #keyPath(BookmarkEntity.isPendingDeletion)
+            #keyPath(BookmarkEntity.isPendingDeletion),
+            #keyPath(BookmarkEntity.isStub), #keyPath(BookmarkEntity.isStub)
         )
         request.propertiesToFetch = [#keyPath(BookmarkEntity.url)]
         request.relationshipKeyPathsForPrefetching = [#keyPath(BookmarkEntity.favoriteFolders), #keyPath(BookmarkEntity.parent)]

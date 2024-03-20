@@ -1,5 +1,5 @@
 //
-//  BookmarkMock.swift
+//  HistoryEntryMock.swift
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -17,12 +17,17 @@
 //
 
 import Foundation
-@testable import BrowserServicesKit
 
-struct BookmarkMock: Bookmark {
+@testable import Suggestions
 
-    var url: String
-    var title: String
-    var isFavorite: Bool
+struct HistoryEntryMock: HistorySuggestion {
+
+    var identifier: UUID
+    var url: URL
+    var title: String?
+    var numberOfVisits: Int
+    var lastVisit: Date
+    var failedToLoad: Bool
+    var isDownload: Bool
 
 }

@@ -799,7 +799,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             )
         } catch {
             if isSubscriptionEnabled, let error = error as? NetworkProtectionError, case .vpnAccessRevoked = error {
-                await handleInvalidEntitlement(attemptsShutdown: false)
+                await handleInvalidEntitlement(attemptsShutdown: true)
                 throw TunnelError.vpnAccessRevoked
             }
 
@@ -863,6 +863,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             simulateTunnelMemoryOveruse(completionHandler: completionHandler)
         case .simulateConnectionInterruption:
             simulateConnectionInterruption(completionHandler: completionHandler)
+        case .getConnectionThroughput:
+            getConnectionThroughput(completionHandler: completionHandler)
         }
     }
 
@@ -1025,8 +1027,19 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     private func handleGetServerLocation(completionHandler: ((Data?) -> Void)? = nil) {
-        let response = lastSelectedServerInfo.map { ExtensionMessageString($0.serverLocation) }
-        completionHandler?(response?.rawValue)
+        guard let attributes = lastSelectedServerInfo?.attributes else {
+            completionHandler?(nil)
+            return
+        }
+
+        let encoder = JSONEncoder()
+        guard let encoded = try? encoder.encode(attributes), let encodedJSONString = String(data: encoded, encoding: .utf8) else {
+            assertionFailure("Failed to encode server attributes")
+            completionHandler?(nil)
+            return
+        }
+
+        completionHandler?(ExtensionMessageString(encodedJSONString).rawValue)
     }
 
     private func handleGetServerAddress(completionHandler: ((Data?) -> Void)? = nil) {
@@ -1112,6 +1125,18 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         Task { @MainActor in
             connectionTester.failNextTest()
             completionHandler?(nil)
+        }
+    }
+
+    private func getConnectionThroughput(completionHandler: ((Data?) -> Void)? = nil) {
+        Task { @MainActor in
+            guard let (received, sent) = try? await adapter.getBytesTransmitted() else {
+                completionHandler?(nil)
+                return
+            }
+
+            let string = "\(received),\(sent)"
+            completionHandler?(ExtensionMessageString(string).rawValue)
         }
     }
 
