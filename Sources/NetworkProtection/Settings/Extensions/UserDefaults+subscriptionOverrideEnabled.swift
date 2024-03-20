@@ -1,7 +1,7 @@
 //
-//  MockAppLauncher.swift
+//  UserDefaults+subscriptionOverrideEnabled.swift
 //
-//  Copyright © 2023 DuckDuckGo. All rights reserved.
+//  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -16,15 +16,25 @@
 //  limitations under the License.
 //
 
+import Combine
 import Foundation
-import NetworkProtection
 
-public final class MockAppLauncher: AppLaunching {
-    public init() {
+extension UserDefaults {
+    private var subscriptionOverrideEnabledKey: String {
+        "subscriptionOverrideEnabled"
     }
 
-    public var spyLaunchAppCommand: AppLaunchCommand?
-    public func launchApp(withCommand command: AppLaunchCommand) async {
-        spyLaunchAppCommand = command
+    public var subscriptionOverrideEnabled: Bool? {
+        get {
+            value(forKey: subscriptionOverrideEnabledKey) as? Bool
+        }
+
+        set {
+            set(newValue, forKey: subscriptionOverrideEnabledKey)
+        }
+    }
+
+    public func resetsubscriptionOverrideEnabled() {
+        removeObject(forKey: subscriptionOverrideEnabledKey)
     }
 }

@@ -35,6 +35,7 @@ let package = Package(
         .library(name: "SecureStorage", targets: ["SecureStorage"]),
         .library(name: "Subscription", targets: ["Subscription"]),
         .library(name: "History", targets: ["History"]),
+        .library(name: "Suggestions", targets: ["Suggestions"]),
     ],
     dependencies: [
         .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "10.2.0"),
@@ -46,7 +47,7 @@ let package = Package(
         .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "5.4.0"),
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
         .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
-        .package(url: "https://github.com/duckduckgo/wireguard-apple", exact: "1.1.1"),
+        .package(url: "https://github.com/duckduckgo/wireguard-apple", exact: "1.1.3"),
         .package(url: "https://github.com/duckduckgo/apple-toolbox.git", exact: "2.0.0"),
     ],
     targets: [
@@ -106,6 +107,16 @@ let package = Package(
             ],
             resources: [
                 .process("CoreData/BrowsingHistory.xcdatamodeld")
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
+            ],
+            plugins: [swiftlintPlugin]
+        ),
+        .target(
+            name: "Suggestions",
+            dependencies: [
+                "Common"
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
@@ -325,6 +336,7 @@ let package = Package(
         .target(
             name: "Subscription",
             dependencies: [
+                "BrowserServicesKit",
                 "Common",
             ],
             swiftSettings: [
@@ -338,6 +350,13 @@ let package = Package(
             name: "HistoryTests",
             dependencies: [
                 "History",
+            ],
+            plugins: [swiftlintPlugin]
+        ),
+        .testTarget(
+            name: "SuggestionsTests",
+            dependencies: [
+                "Suggestions",
             ],
             plugins: [swiftlintPlugin]
         ),
@@ -360,6 +379,9 @@ let package = Package(
                 .copy("Resources/Bookmarks_V4.sqlite"),
                 .copy("Resources/Bookmarks_V4.sqlite-shm"),
                 .copy("Resources/Bookmarks_V4.sqlite-wal"),
+                .copy("Resources/Bookmarks_V5.sqlite"),
+                .copy("Resources/Bookmarks_V5.sqlite-shm"),
+                .copy("Resources/Bookmarks_V5.sqlite-wal"),
             ],
             plugins: [swiftlintPlugin]
         ),
@@ -484,6 +506,13 @@ let package = Package(
             dependencies: [
                 "PrivacyDashboard",
                 "TestUtils",
+            ],
+            plugins: [swiftlintPlugin]
+        ),
+        .testTarget(
+            name: "SubscriptionTests",
+            dependencies: [
+                "Subscription",
             ],
             plugins: [swiftlintPlugin]
         ),

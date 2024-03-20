@@ -22,7 +22,7 @@ protocol NetworkProtectionErrorConvertible {
     var networkProtectionError: NetworkProtectionError { get }
 }
 
-public enum NetworkProtectionError: LocalizedError {
+public enum NetworkProtectionError: LocalizedError, CustomNSError {
     // Tunnel configuration errors
     case noServerRegistrationInfo
     case couldNotSelectClosestServer
@@ -76,6 +76,113 @@ public enum NetworkProtectionError: LocalizedError {
 
     // Unhandled error
     case unhandledError(function: String, line: Int, error: Error)
+
+    public static let errorDomain = "com.duckduckgo.NetworkProtectionError.domain"
+
+    public var errorCode: Int {
+        switch self {
+            // 0+ - Tunnel configuration errors
+        case .noServerRegistrationInfo: return 0
+        case .couldNotSelectClosestServer: return 1
+        case .couldNotGetPeerPublicKey: return 2
+        case .couldNotGetPeerHostName: return 3
+        case .couldNotGetInterfaceAddressRange: return 4
+            // 100+ - Client errors
+        case .failedToFetchServerList: return 100
+        case .failedToParseServerListResponse: return 101
+        case .failedToFetchLocationList: return 102
+        case .failedToParseLocationListResponse: return 103
+        case .failedToEncodeRegisterKeyRequest: return 104
+        case .failedToFetchRegisteredServers: return 105
+        case .failedToParseRegisteredServersResponse: return 106
+        case .failedToEncodeRedeemRequest: return 107
+        case .invalidInviteCode: return 108
+        case .failedToRedeemInviteCode: return 109
+        case .failedToRetrieveAuthToken: return 110
+        case .failedToParseRedeemResponse: return 111
+        case .invalidAuthToken: return 112
+        case .serverListInconsistency: return 113
+            // 200+ - Server list store errors
+        case .failedToEncodeServerList: return 200
+        case .failedToDecodeServerList: return 201
+        case .failedToWriteServerList: return 202
+        case .noServerListFound: return 203
+        case .couldNotCreateServerListDirectory: return 204
+        case .failedToReadServerList: return 205
+            // 300+ - Keychain errors
+        case .failedToCastKeychainValueToData: return 300
+        case .keychainReadError: return 301
+        case .keychainWriteError: return 302
+        case .keychainUpdateError: return 303
+        case .keychainDeleteError: return 304
+            // 400+ - Wireguard errors
+        case .wireGuardCannotLocateTunnelFileDescriptor: return 400
+        case .wireGuardInvalidState: return 401
+        case .wireGuardDnsResolution: return 402
+        case .wireGuardSetNetworkSettings: return 403
+        case .startWireGuardBackend: return 404
+            // 500+ Auth errors
+        case .noAuthTokenFound: return 500
+            // 600+ Subscription errors
+        case .vpnAccessRevoked: return 600
+            // 700+ Unhandled errors
+        case .unhandledError: return 700
+        }
+    }
+
+    public var errorUserInfo: [String: Any] {
+        switch self {
+        case .noServerRegistrationInfo,
+                .couldNotSelectClosestServer,
+                .couldNotGetPeerPublicKey,
+                .couldNotGetPeerHostName,
+                .couldNotGetInterfaceAddressRange,
+                .failedToEncodeRegisterKeyRequest,
+                .failedToEncodeRedeemRequest,
+                .invalidInviteCode,
+                .failedToRetrieveAuthToken,
+                .invalidAuthToken,
+                .serverListInconsistency,
+                .noServerListFound,
+                .failedToCastKeychainValueToData,
+                .keychainReadError,
+                .keychainWriteError,
+                .keychainUpdateError,
+                .keychainDeleteError,
+                .wireGuardCannotLocateTunnelFileDescriptor,
+                .wireGuardInvalidState,
+                .wireGuardDnsResolution,
+                .startWireGuardBackend,
+                .noAuthTokenFound,
+                .vpnAccessRevoked:
+            return [:]
+        case .failedToFetchServerList(let error),
+                .failedToFetchLocationList(let error),
+                .failedToFetchRegisteredServers(let error),
+                .failedToRedeemInviteCode(let error):
+            guard let error else {
+                return [:]
+            }
+
+            return [
+                NSUnderlyingErrorKey: error
+            ]
+        case .failedToParseServerListResponse(let error),
+                .failedToParseLocationListResponse(let error),
+                .failedToParseRegisteredServersResponse(let error),
+                .failedToParseRedeemResponse(let error),
+                .failedToEncodeServerList(let error),
+                .failedToDecodeServerList(let error),
+                .failedToWriteServerList(let error),
+                .couldNotCreateServerListDirectory(let error),
+                .failedToReadServerList(let error),
+                .wireGuardSetNetworkSettings(let error),
+                .unhandledError(_, _, let error):
+            return [
+                NSUnderlyingErrorKey: error
+            ]
+        }
+    }
 
     public var errorDescription: String? {
         // This is probably not the most elegant error to show to a user but
