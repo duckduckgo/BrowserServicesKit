@@ -242,8 +242,13 @@ public class AccountManager: AccountManaging {
         switch await AuthService.validateToken(accessToken: accessToken) {
         case .success(let response):
             let entitlements = response.account.entitlements
+
             if entitlements != cachedEntitlements {
-                entitlementsCache.set(entitlements)
+                if entitlements.isEmpty {
+                    entitlementsCache.reset()
+                } else {
+                    entitlementsCache.set(entitlements)
+                }
                 NotificationCenter.default.post(name: .entitlementsDidChange, object: self, userInfo: [UserDefaultsCacheKey.subscriptionEntitlements: entitlements])
             }
             return .success(entitlements)
