@@ -26,13 +26,15 @@ public class PerformanceMetricsSubfeature: Subfeature {
     public var featureName: String = "performanceMetrics"
     public var broker: UserScriptMessageBroker?
 
-    public var targetWebview: WKWebView?
+    private var targetWebview: WKWebView
 
     private var timer: Timer?
 
     private var completionHandler: (([Double]?) -> Void)?
 
-    public init() {}
+    public init(targetWebview: WKWebView) {
+        self.targetWebview = targetWebview
+    }
 
     public func handler(forMethodNamed methodName: String) -> Handler? {
         guard methodName == "vitalsResult" else { return nil }
@@ -51,23 +53,23 @@ public class PerformanceMetricsSubfeature: Subfeature {
         return nil
     }
 
+    private func handleTimeout() {
+        if let completionHandler = self.completionHandler {
+            self.completionHandler = nil
+            completionHandler(nil)
+        }
+    }
+
     public func notifyHandler(completion: @escaping ([Double]?) -> Void) {
         guard let broker else { completion(nil); return }
 
         completionHandler = completion
-        if let targetWebview {
-            broker.push(method: "getVitals", params: nil, for: self, into: targetWebview)
+        broker.push(method: "getVitals", params: nil, for: self, into: targetWebview)
 
-            // On the chance C-S-S doesn't respond to our message, set a timer
-            // to continue the process since the breakage report blocks on this.
-            timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: false) { [weak self] _ in
-                if let completionHandler = self?.completionHandler {
-                    self?.completionHandler = nil
-                    completionHandler(nil)
-                }
-            }
-        } else {
-            completion(nil)
+        // On the chance C-S-S doesn't respond to our message, set a timer
+        // to continue the process since the breakage report blocks on this.
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: false) { [weak self] _ in
+            self?.handleTimeout()
         }
     }
 

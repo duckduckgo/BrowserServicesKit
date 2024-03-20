@@ -211,7 +211,7 @@ public struct BrokenSiteReport {
             "manufacturer": manufacturer,
             "reportFlow": reportFlow.rawValue,
             "openerContext": openerContext?.rawValue ?? "",
-            "vpnOn": vpnOn ? "true" : "false",
+            "vpnOn": vpnOn.description,
             "userRefreshCount": String(userRefreshCount)
         ]
 

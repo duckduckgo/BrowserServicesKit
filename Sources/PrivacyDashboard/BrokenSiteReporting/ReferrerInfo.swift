@@ -19,17 +19,19 @@
 import Foundation
 import WebKit
 
-public struct ReferrerInfo {
+extension WKWebView {
     @MainActor
-    public static func isSERPReferred(from webView: WKWebView) async -> Bool {
-        do {
-            if let result = try await webView.evaluateJavaScript("document.referrer") as? String {
-                return result.contains("duckduckgo.com")
+    public var isCurrentSiteReferredFromDuckDuckGo: Bool {
+        get async {
+            do {
+                if let result = try await self.evaluateJavaScript("document.referrer") as? String {
+                    return result.contains("duckduckgo.com")
+                }
+            } catch {
+                return false
             }
-        } catch {
+
             return false
         }
-
-        return false
     }
 }
