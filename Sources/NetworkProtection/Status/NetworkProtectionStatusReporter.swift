@@ -39,13 +39,13 @@ public struct NetworkProtectionStatusServerInfo: Codable, Equatable {
 
     /// The server location.  A `nil` location means unknown
     ///
-    public let serverLocation: String?
+    public let serverLocation: NetworkProtectionServerInfo.ServerAttributes?
 
     /// The server address.  A `nil` address means unknown.
     ///
     public let serverAddress: String?
 
-    public init(serverLocation: String?, serverAddress: String?) {
+    public init(serverLocation: NetworkProtectionServerInfo.ServerAttributes?, serverAddress: String?) {
         self.serverLocation = serverLocation
         self.serverAddress = serverAddress
     }
