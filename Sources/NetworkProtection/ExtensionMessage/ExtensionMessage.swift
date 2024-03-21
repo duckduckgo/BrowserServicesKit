@@ -43,6 +43,7 @@ public enum ExtensionMessage: RawRepresentable {
         case simulateTunnelFatalError
         case simulateTunnelMemoryOveruse
         case simulateConnectionInterruption
+        case getConnectionThroughput
     }
 
     // This is actually an improved way to send messages.
@@ -67,6 +68,7 @@ public enum ExtensionMessage: RawRepresentable {
     case simulateTunnelFatalError
     case simulateTunnelMemoryOveruse
     case simulateConnectionInterruption
+    case getConnectionThroughput
 
     // swiftlint:disable:next cyclomatic_complexity function_body_length
     public init?(rawValue data: Data) {
@@ -134,6 +136,9 @@ public enum ExtensionMessage: RawRepresentable {
         case .simulateConnectionInterruption:
             self = .simulateConnectionInterruption
 
+        case .getConnectionThroughput:
+            self = .getConnectionThroughput
+
         case .none:
             assertionFailure("Invalid data")
             return nil
@@ -160,6 +165,7 @@ public enum ExtensionMessage: RawRepresentable {
         case .simulateTunnelFatalError: return .simulateTunnelFatalError
         case .simulateTunnelMemoryOveruse: return .simulateTunnelMemoryOveruse
         case .simulateConnectionInterruption: return .simulateConnectionInterruption
+        case .getConnectionThroughput: return .getConnectionThroughput
         }
     }
 
@@ -208,7 +214,8 @@ public enum ExtensionMessage: RawRepresentable {
              .simulateTunnelFailure,
              .simulateTunnelFatalError,
              .simulateTunnelMemoryOveruse,
-             .simulateConnectionInterruption: break
+             .simulateConnectionInterruption,
+             .getConnectionThroughput: break
 
         }
 

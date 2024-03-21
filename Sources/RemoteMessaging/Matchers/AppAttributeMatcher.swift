@@ -33,7 +33,7 @@ public struct AppAttributeMatcher: AttributeMatcher {
             assertionFailure("BundleIdentifier should not be empty")
         }
         self.init(bundleId: AppVersion.shared.identifier,
-                  appVersion: AppVersion.shared.versionNumber,
+                  appVersion: AppVersion.shared.versionAndBuildNumber,
                   isInternalUser: isInternalUser,
                   statisticsStore: statisticsStore,
                   variantManager: variantManager)

@@ -66,7 +66,7 @@ class AppAttributeMatcherTests: XCTestCase {
     }
 
     func testWhenAppVersionEqualOrLowerThanMaxThenReturnMatch() throws {
-        let appVersionComponents = AppVersion.shared.versionNumber.components(separatedBy: ".").map { $0 }
+        let appVersionComponents = AppVersion.shared.versionAndBuildNumber.components(separatedBy: ".").map { $0 }
         let appMajorVersion = appVersionComponents[0]
         let appMinorVersion = appVersionComponents.suffix(from: 1).joined(separator: ".")
 
@@ -82,7 +82,7 @@ class AppAttributeMatcherTests: XCTestCase {
     }
 
     func testWhenAppVersionGreaterThanMaxThenReturnFail() throws {
-        let appVersionComponents = AppVersion.shared.versionNumber.components(separatedBy: ".").map { $0 }
+        let appVersionComponents = AppVersion.shared.versionAndBuildNumber.components(separatedBy: ".").map { $0 }
         let appMajorVersion = appVersionComponents[0]
         let lessThanMax = String(Int(appMajorVersion)! - 1)
 
@@ -91,12 +91,12 @@ class AppAttributeMatcherTests: XCTestCase {
     }
 
     func testWhenAppVersionEqualOrGreaterThanMinThenReturnMatch() throws {
-        XCTAssertEqual(matcher.evaluate(matchingAttribute: AppVersionMatchingAttribute(min: AppVersion.shared.versionNumber, fallback: nil)),
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: AppVersionMatchingAttribute(min: AppVersion.shared.versionAndBuildNumber, fallback: nil)),
                        .match)
     }
 
     func testWhenAppVersionLowerThanMinThenReturnFail() throws {
-        let appVersionComponents = AppVersion.shared.versionNumber.components(separatedBy: ".").map { $0 }
+        let appVersionComponents = AppVersion.shared.versionAndBuildNumber.components(separatedBy: ".").map { $0 }
         let appMajorVersion = appVersionComponents[0]
         let greaterThanMax = String(Int(appMajorVersion)! + 1)
         let greaterThanMinorVersion = Float(appVersionComponents.suffix(from: 1).joined(separator: "."))! + 0.1
@@ -107,7 +107,7 @@ class AppAttributeMatcherTests: XCTestCase {
     }
 
     func testWhenAppVersionInRangeThenReturnMatch() throws {
-        let appVersionComponents = AppVersion.shared.versionNumber.components(separatedBy: ".").map { $0 }
+        let appVersionComponents = AppVersion.shared.versionAndBuildNumber.components(separatedBy: ".").map { $0 }
         let appMajorVersion = appVersionComponents[0]
         let greaterThanMax = String(Int(appMajorVersion)! + 1)
         let lessThanMinorVersion = Float(appVersionComponents.suffix(from: 1).joined(separator: "."))! - 0.1
@@ -117,8 +117,8 @@ class AppAttributeMatcherTests: XCTestCase {
                        .match)
     }
 
-    func testWhenAppVersionNotInRangeThenReturnMatch() throws {
-        let appVersionComponents = AppVersion.shared.versionNumber.components(separatedBy: ".").map { $0 }
+    func testWhenAppVersionNotInRangeThenReturnFail() throws {
+        let appVersionComponents = AppVersion.shared.versionAndBuildNumber.components(separatedBy: ".").map { $0 }
         let appMajorVersion = appVersionComponents[0]
         let greaterThanMax = String(Int(appMajorVersion)! + 1)
 
@@ -127,12 +127,12 @@ class AppAttributeMatcherTests: XCTestCase {
     }
 
     func testWhenAppVersionSameAsDeviceThenReturnMatch() throws {
-        XCTAssertEqual(matcher.evaluate(matchingAttribute: AppVersionMatchingAttribute(min: AppVersion.shared.versionNumber, max: AppVersion.shared.versionNumber, fallback: nil)),
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: AppVersionMatchingAttribute(min: AppVersion.shared.versionAndBuildNumber, max: AppVersion.shared.versionAndBuildNumber, fallback: nil)),
                        .match)
     }
 
     func testWhenAppVersionDifferentToDeviceThenReturnFail() throws {
-        let appVersionComponents = AppVersion.shared.versionNumber.components(separatedBy: ".").map { $0 }
+        let appVersionComponents = AppVersion.shared.versionAndBuildNumber.components(separatedBy: ".").map { $0 }
         let appMajorVersion = appVersionComponents[0]
         let lessThanMinorVersion = Float(appVersionComponents.suffix(from: 1).joined(separator: "."))! - 0.1
         let minBumped = "\(appMajorVersion).\(lessThanMinorVersion)"

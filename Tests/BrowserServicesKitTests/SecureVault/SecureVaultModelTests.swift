@@ -197,13 +197,18 @@ class SecureVaultModelTests: XCTestCase {
     private var tld = TLD()
     private var days = 86400.0
 
-    private func testAccount(_ username: String, _ domain: String, _ signature: String, _ lastUpdated: Double) -> SecureVaultModels.WebsiteAccount {
+    private func testAccount(_ username: String, _ domain: String, _ signature: String, _ lastUpdated: Double, _ lastUsed: Double? = nil) -> SecureVaultModels.WebsiteAccount {
+        var lastUsedDate: Date?
+        if let lastUsed = lastUsed {
+            lastUsedDate = Date(timeIntervalSince1970: lastUsed)
+        }
         return SecureVaultModels.WebsiteAccount(id: "1234567890",
                                                 username: username,
                                                 domain: domain,
                                                 signature: signature,
                                                 created: Date(timeIntervalSince1970: 0),
-                                                lastUpdated: Date(timeIntervalSince1970: lastUpdated))
+                                                lastUpdated: Date(timeIntervalSince1970: lastUpdated),
+                                                lastUsed: lastUsedDate)
 
     }
 
@@ -229,16 +234,22 @@ class SecureVaultModelTests: XCTestCase {
         testAccount("chris", "baby.amazon.com", "3456", 0),
         testAccount("anna", "amazon.com", "1234", 50 * days),
         testAccount("paul", "amazon.com", "3456", 0),
-        testAccount("john", "www.amazon.com", "4567", 0)
+        testAccount("john", "www.amazon.com", "4567", 0),
+        testAccount("ringo", "www.amazon.com", "1233", 0, 1 * days),
+        testAccount("george", "www.amazon.com", "4488", 0, 0 * days),
+        testAccount("pheobe", "amazon.com", "4488", 10 * days, 2 * days)
     ]
 
     func testExactMatchAccountsAreShownFirst() {
         let sortedAccounts = sortTestAccounts.sortedForDomain("www.amazon.com", tld: tld)
 
         let controlAccounts = [
+            testAccount("ringo", "www.amazon.com", "1233", 0, 1 * days),
+            testAccount("george", "www.amazon.com", "4488", 0, 0 * days),
             testAccount("daniel", "www.amazon.com", "23456", 0),
             testAccount("john", "www.amazon.com", "4567", 0),
             testAccount("quinn", "www.amazon.com", "2345", 0),
+            testAccount("pheobe", "amazon.com", "4488", 10 * days, 2 * days),
             testAccount("anna", "amazon.com", "1234", 50 * days),
             testAccount("jane", "amazon.com", "7890", 0),
             testAccount("oscar", "amazon.com", "7890", 0),
@@ -257,7 +268,7 @@ class SecureVaultModelTests: XCTestCase {
             testAccount("", "grocery.amazon.com", "4567", 0),
             testAccount("", "movies.amazon.com", "2345", 0)
         ]
-        for i in 0...18 {
+        for i in 0...controlAccounts.count - 1 {
             XCTAssertEqual(sortedAccounts[i], controlAccounts[i])
         }
     }
@@ -266,17 +277,20 @@ class SecureVaultModelTests: XCTestCase {
 
         let sortedAccounts = sortTestAccounts.sortedForDomain("amazon.com", tld: tld)
         let controlAccounts = [
+            testAccount("pheobe", "amazon.com", "4488", 10 * days, 2 * days),
             testAccount("anna", "amazon.com", "1234", 50 * days),
             testAccount("jane", "amazon.com", "7890", 0),
             testAccount("oscar", "amazon.com", "7890", 0),
             testAccount("paul", "amazon.com", "3456", 0),
             testAccount("rachel", "amazon.com", "7890", 0),
             testAccount("", "amazon.com", "3456", 0),
+            testAccount("ringo", "www.amazon.com", "1233", 0, 1 * days),
+            testAccount("george", "www.amazon.com", "4488", 0, 0 * days),
             testAccount("daniel", "www.amazon.com", "23456", 0),
             testAccount("john", "www.amazon.com", "4567", 0),
             testAccount("quinn", "www.amazon.com", "2345", 0),
         ]
-        for i in 0...8 {
+        for i in 0...controlAccounts.count - 1 {
             XCTAssertEqual(sortedAccounts[i], controlAccounts[i])
         }
     }
@@ -286,6 +300,9 @@ class SecureVaultModelTests: XCTestCase {
         let sortedAccounts  = sortTestAccounts.sortedForDomain("toys.amazon.com", tld: tld)
         let controlAccounts  = [
             testAccount("olivia", "toys.amazon.com", "4567", 50 * days),
+            testAccount("pheobe", "amazon.com", "4488", 10 * days, 2 * days),
+            testAccount("ringo", "www.amazon.com", "1233", 0, 1 * days),
+            testAccount("george", "www.amazon.com", "4488", 0, 0 * days),
             testAccount("anna", "amazon.com", "1234", 50 * days),
             testAccount("jane", "amazon.com", "7890", 0),
             testAccount("oscar", "amazon.com", "7890", 0),
@@ -307,7 +324,7 @@ class SecureVaultModelTests: XCTestCase {
             testAccount("", "movies.amazon.com", "2345", 0)
         ]
         XCTAssertTrue(sortedAccounts.count == controlAccounts.count)
-        for i in 0...19 {
+        for i in 0...controlAccounts.count - 1 {
             XCTAssertEqual(sortedAccounts[i], controlAccounts[i])
         }
     }
@@ -317,6 +334,8 @@ class SecureVaultModelTests: XCTestCase {
         let sortedAccounts  = sortTestAccounts.sortedForDomain("toys.amazon.com", tld: tld, removeDuplicates: true)
         let controlAccounts  = [
             testAccount("olivia", "toys.amazon.com", "4567", 50 * days),
+            testAccount("pheobe", "amazon.com", "4488", 10 * days, 2 * days),
+            testAccount("ringo", "www.amazon.com", "1233", 0, 1 * days),
             testAccount("anna", "amazon.com", "1234", 50 * days),
             testAccount("jane", "amazon.com", "7890", 0),
             testAccount("paul", "amazon.com", "3456", 0),
@@ -325,7 +344,7 @@ class SecureVaultModelTests: XCTestCase {
             testAccount("lisa", "books.amazon.com", "5678", 50 * days),
             testAccount("mary", "garden.amazon.com", "12345", 50 * days),
         ]
-        for i in 0...7 {
+        for i in 0...controlAccounts.count - 1 {
             XCTAssertEqual(sortedAccounts[i], controlAccounts[i])
         }
     }
