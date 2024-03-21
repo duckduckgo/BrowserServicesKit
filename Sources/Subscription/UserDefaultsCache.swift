@@ -24,7 +24,7 @@ public struct UserDefaultsCacheSettings {
     // Default expiration interval set to 24 hours
     public let defaultExpirationInterval: TimeInterval
 
-    public init(defaultExpirationInterval: TimeInterval = 24 * 60 * 60) {
+    public init(defaultExpirationInterval: TimeInterval = 1 * 60 * 60) {
         self.defaultExpirationInterval = defaultExpirationInterval
     }
 }

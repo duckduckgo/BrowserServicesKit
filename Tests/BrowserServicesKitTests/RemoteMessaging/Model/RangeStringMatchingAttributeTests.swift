@@ -37,6 +37,10 @@ class RangeStringMatchingAttributeTests: XCTestCase {
         XCTAssertEqual(RangeStringNumericMatchingAttribute(min: "0", max: "2").matches(value: "1.44"), .match)
         XCTAssertEqual(RangeStringNumericMatchingAttribute(min: "0", max: "2").matches(value: "1.88"), .match)
         XCTAssertEqual(RangeStringNumericMatchingAttribute(min: "0", max: "2").matches(value: "1.44.88"), .match)
+        XCTAssertEqual(RangeStringNumericMatchingAttribute(min: "1.44.88", max: "2").matches(value: "1.44.88.0"), .match)
+        XCTAssertEqual(RangeStringNumericMatchingAttribute(min: "1.44.88", max: "2").matches(value: "1.44.88.1"), .match)
+        XCTAssertEqual(RangeStringNumericMatchingAttribute(min: "1.44.88.0", max: "2").matches(value: "1.44.88.0"), .match)
+        XCTAssertEqual(RangeStringNumericMatchingAttribute(min: "1.44.88.0", max: "2").matches(value: "1.44.88.1"), .match)
     }
 
     func testWhenVersionOutsideMinMaxShouldFail() throws {
@@ -44,5 +48,9 @@ class RangeStringMatchingAttributeTests: XCTestCase {
         XCTAssertEqual(RangeStringNumericMatchingAttribute(min: "2.88", max: "8.88").matches(value: "88.88"), .fail)
         XCTAssertEqual(RangeStringNumericMatchingAttribute(min: "44.44", max: "88.88").matches(value: "0.1"), .fail)
         XCTAssertEqual(RangeStringNumericMatchingAttribute(min: "44.44", max: "88.88").matches(value: "22.22"), .fail)
+        XCTAssertEqual(RangeStringNumericMatchingAttribute(min: "1.44.89", max: "2").matches(value: "1.44.88.1"), .fail)
+        XCTAssertEqual(RangeStringNumericMatchingAttribute(min: "1.44.88.1", max: "2").matches(value: "1.44.88"), .fail)
+        XCTAssertEqual(RangeStringNumericMatchingAttribute(min: "1.44.88.1", max: "2").matches(value: "1.44.88.0"), .fail)
+
     }
 }
