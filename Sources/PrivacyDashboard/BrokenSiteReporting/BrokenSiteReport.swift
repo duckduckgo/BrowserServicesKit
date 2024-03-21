@@ -51,6 +51,12 @@ public struct BrokenSiteReport {
     }
 #endif
 
+    public enum OpenerContext: String {
+        case serp
+        case external
+        case navigation
+    }
+
     public static let allowedQueryReservedCharacters = CharacterSet(charactersIn: ",")
 
     let siteUrl: URL
@@ -70,6 +76,10 @@ public struct BrokenSiteReport {
     var lastSentDay: String?
     let errors: [Error]?
     let httpStatusCodes: [Int]?
+    let openerContext: OpenerContext?
+    let vpnOn: Bool
+    let jsPerformance: [Double]?
+    let userRefreshCount: Int
     let didOpenReportInfo: Bool
     let toggleReportCounter: Int?
 #if os(iOS)
@@ -96,6 +106,10 @@ public struct BrokenSiteReport {
         reportFlow: Source,
         errors: [Error]?,
         httpStatusCodes: [Int]?,
+        openerContext: OpenerContext?,
+        vpnOn: Bool,
+        jsPerformance: [Double]?,
+        userRefreshCount: Int,
         didOpenReportInfo: Bool,
         toggleReportCounter: Int?
     ) {
@@ -115,6 +129,10 @@ public struct BrokenSiteReport {
         self.reportFlow = reportFlow
         self.errors = errors
         self.httpStatusCodes = httpStatusCodes
+        self.openerContext = openerContext
+        self.vpnOn = vpnOn
+        self.jsPerformance = jsPerformance
+        self.userRefreshCount = userRefreshCount
         self.didOpenReportInfo = didOpenReportInfo
         self.toggleReportCounter = toggleReportCounter
     }
@@ -141,6 +159,10 @@ public struct BrokenSiteReport {
         model: String,
         errors: [Error]?,
         httpStatusCodes: [Int]?,
+        openerContext: OpenerContext?,
+        vpnOn: Bool,
+        jsPerformance: [Double]?,
+        userRefreshCount: Int,
         didOpenReportInfo: Bool,
         toggleReportCounter: Int?
     ) {
@@ -163,6 +185,10 @@ public struct BrokenSiteReport {
         self.model = model
         self.errors = errors
         self.httpStatusCodes = httpStatusCodes
+        self.openerContext = openerContext
+        self.vpnOn = vpnOn
+        self.jsPerformance = jsPerformance
+        self.userRefreshCount = userRefreshCount
         self.didOpenReportInfo = didOpenReportInfo
         self.toggleReportCounter = toggleReportCounter
     }
@@ -183,7 +209,10 @@ public struct BrokenSiteReport {
             "urlParametersRemoved": urlParametersRemoved.description,
             "os": osVersion,
             "manufacturer": manufacturer,
-            "reportFlow": reportFlow.rawValue
+            "reportFlow": reportFlow.rawValue,
+            "openerContext": openerContext?.rawValue ?? "",
+            "vpnOn": vpnOn.description,
+            "userRefreshCount": String(userRefreshCount)
         ]
 
         if mode == .regular {
@@ -212,6 +241,11 @@ public struct BrokenSiteReport {
                 return "\(error.code) - \(error.domain):\(error.localizedDescription)"
             }
             result["errorDescriptions"] = errorDescriptions.joined(separator: ",")
+        }
+
+        if let jsPerformance {
+            let perf = jsPerformance.map { String($0) }.joined(separator: ",")
+            result["jsPerformance"] = perf
         }
 
 #if os(iOS)
