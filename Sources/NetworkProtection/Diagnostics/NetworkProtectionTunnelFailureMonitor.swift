@@ -84,7 +84,7 @@ public actor NetworkProtectionTunnelFailureMonitor {
         firstCheckSkipped = false
 
         networkMonitor.pathUpdateHandler = { path in
-            callback(.networkPathChanged(path.debugDescription))
+            callback(.networkPathChanged(path.anonymousDescription))
         }
 
         task = Task.periodic(interval: Self.monitoringInterval) { [weak self] in
@@ -142,3 +142,27 @@ public actor NetworkProtectionTunnelFailureMonitor {
         return [.wifi, .eth, .cellular].contains(connectionType) && path.status == .satisfied
     }
 }
+
+extension Network.NWPath {
+    /// A description that's safe from a privacy standpoint.
+    ///
+    /// Ref: https://app.asana.com/0/0/1206712493935053/1206712516729780/f
+    ///
+    public var anonymousDescription: String {
+        var description = "NWPath("
+
+        description += "status: \(status), "
+
+        if #available(iOS 14.2, *), case .unsatisfied = status {
+            description += "unsatisfiedReason: \(unsatisfiedReason), "
+        }
+
+        description += "availableInterfaces: \(availableInterfaces), "
+        description += "isConstrained: \(isConstrained ? "true" : "false"), "
+        description += "isExpensive: \(isExpensive ? "true" : "false")"
+        description += ")"
+
+        return description
+    }
+}
+
