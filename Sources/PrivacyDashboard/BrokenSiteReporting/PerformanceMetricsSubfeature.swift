@@ -27,9 +27,7 @@ public class PerformanceMetricsSubfeature: Subfeature {
     public var broker: UserScriptMessageBroker?
 
     private var targetWebview: WKWebView
-
     private var timer: Timer?
-
     private var completionHandler: (([Double]?) -> Void)?
 
     public init(targetWebview: WKWebView) {
@@ -53,13 +51,6 @@ public class PerformanceMetricsSubfeature: Subfeature {
         return nil
     }
 
-    private func handleTimeout() {
-        if let completionHandler = self.completionHandler {
-            self.completionHandler = nil
-            completionHandler(nil)
-        }
-    }
-
     public func notifyHandler(completion: @escaping ([Double]?) -> Void) {
         guard let broker else { completion(nil); return }
 
@@ -70,6 +61,13 @@ public class PerformanceMetricsSubfeature: Subfeature {
         // to continue the process since the breakage report blocks on this.
         timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: false) { [weak self] _ in
             self?.handleTimeout()
+        }
+    }
+
+    private func handleTimeout() {
+        if let completionHandler {
+            self.completionHandler = nil
+            completionHandler(nil)
         }
     }
 
