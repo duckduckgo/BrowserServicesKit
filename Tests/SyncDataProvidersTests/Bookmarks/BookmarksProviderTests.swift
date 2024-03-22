@@ -784,10 +784,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         assertEquivalent(withLastChildrenArrayReceivedFromSync: false, rootFolder, BookmarkTree {
             Folder(id: "1")
             Folder(id: "2") {
-                // Bookmark retains non-nil modifiedAt, but it's newer than bookmarkModificationDate
-                // because it's updated after sync context save (bookmark object is not included in synced data
-                // but it gets updated as a side effect of sync – an update to parent).
-                Bookmark("test3", id: "3", url: "test", modifiedAtConstraint: .greaterThan(bookmarkModificationDate))
+                Bookmark("test3", id: "3", url: "test", modifiedAt: bookmarkModificationDate)
             }
         })
     }
@@ -910,6 +907,106 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
             Bookmark(id: "2")
             Bookmark(id: "3")
             Bookmark(id: "4")
+        })
+    }
+
+    // MARK: - Changes to Folders without changes to their children
+
+    func testThatWhenBookmarkIsMovedBetweenFoldersThenItsModifiedAtIsNotSet() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Folder(id: "1") {
+                Bookmark(id: "3")
+            }
+            Folder(id: "2")
+        }
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+        }
+
+        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+        // send existing items to clear modifiedAt
+        _ = try await handleSyncResponse(sent: sent, received: [], clientTimestamp: Date(), serverTimestamp: "1234", in: context)
+
+        let received: [Syncable] = [
+            .folder(id: "1"),
+            .folder(id: "2", children: ["3"])
+        ]
+
+        let rootFolder = try await handleSyncResponse(sent: [], received: received, clientTimestamp: Date(), serverTimestamp: "1234", in: context)
+        assertEquivalent(withTimestamps: true, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: nil) {
+            Folder(id: "1", modifiedAt: nil, lastChildrenArrayReceivedFromSync: [])
+            Folder(id: "2", modifiedAt: nil, lastChildrenArrayReceivedFromSync: ["3"]) {
+                Bookmark(id: "3", modifiedAt: nil)
+            }
+        })
+    }
+
+    func testThatWhenBookmarkFavoriteFoldersChangeThenItsModifiedAtIsNotSet() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark(id: "1")
+            Bookmark(id: "2", favoritedOn: [.mobile])
+        }
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+        }
+
+        let received: [Syncable] = [
+            .mobileFavoritesFolder(favorites: ["1"])
+        ]
+
+        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+        // send existing items to clear modifiedAt
+        _ = try await handleSyncResponse(sent: sent, received: [], clientTimestamp: Date(), serverTimestamp: "1234", in: context)
+
+        let rootFolder = try await handleSyncResponse(sent: [], received: received, clientTimestamp: Date(), serverTimestamp: "1234", in: context)
+        assertEquivalent(withTimestamps: true, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: nil) {
+            Bookmark(id: "1", favoritedOn: [.mobile], modifiedAt: nil)
+            Bookmark(id: "2", modifiedAt: nil)
+        })
+    }
+
+    func testThatWhenBookmarkFavoriteFoldersAndParentChangeThenItsModifiedAtIsNotSet() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Folder(id: "1") {
+                Bookmark(id: "3")
+            }
+            Folder(id: "2")
+        }
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+        }
+
+        let received: [Syncable] = [
+            .mobileFavoritesFolder(favorites: ["3"]),
+            .folder(id: "1"),
+            .folder(id: "2", children: ["3"])
+        ]
+
+        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+        // send existing items to clear modifiedAt
+        _ = try await handleSyncResponse(sent: sent, received: [], clientTimestamp: Date(), serverTimestamp: "1234", in: context)
+
+        let rootFolder = try await handleSyncResponse(sent: [], received: received, clientTimestamp: Date(), serverTimestamp: "1234", in: context)
+        assertEquivalent(withTimestamps: true, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: nil) {
+            Folder(id: "1", lastChildrenArrayReceivedFromSync: [])
+            Folder(id: "2", lastChildrenArrayReceivedFromSync: ["3"]) {
+                Bookmark(id: "3", favoritedOn: [.mobile], modifiedAt: nil)
+            }
         })
     }
 
