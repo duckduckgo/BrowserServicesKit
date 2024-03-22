@@ -56,7 +56,9 @@ public final class SubscriptionService: APIService {
 
         switch result {
         case .success(let subscriptionResponse):
-            subscriptionCache.set(subscriptionResponse)
+            let defaultExpiryDate = Date().addingTimeInterval(subscriptionCache.settings.defaultExpirationInterval)
+            let expiryDate = min(defaultExpiryDate, subscriptionResponse.expiresOrRenewsAt)
+            subscriptionCache.set(subscriptionResponse, expires: expiryDate)
             return .success(subscriptionResponse)
         case .failure(let error):
             return .failure(.apiError(error))
