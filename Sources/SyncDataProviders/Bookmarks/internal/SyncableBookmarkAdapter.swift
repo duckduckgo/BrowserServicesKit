@@ -94,11 +94,7 @@ extension Syncable {
         } else {
             if bookmark.isFolder {
                 if let title = bookmark.title {
-                    if DDGSync.isFieldValidationEnabled {
-                        payload["title"] = try encrypt(String(title.prefix(BookmarkValidationConstraints.maxFolderTitleLength)))
-                    } else {
-                        payload["title"] = try encrypt(title)
-                    }
+                    payload["title"] = try encrypt(String(title.prefix(BookmarkValidationConstraints.maxFolderTitleLength)))
                 }
 
                 let children: [String] = {
