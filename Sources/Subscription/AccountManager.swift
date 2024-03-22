@@ -53,6 +53,12 @@ public class AccountManager: AccountManaging {
         return accessToken != nil
     }
 
+    public convenience init(accessTokenStorage: SubscriptionTokenStorage) {
+        self.init(accessTokenStorage: accessTokenStorage,
+                  entitlementsCache: UserDefaultsCache<[Entitlement]>(key: UserDefaultsCacheKey.subscriptionEntitlements,
+                                                                      settings: UserDefaultsCacheSettings(defaultExpirationInterval: .minutes(20))))
+    }
+
     public convenience init(subscriptionAppGroup: String) {
         let accessTokenStorage = SubscriptionTokenKeychainStorage(keychainType: .dataProtection(.named(subscriptionAppGroup)))
         self.init(accessTokenStorage: accessTokenStorage,
