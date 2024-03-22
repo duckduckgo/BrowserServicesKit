@@ -102,7 +102,7 @@ public final class CredentialsProvider: DataProvider {
                 os_log(
                     .error,
                     log: log,
-                    "Validation failed for credential %{public}s with title: %{public}s",
+                    "Validation failed for credential %{private}s with title: %{private}s",
                     credentials.metadata.uuid,
                     credentials.account?.title.flatMap { String($0.prefix(100)) } ?? ""
                 )

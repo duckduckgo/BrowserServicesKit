@@ -106,7 +106,7 @@ public final class BookmarksProvider: DataProvider {
                         os_log(
                             .error,
                             log: log,
-                            "Validation failed for bookmark %{public}s with title: %{public}s",
+                            "Validation failed for bookmark %{private}s with title: %{private}s",
                             bookmarkEntity.uuid ?? "",
                             bookmarkEntity.title.flatMap { String($0.prefix(100)) } ?? ""
                         )
