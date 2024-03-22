@@ -319,7 +319,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
                                                dns: [DNSServer(address: server.serverInfo.internalIP)],
                                                isKillSwitchEnabled: isKillSwitchEnabled)
 
-        return TunnelConfiguration(name: "Network Protection", interface: interface, peers: [peerConfiguration])
+        return TunnelConfiguration(name: "DuckDuckGo VPN", interface: interface, peers: [peerConfiguration])
     }
 
     func peerConfiguration(serverPublicKey: PublicKey, serverEndpoint: Endpoint) -> PeerConfiguration {
