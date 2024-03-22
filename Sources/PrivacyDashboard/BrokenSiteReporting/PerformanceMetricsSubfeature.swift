@@ -52,8 +52,7 @@ public class PerformanceMetricsSubfeature: Subfeature {
     }
 
     public func notifyHandler(completion: @escaping ([Double]?) -> Void) {
-        guard let broker else { completion(nil); return }
-        guard let targetWebview else { completion(nil); return }
+        guard let broker, let targetWebview else { completion(nil); return }
 
         completionHandler = completion
         broker.push(method: "getVitals", params: nil, for: self, into: targetWebview)
