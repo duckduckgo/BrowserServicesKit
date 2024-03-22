@@ -135,7 +135,7 @@ public protocol DataProviding: AnyObject {
      * (see `fetchDescriptionsForObjectsThatFailedValidation`) as it is not immune to
      * changing date/time on client devices.
      */
-    var lastSyncLocalTimestamp: Date? { get }
+    var lastSyncLocalTimestamp: Date? { get set }
 
     /**
      * Update server and local timestamps of the last successful sync of a given feature.
@@ -260,7 +260,12 @@ open class DataProvider: DataProviding {
     }
 
     public var lastSyncLocalTimestamp: Date? {
-        metadataStore.localTimestamp(forFeatureNamed: feature.name)
+        get {
+            metadataStore.localTimestamp(forFeatureNamed: feature.name)
+        }
+        set {
+            metadataStore.updateLocalTimestamp(newValue, forFeatureNamed: feature.name)
+        }
     }
 
     public func updateSyncTimestamps(server: String?, local: Date?) {

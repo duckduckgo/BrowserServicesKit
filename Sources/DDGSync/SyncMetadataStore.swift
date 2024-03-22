@@ -27,6 +27,7 @@ public protocol SyncMetadataStore {
 
     func timestamp(forFeatureNamed name: String) -> String?
     func localTimestamp(forFeatureNamed name: String) -> Date?
+    func updateLocalTimestamp(_ localTimestamp: Date?, forFeatureNamed name: String)
 
     func state(forFeatureNamed name: String) -> FeatureSetupState
 
@@ -120,6 +121,17 @@ public final class LocalSyncMetadataStore: SyncMetadataStore {
             state = feature?.featureState
         }
         return state ?? .readyToSync
+    }
+
+    public func updateLocalTimestamp(_ localTimestamp: Date?, forFeatureNamed name: String) {
+        guard DDGSync.isFieldValidationEnabled else {
+            return
+        }
+        context.performAndWait {
+            let feature = SyncFeatureUtils.fetchFeature(with: name, in: context)
+            feature?.lastSyncLocalTimestamp = localTimestamp
+            try? context.save()
+        }
     }
 
     public func update(_ serverTimestamp: String?, _ localTimestamp: Date?, _ state: FeatureSetupState, forFeatureNamed name: String) {

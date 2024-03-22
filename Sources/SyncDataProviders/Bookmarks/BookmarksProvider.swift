@@ -181,6 +181,8 @@ public final class BookmarksProvider: DataProvider {
         if let serverTimestamp {
             updateSyncTimestamps(server: serverTimestamp, local: clientTimestamp)
             syncDidUpdateData()
+        } else {
+            lastSyncLocalTimestamp = clientTimestamp
         }
         syncDidFinish()
     }

@@ -271,6 +271,8 @@ public final class SettingsProvider: DataProvider, SettingSyncHandlingDelegate {
         if let serverTimestamp {
             updateSyncTimestamps(server: serverTimestamp, local: clientTimestamp)
             syncDidUpdateData()
+        } else {
+            lastSyncLocalTimestamp = clientTimestamp
         }
         syncDidFinish()
     }

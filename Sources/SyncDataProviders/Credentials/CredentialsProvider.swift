@@ -206,6 +206,8 @@ public final class CredentialsProvider: DataProvider {
         if let serverTimestamp {
             updateSyncTimestamps(server: serverTimestamp, local: clientTimestamp)
             syncDidUpdateData()
+        } else {
+            lastSyncLocalTimestamp = clientTimestamp
         }
         syncDidFinish()
     }
