@@ -306,16 +306,22 @@ public class AccountManager: AccountManaging {
         }
     }
 
-    public func checkSubscriptionState() async {
-        os_log(.info, log: .subscription, "[AccountManager] checkSubscriptionState")
+    public func refreshSubscriptionAndEntitlements() async {
+        os_log(.info, log: .subscription, "[AccountManager] refreshSubscriptionAndEntitlements")
 
-        guard let token = accessToken else { return }
+        guard let token = accessToken else {
+            SubscriptionService.signOut()
+            entitlementsCache.reset()
+            return
+        }
 
-        if case .success(let subscription) = await SubscriptionService.getSubscription(accessToken: token) {
+        if case .success(let subscription) = await SubscriptionService.getSubscription(accessToken: token, cachePolicy: .reloadIgnoringLocalCacheData) {
             if !subscription.isActive {
                 signOut()
             }
         }
+
+        _ = await fetchEntitlements(cachePolicy: .reloadIgnoringLocalCacheData)
     }
 
     @discardableResult
