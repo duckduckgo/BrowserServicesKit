@@ -86,10 +86,6 @@ final class SyncableBookmarkValidationTests: XCTestCase {
     }
 
     func testWhenFolderTitleIsTooLongThenItIsTruncated() throws {
-        guard DDGSync.isFieldValidationEnabled else {
-            throw XCTSkip("Field validation is disabled")
-        }
-
         folder.title = String(repeating: "x", count: 10000)
         do {
             let syncable = try Syncable(bookmark: folder, encryptedUsing: { $0 })
