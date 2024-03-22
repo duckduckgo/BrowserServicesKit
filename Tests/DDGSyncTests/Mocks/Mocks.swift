@@ -363,6 +363,10 @@ class SyncMetadataStoreMock: SyncMetadataStore {
         features[name]?.state ?? .readyToSync
     }
 
+    func updateLocalTimestamp(_ localTimestamp: Date?, forFeatureNamed name: String) {
+        features[name]?.localTimestamp = localTimestamp
+    }
+
     func update(_ serverTimestamp: String?, _ localTimestamp: Date?, _ state: FeatureSetupState, forFeatureNamed name: String) {
         features[name]?.state = state
         features[name]?.timestamp = serverTimestamp
