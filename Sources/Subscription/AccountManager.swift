@@ -245,7 +245,7 @@ public class AccountManager: AccountManaging {
             return .failure(EntitlementsError.noAccessToken)
         }
 
-        let cachedEntitlements: [Entitlement]? = entitlementsCache.get()
+        let cachedEntitlements: [Entitlement] = entitlementsCache.get() ?? []
 
         switch await AuthService.validateToken(accessToken: accessToken) {
         case .success(let response):
