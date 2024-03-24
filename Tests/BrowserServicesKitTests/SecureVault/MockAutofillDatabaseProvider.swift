@@ -76,6 +76,12 @@ internal class MockAutofillDatabaseProvider: AutofillDatabaseProvider {
         return _accounts
     }
 
+    func updateLastUsedForAccountId(_ accountId: Int64) throws {
+        if var account = _accounts.first(where: { $0.id == String(accountId) }) {
+            account.lastUsed = Date()
+        }
+    }
+
     func deleteWebsiteCredentialsForAccountId(_ accountId: Int64) throws {
         self._credentialsDict.removeValue(forKey: accountId)
         self._accounts = self._accounts.filter { $0.id != String(accountId) }

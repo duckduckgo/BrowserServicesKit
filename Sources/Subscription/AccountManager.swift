@@ -53,10 +53,18 @@ public class AccountManager: AccountManaging {
         return accessToken != nil
     }
 
+    public convenience init(accessTokenStorage: SubscriptionTokenStorage) {
+        self.init(accessTokenStorage: accessTokenStorage,
+                  entitlementsCache: UserDefaultsCache<[Entitlement]>(key: UserDefaultsCacheKey.subscriptionEntitlements,
+                                                                      settings: UserDefaultsCacheSettings(defaultExpirationInterval: .minutes(20))))
+    }
+
     public convenience init(subscriptionAppGroup: String) {
         let accessTokenStorage = SubscriptionTokenKeychainStorage(keychainType: .dataProtection(.named(subscriptionAppGroup)))
         self.init(accessTokenStorage: accessTokenStorage,
-                  entitlementsCache: UserDefaultsCache<[Entitlement]>(subscriptionAppGroup: subscriptionAppGroup, key: UserDefaultsCacheKey.subscriptionEntitlements))
+                  entitlementsCache: UserDefaultsCache<[Entitlement]>(subscriptionAppGroup: subscriptionAppGroup,
+                                                                      key: UserDefaultsCacheKey.subscriptionEntitlements,
+                                                                      settings: UserDefaultsCacheSettings(defaultExpirationInterval: .minutes(20))))
     }
 
     public init(storage: AccountStorage = AccountKeychainStorage(),
@@ -237,13 +245,18 @@ public class AccountManager: AccountManaging {
             return .failure(EntitlementsError.noAccessToken)
         }
 
-        let cachedEntitlements: [Entitlement]? = entitlementsCache.get()
+        let cachedEntitlements: [Entitlement] = entitlementsCache.get() ?? []
 
         switch await AuthService.validateToken(accessToken: accessToken) {
         case .success(let response):
             let entitlements = response.account.entitlements
+
             if entitlements != cachedEntitlements {
-                entitlementsCache.set(entitlements)
+                if entitlements.isEmpty {
+                    entitlementsCache.reset()
+                } else {
+                    entitlementsCache.set(entitlements)
+                }
                 NotificationCenter.default.post(name: .entitlementsDidChange, object: self, userInfo: [UserDefaultsCacheKey.subscriptionEntitlements: entitlements])
             }
             return .success(entitlements)
@@ -299,16 +312,22 @@ public class AccountManager: AccountManaging {
         }
     }
 
-    public func checkSubscriptionState() async {
-        os_log(.info, log: .subscription, "[AccountManager] checkSubscriptionState")
+    public func refreshSubscriptionAndEntitlements() async {
+        os_log(.info, log: .subscription, "[AccountManager] refreshSubscriptionAndEntitlements")
 
-        guard let token = accessToken else { return }
+        guard let token = accessToken else {
+            SubscriptionService.signOut()
+            entitlementsCache.reset()
+            return
+        }
 
-        if case .success(let subscription) = await SubscriptionService.getSubscription(accessToken: token) {
+        if case .success(let subscription) = await SubscriptionService.getSubscription(accessToken: token, cachePolicy: .reloadIgnoringLocalCacheData) {
             if !subscription.isActive {
                 signOut()
             }
         }
+
+        _ = await fetchEntitlements(cachePolicy: .reloadIgnoringLocalCacheData)
     }
 
     @discardableResult

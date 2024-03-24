@@ -57,6 +57,7 @@ public protocol AutofillSecureVault: SecureVault {
     func accountsFor(domain: String) throws -> [SecureVaultModels.WebsiteAccount]
     func accountsWithPartialMatchesFor(eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount]
     func hasAccountFor(username: String?, domain: String?) throws -> Bool
+    func updateLastUsedFor(accountId: Int64) throws
 
     func websiteCredentialsFor(accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials?
     @discardableResult
@@ -269,6 +270,12 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
             return try self.providers.database.hasAccountFor(username: username, domain: domain)
         } catch {
             throw SecureStorageError.databaseError(cause: error)
+        }
+    }
+
+    public func updateLastUsedFor(accountId: Int64) throws {
+        try executeThrowingDatabaseOperation {
+            try self.providers.database.updateLastUsedForAccountId(accountId)
         }
     }
 

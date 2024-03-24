@@ -34,31 +34,26 @@ public protocol NetworkProtectionCodeRedeeming {
 public final class NetworkProtectionCodeRedemptionCoordinator: NetworkProtectionCodeRedeeming {
     private let networkClient: NetworkProtectionClient
     private let tokenStore: NetworkProtectionTokenStore
-    private let versionStore: NetworkProtectionLastVersionRunStore
     private let isManualCodeRedemptionFlow: Bool
     private let errorEvents: EventMapping<NetworkProtectionError>
 
     convenience public init(environment: VPNSettings.SelectedEnvironment,
                             tokenStore: NetworkProtectionTokenStore,
-                            versionStore: NetworkProtectionLastVersionRunStore = .init(),
                             isManualCodeRedemptionFlow: Bool = false,
                             errorEvents: EventMapping<NetworkProtectionError>,
                             isSubscriptionEnabled: Bool) {
         self.init(networkClient: NetworkProtectionBackendClient(environment: environment, isSubscriptionEnabled: isSubscriptionEnabled),
                   tokenStore: tokenStore,
-                  versionStore: versionStore,
                   isManualCodeRedemptionFlow: isManualCodeRedemptionFlow,
                   errorEvents: errorEvents)
     }
 
     init(networkClient: NetworkProtectionClient,
          tokenStore: NetworkProtectionTokenStore,
-         versionStore: NetworkProtectionLastVersionRunStore = .init(),
          isManualCodeRedemptionFlow: Bool = false,
          errorEvents: EventMapping<NetworkProtectionError>) {
         self.networkClient = networkClient
         self.tokenStore = tokenStore
-        self.versionStore = versionStore
         self.isManualCodeRedemptionFlow = isManualCodeRedemptionFlow
         self.errorEvents = errorEvents
     }
@@ -68,8 +63,6 @@ public final class NetworkProtectionCodeRedemptionCoordinator: NetworkProtection
         switch result {
         case .success(let token):
             try tokenStore.store(token)
-            // enable version checker on next run
-            versionStore.lastVersionRun = AppVersion.shared.versionNumber
 
         case .failure(let error):
             if case .invalidInviteCode = error, isManualCodeRedemptionFlow {
@@ -87,8 +80,6 @@ public final class NetworkProtectionCodeRedemptionCoordinator: NetworkProtection
         switch result {
         case .success(let token):
             try tokenStore.store(token)
-            // enable version checker on next run
-            versionStore.lastVersionRun = AppVersion.shared.versionNumber
 
         case .failure(let error):
             errorEvents.fire(error.networkProtectionError)

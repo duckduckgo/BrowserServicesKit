@@ -63,8 +63,7 @@ extension NetworkProtectionServerInfo {
 
     /// Returns the physical location of the server, if one is available. For instance, this may return "Amsterdam, NL". If location attributes are not present, this will return the server name.
     public var serverLocation: String {
-        let stateOrCountry = isUSServerLocation ? attributes.state : attributes.country
-        return "\(attributes.city), \(stateOrCountry.localizedUppercase)"
+        return attributes.serverLocation
     }
 
     /// Calculates the total available addresses for this server.
@@ -85,8 +84,17 @@ extension NetworkProtectionServerInfo {
         ips.lazy.compactMap(\.ipv4).first
     }
 
+}
+
+extension NetworkProtectionServerInfo.ServerAttributes {
+
+    public var serverLocation: String {
+        let stateOrCountry = isUSServerLocation ? state : country
+        return "\(city), \(stateOrCountry.localizedUppercase)"
+    }
+
     private var isUSServerLocation: Bool {
-        return attributes.country.localizedUppercase == "US"
+        return country.localizedUppercase == "US"
     }
 
 }

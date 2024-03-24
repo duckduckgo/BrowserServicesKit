@@ -194,7 +194,6 @@ public final class VPNSettings {
         defaults.resetNetworkProtectionSettingNotifyStatusChanges()
         defaults.resetNetworkProtectionSettingRegistrationKeyValidity()
         defaults.resetNetworkProtectionSettingSelectedServer()
-        defaults.resetNetworkProtectionSettingSelectedEnvironment()
         defaults.resetNetworkProtectionSettingShowInMenuBar()
     }
 

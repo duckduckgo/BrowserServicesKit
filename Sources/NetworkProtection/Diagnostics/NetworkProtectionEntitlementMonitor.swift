@@ -40,7 +40,7 @@ public actor NetworkProtectionEntitlementMonitor {
 
     // MARK: - Init & deinit
 
-    init() {
+    public init() {
         os_log("[+] %{public}@", log: .networkProtectionMemoryLog, type: .debug, String(describing: self))
     }
 

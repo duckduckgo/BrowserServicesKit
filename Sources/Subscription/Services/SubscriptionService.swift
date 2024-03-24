@@ -35,7 +35,8 @@ public final class SubscriptionService: APIService {
         }
     }
 
-    private static let subscriptionCache = UserDefaultsCache<Subscription>(key: UserDefaultsCacheKey.subscription)
+    private static let subscriptionCache = UserDefaultsCache<Subscription>(key: UserDefaultsCacheKey.subscription,
+                                                                           settings: UserDefaultsCacheSettings(defaultExpirationInterval: .minutes(20)))
 
     public enum CachePolicy {
         case reloadIgnoringLocalCacheData
@@ -55,7 +56,9 @@ public final class SubscriptionService: APIService {
 
         switch result {
         case .success(let subscriptionResponse):
-            subscriptionCache.set(subscriptionResponse)
+            let defaultExpiryDate = Date().addingTimeInterval(subscriptionCache.settings.defaultExpirationInterval)
+            let expiryDate = min(defaultExpiryDate, subscriptionResponse.expiresOrRenewsAt)
+            subscriptionCache.set(subscriptionResponse, expires: expiryDate)
             return .success(subscriptionResponse)
         case .failure(let error):
             return .failure(.apiError(error))
