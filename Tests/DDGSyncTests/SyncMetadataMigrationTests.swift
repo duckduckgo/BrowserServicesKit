@@ -113,7 +113,9 @@ class SyncMetadataMigrationTests: XCTestCase {
 
     func testThatMigrationToV4SetsLocalSyncTimestampsForFeaturesToNil() async throws {
 
-        guard let syncMetadataDatabase = loadDatabase(name: "Any") else {
+        try copyDatabase(name: "SyncMetadata_V3", formDirectory: resourceURLDir, toDirectory: location)
+
+        guard let syncMetadataDatabase = loadDatabase(name: "SyncMetadata_V3") else {
             XCTFail("Failed to load model")
             return
         }
@@ -124,6 +126,9 @@ class SyncMetadataMigrationTests: XCTestCase {
             let featureName1 = "TestFeature-01"
             let featureName2 = "TestFeature-02"
             let metadataStore = LocalSyncMetadataStore(context: context)
+            XCTAssertTrue(metadataStore.isFeatureRegistered(named: featureName1))
+            XCTAssertTrue(metadataStore.isFeatureRegistered(named: featureName2))
+
             XCTAssertNil(metadataStore.localTimestamp(forFeatureNamed: featureName1))
             XCTAssertNil(metadataStore.localTimestamp(forFeatureNamed: featureName2))
         }
