@@ -18,7 +18,9 @@
 
 import Foundation
 
-public struct Subscription: Codable {
+public typealias DDGSubscription = Subscription // to avoid conflicts when Combine is imported
+
+public struct Subscription: Codable, Equatable {
     public let productId: String
     public let name: String
     public let billingPeriod: BillingPeriod
