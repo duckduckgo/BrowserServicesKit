@@ -506,6 +506,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             connectionStatus = .connecting
 
             let startupOptions = StartupOptions(options: options ?? [:])
+            os_log("Starting tunnel with options: %{public}s", log: .networkProtection, startupOptions.description)
 
             resetIssueStateOnTunnelStart(startupOptions)
 
