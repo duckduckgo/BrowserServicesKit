@@ -23,6 +23,7 @@ public extension Notification.Name {
     static let accountDidSignIn = Notification.Name("com.duckduckgo.subscription.AccountDidSignIn")
     static let accountDidSignOut = Notification.Name("com.duckduckgo.subscription.AccountDidSignOut")
     static let entitlementsDidChange = Notification.Name("com.duckduckgo.subscription.EntitlementsDidChange")
+    static let subscriptionDidChange = Notification.Name("com.duckduckgo.subscription.SubscriptionDidChange")
 }
 
 public protocol AccountManagerKeychainAccessDelegate: AnyObject {

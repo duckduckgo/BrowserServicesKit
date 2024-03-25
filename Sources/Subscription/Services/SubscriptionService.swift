@@ -64,9 +64,15 @@ public final class SubscriptionService: APIService {
     }
 
     public static func updateCache(with subscription: Subscription) {
-        let defaultExpiryDate = Date().addingTimeInterval(subscriptionCache.settings.defaultExpirationInterval)
-        let expiryDate = min(defaultExpiryDate, subscription.expiresOrRenewsAt)
-        subscriptionCache.set(subscription, expires: expiryDate)
+        let cachedSubscription: Subscription? = subscriptionCache.get()
+
+        if subscription != cachedSubscription {
+            let defaultExpiryDate = Date().addingTimeInterval(subscriptionCache.settings.defaultExpirationInterval)
+            let expiryDate = min(defaultExpiryDate, subscription.expiresOrRenewsAt)
+
+            subscriptionCache.set(subscription, expires: expiryDate)
+            NotificationCenter.default.post(name: .subscriptionDidChange, object: self, userInfo: [UserDefaultsCacheKey.subscription: subscription])
+        }
     }
 
     public static func getSubscription(accessToken: String, cachePolicy: CachePolicy = .returnCacheDataElseLoad) async -> Result<Subscription, SubscriptionServiceError> {
