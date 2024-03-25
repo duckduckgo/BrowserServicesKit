@@ -26,7 +26,7 @@ public class PerformanceMetricsSubfeature: Subfeature {
     public var featureName: String = "performanceMetrics"
     public var broker: UserScriptMessageBroker?
 
-    private var targetWebview: WKWebView
+    private weak var targetWebview: WKWebView?
     private var timer: Timer?
     private var completionHandler: (([Double]?) -> Void)?
 
@@ -52,7 +52,7 @@ public class PerformanceMetricsSubfeature: Subfeature {
     }
 
     public func notifyHandler(completion: @escaping ([Double]?) -> Void) {
-        guard let broker else { completion(nil); return }
+        guard let broker, let targetWebview else { completion(nil); return }
 
         completionHandler = completion
         broker.push(method: "getVitals", params: nil, for: self, into: targetWebview)

@@ -20,13 +20,7 @@ import Foundation
 import Common
 
 public struct UserDefaultsCacheSettings {
-
-    // Default expiration interval set to 24 hours
     public let defaultExpirationInterval: TimeInterval
-
-    public init(defaultExpirationInterval: TimeInterval = 1 * 60 * 60) {
-        self.defaultExpirationInterval = defaultExpirationInterval
-    }
 }
 
 public enum UserDefaultsCacheKey: String {
@@ -43,7 +37,7 @@ public class UserDefaultsCache<ObjectType: Codable> {
     }
 
     private var subscriptionAppGroup: String?
-    private var settings: UserDefaultsCacheSettings
+    public private(set) var settings: UserDefaultsCacheSettings
     private lazy var userDefaults: UserDefaults? = {
         if let appGroup = subscriptionAppGroup {
             return UserDefaults(suiteName: appGroup)
@@ -55,14 +49,15 @@ public class UserDefaultsCache<ObjectType: Codable> {
     private let key: UserDefaultsCacheKey
 
     public init(subscriptionAppGroup: String? = nil, key: UserDefaultsCacheKey,
-                settings: UserDefaultsCacheSettings = UserDefaultsCacheSettings()) {
+                settings: UserDefaultsCacheSettings) {
         self.subscriptionAppGroup = subscriptionAppGroup
         self.key = key
         self.settings = settings
     }
 
-    public func set(_ object: ObjectType, expires: Date = Date().addingTimeInterval(UserDefaultsCacheSettings().defaultExpirationInterval)) {
-        let cacheObject = CacheObject(expires: expires, object: object)
+    public func set(_ object: ObjectType, expires: Date? = nil) {
+        let expiryDate = expires ?? Date().addingTimeInterval(self.settings.defaultExpirationInterval)
+        let cacheObject = CacheObject(expires: expiryDate, object: object)
         let encoder = JSONEncoder()
         do {
             let data = try encoder.encode(cacheObject)
