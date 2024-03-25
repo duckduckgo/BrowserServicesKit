@@ -72,6 +72,17 @@ struct StartupOptions {
             self = .set(value)
         }
 
+        var description: String {
+            switch self {
+            case .set(let value):
+                return String(describing: value)
+            case .reset:
+                return "reset"
+            case .useExisting:
+                return "useExisting"
+            }
+        }
+
         // MARK: - Equatable
 
         static func == (lhs: StartupOptions.StoredOption<T>, rhs: StartupOptions.StoredOption<T>) -> Bool {
@@ -123,6 +134,22 @@ struct StartupOptions {
         selectedEnvironment = Self.readSelectedEnvironment(from: options, resetIfNil: resetStoredOptionsIfNil)
         selectedServer = Self.readSelectedServer(from: options, resetIfNil: resetStoredOptionsIfNil)
         selectedLocation = Self.readSelectedLocation(from: options, resetIfNil: resetStoredOptionsIfNil)
+    }
+
+    var description: String {
+        return """
+        StartupOptions(
+            startupMethod: \(self.startupMethod.debugDescription),
+            simulateError: \(self.simulateError.description),
+            simulateCrash: \(self.simulateCrash.description),
+            simulateMemoryCrash: \(self.simulateMemoryCrash.description),
+            keyValidity: \(self.keyValidity.description),
+            selectedEnvironment: \(self.selectedEnvironment.description),
+            selectedServer: \(self.selectedServer.description),
+            selectedLocation: \(self.selectedLocation.description),
+            enableTester: \(self.enableTester)
+        )
+        """
     }
 
     // MARK: - Helpers for reading stored options
