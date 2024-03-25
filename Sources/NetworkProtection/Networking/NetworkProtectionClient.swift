@@ -39,13 +39,13 @@ public enum NetworkProtectionClientError: Error, NetworkProtectionErrorConvertib
     case failedToEncodeRegisterKeyRequest
     case noResponseFromRegisterEndpoint
     case unexpectedStatusFromRegisterEndpoint(Error)
-    case failedToFetchRegisteredServers(Error?)
+    case failedToFetchRegisteredServers(Error)
     case failedToParseRegisteredServersResponse(Error)
     case failedToEncodeRedeemRequest
     case invalidInviteCode
     case noResponseFromRedeemEndpoint
     case unexpectedStatusFromRedeemEndpoint(Error)
-    case failedToRedeemInviteCode(Error?)
+    case failedToRedeemInviteCode(Error)
     case failedToRetrieveAuthToken(AuthenticationFailureResponse)
     case failedToParseRedeemResponse(Error)
     case invalidAuthToken
