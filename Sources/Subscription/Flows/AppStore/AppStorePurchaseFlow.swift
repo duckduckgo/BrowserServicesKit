@@ -51,7 +51,15 @@ public final class AppStorePurchaseFlow {
 
         let features = SubscriptionFeatureName.allCases.map { SubscriptionFeature(name: $0.rawValue) }
 
-        return .success(SubscriptionOptions(platform: SubscriptionPlatformName.macos.rawValue,
+        let platform: SubscriptionPlatformName
+
+#if os(iOS)
+        platform = .ios
+#else
+        platform = .macos
+#endif
+
+        return .success(SubscriptionOptions(platform: platform.rawValue,
                                             options: options,
                                             features: features))
     }
