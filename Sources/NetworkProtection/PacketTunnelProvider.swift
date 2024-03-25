@@ -505,8 +505,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
             connectionStatus = .connecting
 
-            os_log("Will load options\n%{public}@", log: .networkProtection, String(describing: options))
-            let startupOptions = StartupOptions(options: options ?? [:], log: .networkProtection)
+            let startupOptions = StartupOptions(options: options ?? [:])
 
             resetIssueStateOnTunnelStart(startupOptions)
 
