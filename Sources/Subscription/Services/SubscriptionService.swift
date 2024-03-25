@@ -136,4 +136,12 @@ public final class SubscriptionService: APIService {
         public let entitlements: [Entitlement]
         public let subscription: Subscription
     }
+
+    // MARK: - Update cache
+
+    public static func updateCache(with subscription: Subscription) {
+        let defaultExpiryDate = Date().addingTimeInterval(subscriptionCache.settings.defaultExpirationInterval)
+        let expiryDate = min(defaultExpiryDate, subscription.expiresOrRenewsAt)
+        subscriptionCache.set(subscription, expires: expiryDate)
+    }
 }

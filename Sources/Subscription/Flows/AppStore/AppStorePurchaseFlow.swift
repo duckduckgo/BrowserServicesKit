@@ -122,12 +122,15 @@ public final class AppStorePurchaseFlow {
         SubscriptionService.signOut()
 
         os_log(.info, log: .subscription, "[AppStorePurchaseFlow] completeSubscriptionPurchase")
+        let accountManager = AccountManager(subscriptionAppGroup: subscriptionAppGroup)
 
-        guard let accessToken = AccountManager(subscriptionAppGroup: subscriptionAppGroup).accessToken else { return .failure(.missingEntitlements) }
+        guard let accessToken = accountManager.accessToken else { return .failure(.missingEntitlements) }
 
         let result = await callWithRetries(retry: 5, wait: 2.0) {
             switch await SubscriptionService.confirmPurchase(accessToken: accessToken, signature: transactionJWS) {
-            case .success:
+            case .success(let confirmation):
+                SubscriptionService.updateCache(with: confirmation.subscription)
+                accountManager.updateCache(with: confirmation.entitlements)
                 return true
             case .failure:
                 return false

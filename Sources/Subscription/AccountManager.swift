@@ -353,6 +353,21 @@ public class AccountManager: AccountManaging {
 
         return hasEntitlements
     }
+
+    // MARK: - Update cache
+
+    public func updateCache(with entitlements: [Entitlement]) {
+        let cachedEntitlements: [Entitlement] = entitlementsCache.get() ?? []
+
+        if entitlements != cachedEntitlements {
+            if entitlements.isEmpty {
+                entitlementsCache.reset()
+            } else {
+                entitlementsCache.set(entitlements)
+            }
+            NotificationCenter.default.post(name: .entitlementsDidChange, object: self, userInfo: [UserDefaultsCacheKey.subscriptionEntitlements: entitlements])
+        }
+    }
 }
 
 extension Task where Success == Never, Failure == Never {
