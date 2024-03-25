@@ -88,7 +88,6 @@ struct StartupOptions {
         }
     }
 
-    private let log: OSLog
     let startupMethod: StartupMethod
     let simulateError: Bool
     let simulateCrash: Bool
@@ -100,9 +99,7 @@ struct StartupOptions {
     let authToken: StoredOption<String>
     let enableTester: StoredOption<Bool>
 
-    init(options: [String: Any], log: OSLog) {
-        self.log = log
-
+    init(options: [String: Any]) {
         let startupMethod: StartupMethod = {
             if options[NetworkProtectionOptionKey.isOnDemand] as? Bool == true {
                 return .automaticOnDemand
@@ -131,7 +128,6 @@ struct StartupOptions {
     // MARK: - Helpers for reading stored options
 
     private static func readAuthToken(from options: [String: Any], resetIfNil: Bool) -> StoredOption<String> {
-
         StoredOption(resetIfNil: resetIfNil) {
             guard let authToken = options[NetworkProtectionOptionKey.authToken] as? String,
                   !authToken.isEmpty else {
@@ -155,7 +151,6 @@ struct StartupOptions {
     }
 
     private static func readSelectedEnvironment(from options: [String: Any], resetIfNil: Bool) -> StoredOption<VPNSettings.SelectedEnvironment> {
-
         StoredOption(resetIfNil: resetIfNil) {
             guard let environment = options[NetworkProtectionOptionKey.selectedEnvironment] as? String else {
                 return nil
@@ -166,7 +161,6 @@ struct StartupOptions {
     }
 
     private static func readSelectedServer(from options: [String: Any], resetIfNil: Bool) -> StoredOption<VPNSettings.SelectedServer> {
-
         StoredOption(resetIfNil: resetIfNil) {
             guard let serverName = options[NetworkProtectionOptionKey.selectedServer] as? String else {
                 return nil
@@ -190,7 +184,6 @@ struct StartupOptions {
     }
 
     private static func readEnableTester(from options: [String: Any], resetIfNil: Bool) -> StoredOption<Bool> {
-
         StoredOption(resetIfNil: resetIfNil) {
             guard let value = options[NetworkProtectionOptionKey.connectionTesterEnabled] as? Bool else {
                 return nil
