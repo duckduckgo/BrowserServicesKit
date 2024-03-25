@@ -55,6 +55,7 @@ public enum SubscriptionFeatureName: String, CaseIterable {
 }
 
 public enum SubscriptionPlatformName: String {
+    case ios
     case macos
     case stripe
 }
