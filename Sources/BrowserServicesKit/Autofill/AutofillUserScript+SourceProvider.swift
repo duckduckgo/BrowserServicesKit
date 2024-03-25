@@ -18,6 +18,7 @@
 
 import Foundation
 import Autofill
+import Common
 
 public protocol AutofillUserScriptSourceProvider {
     var source: String { get }
@@ -101,13 +102,57 @@ public class DefaultAutofillSourceProvider: AutofillUserScriptSourceProvider {
     }
 
     private func buildReplacementsData() -> ProviderData? {
-        guard let userUnprotectedDomains = try? JSONEncoder().encode(privacyConfigurationManager.privacyConfig.userUnprotectedDomains),
+        guard let filteredPrivacyConfigData = filteredDataFrom(configData: privacyConfigurationManager.currentConfig,
+                                                               keepingTopLevelKeys: ["features", "unprotectedTemporary"],
+                                                               andSubKey: "autofill",
+                                                               inTopLevelKey: "features"),
+              let userUnprotectedDomains = try? JSONEncoder().encode(privacyConfigurationManager.privacyConfig.userUnprotectedDomains),
               let jsonProperties = try? JSONEncoder().encode(properties) else {
             return nil
         }
-        return ProviderData(privacyConfig: privacyConfigurationManager.currentConfig,
+
+        return ProviderData(privacyConfig: filteredPrivacyConfigData,
                             userUnprotectedDomains: userUnprotectedDomains,
                             userPreferences: jsonProperties)
+    }
+
+    /// `contentScope` only needs these properties from the privacy config, so creating a filtered version to improve performance
+    ///  {
+    ///     features: {
+    ///         autofill: {
+    ///             state: 'enabled',
+    ///             exceptions: []
+    ///         }
+    ///     },
+    ///     unprotectedTemporary: []
+    /// }
+    private func filteredDataFrom(configData: Data, keepingTopLevelKeys topLevelKeys: [String], andSubKey subKey: String, inTopLevelKey topLevelKey: String) -> Data? {
+        do {
+            if let jsonDict = try JSONSerialization.jsonObject(with: configData, options: []) as? [String: Any] {
+                var filteredDict = [String: Any]()
+
+                // Keep the specified top-level keys
+                for key in topLevelKeys {
+                    if let value = jsonDict[key] {
+                        filteredDict[key] = value
+                    }
+                }
+
+                // Handle the nested dictionary for a specific top-level key to keep only the sub-key
+                if let nestedDict = jsonDict[topLevelKey] as? [String: Any],
+                   let valueToKeep = nestedDict[subKey] {
+                    filteredDict[topLevelKey] = [subKey: valueToKeep]
+                }
+
+                // Convert filtered dictionary back to Data
+                let filteredData = try JSONSerialization.data(withJSONObject: filteredDict, options: [])
+                return filteredData
+            }
+        } catch {
+            os_log(.debug, "Error during JSON serialization of privacy config: \(error.localizedDescription)")
+        }
+
+        return nil
     }
 
     public class Builder {
