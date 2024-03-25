@@ -245,25 +245,28 @@ public class AccountManager: AccountManaging {
             return .failure(EntitlementsError.noAccessToken)
         }
 
-        let cachedEntitlements: [Entitlement] = entitlementsCache.get() ?? []
-
         switch await AuthService.validateToken(accessToken: accessToken) {
         case .success(let response):
             let entitlements = response.account.entitlements
-
-            if entitlements != cachedEntitlements {
-                if entitlements.isEmpty {
-                    entitlementsCache.reset()
-                } else {
-                    entitlementsCache.set(entitlements)
-                }
-                NotificationCenter.default.post(name: .entitlementsDidChange, object: self, userInfo: [UserDefaultsCacheKey.subscriptionEntitlements: entitlements])
-            }
+            updateCache(with: entitlements)
             return .success(entitlements)
 
         case .failure(let error):
             os_log(.error, log: .subscription, "[AccountManager] fetchEntitlements error: %{public}@", error.localizedDescription)
             return .failure(error)
+        }
+    }
+
+    public func updateCache(with entitlements: [Entitlement]) {
+        let cachedEntitlements: [Entitlement] = entitlementsCache.get() ?? []
+
+        if entitlements != cachedEntitlements {
+            if entitlements.isEmpty {
+                entitlementsCache.reset()
+            } else {
+                entitlementsCache.set(entitlements)
+            }
+            NotificationCenter.default.post(name: .entitlementsDidChange, object: self, userInfo: [UserDefaultsCacheKey.subscriptionEntitlements: entitlements])
         }
     }
 
@@ -352,21 +355,6 @@ public class AccountManager: AccountManaging {
         } while !hasEntitlements && count < retryCount
 
         return hasEntitlements
-    }
-
-    // MARK: - Update cache
-
-    public func updateCache(with entitlements: [Entitlement]) {
-        let cachedEntitlements: [Entitlement] = entitlementsCache.get() ?? []
-
-        if entitlements != cachedEntitlements {
-            if entitlements.isEmpty {
-                entitlementsCache.reset()
-            } else {
-                entitlementsCache.set(entitlements)
-            }
-            NotificationCenter.default.post(name: .entitlementsDidChange, object: self, userInfo: [UserDefaultsCacheKey.subscriptionEntitlements: entitlements])
-        }
     }
 }
 

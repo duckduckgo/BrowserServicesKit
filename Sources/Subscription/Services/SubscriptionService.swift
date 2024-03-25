@@ -56,13 +56,17 @@ public final class SubscriptionService: APIService {
 
         switch result {
         case .success(let subscriptionResponse):
-            let defaultExpiryDate = Date().addingTimeInterval(subscriptionCache.settings.defaultExpirationInterval)
-            let expiryDate = min(defaultExpiryDate, subscriptionResponse.expiresOrRenewsAt)
-            subscriptionCache.set(subscriptionResponse, expires: expiryDate)
+            updateCache(with: subscriptionResponse)
             return .success(subscriptionResponse)
         case .failure(let error):
             return .failure(.apiError(error))
         }
+    }
+
+    public static func updateCache(with subscription: Subscription) {
+        let defaultExpiryDate = Date().addingTimeInterval(subscriptionCache.settings.defaultExpirationInterval)
+        let expiryDate = min(defaultExpiryDate, subscription.expiresOrRenewsAt)
+        subscriptionCache.set(subscription, expires: expiryDate)
     }
 
     public static func getSubscription(accessToken: String, cachePolicy: CachePolicy = .returnCacheDataElseLoad) async -> Result<Subscription, SubscriptionServiceError> {
@@ -135,13 +139,5 @@ public final class SubscriptionService: APIService {
         public let email: String?
         public let entitlements: [Entitlement]
         public let subscription: Subscription
-    }
-
-    // MARK: - Update cache
-
-    public static func updateCache(with subscription: Subscription) {
-        let defaultExpiryDate = Date().addingTimeInterval(subscriptionCache.settings.defaultExpirationInterval)
-        let expiryDate = min(defaultExpiryDate, subscription.expiresOrRenewsAt)
-        subscriptionCache.set(subscription, expires: expiryDate)
     }
 }
