@@ -37,6 +37,8 @@ public enum NetworkProtectionClientError: Error, NetworkProtectionErrorConvertib
     case failedToFetchServerList(Error?)
     case failedToParseServerListResponse(Error)
     case failedToEncodeRegisterKeyRequest
+    case noResponseFromRegisterEndpoint
+    case unexpectedStatusFromRegisterEndpoint(Error)
     case failedToFetchRegisteredServers(Error?)
     case failedToParseRegisteredServersResponse(Error)
     case failedToEncodeRedeemRequest
@@ -54,6 +56,8 @@ public enum NetworkProtectionClientError: Error, NetworkProtectionErrorConvertib
         case .failedToFetchServerList(let error): return .failedToFetchServerList(error)
         case .failedToParseServerListResponse(let error): return .failedToParseServerListResponse(error)
         case .failedToEncodeRegisterKeyRequest: return .failedToEncodeRegisterKeyRequest
+        case .noResponseFromRegisterEndpoint: return .noResponseFromRegisterEndpoint
+        case .unexpectedStatusFromRegisterEndpoint(let error): return .unexpectedStatusFromRegisterEndpoint(error)
         case .failedToFetchRegisteredServers(let error): return .failedToFetchRegisteredServers(error)
         case .failedToParseRegisteredServersResponse(let error): return .failedToParseRegisteredServersResponse(error)
         case .failedToEncodeRedeemRequest: return .failedToEncodeRedeemRequest
@@ -248,12 +252,19 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
             guard let response = response as? HTTPURLResponse else {
-                return .failure(.failedToFetchRegisteredServers(nil))
+                return .failure(.noResponseFromRegisterEndpoint)
             }
             switch response.statusCode {
-            case 200: responseData = data
-            case 401: return .failure(.invalidAuthToken)
-            default: return (response.statusCode == 403 && isSubscriptionEnabled) ? .failure(.accessDenied) : .failure(.failedToFetchRegisteredServers(nil))
+            case 200:
+                responseData = data
+            case 401:
+                return .failure(.invalidAuthToken)
+            case 403 where isSubscriptionEnabled:
+                return .failure(.accessDenied)
+            default:
+                let domain = #function
+                let error = NSError(domain: domain, code: response.statusCode)
+                return .failure(.unexpectedStatusFromRegisterEndpoint(error))
             }
         } catch {
             return .failure(NetworkProtectionClientError.failedToFetchRegisteredServers(error))

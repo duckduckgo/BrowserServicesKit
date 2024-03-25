@@ -36,6 +36,8 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
     case failedToFetchLocationList(Error?)
     case failedToParseLocationListResponse(Error)
     case failedToEncodeRegisterKeyRequest
+    case noResponseFromRegisterEndpoint
+    case unexpectedStatusFromRegisterEndpoint(Error)
     case failedToFetchRegisteredServers(Error?)
     case failedToParseRegisteredServersResponse(Error)
     case failedToEncodeRedeemRequest
@@ -93,15 +95,17 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
         case .failedToFetchLocationList: return 102
         case .failedToParseLocationListResponse: return 103
         case .failedToEncodeRegisterKeyRequest: return 104
-        case .failedToFetchRegisteredServers: return 105
-        case .failedToParseRegisteredServersResponse: return 106
-        case .failedToEncodeRedeemRequest: return 107
-        case .invalidInviteCode: return 108
-        case .failedToRedeemInviteCode: return 109
-        case .failedToRetrieveAuthToken: return 110
-        case .failedToParseRedeemResponse: return 111
-        case .invalidAuthToken: return 112
-        case .serverListInconsistency: return 113
+        case .noResponseFromRegisterEndpoint: return 105
+        case .unexpectedStatusFromRegisterEndpoint: return 106
+        case .failedToFetchRegisteredServers: return 107
+        case .failedToParseRegisteredServersResponse: return 108
+        case .failedToEncodeRedeemRequest: return 109
+        case .invalidInviteCode: return 110
+        case .failedToRedeemInviteCode: return 111
+        case .failedToRetrieveAuthToken: return 112
+        case .failedToParseRedeemResponse: return 113
+        case .invalidAuthToken: return 114
+        case .serverListInconsistency: return 115
             // 200+ - Server list store errors
         case .failedToEncodeServerList: return 200
         case .failedToDecodeServerList: return 201
@@ -138,6 +142,7 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
                 .couldNotGetPeerHostName,
                 .couldNotGetInterfaceAddressRange,
                 .failedToEncodeRegisterKeyRequest,
+                .noResponseFromRegisterEndpoint,
                 .failedToEncodeRedeemRequest,
                 .invalidInviteCode,
                 .failedToRetrieveAuthToken,
@@ -169,6 +174,7 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
             ]
         case .failedToParseServerListResponse(let error),
                 .failedToParseLocationListResponse(let error),
+                .unexpectedStatusFromRegisterEndpoint(let error),
                 .failedToParseRegisteredServersResponse(let error),
                 .failedToParseRedeemResponse(let error),
                 .failedToEncodeServerList(let error),
