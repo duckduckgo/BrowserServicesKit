@@ -42,6 +42,8 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
     case failedToParseRegisteredServersResponse(Error)
     case failedToEncodeRedeemRequest
     case invalidInviteCode
+    case noResponseFromRedeemEndpoint
+    case unexpectedStatusFromRedeemEndpoint(Error)
     case failedToRedeemInviteCode(Error?)
     case failedToRetrieveAuthToken(AuthenticationFailureResponse)
     case failedToParseRedeemResponse(Error)
@@ -101,11 +103,13 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
         case .failedToParseRegisteredServersResponse: return 108
         case .failedToEncodeRedeemRequest: return 109
         case .invalidInviteCode: return 110
-        case .failedToRedeemInviteCode: return 111
-        case .failedToRetrieveAuthToken: return 112
-        case .failedToParseRedeemResponse: return 113
-        case .invalidAuthToken: return 114
-        case .serverListInconsistency: return 115
+        case .noResponseFromRedeemEndpoint: return 111
+        case .unexpectedStatusFromRedeemEndpoint: return 112
+        case .failedToRedeemInviteCode: return 113
+        case .failedToRetrieveAuthToken: return 114
+        case .failedToParseRedeemResponse: return 115
+        case .invalidAuthToken: return 116
+        case .serverListInconsistency: return 117
             // 200+ - Server list store errors
         case .failedToEncodeServerList: return 200
         case .failedToDecodeServerList: return 201
@@ -145,6 +149,7 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
                 .noResponseFromRegisterEndpoint,
                 .failedToEncodeRedeemRequest,
                 .invalidInviteCode,
+                .noResponseFromRedeemEndpoint,
                 .failedToRetrieveAuthToken,
                 .invalidAuthToken,
                 .serverListInconsistency,
@@ -176,6 +181,7 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
                 .failedToParseLocationListResponse(let error),
                 .unexpectedStatusFromRegisterEndpoint(let error),
                 .failedToParseRegisteredServersResponse(let error),
+                .unexpectedStatusFromRedeemEndpoint(let error),
                 .failedToParseRedeemResponse(let error),
                 .failedToEncodeServerList(let error),
                 .failedToDecodeServerList(let error),

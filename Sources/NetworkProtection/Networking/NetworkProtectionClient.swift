@@ -43,6 +43,8 @@ public enum NetworkProtectionClientError: Error, NetworkProtectionErrorConvertib
     case failedToParseRegisteredServersResponse(Error)
     case failedToEncodeRedeemRequest
     case invalidInviteCode
+    case noResponseFromRedeemEndpoint
+    case unexpectedStatusFromRedeemEndpoint(Error)
     case failedToRedeemInviteCode(Error?)
     case failedToRetrieveAuthToken(AuthenticationFailureResponse)
     case failedToParseRedeemResponse(Error)
@@ -62,6 +64,8 @@ public enum NetworkProtectionClientError: Error, NetworkProtectionErrorConvertib
         case .failedToParseRegisteredServersResponse(let error): return .failedToParseRegisteredServersResponse(error)
         case .failedToEncodeRedeemRequest: return .failedToEncodeRedeemRequest
         case .invalidInviteCode: return .invalidInviteCode
+        case .noResponseFromRedeemEndpoint: return .noResponseFromRedeemEndpoint
+        case .unexpectedStatusFromRedeemEndpoint(let error): return .unexpectedStatusFromRedeemEndpoint(error)
         case .failedToRedeemInviteCode(let error): return .failedToRedeemInviteCode(error)
         case .failedToRetrieveAuthToken(let response): return .failedToRetrieveAuthToken(response)
         case .failedToParseRedeemResponse(let error): return .failedToParseRedeemResponse(error)
@@ -319,7 +323,7 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
             guard let response = response as? HTTPURLResponse else {
-                return .failure(.failedToRedeemInviteCode(nil))
+                return .failure(.noResponseFromRedeemEndpoint)
             }
             switch response.statusCode {
             case 200:
@@ -332,7 +336,9 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
                     let decodedRedemptionResponse = try decoder.decode(AuthenticationFailureResponse.self, from: data)
                     return .failure(.failedToRetrieveAuthToken(decodedRedemptionResponse))
                 } catch {
-                    return .failure(.failedToRedeemInviteCode(nil))
+                    let domain = #function
+                    let error = NSError(domain: domain, code: response.statusCode)
+                    return .failure(.unexpectedStatusFromRedeemEndpoint(error))
                 }
             }
         } catch {
