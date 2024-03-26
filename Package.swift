@@ -170,6 +170,15 @@ let package = Package(
             ],
             plugins: [swiftlintPlugin]
         ),
+        .executableTarget(
+            name: "SyncMetadataTestDBBuilder",
+            dependencies: [
+                "DDGSync",
+                "Persistence",
+            ],
+            path: "Sources/SyncMetadataTestDBBuilder",
+            plugins: [swiftlintPlugin]
+        ),
         .target(
             name: "Common",
             dependencies: [
@@ -401,8 +410,14 @@ let package = Package(
         .testTarget(
             name: "DDGSyncTests",
             dependencies: [
+                "BookmarksTestsUtils",
                 "DDGSync",
                 "TestUtils",
+            ],
+            resources: [
+                .copy("Resources/SyncMetadata_V3.sqlite"),
+                .copy("Resources/SyncMetadata_V3.sqlite-shm"),
+                .copy("Resources/SyncMetadata_V3.sqlite-wal"),
             ],
             plugins: [swiftlintPlugin]
         ),

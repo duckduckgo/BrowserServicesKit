@@ -33,7 +33,7 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
     // Client errors
     case failedToFetchServerList(Error?)
     case failedToParseServerListResponse(Error)
-    case failedToFetchLocationList(Error?)
+    case failedToFetchLocationList(Error)
     case failedToParseLocationListResponse(Error)
     case failedToEncodeRegisterKeyRequest
     case failedToFetchRegisteredServers(Error?)
@@ -141,7 +141,6 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
                 .vpnAccessRevoked:
             return [:]
         case .failedToFetchServerList(let error),
-                .failedToFetchLocationList(let error),
                 .failedToFetchRegisteredServers(let error),
                 .failedToRedeemInviteCode(let error):
             guard let error else {
@@ -152,6 +151,7 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
                 NSUnderlyingErrorKey: error
             ]
         case .failedToParseServerListResponse(let error),
+                .failedToFetchLocationList(let error),
                 .failedToParseLocationListResponse(let error),
                 .failedToParseRegisteredServersResponse(let error),
                 .failedToParseRedeemResponse(let error),

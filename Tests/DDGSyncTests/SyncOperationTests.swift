@@ -75,7 +75,7 @@ class SyncOperationTests: XCTestCase {
     func testWhenThereAreChangesThenPatchRequestIsFired() async throws {
         let feature = Feature(name: "bookmarks")
         let dataProvider = DataProvidingMock(feature: feature)
-        dataProvider.lastSyncTimestamp = "1234"
+        dataProvider.updateSyncTimestamps(server: "1234", local: nil)
         dataProvider._fetchChangedObjects = { _ in
             [Syncable(jsonObject: [:])]
         }
@@ -98,7 +98,7 @@ class SyncOperationTests: XCTestCase {
     func testThatForMultipleDataProvidersRequestsSeparateRequestsAreSentConcurrently() async throws {
         let dataProvider1 = DataProvidingMock(feature: .init(name: "bookmarks"))
         try dataProvider1.registerFeature(withState: .readyToSync)
-        dataProvider1.lastSyncTimestamp = "1234"
+        dataProvider1.updateSyncTimestamps(server: "1234", local: nil)
         dataProvider1._fetchChangedObjects = { _ in
             [
                 Syncable(jsonObject: ["id": "1", "name": "bookmark1", "url": "https://example.com"]),
@@ -107,7 +107,7 @@ class SyncOperationTests: XCTestCase {
         }
         let dataProvider2 = DataProvidingMock(feature: .init(name: "settings"))
         try dataProvider2.registerFeature(withState: .readyToSync)
-        dataProvider2.lastSyncTimestamp = "5678"
+        dataProvider2.updateSyncTimestamps(server: "5678", local: nil)
         dataProvider2._fetchChangedObjects = { _ in
             [
                 Syncable(jsonObject: ["key": "setting-a", "value": "value-a"]),
@@ -116,7 +116,7 @@ class SyncOperationTests: XCTestCase {
         }
         let dataProvider3 = DataProvidingMock(feature: .init(name: "autofill"))
         try dataProvider3.registerFeature(withState: .readyToSync)
-        dataProvider3.lastSyncTimestamp = "9012"
+        dataProvider3.updateSyncTimestamps(server: "9012", local: nil)
         dataProvider3._fetchChangedObjects = { _ in
             [
                 Syncable(jsonObject: ["id": "1", "login": "login1", "password": "password1", "url": "https://example.com"]),
@@ -194,17 +194,17 @@ class SyncOperationTests: XCTestCase {
 
         let feature1 = Feature(name: "bookmarks")
         let dataProvider1 = DataProvidingMock(feature: feature1)
-        dataProvider1.lastSyncTimestamp = "1234"
+        dataProvider1.updateSyncTimestamps(server: "1234", local: nil)
         dataProvider1._fetchChangedObjects = { _ in throw DataProviderError(feature: feature1) }
 
         let feature2 = Feature(name: "settings")
         let dataProvider2 = DataProvidingMock(feature: feature2)
-        dataProvider2.lastSyncTimestamp = "5678"
+        dataProvider1.updateSyncTimestamps(server: "5678", local: nil)
         dataProvider2._fetchChangedObjects = { _ in throw DataProviderError(feature: feature2) }
 
         let feature3 = Feature(name: "autofill")
         let dataProvider3 = DataProvidingMock(feature: feature3)
-        dataProvider3.lastSyncTimestamp = "9012"
+        dataProvider1.updateSyncTimestamps(server: "9012", local: nil)
         dataProvider3._fetchChangedObjects = { _ in [] }
 
         let syncOperation = SyncOperation(dataProviders: [dataProvider1, dataProvider2, dataProvider3], storage: storage, crypter: crypter, requestMaker: requestMaker)
@@ -231,7 +231,7 @@ class SyncOperationTests: XCTestCase {
         ]
         let dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
         var sentModels: [Syncable] = []
-        dataProvider.lastSyncTimestamp = "1234"
+        dataProvider.updateSyncTimestamps(server: "1234", local: nil)
         dataProvider._fetchChangedObjects = { _ in objectsToSync }
         dataProvider.handleSyncResponse = { sent, _, _, _, _ in
             sentModels = sent
