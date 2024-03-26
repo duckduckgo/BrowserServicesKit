@@ -29,7 +29,7 @@ public class DDGSync: DDGSyncing {
      * The flag must be set to false at all times before field validation is released.
      * Before field validations release, it should be removed.
      */
-    public static let isFieldValidationEnabled = true
+    public static let isFieldValidationEnabled = false
 
     public static let bundle = Bundle.module
 
