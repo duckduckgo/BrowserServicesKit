@@ -18,33 +18,53 @@
 
 import Foundation
 import MetricKit
+import Networking
 
 @available(iOSApplicationExtension, unavailable)
 @available(iOS 13, macOS 12, *)
 final class CrashReportSender {
 
     static let reportServiceUrl = URL(string: "https://d4f4-20-53-134-160.ngrok-free.app/crash.js")!
-//    static let reportServiceUrl = URL(string: "https://duckduckgo.com/crash.js")!
+    //    static let reportServiceUrl = URL(string: "https://duckduckgo.com/crash.js")!
 
-    private let session = URLSession(configuration: .ephemeral)
+    let platform: CrashCollection.Platform
 
-    func send(_ payload: MXDiagnosticPayload) {
+    var log: OSLog {
+        getLog()
+    }
+    private let getLog: () -> OSLog
+
+    init(platform: CrashCollection.Platform, log: @escaping @autoclosure () -> OSLog = .disabled) {
+        self.platform = platform
+        getLog = log
+    }
+
+    func send(_ payload: MXDiagnosticPayload) async {
         var request = URLRequest(url: Self.reportServiceUrl)
         request.setValue("text/plain", forHTTPHeaderField: "Content-Type")
-        // TODO: Parametrize the useragent
-        request.setValue("ddg_ios", forHTTPHeaderField: "User-Agent")
+        request.setValue(platform.userAgent, forHTTPHeaderField: "User-Agent")
         request.httpMethod = "POST"
-        request.httpBody = payloadAsData(payload)
+        request.httpBody = payload.jsonRepresentation()
 
-        session.dataTask(with: request) { (_, _, error) in
-            if error != nil {
-                assertionFailure("CrashReportSender: Failed to send the crash report")
-            }
-        }.resume()
+        do {
+            _ = try await session.data(for: request)
+        } catch {
+            assertionFailure("CrashReportSender: Failed to send the crash reprot")
+        }
     }
 
-    private func payloadAsData(_ crashReport: MXDiagnosticPayload) -> Data {
-        return crashReport.jsonRepresentation()
-    }
+    private let session = URLSession(configuration: .ephemeral)
+}
 
+@available(iOSApplicationExtension, unavailable)
+@available(iOS 13, macOS 12, *)
+extension CrashCollection.Platform {
+    var userAgent: String {
+        switch self {
+        case .iOS:
+            return "ddg_ios"
+        case .macOS:
+            return "ddg_mac"
+        }
+    }
 }

@@ -151,6 +151,9 @@ let package = Package(
             ]),
         .target(
             name: "Crashes",
+            dependencies: [
+                "Common",
+            ],
             plugins: [swiftlintPlugin]
         ),
         .target(
