@@ -997,9 +997,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private func handleResetAllState(completionHandler: ((Data?) -> Void)? = nil) {
         resetRegistrationKey()
 
-        let serverCache = NetworkProtectionServerListFileSystemStore(errorEvents: nil)
-        serverCache.removeServerList()
-
         try? tokenStore.deleteToken()
 
         // This is not really an error, we received a command to reset the connection

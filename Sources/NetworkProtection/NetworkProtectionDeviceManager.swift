@@ -54,7 +54,6 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     private let networkClient: NetworkProtectionClient
     private let tokenStore: NetworkProtectionTokenStore
     private let keyStore: NetworkProtectionKeyStore
-    private let serverListStore: NetworkProtectionServerListStore
 
     private let errorEvents: EventMapping<NetworkProtectionError>?
 
@@ -63,13 +62,11 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     public init(environment: VPNSettings.SelectedEnvironment,
                 tokenStore: NetworkProtectionTokenStore,
                 keyStore: NetworkProtectionKeyStore,
-                serverListStore: NetworkProtectionServerListStore? = nil,
                 errorEvents: EventMapping<NetworkProtectionError>?,
                 isSubscriptionEnabled: Bool) {
         self.init(networkClient: NetworkProtectionBackendClient(environment: environment, isSubscriptionEnabled: isSubscriptionEnabled),
                   tokenStore: tokenStore,
                   keyStore: keyStore,
-                  serverListStore: serverListStore,
                   errorEvents: errorEvents,
                   isSubscriptionEnabled: isSubscriptionEnabled)
     }
@@ -77,13 +74,11 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     init(networkClient: NetworkProtectionClient,
          tokenStore: NetworkProtectionTokenStore,
          keyStore: NetworkProtectionKeyStore,
-         serverListStore: NetworkProtectionServerListStore? = nil,
          errorEvents: EventMapping<NetworkProtectionError>?,
          isSubscriptionEnabled: Bool) {
         self.networkClient = networkClient
         self.tokenStore = tokenStore
         self.keyStore = keyStore
-        self.serverListStore = serverListStore ?? NetworkProtectionServerListFileSystemStore(errorEvents: errorEvents)
         self.errorEvents = errorEvents
         self.isSubscriptionEnabled = isSubscriptionEnabled
     }
@@ -95,27 +90,15 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
         guard let token = try? tokenStore.fetchToken() else {
             throw NetworkProtectionError.noAuthTokenFound
         }
-        let servers = await networkClient.getServers(authToken: token)
+        let result = await networkClient.getServers(authToken: token)
         let completeServerList: [NetworkProtectionServer]
 
-        switch servers {
+        switch result {
         case .success(let serverList):
             completeServerList = serverList
         case .failure(let failure):
             handle(clientError: failure)
-            return try serverListStore.storedNetworkProtectionServerList()
-        }
-
-        do {
-            try serverListStore.store(serverList: completeServerList)
-        } catch let error as NetworkProtectionServerListStoreError {
-            errorEvents?.fire(error.networkProtectionError)
-            // Intentionally not rethrowing as the failing call is not critical to provide
-            // a working UX.
-        } catch {
-            errorEvents?.fire(.unhandledError(function: #function, line: #line, error: error))
-            // Intentionally not rethrowing as the failing call is not critical to provide
-            // a working UX.
+            throw failure
         }
 
         return completeServerList
@@ -189,7 +172,6 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     //
     // - Throws:`NetworkProtectionError`
     //
-    // swiftlint:disable:next cyclomatic_complexity
     private func register(keyPair: KeyPair,
                           selectionMethod: NetworkProtectionServerSelectionMethod) async throws -> (server: NetworkProtectionServer,
                                                                                                     newExpiration: Date?) {
@@ -223,16 +205,6 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
 
         switch registeredServersResult {
         case .success(let registeredServers):
-            do {
-                try serverListStore.store(serverList: registeredServers)
-            } catch let error as NetworkProtectionServerListStoreError {
-                errorEvents?.fire(error.networkProtectionError)
-                // Intentionally not rethrowing, as this failure is not critical for this method
-            } catch {
-                errorEvents?.fire(.unhandledError(function: #function, line: #line, error: error))
-                // Intentionally not rethrowing, as this failure is not critical for this method
-            }
-
             guard let registeredServer = registeredServers.first(where: { $0.serverName != excludedServerName }) else {
                 // If we're looking to exclude a server we should have a few other options available.  If we can't find any
                 // then it means theres an inconsistency in the server list that was returned.
@@ -250,27 +222,6 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
 
             handle(clientError: error)
             throw error
-        }
-    }
-
-    /// Retrieves the first cached server that's registered with the specified key pair.
-    ///
-    private func cachedServer(registeredWith keyPair: KeyPair) throws -> NetworkProtectionServer {
-        do {
-            guard let server = try serverListStore.storedNetworkProtectionServerList().first(where: {
-                $0.isRegistered(with: keyPair.publicKey)
-            }) else {
-                errorEvents?.fire(NetworkProtectionError.noServerListFound)
-                throw NetworkProtectionError.noServerListFound
-            }
-
-            return server
-        } catch let error as NetworkProtectionError {
-            errorEvents?.fire(error)
-            throw error
-        } catch {
-            errorEvents?.fire(NetworkProtectionError.unhandledError(function: #function, line: #line, error: error))
-            throw NetworkProtectionError.unhandledError(function: #function, line: #line, error: error)
         }
     }
 
