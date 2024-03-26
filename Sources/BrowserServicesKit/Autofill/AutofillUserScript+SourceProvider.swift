@@ -103,7 +103,7 @@ public class DefaultAutofillSourceProvider: AutofillUserScriptSourceProvider {
 
     private func buildReplacementsData() -> ProviderData? {
         guard let filteredPrivacyConfigData = filteredDataFrom(configData: privacyConfigurationManager.currentConfig,
-                                                               keepingTopLevelKeys: ["features", "unprotectedTemporary"],
+                                                               keepingTopLevelKeys: ["features", "unprotectedTemporary", "language"],
                                                                andSubKey: "autofill",
                                                                inTopLevelKey: "features"),
               let userUnprotectedDomains = try? JSONEncoder().encode(privacyConfigurationManager.privacyConfig.userUnprotectedDomains),
