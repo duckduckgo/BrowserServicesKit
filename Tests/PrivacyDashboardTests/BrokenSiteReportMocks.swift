@@ -42,6 +42,10 @@ struct BrokenSiteReportMocks {
                          model: "test",
                          errors: nil,
                          httpStatusCodes: nil,
+                         openerContext: nil,
+                         vpnOn: false,
+                         jsPerformance: nil,
+                         userRefreshCount: 0,
                          didOpenReportInfo: true,
                          toggleReportCounter: 0)
 #else
@@ -61,6 +65,10 @@ struct BrokenSiteReportMocks {
                          reportFlow: .appMenu,
                          errors: nil,
                          httpStatusCodes: nil,
+                         openerContext: nil,
+                         vpnOn: false,
+                         jsPerformance: nil,
+                         userRefreshCount: 0,
                          didOpenReportInfo: true,
                          toggleReportCounter: 0)
 #endif
@@ -87,6 +95,10 @@ struct BrokenSiteReportMocks {
                          model: "test",
                          errors: nil,
                          httpStatusCodes: nil,
+                         openerContext: nil,
+                         vpnOn: false,
+                         jsPerformance: nil,
+                         userRefreshCount: 0,
                          didOpenReportInfo: true,
                          toggleReportCounter: 0)
 #else
@@ -106,6 +118,10 @@ struct BrokenSiteReportMocks {
                          reportFlow: .appMenu,
                          errors: nil,
                          httpStatusCodes: nil,
+                         openerContext: nil,
+                         vpnOn: false,
+                         jsPerformance: nil,
+                         userRefreshCount: 0,
                          didOpenReportInfo: true,
                          toggleReportCounter: 0)
 #endif
@@ -132,6 +148,10 @@ struct BrokenSiteReportMocks {
                          model: "test",
                          errors: nil,
                          httpStatusCodes: nil,
+                         openerContext: nil,
+                         vpnOn: false,
+                         jsPerformance: nil,
+                         userRefreshCount: 0,
                          didOpenReportInfo: true,
                          toggleReportCounter: 0)
 #else
@@ -151,6 +171,10 @@ struct BrokenSiteReportMocks {
                          reportFlow: .appMenu,
                          errors: nil,
                          httpStatusCodes: nil,
+                         openerContext: nil,
+                         vpnOn: false,
+                         jsPerformance: nil,
+                         userRefreshCount: 0,
                          didOpenReportInfo: true,
                          toggleReportCounter: 0)
 #endif

@@ -99,9 +99,11 @@ public class BookmarkEntity: NSManagedObject {
             return
         }
         let changedKeys = changedValues().keys
+        let foldersRelationshipsKeypaths = [NSStringFromSelector(#selector(getter: favoriteFolders)), NSStringFromSelector(#selector(getter: parent))]
         guard !changedKeys.isEmpty,
               !changedKeys.contains(NSStringFromSelector(#selector(getter: modifiedAt))),
-              Array(changedKeys) != [NSStringFromSelector(#selector(getter: lastChildrenPayloadReceivedFromSync))]
+              Array(changedKeys) != [NSStringFromSelector(#selector(getter: lastChildrenPayloadReceivedFromSync))],
+              !Set(changedKeys).isSubset(of: foldersRelationshipsKeypaths)
         else {
             return
         }

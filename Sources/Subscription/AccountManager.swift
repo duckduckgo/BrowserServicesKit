@@ -23,6 +23,7 @@ public extension Notification.Name {
     static let accountDidSignIn = Notification.Name("com.duckduckgo.subscription.AccountDidSignIn")
     static let accountDidSignOut = Notification.Name("com.duckduckgo.subscription.AccountDidSignOut")
     static let entitlementsDidChange = Notification.Name("com.duckduckgo.subscription.EntitlementsDidChange")
+    static let subscriptionDidChange = Notification.Name("com.duckduckgo.subscription.SubscriptionDidChange")
 }
 
 public protocol AccountManagerKeychainAccessDelegate: AnyObject {
@@ -53,10 +54,18 @@ public class AccountManager: AccountManaging {
         return accessToken != nil
     }
 
+    public convenience init(accessTokenStorage: SubscriptionTokenStorage) {
+        self.init(accessTokenStorage: accessTokenStorage,
+                  entitlementsCache: UserDefaultsCache<[Entitlement]>(key: UserDefaultsCacheKey.subscriptionEntitlements,
+                                                                      settings: UserDefaultsCacheSettings(defaultExpirationInterval: .minutes(20))))
+    }
+
     public convenience init(subscriptionAppGroup: String) {
         let accessTokenStorage = SubscriptionTokenKeychainStorage(keychainType: .dataProtection(.named(subscriptionAppGroup)))
         self.init(accessTokenStorage: accessTokenStorage,
-                  entitlementsCache: UserDefaultsCache<[Entitlement]>(subscriptionAppGroup: subscriptionAppGroup, key: UserDefaultsCacheKey.subscriptionEntitlements))
+                  entitlementsCache: UserDefaultsCache<[Entitlement]>(subscriptionAppGroup: subscriptionAppGroup,
+                                                                      key: UserDefaultsCacheKey.subscriptionEntitlements,
+                                                                      settings: UserDefaultsCacheSettings(defaultExpirationInterval: .minutes(20))))
     }
 
     public init(storage: AccountStorage = AccountKeychainStorage(),
@@ -237,20 +246,28 @@ public class AccountManager: AccountManaging {
             return .failure(EntitlementsError.noAccessToken)
         }
 
-        let cachedEntitlements: [Entitlement]? = entitlementsCache.get()
-
         switch await AuthService.validateToken(accessToken: accessToken) {
         case .success(let response):
             let entitlements = response.account.entitlements
-            if entitlements != cachedEntitlements {
-                entitlementsCache.set(entitlements)
-                NotificationCenter.default.post(name: .entitlementsDidChange, object: self, userInfo: [UserDefaultsCacheKey.subscriptionEntitlements: entitlements])
-            }
+            updateCache(with: entitlements)
             return .success(entitlements)
 
         case .failure(let error):
             os_log(.error, log: .subscription, "[AccountManager] fetchEntitlements error: %{public}@", error.localizedDescription)
             return .failure(error)
+        }
+    }
+
+    public func updateCache(with entitlements: [Entitlement]) {
+        let cachedEntitlements: [Entitlement] = entitlementsCache.get() ?? []
+
+        if entitlements != cachedEntitlements {
+            if entitlements.isEmpty {
+                entitlementsCache.reset()
+            } else {
+                entitlementsCache.set(entitlements)
+            }
+            NotificationCenter.default.post(name: .entitlementsDidChange, object: self, userInfo: [UserDefaultsCacheKey.subscriptionEntitlements: entitlements])
         }
     }
 
@@ -299,16 +316,22 @@ public class AccountManager: AccountManaging {
         }
     }
 
-    public func checkSubscriptionState() async {
-        os_log(.info, log: .subscription, "[AccountManager] checkSubscriptionState")
+    public func refreshSubscriptionAndEntitlements() async {
+        os_log(.info, log: .subscription, "[AccountManager] refreshSubscriptionAndEntitlements")
 
-        guard let token = accessToken else { return }
+        guard let token = accessToken else {
+            SubscriptionService.signOut()
+            entitlementsCache.reset()
+            return
+        }
 
-        if case .success(let subscription) = await SubscriptionService.getSubscription(accessToken: token) {
+        if case .success(let subscription) = await SubscriptionService.getSubscription(accessToken: token, cachePolicy: .reloadIgnoringLocalCacheData) {
             if !subscription.isActive {
                 signOut()
             }
         }
+
+        _ = await fetchEntitlements(cachePolicy: .reloadIgnoringLocalCacheData)
     }
 
     @discardableResult

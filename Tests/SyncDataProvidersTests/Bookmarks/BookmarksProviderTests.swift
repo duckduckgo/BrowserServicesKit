@@ -29,12 +29,19 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
 
     func testThatLastSyncTimestampIsNilByDefault() {
         XCTAssertNil(provider.lastSyncTimestamp)
+        if DDGSync.isFieldValidationEnabled {
+            XCTAssertNil(provider.lastSyncLocalTimestamp)
+        }
     }
 
     func testThatLastSyncTimestampIsPersisted() throws {
         try provider.registerFeature(withState: .readyToSync)
-        provider.lastSyncTimestamp = "12345"
+        let date = Date()
+        provider.updateSyncTimestamps(server: "12345", local: date)
         XCTAssertEqual(provider.lastSyncTimestamp, "12345")
+        if DDGSync.isFieldValidationEnabled {
+            XCTAssertEqual(provider.lastSyncLocalTimestamp, date)
+        }
     }
 
     func testThatPrepareForFirstSyncClearsLastSyncTimestampAndSetsModifiedAtForAllBookmarks() async throws {
@@ -56,7 +63,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
             try! context.save()
         }
 
-        provider.lastSyncTimestamp = "12345"
+        provider.updateSyncTimestamps(server: "12345", local: nil)
         try provider.prepareForFirstSync()
         XCTAssertNil(provider.lastSyncTimestamp)
 
@@ -138,6 +145,51 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         )
     }
 
+    func testThatFetchChangedObjectsFiltersOutInvalidBookmarksAndTruncatesFolderTitles() async throws {
+        guard DDGSync.isFieldValidationEnabled else {
+            throw XCTSkip("Field validation is disabled")
+        }
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let longTitle = String(repeating: "x", count: 10000)
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark(id: "1", favoritedOn: [.mobile, .unified])
+            Folder(id: "2") {
+                Bookmark(longTitle, id: "3")
+                Bookmark(id: "4")
+                Folder(longTitle, id: "5") {
+                    Bookmark(id: "6")
+                }
+            }
+            Bookmark(id: "7")
+            Bookmark(id: "8")
+        }
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+
+            // clear modifiedAt for some entities
+            let bookmarks = BookmarkEntity.fetchBookmarks(with: ["1", "4", "8"], in: context)
+            bookmarks.forEach { $0.modifiedAt = nil }
+            try! context.save()
+        }
+
+        let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+            .map(SyncableBookmarkAdapter.init(syncable:))
+
+        XCTAssertEqual(
+            Set(changedObjects.compactMap(\.uuid)),
+            Set(["2", "5", "6", "7"])
+        )
+
+        let folder5Syncable = try XCTUnwrap(changedObjects.first { $0.uuid == "5" })
+        let expectedFolderTitle = try crypter.encryptAndBase64Encode(String(longTitle.prefix(Syncable.BookmarkValidationConstraints.maxFolderTitleLength)))
+        XCTAssertEqual(folder5Syncable.encryptedTitle, expectedFolderTitle)
+    }
+
     func testWhenBookmarkIsSoftDeletedThenFetchChangedObjectsReturnsBookmarkAndItsParent() async throws {
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
@@ -204,6 +256,52 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
             assertEquivalent(rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["1", "5", "6"]) {
                 Bookmark("Bookmark 1", id: "1")
                 Bookmark("Bookmark 5", id: "5")
+                Bookmark("Bookmark 6", id: "6")
+            })
+        }
+    }
+
+    func testThatItemsThatFailedValidationRetainTheirTimestamps() async throws {
+        guard DDGSync.isFieldValidationEnabled else {
+            throw XCTSkip("Field validation is disabled")
+        }
+
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        let longValue = String(repeating: "x", count: 10000)
+        let timestamp = Date()
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark("Bookmark 1", id: "1", url: longValue, modifiedAt: timestamp)
+            Bookmark("Bookmark 2", id: "2", modifiedAt: timestamp)
+            Folder(longValue, id: "3", modifiedAt: timestamp) {
+                Bookmark("Bookmark 4", id: "4", modifiedAt: timestamp)
+            }
+            Bookmark(longValue, id: "5", modifiedAt: timestamp)
+            Bookmark("Bookmark 6", id: "6", modifiedAt: timestamp)
+        }
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            try! context.save()
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+        }
+
+        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+        try await provider.handleSyncResponse(sent: sent, received: [], clientTimestamp: Date(), serverTimestamp: "1234", crypter: crypter)
+
+        context.performAndWait {
+            context.refreshAllObjects()
+            let rootFolder = BookmarkUtils.fetchRootFolder(context)!
+
+            assertEquivalent(withTimestamps: true, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: ["1", "2", "3", "5", "6"]) {
+                Bookmark("Bookmark 1", id: "1", url: longValue, modifiedAt: timestamp)
+                Bookmark("Bookmark 2", id: "2")
+                // folder is accepted, its name is truncated for sync but full value is retained locally
+                Folder(longValue, id: "3", lastChildrenArrayReceivedFromSync: ["4"]) {
+                    Bookmark("Bookmark 4", id: "4")
+                }
+                Bookmark(longValue, id: "5", modifiedAt: timestamp)
                 Bookmark("Bookmark 6", id: "6")
             })
         }
@@ -686,10 +784,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         assertEquivalent(withLastChildrenArrayReceivedFromSync: false, rootFolder, BookmarkTree {
             Folder(id: "1")
             Folder(id: "2") {
-                // Bookmark retains non-nil modifiedAt, but it's newer than bookmarkModificationDate
-                // because it's updated after sync context save (bookmark object is not included in synced data
-                // but it gets updated as a side effect of sync – an update to parent).
-                Bookmark("test3", id: "3", url: "test", modifiedAtConstraint: .greaterThan(bookmarkModificationDate))
+                Bookmark("test3", id: "3", url: "test", modifiedAt: bookmarkModificationDate)
             }
         })
     }
@@ -812,6 +907,106 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
             Bookmark(id: "2")
             Bookmark(id: "3")
             Bookmark(id: "4")
+        })
+    }
+
+    // MARK: - Changes to Folders without changes to their children
+
+    func testThatWhenBookmarkIsMovedBetweenFoldersThenItsModifiedAtIsNotSet() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Folder(id: "1") {
+                Bookmark(id: "3")
+            }
+            Folder(id: "2")
+        }
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+        }
+
+        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+        // send existing items to clear modifiedAt
+        _ = try await handleSyncResponse(sent: sent, received: [], clientTimestamp: Date(), serverTimestamp: "1234", in: context)
+
+        let received: [Syncable] = [
+            .folder(id: "1"),
+            .folder(id: "2", children: ["3"])
+        ]
+
+        let rootFolder = try await handleSyncResponse(sent: [], received: received, clientTimestamp: Date(), serverTimestamp: "1234", in: context)
+        assertEquivalent(withTimestamps: true, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: nil) {
+            Folder(id: "1", modifiedAt: nil, lastChildrenArrayReceivedFromSync: [])
+            Folder(id: "2", modifiedAt: nil, lastChildrenArrayReceivedFromSync: ["3"]) {
+                Bookmark(id: "3", modifiedAt: nil)
+            }
+        })
+    }
+
+    func testThatWhenBookmarkFavoriteFoldersChangeThenItsModifiedAtIsNotSet() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark(id: "1")
+            Bookmark(id: "2", favoritedOn: [.mobile])
+        }
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+        }
+
+        let received: [Syncable] = [
+            .mobileFavoritesFolder(favorites: ["1"])
+        ]
+
+        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+        // send existing items to clear modifiedAt
+        _ = try await handleSyncResponse(sent: sent, received: [], clientTimestamp: Date(), serverTimestamp: "1234", in: context)
+
+        let rootFolder = try await handleSyncResponse(sent: [], received: received, clientTimestamp: Date(), serverTimestamp: "1234", in: context)
+        assertEquivalent(withTimestamps: true, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: nil) {
+            Bookmark(id: "1", favoritedOn: [.mobile], modifiedAt: nil)
+            Bookmark(id: "2", modifiedAt: nil)
+        })
+    }
+
+    func testThatWhenBookmarkFavoriteFoldersAndParentChangeThenItsModifiedAtIsNotSet() async throws {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        let bookmarkTree = BookmarkTree {
+            Folder(id: "1") {
+                Bookmark(id: "3")
+            }
+            Folder(id: "2")
+        }
+
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+        }
+
+        let received: [Syncable] = [
+            .mobileFavoritesFolder(favorites: ["3"]),
+            .folder(id: "1"),
+            .folder(id: "2", children: ["3"])
+        ]
+
+        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+        // send existing items to clear modifiedAt
+        _ = try await handleSyncResponse(sent: sent, received: [], clientTimestamp: Date(), serverTimestamp: "1234", in: context)
+
+        let rootFolder = try await handleSyncResponse(sent: [], received: received, clientTimestamp: Date(), serverTimestamp: "1234", in: context)
+        assertEquivalent(withTimestamps: true, rootFolder, BookmarkTree(lastChildrenArrayReceivedFromSync: nil) {
+            Folder(id: "1", lastChildrenArrayReceivedFromSync: [])
+            Folder(id: "2", lastChildrenArrayReceivedFromSync: ["3"]) {
+                Bookmark(id: "3", favoritedOn: [.mobile], modifiedAt: nil)
+            }
         })
     }
 

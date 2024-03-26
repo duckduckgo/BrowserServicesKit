@@ -70,9 +70,17 @@ struct SyncableBookmarkAdapter {
 extension Syncable {
 
     enum SyncableBookmarkError: Error {
+        case validationFailed
         case bookmarkEntityMissingUUID
     }
 
+    enum BookmarkValidationConstraints {
+        static let maxFolderTitleLength = 2000
+        static let maxEncryptedBookmarkTitleLength = 3000
+        static let maxEncryptedBookmarkURLLength = 3000
+    }
+
+    // swiftlint:disable:next cyclomatic_complexity function_body_length
     init(bookmark: BookmarkEntity, encryptedUsing encrypt: (String) throws -> String) throws {
         var payload: [String: Any] = [:]
         guard let uuid = bookmark.uuid else {
@@ -84,10 +92,11 @@ extension Syncable {
         if bookmark.isPendingDeletion {
             payload["deleted"] = ""
         } else {
-            if let title = bookmark.title {
-                payload["title"] = try encrypt(title)
-            }
             if bookmark.isFolder {
+                if let title = bookmark.title {
+                    payload["title"] = try encrypt(String(title.prefix(BookmarkValidationConstraints.maxFolderTitleLength)))
+                }
+
                 let children: [String] = {
                     let allChildren: [BookmarkEntity]
                     if BookmarkEntity.Constants.favoriteFoldersIDs.contains(uuid) {
@@ -112,9 +121,26 @@ extension Syncable {
                 }
 
                 payload["folder"] = ["children": childrenDict]
+            } else {
 
-            } else if let url = bookmark.url {
-                payload["page"] = ["url": try encrypt(url)]
+                if let title = bookmark.title {
+                    let encryptedTitle = try encrypt(title)
+                    if DDGSync.isFieldValidationEnabled {
+                        guard encryptedTitle.count <= BookmarkValidationConstraints.maxEncryptedBookmarkTitleLength else {
+                            throw SyncableBookmarkError.validationFailed
+                        }
+                    }
+                    payload["title"] = encryptedTitle
+                }
+                if let url = bookmark.url {
+                    let encryptedURL = try encrypt(url)
+                    if DDGSync.isFieldValidationEnabled {
+                        guard encryptedURL.count <= BookmarkValidationConstraints.maxEncryptedBookmarkURLLength else {
+                            throw SyncableBookmarkError.validationFailed
+                        }
+                    }
+                    payload["page"] = ["url": encryptedURL]
+                }
             }
             if let modifiedAt = bookmark.modifiedAt {
                 payload["client_last_modified"] = Self.dateFormatter.string(from: modifiedAt)

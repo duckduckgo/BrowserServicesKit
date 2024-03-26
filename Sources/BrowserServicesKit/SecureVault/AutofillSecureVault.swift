@@ -57,6 +57,7 @@ public protocol AutofillSecureVault: SecureVault {
     func accountsFor(domain: String) throws -> [SecureVaultModels.WebsiteAccount]
     func accountsWithPartialMatchesFor(eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount]
     func hasAccountFor(username: String?, domain: String?) throws -> Bool
+    func updateLastUsedFor(accountId: Int64) throws
 
     func websiteCredentialsFor(accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials?
     @discardableResult
@@ -104,6 +105,7 @@ public protocol AutofillSecureVault: SecureVault {
 
     func inDatabaseTransaction(_ block: @escaping (Database) throws -> Void) throws
     func modifiedSyncableCredentials() throws -> [SecureVaultModels.SyncableCredentials]
+    func accountTitlesForSyncableCredentials(modifiedBefore date: Date) throws -> [String]
     func deleteSyncableCredentials(_ syncableCredentials: SecureVaultModels.SyncableCredentials, in database: Database) throws
     func storeSyncableCredentials(
         _ syncableCredentials: SecureVaultModels.SyncableCredentials,
@@ -268,6 +270,12 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
             return try self.providers.database.hasAccountFor(username: username, domain: domain)
         } catch {
             throw SecureStorageError.databaseError(cause: error)
+        }
+    }
+
+    public func updateLastUsedFor(accountId: Int64) throws {
+        try executeThrowingDatabaseOperation {
+            try self.providers.database.updateLastUsedForAccountId(accountId)
         }
     }
 
@@ -552,6 +560,21 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
             }
 
             return syncableCredentials
+        } catch {
+            let error = error as? SecureStorageError ?? SecureStorageError.databaseError(cause: error)
+            throw error
+        }
+    }
+
+    public func accountTitlesForSyncableCredentials(modifiedBefore date: Date) throws -> [String] {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+
+        do {
+            let syncableCredentials = try providers.database.modifiedSyncableCredentials(before: date)
+            return syncableCredentials.map { $0.account?.title ?? "" }
         } catch {
             let error = error as? SecureStorageError ?? SecureStorageError.databaseError(cause: error)
             throw error

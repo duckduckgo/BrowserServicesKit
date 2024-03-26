@@ -151,7 +151,7 @@ struct AppIdMatchingAttribute: MatchingAttribute, Equatable {
 
 struct AppVersionMatchingAttribute: MatchingAttribute, Equatable {
     var min: String = MatchingAttributeDefaults.stringDefaultValue
-    var max: String = AppVersion.shared.versionNumber
+    var max: String = AppVersion.shared.versionAndBuildNumber
     var value: String = MatchingAttributeDefaults.stringDefaultValue
     var fallback: Bool?
 
@@ -173,7 +173,7 @@ struct AppVersionMatchingAttribute: MatchingAttribute, Equatable {
     }
 
     init(min: String = MatchingAttributeDefaults.stringDefaultValue,
-         max: String = AppVersion.shared.versionNumber,
+         max: String = AppVersion.shared.versionAndBuildNumber,
          value: String = MatchingAttributeDefaults.stringDefaultValue,
          fallback: Bool?) {
         self.min = min
@@ -582,10 +582,25 @@ struct RangeStringNumericMatchingAttribute: Equatable {
             return .fail
         }
 
-        if min.compare(value, options: .numeric) == .orderedDescending { return .fail }
-        if max.compare(value, options: .numeric) == .orderedAscending { return .fail }
+        let paddedMin = padWithZeros(version: min, toMatch: value)
+        let paddedMax = padWithZeros(version: max, toMatch: value)
+        let paddedValue = padWithZeros(version: value, toMatch: max)
+
+        if paddedMin.compare(paddedValue, options: .numeric) == .orderedDescending { return .fail }
+        if paddedMax.compare(paddedValue, options: .numeric) == .orderedAscending { return .fail }
 
         return .match
+    }
+
+    private func padWithZeros(version: String, toMatch: String) -> String {
+        let versionComponents = version.split(separator: ".").map(String.init)
+        let matchComponents = toMatch.split(separator: ".").map(String.init)
+
+        if versionComponents.count >= matchComponents.count {
+            return version
+        }
+
+        return version + String(repeating: ".0", count: matchComponents.count - versionComponents.count)
     }
 
     static func == (lhs: RangeStringNumericMatchingAttribute, rhs: RangeStringNumericMatchingAttribute) -> Bool {

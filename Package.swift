@@ -38,7 +38,7 @@ let package = Package(
         .library(name: "Suggestions", targets: ["Suggestions"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "10.1.0"),
+        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "10.2.0"),
         .package(url: "https://github.com/duckduckgo/GRDB.swift.git", exact: "2.3.0"),
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "1.2.2"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.2.0"),
@@ -168,6 +168,15 @@ let package = Package(
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
             ],
+            plugins: [swiftlintPlugin]
+        ),
+        .executableTarget(
+            name: "SyncMetadataTestDBBuilder",
+            dependencies: [
+                "DDGSync",
+                "Persistence",
+            ],
+            path: "Sources/SyncMetadataTestDBBuilder",
             plugins: [swiftlintPlugin]
         ),
         .target(
@@ -401,8 +410,14 @@ let package = Package(
         .testTarget(
             name: "DDGSyncTests",
             dependencies: [
+                "BookmarksTestsUtils",
                 "DDGSync",
                 "TestUtils",
+            ],
+            resources: [
+                .copy("Resources/SyncMetadata_V3.sqlite"),
+                .copy("Resources/SyncMetadata_V3.sqlite-shm"),
+                .copy("Resources/SyncMetadata_V3.sqlite-wal"),
             ],
             plugins: [swiftlintPlugin]
         ),

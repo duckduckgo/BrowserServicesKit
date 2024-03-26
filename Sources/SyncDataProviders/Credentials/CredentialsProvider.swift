@@ -31,12 +31,13 @@ public final class CredentialsProvider: DataProvider {
         secureVaultErrorReporter: SecureVaultErrorReporting,
         metadataStore: SyncMetadataStore,
         metricsEvents: EventMapping<MetricsEvent>? = nil,
+        log: @escaping @autoclosure () -> OSLog = .disabled,
         syncDidUpdateData: @escaping () -> Void
     ) throws {
         self.secureVaultFactory = secureVaultFactory
         self.secureVaultErrorReporter = secureVaultErrorReporter
         self.metricsEvents = metricsEvents
-        super.init(feature: .init(name: "credentials"), metadataStore: metadataStore, syncDidUpdateData: syncDidUpdateData)
+        super.init(feature: .init(name: "credentials"), metadataStore: metadataStore, log: log(), syncDidUpdateData: syncDidUpdateData)
     }
 
     // MARK: - DataProviding
@@ -78,15 +79,35 @@ public final class CredentialsProvider: DataProvider {
         }
     }
 
+    public override func fetchDescriptionsForObjectsThatFailedValidation() throws -> [String] {
+        guard let lastSyncLocalTimestamp else {
+            return []
+        }
+
+        let secureVault = try secureVaultFactory.makeVault(errorReporter: secureVaultErrorReporter)
+        return try secureVault.accountTitlesForSyncableCredentials(modifiedBefore: lastSyncLocalTimestamp)
+    }
+
     public override func fetchChangedObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable] {
         let secureVault = try secureVaultFactory.makeVault(errorReporter: secureVaultErrorReporter)
         let syncableCredentials = try secureVault.modifiedSyncableCredentials()
         let encryptionKey = try crypter.fetchSecretKey()
-        return try syncableCredentials.map { credentials in
-            try Syncable(
-                syncableCredentials: credentials,
-                encryptedUsing: { try crypter.encryptAndBase64Encode($0, using: encryptionKey) }
-            )
+        return try syncableCredentials.compactMap { credentials in
+            do {
+                return try Syncable(
+                    syncableCredentials: credentials,
+                    encryptedUsing: { try crypter.encryptAndBase64Encode($0, using: encryptionKey) }
+                )
+            } catch Syncable.SyncableCredentialError.validationFailed {
+                os_log(
+                    .error,
+                    log: log,
+                    "Validation failed for credential %{private}s with title: %{private}s",
+                    credentials.metadata.uuid,
+                    credentials.account?.title.flatMap { String($0.prefix(100)) } ?? ""
+                )
+                return nil
+            }
         }
     }
 
@@ -183,8 +204,10 @@ public final class CredentialsProvider: DataProvider {
         }
 
         if let serverTimestamp {
-            lastSyncTimestamp = serverTimestamp
+            updateSyncTimestamps(server: serverTimestamp, local: clientTimestamp)
             syncDidUpdateData()
+        } else {
+            lastSyncLocalTimestamp = clientTimestamp
         }
         syncDidFinish()
     }

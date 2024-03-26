@@ -26,11 +26,65 @@ final class AutofillUserScriptSourceProviderTests: XCTestCase {
     {
         "features": {
             "autofill": {
-                "status": "enabled",
-                "exceptions": []
+              "state": "enabled",
+              "features": {
+                "credentialsSaving": {
+                  "state": "enabled",
+                  "minSupportedVersion": "7.74.0"
+                },
+                "credentialsAutofill": {
+                  "state": "enabled",
+                  "minSupportedVersion": "7.74.0"
+                },
+                "inlineIconCredentials": {
+                  "state": "enabled",
+                  "minSupportedVersion": "7.74.0"
+                },
+                "accessCredentialManagement": {
+                  "state": "enabled",
+                  "minSupportedVersion": "7.74.0"
+                },
+                "autofillPasswordGeneration": {
+                  "state": "enabled",
+                  "minSupportedVersion": "7.75.0"
+                },
+                "onByDefault": {
+                  "state": "enabled",
+                  "minSupportedVersion": "7.93.0",
+                  "rollout": {
+                    "steps": [
+                      {
+                        "percent": 1
+                      },
+                      {
+                        "percent": 10
+                      },
+                      {
+                        "percent": 100
+                      }
+                    ]
+                  }
+                }
+              },
+              "hash": "ffaa2e81fb2bf264cb5ce2dadac549e1"
+            },
+            "contentBlocking": {
+              "state": "enabled",
+              "exceptions": [
+                {
+                  "domain": "test-domain.com"
+                }
+              ],
+              "hash": "910e25ffe4d683b3c708a1578d097a16"
+            },
+            "voiceSearch": {
+              "exceptions": [],
+              "state": "disabled",
+              "hash": "728493ef7a1488e4781656d3f9db84aa"
             }
         },
-        "unprotectedTemporary": []
+        "unprotectedTemporary": [],
+        "unprotectedOtherKey": []
     }
     """.data(using: .utf8)!
     lazy var privacyConfig = AutofillTestHelper.preparePrivacyConfig(embeddedConfig: embeddedConfig)
@@ -52,5 +106,38 @@ final class AutofillUserScriptSourceProviderTests: XCTestCase {
 
         XCTAssertNotNil(runtimeConfiguration)
         XCTAssertFalse(runtimeConfiguration!.isEmpty)
+    }
+
+    func testWhenBuildRuntimeConfigurationThenContentScopeContainsRequiredAutofillKeys() throws {
+        let runtimeConfiguration = DefaultAutofillSourceProvider.Builder(privacyConfigurationManager: privacyConfig,
+                                                                         properties: properties)
+            .build()
+            .buildRuntimeConfigResponse()
+
+        let jsonData = runtimeConfiguration!.data(using: .utf8)!
+        let json = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
+        let success = json?["success"] as? [String: Any]
+        let contentScope = success?["contentScope"] as? [String: Any]
+        let features = contentScope?["features"] as? [String: Any]
+        XCTAssertNotNil(features?["autofill"] as? [String: Any])
+        XCTAssertNotNil(contentScope?["unprotectedTemporary"] as? [Any])
+        XCTAssertNil(features?["contentBlocking"])
+    }
+
+    func testWhenBuildRuntimeConfigurationThenContentScopeDoesNotContainUnnecessaryKeys() throws {
+        let runtimeConfiguration = DefaultAutofillSourceProvider.Builder(privacyConfigurationManager: privacyConfig,
+                                                                         properties: properties)
+                                                                .build()
+                                                                .buildRuntimeConfigResponse()
+
+        let jsonData = runtimeConfiguration!.data(using: .utf8)!
+        let json = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
+        let success = json?["success"] as? [String: Any]
+        let contentScope = success?["contentScope"] as? [String: Any]
+        XCTAssertNil(contentScope?["unprotectedOtherKey"])
+
+        let features = contentScope?["features"] as? [String: Any]
+        XCTAssertNil(features?["contentBlocking"])
+        XCTAssertNil(features?["voiceSearch"])
     }
 }

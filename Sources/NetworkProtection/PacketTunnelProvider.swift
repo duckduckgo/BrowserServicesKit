@@ -58,11 +58,14 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Error Handling
 
-    enum TunnelError: LocalizedError {
+    enum TunnelError: LocalizedError, CustomNSError {
+        // Tunnel Setup Errors - 0+
         case startingTunnelWithoutAuthToken
-        case vpnAccessRevoked
         case couldNotGenerateTunnelConfiguration(internalError: Error)
         case simulateTunnelFailureError
+
+        // Subscription Errors - 100+
+        case vpnAccessRevoked
 
         var errorDescription: String? {
             switch self {
@@ -74,6 +77,28 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 return "Failed to generate a tunnel configuration: \(internalError.localizedDescription)"
             case .simulateTunnelFailureError:
                 return "Simulated a tunnel error as requested"
+            }
+        }
+
+        var errorCode: Int {
+            switch self {
+                // Tunnel Setup Errors - 0+
+            case .startingTunnelWithoutAuthToken: return 0
+            case .couldNotGenerateTunnelConfiguration: return 1
+            case .simulateTunnelFailureError: return 2
+                // Subscription Errors - 100+
+            case .vpnAccessRevoked: return 100
+            }
+        }
+
+        var errorUserInfo: [String: Any] {
+            switch self {
+            case .startingTunnelWithoutAuthToken,
+                    .simulateTunnelFailureError,
+                    .vpnAccessRevoked:
+                return [:]
+            case .couldNotGenerateTunnelConfiguration(let underlyingError):
+                return [NSUnderlyingErrorKey: underlyingError]
             }
         }
     }
@@ -505,8 +530,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
             connectionStatus = .connecting
 
-            os_log("Will load options\n%{public}@", log: .networkProtection, String(describing: options))
-            let startupOptions = StartupOptions(options: options ?? [:], log: .networkProtection)
+            let startupOptions = StartupOptions(options: options ?? [:])
+            os_log("Starting tunnel with options: %{public}s", log: .networkProtection, startupOptions.description)
 
             resetIssueStateOnTunnelStart(startupOptions)
 
@@ -863,6 +888,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             simulateTunnelMemoryOveruse(completionHandler: completionHandler)
         case .simulateConnectionInterruption:
             simulateConnectionInterruption(completionHandler: completionHandler)
+        case .getConnectionThroughput:
+            getConnectionThroughput(completionHandler: completionHandler)
         }
     }
 
@@ -1025,8 +1052,19 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     private func handleGetServerLocation(completionHandler: ((Data?) -> Void)? = nil) {
-        let response = lastSelectedServerInfo.map { ExtensionMessageString($0.serverLocation) }
-        completionHandler?(response?.rawValue)
+        guard let attributes = lastSelectedServerInfo?.attributes else {
+            completionHandler?(nil)
+            return
+        }
+
+        let encoder = JSONEncoder()
+        guard let encoded = try? encoder.encode(attributes), let encodedJSONString = String(data: encoded, encoding: .utf8) else {
+            assertionFailure("Failed to encode server attributes")
+            completionHandler?(nil)
+            return
+        }
+
+        completionHandler?(ExtensionMessageString(encodedJSONString).rawValue)
     }
 
     private func handleGetServerAddress(completionHandler: ((Data?) -> Void)? = nil) {
@@ -1112,6 +1150,18 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         Task { @MainActor in
             connectionTester.failNextTest()
             completionHandler?(nil)
+        }
+    }
+
+    private func getConnectionThroughput(completionHandler: ((Data?) -> Void)? = nil) {
+        Task { @MainActor in
+            guard let (received, sent) = try? await adapter.getBytesTransmitted() else {
+                completionHandler?(nil)
+                return
+            }
+
+            let string = "\(received),\(sent)"
+            completionHandler?(ExtensionMessageString(string).rawValue)
         }
     }
 
