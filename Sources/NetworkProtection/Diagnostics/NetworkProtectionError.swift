@@ -46,14 +46,6 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
     case invalidAuthToken
     case serverListInconsistency
 
-    // Server list store errors
-    case failedToEncodeServerList(Error)
-    case failedToDecodeServerList(Error)
-    case failedToWriteServerList(Error)
-    case noServerListFound
-    case couldNotCreateServerListDirectory(Error)
-    case failedToReadServerList(Error)
-
     // Keychain errors
     case failedToCastKeychainValueToData(field: String)
     case keychainReadError(field: String, status: Int32)
@@ -102,31 +94,24 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
         case .failedToParseRedeemResponse: return 111
         case .invalidAuthToken: return 112
         case .serverListInconsistency: return 113
-            // 200+ - Server list store errors
-        case .failedToEncodeServerList: return 200
-        case .failedToDecodeServerList: return 201
-        case .failedToWriteServerList: return 202
-        case .noServerListFound: return 203
-        case .couldNotCreateServerListDirectory: return 204
-        case .failedToReadServerList: return 205
-            // 300+ - Keychain errors
+            // 200+ - Keychain errors
         case .failedToCastKeychainValueToData: return 300
-        case .keychainReadError: return 301
-        case .keychainWriteError: return 302
-        case .keychainUpdateError: return 303
-        case .keychainDeleteError: return 304
-            // 400+ - Wireguard errors
-        case .wireGuardCannotLocateTunnelFileDescriptor: return 400
-        case .wireGuardInvalidState: return 401
-        case .wireGuardDnsResolution: return 402
-        case .wireGuardSetNetworkSettings: return 403
-        case .startWireGuardBackend: return 404
-            // 500+ Auth errors
-        case .noAuthTokenFound: return 500
-            // 600+ Subscription errors
-        case .vpnAccessRevoked: return 600
-            // 700+ Unhandled errors
-        case .unhandledError: return 700
+        case .keychainReadError: return 201
+        case .keychainWriteError: return 202
+        case .keychainUpdateError: return 203
+        case .keychainDeleteError: return 204
+            // 300+ - Wireguard errors
+        case .wireGuardCannotLocateTunnelFileDescriptor: return 300
+        case .wireGuardInvalidState: return 301
+        case .wireGuardDnsResolution: return 302
+        case .wireGuardSetNetworkSettings: return 303
+        case .startWireGuardBackend: return 304
+            // 400+ Auth errors
+        case .noAuthTokenFound: return 400
+            // 500+ Subscription errors
+        case .vpnAccessRevoked: return 500
+            // 600+ Unhandled errors
+        case .unhandledError: return 600
         }
     }
 
@@ -143,7 +128,6 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
                 .failedToRetrieveAuthToken,
                 .invalidAuthToken,
                 .serverListInconsistency,
-                .noServerListFound,
                 .failedToCastKeychainValueToData,
                 .keychainReadError,
                 .keychainWriteError,
@@ -171,11 +155,6 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
                 .failedToParseLocationListResponse(let error),
                 .failedToParseRegisteredServersResponse(let error),
                 .failedToParseRedeemResponse(let error),
-                .failedToEncodeServerList(let error),
-                .failedToDecodeServerList(let error),
-                .failedToWriteServerList(let error),
-                .couldNotCreateServerListDirectory(let error),
-                .failedToReadServerList(let error),
                 .wireGuardSetNetworkSettings(let error),
                 .unhandledError(_, _, let error):
             return [

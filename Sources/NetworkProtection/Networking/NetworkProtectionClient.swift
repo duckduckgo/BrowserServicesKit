@@ -31,7 +31,7 @@ protocol NetworkProtectionClient {
                   requestBody: RegisterKeyRequestBody) async -> Result<[NetworkProtectionServer], NetworkProtectionClientError>
 }
 
-public enum NetworkProtectionClientError: Error, NetworkProtectionErrorConvertible {
+public enum NetworkProtectionClientError: CustomNSError, NetworkProtectionErrorConvertible {
     case failedToFetchLocationList(Error?)
     case failedToParseLocationListResponse(Error)
     case failedToFetchServerList(Error?)
@@ -63,6 +63,25 @@ public enum NetworkProtectionClientError: Error, NetworkProtectionErrorConvertib
         case .failedToParseRedeemResponse(let error): return .failedToParseRedeemResponse(error)
         case .invalidAuthToken: return .invalidAuthToken
         case .accessDenied: return .vpnAccessRevoked
+        }
+    }
+
+    public var errorCode: Int {
+        switch self {
+        case .failedToFetchLocationList: return 0
+        case .failedToParseLocationListResponse: return 1
+        case .failedToFetchServerList: return 2
+        case .failedToParseServerListResponse: return 3
+        case .failedToEncodeRegisterKeyRequest: return 4
+        case .failedToFetchRegisteredServers: return 5
+        case .failedToParseRegisteredServersResponse: return 6
+        case .failedToEncodeRedeemRequest: return 7
+        case .invalidInviteCode: return 8
+        case .failedToRedeemInviteCode: return 9
+        case .failedToRetrieveAuthToken: return 10
+        case .failedToParseRedeemResponse: return 11
+        case .invalidAuthToken: return 12
+        case .accessDenied: return 13
         }
     }
 }
