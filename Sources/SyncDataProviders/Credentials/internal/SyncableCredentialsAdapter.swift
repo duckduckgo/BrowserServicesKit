@@ -64,11 +64,11 @@ extension Syncable {
     }
 
     enum CredentialValidationConstraints {
-        static let maxEncryptedTitleLength = 30
-        static let maxEncryptedDomainLength = 30
-        static let maxEncryptedUsernameLength = 30
-        static let maxEncryptedPasswordLength = 30
-        static let maxEncryptedNotesLength = 30
+        static let maxEncryptedTitleLength = 3000
+        static let maxEncryptedDomainLength = 1000
+        static let maxEncryptedUsernameLength = 1000
+        static let maxEncryptedPasswordLength = 1000
+        static let maxEncryptedNotesLength = 1000
     }
 
     // swiftlint:disable:next cyclomatic_complexity function_body_length

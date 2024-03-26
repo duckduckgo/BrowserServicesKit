@@ -76,8 +76,8 @@ extension Syncable {
 
     enum BookmarkValidationConstraints {
         static let maxFolderTitleLength = 2000
-        static let maxEncryptedBookmarkTitleLength = 30
-        static let maxEncryptedBookmarkURLLength = 30
+        static let maxEncryptedBookmarkTitleLength = 3000
+        static let maxEncryptedBookmarkURLLength = 3000
     }
 
     // swiftlint:disable:next cyclomatic_complexity function_body_length
