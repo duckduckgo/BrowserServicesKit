@@ -173,7 +173,7 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
         self.endpointURL = environment.endpointURL
     }
 
-    enum GetLocationsError: CustomNSError {
+    public enum GetLocationsError: CustomNSError {
         case noResponse
         case unexpectedStatus(status: Int)
 
@@ -216,7 +216,7 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
         }
     }
 
-    enum GetServersError: CustomNSError {
+    public enum GetServersError: CustomNSError {
         case noResponse
         case unexpectedStatus(status: Int)
 
@@ -259,7 +259,7 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
         }
     }
 
-    enum RegisterError: CustomNSError {
+    public enum RegisterError: CustomNSError {
         case noResponse
         case unexpectedStatus(status: Int)
 
@@ -328,7 +328,7 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
         }
     }
 
-    enum AuthTokenError: CustomNSError {
+    public enum AuthTokenError: CustomNSError {
         case noResponse
         case unexpectedStatus(status: Int)
 
