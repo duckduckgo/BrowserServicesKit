@@ -32,16 +32,16 @@ protocol NetworkProtectionClient {
 }
 
 public enum NetworkProtectionClientError: Error, NetworkProtectionErrorConvertible {
-    case failedToFetchLocationList(Error?)
+    case failedToFetchLocationList(Error)
     case failedToParseLocationListResponse(Error)
-    case failedToFetchServerList(Error?)
+    case failedToFetchServerList(Error)
     case failedToParseServerListResponse(Error)
     case failedToEncodeRegisterKeyRequest
-    case failedToFetchRegisteredServers(Error?)
+    case failedToFetchRegisteredServers(Error)
     case failedToParseRegisteredServersResponse(Error)
     case failedToEncodeRedeemRequest
     case invalidInviteCode
-    case failedToRedeemInviteCode(Error?)
+    case failedToRedeemInviteCode(Error)
     case failedToRetrieveAuthToken(AuthenticationFailureResponse)
     case failedToParseRedeemResponse(Error)
     case invalidAuthToken
@@ -173,6 +173,21 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
         self.endpointURL = environment.endpointURL
     }
 
+    public enum GetLocationsError: CustomNSError {
+        case noResponse
+        case unexpectedStatus(status: Int)
+
+        var errorCode: Int {
+            switch self {
+            case .noResponse:
+                return 0
+            case .unexpectedStatus(let status):
+                // Adding a large number so that we can get a somewhat reasonable status code
+                return 100000 + status
+            }
+        }
+    }
+
     func getLocations(authToken: String) async -> Result<[NetworkProtectionLocation], NetworkProtectionClientError> {
         var request = URLRequest(url: locationsURL)
         request.setValue("bearer \(authToken)", forHTTPHeaderField: "Authorization")
@@ -181,12 +196,13 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
             guard let response = response as? HTTPURLResponse else {
-                return .failure(.failedToFetchLocationList(nil))
+                throw GetLocationsError.noResponse
             }
             switch response.statusCode {
             case 200: downloadedData = data
             case 401: return .failure(.invalidAuthToken)
-            default: return .failure(.failedToFetchLocationList(nil))
+            default:
+                throw GetLocationsError.unexpectedStatus(status: response.statusCode)
             }
         } catch {
             return .failure(NetworkProtectionClientError.failedToFetchLocationList(error))
@@ -200,6 +216,21 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
         }
     }
 
+    public enum GetServersError: CustomNSError {
+        case noResponse
+        case unexpectedStatus(status: Int)
+
+        var errorCode: Int {
+            switch self {
+            case .noResponse:
+                return 0
+            case .unexpectedStatus(let status):
+                // Adding a large number so that we can get a somewhat reasonable status code
+                return 100000 + status
+            }
+        }
+    }
+
     func getServers(authToken: String) async -> Result<[NetworkProtectionServer], NetworkProtectionClientError> {
         var request = URLRequest(url: serversURL)
         request.setValue("bearer \(authToken)", forHTTPHeaderField: "Authorization")
@@ -208,12 +239,13 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
             guard let response = response as? HTTPURLResponse else {
-                return .failure(.failedToFetchServerList(nil))
+                throw GetServersError.noResponse
             }
             switch response.statusCode {
             case 200: downloadedData = data
             case 401: return .failure(.invalidAuthToken)
-            default: return .failure(.failedToFetchServerList(nil))
+            default:
+                throw GetServersError.unexpectedStatus(status: response.statusCode)
             }
         } catch {
             return .failure(NetworkProtectionClientError.failedToFetchServerList(error))
@@ -224,6 +256,21 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
             return .success(decodedServers)
         } catch {
             return .failure(NetworkProtectionClientError.failedToParseServerListResponse(error))
+        }
+    }
+
+    public enum RegisterError: CustomNSError {
+        case noResponse
+        case unexpectedStatus(status: Int)
+
+        var errorCode: Int {
+            switch self {
+            case .noResponse:
+                return 0
+            case .unexpectedStatus(let status):
+                // Adding a large number so that we can get a somewhat reasonable status code
+                return 100000 + status
+            }
         }
     }
 
@@ -248,12 +295,17 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
             guard let response = response as? HTTPURLResponse else {
-                return .failure(.failedToFetchRegisteredServers(nil))
+                throw RegisterError.noResponse
             }
             switch response.statusCode {
-            case 200: responseData = data
-            case 401: return .failure(.invalidAuthToken)
-            default: return (response.statusCode == 403 && isSubscriptionEnabled) ? .failure(.accessDenied) : .failure(.failedToFetchRegisteredServers(nil))
+            case 200:
+                responseData = data
+            case 401:
+                return .failure(.invalidAuthToken)
+            case 403 where isSubscriptionEnabled:
+                return .failure(.accessDenied)
+            default:
+                throw RegisterError.unexpectedStatus(status: response.statusCode)
             }
         } catch {
             return .failure(NetworkProtectionClientError.failedToFetchRegisteredServers(error))
@@ -273,6 +325,21 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
             return await redeem(inviteCode: code)
         case .subscription(let accessToken):
             return await exchange(accessToken: accessToken)
+        }
+    }
+
+    public enum AuthTokenError: CustomNSError {
+        case noResponse
+        case unexpectedStatus(status: Int)
+
+        var errorCode: Int {
+            switch self {
+            case .noResponse:
+                return 0
+            case .unexpectedStatus(let status):
+                // Adding a large number so that we can get a somewhat reasonable status code
+                return 100000 + status
+            }
         }
     }
 
@@ -308,7 +375,7 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
         do {
             let (data, response) = try await URLSession.shared.data(for: request)
             guard let response = response as? HTTPURLResponse else {
-                return .failure(.failedToRedeemInviteCode(nil))
+                throw AuthTokenError.noResponse
             }
             switch response.statusCode {
             case 200:
@@ -321,7 +388,7 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
                     let decodedRedemptionResponse = try decoder.decode(AuthenticationFailureResponse.self, from: data)
                     return .failure(.failedToRetrieveAuthToken(decodedRedemptionResponse))
                 } catch {
-                    return .failure(.failedToRedeemInviteCode(nil))
+                    throw AuthTokenError.unexpectedStatus(status: response.statusCode)
                 }
             }
         } catch {

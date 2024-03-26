@@ -118,7 +118,7 @@ class NetworkProtectionLocationListCompositeRepositoryTests: XCTestCase {
     }
 
     func testFetchLocationList_fetchThrows_throwsError() async throws {
-        client.stubGetLocations = .failure(.failedToFetchLocationList(nil))
+        client.stubGetLocations = .failure(.failedToFetchLocationList(NetworkProtectionBackendClient.GetLocationsError.noResponse))
         var errorResult: Error?
         do {
             _ = try await repository.fetchLocationList()
@@ -130,7 +130,7 @@ class NetworkProtectionLocationListCompositeRepositoryTests: XCTestCase {
     }
 
     func testFetchLocationList_fetchThrows_sendsErrorEvent() async {
-        client.stubGetLocations = .failure(.failedToFetchLocationList(nil))
+        client.stubGetLocations = .failure(.failedToFetchLocationList(NetworkProtectionBackendClient.GetLocationsError.noResponse))
         var didReceiveError: Bool = false
         verifyErrorEvent = { _ in
             didReceiveError = true

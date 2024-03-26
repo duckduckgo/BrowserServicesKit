@@ -58,11 +58,14 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Error Handling
 
-    enum TunnelError: LocalizedError {
+    enum TunnelError: LocalizedError, CustomNSError {
+        // Tunnel Setup Errors - 0+
         case startingTunnelWithoutAuthToken
-        case vpnAccessRevoked
         case couldNotGenerateTunnelConfiguration(internalError: Error)
         case simulateTunnelFailureError
+
+        // Subscription Errors - 100+
+        case vpnAccessRevoked
 
         var errorDescription: String? {
             switch self {
@@ -74,6 +77,28 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 return "Failed to generate a tunnel configuration: \(internalError.localizedDescription)"
             case .simulateTunnelFailureError:
                 return "Simulated a tunnel error as requested"
+            }
+        }
+
+        var errorCode: Int {
+            switch self {
+                // Tunnel Setup Errors - 0+
+            case .startingTunnelWithoutAuthToken: return 0
+            case .couldNotGenerateTunnelConfiguration: return 1
+            case .simulateTunnelFailureError: return 2
+                // Subscription Errors - 100+
+            case .vpnAccessRevoked: return 100
+            }
+        }
+
+        var errorUserInfo: [String: Any] {
+            switch self {
+            case .startingTunnelWithoutAuthToken,
+                    .simulateTunnelFailureError,
+                    .vpnAccessRevoked:
+                return [:]
+            case .couldNotGenerateTunnelConfiguration(let underlyingError):
+                return [NSUnderlyingErrorKey: underlyingError]
             }
         }
     }
