@@ -165,6 +165,10 @@ internal class MockAutofillDatabaseProvider: AutofillDatabaseProvider {
         []
     }
 
+    func modifiedSyncableCredentials(before date: Date) throws -> [SecureVaultModels.SyncableCredentials] {
+        []
+    }
+
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, in database: Database) throws -> Int64 {
         try storeWebsiteCredentials(credentials)
     }

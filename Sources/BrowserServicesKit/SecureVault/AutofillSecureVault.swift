@@ -105,6 +105,7 @@ public protocol AutofillSecureVault: SecureVault {
 
     func inDatabaseTransaction(_ block: @escaping (Database) throws -> Void) throws
     func modifiedSyncableCredentials() throws -> [SecureVaultModels.SyncableCredentials]
+    func accountTitlesForSyncableCredentials(modifiedBefore date: Date) throws -> [String]
     func deleteSyncableCredentials(_ syncableCredentials: SecureVaultModels.SyncableCredentials, in database: Database) throws
     func storeSyncableCredentials(
         _ syncableCredentials: SecureVaultModels.SyncableCredentials,
@@ -559,6 +560,21 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
             }
 
             return syncableCredentials
+        } catch {
+            let error = error as? SecureStorageError ?? SecureStorageError.databaseError(cause: error)
+            throw error
+        }
+    }
+
+    public func accountTitlesForSyncableCredentials(modifiedBefore date: Date) throws -> [String] {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+
+        do {
+            let syncableCredentials = try providers.database.modifiedSyncableCredentials(before: date)
+            return syncableCredentials.map { $0.account?.title ?? "" }
         } catch {
             let error = error as? SecureStorageError ?? SecureStorageError.databaseError(cause: error)
             throw error
