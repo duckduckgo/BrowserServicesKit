@@ -52,7 +52,7 @@ public final class CrashCollection {
 
     public func start(
         firePixelHandler: @escaping ([String: String]) -> Void,
-        showPromptIfCanSendCrashReport: @escaping ( @escaping (Bool) -> Void ) -> Void
+        showPromptIfCanSendCrashReport: @escaping ([MXDiagnosticPayload], @escaping (Bool) -> Void ) -> Void
     ) {
         crashHandler.crashDiagnosticsPayloadHandler = { payloads in
             // Send pixels
@@ -69,7 +69,7 @@ public final class CrashCollection {
                 }
 
             // Show prompt to send crash reports
-            showPromptIfCanSendCrashReport { canSend in
+            showPromptIfCanSendCrashReport(payloads) { canSend in
                 print("-- sendCrashReportHandler { shouldSend : \(canSend)")
                 if canSend {
                     Task {
