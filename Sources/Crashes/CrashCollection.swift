@@ -21,21 +21,31 @@ import MetricKit
 
 @available(iOSApplicationExtension, unavailable)
 @available(iOS 13, macOS 12, *)
-public struct CrashCollection {
+public final class CrashCollection {
 
     public enum Platform {
         case iOS, macOS
     }
 
-    // Need a strong reference
-    static let crashHandler = CrashHandler()
-    static let crashSender = CrashReportSender()
+    public let platform: Platform
 
-    public static func start(platform: Platform,
-                             firePixelHandler: @escaping ([String: String]) -> Void,
-                             showPromptIfCanSendCrashReport: @escaping ( @escaping (Bool) -> Void ) -> Void) {
+    public var log: OSLog {
+        getLog()
+    }
+    private let getLog: () -> OSLog
 
-        CrashCollection.collectCrashesAsync { payloads in
+    public init(platform: Platform, log: @escaping @autoclosure () -> OSLog = .disabled) {
+        self.platform = platform
+        self.getLog = log
+        crashHandler = CrashHandler()
+        crashSender = CrashReportSender(platform: platform, log: log())
+    }
+
+    public func start(
+        firePixelHandler: @escaping ([String: String]) -> Void,
+        showPromptIfCanSendCrashReport: @escaping ( @escaping (Bool) -> Void ) -> Void
+    ) {
+        crashHandler.crashDiagnosticsPayloadHandler = { payloads in
             // Send pixels
             payloads
                 .compactMap { $0.crashDiagnostics }
@@ -53,52 +63,21 @@ public struct CrashCollection {
             showPromptIfCanSendCrashReport { canSend in
                 print("-- sendCrashReportHandler { shouldSend : \(canSend)")
                 if canSend {
-                    // send all the payloads
-                    payloads.forEach {
-                        print("-- sending payload")
-                        crashSender.send($0)
+                    Task {
+                        for payload in payloads {
+                            print("-- sending payload")
+                            await self.crashSender.send(payload)
+                        }
                     }
                 }
             }
         }
-    }
-
-    private static func collectCrashesAsync(crashDiagnosticsPayloadHandler: @escaping ([MXDiagnosticPayload]) -> Void) {
-
-        // TODO: Remove, only for testing
-
-//        class MockPayload: MXDiagnosticPayload {
-//            var mockCrashes: [MXCrashDiagnostic]?
-//
-//            init(mockCrashes: [MXCrashDiagnostic]?) {
-//                self.mockCrashes = mockCrashes
-//                super.init()
-//            }
-//
-//            required init?(coder: NSCoder) {
-//                fatalError("init(coder:) has not been implemented")
-//            }
-//
-//            override var crashDiagnostics: [MXCrashDiagnostic]? {
-//                return mockCrashes
-//            }
-//        }
-//
-//
-//        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-//            let fakePayloads = [MockPayload(mockCrashes: nil),
-//                                MockPayload(mockCrashes: []),
-//                                MockPayload(mockCrashes: [MXCrashDiagnostic()]),
-//                                MockPayload(mockCrashes: [MXCrashDiagnostic(), MXCrashDiagnostic()])]
-//
-//            crashHandler.didReceive(fakePayloads)
-//        }
-        ////////////////////////////////////////////
-
-        crashHandler.crashDiagnosticsPayloadHandler = crashDiagnosticsPayloadHandler
 
         MXMetricManager.shared.add(crashHandler)
     }
+
+    let crashHandler: CrashHandler
+    let crashSender: CrashReportSender
 }
 
 
