@@ -172,7 +172,6 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     //
     // - Throws:`NetworkProtectionError`
     //
-    // swiftlint:disable:next cyclomatic_complexity
     private func register(keyPair: KeyPair,
                           selectionMethod: NetworkProtectionServerSelectionMethod) async throws -> (server: NetworkProtectionServer,
                                                                                                     newExpiration: Date?) {
