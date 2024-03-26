@@ -56,12 +56,22 @@ public final class SubscriptionService: APIService {
 
         switch result {
         case .success(let subscriptionResponse):
-            let defaultExpiryDate = Date().addingTimeInterval(subscriptionCache.settings.defaultExpirationInterval)
-            let expiryDate = min(defaultExpiryDate, subscriptionResponse.expiresOrRenewsAt)
-            subscriptionCache.set(subscriptionResponse, expires: expiryDate)
+            updateCache(with: subscriptionResponse)
             return .success(subscriptionResponse)
         case .failure(let error):
             return .failure(.apiError(error))
+        }
+    }
+
+    public static func updateCache(with subscription: Subscription) {
+        let cachedSubscription: Subscription? = subscriptionCache.get()
+
+        if subscription != cachedSubscription {
+            let defaultExpiryDate = Date().addingTimeInterval(subscriptionCache.settings.defaultExpirationInterval)
+            let expiryDate = min(defaultExpiryDate, subscription.expiresOrRenewsAt)
+
+            subscriptionCache.set(subscription, expires: expiryDate)
+            NotificationCenter.default.post(name: .subscriptionDidChange, object: self, userInfo: [UserDefaultsCacheKey.subscription: subscription])
         }
     }
 
