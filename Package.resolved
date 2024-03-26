@@ -23,8 +23,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/content-scope-scripts",
       "state" : {
-        "revision" : "f6241631fc14cc2d0f47950bfdc4d6c30bf90130",
-        "version" : "5.4.0"
+        "branch" : "sabrina/ssl-error-page",
+        "revision" : "990b8c82286b45ca474cf4d4fbce5c65a02014a6"
       }
     },
     {
@@ -113,8 +113,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/wireguard-apple",
       "state" : {
-        "revision" : "2d8172c11478ab11b0f5ad49bdb4f93f4b3d5e0d",
-        "version" : "1.1.1"
+        "revision" : "13fd026384b1af11048451061cc1b21434990668",
+        "version" : "1.1.3"
       }
     }
   ],
