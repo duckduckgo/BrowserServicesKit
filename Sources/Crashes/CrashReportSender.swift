@@ -20,31 +20,29 @@ import Foundation
 import MetricKit
 import Networking
 
-@available(iOSApplicationExtension, unavailable)
-@available(iOS 13, macOS 12, *)
-final class CrashReportSender {
+public final class CrashReportSender {
 
     static let reportServiceUrl = URL(string: "https://d4f4-20-53-134-160.ngrok-free.app/crash.js")!
     //    static let reportServiceUrl = URL(string: "https://duckduckgo.com/crash.js")!
 
-    let platform: CrashCollection.Platform
+    public let platform: CrashCollectionPlatform
 
-    var log: OSLog {
+    public var log: OSLog {
         getLog()
     }
     private let getLog: () -> OSLog
 
-    init(platform: CrashCollection.Platform, log: @escaping @autoclosure () -> OSLog = .disabled) {
+    public init(platform: CrashCollectionPlatform, log: @escaping @autoclosure () -> OSLog = .disabled) {
         self.platform = platform
         getLog = log
     }
 
-    func send(_ payload: MXDiagnosticPayload) async {
+    public func send(_ crashReportData: Data) async {
         var request = URLRequest(url: Self.reportServiceUrl)
         request.setValue("text/plain", forHTTPHeaderField: "Content-Type")
         request.setValue(platform.userAgent, forHTTPHeaderField: "User-Agent")
         request.httpMethod = "POST"
-        request.httpBody = payload.jsonRepresentation()
+        request.httpBody = crashReportData
 
         do {
             _ = try await session.data(for: request)
@@ -54,17 +52,4 @@ final class CrashReportSender {
     }
 
     private let session = URLSession(configuration: .ephemeral)
-}
-
-@available(iOSApplicationExtension, unavailable)
-@available(iOS 13, macOS 12, *)
-extension CrashCollection.Platform {
-    var userAgent: String {
-        switch self {
-        case .iOS:
-            return "ddg_ios"
-        case .macOS:
-            return "ddg_mac"
-        }
-    }
 }

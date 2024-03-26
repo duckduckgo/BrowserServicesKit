@@ -19,22 +19,31 @@
 import Foundation
 import MetricKit
 
+public enum CrashCollectionPlatform {
+    case iOS, macOS
+
+    var userAgent: String {
+        switch self {
+        case .iOS:
+            return "ddg_ios"
+        case .macOS:
+            return "ddg_mac"
+        }
+    }
+}
+
 @available(iOSApplicationExtension, unavailable)
 @available(iOS 13, macOS 12, *)
 public final class CrashCollection {
 
-    public enum Platform {
-        case iOS, macOS
-    }
-
-    public let platform: Platform
+    public let platform: CrashCollectionPlatform
 
     public var log: OSLog {
         getLog()
     }
     private let getLog: () -> OSLog
 
-    public init(platform: Platform, log: @escaping @autoclosure () -> OSLog = .disabled) {
+    public init(platform: CrashCollectionPlatform, log: @escaping @autoclosure () -> OSLog = .disabled) {
         self.platform = platform
         self.getLog = log
         crashHandler = CrashHandler()
@@ -66,7 +75,7 @@ public final class CrashCollection {
                     Task {
                         for payload in payloads {
                             print("-- sending payload")
-                            await self.crashSender.send(payload)
+                            await self.crashSender.send(payload.jsonRepresentation())
                         }
                     }
                 }
