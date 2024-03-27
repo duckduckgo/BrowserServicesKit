@@ -34,6 +34,21 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
         case l1Key = "79963A16-4E3A-464C-B01A-9774B3F695F1"
         case l2Key = "A5711F4D-7AA5-4F0C-9E4F-BE553F1EA299"
 
+        // `keyValue` should be used as Keychain Account names, as app variants (e.g App Store, DMG) should have separate entries
+        var keyValue: String {
+            (Bundle.main.bundleIdentifier ?? "com.duckduckgo") + rawValue
+        }
+
+        static func entryName(from keyValue: String) -> EntryName? {
+            if keyValue.contains(EntryName.generatedPassword.rawValue) {
+                return .generatedPassword
+            } else if keyValue.contains(EntryName.l1Key.rawValue) {
+                return .l1Key
+            } else if keyValue.contains(EntryName.l2Key.rawValue) {
+                return .l2Key
+            }
+            return nil
+        }
     }
 
     var keychainServiceName: String {
@@ -41,15 +56,15 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
     }
 
     var generatedPasswordEntryName: String {
-        return EntryName.generatedPassword.rawValue
+        return EntryName.generatedPassword.keyValue
     }
 
     var l1KeyEntryName: String {
-        return EntryName.l1Key.rawValue
+        return EntryName.l1Key.keyValue
     }
 
     var l2KeyEntryName: String {
-        return EntryName.l2Key.rawValue
+        return EntryName.l2Key.keyValue
     }
 
     func readData(named name: String, serviceName: String = Constants.defaultServiceName) throws -> Data? {
@@ -78,14 +93,34 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
 
         case errSecItemNotFound:
 
-            // Look for an older key and try to migrate
-            if serviceName == Constants.defaultServiceName {
-                return try? migrateV1Key(name: name)
+            // Look for items based on older EntryName attributes
+            if let entryName = EntryName.entryName(from: name) {
+                if let data = try? migrateEntryName(entryName: entryName) {
+                    return data
+                }
+
+                // Look for an older key and try to migrate
+                if serviceName == Constants.defaultServiceName {
+                    return try? migrateV1Key(name: name)
+                }
             }
+
             return nil
 
         default:
             throw SecureStorageError.keystoreError(status: status)
+        }
+    }
+
+    private func migrateEntryName(entryName: EntryName) throws -> Data? {
+        do {
+            guard let legacyData = try readData(named: entryName.rawValue, serviceName: Constants.defaultServiceName) else {
+                return nil
+            }
+            try writeData(legacyData, named: entryName.keyValue, serviceName: Constants.defaultServiceName)
+            return legacyData
+        } catch {
+            return nil
         }
     }
 
