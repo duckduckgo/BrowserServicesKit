@@ -20,7 +20,7 @@ import Foundation
 import MetricKit
 
 public enum CrashCollectionPlatform {
-    case iOS, macOS
+    case iOS, macOS, macOSAppStore
 
     var userAgent: String {
         switch self {
@@ -28,6 +28,8 @@ public enum CrashCollectionPlatform {
             return "ddg_ios"
         case .macOS:
             return "ddg_mac"
+        case .macOSAppStore:
+            return "ddg_mac_appstore"
         }
     }
 }
