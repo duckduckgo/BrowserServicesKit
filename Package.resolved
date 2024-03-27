@@ -23,8 +23,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/content-scope-scripts",
       "state" : {
-        "branch" : "sabrina/ssl-error-page",
-        "revision" : "990b8c82286b45ca474cf4d4fbce5c65a02014a6"
+        "revision" : "2f44185cca2edefbae7557393a61a23c282abbf8",
+        "version" : "5.7.0"
       }
     },
     {
