@@ -18,12 +18,10 @@
 
 import Foundation
 import MetricKit
-import Networking
 
 public final class CrashReportSender {
 
-    static let reportServiceUrl = URL(string: "https://d4f4-20-53-134-160.ngrok-free.app/crash.js")!
-    //    static let reportServiceUrl = URL(string: "https://duckduckgo.com/crash.js")!
+    static let reportServiceUrl = URL(string: "https://duckduckgo.com/crash.js")!
 
     public let platform: CrashCollectionPlatform
 
