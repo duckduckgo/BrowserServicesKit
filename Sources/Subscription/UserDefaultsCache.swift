@@ -48,7 +48,7 @@ public class UserDefaultsCache<ObjectType: Codable> {
 
     private let key: UserDefaultsCacheKey
 
-    public init(subscriptionAppGroup: String? = nil, key: UserDefaultsCacheKey,
+    public init(subscriptionAppGroup: String?, key: UserDefaultsCacheKey,
                 settings: UserDefaultsCacheSettings) {
         self.subscriptionAppGroup = subscriptionAppGroup
         self.key = key
