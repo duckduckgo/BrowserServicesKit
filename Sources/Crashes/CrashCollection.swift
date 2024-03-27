@@ -50,33 +50,26 @@ public final class CrashCollection {
         crashSender = CrashReportSender(platform: platform, log: log())
     }
 
-    public func start(
-        firePixelHandler: @escaping ([String: String]) -> Void,
-        showPromptIfCanSendCrashReport: @escaping ([MXDiagnosticPayload], @escaping (Bool) -> Void ) -> Void
-    ) {
+
+    public func start(_ didFindCrashReports: @escaping ([[String: String]], [MXDiagnosticPayload], @escaping () -> Void) -> Void) {
         crashHandler.crashDiagnosticsPayloadHandler = { payloads in
-            // Send pixels
-            payloads
-                .compactMap { $0.crashDiagnostics }
+            let pixelParameters = payloads
+                .compactMap(\.crashDiagnostics)
                 .flatMap { $0 }
-                .forEach {
-                    firePixelHandler([
-                        "appVersion": "\($0.applicationVersion).\($0.metaData.applicationBuildVersion)",
-                        "code": "\($0.exceptionCode ?? -1)",
-                        "type": "\($0.exceptionType ?? -1)",
-                        "signal": "\($0.signal ?? -1)"
-                    ])
+                .map { diagnostic in
+                    [
+                        "appVersion": "\(diagnostic.applicationVersion).\(diagnostic.metaData.applicationBuildVersion)",
+                        "code": "\(diagnostic.exceptionCode ?? -1)",
+                        "type": "\(diagnostic.exceptionType ?? -1)",
+                        "signal": "\(diagnostic.signal ?? -1)"
+                    ]
                 }
 
-            // Show prompt to send crash reports
-            showPromptIfCanSendCrashReport(payloads) { canSend in
-                print("-- sendCrashReportHandler { shouldSend : \(canSend)")
-                if canSend {
-                    Task {
-                        for payload in payloads {
-                            print("-- sending payload")
-                            await self.crashSender.send(payload.jsonRepresentation())
-                        }
+            didFindCrashReports(pixelParameters, payloads) {
+                Task {
+                    for payload in payloads {
+                        print("-- sending payload")
+                        await self.crashSender.send(payload.jsonRepresentation())
                     }
                 }
             }
