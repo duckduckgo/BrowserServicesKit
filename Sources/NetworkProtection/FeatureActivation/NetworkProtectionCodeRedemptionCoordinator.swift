@@ -24,10 +24,6 @@ public protocol NetworkProtectionCodeRedeeming {
     /// Redeems an invite code with the Network Protection backend and stores the resulting auth token
     func redeem(_ code: String) async throws
 
-    /// Exchanges an access token for an auth token, and stores the resulting auth token
-    @available(*, deprecated, message: "[NetP Subscription] Use subscription access token instead")
-    func exchange(accessToken: String) async throws
-
 }
 
 /// Coordinates calls to the backend and oAuth token storage
@@ -59,7 +55,7 @@ public final class NetworkProtectionCodeRedemptionCoordinator: NetworkProtection
     }
 
     public func redeem(_ code: String) async throws {
-        let result = await networkClient.authenticate(withMethod: .inviteCode(code))
+        let result = await networkClient.redeem(inviteCode: code)
         switch result {
         case .success(let token):
             try tokenStore.store(token)
@@ -72,18 +68,6 @@ public final class NetworkProtectionCodeRedemptionCoordinator: NetworkProtection
                 errorEvents.fire(error.networkProtectionError)
                 throw error
             }
-        }
-    }
-
-    public func exchange(accessToken code: String) async throws {
-        let result = await networkClient.authenticate(withMethod: .subscription(code))
-        switch result {
-        case .success(let token):
-            try tokenStore.store(token)
-
-        case .failure(let error):
-            errorEvents.fire(error.networkProtectionError)
-            throw error
         }
     }
 
