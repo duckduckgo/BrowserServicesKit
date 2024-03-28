@@ -19,11 +19,49 @@
 import Foundation
 import SecureStorage
 
+public final class MockKeychainService: KeychainService {
+
+    public var latestQuery: [String: Any] = [:]
+    public var willFindItem = true
+    public var itemMatchingCallCount = 0
+
+    public init() {}
+
+    public func itemMatching(_ query: [String: Any], _ result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus {
+        itemMatchingCallCount += 1
+        latestQuery = query
+
+        guard willFindItem else { return errSecItemNotFound }
+
+        let originalString = "Hello, Keychain!"
+        let data = originalString.data(using: .utf8)!
+        let encodedString = data.base64EncodedString()
+        let mockResult = encodedString.data(using: .utf8)! as CFData
+
+        if let result = result {
+            result.pointee = mockResult
+        }
+
+        return errSecSuccess
+    }
+
+    public func add(_ query: [String: Any], _ result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus {
+        latestQuery = query
+        return errSecSuccess
+    }
+
+    public func delete(_ query: [String: Any]) -> OSStatus {
+        latestQuery = query
+        return errSecSuccess
+    }
+}
+
 public class MockKeystoreProvider: SecureStorageKeyStoreProvider {
 
     public init() {}
 
     // swiftlint:disable identifier_name
+    public let keychainService: SecureStorage.KeychainService = MockKeychainService()
     public var _l1Key: Data?
     public var _encryptedL2Key: Data?
     public var _generatedPassword: Data?

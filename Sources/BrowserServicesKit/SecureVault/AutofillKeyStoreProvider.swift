@@ -40,16 +40,22 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
         }
 
         static func entryName(from keyValue: String) -> EntryName? {
-            if keyValue.contains(EntryName.generatedPassword.rawValue) {
+            if keyValue == EntryName.generatedPassword.keyValue {
                 return .generatedPassword
-            } else if keyValue.contains(EntryName.l1Key.rawValue) {
+            } else if keyValue == EntryName.l1Key.keyValue {
                 return .l1Key
-            } else if keyValue.contains(EntryName.l2Key.rawValue) {
+            } else if keyValue == EntryName.l2Key.keyValue {
                 return .l2Key
             }
             return nil
         }
     }
+
+    init(keychainService: KeychainService = DefaultKeychainService()) {
+        self.keychainService = keychainService
+    }
+
+    let keychainService: any KeychainService
 
     var keychainServiceName: String {
         return Constants.defaultServiceName
@@ -74,7 +80,7 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
 
         var item: CFTypeRef?
 
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        let status = keychainService.itemMatching(query, &item)
         switch status {
         case errSecSuccess:
             if serviceName == Constants.defaultServiceName {
@@ -92,6 +98,9 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
             }
 
         case errSecItemNotFound:
+
+            // TODO: MIGRATION IS INCORRECT, RETHINK LOGIC
+            // ORDER OF FALLBACKS AND HOW ONE CALLS THE OTHER
 
             // Look for items based on older EntryName attributes
             if let entryName = EntryName.entryName(from: name) {

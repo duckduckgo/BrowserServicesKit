@@ -18,8 +18,33 @@
 
 import Foundation
 
+public protocol KeychainService {
+    func itemMatching(_ query: [String: Any], _ result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus
+    func add(_ attributes: [String: Any], _ result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus
+    func delete(_ query: [String: Any]) -> OSStatus
+}
+
+public extension KeychainService {
+    func itemMatching(_ query: [String: Any], _ result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus {
+        SecItemCopyMatching(query as CFDictionary, result)
+    }
+
+    func add(_ query: [String: Any], _ result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus {
+        SecItemAdd(query as CFDictionary, nil)
+    }
+
+    func delete(_ query: [String: Any]) -> OSStatus {
+        SecItemDelete(query as CFDictionary)
+    }
+}
+
+public struct DefaultKeychainService: KeychainService {
+    public init(){}
+}
+
 public protocol SecureStorageKeyStoreProvider {
 
+    var keychainService: KeychainService { get }
     var generatedPasswordEntryName: String { get }
     var l1KeyEntryName: String { get }
     var l2KeyEntryName: String { get }
@@ -81,7 +106,7 @@ public extension SecureStorageKeyStoreProvider {
 
         var item: CFTypeRef?
 
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        let status = keychainService.itemMatching(query, &item)
         switch status {
         case errSecSuccess:
             guard let itemData = item as? Data,
@@ -111,7 +136,7 @@ public extension SecureStorageKeyStoreProvider {
         query[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlocked
         query[kSecValueData as String] = base64Data
 
-        let status = SecItemAdd(query as CFDictionary, nil)
+        let status = keychainService.add(query, nil)
 
         guard status == errSecSuccess else {
             throw SecureStorageError.keystoreError(status: status)
@@ -123,7 +148,7 @@ public extension SecureStorageKeyStoreProvider {
     private func deleteEntry(named name: String) throws {
         let query = attributesForEntry(named: name, serviceName: keychainServiceName)
 
-        let status = SecItemDelete(query as CFDictionary)
+        let status = keychainService.delete(query)
         switch status {
         case errSecItemNotFound, errSecSuccess: break
         default:
