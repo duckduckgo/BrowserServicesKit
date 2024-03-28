@@ -121,7 +121,8 @@ public struct ServerTrustViewModel: Encodable {
 
     public init?(serverTrust: SecTrust?) {
         guard let serverTrust = serverTrust else {
-            return nil
+            self.secCertificateViewModels = []
+            return
         }
 
         let secTrust = serverTrust
