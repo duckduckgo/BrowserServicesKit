@@ -38,15 +38,12 @@ public enum CrashCollectionPlatform {
 @available(iOS 13, macOS 12, *)
 public final class CrashCollection {
 
-    public let platform: CrashCollectionPlatform
-
     public var log: OSLog {
         getLog()
     }
     private let getLog: () -> OSLog
 
     public init(platform: CrashCollectionPlatform, log: @escaping @autoclosure () -> OSLog = .disabled) {
-        self.platform = platform
         self.getLog = log
         crashHandler = CrashHandler()
         crashSender = CrashReportSender(platform: platform, log: log())
@@ -54,17 +51,24 @@ public final class CrashCollection {
 
 
     public func start(_ didFindCrashReports: @escaping ([[String: String]], [MXDiagnosticPayload], @escaping () -> Void) -> Void) {
+        let first = isFirstCrash
+        isFirstCrash = false
+
         crashHandler.crashDiagnosticsPayloadHandler = { payloads in
             let pixelParameters = payloads
                 .compactMap(\.crashDiagnostics)
                 .flatMap { $0 }
                 .map { diagnostic in
-                    [
+                    var params = [
                         "appVersion": "\(diagnostic.applicationVersion).\(diagnostic.metaData.applicationBuildVersion)",
                         "code": "\(diagnostic.exceptionCode ?? -1)",
                         "type": "\(diagnostic.exceptionType ?? -1)",
                         "signal": "\(diagnostic.signal ?? -1)"
                     ]
+                    if first {
+                        params["first"] = "1"
+                    }
+                    return params
                 }
 
             didFindCrashReports(pixelParameters, payloads) {
@@ -80,8 +84,22 @@ public final class CrashCollection {
         MXMetricManager.shared.add(crashHandler)
     }
 
+    var isFirstCrash: Bool {
+        get {
+            UserDefaults().object(forKey: Const.firstCrashKey) as? Bool ?? true
+        }
+
+        set {
+            UserDefaults().set(newValue, forKey: Const.firstCrashKey)
+        }
+    }
+
     let crashHandler: CrashHandler
     let crashSender: CrashReportSender
+
+    enum Const {
+        static let firstCrashKey = "CrashCollection.first"
+    }
 }
 
 
