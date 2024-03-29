@@ -54,7 +54,7 @@ public class AccountManager: AccountManaging {
         return accessToken != nil
     }
 
-    public convenience init(subscriptionAppGroup: String, accessTokenStorage: SubscriptionTokenStorage) {
+    public convenience init(subscriptionAppGroup: String?, accessTokenStorage: SubscriptionTokenStorage) {
         self.init(accessTokenStorage: accessTokenStorage,
                   entitlementsCache: UserDefaultsCache<[Entitlement]>(subscriptionAppGroup: subscriptionAppGroup,
                                                                       key: UserDefaultsCacheKey.subscriptionEntitlements,
