@@ -99,19 +99,14 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
 
         case errSecItemNotFound:
 
-            // TODO: MIGRATION IS INCORRECT, RETHINK LOGIC
-            // ORDER OF FALLBACKS AND HOW ONE CALLS THE OTHER
-
-            // Look for items based on older EntryName attributes
+            // Look for items based on older EntryName attributes (pre-bundle-specifc Keychain storage)
             if let entryName = EntryName.entryName(from: name) {
-                if let data = try? migrateEntryName(entryName: entryName) {
-                    return data
-                }
+                return try? migrateEntry(entryName: entryName, from: keychainServiceName, to: keychainServiceName)
+            }
 
-                // Look for an older key and try to migrate
-                if serviceName == Constants.defaultServiceName {
-                    return try? migrateV1Key(name: name)
-                }
+            // Look for items in pre-V2 vault
+            if serviceName == Constants.defaultServiceName, let entryName = EntryName(rawValue: name) {
+                return try? migrateEntry(entryName: entryName, from: Constants.legacyServiceName, to: keychainServiceName)
             }
 
             return nil
@@ -120,26 +115,21 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
             throw SecureStorageError.keystoreError(status: status)
         }
     }
-
-    private func migrateEntryName(entryName: EntryName) throws -> Data? {
+    
+    /// Migrates an entry to new bundle-specific Keychain storage
+    /// - Parameters:
+    ///   - entryName: Entry to migrate. It's `rawValue` is used when reading from old storage, and it's `keyValue` is used when writing to storage
+    ///   - fromService: Service name to use when querying Keychain for the entry
+    ///   - toService: Service name to use when writing the value to Keychain
+    /// - Returns: Optional data
+    private func migrateEntry(entryName: EntryName, from fromService: String, to toService: String) throws -> Data? {
         do {
-            guard let legacyData = try readData(named: entryName.rawValue, serviceName: Constants.defaultServiceName) else {
+            guard let key = try readData(named: entryName.rawValue, serviceName: fromService) else {
                 return nil
             }
-            try writeData(legacyData, named: entryName.keyValue, serviceName: Constants.defaultServiceName)
-            return legacyData
-        } catch {
-            return nil
-        }
-    }
 
-    private func migrateV1Key(name: String) throws -> Data? {
-        do {
-            guard let v1Key = try readData(named: name, serviceName: Constants.legacyServiceName) else {
-                return nil
-            }
-            try writeData(v1Key, named: name, serviceName: keychainServiceName)
-            return v1Key
+            try writeData(key, named: entryName.keyValue, serviceName: toService)
+            return key
         } catch {
             return nil
         }

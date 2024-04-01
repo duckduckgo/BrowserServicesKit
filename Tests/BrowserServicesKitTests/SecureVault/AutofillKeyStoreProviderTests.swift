@@ -27,36 +27,52 @@ final class AutofillKeyStoreProviderTests: XCTestCase {
     func testWhenReadData_AndValueIsFound_NoFallbackSearchIsPerformed() throws {
         // Given
         let keychainService = MockKeychainService()
+        keychainService.mode = .bundleSpecificFound
         let sut = AutofillKeyStoreProvider(keychainService: keychainService)
 
         // When
-        let _ = try sut.readData(named: sut.l1KeyEntryName, serviceName: sut.keychainServiceName)
+        _ = try sut.readData(named: sut.l1KeyEntryName, serviceName: sut.keychainServiceName)
 
         // Then
         XCTAssertEqual(keychainService.itemMatchingCallCount, 1)
     }
 
-    func testWhenReadData_AndValueNotFound_FallbackSearchIsPerformed() throws {
+    func testWhenReadData_AndValueNotFound_FallbackChecksArePerformed() throws {
         // Given
         let keychainService = MockKeychainService()
-        keychainService.willFindItem = false
         let sut = AutofillKeyStoreProvider(keychainService: keychainService)
 
         // When
-        let _ = try sut.readData(named: sut.l1KeyEntryName, serviceName: sut.keychainServiceName)
-
-        // TODO: ---
-        // THESE TESTS FAIL AS CURRENTLY MIGRATION IS NOT HANDLED CORRECTLY, SEE AUTOFILLKEYSTOREPROVIDER
+        _ = try sut.readData(named: sut.l1KeyEntryName, serviceName: sut.keychainServiceName)
 
         // Then
-        XCTAssertEqual(keychainService.itemMatchingCallCount, 2)
+        XCTAssertEqual(keychainService.itemMatchingCallCount, 3)
     }
 
-    func testPerformanceExample() throws {
-        // This is an example of a performance test case.
-        self.measure {
-            // Put the code you want to measure the time of here.
-        }
+    func testWhenReadData_AndNonBundleSpecificValueFound_ThenWritesValueToNewStorage() throws {
+        // Given
+        let keychainService = MockKeychainService()
+        keychainService.mode = .nonBundleSpecificFound
+        let sut = AutofillKeyStoreProvider(keychainService: keychainService)
+
+        // When
+        _ = try sut.readData(named: sut.l1KeyEntryName, serviceName: sut.keychainServiceName)
+
+        // Then
+        XCTAssertEqual(keychainService.addCallCount, 1)
+    }
+
+    func testWhenReadData_AndV1ValueFound_ThenWritesValueToNewStorage() throws {
+        // Given
+        let keychainService = MockKeychainService()
+        keychainService.mode = .v1Found
+        let sut = AutofillKeyStoreProvider(keychainService: keychainService)
+
+        // When
+        _ = try sut.readData(named: sut.l1KeyEntryName, serviceName: sut.keychainServiceName)
+
+        // Then
+        XCTAssertEqual(keychainService.addCallCount, 2)
     }
 
 }

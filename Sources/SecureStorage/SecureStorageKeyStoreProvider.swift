@@ -68,6 +68,10 @@ public protocol SecureStorageKeyStoreProvider {
 
 public extension SecureStorageKeyStoreProvider {
 
+    var keychainService: KeychainService {
+        DefaultKeychainService()
+    }
+
     func generatedPassword() throws -> Data? {
         return try readData(named: generatedPasswordEntryName, serviceName: keychainServiceName)
     }

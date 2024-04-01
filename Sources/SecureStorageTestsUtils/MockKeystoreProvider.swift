@@ -21,32 +21,64 @@ import SecureStorage
 
 public final class MockKeychainService: KeychainService {
 
+    public enum Mode {
+        case nothingFound
+        case bundleSpecificFound
+        case nonBundleSpecificFound
+        case v1Found
+    }
+
     public var latestQuery: [String: Any] = [:]
-    public var willFindItem = true
     public var itemMatchingCallCount = 0
+    public var addCallCount = 0
+
+    public var mode: Mode = .nothingFound
 
     public init() {}
 
     public func itemMatching(_ query: [String: Any], _ result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus {
         itemMatchingCallCount += 1
-        latestQuery = query
 
-        guard willFindItem else { return errSecItemNotFound }
+        func setResult() {
+            let originalString = "Hello, Keychain!"
+            let data = originalString.data(using: .utf8)!
+            let encodedString = data.base64EncodedString()
+            let mockResult = encodedString.data(using: .utf8)! as CFData
 
-        let originalString = "Hello, Keychain!"
-        let data = originalString.data(using: .utf8)!
-        let encodedString = data.base64EncodedString()
-        let mockResult = encodedString.data(using: .utf8)! as CFData
-
-        if let result = result {
-            result.pointee = mockResult
+            if let result = result {
+                result.pointee = mockResult
+            }
         }
 
-        return errSecSuccess
+        switch mode {
+        case .nothingFound:
+            return errSecItemNotFound
+        case .bundleSpecificFound:
+            setResult()
+            return errSecSuccess
+        case .nonBundleSpecificFound:
+            if itemMatchingCallCount == 2 {
+                setResult()
+                return errSecSuccess
+            } else {
+                return errSecItemNotFound
+            }
+        case .v1Found:
+            if itemMatchingCallCount == 3 {
+                setResult()
+                return errSecSuccess
+            } else {
+                return errSecItemNotFound
+            }
+        }
+
+
+
     }
 
     public func add(_ query: [String: Any], _ result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus {
         latestQuery = query
+        addCallCount += 1
         return errSecSuccess
     }
 
