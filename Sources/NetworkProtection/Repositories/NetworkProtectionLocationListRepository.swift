@@ -21,9 +21,11 @@ import Common
 
 public protocol NetworkProtectionLocationListRepository {
     func fetchLocationList() async throws -> [NetworkProtectionLocation]
+    func fetchLocationListIgnoringCache() async throws -> [NetworkProtectionLocation]
 }
 
 final public class NetworkProtectionLocationListCompositeRepository: NetworkProtectionLocationListRepository {
+
     @MainActor private static var locationList: [NetworkProtectionLocation] = []
     @MainActor private static var cacheTimestamp = Date()
     private static let cacheValidity = TimeInterval(60) // Refreshes at most once per minute
@@ -59,6 +61,11 @@ final public class NetworkProtectionLocationListCompositeRepository: NetworkProt
         guard !canUseCache else {
             return Self.locationList
         }
+        return try await fetchLocationListIgnoringCache()
+    }
+
+    @MainActor
+    public func fetchLocationListIgnoringCache() async throws -> [NetworkProtectionLocation] {
         do {
             guard let authToken = try tokenStore.fetchToken() else {
                 throw NetworkProtectionError.noAuthTokenFound
