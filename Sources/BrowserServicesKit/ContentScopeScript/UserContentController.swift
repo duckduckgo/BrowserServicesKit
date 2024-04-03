@@ -116,13 +116,31 @@ final public class UserContentController: WKUserContentController {
     }
 
     @MainActor
+    private var installedContentRuleListsIdentifiers = Set<String>()
+    @MainActor
+    private func add(_ contentRuleList: WKContentRuleList, withIdentifier identifier: String) {
+        guard !installedContentRuleListsIdentifiers.contains(identifier) else { 
+            print("\(self) -> trying to add: \(identifier) but it exists!!! \(contentRuleList)")
+            return }
+        installedContentRuleListsIdentifiers.insert(identifier)
+        add(contentRuleList)
+        print("\(self) -> added: \(identifier)---\(contentRuleList), state: \(installedContentRuleListsIdentifiers)")
+    }
+
+    @MainActor
+    private func remove(_ contentRuleList: WKContentRuleList, withIdentifier identifier: String) {
+        installedContentRuleListsIdentifiers.remove(identifier)
+        remove(contentRuleList)
+        print("\(self) -> removed: \(identifier), state: \(installedContentRuleListsIdentifiers)")
+    }
+
+    @MainActor
     private func installGlobalContentRuleLists(_ contentRuleLists: [String: WKContentRuleList]) {
         guard self.privacyConfigurationManager.privacyConfig.isEnabled(featureKey: .contentBlocking) else {
             removeAllContentRuleLists()
             return
         }
-
-        contentRuleLists.values.forEach(self.add)
+        contentRuleLists.forEach { self.add($0.value, withIdentifier: $0.key) }
     }
 
     public struct ContentRulesNotFoundError: Error {}
@@ -131,7 +149,7 @@ final public class UserContentController: WKUserContentController {
         guard let ruleList = self.contentBlockingAssets?.globalRuleLists[identifier] else {
             throw ContentRulesNotFoundError()
         }
-        self.add(ruleList)
+        add(ruleList, withIdentifier: identifier)
     }
 
     public struct ContentRulesNotEnabledError: Error {}
@@ -140,13 +158,13 @@ final public class UserContentController: WKUserContentController {
         guard let ruleList = self.contentBlockingAssets?.globalRuleLists[identifier] else {
             throw ContentRulesNotEnabledError()
         }
-        self.remove(ruleList)
+        remove(ruleList, withIdentifier: identifier)
     }
 
     @MainActor
     public func installLocalContentRuleList(_ ruleList: WKContentRuleList, identifier: String) {
         localRuleLists[identifier] = ruleList
-        self.add(ruleList)
+        add(ruleList, withIdentifier: identifier)
     }
 
     @MainActor
@@ -154,12 +172,14 @@ final public class UserContentController: WKUserContentController {
         guard let ruleList = localRuleLists.removeValue(forKey: identifier) else {
             return
         }
-        self.remove(ruleList)
+        remove(ruleList, withIdentifier: identifier)
     }
 
     @MainActor
     public override func removeAllContentRuleLists() {
         localRuleLists = [:]
+        installedContentRuleListsIdentifiers.removeAll()
+        print("\(self) -> removed all!, state: \(installedContentRuleListsIdentifiers)")
         super.removeAllContentRuleLists()
     }
 
