@@ -59,7 +59,7 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
     public struct Rules {
         public let name: String
         public let rulesList: WKContentRuleList
-        public let trackerData: TrackerData
+        public var trackerData: TrackerData
         public let encodedTrackerData: String
         public let etag: String
         public let identifier: ContentBlockerRulesIdentifier
@@ -317,8 +317,7 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
         }
     }
 
-    static func extractSurrogates(from tds: TrackerData) -> TrackerData {
-
+    public static func extractSurrogates(from tds: TrackerData) -> TrackerData {
         let trackers = tds.trackers.filter { pair in
             return pair.value.rules?.first(where: { rule in
                 rule.surrogate != nil
@@ -345,7 +344,6 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
     }
 
     private func compilationCompleted() {
-
         var changes = [String: ContentBlockerRulesIdentifier.Difference]()
 
         lock.lock()

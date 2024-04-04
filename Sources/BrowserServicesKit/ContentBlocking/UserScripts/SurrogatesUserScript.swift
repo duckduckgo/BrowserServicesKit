@@ -25,6 +25,7 @@ import Common
 public protocol SurrogatesUserScriptDelegate: NSObjectProtocol {
 
     func surrogatesUserScriptShouldProcessTrackers(_ script: SurrogatesUserScript) -> Bool
+    func surrogatesUserScriptShouldProcessCTLTrackers(_ script: SurrogatesUserScript) -> Bool
     func surrogatesUserScript(_ script: SurrogatesUserScript,
                               detectedTracker tracker: DetectedRequest,
                               withSurrogate host: String)
@@ -83,7 +84,7 @@ public class DefaultSurrogatesUserScriptConfig: SurrogatesUserScriptConfig {
     }
 }
 
-open class SurrogatesUserScript: NSObject, UserScript {
+open class SurrogatesUserScript: NSObject, UserScript, WKScriptMessageHandlerWithReply {
     struct TrackerDetectedKey {
         static let protectionId = "protectionId"
         static let blocked = "blocked"
@@ -111,25 +112,47 @@ open class SurrogatesUserScript: NSObject, UserScript {
 
     public var requiresRunInPageContentWorld: Bool = true
 
-    public var messageNames: [String] = [ "trackerDetectedMessage" ]
+    public var messageNames: [String] = [
+        "trackerDetectedMessage",
+        "isCTLEnabled"
+    ]
 
     public weak var delegate: SurrogatesUserScriptDelegate?
 
-    public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+    public func userContentController(_ userContentController: WKUserContentController,
+                                      didReceive message: WKScriptMessage,
+                                      replyHandler: @escaping (Any?, String?) -> Void) {
+
         guard let delegate = delegate else { return }
-        guard delegate.surrogatesUserScriptShouldProcessTrackers(self) else { return }
 
-        guard let dict = message.body as? [String: Any] else { return }
-        guard let blocked = dict[TrackerDetectedKey.blocked] as? Bool else { return }
-        guard let urlString = dict[TrackerDetectedKey.url] as? String else { return }
-        guard let pageUrlStr = dict[TrackerDetectedKey.pageUrl] as? String else { return }
+        if message.name == "isCTLEnabled" {
+            let ctlEnabled = delegate.surrogatesUserScriptShouldProcessCTLTrackers(self)
+            replyHandler(ctlEnabled, nil)
+            return
+        } else if message.name == "trackerDetectedMessage"	{
+            guard delegate.surrogatesUserScriptShouldProcessTrackers(self) else { return }
 
-        let tracker = trackerFromUrl(urlString.trimmingWhitespace(), pageUrlString: pageUrlStr, blocked)
+            guard let dict = message.body as? [String: Any] else { return }
+            guard let blocked = dict[TrackerDetectedKey.blocked] as? Bool else { return }
+            guard let urlString = dict[TrackerDetectedKey.url] as? String else { return }
+            guard let pageUrlStr = dict[TrackerDetectedKey.pageUrl] as? String else { return }
 
-        if let isSurrogate = dict[TrackerDetectedKey.isSurrogate] as? Bool, isSurrogate, let host = URL(string: urlString)?.host {
-            delegate.surrogatesUserScript(self, detectedTracker: tracker, withSurrogate: host)
+            let tracker = trackerFromUrl(urlString.trimmingWhitespace(), pageUrlString: pageUrlStr, blocked)
+
+            if let isSurrogate = dict[TrackerDetectedKey.isSurrogate] as? Bool, isSurrogate, let host = URL(string: urlString)?.host {
+                delegate.surrogatesUserScript(self, detectedTracker: tracker, withSurrogate: host)
+            }
+            replyHandler(nil, nil)
+            return
         }
+
+        replyHandler(nil, "Unknown message")
     }
+
+    public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        assertionFailure("Should never be here!")
+    }
+
     private func trackerFromUrl(_ urlString: String, pageUrlString: String, _ blocked: Bool) -> DetectedRequest {
         let currentTrackerData = configuration.trackerData
         let knownTracker = currentTrackerData?.findTracker(forUrl: urlString)
