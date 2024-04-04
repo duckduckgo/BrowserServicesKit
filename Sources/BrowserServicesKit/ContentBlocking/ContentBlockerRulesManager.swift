@@ -96,7 +96,7 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
     private let cache: ContentBlockerRulesCaching?
     public let exceptionsSource: ContentBlockerRulesExceptionsSource
 
-    public struct UpdateEvent {
+    public struct UpdateEvent: CustomDebugStringConvertible {
         public let rules: [ContentBlockerRulesManager.Rules]
         public let changes: [String: ContentBlockerRulesIdentifier.Difference]
         public let completionTokens: [ContentBlockerRulesManager.CompletionToken]
@@ -107,6 +107,14 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
             self.rules = rules
             self.changes = changes
             self.completionTokens = completionTokens
+        }
+
+        public var debugDescription: String {
+            """
+              rules: \(rules.map { "\($0.name):\($0.identifier) – \($0.rulesList) (\($0.etag))" }.joined(separator: ", "))
+              changes: \(changes)
+              completionTokens: \(completionTokens)
+            """
         }
     }
     private let updatesSubject = PassthroughSubject<UpdateEvent, Never>()
@@ -193,6 +201,7 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
     @discardableResult
     public func scheduleCompilation() -> CompletionToken {
         let token = UUID().uuidString
+        os_log("Scheduling compilation with %{public}s", log: log, type: .default, token)
         workQueue.async {
             let shouldStartCompilation = self.updateCompilationState(token: token)
             if shouldStartCompilation {
@@ -228,12 +237,17 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
      Returns true if rules were found, false otherwise.
      */
     private func lookupCompiledRules() -> Bool {
+        os_log("Lookup compiled rules", log: log, type: .debug)
         prepareSourceManagers()
         let initialCompilationTask = LookupRulesTask(sourceManagers: Array(sourceManagers.values))
         let mutex = DispatchSemaphore(value: 0)
 
-        Task {
-            try? await initialCompilationTask.lookupCachedRulesLists()
+        Task { [log] in
+            do {
+                try await initialCompilationTask.lookupCachedRulesLists()
+            } catch {
+                os_log("❌ Lookup failed: %{public}s", log: log, type: .debug, error.localizedDescription)
+            }
             mutex.signal()
         }
         // We want to confine Compilation work to WorkQueue, so we wait to come back from async Task
@@ -241,6 +255,7 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
 
         if let result = initialCompilationTask.result {
             let rules = result.map(Rules.init(compilationResult:))
+            os_log("🟩 Found %{public}d rules", log: log, type: .debug, rules.count)
             applyRules(rules)
             return true
         }
@@ -252,6 +267,8 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
      Returns true if rules were found, false otherwise.
      */
     private func fetchLastCompiledRules(with lastCompiledRules: [LastCompiledRules]) {
+        os_log("Fetch last compiled rules: %{public}d", log: log, type: .debug, lastCompiledRules.count)
+
         let initialCompilationTask = LastCompiledRulesLookupTask(sourceRules: rulesSource.contentBlockerRulesLists,
                                                                  lastCompiledRules: lastCompiledRules)
         let mutex = DispatchSemaphore(value: 0)
@@ -294,6 +311,7 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
     }
 
     private func startCompilationProcess() {
+        os_log("Starting compilataion process", log: log, type: .debug)
         prepareSourceManagers()
 
         // Prepare compilation tasks based on the sources

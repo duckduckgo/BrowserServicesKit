@@ -30,7 +30,7 @@ public class ContentBlockerRulesIdentifier: Equatable, Codable {
         return name + tdsEtag + tempListId + allowListId + unprotectedSitesHash
     }
 
-    public struct Difference: OptionSet {
+    public struct Difference: OptionSet, CustomDebugStringConvertible {
         public let rawValue: Int
 
         public init(rawValue: Int) {
@@ -43,6 +43,29 @@ public class ContentBlockerRulesIdentifier: Equatable, Codable {
         public static let unprotectedSites = Difference(rawValue: 1 << 3)
 
         public static let all: Difference = [.tdsEtag, .tempListId, .allowListId, .unprotectedSites]
+
+        public var debugDescription: String {
+            if self == .all {
+                return "all"
+            }
+            var result = "["
+            for i in 0...Int(log2(Double(max(self.rawValue, Self.all.rawValue)))) where self.contains(Self(rawValue: 1 << i)) {
+                if result.count > 1 {
+                    result += ", "
+                }
+                result += {
+                    switch Self(rawValue: 1 << i) {
+                    case .tdsEtag: ".tdsEtag"
+                    case .tempListId: ".tempListId"
+                    case .allowListId: ".allowListId"
+                    case .unprotectedSites: ".unprotectedSites"
+                    default: "1<<\(i)"
+                    }
+                }()
+            }
+            result += "]"
+            return result
+        }
     }
 
     private class func normalize(identifier: String?) -> String {
