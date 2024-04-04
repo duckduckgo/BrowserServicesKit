@@ -181,7 +181,7 @@ public class AccountManager: AccountManaging {
     public func migrateAccessTokenToNewStore() throws {
         var errorToThrow: Error?
         do {
-            if let newAccessToken = try accessTokenStorage.getAccessToken() {
+            if try accessTokenStorage.getAccessToken() != nil {
                 errorToThrow = MigrationError.noMigrationNeeded
             } else if let oldAccessToken = try storage.getAccessToken() {
                 try accessTokenStorage.store(accessToken: oldAccessToken)

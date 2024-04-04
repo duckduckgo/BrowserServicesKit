@@ -109,7 +109,6 @@ final class SyncQueue {
                 try dataProvider.prepareForFirstSync()
                 try dataProvider.registerFeature(withState: setupState)
             } catch {
-                // swiftlint:disable:next line_length
                 os_log(.debug, log: self.log, "Error when preparing %{public}s for first sync: %{public}s", dataProvider.feature.name, error.localizedDescription)
                 dataProvider.handleSyncError(error)
                 throw error

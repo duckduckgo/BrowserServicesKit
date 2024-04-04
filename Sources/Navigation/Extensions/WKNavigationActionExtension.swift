@@ -19,7 +19,6 @@
 import Common
 import WebKit
 
-// swiftlint:disable line_length
 extension WKNavigationAction: WebViewNavigationAction {
 
     /// Safe Optional `sourceFrame: WKFrameInfo` getter:
@@ -168,17 +167,17 @@ extension WKNavigationAction: WebViewNavigationAction {
 #endif
 
     public var isSameDocumentNavigation: Bool {
-        guard let currentURL = targetFrame?.safeRequest?.url?.absoluteString,
-              let newURL = self.request.url?.absoluteString,
+        guard let currentURL = targetFrame?.safeRequest?.url,
+              let newURL = self.request.url,
               !currentURL.isEmpty,
               !newURL.isEmpty
         else { return false }
 
         switch navigationType {
         case .linkActivated, .other:
-            return self.isRedirect != true && newURL.hashedSuffix != nil && currentURL.droppingHashedSuffix() == newURL.droppingHashedSuffix()
+            return self.isRedirect != true && newURL.absoluteString.hashedSuffix != nil && currentURL.isSameDocument(newURL)
         case .backForward:
-            return (newURL.hashedSuffix != nil || currentURL.hashedSuffix != nil) && currentURL.droppingHashedSuffix() == newURL.droppingHashedSuffix()
+            return (newURL.absoluteString.hashedSuffix != nil || currentURL.absoluteString.hashedSuffix != nil) && currentURL.isSameDocument(newURL)
         case .reload, .formSubmitted, .formResubmitted:
             return false
         @unknown default:
@@ -197,4 +196,3 @@ extension WKNavigationActionPolicy {
     }()
 
 }
-// swiftlint:enable line_length
