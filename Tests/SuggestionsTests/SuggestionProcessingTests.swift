@@ -35,6 +35,25 @@ final class SuggestionProcessingTests: XCTestCase {
         XCTAssertEqual(result!.topHits.first!.title, "DuckDuckGo")
     }
 
+    func testWhenDuckDuckGoSuggestionContainsURLThenDoNotShowAsSearchTerm() throws {
+        // GIVEN
+        let processing = SuggestionProcessing(urlFactory: URL.makeURL(fromSuggestionPhrase:))
+        let facebookURLSearchTermSuggestion = Suggestion(key: Suggestion.phraseKey, value: "www.acer.com/ac/en/US/content/home")
+
+        // WHEN
+        let result = processing.result(
+            for: "ace",
+            from: [],
+            bookmarks: [],
+            apiResult: .aceAPIResult
+        )
+
+        // THEN
+        let duckduckGoSuggestions = try XCTUnwrap(result?.duckduckgoSuggestions)
+        XCTAssertEqual(duckduckGoSuggestions.count, 4)
+        XCTAssertFalse(duckduckGoSuggestions.contains(facebookURLSearchTermSuggestion))
+    }
+
 }
 
 extension HistoryEntryMock {
@@ -55,9 +74,12 @@ extension HistoryEntryMock {
 extension BookmarkMock {
 
     static var someBookmarks: [Bookmark] {
-        [ BookmarkMock(url: "http://duckduckgo.com", title: "DuckDuckGo", isFavorite: true),
-          BookmarkMock(url: "spreadprivacy.com", title: "Test 2", isFavorite: true),
-          BookmarkMock(url: "wikipedia.org", title: "Wikipedia", isFavorite: false) ]
+        [
+            BookmarkMock(url: "http://duckduckgo.com", title: "DuckDuckGo", isFavorite: true),
+            BookmarkMock(url: "spreadprivacy.com", title: "Test 2", isFavorite: true),
+            BookmarkMock(url: "wikipedia.org", title: "Wikipedia", isFavorite: false),
+            BookmarkMock(url: "www.facebook.com", title: "Facebook", isFavorite: true),
+        ]
     }
 
 }
@@ -73,5 +95,17 @@ extension APIResult {
         ]
         return result
     }
+
+    static let aceAPIResult: APIResult = {
+        var result = APIResult()
+        result.items = [
+            [ "phrase": "acecqa" ],
+            [ "phrase": "acer" ],
+            [ "phrase": "www.acer.com/ac/en/US/content/home" ],
+            [ "phrase": "ace hotel sydney" ],
+            [ "phrase": "acer drivers" ],
+        ]
+        return result
+    }()
 
 }

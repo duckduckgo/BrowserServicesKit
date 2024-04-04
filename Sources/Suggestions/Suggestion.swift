@@ -48,6 +48,15 @@ public enum Suggestion: Equatable {
         }
     }
 
+    var phrase: String? {
+        switch self {
+        case .phrase(let phrase):
+            return phrase
+        case .website, .bookmark, .historyEntry, .unknown:
+            return nil
+        }
+    }
+
     public var allowedInTopHits: Bool {
         switch self {
         case .website:

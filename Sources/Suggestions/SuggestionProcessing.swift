@@ -61,6 +61,9 @@ final class SuggestionProcessing {
         navigationalSuggestions = merge(navigationalSuggestions,
                                                    maximum: maximumOfNavigationalSuggestions)
 
+        // Filter out navigational link from initial suggestions.
+        let filteredDuckDuckGoSuggestions = remove(navigationalSuggestions: navigationalSuggestions, fromDuckDuckGoSuggestions: duckDuckGoSuggestions)
+
         // Split the Top Hits and the History and Bookmarks section
         let topHits = topHits(from: navigationalSuggestions)
         let historyAndBookmarkSuggestions = Array(navigationalSuggestions.dropFirst(topHits.count).filter { suggestion in
@@ -73,7 +76,7 @@ final class SuggestionProcessing {
         })
 
         return makeResult(topHits: topHits,
-                          duckduckgoSuggestions: duckDuckGoSuggestions,
+                          duckduckgoSuggestions: filteredDuckDuckGoSuggestions,
                           historyAndBookmarks: historyAndBookmarkSuggestions)
     }
 
@@ -271,6 +274,19 @@ final class SuggestionProcessing {
         return SuggestionResult(topHits: topHits,
                                 duckduckgoSuggestions: duckduckgoSuggestions,
                                 historyAndBookmarks: historyAndBookmarks)
+    }
+
+    // MARK: - Filter out search term URL that are Navigational suggestion
+
+    private func remove(navigationalSuggestions: [Suggestion], fromDuckDuckGoSuggestions suggestions: [Suggestion]) -> [Suggestion] {
+        let navigationalSuggestionsURLs = Set(navigationalSuggestions.map(\.url?.naked))
+        return suggestions.filter { suggestion in
+            guard let phrase = suggestion.phrase else { return false }
+            // If the URL can't be built return true as this means that the `phrase` is a search term.
+            guard let suggestionURL = urlFactory(phrase) else { return true }
+            // Compare the URL and return false if it's a match
+            return !navigationalSuggestionsURLs.contains(suggestionURL.naked)
+        }
     }
 
 }
