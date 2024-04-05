@@ -59,7 +59,7 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
     public struct Rules {
         public let name: String
         public let rulesList: WKContentRuleList
-        public var trackerData: TrackerData
+        public let trackerData: TrackerData
         public let encodedTrackerData: String
         public let etag: String
         public let identifier: ContentBlockerRulesIdentifier
