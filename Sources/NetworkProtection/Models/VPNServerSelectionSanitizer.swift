@@ -69,19 +69,17 @@ public final class VPNServerSelectionSanitizer: VPNServerSelectionSanitizing {
             location.cities.map { city in  NetworkProtectionSelectedLocation(country: location.country, city: city.name) }
         }
 
-        let availableCountrySelections = availableLocations.map { NetworkProtectionSelectedLocation(country: $0.country) }
-
-        let availableSelections = availableCitySelections + availableCountrySelections
-
-        guard availableSelections.contains(selection) else {
-            let selectedCountry = NetworkProtectionSelectedLocation(country: selection.country)
-            if availableCitySelections.contains(selectedCountry) {
-                return selectedCountry
-            } else {
-                throw VPNServerSelectionError.countryNotFound
-            }
+        if availableCitySelections.contains(selection) {
+            return selection
         }
-        return selection
+
+        let selectedCountry = NetworkProtectionSelectedLocation(country: selection.country)
+        let availableCountrySelections = availableLocations.map { NetworkProtectionSelectedLocation(country: $0.country) }
+        guard availableCountrySelections.contains(selectedCountry) else {
+            throw VPNServerSelectionError.countryNotFound
+        }
+
+        return selectedCountry
     }
 
     private var currentServerSelectionMethod: NetworkProtectionServerSelectionMethod {
