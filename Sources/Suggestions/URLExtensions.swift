@@ -1,6 +1,5 @@
 //
 //  URLExtensions.swift
-//  DuckDuckGo
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -20,7 +19,7 @@
 import Foundation
 
 public extension URL {
-    
+
     /// Creates a URL from a suggestion phrase.
     /// - Parameter phrase: The suggestion phrase to create the URL from.
     /// - Returns: A URL object if the suggestion phrase can be converted to a valid URL with a supported navigational scheme; otherwise, nil.
@@ -34,5 +33,5 @@ public extension URL {
 
         return url
     }
-    
+
 }
