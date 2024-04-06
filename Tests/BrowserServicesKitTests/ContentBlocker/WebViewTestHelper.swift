@@ -73,6 +73,7 @@ final class MockRulesUserScriptDelegate: NSObject, ContentBlockerRulesUserScript
 final class MockSurrogatesUserScriptDelegate: NSObject, SurrogatesUserScriptDelegate {
 
     var shouldProcessTrackers = true
+    var shouldProcessCTLTrackers = true
 
     var onSurrogateDetected: ((DetectedRequest, String) -> Void)?
     var detectedSurrogates = Set<DetectedRequest>()
@@ -83,6 +84,10 @@ final class MockSurrogatesUserScriptDelegate: NSObject, SurrogatesUserScriptDele
 
     func surrogatesUserScriptShouldProcessTrackers(_ script: SurrogatesUserScript) -> Bool {
         return shouldProcessTrackers
+    }
+
+    func surrogatesUserScriptShouldProcessCTLTrackers(_ script: SurrogatesUserScript) -> Bool {
+        return shouldProcessCTLTrackers
     }
 
     func surrogatesUserScript(_ script: SurrogatesUserScript,

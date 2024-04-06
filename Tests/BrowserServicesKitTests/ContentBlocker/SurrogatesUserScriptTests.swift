@@ -167,7 +167,7 @@ class SurrogatesUserScriptsTests: XCTestCase {
             userScript.delegate = self.userScriptDelegateMock
 
             for messageName in userScript.messageNames {
-                configuration.userContentController.add(userScript, name: messageName)
+                configuration.userContentController.addScriptMessageHandler(userScript, contentWorld: .page, name: messageName)
             }
 
             configuration.userContentController.addUserScript(WKUserScript(source: userScript.source,
