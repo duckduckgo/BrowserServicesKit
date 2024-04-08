@@ -49,17 +49,11 @@ public final class MockNetworkProtectionClient: NetworkProtectionClient {
         self.stubRegister = stubRegister
     }
 
-    public func authenticate(
-        withMethod method: NetworkProtection.NetworkProtectionAuthenticationMethod
+    public func redeem(
+        inviteCode: String
     ) async -> Result<String, NetworkProtection.NetworkProtectionClientError> {
-        switch method {
-        case .inviteCode(let inviteCode):
-            spyRedeemInviteCode = inviteCode
-            return stubRedeem
-        case .subscription(let accessToken):
-            spyRedeemAccessToken = accessToken
-            return stubRedeem
-        }
+        spyRedeemInviteCode = inviteCode
+        return stubRedeem
     }
 
     public var spyGetServersAuthToken: String?
