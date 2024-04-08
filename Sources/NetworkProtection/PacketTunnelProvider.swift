@@ -281,12 +281,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         bandwidthAnalyzer.record(rxBytes: rx, txBytes: tx)
     }
 
-    // MARK: - Most recent handshake
-
-    public func mostRecentHandshake() async -> TimeInterval? {
-        try? await adapter.getMostRecentHandshake()
-    }
-
     // MARK: - Connection tester
 
     private var isConnectionTesterEnabled: Bool = true
@@ -312,7 +306,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }()
 
-    public lazy var tunnelFailureMonitor = NetworkProtectionTunnelFailureMonitor(tunnelProvider: self)
+    private lazy var tunnelFailureMonitor = NetworkProtectionTunnelFailureMonitor(handshakeReporter: adapter)
     public lazy var latencyMonitor = NetworkProtectionLatencyMonitor()
     public lazy var entitlementMonitor = NetworkProtectionEntitlementMonitor()
 
