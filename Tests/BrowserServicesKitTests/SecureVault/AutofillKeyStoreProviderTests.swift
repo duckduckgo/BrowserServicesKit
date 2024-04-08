@@ -1,6 +1,5 @@
 //
 //  AutofillKeyStoreProviderTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -74,5 +73,4 @@ final class AutofillKeyStoreProviderTests: XCTestCase {
         // Then
         XCTAssertEqual(keychainService.addCallCount, 2)
     }
-
 }

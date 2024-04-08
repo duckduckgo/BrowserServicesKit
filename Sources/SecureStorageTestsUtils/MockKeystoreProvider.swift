@@ -71,9 +71,6 @@ public final class MockKeychainService: KeychainService {
                 return errSecItemNotFound
             }
         }
-
-
-
     }
 
     public func add(_ query: [String: Any], _ result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus {

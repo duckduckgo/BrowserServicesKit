@@ -115,7 +115,7 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
             throw SecureStorageError.keystoreError(status: status)
         }
     }
-    
+
     /// Migrates an entry to new bundle-specific Keychain storage
     /// - Parameters:
     ///   - entryName: Entry to migrate. It's `rawValue` is used when reading from old storage, and it's `keyValue` is used when writing to storage
