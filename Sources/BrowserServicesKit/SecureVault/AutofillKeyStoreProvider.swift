@@ -76,7 +76,7 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
     func readData(named name: String, serviceName: String = Constants.defaultServiceName) throws -> Data? {
         try readOrMigrate(named: name, serviceName: serviceName)
     }
-    
+
     /// Attempts to read data using default query, and if not found attempts to find data using older queries and migrate it using latest storage attributes
     /// - Parameters:
     ///   - name: Query account name
@@ -101,7 +101,7 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
             return nil
         }
     }
-    
+
     /// Attempts to read data using default query, and if not found, returns nil
     /// - Parameters:
     ///   - name: Query account name
