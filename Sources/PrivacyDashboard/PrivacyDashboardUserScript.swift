@@ -279,10 +279,9 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
                              {"id": "lastSentDay"},
                              {"id": "didOpenReportInfo"},
                              {"id": "toggleReportCounter"},
-                             {"id": "vpnOn"},
                              {"id": "jsPerformance"},
                              {"id": "openerContext"},
-                             {"id": "userRefeshCount"},
+                             {"id": "userRefreshCount"},
                          ]
                      }
                      window.onGetToggleReportOptionsResponse(json);

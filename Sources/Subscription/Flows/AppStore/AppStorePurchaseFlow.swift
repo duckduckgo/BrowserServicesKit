@@ -38,8 +38,8 @@ public final class AppStorePurchaseFlow {
 
         let products = PurchaseManager.shared.availableProducts
 
-        let monthly = products.first(where: { $0.id.contains("1month") })
-        let yearly = products.first(where: { $0.id.contains("1year") })
+        let monthly = products.first(where: { $0.subscription?.subscriptionPeriod.unit == .month && $0.subscription?.subscriptionPeriod.value == 1 })
+        let yearly = products.first(where: { $0.subscription?.subscriptionPeriod.unit == .year && $0.subscription?.subscriptionPeriod.value == 1 })
 
         guard let monthly, let yearly else {
             os_log(.error, log: .subscription, "[AppStorePurchaseFlow] Error: noProductsFound")
