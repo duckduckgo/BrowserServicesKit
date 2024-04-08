@@ -28,7 +28,8 @@ public final class MockKeychainService: KeychainService {
         case v1Found
     }
 
-    public var latestQuery: [String: Any] = [:]
+    public var latestAddQuery: [String: Any] = [:]
+    public var latestItemMatchingQuery: [String: Any] = [:]
     public var itemMatchingCallCount = 0
     public var addCallCount = 0
 
@@ -38,6 +39,7 @@ public final class MockKeychainService: KeychainService {
 
     public func itemMatching(_ query: [String: Any], _ result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus {
         itemMatchingCallCount += 1
+        latestItemMatchingQuery = query
 
         func setResult() {
             let originalString = "Hello, Keychain!"
@@ -74,13 +76,12 @@ public final class MockKeychainService: KeychainService {
     }
 
     public func add(_ query: [String: Any], _ result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus {
-        latestQuery = query
+        latestAddQuery = query
         addCallCount += 1
         return errSecSuccess
     }
 
     public func delete(_ query: [String: Any]) -> OSStatus {
-        latestQuery = query
         return errSecSuccess
     }
 }

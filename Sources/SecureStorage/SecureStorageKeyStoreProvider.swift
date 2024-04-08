@@ -18,6 +18,7 @@
 
 import Foundation
 
+/// Conforming types provide methods which interact with the system Keychain. Mainly used to enable testing.
 public protocol KeychainService {
     func itemMatching(_ query: [String: Any], _ result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus
     func add(_ attributes: [String: Any], _ result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus
@@ -39,7 +40,7 @@ public extension KeychainService {
 }
 
 public struct DefaultKeychainService: KeychainService {
-    public init(){}
+    public init() {}
 }
 
 public protocol SecureStorageKeyStoreProvider {

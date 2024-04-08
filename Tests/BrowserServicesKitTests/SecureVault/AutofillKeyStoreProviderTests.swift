@@ -23,54 +23,120 @@ import SecureStorageTestsUtils
 
 final class AutofillKeyStoreProviderTests: XCTestCase {
 
+    private enum Constants {
+        static let legacyServiceName = "DuckDuckGo Secure Vault"
+        static let defaultServiceName = "DuckDuckGo Secure Vault v2"
+    }
+
+    private enum EntryName: String, CaseIterable {
+
+        case generatedPassword = "32A8C8DF-04AF-4C9D-A4C7-83096737A9C0"
+        case l1Key = "79963A16-4E3A-464C-B01A-9774B3F695F1"
+        case l2Key = "A5711F4D-7AA5-4F0C-9E4F-BE553F1EA299"
+
+        var keyValue: String {
+            (Bundle.main.bundleIdentifier ?? "com.duckduckgo") + rawValue
+        }
+    }
+
     func testWhenReadData_AndValueIsFound_NoFallbackSearchIsPerformed() throws {
-        // Given
-        let keychainService = MockKeychainService()
-        keychainService.mode = .bundleSpecificFound
-        let sut = AutofillKeyStoreProvider(keychainService: keychainService)
 
-        // When
-        _ = try sut.readData(named: sut.l1KeyEntryName, serviceName: sut.keychainServiceName)
+        try EntryName.allCases.forEach { entry in
+            // Given
+            let keychainService = MockKeychainService()
+            keychainService.mode = .bundleSpecificFound
+            let sut = AutofillKeyStoreProvider(keychainService: keychainService)
 
-        // Then
-        XCTAssertEqual(keychainService.itemMatchingCallCount, 1)
+            // When
+            _ = try sut.readData(named: entry.keyValue, serviceName: sut.keychainServiceName)
+
+            // Then
+            XCTAssertEqual(keychainService.itemMatchingCallCount, 1)
+        }
     }
 
-    func testWhenReadData_AndValueNotFound_FallbackChecksArePerformed() throws {
-        // Given
-        let keychainService = MockKeychainService()
-        let sut = AutofillKeyStoreProvider(keychainService: keychainService)
+    func testWhenReadData_AndValueNotFound_AllFallbackSearchesArePerformed() throws {
 
-        // When
-        _ = try sut.readData(named: sut.l1KeyEntryName, serviceName: sut.keychainServiceName)
+        try EntryName.allCases.forEach { entry in
+            // Given
+            let keychainService = MockKeychainService()
+            let sut = AutofillKeyStoreProvider(keychainService: keychainService)
 
-        // Then
-        XCTAssertEqual(keychainService.itemMatchingCallCount, 3)
+            // When
+            _ = try sut.readData(named: entry.keyValue, serviceName: sut.keychainServiceName)
+
+            // Then
+            XCTAssertEqual(keychainService.itemMatchingCallCount, 3)
+        }
     }
 
-    func testWhenReadData_AndNonBundleSpecificValueFound_ThenWritesValueToNewStorage() throws {
-        // Given
-        let keychainService = MockKeychainService()
-        keychainService.mode = .nonBundleSpecificFound
-        let sut = AutofillKeyStoreProvider(keychainService: keychainService)
+    func testWhenReadData_AndValueNotFound_NonBundleSpecificSearchIsPerformed() throws {
 
-        // When
-        _ = try sut.readData(named: sut.l1KeyEntryName, serviceName: sut.keychainServiceName)
+        try EntryName.allCases.forEach { entry in
+            // Given
+            let keychainService = MockKeychainService()
+            keychainService.mode = .nonBundleSpecificFound
+            let sut = AutofillKeyStoreProvider(keychainService: keychainService)
 
-        // Then
-        XCTAssertEqual(keychainService.addCallCount, 1)
+            // When
+            _ = try sut.readData(named: entry.keyValue, serviceName: sut.keychainServiceName)
+
+            // Then
+            XCTAssertEqual(keychainService.itemMatchingCallCount, 2)
+            XCTAssertEqual(keychainService.latestItemMatchingQuery[kSecAttrAccount as String] as! String, entry.rawValue)
+            XCTAssertEqual(keychainService.latestItemMatchingQuery[kSecAttrService as String] as! String, Constants.defaultServiceName)
+        }
     }
 
-    func testWhenReadData_AndV1ValueFound_ThenWritesValueToNewStorage() throws {
-        // Given
-        let keychainService = MockKeychainService()
-        keychainService.mode = .v1Found
-        let sut = AutofillKeyStoreProvider(keychainService: keychainService)
+    func testWhenReadData_AndValueNotFound_V1SearchIsPerformed() throws {
 
-        // When
-        _ = try sut.readData(named: sut.l1KeyEntryName, serviceName: sut.keychainServiceName)
+        try EntryName.allCases.forEach { entry in
+            // Given
+            let keychainService = MockKeychainService()
+            keychainService.mode = .v1Found
+            let sut = AutofillKeyStoreProvider(keychainService: keychainService)
 
-        // Then
-        XCTAssertEqual(keychainService.addCallCount, 2)
+            // When
+            _ = try sut.readData(named: entry.keyValue, serviceName: sut.keychainServiceName)
+
+            // Then
+            XCTAssertEqual(keychainService.itemMatchingCallCount, 3)
+            XCTAssertEqual(keychainService.latestItemMatchingQuery[kSecAttrAccount as String] as! String, entry.rawValue)
+            XCTAssertEqual(keychainService.latestItemMatchingQuery[kSecAttrService as String] as! String, Constants.legacyServiceName)
+        }
+    }
+
+    func testWhenReadData_AndNonBundleSpecificValueFound_ThenWritesValueToNewStorageWithCorrectAttributes() throws {
+
+        try EntryName.allCases.forEach { entry in
+            // Given
+            let keychainService = MockKeychainService()
+            keychainService.mode = .nonBundleSpecificFound
+            let sut = AutofillKeyStoreProvider(keychainService: keychainService)
+
+            // When
+            _ = try sut.readData(named: entry.keyValue, serviceName: sut.keychainServiceName)
+
+            // Then
+            XCTAssertEqual(keychainService.addCallCount, 1)
+            XCTAssertEqual(keychainService.latestAddQuery[kSecAttrService as String] as! String, Constants.defaultServiceName)
+        }
+    }
+
+    func testWhenReadData_AndV1ValueFound_ThenWritesValueToNewStorageWithCorrectAttributes() throws {
+
+        try EntryName.allCases.forEach { entry in
+            // Given
+            let keychainService = MockKeychainService()
+            keychainService.mode = .v1Found
+            let sut = AutofillKeyStoreProvider(keychainService: keychainService)
+
+            // When
+            _ = try sut.readData(named: entry.keyValue, serviceName: sut.keychainServiceName)
+
+            // Then
+            XCTAssertEqual(keychainService.addCallCount, 1)
+            XCTAssertEqual(keychainService.latestAddQuery[kSecAttrService as String] as! String, Constants.defaultServiceName)
+        }
     }
 }
