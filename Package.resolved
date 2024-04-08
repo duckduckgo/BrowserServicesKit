@@ -50,8 +50,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/privacy-dashboard",
       "state" : {
-        "branch" : "03-29-support_invalid_certs",
-        "revision" : "0468f69831e6068a474c35977efd66e6b5b527da"
+        "revision" : "14b13d0c3db38f471ce4ba1ecb502ee1986c84d7",
+        "version" : "3.5.0"
       }
     },
     {
