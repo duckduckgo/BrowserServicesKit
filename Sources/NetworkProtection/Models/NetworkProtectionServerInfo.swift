@@ -89,8 +89,12 @@ extension NetworkProtectionServerInfo {
 extension NetworkProtectionServerInfo.ServerAttributes {
 
     public var serverLocation: String {
-        let stateOrCountry = isUSServerLocation ? state : country
-        return "\(city), \(stateOrCountry.localizedUppercase)"
+        if isUSServerLocation {
+            return "\(city), \(state.localizedUppercase)"
+        }
+
+        let fullCountryName = Locale.current.localizedString(forRegionCode: country)
+        return "\(city), \(fullCountryName ?? country.capitalized)"
     }
 
     private var isUSServerLocation: Bool {
