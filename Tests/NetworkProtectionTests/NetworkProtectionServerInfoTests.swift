@@ -31,7 +31,7 @@ final class NetworkProtectionServerInfoTests: XCTestCase {
                                                      port: 42,
                                                      attributes: .init(city: "Amsterdam", country: "nl", state: "na", timezoneOffset: 3600))
 
-        XCTAssertEqual(serverInfo.serverLocation, "Amsterdam, NL")
+        XCTAssertEqual(serverInfo.serverLocation, "Amsterdam, Netherlands")
     }
 
     func testWhenGettingServerLocation_AndAttributesExist_isUS_ThenServerLocationIsCityState() {
