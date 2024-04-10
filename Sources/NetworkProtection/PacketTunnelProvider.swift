@@ -888,8 +888,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             simulateTunnelMemoryOveruse(completionHandler: completionHandler)
         case .simulateConnectionInterruption:
             simulateConnectionInterruption(completionHandler: completionHandler)
-        case .getConnectionThroughput:
-            getConnectionThroughput(completionHandler: completionHandler)
+        case .getDataVolume:
+            getDataVolume(completionHandler: completionHandler)
         }
     }
 
@@ -1150,7 +1150,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
-    private func getConnectionThroughput(completionHandler: ((Data?) -> Void)? = nil) {
+    private func getDataVolume(completionHandler: ((Data?) -> Void)? = nil) {
         Task { @MainActor in
             guard let (received, sent) = try? await adapter.getBytesTransmitted() else {
                 completionHandler?(nil)
