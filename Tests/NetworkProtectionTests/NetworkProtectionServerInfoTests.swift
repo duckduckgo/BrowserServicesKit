@@ -43,7 +43,7 @@ final class NetworkProtectionServerInfoTests: XCTestCase {
                                                      port: 42,
                                                      attributes: .init(city: "New York", country: "us", state: "ny", timezoneOffset: 3600))
 
-        XCTAssertEqual(serverInfo.serverLocation, "New York, NY")
+        XCTAssertEqual(serverInfo.serverLocation, "New York, United States")
     }
 
 }
