@@ -543,9 +543,9 @@ extension SecureVaultModels.CreditCard: SecureVaultAutofillEquatable {
 // MARK: - WebsiteAccount Array extensions
 extension Array where Element == SecureVaultModels.WebsiteAccount {
 
-    public func sortedForDomain(_ targetDomain: String, tld: TLD, removeDuplicates: Bool = false) -> [SecureVaultModels.WebsiteAccount] {
+    public func sortedForDomain(_ targetDomain: String, tld: TLD, removeDuplicates: Bool = false, urlMatcher: AutofillDomainNameUrlMatcher = AutofillDomainNameUrlMatcher()) -> [SecureVaultModels.WebsiteAccount] {
 
-        guard let targetTLD = extractTLD(domain: targetDomain, tld: tld) else {
+        guard let targetTLD = extractTLD(domain: targetDomain, tld: tld, urlMatcher: urlMatcher) else {
             return []
         }
 
@@ -569,10 +569,19 @@ extension Array where Element == SecureVaultModels.WebsiteAccount {
         return (removeDuplicates ? result.removeDuplicates() : result).filter { $0.domain?.isEmpty == false }
     }
 
-    private func extractTLD(domain: String, tld: TLD) -> String? {
+    private func extractTLD(domain: String, tld: TLD, urlMatcher: AutofillDomainNameUrlMatcher) -> String? {
+//        guard let urlComponents = removePort(domain: domain, urlMatcher: urlMatcher) else { return nil }
         var urlComponents = URLComponents()
-        urlComponents.host = domain
+        urlComponents.host = removePort(domain: domain, urlMatcher: urlMatcher)
         return urlComponents.eTLDplus1(tld: tld)
+    }
+
+    private func removePort(domain: String, urlMatcher: AutofillDomainNameUrlMatcher) -> String? {
+        let urlComponents = urlMatcher.normalizeSchemeForAutofill(domain)
+        if let port = urlComponents?.port {
+            return domain.dropping(suffix: ":\(port)")
+        }
+        return domain
     }
 
     // Last Used > Last Updated > Alphabetical Domain > Alphabetical Username > Empty Usernames
