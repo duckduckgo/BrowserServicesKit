@@ -36,6 +36,8 @@ let package = Package(
         .library(name: "Subscription", targets: ["Subscription"]),
         .library(name: "History", targets: ["History"]),
         .library(name: "Suggestions", targets: ["Suggestions"]),
+        .library(name: "PixelKit", targets: ["PixelKit"]),
+        .library(name: "PixelKitTestingUtilities", targets: ["PixelKitTestingUtilities"]),
     ],
     dependencies: [
         .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "11.0.1"),
@@ -117,6 +119,23 @@ let package = Package(
             name: "Suggestions",
             dependencies: [
                 "Common"
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
+            ],
+            plugins: [swiftlintPlugin]
+        ),
+        .target(
+            name: "PixelKit",
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
+            ],
+            plugins: [swiftlintPlugin]
+        ),
+        .target(
+            name: "PixelKitTestingUtilities",
+            dependencies: [
+                "PixelKit"
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
@@ -528,6 +547,13 @@ let package = Package(
             name: "SubscriptionTests",
             dependencies: [
                 "Subscription",
+            ],
+            plugins: [swiftlintPlugin]
+        ),
+        .testTarget(
+            name: "PixelKitTests",
+            dependencies: [
+                "PixelKitTestingUtilities",
             ],
             plugins: [swiftlintPlugin]
         ),
