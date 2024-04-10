@@ -571,16 +571,20 @@ extension Array where Element == SecureVaultModels.WebsiteAccount {
 
     private func extractTLD(domain: String, tld: TLD, urlMatcher: AutofillDomainNameUrlMatcher) -> String? {
         var urlComponents = URLComponents()
-        urlComponents.host = removePort(domain: domain, urlMatcher: urlMatcher)
-        return urlComponents.eTLDplus1(tld: tld)
+        // We need to remove the port for the eTLDplus1 construction, and then re-add it
+        let (domain, port) = removePort(domain: domain, urlMatcher: urlMatcher)
+        urlComponents.host = domain
+        guard let tld = urlComponents.eTLDplus1(tld: tld) else { return nil }
+        guard let port = port else { return tld }
+        return  "\(tld):\(port)"
     }
 
-    private func removePort(domain: String, urlMatcher: AutofillDomainNameUrlMatcher) -> String? {
+    private func removePort(domain: String, urlMatcher: AutofillDomainNameUrlMatcher) -> (domain: String?, port: String?) {
         let urlComponents = urlMatcher.normalizeSchemeForAutofill(domain)
         if let port = urlComponents?.port {
-            return domain.dropping(suffix: ":\(port)")
+            return (domain.dropping(suffix: ":\(port)"), "\(port)")
         }
-        return domain
+        return (domain, nil)
     }
 
     // Last Used > Last Updated > Alphabetical Domain > Alphabetical Username > Empty Usernames
