@@ -570,7 +570,6 @@ extension Array where Element == SecureVaultModels.WebsiteAccount {
     }
 
     private func extractTLD(domain: String, tld: TLD, urlMatcher: AutofillDomainNameUrlMatcher) -> String? {
-//        guard let urlComponents = removePort(domain: domain, urlMatcher: urlMatcher) else { return nil }
         var urlComponents = URLComponents()
         urlComponents.host = removePort(domain: domain, urlMatcher: urlMatcher)
         return urlComponents.eTLDplus1(tld: tld)
