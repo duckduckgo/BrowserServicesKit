@@ -752,15 +752,22 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
         } else {
             do {
                 if withPartialMatches {
-                    guard let currentUrlComponents = AutofillDomainNameUrlMatcher().normalizeSchemeForAutofill(domain),
-                          let tld = tld,
-                          let eTLDplus1 = currentUrlComponents.eTLDplus1(tld: tld)
-                    else {
-                        completion([], nil)
-                        return
+                    if let currentUrlComponents = AutofillDomainNameUrlMatcher().normalizeSchemeForAutofill(domain),
+                       let host = currentUrlComponents.host,
+                       host == .localhost {
+                        let accounts = try vault.accountsWithPartialMatchesFor(eTLDplus1: domain)
+                        completion(accounts, nil)
+                    } else {
+                        guard let currentUrlComponents = AutofillDomainNameUrlMatcher().normalizeSchemeForAutofill(domain),
+                              let tld = tld,
+                              let eTLDplus1 = currentUrlComponents.eTLDplus1(tld: tld)
+                        else {
+                            completion([], nil)
+                            return
+                        }
+                        let accounts = try vault.accountsWithPartialMatchesFor(eTLDplus1: eTLDplus1)
+                        completion(accounts, nil)
                     }
-                    let accounts = try vault.accountsWithPartialMatchesFor(eTLDplus1: eTLDplus1)
-                    completion(accounts, nil)
                 } else {
                     let accounts = try vault.accountsFor(domain: domain)
                     completion(accounts, nil)

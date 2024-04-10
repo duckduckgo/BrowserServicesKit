@@ -543,9 +543,9 @@ extension SecureVaultModels.CreditCard: SecureVaultAutofillEquatable {
 // MARK: - WebsiteAccount Array extensions
 extension Array where Element == SecureVaultModels.WebsiteAccount {
 
-    public func sortedForDomain(_ targetDomain: String, tld: TLD, removeDuplicates: Bool = false) -> [SecureVaultModels.WebsiteAccount] {
+    public func sortedForDomain(_ targetDomain: String, tld: TLD, removeDuplicates: Bool = false, autofillDomainNameUrlMatcher: AutofillDomainNameUrlMatcher = AutofillDomainNameUrlMatcher()) -> [SecureVaultModels.WebsiteAccount] {
 
-        guard let targetTLD = extractTLD(domain: targetDomain, tld: tld) else {
+        guard let targetTLD = extractTLD(domain: targetDomain, tld: tld, autofillDomainNameUrlMatcher: autofillDomainNameUrlMatcher) else {
             return []
         }
 
@@ -569,12 +569,24 @@ extension Array where Element == SecureVaultModels.WebsiteAccount {
         return (removeDuplicates ? result.removeDuplicates() : result).filter { $0.domain?.isEmpty == false }
     }
 
-    private func extractTLD(domain: String, tld: TLD) -> String? {
+    private func extractTLD(domain: String, tld: TLD, autofillDomainNameUrlMatcher: AutofillDomainNameUrlMatcher) -> String? {
+        let cleanedDomain = handlePort(domain: domain, autofillDomainNameUrlMatcher: autofillDomainNameUrlMatcher)
         var urlComponents = URLComponents()
-        urlComponents.host = domain
+        urlComponents.host = cleanedDomain
+        if domain.hasPrefix(.localhost) {
+            return domain
+        }
         return urlComponents.eTLDplus1(tld: tld)
     }
 
+    private func handlePort(domain: String, autofillDomainNameUrlMatcher: AutofillDomainNameUrlMatcher) -> String {
+        let currentUrlComponents = autofillDomainNameUrlMatcher.normalizeSchemeForAutofill(domain)
+        if let port = currentUrlComponents?.port {
+            return domain.dropping(suffix: ":\(port)")
+        }
+        return domain
+    }
+    
     // Last Used > Last Updated > Alphabetical Domain > Alphabetical Username > Empty Usernames
     private func compareAccount(_ account1: SecureVaultModels.WebsiteAccount, _ account2: SecureVaultModels.WebsiteAccount) -> Bool {
         let username1 = account1.username ?? ""
