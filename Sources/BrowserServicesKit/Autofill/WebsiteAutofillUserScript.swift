@@ -138,8 +138,6 @@ public class WebsiteAutofillUserScript: AutofillUserScript {
                                                       configType: selectedDetailsData.configType)
         }
 
-        
-
         if let json = try? JSONEncoder().encode(response),
            let jsonString = String(data: json, encoding: .utf8) {
             replyHandler(jsonString)
