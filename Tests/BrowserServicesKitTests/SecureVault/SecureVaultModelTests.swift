@@ -268,6 +268,15 @@ class SecureVaultModelTests: XCTestCase {
         testAccount("pheobe", "amazon.com:1234", "4488", 10 * days, 2 * days)
     ]
 
+    lazy var localHostWithPorts = [
+        testAccount("ringo", "subdomain.localhost:1234", "5678", 0),
+        testAccount("mary", "localhost:1234", "5678", 0),
+        testAccount("daniel", "localhost:1234", "23456", 0),
+        testAccount("lisa", "localhost:1234", "5678", 50  * days),
+        testAccount("", "subdomain.localhost:1234", "4567", 85 * days),
+        testAccount("jane", "subdomain.localhost:1234", "7890", 0),
+    ]
+
     func testExactMatchAccountsAreShownFirst() {
         let sortedAccounts = sortTestAccounts.sortedForDomain("www.amazon.com", tld: tld)
 
@@ -481,6 +490,36 @@ class SecureVaultModelTests: XCTestCase {
             testAccount("quinn", "www.amazon.com:1234", "2345", 0),
             testAccount("lisa", "books.amazon.com:1234", "5678", 50 * days),
             testAccount("mary", "garden.amazon.com:1234", "12345", 50 * days),
+        ]
+
+        for i in 0...controlAccounts.count - 1 {
+            XCTAssertEqual(sortedAccounts[i], controlAccounts[i])
+        }
+    }
+
+    func testReturnsLocalhostWithPortSorted() {
+        let sortedAccounts  = localHostWithPorts.sortedForDomain("localhost:1234", tld: tld, removeDuplicates: false)
+        let controlAccounts  = [
+            testAccount("lisa", "localhost:1234", "5678", 50  * days),
+            testAccount("daniel", "localhost:1234", "23456", 0),
+            testAccount("mary", "localhost:1234", "5678", 0),
+            testAccount("jane", "subdomain.localhost:1234", "7890", 0),
+            testAccount("ringo", "subdomain.localhost:1234", "5678", 0),
+            testAccount("", "subdomain.localhost:1234", "4567", 85 * days)
+        ]
+
+        for i in 0...controlAccounts.count - 1 {
+            XCTAssertEqual(sortedAccounts[i], controlAccounts[i])
+        }
+    }
+
+    func testReturnsLocalhostWithPortSortedAndDuplicatedRemoved() {
+        let sortedAccounts  = localHostWithPorts.sortedForDomain("localhost:1234", tld: tld, removeDuplicates: true)
+        let controlAccounts  = [
+            testAccount("lisa", "localhost:1234", "5678", 50  * days),
+            testAccount("daniel", "localhost:1234", "23456", 0),
+            testAccount("jane", "subdomain.localhost:1234", "7890", 0),
+            testAccount("", "subdomain.localhost:1234", "4567", 85 * days)
         ]
 
         for i in 0...controlAccounts.count - 1 {
