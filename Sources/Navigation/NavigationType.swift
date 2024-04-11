@@ -56,7 +56,11 @@ public enum NavigationType: Equatable {
         switch navigationAction.navigationType {
         case .linkActivated where navigationAction.isSameDocumentNavigation,
              .other where navigationAction.isSameDocumentNavigation:
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
             self = .sameDocumentNavigation(.anchorNavigation)
+#else
+            self = .sameDocumentNavigation
+#endif
 
         case .linkActivated:
 #if os(macOS)
