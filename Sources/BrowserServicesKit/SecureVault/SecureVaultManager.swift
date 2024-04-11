@@ -77,12 +77,6 @@ public protocol SecureVaultManagerDelegate: AnyObject, SecureVaultErrorReporting
 
 }
 
-extension SecureVaultManagerDelegate {
-    func secureVaultManagerIsEnabledStatus(_ manager: SecureVaultManager, forType type: AutofillType? = nil) -> Bool {
-        return secureVaultManagerIsEnabledStatus(manager, forType: type)
-    }
-}
-
 public protocol PasswordManager: AnyObject {
 
     var isEnabled: Bool { get }
@@ -156,7 +150,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                                                                  SecureVaultModels.CredentialsProvider) -> Void) {
 
         do {
-            guard let delegate = delegate, delegate.secureVaultManagerIsEnabledStatus(self) else {
+            guard let delegate = delegate, delegate.secureVaultManagerIsEnabledStatus(self, forType: nil) else {
                 completionHandler([], [], [], credentialsProvider)
                 return
             }
