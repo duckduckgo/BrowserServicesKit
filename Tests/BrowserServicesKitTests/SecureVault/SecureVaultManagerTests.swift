@@ -231,7 +231,52 @@ class SecureVaultManagerTests: XCTestCase {
 
         // When
         manager.autofillUserScript(mockAutofillUserScript, didRequestCredentialsForDomain: domain, subType: subType, trigger: triggerType) { credentials, _, action in
-            
+
+            // Then
+            XCTAssertEqual(action, .fill)
+            XCTAssertEqual(credentials!.password, "password".data(using: .utf8)!)
+            XCTAssertEqual(credentials!.account.username, "dax")
+            expect.fulfill()
+        }
+        waitForExpectations(timeout: 0.1)
+    }
+
+    func testWhenRequestingCredentialsWithLocalhost_ThenFillActionIsReturned() throws {
+
+        // Given
+        class SecureVaultDelegate: MockSecureVaultManagerDelegate {
+            override func secureVaultManager(_ manager: SecureVaultManager,
+                                             promptUserToAutofillCredentialsForDomain domain: String,
+                                             withAccounts accounts: [SecureVaultModels.WebsiteAccount],
+                                             withTrigger trigger: AutofillUserScript.GetTriggerType,
+                                             onAccountSelected account: @escaping (SecureVaultModels.WebsiteAccount?) -> Void,
+                                             completionHandler: @escaping (SecureVaultModels.WebsiteAccount?) -> Void) {
+                XCTAssertEqual(accounts.count, 1, "One account should have been returned")
+                completionHandler(accounts[0])
+            }
+        }
+
+        self.manager = SecureVaultManager(vault: self.testVault, includePartialAccountMatches: true, tld: TLD())
+        self.secureVaultManagerDelegate = SecureVaultDelegate()
+        self.manager.delegate = self.secureVaultManagerDelegate
+
+        let triggerType = AutofillUserScript.GetTriggerType.userInitiated
+
+        let domain = "\(String.localhost):1234"
+        let username = "dax"
+        let account = SecureVaultModels.WebsiteAccount(id: "1", title: nil, username: username, domain: domain, created: Date(), lastUpdated: Date())
+        self.mockDatabaseProvider._accounts = [account]
+
+        // credential for the account
+        let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8)!)
+        try self.testVault.storeWebsiteCredentials(credentials)
+
+        let subType = AutofillUserScript.GetAutofillDataSubType.username
+        let expect = expectation(description: #function)
+
+        // When
+        manager.autofillUserScript(mockAutofillUserScript, didRequestCredentialsForDomain: domain, subType: subType, trigger: triggerType) { credentials, _, action in
+
             // Then
             XCTAssertEqual(action, .fill)
             XCTAssertEqual(credentials!.password, "password".data(using: .utf8)!)
