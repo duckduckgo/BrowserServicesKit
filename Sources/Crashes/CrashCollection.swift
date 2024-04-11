@@ -49,7 +49,6 @@ public final class CrashCollection {
         crashSender = CrashReportSender(platform: platform, log: log())
     }
 
-
     public func start(_ didFindCrashReports: @escaping ([[String: String]], [MXDiagnosticPayload], @escaping () -> Void) -> Void) {
         let first = isFirstCrash
         isFirstCrash = false
@@ -101,5 +100,3 @@ public final class CrashCollection {
         static let firstCrashKey = "CrashCollection.first"
     }
 }
-
-
