@@ -49,7 +49,10 @@ public final class CrashCollection {
         crashSender = CrashReportSender(platform: platform, log: log())
     }
 
-    public func start(_ didFindCrashReports: @escaping ([[String: String]], [MXDiagnosticPayload], @escaping () -> Void) -> Void) {
+    public func start(_ didFindCrashReports: @escaping (_ pixelParameters: [[String: String]],
+                                                        _ payloads: [MXDiagnosticPayload],
+                                                        _ uploadReports: @escaping () -> Void) -> Void
+    ) {
         let first = isFirstCrash
         isFirstCrash = false
 
@@ -73,7 +76,6 @@ public final class CrashCollection {
             didFindCrashReports(pixelParameters, payloads) {
                 Task {
                     for payload in payloads {
-                        print("-- sending payload")
                         await self.crashSender.send(payload.jsonRepresentation())
                     }
                 }
