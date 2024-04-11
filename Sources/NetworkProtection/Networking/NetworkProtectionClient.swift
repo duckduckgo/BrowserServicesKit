@@ -18,13 +18,8 @@
 
 import Foundation
 
-public enum NetworkProtectionAuthenticationMethod {
-    case inviteCode(String)
-    case subscription(String)
-}
-
 protocol NetworkProtectionClient {
-    func authenticate(withMethod method: NetworkProtectionAuthenticationMethod) async -> Result<String, NetworkProtectionClientError>
+    func redeem(inviteCode: String) async -> Result<String, NetworkProtectionClientError>
     func getLocations(authToken: String) async -> Result<[NetworkProtectionLocation], NetworkProtectionClientError>
     func getServers(authToken: String) async -> Result<[NetworkProtectionServer], NetworkProtectionClientError>
     func register(authToken: String,
@@ -159,10 +154,6 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
 
     var redeemURL: URL {
         endpointURL.appending("/redeem")
-    }
-
-    var authorizeURL: URL {
-        endpointURL.appending("/authorize")
     }
 
     private let decoder: JSONDecoder = {
@@ -338,15 +329,6 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
         }
     }
 
-    public func authenticate(withMethod method: NetworkProtectionAuthenticationMethod) async -> Result<String, NetworkProtectionClientError> {
-        switch method {
-        case .inviteCode(let code):
-            return await redeem(inviteCode: code)
-        case .subscription(let accessToken):
-            return await exchange(accessToken: accessToken)
-        }
-    }
-
     public enum AuthTokenError: CustomNSError {
         case noResponse
         case unexpectedStatus(status: Int)
@@ -362,14 +344,9 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
         }
     }
 
-    private func redeem(inviteCode: String) async -> Result<String, NetworkProtectionClientError> {
+    public func redeem(inviteCode: String) async -> Result<String, NetworkProtectionClientError> {
         let requestBody = RedeemInviteCodeRequestBody(code: inviteCode)
         return await retrieveAuthToken(requestBody: requestBody, endpoint: redeemURL)
-    }
-
-    private func exchange(accessToken: String) async -> Result<String, NetworkProtectionClientError> {
-        let requestBody = ExchangeAccessTokenRequestBody(token: accessToken)
-        return await retrieveAuthToken(requestBody: requestBody, endpoint: authorizeURL)
     }
 
     private func retrieveAuthToken<RequestBody: Encodable>(

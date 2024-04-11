@@ -85,7 +85,7 @@ public final class PurchaseManager: ObservableObject {
 
             return .success(())
         } catch {
-            os_log(.error, log: .subscription, "[PurchaseManager] Error: %{public}s", String(reflecting: error))
+            os_log(.error, log: .subscription, "[PurchaseManager] Error: %{public}s (%{public}s)", String(reflecting: error), error.localizedDescription)
             return .failure(error)
         }
     }
