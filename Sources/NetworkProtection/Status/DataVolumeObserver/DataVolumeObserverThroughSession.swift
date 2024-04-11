@@ -41,7 +41,6 @@ public class DataVolumeObserverThroughSession: DataVolumeObserver {
     // MARK: - Timer
 
     private static let interval: TimeInterval = .seconds(1)
-    private var timer: Timer?
 
     // MARK: - Logging
 
@@ -65,10 +64,11 @@ public class DataVolumeObserverThroughSession: DataVolumeObserver {
     public func start() {
         updateDataVolume()
 
-        timer = Timer.scheduledTimer(withTimeInterval: Self.interval, repeats: true) { [weak self] _ in
-            guard let self else { return }
-            self.updateDataVolume()
-        }
+        Timer.publish(every: Self.interval, on: .main, in: .common)
+            .autoconnect()
+            .sink { [weak self] _ in
+                self?.updateDataVolume()
+            }.store(in: &cancellables)
 
         platformNotificationCenter.publisher(for: platformDidWakeNotification).sink { [weak self] notification in
             self?.handleDidWake(notification)
