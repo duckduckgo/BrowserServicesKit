@@ -25,7 +25,7 @@ public extension URL {
         case .production:
             URL(string: "https://duckduckgo.com/subscriptions")!
         case .staging:
-            URL(string: "https://duckduckgo.com/subscriptions?environment=staging")!
+            URL(string: "https://abrown.duckduckgo.com/subscriptions?environment=staging")!
         }
     }
 
