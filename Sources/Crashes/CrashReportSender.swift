@@ -45,7 +45,7 @@ public final class CrashReportSender {
         do {
             _ = try await session.data(for: request)
         } catch {
-            assertionFailure("CrashReportSender: Failed to send the crash reprot")
+            assertionFailure("CrashReportSender: Failed to send the crash report")
         }
     }
 
