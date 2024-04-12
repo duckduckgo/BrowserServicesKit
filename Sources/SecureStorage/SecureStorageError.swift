@@ -44,6 +44,7 @@ public enum SecureStorageError: Error {
     case secError(status: Int32)
     case generalCryptoError
     case encodingFailed
+    case keychainMigrationFailed
 }
 
 extension SecureStorageError: CustomNSError {
@@ -66,6 +67,7 @@ extension SecureStorageError: CustomNSError {
         case .secError: return 11
         case .generalCryptoError: return 12
         case .encodingFailed: return 13
+        case .keychainMigrationFailed: return 14
         }
     }
 
@@ -89,7 +91,7 @@ extension SecureStorageError: CustomNSError {
             errorUserInfo["NSUnderlyingError"] = NSError(domain: "keystoreError", code: Int(code), userInfo: nil)
         case .secError(status: let code):
             errorUserInfo["NSUnderlyingError"] = NSError(domain: "secError", code: Int(code), userInfo: nil)
-        case .authRequired, .invalidPassword, .noL1Key, .noL2Key, .duplicateRecord, .generalCryptoError, .encodingFailed:
+        case .authRequired, .invalidPassword, .noL1Key, .noL2Key, .duplicateRecord, .generalCryptoError, .encodingFailed, .keychainMigrationFailed:
             errorUserInfo["NSUnderlyingError"] = NSError(domain: "\(self)", code: 0, userInfo: nil)
         }
 

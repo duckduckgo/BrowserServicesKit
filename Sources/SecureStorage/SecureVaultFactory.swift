@@ -19,14 +19,14 @@
 import Foundation
 
 public protocol SecureVaultErrorReporting: AnyObject {
-    func secureVaultInitFailed(_ error: SecureStorageError)
+    func secureVaultError(_ error: SecureStorageError)
 }
 
 /// Can make a SecureVault instance with given specification.  May return previously created instance if specification is unchanged.
 public class SecureVaultFactory<Vault: SecureVault> {
 
     public typealias CryptoProviderInitialization = () -> SecureStorageCryptoProvider
-    public typealias KeyStoreProviderInitialization = () -> SecureStorageKeyStoreProvider
+    public typealias KeyStoreProviderInitialization = (_ errorReporter: SecureVaultErrorReporting?) -> SecureStorageKeyStoreProvider
     public typealias DatabaseProviderInitialization = (_ key: Data) throws -> Vault.DatabaseProvider
 
     private var lock = NSLock()
@@ -62,7 +62,7 @@ public class SecureVaultFactory<Vault: SecureVault> {
             }
 
             do {
-                let providers = try makeSecureStorageProviders()
+                let providers = try makeSecureStorageProviders(errorReporter: errorReporter)
                 let vault = Vault(providers: providers)
 
                 self.vault = vault
@@ -70,19 +70,19 @@ public class SecureVaultFactory<Vault: SecureVault> {
                 return vault
 
             } catch let error as SecureStorageError {
-                errorReporter?.secureVaultInitFailed(error)
+                errorReporter?.secureVaultError(error)
                 throw error
             } catch {
-                errorReporter?.secureVaultInitFailed(SecureStorageError.initFailed(cause: error))
+                errorReporter?.secureVaultError(SecureStorageError.initFailed(cause: error))
                 throw SecureStorageError.initFailed(cause: error)
             }
         }
     }
 
-    public func makeSecureStorageProviders() throws -> SecureStorageProviders<Vault.DatabaseProvider> {
+    public func makeSecureStorageProviders(errorReporter: SecureVaultErrorReporting? = nil) throws -> SecureStorageProviders<Vault.DatabaseProvider> {
         let (cryptoProvider, keystoreProvider): (SecureStorageCryptoProvider, SecureStorageKeyStoreProvider)
         do {
-            (cryptoProvider, keystoreProvider) = try createAndInitializeEncryptionProviders()
+            (cryptoProvider, keystoreProvider) = try createAndInitializeEncryptionProviders(errorReporter: errorReporter)
         } catch {
             throw SecureStorageError.initFailed(cause: error)
         }
@@ -96,9 +96,9 @@ public class SecureVaultFactory<Vault: SecureVault> {
         }
     }
 
-    public func createAndInitializeEncryptionProviders() throws -> (SecureStorageCryptoProvider, SecureStorageKeyStoreProvider) {
+    public func createAndInitializeEncryptionProviders(errorReporter: SecureVaultErrorReporting? = nil) throws -> (SecureStorageCryptoProvider, SecureStorageKeyStoreProvider) {
         let cryptoProvider = makeCryptoProvider()
-        let keystoreProvider = makeKeyStoreProvider()
+        let keystoreProvider = makeKeyStoreProvider(errorReporter)
 
         if try keystoreProvider.l1Key() != nil {
             return (cryptoProvider, keystoreProvider)

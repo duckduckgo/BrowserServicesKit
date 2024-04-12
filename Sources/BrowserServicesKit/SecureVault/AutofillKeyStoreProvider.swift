@@ -52,9 +52,10 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
         }
     }
 
-    init(keychainService: KeychainService = DefaultKeychainService(), log: @escaping @autoclosure () -> OSLog = .disabled) {
+    init(keychainService: KeychainService = DefaultKeychainService(), log: @escaping @autoclosure () -> OSLog = .disabled, errorReporter: SecureVaultErrorReporting?) {
         self.keychainService = keychainService
         self.getLog = log
+        self.errorReporter = errorReporter
     }
 
     let keychainService: KeychainService
@@ -62,6 +63,7 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
     private var log: OSLog {
         getLog()
     }
+    private var errorReporter: SecureVaultErrorReporting?
 
     var keychainServiceName: String {
         return Constants.defaultServiceName
