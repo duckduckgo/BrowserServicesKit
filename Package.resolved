@@ -23,8 +23,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/content-scope-scripts",
       "state" : {
-        "branch" : "03-28-built_assets_for_sslerror",
-        "revision" : "9948256d05b54552702c18b1f79c6637ff6bfc1c"
+        "revision" : "1bb3bc5eb565735051f342a87b5405d4374876c7",
+        "version" : "5.12.0"
       }
     },
     {
