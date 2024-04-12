@@ -411,6 +411,13 @@ let package = Package(
             plugins: [swiftlintPlugin]
         ),
         .testTarget(
+            name: "CrashesTests",
+            dependencies: [
+                "Crashes"
+            ],
+            plugins: [swiftlintPlugin]
+        ),
+        .testTarget(
             name: "DDGSyncTests",
             dependencies: [
                 "BookmarksTestsUtils",
