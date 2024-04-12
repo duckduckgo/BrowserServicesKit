@@ -439,11 +439,17 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
     private func willStart(_ navigation: Navigation) {
         os_log("willStart %s", log: log, type: .default, navigation.debugDescription)
 
+        var isSameDocumentNavigation: Bool {
+            guard startedNavigation !== navigation && startedNavigation?.url.isSameDocument(navigation.url) == true else { return false }
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
+            return navigation.navigationAction.navigationType == .sameDocumentNavigation(.anchorNavigation)
+#else
+            return navigation.navigationAction.navigationType == .sameDocumentNavigation
+#endif
+        }
         if navigation.navigationAction.navigationType.redirect?.isClient == true // is client redirect?
             // is same document navigation received as client redirect?
-            || (startedNavigation !== navigation
-                && navigation.navigationAction.navigationType == .sameDocumentNavigation(.anchorNavigation)
-                && startedNavigation?.url.isSameDocument(navigation.url) == true) {
+            || isSameDocumentNavigation {
 
             // notify the original (redirected) Navigation about the redirect NavigationAction received
             // this should call the overriden ResponderChain inside `willPerformClientRedirect`
