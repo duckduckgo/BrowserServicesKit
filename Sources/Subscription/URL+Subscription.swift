@@ -17,16 +17,15 @@
 //
 
 import Foundation
-import Macros
 
 public extension URL {
 
     static var subscriptionBaseURL: URL {
         switch SubscriptionPurchaseEnvironment.currentServiceEnvironment {
         case .production:
-            #URL("https://duckduckgo.com/subscriptions")
+            URL(string: "https://duckduckgo.com/subscriptions")!
         case .staging:
-            #URL("https://duckduckgo.com/subscriptions?environment=staging")
+            URL(string: "https://duckduckgo.com/subscriptions?environment=staging")!
         }
     }
 
@@ -35,7 +34,7 @@ public extension URL {
     }
 
     static var subscriptionFAQ: URL {
-        #URL("https://duckduckgo.com/about")
+        URL(string: "https://duckduckgo.com/duckduckgo-help-pages/privacy-pro/")!
     }
 
     // MARK: - Subscription Email
@@ -51,10 +50,14 @@ public extension URL {
         subscriptionBaseURL.appendingPathComponent("manage")
     }
 
+    static var subscriptionActivateSuccess: URL {
+        subscriptionBaseURL.appendingPathComponent("activate/success")
+    }
+
     // MARK: - App Store app manage subscription URL
 
     static var manageSubscriptionsInAppStoreAppURL: URL {
-        #URL("macappstores://apps.apple.com/account/subscriptions")
+        URL(string: "macappstores://apps.apple.com/account/subscriptions")!
     }
 
     // MARK: - Identity Theft Restoration
@@ -62,9 +65,27 @@ public extension URL {
     static var identityTheftRestoration: URL {
         switch SubscriptionPurchaseEnvironment.currentServiceEnvironment {
         case .production:
-            #URL("https://duckduckgo.com/identity-theft-restoration")
+            URL(string: "https://duckduckgo.com/identity-theft-restoration")!
         case .staging:
-            #URL("https://duckduckgo.com/identity-theft-restoration?environment=staging")
+            URL(string: "https://duckduckgo.com/identity-theft-restoration?environment=staging")!
         }
     }
+
+    func forComparison() -> URL {
+            guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else {
+                return self
+            }
+
+            if let queryItems = components.queryItems, !queryItems.isEmpty {
+                components.queryItems = queryItems.filter { !["environment"].contains($0.name) }
+
+                if components.queryItems?.isEmpty ?? true {
+                    components.queryItems = nil
+                }
+            } else {
+                components.queryItems = nil
+            }
+            return components.url ?? self
+        }
+
 }

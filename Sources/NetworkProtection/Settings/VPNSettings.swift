@@ -18,7 +18,6 @@
 
 import Combine
 import Foundation
-import Macros
 
 /// Persists and publishes changes to tunnel settings.
 ///
@@ -39,8 +38,6 @@ public final class VPNSettings {
         case setSelectedLocation(_ selectedLocation: SelectedLocation)
         case setSelectedEnvironment(_ selectedEnvironment: SelectedEnvironment)
         case setShowInMenuBar(_ showInMenuBar: Bool)
-        case setVPNFirstEnabled(_ vpnFirstEnabled: Date?)
-        case setNetworkPathChange(_ newPath: String?)
         case setDisableRekeying(_ disableRekeying: Bool)
     }
 
@@ -82,9 +79,9 @@ public final class VPNSettings {
         public var endpointURL: URL {
             switch self {
             case .production:
-                return #URL("https://controller.netp.duckduckgo.com")
+                return URL(string: "https://controller.netp.duckduckgo.com")!
             case .staging:
-                return #URL("https://staging1.netp.duckduckgo.com")
+                return URL(string: "https://staging1.netp.duckduckgo.com")!
             }
         }
     }
@@ -163,20 +160,6 @@ public final class VPNSettings {
                 Change.setShowInMenuBar(showInMenuBar)
             }.eraseToAnyPublisher()
 
-        let vpnFirstEnabledPublisher = vpnFirstEnabledPublisher
-            .dropFirst()
-            .removeDuplicates()
-            .map { vpnFirstEnabled in
-                Change.setVPNFirstEnabled(vpnFirstEnabled)
-            }.eraseToAnyPublisher()
-
-        let networkPathChangePublisher = networkPathChangePublisher
-            .dropFirst()
-            .removeDuplicates()
-            .map { networkPathChange in
-                Change.setNetworkPathChange(networkPathChange?.newPath)
-            }.eraseToAnyPublisher()
-
         let disableRekeyingPublisher = disableRekeyingPublisher
             .dropFirst()
             .removeDuplicates()
@@ -194,8 +177,6 @@ public final class VPNSettings {
             locationChangePublisher,
             environmentChangePublisher,
             showInMenuBarPublisher,
-            vpnFirstEnabledPublisher,
-            networkPathChangePublisher,
             disableRekeyingPublisher).eraseToAnyPublisher()
     }()
 
@@ -213,7 +194,6 @@ public final class VPNSettings {
         defaults.resetNetworkProtectionSettingNotifyStatusChanges()
         defaults.resetNetworkProtectionSettingRegistrationKeyValidity()
         defaults.resetNetworkProtectionSettingSelectedServer()
-        defaults.resetNetworkProtectionSettingSelectedEnvironment()
         defaults.resetNetworkProtectionSettingShowInMenuBar()
     }
 
@@ -242,12 +222,6 @@ public final class VPNSettings {
             self.selectedEnvironment = selectedEnvironment
         case .setShowInMenuBar(let showInMenuBar):
             self.showInMenuBar = showInMenuBar
-        case .setVPNFirstEnabled(let vpnFirstEnabled):
-            self.vpnFirstEnabled = vpnFirstEnabled
-        case .setNetworkPathChange(let newPath):
-            self.networkPathChange = UserDefaults.NetworkPathChange(
-                oldPath: networkPathChange?.newPath ?? "unknown",
-                newPath: newPath ?? "unknown")
         case .setDisableRekeying(let disableRekeying):
             self.disableRekeying = disableRekeying
         }
@@ -439,38 +413,6 @@ public final class VPNSettings {
             case .range(let range, _):
                 return range
             }
-        }
-    }
-
-    // MARK: - First time VPN is enabled
-
-    public var vpnFirstEnabledPublisher: AnyPublisher<Date?, Never> {
-        defaults.vpnFirstEnabledPublisher
-    }
-
-    public var vpnFirstEnabled: Date? {
-        get {
-            defaults.vpnFirstEnabled
-        }
-
-        set {
-            defaults.vpnFirstEnabled = newValue
-        }
-    }
-
-    // MARK: - Network path change info
-
-    public var networkPathChangePublisher: AnyPublisher<UserDefaults.NetworkPathChange?, Never> {
-        defaults.networkPathChangePublisher
-    }
-
-    public var networkPathChange: UserDefaults.NetworkPathChange? {
-        get {
-            defaults.networkPathChange
-        }
-
-        set {
-            defaults.networkPathChange = newValue
         }
     }
 

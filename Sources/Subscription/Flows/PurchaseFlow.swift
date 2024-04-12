@@ -22,6 +22,16 @@ public struct SubscriptionOptions: Encodable {
     let platform: String
     let options: [SubscriptionOption]
     let features: [SubscriptionFeature]
+    public static var empty: SubscriptionOptions {
+        let features = SubscriptionFeatureName.allCases.map { SubscriptionFeature(name: $0.rawValue) }
+        let platform: SubscriptionPlatformName
+#if os(iOS)
+        platform = .ios
+#else
+        platform = .macos
+#endif
+        return SubscriptionOptions(platform: platform.rawValue, options: [], features: features)
+    }
 }
 
 public struct SubscriptionOption: Encodable {
@@ -51,6 +61,7 @@ public enum SubscriptionFeatureName: String, CaseIterable {
 }
 
 public enum SubscriptionPlatformName: String {
+    case ios
     case macos
     case stripe
 }

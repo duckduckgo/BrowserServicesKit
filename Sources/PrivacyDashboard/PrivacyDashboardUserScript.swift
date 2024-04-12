@@ -21,8 +21,10 @@ import WebKit
 import TrackerRadarKit
 import UserScript
 import Common
+import BrowserServicesKit
 
 protocol PrivacyDashboardUserScriptDelegate: AnyObject {
+
     func userScript(_ userScript: PrivacyDashboardUserScript, didChangeProtectionState protectionState: ProtectionState)
     func userScript(_ userScript: PrivacyDashboardUserScript, setHeight height: Int)
     func userScriptDidRequestClosing(_ userScript: PrivacyDashboardUserScript)
@@ -32,30 +34,45 @@ protocol PrivacyDashboardUserScriptDelegate: AnyObject {
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestOpenSettings: String)
     func userScript(_ userScript: PrivacyDashboardUserScript, didSetPermission permission: String, to state: PermissionAuthorizationState)
     func userScript(_ userScript: PrivacyDashboardUserScript, setPermission permission: String, paused: Bool)
+    // Toggle reports
+    func userScriptDidRequestToggleReportOptions(_ userScript: PrivacyDashboardUserScript)
+    func userScript(_ userScript: PrivacyDashboardUserScript, didSelectReportAction shouldSendReport: Bool)
+    func userScriptDidOpenReportInfo(_ userScript: PrivacyDashboardUserScript)
+
 }
 
 public enum PrivacyDashboardTheme: String, Encodable {
+
     case light
     case dark
+
+}
+
+public enum Screen: String, Decodable {
+
+    case primaryScreen
+    case breakageForm
+    case toggleReport
+
 }
 
 public struct ProtectionState: Decodable {
+
     public let isProtected: Bool
     public let eventOrigin: EventOrigin
 
     public struct EventOrigin: Decodable {
-        public let screen: EventOriginScreen
+
+        public let screen: Screen
+
     }
 
-    public enum EventOriginScreen: String, Decodable {
-        case primaryScreen
-        case breakageForm
-    }
 }
 
 final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
 
     enum MessageNames: String, CaseIterable {
+
         case privacyDashboardSetProtection
         case privacyDashboardSetSize
         case privacyDashboardClose
@@ -65,6 +82,11 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         case privacyDashboardOpenSettings
         case privacyDashboardSetPermission
         case privacyDashboardSetPermissionPaused
+        case privacyDashboardGetToggleReportOptions
+        case privacyDashboardSendToggleReport
+        case privacyDashboardRejectToggleReport
+        case privacyDashboardSeeWhatIsSent
+
     }
 
     static var injectionTime: WKUserScriptInjectionTime { .atDocumentStart }
@@ -75,7 +97,13 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
     var messageNames: [String] { MessageNames.allCases.map(\.rawValue) }
 
     weak var delegate: PrivacyDashboardUserScriptDelegate?
+    private let privacyConfigurationManager: PrivacyConfigurationManaging
 
+    init(privacyConfigurationManager: PrivacyConfigurationManaging) {
+        self.privacyConfigurationManager = privacyConfigurationManager
+    }
+
+    // swiftlint:disable:next cyclomatic_complexity
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         guard let messageType = MessageNames(rawValue: message.name) else {
             assertionFailure("PrivacyDashboardUserScript: unexpected message name \(message.name)")
@@ -101,19 +129,30 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             handleSetPermissionPaused(message: message)
         case .privacyDashboardOpenSettings:
             handleOpenSettings(message: message)
+        case .privacyDashboardGetToggleReportOptions:
+            handleGetToggleReportOptions(message: message)
+        case .privacyDashboardSendToggleReport:
+            handleSendToggleReport()
+        case .privacyDashboardRejectToggleReport:
+            handleDoNotSendToggleReport()
+        case .privacyDashboardSeeWhatIsSent:
+            handleDidOpenReportInfo()
         }
     }
 
     // MARK: - JS message handlers
 
     private func handleSetProtection(message: WKScriptMessage) {
+        guard let protectionState = getProtectionState(from: message) else { return }
+        delegate?.userScript(self, didChangeProtectionState: protectionState)
+    }
 
+    private func getProtectionState(from message: WKScriptMessage) -> ProtectionState? {
         guard let protectionState: ProtectionState = DecodableHelper.decode(from: message.messageBody) else {
             assertionFailure("privacyDashboardSetProtection: expected ProtectionState")
-            return
+            return nil
         }
-
-        delegate?.userScript(self, didChangeProtectionState: protectionState)
+        return protectionState
     }
 
     private func handleSetSize(message: WKScriptMessage) {
@@ -192,7 +231,63 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         delegate?.userScript(self, setPermission: permission, paused: paused)
     }
 
+    // Toggle reports
+
+    private func handleGetToggleReportOptions(message: WKScriptMessage) {
+        delegate?.userScriptDidRequestToggleReportOptions(self)
+    }
+
+    private func handleSendToggleReport() {
+        delegate?.userScript(self, didSelectReportAction: true)
+    }
+
+    private func handleDoNotSendToggleReport() {
+        delegate?.userScript(self, didSelectReportAction: false)
+    }
+
+    private func handleDidOpenReportInfo() {
+        delegate?.userScriptDidOpenReportInfo(self)
+    }
+
     // MARK: - Calls to script's JS API
+
+    func setToggleReportOptions(forSite site: String, webView: WKWebView) {
+        var atbEntry = "{\"id\": \"atb\"},"
+#if os(macOS)
+        atbEntry = ""
+#endif
+        let js = """
+                     const json = {
+                         "data": [
+                             {
+                                 "id": "siteUrl",
+                                 "additional": {
+                                     "url": "\(site)"
+                                 }
+                             },
+                             {"id": "device"},
+                             {"id": "os"},
+                             {"id": "appVersion"},
+                             \(atbEntry)
+                             {"id": "listVersions"},
+                             {"id": "wvVersion"},
+                             {"id": "features"},
+                             {"id": "requests"},
+                             {"id": "errorDescriptions"},
+                             {"id": "httpErrorCodes"},
+                             {"id": "reportFlow"},
+                             {"id": "lastSentDay"},
+                             {"id": "didOpenReportInfo"},
+                             {"id": "toggleReportCounter"},
+                             {"id": "jsPerformance"},
+                             {"id": "openerContext"},
+                             {"id": "userRefreshCount"},
+                         ]
+                     }
+                     window.onGetToggleReportOptionsResponse(json);
+                     """
+        evaluate(js: js, in: webView)
+    }
 
     func setTrackerInfo(_ tabUrl: URL, trackerInfo: TrackerInfo, webView: WKWebView) {
         guard let trackerBlockingDataJson = try? JSONEncoder().encode(trackerInfo).utf8String() else {

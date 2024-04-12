@@ -35,6 +35,10 @@ public final class AppStoreRestoreFlow {
     }
 
     public static func restoreAccountFromPastPurchase(subscriptionAppGroup: String) async -> Result<Void, AppStoreRestoreFlow.Error> {
+
+        // Clear subscription Cache
+        SubscriptionService.signOut()
+
         os_log(.info, log: .subscription, "[AppStoreRestoreFlow] restoreAccountFromPastPurchase")
 
         guard let lastTransactionJWSRepresentation = await PurchaseManager.mostRecentTransaction() else {
@@ -78,7 +82,7 @@ public final class AppStoreRestoreFlow {
 
         var isSubscriptionActive = false
 
-        switch await SubscriptionService.getSubscription(accessToken: accessToken) {
+        switch await SubscriptionService.getSubscription(accessToken: accessToken, cachePolicy: .reloadIgnoringLocalCacheData) {
         case .success(let subscription):
             isSubscriptionActive = subscription.isActive
         case .failure:

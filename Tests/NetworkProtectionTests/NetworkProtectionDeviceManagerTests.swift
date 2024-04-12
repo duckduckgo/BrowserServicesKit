@@ -26,7 +26,6 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
     var keyStore: NetworkProtectionKeyStoreMock!
     var networkClient: MockNetworkProtectionClient!
     var temporaryURL: URL!
-    var serverListStore: NetworkProtectionServerListFileSystemStore!
     var manager: NetworkProtectionDeviceManager!
 
     override func setUp() {
@@ -36,12 +35,11 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
         keyStore = NetworkProtectionKeyStoreMock()
         networkClient = MockNetworkProtectionClient()
         temporaryURL = temporaryFileURL()
-        serverListStore = NetworkProtectionServerListFileSystemStore(fileURL: temporaryURL, errorEvents: nil)
+
         manager = NetworkProtectionDeviceManager(
             networkClient: networkClient,
             tokenStore: tokenStore,
             keyStore: keyStore,
-            serverListStore: serverListStore,
             errorEvents: nil,
             isSubscriptionEnabled: false
         )
@@ -51,7 +49,6 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
         tokenStore = nil
         keyStore = nil
         temporaryURL = nil
-        serverListStore = nil
         manager = nil
         networkClient = nil
         super.tearDown()
@@ -73,9 +70,6 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
         // Check that the device manager created a private key
         XCTAssertTrue((try? keyStore.storedPrivateKey()) != nil)
 
-        // Check that the server list store was given a server list
-        XCTAssertEqual((try? serverListStore.storedNetworkProtectionServerList()), [.mockRegisteredServer])
-
         XCTAssertEqual(configuration.0.interface.privateKey, try? keyStore.storedPrivateKey())
     }
 
@@ -87,13 +81,11 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
         networkClient.stubRegister = .success([registeredServer])
 
         XCTAssertNil(try? keyStore.storedPrivateKey())
-        XCTAssertEqual(try? serverListStore.storedNetworkProtectionServerList(), [])
         XCTAssertNil(networkClient.spyRegister)
 
         _ = try? await manager.generateTunnelConfiguration(selectionMethod: .automatic, regenerateKey: false)
 
         XCTAssertNotNil(try? keyStore.storedPrivateKey())
-        XCTAssertEqual(try? serverListStore.storedNetworkProtectionServerList(), [registeredServer])
         XCTAssertNotNil(networkClient.spyRegister)
     }
 
@@ -154,20 +146,17 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
         networkClient.stubRegister = .success([registeredServer])
 
         XCTAssertNil(try? keyStore.storedPrivateKey())
-        XCTAssertEqual(try? serverListStore.storedNetworkProtectionServerList(), [])
         XCTAssertNil(networkClient.spyRegister)
         _ = try? await manager.generateTunnelConfiguration(selectionMethod: .automatic, regenerateKey: false)
 
         let firstKey = try? keyStore.storedPrivateKey()
         XCTAssertNotNil(firstKey)
-        XCTAssertEqual(try? serverListStore.storedNetworkProtectionServerList(), [registeredServer])
         XCTAssertNotNil(networkClient.spyRegister)
         _ = try? await manager.generateTunnelConfiguration(selectionMethod: .automatic, regenerateKey: false)
 
         let secondKey = try? keyStore.storedPrivateKey()
         XCTAssertNotNil(secondKey)
         XCTAssertEqual(firstKey, secondKey) // Check that the key did NOT change
-        XCTAssertEqual(try? serverListStore.storedNetworkProtectionServerList(), [registeredServer])
         XCTAssertNotNil(networkClient.spyRegister)
     }
 
@@ -179,20 +168,17 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
         networkClient.stubRegister = .success([registeredServer])
 
         XCTAssertNil(try? keyStore.storedPrivateKey())
-        XCTAssertEqual(try? serverListStore.storedNetworkProtectionServerList(), [])
         XCTAssertNil(networkClient.spyRegister)
         _ = try? await manager.generateTunnelConfiguration(selectionMethod: .automatic, regenerateKey: false)
 
         let firstKey = try? keyStore.storedPrivateKey()
         XCTAssertNotNil(firstKey)
-        XCTAssertEqual(try? serverListStore.storedNetworkProtectionServerList(), [registeredServer])
         XCTAssertNotNil(networkClient.spyRegister)
         _ = try? await manager.generateTunnelConfiguration(selectionMethod: .automatic, regenerateKey: true)
 
         let secondKey = try? keyStore.storedPrivateKey()
         XCTAssertNotNil(secondKey)
         XCTAssertNotEqual(firstKey, secondKey) // Check that the key changed
-        XCTAssertEqual(try? serverListStore.storedNetworkProtectionServerList(), [registeredServer])
         XCTAssertNotNil(networkClient.spyRegister)
     }
 
@@ -204,13 +190,11 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
         networkClient.stubRegister = .success([registeredServer])
 
         XCTAssertNil(try? keyStore.storedPrivateKey())
-        XCTAssertEqual(try? serverListStore.storedNetworkProtectionServerList(), [])
         XCTAssertNil(networkClient.spyRegister)
         _ = try? await manager.generateTunnelConfiguration(selectionMethod: .automatic, regenerateKey: false)
 
         let firstKey = try? keyStore.storedPrivateKey()
         XCTAssertNotNil(firstKey)
-        XCTAssertEqual(try? serverListStore.storedNetworkProtectionServerList(), [registeredServer])
         XCTAssertNotNil(networkClient.spyRegister)
 
         networkClient.stubRegister = .failure(.failedToEncodeRegisterKeyRequest)
@@ -219,24 +203,7 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
         let secondKey = try? keyStore.storedPrivateKey()
         XCTAssertNotNil(secondKey)
         XCTAssertEqual(firstKey, secondKey) // Check that the key did NOT change, even though we tried to regenerate it
-        XCTAssertEqual(try? serverListStore.storedNetworkProtectionServerList(), [registeredServer])
         XCTAssertNotNil(networkClient.spyRegister)
-    }
-
-    func testStoringAccessToken() {
-        tokenStore.store(NetworkProtectionTokenStoreMock.makeToken(from: "access-token"))
-        XCTAssertEqual(tokenStore.fetchToken(), "ddg:access-token")
-
-        tokenStore.deleteToken()
-        XCTAssertEqual(tokenStore.fetchToken(), "ddg:access-token")
-    }
-
-    func testStoringAuthToken() {
-        tokenStore.store("auth-token")
-        XCTAssertEqual(tokenStore.fetchToken(), "auth-token")
-
-        tokenStore.deleteToken()
-        XCTAssertNil(tokenStore.fetchToken())
     }
 }
 

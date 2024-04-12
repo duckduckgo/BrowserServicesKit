@@ -28,12 +28,19 @@ final class CredentialsProviderTests: CredentialsProviderTestsBase {
 
     func testThatLastSyncTimestampIsNilByDefault() {
         XCTAssertNil(provider.lastSyncTimestamp)
+        if DDGSync.isFieldValidationEnabled {
+            XCTAssertNil(provider.lastSyncLocalTimestamp)
+        }
     }
 
     func testThatLastSyncTimestampIsPersisted() throws {
         try provider.registerFeature(withState: .readyToSync)
-        provider.lastSyncTimestamp = "12345"
+        let date = Date()
+        provider.updateSyncTimestamps(server: "12345", local: date)
         XCTAssertEqual(provider.lastSyncTimestamp, "12345")
+        if DDGSync.isFieldValidationEnabled {
+            XCTAssertEqual(provider.lastSyncLocalTimestamp, date)
+        }
     }
 
     func testThatPrepareForFirstSyncClearsLastSyncTimestampAndSetsModifiedAtForAllCredentials() throws {
@@ -71,6 +78,32 @@ final class CredentialsProviderTests: CredentialsProviderTestsBase {
         XCTAssertEqual(
             Set(changedObjects.compactMap(\.uuid)),
             Set(["1", "3"])
+        )
+    }
+
+    func testThatFetchChangedObjectsFiltersOutInvalidCredentials() async throws {
+        guard DDGSync.isFieldValidationEnabled else {
+            throw XCTSkip("Field validation is disabled")
+        }
+
+        let longValue = String(repeating: "x", count: 10000)
+
+        try secureVault.inDatabaseTransaction { database in
+            try self.secureVault.storeSyncableCredentials("1", title: longValue, lastModified: Date(), in: database)
+            try self.secureVault.storeSyncableCredentials("2", in: database)
+            try self.secureVault.storeSyncableCredentials("3", lastModified: Date(), in: database)
+            try self.secureVault.storeSyncableCredentials("4", in: database)
+            try self.secureVault.storeSyncableCredentials("5", domain: longValue, lastModified: Date(), in: database)
+            try self.secureVault.storeSyncableCredentials("6", username: longValue, lastModified: Date(), in: database)
+            try self.secureVault.storeSyncableCredentials("7", password: longValue, lastModified: Date(), in: database)
+            try self.secureVault.storeSyncableCredentials("8", notes: longValue, lastModified: Date(), in: database)
+        }
+
+        let changedObjects = try await provider.fetchChangedObjects(encryptedUsing: crypter).map(SyncableCredentialsAdapter.init)
+
+        XCTAssertEqual(
+            Set(changedObjects.compactMap(\.uuid)),
+            Set(["3"])
         )
     }
 
@@ -112,6 +145,32 @@ final class CredentialsProviderTests: CredentialsProviderTestsBase {
         let syncableCredentials = try fetchAllSyncableCredentials()
         XCTAssertEqual(syncableCredentials.count, 3)
         XCTAssertTrue(syncableCredentials.allSatisfy { $0.metadata.lastModified == nil })
+    }
+
+    func testThatItemsThatFailedValidationRetainTheirTimestamps() async throws {
+        guard DDGSync.isFieldValidationEnabled else {
+            throw XCTSkip("Field validation is disabled")
+        }
+
+        let longValue = String(repeating: "x", count: 10000)
+        let timestamp = Date().withMillisecondPrecision
+
+        try secureVault.inDatabaseTransaction { database in
+            try self.secureVault.storeSyncableCredentials("10", title: longValue, lastModified: timestamp, in: database)
+            try self.secureVault.storeSyncableCredentials("20", lastModified: timestamp, in: database)
+            try self.secureVault.storeSyncableCredentials("30", title: longValue, lastModified: timestamp, in: database)
+            try self.secureVault.storeSyncableCredentials("40", lastModified: timestamp, in: database)
+        }
+
+        let sent = try await provider.fetchChangedObjects(encryptedUsing: crypter)
+        try await provider.handleSyncResponse(sent: sent, received: [], clientTimestamp: Date(), serverTimestamp: "1234", crypter: crypter)
+
+        let syncableCredentials = try fetchAllSyncableCredentials()
+        XCTAssertEqual(syncableCredentials.count, 4)
+        XCTAssertNotNil(syncableCredentials.first(where: { $0.metadata.uuid == "10" })?.metadata.lastModified)
+        XCTAssertNil(syncableCredentials.first(where: { $0.metadata.uuid == "20" })?.metadata.lastModified)
+        XCTAssertNotNil(syncableCredentials.first(where: { $0.metadata.uuid == "30" })?.metadata.lastModified)
+        XCTAssertNil(syncableCredentials.first(where: { $0.metadata.uuid == "40" })?.metadata.lastModified)
     }
 
     // MARK: - Initial Sync

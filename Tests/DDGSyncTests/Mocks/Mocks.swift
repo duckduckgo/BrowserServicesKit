@@ -20,7 +20,6 @@ import BrowserServicesKit
 import Combine
 import Common
 import Foundation
-import Macros
 import Persistence
 import TestUtils
 
@@ -151,6 +150,7 @@ class MockPrivacyConfigurationManager: PrivacyConfigurationManaging {
     let updatesPublisher: AnyPublisher<Void, Never>
     var privacyConfig: PrivacyConfiguration = MockPrivacyConfiguration()
     let internalUserDecider: InternalUserDecider = DefaultInternalUserDecider()
+    var toggleProtectionsCounter = ToggleProtectionsCounter(eventReporting: EventMapping<ToggleProtectionsCounterEvent> { _, _, _, _ in })
     func reload(etag: String?, data: Data?) -> PrivacyConfigurationManager.ReloadResult {
         .downloaded
     }
@@ -196,7 +196,7 @@ class MockPrivacyConfiguration: PrivacyConfiguration {
 }
 
 struct MockSyncDependencies: SyncDependencies, SyncDependenciesDebuggingSupport {
-    var endpoints: Endpoints = Endpoints(baseURL: #URL("https://dev.null"))
+    var endpoints: Endpoints = Endpoints(baseURL: URL(string: "https://dev.null")!)
     var account: AccountManaging = AccountManagingMock()
     var api: RemoteAPIRequestCreating = RemoteAPIRequestCreatingMock()
     var secureStore: SecureStoring = SecureStorageStub()
@@ -329,6 +329,7 @@ struct CryptingMock: CryptingInternal {
 class SyncMetadataStoreMock: SyncMetadataStore {
     struct FeatureInfo: Equatable {
         var timestamp: String?
+        var localTimestamp: Date?
         var state: FeatureSetupState
     }
 
@@ -354,13 +355,22 @@ class SyncMetadataStoreMock: SyncMetadataStore {
         features[name]?.timestamp = timestamp
     }
 
+    func localTimestamp(forFeatureNamed name: String) -> Date? {
+        features[name]?.localTimestamp
+    }
+
     func state(forFeatureNamed name: String) -> FeatureSetupState {
         features[name]?.state ?? .readyToSync
     }
 
-    func update(_ timestamp: String?, _ state: FeatureSetupState, forFeatureNamed name: String) {
+    func updateLocalTimestamp(_ localTimestamp: Date?, forFeatureNamed name: String) {
+        features[name]?.localTimestamp = localTimestamp
+    }
+
+    func update(_ serverTimestamp: String?, _ localTimestamp: Date?, _ state: FeatureSetupState, forFeatureNamed name: String) {
         features[name]?.state = state
-        features[name]?.timestamp = timestamp
+        features[name]?.timestamp = serverTimestamp
+        features[name]?.localTimestamp = localTimestamp
     }
 }
 
@@ -386,12 +396,12 @@ class DataProvidingMock: DataProvider {
 
     override func handleInitialSyncResponse(received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
         try await handleInitialSyncResponse(received, clientTimestamp, serverTimestamp, crypter)
-        lastSyncTimestamp = serverTimestamp
+        updateSyncTimestamps(server: serverTimestamp, local: clientTimestamp)
     }
 
     override func handleSyncResponse(sent: [Syncable], received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
         try await handleSyncResponse(sent, received, clientTimestamp, serverTimestamp, crypter)
-        lastSyncTimestamp = serverTimestamp
+        updateSyncTimestamps(server: serverTimestamp, local: clientTimestamp)
     }
 
     override func handleSyncError(_ error: Error) {

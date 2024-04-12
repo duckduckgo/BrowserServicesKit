@@ -35,18 +35,19 @@ let package = Package(
         .library(name: "SecureStorage", targets: ["SecureStorage"]),
         .library(name: "Subscription", targets: ["Subscription"]),
         .library(name: "History", targets: ["History"]),
+        .library(name: "Suggestions", targets: ["Suggestions"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "10.1.0"),
+        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "11.0.1"),
         .package(url: "https://github.com/duckduckgo/GRDB.swift.git", exact: "2.3.0"),
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "1.2.2"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.2.0"),
         .package(url: "https://github.com/gumob/PunycodeSwift.git", exact: "2.1.0"),
-        .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "3.2.0"),
-        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "5.2.0"),
+        .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "3.5.0"),
+        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "5.12.0"),
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
         .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
-        .package(url: "https://github.com/duckduckgo/wireguard-apple", exact: "1.1.1"),
+        .package(url: "https://github.com/duckduckgo/wireguard-apple", exact: "1.1.3"),
         .package(url: "https://github.com/duckduckgo/apple-toolbox.git", exact: "2.0.0"),
     ],
     targets: [
@@ -62,7 +63,6 @@ let package = Package(
                 "UserScript",
                 "ContentBlocking",
                 "SecureStorage",
-                .product(name: "Macros", package: "apple-toolbox"),
             ],
             resources: [
                 .process("ContentBlocking/UserScripts/contentblockerrules.js"),
@@ -103,6 +103,19 @@ let package = Package(
             name: "History",
             dependencies: [
                 "Persistence",
+                "Common"
+            ],
+            resources: [
+                .process("CoreData/BrowsingHistory.xcdatamodeld")
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
+            ],
+            plugins: [swiftlintPlugin]
+        ),
+        .target(
+            name: "Suggestions",
+            dependencies: [
                 "Common"
             ],
             swiftSettings: [
@@ -147,7 +160,6 @@ let package = Package(
                 "Common",
                 .product(name: "DDGSyncCrypto", package: "sync_crypto"),
                 "Networking",
-                .product(name: "Macros", package: "apple-toolbox"),
             ],
             resources: [
                 .process("SyncMetadata.xcdatamodeld"),
@@ -156,6 +168,15 @@ let package = Package(
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
             ],
+            plugins: [swiftlintPlugin]
+        ),
+        .executableTarget(
+            name: "SyncMetadataTestDBBuilder",
+            dependencies: [
+                "DDGSync",
+                "Persistence",
+            ],
+            path: "Sources/SyncMetadataTestDBBuilder",
             plugins: [swiftlintPlugin]
         ),
         .target(
@@ -217,7 +238,8 @@ let package = Package(
                 "UserScript",
                 "ContentBlocking",
                 "Persistence",
-                .product(name: "PrivacyDashboardResources", package: "privacy-dashboard"),
+                "BrowserServicesKit",
+                .product(name: "PrivacyDashboardResources", package: "privacy-dashboard")
             ],
             path: "Sources/PrivacyDashboard",
             swiftSettings: [
@@ -279,7 +301,6 @@ let package = Package(
             dependencies: [
                 "Networking",
                 "Persistence",
-                .product(name: "Macros", package: "apple-toolbox"),
             ],
             plugins: [swiftlintPlugin]
         ),
@@ -289,7 +310,6 @@ let package = Package(
                 .target(name: "WireGuardC"),
                 .product(name: "WireGuard", package: "wireguard-apple"),
                 "Common",
-                .product(name: "Macros", package: "apple-toolbox"),
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
@@ -325,8 +345,8 @@ let package = Package(
         .target(
             name: "Subscription",
             dependencies: [
+                "BrowserServicesKit",
                 "Common",
-                .product(name: "Macros", package: "apple-toolbox"),
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
@@ -335,7 +355,20 @@ let package = Package(
         ),
 
         // MARK: - Test Targets
-
+        .testTarget(
+            name: "HistoryTests",
+            dependencies: [
+                "History",
+            ],
+            plugins: [swiftlintPlugin]
+        ),
+        .testTarget(
+            name: "SuggestionsTests",
+            dependencies: [
+                "Suggestions",
+            ],
+            plugins: [swiftlintPlugin]
+        ),
         .testTarget(
             name: "BookmarksTests",
             dependencies: [
@@ -355,6 +388,9 @@ let package = Package(
                 .copy("Resources/Bookmarks_V4.sqlite"),
                 .copy("Resources/Bookmarks_V4.sqlite-shm"),
                 .copy("Resources/Bookmarks_V4.sqlite-wal"),
+                .copy("Resources/Bookmarks_V5.sqlite"),
+                .copy("Resources/Bookmarks_V5.sqlite-shm"),
+                .copy("Resources/Bookmarks_V5.sqlite-wal"),
             ],
             plugins: [swiftlintPlugin]
         ),
@@ -365,7 +401,6 @@ let package = Package(
                 "RemoteMessaging", // Move tests later (lots of test dependencies in BSK)
                 "SecureStorageTestsUtils",
                 "TestUtils",
-                .product(name: "Macros", package: "apple-toolbox"),
             ],
             resources: [
                 .copy("Resources")
@@ -375,9 +410,14 @@ let package = Package(
         .testTarget(
             name: "DDGSyncTests",
             dependencies: [
+                "BookmarksTestsUtils",
                 "DDGSync",
                 "TestUtils",
-                .product(name: "Macros", package: "apple-toolbox"),
+            ],
+            resources: [
+                .copy("Resources/SyncMetadata_V3.sqlite"),
+                .copy("Resources/SyncMetadata_V3.sqlite-shm"),
+                .copy("Resources/SyncMetadata_V3.sqlite-wal"),
             ],
             plugins: [swiftlintPlugin]
         ),
@@ -392,7 +432,6 @@ let package = Package(
             name: "CommonTests",
             dependencies: [
                 "Common",
-                .product(name: "Macros", package: "apple-toolbox"),
             ],
             plugins: [swiftlintPlugin]
         ),
@@ -408,7 +447,6 @@ let package = Package(
             dependencies: [
                 "Navigation",
                 .product(name: "Swifter", package: "swifter"),
-                .product(name: "Macros", package: "apple-toolbox"),
             ],
             resources: [
                 .copy("Resources")
@@ -475,7 +513,6 @@ let package = Package(
             dependencies: [
                 "SecureStorage",
                 "SecureStorageTestsUtils",
-                .product(name: "Macros", package: "apple-toolbox"),
             ],
             plugins: [swiftlintPlugin]
         ),
@@ -484,7 +521,13 @@ let package = Package(
             dependencies: [
                 "PrivacyDashboard",
                 "TestUtils",
-                .product(name: "Macros", package: "apple-toolbox"),
+            ],
+            plugins: [swiftlintPlugin]
+        ),
+        .testTarget(
+            name: "SubscriptionTests",
+            dependencies: [
+                "Subscription",
             ],
             plugins: [swiftlintPlugin]
         ),

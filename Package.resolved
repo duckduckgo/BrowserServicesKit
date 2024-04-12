@@ -23,8 +23,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/content-scope-scripts",
       "state" : {
-        "revision" : "59752eb7973d3e3b0c23255ff51359f48b343f15",
-        "version" : "5.2.0"
+        "revision" : "1bb3bc5eb565735051f342a87b5405d4374876c7",
+        "version" : "5.12.0"
       }
     },
     {
@@ -32,8 +32,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/duckduckgo-autofill.git",
       "state" : {
-        "revision" : "03d3e3a959dd75afbe8c59b5a203ea676d37555d",
-        "version" : "10.1.0"
+        "revision" : "6053999d6af384a716ab0ce7205dbab5d70ed1b3",
+        "version" : "11.0.1"
       }
     },
     {
@@ -50,8 +50,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/privacy-dashboard",
       "state" : {
-        "revision" : "c67d268bf234760f49034a0fe7a6137a1b216b05",
-        "version" : "3.2.0"
+        "revision" : "14b13d0c3db38f471ce4ba1ecb502ee1986c84d7",
+        "version" : "3.5.0"
       }
     },
     {
@@ -113,8 +113,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/wireguard-apple",
       "state" : {
-        "revision" : "2d8172c11478ab11b0f5ad49bdb4f93f4b3d5e0d",
-        "version" : "1.1.1"
+        "revision" : "13fd026384b1af11048451061cc1b21434990668",
+        "version" : "1.1.3"
       }
     }
   ],

@@ -48,6 +48,7 @@ public protocol SecureVaultManagerDelegate: AnyObject, SecureVaultErrorReporting
                             promptUserToAutofillCredentialsForDomain domain: String,
                             withAccounts accounts: [SecureVaultModels.WebsiteAccount],
                             withTrigger trigger: AutofillUserScript.GetTriggerType,
+                            onAccountSelected account: @escaping (SecureVaultModels.WebsiteAccount?) -> Void,
                             completionHandler: @escaping (SecureVaultModels.WebsiteAccount?) -> Void)
 
     func secureVaultManager(_: SecureVaultManager,
@@ -342,6 +343,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
 
     }
 
+    // swiftlint:disable function_body_length
     public func autofillUserScript(_: AutofillUserScript,
                                    didRequestCredentialsForDomain domain: String,
                                    subType: AutofillUserScript.GetAutofillDataSubType,
@@ -378,7 +380,13 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
 
                 self.delegate?.secureVaultManager(self, promptUserToAutofillCredentialsForDomain: domain,
                                                   withAccounts: accounts,
-                                                  withTrigger: trigger) { [weak self] account in
+                                                  withTrigger: trigger,
+                                                  onAccountSelected: { [weak self] account in
+                    guard let accountID = account?.id else {
+                        return
+                    }
+                    self?.updateLastUsedDate(for: accountID, vault: vault)
+                }, completionHandler: { [weak self] account in
                     guard let self = self else { return }
                     guard let accountID = account?.id else {
                         completionHandler(nil, self.credentialsProvider, .none)
@@ -394,13 +402,14 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                             completionHandler(credentials, self.credentialsProvider, .fill)
                         }
                     }
-                }
+                })
             }
         } catch {
             os_log(.error, "Error requesting accounts: %{public}@", error.localizedDescription)
             completionHandler(nil, credentialsProvider, .none)
         }
     }
+    // swiftlint:enable function_body_length
 
     public func autofillUserScript(_: AutofillUserScript,
                                    didRequestCredentialsForAccount accountId: String,
@@ -409,6 +418,8 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
 
         do {
             let vault = try self.vault ?? AutofillSecureVaultFactory.makeVault(errorReporter: self.delegate)
+
+            updateLastUsedDate(for: accountId, vault: vault)
 
             self.delegate?.secureVaultManager(self, isAuthenticatedFor: .password, completionHandler: { result in
                 if result == true {
@@ -608,10 +619,20 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
 
     private func createAccount(username: String, password: Data, domain: String) -> SecureVaultModels.WebsiteAccount {
         let vault = try? self.vault ?? AutofillSecureVaultFactory.makeVault(errorReporter: self.delegate)
-        var account = SecureVaultModels.WebsiteAccount(username: username, domain: domain)
+        var account = SecureVaultModels.WebsiteAccount(username: username, domain: domain, lastUsed: Date())
         let credentials = try? vault?.storeWebsiteCredentials(SecureVaultModels.WebsiteCredentials(account: account, password: password))
         account.id = String(credentials ?? -1)
         return account
+    }
+
+    private func updateLastUsedDate(for accountId: String, vault: any AutofillSecureVault) {
+        guard credentialsProvider.name == .duckduckgo else {
+            return
+        }
+
+        if let accountIdInt = Int64(accountId) {
+            try? vault.updateLastUsedFor(accountId: accountIdInt)
+        }
     }
 
     func existingEntries(for domain: String,

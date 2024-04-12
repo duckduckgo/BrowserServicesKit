@@ -42,7 +42,11 @@ public enum PrivacyFeature: String {
     case networkProtection
     case dbp
     case sync
+    case privacyDashboard
     case history
+    case performanceMetrics
+    case privacyPro
+    case sslCertificates
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -94,4 +98,36 @@ public enum SyncSubfeature: String, PrivacySubfeature {
     case level1AllowDataSyncing
     case level2AllowSetupFlows
     case level3AllowCreateAccount
+}
+
+public enum PrivacyDashboardSubfeature: String, PrivacySubfeature {
+
+    public var parent: PrivacyFeature { .privacyDashboard }
+
+    case toggleReports
+
+}
+
+public enum AutoconsentSubfeature: String, PrivacySubfeature {
+    public var parent: PrivacyFeature {
+        .autoconsent
+    }
+
+    case onByDefault
+}
+
+public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {
+    public var parent: PrivacyFeature { .privacyPro }
+
+    case isLaunched
+    case isLaunchedStripe
+    case allowPurchase
+    case allowPurchaseStripe
+    case isLaunchedOverride
+    case isLaunchedOverrideStripe
+}
+
+public enum sslCertificatesSubfeature: String, PrivacySubfeature {
+    public var parent: PrivacyFeature { .sslCertificates }
+    case allowBypass
 }

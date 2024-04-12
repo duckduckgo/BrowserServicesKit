@@ -18,7 +18,6 @@
 
 import Combine
 import Common
-import Macros
 import XCTest
 
 @testable import DDGSync
@@ -51,9 +50,9 @@ final class DDGSyncTests: XCTestCase {
         dataProvidersSource = MockDataProvidersSource()
         dependencies = MockSyncDependencies()
         (dependencies.api as! RemoteAPIRequestCreatingMock).fakeRequests = [
-            #URL("https://dev.null/sync/credentials"): HTTPRequestingMock(result: .init(data: "{\"credentials\":{\"last_modified\":\"1234\",\"entries\":[]}}".data(using: .utf8)!, response: .init())),
-            #URL("https://dev.null/sync/bookmarks"): HTTPRequestingMock(result: .init(data: "{\"bookmarks\":{\"last_modified\":\"1234\",\"entries\":[]}}".data(using: .utf8)!, response: .init())),
-            #URL("https://dev.null/sync/data"): HTTPRequestingMock(result: .init(data: "{\"bookmarks\":{\"last_modified\":\"1234\",\"entries\":[]},\"credentials\":{\"last_modified\":\"1234\",\"entries\":[]}}".data(using: .utf8)!, response: .init()))
+            URL(string: "https://dev.null/sync/credentials")!: HTTPRequestingMock(result: .init(data: "{\"credentials\":{\"last_modified\":\"1234\",\"entries\":[]}}".data(using: .utf8)!, response: .init())),
+            URL(string: "https://dev.null/sync/bookmarks")!: HTTPRequestingMock(result: .init(data: "{\"bookmarks\":{\"last_modified\":\"1234\",\"entries\":[]}}".data(using: .utf8)!, response: .init())),
+            URL(string: "https://dev.null/sync/data")!: HTTPRequestingMock(result: .init(data: "{\"bookmarks\":{\"last_modified\":\"1234\",\"entries\":[]},\"credentials\":{\"last_modified\":\"1234\",\"entries\":[]}}".data(using: .utf8)!, response: .init()))
         ]
 
         (dependencies.secureStore as! SecureStorageStub).theAccount = .mock
@@ -122,7 +121,7 @@ final class DDGSyncTests: XCTestCase {
 
     func testThatRegularSyncOperationsAreSerialized() {
         let dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
-        dataProvider.lastSyncTimestamp = "1234"
+        dataProvider.updateSyncTimestamps(server: "1234", local: nil)
         setUpDataProviderCallbacks(for: dataProvider)
         setUpExpectations(started: 3, fetch: 3, handleResponse: 3, finished: 3)
 
@@ -280,7 +279,7 @@ final class DDGSyncTests: XCTestCase {
         (dependencies.secureStore as! SecureStorageStub).theAccount = .mock.updatingState(.active)
         let bookmarksDataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
         try bookmarksDataProvider.registerFeature(withState: .readyToSync)
-        bookmarksDataProvider.lastSyncTimestamp = "1234"
+        bookmarksDataProvider.updateSyncTimestamps(server: "1234", local: nil)
         bookmarksDataProvider._fetchChangedObjects = { _ in
             [.init(jsonObject: ["id": UUID().uuidString])]
         }
@@ -321,7 +320,7 @@ final class DDGSyncTests: XCTestCase {
 
     func testWhenSyncOperationIsCancelledThenCurrentOperationReturnsEarlyAndOtherScheduledOperationsDoNotEmitSyncStarted() {
         let dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
-        dataProvider.lastSyncTimestamp = "1234"
+        dataProvider.updateSyncTimestamps(server: "1234", local: nil)
         setUpDataProviderCallbacks(for: dataProvider)
         setUpExpectations(started: 2, fetch: 1, handleResponse: 1, finished: 2)
 
@@ -394,7 +393,7 @@ final class DDGSyncTests: XCTestCase {
 
     func testWhenSyncQueueIsResumedThenScheduledOperationStarts() {
         let dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
-        dataProvider.lastSyncTimestamp = "1234"
+        dataProvider.updateSyncTimestamps(server: "1234", local: nil)
         setUpDataProviderCallbacks(for: dataProvider)
 
         setUpExpectations(started: 1, fetch: 1, handleResponse: 1, finished: 1)
@@ -451,13 +450,13 @@ final class DDGSyncTests: XCTestCase {
 
     func testThatSyncOperationRequestReturningHTTP401CausesLoggingOutOfSync() {
         let dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
-        dataProvider.lastSyncTimestamp = "1234"
+        dataProvider.updateSyncTimestamps(server: "1234", local: nil)
         setUpDataProviderCallbacks(for: dataProvider)
         setUpExpectations(started: 1, fetch: 1, handleResponse: 0, finished: 1)
 
         dataProvidersSource.dataProviders = [dataProvider]
         (dependencies.api as! RemoteAPIRequestCreatingMock).fakeRequests = [:]
-        let http401Response = HTTPURLResponse(url: #URL("https://example.com"), statusCode: 401, httpVersion: nil, headerFields: [:])!
+        let http401Response = HTTPURLResponse(url: URL(string: "https://example.com")!, statusCode: 401, httpVersion: nil, headerFields: [:])!
         dependencies.request.result = HTTPResult(data: Data(), response: http401Response)
 
         let syncService = DDGSync(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
@@ -481,7 +480,7 @@ final class DDGSyncTests: XCTestCase {
 
     func testThatSyncOperationRequestThrowingHTTP401CausesLoggingOutOfSync() {
         let dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
-        dataProvider.lastSyncTimestamp = "1234"
+        dataProvider.updateSyncTimestamps(server: "1234", local: nil)
         setUpDataProviderCallbacks(for: dataProvider)
         setUpExpectations(started: 1, fetch: 1, handleResponse: 0, finished: 1)
 

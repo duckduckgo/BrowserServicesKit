@@ -18,13 +18,12 @@
 
 import Foundation
 import GRDB
-import Macros
 import SecureStorage
 
 @testable import BrowserServicesKit
 
 private extension URL {
-    static let duckduckgo = #URL("https://duckduckgo.com/")
+    static let duckduckgo = URL(string: "https://duckduckgo.com/")!
 }
 
 internal class MockAutofillDatabaseProvider: AutofillDatabaseProvider {
@@ -45,7 +44,7 @@ internal class MockAutofillDatabaseProvider: AutofillDatabaseProvider {
     }
 
     static func recreateDatabase(withKey key: Data) throws -> Self {
-        return try MockAutofillDatabaseProvider(file: #URL("https://duck.com"), key: Data()) as! Self
+        return try MockAutofillDatabaseProvider(file: URL(string: "https://duck.com")!, key: Data()) as! Self
     }
 
     func hasAccountFor(username: String?, domain: String?) throws -> Bool {
@@ -75,6 +74,12 @@ internal class MockAutofillDatabaseProvider: AutofillDatabaseProvider {
     func websiteAccountsForTopLevelDomain(_ eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount] {
         self._forDomain.append(eTLDplus1)
         return _accounts
+    }
+
+    func updateLastUsedForAccountId(_ accountId: Int64) throws {
+        if var account = _accounts.first(where: { $0.id == String(accountId) }) {
+            account.lastUsed = Date()
+        }
     }
 
     func deleteWebsiteCredentialsForAccountId(_ accountId: Int64) throws {
@@ -157,6 +162,10 @@ internal class MockAutofillDatabaseProvider: AutofillDatabaseProvider {
     }
 
     func modifiedWebsiteCredentials() throws -> [SecureVaultModels.SyncableCredentials] {
+        []
+    }
+
+    func modifiedSyncableCredentials(before date: Date) throws -> [SecureVaultModels.SyncableCredentials] {
         []
     }
 

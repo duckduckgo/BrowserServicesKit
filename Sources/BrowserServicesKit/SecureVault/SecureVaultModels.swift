@@ -50,6 +50,7 @@ public struct SecureVaultModels {
         public var notes: String?
         public let created: Date
         public let lastUpdated: Date
+        public var lastUsed: Date?
 
         public enum CommonTitlePatterns: String, CaseIterable {
             /*
@@ -64,7 +65,7 @@ public struct SecureVaultModels {
             case hostFromTitle = #"^(?:https?:\/\/?)?(?:www\.)?([^\s\/\?]+?\.[^\s\/\?]+)(?=\s*\(|\s*\/|\s*\?|$)"#
         }
 
-        public init(title: String? = nil, username: String?, domain: String?, signature: String? = nil, notes: String? = nil) {
+        public init(title: String? = nil, username: String?, domain: String?, signature: String? = nil, notes: String? = nil, lastUsed: Date? = nil) {
             self.id = nil
             self.title = title
             self.username = username
@@ -73,6 +74,7 @@ public struct SecureVaultModels {
             self.notes = notes
             self.created = Date()
             self.lastUpdated = self.created
+            self.lastUsed = lastUsed
         }
 
         public init(id: String,
@@ -82,7 +84,8 @@ public struct SecureVaultModels {
                     signature: String? = nil,
                     notes: String? = nil,
                     created: Date,
-                    lastUpdated: Date) {
+                    lastUpdated: Date,
+                    lastUsed: Date? = nil) {
             self.id = id
             self.title = title
             self.username = username
@@ -91,6 +94,7 @@ public struct SecureVaultModels {
             self.notes = notes
             self.created = created
             self.lastUpdated = lastUpdated
+            self.lastUsed = lastUsed
         }
 
         private var tld: String {
@@ -571,7 +575,7 @@ extension Array where Element == SecureVaultModels.WebsiteAccount {
         return urlComponents.eTLDplus1(tld: tld)
     }
 
-    // Last Updated > Alphabetical Domain > Alphabetical Username > Empty Usernames
+    // Last Used > Last Updated > Alphabetical Domain > Alphabetical Username > Empty Usernames
     private func compareAccount(_ account1: SecureVaultModels.WebsiteAccount, _ account2: SecureVaultModels.WebsiteAccount) -> Bool {
         let username1 = account1.username ?? ""
         let username2 = account2.username ?? ""
@@ -584,13 +588,40 @@ extension Array where Element == SecureVaultModels.WebsiteAccount {
             return false
         }
 
+        if let lastUsedComparisonResult = compareByLastUsed(account1: account1, account2: account2) {
+            return lastUsedComparisonResult
+        }
+
         if account1.lastUpdated.withoutTime != account2.lastUpdated.withoutTime {
             return account1.lastUpdated.withoutTime > account2.lastUpdated.withoutTime
         }
 
-        let domain1 = account1.domain ?? ""
-        let domain2 = account2.domain ?? ""
+        if let domainComparisonResult = compareByDomain(domain1: account1.domain ?? "", domain2: account2.domain ?? "") {
+            return domainComparisonResult
+        }
 
+        if !username1.isEmpty && !username2.isEmpty {
+            return username1 < username2
+        }
+
+        return false
+    }
+
+    private func compareByLastUsed(account1: SecureVaultModels.WebsiteAccount, account2: SecureVaultModels.WebsiteAccount) -> Bool? {
+        if account1.lastUsed != nil && account2.lastUsed == nil {
+            return true
+        } else if account1.lastUsed == nil && account2.lastUsed != nil {
+            return false
+        } else if let lastUsed1 = account1.lastUsed, let lastUsed2 = account2.lastUsed {
+            if lastUsed1 != lastUsed2 {
+                return lastUsed1 > lastUsed2
+            }
+        }
+
+        return nil
+    }
+
+    private func compareByDomain(domain1: String, domain2: String) -> Bool? {
         if !domain1.isEmpty && domain2.isEmpty {
             return true
         }
@@ -603,11 +634,7 @@ extension Array where Element == SecureVaultModels.WebsiteAccount {
             return domain1 < domain2
         }
 
-        if !username1.isEmpty && !username2.isEmpty {
-            return username1 < username2
-        }
-
-        return false
+        return nil
     }
 
     // Receives a sorted Array, and removes duplicate based signatures

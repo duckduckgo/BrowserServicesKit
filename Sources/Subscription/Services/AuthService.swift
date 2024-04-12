@@ -18,7 +18,6 @@
 
 import Common
 import Foundation
-import Macros
 
 public struct AuthService: APIService {
 
@@ -30,9 +29,9 @@ public struct AuthService: APIService {
     public static var baseURL: URL {
         switch SubscriptionPurchaseEnvironment.currentServiceEnvironment {
         case .production:
-            #URL("https://quack.duckduckgo.com/api/auth")
+            URL(string: "https://quack.duckduckgo.com/api/auth")!
         case .staging:
-            #URL("https://quackdev.duckduckgo.com/api/auth")
+            URL(string: "https://quackdev.duckduckgo.com/api/auth")!
         }
     }
 
@@ -64,12 +63,6 @@ public struct AuthService: APIService {
             enum CodingKeys: String, CodingKey {
                 case email, entitlements, externalID = "externalId" // no underscores due to keyDecodingStrategy = .convertFromSnakeCase
             }
-        }
-
-        struct Entitlement: Decodable {
-            let id: Int
-            let name: String
-            let product: String
         }
     }
     // swiftlint:enable nesting

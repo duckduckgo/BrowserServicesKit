@@ -25,6 +25,8 @@ public protocol NetworkProtectionLocationListRepository {
 
 final public class NetworkProtectionLocationListCompositeRepository: NetworkProtectionLocationListRepository {
     @MainActor private static var locationList: [NetworkProtectionLocation] = []
+    @MainActor private static var cacheTimestamp = Date()
+    private static let cacheValidity = TimeInterval(60) // Refreshes at most once per minute
     private let client: NetworkProtectionClient
     private let tokenStore: NetworkProtectionTokenStore
     private let errorEvents: EventMapping<NetworkProtectionError>
@@ -54,7 +56,7 @@ final public class NetworkProtectionLocationListCompositeRepository: NetworkProt
 
     @MainActor
     public func fetchLocationList() async throws -> [NetworkProtectionLocation] {
-        guard Self.locationList.isEmpty else {
+        guard !canUseCache else {
             return Self.locationList
         }
         do {
@@ -62,6 +64,7 @@ final public class NetworkProtectionLocationListCompositeRepository: NetworkProt
                 throw NetworkProtectionError.noAuthTokenFound
             }
             Self.locationList = try await client.getLocations(authToken: authToken).get()
+            Self.cacheTimestamp = Date()
         } catch let error as NetworkProtectionErrorConvertible {
             errorEvents.fire(error.networkProtectionError)
             throw error.networkProtectionError
@@ -77,7 +80,12 @@ final public class NetworkProtectionLocationListCompositeRepository: NetworkProt
     }
 
     @MainActor
-    static func clearCache() {
+    private var canUseCache: Bool {
+        !Self.locationList.isEmpty && Date().timeIntervalSince(Self.cacheTimestamp) < Self.cacheValidity
+    }
+
+    @MainActor
+    public static func clearCache() {
         locationList = []
     }
 }

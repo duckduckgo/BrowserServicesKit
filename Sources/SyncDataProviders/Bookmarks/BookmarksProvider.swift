@@ -37,15 +37,31 @@ public final class BookmarksProvider: DataProvider {
         database: CoreDataDatabase,
         metadataStore: SyncMetadataStore,
         metricsEvents: EventMapping<MetricsEvent>? = nil,
+        log: @escaping @autoclosure () -> OSLog = .disabled,
         syncDidUpdateData: @escaping () -> Void,
         syncDidFinish: @escaping (FaviconsFetcherInput?) -> Void
     ) {
         self.database = database
         self.metricsEvents = metricsEvents
-        super.init(feature: .init(name: "bookmarks"), metadataStore: metadataStore, syncDidUpdateData: syncDidUpdateData)
+        super.init(feature: .init(name: "bookmarks"), metadataStore: metadataStore, log: log(), syncDidUpdateData: syncDidUpdateData)
         self.syncDidFinish = { [weak self] in
             syncDidFinish(self?.faviconsFetcherInput)
         }
+    }
+
+    public override func fetchDescriptionsForObjectsThatFailedValidation() -> [String] {
+        guard let lastSyncLocalTimestamp else {
+            return []
+        }
+
+        let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        var titles: [String] = []
+
+        context.performAndWait {
+            titles = BookmarkUtils.fetchTitlesForBookmarks(modifiedBefore: lastSyncLocalTimestamp, in: context)
+        }
+        return titles
     }
 
     // MARK: - DataProviding
@@ -82,7 +98,22 @@ public final class BookmarksProvider: DataProvider {
         let encryptionKey = try crypter.fetchSecretKey()
         context.performAndWait {
             let bookmarks = BookmarkUtils.fetchModifiedBookmarks(context)
-            syncableBookmarks = bookmarks.compactMap { try? Syncable(bookmark: $0, encryptedUsing: { try crypter.encryptAndBase64Encode($0, using: encryptionKey)}) }
+            syncableBookmarks = bookmarks.compactMap { bookmarkEntity in
+                do {
+                    return try Syncable(bookmark: bookmarkEntity, encryptedUsing: { try crypter.encryptAndBase64Encode($0, using: encryptionKey)})
+                } catch {
+                    if case Syncable.SyncableBookmarkError.validationFailed = error {
+                        os_log(
+                            .error,
+                            log: log,
+                            "Validation failed for bookmark %{private}s with title: %{private}s",
+                            bookmarkEntity.uuid ?? "",
+                            bookmarkEntity.title.flatMap { String($0.prefix(100)) } ?? ""
+                        )
+                    }
+                    return nil
+                }
+            }
         }
         return syncableBookmarks
     }
@@ -148,8 +179,10 @@ public final class BookmarksProvider: DataProvider {
         }
 
         if let serverTimestamp {
-            lastSyncTimestamp = serverTimestamp
+            updateSyncTimestamps(server: serverTimestamp, local: clientTimestamp)
             syncDidUpdateData()
+        } else {
+            lastSyncLocalTimestamp = clientTimestamp
         }
         syncDidFinish()
     }

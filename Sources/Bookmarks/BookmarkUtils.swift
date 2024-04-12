@@ -59,11 +59,23 @@ public struct BookmarkUtils {
     public static func fetchOrphanedEntities(_ context: NSManagedObjectContext) -> [BookmarkEntity] {
         let request = BookmarkEntity.fetchRequest()
         request.predicate = NSPredicate(
-            format: "NOT %K IN %@ AND %K == NO AND %K == nil",
+            format: "NOT %K IN %@ AND %K == NO AND (%K == NO OR %K == nil) AND %K == nil",
             #keyPath(BookmarkEntity.uuid),
             BookmarkEntity.Constants.favoriteFoldersIDs.union([BookmarkEntity.Constants.rootFolderID]),
             #keyPath(BookmarkEntity.isPendingDeletion),
+            #keyPath(BookmarkEntity.isStub), #keyPath(BookmarkEntity.isStub),
             #keyPath(BookmarkEntity.parent)
+        )
+        request.sortDescriptors = [NSSortDescriptor(key: #keyPath(BookmarkEntity.uuid), ascending: true)]
+        request.returnsObjectsAsFaults = false
+
+        return (try? context.fetch(request)) ?? []
+    }
+
+    public static func fetchStubbedEntities(_ context: NSManagedObjectContext) -> [BookmarkEntity] {
+        let request = BookmarkEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "%K == YES",
+                                        #keyPath(BookmarkEntity.isStub)
         )
         request.sortDescriptors = [NSSortDescriptor(key: #keyPath(BookmarkEntity.uuid), ascending: true)]
         request.returnsObjectsAsFaults = false
@@ -117,13 +129,14 @@ public struct BookmarkUtils {
 
     public static func fetchAllBookmarksUUIDs(in context: NSManagedObjectContext) -> [String] {
         let request = NSFetchRequest<NSFetchRequestResult>(entityName: "BookmarkEntity")
-        request.predicate = NSPredicate(format: "%K == NO AND %K == NO",
+        request.predicate = NSPredicate(format: "%K == NO AND %K == NO AND (%K == NO OR %K == nil)",
                                         #keyPath(BookmarkEntity.isFolder),
-                                        #keyPath(BookmarkEntity.isPendingDeletion))
+                                        #keyPath(BookmarkEntity.isPendingDeletion),
+                                        #keyPath(BookmarkEntity.isStub), #keyPath(BookmarkEntity.isStub))
         request.resultType = .dictionaryResultType
         request.propertiesToFetch = [#keyPath(BookmarkEntity.uuid)]
 
-        let result = (try? context.fetch(request) as? [Dictionary<String, Any>]) ?? []
+        let result = (try? context.fetch(request) as? [[String: Any]]) ?? []
         return result.compactMap { $0[#keyPath(BookmarkEntity.uuid)] as? String }
     }
 
@@ -131,10 +144,11 @@ public struct BookmarkUtils {
                                      predicate: NSPredicate = NSPredicate(value: true),
                                      context: NSManagedObjectContext) -> BookmarkEntity? {
         let request = BookmarkEntity.fetchRequest()
-        let urlPredicate = NSPredicate(format: "%K == %@ AND %K == NO",
+        let urlPredicate = NSPredicate(format: "%K == %@ AND %K == NO AND (%K == NO OR %K == nil)",
                                        #keyPath(BookmarkEntity.url),
                                        url.absoluteString,
-                                       #keyPath(BookmarkEntity.isPendingDeletion))
+                                       #keyPath(BookmarkEntity.isPendingDeletion),
+                                       #keyPath(BookmarkEntity.isStub), #keyPath(BookmarkEntity.isStub))
         request.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [urlPredicate, predicate])
         request.returnsObjectsAsFaults = false
         request.fetchLimit = 1
@@ -144,16 +158,30 @@ public struct BookmarkUtils {
 
     public static func fetchBookmarksPendingDeletion(_ context: NSManagedObjectContext) -> [BookmarkEntity] {
         let request = BookmarkEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "%K == YES", #keyPath(BookmarkEntity.isPendingDeletion))
+        request.predicate = NSPredicate(format: "%K == YES AND (%K == NO OR %K == nil)",
+                                        #keyPath(BookmarkEntity.isPendingDeletion),
+                                        #keyPath(BookmarkEntity.isStub), #keyPath(BookmarkEntity.isStub))
 
         return (try? context.fetch(request)) ?? []
     }
 
     public static func fetchModifiedBookmarks(_ context: NSManagedObjectContext) -> [BookmarkEntity] {
         let request = BookmarkEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "%K != nil", #keyPath(BookmarkEntity.modifiedAt))
+        request.predicate = NSPredicate(format: "%K != nil AND (%K == NO OR %K == nil)",
+                                        #keyPath(BookmarkEntity.modifiedAt),
+                                        #keyPath(BookmarkEntity.isStub), #keyPath(BookmarkEntity.isStub))
 
         return (try? context.fetch(request)) ?? []
+    }
+
+    public static func fetchTitlesForBookmarks(modifiedBefore date: Date, in context: NSManagedObjectContext) -> [String] {
+        let request = NSFetchRequest<NSFetchRequestResult>(entityName: "BookmarkEntity")
+        request.predicate = NSPredicate(format: "%K < %@", #keyPath(BookmarkEntity.modifiedAt), date as NSDate)
+        request.resultType = .dictionaryResultType
+        request.propertiesToFetch = [#keyPath(BookmarkEntity.title)]
+
+        let result = (try? context.fetch(request) as? [[String: Any]]) ?? []
+        return result.compactMap { $0[#keyPath(BookmarkEntity.title)] as? String }
     }
 
     // MARK: Internal
