@@ -29,13 +29,11 @@ public struct NetworkProtectionServerInfo: Codable, Equatable, Sendable {
         public let city: String
         public let country: String
         public let state: String
-        public let timezoneOffset: Int
 
         enum CodingKeys: String, CodingKey {
             case city
             case country
             case state
-            case timezoneOffset = "tzOffset"
         }
     }
 
