@@ -559,11 +559,10 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
 
             let finishedNavigationAction: NavigationAction? = {
                 guard let navigation = wkNavigation?.navigation else { return nil }
-                if navigation.state == .finished, navigation.navigationActions.isEmpty == false {
+                if navigation.state == .finished || navigation.state.isFailed, navigation.navigationActions.isEmpty == false {
                     // about: scheme navigation for `<a target='_blank'>` duplicates didStart/didCommit/didFinish events with the same WKNavigation
                     return navigation.navigationAction
                 } else {
-                    assert(webView.url?.isEmpty ?? true, "please report which steps you took to reach this state")
                     // we‘ll get here when allowing to open a new window with an empty URL (`window.open()`) from a permission context menu
                     return nil
                 }
