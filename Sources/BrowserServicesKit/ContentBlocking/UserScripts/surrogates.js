@@ -19,7 +19,6 @@
 
 (function () {
 
-    let ctlEnabled = true;
     let ctlSurrogates = ['fb-sdk.js']
 
     const duckduckgoDebugMessaging = (function () {
@@ -48,7 +47,7 @@
 
     async function isCTLEnabled () {
         try {
-            const response = await webkit.messageHandlers.isCTLEnabled.postMessage('ctlFB') // message body required but ignored
+            const response = await webkit.messageHandlers.isCTLEnabled.postMessage('') // message body required but ignored
             return response
         } catch (error) {
             // webkit might not be defined
@@ -516,10 +515,10 @@
         // if a CTL surrogate, check if CTL is enabled first otherwise continue immediately
         const promise = isCTLSurrogate ? isCTLEnabled() : Promise.resolve(true)
 
-        return promise.then ((ctlEnabled) => {
+        return promise.then ((surrogateEnabled) => {
             // Tracker blocking is dealt with by content rules
             // Only handle surrogates here
-            if (blocked && isSurrogate && !isTrackerAllowlisted(topLevelUrl, trackerUrl) && ctlEnabled) {
+            if (blocked && isSurrogate && !isTrackerAllowlisted(topLevelUrl, trackerUrl) && surrogateEnabled) {
                 // Remove error handlers on the original element
                 if (element && element.onerror) {
                     element.onerror = () => {}
