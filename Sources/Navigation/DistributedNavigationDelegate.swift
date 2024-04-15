@@ -559,7 +559,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
 
             let finishedNavigationAction: NavigationAction? = {
                 guard let navigation = wkNavigation?.navigation else { return nil }
-                if navigation.state == .finished, navigation.navigationActions.isEmpty == false  {
+                if navigation.state == .finished, navigation.navigationActions.isEmpty == false {
                     // about: scheme navigation for `<a target='_blank'>` duplicates didStart/didCommit/didFinish events with the same WKNavigation
                     return navigation.navigationAction
                 } else {
@@ -582,7 +582,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
                                         targetFrame: finishedNavigationAction?.targetFrame ?? .mainFrame(for: webView),
                                         shouldDownload: false,
                                         mainFrameNavigation: navigation)
-            }()            
+            }()
             navigation.navigationActionReceived(navigationAction)
             navigation.willStart()
         }
