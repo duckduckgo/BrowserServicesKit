@@ -52,10 +52,9 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
         }
     }
 
-    init(keychainService: KeychainService = DefaultKeychainService(), log: @escaping @autoclosure () -> OSLog = .disabled, errorReporter: SecureVaultErrorReporting?) {
+    init(keychainService: KeychainService = DefaultKeychainService(), log: @escaping @autoclosure () -> OSLog = .disabled) {
         self.keychainService = keychainService
         self.getLog = log
-        self.errorReporter = errorReporter
     }
 
     let keychainService: KeychainService
@@ -98,12 +97,12 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
             guard let entryName = EntryName.entryName(from: name) else { return nil }
 
             // Look for items based on older EntryName attributes (pre-bundle-specifc Keychain storage)
-            if let data = try? migrateEntry(entryName: entryName, serviceName: keychainServiceName) {
+            if let data = try migrateEntry(entryName: entryName, serviceName: keychainServiceName) {
                 try writeData(data, named: name, serviceName: keychainServiceName)
                 os_log("Migrated non-bundle specific Autofill Keystore data", log: .autofill)
                 return data
             // Look for items in pre-V2 vault
-            } else if serviceName == Constants.defaultServiceName, let data = try? migrateEntry(entryName: entryName, serviceName: Constants.legacyServiceName) {
+            } else if serviceName == Constants.defaultServiceName, let data = try migrateEntry(entryName: entryName, serviceName: Constants.legacyServiceName) {
                 try writeData(data, named: name, serviceName: keychainServiceName)
                 os_log("Migrated V1 Autofill Keystore data", log: .autofill)
                 return data
@@ -155,14 +154,10 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
     ///   - serviceName: Service name to use when querying Keychain for the entry
     /// - Returns: Optional data
     private func migrateEntry(entryName: EntryName, serviceName: String) throws -> Data? {
-        do {
-            guard let key = try read(named: entryName.rawValue, serviceName: serviceName) else {
-                return nil
-            }
-            return key
-        } catch {
+        guard let key = try read(named: entryName.rawValue, serviceName: serviceName) else {
             return nil
         }
+        return key
     }
 
     // MARK: - Autofill Attributes
