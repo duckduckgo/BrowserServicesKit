@@ -193,6 +193,15 @@ public struct NavigationPreferences: Equatable {
     }
 
     public static let `default` = NavigationPreferences(userAgent: nil, contentMode: .recommended, javaScriptEnabled: true)
+#if _WEBPAGE_PREFS_AUTOPLAY_POLICY_ENABLED
+    public static var autoplayPolicySupported: Bool {
+        WKWebpagePreferences.autoplayPolicySupported
+    }
+
+    public var autoplayPolicy: Int?
+#else
+    public static var autoplayPolicySupported: Bool { false }
+#endif
 
 #if _WEBPAGE_PREFS_CUSTOM_HEADERS_ENABLED
     public static var customHeadersSupported: Bool {
@@ -217,6 +226,11 @@ public struct NavigationPreferences: Equatable {
         } else {
             self.javaScriptEnabledValue = true
         }
+#if _WEBPAGE_PREFS_AUTOPLAY_POLICY_ENABLED
+        if Self.autoplayPolicySupported {
+            self.autoplayPolicy = preferences.autoplayPolicy
+        }
+#endif
 #if _WEBPAGE_PREFS_CUSTOM_HEADERS_ENABLED
         if Self.customHeadersSupported {
             self.customHeaders = preferences.customHeaderFields
@@ -229,6 +243,11 @@ public struct NavigationPreferences: Equatable {
         if #available(macOS 11.0, iOS 14.0, *) {
             preferences.allowsContentJavaScript = javaScriptEnabled
         }
+#if _WEBPAGE_PREFS_AUTOPLAY_POLICY_ENABLED
+        if Self.autoplayPolicySupported {
+            preferences.autoplayPolicy = autoplayPolicy
+        }
+#endif
 #if _WEBPAGE_PREFS_CUSTOM_HEADERS_ENABLED
         if Self.customHeadersSupported, let customHeaders = customHeaders {
             preferences.customHeaderFields = customHeaders

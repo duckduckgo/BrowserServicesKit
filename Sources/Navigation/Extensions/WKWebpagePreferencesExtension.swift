@@ -21,6 +21,32 @@ import WebKit
 
 extension WKWebpagePreferences {
 
+#if _WEBPAGE_PREFS_AUTOPLAY_POLICY_ENABLED
+
+    private static let autoplayPolicyKey = "autoplayPolicy"
+
+    public static var autoplayPolicySupported: Bool {
+        self.instancesRespond(to: NSSelectorFromString("_" + Self.autoplayPolicyKey))
+        || self.instancesRespond(to: NSSelectorFromString(Self.autoplayPolicyKey))
+    }
+
+    /// used to add custom request headers to `WKNavigationAction` before the request is sent
+    public var autoplayPolicy: Int? {
+        get {
+            guard Self.autoplayPolicySupported else { return nil }
+            return value(forKey: Self.autoplayPolicyKey) as? Int
+        }
+        set {
+            guard Self.autoplayPolicySupported else {
+                assertionFailure("custom header fields not supported")
+                return
+            }
+            setValue(newValue, forKey: Self.autoplayPolicyKey)
+        }
+    }
+
+#endif
+
 #if _WEBPAGE_PREFS_CUSTOM_HEADERS_ENABLED
 
     private static let customHeaderFieldsKey = "customHeaderFields"
