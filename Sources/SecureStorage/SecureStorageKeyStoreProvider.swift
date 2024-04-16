@@ -43,6 +43,12 @@ public struct DefaultKeychainService: KeychainService {
     public init() {}
 }
 
+public enum SecureStorageKeyStoreEvent {
+    case l1KeyMigration
+    case l2KeyMigration
+    case l2KeyPasswordMigration
+}
+
 public protocol SecureStorageKeyStoreProvider {
 
     var keychainService: KeychainService { get }
