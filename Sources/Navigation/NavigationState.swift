@@ -58,6 +58,10 @@ public enum NavigationState: Equatable, Comparable {
         return false
     }
 
+    public var isCompleted: Bool {
+        isFinished || isFailed
+    }
+
     // swiftlint:disable:next cyclomatic_complexity
     public static func == (lhs: NavigationState, rhs: NavigationState) -> Bool {
         switch lhs {

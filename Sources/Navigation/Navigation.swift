@@ -81,7 +81,7 @@ public final class Navigation {
 
     /// is Finished or Failed
     public var isCompleted: Bool {
-        return state.isFinished || state.isFailed
+        return state.isCompleted
     }
 
     internal var hasReceivedNavigationAction: Bool {
