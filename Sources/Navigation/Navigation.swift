@@ -16,6 +16,7 @@
 //  limitations under the License.
 //
 
+import Combine
 import Common
 import Foundation
 import WebKit
@@ -31,7 +32,7 @@ public final class Navigation {
     /// Is the navigation currently loaded in the WebView
     private(set) public var isCurrent: Bool
 
-    public fileprivate(set) var state: NavigationState
+    @Published public fileprivate(set) var state: NavigationState
     public private(set) var isCommitted: Bool = false
     public private(set) var didReceiveAuthenticationChallenge: Bool = false
 
