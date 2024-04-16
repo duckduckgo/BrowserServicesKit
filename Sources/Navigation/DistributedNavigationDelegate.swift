@@ -540,15 +540,27 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
     @MainActor
     public func webView(_ webView: WKWebView, didStartProvisionalNavigation wkNavigation: WKNavigation?) {
         var navigation: Navigation
+
+        lazy var finishedNavigationAction: NavigationAction? = {
+            guard let navigation = wkNavigation?.navigation else { return nil }
+            if navigation.isCompleted, navigation.hasReceivedNavigationAction {
+                // about: scheme navigation for `<a target='_blank'>` duplicates didStart/didCommit/didFinish events with the same WKNavigation
+                return navigation.navigationAction
+            } else {
+                // we‘ll get here when allowing to open a new window with an empty URL (`window.open()`) from a permission context menu
+                return nil
+            }
+        }()
+
         if let approvedNavigation = wkNavigation?.navigation,
-           approvedNavigation.state == .approved, approvedNavigation.navigationActions.isEmpty == false {
+           approvedNavigation.state == .approved, approvedNavigation.hasReceivedNavigationAction {
             // rely on the associated Navigation that is in the correct state
             navigation = approvedNavigation
 
         } else if let expectedNavigation = navigationExpectedToStart,
                   wkNavigation != nil
                     || expectedNavigation.navigationAction.navigationType == .sessionRestoration
-                    || expectedNavigation.navigationAction.url.scheme.map(URL.NavigationalScheme.init) == .about {
+                    || expectedNavigation.navigationAction.url.navigationalScheme == .about {
 
             // regular flow: start .expected navigation
             navigation = expectedNavigation
@@ -557,16 +569,6 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
             // make a new Navigation object for unexpected navigations (that didn‘t receive corresponding `decidePolicyForNavigationAction`)
             navigation = Navigation(identity: NavigationIdentity(wkNavigation), responders: responders, state: .expected(nil), isCurrent: true)
 
-            let finishedNavigationAction: NavigationAction? = {
-                guard let navigation = wkNavigation?.navigation else { return nil }
-                if navigation.state == .finished || navigation.state.isFailed, navigation.navigationActions.isEmpty == false {
-                    // about: scheme navigation for `<a target='_blank'>` duplicates didStart/didCommit/didFinish events with the same WKNavigation
-                    return navigation.navigationAction
-                } else {
-                    // we‘ll get here when allowing to open a new window with an empty URL (`window.open()`) from a permission context menu
-                    return nil
-                }
-            }()
             let navigationAction: NavigationAction = {
                 if wkNavigation == nil, webView.url?.isEmpty == false {
                     // loading error page

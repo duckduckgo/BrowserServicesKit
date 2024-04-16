@@ -83,6 +83,10 @@ public final class Navigation {
         return state.isFinished || state.isFailed
     }
 
+    internal var hasReceivedNavigationAction: Bool {
+        navigationActions.isEmpty == false
+    }
+
 }
 
 public protocol NavigationProtocol: AnyObject {
