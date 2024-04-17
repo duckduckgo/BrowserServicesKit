@@ -19,11 +19,66 @@
 import Foundation
 import SecureStorage
 
+
+public final class MockKeychainService: KeychainService {
+
+    public enum Mode {
+        case nothingFound
+        case bundleSpecificFound
+        case nonBundleSpecificFound
+        case v1Found
+    }
+
+    public var latestAddQuery: [String: Any] = [:]
+    public var latestItemMatchingQuery: [String: Any] = [:]
+    public var itemMatchingCallCount = 0
+    public var addCallCount = 0
+
+    public var mode: Mode = .nothingFound
+
+    public init() {}
+
+    public func itemMatching(_ query: [String: Any], _ result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus {
+        itemMatchingCallCount += 1
+        latestItemMatchingQuery = query
+
+        switch mode {
+        case .nothingFound:
+            return errSecItemNotFound
+        case .bundleSpecificFound:
+            return errSecSuccess
+        case .nonBundleSpecificFound:
+            if itemMatchingCallCount == 2 {
+                return errSecSuccess
+            } else {
+                return errSecItemNotFound
+            }
+        case .v1Found:
+            if itemMatchingCallCount == 3 {
+                return errSecSuccess
+            } else {
+                return errSecItemNotFound
+            }
+        }
+    }
+
+    public func add(_ query: [String: Any], _ result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus {
+        latestAddQuery = query
+        addCallCount += 1
+        return errSecSuccess
+    }
+
+    public func delete(_ query: [String: Any]) -> OSStatus {
+        return errSecSuccess
+    }
+}
+
 public class MockKeystoreProvider: SecureStorageKeyStoreProvider {
 
     public init() {}
 
     // swiftlint:disable identifier_name
+    public let keychainService: SecureStorage.KeychainService = MockKeychainService()
     public var _l1Key: Data?
     public var _encryptedL2Key: Data?
     public var _generatedPassword: Data?
