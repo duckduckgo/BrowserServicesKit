@@ -49,7 +49,7 @@ public protocol NetworkProtectionDeviceManagement {
                                      includedRoutes: [IPAddressRange],
                                      excludedRoutes: [IPAddressRange],
                                      isKillSwitchEnabled: Bool,
-                                     regenerateKey: Bool) async throws -> (TunnelConfiguration, NetworkProtectionServerInfo)
+                                     regenerateKey: Bool) async throws -> (tunnelConfig: TunnelConfiguration, server: NetworkProtectionServer)
 
 }
 
@@ -118,7 +118,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
                                             includedRoutes: [IPAddressRange],
                                             excludedRoutes: [IPAddressRange],
                                             isKillSwitchEnabled: Bool,
-                                            regenerateKey: Bool) async throws -> (TunnelConfiguration, NetworkProtectionServerInfo) {
+                                            regenerateKey: Bool) async throws -> (tunnelConfig: TunnelConfiguration, server: NetworkProtectionServer) {
         var keyPair: KeyPair
 
         if regenerateKey {
@@ -156,7 +156,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
                                                         includedRoutes: includedRoutes,
                                                         excludedRoutes: excludedRoutes,
                                                         isKillSwitchEnabled: isKillSwitchEnabled)
-            return (configuration, selectedServer.serverInfo)
+            return (configuration, selectedServer)
         } catch let error as NetworkProtectionError {
             errorEvents?.fire(error)
             throw error
