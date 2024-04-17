@@ -145,7 +145,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             }
 
             if case .connected = connectionStatus {
-                self.notificationsPresenter.showConnectedNotification(serverLocation: lastSelectedServerInfo?.serverLocation)
+                self.notificationsPresenter.showConnectedNotification(serverLocation: lastSelectedServer?.serverInfo.serverLocation)
             }
 
             handleConnectionStatusChange(old: oldValue, new: connectionStatus)
@@ -167,10 +167,14 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Server Selection
 
-    public var lastSelectedServerInfo: NetworkProtectionServerInfo? {
+    private var lastSelectedServer: NetworkProtectionServer? {
         didSet {
-            lastSelectedServerInfoPublisher.send(lastSelectedServerInfo)
+            lastSelectedServerInfoPublisher.send(lastSelectedServer?.serverInfo)
         }
+    }
+
+    public var lastSelectedServerInfo: NetworkProtectionServerInfo? {
+        lastSelectedServer?.serverInfo
     }
 
     public let lastSelectedServerInfoPublisher = CurrentValueSubject<NetworkProtectionServerInfo?, Never>(nil)
