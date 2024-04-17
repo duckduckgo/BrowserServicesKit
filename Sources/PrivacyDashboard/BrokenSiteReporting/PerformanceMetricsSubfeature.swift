@@ -24,7 +24,7 @@ public class PerformanceMetricsSubfeature: Subfeature {
 
     public var messageOriginPolicy: MessageOriginPolicy = .all
     public var featureName: String = "performanceMetrics"
-    public var broker: UserScriptMessageBroker?
+    public weak var broker: UserScriptMessageBroker?
 
     private weak var targetWebview: WKWebView?
     private var timer: Timer?
