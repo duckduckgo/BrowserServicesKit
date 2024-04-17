@@ -19,7 +19,6 @@
 import Foundation
 import SecureStorage
 
-
 public final class MockKeychainService: KeychainService {
 
     public enum Mode {
@@ -47,12 +46,12 @@ public final class MockKeychainService: KeychainService {
             let data = originalString.data(using: .utf8)!
             let encodedString = data.base64EncodedString()
             let mockResult = encodedString.data(using: .utf8)! as CFData
-            
+
             if let result = result {
                 result.pointee = mockResult
             }
         }
-        
+
         switch mode {
         case .nothingFound:
             return errSecItemNotFound
