@@ -34,6 +34,21 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
         case l1Key = "79963A16-4E3A-464C-B01A-9774B3F695F1"
         case l2Key = "A5711F4D-7AA5-4F0C-9E4F-BE553F1EA299"
 
+        // `keyValue` should be used as Keychain Account names, as app variants (e.g App Store, DMG) should have separate entries
+        var keyValue: String {
+            (Bundle.main.bundleIdentifier ?? "com.duckduckgo") + rawValue
+        }
+
+        static func entryName(from keyValue: String) -> EntryName? {
+            if keyValue == EntryName.generatedPassword.keyValue {
+                return .generatedPassword
+            } else if keyValue == EntryName.l1Key.keyValue {
+                return .l1Key
+            } else if keyValue == EntryName.l2Key.keyValue {
+                return .l2Key
+            }
+            return nil
+        }
     }
 
     let keychainService: KeychainService
@@ -47,18 +62,52 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
     }
 
     var generatedPasswordEntryName: String {
-        return EntryName.generatedPassword.rawValue
+        return EntryName.generatedPassword.keyValue
     }
 
     var l1KeyEntryName: String {
-        return EntryName.l1Key.rawValue
+        return EntryName.l1Key.keyValue
     }
 
     var l2KeyEntryName: String {
-        return EntryName.l2Key.rawValue
+        return EntryName.l2Key.keyValue
     }
 
     func readData(named name: String, serviceName: String = Constants.defaultServiceName) throws -> Data? {
+        try readOrMigrate(named: name, serviceName: serviceName)
+    }
+
+    /// Attempts to read data using default query, and if not found attempts to find data using older queries and migrate it using latest storage attributes
+    /// - Parameters:
+    ///   - name: Query account name
+    ///   - serviceName: Query service name
+    /// - Returns: Optional data
+    private func readOrMigrate(named name: String, serviceName: String) throws -> Data? {
+        if let data = try read(named: name, serviceName: serviceName) {
+            return data
+        } else {
+            guard let entryName = EntryName.entryName(from: name) else { return nil }
+
+            // Look for items based on older EntryName attributes (pre-bundle-specifc Keychain storage)
+            if let data = try migrateEntry(entryName: entryName, serviceName: keychainServiceName) {
+                try writeData(data, named: name, serviceName: keychainServiceName)
+                return data
+            // Look for items in pre-V2 vault
+            } else if serviceName == Constants.defaultServiceName, let data = try migrateEntry(entryName: entryName, serviceName: Constants.legacyServiceName) {
+                try writeData(data, named: name, serviceName: keychainServiceName)
+                return data
+            }
+
+            return nil
+        }
+    }
+
+    /// Attempts to read data using default query, and if not found, returns nil
+    /// - Parameters:
+    ///   - name: Query account name
+    ///   - serviceName: Query service name
+    /// - Returns: Optional data
+    private func read(named name: String, serviceName: String) throws -> Data? {
         var query = attributesForEntry(named: name, serviceName: serviceName)
         query[kSecReturnData as String] = true
         query[kSecAttrService as String] = serviceName
@@ -83,28 +132,22 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
             }
 
         case errSecItemNotFound:
-
-            // Look for an older key and try to migrate
-            if serviceName == Constants.defaultServiceName {
-                return try? migrateV1Key(name: name)
-            }
             return nil
-
         default:
             throw SecureStorageError.keystoreError(status: status)
         }
     }
 
-    private func migrateV1Key(name: String) throws -> Data? {
-        do {
-            guard let v1Key = try readData(named: name, serviceName: Constants.legacyServiceName) else {
-                return nil
-            }
-            try writeData(v1Key, named: name, serviceName: keychainServiceName)
-            return v1Key
-        } catch {
+    /// Migrates an entry to new bundle-specific Keychain storage
+    /// - Parameters:
+    ///   - entryName: Entry to migrate. It's `rawValue` is used when reading from old storage, and it's `keyValue` is used when writing to storage
+    ///   - serviceName: Service name to use when querying Keychain for the entry
+    /// - Returns: Optional data
+    private func migrateEntry(entryName: EntryName, serviceName: String) throws -> Data? {
+        guard let key = try read(named: entryName.rawValue, serviceName: serviceName) else {
             return nil
         }
+        return key
     }
 
     // MARK: - Autofill Attributes

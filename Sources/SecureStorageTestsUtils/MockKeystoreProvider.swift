@@ -42,19 +42,33 @@ public final class MockKeychainService: KeychainService {
         itemMatchingCallCount += 1
         latestItemMatchingQuery = query
 
+        func setResult() {
+            let originalString = "Mock Keychain data!"
+            let data = originalString.data(using: .utf8)!
+            let encodedString = data.base64EncodedString()
+            let mockResult = encodedString.data(using: .utf8)! as CFData
+            
+            if let result = result {
+                result.pointee = mockResult
+            }
+        }
+        
         switch mode {
         case .nothingFound:
             return errSecItemNotFound
         case .bundleSpecificFound:
+            setResult()
             return errSecSuccess
         case .nonBundleSpecificFound:
             if itemMatchingCallCount == 2 {
+                setResult()
                 return errSecSuccess
             } else {
                 return errSecItemNotFound
             }
         case .v1Found:
             if itemMatchingCallCount == 3 {
+                setResult()
                 return errSecSuccess
             } else {
                 return errSecItemNotFound
