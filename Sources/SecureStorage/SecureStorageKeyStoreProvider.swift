@@ -19,29 +19,29 @@
 import Foundation
 
 /// Conforming types provide methods which interact with the system Keychain. Mainly used to enable testing.
- public protocol KeychainService {
-     func itemMatching(_ query: [String: Any], _ result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus
-     func add(_ attributes: [String: Any], _ result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus
-     func delete(_ query: [String: Any]) -> OSStatus
- }
+public protocol KeychainService {
+    func itemMatching(_ query: [String: Any], _ result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus
+    func add(_ attributes: [String: Any], _ result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus
+    func delete(_ query: [String: Any]) -> OSStatus
+}
 
- public extension KeychainService {
-     func itemMatching(_ query: [String: Any], _ result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus {
-         SecItemCopyMatching(query as CFDictionary, result)
-     }
+public extension KeychainService {
+    func itemMatching(_ query: [String: Any], _ result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus {
+        SecItemCopyMatching(query as CFDictionary, result)
+    }
 
-     func add(_ query: [String: Any], _ result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus {
-         SecItemAdd(query as CFDictionary, nil)
-     }
+    func add(_ query: [String: Any], _ result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus {
+        SecItemAdd(query as CFDictionary, nil)
+    }
 
-     func delete(_ query: [String: Any]) -> OSStatus {
-         SecItemDelete(query as CFDictionary)
-     }
- }
+    func delete(_ query: [String: Any]) -> OSStatus {
+        SecItemDelete(query as CFDictionary)
+    }
+}
 
- public struct DefaultKeychainService: KeychainService {
-     public init() {}
- }
+public struct DefaultKeychainService: KeychainService {
+    public init() {}
+}
 
 public protocol SecureStorageKeyStoreProvider {
 
