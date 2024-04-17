@@ -809,7 +809,7 @@ extension DefaultAutofillDatabaseProvider {
         }
 
         let cryptoProvider: SecureStorageCryptoProvider = AutofillSecureVaultFactory.makeCryptoProvider()
-        let keyStoreProvider: SecureStorageKeyStoreProvider = AutofillSecureVaultFactory.makeKeyStoreProvider()
+        let keyStoreProvider: SecureStorageKeyStoreProvider = AutofillSecureVaultFactory.makeKeyStoreProvider(nil)
 
         // The initial version of the credit card model stored the credit card number as L1 data. This migration
         // updates it to store the full number as L2 data, and the suffix as L1 data for use with the Autofill
@@ -1014,7 +1014,7 @@ extension DefaultAutofillDatabaseProvider {
     static private func updatePasswordHashes(database: Database) throws {
         let accountRows = try Row.fetchCursor(database, sql: "SELECT * FROM \(SecureVaultModels.WebsiteAccount.databaseTableName)")
         let cryptoProvider: SecureStorageCryptoProvider = AutofillSecureVaultFactory.makeCryptoProvider()
-        let keyStoreProvider: SecureStorageKeyStoreProvider = AutofillSecureVaultFactory.makeKeyStoreProvider()
+        let keyStoreProvider: SecureStorageKeyStoreProvider = AutofillSecureVaultFactory.makeKeyStoreProvider(nil)
         let salt = cryptoProvider.hashingSalt
 
         while let accountRow = try accountRows.next() {

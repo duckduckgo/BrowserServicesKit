@@ -28,7 +28,7 @@ public final class CredentialsProvider: DataProvider {
 
     public init(
         secureVaultFactory: AutofillVaultFactory = AutofillSecureVaultFactory,
-        secureVaultErrorReporter: SecureVaultErrorReporting,
+        secureVaultErrorReporter: SecureVaultReporting,
         metadataStore: SyncMetadataStore,
         metricsEvents: EventMapping<MetricsEvent>? = nil,
         log: @escaping @autoclosure () -> OSLog = .disabled,
@@ -257,7 +257,7 @@ public final class CredentialsProvider: DataProvider {
     // MARK: - Private
 
     private let secureVaultFactory: AutofillVaultFactory
-    private let secureVaultErrorReporter: SecureVaultErrorReporting
+    private let secureVaultErrorReporter: SecureVaultReporting
     private let metricsEvents: EventMapping<MetricsEvent>?
 
     enum Const {

@@ -40,6 +40,17 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
             (Bundle.main.bundleIdentifier ?? "com.duckduckgo") + rawValue
         }
 
+        var keyStoreMigrationEvent: SecureStorageKeyStoreEvent {
+            switch self {
+            case .l1Key:
+                return .l1KeyMigration
+            case .l2Key:
+                return .l2KeyMigration
+            case .generatedPassword:
+                return .l2KeyPasswordMigration
+            }
+        }
+
         static func entryName(from keyValue: String) -> EntryName? {
             if keyValue == EntryName.generatedPassword.keyValue {
                 return .generatedPassword
@@ -57,10 +68,14 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
     private var log: OSLog {
         getLog()
     }
+    private var reporter: SecureVaultReporting?
 
-    init(keychainService: KeychainService = DefaultKeychainService(), log: @escaping @autoclosure () -> OSLog = .disabled) {
+    init(keychainService: KeychainService = DefaultKeychainService(),
+         log: @escaping @autoclosure () -> OSLog = .disabled,
+         reporter: SecureVaultReporting? = nil) {
         self.keychainService = keychainService
         self.getLog = log
+        self.reporter = reporter
     }
 
     var keychainServiceName: String {
@@ -94,6 +109,8 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
             return data
         } else {
             guard let entryName = EntryName.entryName(from: name) else { return nil }
+
+            reporter?.secureVaultKeyStoreEvent(entryName.keyStoreMigrationEvent)
 
             // Look for items based on older EntryName attributes (pre-bundle-specifc Keychain storage)
             if let data = try migrateEntry(entryName: entryName, serviceName: keychainServiceName) {
