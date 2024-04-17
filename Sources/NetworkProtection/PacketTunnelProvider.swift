@@ -310,6 +310,14 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }()
 
+    lazy var deviceManager: NetworkProtectionDeviceManagement = NetworkProtectionDeviceManager(
+        settings: self.settings,
+        tokenStore: self.tokenStore,
+        keyStore: self.keyStore,
+        errorEvents: self.debugEvents,
+        isSubscriptionEnabled: self.isSubscriptionEnabled
+    )
+
     private lazy var tunnelFailureMonitor = NetworkProtectionTunnelFailureMonitor(handshakeReporter: adapter)
     public lazy var latencyMonitor = NetworkProtectionLatencyMonitor()
     public lazy var entitlementMonitor = NetworkProtectionEntitlementMonitor()
@@ -804,12 +812,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         let configurationResult: (tunnelConfig: TunnelConfiguration, server: NetworkProtectionServer)
 
         do {
-            let deviceManager = NetworkProtectionDeviceManager(settings: settings,
-                                                               tokenStore: tokenStore,
-                                                               keyStore: keyStore,
-                                                               errorEvents: debugEvents,
-                                                               isSubscriptionEnabled: isSubscriptionEnabled)
-
             configurationResult = try await deviceManager.generateTunnelConfiguration(
                 selectionMethod: serverSelectionMethod,
                 includedRoutes: includedRoutes,
