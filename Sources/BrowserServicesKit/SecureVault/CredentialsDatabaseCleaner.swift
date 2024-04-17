@@ -99,7 +99,7 @@ public final class CredentialsDatabaseCleaner {
         var saveAttemptsLeft = Const.maxContextSaveRetries
 
         do {
-            let secureVault = try secureVaultFactory.makeVault(errorReporter: secureVaultErrorReporter)
+            let secureVault = try secureVaultFactory.makeVault(reporter: secureVaultErrorReporter)
 
             while true {
                 do {

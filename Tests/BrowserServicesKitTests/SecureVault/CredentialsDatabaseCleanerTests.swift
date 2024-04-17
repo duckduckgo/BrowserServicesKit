@@ -77,7 +77,7 @@ final class CredentialsDatabaseCleanerTests: XCTestCase {
         databaseLocation = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".db")
         databaseProvider = try DefaultAutofillDatabaseProvider(file: databaseLocation, key: simpleL1Key)
         secureVaultFactory = AutofillVaultFactory.testFactory(databaseProvider: databaseProvider)
-        secureVault = try secureVaultFactory.makeVault(errorReporter: nil)
+        secureVault = try secureVaultFactory.makeVault(reporter: nil)
         _ = try secureVault.authWith(password: "abcd".data(using: .utf8)!)
 
         eventMapper = MockEventMapper()

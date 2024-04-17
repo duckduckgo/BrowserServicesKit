@@ -59,7 +59,7 @@ public class SecureVaultFactory<Vault: SecureVault> {
     /// * Generates a secret key for L2 encryption
     /// * Generates a user password to encrypt the L2 key with
     /// * Stores encrypted L2 key in Keychain
-    public func makeVault(errorReporter: SecureVaultReporting?) throws -> Vault {
+    public func makeVault(reporter: SecureVaultReporting?) throws -> Vault {
         if let vault = self.vault {
             return vault
         } else {
@@ -69,7 +69,7 @@ public class SecureVaultFactory<Vault: SecureVault> {
             }
 
             do {
-                let providers = try makeSecureStorageProviders(reporter: errorReporter)
+                let providers = try makeSecureStorageProviders(reporter: reporter)
                 let vault = Vault(providers: providers)
 
                 self.vault = vault
@@ -77,10 +77,10 @@ public class SecureVaultFactory<Vault: SecureVault> {
                 return vault
 
             } catch let error as SecureStorageError {
-                errorReporter?.secureVaultError(error)
+                reporter?.secureVaultError(error)
                 throw error
             } catch {
-                errorReporter?.secureVaultError(SecureStorageError.initFailed(cause: error))
+                reporter?.secureVaultError(SecureStorageError.initFailed(cause: error))
                 throw SecureStorageError.initFailed(cause: error)
             }
         }

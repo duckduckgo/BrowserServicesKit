@@ -39,7 +39,7 @@ let MockSecureVaultFactory = SecureVaultFactory<ConcreteMockSecureVault>(
 final class MockVaultTests: XCTestCase {
 
     func testCreatingMockVaultWithSecureVaultFactory() throws {
-        let vault = try MockSecureVaultFactory.makeVault(errorReporter: nil)
+        let vault = try MockSecureVaultFactory.makeVault(reporter: nil)
         let storedString = "hello, world!"
 
         try vault.storeSomeData(string: storedString)

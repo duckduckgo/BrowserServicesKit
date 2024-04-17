@@ -107,7 +107,7 @@ internal class CredentialsProviderTestsBase: XCTestCase {
     // MARK: - Helpers
 
     func makeSecureVault() throws {
-        secureVault = try secureVaultFactory.makeVault(errorReporter: nil)
+        secureVault = try secureVaultFactory.makeVault(reporter: nil)
         _ = try secureVault.authWith(password: "abcd".data(using: .utf8)!)
     }
 
