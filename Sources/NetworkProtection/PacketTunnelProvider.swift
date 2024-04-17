@@ -167,12 +167,14 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Server Selection
 
+    @MainActor
     private var lastSelectedServer: NetworkProtectionServer? {
         didSet {
             lastSelectedServerInfoPublisher.send(lastSelectedServer?.serverInfo)
         }
     }
 
+    @MainActor
     public var lastSelectedServerInfo: NetworkProtectionServerInfo? {
         lastSelectedServer?.serverInfo
     }
@@ -319,6 +321,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     )
 
     private lazy var tunnelFailureMonitor = NetworkProtectionTunnelFailureMonitor(handshakeReporter: adapter)
+    private lazy var serverFailureMonitor = NetworkProtectionTunnelFailureMonitor(handshakeReporter: adapter)
+
     public lazy var latencyMonitor = NetworkProtectionLatencyMonitor()
     public lazy var entitlementMonitor = NetworkProtectionEntitlementMonitor()
 
@@ -843,6 +847,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     // MARK: - App Messages
 
     // swiftlint:disable:next cyclomatic_complexity
+    @MainActor
     public override func handleAppMessage(_ messageData: Data, completionHandler: ((Data?) -> Void)? = nil) {
         guard let message = ExtensionMessage(rawValue: messageData) else {
             completionHandler?(nil)
@@ -1045,6 +1050,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
+    @MainActor
     private func handleGetServerLocation(completionHandler: ((Data?) -> Void)? = nil) {
         guard let attributes = lastSelectedServerInfo?.attributes else {
             completionHandler?(nil)
@@ -1061,6 +1067,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         completionHandler?(ExtensionMessageString(encodedJSONString).rawValue)
     }
 
+    @MainActor
     private func handleGetServerAddress(completionHandler: ((Data?) -> Void)? = nil) {
         let response = lastSelectedServerInfo?.endpoint.map { ExtensionMessageString($0.host.hostWithoutPort) }
         completionHandler?(response?.rawValue)
@@ -1212,6 +1219,61 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
+    lazy var failureRecoveryHandler: FailureRecoveryHandling = FailureRecoveryHandler(deviceManager: deviceManager)
+
+    private func startServerFailureMonitor() async {
+        if await serverFailureMonitor.isStarted {
+            await serverFailureMonitor.stop()
+        }
+
+        if isSubscriptionEnabled, await isEntitlementInvalid() {
+            return
+        }
+
+        await serverFailureMonitor.start { [weak self] result in
+            guard let self else {
+                return
+            }
+
+            guard case .failureDetected = result else {
+                return
+            }
+
+            Task {
+                guard let server = await self.lastSelectedServer else {
+                    os_log("🟢 No last server info found for recovery", log: .networkProtectionServerFailureRecoveryLog, type: .info)
+                    return
+                }
+                await self.startReasserting()
+                await self.serverFailureMonitor.stop()
+
+                let recoveryResult: (tunnelConfig: TunnelConfiguration, server: NetworkProtectionServer)
+                do {
+                    recoveryResult = try await self.failureRecoveryHandler.attemptRecovery(
+                        to: server,
+                        location: nil, // self.settings.selectedLocation.location, TODO: This causes a bad request
+                        includedRoutes: self.includedRoutes ?? [],
+                        excludedRoutes: self.settings.excludedRanges,
+                        isKillSwitchEnabled: self.isKillSwitchEnabled,
+                        regenerateKey: true
+                    )
+                    await self.handleFailureRecovery(tunnelConfig: recoveryResult.tunnelConfig, server: recoveryResult.server)
+                } catch {
+                    os_log("🟢 Failure recovery error: %{public}@", log: .networkProtectionServerFailureRecoveryLog, type: .error, String(reflecting: error))
+                }
+            }
+        }
+    }
+
+    @MainActor
+    private func handleFailureRecovery(tunnelConfig: TunnelConfiguration, server: NetworkProtectionServer) {
+        self.lastSelectedServer = server
+        Task {
+            try await self.updateAdapterConfig(tunnelConfiguration: tunnelConfig, reassert: true)
+        }
+    }
+
+    @MainActor
     private func startLatencyMonitor() async {
         guard let ip = lastSelectedServerInfo?.ipv4 else {
             await latencyMonitor.stop()
@@ -1286,6 +1348,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     @MainActor
     public func startMonitors(testImmediately: Bool) async throws {
         await startTunnelFailureMonitor()
+        await startServerFailureMonitor()
         await startLatencyMonitor()
         await startEntitlementMonitor()
 
@@ -1301,6 +1364,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     public func stopMonitors() async {
         await self.connectionTester.stop()
         await self.tunnelFailureMonitor.stop()
+        await self.serverFailureMonitor.stop()
         await self.latencyMonitor.stop()
         await self.entitlementMonitor.stop()
     }
