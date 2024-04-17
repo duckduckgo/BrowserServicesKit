@@ -16,6 +16,7 @@
 //  limitations under the License.
 //
 
+import Common
 import Foundation
 import SecureStorage
 
@@ -52,9 +53,14 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
     }
 
     let keychainService: KeychainService
+    private let getLog: () -> OSLog
+    private var log: OSLog {
+        getLog()
+    }
 
-    init(keychainService: KeychainService = DefaultKeychainService()) {
+    init(keychainService: KeychainService = DefaultKeychainService(), log: @escaping @autoclosure () -> OSLog = .disabled) {
         self.keychainService = keychainService
+        self.getLog = log
     }
 
     var keychainServiceName: String {
@@ -84,6 +90,7 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
     /// - Returns: Optional data
     private func readOrMigrate(named name: String, serviceName: String) throws -> Data? {
         if let data = try read(named: name, serviceName: serviceName) {
+            os_log("Autofill Keystore data retrieved", log: .autofill, type: .debug)
             return data
         } else {
             guard let entryName = EntryName.entryName(from: name) else { return nil }
@@ -91,10 +98,12 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
             // Look for items based on older EntryName attributes (pre-bundle-specifc Keychain storage)
             if let data = try migrateEntry(entryName: entryName, serviceName: keychainServiceName) {
                 try writeData(data, named: name, serviceName: keychainServiceName)
+                os_log("Migrated non-bundle specific Autofill Keystore data", log: .autofill, type: .debug)
                 return data
             // Look for items in pre-V2 vault
             } else if serviceName == Constants.defaultServiceName, let data = try migrateEntry(entryName: entryName, serviceName: Constants.legacyServiceName) {
                 try writeData(data, named: name, serviceName: keychainServiceName)
+                os_log("Migrated V1 Autofill Keystore data", log: .autofill, type: .debug)
                 return data
             }
 
