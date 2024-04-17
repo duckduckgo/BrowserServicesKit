@@ -31,6 +31,8 @@ public enum NetworkProtectionServerSelectionMethod: CustomDebugStringConvertible
             "avoidServer: \(serverName)"
         case .preferredLocation(let location):
             "preferredLocation: \(location)"
+        case .failureRecovery(location: let location, serverName: let serverName):
+            "failureRecovery: \(location.debugDescription), \(serverName)"
         }
     }
 
@@ -38,6 +40,7 @@ public enum NetworkProtectionServerSelectionMethod: CustomDebugStringConvertible
     case preferredServer(serverName: String)
     case avoidServer(serverName: String)
     case preferredLocation(NetworkProtectionSelectedLocation)
+    case failureRecovery(location: NetworkProtectionSelectedLocation?, serverName: String)
 }
 
 public protocol NetworkProtectionDeviceManagement {
@@ -193,6 +196,9 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
             excludedServerName = serverToAvoid
         case .preferredLocation(let location):
             serverSelection = .location(country: location.country, city: location.city)
+            excludedServerName = nil
+        case .failureRecovery(location: let location, serverName: let serverName):
+            serverSelection = .recovery(server: serverName, country: location?.country, city: location?.city)
             excludedServerName = nil
         }
 
