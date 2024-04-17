@@ -36,6 +36,12 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
 
     }
 
+    let keychainService: KeychainService
+
+    init(keychainService: KeychainService = DefaultKeychainService()) {
+        self.keychainService = keychainService
+    }
+
     var keychainServiceName: String {
         return Constants.defaultServiceName
     }
@@ -59,7 +65,7 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
 
         var item: CFTypeRef?
 
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        let status = keychainService.itemMatching(query, &item)
         switch status {
         case errSecSuccess:
             if serviceName == Constants.defaultServiceName {
