@@ -339,9 +339,6 @@ let package = Package(
             name: "PixelKitTestingUtilities",
             dependencies: [
                 "PixelKit"
-            ],
-            swiftSettings: [
-                .define("DEBUG", .when(configuration: .debug))
             ]
         ),
 
@@ -514,6 +511,7 @@ let package = Package(
         .testTarget(
             name: "PixelKitTests",
             dependencies: [
+                "PixelKit",
                 "PixelKitTestingUtilities",
             ]
         ),
