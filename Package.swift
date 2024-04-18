@@ -4,8 +4,6 @@
 import Foundation
 import PackageDescription
 
-let swiftlintPlugin = Target.PluginUsage.plugin(name: "SwiftLintPlugin", package: "apple-toolbox")
-
 let package = Package(
     name: "BrowserServicesKit",
     platforms: [
@@ -48,7 +46,6 @@ let package = Package(
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
         .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
         .package(url: "https://github.com/duckduckgo/wireguard-apple", exact: "1.1.3"),
-        .package(url: "https://github.com/duckduckgo/apple-toolbox.git", exact: "2.0.0"),
     ],
     targets: [
         .target(
@@ -72,8 +69,7 @@ let package = Package(
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
-            ],
-            plugins: [swiftlintPlugin]
+            ]
         ),
         .target(
             name: "Persistence",
@@ -82,8 +78,7 @@ let package = Package(
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
-            ],
-            plugins: [swiftlintPlugin]
+            ]
         ),
         .target(
             name: "Bookmarks",
@@ -96,8 +91,7 @@ let package = Package(
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
-            ],
-            plugins: [swiftlintPlugin]
+            ]
         ),
         .target(
             name: "History",
@@ -110,8 +104,7 @@ let package = Package(
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
-            ],
-            plugins: [swiftlintPlugin]
+            ]
         ),
         .target(
             name: "Suggestions",
@@ -120,8 +113,7 @@ let package = Package(
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
-            ],
-            plugins: [swiftlintPlugin]
+            ]
         ),
         .executableTarget(
             name: "BookmarksTestDBBuilder",
@@ -129,15 +121,13 @@ let package = Package(
                 "Bookmarks",
                 "Persistence",
             ],
-            path: "Sources/BookmarksTestDBBuilder",
-            plugins: [swiftlintPlugin]
+            path: "Sources/BookmarksTestDBBuilder"
         ),
         .target(
             name: "BookmarksTestsUtils",
             dependencies: [
                 "Bookmarks",
-            ],
-            plugins: [swiftlintPlugin]
+            ]
         ),
         .target(
             name: "BloomFilterObjC",
@@ -150,8 +140,7 @@ let package = Package(
                 "BloomFilterObjC",
             ]),
         .target(
-            name: "Crashes",
-            plugins: [swiftlintPlugin]
+            name: "Crashes"
         ),
         .target(
             name: "DDGSync",
@@ -167,8 +156,7 @@ let package = Package(
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
-            ],
-            plugins: [swiftlintPlugin]
+            ]
         ),
         .executableTarget(
             name: "SyncMetadataTestDBBuilder",
@@ -176,8 +164,7 @@ let package = Package(
                 "DDGSync",
                 "Persistence",
             ],
-            path: "Sources/SyncMetadataTestDBBuilder",
-            plugins: [swiftlintPlugin]
+            path: "Sources/SyncMetadataTestDBBuilder"
         ),
         .target(
             name: "Common",
@@ -189,8 +176,7 @@ let package = Package(
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
-            ],
-            plugins: [swiftlintPlugin]
+            ]
         ),
         .target(
             name: "ContentBlocking",
@@ -199,8 +185,7 @@ let package = Package(
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
-            ],
-            plugins: [swiftlintPlugin]
+            ]
         ),
         .target(
             name: "Navigation",
@@ -217,8 +202,7 @@ let package = Package(
                 .define("PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED", .when(platforms: [.macOS])),
                 .define("TERMINATE_WITH_REASON_ENABLED", .when(platforms: [.macOS])),
                 .define("_WEBPAGE_PREFS_CUSTOM_HEADERS_ENABLED", .when(platforms: [.macOS])),
-            ],
-            plugins: [swiftlintPlugin]
+            ]
         ),
         .target(
             name: "UserScript",
@@ -227,8 +211,7 @@ let package = Package(
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
-            ],
-            plugins: [swiftlintPlugin]
+            ]
         ),
         .target(
             name: "PrivacyDashboard",
@@ -244,8 +227,7 @@ let package = Package(
             path: "Sources/PrivacyDashboard",
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
-            ],
-            plugins: [swiftlintPlugin]
+            ]
         ),
         .target(
             name: "Configuration",
@@ -256,8 +238,7 @@ let package = Package(
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
-            ],
-            plugins: [swiftlintPlugin]
+            ]
         ),
         .target(
             name: "Networking",
@@ -266,8 +247,7 @@ let package = Package(
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
-            ],
-            plugins: [swiftlintPlugin]
+            ]
         ),
         .target(
             name: "RemoteMessaging",
@@ -277,8 +257,7 @@ let package = Package(
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
-            ],
-            plugins: [swiftlintPlugin]
+            ]
         ),
         .target(
             name: "SyncDataProviders",
@@ -293,16 +272,14 @@ let package = Package(
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
-            ],
-            plugins: [swiftlintPlugin]
+            ]
         ),
         .target(
             name: "TestUtils",
             dependencies: [
                 "Networking",
                 "Persistence",
-            ],
-            plugins: [swiftlintPlugin]
+            ]
         ),
         .target(
             name: "NetworkProtection",
@@ -313,8 +290,7 @@ let package = Package(
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
-            ],
-            plugins: [swiftlintPlugin]
+            ]
         ),
         .target(
             name: "SecureStorage",
@@ -324,23 +300,20 @@ let package = Package(
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
-            ],
-            plugins: [swiftlintPlugin]
+            ]
         ),
         .target(
             name: "SecureStorageTestsUtils",
             dependencies: [
                 "SecureStorage",
-            ],
-            plugins: [swiftlintPlugin]
+            ]
         ),
         .target(name: "WireGuardC"),
         .target(
             name: "NetworkProtectionTestUtils",
             dependencies: [
                 "NetworkProtection",
-            ],
-            plugins: [swiftlintPlugin]
+            ]
         ),
         .target(
             name: "Subscription",
@@ -350,8 +323,7 @@ let package = Package(
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
-            ],
-            plugins: [swiftlintPlugin]
+            ]
         ),
 
         // MARK: - Test Targets
@@ -359,15 +331,13 @@ let package = Package(
             name: "HistoryTests",
             dependencies: [
                 "History",
-            ],
-            plugins: [swiftlintPlugin]
+            ]
         ),
         .testTarget(
             name: "SuggestionsTests",
             dependencies: [
                 "Suggestions",
-            ],
-            plugins: [swiftlintPlugin]
+            ]
         ),
         .testTarget(
             name: "BookmarksTests",
@@ -391,8 +361,7 @@ let package = Package(
                 .copy("Resources/Bookmarks_V5.sqlite"),
                 .copy("Resources/Bookmarks_V5.sqlite-shm"),
                 .copy("Resources/Bookmarks_V5.sqlite-wal"),
-            ],
-            plugins: [swiftlintPlugin]
+            ]
         ),
         .testTarget(
             name: "BrowserServicesKitTests",
@@ -404,8 +373,7 @@ let package = Package(
             ],
             resources: [
                 .copy("Resources")
-            ],
-            plugins: [swiftlintPlugin]
+            ]
         ),
         .testTarget(
             name: "DDGSyncTests",
@@ -418,29 +386,25 @@ let package = Package(
                 .copy("Resources/SyncMetadata_V3.sqlite"),
                 .copy("Resources/SyncMetadata_V3.sqlite-shm"),
                 .copy("Resources/SyncMetadata_V3.sqlite-wal"),
-            ],
-            plugins: [swiftlintPlugin]
+            ]
         ),
         .testTarget(
             name: "DDGSyncCryptoTests",
             dependencies: [
                 .product(name: "DDGSyncCrypto", package: "sync_crypto"),
-            ],
-            plugins: [swiftlintPlugin]
+            ]
         ),
         .testTarget(
             name: "CommonTests",
             dependencies: [
                 "Common",
-            ],
-            plugins: [swiftlintPlugin]
+            ]
         ),
         .testTarget(
             name: "NetworkingTests",
             dependencies: [
                 "TestUtils",
-            ],
-            plugins: [swiftlintPlugin]
+            ]
         ),
         .testTarget(
             name: "NavigationTests",
@@ -457,8 +421,7 @@ let package = Package(
                 .define("_NAVIGATION_REQUEST_ENABLED", .when(platforms: [.macOS])),
                 .define("PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED", .when(platforms: [.macOS])),
                 .define("_WEBPAGE_PREFS_CUSTOM_HEADERS_ENABLED", .when(platforms: [.macOS])),
-            ],
-            plugins: [swiftlintPlugin]
+            ]
         ),
         .testTarget(
             name: "UserScriptTests",
@@ -467,24 +430,21 @@ let package = Package(
             ],
             resources: [
                 .process("testUserScript.js")
-            ],
-            plugins: [swiftlintPlugin]
+            ]
         ),
         .testTarget(
             name: "PersistenceTests",
             dependencies: [
                 "Persistence",
                 "TrackerRadarKit",
-            ],
-            plugins: [swiftlintPlugin]
+            ]
         ),
         .testTarget(
             name: "ConfigurationTests",
             dependencies: [
                 "Configuration",
                 "TestUtils",
-            ],
-            plugins: [swiftlintPlugin]
+            ]
         ),
         .testTarget(
             name: "SyncDataProvidersTests",
@@ -492,8 +452,7 @@ let package = Package(
                 "BookmarksTestsUtils",
                 "SecureStorageTestsUtils",
                 "SyncDataProviders",
-            ],
-            plugins: [swiftlintPlugin]
+            ]
         ),
         .testTarget(
             name: "NetworkProtectionTests",
@@ -505,53 +464,28 @@ let package = Package(
                 .copy("Resources/servers-original-endpoint.json"),
                 .copy("Resources/servers-updated-endpoint.json"),
                 .copy("Resources/locations-endpoint.json")
-            ],
-            plugins: [swiftlintPlugin]
+            ]
         ),
         .testTarget(
             name: "SecureStorageTests",
             dependencies: [
                 "SecureStorage",
                 "SecureStorageTestsUtils",
-            ],
-            plugins: [swiftlintPlugin]
+            ]
         ),
         .testTarget(
             name: "PrivacyDashboardTests",
             dependencies: [
                 "PrivacyDashboard",
                 "TestUtils",
-            ],
-            plugins: [swiftlintPlugin]
+            ]
         ),
         .testTarget(
             name: "SubscriptionTests",
             dependencies: [
                 "Subscription",
-            ],
-            plugins: [swiftlintPlugin]
+            ]
         ),
     ],
     cxxLanguageStandard: .cxx11
 )
-
-// validate all targets have swiftlint plugin
-for target in package.targets {
-    let targetsWithSwiftlintDisabled: Set<String> = [
-        "BloomFilterObjC",
-        "BloomFilterWrapper",
-        "WireGuardC",
-    ]
-    guard !targetsWithSwiftlintDisabled.contains(target.name) else { continue }
-    guard target.plugins?.contains(where: {
-        "\($0)" == "\(Target.PluginUsage.plugin(name: "SwiftLintPlugin", package: "apple-toolbox"))"
-    }) == true else {
-        assertionFailure("""
-
-        Target \(target.name) is missing SwiftLintPlugin dependency.
-        If this is intended, add \"\(target.name)\" to targetsWithSwiftlintDisabled
-        Target plugins: \(target.plugins?.map { "\($0)" }.joined(separator: ", ") ?? "<nil>")
-        """)
-        continue
-    }
-}

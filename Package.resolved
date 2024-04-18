@@ -1,15 +1,6 @@
 {
   "pins" : [
     {
-      "identity" : "apple-toolbox",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/duckduckgo/apple-toolbox.git",
-      "state" : {
-        "revision" : "d51beaf1736013b530576ace13a16d6d1a63742c",
-        "version" : "2.0.0"
-      }
-    },
-    {
       "identity" : "bloom_cpp",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/bloom_cpp.git",
@@ -61,15 +52,6 @@
       "state" : {
         "revision" : "4356ec54e073741449640d3d50a1fd24fd1e1b8b",
         "version" : "2.1.0"
-      }
-    },
-    {
-      "identity" : "swift-syntax",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/apple/swift-syntax.git",
-      "state" : {
-        "revision" : "64889f0c732f210a935a0ad7cda38f77f876262d",
-        "version" : "509.1.1"
       }
     },
     {
