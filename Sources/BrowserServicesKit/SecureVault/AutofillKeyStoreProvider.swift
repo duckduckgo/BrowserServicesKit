@@ -52,14 +52,16 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
         }
 
         static func entryName(from keyValue: String) -> EntryName? {
-            if keyValue == EntryName.generatedPassword.keyValue {
+            switch keyValue {
+            case EntryName.generatedPassword.keyValue:
                 return .generatedPassword
-            } else if keyValue == EntryName.l1Key.keyValue {
+            case EntryName.l1Key.keyValue:
                 return .l1Key
-            } else if keyValue == EntryName.l2Key.keyValue {
+            case EntryName.l2Key.keyValue:
                 return .l2Key
+            default:
+                return nil
             }
-            return nil
         }
     }
 

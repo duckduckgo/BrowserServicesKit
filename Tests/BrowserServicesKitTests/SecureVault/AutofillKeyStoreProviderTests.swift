@@ -119,6 +119,7 @@ final class AutofillKeyStoreProviderTests: XCTestCase {
 
             // Then
             XCTAssertEqual(keychainService.addCallCount, 1)
+            XCTAssertEqual(keychainService.latestAddQuery[kSecAttrAccount as String] as! String, entry.keyValue)
             XCTAssertEqual(keychainService.latestAddQuery[kSecAttrService as String] as! String, Constants.defaultServiceName)
         }
     }
@@ -136,6 +137,7 @@ final class AutofillKeyStoreProviderTests: XCTestCase {
 
             // Then
             XCTAssertEqual(keychainService.addCallCount, 1)
+            XCTAssertEqual(keychainService.latestAddQuery[kSecAttrAccount as String] as! String, entry.keyValue)
             XCTAssertEqual(keychainService.latestAddQuery[kSecAttrService as String] as! String, Constants.defaultServiceName)
         }
     }
