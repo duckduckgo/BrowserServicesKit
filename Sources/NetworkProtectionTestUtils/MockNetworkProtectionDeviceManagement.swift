@@ -37,6 +37,8 @@ public final class MockNetworkProtectionDeviceManagement: NetworkProtectionDevic
         server: NetworkProtection.NetworkProtectionServer
     )?
 
+    public var stubGenerateTunnelConfigurationError: Error?
+
     public init() {}
 
     public func generateTunnelConfiguration(
@@ -52,10 +54,12 @@ public final class MockNetworkProtectionDeviceManagement: NetworkProtectionDevic
                 isKillSwitchEnabled: isKillSwitchEnabled,
                 regenerateKey: regenerateKey
                 )
-            guard let stubGenerateTunnelConfiguration else {
-                throw MockError.noStubSet
+            if let stubGenerateTunnelConfiguration {
+                return stubGenerateTunnelConfiguration
+            } else if let stubGenerateTunnelConfigurationError {
+                throw stubGenerateTunnelConfigurationError
             }
-            return stubGenerateTunnelConfiguration
+            throw MockError.noStubSet
     }
     
 

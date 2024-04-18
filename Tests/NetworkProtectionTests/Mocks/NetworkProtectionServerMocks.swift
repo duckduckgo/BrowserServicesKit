@@ -80,9 +80,9 @@ extension NetworkProtectionServer {
                                        expirationDate: Date().addingTimeInterval(.day))
     }
 
-    static func registeredServer(named name: String, withPublicKey publicKey: String = "ovn9RpzUuvQ4XLQt6B3RKuEXGIxa5QpTnehjduZlcSE=") -> Self {
+    static func registeredServer(named name: String, withPublicKey publicKey: String = "ovn9RpzUuvQ4XLQt6B3RKuEXGIxa5QpTnehjduZlcSE=", allowedIPs: [String]? = nil) -> Self {
         return NetworkProtectionServer(registeredPublicKey: publicKey,
-                                       allowedIPs: ["0.0.0.0/0", "::/0"],
+                                       allowedIPs: allowedIPs,
                                        serverInfo: .make(named: name, withPublicKey: publicKey),
                                        expirationDate: Date().addingTimeInterval(.day))
     }
