@@ -140,8 +140,10 @@ let package = Package(
                 "BloomFilterObjC",
             ]),
         .target(
-            name: "Crashes"
-        ),
+            name: "Crashes",
+            dependencies: [
+                "Common",
+            ]),
         .target(
             name: "DDGSync",
             dependencies: [
@@ -373,6 +375,12 @@ let package = Package(
             ],
             resources: [
                 .copy("Resources")
+            ]
+        ),
+        .testTarget(
+            name: "CrashesTests",
+            dependencies: [
+                "Crashes"
             ]
         ),
         .testTarget(
