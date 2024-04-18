@@ -1257,6 +1257,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                     )
                     await self.handleFailureRecovery(tunnelConfig: recoveryResult.tunnelConfig, server: recoveryResult.server)
                 } catch {
+                    // Pixel here sent as part of https://app.asana.com/0/0/1206939413299475/f
                     os_log("🟢 Failure recovery error: %{public}@", log: .networkProtectionServerFailureRecoveryLog, type: .error, String(reflecting: error))
                 }
             }
