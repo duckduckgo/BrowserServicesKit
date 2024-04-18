@@ -22,7 +22,6 @@ import Common
 protocol FailureRecoveryHandling {
     func attemptRecovery(
         to lastConnectedServer: NetworkProtectionServer,
-        location: NetworkProtectionSelectedLocation?,
         includedRoutes: [IPAddressRange],
         excludedRoutes: [IPAddressRange],
         isKillSwitchEnabled: Bool,
@@ -45,13 +44,12 @@ struct FailureRecoveryHandler: FailureRecoveryHandling {
 
     func attemptRecovery(
         to lastConnectedServer: NetworkProtectionServer,
-        location: NetworkProtectionSelectedLocation?,
         includedRoutes: [IPAddressRange],
         excludedRoutes: [IPAddressRange],
         isKillSwitchEnabled: Bool,
         regenerateKey: Bool
     ) async throws -> (tunnelConfig: TunnelConfiguration, server: NetworkProtectionServer) {
-        let serverSelectionMethod: NetworkProtectionServerSelectionMethod = .failureRecovery(location: location, serverName: lastConnectedServer.serverName)
+        let serverSelectionMethod: NetworkProtectionServerSelectionMethod = .failureRecovery(serverName: lastConnectedServer.serverName)
         let configurationResult: (tunnelConfig: TunnelConfiguration, server: NetworkProtectionServer)
 
         do {

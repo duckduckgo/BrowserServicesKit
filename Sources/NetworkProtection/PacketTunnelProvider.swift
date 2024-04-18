@@ -1251,7 +1251,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 do {
                     recoveryResult = try await self.failureRecoveryHandler.attemptRecovery(
                         to: server,
-                        location: nil, // self.settings.selectedLocation.location, TODO: This causes a bad request
                         includedRoutes: self.includedRoutes ?? [],
                         excludedRoutes: self.settings.excludedRanges,
                         isKillSwitchEnabled: self.isKillSwitchEnabled,

@@ -104,10 +104,10 @@ struct RegisterKeyRequestBody: Encodable {
             server = nil
             self.country = country
             self.city = city
-        case .recovery(server: let server, country: let country, city: let city):
+        case .recovery(server: let server):
             self.server = server
-            self.country = country
-            self.city = city
+            self.country = nil
+            self.city = nil
         }
         mode = serverSelection.mode
     }
@@ -117,7 +117,7 @@ enum RegisterServerSelection {
     case automatic
     case server(name: String)
     case location(country: String, city: String?)
-    case recovery(server: String, country: String?, city: String?)
+    case recovery(server: String)
 
     var mode: String? {
         switch self {
