@@ -1253,8 +1253,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                         to: server,
                         includedRoutes: self.includedRoutes ?? [],
                         excludedRoutes: self.settings.excludedRanges,
-                        isKillSwitchEnabled: self.isKillSwitchEnabled,
-                        regenerateKey: true
+                        isKillSwitchEnabled: self.isKillSwitchEnabled
                     )
                     await self.handleFailureRecovery(tunnelConfig: recoveryResult.tunnelConfig, server: recoveryResult.server)
                 } catch {

@@ -24,8 +24,7 @@ protocol FailureRecoveryHandling {
         to lastConnectedServer: NetworkProtectionServer,
         includedRoutes: [IPAddressRange],
         excludedRoutes: [IPAddressRange],
-        isKillSwitchEnabled: Bool,
-        regenerateKey: Bool
+        isKillSwitchEnabled: Bool
     ) async throws -> (tunnelConfig: TunnelConfiguration, server: NetworkProtectionServer)
 }
 
@@ -46,8 +45,7 @@ struct FailureRecoveryHandler: FailureRecoveryHandling {
         to lastConnectedServer: NetworkProtectionServer,
         includedRoutes: [IPAddressRange],
         excludedRoutes: [IPAddressRange],
-        isKillSwitchEnabled: Bool,
-        regenerateKey: Bool
+        isKillSwitchEnabled: Bool
     ) async throws -> (tunnelConfig: TunnelConfiguration, server: NetworkProtectionServer) {
         let serverSelectionMethod: NetworkProtectionServerSelectionMethod = .failureRecovery(serverName: lastConnectedServer.serverName)
         let configurationResult: (tunnelConfig: TunnelConfiguration, server: NetworkProtectionServer)
@@ -58,7 +56,7 @@ struct FailureRecoveryHandler: FailureRecoveryHandling {
                 includedRoutes: includedRoutes,
                 excludedRoutes: excludedRoutes,
                 isKillSwitchEnabled: isKillSwitchEnabled,
-                regenerateKey: regenerateKey
+                regenerateKey: false
             )
             os_log("🟢 Failure recovery fetched new config.", log: .networkProtectionServerFailureRecoveryLog, type: .info)
         } catch let error as NetworkProtectionError {
