@@ -34,6 +34,8 @@ let package = Package(
         .library(name: "Subscription", targets: ["Subscription"]),
         .library(name: "History", targets: ["History"]),
         .library(name: "Suggestions", targets: ["Suggestions"]),
+        .library(name: "PixelKit", targets: ["PixelKit"]),
+        .library(name: "PixelKitTestingUtilities", targets: ["PixelKitTestingUtilities"]),
     ],
     dependencies: [
         .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "11.0.1"),
@@ -327,6 +329,21 @@ let package = Package(
                 .define("DEBUG", .when(configuration: .debug))
             ]
         ),
+        .target(
+            name: "PixelKit",
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
+            ]
+        ),
+        .target(
+            name: "PixelKitTestingUtilities",
+            dependencies: [
+                "PixelKit"
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
+            ]
+        ),
 
         // MARK: - Test Targets
         .testTarget(
@@ -492,6 +509,12 @@ let package = Package(
             name: "SubscriptionTests",
             dependencies: [
                 "Subscription",
+            ]
+        ),
+        .testTarget(
+            name: "PixelKitTests",
+            dependencies: [
+                "PixelKitTestingUtilities",
             ]
         ),
     ],
