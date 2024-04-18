@@ -17,6 +17,7 @@
 //
 
 import Foundation
+import Gzip
 
 protocol SyncRequestMaking {
     func makeGetRequest(with result: SyncRequest) throws -> HTTPRequesting
@@ -54,8 +55,10 @@ struct SyncRequestMaker: SyncRequestMaking {
             throw SyncError.unableToEncodeRequestBody("Sync PATCH payload is not a valid JSON")
         }
 
-        let body = try JSONSerialization.data(withJSONObject: json, options: [])
-        return api.createAuthenticatedJSONRequest(url: endpoints.syncPatch, method: .PATCH, authToken: try getToken(), json: body)
+        let headers = ["Content-Encoding": "gzip"]
+
+        let body = try JSONSerialization.data(withJSONObject: json, options: []).gzipped()
+        return api.createAuthenticatedJSONRequest(url: endpoints.syncPatch, method: .PATCH, authToken: try getToken(), json: body, headers: headers)
     }
 
     private func getToken() throws -> String {
