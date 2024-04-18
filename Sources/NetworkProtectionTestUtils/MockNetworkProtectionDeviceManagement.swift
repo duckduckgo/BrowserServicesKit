@@ -30,7 +30,7 @@ public final class MockNetworkProtectionDeviceManagement: NetworkProtectionDevic
         excludedRoutes: [NetworkProtection.IPAddressRange],
         isKillSwitchEnabled: Bool,
         regenerateKey: Bool
-    )? = nil
+    )?
 
     public var stubGenerateTunnelConfiguration: (
         tunnelConfig: NetworkProtection.TunnelConfiguration,
@@ -61,6 +61,5 @@ public final class MockNetworkProtectionDeviceManagement: NetworkProtectionDevic
             }
             throw MockError.noStubSet
     }
-    
 
 }
