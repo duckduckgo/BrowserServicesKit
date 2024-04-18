@@ -112,11 +112,11 @@ public extension XCTestCase {
         // Ensure PixelKit is torn down before setting it back up, avoiding unit test race conditions:
         PixelKit.tearDown()
 
-        PixelKit.setUp(dryRun: false,
-                       appVersion: "1.0.5",
-                       source: "test-app",
-                       defaultHeaders: [:],
-                       defaults: userDefaults) { firedPixelName, _, firedParameters, _, _, completion in
+        let pixelKit = PixelKit(dryRun: false,
+                                appVersion: "1.0.5",
+                                source: "test-app",
+                                defaultHeaders: [:],
+                                defaults: userDefaults) { firedPixelName, _, firedParameters, _, _, completion in
             callbackExecutedExpectation.fulfill()
 
             let firedParameters = Self.filterStandardPixelParameters(from: firedParameters)
@@ -141,7 +141,7 @@ public extension XCTestCase {
             completion(true, nil)
         }
 
-        PixelKit.fire(event, frequency: frequency)
+        pixelKit.fire(event, frequency: frequency)
         waitForExpectations(timeout: 0.1)
     }
 
