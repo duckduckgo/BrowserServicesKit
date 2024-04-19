@@ -221,7 +221,7 @@ fileprivate extension KnownTracker.Rule {
 private extension KnownTracker.ActionType {
 
     func toTrackerResolverRuleAction() -> TrackerResolver.RuleAction {
-        self == .block ? .blockRequest : .allowRequest
+        self == .block || self == .blockCtlFB ? .blockRequest : .allowRequest
     }
 
 }
