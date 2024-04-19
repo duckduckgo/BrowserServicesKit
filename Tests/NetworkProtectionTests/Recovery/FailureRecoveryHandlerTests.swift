@@ -27,7 +27,13 @@ final class FailureRecoveryHandlerTests: XCTestCase {
     override func setUp() {
         super.setUp()
         deviceManager = MockNetworkProtectionDeviceManagement()
-        failureRecoveryHandler = FailureRecoveryHandler(deviceManager: deviceManager)
+        let testConfig = FailureRecoveryHandler.RetryConfig(
+            times: 0, // Means failure will bubble up after the first try
+            initialDelay: .seconds(1),
+            maxDelay: .seconds(30),
+            factor: 2.0
+        )
+        failureRecoveryHandler = FailureRecoveryHandler(deviceManager: deviceManager, retryConfig: testConfig)
     }
 
     override func tearDown() {
@@ -42,7 +48,7 @@ final class FailureRecoveryHandlerTests: XCTestCase {
         let expectedIncludedRoutes: [IPAddressRange] = ["1.2.3.4/5"]
         let expectedExcludedRoutes: [IPAddressRange] = ["10.9.8.7/6"]
         let expectedKillSwitchEnabledValue = false
-        _ = try? await failureRecoveryHandler.attemptRecovery(to: server, includedRoutes: expectedIncludedRoutes, excludedRoutes: expectedExcludedRoutes, isKillSwitchEnabled: expectedKillSwitchEnabledValue)
+        try? await failureRecoveryHandler.attemptRecovery(to: server, includedRoutes: expectedIncludedRoutes, excludedRoutes: expectedExcludedRoutes, isKillSwitchEnabled: expectedKillSwitchEnabledValue) {_ in }
         guard let spyGenerateTunnelConfiguration = deviceManager.spyGenerateTunnelConfiguration else {
             XCTFail("attemptRecovery not called")
             return
@@ -58,26 +64,26 @@ final class FailureRecoveryHandlerTests: XCTestCase {
         XCTAssertEqual(serverName, expectedServerName)
     }
 
-    func testAttemptRecovery_configFetchFailsWithNetPError_throwsConfigGenerationError() async {
+    func testAttemptRecovery_configFetchFailsWithNetPError_throwsError() async {
         let stubbedError = NetworkProtectionError.failedToEncodeRegisterKeyRequest
         deviceManager.stubGenerateTunnelConfigurationError = stubbedError
 
         do {
-            _ = try await failureRecoveryHandler.attemptRecovery(to: .mockRegisteredServer, includedRoutes: [], excludedRoutes: [], isKillSwitchEnabled: true)
+            try await failureRecoveryHandler.attemptRecovery(to: .mockRegisteredServer, includedRoutes: [], excludedRoutes: [], isKillSwitchEnabled: true) {_ in }
             XCTFail("Expected error to be thrown")
         } catch {
-            guard case FailureRecoveryError.configGenerationError(let underlyingError) = error else {
+            guard case FailureRecoveryError.reachedMaximumRetries(let lastError) = error else {
                 XCTFail("Expected configGenerationError, got \(error)")
                 return
             }
-            guard case NetworkProtectionError.failedToEncodeRegisterKeyRequest = underlyingError else {
+            guard case NetworkProtectionError.failedToEncodeRegisterKeyRequest = lastError else {
                 XCTFail("Expected underlying error to match stubbed")
                 return
             }
         }
     }
 
-    func testAttemptRecovery_serverNameDifferentFromPreviousServerName_returnsNewConfigAndServer() async throws {
+    func testAttemptRecovery_serverNameDifferentFromPreviousServerName_callsConfigUpdateWithNewConfigAndServer() async throws {
         let lastServerName = "oldServerName"
         let lastServer = NetworkProtectionServer.registeredServer(named: lastServerName)
         let newServerName = "newServerName"
@@ -89,10 +95,38 @@ final class FailureRecoveryHandlerTests: XCTestCase {
             server: expectedServer
         )
 
-        let result = try await failureRecoveryHandler.attemptRecovery(to: lastServer, includedRoutes: [], excludedRoutes: [], isKillSwitchEnabled: true)
+        var configFetchResult: NetworkProtectionDeviceManagement.GenerateTunnelConfigResult?
 
-        XCTAssertEqual(expectedConfig, result.tunnelConfig)
-        XCTAssertEqual(expectedServer, result.server)
+        try await failureRecoveryHandler.attemptRecovery(to: lastServer, includedRoutes: [], excludedRoutes: [], isKillSwitchEnabled: true) { result in
+            configFetchResult = result
+        }
+
+        XCTAssertEqual(expectedConfig, configFetchResult?.tunnelConfig)
+        XCTAssertEqual(expectedServer, configFetchResult?.server)
+    }
+
+    func testAttemptRecovery_configUpdateFails_throwsError() async {
+        let stubbedError = NetworkProtectionError.failedToEncodeRegisterKeyRequest
+        deviceManager.stubGenerateTunnelConfiguration = (
+            tunnelConfig: .make(named: "server"),
+            server: .registeredServer(named: "server")
+        )
+
+        do {
+            try await failureRecoveryHandler.attemptRecovery(to: .mockRegisteredServer, includedRoutes: [], excludedRoutes: [], isKillSwitchEnabled: true) { _ in
+                throw WireGuardAdapterError.cannotLocateTunnelFileDescriptor
+            }
+            XCTFail("Expected error to be thrown")
+        } catch {
+            guard case FailureRecoveryError.reachedMaximumRetries(let lastError) = error else {
+                XCTFail("Expected configGenerationError, got \(error)")
+                return
+            }
+            guard case WireGuardAdapterError.cannotLocateTunnelFileDescriptor = lastError else {
+                XCTFail("Expected underlying error to match stubbed")
+                return
+            }
+        }
     }
 
     func testAttemptRecovery_allowedIPsDiffersFromPreviousAllowedIPs_returnsNewConfigAndServer() async throws {
@@ -106,10 +140,14 @@ final class FailureRecoveryHandlerTests: XCTestCase {
             server: newServer
         )
 
-        let result = try await failureRecoveryHandler.attemptRecovery(to: lastServer, includedRoutes: [], excludedRoutes: [], isKillSwitchEnabled: true)
+        var configFetchResult: NetworkProtectionDeviceManagement.GenerateTunnelConfigResult?
 
-        XCTAssertEqual(expectedConfig, result.tunnelConfig)
-        XCTAssertEqual(newServer, result.server)
+        try await failureRecoveryHandler.attemptRecovery(to: lastServer, includedRoutes: [], excludedRoutes: [], isKillSwitchEnabled: true) { result in
+            configFetchResult = result
+        }
+
+        XCTAssertEqual(expectedConfig, configFetchResult?.tunnelConfig)
+        XCTAssertEqual(newServer, configFetchResult?.server)
     }
 
     func testAttemptRecovery_lastAndNewServerNamesAndAllowedIPsAreEqual_throwsNoRecoveryNecessaryError() async throws {
@@ -124,7 +162,7 @@ final class FailureRecoveryHandlerTests: XCTestCase {
         )
 
         do {
-            _ = try await failureRecoveryHandler.attemptRecovery(to: lastServer, includedRoutes: [], excludedRoutes: [], isKillSwitchEnabled: true)
+            try await failureRecoveryHandler.attemptRecovery(to: lastServer, includedRoutes: [], excludedRoutes: [], isKillSwitchEnabled: true) { _ in }
             XCTFail("Expected error to be thrown")
         } catch {
             guard case FailureRecoveryError.noRecoveryNecessary = error else {

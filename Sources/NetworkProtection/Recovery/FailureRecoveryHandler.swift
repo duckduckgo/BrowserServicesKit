@@ -36,15 +36,32 @@ enum FailureRecoveryError: Error {
 
 actor FailureRecoveryHandler: FailureRecoveryHandling {
 
+    struct RetryConfig {
+        let times: Int
+        let initialDelay: TimeInterval
+        let maxDelay: TimeInterval
+        let factor: Double
+
+        static var `default` = RetryConfig(
+            times: 5,
+            initialDelay: .seconds(30),
+            maxDelay: .minutes(5),
+            factor: 2.0
+        )
+    }
+
     private let deviceManager: NetworkProtectionDeviceManagement
+    private let retryConfig: RetryConfig
+
     private var task: Task<NetworkProtectionDeviceManagement.GenerateTunnelConfigResult, FailureRecoveryError>? {
         willSet {
             task?.cancel()
         }
     }
 
-    init(deviceManager: NetworkProtectionDeviceManagement) {
+    init(deviceManager: NetworkProtectionDeviceManagement, retryConfig: RetryConfig = .default) {
         self.deviceManager = deviceManager
+        self.retryConfig = retryConfig
     }
 
     func attemptRecovery(
@@ -54,7 +71,7 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
         isKillSwitchEnabled: Bool,
         updateConfig: @escaping (NetworkProtectionDeviceManagement.GenerateTunnelConfigResult) async throws -> Void
     ) async throws {
-        try await incrementalPeriodicChecks {
+        try await incrementalPeriodicChecks(retryConfig) {
             let result = try await self.makeRecoveryAttempt(
                 to: lastConnectedServer,
                 includedRoutes: includedRoutes,
@@ -108,14 +125,11 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
     }
 
     private func incrementalPeriodicChecks(
-        times: Int = 5,
-        initialDelay: TimeInterval = .seconds(30),
-        maxDelay: TimeInterval = .minutes(5),
-        factor: Double = 2.0,
+        _ config: RetryConfig,
         action: @escaping () async throws -> Void
     ) async throws {
         let result = Task.detached(priority: .background) {
-            var currentDelay = initialDelay
+            var currentDelay = config.initialDelay
             var count = 0
             var lastError: Error
             repeat {
@@ -132,9 +146,9 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
                     try? await Task.sleep(interval: currentDelay)
                 }
                 count += 1
-                currentDelay = min((currentDelay * factor), maxDelay)
-            } while count < times
-            
+                currentDelay = min((currentDelay * config.factor), config.maxDelay)
+            } while count < config.times
+
             throw FailureRecoveryError.reachedMaximumRetries(lastError: lastError)
         }
         try await result.value
