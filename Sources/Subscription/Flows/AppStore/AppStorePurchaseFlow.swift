@@ -110,7 +110,7 @@ public final class AppStorePurchaseFlow {
                 }
             }
         }
-        
+
         // Make the purchase
         switch await PurchaseManager.shared.purchaseSubscription(with: subscriptionIdentifier, externalID: externalID) {
         case .success(let transactionJWS):

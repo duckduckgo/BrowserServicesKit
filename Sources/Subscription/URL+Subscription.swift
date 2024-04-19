@@ -53,12 +53,12 @@ public extension URL {
     static var subscriptionActivateSuccess: URL {
         subscriptionBaseURL.appendingPathComponent("activate/success")
     }
-    
+
     // Add Email Success
     static var addEmailToSubscriptionSuccess: URL {
         subscriptionBaseURL.appendingPathComponent("add-email/success")
     }
-    
+
     // Add Email OTP
     static var addEmailToSubscriptionOTP: URL {
         subscriptionBaseURL.appendingPathComponent("add-email/otp")
