@@ -24,8 +24,9 @@ import SecureStorageTestsUtils
 final class AutofillKeyStoreProviderTests: XCTestCase {
 
     private enum Constants {
-        static let legacyServiceName = "DuckDuckGo Secure Vault"
-        static let defaultServiceName = "DuckDuckGo Secure Vault v2"
+        static let v1ServiceName = "DuckDuckGo Secure Vault"
+        static let v2ServiceName = "DuckDuckGo Secure Vault v2"
+        static let v3ServiceName = "DuckDuckGo Secure Vault v3"
     }
 
     private enum EntryName: String, CaseIterable {
@@ -84,7 +85,7 @@ final class AutofillKeyStoreProviderTests: XCTestCase {
             // Then
             XCTAssertEqual(keychainService.itemMatchingCallCount, 2)
             XCTAssertEqual(keychainService.latestItemMatchingQuery[kSecAttrAccount as String] as! String, entry.rawValue)
-            XCTAssertEqual(keychainService.latestItemMatchingQuery[kSecAttrService as String] as! String, Constants.defaultServiceName)
+            XCTAssertEqual(keychainService.latestItemMatchingQuery[kSecAttrService as String] as! String, Constants.v2ServiceName)
         }
     }
 
@@ -102,7 +103,7 @@ final class AutofillKeyStoreProviderTests: XCTestCase {
             // Then
             XCTAssertEqual(keychainService.itemMatchingCallCount, 3)
             XCTAssertEqual(keychainService.latestItemMatchingQuery[kSecAttrAccount as String] as! String, entry.rawValue)
-            XCTAssertEqual(keychainService.latestItemMatchingQuery[kSecAttrService as String] as! String, Constants.legacyServiceName)
+            XCTAssertEqual(keychainService.latestItemMatchingQuery[kSecAttrService as String] as! String, Constants.v1ServiceName)
         }
     }
 
@@ -120,7 +121,7 @@ final class AutofillKeyStoreProviderTests: XCTestCase {
             // Then
             XCTAssertEqual(keychainService.addCallCount, 1)
             XCTAssertEqual(keychainService.latestAddQuery[kSecAttrAccount as String] as! String, entry.keyValue)
-            XCTAssertEqual(keychainService.latestAddQuery[kSecAttrService as String] as! String, Constants.defaultServiceName)
+            XCTAssertEqual(keychainService.latestAddQuery[kSecAttrService as String] as! String, Constants.v3ServiceName)
         }
     }
 
@@ -138,7 +139,7 @@ final class AutofillKeyStoreProviderTests: XCTestCase {
             // Then
             XCTAssertEqual(keychainService.addCallCount, 1)
             XCTAssertEqual(keychainService.latestAddQuery[kSecAttrAccount as String] as! String, entry.keyValue)
-            XCTAssertEqual(keychainService.latestAddQuery[kSecAttrService as String] as! String, Constants.defaultServiceName)
+            XCTAssertEqual(keychainService.latestAddQuery[kSecAttrService as String] as! String, Constants.v3ServiceName)
         }
     }
 }

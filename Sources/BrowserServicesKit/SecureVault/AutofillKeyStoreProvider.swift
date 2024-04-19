@@ -23,8 +23,9 @@ import SecureStorage
 final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
 
     struct Constants {
-        static let legacyServiceName = "DuckDuckGo Secure Vault"
-        static let defaultServiceName = "DuckDuckGo Secure Vault v2"
+        static let v1ServiceName = "DuckDuckGo Secure Vault"
+        static let v2ServiceName = "DuckDuckGo Secure Vault v2"
+        static let v3ServiceName = "DuckDuckGo Secure Vault v3"
     }
 
     // DO NOT CHANGE except if you want to deliberately invalidate all users's vaults.
@@ -81,7 +82,7 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
     }
 
     var keychainServiceName: String {
-        return Constants.defaultServiceName
+        return Constants.v3ServiceName
     }
 
     var generatedPasswordEntryName: String {
@@ -96,7 +97,7 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
         return EntryName.l2Key.keyValue
     }
 
-    func readData(named name: String, serviceName: String = Constants.defaultServiceName) throws -> Data? {
+    func readData(named name: String, serviceName: String = Constants.v2ServiceName) throws -> Data? {
         try readOrMigrate(named: name, serviceName: serviceName)
     }
 
@@ -114,14 +115,12 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
 
             reporter?.secureVaultKeyStoreEvent(entryName.keyStoreMigrationEvent)
 
-            // Look for items based on older EntryName attributes (pre-bundle-specifc Keychain storage)
-            if let data = try migrateEntry(entryName: entryName, serviceName: keychainServiceName) {
-                try writeData(data, named: name, serviceName: keychainServiceName)
-                os_log("Migrated non-bundle specific Autofill Keystore data", log: .autofill, type: .debug)
+            // Look for items in V2 vault (i.e pre-bundle-specifc Keychain storage)
+            if let data = try migrateEntry(entryName: entryName, serviceName: Constants.v2ServiceName) {
+                os_log("Migrated V2 Autofill Keystore data", log: .autofill, type: .debug)
                 return data
-            // Look for items in pre-V2 vault
-            } else if serviceName == Constants.defaultServiceName, let data = try migrateEntry(entryName: entryName, serviceName: Constants.legacyServiceName) {
-                try writeData(data, named: name, serviceName: keychainServiceName)
+            // Look for items in V1 vault
+            } else if let data = try migrateEntry(entryName: entryName, serviceName: Constants.v1ServiceName) {
                 os_log("Migrated V1 Autofill Keystore data", log: .autofill, type: .debug)
                 return data
             }
@@ -145,7 +144,7 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
         let status = keychainService.itemMatching(query, &item)
         switch status {
         case errSecSuccess:
-            if serviceName == Constants.defaultServiceName {
+            if serviceName == Constants.v2ServiceName {
                 guard let itemData = item as? Data,
                       let itemString = String(data: itemData, encoding: .utf8),
                       let decodedData = Data(base64Encoded: itemString) else {
@@ -172,16 +171,17 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
     ///   - serviceName: Service name to use when querying Keychain for the entry
     /// - Returns: Optional data
     private func migrateEntry(entryName: EntryName, serviceName: String) throws -> Data? {
-        guard let key = try read(named: entryName.rawValue, serviceName: serviceName) else {
+        guard let data = try read(named: entryName.rawValue, serviceName: serviceName) else {
             return nil
         }
-        return key
+        try writeData(data, named: entryName.keyValue, serviceName: keychainServiceName)
+        return data
     }
 
     // MARK: - Autofill Attributes
 
     func attributesForEntry(named name: String, serviceName: String) -> [String: Any] {
-        if serviceName == Constants.defaultServiceName {
+        if serviceName == Constants.v2ServiceName {
             return defaultAttributesForEntry(named: name)
         } else {
             return legacyAttributesForEntry(named: name)
