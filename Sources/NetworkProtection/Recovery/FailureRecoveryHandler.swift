@@ -27,6 +27,8 @@ protocol FailureRecoveryHandling {
         isKillSwitchEnabled: Bool,
         updateConfig: @escaping (NetworkProtectionDeviceManagement.GenerateTunnelConfigResult) async throws -> Void
     ) async throws
+
+    func stop() async
 }
 
 enum FailureRecoveryError: Error {

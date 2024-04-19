@@ -1240,38 +1240,48 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 return
             }
 
+            switch result {
+            case .failureDetected:
+                startServerFailureRecovery()
+            case .failureRecovered:
+                Task {
+                    await self.failureRecoveryHandler.stop()
+                }
+            case .networkPathChanged: break
+            }
             guard case .failureDetected = result else {
                 return
             }
+        }
+    }
 
-            Task {
-                guard let server = await self.lastSelectedServer else {
-                    os_log("🟢 No last server info found for recovery", log: .networkProtectionServerFailureRecoveryLog, type: .info)
-                    return
-                }
-                await self.startReasserting()
-                await self.serverFailureMonitor.stop()
+    private func startServerFailureRecovery() {
+        Task {
+            guard let server = await self.lastSelectedServer else {
+                os_log("🟢 No last server info found for recovery", log: .networkProtectionServerFailureRecoveryLog, type: .info)
+                return
+            }
+            await self.startReasserting()
+            await self.serverFailureMonitor.stop()
 
-                let recoveryResult: (tunnelConfig: TunnelConfiguration, server: NetworkProtectionServer)
-                do {
-                    try await self.failureRecoveryHandler.attemptRecovery(
-                        to: server,
-                        includedRoutes: self.includedRoutes ?? [],
-                        excludedRoutes: self.settings.excludedRanges,
-                        isKillSwitchEnabled: self.isKillSwitchEnabled
-                    ) { [weak self] generateConfigResult in
-                        try await self?.handleFailureRecoveryConfigUpdate(result: generateConfigResult)
-                    }
-                } catch let error as FailureRecoveryError {
-                    switch error {
-                    case .noRecoveryNecessary:
-                        os_log("🟢 Failure recovery fire noRecoveryNecessary pixel", log: .networkProtectionServerFailureRecoveryLog, type: .error)
-                    case .reachedMaximumRetries(let lastError):
-                        os_log("🟢 Failure recovery max retry error: %{public}@", log: .networkProtectionServerFailureRecoveryLog, type: .error, String(reflecting: error))
-                    }
-                } catch {
-                    os_log("🟢 Failure recovery error: %{public}@", log: .networkProtectionServerFailureRecoveryLog, type: .error, String(reflecting: error))
+            do {
+                try await self.failureRecoveryHandler.attemptRecovery(
+                    to: server,
+                    includedRoutes: self.includedRoutes ?? [],
+                    excludedRoutes: self.settings.excludedRanges,
+                    isKillSwitchEnabled: self.isKillSwitchEnabled
+                ) { [weak self] generateConfigResult in
+                    try await self?.handleFailureRecoveryConfigUpdate(result: generateConfigResult)
                 }
+            } catch let error as FailureRecoveryError {
+                switch error {
+                case .noRecoveryNecessary:
+                    os_log("🟢 Failure recovery fire noRecoveryNecessary pixel", log: .networkProtectionServerFailureRecoveryLog, type: .error)
+                case .reachedMaximumRetries(let lastError):
+                    os_log("🟢 Failure recovery max retry error: %{public}@", log: .networkProtectionServerFailureRecoveryLog, type: .error, String(reflecting: lastError))
+                }
+            } catch {
+                os_log("🟢 Failure recovery error: %{public}@", log: .networkProtectionServerFailureRecoveryLog, type: .error, String(reflecting: error))
             }
         }
     }
