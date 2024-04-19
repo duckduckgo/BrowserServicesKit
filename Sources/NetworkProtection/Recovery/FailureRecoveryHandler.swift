@@ -124,6 +124,9 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
                     os_log("🟢 Failure recovery success!", log: .networkProtectionServerFailureRecoveryLog, type: .info)
                     return
                 } catch {
+                    if case FailureRecoveryError.noRecoveryNecessary = error {
+                        throw error
+                    }
                     lastError = error
                     os_log("🟢 Failure recovery failed. Retrying...", log: .networkProtectionServerFailureRecoveryLog, type: .info)
                     try? await Task.sleep(interval: currentDelay)

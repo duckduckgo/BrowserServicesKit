@@ -1225,7 +1225,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     lazy var failureRecoveryHandler: FailureRecoveryHandling = FailureRecoveryHandler(deviceManager: deviceManager)
-    
+
     private func startServerFailureMonitor() async {
         if await serverFailureMonitor.isStarted {
             await serverFailureMonitor.stop()
@@ -1262,8 +1262,14 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                     ) { [weak self] generateConfigResult in
                         try await self?.handleFailureRecoveryConfigUpdate(result: generateConfigResult)
                     }
+                } catch let error as FailureRecoveryError {
+                    switch error {
+                    case .noRecoveryNecessary:
+                        os_log("🟢 Failure recovery fire noRecoveryNecessary pixel", log: .networkProtectionServerFailureRecoveryLog, type: .error)
+                    case .reachedMaximumRetries(let lastError):
+                        os_log("🟢 Failure recovery max retry error: %{public}@", log: .networkProtectionServerFailureRecoveryLog, type: .error, String(reflecting: error))
+                    }
                 } catch {
-                    // Pixel here sent as part of https://app.asana.com/0/0/1206939413299475/f
                     os_log("🟢 Failure recovery error: %{public}@", log: .networkProtectionServerFailureRecoveryLog, type: .error, String(reflecting: error))
                 }
             }
