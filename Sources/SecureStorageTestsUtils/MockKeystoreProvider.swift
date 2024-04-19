@@ -23,8 +23,8 @@ public final class MockKeychainService: KeychainService {
 
     public enum Mode {
         case nothingFound
-        case bundleSpecificFound
-        case nonBundleSpecificFound
+        case v3Found
+        case v2Found
         case v1Found
     }
 
@@ -55,10 +55,10 @@ public final class MockKeychainService: KeychainService {
         switch mode {
         case .nothingFound:
             return errSecItemNotFound
-        case .bundleSpecificFound:
+        case .v3Found:
             setResult()
             return errSecSuccess
-        case .nonBundleSpecificFound:
+        case .v2Found:
             if itemMatchingCallCount == 2 {
                 setResult()
                 return errSecSuccess

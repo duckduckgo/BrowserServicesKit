@@ -35,7 +35,7 @@ final class AutofillKeyStoreProviderTests: XCTestCase {
         case l1Key = "79963A16-4E3A-464C-B01A-9774B3F695F1"
         case l2Key = "A5711F4D-7AA5-4F0C-9E4F-BE553F1EA299"
 
-        var keyValue: String {
+        var keychainIdentifier: String {
             (Bundle.main.bundleIdentifier ?? "com.duckduckgo") + rawValue
         }
     }
@@ -45,14 +45,15 @@ final class AutofillKeyStoreProviderTests: XCTestCase {
         try EntryName.allCases.forEach { entry in
             // Given
             let keychainService = MockKeychainService()
-            keychainService.mode = .bundleSpecificFound
+            keychainService.mode = .v3Found
             let sut = AutofillKeyStoreProvider(keychainService: keychainService)
 
             // When
-            _ = try sut.readData(named: entry.keyValue, serviceName: sut.keychainServiceName)
+            let result = try sut.readData(named: entry.keychainIdentifier, serviceName: sut.keychainServiceName)
 
             // Then
             XCTAssertEqual(keychainService.itemMatchingCallCount, 1)
+            XCTAssertEqual(String(decoding: result!, as: UTF8.self), "Mock Keychain data!")
         }
     }
 
@@ -64,28 +65,29 @@ final class AutofillKeyStoreProviderTests: XCTestCase {
             let sut = AutofillKeyStoreProvider(keychainService: keychainService)
 
             // When
-            _ = try sut.readData(named: entry.keyValue, serviceName: sut.keychainServiceName)
+            _ = try sut.readData(named: entry.keychainIdentifier, serviceName: sut.keychainServiceName)
 
             // Then
             XCTAssertEqual(keychainService.itemMatchingCallCount, 3)
         }
     }
 
-    func testWhenReadData_AndValueNotFound_NonBundleSpecificSearchIsPerformed() throws {
+    func testWhenReadData_AndValueNotFound_V2SearchIsPerformed() throws {
 
         try EntryName.allCases.forEach { entry in
             // Given
             let keychainService = MockKeychainService()
-            keychainService.mode = .nonBundleSpecificFound
+            keychainService.mode = .v2Found
             let sut = AutofillKeyStoreProvider(keychainService: keychainService)
 
             // When
-            _ = try sut.readData(named: entry.keyValue, serviceName: sut.keychainServiceName)
+            let result = try sut.readData(named: entry.keychainIdentifier, serviceName: sut.keychainServiceName)
 
             // Then
             XCTAssertEqual(keychainService.itemMatchingCallCount, 2)
             XCTAssertEqual(keychainService.latestItemMatchingQuery[kSecAttrAccount as String] as! String, entry.rawValue)
             XCTAssertEqual(keychainService.latestItemMatchingQuery[kSecAttrService as String] as! String, Constants.v2ServiceName)
+            XCTAssertEqual(String(decoding: result!, as: UTF8.self), "Mock Keychain data!")
         }
     }
 
@@ -98,7 +100,7 @@ final class AutofillKeyStoreProviderTests: XCTestCase {
             let sut = AutofillKeyStoreProvider(keychainService: keychainService)
 
             // When
-            _ = try sut.readData(named: entry.keyValue, serviceName: sut.keychainServiceName)
+            _ = try sut.readData(named: entry.keychainIdentifier, serviceName: sut.keychainServiceName)
 
             // Then
             XCTAssertEqual(keychainService.itemMatchingCallCount, 3)
@@ -107,21 +109,22 @@ final class AutofillKeyStoreProviderTests: XCTestCase {
         }
     }
 
-    func testWhenReadData_AndNonBundleSpecificValueFound_ThenWritesValueToNewStorageWithCorrectAttributes() throws {
+    func testWhenReadData_AndV2ValueFound_ThenWritesValueToNewStorageWithCorrectAttributes() throws {
 
         try EntryName.allCases.forEach { entry in
             // Given
             let keychainService = MockKeychainService()
-            keychainService.mode = .nonBundleSpecificFound
+            keychainService.mode = .v2Found
             let sut = AutofillKeyStoreProvider(keychainService: keychainService)
 
             // When
-            _ = try sut.readData(named: entry.keyValue, serviceName: sut.keychainServiceName)
+            let result = try sut.readData(named: entry.keychainIdentifier, serviceName: sut.keychainServiceName)
 
             // Then
             XCTAssertEqual(keychainService.addCallCount, 1)
-            XCTAssertEqual(keychainService.latestAddQuery[kSecAttrAccount as String] as! String, entry.keyValue)
+            XCTAssertEqual(keychainService.latestAddQuery[kSecAttrAccount as String] as! String, entry.keychainIdentifier)
             XCTAssertEqual(keychainService.latestAddQuery[kSecAttrService as String] as! String, Constants.v3ServiceName)
+            XCTAssertEqual(String(decoding: result!, as: UTF8.self), "Mock Keychain data!")
         }
     }
 
@@ -134,11 +137,11 @@ final class AutofillKeyStoreProviderTests: XCTestCase {
             let sut = AutofillKeyStoreProvider(keychainService: keychainService)
 
             // When
-            _ = try sut.readData(named: entry.keyValue, serviceName: sut.keychainServiceName)
+            _ = try sut.readData(named: entry.keychainIdentifier, serviceName: sut.keychainServiceName)
 
             // Then
             XCTAssertEqual(keychainService.addCallCount, 1)
-            XCTAssertEqual(keychainService.latestAddQuery[kSecAttrAccount as String] as! String, entry.keyValue)
+            XCTAssertEqual(keychainService.latestAddQuery[kSecAttrAccount as String] as! String, entry.keychainIdentifier)
             XCTAssertEqual(keychainService.latestAddQuery[kSecAttrService as String] as! String, Constants.v3ServiceName)
         }
     }

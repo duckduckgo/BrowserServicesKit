@@ -36,8 +36,8 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
         case l1Key = "79963A16-4E3A-464C-B01A-9774B3F695F1"
         case l2Key = "A5711F4D-7AA5-4F0C-9E4F-BE553F1EA299"
 
-        // `keyValue` should be used as Keychain Account names, as app variants (e.g App Store, DMG) should have separate entries
-        var keyValue: String {
+        // `keychainIdentifier` should be used as Keychain Account names, as app variants (e.g App Store, DMG) should have separate entries
+        var keychainIdentifier: String {
             (Bundle.main.bundleIdentifier ?? "com.duckduckgo") + rawValue
         }
 
@@ -54,11 +54,11 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
 
         static func entryName(from keyValue: String) -> EntryName? {
             switch keyValue {
-            case EntryName.generatedPassword.keyValue:
+            case EntryName.generatedPassword.keychainIdentifier:
                 return .generatedPassword
-            case EntryName.l1Key.keyValue:
+            case EntryName.l1Key.keychainIdentifier:
                 return .l1Key
-            case EntryName.l2Key.keyValue:
+            case EntryName.l2Key.keychainIdentifier:
                 return .l2Key
             default:
                 return nil
@@ -86,18 +86,18 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
     }
 
     var generatedPasswordEntryName: String {
-        return EntryName.generatedPassword.keyValue
+        return EntryName.generatedPassword.keychainIdentifier
     }
 
     var l1KeyEntryName: String {
-        return EntryName.l1Key.keyValue
+        return EntryName.l1Key.keychainIdentifier
     }
 
     var l2KeyEntryName: String {
-        return EntryName.l2Key.keyValue
+        return EntryName.l2Key.keychainIdentifier
     }
 
-    func readData(named name: String, serviceName: String = Constants.v2ServiceName) throws -> Data? {
+    func readData(named name: String, serviceName: String) throws -> Data? {
         try readOrMigrate(named: name, serviceName: serviceName)
     }
 
@@ -144,7 +144,7 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
         let status = keychainService.itemMatching(query, &item)
         switch status {
         case errSecSuccess:
-            if serviceName == Constants.v2ServiceName {
+            if isPostV1(serviceName) {
                 guard let itemData = item as? Data,
                       let itemString = String(data: itemData, encoding: .utf8),
                       let decodedData = Data(base64Encoded: itemString) else {
@@ -174,14 +174,18 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
         guard let data = try read(named: entryName.rawValue, serviceName: serviceName) else {
             return nil
         }
-        try writeData(data, named: entryName.keyValue, serviceName: keychainServiceName)
+        try writeData(data, named: entryName.keychainIdentifier, serviceName: keychainServiceName)
         return data
+    }
+
+    private func isPostV1(_ serviceName: String) -> Bool {
+        [Constants.v2ServiceName, Constants.v3ServiceName].contains(serviceName)
     }
 
     // MARK: - Autofill Attributes
 
     func attributesForEntry(named name: String, serviceName: String) -> [String: Any] {
-        if serviceName == Constants.v2ServiceName {
+        if isPostV1(serviceName) {
             return defaultAttributesForEntry(named: name)
         } else {
             return legacyAttributesForEntry(named: name)
