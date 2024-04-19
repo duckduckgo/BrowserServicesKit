@@ -120,9 +120,12 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
             var lastError: Error
             repeat {
                 do {
-                    return try await action()
+                    try await action()
+                    os_log("🟢 Failure recovery success!", log: .networkProtectionServerFailureRecoveryLog, type: .info)
+                    return
                 } catch {
                     lastError = error
+                    os_log("🟢 Failure recovery failed. Retrying...", log: .networkProtectionServerFailureRecoveryLog, type: .info)
                     try? await Task.sleep(interval: currentDelay)
                 }
                 count += 1
