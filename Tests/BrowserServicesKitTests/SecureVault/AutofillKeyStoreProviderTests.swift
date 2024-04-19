@@ -23,26 +23,9 @@ import SecureStorageTestsUtils
 
 final class AutofillKeyStoreProviderTests: XCTestCase {
 
-    private enum Constants {
-        static let v1ServiceName = "DuckDuckGo Secure Vault"
-        static let v2ServiceName = "DuckDuckGo Secure Vault v2"
-        static let v3ServiceName = "DuckDuckGo Secure Vault v3"
-    }
-
-    private enum EntryName: String, CaseIterable {
-
-        case generatedPassword = "32A8C8DF-04AF-4C9D-A4C7-83096737A9C0"
-        case l1Key = "79963A16-4E3A-464C-B01A-9774B3F695F1"
-        case l2Key = "A5711F4D-7AA5-4F0C-9E4F-BE553F1EA299"
-
-        var keychainIdentifier: String {
-            (Bundle.main.bundleIdentifier ?? "com.duckduckgo") + rawValue
-        }
-    }
-
     func testWhenReadData_AndValueIsFound_NoFallbackSearchIsPerformed() throws {
 
-        try EntryName.allCases.forEach { entry in
+        try AutofillKeyStoreProvider.EntryName.allCases.forEach { entry in
             // Given
             let keychainService = MockKeychainService()
             keychainService.mode = .v3Found
@@ -57,9 +40,9 @@ final class AutofillKeyStoreProviderTests: XCTestCase {
         }
     }
 
-    func testWhenReadData_AndValueNotFound_AllFallbackSearchesArePerformed() throws {
+    func testWhenReadData_AndNoValuesFound_AllFallbackSearchesArePerformed() throws {
 
-        try EntryName.allCases.forEach { entry in
+        try AutofillKeyStoreProvider.EntryName.allCases.forEach { entry in
             // Given
             let keychainService = MockKeychainService()
             let sut = AutofillKeyStoreProvider(keychainService: keychainService)
@@ -72,9 +55,9 @@ final class AutofillKeyStoreProviderTests: XCTestCase {
         }
     }
 
-    func testWhenReadData_AndValueNotFound_V2SearchIsPerformed() throws {
+    func testWhenReadData_AndV3ValueNotFound_V2SearchIsPerformed() throws {
 
-        try EntryName.allCases.forEach { entry in
+        try AutofillKeyStoreProvider.EntryName.allCases.forEach { entry in
             // Given
             let keychainService = MockKeychainService()
             keychainService.mode = .v2Found
@@ -86,14 +69,14 @@ final class AutofillKeyStoreProviderTests: XCTestCase {
             // Then
             XCTAssertEqual(keychainService.itemMatchingCallCount, 2)
             XCTAssertEqual(keychainService.latestItemMatchingQuery[kSecAttrAccount as String] as! String, entry.rawValue)
-            XCTAssertEqual(keychainService.latestItemMatchingQuery[kSecAttrService as String] as! String, Constants.v2ServiceName)
+            XCTAssertEqual(keychainService.latestItemMatchingQuery[kSecAttrService as String] as! String, AutofillKeyStoreProvider.Constants.v2ServiceName)
             XCTAssertEqual(String(decoding: result!, as: UTF8.self), "Mock Keychain data!")
         }
     }
 
-    func testWhenReadData_AndValueNotFound_V1SearchIsPerformed() throws {
+    func testWhenReadData_AndV3OrV2ValueNotFound_V1SearchIsPerformed() throws {
 
-        try EntryName.allCases.forEach { entry in
+        try AutofillKeyStoreProvider.EntryName.allCases.forEach { entry in
             // Given
             let keychainService = MockKeychainService()
             keychainService.mode = .v1Found
@@ -105,13 +88,13 @@ final class AutofillKeyStoreProviderTests: XCTestCase {
             // Then
             XCTAssertEqual(keychainService.itemMatchingCallCount, 3)
             XCTAssertEqual(keychainService.latestItemMatchingQuery[kSecAttrAccount as String] as! String, entry.rawValue)
-            XCTAssertEqual(keychainService.latestItemMatchingQuery[kSecAttrService as String] as! String, Constants.v1ServiceName)
+            XCTAssertEqual(keychainService.latestItemMatchingQuery[kSecAttrService as String] as! String, AutofillKeyStoreProvider.Constants.v1ServiceName)
         }
     }
 
     func testWhenReadData_AndV2ValueFound_ThenWritesValueToNewStorageWithCorrectAttributes() throws {
 
-        try EntryName.allCases.forEach { entry in
+        try AutofillKeyStoreProvider.EntryName.allCases.forEach { entry in
             // Given
             let keychainService = MockKeychainService()
             keychainService.mode = .v2Found
@@ -123,14 +106,14 @@ final class AutofillKeyStoreProviderTests: XCTestCase {
             // Then
             XCTAssertEqual(keychainService.addCallCount, 1)
             XCTAssertEqual(keychainService.latestAddQuery[kSecAttrAccount as String] as! String, entry.keychainIdentifier)
-            XCTAssertEqual(keychainService.latestAddQuery[kSecAttrService as String] as! String, Constants.v3ServiceName)
+            XCTAssertEqual(keychainService.latestAddQuery[kSecAttrService as String] as! String, AutofillKeyStoreProvider.Constants.v3ServiceName)
             XCTAssertEqual(String(decoding: result!, as: UTF8.self), "Mock Keychain data!")
         }
     }
 
     func testWhenReadData_AndV1ValueFound_ThenWritesValueToNewStorageWithCorrectAttributes() throws {
 
-        try EntryName.allCases.forEach { entry in
+        try AutofillKeyStoreProvider.EntryName.allCases.forEach { entry in
             // Given
             let keychainService = MockKeychainService()
             keychainService.mode = .v1Found
@@ -142,7 +125,7 @@ final class AutofillKeyStoreProviderTests: XCTestCase {
             // Then
             XCTAssertEqual(keychainService.addCallCount, 1)
             XCTAssertEqual(keychainService.latestAddQuery[kSecAttrAccount as String] as! String, entry.keychainIdentifier)
-            XCTAssertEqual(keychainService.latestAddQuery[kSecAttrService as String] as! String, Constants.v3ServiceName)
+            XCTAssertEqual(keychainService.latestAddQuery[kSecAttrService as String] as! String, AutofillKeyStoreProvider.Constants.v3ServiceName)
         }
     }
 }

@@ -30,7 +30,7 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
 
     // DO NOT CHANGE except if you want to deliberately invalidate all users's vaults.
     // The keys have a uid to deter casual hacker from easily seeing which keychain entry is related to what.
-    private enum EntryName: String {
+    enum EntryName: String, CaseIterable {
 
         case generatedPassword = "32A8C8DF-04AF-4C9D-A4C7-83096737A9C0"
         case l1Key = "79963A16-4E3A-464C-B01A-9774B3F695F1"
@@ -52,14 +52,14 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
             }
         }
 
-        static func entryName(from keyValue: String) -> EntryName? {
+        init?(_ keyValue: String) {
             switch keyValue {
             case EntryName.generatedPassword.keychainIdentifier:
-                return .generatedPassword
+                self = .generatedPassword
             case EntryName.l1Key.keychainIdentifier:
-                return .l1Key
+                self = .l1Key
             case EntryName.l2Key.keychainIdentifier:
-                return .l2Key
+                self = .l2Key
             default:
                 return nil
             }
@@ -111,7 +111,7 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
             os_log("Autofill Keystore data retrieved", log: .autofill, type: .debug)
             return data
         } else {
-            guard let entryName = EntryName.entryName(from: name) else { return nil }
+            guard let entryName = EntryName(name) else { return nil }
 
             reporter?.secureVaultKeyStoreEvent(entryName.keyStoreMigrationEvent)
 

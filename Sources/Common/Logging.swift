@@ -47,7 +47,7 @@ extension OSLog {
 #if DEBUG
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     // To activate Logging Categories for DEBUG add categories here:
-    static var debugCategories: Set<Categories> = [ .autofill ]
+    static var debugCategories: Set<Categories> = [ /*.autofill*/ ]
 #endif
 
     @OSLogWrapper(.userScripts)     public static var userScripts
