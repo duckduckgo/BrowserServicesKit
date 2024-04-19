@@ -1225,7 +1225,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     lazy var failureRecoveryHandler: FailureRecoveryHandling = FailureRecoveryHandler(deviceManager: deviceManager)
-
+    
     private func startServerFailureMonitor() async {
         if await serverFailureMonitor.isStarted {
             await serverFailureMonitor.stop()
@@ -1254,13 +1254,14 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
                 let recoveryResult: (tunnelConfig: TunnelConfiguration, server: NetworkProtectionServer)
                 do {
-                    recoveryResult = try await self.failureRecoveryHandler.attemptRecovery(
+                    try await self.failureRecoveryHandler.attemptRecovery(
                         to: server,
                         includedRoutes: self.includedRoutes ?? [],
                         excludedRoutes: self.settings.excludedRanges,
                         isKillSwitchEnabled: self.isKillSwitchEnabled
-                    )
-                    await self.handleFailureRecovery(tunnelConfig: recoveryResult.tunnelConfig, server: recoveryResult.server)
+                    ) { [weak self] generateConfigResult in
+                        try await self?.handleFailureRecoveryConfigUpdate(result: generateConfigResult)
+                    }
                 } catch {
                     // Pixel here sent as part of https://app.asana.com/0/0/1206939413299475/f
                     os_log("🟢 Failure recovery error: %{public}@", log: .networkProtectionServerFailureRecoveryLog, type: .error, String(reflecting: error))
@@ -1270,11 +1271,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     @MainActor
-    private func handleFailureRecovery(tunnelConfig: TunnelConfiguration, server: NetworkProtectionServer) {
-        self.lastSelectedServer = server
-        Task {
-            try await self.updateAdapterConfiguration(tunnelConfiguration: tunnelConfig, reassert: true)
-        }
+    private func handleFailureRecoveryConfigUpdate(result: NetworkProtectionDeviceManagement.GenerateTunnelConfigResult) async throws {
+        self.lastSelectedServer = result.server
+        try await self.updateAdapterConfiguration(tunnelConfiguration: result.tunnelConfig, reassert: true)
     }
 
     @MainActor

@@ -44,6 +44,7 @@ public enum NetworkProtectionServerSelectionMethod: CustomDebugStringConvertible
 }
 
 public protocol NetworkProtectionDeviceManagement {
+    typealias GenerateTunnelConfigResult = (tunnelConfig: TunnelConfiguration, server: NetworkProtectionServer)
 
     func generateTunnelConfiguration(selectionMethod: NetworkProtectionServerSelectionMethod,
                                      includedRoutes: [IPAddressRange],

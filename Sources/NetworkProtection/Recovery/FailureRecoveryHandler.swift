@@ -24,18 +24,24 @@ protocol FailureRecoveryHandling {
         to lastConnectedServer: NetworkProtectionServer,
         includedRoutes: [IPAddressRange],
         excludedRoutes: [IPAddressRange],
-        isKillSwitchEnabled: Bool
-    ) async throws -> (tunnelConfig: TunnelConfiguration, server: NetworkProtectionServer)
+        isKillSwitchEnabled: Bool,
+        updateConfig: @escaping (NetworkProtectionDeviceManagement.GenerateTunnelConfigResult) async throws -> Void
+    ) async throws
 }
 
 enum FailureRecoveryError: Error {
     case noRecoveryNecessary
-    case configGenerationError(NetworkProtectionError)
+    case reachedMaximumRetries(lastError: Error)
 }
 
-struct FailureRecoveryHandler: FailureRecoveryHandling {
+actor FailureRecoveryHandler: FailureRecoveryHandling {
 
     private let deviceManager: NetworkProtectionDeviceManagement
+    private var task: Task<NetworkProtectionDeviceManagement.GenerateTunnelConfigResult, FailureRecoveryError>? {
+        willSet {
+            task?.cancel()
+        }
+    }
 
     init(deviceManager: NetworkProtectionDeviceManagement) {
         self.deviceManager = deviceManager
@@ -45,27 +51,41 @@ struct FailureRecoveryHandler: FailureRecoveryHandling {
         to lastConnectedServer: NetworkProtectionServer,
         includedRoutes: [IPAddressRange],
         excludedRoutes: [IPAddressRange],
-        isKillSwitchEnabled: Bool
-    ) async throws -> (tunnelConfig: TunnelConfiguration, server: NetworkProtectionServer) {
-        let serverSelectionMethod: NetworkProtectionServerSelectionMethod = .failureRecovery(serverName: lastConnectedServer.serverName)
-        let configurationResult: (tunnelConfig: TunnelConfiguration, server: NetworkProtectionServer)
-
-        do {
-            configurationResult = try await deviceManager.generateTunnelConfiguration(
-                selectionMethod: serverSelectionMethod,
+        isKillSwitchEnabled: Bool,
+        updateConfig: @escaping (NetworkProtectionDeviceManagement.GenerateTunnelConfigResult) async throws -> Void
+    ) async throws {
+        try await incrementalPeriodicChecks {
+            let result = try await self.makeRecoveryAttempt(
+                to: lastConnectedServer,
                 includedRoutes: includedRoutes,
                 excludedRoutes: excludedRoutes,
-                isKillSwitchEnabled: isKillSwitchEnabled,
-                regenerateKey: false
+                isKillSwitchEnabled: isKillSwitchEnabled
             )
-            os_log("🟢 Failure recovery fetched new config.", log: .networkProtectionServerFailureRecoveryLog, type: .info)
-        } catch let error as NetworkProtectionError {
-            os_log("🟢 Failure recovery config generation failed.", log: .networkProtectionServerFailureRecoveryLog, type: .info)
-            throw FailureRecoveryError.configGenerationError(error)
-        } catch {
-            os_log("🟢 Failure recovery config generation failed.", log: .networkProtectionServerFailureRecoveryLog, type: .info)
-            throw NetworkProtectionError.unhandledError(function: #function, line: #line, error: error)
+            try await updateConfig(result)
         }
+    }
+
+    func stop() {
+        task = nil
+    }
+
+    private func makeRecoveryAttempt(
+        to lastConnectedServer: NetworkProtectionServer,
+        includedRoutes: [IPAddressRange],
+        excludedRoutes: [IPAddressRange],
+        isKillSwitchEnabled: Bool
+    ) async throws -> NetworkProtectionDeviceManagement.GenerateTunnelConfigResult {
+        let serverSelectionMethod: NetworkProtectionServerSelectionMethod = .failureRecovery(serverName: lastConnectedServer.serverName)
+        let configurationResult: NetworkProtectionDeviceManagement.GenerateTunnelConfigResult
+
+        configurationResult = try await deviceManager.generateTunnelConfiguration(
+            selectionMethod: serverSelectionMethod,
+            includedRoutes: includedRoutes,
+            excludedRoutes: excludedRoutes,
+            isKillSwitchEnabled: isKillSwitchEnabled,
+            regenerateKey: false
+        )
+        os_log("🟢 Failure recovery fetched new config.", log: .networkProtectionServerFailureRecoveryLog, type: .info)
 
         let newServer = configurationResult.server
 
@@ -85,6 +105,33 @@ struct FailureRecoveryHandler: FailureRecoveryHandling {
         }
 
         return configurationResult
+    }
+
+    private func incrementalPeriodicChecks(
+        times: Int = 5,
+        initialDelay: TimeInterval = .seconds(30),
+        maxDelay: TimeInterval = .minutes(5),
+        factor: Double = 2.0,
+        action: @escaping () async throws -> Void
+    ) async throws {
+        let result = Task.detached(priority: .background) {
+            var currentDelay = initialDelay
+            var count = 0
+            var lastError: Error
+            repeat {
+                do {
+                    return try await action()
+                } catch {
+                    lastError = error
+                    try? await Task.sleep(interval: currentDelay)
+                }
+                count += 1
+                currentDelay = min((currentDelay * factor), maxDelay)
+            } while count < times
+            
+            throw FailureRecoveryError.reachedMaximumRetries(lastError: lastError)
+        }
+        try await result.value
     }
 }
 
