@@ -106,9 +106,18 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     // MARK: - WireGuard
 
     private lazy var adapter: WireGuardAdapter = {
-        WireGuardAdapter(with: self) { logLevel, message in
+        WireGuardAdapter(with: self) { [weak self] logLevel, message in
             if logLevel == .error {
                 os_log("🔵 Received error from adapter: %{public}@", log: .networkProtection, type: .error, message)
+
+                do {
+                    try self?.metadataStore.setValue(message, for: \.lastWireGuardAdapterError)
+                } catch {
+                    os_log("🔴 Error updating metadata store adapter error: %{public}s",
+                           log: .networkProtection,
+                           type: .error,
+                           error.localizedDescription)
+                }
             } else {
                 os_log("🔵 Received message from adapter: %{public}@", log: .networkProtection, message)
             }
@@ -157,9 +166,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         return self.protocolConfiguration.enforceRoutes || self.protocolConfiguration.includeAllNetworks
     }
 
-    // MARK: - Tunnel Settings
+    // MARK: - Tunnel Settings & Metadata
 
     private let settings: VPNSettings
+    private let metadataStore: VPNTunnelMetadataStore
 
     // MARK: - User Defaults
 
@@ -342,6 +352,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 debugEvents: EventMapping<NetworkProtectionError>?,
                 providerEvents: EventMapping<Event>,
                 settings: VPNSettings,
+                metadataStore: VPNTunnelMetadataStore?,
                 defaults: UserDefaults,
                 isSubscriptionEnabled: Bool,
                 entitlementCheck: (() async -> Result<Bool, Error>)?) {
@@ -355,6 +366,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         self.tunnelHealth = tunnelHealthStore
         self.controllerErrorStore = controllerErrorStore
         self.settings = settings
+        self.metadataStore = metadataStore ?? VPNTunnelMetadataUserDefaultsStore(userDefaults: defaults)
         self.defaults = defaults
         self.isSubscriptionEnabled = isSubscriptionEnabled
         self.entitlementCheck = isSubscriptionEnabled ? entitlementCheck : nil
@@ -890,6 +902,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             simulateConnectionInterruption(completionHandler: completionHandler)
         case .getDataVolume:
             getDataVolume(completionHandler: completionHandler)
+        case .getTunnelMetadata:
+            getTunnelMetadata(completionHandler: completionHandler)
         }
     }
 
@@ -1162,6 +1176,19 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
+    private func getTunnelMetadata(completionHandler: ((Data?) -> Void)?) {
+        let metadataStore = VPNTunnelMetadataUserDefaultsStore(userDefaults: self.defaults)
+
+        guard let metadata = try? metadataStore.getMetadata(),
+              let encodedJSONData = try? JSONEncoder().encode(metadata),
+              let encodedJSONString = String(data: encodedJSONData, encoding: .utf8) else {
+            completionHandler?(nil)
+            return
+        }
+
+        completionHandler?(ExtensionMessageString(encodedJSONString).rawValue)
+    }
+
     // MARK: - Adapter start completion handling
 
     private enum AdapterStartReason {
@@ -1184,6 +1211,15 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 await rekey()
                 return
             }
+        }
+
+        do {
+            try metadataStore.setValue(adapter.interfaceName ?? "unknown", for: \.lastWireGuardAdapterTunnelInterface)
+        } catch {
+            os_log("🔴 Error updating metadata store tunnel interface: %{public}s",
+                   log: .networkProtection,
+                   type: .error,
+                   error.localizedDescription)
         }
 
         os_log("🔵 Tunnel interface is %{public}@", log: .networkProtection, type: .info, adapter.interfaceName ?? "unknown")

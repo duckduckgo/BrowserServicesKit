@@ -1,5 +1,5 @@
 //
-//  VPNMetadataStore.swift
+//  VPNTunnelMetadataStore.swift
 //  DuckDuckGo
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
@@ -19,17 +19,17 @@
 
 import Foundation
 
-public struct VPNMetadata: Codable {
+public struct VPNTunnelMetadata: Codable {
     var lastWireGuardAdapterError: String? = nil
     var lastWireGuardAdapterTunnelInterface: String? = nil
 }
 
-public protocol VPNMetadataStore {
-    func getMetadata() throws -> VPNMetadata
-    func setValue<T>(_ value: T, for keyPath: WritableKeyPath<VPNMetadata, T>) throws
+public protocol VPNTunnelMetadataStore {
+    func getMetadata() throws -> VPNTunnelMetadata
+    func setValue<T>(_ value: T, for keyPath: WritableKeyPath<VPNTunnelMetadata, T>) throws
 }
 
-public struct VPNMetadataUserDefaultsStore: VPNMetadataStore {
+public struct VPNTunnelMetadataUserDefaultsStore: VPNTunnelMetadataStore {
 
     private enum Constants {
         static let metadataKey = "vpn.metadata"
@@ -39,13 +39,13 @@ public struct VPNMetadataUserDefaultsStore: VPNMetadataStore {
     private let encoder: JSONEncoder
     private let decoder: JSONDecoder
 
-    init(userDefaults: UserDefaults) {
+    public init(userDefaults: UserDefaults) {
         self.userDefaults = userDefaults
         self.encoder = JSONEncoder()
         self.decoder = JSONDecoder()
     }
 
-    public func setValue<T>(_ value: T, for keyPath: WritableKeyPath<VPNMetadata, T>) throws {
+    public func setValue<T>(_ value: T, for keyPath: WritableKeyPath<VPNTunnelMetadata, T>) throws {
         var metadata = try self.getMetadata()
         metadata[keyPath: keyPath] = value
 
@@ -54,21 +54,21 @@ public struct VPNMetadataUserDefaultsStore: VPNMetadataStore {
         try write(metadata: metadata)
     }
 
-    public func getMetadata() throws -> VPNMetadata {
-        return try readMetadata() ?? VPNMetadata()
+    public func getMetadata() throws -> VPNTunnelMetadata {
+        return try readMetadata() ?? VPNTunnelMetadata()
     }
 
     // MARK: - Private
 
-    private func readMetadata() throws -> VPNMetadata? {
+    private func readMetadata() throws -> VPNTunnelMetadata? {
         guard let data = userDefaults.data(forKey: Constants.metadataKey) else {
             return nil
         }
 
-        return try self.decoder.decode(VPNMetadata.self, from: data)
+        return try self.decoder.decode(VPNTunnelMetadata.self, from: data)
     }
 
-    private func write(metadata: VPNMetadata) throws {
+    private func write(metadata: VPNTunnelMetadata) throws {
         let encodedData = try self.encoder.encode(metadata)
         userDefaults.set(encodedData, forKey: Constants.metadataKey)
     }
