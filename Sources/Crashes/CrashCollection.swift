@@ -19,61 +19,86 @@
 import Foundation
 import MetricKit
 
+public enum CrashCollectionPlatform {
+    case iOS, macOS, macOSAppStore
+
+    var userAgent: String {
+        switch self {
+        case .iOS:
+            return "ddg_ios"
+        case .macOS:
+            return "ddg_mac"
+        case .macOSAppStore:
+            return "ddg_mac_appstore"
+        }
+    }
+}
+
 @available(iOSApplicationExtension, unavailable)
 @available(iOS 13, macOS 12, *)
-public struct CrashCollection {
+public final class CrashCollection {
 
-    // Need a strong reference
-    static let collector = CrashCollector()
+    public var log: OSLog {
+        getLog()
+    }
+    private let getLog: () -> OSLog
 
-    public static func collectCrashesAsync(completion: @escaping ([String: String]) -> Void) {
-        collector.completion = completion
-        MXMetricManager.shared.add(collector)
+    public init(platform: CrashCollectionPlatform, log: @escaping @autoclosure () -> OSLog = .disabled) {
+        self.getLog = log
+        crashHandler = CrashHandler()
+        crashSender = CrashReportSender(platform: platform, log: log())
     }
 
-    final class CrashCollector: NSObject, MXMetricManagerSubscriber {
+    public func start(_ didFindCrashReports: @escaping (_ pixelParameters: [[String: String]],
+                                                        _ payloads: [MXDiagnosticPayload],
+                                                        _ uploadReports: @escaping () -> Void) -> Void
+    ) {
+        let first = isFirstCrash
+        isFirstCrash = false
 
-        var completion: ([String: String]) -> Void = { _ in }
-
-        func didReceive(_ payloads: [MXDiagnosticPayload]) {
-            payloads
-                .compactMap { $0.crashDiagnostics }
+        crashHandler.crashDiagnosticsPayloadHandler = { payloads in
+            let pixelParameters = payloads
+                .compactMap(\.crashDiagnostics)
                 .flatMap { $0 }
-                .forEach {
-                    completion([
-                        "appVersion": "\($0.applicationVersion).\($0.metaData.applicationBuildVersion)",
-                        "code": "\($0.exceptionCode ?? -1)",
-                        "type": "\($0.exceptionType ?? -1)",
-                        "signal": "\($0.signal ?? -1)"
-                    ])
+                .map { diagnostic in
+                    var params = [
+                        "appVersion": "\(diagnostic.applicationVersion).\(diagnostic.metaData.applicationBuildVersion)",
+                        "code": "\(diagnostic.exceptionCode ?? -1)",
+                        "type": "\(diagnostic.exceptionType ?? -1)",
+                        "signal": "\(diagnostic.signal ?? -1)"
+                    ]
+                    if first {
+                        params["first"] = "1"
+                    }
+                    return params
                 }
+
+            didFindCrashReports(pixelParameters, payloads) {
+                Task {
+                    for payload in payloads {
+                        await self.crashSender.send(payload.jsonRepresentation())
+                    }
+                }
+            }
         }
 
+        MXMetricManager.shared.add(crashHandler)
     }
 
-    static let firstCrashKey = "CrashCollection.first"
-
-    static var firstCrash: Bool {
+    var isFirstCrash: Bool {
         get {
-            UserDefaults().object(forKey: Self.firstCrashKey) as? Bool ?? true
+            UserDefaults().object(forKey: Const.firstCrashKey) as? Bool ?? true
         }
 
         set {
-            UserDefaults().set(newValue, forKey: Self.firstCrashKey)
+            UserDefaults().set(newValue, forKey: Const.firstCrashKey)
         }
     }
 
-    public static func start(firePixel: @escaping ([String: String]) -> Void) {
-        let first = Self.firstCrash
-        CrashCollection.collectCrashesAsync { params in
-            var params = params
-            if first {
-                params["first"] = "1"
-            }
-            firePixel(params)
-        }
-        // Turn the flag off for next time
-        Self.firstCrash = false
-    }
+    let crashHandler: CrashHandler
+    let crashSender: CrashReportSender
 
+    enum Const {
+        static let firstCrashKey = "CrashCollection.first"
+    }
 }
