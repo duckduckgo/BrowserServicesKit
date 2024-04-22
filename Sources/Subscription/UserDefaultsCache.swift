@@ -23,7 +23,11 @@ public struct UserDefaultsCacheSettings {
     public let defaultExpirationInterval: TimeInterval
 }
 
-public enum UserDefaultsCacheKey: String {
+public protocol UserDefaultsCacheKeyStore {
+    var rawValue: String { get }
+}
+
+public enum UserDefaultsCacheKey: String, UserDefaultsCacheKeyStore {
     case subscriptionEntitlements = "com.duckduckgo.bsk.subscription.entitlements"
     case subscription = "com.duckduckgo.bsk.subscription.info"
 }
@@ -46,9 +50,9 @@ public class UserDefaultsCache<ObjectType: Codable> {
         }
     }()
 
-    private let key: UserDefaultsCacheKey
+    private let key: UserDefaultsCacheKeyStore
 
-    public init(subscriptionAppGroup: String?, key: UserDefaultsCacheKey,
+    public init(subscriptionAppGroup: String?, key: UserDefaultsCacheKeyStore,
                 settings: UserDefaultsCacheSettings) {
         self.subscriptionAppGroup = subscriptionAppGroup
         self.key = key
