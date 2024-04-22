@@ -187,10 +187,8 @@ final public class UserContentController: WKUserContentController {
 
     @MainActor
     public func installLocalContentRuleList(_ ruleList: WKContentRuleList, identifier: String) {
-        guard contentRuleLists[.local(identifier)] == nil else {
-            assertionFailure("Local content rule list already installed: \(contentRuleLists[.local(identifier)]!)")
-            return
-        }
+        // replace if already installed
+        removeLocalContentRuleList(withIdentifier: identifier)
 
         os_log(.debug, log: .contentBlocking, "\(self): 🔸 installing local rule list `\(identifier)`")
         contentRuleLists[.local(identifier)] = ruleList
