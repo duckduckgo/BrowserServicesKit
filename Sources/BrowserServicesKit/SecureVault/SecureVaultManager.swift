@@ -77,12 +77,6 @@ public protocol SecureVaultManagerDelegate: AnyObject, SecureVaultErrorReporting
 
 }
 
-extension SecureVaultManagerDelegate {
-    func secureVaultManagerIsEnabledStatus(_ manager: SecureVaultManager, forType type: AutofillType? = nil) -> Bool {
-        return secureVaultManagerIsEnabledStatus(manager, forType: type)
-    }
-}
-
 public protocol PasswordManager: AnyObject {
 
     var isEnabled: Bool { get }
@@ -156,7 +150,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                                                                  SecureVaultModels.CredentialsProvider) -> Void) {
 
         do {
-            guard let delegate = delegate, delegate.secureVaultManagerIsEnabledStatus(self) else {
+            guard let delegate = delegate, delegate.secureVaultManagerIsEnabledStatus(self, forType: nil) else {
                 completionHandler([], [], [], credentialsProvider)
                 return
             }
@@ -752,15 +746,23 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
         } else {
             do {
                 if withPartialMatches {
-                    guard let currentUrlComponents = AutofillDomainNameUrlMatcher().normalizeSchemeForAutofill(domain),
-                          let tld = tld,
-                          let eTLDplus1 = currentUrlComponents.eTLDplus1(tld: tld)
-                    else {
+                    guard var currentUrlComponents = AutofillDomainNameUrlMatcher().normalizeSchemeForAutofill(domain) else {
                         completion([], nil)
                         return
                     }
-                    let accounts = try vault.accountsWithPartialMatchesFor(eTLDplus1: eTLDplus1)
-                    completion(accounts, nil)
+
+                    if currentUrlComponents.host == .localhost {
+                        let accounts = try vault.accountsWithPartialMatchesFor(eTLDplus1: domain)
+                        completion(accounts, nil)
+                    } else {
+                        guard let tld = tld, let eTLDplus1 = currentUrlComponents.eTLDplus1WithPort(tld: tld) else {
+                            completion([], nil)
+                            return
+                        }
+
+                        let accounts = try vault.accountsWithPartialMatchesFor(eTLDplus1: eTLDplus1)
+                        completion(accounts, nil)
+                    }
                 } else {
                     let accounts = try vault.accountsFor(domain: domain)
                     completion(accounts, nil)

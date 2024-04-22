@@ -1,7 +1,7 @@
 //
-//  SecurityOrigin.swift
+//  CrashHandler.swift
 //
-//  Copyright © 2022 DuckDuckGo. All rights reserved.
+//  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -17,23 +17,17 @@
 //
 
 import Foundation
+import MetricKit
 
-public struct SecurityOrigin: Hashable {
+@available(iOSApplicationExtension, unavailable)
+@available(iOS 13, macOS 12, *)
+final class CrashHandler: NSObject, MXMetricManagerSubscriber {
 
-    public let `protocol`: String
-    public let host: String
-    public let port: Int
+    var crashDiagnosticsPayloadHandler: ([MXDiagnosticPayload]) -> Void = { _ in }
 
-    public init(`protocol`: String, host: String, port: Int) {
-        self.`protocol` = `protocol`
-        self.host = host
-        self.port = port
-    }
-
-    public static let empty = SecurityOrigin(protocol: "", host: "", port: 0)
-
-    public var isEmpty: Bool {
-        self == .empty
+    func didReceive(_ payloads: [MXDiagnosticPayload]) {
+        let payloadsWithCrash = payloads.filter { !($0.crashDiagnostics?.isEmpty ?? true) }
+        crashDiagnosticsPayloadHandler(payloadsWithCrash)
     }
 
 }
