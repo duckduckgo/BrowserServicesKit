@@ -38,6 +38,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         case reportTunnelFailure(result: NetworkProtectionTunnelFailureMonitor.Result)
         case reportLatency(result: NetworkProtectionLatencyMonitor.Result)
         case rekeyAttempt(_ step: RekeyAttemptStep)
+        case failureRecoveryAttempt(_ step: FailureRecoveryStep)
     }
 
     public enum AttemptStep {
@@ -1228,9 +1229,15 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
-    private lazy var failureRecoveryHandler: FailureRecoveryHandling = FailureRecoveryHandler(deviceManager: deviceManager)
+    private lazy var failureRecoveryHandler: FailureRecoveryHandling = FailureRecoveryHandler(
+        deviceManager: deviceManager,
+        eventHandler: { [weak self] step in
+            self?.providerEvents.fire(.failureRecoveryAttempt(step))
+        }
+    )
 
     private func startServerFailureRecovery() {
+        providerEvents.fire(.failureRecoveryAttempt(.started))
         Task {
             guard let server = await self.lastSelectedServer else {
                 return
@@ -1245,6 +1252,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                     isKillSwitchEnabled: self.isKillSwitchEnabled
                 ) { [weak self] generateConfigResult in
                     try await self?.handleFailureRecoveryConfigUpdate(result: generateConfigResult)
+                    self?.providerEvents.fire(.failureRecoveryAttempt(.completed(.unhealthy)))
                 }
             }
         }
