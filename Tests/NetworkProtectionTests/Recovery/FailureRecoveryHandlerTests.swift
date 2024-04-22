@@ -24,16 +24,18 @@ final class FailureRecoveryHandlerTests: XCTestCase {
     private var deviceManager: MockNetworkProtectionDeviceManagement!
     private var failureRecoveryHandler: FailureRecoveryHandler!
 
+    private static let testConfig = FailureRecoveryHandler.RetryConfig(
+        times: 0, // Means failure will bubble up after the first try
+        initialDelay: .seconds(1),
+        maxDelay: .seconds(30),
+        factor: 2.0
+    )
+
     override func setUp() {
         super.setUp()
         deviceManager = MockNetworkProtectionDeviceManagement()
-        let testConfig = FailureRecoveryHandler.RetryConfig(
-            times: 0, // Means failure will bubble up after the first try
-            initialDelay: .seconds(1),
-            maxDelay: .seconds(30),
-            factor: 2.0
-        )
-        failureRecoveryHandler = FailureRecoveryHandler(deviceManager: deviceManager, retryConfig: testConfig)
+        failureRecoveryHandler = FailureRecoveryHandler(deviceManager: deviceManager, retryConfig: Self.testConfig, eventHandler: { _ in })
+        self.executionTimeAllowance = 5
     }
 
     override func tearDown() {
@@ -106,7 +108,6 @@ final class FailureRecoveryHandlerTests: XCTestCase {
     }
 
     func testAttemptRecovery_configUpdateFails_throwsError() async {
-        let stubbedError = NetworkProtectionError.failedToEncodeRegisterKeyRequest
         deviceManager.stubGenerateTunnelConfiguration = (
             tunnelConfig: .make(named: "server"),
             server: .registeredServer(named: "server")
@@ -151,6 +152,168 @@ final class FailureRecoveryHandlerTests: XCTestCase {
     }
 
     func testAttemptRecovery_lastAndNewServerNamesAndAllowedIPsAreEqual_throwsNoRecoveryNecessaryError() async throws {
+        do {
+            try await attemptRecoveryWithLastAndNewServerNamesAndAllowedIPsEqual()
+            XCTFail("Expected error to be thrown")
+        } catch {
+            guard case FailureRecoveryError.noRecoveryNecessary = error else {
+                XCTFail("Expected noRecoveryNecessary, got \(error)")
+                return
+            }
+        }
+    }
+
+    func testAttemptRecovery_sendsStartedEvent() async throws {
+        var startedCount = 0
+        failureRecoveryHandler = FailureRecoveryHandler(
+            deviceManager: deviceManager,
+            retryConfig: Self.testConfig,
+            eventHandler: { step in
+                if case .started = step {
+                    startedCount += 1
+                }
+            }
+        )
+        deviceManager.stubGenerateTunnelConfiguration = (
+            tunnelConfig: .make(),
+            server: .mockRegisteredServer
+        )
+        try? await failureRecoveryHandler.attemptRecovery(
+            to: .mockRegisteredServer,
+            includedRoutes: [],
+            excludedRoutes: [],
+            isKillSwitchEnabled: false
+        ) {_ in }
+
+        XCTAssertEqual(startedCount, 1)
+    }
+
+    func testAttemptRecovery_configGenerationFailure_sendsFailedEvent() async throws {
+        var failedCount = 0
+        failureRecoveryHandler = FailureRecoveryHandler(
+            deviceManager: deviceManager,
+            retryConfig: Self.testConfig,
+            eventHandler: { step in
+                if case .failed = step {
+                    failedCount += 1
+                } else if case .completed = step {
+                    XCTFail("Expected no completed events")
+                }
+            }
+        )
+        deviceManager.stubGenerateTunnelConfigurationError = NetworkProtectionError.noServerRegistrationInfo
+        try? await failureRecoveryHandler.attemptRecovery(
+            to: .mockRegisteredServer,
+            includedRoutes: [],
+            excludedRoutes: [],
+            isKillSwitchEnabled: false
+        ) {_ in }
+
+        XCTAssertEqual(failedCount, 1)
+    }
+
+    func testAttemptRecovery_configUpdateFailed_sendsFailedEvent() async throws {
+        var failedCount = 0
+        failureRecoveryHandler = FailureRecoveryHandler(
+            deviceManager: deviceManager,
+            retryConfig: Self.testConfig,
+            eventHandler: { step in
+                if case .failed = step {
+                    failedCount += 1
+                } else if case .completed = step {
+                    XCTFail("Expected no completed events")
+                }
+            }
+        )
+
+        let lastAndNewAllowedIPs = ["1.2.3.4/5", "10.9.8.7/6"]
+        let newServerName = "server2"
+        let lastServer = NetworkProtectionServer.registeredServer(named: "server1", allowedIPs: lastAndNewAllowedIPs)
+        let newServer = NetworkProtectionServer.registeredServer(named: newServerName, allowedIPs: lastAndNewAllowedIPs)
+
+        deviceManager.stubGenerateTunnelConfiguration = (
+            tunnelConfig: .make(named: newServerName),
+            server: newServer
+        )
+
+        try? await failureRecoveryHandler.attemptRecovery(
+            to: .mockRegisteredServer,
+            includedRoutes: [],
+            excludedRoutes: [],
+            isKillSwitchEnabled: false
+        ) { _ in
+            throw WireGuardAdapterError.startWireGuardBackend(0)
+        }
+
+        XCTAssertEqual(failedCount, 1)
+    }
+
+    func testAttemptRecovery_lastAndNewServerNamesAndAllowedIPsAreEqual_sendsHealthyCompletedEvent() async throws {
+        var healthyCompleteCount = 0
+        failureRecoveryHandler = FailureRecoveryHandler(
+            deviceManager: deviceManager,
+            retryConfig: Self.testConfig,
+            eventHandler: { step in
+                if case .completed(.healthy) = step {
+                    healthyCompleteCount += 1
+                } else if case .failed = step {
+                    XCTFail("Expected no failed events")
+                }
+            }
+        )
+        try? await attemptRecoveryWithLastAndNewServerNamesAndAllowedIPsEqual()
+
+        XCTAssertEqual(healthyCompleteCount, 1)
+    }
+
+    func testAttemptRecovery_lastAndNewServerNamesAreDifferent_sendsUnhealthyCompletedEvent() async throws {
+        var unhealthyCompleteCount = 0
+        failureRecoveryHandler = FailureRecoveryHandler(
+            deviceManager: deviceManager,
+            retryConfig: Self.testConfig,
+            eventHandler: { step in
+                if case .completed(.unhealthy) = step {
+                    unhealthyCompleteCount += 1
+                } else if case .failed = step {
+                    XCTFail("Expected no failed events")
+                }
+            }
+        )
+        try? await attemptRecoveryWithLastAndNewServerNamesDiffering()
+
+        XCTAssertEqual(unhealthyCompleteCount, 1)
+    }
+
+    func testAttemptRecovery_lastAndNewAllowedIPsAreDifferent_sendsUnhealthyCompletedEvent() async throws {
+        let lastAndNewServerName = "previousAndNewServerName"
+        let lastServer = NetworkProtectionServer.registeredServer(named: lastAndNewServerName, allowedIPs: ["1.2.3.4/5", "6.7.8.9/10"])
+        let newServer = NetworkProtectionServer.registeredServer(named: lastAndNewServerName, allowedIPs: ["10.9.8.7/6", "5.4.3.2/1"])
+        let expectedConfig = TunnelConfiguration.make(named: lastAndNewServerName)
+
+        var unhealthyCompleteCount = 0
+        failureRecoveryHandler = FailureRecoveryHandler(
+            deviceManager: deviceManager,
+            retryConfig: Self.testConfig,
+            eventHandler: { step in
+                if case .completed(.unhealthy) = step {
+                    unhealthyCompleteCount += 1
+                } else if case .failed = step {
+                    XCTFail("Expected no failed events")
+                }
+            }
+        )
+
+        deviceManager.stubGenerateTunnelConfiguration = (
+            tunnelConfig: expectedConfig,
+            server: newServer
+        )
+
+        try await failureRecoveryHandler.attemptRecovery(to: lastServer, includedRoutes: [], excludedRoutes: [], isKillSwitchEnabled: true) { _ in }
+
+        XCTAssertEqual(unhealthyCompleteCount, 1)
+    }
+
+    func attemptRecoveryWithLastAndNewServerNamesAndAllowedIPsEqual() async throws {
         let lastAndNewServerName = "previousAndNewServerName"
         let lastAndNewAllowedIPs = ["1.2.3.4/5", "10.9.8.7/6"]
         let lastServer = NetworkProtectionServer.registeredServer(named: lastAndNewServerName, allowedIPs: lastAndNewAllowedIPs)
@@ -161,14 +324,20 @@ final class FailureRecoveryHandlerTests: XCTestCase {
             server: newServer
         )
 
-        do {
-            try await failureRecoveryHandler.attemptRecovery(to: lastServer, includedRoutes: [], excludedRoutes: [], isKillSwitchEnabled: true) { _ in }
-            XCTFail("Expected error to be thrown")
-        } catch {
-            guard case FailureRecoveryError.noRecoveryNecessary = error else {
-                XCTFail("Expected noRecoveryNecessary, got \(error)")
-                return
-            }
-        }
+        try await failureRecoveryHandler.attemptRecovery(to: lastServer, includedRoutes: [], excludedRoutes: [], isKillSwitchEnabled: true) { _ in }
+    }
+
+    func attemptRecoveryWithLastAndNewServerNamesDiffering() async throws {
+        let newServerName = "server2"
+        let lastAndNewAllowedIPs = ["1.2.3.4/5", "10.9.8.7/6"]
+        let lastServer = NetworkProtectionServer.registeredServer(named: "server1", allowedIPs: lastAndNewAllowedIPs)
+        let newServer = NetworkProtectionServer.registeredServer(named: newServerName, allowedIPs: lastAndNewAllowedIPs)
+
+        deviceManager.stubGenerateTunnelConfiguration = (
+            tunnelConfig: .make(named: newServerName),
+            server: newServer
+        )
+
+        try await failureRecoveryHandler.attemptRecovery(to: lastServer, includedRoutes: [], excludedRoutes: [], isKillSwitchEnabled: true) { _ in }
     }
 }

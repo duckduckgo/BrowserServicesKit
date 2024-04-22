@@ -19,6 +19,17 @@
 import Foundation
 import Common
 
+public enum FailureRecoveryStep {
+    public enum ServerHealth {
+        case healthy
+        case unhealthy
+    }
+
+    case started
+    case completed(ServerHealth)
+    case failed(_ error: Error)
+}
+
 protocol FailureRecoveryHandling {
     func attemptRecovery(
         to lastConnectedServer: NetworkProtectionServer,
@@ -54,16 +65,18 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
 
     private let deviceManager: NetworkProtectionDeviceManagement
     private let retryConfig: RetryConfig
+    private let eventHandler: (FailureRecoveryStep) -> Void
 
-    private var task: Task<NetworkProtectionDeviceManagement.GenerateTunnelConfigResult, FailureRecoveryError>? {
+    private var task: Task<Void, Error>? {
         willSet {
             task?.cancel()
         }
     }
 
-    init(deviceManager: NetworkProtectionDeviceManagement, retryConfig: RetryConfig = .default) {
+    init(deviceManager: NetworkProtectionDeviceManagement, retryConfig: RetryConfig = .default, eventHandler: @escaping (FailureRecoveryStep) -> Void) {
         self.deviceManager = deviceManager
         self.retryConfig = retryConfig
+        self.eventHandler = eventHandler
     }
 
     func attemptRecovery(
@@ -73,14 +86,21 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
         isKillSwitchEnabled: Bool,
         updateConfig: @escaping (NetworkProtectionDeviceManagement.GenerateTunnelConfigResult) async throws -> Void
     ) async throws {
-        try await incrementalPeriodicChecks(retryConfig) {
-            let result = try await self.makeRecoveryAttempt(
+        try await incrementalPeriodicChecks(retryConfig) { [weak self] in
+            guard let self else { return }
+            let result = try await makeRecoveryAttempt(
                 to: lastConnectedServer,
                 includedRoutes: includedRoutes,
                 excludedRoutes: excludedRoutes,
                 isKillSwitchEnabled: isKillSwitchEnabled
             )
-            try await updateConfig(result)
+            do {
+                try await updateConfig(result)
+                eventHandler(.completed(.unhealthy))
+            } catch {
+                eventHandler(.failed(error))
+                throw error
+            }
         }
     }
 
@@ -94,16 +114,22 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
         excludedRoutes: [IPAddressRange],
         isKillSwitchEnabled: Bool
     ) async throws -> NetworkProtectionDeviceManagement.GenerateTunnelConfigResult {
+        eventHandler(.started)
         let serverSelectionMethod: NetworkProtectionServerSelectionMethod = .failureRecovery(serverName: lastConnectedServer.serverName)
         let configurationResult: NetworkProtectionDeviceManagement.GenerateTunnelConfigResult
 
-        configurationResult = try await deviceManager.generateTunnelConfiguration(
-            selectionMethod: serverSelectionMethod,
-            includedRoutes: includedRoutes,
-            excludedRoutes: excludedRoutes,
-            isKillSwitchEnabled: isKillSwitchEnabled,
-            regenerateKey: false
-        )
+        do {
+            configurationResult = try await deviceManager.generateTunnelConfiguration(
+                selectionMethod: serverSelectionMethod,
+                includedRoutes: includedRoutes,
+                excludedRoutes: excludedRoutes,
+                isKillSwitchEnabled: isKillSwitchEnabled,
+                regenerateKey: false
+            )
+        } catch {
+            eventHandler(.failed(error))
+            throw error
+        }
         os_log("🟢 Failure recovery fetched new config.", log: .networkProtectionServerFailureRecoveryLog, type: .info)
 
         let newServer = configurationResult.server
@@ -120,6 +146,7 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
 
         guard lastConnectedServer.shouldReplace(with: newServer) else {
             os_log("🟢 Server failure recovery not necessary.", log: .networkProtectionServerFailureRecoveryLog, type: .info)
+            eventHandler(.completed(.healthy))
             throw FailureRecoveryError.noRecoveryNecessary
         }
 
@@ -130,7 +157,7 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
         _ config: RetryConfig,
         action: @escaping () async throws -> Void
     ) async throws {
-        let result = Task.detached(priority: .background) {
+        let task = Task.detached(priority: .background) {
             var currentDelay = config.initialDelay
             var count = 0
             var lastError: Error
@@ -153,7 +180,8 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
 
             throw FailureRecoveryError.reachedMaximumRetries(lastError: lastError)
         }
-        try await result.value
+        self.task = task
+        try await task.value
     }
 }
 
