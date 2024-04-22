@@ -24,10 +24,6 @@ final class URLExtensionTests: XCTestCase {
 
     override func setUpWithError() throws {
         try super.setUpWithError()
-
-        if #available(macOS 14, *) {
-            throw XCTSkip("This test can't run on macOS 14 or higher")
-        }
     }
 
     func test_external_urls_are_valid() {
@@ -36,7 +32,11 @@ final class URLExtensionTests: XCTestCase {
         XCTAssertTrue("ftp://example.com".url!.isValid)
     }
 
-    func test_navigational_urls_are_valid() {
+    func test_navigational_urls_are_valid() throws {
+        if #available(macOS 14, *) {
+            throw XCTSkip("This test can't run on macOS 14 or higher")
+        }
+
         struct TestItem {
             let rawValue: String
             let line: UInt
@@ -78,11 +78,14 @@ final class URLExtensionTests: XCTestCase {
         ]
         for item in urls {
             XCTAssertNotNil(item.url, "URL is nil: \(item.rawValue)")
-            XCTAssertTrue(item.url!.isValid, item.rawValue, line: item.line)
+            XCTAssertTrue(item.url?.isValid ?? false, item.rawValue, line: item.line)
         }
     }
 
-    func test_non_valid_urls() {
+    func test_non_valid_urls() throws {
+        if #available(macOS 14, *) {
+            throw XCTSkip("This test can't run on macOS 14 or higher")
+        }
         let urls = [
             "about:user:pass@blank",
             "data:user:pass@text/vnd-example+xyz;foo=bar;base64,R0lGODdh",
@@ -124,7 +127,11 @@ final class URLExtensionTests: XCTestCase {
         XCTAssert(rootUrl.isRoot)
     }
 
-    func testBasicAuthCredential() {
+    func testBasicAuthCredential() throws {
+        if #available(macOS 14, *) {
+            throw XCTSkip("This test can't run on macOS 14 or higher")
+        }
+
         struct TestItem {
             let url: String
             let user: String?
@@ -161,7 +168,10 @@ final class URLExtensionTests: XCTestCase {
         }
     }
 
-    func testURLRemovingBasicAuthCredential() {
+    func testURLRemovingBasicAuthCredential() throws {
+        if #available(macOS 14, *) {
+            throw XCTSkip("This test can't run on macOS 14 or higher")
+        }
         struct TestItem {
             let url: String
             let removingCredential: String
@@ -483,6 +493,21 @@ final class URLExtensionTests: XCTestCase {
         XCTAssertFalse("https://youtube.com:123".url!.matches(URLProtectionSpace(host: "youtube.com", port: 123, protocol: "http", realm: "realm", authenticationMethod: "basic")))
         XCTAssertFalse("https://www.youtube.com:123".url!.matches(URLProtectionSpace(host: "youtube.com", port: 123, protocol: "https", realm: "realm", authenticationMethod: "basic")))
     }
+
+    func test_Emails_urls_are_not_valid() {
+        // Given
+        let url1 = URL(string: "http://dax@duckduckgo.com")!
+        let url2 = URL(string: "http://dax_the_duck@duckduckgo.something.com")!
+        let url3 = URL(string: "http://dax.the.duck15@duckduckgo.something.com")!
+        let url4 = URL(string: "https://dax@duckduckgo.com")!
+        let urls = [url1, url2, url3, url4]
+
+        // When & Then
+        for (index, url) in urls.enumerated() {
+            XCTAssertFalse(url.isValid, "URL at index \(index) should be invalid: \(url)")
+        }
+    }
+
 
 }
 

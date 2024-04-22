@@ -137,6 +137,13 @@ extension URL {
 
     public var isValid: Bool {
         guard let navigationalScheme else { return false }
+        
+        // Checks if is email if so is not considered a valid url
+        var trimmedURL = absoluteString.dropping(prefix: "http://")
+        trimmedURL = trimmedURL.dropping(prefix: "https://")
+        if trimmedURL.isValidEmail {
+            return false
+        }
 
         if NavigationalScheme.hypertextSchemes.contains(navigationalScheme) {
            return host?.isValidHost == true
