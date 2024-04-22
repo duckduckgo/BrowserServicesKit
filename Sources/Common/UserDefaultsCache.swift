@@ -82,7 +82,8 @@ public class UserDefaultsCache<ObjectType: Codable> {
                 reset()  // Clear expired data
                 return nil
             }
-        } catch {
+        } catch(let error) {
+            os_log(.error, log: .general, "Cache Decode Error: \(error)")
             return nil
         }
     }
