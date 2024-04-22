@@ -41,6 +41,7 @@ extension OSLog {
         case remoteMessaging = "Remote Messaging"
         case subscription = "Subscription"
         case history = "History"
+        case general = "General"
     }
 
 #if DEBUG
@@ -54,6 +55,7 @@ extension OSLog {
     @OSLogWrapper(.remoteMessaging) public static var remoteMessaging
     @OSLogWrapper(.subscription)    public static var subscription
     @OSLogWrapper(.history)         public static var history
+    @OSLogWrapper(.general)         public static var general
 
     public static var enabledLoggingCategories = Set<String>()
 
