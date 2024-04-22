@@ -654,6 +654,12 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 do {
                     let startReason: AdapterStartReason = onDemand ? .onDemand : .manual
                     try await self.handleAdapterStarted(startReason: startReason)
+
+                    // Enable Connect on Demand when manually enabling the tunnel on iOS 17.0+.
+                    if #available(iOS 17.0, *), startReason == .manual {
+                        try? await updateConnectOnDemand(enabled: true)
+                        os_log("Enabled Connect on Demand due to user-initiated startup", log: .networkProtection, type: .info)
+                    }
                 } catch {
                     self.cancelTunnelWithError(error)
                     return
@@ -684,6 +690,12 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
                         if case .superceded = reason {
                             self.notificationsPresenter.showSupersededNotification()
+                        }
+
+                        // Disable Connect on Demand when disabling the tunnel from iOS settings on iOS 17.0+.
+                        if #available(iOS 17.0, *), case .userInitiated = reason {
+                            try? await updateConnectOnDemand(enabled: false)
+                            os_log("Disabled Connect on Demand due to user-initiated shutdown", log: .networkProtection, type: .info)
                         }
                     }
 
@@ -841,6 +853,15 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         os_log("🔵 Excluded routes: %{public}@", log: .networkProtection, type: .info, String(describing: excludedRoutes))
 
         return configurationResult.0
+    }
+
+    @available(iOS 17.0, *)
+    private func updateConnectOnDemand(enabled: Bool) async throws {
+        let managers = try await NETunnelProviderManager.loadAllFromPreferences()
+        if let manager = managers.first {
+            manager.isOnDemandEnabled = enabled
+            try await manager.saveToPreferences()
+        }
     }
 
     // MARK: - App Messages
