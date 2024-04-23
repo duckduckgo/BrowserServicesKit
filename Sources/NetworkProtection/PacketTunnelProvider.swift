@@ -761,49 +761,54 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             await stopMonitors()
         }
 
+        let tunnelConfiguration: TunnelConfiguration
         do {
-            let tunnelConfiguration = try await generateTunnelConfiguration(serverSelectionMethod: serverSelectionMethod,
+            tunnelConfiguration = try await generateTunnelConfiguration(serverSelectionMethod: serverSelectionMethod,
                                                                             includedRoutes: includedRoutes ?? [],
                                                                             excludedRoutes: settings.excludedRanges,
                                                                             regenerateKey: regenerateKey)
-
-            try await updateAdapterConfiguration(tunnelConfiguration: tunnelConfiguration, reassert: reassert)
-
-            providerEvents.fire(.tunnelUpdateAttempt(.success))
         } catch {
             providerEvents.fire(.tunnelUpdateAttempt(.failure(error)))
+            throw error
         }
+        try await updateAdapterConfiguration(tunnelConfiguration: tunnelConfiguration, reassert: reassert)
     }
 
     @MainActor
     private func updateAdapterConfiguration(tunnelConfiguration: TunnelConfiguration, reassert: Bool) async throws {
-        try await withCheckedThrowingContinuation { [weak self] (continuation: CheckedContinuation<Void, Error>) in
-            guard let self = self else {
-                continuation.resume()
-                return
-            }
-
-            self.adapter.update(tunnelConfiguration: tunnelConfiguration, reassert: reassert) { [weak self] error in
-                if let error = error {
-                    os_log("🔵 Failed to update the configuration: %{public}@", type: .error, error.localizedDescription)
-                    self?.debugEvents?.fire(error.networkProtectionError)
-                    continuation.resume(throwing: error)
+        do {
+            try await withCheckedThrowingContinuation { [weak self] (continuation: CheckedContinuation<Void, Error>) in
+                guard let self = self else {
+                    continuation.resume()
                     return
                 }
 
-                Task { [weak self] in
-                    if reassert {
-                        do {
-                            try await self?.handleAdapterStarted(startReason: .reconnected)
-                        } catch {
-                            continuation.resume(throwing: error)
-                            return
-                        }
+                self.adapter.update(tunnelConfiguration: tunnelConfiguration, reassert: reassert) { [weak self] error in
+                    if let error = error {
+                        os_log("🔵 Failed to update the configuration: %{public}@", type: .error, error.localizedDescription)
+                        self?.debugEvents?.fire(error.networkProtectionError)
+                        continuation.resume(throwing: error)
+                        return
                     }
 
-                    continuation.resume()
+                    Task { [weak self] in
+                        if reassert {
+                            do {
+                                try await self?.handleAdapterStarted(startReason: .reconnected)
+                            } catch {
+                                continuation.resume(throwing: error)
+                                return
+                            }
+                        }
+
+                        continuation.resume()
+                    }
                 }
             }
+            providerEvents.fire(.tunnelUpdateAttempt(.success))
+        } catch {
+            providerEvents.fire(.tunnelUpdateAttempt(.failure(error)))
+            throw error
         }
     }
 
