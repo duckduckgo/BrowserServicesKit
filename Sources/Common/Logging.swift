@@ -42,12 +42,13 @@ extension OSLog {
         case subscription = "Subscription"
         case history = "History"
         case general = "General"
+        case autofill = "Autofill"
     }
 
 #if DEBUG
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     // To activate Logging Categories for DEBUG add categories here:
-    static var debugCategories: Set<Categories> = [ /* .userScripts, */ ]
+    static var debugCategories: Set<Categories> = [ /*.autofill*/ ]
 #endif
 
     @OSLogWrapper(.userScripts)     public static var userScripts
@@ -56,6 +57,7 @@ extension OSLog {
     @OSLogWrapper(.subscription)    public static var subscription
     @OSLogWrapper(.history)         public static var history
     @OSLogWrapper(.general)         public static var general
+    @OSLogWrapper(.autofill)        public static var autofill
 
     public static var enabledLoggingCategories = Set<String>()
 
