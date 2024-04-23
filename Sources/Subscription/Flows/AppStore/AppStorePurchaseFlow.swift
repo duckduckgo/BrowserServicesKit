@@ -170,15 +170,15 @@ public final class AppStorePurchaseFlow {
 
         return successful
     }
-    
+
     private static func getExpiredSubscriptionID(accountManager: AccountManager) async -> String? {
         guard accountManager.isUserAuthenticated,
               let externalID = accountManager.externalID,
               let token = accountManager.accessToken
         else { return nil }
-        
+
         let subscriptionInfo = await SubscriptionService.getSubscription(accessToken: token, cachePolicy: .reloadIgnoringLocalCacheData)
-        
+
         // Only return an externalID if the subscription is expired
         // To prevent creating multiple subscriptions in the same account
         if case .success(let subscription) = subscriptionInfo,

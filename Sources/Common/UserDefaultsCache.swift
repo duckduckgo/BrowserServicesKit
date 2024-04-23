@@ -20,7 +20,7 @@ import Foundation
 
 public struct UserDefaultsCacheSettings {
     public let defaultExpirationInterval: TimeInterval
-    
+
     public init(defaultExpirationInterval: TimeInterval) {
         self.defaultExpirationInterval = defaultExpirationInterval
     }
@@ -42,7 +42,7 @@ public class UserDefaultsCache<ObjectType: Codable> {
         let expires: Date
         let object: ObjectType
     }
-    
+
     private var userDefaults: UserDefaults
     public private(set) var settings: UserDefaultsCacheSettings
 
@@ -82,7 +82,7 @@ public class UserDefaultsCache<ObjectType: Codable> {
                 reset()  // Clear expired data
                 return nil
             }
-        } catch(let error) {
+        } catch let error {
             os_log(.error, log: .general, "Cache Decode Error: \(error)")
             return nil
         }

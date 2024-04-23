@@ -25,7 +25,7 @@ final class UserDefaultsCacheTests: XCTestCase {
     var cache: UserDefaultsCache<TestObject>!
     let testKey = UserDefaultsCacheKey.subscription
     let settings = UserDefaultsCacheSettings(defaultExpirationInterval: 300) // 5 minutes
-    
+
     override func setUp() {
         super.setUp()
         userDefaults = UserDefaults(suiteName: #file)
