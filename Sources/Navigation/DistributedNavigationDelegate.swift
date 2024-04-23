@@ -439,11 +439,17 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
     private func willStart(_ navigation: Navigation) {
         os_log("willStart %s", log: log, type: .default, navigation.debugDescription)
 
+        var isSameDocumentNavigation: Bool {
+            guard startedNavigation !== navigation && startedNavigation?.url.isSameDocument(navigation.url) == true else { return false }
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
+            return navigation.navigationAction.navigationType == .sameDocumentNavigation(.anchorNavigation)
+#else
+            return navigation.navigationAction.navigationType == .sameDocumentNavigation
+#endif
+        }
         if navigation.navigationAction.navigationType.redirect?.isClient == true // is client redirect?
             // is same document navigation received as client redirect?
-            || (startedNavigation !== navigation
-                && navigation.navigationAction.navigationType == .sameDocumentNavigation(.anchorNavigation)
-                && startedNavigation?.url.isSameDocument(navigation.url) == true) {
+            || isSameDocumentNavigation {
 
             // notify the original (redirected) Navigation about the redirect NavigationAction received
             // this should call the overriden ResponderChain inside `willPerformClientRedirect`
@@ -533,32 +539,53 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
 
     @MainActor
     public func webView(_ webView: WKWebView, didStartProvisionalNavigation wkNavigation: WKNavigation?) {
-        let navigation: Navigation
-        if let expectedNavigation = navigationExpectedToStart,
-           wkNavigation != nil
-            || expectedNavigation.navigationAction.navigationType == .sessionRestoration
-            || expectedNavigation.navigationAction.url.scheme.map(URL.NavigationalScheme.init) == .about {
+        var navigation: Navigation
+
+        lazy var finishedNavigationAction: NavigationAction? = {
+            guard let navigation = wkNavigation?.navigation else { return nil }
+            if navigation.isCompleted, navigation.hasReceivedNavigationAction {
+                // about: scheme navigation for `<a target='_blank'>` duplicates didStart/didCommit/didFinish events with the same WKNavigation
+                return navigation.navigationAction
+            } else {
+                // we‘ll get here when allowing to open a new window with an empty URL (`window.open()`) from a permission context menu
+                return nil
+            }
+        }()
+
+        if let approvedNavigation = wkNavigation?.navigation,
+           approvedNavigation.state == .approved, approvedNavigation.hasReceivedNavigationAction {
+            // rely on the associated Navigation that is in the correct state
+            navigation = approvedNavigation
+
+        } else if let expectedNavigation = navigationExpectedToStart,
+                  wkNavigation != nil
+                    || expectedNavigation.navigationAction.navigationType == .sessionRestoration
+                    || expectedNavigation.navigationAction.url.navigationalScheme == .about {
 
             // regular flow: start .expected navigation
             navigation = expectedNavigation
-        } else if webView.url?.isEmpty == false {
+
+        } else {
+            // make a new Navigation object for unexpected navigations (that didn‘t receive corresponding `decidePolicyForNavigationAction`)
             navigation = Navigation(identity: NavigationIdentity(wkNavigation), responders: responders, state: .expected(nil), isCurrent: true)
-            if let finishedNavigation = wkNavigation?.navigation {
-                assert(finishedNavigation.state == .finished)
-                // about: scheme navigation for new window sometimes duplicates didStart/didCommit/didFinish events with the same WKNavigation
-                let navigationAction = NavigationAction(request: finishedNavigation.request, navigationType: finishedNavigation.navigationAction.navigationType, currentHistoryItemIdentity: nil, redirectHistory: nil, isUserInitiated: false, sourceFrame: finishedNavigation.navigationAction.sourceFrame, targetFrame: finishedNavigation.navigationAction.targetFrame, shouldDownload: false, mainFrameNavigation: navigation)
-                navigation.navigationActionReceived(navigationAction)
-            } else {
-                navigation.navigationActionReceived(.alternateHtmlLoadNavigation(webView: webView, mainFrameNavigation: navigation))
-            }
-            navigation.willStart()
-        } else if let wkNavigation {
-            navigation = Navigation(identity: NavigationIdentity(wkNavigation), responders: responders, state: .expected(nil), isCurrent: true)
-            let navigationAction = NavigationAction(request: URLRequest(url: .empty), navigationType: .other, currentHistoryItemIdentity: nil, redirectHistory: nil, isUserInitiated: false, sourceFrame: .mainFrame(for: webView), targetFrame: .mainFrame(for: webView), shouldDownload: false, mainFrameNavigation: navigation)
+
+            let navigationAction: NavigationAction = {
+                if wkNavigation == nil, webView.url?.isEmpty == false {
+                    // loading error page
+                    return .alternateHtmlLoadNavigation(webView: webView, mainFrameNavigation: navigation)
+                }
+                return NavigationAction(request: URLRequest(url: webView.url ?? .empty),
+                                        navigationType: finishedNavigationAction?.navigationType ?? .other,
+                                        currentHistoryItemIdentity: nil,
+                                        redirectHistory: nil,
+                                        isUserInitiated: false,
+                                        sourceFrame: finishedNavigationAction?.sourceFrame ?? .mainFrame(for: webView),
+                                        targetFrame: finishedNavigationAction?.targetFrame ?? .mainFrame(for: webView),
+                                        shouldDownload: false,
+                                        mainFrameNavigation: navigation)
+            }()
             navigation.navigationActionReceived(navigationAction)
             navigation.willStart()
-        } else {
-            return
         }
 
         navigation.started(wkNavigation)
@@ -861,7 +888,6 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
                 true
             }
 
-            assert(wkNavigation != nil)
             navigation = Navigation(identity: NavigationIdentity(wkNavigation), responders: responders, state: .expected(nil), isCurrent: isCurrent)
             let request = wkNavigation?.request ?? URLRequest(url: webView.url ?? .empty)
             let navigationAction = NavigationAction(request: request, navigationType: .sameDocumentNavigation(navigationType), currentHistoryItemIdentity: currentHistoryItemIdentity, redirectHistory: nil, isUserInitiated: wkNavigation?.isUserInitiated ?? false, sourceFrame: .mainFrame(for: webView), targetFrame: .mainFrame(for: webView), shouldDownload: false, mainFrameNavigation: navigation)

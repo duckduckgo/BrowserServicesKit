@@ -35,7 +35,7 @@ extension NetworkProtectionServerInfo {
                                                   ips: ["192.168.1.1"],
                                                   internalIP: "10.11.12.1",
                                                   port: 443,
-                                                  attributes: .init(city: "City", country: "Country", state: "State", timezoneOffset: 0))
+                                                  attributes: .init(city: "City", country: "Country", state: "State"))
 
     static let hostNameOnly = NetworkProtectionServerInfo(name: "Mock Server",
                                                           publicKey: "ovn9RpzUuvQ4XLQt6B3RKuEXGIxa5QpTnehjduZlcSE=",
@@ -43,7 +43,7 @@ extension NetworkProtectionServerInfo {
                                                           ips: [],
                                                           internalIP: "10.11.12.1",
                                                           port: 443,
-                                                          attributes: .init(city: "City", country: "Country", state: "State", timezoneOffset: 0))
+                                                          attributes: .init(city: "City", country: "Country", state: "State"))
 
     static let ipAddressOnly = NetworkProtectionServerInfo(name: "Mock Server",
                                                            publicKey: "ovn9RpzUuvQ4XLQt6B3RKuEXGIxa5QpTnehjduZlcSE=",
@@ -51,7 +51,7 @@ extension NetworkProtectionServerInfo {
                                                            ips: ["192.168.1.1"],
                                                            internalIP: "10.11.12.1",
                                                            port: 443,
-                                                           attributes: .init(city: "City", country: "Country", state: "State", timezoneOffset: 0))
+                                                           attributes: .init(city: "City", country: "Country", state: "State"))
 
     static func make(named name: String, withPublicKey publicKey: String = "") -> Self {
         NetworkProtectionServerInfo(name: name,
@@ -60,7 +60,7 @@ extension NetworkProtectionServerInfo {
                                     ips: ["192.168.1.1"],
                                     internalIP: "10.11.12.1",
                                     port: 443,
-                                    attributes: .init(city: "City", country: "Country", state: "State", timezoneOffset: 0))
+                                    attributes: .init(city: "City", country: "Country", state: "State"))
     }
 
 }

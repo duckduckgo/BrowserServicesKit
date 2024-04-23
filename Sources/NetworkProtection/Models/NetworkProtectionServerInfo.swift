@@ -29,13 +29,11 @@ public struct NetworkProtectionServerInfo: Codable, Equatable, Sendable {
         public let city: String
         public let country: String
         public let state: String
-        public let timezoneOffset: Int
 
         enum CodingKeys: String, CodingKey {
             case city
             case country
             case state
-            case timezoneOffset = "tzOffset"
         }
     }
 
@@ -89,12 +87,7 @@ extension NetworkProtectionServerInfo {
 extension NetworkProtectionServerInfo.ServerAttributes {
 
     public var serverLocation: String {
-        let stateOrCountry = isUSServerLocation ? state : country
-        return "\(city), \(stateOrCountry.localizedUppercase)"
+        let fullCountryName = Locale.current.localizedString(forRegionCode: country)
+        return "\(city), \(fullCountryName ?? country.capitalized)"
     }
-
-    private var isUSServerLocation: Bool {
-        return country.localizedUppercase == "US"
-    }
-
 }
