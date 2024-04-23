@@ -667,7 +667,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     open override func stopTunnel(with reason: NEProviderStopReason, completionHandler: @escaping () -> Void) {
 
         Task { @MainActor in
-            try await Task.sleep(interval: .seconds(3000))
             await stopMonitors()
 
             connectionStatus = .disconnecting
