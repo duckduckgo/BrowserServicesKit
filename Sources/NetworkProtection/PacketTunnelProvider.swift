@@ -767,7 +767,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                                                                             excludedRoutes: settings.excludedRanges,
                                                                             regenerateKey: regenerateKey)
 
-            try await updateAdapterConfig(tunnelConfiguration: tunnelConfiguration, reassert: reassert)
+            try await updateAdapterConfiguration(tunnelConfiguration: tunnelConfiguration, reassert: reassert)
 
             providerEvents.fire(.tunnelUpdateAttempt(.success))
         } catch {
@@ -776,7 +776,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     @MainActor
-    private func updateAdapterConfig(tunnelConfiguration: TunnelConfiguration, reassert: Bool) async throws {
+    private func updateAdapterConfiguration(tunnelConfiguration: TunnelConfiguration, reassert: Bool) async throws {
         try await withCheckedThrowingContinuation { [weak self] (continuation: CheckedContinuation<Void, Error>) in
             guard let self = self else {
                 continuation.resume()
@@ -1268,7 +1268,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private func handleFailureRecovery(tunnelConfig: TunnelConfiguration, server: NetworkProtectionServer) {
         self.lastSelectedServer = server
         Task {
-            try await self.updateAdapterConfig(tunnelConfiguration: tunnelConfig, reassert: true)
+            try await self.updateAdapterConfiguration(tunnelConfiguration: tunnelConfig, reassert: true)
         }
     }
 
