@@ -182,7 +182,7 @@ public final class AppStorePurchaseFlow {
         // Only return an externalID if the subscription is expired
         // To prevent creating multiple subscriptions in the same account
         if case .success(let subscription) = subscriptionInfo,
-           subscription.isActive,
+           !subscription.isActive,
             subscription.platform != .apple {
             return externalID
         }
