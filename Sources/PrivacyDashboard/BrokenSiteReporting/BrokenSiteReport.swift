@@ -236,14 +236,7 @@ public struct BrokenSiteReport {
         }
 
         if let errors {
-            let errorDescriptions: [String] = errors.map {
-                let error = $0 as NSError
-                return "\(error.code) - \(error.domain):\(error.localizedDescription)"
-            }
-            let jsonString = try? String(data: JSONSerialization.data(withJSONObject: errorDescriptions), encoding: .utf8)!
-            if let encodedString = jsonString?.addingPercentEncoding(withAllowedCharacters: .urlQueryParameterAllowed) {
-                result["errorDescriptions"] = encodedString
-            }
+            result["errorDescriptions"] = encodeErrors(errors)
         }
 
         if let jsPerformance {
@@ -257,6 +250,16 @@ public struct BrokenSiteReport {
         result["model"] = model
 #endif
         return result
+    }
+
+    private func encodeErrors(_ errors: [Error]) -> String {
+        let errorDescriptions: [String] = errors.map {
+            let error = $0 as NSError
+            return "\(error.code) - \(error.domain):\(error.localizedDescription)"
+        }
+        let jsonString = try? String(data: JSONSerialization.data(withJSONObject: errorDescriptions), encoding: .utf8)!
+        let encodedString = jsonString?.addingPercentEncoding(withAllowedCharacters: .urlQueryParameterAllowed)
+        return encodedString ?? ""
     }
 
 }
