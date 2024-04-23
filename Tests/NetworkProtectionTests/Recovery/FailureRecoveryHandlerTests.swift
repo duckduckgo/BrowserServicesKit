@@ -87,43 +87,25 @@ final class FailureRecoveryHandlerTests: XCTestCase {
 
     func testAttemptRecovery_serverNameDifferentFromPreviousServerName_callsConfigUpdateWithNewConfigAndServer() async throws {
         let lastServerName = "oldServerName"
-        let lastServer = NetworkProtectionServer.registeredServer(named: lastServerName)
         let newServerName = "newServerName"
-        let expectedServer = NetworkProtectionServer.registeredServer(named: newServerName)
-        let expectedConfig = TunnelConfiguration.make(named: newServerName)
+        let lastAndNewAllowedIPs = ["1.2.3.4/5", "6.7.8.9/10"]
 
-        deviceManager.stubGenerateTunnelConfiguration = (
-            tunnelConfig: expectedConfig,
-            server: expectedServer
-        )
+        let configFetchResult = try await attemptRecoveryReturningConfigResult(with: lastServerName, newServerName: newServerName, lastAllowedIPs: lastAndNewAllowedIPs, newAllowedIPs: lastAndNewAllowedIPs)
 
-        var configFetchResult: NetworkProtectionDeviceManagement.GenerateTunnelConfigResult?
-
-        try await failureRecoveryHandler.attemptRecovery(to: lastServer, includedRoutes: [], excludedRoutes: [], isKillSwitchEnabled: true) { result in
-            configFetchResult = result
-        }
-
-        XCTAssertEqual(expectedConfig, configFetchResult?.tunnelConfig)
-        XCTAssertEqual(expectedServer, configFetchResult?.server)
+        XCTAssertEqual(newServerName, configFetchResult?.tunnelConfig.name)
+        XCTAssertEqual(newServerName, configFetchResult?.server.serverName)
     }
 
     func testAttemptRecovery_configUpdateFails_throwsError() async {
-        deviceManager.stubGenerateTunnelConfiguration = (
-            tunnelConfig: .make(named: "server"),
-            server: .registeredServer(named: "server")
-        )
-
         do {
-            try await failureRecoveryHandler.attemptRecovery(to: .mockRegisteredServer, includedRoutes: [], excludedRoutes: [], isKillSwitchEnabled: true) { _ in
-                throw WireGuardAdapterError.cannotLocateTunnelFileDescriptor
-            }
+            try await attemptRecoveryWithConfigUpdateFailure()
             XCTFail("Expected error to be thrown")
         } catch {
             guard case FailureRecoveryError.reachedMaximumRetries(let lastError) = error else {
                 XCTFail("Expected configGenerationError, got \(error)")
                 return
             }
-            guard case WireGuardAdapterError.cannotLocateTunnelFileDescriptor = lastError else {
+            guard case WireGuardAdapterError.startWireGuardBackend = lastError else {
                 XCTFail("Expected underlying error to match stubbed")
                 return
             }
@@ -132,23 +114,11 @@ final class FailureRecoveryHandlerTests: XCTestCase {
 
     func testAttemptRecovery_allowedIPsDiffersFromPreviousAllowedIPs_returnsNewConfigAndServer() async throws {
         let lastAndNewServerName = "previousAndNewServerName"
-        let lastServer = NetworkProtectionServer.registeredServer(named: lastAndNewServerName, allowedIPs: ["1.2.3.4/5", "6.7.8.9/10"])
-        let newServer = NetworkProtectionServer.registeredServer(named: lastAndNewServerName, allowedIPs: ["10.9.8.7/6", "5.4.3.2/1"])
-        let expectedConfig = TunnelConfiguration.make(named: lastAndNewServerName)
 
-        deviceManager.stubGenerateTunnelConfiguration = (
-            tunnelConfig: expectedConfig,
-            server: newServer
-        )
+        let configFetchResult = try? await attemptRecoveryReturningConfigResult(with: lastAndNewServerName, newServerName: lastAndNewServerName, lastAllowedIPs: ["1.2.3.4/5", "6.7.8.9/10"], newAllowedIPs: ["10.9.8.7/6", "5.4.3.2/1"])
 
-        var configFetchResult: NetworkProtectionDeviceManagement.GenerateTunnelConfigResult?
-
-        try await failureRecoveryHandler.attemptRecovery(to: lastServer, includedRoutes: [], excludedRoutes: [], isKillSwitchEnabled: true) { result in
-            configFetchResult = result
-        }
-
-        XCTAssertEqual(expectedConfig, configFetchResult?.tunnelConfig)
-        XCTAssertEqual(newServer, configFetchResult?.server)
+        XCTAssertEqual(lastAndNewServerName, configFetchResult?.tunnelConfig.name)
+        XCTAssertEqual(lastAndNewServerName, configFetchResult?.server.serverName)
     }
 
     func testAttemptRecovery_lastAndNewServerNamesAndAllowedIPsAreEqual_throwsNoRecoveryNecessaryError() async throws {
@@ -196,18 +166,14 @@ final class FailureRecoveryHandlerTests: XCTestCase {
             eventHandler: { step in
                 if case .failed = step {
                     failedCount += 1
-                } else if case .completed = step {
+                }
+                if case .completed = step {
                     XCTFail("Expected no completed events")
                 }
             }
         )
-        deviceManager.stubGenerateTunnelConfigurationError = NetworkProtectionError.noServerRegistrationInfo
-        try? await failureRecoveryHandler.attemptRecovery(
-            to: .mockRegisteredServer,
-            includedRoutes: [],
-            excludedRoutes: [],
-            isKillSwitchEnabled: false
-        ) {_ in }
+
+        try? await attemptRecoveryWithConfigGenerationFailure()
 
         XCTAssertEqual(failedCount, 1)
     }
@@ -220,30 +186,14 @@ final class FailureRecoveryHandlerTests: XCTestCase {
             eventHandler: { step in
                 if case .failed = step {
                     failedCount += 1
-                } else if case .completed = step {
+                }
+                if case .completed = step {
                     XCTFail("Expected no completed events")
                 }
             }
         )
 
-        let lastAndNewAllowedIPs = ["1.2.3.4/5", "10.9.8.7/6"]
-        let newServerName = "server2"
-        let lastServer = NetworkProtectionServer.registeredServer(named: "server1", allowedIPs: lastAndNewAllowedIPs)
-        let newServer = NetworkProtectionServer.registeredServer(named: newServerName, allowedIPs: lastAndNewAllowedIPs)
-
-        deviceManager.stubGenerateTunnelConfiguration = (
-            tunnelConfig: .make(named: newServerName),
-            server: newServer
-        )
-
-        try? await failureRecoveryHandler.attemptRecovery(
-            to: .mockRegisteredServer,
-            includedRoutes: [],
-            excludedRoutes: [],
-            isKillSwitchEnabled: false
-        ) { _ in
-            throw WireGuardAdapterError.startWireGuardBackend(0)
-        }
+        try? await attemptRecoveryWithConfigUpdateFailure()
 
         XCTAssertEqual(failedCount, 1)
     }
@@ -279,16 +229,17 @@ final class FailureRecoveryHandlerTests: XCTestCase {
                 }
             }
         )
-        try? await attemptRecoveryWithLastAndNewServerNamesDiffering()
+        let lastServerName = "oldServerName"
+        let newServerName = "newServerName"
+        let lastAndNewAllowedIPs = ["1.2.3.4/5", "6.7.8.9/10"]
+
+        _ = try? await attemptRecoveryReturningConfigResult(with: lastServerName, newServerName: newServerName, lastAllowedIPs: lastAndNewAllowedIPs, newAllowedIPs: lastAndNewAllowedIPs)
 
         XCTAssertEqual(unhealthyCompleteCount, 1)
     }
 
     func testAttemptRecovery_lastAndNewAllowedIPsAreDifferent_sendsUnhealthyCompletedEvent() async throws {
         let lastAndNewServerName = "previousAndNewServerName"
-        let lastServer = NetworkProtectionServer.registeredServer(named: lastAndNewServerName, allowedIPs: ["1.2.3.4/5", "6.7.8.9/10"])
-        let newServer = NetworkProtectionServer.registeredServer(named: lastAndNewServerName, allowedIPs: ["10.9.8.7/6", "5.4.3.2/1"])
-        let expectedConfig = TunnelConfiguration.make(named: lastAndNewServerName)
 
         var unhealthyCompleteCount = 0
         failureRecoveryHandler = FailureRecoveryHandler(
@@ -303,12 +254,7 @@ final class FailureRecoveryHandlerTests: XCTestCase {
             }
         )
 
-        deviceManager.stubGenerateTunnelConfiguration = (
-            tunnelConfig: expectedConfig,
-            server: newServer
-        )
-
-        try await failureRecoveryHandler.attemptRecovery(to: lastServer, includedRoutes: [], excludedRoutes: [], isKillSwitchEnabled: true) { _ in }
+        _ = try? await attemptRecoveryReturningConfigResult(with: lastAndNewServerName, newServerName: lastAndNewServerName, lastAllowedIPs: ["1.2.3.4/5", "6.7.8.9/10"], newAllowedIPs: ["10.9.8.7/6", "5.4.3.2/1"])
 
         XCTAssertEqual(unhealthyCompleteCount, 1)
     }
@@ -316,28 +262,54 @@ final class FailureRecoveryHandlerTests: XCTestCase {
     func attemptRecoveryWithLastAndNewServerNamesAndAllowedIPsEqual() async throws {
         let lastAndNewServerName = "previousAndNewServerName"
         let lastAndNewAllowedIPs = ["1.2.3.4/5", "10.9.8.7/6"]
-        let lastServer = NetworkProtectionServer.registeredServer(named: lastAndNewServerName, allowedIPs: lastAndNewAllowedIPs)
-        let newServer = NetworkProtectionServer.registeredServer(named: lastAndNewServerName, allowedIPs: lastAndNewAllowedIPs)
 
-        deviceManager.stubGenerateTunnelConfiguration = (
-            tunnelConfig: .make(named: lastAndNewServerName),
-            server: newServer
-        )
-
-        try await failureRecoveryHandler.attemptRecovery(to: lastServer, includedRoutes: [], excludedRoutes: [], isKillSwitchEnabled: true) { _ in }
+        try await attemptRecoveryReturningConfigResult(with: lastAndNewServerName, newServerName: lastAndNewServerName, lastAllowedIPs: lastAndNewAllowedIPs, newAllowedIPs: lastAndNewAllowedIPs)
     }
 
-    func attemptRecoveryWithLastAndNewServerNamesDiffering() async throws {
+    func attemptRecoveryWithConfigGenerationFailure() async throws {
+        deviceManager.stubGenerateTunnelConfigurationError = NetworkProtectionError.noServerRegistrationInfo
+        try? await failureRecoveryHandler.attemptRecovery(
+            to: .mockRegisteredServer,
+            includedRoutes: [],
+            excludedRoutes: [],
+            isKillSwitchEnabled: false
+        ) {_ in }
+    }
+
+    func attemptRecoveryWithConfigUpdateFailure() async throws {
         let newServerName = "server2"
-        let lastAndNewAllowedIPs = ["1.2.3.4/5", "10.9.8.7/6"]
-        let lastServer = NetworkProtectionServer.registeredServer(named: "server1", allowedIPs: lastAndNewAllowedIPs)
-        let newServer = NetworkProtectionServer.registeredServer(named: newServerName, allowedIPs: lastAndNewAllowedIPs)
+        let newServer = NetworkProtectionServer.registeredServer(named: newServerName, allowedIPs: ["1.2.3.4/5", "10.9.8.7/6"])
 
         deviceManager.stubGenerateTunnelConfiguration = (
             tunnelConfig: .make(named: newServerName),
             server: newServer
         )
 
-        try await failureRecoveryHandler.attemptRecovery(to: lastServer, includedRoutes: [], excludedRoutes: [], isKillSwitchEnabled: true) { _ in }
+        try await failureRecoveryHandler.attemptRecovery(
+            to: .mockRegisteredServer,
+            includedRoutes: [],
+            excludedRoutes: [],
+            isKillSwitchEnabled: false
+        ) { _ in
+            throw WireGuardAdapterError.startWireGuardBackend(0)
+        }
+    }
+
+    @discardableResult
+    func attemptRecoveryReturningConfigResult(with lastServerName: String, newServerName: String, lastAllowedIPs: [String], newAllowedIPs: [String]) async throws -> NetworkProtectionDeviceManagement.GenerateTunnelConfigResult? {
+        let lastServer = NetworkProtectionServer.registeredServer(named: lastServerName, allowedIPs: lastAllowedIPs)
+        let newServer = NetworkProtectionServer.registeredServer(named: newServerName, allowedIPs: newAllowedIPs)
+
+        deviceManager.stubGenerateTunnelConfiguration = (
+            tunnelConfig: .make(named: newServerName),
+            server: newServer
+        )
+
+        var newConfigResult: NetworkProtectionDeviceManagement.GenerateTunnelConfigResult?
+
+        try await failureRecoveryHandler.attemptRecovery(to: lastServer, includedRoutes: [], excludedRoutes: [], isKillSwitchEnabled: true) { configResult in
+            newConfigResult = configResult
+        }
+        return newConfigResult
     }
 }
