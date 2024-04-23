@@ -240,7 +240,10 @@ public struct BrokenSiteReport {
                 let error = $0 as NSError
                 return "\(error.code) - \(error.domain):\(error.localizedDescription)"
             }
-            result["errorDescriptions"] = errorDescriptions.joined(separator: ",")
+            let jsonString = try? String(data: JSONSerialization.data(withJSONObject: errorDescriptions), encoding: .utf8)!
+            if let encodedString = jsonString?.addingPercentEncoding(withAllowedCharacters: .urlQueryParameterAllowed) {
+                result["errorDescriptions"] = encodedString
+            }
         }
 
         if let jsPerformance {
