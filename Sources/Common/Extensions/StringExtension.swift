@@ -96,7 +96,7 @@ public extension String {
     // MARK: Host name validation
 
     var isValidHost: Bool {
-        return (isValidHostname || isValidIpHost)
+        return isValidHostname || isValidIpHost
     }
 
     var isValidEmail: Bool {
