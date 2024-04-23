@@ -232,7 +232,7 @@ final class CredentialsProviderTests: CredentialsProviderTestsBase {
 
         let localDatabaseProvider = try DefaultAutofillDatabaseProvider(file: databaseLocation, key: simpleL1Key)
         let localSecureVaultFactory = AutofillVaultFactory.testFactory(databaseProvider: localDatabaseProvider)
-        let localSecureVault = try localSecureVaultFactory.makeVault(errorReporter: nil)
+        let localSecureVault = try localSecureVaultFactory.makeVault(reporter: nil)
         _ = try localSecureVault.authWith(password: "abcd".data(using: .utf8)!)
 
         let received: [Syncable] = [
@@ -368,7 +368,7 @@ final class CredentialsProviderTests: CredentialsProviderTestsBase {
 
         let localDatabaseProvider = try DefaultAutofillDatabaseProvider(file: databaseLocation, key: simpleL1Key)
         let localSecureVaultFactory = AutofillVaultFactory.testFactory(databaseProvider: localDatabaseProvider)
-        let localSecureVault = try localSecureVaultFactory.makeVault(errorReporter: nil)
+        let localSecureVault = try localSecureVaultFactory.makeVault(reporter: nil)
         _ = try localSecureVault.authWith(password: "abcd".data(using: .utf8)!)
 
         try secureVault.inDatabaseTransaction { database in
