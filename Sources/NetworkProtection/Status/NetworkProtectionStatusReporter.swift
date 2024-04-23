@@ -28,6 +28,7 @@ public protocol NetworkProtectionStatusReporter {
     var connectionErrorObserver: ConnectionErrorObserver { get }
     var connectivityIssuesObserver: ConnectivityIssueObserver { get }
     var controllerErrorMessageObserver: ControllerErrorMesssageObserver { get }
+    var dataVolumeObserver: DataVolumeObserver { get }
 
     func forceRefresh()
 }
@@ -68,6 +69,7 @@ public final class DefaultNetworkProtectionStatusReporter: NetworkProtectionStat
     public let connectionErrorObserver: ConnectionErrorObserver
     public let connectivityIssuesObserver: ConnectivityIssueObserver
     public let controllerErrorMessageObserver: ControllerErrorMesssageObserver
+    public let dataVolumeObserver: DataVolumeObserver
 
     // MARK: - Init & deinit
 
@@ -76,6 +78,7 @@ public final class DefaultNetworkProtectionStatusReporter: NetworkProtectionStat
                 connectionErrorObserver: ConnectionErrorObserver,
                 connectivityIssuesObserver: ConnectivityIssueObserver,
                 controllerErrorMessageObserver: ControllerErrorMesssageObserver,
+                dataVolumeObserver: DataVolumeObserver,
                 distributedNotificationCenter: DistributedNotificationCenter = .default()) {
 
         self.statusObserver = statusObserver
@@ -83,6 +86,7 @@ public final class DefaultNetworkProtectionStatusReporter: NetworkProtectionStat
         self.connectionErrorObserver = connectionErrorObserver
         self.connectivityIssuesObserver = connectivityIssuesObserver
         self.controllerErrorMessageObserver = controllerErrorMessageObserver
+        self.dataVolumeObserver = dataVolumeObserver
         self.distributedNotificationCenter = distributedNotificationCenter
 
         start()

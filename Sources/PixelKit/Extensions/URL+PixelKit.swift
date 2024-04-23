@@ -1,7 +1,7 @@
 //
-//  SecurityOrigin.swift
+//  URL+PixelKit.swift
 //
-//  Copyright © 2022 DuckDuckGo. All rights reserved.
+//  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -18,22 +18,13 @@
 
 import Foundation
 
-public struct SecurityOrigin: Hashable {
+extension URL {
 
-    public let `protocol`: String
-    public let host: String
-    public let port: Int
+    static let pixelBase = ProcessInfo.processInfo.environment["PIXEL_BASE_URL", default: "https://improving.duckduckgo.com"]
 
-    public init(`protocol`: String, host: String, port: Int) {
-        self.`protocol` = `protocol`
-        self.host = host
-        self.port = port
-    }
-
-    public static let empty = SecurityOrigin(protocol: "", host: "", port: 0)
-
-    public var isEmpty: Bool {
-        self == .empty
+    public static func pixelUrl(forPixelNamed pixelName: String) -> URL {
+        let urlString = "\(Self.pixelBase)/t/\(pixelName)"
+        return URL(string: urlString)!
     }
 
 }

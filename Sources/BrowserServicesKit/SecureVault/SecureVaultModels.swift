@@ -543,9 +543,9 @@ extension SecureVaultModels.CreditCard: SecureVaultAutofillEquatable {
 // MARK: - WebsiteAccount Array extensions
 extension Array where Element == SecureVaultModels.WebsiteAccount {
 
-    public func sortedForDomain(_ targetDomain: String, tld: TLD, removeDuplicates: Bool = false) -> [SecureVaultModels.WebsiteAccount] {
+    public func sortedForDomain(_ targetDomain: String, tld: TLD, removeDuplicates: Bool = false, urlMatcher: AutofillDomainNameUrlMatcher = AutofillDomainNameUrlMatcher()) -> [SecureVaultModels.WebsiteAccount] {
 
-        guard let targetTLD = extractTLD(domain: targetDomain, tld: tld) else {
+        guard let targetTLD = extractTLD(domain: targetDomain, tld: tld, urlMatcher: urlMatcher) else {
             return []
         }
 
@@ -569,10 +569,11 @@ extension Array where Element == SecureVaultModels.WebsiteAccount {
         return (removeDuplicates ? result.removeDuplicates() : result).filter { $0.domain?.isEmpty == false }
     }
 
-    private func extractTLD(domain: String, tld: TLD) -> String? {
-        var urlComponents = URLComponents()
-        urlComponents.host = domain
-        return urlComponents.eTLDplus1(tld: tld)
+    private func extractTLD(domain: String, tld: TLD, urlMatcher: AutofillDomainNameUrlMatcher) -> String? {
+        guard var urlComponents = urlMatcher.normalizeSchemeForAutofill(domain) else { return nil }
+        guard urlComponents.host != .localhost else { return domain }
+        return urlComponents.eTLDplus1WithPort(tld: tld)
+
     }
 
     // Last Used > Last Updated > Alphabetical Domain > Alphabetical Username > Empty Usernames
