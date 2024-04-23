@@ -95,7 +95,10 @@ public actor NetworkProtectionTunnelFailureMonitor {
     func stop() {
         os_log("⚫️ Stopping tunnel failure monitor", log: .networkProtectionTunnelFailureMonitorLog)
 
+        networkMonitor.cancel()
         networkMonitor.pathUpdateHandler = nil
+
+        task?.cancel() // Just making extra sure in case it's detached
         task = nil
     }
 
