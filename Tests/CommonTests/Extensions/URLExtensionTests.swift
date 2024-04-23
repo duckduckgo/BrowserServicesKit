@@ -22,10 +22,6 @@ import XCTest
 
 final class URLExtensionTests: XCTestCase {
 
-    override func setUpWithError() throws {
-        try super.setUpWithError()
-    }
-
     func test_external_urls_are_valid() {
         XCTAssertTrue("mailto://user@host.tld".url!.isValid)
         XCTAssertTrue("sms://+44776424232323".url!.isValid)
@@ -507,8 +503,6 @@ final class URLExtensionTests: XCTestCase {
             XCTAssertFalse(url.isValid, "URL at index \(index) should be invalid: \(url)")
         }
     }
-
-
 }
 
 extension String {
