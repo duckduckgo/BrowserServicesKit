@@ -1236,23 +1236,20 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     )
 
     private func startServerFailureRecovery() {
-        providerEvents.fire(.failureRecoveryAttempt(.started))
         Task {
             guard let server = await self.lastSelectedServer else {
                 return
             }
             await self.startReasserting()
 
-            do {
-                try? await self.failureRecoveryHandler.attemptRecovery(
-                    to: server,
-                    includedRoutes: self.includedRoutes ?? [],
-                    excludedRoutes: self.settings.excludedRanges,
-                    isKillSwitchEnabled: self.isKillSwitchEnabled
-                ) { [weak self] generateConfigResult in
-                    try await self?.handleFailureRecoveryConfigUpdate(result: generateConfigResult)
-                    self?.providerEvents.fire(.failureRecoveryAttempt(.completed(.unhealthy)))
-                }
+            await self.failureRecoveryHandler.attemptRecovery(
+                to: server,
+                includedRoutes: self.includedRoutes ?? [],
+                excludedRoutes: self.settings.excludedRanges,
+                isKillSwitchEnabled: self.isKillSwitchEnabled
+            ) { [weak self] generateConfigResult in
+                try await self?.handleFailureRecoveryConfigUpdate(result: generateConfigResult)
+                self?.providerEvents.fire(.failureRecoveryAttempt(.completed(.unhealthy)))
             }
         }
     }
