@@ -21,7 +21,6 @@ import NetworkExtension
 
 protocol Reasserting: AnyObject {
     func startReasserting()
-    func stopReasserting()
 }
 
 extension NEPacketTunnelProvider: Reasserting {
@@ -29,10 +28,5 @@ extension NEPacketTunnelProvider: Reasserting {
     @MainActor
     func startReasserting() {
         reasserting = true
-    }
-
-    @MainActor
-    func stopReasserting() {
-        reasserting = false
     }
 }

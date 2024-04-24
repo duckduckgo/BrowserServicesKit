@@ -321,7 +321,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     )
 
     private lazy var tunnelFailureMonitor = NetworkProtectionTunnelFailureMonitor(handshakeReporter: adapter)
-    private lazy var serverFailureMonitor = NetworkProtectionTunnelFailureMonitor(handshakeReporter: adapter)
 
     public lazy var latencyMonitor = NetworkProtectionLatencyMonitor()
     public lazy var entitlementMonitor = NetworkProtectionEntitlementMonitor()
@@ -1210,30 +1209,12 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             await tunnelFailureMonitor.stop()
         }
 
-        if isSubscriptionEnabled, await isEntitlementInvalid() {
-            return
-        }
-
         await tunnelFailureMonitor.start { [weak self] result in
-            self?.providerEvents.fire(.reportTunnelFailure(result: result))
-        }
-    }
-
-    lazy var failureRecoveryHandler: FailureRecoveryHandling = FailureRecoveryHandler(deviceManager: deviceManager)
-
-    private func startServerFailureMonitor() async {
-        if await serverFailureMonitor.isStarted {
-            await serverFailureMonitor.stop()
-        }
-
-        if isSubscriptionEnabled, await isEntitlementInvalid() {
-            return
-        }
-
-        await serverFailureMonitor.start { [weak self] result in
             guard let self else {
                 return
             }
+
+            providerEvents.fire(.reportTunnelFailure(result: result))
 
             switch result {
             case .failureDetected:
@@ -1244,23 +1225,20 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 }
             case .networkPathChanged: break
             }
-            guard case .failureDetected = result else {
-                return
-            }
         }
     }
+
+    private lazy var failureRecoveryHandler: FailureRecoveryHandling = FailureRecoveryHandler(deviceManager: deviceManager)
 
     private func startServerFailureRecovery() {
         Task {
             guard let server = await self.lastSelectedServer else {
-                os_log("🟢 No last server info found for recovery", log: .networkProtectionServerFailureRecoveryLog, type: .info)
                 return
             }
             await self.startReasserting()
-            await self.serverFailureMonitor.stop()
 
             do {
-                try await self.failureRecoveryHandler.attemptRecovery(
+                try? await self.failureRecoveryHandler.attemptRecovery(
                     to: server,
                     includedRoutes: self.includedRoutes ?? [],
                     excludedRoutes: self.settings.excludedRanges,
@@ -1268,15 +1246,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 ) { [weak self] generateConfigResult in
                     try await self?.handleFailureRecoveryConfigUpdate(result: generateConfigResult)
                 }
-            } catch let error as FailureRecoveryError {
-                switch error {
-                case .noRecoveryNecessary:
-                    os_log("🟢 Failure recovery fire noRecoveryNecessary pixel", log: .networkProtectionServerFailureRecoveryLog, type: .error)
-                case .reachedMaximumRetries(let lastError):
-                    os_log("🟢 Failure recovery max retry error: %{public}@", log: .networkProtectionServerFailureRecoveryLog, type: .error, String(reflecting: lastError))
-                }
-            } catch {
-                os_log("🟢 Failure recovery error: %{public}@", log: .networkProtectionServerFailureRecoveryLog, type: .error, String(reflecting: error))
             }
         }
     }
@@ -1362,7 +1331,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     @MainActor
     public func startMonitors(testImmediately: Bool) async throws {
         await startTunnelFailureMonitor()
-        await startServerFailureMonitor()
         await startLatencyMonitor()
         await startEntitlementMonitor()
 
@@ -1378,7 +1346,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     public func stopMonitors() async {
         await self.connectionTester.stop()
         await self.tunnelFailureMonitor.stop()
-        await self.serverFailureMonitor.stop()
         await self.latencyMonitor.stop()
         await self.entitlementMonitor.stop()
     }
