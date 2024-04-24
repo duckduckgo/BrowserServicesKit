@@ -63,6 +63,7 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
     }
 
     private let deviceManager: NetworkProtectionDeviceManagement
+    private weak var reassertingControl: Reasserting?
     private let retryConfig: RetryConfig
     private let eventHandler: (FailureRecoveryStep) -> Void
 
@@ -72,8 +73,9 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
         }
     }
 
-    init(deviceManager: NetworkProtectionDeviceManagement, retryConfig: RetryConfig = .default, eventHandler: @escaping (FailureRecoveryStep) -> Void) {
+    init(deviceManager: NetworkProtectionDeviceManagement, reassertingControl: Reasserting, retryConfig: RetryConfig = .default, eventHandler: @escaping (FailureRecoveryStep) -> Void) {
         self.deviceManager = deviceManager
+        self.reassertingControl = reassertingControl
         self.retryConfig = retryConfig
         self.eventHandler = eventHandler
     }
@@ -87,6 +89,7 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
     ) async {
         await incrementalPeriodicChecks(retryConfig) { [weak self] in
             guard let self else { return }
+            await reassertingControl?.startReasserting()
             eventHandler(.started)
             do {
                 let result = try await makeRecoveryAttempt(
@@ -97,9 +100,11 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
                 )
                 try await updateConfig(result)
                 eventHandler(.completed(.unhealthy))
+                await reassertingControl?.stopReasserting()
             } catch {
                 switch error {
                 case FailureRecoveryError.noRecoveryNecessary:
+                    await reassertingControl?.stopReasserting()
                     eventHandler(.completed(.healthy))
                 default:
                     eventHandler(.failed(error))
