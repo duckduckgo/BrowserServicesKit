@@ -1,5 +1,6 @@
 //
-//  Reasserting.swift
+//  MockReasserting.swift
+//  DuckDuckGo
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -17,22 +18,17 @@
 //
 
 import Foundation
-import NetworkExtension
+@testable import NetworkProtection
 
-protocol Reasserting: AnyObject {
-    func startReasserting()
-    func stopReasserting()
-}
+class MockReasserting: Reasserting {
 
-extension NEPacketTunnelProvider: Reasserting {
-
-    @MainActor
+    var startReassertingCallCount = 0
     func startReasserting() {
-        reasserting = true
+        startReassertingCallCount += 1
     }
-
-    @MainActor
+    
+    var stopReassertingCallCount = 0
     func stopReasserting() {
-        reasserting = false
+        stopReassertingCallCount += 1
     }
 }

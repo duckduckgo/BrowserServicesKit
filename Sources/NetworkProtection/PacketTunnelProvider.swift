@@ -1235,6 +1235,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     private lazy var failureRecoveryHandler: FailureRecoveryHandling = FailureRecoveryHandler(
         deviceManager: deviceManager,
+        reassertingControl: self,
         eventHandler: { [weak self] step in
             self?.providerEvents.fire(.failureRecoveryAttempt(step))
         }
@@ -1245,8 +1246,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             guard let server = await self.lastSelectedServer else {
                 return
             }
-            await self.startReasserting()
-
             await self.failureRecoveryHandler.attemptRecovery(
                 to: server,
                 includedRoutes: self.includedRoutes ?? [],

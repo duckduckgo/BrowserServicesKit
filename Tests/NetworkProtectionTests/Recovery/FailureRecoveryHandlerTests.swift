@@ -22,6 +22,7 @@ import NetworkProtectionTestUtils
 
 final class FailureRecoveryHandlerTests: XCTestCase {
     private var deviceManager: MockNetworkProtectionDeviceManagement!
+    private var reassertingControl: MockReasserting!
     private var failureRecoveryHandler: FailureRecoveryHandler!
 
     private static let testConfig = FailureRecoveryHandler.RetryConfig(
@@ -34,7 +35,13 @@ final class FailureRecoveryHandlerTests: XCTestCase {
     override func setUp() {
         super.setUp()
         deviceManager = MockNetworkProtectionDeviceManagement()
-        failureRecoveryHandler = FailureRecoveryHandler(deviceManager: deviceManager, retryConfig: Self.testConfig, eventHandler: { _ in })
+        reassertingControl = MockReasserting()
+        failureRecoveryHandler = FailureRecoveryHandler(
+            deviceManager: deviceManager,
+            reassertingControl: reassertingControl,
+            retryConfig: Self.testConfig,
+            eventHandler: { _ in }
+        )
         self.executionTimeAllowance = 5
     }
 
@@ -105,6 +112,7 @@ final class FailureRecoveryHandlerTests: XCTestCase {
         var startedCount = 0
         failureRecoveryHandler = FailureRecoveryHandler(
             deviceManager: deviceManager,
+            reassertingControl: reassertingControl,
             retryConfig: Self.testConfig,
             eventHandler: { step in
                 if case .started = step {
@@ -130,6 +138,7 @@ final class FailureRecoveryHandlerTests: XCTestCase {
         var failedCount = 0
         failureRecoveryHandler = FailureRecoveryHandler(
             deviceManager: deviceManager,
+            reassertingControl: reassertingControl,
             retryConfig: Self.testConfig,
             eventHandler: { step in
                 if case .failed = step {
@@ -150,6 +159,7 @@ final class FailureRecoveryHandlerTests: XCTestCase {
         var failedCount = 0
         failureRecoveryHandler = FailureRecoveryHandler(
             deviceManager: deviceManager,
+            reassertingControl: reassertingControl,
             retryConfig: Self.testConfig,
             eventHandler: { step in
                 if case .failed = step {
@@ -170,6 +180,7 @@ final class FailureRecoveryHandlerTests: XCTestCase {
         var healthyCompleteCount = 0
         failureRecoveryHandler = FailureRecoveryHandler(
             deviceManager: deviceManager,
+            reassertingControl: reassertingControl,
             retryConfig: Self.testConfig,
             eventHandler: { step in
                 if case .completed(.healthy) = step {
@@ -179,7 +190,7 @@ final class FailureRecoveryHandlerTests: XCTestCase {
                 }
             }
         )
-        try? await attemptRecoveryWithLastAndNewServerNamesAndAllowedIPsEqual()
+        await attemptRecoveryWithLastAndNewServerNamesAndAllowedIPsEqual()
 
         XCTAssertEqual(healthyCompleteCount, 1)
     }
@@ -188,6 +199,7 @@ final class FailureRecoveryHandlerTests: XCTestCase {
         var unhealthyCompleteCount = 0
         failureRecoveryHandler = FailureRecoveryHandler(
             deviceManager: deviceManager,
+            reassertingControl: reassertingControl,
             retryConfig: Self.testConfig,
             eventHandler: { step in
                 if case .completed(.unhealthy) = step {
@@ -217,6 +229,7 @@ final class FailureRecoveryHandlerTests: XCTestCase {
         var unhealthyCompleteCount = 0
         failureRecoveryHandler = FailureRecoveryHandler(
             deviceManager: deviceManager,
+            reassertingControl: reassertingControl,
             retryConfig: Self.testConfig,
             eventHandler: { step in
                 if case .completed(.unhealthy) = step {
@@ -237,7 +250,17 @@ final class FailureRecoveryHandlerTests: XCTestCase {
         XCTAssertEqual(unhealthyCompleteCount, 1)
     }
 
-    func attemptRecoveryWithLastAndNewServerNamesAndAllowedIPsEqual() async throws {
+    func testAttemptRecovery_startsReasserting() async {
+        await attemptRecoveryWithLastAndNewServerNamesAndAllowedIPsEqual()
+        XCTAssertEqual(reassertingControl.startReassertingCallCount, 1)
+    }
+
+    func testAttemptRecovery_lastAndNewServerNamesAndAllowedIPsAreEqual_stopsReasserting() async {
+        await attemptRecoveryWithLastAndNewServerNamesAndAllowedIPsEqual()
+        XCTAssertEqual(reassertingControl.stopReassertingCallCount, 1)
+    }
+
+    func attemptRecoveryWithLastAndNewServerNamesAndAllowedIPsEqual() async {
         let lastAndNewServerName = "previousAndNewServerName"
         let lastAndNewAllowedIPs = ["1.2.3.4/5", "10.9.8.7/6"]
 
