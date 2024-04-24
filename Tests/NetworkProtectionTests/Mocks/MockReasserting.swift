@@ -26,7 +26,7 @@ class MockReasserting: Reasserting {
     func startReasserting() {
         startReassertingCallCount += 1
     }
-    
+
     var stopReassertingCallCount = 0
     func stopReasserting() {
         stopReassertingCallCount += 1
