@@ -167,13 +167,9 @@ extension Network.NWPath {
         }
 
         static func identify(_ interface: NWInterface) -> KnownInterface {
-            for knownInterface in allCases {
-                if interface.name.hasPrefix(knownInterface.prefix) {
-                    return knownInterface
-                }
-            }
-
-            return .unidentified
+            allCases.first { knownInterface in
+                interface.name.hasPrefix(knownInterface.prefix)
+            } ?? .unidentified
         }
     }
 
