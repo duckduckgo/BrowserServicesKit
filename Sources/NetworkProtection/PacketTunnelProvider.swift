@@ -167,7 +167,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Server Selection
 
-    private let serverSelection: VPNServerSelectionSanitizing
+    private let serverSelection: VPNServerSelectionResolving
 
     public var lastSelectedServerInfo: NetworkProtectionServerInfo? {
         didSet {
@@ -344,7 +344,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 debugEvents: EventMapping<NetworkProtectionError>?,
                 providerEvents: EventMapping<Event>,
                 settings: VPNSettings,
-                serverSelection: VPNServerSelectionSanitizing,
+                serverSelection: VPNServerSelectionResolving,
                 defaults: UserDefaults,
                 isSubscriptionEnabled: Bool,
                 entitlementCheck: (() async -> Result<Bool, Error>)?) {
@@ -783,7 +783,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         let configurationResult: (TunnelConfiguration, NetworkProtectionServerInfo)
 
         do {
-            let serverSelectionMethod = await serverSelection.sanitizedServerSelectionMethod()
+            let serverSelectionMethod = await serverSelection.resolvedServerSelectionMethod()
             let networkClient = NetworkProtectionBackendClient(environment: environment,
                                                                isSubscriptionEnabled: isSubscriptionEnabled)
             let deviceManager = NetworkProtectionDeviceManager(networkClient: networkClient,

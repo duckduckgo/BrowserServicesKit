@@ -18,16 +18,16 @@
 
 import Foundation
 
-public enum VPNServerSelectionError: Error {
+enum VPNServerSelectionResolverError: Error {
     case countryNotFound
     case fetchingLocationsFailed(Error)
 }
 
-public protocol VPNServerSelectionSanitizing {
-    func sanitizedServerSelectionMethod() async -> NetworkProtectionServerSelectionMethod
+protocol VPNServerSelectionResolving {
+    func resolvedServerSelectionMethod() async -> NetworkProtectionServerSelectionMethod
 }
 
-public final class VPNServerSelectionSanitizer: VPNServerSelectionSanitizing {
+final class VPNServerSelectionResolver: VPNServerSelectionResolving {
     private let locationListRepository: NetworkProtectionLocationListRepository
     private let vpnSettings: VPNSettings
 
@@ -36,15 +36,15 @@ public final class VPNServerSelectionSanitizer: VPNServerSelectionSanitizing {
         self.vpnSettings = vpnSettings
     }
 
-    public func sanitizedServerSelectionMethod() async -> NetworkProtectionServerSelectionMethod {
+    public func resolvedServerSelectionMethod() async -> NetworkProtectionServerSelectionMethod {
         switch currentServerSelectionMethod {
         case .automatic, .preferredServer, .avoidServer:
             return currentServerSelectionMethod
         case .preferredLocation(let networkProtectionSelectedLocation):
             do {
-                let location = try await sanitizeSelectionAgainstAvailableLocations(networkProtectionSelectedLocation)
+                let location = try await resolveSelectionAgainstAvailableLocations(networkProtectionSelectedLocation)
                 return .preferredLocation(location)
-            } catch let error as VPNServerSelectionError {
+            } catch let error as VPNServerSelectionResolverError {
                 switch error {
                 case .countryNotFound:
                     return .automatic
@@ -57,12 +57,12 @@ public final class VPNServerSelectionSanitizer: VPNServerSelectionSanitizing {
         }
     }
 
-    private func sanitizeSelectionAgainstAvailableLocations(_ selection: NetworkProtectionSelectedLocation) async throws -> NetworkProtectionSelectedLocation {
+    private func resolveSelectionAgainstAvailableLocations(_ selection: NetworkProtectionSelectedLocation) async throws -> NetworkProtectionSelectedLocation {
         let availableLocations: [NetworkProtectionLocation]
         do {
             availableLocations = try await locationListRepository.fetchLocationListIgnoringCache()
         } catch {
-            throw VPNServerSelectionError.fetchingLocationsFailed(error)
+            throw VPNServerSelectionResolverError.fetchingLocationsFailed(error)
         }
 
         let availableCitySelections = availableLocations.flatMap { location in
@@ -76,7 +76,7 @@ public final class VPNServerSelectionSanitizer: VPNServerSelectionSanitizing {
         let selectedCountry = NetworkProtectionSelectedLocation(country: selection.country)
         let availableCountrySelections = availableLocations.map { NetworkProtectionSelectedLocation(country: $0.country) }
         guard availableCountrySelections.contains(selectedCountry) else {
-            throw VPNServerSelectionError.countryNotFound
+            throw VPNServerSelectionResolverError.countryNotFound
         }
 
         return selectedCountry
