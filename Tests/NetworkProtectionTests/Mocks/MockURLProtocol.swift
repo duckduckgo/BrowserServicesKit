@@ -36,7 +36,7 @@ final class MockURLProtocol: URLProtocol {
             fatalError(
                 "No mock response for \(request.url!). This should never happen. Check " +
                 "the implementation of `canInit(with request: URLRequest) -> Bool`"
-            )
+            )x
         }
 
         self.client?.urlProtocol(self, didReceive: stub.response, cacheStoragePolicy: .allowed)
