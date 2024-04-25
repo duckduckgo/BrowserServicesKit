@@ -993,6 +993,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             }
 
             settings.selectedServer = .endpoint(serverName)
+            if case .connected = connectionStatus {
+                try? await updateTunnelConfiguration(environment: settings.selectedEnvironment, reassert: true)
+            }
             completionHandler?(nil)
         }
     }
