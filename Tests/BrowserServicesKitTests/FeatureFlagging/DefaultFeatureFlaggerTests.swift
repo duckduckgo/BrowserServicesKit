@@ -117,7 +117,7 @@ final class DefaultFeatureFlaggerTests: XCTestCase {
                                                   localProtection: MockDomainsProtectionStore(),
                                                  internalUserDecider: DefaultInternalUserDecider())
         let internalUserDecider = DefaultInternalUserDecider(store: internalUserDeciderStore)
-        return DefaultFeatureFlagger(internalUserDecider: internalUserDecider, privacyConfig: manager.privacyConfig)
+        return DefaultFeatureFlagger(internalUserDecider: internalUserDecider, privacyConfigManager: manager)
     }
 
     private static func embeddedConfig(autofillState: String = "enabled",

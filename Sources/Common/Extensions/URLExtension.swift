@@ -425,7 +425,7 @@ extension URL {
 
 }
 
-fileprivate extension CharacterSet {
+public extension CharacterSet {
 
     /**
      * As per [RFC 3986](https://www.rfc-editor.org/rfc/rfc3986#section-2.2).

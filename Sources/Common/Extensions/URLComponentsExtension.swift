@@ -28,4 +28,15 @@ extension URLComponents {
         return tld.extractSubdomain(from: self.host?.lowercased())
     }
 
+    mutating public func eTLDplus1WithPort(tld: TLD) -> String? {
+        guard let port = self.port else {
+            return tld.eTLDplus1(self.host?.lowercased())
+        }
+
+        self.port = nil
+        guard let etldPlus1 = tld.eTLDplus1(self.host?.lowercased()) else { return nil }
+
+        return "\(etldPlus1):\(port)"
+    }
+
 }

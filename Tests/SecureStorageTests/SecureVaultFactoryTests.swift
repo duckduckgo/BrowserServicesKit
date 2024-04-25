@@ -25,7 +25,7 @@ import SecureStorageTestsUtils
 let MockSecureVaultFactory = SecureVaultFactory<ConcreteMockSecureVault>(
     makeCryptoProvider: {
         return MockCryptoProvider()
-    }, makeKeyStoreProvider: {
+    }, makeKeyStoreProvider: { _ in
         let provider = MockKeystoreProvider()
         provider._l1Key = "key".data(using: .utf8)
         return provider
@@ -39,7 +39,7 @@ let MockSecureVaultFactory = SecureVaultFactory<ConcreteMockSecureVault>(
 final class MockVaultTests: XCTestCase {
 
     func testCreatingMockVaultWithSecureVaultFactory() throws {
-        let vault = try MockSecureVaultFactory.makeVault(errorReporter: nil)
+        let vault = try MockSecureVaultFactory.makeVault(reporter: nil)
         let storedString = "hello, world!"
 
         try vault.storeSomeData(string: storedString)

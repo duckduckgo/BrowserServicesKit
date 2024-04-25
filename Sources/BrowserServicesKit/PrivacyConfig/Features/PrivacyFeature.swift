@@ -46,6 +46,7 @@ public enum PrivacyFeature: String {
     case history
     case performanceMetrics
     case privacyPro
+    case sslCertificates
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -124,4 +125,9 @@ public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {
     case allowPurchaseStripe
     case isLaunchedOverride
     case isLaunchedOverrideStripe
+}
+
+public enum sslCertificatesSubfeature: String, PrivacySubfeature {
+    public var parent: PrivacyFeature { .sslCertificates }
+    case allowBypass
 }

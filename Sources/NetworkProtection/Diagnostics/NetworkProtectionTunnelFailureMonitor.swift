@@ -157,7 +157,17 @@ extension Network.NWPath {
             description += "unsatisfiedReason: \(unsatisfiedReason), "
         }
 
-        description += "availableInterfaces: \(availableInterfaces), "
+        let tunnelCount = availableInterfaces.filter { interface in
+            interface.type == .other && interface.name.contains("utun")
+        }.count
+
+        let dnsCount = availableInterfaces.filter { interface in
+            interface.type == .other && interface.name.contains("dns")
+        }.count
+
+        description += "mainInterfaceType: \(String(describing: availableInterfaces.first?.type)), "
+        description += "tunnelInterfaceCount: \(tunnelCount), "
+        description += "dnsInterfaceCount: \(dnsCount)), "
         description += "isConstrained: \(isConstrained ? "true" : "false"), "
         description += "isExpensive: \(isExpensive ? "true" : "false")"
         description += ")"

@@ -31,6 +31,12 @@ extension RegEx {
     static let hostName = regex("^(((?!-)[A-Za-z0-9-]{1,63}(?<!-)\\.)*[A-Za-z0-9-]{2,63})$", .caseInsensitive)
 }
 
+// Use this instead of NSLocalizedString for strings that are not supposed to be translated
+// swiftlint:disable:next identifier_name
+public func NotLocalizedString(_ key: String, tableName: String? = nil, bundle: Bundle = Bundle.main, value: String = "", comment: String) -> String {
+    return value
+}
+
 public extension String {
 
     static let localhost = "localhost"

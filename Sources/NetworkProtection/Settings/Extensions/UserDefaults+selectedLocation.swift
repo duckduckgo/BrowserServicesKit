@@ -56,7 +56,11 @@ extension UserDefaults {
         guard let storageValue else {
             return .nearest
         }
-        let selectedLocation = NetworkProtectionSelectedLocation(country: storageValue.country, city: storageValue.city)
+
+        // To handle a bug where a UI element's title was set for nearest cities rather than nil
+        let city = storageValue.city == "Nearest" ? nil : storageValue.city
+
+        let selectedLocation = NetworkProtectionSelectedLocation(country: storageValue.country, city: city)
 
         return .location(selectedLocation)
     }
