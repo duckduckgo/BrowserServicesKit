@@ -119,7 +119,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
                                             includedRoutes: [IPAddressRange],
                                             excludedRoutes: [IPAddressRange],
                                             isKillSwitchEnabled: Bool,
-                                            regenerateKey: Bool) async throws -> (tunnelConfig: TunnelConfiguration, server: NetworkProtectionServer) {
+                                            regenerateKey: Bool) async throws -> GenerateTunnelConfigResult {
         var keyPair: KeyPair
 
         if regenerateKey {
