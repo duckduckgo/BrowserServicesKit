@@ -79,69 +79,6 @@ final class NetworkProtectionClientTests: XCTestCase {
         }
     }
 
-    // MARK: redeem(inviteCode:)
-
-    func testRedeemSuccess() async {
-        let token = "a6s7ad6ad76aasa7s6a"
-        let successData = redeemSuccessData(token: token)
-        MockURLProtocol.stubs[client.redeemURL] = (response: HTTPURLResponse(url: client.redeemURL, statusCode: 200)!,
-                                                   .success(successData))
-
-        let result = await client.redeem(inviteCode: "DH76F8S")
-
-        XCTAssertEqual(try? result.get(), token)
-    }
-
-    func testRedeem400Response() async {
-        let emptyData = "".data(using: .utf8)!
-        MockURLProtocol.stubs[client.redeemURL] = (response: HTTPURLResponse(url: client.redeemURL, statusCode: 400)!,
-                                                   .success(emptyData))
-
-        let result = await client.redeem(inviteCode: "DH76F8S")
-
-        guard case .failure(let error) = result, case .invalidInviteCode = error else {
-            XCTFail("Expected an invalidInviteCode error to be thrown")
-            return
-        }
-    }
-
-    func testRedeemNon200Or400Response() async {
-        let emptyData = "".data(using: .utf8)!
-
-        for code in [401, 304, 500] {
-            MockURLProtocol.stubs[client.redeemURL] = (response: HTTPURLResponse(url: client.redeemURL, statusCode: code)!,
-                                                       .success(emptyData))
-
-            let result = await client.redeem(inviteCode: "DH76F8S")
-
-            guard case .failure(let error) = result, case .failedToRedeemInviteCode = error else {
-                XCTFail("Expected a failedToRedeemInviteCode error to be thrown")
-                return
-            }
-        }
-    }
-
-    func testRedeemDecodeFailure() async {
-        let undecodableData = "sdfghj".data(using: .utf8)!
-        MockURLProtocol.stubs[client.redeemURL] = (response: HTTPURLResponse(url: client.redeemURL, statusCode: 200)!,
-                                                   .success(undecodableData))
-
-        let result = await client.redeem(inviteCode: "DH76F8S")
-
-        guard case .failure(let error) = result, case .failedToParseRedeemResponse = error else {
-            XCTFail("Expected a failedToRedeemInviteCode error to be thrown")
-            return
-        }
-    }
-
-    private func redeemSuccessData(token: String) -> Data {
-        return """
-        {
-            "token": "\(token)"
-        }
-        """.data(using: .utf8)!
-    }
-
     // MARK: locations(authToken:)
 
     func testLocationsSuccess() async {

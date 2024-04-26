@@ -19,15 +19,8 @@
 import Foundation
 import Common
 
-public protocol NetworkProtectionCodeRedeeming {
-
-    /// Redeems an invite code with the Network Protection backend and stores the resulting auth token
-    func redeem(_ code: String) async throws
-
-}
-
 /// Coordinates calls to the backend and oAuth token storage
-public final class NetworkProtectionCodeRedemptionCoordinator: NetworkProtectionCodeRedeeming {
+public final class NetworkProtectionCodeRedemptionCoordinator {
     private let networkClient: NetworkProtectionClient
     private let tokenStore: NetworkProtectionTokenStore
     private let isManualCodeRedemptionFlow: Bool
@@ -52,23 +45,6 @@ public final class NetworkProtectionCodeRedemptionCoordinator: NetworkProtection
         self.tokenStore = tokenStore
         self.isManualCodeRedemptionFlow = isManualCodeRedemptionFlow
         self.errorEvents = errorEvents
-    }
-
-    public func redeem(_ code: String) async throws {
-        let result = await networkClient.redeem(inviteCode: code)
-        switch result {
-        case .success(let token):
-            try tokenStore.store(token)
-
-        case .failure(let error):
-            if case .invalidInviteCode = error, isManualCodeRedemptionFlow {
-                // Deliberately ignore cases where invalid invite codes are entered into the redemption form
-                throw error
-            } else {
-                errorEvents.fire(error.networkProtectionError)
-                throw error
-            }
-        }
     }
 
 }

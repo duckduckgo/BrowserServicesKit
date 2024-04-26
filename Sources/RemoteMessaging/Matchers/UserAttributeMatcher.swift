@@ -29,7 +29,6 @@ public struct UserAttributeMatcher: AttributeMatcher {
     private let bookmarksCount: Int
     private let favoritesCount: Int
     private let isWidgetInstalled: Bool
-    private let isNetPWaitlistUser: Bool
     private let daysSinceNetPEnabled: Int
 
     public init(statisticsStore: StatisticsStore,
@@ -39,7 +38,6 @@ public struct UserAttributeMatcher: AttributeMatcher {
                 favoritesCount: Int,
                 appTheme: String,
                 isWidgetInstalled: Bool,
-                isNetPWaitlistUser: Bool,
                 daysSinceNetPEnabled: Int
 	) {
         self.statisticsStore = statisticsStore
@@ -49,7 +47,6 @@ public struct UserAttributeMatcher: AttributeMatcher {
         self.bookmarksCount = bookmarksCount
         self.favoritesCount = favoritesCount
         self.isWidgetInstalled = isWidgetInstalled
-        self.isNetPWaitlistUser = isNetPWaitlistUser
         self.daysSinceNetPEnabled = daysSinceNetPEnabled
     }
 
@@ -97,12 +94,6 @@ public struct UserAttributeMatcher: AttributeMatcher {
             }
 
             return BooleanMatchingAttribute(value).matches(value: isWidgetInstalled)
-        case let matchingAttribute as IsNetPWaitlistUserMatchingAttribute:
-            guard let value = matchingAttribute.value else {
-                return .fail
-            }
-
-            return BooleanMatchingAttribute(value).matches(value: isNetPWaitlistUser)
         case let matchingAttribute as DaysSinceNetPEnabledMatchingAttribute:
             if matchingAttribute.value != MatchingAttributeDefaults.intDefaultValue {
                 return IntMatchingAttribute(matchingAttribute.value).matches(value: daysSinceNetPEnabled)

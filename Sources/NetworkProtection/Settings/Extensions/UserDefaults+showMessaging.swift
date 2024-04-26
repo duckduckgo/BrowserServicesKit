@@ -85,24 +85,3 @@ extension UserDefaults {
 public extension Notification.Name {
     static let vpnEntitlementMessagingDidChange = Notification.Name("com.duckduckgo.network-protection.entitlement-messaging-changed")
 }
-
-extension UserDefaults {
-    private var vpnEarlyAccessOverAlertAlreadyShownKey: String {
-        "vpnEarlyAccessOverAlertAlreadyShown"
-    }
-
-    @objc
-    public dynamic var vpnEarlyAccessOverAlertAlreadyShown: Bool {
-        get {
-            value(forKey: vpnEarlyAccessOverAlertAlreadyShownKey) as? Bool ?? false
-        }
-
-        set {
-            set(newValue, forKey: vpnEarlyAccessOverAlertAlreadyShownKey)
-        }
-    }
-
-    public func resetThankYouMessaging() {
-        removeObject(forKey: vpnEarlyAccessOverAlertAlreadyShownKey)
-    }
-}
