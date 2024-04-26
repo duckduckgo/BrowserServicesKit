@@ -24,8 +24,7 @@ final class NetworkProtectionClientTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        let userDefaults = UserDefaults(suiteName: String(describing: self))!
-        client = NetworkProtectionBackendClient(settings: VPNSettings(defaults: userDefaults), isSubscriptionEnabled: false)
+        client = NetworkProtectionBackendClient(environment: .production, isSubscriptionEnabled: false)
     }
 
     override class func setUp() {

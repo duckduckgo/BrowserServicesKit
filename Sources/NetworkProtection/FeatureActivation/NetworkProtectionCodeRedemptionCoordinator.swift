@@ -33,12 +33,12 @@ public final class NetworkProtectionCodeRedemptionCoordinator: NetworkProtection
     private let isManualCodeRedemptionFlow: Bool
     private let errorEvents: EventMapping<NetworkProtectionError>
 
-    convenience public init(settings: VPNSettings,
+    convenience public init(environment: VPNSettings.SelectedEnvironment,
                             tokenStore: NetworkProtectionTokenStore,
                             isManualCodeRedemptionFlow: Bool = false,
                             errorEvents: EventMapping<NetworkProtectionError>,
                             isSubscriptionEnabled: Bool) {
-        self.init(networkClient: NetworkProtectionBackendClient(settings: settings, isSubscriptionEnabled: isSubscriptionEnabled),
+        self.init(networkClient: NetworkProtectionBackendClient(environment: environment, isSubscriptionEnabled: isSubscriptionEnabled),
                   tokenStore: tokenStore,
                   isManualCodeRedemptionFlow: isManualCodeRedemptionFlow,
                   errorEvents: errorEvents)

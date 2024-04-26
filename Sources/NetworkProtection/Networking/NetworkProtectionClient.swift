@@ -191,16 +191,12 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
         return decoder
     }()
 
-    private var endpointURL: URL {
-        settings.selectedEnvironment.endpointURL
-    }
-
+    private let endpointURL: URL
     private let isSubscriptionEnabled: Bool
-    private let settings: VPNSettings
 
-    init(settings: VPNSettings, isSubscriptionEnabled: Bool) {
+    init(environment: VPNSettings.SelectedEnvironment = .default, isSubscriptionEnabled: Bool) {
         self.isSubscriptionEnabled = isSubscriptionEnabled
-        self.settings = settings
+        self.endpointURL = environment.endpointURL
     }
 
     public enum GetLocationsError: CustomNSError {

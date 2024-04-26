@@ -32,12 +32,12 @@ final public class NetworkProtectionLocationListCompositeRepository: NetworkProt
     private let errorEvents: EventMapping<NetworkProtectionError>
     private let isSubscriptionEnabled: Bool
 
-    convenience public init(settings: VPNSettings,
+    convenience public init(environment: VPNSettings.SelectedEnvironment,
                             tokenStore: NetworkProtectionTokenStore,
                             errorEvents: EventMapping<NetworkProtectionError>,
                             isSubscriptionEnabled: Bool) {
         self.init(
-            client: NetworkProtectionBackendClient(settings: settings, isSubscriptionEnabled: isSubscriptionEnabled),
+            client: NetworkProtectionBackendClient(environment: environment, isSubscriptionEnabled: isSubscriptionEnabled),
             tokenStore: tokenStore,
             errorEvents: errorEvents,
             isSubscriptionEnabled: isSubscriptionEnabled

@@ -314,7 +314,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }()
 
     private lazy var deviceManager: NetworkProtectionDeviceManagement = NetworkProtectionDeviceManager(
-        settings: self.settings,
+        environment: self.settings.selectedEnvironment,
         tokenStore: self.tokenStore,
         keyStore: self.keyStore,
         errorEvents: self.debugEvents,

@@ -63,12 +63,12 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
 
     private let isSubscriptionEnabled: Bool
 
-    public init(settings: VPNSettings,
+    public init(environment: VPNSettings.SelectedEnvironment,
                 tokenStore: NetworkProtectionTokenStore,
                 keyStore: NetworkProtectionKeyStore,
                 errorEvents: EventMapping<NetworkProtectionError>?,
                 isSubscriptionEnabled: Bool) {
-        self.init(networkClient: NetworkProtectionBackendClient(settings: settings, isSubscriptionEnabled: isSubscriptionEnabled),
+        self.init(networkClient: NetworkProtectionBackendClient(environment: environment, isSubscriptionEnabled: isSubscriptionEnabled),
                   tokenStore: tokenStore,
                   keyStore: keyStore,
                   errorEvents: errorEvents,
