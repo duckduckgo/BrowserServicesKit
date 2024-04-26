@@ -1302,7 +1302,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     @MainActor
     public func stopMonitors() async {
-        await self.connectionTester.stop()
+        self.connectionTester.stop()
         await self.tunnelFailureMonitor.stop()
         await self.latencyMonitor.stop()
         await self.entitlementMonitor.stop()
