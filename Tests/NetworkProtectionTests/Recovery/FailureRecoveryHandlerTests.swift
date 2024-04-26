@@ -272,6 +272,30 @@ final class FailureRecoveryHandlerTests: XCTestCase {
         XCTAssertEqual(reassertingControl.stopReassertingCallCount, 1)
     }
 
+    func testAttemptRecovery_configFetchFails_retries() async {
+        let retryConfig = FailureRecoveryHandler.RetryConfig(times: 3, initialDelay: 0.1, maxDelay: 1.0, factor: 2)
+        var failedCount = 0
+        failureRecoveryHandler = FailureRecoveryHandler(deviceManager: deviceManager, reassertingControl: reassertingControl, retryConfig: retryConfig, eventHandler: { step in
+            if case .failed = step {
+                failedCount += 1
+            }
+        })
+        await attemptRecoveryWithConfigUpdateFailure()
+        XCTAssertEqual(failedCount, 3)
+    }
+
+    func testAttemptRecovery_configUpdateFails_retries() async {
+        let retryConfig = FailureRecoveryHandler.RetryConfig(times: 3, initialDelay: 0.1, maxDelay: 1.0, factor: 2)
+        var failedCount = 0
+        failureRecoveryHandler = FailureRecoveryHandler(deviceManager: deviceManager, reassertingControl: reassertingControl, retryConfig: retryConfig, eventHandler: { step in
+            if case .failed = step {
+                failedCount += 1
+            }
+        })
+        await attemptRecoveryWithConfigUpdateFailure()
+        XCTAssertEqual(failedCount, 3)
+    }
+
     func attemptRecoveryWithLastAndNewServerNamesAndAllowedIPsEqual() async {
         let lastAndNewServerName = "previousAndNewServerName"
         let lastAndNewAllowedIPs = ["1.2.3.4/5", "10.9.8.7/6"]

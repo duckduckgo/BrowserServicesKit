@@ -111,6 +111,7 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
                 }
             } catch {
                 eventHandler(.failed(error))
+                throw error
             }
         }
     }
