@@ -42,8 +42,9 @@ protocol FailureRecoveryHandling {
     func stop() async
 }
 
-enum FailureRecoveryError: Error {
+private enum FailureRecoveryResult: Error {
     case noRecoveryNecessary
+    case updateConfiguration(NetworkProtectionDeviceManagement.GenerateTunnelConfigResult)
 }
 
 actor FailureRecoveryHandler: FailureRecoveryHandling {
@@ -87,9 +88,12 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
         isKillSwitchEnabled: Bool,
         updateConfig: @escaping (NetworkProtectionDeviceManagement.GenerateTunnelConfigResult) async throws -> Void
     ) async {
+        reassertingControl?.startReasserting()
+        defer {
+            reassertingControl?.stopReasserting()
+        }
         await incrementalPeriodicChecks(retryConfig) { [weak self] in
             guard let self else { return }
-            await reassertingControl?.startReasserting()
             eventHandler(.started)
             do {
                 let result = try await makeRecoveryAttempt(
@@ -98,18 +102,15 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
                     excludedRoutes: excludedRoutes,
                     isKillSwitchEnabled: isKillSwitchEnabled
                 )
-                try await updateConfig(result)
-                eventHandler(.completed(.unhealthy))
-                await reassertingControl?.stopReasserting()
-            } catch {
-                switch error {
-                case FailureRecoveryError.noRecoveryNecessary:
-                    await reassertingControl?.stopReasserting()
+                switch result {
+                case .noRecoveryNecessary:
                     eventHandler(.completed(.healthy))
-                default:
-                    eventHandler(.failed(error))
-                    throw error
+                case .updateConfiguration(let generateConfigResult):
+                    try await updateConfig(generateConfigResult)
+                    eventHandler(.completed(.unhealthy))
                 }
+            } catch {
+                eventHandler(.failed(error))
             }
         }
     }
@@ -123,7 +124,7 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
         includedRoutes: [IPAddressRange],
         excludedRoutes: [IPAddressRange],
         isKillSwitchEnabled: Bool
-    ) async throws -> NetworkProtectionDeviceManagement.GenerateTunnelConfigResult {
+    ) async throws -> FailureRecoveryResult {
         let serverSelectionMethod: NetworkProtectionServerSelectionMethod = .failureRecovery(serverName: lastConnectedServer.serverName)
         let configurationResult: NetworkProtectionDeviceManagement.GenerateTunnelConfigResult
 
@@ -150,10 +151,10 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
 
         guard lastConnectedServer.shouldReplace(with: newServer) else {
             os_log("🟢 Server failure recovery not necessary.", log: .networkProtectionServerFailureRecoveryLog, type: .info)
-            throw FailureRecoveryError.noRecoveryNecessary
+            return .noRecoveryNecessary
         }
 
-        return configurationResult
+        return .updateConfiguration(configurationResult)
     }
 
     private func incrementalPeriodicChecks(

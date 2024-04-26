@@ -260,6 +260,18 @@ final class FailureRecoveryHandlerTests: XCTestCase {
         XCTAssertEqual(reassertingControl.stopReassertingCallCount, 1)
     }
 
+    func testAttemptRecovery_lastAndNewServerNamesDiffer_stopsReasserting() async {
+        let lastAndNewAllowedIPs = ["1.2.3.4/5", "10.9.8.7/6"]
+        await attemptRecoveryReturningConfigResult(with: "server1", newServerName: "server2", lastAllowedIPs: lastAndNewAllowedIPs, newAllowedIPs: lastAndNewAllowedIPs)
+        XCTAssertEqual(reassertingControl.stopReassertingCallCount, 1)
+    }
+
+    func testAttemptRecovery_lastAndNewAllowedIPsDiffer_stopsReasserting() async {
+        let lastAndNewServerName = "server1"
+        await attemptRecoveryReturningConfigResult(with: lastAndNewServerName, newServerName: lastAndNewServerName, lastAllowedIPs: ["1.2.3.4/5", "10.9.8.7/6"], newAllowedIPs: ["4.5.6.7/5", "5.1.6.2/6"])
+        XCTAssertEqual(reassertingControl.stopReassertingCallCount, 1)
+    }
+
     func attemptRecoveryWithLastAndNewServerNamesAndAllowedIPsEqual() async {
         let lastAndNewServerName = "previousAndNewServerName"
         let lastAndNewAllowedIPs = ["1.2.3.4/5", "10.9.8.7/6"]
