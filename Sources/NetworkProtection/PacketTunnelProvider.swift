@@ -146,7 +146,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             }
 
             if case .connected = connectionStatus {
-                self.notificationsPresenter.showConnectedNotification(serverLocation: lastSelectedServer?.serverInfo.serverLocation)
+                self.notificationsPresenter.showConnectedNotification(serverLocation: lastSelectedServerInfo?.serverLocation)
             }
 
             handleConnectionStatusChange(old: oldValue, new: connectionStatus)
