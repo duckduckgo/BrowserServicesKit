@@ -21,31 +21,31 @@ import Foundation
 public struct SuggestionResult: Equatable {
 
     static var empty: SuggestionResult {
-        SuggestionResult(topHits: [], duckduckgoSuggestions: [], historyAndBookmarks: [])
+        SuggestionResult(topHits: [], duckduckgoSuggestions: [], localSuggestions: [])
     }
 
     private(set) public var topHits: [Suggestion]
     private(set) public var duckduckgoSuggestions: [Suggestion]
-    private(set) public var historyAndBookmarks: [Suggestion]
+    private(set) public var localSuggestions: [Suggestion]
 
     public init(topHits: [Suggestion],
                 duckduckgoSuggestions: [Suggestion],
-                historyAndBookmarks: [Suggestion]) {
+                localSuggestions: [Suggestion]) {
         self.topHits = topHits
         self.duckduckgoSuggestions = duckduckgoSuggestions
-        self.historyAndBookmarks = historyAndBookmarks
+        self.localSuggestions = localSuggestions
     }
 
     public var isEmpty: Bool {
-        topHits.isEmpty && duckduckgoSuggestions.isEmpty && historyAndBookmarks.isEmpty
+        topHits.isEmpty && duckduckgoSuggestions.isEmpty && localSuggestions.isEmpty
     }
 
     public var all: [Suggestion] {
-        topHits + duckduckgoSuggestions + historyAndBookmarks
+        topHits + duckduckgoSuggestions + localSuggestions
     }
 
     public var count: Int {
-        topHits.count + duckduckgoSuggestions.count + historyAndBookmarks.count
+        topHits.count + duckduckgoSuggestions.count + localSuggestions.count
     }
 
     public var canBeAutocompleted: Bool {
