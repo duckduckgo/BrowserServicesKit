@@ -90,7 +90,7 @@ final class FailureRecoveryHandlerTests: XCTestCase {
             newAllowedIPs: lastAndNewAllowedIPs
         )
 
-        XCTAssertEqual(newServerName, configFetchResult?.tunnelConfig.name)
+        XCTAssertEqual(newServerName, configFetchResult?.tunnelConfiguration.name)
         XCTAssertEqual(newServerName, configFetchResult?.server.serverName)
     }
 
@@ -104,7 +104,7 @@ final class FailureRecoveryHandlerTests: XCTestCase {
             newAllowedIPs: ["10.9.8.7/6", "5.4.3.2/1"]
         )
 
-        XCTAssertEqual(lastAndNewServerName, configFetchResult?.tunnelConfig.name)
+        XCTAssertEqual(lastAndNewServerName, configFetchResult?.tunnelConfiguration.name)
         XCTAssertEqual(lastAndNewServerName, configFetchResult?.server.serverName)
     }
 
@@ -121,7 +121,7 @@ final class FailureRecoveryHandlerTests: XCTestCase {
             }
         )
         deviceManager.stubGenerateTunnelConfiguration = (
-            tunnelConfig: .make(),
+            tunnelConfiguration: .make(),
             server: .mockRegisteredServer
         )
         await failureRecoveryHandler.attemptRecovery(
@@ -323,7 +323,7 @@ final class FailureRecoveryHandlerTests: XCTestCase {
         let newServer = NetworkProtectionServer.registeredServer(named: newServerName, allowedIPs: ["1.2.3.4/5", "10.9.8.7/6"])
 
         deviceManager.stubGenerateTunnelConfiguration = (
-            tunnelConfig: .make(named: newServerName),
+            tunnelConfiguration: .make(named: newServerName),
             server: newServer
         )
 
@@ -338,16 +338,16 @@ final class FailureRecoveryHandlerTests: XCTestCase {
     }
 
     @discardableResult
-    func attemptRecoveryReturningConfigResult(with lastServerName: String, newServerName: String, lastAllowedIPs: [String], newAllowedIPs: [String]) async -> NetworkProtectionDeviceManagement.GenerateTunnelConfigResult? {
+    func attemptRecoveryReturningConfigResult(with lastServerName: String, newServerName: String, lastAllowedIPs: [String], newAllowedIPs: [String]) async -> NetworkProtectionDeviceManagement.GenerateTunnelConfigurationResult? {
         let lastServer = NetworkProtectionServer.registeredServer(named: lastServerName, allowedIPs: lastAllowedIPs)
         let newServer = NetworkProtectionServer.registeredServer(named: newServerName, allowedIPs: newAllowedIPs)
 
         deviceManager.stubGenerateTunnelConfiguration = (
-            tunnelConfig: .make(named: newServerName),
+            tunnelConfiguration: .make(named: newServerName),
             server: newServer
         )
 
-        var newConfigResult: NetworkProtectionDeviceManagement.GenerateTunnelConfigResult?
+        var newConfigResult: NetworkProtectionDeviceManagement.GenerateTunnelConfigurationResult?
 
         await failureRecoveryHandler.attemptRecovery(to: lastServer, includedRoutes: [], excludedRoutes: [], isKillSwitchEnabled: true) { configResult in
             newConfigResult = configResult

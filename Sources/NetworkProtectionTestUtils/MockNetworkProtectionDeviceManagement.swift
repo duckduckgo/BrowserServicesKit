@@ -34,7 +34,7 @@ public final class MockNetworkProtectionDeviceManagement: NetworkProtectionDevic
     )?
 
     public var stubGenerateTunnelConfiguration: (
-        tunnelConfig: NetworkProtection.TunnelConfiguration,
+        tunnelConfiguration: NetworkProtection.TunnelConfiguration,
         server: NetworkProtection.NetworkProtectionServer
     )?
 
@@ -47,7 +47,7 @@ public final class MockNetworkProtectionDeviceManagement: NetworkProtectionDevic
         includedRoutes: [NetworkProtection.IPAddressRange],
         excludedRoutes: [NetworkProtection.IPAddressRange],
         isKillSwitchEnabled: Bool,
-        regenerateKey: Bool) async throws -> (tunnelConfig: NetworkProtection.TunnelConfiguration, server: NetworkProtection.NetworkProtectionServer) {
+        regenerateKey: Bool) async throws -> (tunnelConfiguration: NetworkProtection.TunnelConfiguration, server: NetworkProtection.NetworkProtectionServer) {
             spyGenerateTunnelConfiguration = (
                 selectionMethod: selectionMethod,
                 includedRoutes: includedRoutes,

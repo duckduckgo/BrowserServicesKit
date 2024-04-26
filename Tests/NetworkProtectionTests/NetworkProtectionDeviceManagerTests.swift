@@ -58,7 +58,7 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
         let server = NetworkProtectionServer.mockRegisteredServer
         networkClient.stubRegister = .success([server])
 
-        let configuration: (tunnelConfig: TunnelConfiguration, server: NetworkProtectionServer)
+        let configuration: NetworkProtectionDeviceManager.GenerateTunnelConfigurationResult
 
         do {
             configuration = try await manager.generateTunnelConfiguration(selectionMethod: .automatic, regenerateKey: false)
@@ -210,7 +210,7 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
 extension NetworkProtectionDeviceManager {
 
     func generateTunnelConfiguration(selectionMethod: NetworkProtectionServerSelectionMethod,
-                                     regenerateKey: Bool) async throws -> (tunnelConfig: TunnelConfiguration, server: NetworkProtectionServer) {
+                                     regenerateKey: Bool) async throws -> NetworkProtectionDeviceManager.GenerateTunnelConfigurationResult {
         try await generateTunnelConfiguration(
             selectionMethod: selectionMethod,
             includedRoutes: [],

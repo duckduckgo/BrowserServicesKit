@@ -36,7 +36,7 @@ protocol FailureRecoveryHandling {
         includedRoutes: [IPAddressRange],
         excludedRoutes: [IPAddressRange],
         isKillSwitchEnabled: Bool,
-        updateConfig: @escaping (NetworkProtectionDeviceManagement.GenerateTunnelConfigResult) async throws -> Void
+        updateConfig: @escaping (NetworkProtectionDeviceManagement.GenerateTunnelConfigurationResult) async throws -> Void
     ) async
 
     func stop() async
@@ -44,7 +44,7 @@ protocol FailureRecoveryHandling {
 
 private enum FailureRecoveryResult: Error {
     case noRecoveryNecessary
-    case updateConfiguration(NetworkProtectionDeviceManagement.GenerateTunnelConfigResult)
+    case updateConfiguration(NetworkProtectionDeviceManagement.GenerateTunnelConfigurationResult)
 }
 
 actor FailureRecoveryHandler: FailureRecoveryHandling {
@@ -86,7 +86,7 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
         includedRoutes: [IPAddressRange],
         excludedRoutes: [IPAddressRange],
         isKillSwitchEnabled: Bool,
-        updateConfig: @escaping (NetworkProtectionDeviceManagement.GenerateTunnelConfigResult) async throws -> Void
+        updateConfig: @escaping (NetworkProtectionDeviceManagement.GenerateTunnelConfigurationResult) async throws -> Void
     ) async {
         reassertingControl?.startReasserting()
         defer {
@@ -127,7 +127,7 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
         isKillSwitchEnabled: Bool
     ) async throws -> FailureRecoveryResult {
         let serverSelectionMethod: NetworkProtectionServerSelectionMethod = .failureRecovery(serverName: lastConnectedServer.serverName)
-        let configurationResult: NetworkProtectionDeviceManagement.GenerateTunnelConfigResult
+        let configurationResult: NetworkProtectionDeviceManagement.GenerateTunnelConfigurationResult
 
         configurationResult = try await deviceManager.generateTunnelConfiguration(
             selectionMethod: serverSelectionMethod,

@@ -818,7 +818,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                                              excludedRoutes: [IPAddressRange],
                                              regenerateKey: Bool) async throws -> TunnelConfiguration {
 
-        let configurationResult: (tunnelConfig: TunnelConfiguration, server: NetworkProtectionServer)
+        let configurationResult: NetworkProtectionDeviceManager.GenerateTunnelConfigurationResult
 
         do {
             configurationResult = try await deviceManager.generateTunnelConfiguration(
@@ -846,7 +846,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                newSelectedServer.serverInfo.name)
         os_log("🔵 Excluded routes: %{public}@", log: .networkProtection, type: .info, String(describing: excludedRoutes))
 
-        return configurationResult.tunnelConfig
+        return configurationResult.tunnelConfiguration
     }
 
     // MARK: - App Messages
@@ -1259,9 +1259,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     @MainActor
-    private func handleFailureRecoveryConfigUpdate(result: NetworkProtectionDeviceManagement.GenerateTunnelConfigResult) async throws {
+    private func handleFailureRecoveryConfigUpdate(result: NetworkProtectionDeviceManagement.GenerateTunnelConfigurationResult) async throws {
         self.lastSelectedServer = result.server
-        try await self.updateAdapterConfiguration(tunnelConfiguration: result.tunnelConfig, reassert: true)
+        try await self.updateAdapterConfiguration(tunnelConfiguration: result.tunnelConfiguration, reassert: true)
     }
 
     @MainActor

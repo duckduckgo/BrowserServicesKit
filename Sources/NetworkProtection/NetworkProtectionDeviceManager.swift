@@ -44,13 +44,13 @@ public enum NetworkProtectionServerSelectionMethod: CustomDebugStringConvertible
 }
 
 public protocol NetworkProtectionDeviceManagement {
-    typealias GenerateTunnelConfigResult = (tunnelConfig: TunnelConfiguration, server: NetworkProtectionServer)
+    typealias GenerateTunnelConfigurationResult = (tunnelConfiguration: TunnelConfiguration, server: NetworkProtectionServer)
 
     func generateTunnelConfiguration(selectionMethod: NetworkProtectionServerSelectionMethod,
                                      includedRoutes: [IPAddressRange],
                                      excludedRoutes: [IPAddressRange],
                                      isKillSwitchEnabled: Bool,
-                                     regenerateKey: Bool) async throws -> (tunnelConfig: TunnelConfiguration, server: NetworkProtectionServer)
+                                     regenerateKey: Bool) async throws -> GenerateTunnelConfigurationResult
 
 }
 
@@ -119,7 +119,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
                                             includedRoutes: [IPAddressRange],
                                             excludedRoutes: [IPAddressRange],
                                             isKillSwitchEnabled: Bool,
-                                            regenerateKey: Bool) async throws -> GenerateTunnelConfigResult {
+                                            regenerateKey: Bool) async throws -> GenerateTunnelConfigurationResult {
         var keyPair: KeyPair
 
         if regenerateKey {
