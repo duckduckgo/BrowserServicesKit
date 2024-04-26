@@ -50,7 +50,7 @@ public struct UserAttributeMatcher: AttributeMatcher {
         self.daysSinceNetPEnabled = daysSinceNetPEnabled
     }
 
-    // swiftlint:disable:next cyclomatic_complexity function_body_length
+    // swiftlint:disable:next cyclomatic_complexity
     func evaluate(matchingAttribute: MatchingAttribute) -> EvaluationResult? {
         switch matchingAttribute {
         case let matchingAttribute as AppThemeMatchingAttribute:
