@@ -56,7 +56,7 @@ public class AccountManager: AccountManaging {
 
     public convenience init(subscriptionAppGroup: String?, accessTokenStorage: SubscriptionTokenStorage) {
         self.init(accessTokenStorage: accessTokenStorage,
-                  entitlementsCache: UserDefaultsCache<[Entitlement]>(subscriptionAppGroup: subscriptionAppGroup,
+                  entitlementsCache: UserDefaultsCache<[Entitlement]>(userDefaults: UserDefaults(suiteName: subscriptionAppGroup) ?? UserDefaults.standard,
                                                                       key: UserDefaultsCacheKey.subscriptionEntitlements,
                                                                       settings: UserDefaultsCacheSettings(defaultExpirationInterval: .minutes(20))))
     }
@@ -64,7 +64,7 @@ public class AccountManager: AccountManaging {
     public convenience init(subscriptionAppGroup: String) {
         let accessTokenStorage = SubscriptionTokenKeychainStorage(keychainType: .dataProtection(.named(subscriptionAppGroup)))
         self.init(accessTokenStorage: accessTokenStorage,
-                  entitlementsCache: UserDefaultsCache<[Entitlement]>(subscriptionAppGroup: subscriptionAppGroup,
+                  entitlementsCache: UserDefaultsCache<[Entitlement]>(userDefaults: UserDefaults(suiteName: subscriptionAppGroup) ?? UserDefaults.standard,
                                                                       key: UserDefaultsCacheKey.subscriptionEntitlements,
                                                                       settings: UserDefaultsCacheSettings(defaultExpirationInterval: .minutes(20))))
     }

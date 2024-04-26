@@ -1,7 +1,7 @@
 //
-//  SuggestionResultTests.swift
+//  URL+PixelKit.swift
 //
-//  Copyright © 2021 DuckDuckGo. All rights reserved.
+//  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -16,18 +16,15 @@
 //  limitations under the License.
 //
 
-import XCTest
-@testable import Suggestions
+import Foundation
 
-final class SuggestionResultTests: XCTestCase {
+extension URL {
 
-    func testWhenResultContainsNoSuggestions_ThenItIsEmpty() {
-        let emptyResult = SuggestionResult.empty
+    static let pixelBase = ProcessInfo.processInfo.environment["PIXEL_BASE_URL", default: "https://improving.duckduckgo.com"]
 
-        XCTAssert(emptyResult.isEmpty)
-        XCTAssertEqual(emptyResult.topHits.count, 0)
-        XCTAssertEqual(emptyResult.localSuggestions.count, 0)
-        XCTAssertEqual(emptyResult.duckduckgoSuggestions.count, 0)
+    public static func pixelUrl(forPixelNamed pixelName: String) -> URL {
+        let urlString = "\(Self.pixelBase)/t/\(pixelName)"
+        return URL(string: urlString)!
     }
 
 }
