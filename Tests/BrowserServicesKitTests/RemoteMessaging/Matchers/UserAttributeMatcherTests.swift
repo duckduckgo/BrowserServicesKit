@@ -207,16 +207,6 @@ class UserAttributeMatcherTests: XCTestCase {
 
     // MARK: - Network Protection Waitlist
 
-    func testWhenIsNetPWaitlistUserMatchesThenReturnMatch() throws {
-        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: IsNetPWaitlistUserMatchingAttribute(value: true, fallback: nil)),
-                       .match)
-    }
-
-    func testWhenIsNetPWaitlistUserDoesNotMatchThenReturnFail() throws {
-        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: IsNetPWaitlistUserMatchingAttribute(value: false, fallback: nil)),
-                       .fail)
-    }
-
     func testWhenDaysSinceNetPEnabledMatchesThenReturnMatch() throws {
         XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: DaysSinceNetPEnabledMatchingAttribute(min: 1, fallback: nil)),
                        .match)

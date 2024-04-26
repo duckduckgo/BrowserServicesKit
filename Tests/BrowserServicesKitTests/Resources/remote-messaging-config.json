@@ -237,9 +237,6 @@
     {
       "id": 8,
       "attributes": {
-        "isNetPWaitlistUser": {
-          "value": true
-        },
         "daysSinceNetPEnabled": {
           "min": 5
         }

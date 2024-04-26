@@ -43,7 +43,6 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            favoritesCount: 0,
                                                            appTheme: "light",
                                                            isWidgetInstalled: false,
-                                                           isNetPWaitlistUser: false,
                                                            daysSinceNetPEnabled: -1),
                 dismissedMessageIds: []
         )
@@ -113,7 +112,6 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            favoritesCount: 0,
                                                            appTheme: "light",
                                                            isWidgetInstalled: false,
-                                                           isNetPWaitlistUser: false,
                                                            daysSinceNetPEnabled: -1),
                 dismissedMessageIds: [])
 
@@ -182,7 +180,6 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            favoritesCount: 0,
                                                            appTheme: "light",
                                                            isWidgetInstalled: false,
-                                                           isNetPWaitlistUser: false,
                                                            daysSinceNetPEnabled: -1),
                 dismissedMessageIds: ["1"])
 
@@ -212,7 +209,6 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            favoritesCount: 0,
                                                            appTheme: "light",
                                                            isWidgetInstalled: false,
-                                                           isNetPWaitlistUser: false,
                                                            daysSinceNetPEnabled: -1),
                 dismissedMessageIds: [])
 

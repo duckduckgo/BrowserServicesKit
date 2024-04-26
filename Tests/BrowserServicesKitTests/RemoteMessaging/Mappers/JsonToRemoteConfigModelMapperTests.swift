@@ -131,10 +131,6 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
         attribs = rule8?.value.filter { $0 is DaysSinceNetPEnabledMatchingAttribute }
         XCTAssertEqual(attribs?.count, 1)
         XCTAssertEqual(attribs?.first as? DaysSinceNetPEnabledMatchingAttribute, DaysSinceNetPEnabledMatchingAttribute(min: 5, fallback: nil))
-
-        attribs = rule8?.value.filter { $0 is IsNetPWaitlistUserMatchingAttribute }
-        XCTAssertEqual(attribs?.count, 1)
-        XCTAssertEqual(attribs?.first as? IsNetPWaitlistUserMatchingAttribute, IsNetPWaitlistUserMatchingAttribute(value: true, fallback: nil))
     }
 
     func testWhenJsonMessagesHaveUnknownTypesThenMessagesNotMappedIntoConfig() throws {

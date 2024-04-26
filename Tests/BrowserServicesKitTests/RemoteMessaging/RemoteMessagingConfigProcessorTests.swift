@@ -36,7 +36,6 @@ class RemoteMessagingConfigProcessorTests: XCTestCase {
                                                        favoritesCount: 0,
                                                        appTheme: "light",
                                                        isWidgetInstalled: false,
-                                                       isNetPWaitlistUser: false,
                                                        daysSinceNetPEnabled: -1),
             dismissedMessageIds: []
         )
@@ -64,7 +63,6 @@ class RemoteMessagingConfigProcessorTests: XCTestCase {
                                                            favoritesCount: 0,
                                                            appTheme: "light",
                                                            isWidgetInstalled: false,
-                                                           isNetPWaitlistUser: false,
                                                            daysSinceNetPEnabled: -1),
                 dismissedMessageIds: [])
 
