@@ -167,12 +167,23 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
             var count = 0
             repeat {
                 do {
+                    try Task.checkCancellation()
+                } catch {
+                    // Task cancelled
+                    return
+                }
+                do {
                     try await action()
                     os_log("🟢 Failure recovery success!", log: .networkProtectionServerFailureRecoveryLog, type: .info)
                     return
                 } catch {
                     os_log("🟢 Failure recovery failed. Retrying...", log: .networkProtectionServerFailureRecoveryLog, type: .info)
-                    try? await Task.sleep(interval: currentDelay)
+                }
+                do {
+                    try await Task.sleep(interval: currentDelay)
+                } catch {
+                    // Task cancelled
+                    return
                 }
                 count += 1
                 currentDelay = min((currentDelay * config.factor), config.maxDelay)
