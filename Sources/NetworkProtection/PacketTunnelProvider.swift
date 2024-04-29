@@ -330,7 +330,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     // MARK: - Initializers
 
     private let keychainType: KeychainType
-    private let debugEvents: EventMapping<NetworkProtectionError>?
+    private let debugEvents: EventMapping<NetworkProtectionError>
     private let providerEvents: EventMapping<Event>
 
     public let isSubscriptionEnabled: Bool
@@ -341,7 +341,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 controllerErrorStore: NetworkProtectionTunnelErrorStore,
                 keychainType: KeychainType,
                 tokenStore: NetworkProtectionTokenStore,
-                debugEvents: EventMapping<NetworkProtectionError>?,
+                debugEvents: EventMapping<NetworkProtectionError>,
                 providerEvents: EventMapping<Event>,
                 settings: VPNSettings,
                 serverSelection: VPNServerSelectionResolving,
@@ -618,7 +618,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         adapter.start(tunnelConfiguration: tunnelConfiguration) { [weak self] error in
             if let error {
                 os_log("🔵 Starting tunnel failed with %{public}@", log: .networkProtection, type: .error, error.localizedDescription)
-                self?.debugEvents?.fire(error.networkProtectionError)
+                self?.debugEvents.fire(error.networkProtectionError)
                 completionHandler(error)
                 return
             }
@@ -655,7 +655,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             adapter.stop { [weak self] error in
                 if let error {
                     os_log("🔵 Failed to stop WireGuard adapter: %{public}@", log: .networkProtection, type: .info, error.localizedDescription)
-                    self?.debugEvents?.fire(error.networkProtectionError)
+                    self?.debugEvents.fire(error.networkProtectionError)
                 }
 
                 Task { [weak self] in
@@ -687,7 +687,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
             if let error = error {
                 os_log("Error while stopping adapter: %{public}@", log: .networkProtection, type: .info, error.localizedDescription)
-                debugEvents?.fire(error.networkProtectionError)
+                debugEvents.fire(error.networkProtectionError)
             }
 
             cancelTunnelWithError(stopError)
@@ -748,7 +748,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 self.adapter.update(tunnelConfiguration: tunnelConfiguration, reassert: reassert) { [weak self] error in
                     if let error = error {
                         os_log("🔵 Failed to update the configuration: %{public}@", type: .error, error.localizedDescription)
-                        self?.debugEvents?.fire(error.networkProtectionError)
+                        self?.debugEvents.fire(error.networkProtectionError)
                         continuation.resume(throwing: error)
                         return
                     }
@@ -1073,7 +1073,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
             adapter.stop { [weak self] error in
                 if let error {
-                    self?.debugEvents?.fire(error.networkProtectionError)
+                    self?.debugEvents.fire(error.networkProtectionError)
                     os_log("🔵 Failed to stop WireGuard adapter: %{public}@", log: .networkProtection, type: .info, error.localizedDescription)
                 }
 
