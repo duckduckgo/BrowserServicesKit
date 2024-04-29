@@ -16,7 +16,7 @@
 //  limitations under the License.
 //
 
-import BrowserServicesKit
+import Subscription
 
 public protocol SubscriptionFeatureAvailability {
     var isFeatureAvailable: Bool { get }

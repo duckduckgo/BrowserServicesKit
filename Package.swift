@@ -62,6 +62,7 @@ let package = Package(
                 "UserScript",
                 "ContentBlocking",
                 "SecureStorage",
+                "Subscription"
             ],
             resources: [
                 .process("ContentBlocking/UserScripts/contentblockerrules.js"),
@@ -322,8 +323,7 @@ let package = Package(
         .target(
             name: "Subscription",
             dependencies: [
-                "BrowserServicesKit",
-                "Common",
+                "Common"
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
