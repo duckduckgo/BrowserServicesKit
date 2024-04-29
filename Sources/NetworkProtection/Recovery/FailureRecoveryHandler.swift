@@ -109,6 +109,9 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
                     try await updateConfig(generateConfigResult)
                     eventHandler(.completed(.unhealthy))
                 }
+            } catch let error as NetworkProtectionErrorConvertible {
+                eventHandler(.failed(error.networkProtectionError))
+                throw error.networkProtectionError
             } catch {
                 eventHandler(.failed(error))
                 throw error
