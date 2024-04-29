@@ -1,7 +1,7 @@
 //
-//  SuggestionResultTests.swift
+//  String+StaticString.swift
 //
-//  Copyright © 2021 DuckDuckGo. All rights reserved.
+//  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -16,18 +16,12 @@
 //  limitations under the License.
 //
 
-import XCTest
-@testable import Suggestions
+import Foundation
 
-final class SuggestionResultTests: XCTestCase {
-
-    func testWhenResultContainsNoSuggestions_ThenItIsEmpty() {
-        let emptyResult = SuggestionResult.empty
-
-        XCTAssert(emptyResult.isEmpty)
-        XCTAssertEqual(emptyResult.topHits.count, 0)
-        XCTAssertEqual(emptyResult.localSuggestions.count, 0)
-        XCTAssertEqual(emptyResult.duckduckgoSuggestions.count, 0)
+extension String {
+    init(_ staticString: StaticString) {
+        self = staticString.withUTF8Buffer {
+            String(decoding: $0, as: UTF8.self)
+        }
     }
-
 }

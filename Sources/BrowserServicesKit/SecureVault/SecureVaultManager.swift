@@ -34,7 +34,7 @@ public struct AutofillData {
     public var automaticallySavedCredentials: Bool
 }
 
-public protocol SecureVaultManagerDelegate: AnyObject, SecureVaultErrorReporting {
+public protocol SecureVaultManagerDelegate: AnyObject, SecureVaultReporting {
 
     func secureVaultManagerIsEnabledStatus(_ manager: SecureVaultManager, forType type: AutofillType?) -> Bool
 
@@ -154,7 +154,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                 completionHandler([], [], [], credentialsProvider)
                 return
             }
-            let vault = try self.vault ?? AutofillSecureVaultFactory.makeVault(errorReporter: self.delegate)
+            let vault = try self.vault ?? AutofillSecureVaultFactory.makeVault(reporter: self.delegate)
 
             var identities: [SecureVaultModels.Identity] = []
             if delegate.secureVaultManagerIsEnabledStatus(self, forType: .identity) {
@@ -213,7 +213,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
             }
 
             var autofilldata = data
-            let vault = try? self.vault ?? AutofillSecureVaultFactory.makeVault(errorReporter: self.delegate)
+            let vault = try? self.vault ?? AutofillSecureVaultFactory.makeVault(reporter: self.delegate)
             var autoSavedCredentials: SecureVaultModels.WebsiteCredentials?
 
             // If the user navigated away from current domain, remove autosave data
@@ -318,7 +318,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                                                                  SecureVaultModels.CredentialsProvider) -> Void) {
 
         do {
-            let vault = try self.vault ?? AutofillSecureVaultFactory.makeVault(errorReporter: self.delegate)
+            let vault = try self.vault ?? AutofillSecureVaultFactory.makeVault(reporter: self.delegate)
             getAccounts(for: domain, from: vault,
                         or: passwordManager,
                         withPartialMatches: includePartialAccountMatches) { [weak self] accounts, error in
@@ -346,7 +346,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                                                                  SecureVaultModels.CredentialsProvider,
                                                                  RequestVaultCredentialsAction) -> Void) {
         do {
-            let vault = try self.vault ?? AutofillSecureVaultFactory.makeVault(errorReporter: self.delegate)
+            let vault = try self.vault ?? AutofillSecureVaultFactory.makeVault(reporter: self.delegate)
 
             getAccounts(for: domain,
                         from: vault,
@@ -411,7 +411,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                                                                  SecureVaultModels.CredentialsProvider) -> Void) {
 
         do {
-            let vault = try self.vault ?? AutofillSecureVaultFactory.makeVault(errorReporter: self.delegate)
+            let vault = try self.vault ?? AutofillSecureVaultFactory.makeVault(reporter: self.delegate)
 
             updateLastUsedDate(for: accountId, vault: vault)
 
@@ -443,7 +443,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                                    didRequestCreditCardWithId creditCardId: Int64,
                                    completionHandler: @escaping (SecureVaultModels.CreditCard?) -> Void) {
         do {
-            let vault = try self.vault ?? AutofillSecureVaultFactory.makeVault(errorReporter: self.delegate)
+            let vault = try self.vault ?? AutofillSecureVaultFactory.makeVault(reporter: self.delegate)
             let card = try vault.creditCardFor(id: creditCardId)
 
             delegate?.secureVaultManager(self, didRequestAuthenticationWithCompletionHandler: { authenticated in
@@ -465,7 +465,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                                    didRequestIdentityWithId identityId: Int64,
                                    completionHandler: @escaping (SecureVaultModels.Identity?) -> Void) {
         do {
-            let vault = try self.vault ?? AutofillSecureVaultFactory.makeVault(errorReporter: self.delegate)
+            let vault = try self.vault ?? AutofillSecureVaultFactory.makeVault(reporter: self.delegate)
             completionHandler(try vault.identityFor(id: identityId))
 
             delegate?.secureVaultManager(self, didAutofill: .identity, withObjectId: String(identityId))
@@ -490,7 +490,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                         completionHandler([], [], [], self.credentialsProvider)
                     } else {
                         do {
-                            let vault = try self.vault ?? AutofillSecureVaultFactory.makeVault(errorReporter: self.delegate)
+                            let vault = try self.vault ?? AutofillSecureVaultFactory.makeVault(reporter: self.delegate)
                             let identities = try vault.identities()
                             let cards = try vault.creditCards()
                             completionHandler(credentials, identities, cards, self.credentialsProvider)
@@ -559,7 +559,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
         let user: String = credentials.username ??  ""
         let pass: String = credentials.password ?? ""
 
-        let vault = try self.vault ?? AutofillSecureVaultFactory.makeVault(errorReporter: self.delegate)
+        let vault = try self.vault ?? AutofillSecureVaultFactory.makeVault(reporter: self.delegate)
         let accounts = try vault.accountsFor(domain: domain)
         var currentAccount: SecureVaultModels.WebsiteAccount
 
@@ -612,7 +612,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
     }
 
     private func createAccount(username: String, password: Data, domain: String) -> SecureVaultModels.WebsiteAccount {
-        let vault = try? self.vault ?? AutofillSecureVaultFactory.makeVault(errorReporter: self.delegate)
+        let vault = try? self.vault ?? AutofillSecureVaultFactory.makeVault(reporter: self.delegate)
         var account = SecureVaultModels.WebsiteAccount(username: username, domain: domain, lastUsed: Date())
         let credentials = try? vault?.storeWebsiteCredentials(SecureVaultModels.WebsiteCredentials(account: account, password: password))
         account.id = String(credentials ?? -1)
@@ -632,7 +632,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
     func existingEntries(for domain: String,
                          autofillData: AutofillUserScript.DetectedAutofillData
     ) throws -> AutofillData {
-        let vault = try self.vault ?? AutofillSecureVaultFactory.makeVault(errorReporter: self.delegate)
+        let vault = try self.vault ?? AutofillSecureVaultFactory.makeVault(reporter: self.delegate)
 
         let proposedIdentity = try existingIdentity(with: autofillData, vault: vault)
         let proposedCredentials: SecureVaultModels.WebsiteCredentials?

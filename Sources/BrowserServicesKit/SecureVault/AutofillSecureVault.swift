@@ -27,8 +27,8 @@ public typealias AutofillVaultFactory = SecureVaultFactory<DefaultAutofillSecure
 public let AutofillSecureVaultFactory: AutofillVaultFactory = SecureVaultFactory<DefaultAutofillSecureVault>(
     makeCryptoProvider: {
         return AutofillCryptoProvider()
-    }, makeKeyStoreProvider: {
-        return AutofillKeyStoreProvider()
+    }, makeKeyStoreProvider: { reporter in
+        return AutofillKeyStoreProvider(reporter: reporter)
     }, makeDatabaseProvider: { key in
         return try DefaultAutofillDatabaseProvider(key: key)
     }
