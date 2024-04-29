@@ -51,7 +51,7 @@ final class NetworkProtectionConnectionTester {
     static let monitorQueue = DispatchQueue(label: "com.duckduckgo.NetworkProtectionConnectionTester.monitorQueue")
     static let endpoint = NWEndpoint.hostPort(host: .name("www.duckduckgo.com", nil), port: .https)
 
-    private var timer: DispatchSourceTimer?
+    private var task: Task<Never, Error>?
 
     // MARK: - Dispatch Queue
 
@@ -100,7 +100,7 @@ final class NetworkProtectionConnectionTester {
 
     deinit {
         os_log("[-] %{public}@", log: .networkProtectionMemoryLog, type: .debug, String(describing: self))
-        timer?.cancel()
+        task?.cancel()
     }
 
     // MARK: - Testing
@@ -131,9 +131,9 @@ final class NetworkProtectionConnectionTester {
         }
     }
 
-    func stop() async {
+    func stop() {
         os_log("🔴 Stopping connection tester", log: log)
-        await stopScheduledTimer()
+        stopScheduledTimer()
         isRunning = false
     }
 
@@ -168,7 +168,7 @@ final class NetworkProtectionConnectionTester {
     // MARK: - Timer scheduling
 
     private func scheduleTimer(testImmediately: Bool) async throws {
-        await stopScheduledTimer()
+        stopScheduledTimer()
 
         if testImmediately {
             do {
@@ -179,50 +179,19 @@ final class NetworkProtectionConnectionTester {
             }
         }
 
-        let timer = DispatchSource.makeTimerSource(queue: timerQueue)
-        self.timer = timer
-
-        timer.schedule(deadline: .now() + self.intervalBetweenTests, repeating: self.intervalBetweenTests)
-        timer.setEventHandler { [weak self] in
-            Task { [self] in
-                // During regular connection tests we don't care about the error thrown
-                // by this method, as it'll be handled through the result handler callback.
-                // The error we're ignoring here is only used when this class is initialized
-                // with an immediate test, to know whether the connection is up while the user
-                // still sees "Connecting..."
-                try? await self?.testConnection()
-            }
+        task = Task.periodic(interval: intervalBetweenTests) { [weak self] in
+            // During regular connection tests we don't care about the error thrown
+            // by this method, as it'll be handled through the result handler callback.
+            // The error we're ignoring here is only used when this class is initialized
+            // with an immediate test, to know whether the connection is up while the user
+            // still sees "Connecting..."
+            try? await self?.testConnection()
         }
-
-        // Enable back if needed.  The only reason this commented code is left in is because it has
-        // documentation purposes, and while the timer should not be released here, it's ok to enable
-        // back the cancellation handler if it's needed for other purposes.
-        //
-        // timer.setCancelHandler { [weak self] in
-            // Do not re-enable this.
-            // Releasing the timer here is causing a crash.  I'm leaving this here for documentation
-            // purposes, so that we're not tempted to add this back.
-            //
-            // self?.timer = nil
-        // }
-
-        timer.resume()
     }
 
-    private func stopScheduledTimer() async {
-        cancelTimerImmediately()
-    }
-
-    private func cancelTimerImmediately() {
-        guard let timer = timer else {
-            return
-        }
-
-        if !timer.isCancelled {
-            timer.cancel()
-        }
-
-        self.timer = nil
+    private func stopScheduledTimer() {
+        task?.cancel()
+        task = nil
     }
 
     // MARK: - Testing the connection

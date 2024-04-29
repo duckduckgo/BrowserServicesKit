@@ -63,6 +63,7 @@ public class SuggestionLoader: SuggestionLoading {
         // 1) Getting all necessary data
         let bookmarks = dataSource.bookmarks(for: self)
         let history = dataSource.history(for: self)
+        let internalPages = dataSource.internalPages(for: self)
         var apiResult: APIResult?
         var apiError: Error?
 
@@ -94,6 +95,7 @@ public class SuggestionLoader: SuggestionLoading {
             let result = self?.processing.result(for: query,
                                                  from: history,
                                                  bookmarks: bookmarks,
+                                                 internalPages: internalPages,
                                                  apiResult: apiResult)
             DispatchQueue.main.async {
                 if let result = result {
@@ -111,6 +113,8 @@ public protocol SuggestionLoadingDataSource: AnyObject {
     func bookmarks(for suggestionLoading: SuggestionLoading) -> [Bookmark]
 
     func history(for suggestionLoading: SuggestionLoading) -> [HistorySuggestion]
+
+    func internalPages(for suggestionLoading: SuggestionLoading) -> [InternalPage]
 
     func suggestionLoading(_ suggestionLoading: SuggestionLoading,
                            suggestionDataFromUrl url: URL,

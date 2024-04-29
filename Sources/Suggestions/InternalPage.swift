@@ -1,7 +1,7 @@
 //
-//  SuggestionResultTests.swift
+//  InternalPage.swift
 //
-//  Copyright © 2021 DuckDuckGo. All rights reserved.
+//  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -16,18 +16,14 @@
 //  limitations under the License.
 //
 
-import XCTest
-@testable import Suggestions
+import Foundation
 
-final class SuggestionResultTests: XCTestCase {
+public struct InternalPage {
+    public let title: String
+    public let url: URL
 
-    func testWhenResultContainsNoSuggestions_ThenItIsEmpty() {
-        let emptyResult = SuggestionResult.empty
-
-        XCTAssert(emptyResult.isEmpty)
-        XCTAssertEqual(emptyResult.topHits.count, 0)
-        XCTAssertEqual(emptyResult.localSuggestions.count, 0)
-        XCTAssertEqual(emptyResult.duckduckgoSuggestions.count, 0)
+    public init(title: String, url: URL) {
+        self.title = title
+        self.url = url
     }
-
 }
