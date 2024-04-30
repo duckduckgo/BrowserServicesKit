@@ -49,7 +49,7 @@ final class UserContentControllerTests: XCTestCase {
     let assetsSubject = PassthroughSubject<NewContent, Never>()
 
     var ucc: UserContentController!
-    typealias Assets = (contentRuleLists: [String : WKContentRuleList], userScripts: any UserScriptsProvider, updateEvent: ContentBlockerRulesManager.UpdateEvent)
+    typealias Assets = (contentRuleLists: [String: WKContentRuleList], userScripts: any UserScriptsProvider, updateEvent: ContentBlockerRulesManager.UpdateEvent)
     var onAssetsInstalled: ((Assets) -> Void)?
 
     @MainActor
@@ -251,7 +251,7 @@ extension WKUserContentController {
 }
 
 extension UserContentControllerTests: UserContentControllerDelegate {
-    func userContentController(_ userContentController: UserContentController, didInstallContentRuleLists contentRuleLists: [String : WKContentRuleList], userScripts: any UserScriptsProvider, updateEvent: ContentBlockerRulesManager.UpdateEvent) {
+    func userContentController(_ userContentController: UserContentController, didInstallContentRuleLists contentRuleLists: [String: WKContentRuleList], userScripts: any UserScriptsProvider, updateEvent: ContentBlockerRulesManager.UpdateEvent) {
         onAssetsInstalled?((contentRuleLists, userScripts, updateEvent))
     }
 }
