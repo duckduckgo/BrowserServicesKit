@@ -17,10 +17,10 @@
 //
 
 import XCTest
-import BrowserServicesKit
 import Common
 import Combine
 @testable import Subscription
+@testable import BrowserServicesKit
 
 final class SubscriptionFeatureAvailabilityTests: XCTestCase {
 
@@ -229,10 +229,6 @@ final class SubscriptionFeatureAvailabilityTests: XCTestCase {
             return enabledSubfeatures.contains(subfeature)
         }
     }
-}
-
-class MockInternalUserStoring: InternalUserStoring {
-    var isInternalUser: Bool = false
 }
 
 class MockPrivacyConfiguration: PrivacyConfiguration {

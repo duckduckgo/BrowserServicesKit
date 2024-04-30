@@ -386,6 +386,7 @@ let package = Package(
                 "RemoteMessaging", // Move tests later (lots of test dependencies in BSK)
                 "SecureStorageTestsUtils",
                 "TestUtils",
+                "Subscription"
             ],
             resources: [
                 .copy("Resources")
@@ -500,12 +501,6 @@ let package = Package(
             dependencies: [
                 "PrivacyDashboard",
                 "TestUtils",
-            ]
-        ),
-        .testTarget(
-            name: "SubscriptionTests",
-            dependencies: [
-                "Subscription",
             ]
         ),
         .testTarget(
