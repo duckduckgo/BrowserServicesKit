@@ -35,8 +35,7 @@ public final class SubscriptionService: APIService {
         }
     }
 
-    private static let subscriptionCache = UserDefaultsCache<Subscription>(subscriptionAppGroup: nil,
-                                                                           key: UserDefaultsCacheKey.subscription,
+    private static let subscriptionCache = UserDefaultsCache<Subscription>(key: UserDefaultsCacheKey.subscription,
                                                                            settings: UserDefaultsCacheSettings(defaultExpirationInterval: .minutes(20)))
 
     public enum CachePolicy {

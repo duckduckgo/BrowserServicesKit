@@ -26,7 +26,7 @@ final class SuggestionResultTests: XCTestCase {
 
         XCTAssert(emptyResult.isEmpty)
         XCTAssertEqual(emptyResult.topHits.count, 0)
-        XCTAssertEqual(emptyResult.historyAndBookmarks.count, 0)
+        XCTAssertEqual(emptyResult.localSuggestions.count, 0)
         XCTAssertEqual(emptyResult.duckduckgoSuggestions.count, 0)
     }
 

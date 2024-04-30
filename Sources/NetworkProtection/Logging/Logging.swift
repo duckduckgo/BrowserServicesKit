@@ -37,6 +37,10 @@ extension OSLog {
         Logging.networkProtectionTunnelFailureMonitorLoggingEnabled ? Logging.networkProtectionTunnelFailureMonitor : .disabled
     }
 
+    public static var networkProtectionServerFailureRecoveryLog: OSLog {
+        Logging.networkProtectionServerFailureRecoveryLoggingEnabled ? Logging.networkProtectionServerFailureRecovery : .disabled
+    }
+
     public static var networkProtectionConnectionTesterLog: OSLog {
         Logging.networkProtectionConnectionTesterLoggingEnabled ? Logging.networkProtectionConnectionTesterLog : .disabled
     }
@@ -89,6 +93,9 @@ struct Logging {
 
     fileprivate static let networkProtectionTunnelFailureMonitorLoggingEnabled = true
     fileprivate static let networkProtectionTunnelFailureMonitor: OSLog = OSLog(subsystem: subsystem, category: "Network Protection: Tunnel Failure Monitor")
+
+    fileprivate static let networkProtectionServerFailureRecoveryLoggingEnabled = true
+    fileprivate static let networkProtectionServerFailureRecovery: OSLog = OSLog(subsystem: subsystem, category: "Network Protection: Server Failure Recovery")
 
     fileprivate static let networkProtectionConnectionTesterLoggingEnabled = true
     fileprivate static let networkProtectionConnectionTesterLog: OSLog = OSLog(subsystem: subsystem, category: "Network Protection: Connection Tester")

@@ -52,7 +52,7 @@ public actor NetworkProtectionTunnelFailureMonitor {
         task?.isCancelled == false
     }
 
-    private weak var tunnelProvider: PacketTunnelProvider?
+    private let handshakeReporter: HandshakeReporting
 
     private let networkMonitor = NWPathMonitor()
 
@@ -61,8 +61,8 @@ public actor NetworkProtectionTunnelFailureMonitor {
 
     // MARK: - Init & deinit
 
-    init(tunnelProvider: PacketTunnelProvider) {
-        self.tunnelProvider = tunnelProvider
+    init(handshakeReporter: HandshakeReporting) {
+        self.handshakeReporter = handshakeReporter
         self.networkMonitor.start(queue: .global())
 
         os_log("[+] %{public}@", log: .networkProtectionMemoryLog, type: .debug, String(describing: self))
@@ -95,7 +95,10 @@ public actor NetworkProtectionTunnelFailureMonitor {
     func stop() {
         os_log("⚫️ Stopping tunnel failure monitor", log: .networkProtectionTunnelFailureMonitorLog)
 
+        networkMonitor.cancel()
         networkMonitor.pathUpdateHandler = nil
+
+        task?.cancel() // Just making extra sure in case it's detached
         task = nil
     }
 
@@ -110,7 +113,7 @@ public actor NetworkProtectionTunnelFailureMonitor {
             return
         }
 
-        let mostRecentHandshake = await tunnelProvider?.mostRecentHandshake() ?? 0
+        let mostRecentHandshake = (try? await handshakeReporter.getMostRecentHandshake()) ?? 0
 
         guard mostRecentHandshake > 0 else {
             os_log("⚫️ Got handshake timestamp at or below 0, skipping check", log: .networkProtectionTunnelFailureMonitorLog, type: .debug)
@@ -144,6 +147,35 @@ public actor NetworkProtectionTunnelFailureMonitor {
 }
 
 extension Network.NWPath {
+
+    /// Helper enum to identify known interfaces
+    ///
+    public enum KnownInterface: CaseIterable {
+        case utun
+        case ipsec
+        case dns
+        case unidentified
+
+        var prefix: String {
+            switch self {
+            case .utun:
+                return "utun"
+            case .ipsec:
+                return "ipsec"
+            case .dns:
+                return "dns"
+            case .unidentified:
+                return "unidentified"
+            }
+        }
+
+        static func identify(_ interface: NWInterface) -> KnownInterface {
+            allCases.first { knownInterface in
+                interface.name.hasPrefix(knownInterface.prefix)
+            } ?? .unidentified
+        }
+    }
+
     /// A description that's safe from a privacy standpoint.
     ///
     /// Ref: https://app.asana.com/0/0/1206712493935053/1206712516729780/f
@@ -157,17 +189,29 @@ extension Network.NWPath {
             description += "unsatisfiedReason: \(unsatisfiedReason), "
         }
 
-        let tunnelCount = availableInterfaces.filter { interface in
-            interface.type == .other && interface.name.contains("utun")
-        }.count
+        var dnsCount = 0
+        var ipsecCount = 0
+        var utunCount = 0
+        var unidentifiedCount = 0
 
-        let dnsCount = availableInterfaces.filter { interface in
-            interface.type == .other && interface.name.contains("dns")
-        }.count
+        availableInterfaces.map(KnownInterface.identify).forEach { knownInterface in
+            switch knownInterface {
+            case .dns:
+                dnsCount += 1
+            case .ipsec:
+                ipsecCount += 1
+            case .utun:
+                utunCount += 1
+            case .unidentified:
+                unidentifiedCount += 1
+            }
+        }
 
         description += "mainInterfaceType: \(String(describing: availableInterfaces.first?.type)), "
-        description += "tunnelInterfaceCount: \(tunnelCount), "
+        description += "utunInterfaceCount: \(utunCount), "
+        description += "ipsecInterfaceCount: \(ipsecCount), "
         description += "dnsInterfaceCount: \(dnsCount)), "
+        description += "unidentifiedInterfaceCount: \(unidentifiedCount)), "
         description += "isConstrained: \(isConstrained ? "true" : "false"), "
         description += "isExpensive: \(isExpensive ? "true" : "false")"
         description += ")"
