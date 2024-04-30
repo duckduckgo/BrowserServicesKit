@@ -167,16 +167,16 @@ class SyncOperationTests: XCTestCase {
 
         for body in bodies.compactMap({$0}) {
             do {
-                let payload = try JSONDecoder.snakeCaseKeys.decode(BookmarksPayload.self, from: body)
+                let payload = try JSONDecoder.snakeCaseKeys.decode(BookmarksPayload.self, from: body.gunzipped())
                 XCTAssertEqual(payload, bookmarks)
                 payloadCount -= 1
             } catch {
                 do {
-                    let payload = try JSONDecoder.snakeCaseKeys.decode(SettingsPayload.self, from: body)
+                    let payload = try JSONDecoder.snakeCaseKeys.decode(SettingsPayload.self, from: body.gunzipped())
                     XCTAssertEqual(payload, settings)
                     payloadCount -= 1
                 } catch {
-                    let payload = try JSONDecoder.snakeCaseKeys.decode(AutofillPayload.self, from: body)
+                    let payload = try JSONDecoder.snakeCaseKeys.decode(AutofillPayload.self, from: body.gunzipped())
                     XCTAssertEqual(payload, autofill)
                     payloadCount -= 1
                 }
