@@ -28,9 +28,7 @@ final class CredentialsProviderTests: CredentialsProviderTestsBase {
 
     func testThatLastSyncTimestampIsNilByDefault() {
         XCTAssertNil(provider.lastSyncTimestamp)
-        if DDGSync.isFieldValidationEnabled {
-            XCTAssertNil(provider.lastSyncLocalTimestamp)
-        }
+        XCTAssertNil(provider.lastSyncLocalTimestamp)
     }
 
     func testThatLastSyncTimestampIsPersisted() throws {
@@ -38,9 +36,7 @@ final class CredentialsProviderTests: CredentialsProviderTestsBase {
         let date = Date()
         provider.updateSyncTimestamps(server: "12345", local: date)
         XCTAssertEqual(provider.lastSyncTimestamp, "12345")
-        if DDGSync.isFieldValidationEnabled {
-            XCTAssertEqual(provider.lastSyncLocalTimestamp, date)
-        }
+        XCTAssertEqual(provider.lastSyncLocalTimestamp, date)
     }
 
     func testThatPrepareForFirstSyncClearsLastSyncTimestampAndSetsModifiedAtForAllCredentials() throws {
@@ -82,10 +78,6 @@ final class CredentialsProviderTests: CredentialsProviderTestsBase {
     }
 
     func testThatFetchChangedObjectsFiltersOutInvalidCredentials() async throws {
-        guard DDGSync.isFieldValidationEnabled else {
-            throw XCTSkip("Field validation is disabled")
-        }
-
         let longValue = String(repeating: "x", count: 10000)
 
         try secureVault.inDatabaseTransaction { database in
@@ -148,10 +140,6 @@ final class CredentialsProviderTests: CredentialsProviderTestsBase {
     }
 
     func testThatItemsThatFailedValidationRetainTheirTimestamps() async throws {
-        guard DDGSync.isFieldValidationEnabled else {
-            throw XCTSkip("Field validation is disabled")
-        }
-
         let longValue = String(repeating: "x", count: 10000)
         let timestamp = Date().withMillisecondPrecision
 

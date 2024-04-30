@@ -125,19 +125,15 @@ extension Syncable {
 
                 if let title = bookmark.title {
                     let encryptedTitle = try encrypt(title)
-                    if DDGSync.isFieldValidationEnabled {
-                        guard encryptedTitle.count <= BookmarkValidationConstraints.maxEncryptedBookmarkTitleLength else {
-                            throw SyncableBookmarkError.validationFailed
-                        }
+                    guard encryptedTitle.count <= BookmarkValidationConstraints.maxEncryptedBookmarkTitleLength else {
+                        throw SyncableBookmarkError.validationFailed
                     }
                     payload["title"] = encryptedTitle
                 }
                 if let url = bookmark.url {
                     let encryptedURL = try encrypt(url)
-                    if DDGSync.isFieldValidationEnabled {
-                        guard encryptedURL.count <= BookmarkValidationConstraints.maxEncryptedBookmarkURLLength else {
-                            throw SyncableBookmarkError.validationFailed
-                        }
+                    guard encryptedURL.count <= BookmarkValidationConstraints.maxEncryptedBookmarkURLLength else {
+                        throw SyncableBookmarkError.validationFailed
                     }
                     payload["page"] = ["url": encryptedURL]
                 }

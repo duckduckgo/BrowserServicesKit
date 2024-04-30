@@ -60,27 +60,15 @@ final class SyncableBookmarkValidationTests: XCTestCase {
     }
 
     func testWhenBookmarkFieldsPassLengthValidationThenSyncableIsInitializedWithoutThrowingErrors() throws {
-        guard DDGSync.isFieldValidationEnabled else {
-            throw XCTSkip("Field validation is disabled")
-        }
-
         XCTAssertNoThrow(try Syncable(bookmark: bookmark, encryptedUsing: { $0 }))
     }
 
     func testWhenBookmarkTitleIsTooLongThenSyncableInitializerThrowsError() throws {
-        guard DDGSync.isFieldValidationEnabled else {
-            throw XCTSkip("Field validation is disabled")
-        }
-
         bookmark.title = String(repeating: "x", count: 10000)
         assertSyncableInitializerThrowsValidationError()
     }
 
     func testWhenBookmarkURLIsTooLongThenSyncableInitializerThrowsError() throws {
-        guard DDGSync.isFieldValidationEnabled else {
-            throw XCTSkip("Field validation is disabled")
-        }
-
         bookmark.url = String(repeating: "x", count: 10000)
         assertSyncableInitializerThrowsValidationError()
     }

@@ -29,9 +29,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
 
     func testThatLastSyncTimestampIsNilByDefault() {
         XCTAssertNil(provider.lastSyncTimestamp)
-        if DDGSync.isFieldValidationEnabled {
-            XCTAssertNil(provider.lastSyncLocalTimestamp)
-        }
+        XCTAssertNil(provider.lastSyncLocalTimestamp)
     }
 
     func testThatLastSyncTimestampIsPersisted() throws {
@@ -39,9 +37,7 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
         let date = Date()
         provider.updateSyncTimestamps(server: "12345", local: date)
         XCTAssertEqual(provider.lastSyncTimestamp, "12345")
-        if DDGSync.isFieldValidationEnabled {
-            XCTAssertEqual(provider.lastSyncLocalTimestamp, date)
-        }
+        XCTAssertEqual(provider.lastSyncLocalTimestamp, date)
     }
 
     func testThatPrepareForFirstSyncClearsLastSyncTimestampAndSetsModifiedAtForAllBookmarks() async throws {
@@ -146,9 +142,6 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
     }
 
     func testThatFetchChangedObjectsFiltersOutInvalidBookmarksAndTruncatesFolderTitles() async throws {
-        guard DDGSync.isFieldValidationEnabled else {
-            throw XCTSkip("Field validation is disabled")
-        }
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         let longTitle = String(repeating: "x", count: 10000)
@@ -262,10 +255,6 @@ internal class BookmarksProviderTests: BookmarksProviderTestsBase {
     }
 
     func testThatItemsThatFailedValidationRetainTheirTimestamps() async throws {
-        guard DDGSync.isFieldValidationEnabled else {
-            throw XCTSkip("Field validation is disabled")
-        }
-
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
         let longValue = String(repeating: "x", count: 10000)
         let timestamp = Date()

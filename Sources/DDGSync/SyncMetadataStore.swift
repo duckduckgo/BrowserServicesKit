@@ -124,9 +124,6 @@ public final class LocalSyncMetadataStore: SyncMetadataStore {
     }
 
     public func updateLocalTimestamp(_ localTimestamp: Date?, forFeatureNamed name: String) {
-        guard DDGSync.isFieldValidationEnabled else {
-            return
-        }
         context.performAndWait {
             let feature = SyncFeatureUtils.fetchFeature(with: name, in: context)
             feature?.lastSyncLocalTimestamp = localTimestamp
@@ -138,9 +135,7 @@ public final class LocalSyncMetadataStore: SyncMetadataStore {
         context.performAndWait {
             let feature = SyncFeatureUtils.fetchFeature(with: name, in: context)
             feature?.lastModified = serverTimestamp
-            if DDGSync.isFieldValidationEnabled {
-                feature?.lastSyncLocalTimestamp = localTimestamp
-            }
+            feature?.lastSyncLocalTimestamp = localTimestamp
             feature?.featureState = state
 
             try? context.save()
