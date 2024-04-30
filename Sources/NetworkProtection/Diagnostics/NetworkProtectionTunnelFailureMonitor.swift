@@ -52,7 +52,7 @@ public actor NetworkProtectionTunnelFailureMonitor {
         task?.isCancelled == false
     }
 
-    private weak var tunnelProvider: PacketTunnelProvider?
+    private let handshakeReporter: HandshakeReporting
 
     private let networkMonitor = NWPathMonitor()
 
@@ -61,8 +61,8 @@ public actor NetworkProtectionTunnelFailureMonitor {
 
     // MARK: - Init & deinit
 
-    init(tunnelProvider: PacketTunnelProvider) {
-        self.tunnelProvider = tunnelProvider
+    init(handshakeReporter: HandshakeReporting) {
+        self.handshakeReporter = handshakeReporter
         self.networkMonitor.start(queue: .global())
 
         os_log("[+] %{public}@", log: .networkProtectionMemoryLog, type: .debug, String(describing: self))
@@ -113,7 +113,7 @@ public actor NetworkProtectionTunnelFailureMonitor {
             return
         }
 
-        let mostRecentHandshake = await tunnelProvider?.mostRecentHandshake() ?? 0
+        let mostRecentHandshake = (try? await handshakeReporter.getMostRecentHandshake()) ?? 0
 
         guard mostRecentHandshake > 0 else {
             os_log("⚫️ Got handshake timestamp at or below 0, skipping check", log: .networkProtectionTunnelFailureMonitorLog, type: .debug)
