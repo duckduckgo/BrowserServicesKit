@@ -71,7 +71,7 @@ extension Syncable {
         static let maxEncryptedNotesLength = 1000
     }
 
-    // swiftlint:disable:next cyclomatic_complexity function_body_length
+    // swiftlint:disable:next cyclomatic_complexity
     init(syncableCredentials: SecureVaultModels.SyncableCredentials, encryptedUsing encrypt: (String) throws -> String) throws {
         var payload: [String: Any] = [:]
 
