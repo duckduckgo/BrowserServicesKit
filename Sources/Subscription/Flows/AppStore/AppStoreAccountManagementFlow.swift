@@ -23,10 +23,10 @@ import Common
 @available(macOS 12.0, iOS 15.0, *)
 public final class AppStoreAccountManagementFlow {
 
-        public enum Error: Swift.Error {
-            case noPastTransaction
-            case authenticatingWithTransactionFailed
-        }
+    public enum Error: Swift.Error {
+        case noPastTransaction
+        case authenticatingWithTransactionFailed
+    }
 
     @discardableResult
     public static func refreshAuthTokenIfNeeded(subscriptionAppGroup: String) async -> Result<String, AppStoreAccountManagementFlow.Error> {
