@@ -23,16 +23,20 @@ import Common
 @available(macOS 12.0, iOS 15.0, *)
 public final class AppStoreAccountManagementFlow {
 
+    let accountManager: AccountManager
+
+    public init(accountManager: AccountManager) {
+        self.accountManager = accountManager
+    }
+
     public enum Error: Swift.Error {
         case noPastTransaction
         case authenticatingWithTransactionFailed
     }
 
     @discardableResult
-    public static func refreshAuthTokenIfNeeded(subscriptionAppGroup: String) async -> Result<String, AppStoreAccountManagementFlow.Error> {
+    public func refreshAuthTokenIfNeeded() async -> Result<String, AppStoreAccountManagementFlow.Error> {
         os_log(.info, log: .subscription, "[AppStoreAccountManagementFlow] refreshAuthTokenIfNeeded")
-        let accountManager = AccountManager(subscriptionAppGroup: subscriptionAppGroup)
-
         var authToken = accountManager.authToken ?? ""
 
         // Check if auth token if still valid

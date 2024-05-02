@@ -272,6 +272,7 @@ public class AccountManager: AccountManaging {
         }
     }
 
+    @discardableResult
     public func fetchEntitlements(cachePolicy: CachePolicy = .returnCacheDataElseLoad) async -> Result<[Entitlement], Error> {
 
         switch cachePolicy {
@@ -332,16 +333,16 @@ public class AccountManager: AccountManaging {
             }
         }
 
-        _ = await fetchEntitlements(cachePolicy: .reloadIgnoringLocalCacheData)
+        await fetchEntitlements(cachePolicy: .reloadIgnoringLocalCacheData)
     }
 
     @discardableResult
-    public static func checkForEntitlements(subscriptionAppGroup: String, wait waitTime: Double, retry retryCount: Int) async -> Bool {
+    public func checkForEntitlements(wait waitTime: Double, retry retryCount: Int) async -> Bool {
         var count = 0
         var hasEntitlements = false
 
         repeat {
-            switch await AccountManager(subscriptionAppGroup: subscriptionAppGroup).fetchEntitlements() {
+            switch await fetchEntitlements() {
             case .success(let entitlements):
                 hasEntitlements = !entitlements.isEmpty
             case .failure:

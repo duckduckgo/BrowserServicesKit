@@ -34,7 +34,14 @@ public final class AppStoreRestoreFlow {
         case subscriptionExpired(accountDetails: RestoredAccountDetails)
     }
 
-    public static func restoreAccountFromPastPurchase(subscriptionAppGroup: String) async -> Result<Void, AppStoreRestoreFlow.Error> {
+    let accountManager: AccountManager
+
+    public init(accountManager: AccountManager) {
+        self.accountManager = accountManager
+    }
+
+    @discardableResult
+    public func restoreAccountFromPastPurchase() async -> Result<Void, AppStoreRestoreFlow.Error> {
 
         // Clear subscription Cache
         SubscriptionService.signOut()
@@ -45,8 +52,6 @@ public final class AppStoreRestoreFlow {
             os_log(.error, log: .subscription, "[AppStoreRestoreFlow] Error: missingAccountOrTransactions")
             return .failure(.missingAccountOrTransactions)
         }
-
-        let accountManager = AccountManager(subscriptionAppGroup: subscriptionAppGroup)
 
         // Do the store login to get short-lived token
         let authToken: String
