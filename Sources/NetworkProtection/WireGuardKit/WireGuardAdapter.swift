@@ -13,7 +13,7 @@ public enum WireGuardAdapterErrorInvalidStateReason: String {
     case updatedTunnelWhileStopped
 }
 
-public enum WireGuardAdapterError: Error {
+public enum WireGuardAdapterError: CustomNSError {
     /// Failure to locate tunnel file descriptor.
     case cannotLocateTunnelFileDescriptor
 
@@ -28,6 +28,35 @@ public enum WireGuardAdapterError: Error {
 
     /// Failure to start WireGuard backend.
     case startWireGuardBackend(Int32)
+
+    public var errorCode: Int {
+        switch self {
+        case .cannotLocateTunnelFileDescriptor: return 100
+        case .invalidState: return 101
+        case .dnsResolution: return 102
+        case .setNetworkSettings: return 103
+        case .startWireGuardBackend: return 104
+        }
+    }
+
+    public var errorUserInfo: [String: Any] {
+        switch self {
+        case .cannotLocateTunnelFileDescriptor,
+                .invalidState:
+            return [:]
+        case .dnsResolution(let errors):
+            guard let firstError = errors.first else {
+                return [:]
+            }
+
+            return [NSUnderlyingErrorKey: firstError as NSError]
+        case .setNetworkSettings(let error):
+            return [NSUnderlyingErrorKey: error as NSError]
+        case .startWireGuardBackend(let code):
+            let error = NSError(domain: "startWireGuardBackend", code: Int(code))
+            return [NSUnderlyingErrorKey: error as NSError]
+        }
+    }
 }
 
 /// Enum representing internal state of the `WireGuardAdapter`
