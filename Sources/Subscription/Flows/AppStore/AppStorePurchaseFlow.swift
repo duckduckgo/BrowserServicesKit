@@ -33,9 +33,9 @@ public final class AppStorePurchaseFlow {
         case missingEntitlements
     }
 
-    let accountManager: AccountManager
+    let accountManager: AccountManaging
 
-    public init(accountManager: AccountManager) {
+    public init(accountManager: AccountManaging) {
         self.accountManager = accountManager
     }
 

@@ -34,9 +34,9 @@ public final class AppStoreRestoreFlow {
         case subscriptionExpired(accountDetails: RestoredAccountDetails)
     }
 
-    let accountManager: AccountManager
+    let accountManager: AccountManaging
 
-    public init(accountManager: AccountManager) {
+    public init(accountManager: AccountManaging) {
         self.accountManager = accountManager
     }
 

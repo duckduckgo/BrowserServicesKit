@@ -22,9 +22,9 @@ import Common
 
 public final class StripePurchaseFlow {
 
-    let accountManager: AccountManager
+    let accountManager: AccountManaging
 
-    public init(accountManager: AccountManager) {
+    public init(accountManager: AccountManaging) {
         self.accountManager = accountManager
     }
 

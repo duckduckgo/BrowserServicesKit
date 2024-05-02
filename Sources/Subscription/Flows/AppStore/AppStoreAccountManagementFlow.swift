@@ -23,9 +23,9 @@ import Common
 @available(macOS 12.0, iOS 15.0, *)
 public final class AppStoreAccountManagementFlow {
 
-    let accountManager: AccountManager
+    let accountManager: AccountManaging
 
-    public init(accountManager: AccountManager) {
+    public init(accountManager: AccountManaging) {
         self.accountManager = accountManager
     }
 

@@ -30,29 +30,52 @@ public protocol AccountManagerKeychainAccessDelegate: AnyObject {
     func accountManagerKeychainAccessFailed(accessType: AccountKeychainAccessType, error: AccountKeychainAccessError)
 }
 
+public enum AccountManagingCachePolicy {
+    case reloadIgnoringLocalCacheData
+    case returnCacheDataElseLoad
+    case returnCacheDataDontLoad
+}
+
 public protocol AccountManaging {
 
+    var delegate: AccountManagerKeychainAccessDelegate? { get set }
+    var isUserAuthenticated: Bool { get }
     var accessToken: String? { get }
+    var authToken: String? { get }
+    var email: String? { get }
+    var externalID: String? { get }
 
+    func storeAuthToken(token: String)
+    func storeAccount(token: String, email: String?, externalID: String?)
+    func signOut(skipNotification: Bool)
+    func signOut() // default skipNotification
+    func migrateAccessTokenToNewStore() throws
+
+    // Entitlements
+    typealias CachePolicy = AccountManagingCachePolicy
+    
+    func hasEntitlement(for entitlement: Entitlement.ProductName, cachePolicy: CachePolicy) async -> Result<Bool, Error>
+    func hasEntitlement(for entitlement: Entitlement.ProductName) async -> Result<Bool, Error> // default cache
+    func updateCache(with entitlements: [Entitlement])
+    @discardableResult func fetchEntitlements(cachePolicy: CachePolicy) async -> Result<[Entitlement], Error>
+    func exchangeAuthTokenToAccessToken(_ authToken: String) async -> Result<String, Error>
+    
+    typealias AccountDetails = (email: String?, externalID: String)
+    func fetchAccountDetails(with accessToken: String) async -> Result<AccountDetails, Error>
+    func refreshSubscriptionAndEntitlements() async
+    @discardableResult func checkForEntitlements(wait waitTime: Double, retry retryCount: Int) async -> Bool
 }
 
 public class AccountManager: AccountManaging {
-
-    public enum CachePolicy {
-        case reloadIgnoringLocalCacheData
-        case returnCacheDataElseLoad
-        case returnCacheDataDontLoad
-    }
 
     private let storage: AccountStorage
     private let entitlementsCache: UserDefaultsCache<[Entitlement]>
     private let accessTokenStorage: SubscriptionTokenStorage
 
     public weak var delegate: AccountManagerKeychainAccessDelegate?
+    public var isUserAuthenticated: Bool { accessToken != nil }
 
-    public var isUserAuthenticated: Bool {
-        return accessToken != nil
-    }
+    // MARK: - Initialisers
 
     public convenience init(subscriptionAppGroup: String?, accessTokenStorage: SubscriptionTokenStorage) {
         self.init(accessTokenStorage: accessTokenStorage,
@@ -76,6 +99,8 @@ public class AccountManager: AccountManaging {
         self.entitlementsCache = entitlementsCache
         self.accessTokenStorage = accessTokenStorage
     }
+
+    // MARK: -
 
     public var authToken: String? {
         do {
@@ -182,6 +207,10 @@ public class AccountManager: AccountManaging {
         NotificationCenter.default.post(name: .accountDidSignIn, object: self, userInfo: nil)
     }
 
+    public func signOut() {
+        signOut(skipNotification: false)
+    }
+
     public func signOut(skipNotification: Bool = false) {
         os_log(.info, log: .subscription, "[AccountManager] signOut")
 
@@ -239,6 +268,10 @@ public class AccountManager: AccountManaging {
         case .failure(let error):
             return .failure(error)
         }
+    }
+
+    public func hasEntitlement(for entitlement: Entitlement.ProductName) async -> Result<Bool, Error> {
+        return await hasEntitlement(for: entitlement, cachePolicy: .returnCacheDataElseLoad)
     }
 
     private func fetchRemoteEntitlements() async -> Result<[Entitlement], Error> {
@@ -306,7 +339,7 @@ public class AccountManager: AccountManaging {
         }
     }
 
-    public typealias AccountDetails = (email: String?, externalID: String)
+//    public typealias AccountDetails = (email: String?, externalID: String)
 
     public func fetchAccountDetails(with accessToken: String) async -> Result<AccountDetails, Error> {
         switch await AuthService.validateToken(accessToken: accessToken) {
