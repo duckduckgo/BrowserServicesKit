@@ -53,13 +53,13 @@ public protocol AccountManaging {
 
     // Entitlements
     typealias CachePolicy = AccountManagingCachePolicy
-    
+
     func hasEntitlement(for entitlement: Entitlement.ProductName, cachePolicy: CachePolicy) async -> Result<Bool, Error>
     func hasEntitlement(for entitlement: Entitlement.ProductName) async -> Result<Bool, Error> // default cache
     func updateCache(with entitlements: [Entitlement])
     @discardableResult func fetchEntitlements(cachePolicy: CachePolicy) async -> Result<[Entitlement], Error>
     func exchangeAuthTokenToAccessToken(_ authToken: String) async -> Result<String, Error>
-    
+
     typealias AccountDetails = (email: String?, externalID: String)
     func fetchAccountDetails(with accessToken: String) async -> Result<AccountDetails, Error>
     func refreshSubscriptionAndEntitlements() async
