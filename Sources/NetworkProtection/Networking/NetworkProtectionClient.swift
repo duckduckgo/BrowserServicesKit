@@ -79,6 +79,27 @@ public enum NetworkProtectionClientError: CustomNSError, NetworkProtectionErrorC
         case .accessDenied: return 13
         }
     }
+
+    public var errorUserInfo: [String: Any] {
+        switch self {
+        case .failedToFetchLocationList(let error),
+                .failedToParseLocationListResponse(let error),
+                .failedToFetchServerList(let error),
+                .failedToParseServerListResponse(let error),
+                .failedToFetchRegisteredServers(let error),
+                .failedToParseRegisteredServersResponse(let error),
+                .failedToRedeemInviteCode(let error),
+                .failedToParseRedeemResponse(let error):
+            return [NSUnderlyingErrorKey: error as NSError]
+        case .failedToEncodeRegisterKeyRequest,
+                .failedToEncodeRedeemRequest,
+                .invalidInviteCode,
+                .failedToRetrieveAuthToken,
+                .invalidAuthToken,
+                .accessDenied:
+            return [:]
+        }
+    }
 }
 
 struct RegisterKeyRequestBody: Encodable {
