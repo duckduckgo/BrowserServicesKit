@@ -60,16 +60,16 @@ public struct RemoteMessagingConfigMatcher {
         return nil
     }
 
-    func evaluateMatchingRules(_ matchingRules: [Int], fromRules rules: [Int: [MatchingAttribute]]) -> EvaluationResult {
+    func evaluateMatchingRules(_ matchingRules: [Int], fromRules rules: [RemoteConfigRule]) -> EvaluationResult {
         var result: EvaluationResult = .match
 
         for rule in matchingRules {
-            guard let matchingAttributes = rules[rule] else {
+            guard let matchingRule = rules.first(where: { $0.id == rule }) else {
                 return .nextMessage
             }
             result = .match
 
-            for attribute in matchingAttributes {
+            for attribute in matchingRule.attributes {
                 result = evaluateAttribute(matchingAttribute: attribute)
                 if result == .fail || result == .nextMessage {
                     os_log("First failing matching attribute %s", log: .remoteMessaging, type: .debug, String(describing: attribute))
@@ -84,16 +84,16 @@ public struct RemoteMessagingConfigMatcher {
         return result
     }
 
-    func evaluateExclusionRules(_ exclusionRules: [Int], fromRules rules: [Int: [MatchingAttribute]]) -> EvaluationResult {
+    func evaluateExclusionRules(_ exclusionRules: [Int], fromRules rules: [RemoteConfigRule]) -> EvaluationResult {
         var result: EvaluationResult = .fail
 
         for rule in exclusionRules {
-            guard let attributes = rules[rule] else {
+            guard let matchingRule = rules.first(where: { $0.id == rule }) else {
                 return .nextMessage
             }
             result = .fail
 
-            for attribute in attributes {
+            for attribute in matchingRule.attributes {
                 result = evaluateAttribute(matchingAttribute: attribute)
                 if result == .fail || result == .nextMessage {
                     os_log("First failing exclusion attribute %s", log: .remoteMessaging, type: .debug, String(describing: attribute))
