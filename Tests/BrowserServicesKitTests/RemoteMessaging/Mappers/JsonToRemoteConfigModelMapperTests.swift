@@ -102,7 +102,7 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
 
     func testWhenValidJsonParsedThenRulesMappedIntoRemoteConfig() throws {
         let config = try decodeAndMapJson(fileName: "Resources/remote-messaging-config.json")
-        XCTAssertTrue(config.rules.count == 4)
+        XCTAssertTrue(config.rules.count == 5)
 
         let rule5 = config.rules.filter { $0.key == 5 }.first
         XCTAssertNotNil(rule5)
@@ -135,6 +135,10 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
         attribs = rule8?.value.filter { $0 is IsNetPWaitlistUserMatchingAttribute }
         XCTAssertEqual(attribs?.count, 1)
         XCTAssertEqual(attribs?.first as? IsNetPWaitlistUserMatchingAttribute, IsNetPWaitlistUserMatchingAttribute(value: true, fallback: nil))
+
+        let rule9 = config.rules.filter { $0.key == 8 }.first
+        XCTAssertNotNil(rule9)
+        XCTAssertTrue(rule9?.value.count == 2)
     }
 
     func testWhenJsonMessagesHaveUnknownTypesThenMessagesNotMappedIntoConfig() throws {
