@@ -106,6 +106,7 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
 
         let rule5 = config.rules.filter { $0.id == 5 }.first
         XCTAssertNotNil(rule5)
+        XCTAssertNil(rule5?.targetPercentile)
         XCTAssertTrue(rule5?.attributes.count == 16)
         var attribs = rule5?.attributes.filter { $0 is LocaleMatchingAttribute }
         XCTAssertEqual(attribs?.count, 1)
@@ -113,6 +114,7 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
 
         let rule6 = config.rules.filter { $0.id == 6 }.first
         XCTAssertNotNil(rule6)
+        XCTAssertNil(rule6?.targetPercentile)
         XCTAssertTrue(rule6?.attributes.count == 1)
         attribs = rule6?.attributes.filter { $0 is LocaleMatchingAttribute }
         XCTAssertEqual(attribs?.count, 1)
@@ -120,6 +122,7 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
 
         let rule7 = config.rules.filter { $0.id == 7 }.first
         XCTAssertNotNil(rule7)
+        XCTAssertNil(rule7?.targetPercentile)
         XCTAssertTrue(rule7?.attributes.count == 1)
         attribs = rule7?.attributes.filter { $0 is WidgetAddedMatchingAttribute }
         XCTAssertEqual(attribs?.count, 1)
@@ -127,6 +130,7 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
 
         let rule8 = config.rules.filter { $0.id == 8 }.first
         XCTAssertNotNil(rule8)
+        XCTAssertNil(rule8?.targetPercentile)
         XCTAssertTrue(rule8?.attributes.count == 2)
         attribs = rule8?.attributes.filter { $0 is DaysSinceNetPEnabledMatchingAttribute }
         XCTAssertEqual(attribs?.count, 1)
@@ -136,9 +140,11 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
         XCTAssertEqual(attribs?.count, 1)
         XCTAssertEqual(attribs?.first as? IsNetPWaitlistUserMatchingAttribute, IsNetPWaitlistUserMatchingAttribute(value: true, fallback: nil))
 
-        let rule9 = config.rules.filter { $0.id == 8 }.first
+        let rule9 = config.rules.filter { $0.id == 9 }.first
         XCTAssertNotNil(rule9)
-        XCTAssertTrue(rule9?.attributes.count == 2)
+        XCTAssertNotNil(rule9?.targetPercentile)
+        XCTAssertTrue(rule9?.attributes.count == 1)
+        XCTAssertEqual(rule9?.targetPercentile?.before, 0.9)
     }
 
     func testWhenJsonMessagesHaveUnknownTypesThenMessagesNotMappedIntoConfig() throws {
