@@ -53,7 +53,7 @@ public struct RemoteMessagingConfigMatcher {
             }
 
             let matchingResult = evaluateMatchingRules(message.matchingRules, messageID: message.id, fromRules: rules)
-            let exclusionResult = evaluateExclusionRules(message.exclusionRules, fromRules: rules)
+            let exclusionResult = evaluateExclusionRules(message.exclusionRules, messageID: message.id, fromRules: rules)
 
             if matchingResult == .match && exclusionResult == .fail {
                 return message
@@ -75,7 +75,7 @@ public struct RemoteMessagingConfigMatcher {
                 let userPercentile = percentileStore.percentile(forMessageId: messageID)
 
                 if userPercentile > messagePercentile {
-                    os_log("Percentile check failed for message with ID %s", log: .remoteMessaging, type: .debug, messageID)
+                    os_log("Matching rule percentile check failed for message with ID %s", log: .remoteMessaging, type: .debug, messageID)
                     return .fail
                 }
             }
@@ -97,13 +97,23 @@ public struct RemoteMessagingConfigMatcher {
         return result
     }
 
-    func evaluateExclusionRules(_ exclusionRules: [Int], fromRules rules: [RemoteConfigRule]) -> EvaluationResult {
+    func evaluateExclusionRules(_ exclusionRules: [Int], messageID: String, fromRules rules: [RemoteConfigRule]) -> EvaluationResult {
         var result: EvaluationResult = .fail
 
         for rule in exclusionRules {
             guard let matchingRule = rules.first(where: { $0.id == rule }) else {
                 return .nextMessage
             }
+
+            if let percentile = matchingRule.targetPercentile, let messagePercentile = percentile.before {
+                let userPercentile = percentileStore.percentile(forMessageId: messageID)
+
+                if userPercentile > messagePercentile {
+                    os_log("Exclusion rule percentile check failed for message with ID %s", log: .remoteMessaging, type: .debug, messageID)
+                    return .fail
+                }
+            }
+
             result = .fail
 
             for attribute in matchingRule.attributes {
