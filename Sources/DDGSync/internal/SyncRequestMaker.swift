@@ -21,7 +21,7 @@ import Gzip
 
 protocol SyncRequestMaking {
     func makeGetRequest(with result: SyncRequest) throws -> HTTPRequesting
-    func makePatchRequest(with result: SyncRequest, clientTimestamp: Date) throws -> HTTPRequesting
+    func makePatchRequest(with result: SyncRequest, clientTimestamp: Date, isCompressed: Bool) throws -> HTTPRequesting
 }
 
 struct SyncRequestMaker: SyncRequestMaking {
@@ -42,7 +42,7 @@ struct SyncRequestMaker: SyncRequestMaking {
         return api.createAuthenticatedGetRequest(url: url, authToken: try getToken(), parameters: parameters)
     }
 
-    func makePatchRequest(with result: SyncRequest, clientTimestamp: Date) throws -> HTTPRequesting {
+    func makePatchRequest(with result: SyncRequest, clientTimestamp: Date, isCompressed: Bool) throws -> HTTPRequesting {
         var json = [String: Any]()
         let modelPayload: [String: Any?] = [
             "updates": result.sent.map(\.payload),
@@ -55,8 +55,12 @@ struct SyncRequestMaker: SyncRequestMaking {
             throw SyncError.unableToEncodeRequestBody("Sync PATCH payload is not a valid JSON")
         }
 
-        let headers = ["Content-Encoding": "gzip"]
+        guard isCompressed else {
+            let body = try JSONSerialization.data(withJSONObject: json, options: [])
+            return api.createAuthenticatedJSONRequest(url: endpoints.syncPatch, method: .PATCH, authToken: try getToken(), json: body)
+        }
 
+        let headers = ["Content-Encoding": "gzip"]
         let body = try JSONSerialization.data(withJSONObject: json, options: []).gzipped()
         return api.createAuthenticatedJSONRequest(url: endpoints.syncPatch, method: .PATCH, authToken: try getToken(), json: body, headers: headers)
     }
