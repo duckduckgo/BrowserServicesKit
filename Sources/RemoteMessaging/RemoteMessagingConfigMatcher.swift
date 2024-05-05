@@ -24,6 +24,7 @@ public struct RemoteMessagingConfigMatcher {
     private let appAttributeMatcher: AppAttributeMatcher
     private let deviceAttributeMatcher: DeviceAttributeMatcher
     private let userAttributeMatcher: UserAttributeMatcher
+    private let percentileStore: RemoteMessagingPercentileStoring
     private let dismissedMessageIds: [String]
 
     private let matchers: [AttributeMatcher]
@@ -31,10 +32,12 @@ public struct RemoteMessagingConfigMatcher {
     public init(appAttributeMatcher: AppAttributeMatcher,
                 deviceAttributeMatcher: DeviceAttributeMatcher = DeviceAttributeMatcher(),
                 userAttributeMatcher: UserAttributeMatcher,
+                percentileStore: RemoteMessagingPercentileStoring,
                 dismissedMessageIds: [String]) {
         self.appAttributeMatcher = appAttributeMatcher
         self.deviceAttributeMatcher = deviceAttributeMatcher
         self.userAttributeMatcher = userAttributeMatcher
+        self.percentileStore = percentileStore
         self.dismissedMessageIds = dismissedMessageIds
 
         matchers = [appAttributeMatcher, deviceAttributeMatcher, userAttributeMatcher]
@@ -49,7 +52,7 @@ public struct RemoteMessagingConfigMatcher {
                 return message
             }
 
-            let matchingResult = evaluateMatchingRules(message.matchingRules, fromRules: rules)
+            let matchingResult = evaluateMatchingRules(message.matchingRules, messageID: message.id, fromRules: rules)
             let exclusionResult = evaluateExclusionRules(message.exclusionRules, fromRules: rules)
 
             if matchingResult == .match && exclusionResult == .fail {
@@ -60,13 +63,23 @@ public struct RemoteMessagingConfigMatcher {
         return nil
     }
 
-    func evaluateMatchingRules(_ matchingRules: [Int], fromRules rules: [RemoteConfigRule]) -> EvaluationResult {
+    func evaluateMatchingRules(_ matchingRules: [Int], messageID: String, fromRules rules: [RemoteConfigRule]) -> EvaluationResult {
         var result: EvaluationResult = .match
 
         for rule in matchingRules {
             guard let matchingRule = rules.first(where: { $0.id == rule }) else {
                 return .nextMessage
             }
+
+            if let percentile = matchingRule.targetPercentile, let messagePercentile = percentile.before {
+                let userPercentile = percentileStore.percentile(forMessageId: messageID)
+
+                if userPercentile > messagePercentile {
+                    os_log("Percentile check failed for message with ID %s", log: .remoteMessaging, type: .debug, messageID)
+                    return .fail
+                }
+            }
+
             result = .match
 
             for attribute in matchingRule.attributes {

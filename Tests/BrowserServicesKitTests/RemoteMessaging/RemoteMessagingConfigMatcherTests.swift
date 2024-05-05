@@ -45,6 +45,7 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            isWidgetInstalled: false,
                                                            isNetPWaitlistUser: false,
                                                            daysSinceNetPEnabled: -1),
+                percentileStore: MockRemoteMessagePercentileStore(),
                 dismissedMessageIds: []
         )
     }
@@ -128,6 +129,7 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            isWidgetInstalled: false,
                                                            isNetPWaitlistUser: false,
                                                            daysSinceNetPEnabled: -1),
+                percentileStore: MockRemoteMessagePercentileStore(),
                 dismissedMessageIds: [])
 
         let remoteConfig = RemoteConfigModel(messages: [
@@ -221,6 +223,7 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            isWidgetInstalled: false,
                                                            isNetPWaitlistUser: false,
                                                            daysSinceNetPEnabled: -1),
+                percentileStore: MockRemoteMessagePercentileStore(),
                 dismissedMessageIds: ["1"])
 
         let remoteConfig = RemoteConfigModel(messages: [
@@ -257,6 +260,7 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            isWidgetInstalled: false,
                                                            isNetPWaitlistUser: false,
                                                            daysSinceNetPEnabled: -1),
+                percentileStore: MockRemoteMessagePercentileStore(),
                 dismissedMessageIds: [])
 
         let remoteConfig = RemoteConfigModel(messages: [
