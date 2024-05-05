@@ -63,6 +63,7 @@ let package = Package(
                 "UserScript",
                 "ContentBlocking",
                 "SecureStorage",
+                "Subscription"
             ],
             resources: [
                 .process("ContentBlocking/UserScripts/contentblockerrules.js"),
@@ -324,8 +325,7 @@ let package = Package(
         .target(
             name: "Subscription",
             dependencies: [
-                "BrowserServicesKit",
-                "Common",
+                "Common"
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
@@ -388,6 +388,7 @@ let package = Package(
                 "RemoteMessaging", // Move tests later (lots of test dependencies in BSK)
                 "SecureStorageTestsUtils",
                 "TestUtils",
+                "Subscription"
             ],
             resources: [
                 .copy("Resources")
@@ -502,12 +503,6 @@ let package = Package(
             dependencies: [
                 "PrivacyDashboard",
                 "TestUtils",
-            ]
-        ),
-        .testTarget(
-            name: "SubscriptionTests",
-            dependencies: [
-                "Subscription",
             ]
         ),
         .testTarget(

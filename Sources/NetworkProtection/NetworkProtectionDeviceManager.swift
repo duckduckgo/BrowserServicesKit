@@ -31,6 +31,8 @@ public enum NetworkProtectionServerSelectionMethod: CustomDebugStringConvertible
             "avoidServer: \(serverName)"
         case .preferredLocation(let location):
             "preferredLocation: \(location)"
+        case .failureRecovery(serverName: let serverName):
+            "failureRecovery: \(serverName)"
         }
     }
 
@@ -38,15 +40,17 @@ public enum NetworkProtectionServerSelectionMethod: CustomDebugStringConvertible
     case preferredServer(serverName: String)
     case avoidServer(serverName: String)
     case preferredLocation(NetworkProtectionSelectedLocation)
+    case failureRecovery(serverName: String)
 }
 
 public protocol NetworkProtectionDeviceManagement {
+    typealias GenerateTunnelConfigurationResult = (tunnelConfiguration: TunnelConfiguration, server: NetworkProtectionServer)
 
     func generateTunnelConfiguration(selectionMethod: NetworkProtectionServerSelectionMethod,
                                      includedRoutes: [IPAddressRange],
                                      excludedRoutes: [IPAddressRange],
                                      isKillSwitchEnabled: Bool,
-                                     regenerateKey: Bool) async throws -> (TunnelConfiguration, NetworkProtectionServerInfo)
+                                     regenerateKey: Bool) async throws -> GenerateTunnelConfigurationResult
 
 }
 
@@ -115,7 +119,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
                                             includedRoutes: [IPAddressRange],
                                             excludedRoutes: [IPAddressRange],
                                             isKillSwitchEnabled: Bool,
-                                            regenerateKey: Bool) async throws -> (TunnelConfiguration, NetworkProtectionServerInfo) {
+                                            regenerateKey: Bool) async throws -> GenerateTunnelConfigurationResult {
         var keyPair: KeyPair
 
         if regenerateKey {
@@ -153,7 +157,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
                                                         includedRoutes: includedRoutes,
                                                         excludedRoutes: excludedRoutes,
                                                         isKillSwitchEnabled: isKillSwitchEnabled)
-            return (configuration, selectedServer.serverInfo)
+            return (configuration, selectedServer)
         } catch let error as NetworkProtectionError {
             errorEvents?.fire(error)
             throw error
@@ -193,6 +197,9 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
             excludedServerName = serverToAvoid
         case .preferredLocation(let location):
             serverSelection = .location(country: location.country, city: location.city)
+            excludedServerName = nil
+        case .failureRecovery(serverName: let serverName):
+            serverSelection = .recovery(server: serverName)
             excludedServerName = nil
         }
 
