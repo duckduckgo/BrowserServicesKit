@@ -51,9 +51,9 @@ class RemoteMessagingPercentileUserDefaultsStoreTests: XCTestCase {
 
     func testWhenFetchingPercentileForMultipleMessages_ThenEachMessageHasIndependentPercentile() {
         let store = RemoteMessagingPercentileUserDefaultsStore(userDefaults: userDefaults)
-        let percentile1 = store.percentile(forMessageId: "message-1")
-        let percentile2 = store.percentile(forMessageId: "message-2")
-        let percentile3 = store.percentile(forMessageId: "message-3")
+        _ = store.percentile(forMessageId: "message-1")
+        _ = store.percentile(forMessageId: "message-2")
+        _ = store.percentile(forMessageId: "message-3")
 
         let percentileDictionary = userDefaults.dictionary(
             forKey: RemoteMessagingPercentileUserDefaultsStore.Constants.remoteMessagingPercentileMapping

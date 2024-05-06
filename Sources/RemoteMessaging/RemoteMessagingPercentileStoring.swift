@@ -30,7 +30,7 @@ public class RemoteMessagingPercentileUserDefaultsStore: RemoteMessagingPercenti
 
     private let userDefaults: UserDefaults
 
-    init(userDefaults: UserDefaults) {
+    public init(userDefaults: UserDefaults) {
         self.userDefaults = userDefaults
     }
 
