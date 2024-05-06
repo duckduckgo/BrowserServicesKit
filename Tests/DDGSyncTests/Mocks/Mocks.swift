@@ -20,6 +20,7 @@ import BrowserServicesKit
 import Combine
 import Common
 import Foundation
+import Gzip
 import Persistence
 import TestUtils
 
@@ -199,6 +200,7 @@ struct MockSyncDependencies: SyncDependencies, SyncDependenciesDebuggingSupport 
     var endpoints: Endpoints = Endpoints(baseURL: URL(string: "https://dev.null")!)
     var account: AccountManaging = AccountManagingMock()
     var api: RemoteAPIRequestCreating = RemoteAPIRequestCreatingMock()
+    var payloadCompressor: SyncPayloadCompressing = SyncPayloadCompressorMock()
     var secureStore: SecureStoring = SecureStorageStub()
     var crypter: CryptingInternal = CryptingMock()
     var scheduler: SchedulingInternal = SchedulerMock()
@@ -273,6 +275,45 @@ class RemoteAPIRequestCreatingMock: RemoteAPIRequestCreating {
         createRequestCallCount += 1
         createRequestCallArgs.append(CreateRequestCallArgs(url: url, method: method, headers: headers, parameters: parameters, body: body, contentType: contentType))
         return fakeRequests[url] ?? request
+    }
+}
+
+class InspectableSyncRequestMaker: SyncRequestMaking {
+
+    struct MakePatchRequestCallArgs {
+        let result: SyncRequest
+        let clientTimestamp: Date
+        let isCompressed: Bool
+    }
+
+    func makeGetRequest(with result: SyncRequest) throws -> HTTPRequesting {
+        try requestMaker.makeGetRequest(with: result)
+    }
+
+    func makePatchRequest(with result: SyncRequest, clientTimestamp: Date, isCompressed: Bool) throws -> HTTPRequesting {
+        makePatchRequestCallCount += 1
+        makePatchRequestCallArgs.append(.init(result: result, clientTimestamp: clientTimestamp, isCompressed: isCompressed))
+        return try requestMaker.makePatchRequest(with: result, clientTimestamp: clientTimestamp, isCompressed: isCompressed)
+    }
+
+    let requestMaker: SyncRequestMaker
+
+    init(requestMaker: SyncRequestMaker) {
+        self.requestMaker = requestMaker
+    }
+
+    var makePatchRequestCallCount = 0
+    var makePatchRequestCallArgs: [MakePatchRequestCallArgs] = []
+}
+
+class SyncPayloadCompressorMock: SyncPayloadCompressing {
+    var error: Error?
+
+    func compress(_ payload: Data) throws -> Data {
+        if let error {
+            throw error
+        }
+        return try payload.gzipped()
     }
 }
 

@@ -27,6 +27,7 @@ class SyncQueueTests: XCTestCase {
     var storage: SecureStorageStub!
     var crypter: CryptingMock!
     var requestMaker: SyncRequestMaking!
+    var payloadCompressor: SyncPayloadCompressing!
 
     override func setUpWithError() throws {
         try super.setUpWithError()
@@ -34,6 +35,7 @@ class SyncQueueTests: XCTestCase {
         apiMock = RemoteAPIRequestCreatingMock()
         request = HTTPRequestingMock()
         apiMock.request = request
+        payloadCompressor = SyncPayloadCompressorMock()
         endpoints = Endpoints(baseURL: URL(string: "https://example.com")!)
         storage = SecureStorageStub()
         crypter = CryptingMock()
@@ -50,11 +52,18 @@ class SyncQueueTests: XCTestCase {
             )
         )
 
-        requestMaker = SyncRequestMaker(storage: storage, api: apiMock, endpoints: endpoints)
+        requestMaker = SyncRequestMaker(storage: storage, api: apiMock, endpoints: endpoints, payloadCompressor: payloadCompressor)
     }
 
     func testWhenDataSyncingFeatureFlagIsDisabledThenNewOperationsAreNotEnqueued() async {
-        let syncQueue = SyncQueue(dataProviders: [], storage: storage, crypter: crypter, api: apiMock, endpoints: endpoints)
+        let syncQueue = SyncQueue(
+            dataProviders: [],
+            storage: storage,
+            crypter: crypter,
+            api: apiMock,
+            endpoints: endpoints,
+            payloadCompressor: payloadCompressor
+        )
         XCTAssertFalse(syncQueue.operationQueue.isSuspended)
 
         var syncDidStartEvents = [Bool]()
@@ -81,7 +90,14 @@ class SyncQueueTests: XCTestCase {
     func testThatInProgressPublisherEmitsValuesWhenSyncStartsAndEndsWithSuccess() async throws {
         let feature = Feature(name: "bookmarks")
         let dataProvider = DataProvidingMock(feature: feature)
-        let syncQueue = SyncQueue(dataProviders: [dataProvider], storage: storage, crypter: crypter, api: apiMock, endpoints: endpoints)
+        let syncQueue = SyncQueue(
+            dataProviders: [dataProvider],
+            storage: storage,
+            crypter: crypter,
+            api: apiMock,
+            endpoints: endpoints,
+            payloadCompressor: payloadCompressor
+        )
 
         var isInProgressEvents = [Bool]()
 
@@ -99,7 +115,14 @@ class SyncQueueTests: XCTestCase {
     func testThatInProgressPublisherEmitsValuesWhenSyncStartsAndEndsWithError() async throws {
         let feature = Feature(name: "bookmarks")
         let dataProvider = DataProvidingMock(feature: feature)
-        let syncQueue = SyncQueue(dataProviders: [dataProvider], storage: storage, crypter: crypter, api: apiMock, endpoints: endpoints)
+        let syncQueue = SyncQueue(
+            dataProviders: [dataProvider],
+            storage: storage,
+            crypter: crypter,
+            api: apiMock,
+            endpoints: endpoints,
+            payloadCompressor: payloadCompressor
+        )
 
         var isInProgressEvents = [Bool]()
 

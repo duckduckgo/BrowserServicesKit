@@ -18,15 +18,17 @@
 
 import XCTest
 
+@testable import Gzip
 @testable import DDGSync
 
 class SyncOperationTests: XCTestCase {
     var apiMock: RemoteAPIRequestCreatingMock!
     var request: HTTPRequestingMock!
     var endpoints: Endpoints!
+    var payloadCompressor: SyncPayloadCompressorMock!
     var storage: SecureStorageStub!
     var crypter: CryptingMock!
-    var requestMaker: SyncRequestMaking!
+    var requestMaker: InspectableSyncRequestMaker!
 
     override func setUpWithError() throws {
         try super.setUpWithError()
@@ -35,6 +37,7 @@ class SyncOperationTests: XCTestCase {
         request = HTTPRequestingMock()
         apiMock.request = request
         endpoints = Endpoints(baseURL: URL(string: "https://example.com")!)
+        payloadCompressor = SyncPayloadCompressorMock()
         storage = SecureStorageStub()
         crypter = CryptingMock()
         try storage.persistAccount(
@@ -50,7 +53,9 @@ class SyncOperationTests: XCTestCase {
             )
         )
 
-        requestMaker = SyncRequestMaker(storage: storage, api: apiMock, endpoints: endpoints)
+        requestMaker = InspectableSyncRequestMaker(
+            requestMaker: .init(storage: storage, api: apiMock, endpoints: endpoints, payloadCompressor: payloadCompressor)
+        )
     }
 
     func testWhenThereAreNoChangesThenGetRequestIsFired() async throws {
@@ -244,6 +249,62 @@ class SyncOperationTests: XCTestCase {
         try await syncOperation.sync(fetchOnly: false)
 
         XCTAssertTrue(try sentModels.isJSONRepresentationEquivalent(to: objectsToSync))
+    }
+
+    func testWhenPatchPayloadCompressionSucceedsThenPayloadIsSentCompressed() async throws {
+        let objectsToSync = [
+            Syncable(jsonObject: ["id": "1", "name": "bookmark1", "url": "https://example.com"]),
+        ]
+        let dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
+        var sentModels: [Syncable] = []
+        var errors: [any Error] = []
+        dataProvider.updateSyncTimestamps(server: "1234", local: nil)
+        dataProvider._fetchChangedObjects = { _ in objectsToSync }
+        dataProvider._handleSyncError = { errors.append($0) }
+        dataProvider.handleSyncResponse = { sent, _, _, _, _ in
+            sentModels = sent
+        }
+
+        let syncOperation = SyncOperation(dataProviders: [dataProvider], storage: storage, crypter: crypter, requestMaker: requestMaker)
+        request.result = .init(data: nil, response: HTTPURLResponse(url: URL(string: "https://example.com")!, statusCode: 304, httpVersion: nil, headerFields: nil)!)
+
+        try await syncOperation.sync(fetchOnly: false)
+
+        XCTAssertTrue(try sentModels.isJSONRepresentationEquivalent(to: objectsToSync))
+        XCTAssertTrue(errors.isEmpty)
+        XCTAssertEqual(requestMaker.makePatchRequestCallCount, 1)
+        XCTAssertEqual(requestMaker.makePatchRequestCallArgs[0].isCompressed, true)
+    }
+
+    func testWhenPatchPayloadCompressionFailsThenPayloadIsSentUncompressed() async throws {
+        let errorCode = 100200300
+        payloadCompressor.error = GzipError(code: Int32(errorCode), msg: nil)
+
+        let objectsToSync = [
+            Syncable(jsonObject: ["id": "1", "name": "bookmark1", "url": "https://example.com"]),
+        ]
+        let dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
+        var sentModels: [Syncable] = []
+        var errors: [any Error] = []
+        dataProvider.updateSyncTimestamps(server: "1234", local: nil)
+        dataProvider._fetchChangedObjects = { _ in objectsToSync }
+        dataProvider._handleSyncError = { errors.append($0) }
+        dataProvider.handleSyncResponse = { sent, _, _, _, _ in
+            sentModels = sent
+        }
+
+        let syncOperation = SyncOperation(dataProviders: [dataProvider], storage: storage, crypter: crypter, requestMaker: requestMaker)
+        request.result = .init(data: nil, response: HTTPURLResponse(url: URL(string: "https://example.com")!, statusCode: 304, httpVersion: nil, headerFields: nil)!)
+
+        try await syncOperation.sync(fetchOnly: false)
+
+        XCTAssertTrue(try sentModels.isJSONRepresentationEquivalent(to: objectsToSync))
+        XCTAssertEqual(errors.count, 1)
+        let error = try XCTUnwrap(errors.first as? GzipError)
+        XCTAssertEqual(error.kind, .unknown(code: errorCode))
+        XCTAssertEqual(requestMaker.makePatchRequestCallCount, 2)
+        XCTAssertEqual(requestMaker.makePatchRequestCallArgs[0].isCompressed, true)
+        XCTAssertEqual(requestMaker.makePatchRequestCallArgs[1].isCompressed, false)
     }
 }
 

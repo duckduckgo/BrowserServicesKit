@@ -28,6 +28,7 @@ struct SyncRequestMaker: SyncRequestMaking {
     let storage: SecureStoring
     let api: RemoteAPIRequestCreating
     let endpoints: Endpoints
+    let payloadCompressor: SyncPayloadCompressing
     let dateFormatter = ISO8601DateFormatter()
 
     func makeGetRequest(with result: SyncRequest) throws -> HTTPRequesting {
@@ -55,14 +56,19 @@ struct SyncRequestMaker: SyncRequestMaking {
             throw SyncError.unableToEncodeRequestBody("Sync PATCH payload is not a valid JSON")
         }
 
+        let body = try JSONSerialization.data(withJSONObject: json, options: [])
+
         guard isCompressed else {
-            let body = try JSONSerialization.data(withJSONObject: json, options: [])
             return api.createAuthenticatedJSONRequest(url: endpoints.syncPatch, method: .PATCH, authToken: try getToken(), json: body)
         }
 
-        let headers = ["Content-Encoding": "gzip"]
-        let body = try JSONSerialization.data(withJSONObject: json, options: []).gzipped()
-        return api.createAuthenticatedJSONRequest(url: endpoints.syncPatch, method: .PATCH, authToken: try getToken(), json: body, headers: headers)
+        let compressedBody = try payloadCompressor.compress(body)
+        return api.createAuthenticatedJSONRequest(
+            url: endpoints.syncPatch,
+            method: .PATCH,
+            authToken: try getToken(),
+            json: compressedBody,
+            headers: ["Content-Encoding": "gzip"])
     }
 
     private func getToken() throws -> String {
