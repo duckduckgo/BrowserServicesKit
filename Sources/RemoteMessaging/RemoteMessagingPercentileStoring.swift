@@ -24,14 +24,28 @@ public protocol RemoteMessagingPercentileStoring {
 
 public class RemoteMessagingPercentileUserDefaultsStore: RemoteMessagingPercentileStoring {
 
+    enum Constants {
+        static let remoteMessagingPercentileMapping = "com.duckduckgo.app.remoteMessagingPercentileMapping"
+    }
+
     private let userDefaults: UserDefaults
 
     init(userDefaults: UserDefaults) {
         self.userDefaults = userDefaults
     }
 
-    public func percentile(forMessageId: String) -> Float {
-        return 0.95
+    public func percentile(forMessageId messageID: String) -> Float {
+        var percentileMapping = (userDefaults.dictionary(forKey: Constants.remoteMessagingPercentileMapping) as? [String: Float]) ?? [:]
+
+        if let percentile = percentileMapping[messageID] {
+            return percentile
+        } else {
+            let newPercentile = Float.random(in: 0...1)
+            percentileMapping[messageID] = newPercentile
+            userDefaults.set(percentileMapping, forKey: Constants.remoteMessagingPercentileMapping)
+
+            return newPercentile
+        }
     }
 
 }
