@@ -23,9 +23,11 @@ import Common
 public final class StripePurchaseFlow {
 
     let accountManager: AccountManaging
+    let subscriptionService: SubscriptionService
 
-    public init(accountManager: AccountManaging) {
+    public init(accountManager: AccountManaging, subscriptionService: SubscriptionService) {
         self.accountManager = accountManager
+        self.subscriptionService = subscriptionService
     }
 
     public enum Error: Swift.Error {
@@ -36,7 +38,7 @@ public final class StripePurchaseFlow {
     public func subscriptionOptions() async -> Result<SubscriptionOptions, StripePurchaseFlow.Error> {
         os_log(.info, log: .subscription, "[StripePurchaseFlow] subscriptionOptions")
 
-        guard case let .success(products) = await SubscriptionService.getProducts(), !products.isEmpty else {
+        guard case let .success(products) = await subscriptionService.getProducts(), !products.isEmpty else {
             os_log(.error, log: .subscription, "[StripePurchaseFlow] Error: noProductsFound")
             return .failure(.noProductsFound)
         }
@@ -71,7 +73,7 @@ public final class StripePurchaseFlow {
         os_log(.info, log: .subscription, "[StripePurchaseFlow] prepareSubscriptionPurchase")
 
         // Clear subscription Cache
-        SubscriptionService.signOut()
+        subscriptionService.signOut()
         var token: String = ""
 
         if let accessToken = accountManager.accessToken {
@@ -93,7 +95,7 @@ public final class StripePurchaseFlow {
     }
 
     private func isSubscriptionExpired(accessToken: String) async -> Bool {
-        if case .success(let subscription) = await SubscriptionService.getSubscription(accessToken: accessToken) {
+        if case .success(let subscription) = await subscriptionService.getSubscription(accessToken: accessToken) {
             return !subscription.isActive
         }
 
@@ -103,7 +105,7 @@ public final class StripePurchaseFlow {
     public func completeSubscriptionPurchase() async {
 
         // Clear subscription Cache
-        SubscriptionService.signOut()
+        subscriptionService.signOut()
 
         os_log(.info, log: .subscription, "[StripePurchaseFlow] completeSubscriptionPurchase")
         if !accountManager.isUserAuthenticated,

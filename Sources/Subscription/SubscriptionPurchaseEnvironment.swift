@@ -21,6 +21,12 @@ import Common
 
 public final class SubscriptionPurchaseEnvironment {
 
+    let subscriptionService: SubscriptionService
+
+    init(subscriptionService: SubscriptionService) {
+        self.subscriptionService = subscriptionService
+    }
+
     public enum ServiceEnvironment: String, Codable {
         case production
         case staging
@@ -35,13 +41,13 @@ public final class SubscriptionPurchaseEnvironment {
         }
     }
 
-    public static var currentServiceEnvironment: ServiceEnvironment = .default
+    public var currentServiceEnvironment: ServiceEnvironment = .default
 
     public enum Environment: String {
         case appStore, stripe
     }
 
-    public static var current: Environment = .appStore {
+    public var current: Environment = .appStore {
         didSet {
             os_log(.info, log: .subscription, "[SubscriptionPurchaseEnvironment] Setting to %{public}s", current.rawValue)
 
@@ -56,24 +62,24 @@ public final class SubscriptionPurchaseEnvironment {
         }
     }
 
-    public static var canPurchase: Bool = false {
+    public var canPurchase: Bool = false {
         didSet {
             os_log(.info, log: .subscription, "[SubscriptionPurchaseEnvironment] canPurchase %{public}s", (canPurchase ? "true" : "false"))
         }
     }
 
-    private static func setupForAppStore() {
+    private func setupForAppStore() {
         if #available(macOS 12.0, iOS 15.0, *) {
             Task {
-                await PurchaseManager.shared.updateAvailableProducts()
-                canPurchase = !PurchaseManager.shared.availableProducts.isEmpty
+                await StorePurchaseManager.shared.updateAvailableProducts()
+                canPurchase = !StorePurchaseManager.shared.availableProducts.isEmpty
             }
         }
     }
 
-    private static func setupForStripe() {
+    private func setupForStripe() {
         Task {
-            if case let .success(products) = await SubscriptionService.getProducts() {
+            if case let .success(products) = await subscriptionService.getProducts() {
                 canPurchase = !products.isEmpty
             }
         }

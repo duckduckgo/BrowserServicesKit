@@ -35,20 +35,22 @@ public final class AppStoreRestoreFlow {
     }
 
     let accountManager: AccountManaging
+    let subscriptionService: SubscriptionService
 
-    public init(accountManager: AccountManaging) {
+    public init(accountManager: AccountManaging, subscriptionService: SubscriptionService) {
         self.accountManager = accountManager
+        self.subscriptionService = subscriptionService
     }
 
     @discardableResult
     public func restoreAccountFromPastPurchase() async -> Result<Void, AppStoreRestoreFlow.Error> {
 
         // Clear subscription Cache
-        SubscriptionService.signOut()
+        subscriptionService.signOut()
 
         os_log(.info, log: .subscription, "[AppStoreRestoreFlow] restoreAccountFromPastPurchase")
 
-        guard let lastTransactionJWSRepresentation = await PurchaseManager.mostRecentTransaction() else {
+        guard let lastTransactionJWSRepresentation = await StorePurchaseManager.mostRecentTransaction() else {
             os_log(.error, log: .subscription, "[AppStoreRestoreFlow] Error: missingAccountOrTransactions")
             return .failure(.missingAccountOrTransactions)
         }
@@ -87,7 +89,7 @@ public final class AppStoreRestoreFlow {
 
         var isSubscriptionActive = false
 
-        switch await SubscriptionService.getSubscription(accessToken: accessToken, cachePolicy: .reloadIgnoringLocalCacheData) {
+        switch await subscriptionService.getSubscription(accessToken: accessToken, cachePolicy: .reloadIgnoringLocalCacheData) {
         case .success(let subscription):
             isSubscriptionActive = subscription.isActive
         case .failure:

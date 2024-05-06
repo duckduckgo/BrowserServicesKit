@@ -44,7 +44,7 @@ public final class AppStoreAccountManagementFlow {
             os_log(.error, log: .subscription, "[AppStoreAccountManagementFlow] validateToken error: %{public}s", String(reflecting: validateTokenError))
 
             // In case of invalid token attempt store based authentication to obtain a new one
-            guard let lastTransactionJWSRepresentation = await PurchaseManager.mostRecentTransaction() else { return .failure(.noPastTransaction) }
+            guard let lastTransactionJWSRepresentation = await StorePurchaseManager.mostRecentTransaction() else { return .failure(.noPastTransaction) }
 
             switch await AuthService.storeLogin(signature: lastTransactionJWSRepresentation) {
             case .success(let response):

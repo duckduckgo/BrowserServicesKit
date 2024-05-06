@@ -21,12 +21,12 @@ import Foundation
 
 public struct AuthService: APIService {
 
-    public static let session = {
+    public let session = {
         let configuration = URLSessionConfiguration.ephemeral
         return URLSession(configuration: configuration)
     }()
 
-    public static var baseURL: URL {
+    public var baseURL: URL {
         switch SubscriptionPurchaseEnvironment.currentServiceEnvironment {
         case .production:
             URL(string: "https://quack.duckduckgo.com/api/auth")!
@@ -37,7 +37,7 @@ public struct AuthService: APIService {
 
     // MARK: -
 
-    public static func getAccessToken(token: String) async -> Result<AccessTokenResponse, APIServiceError> {
+    public func getAccessToken(token: String) async -> Result<AccessTokenResponse, APIServiceError> {
         await executeAPICall(method: "GET", endpoint: "access-token", headers: makeAuthorizationHeader(for: token))
     }
 
@@ -47,7 +47,7 @@ public struct AuthService: APIService {
 
     // MARK: -
 
-    public static func validateToken(accessToken: String) async -> Result<ValidateTokenResponse, APIServiceError> {
+    public func validateToken(accessToken: String) async -> Result<ValidateTokenResponse, APIServiceError> {
         await executeAPICall(method: "GET", endpoint: "validate-token", headers: makeAuthorizationHeader(for: accessToken))
     }
 
@@ -69,7 +69,7 @@ public struct AuthService: APIService {
 
     // MARK: -
 
-    public static func createAccount(emailAccessToken: String?) async -> Result<CreateAccountResponse, APIServiceError> {
+    public func createAccount(emailAccessToken: String?) async -> Result<CreateAccountResponse, APIServiceError> {
         var headers: [String: String]?
 
         if let emailAccessToken {
@@ -91,7 +91,7 @@ public struct AuthService: APIService {
 
     // MARK: -
 
-    public static func storeLogin(signature: String) async -> Result<StoreLoginResponse, APIServiceError> {
+    public func storeLogin(signature: String) async -> Result<StoreLoginResponse, APIServiceError> {
         let bodyDict = ["signature": signature,
                         "store": "apple_app_store"]
 

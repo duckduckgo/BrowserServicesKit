@@ -32,14 +32,14 @@ struct ErrorResponse: Decodable {
 }
 
 public protocol APIService {
-    static var baseURL: URL { get }
-    static var session: URLSession { get }
-    static func executeAPICall<T>(method: String, endpoint: String, headers: [String: String]?, body: Data?) async -> Result<T, APIServiceError> where T: Decodable
+    var baseURL: URL { get }
+    var session: URLSession { get }
+    func executeAPICall<T>(method: String, endpoint: String, headers: [String: String]?, body: Data?) async -> Result<T, APIServiceError> where T: Decodable
 }
 
 public extension APIService {
 
-    static func executeAPICall<T>(method: String, endpoint: String, headers: [String: String]? = nil, body: Data? = nil) async -> Result<T, APIServiceError> where T: Decodable {
+    func executeAPICall<T>(method: String, endpoint: String, headers: [String: String]? = nil, body: Data? = nil) async -> Result<T, APIServiceError> where T: Decodable {
         let request = makeAPIRequest(method: method, endpoint: endpoint, headers: headers, body: body)
 
         do {
@@ -70,7 +70,7 @@ public extension APIService {
         }
     }
 
-    private static func makeAPIRequest(method: String, endpoint: String, headers: [String: String]?, body: Data?) -> URLRequest {
+    private func makeAPIRequest(method: String, endpoint: String, headers: [String: String]?, body: Data?) -> URLRequest {
         let url = baseURL.appendingPathComponent(endpoint)
         var request = URLRequest(url: url)
         request.httpMethod = method
@@ -84,7 +84,7 @@ public extension APIService {
         return request
     }
 
-    private static func decode<T>(_: T.Type, from data: Data) -> T? where T: Decodable {
+    private func decode<T>(_: T.Type, from data: Data) -> T? where T: Decodable {
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         decoder.dateDecodingStrategy = .millisecondsSince1970
@@ -92,19 +92,19 @@ public extension APIService {
         return try? decoder.decode(T.self, from: data)
     }
 
-    private static func printDebugInfo(method: String, endpoint: String, data: Data, response: URLResponse) {
+    private func printDebugInfo(method: String, endpoint: String, data: Data, response: URLResponse) {
         let statusCode = (response as? HTTPURLResponse)!.statusCode
         let stringData = String(data: data, encoding: .utf8) ?? ""
 
         os_log(.info, log: .subscription, "[API] %d %{public}s /%{public}s :: %{public}s", statusCode, method, endpoint, stringData)
     }
 
-    static func makeAuthorizationHeader(for token: String) -> [String: String] {
+    internal func makeAuthorizationHeader(for token: String) -> [String: String] {
         ["Authorization": "Bearer " + token]
     }
 }
 
-extension URLResponse {
+fileprivate extension URLResponse {
 
     var httpStatusCodeAsString: String? {
         guard let httpStatusCode = (self as? HTTPURLResponse)?.statusCode else { return nil }

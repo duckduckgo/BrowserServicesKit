@@ -1,5 +1,5 @@
 //
-//  PurchaseManager.swift
+//  StorePurchaseManager.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -39,15 +39,13 @@ public enum PurchaseManagerError: Error {
 }
 
 @available(macOS 12.0, iOS 15.0, *)
-public final class PurchaseManager: ObservableObject {
+public final class StorePurchaseManager: ObservableObject {
 
     static let productIdentifiers = ["ios.subscription.1month", "ios.subscription.1year",
                                      "subscription.1month", "subscription.1year",
                                      "review.subscription.1month", "review.subscription.1year",
                                      "tf.sandbox.subscription.1month", "tf.sandbox.subscription.1year",
                                      "ddg.privacy.pro.monthly.renews.us", "ddg.privacy.pro.yearly.renews.us"]
-
-    public static let shared = PurchaseManager()
 
     @Published public private(set) var availableProducts: [Product] = []
     @Published public private(set) var purchasedProductIDs: [String] = []
@@ -74,41 +72,41 @@ public final class PurchaseManager: ObservableObject {
         do {
             purchaseQueue.removeAll()
 
-            os_log(.info, log: .subscription, "[PurchaseManager] Before AppStore.sync()")
+            os_log(.info, log: .subscription, "[StorePurchaseManager] Before AppStore.sync()")
 
             try await AppStore.sync()
 
-            os_log(.info, log: .subscription, "[PurchaseManager] After AppStore.sync()")
+            os_log(.info, log: .subscription, "[StorePurchaseManager] After AppStore.sync()")
 
             await updatePurchasedProducts()
             await updateAvailableProducts()
 
             return .success(())
         } catch {
-            os_log(.error, log: .subscription, "[PurchaseManager] Error: %{public}s (%{public}s)", String(reflecting: error), error.localizedDescription)
+            os_log(.error, log: .subscription, "[StorePurchaseManager] Error: %{public}s (%{public}s)", String(reflecting: error), error.localizedDescription)
             return .failure(error)
         }
     }
 
     @MainActor
     public func updateAvailableProducts() async {
-        os_log(.info, log: .subscription, "[PurchaseManager] updateAvailableProducts")
+        os_log(.info, log: .subscription, "[StorePurchaseManager] updateAvailableProducts")
 
         do {
             let availableProducts = try await Product.products(for: Self.productIdentifiers)
-            os_log(.info, log: .subscription, "[PurchaseManager] updateAvailableProducts fetched %d products", availableProducts.count)
+            os_log(.info, log: .subscription, "[StorePurchaseManager] updateAvailableProducts fetched %d products", availableProducts.count)
 
             if self.availableProducts != availableProducts {
                 self.availableProducts = availableProducts
             }
         } catch {
-            os_log(.error, log: .subscription, "[PurchaseManager] Error: %{public}s", String(reflecting: error))
+            os_log(.error, log: .subscription, "[StorePurchaseManager] Error: %{public}s", String(reflecting: error))
         }
     }
 
     @MainActor
     public func updatePurchasedProducts() async {
-        os_log(.info, log: .subscription, "[PurchaseManager] updatePurchasedProducts")
+        os_log(.info, log: .subscription, "[StorePurchaseManager] updatePurchasedProducts")
 
         var purchasedSubscriptions: [String] = []
 
@@ -124,10 +122,10 @@ public final class PurchaseManager: ObservableObject {
                 }
             }
         } catch {
-            os_log(.error, log: .subscription, "[PurchaseManager] Error: %{public}s", String(reflecting: error))
+            os_log(.error, log: .subscription, "[StorePurchaseManager] Error: %{public}s", String(reflecting: error))
         }
 
-        os_log(.info, log: .subscription, "[PurchaseManager] updatePurchasedProducts fetched %d active subscriptions", purchasedSubscriptions.count)
+        os_log(.info, log: .subscription, "[StorePurchaseManager] updatePurchasedProducts fetched %d active subscriptions", purchasedSubscriptions.count)
 
         if self.purchasedProductIDs != purchasedSubscriptions {
             self.purchasedProductIDs = purchasedSubscriptions
@@ -137,8 +135,8 @@ public final class PurchaseManager: ObservableObject {
     }
 
     @MainActor
-    public static func mostRecentTransaction() async -> String? {
-        os_log(.info, log: .subscription, "[PurchaseManager] mostRecentTransaction")
+    public func mostRecentTransaction() async -> String? {
+        os_log(.info, log: .subscription, "[StorePurchaseManager] mostRecentTransaction")
 
         var transactions: [VerificationResult<Transaction>] = []
 
@@ -146,14 +144,14 @@ public final class PurchaseManager: ObservableObject {
             transactions.append(result)
         }
 
-        os_log(.info, log: .subscription, "[PurchaseManager] mostRecentTransaction fetched %d transactions", transactions.count)
+        os_log(.info, log: .subscription, "[StorePurchaseManager] mostRecentTransaction fetched %d transactions", transactions.count)
 
         return transactions.first?.jwsRepresentation
     }
 
     @MainActor
-    public static func hasActiveSubscription() async -> Bool {
-        os_log(.info, log: .subscription, "[PurchaseManager] hasActiveSubscription")
+    public func hasActiveSubscription() async -> Bool {
+        os_log(.info, log: .subscription, "[StorePurchaseManager] hasActiveSubscription")
 
         var transactions: [VerificationResult<Transaction>] = []
 
@@ -161,7 +159,7 @@ public final class PurchaseManager: ObservableObject {
             transactions.append(result)
         }
 
-        os_log(.info, log: .subscription, "[PurchaseManager] hasActiveSubscription fetched %d transactions", transactions.count)
+        os_log(.info, log: .subscription, "[StorePurchaseManager] hasActiveSubscription fetched %d transactions", transactions.count)
 
         return !transactions.isEmpty
     }
@@ -173,7 +171,7 @@ public final class PurchaseManager: ObservableObject {
 
         guard let product = availableProducts.first(where: { $0.id == identifier }) else { return .failure(PurchaseManagerError.productNotFound) }
 
-        os_log(.info, log: .subscription, "[PurchaseManager] purchaseSubscription %{public}s (%{public}s)", product.displayName, externalID)
+        os_log(.info, log: .subscription, "[StorePurchaseManager] purchaseSubscription %{public}s (%{public}s)", product.displayName, externalID)
 
         purchaseQueue.append(product.id)
 
@@ -182,7 +180,7 @@ public final class PurchaseManager: ObservableObject {
         if let token = UUID(uuidString: externalID) {
             options.insert(.appAccountToken(token))
         } else {
-            os_log(.error, log: .subscription, "[PurchaseManager] Error: Failed to create UUID")
+            os_log(.error, log: .subscription, "[StorePurchaseManager] Error: Failed to create UUID")
             return .failure(PurchaseManagerError.externalIDisNotAValidUUID)
         }
 
@@ -190,11 +188,11 @@ public final class PurchaseManager: ObservableObject {
         do {
             purchaseResult = try await product.purchase(options: options)
         } catch {
-            os_log(.error, log: .subscription, "[PurchaseManager] Error: %{public}s", String(reflecting: error))
+            os_log(.error, log: .subscription, "[StorePurchaseManager] Error: %{public}s", String(reflecting: error))
             return .failure(PurchaseManagerError.purchaseFailed)
         }
 
-        os_log(.info, log: .subscription, "[PurchaseManager] purchaseSubscription complete")
+        os_log(.info, log: .subscription, "[StorePurchaseManager] purchaseSubscription complete")
 
         purchaseQueue.removeAll()
 
@@ -202,27 +200,27 @@ public final class PurchaseManager: ObservableObject {
         case let .success(verificationResult):
             switch verificationResult {
             case let .verified(transaction):
-                os_log(.info, log: .subscription, "[PurchaseManager] purchaseSubscription result: success")
+                os_log(.info, log: .subscription, "[StorePurchaseManager] purchaseSubscription result: success")
                 // Successful purchase
                 await transaction.finish()
                 await self.updatePurchasedProducts()
                 return .success(verificationResult.jwsRepresentation)
             case let .unverified(_, error):
-                os_log(.info, log: .subscription, "[PurchaseManager] purchaseSubscription result: success /unverified/ - %{public}s", String(reflecting: error))
+                os_log(.info, log: .subscription, "[StorePurchaseManager] purchaseSubscription result: success /unverified/ - %{public}s", String(reflecting: error))
                 // Successful purchase but transaction/receipt can't be verified
                 // Could be a jailbroken phone
                 return .failure(PurchaseManagerError.transactionCannotBeVerified)
             }
         case .pending:
-            os_log(.info, log: .subscription, "[PurchaseManager] purchaseSubscription result: pending")
+            os_log(.info, log: .subscription, "[StorePurchaseManager] purchaseSubscription result: pending")
             // Transaction waiting on SCA (Strong Customer Authentication) or
             // approval from Ask to Buy
             return .failure(PurchaseManagerError.transactionPendingAuthentication)
         case .userCancelled:
-            os_log(.info, log: .subscription, "[PurchaseManager] purchaseSubscription result: user cancelled")
+            os_log(.info, log: .subscription, "[StorePurchaseManager] purchaseSubscription result: user cancelled")
             return .failure(PurchaseManagerError.purchaseCancelledByUser)
         @unknown default:
-            os_log(.info, log: .subscription, "[PurchaseManager] purchaseSubscription result: unknown")
+            os_log(.info, log: .subscription, "[StorePurchaseManager] purchaseSubscription result: unknown")
             return .failure(PurchaseManagerError.unknownError)
         }
     }
@@ -243,7 +241,7 @@ public final class PurchaseManager: ObservableObject {
 
         Task.detached { [unowned self] in
             for await result in Transaction.updates {
-                os_log(.info, log: .subscription, "[PurchaseManager] observeTransactionUpdates")
+                os_log(.info, log: .subscription, "[StorePurchaseManager] observeTransactionUpdates")
 
                 if case .verified(let transaction) = result {
                     await transaction.finish()
@@ -258,7 +256,7 @@ public final class PurchaseManager: ObservableObject {
 
         Task.detached { [unowned self] in
             for await result in Storefront.updates {
-                os_log(.info, log: .subscription, "[PurchaseManager] observeStorefrontChanges: %s", result.countryCode)
+                os_log(.info, log: .subscription, "[StorePurchaseManager] observeStorefrontChanges: %s", result.countryCode)
                 await updatePurchasedProducts()
                 await updateAvailableProducts()
             }

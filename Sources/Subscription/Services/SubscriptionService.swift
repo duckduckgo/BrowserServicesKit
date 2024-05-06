@@ -21,12 +21,12 @@ import Foundation
 
 public final class SubscriptionService: APIService {
 
-    public static let session = {
+    public let session = {
         let configuration = URLSessionConfiguration.ephemeral
         return URLSession(configuration: configuration)
     }()
 
-    public static var baseURL: URL {
+    public var baseURL: URL {
         switch SubscriptionPurchaseEnvironment.currentServiceEnvironment {
         case .production:
             URL(string: "https://subscriptions.duckduckgo.com/api")!
@@ -35,8 +35,8 @@ public final class SubscriptionService: APIService {
         }
     }
 
-    private static let subscriptionCache = UserDefaultsCache<Subscription>(key: UserDefaultsCacheKey.subscription,
-                                                                           settings: UserDefaultsCacheSettings(defaultExpirationInterval: .minutes(20)))
+    private let subscriptionCache = UserDefaultsCache<Subscription>(key: UserDefaultsCacheKey.subscription,
+                                                                    settings: UserDefaultsCacheSettings(defaultExpirationInterval: .minutes(20)))
 
     public enum CachePolicy {
         case reloadIgnoringLocalCacheData
@@ -51,8 +51,8 @@ public final class SubscriptionService: APIService {
 
     // MARK: - Subscription fetching with caching
 
-    private static func getRemoteSubscription(accessToken: String) async -> Result<Subscription, SubscriptionServiceError> {
-        let result: Result<GetSubscriptionResponse, APIServiceError> = await executeAPICall(method: "GET", endpoint: "subscription", headers: makeAuthorizationHeader(for: accessToken))
+    private func getRemoteSubscription(accessToken: String) async -> Result<Subscription, SubscriptionServiceError> {
+        let result: Result<Subscription, APIServiceError> = await executeAPICall(method: "GET", endpoint: "subscription", headers: makeAuthorizationHeader(for: accessToken))
 
         switch result {
         case .success(let subscriptionResponse):
@@ -63,7 +63,7 @@ public final class SubscriptionService: APIService {
         }
     }
 
-    public static func updateCache(with subscription: Subscription) {
+    public func updateCache(with subscription: Subscription) {
         let cachedSubscription: Subscription? = subscriptionCache.get()
 
         if subscription != cachedSubscription {
@@ -75,7 +75,7 @@ public final class SubscriptionService: APIService {
         }
     }
 
-    public static func getSubscription(accessToken: String, cachePolicy: CachePolicy = .returnCacheDataElseLoad) async -> Result<Subscription, SubscriptionServiceError> {
+    public func getSubscription(accessToken: String, cachePolicy: CachePolicy = .returnCacheDataElseLoad) async -> Result<Subscription, SubscriptionServiceError> {
 
         switch cachePolicy {
         case .reloadIgnoringLocalCacheData:
@@ -97,19 +97,19 @@ public final class SubscriptionService: APIService {
         }
     }
 
-    public static func signOut() {
+    public func signOut() {
         subscriptionCache.reset()
     }
 
-    public typealias GetSubscriptionResponse = Subscription
+//    public typealias GetSubscriptionResponse = Subscription
 
     // MARK: -
 
-    public static func getProducts() async -> Result<GetProductsResponse, APIServiceError> {
+    public func getProducts() async -> Result<[GetProductsItem], APIServiceError> {
         await executeAPICall(method: "GET", endpoint: "products")
     }
 
-    public typealias GetProductsResponse = [GetProductsItem]
+//    public typealias GetProductsResponse = [GetProductsItem]
 
     public struct GetProductsItem: Decodable {
         public let productId: String
@@ -121,7 +121,7 @@ public final class SubscriptionService: APIService {
 
     // MARK: -
 
-    public static func getCustomerPortalURL(accessToken: String, externalID: String) async -> Result<GetCustomerPortalURLResponse, APIServiceError> {
+    public func getCustomerPortalURL(accessToken: String, externalID: String) async -> Result<GetCustomerPortalURLResponse, APIServiceError> {
         var headers = makeAuthorizationHeader(for: accessToken)
         headers["externalAccountId"] = externalID
         return await executeAPICall(method: "GET", endpoint: "checkout/portal", headers: headers)
@@ -133,7 +133,7 @@ public final class SubscriptionService: APIService {
 
     // MARK: -
 
-    public static func confirmPurchase(accessToken: String, signature: String) async -> Result<ConfirmPurchaseResponse, APIServiceError> {
+    public func confirmPurchase(accessToken: String, signature: String) async -> Result<ConfirmPurchaseResponse, APIServiceError> {
         let headers = makeAuthorizationHeader(for: accessToken)
         let bodyDict = ["signedTransactionInfo": signature]
 

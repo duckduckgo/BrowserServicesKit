@@ -34,14 +34,16 @@ public final class AppStorePurchaseFlow {
     }
 
     let accountManager: AccountManaging
+    let subscriptionService: SubscriptionService
 
-    public init(accountManager: AccountManaging) {
+    public init(accountManager: AccountManaging, subscriptionService: SubscriptionService) {
         self.accountManager = accountManager
+        self.subscriptionService = subscriptionService
     }
 
     public func subscriptionOptions() async -> Result<SubscriptionOptions, AppStorePurchaseFlow.Error> {
         os_log(.info, log: .subscription, "[AppStorePurchaseFlow] subscriptionOptions")
-        let products = PurchaseManager.shared.availableProducts
+        let products = StorePurchaseManager.shared.availableProducts
         let monthly = products.first(where: { $0.subscription?.subscriptionPeriod.unit == .month && $0.subscription?.subscriptionPeriod.value == 1 })
         let yearly = products.first(where: { $0.subscription?.subscriptionPeriod.unit == .year && $0.subscription?.subscriptionPeriod.value == 1 })
         guard let monthly, let yearly else {
@@ -110,7 +112,7 @@ public final class AppStorePurchaseFlow {
         }
 
         // Make the purchase
-        switch await PurchaseManager.shared.purchaseSubscription(with: subscriptionIdentifier, externalID: externalID) {
+        switch await StorePurchaseManager.shared.purchaseSubscription(with: subscriptionIdentifier, externalID: externalID) {
         case .success(let transactionJWS):
             return .success(transactionJWS)
         case .failure(let error):
@@ -130,16 +132,16 @@ public final class AppStorePurchaseFlow {
     public func completeSubscriptionPurchase(with transactionJWS: TransactionJWS) async -> Result<PurchaseUpdate, AppStorePurchaseFlow.Error> {
 
         // Clear subscription Cache
-        SubscriptionService.signOut()
+        subscriptionService.signOut()
 
         os_log(.info, log: .subscription, "[AppStorePurchaseFlow] completeSubscriptionPurchase")
 
         guard let accessToken = accountManager.accessToken else { return .failure(.missingEntitlements) }
 
         let result = await callWithRetries(retry: 5, wait: 2.0) {
-            switch await SubscriptionService.confirmPurchase(accessToken: accessToken, signature: transactionJWS) {
+            switch await subscriptionService.confirmPurchase(accessToken: accessToken, signature: transactionJWS) {
             case .success(let confirmation):
-                SubscriptionService.updateCache(with: confirmation.subscription)
+                subscriptionService.updateCache(with: confirmation.subscription)
                 accountManager.updateCache(with: confirmation.entitlements)
                 return true
             case .failure:
@@ -174,7 +176,7 @@ public final class AppStorePurchaseFlow {
               let token = accountManager.accessToken
         else { return nil }
 
-        let subscriptionInfo = await SubscriptionService.getSubscription(accessToken: token, cachePolicy: .reloadIgnoringLocalCacheData)
+        let subscriptionInfo = await subscriptionService.getSubscription(accessToken: token, cachePolicy: .reloadIgnoringLocalCacheData)
 
         // Only return an externalID if the subscription is expired
         // To prevent creating multiple subscriptions in the same account
