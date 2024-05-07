@@ -36,6 +36,7 @@ final class PixelKitTests: XCTestCase {
         case dailyAndContinuousEvent
         case dailyAndContinuousEventWithoutParameters
         case uniqueEvent
+        case nameWithDot = "test.pixel.with.dot"
 
         var name: String {
             switch self {
@@ -53,14 +54,14 @@ final class PixelKitTests: XCTestCase {
                     "eventParam1": "eventParamValue1",
                     "eventParam2": "eventParamValue2"
                 ]
-            case .testEventWithoutParameters, .dailyEventWithoutParameters, .dailyAndContinuousEventWithoutParameters:
+            default:
                 return nil
             }
         }
 
         var frequency: PixelKit.Frequency {
             switch self {
-            case .testEvent, .testEventWithoutParameters:
+            case .testEvent, .testEventWithoutParameters, .nameWithDot:
                 return .standard
             case .uniqueEvent:
                 return .unique
@@ -96,7 +97,7 @@ final class PixelKitTests: XCTestCase {
         let userDefaults = userDefaults()
 
         // Set expectations
-        let expectedPixelName = "m_mac_\(event.name)"
+        let expectedPixelName = event.name
         let fireCallbackCalled = expectation(description: "Expect the pixel firing callback to be called")
 
         // Prepare mock to validate expectations
@@ -140,7 +141,7 @@ final class PixelKitTests: XCTestCase {
         let userDefaults = userDefaults()
 
         // Set expectations
-        let expectedPixelName = "m_mac_\(event.name)_d"
+        let expectedPixelName = "\(event.name)_d"
         let expectedMoreInfoString = "See \(PixelKit.duckDuckGoMorePrivacyInfo)"
         let fireCallbackCalled = expectation(description: "Expect the pixel firing callback to be called")
 
@@ -184,7 +185,7 @@ final class PixelKitTests: XCTestCase {
         let userDefaults = userDefaults()
 
         // Set expectations
-        let expectedPixelName = "m_mac_\(event.name)_d"
+        let expectedPixelName = "\(event.name)_d"
         let expectedMoreInfoString = "See \(PixelKit.duckDuckGoMorePrivacyInfo)"
         let fireCallbackCalled = expectation(description: "Expect the pixel firing callback to be called")
         fireCallbackCalled.expectedFulfillmentCount = 1

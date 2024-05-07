@@ -51,14 +51,6 @@ public extension XCTestCase {
         }
     }
 
-    static var pixelPlatformPrefix: String {
-#if os(macOS)
-        return "m_mac_"
-#elseif os(iOS)
-        return "m_"
-#endif
-    }
-
     /// These parameters are known to be expected just based on the event definition.
     ///
     /// They're not a complete list of parameters for the event, as the fire call may contain extra information
@@ -146,23 +138,23 @@ public extension XCTestCase {
     }
 
     func expectedPixelNames(originalName: String, frequency: PixelKit.Frequency) -> [String] {
-        let expectedPixelNameWithoutSuffix = originalName.hasPrefix(Self.pixelPlatformPrefix) ? originalName : Self.pixelPlatformPrefix + originalName
+        let expectedPixelNameWithoutSuffix = originalName
         var expectedPixelNames: [String] = []
 
         switch frequency {
         case .standard:
-            expectedPixelNames.append(expectedPixelNameWithoutSuffix)
+            expectedPixelNames.append(originalName)
         case .legacyInitial:
-            expectedPixelNames.append(expectedPixelNameWithoutSuffix)
+            expectedPixelNames.append(originalName)
         case .unique:
-            expectedPixelNames.append(expectedPixelNameWithoutSuffix)
+            expectedPixelNames.append(originalName)
         case .legacyDaily:
-            expectedPixelNames.append(expectedPixelNameWithoutSuffix)
+            expectedPixelNames.append(originalName)
         case .daily:
-            expectedPixelNames.append(expectedPixelNameWithoutSuffix.appending("_d"))
+            expectedPixelNames.append(originalName.appending("_d"))
         case .dailyAndCount:
-            expectedPixelNames.append(expectedPixelNameWithoutSuffix.appending("_d"))
-            expectedPixelNames.append(expectedPixelNameWithoutSuffix.appending("_c"))
+            expectedPixelNames.append(originalName.appending("_d"))
+            expectedPixelNames.append(originalName.appending("_c"))
         }
         return expectedPixelNames
     }
