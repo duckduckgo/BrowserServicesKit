@@ -167,6 +167,32 @@ final class PixelKitTests: XCTestCase {
         wait(for: [fireCallbackCalled], timeout: 0.5)
     }
 
+    func testDebugEventDaily() {
+        let appVersion = "1.0.5"
+        let headers = ["a": "2", "b": "3", "c": "2000"]
+        let event = DebugEvent(TestEvent.testEvent)
+        let userDefaults = userDefaults()
+
+        // Set expectations
+        let expectedPixelName = "m_mac_debug_\(TestEvent.testEvent.name)_d"
+        let fireCallbackCalled = expectation(description: "Expect the pixel firing callback to be called")
+
+        // Prepare mock to validate expectations
+        let pixelKit = PixelKit(dryRun: false,
+                                appVersion: appVersion,
+                                defaultHeaders: headers,
+                                dailyPixelCalendar: nil,
+                                defaults: userDefaults) { firedPixelName, firedHeaders, parameters, _, _, _ in
+
+            fireCallbackCalled.fulfill()
+            XCTAssertEqual(expectedPixelName, firedPixelName)
+        }
+        // Run test
+        pixelKit.fire(event, frequency: .daily)
+        // Wait for expectations to be fulfilled
+        wait(for: [fireCallbackCalled], timeout: 0.5)
+    }
+
     /// Tests firing a sample pixel and ensuring that all fields are properly set in the fire request callback.
     ///
     func testFiringASamplePixel() {

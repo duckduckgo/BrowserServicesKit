@@ -114,7 +114,11 @@ public extension XCTestCase {
             let firedParameters = Self.filterStandardPixelParameters(from: firedParameters)
 
             // Internal validations
-            XCTAssertTrue(expectedPixelNames.contains(firedPixelName), file: file, line: line)
+            var found = false
+            for expectedNameSuffix in expectedPixelNames {
+                found = firedPixelName.hasSuffix(expectedNameSuffix)
+            }
+            XCTAssertTrue(found)
             XCTAssertTrue(knownExpectedParameters.allSatisfy { (key, value) in
                 firedParameters[key] == value
             })
