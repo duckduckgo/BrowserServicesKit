@@ -116,12 +116,15 @@ public extension XCTestCase {
             // Internal validations
             var found = false
             for expectedNameSuffix in expectedPixelNames {
-                found = firedPixelName.hasSuffix(expectedNameSuffix)
+                if firedPixelName.hasSuffix(expectedNameSuffix) {
+                    found = true
+                    break
+                }
             }
-            XCTAssertTrue(found)
+            XCTAssertTrue(found, file: file, line: line)
             XCTAssertTrue(knownExpectedParameters.allSatisfy { (key, value) in
                 firedParameters[key] == value
-            })
+            }, file: file, line: line)
 
             if frequency == .dailyAndCount {
                 XCTAssertTrue(firedPixelName.hasPrefix(expectations.pixelName))
