@@ -115,11 +115,8 @@ public extension XCTestCase {
 
             // Internal validations
             var found = false
-            for expectedNameSuffix in expectedPixelNames {
-                if firedPixelName.hasSuffix(expectedNameSuffix) {
+            for expectedNameSuffix in expectedPixelNames where firedPixelName.hasSuffix(expectedNameSuffix) {
                     found = true
-                    break
-                }
             }
             XCTAssertTrue(found, file: file, line: line)
             XCTAssertTrue(knownExpectedParameters.allSatisfy { (key, value) in
