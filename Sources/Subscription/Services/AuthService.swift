@@ -16,10 +16,16 @@
 //  limitations under the License.
 //
 
-import Common
 import Foundation
+import Common
 
 public struct AuthService: APIService {
+
+    let currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment
+
+    public init(currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment) {
+        self.currentServiceEnvironment = currentServiceEnvironment
+    }
 
     public let session = {
         let configuration = URLSessionConfiguration.ephemeral
@@ -27,7 +33,7 @@ public struct AuthService: APIService {
     }()
 
     public var baseURL: URL {
-        switch SubscriptionPurchaseEnvironment.currentServiceEnvironment {
+        switch currentServiceEnvironment {
         case .production:
             URL(string: "https://quack.duckduckgo.com/api/auth")!
         case .staging:
@@ -51,7 +57,6 @@ public struct AuthService: APIService {
         await executeAPICall(method: "GET", endpoint: "validate-token", headers: makeAuthorizationHeader(for: accessToken))
     }
 
-    // swiftlint:disable nesting
     public struct ValidateTokenResponse: Decodable {
         public let account: Account
 
@@ -65,7 +70,6 @@ public struct AuthService: APIService {
             }
         }
     }
-    // swiftlint:enable nesting
 
     // MARK: -
 

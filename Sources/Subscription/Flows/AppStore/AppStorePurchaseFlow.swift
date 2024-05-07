@@ -31,40 +31,16 @@ public final class AppStorePurchaseFlow {
         case purchaseFailed
         case cancelledByUser
         case missingEntitlements
+        case internalError
     }
 
-    let accountManager: AccountManaging
-    let subscriptionService: SubscriptionService
-
-    public init(accountManager: AccountManaging, subscriptionService: SubscriptionService) {
-        self.accountManager = accountManager
-        self.subscriptionService = subscriptionService
+    private let subscriptionManager: SubscriptionManager
+    var accountManager: AccountManaging {
+        subscriptionManager.accountManager
     }
 
-    public func subscriptionOptions() async -> Result<SubscriptionOptions, AppStorePurchaseFlow.Error> {
-        os_log(.info, log: .subscription, "[AppStorePurchaseFlow] subscriptionOptions")
-        let products = StorePurchaseManager.shared.availableProducts
-        let monthly = products.first(where: { $0.subscription?.subscriptionPeriod.unit == .month && $0.subscription?.subscriptionPeriod.value == 1 })
-        let yearly = products.first(where: { $0.subscription?.subscriptionPeriod.unit == .year && $0.subscription?.subscriptionPeriod.value == 1 })
-        guard let monthly, let yearly else {
-            os_log(.error, log: .subscription, "[AppStorePurchaseFlow] Error: noProductsFound")
-            return .failure(.noProductsFound)
-        }
-
-        let options = [SubscriptionOption(id: monthly.id, cost: .init(displayPrice: monthly.displayPrice, recurrence: "monthly")),
-                       SubscriptionOption(id: yearly.id, cost: .init(displayPrice: yearly.displayPrice, recurrence: "yearly"))]
-        let features = SubscriptionFeatureName.allCases.map { SubscriptionFeature(name: $0.rawValue) }
-        let platform: SubscriptionPlatformName
-
-#if os(iOS)
-        platform = .ios
-#else
-        platform = .macos
-#endif
-
-        return .success(SubscriptionOptions(platform: platform.rawValue,
-                                            options: options,
-                                            features: features))
+    public init(subscriptionManager: SubscriptionManager) {
+        self.subscriptionManager = subscriptionManager
     }
 
     public typealias TransactionJWS = String
@@ -81,7 +57,7 @@ public final class AppStorePurchaseFlow {
         // Otherwise, try to retrieve an expired Apple subscription or create a new one
         } else {
             // Check for past transactions most recent
-            let appStoreRestoreFlow = AppStoreRestoreFlow(accountManager: accountManager)
+            let appStoreRestoreFlow = AppStoreRestoreFlow(subscriptionManager: subscriptionManager)
             switch await appStoreRestoreFlow.restoreAccountFromPastPurchase() {
             case .success:
                 os_log(.info, log: .subscription, "[AppStorePurchaseFlow] purchaseSubscription -> restoreAccountFromPastPurchase: activeSubscriptionAlreadyPresent")
@@ -94,7 +70,7 @@ public final class AppStorePurchaseFlow {
                     accountManager.storeAuthToken(token: expiredAccountDetails.authToken)
                     accountManager.storeAccount(token: expiredAccountDetails.accessToken, email: expiredAccountDetails.email, externalID: expiredAccountDetails.externalID)
                 default:
-                    switch await AuthService.createAccount(emailAccessToken: emailAccessToken) {
+                    switch await subscriptionManager.authService.createAccount(emailAccessToken: emailAccessToken) {
                     case .success(let response):
                         externalID = response.externalID
 
@@ -112,7 +88,12 @@ public final class AppStorePurchaseFlow {
         }
 
         // Make the purchase
-        switch await StorePurchaseManager.shared.purchaseSubscription(with: subscriptionIdentifier, externalID: externalID) {
+        guard let storePurchaseManager = subscriptionManager.storePurchaseManager else {
+            assertionFailure("Missing accountManagerDataSource")
+            return .failure(.internalError)
+        }
+
+        switch await storePurchaseManager.purchaseSubscription(with: subscriptionIdentifier, externalID: externalID) {
         case .success(let transactionJWS):
             return .success(transactionJWS)
         case .failure(let error):
@@ -132,16 +113,16 @@ public final class AppStorePurchaseFlow {
     public func completeSubscriptionPurchase(with transactionJWS: TransactionJWS) async -> Result<PurchaseUpdate, AppStorePurchaseFlow.Error> {
 
         // Clear subscription Cache
-        subscriptionService.signOut()
+        subscriptionManager.subscriptionService.signOut()
 
         os_log(.info, log: .subscription, "[AppStorePurchaseFlow] completeSubscriptionPurchase")
 
         guard let accessToken = accountManager.accessToken else { return .failure(.missingEntitlements) }
 
         let result = await callWithRetries(retry: 5, wait: 2.0) {
-            switch await subscriptionService.confirmPurchase(accessToken: accessToken, signature: transactionJWS) {
+            switch await subscriptionManager.subscriptionService.confirmPurchase(accessToken: accessToken, signature: transactionJWS) {
             case .success(let confirmation):
-                subscriptionService.updateCache(with: confirmation.subscription)
+                subscriptionManager.subscriptionService.updateCache(with: confirmation.subscription)
                 accountManager.updateCache(with: confirmation.entitlements)
                 return true
             case .failure:
@@ -176,7 +157,7 @@ public final class AppStorePurchaseFlow {
               let token = accountManager.accessToken
         else { return nil }
 
-        let subscriptionInfo = await subscriptionService.getSubscription(accessToken: token, cachePolicy: .reloadIgnoringLocalCacheData)
+        let subscriptionInfo = await subscriptionManager.subscriptionService.getSubscription(accessToken: token, cachePolicy: .reloadIgnoringLocalCacheData)
 
         // Only return an externalID if the subscription is expired
         // To prevent creating multiple subscriptions in the same account

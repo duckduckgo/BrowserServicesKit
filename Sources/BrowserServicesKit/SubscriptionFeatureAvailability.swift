@@ -16,6 +16,7 @@
 //  limitations under the License.
 //
 
+import Foundation
 import Subscription
 
 public protocol SubscriptionFeatureAvailability {
@@ -26,11 +27,11 @@ public protocol SubscriptionFeatureAvailability {
 public final class DefaultSubscriptionFeatureAvailability: SubscriptionFeatureAvailability {
 
     private let privacyConfigurationManager: PrivacyConfigurationManaging
-    private let purchasePlatform: SubscriptionPurchaseEnvironment.Environment
+    private let subscriptionEnvironment: SubscriptionEnvironment
 
-    public init(privacyConfigurationManager: PrivacyConfigurationManaging, purchasePlatform: SubscriptionPurchaseEnvironment.Environment) {
+    public init(privacyConfigurationManager: PrivacyConfigurationManaging, subscriptionEnvironment: SubscriptionEnvironment) {
         self.privacyConfigurationManager = privacyConfigurationManager
-        self.purchasePlatform = purchasePlatform
+        self.subscriptionEnvironment = subscriptionEnvironment
     }
 
     public var isFeatureAvailable: Bool {
@@ -40,7 +41,7 @@ public final class DefaultSubscriptionFeatureAvailability: SubscriptionFeatureAv
     public var isSubscriptionPurchaseAllowed: Bool {
         let isPurchaseAllowed: Bool
 
-        switch purchasePlatform {
+        switch subscriptionEnvironment.platform {
         case .appStore:
             isPurchaseAllowed = privacyConfigurationManager.privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.allowPurchase)
         case .stripe:
@@ -57,7 +58,7 @@ public final class DefaultSubscriptionFeatureAvailability: SubscriptionFeatureAv
     }
 
     private var isSubscriptionLaunched: Bool {
-        switch purchasePlatform {
+        switch subscriptionEnvironment.platform {
         case .appStore:
             privacyConfigurationManager.privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.isLaunched)
         case .stripe:
@@ -66,7 +67,7 @@ public final class DefaultSubscriptionFeatureAvailability: SubscriptionFeatureAv
     }
 
     private var isSubscriptionLaunchedOverride: Bool {
-        switch purchasePlatform {
+        switch subscriptionEnvironment.platform {
         case .appStore:
             privacyConfigurationManager.privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.isLaunchedOverride)
         case .stripe:

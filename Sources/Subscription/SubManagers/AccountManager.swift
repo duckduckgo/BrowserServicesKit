@@ -19,84 +19,55 @@
 import Foundation
 import Common
 
-public protocol AccountManagerKeychainAccessDelegate: AnyObject {
-    func accountManagerKeychainAccessFailed(accessType: AccountKeychainAccessType, error: AccountKeychainAccessError)
-}
-
-public enum AccountManagingCachePolicy {
-    case reloadIgnoringLocalCacheData
-    case returnCacheDataElseLoad
-    case returnCacheDataDontLoad
-}
-
-public protocol AccountManaging {
-
-    var delegate: AccountManagerKeychainAccessDelegate? { get set }
-    var isUserAuthenticated: Bool { get }
-    var accessToken: String? { get }
-    var authToken: String? { get }
-    var email: String? { get }
-    var externalID: String? { get }
-
-    func storeAuthToken(token: String)
-    func storeAccount(token: String, email: String?, externalID: String?)
-    func signOut(skipNotification: Bool)
-    func signOut() // default skipNotification
-    func migrateAccessTokenToNewStore() throws
-
-    // Entitlements
-    typealias CachePolicy = AccountManagingCachePolicy
-    func hasEntitlement(for entitlement: Entitlement.ProductName, cachePolicy: CachePolicy) async -> Result<Bool, Error>
-    func hasEntitlement(for entitlement: Entitlement.ProductName) async -> Result<Bool, Error> // default cache
-    func updateCache(with entitlements: [Entitlement])
-    @discardableResult func fetchEntitlements(cachePolicy: CachePolicy) async -> Result<[Entitlement], Error>
-    func exchangeAuthTokenToAccessToken(_ authToken: String) async -> Result<String, Error>
-
-    typealias AccountDetails = (email: String?, externalID: String)
-    func fetchAccountDetails(with accessToken: String) async -> Result<AccountDetails, Error>
-    func refreshSubscriptionAndEntitlements() async
-    @discardableResult func checkForEntitlements(wait waitTime: Double, retry retryCount: Int) async -> Bool
-}
-
 public class AccountManager: AccountManaging {
 
     private let storage: AccountStoring
     private let entitlementsCache: UserDefaultsCache<[Entitlement]>
     private let accessTokenStorage: SubscriptionTokenStoring
     private let subscriptionService: SubscriptionService
+    private let authService: AuthService
 
     public weak var delegate: AccountManagerKeychainAccessDelegate?
     public var isUserAuthenticated: Bool { accessToken != nil }
 
     // MARK: - Initialisers
 
-    public convenience init(subscriptionAppGroup: String?, accessTokenStorage: SubscriptionTokenStoring, subscriptionService: SubscriptionService) {
-        self.init(accessTokenStorage: accessTokenStorage,
-                  entitlementsCache: UserDefaultsCache<[Entitlement]>(userDefaults: UserDefaults(suiteName: subscriptionAppGroup) ?? UserDefaults.standard,
-                                                                      key: UserDefaultsCacheKey.subscriptionEntitlements,
-                                                                      settings: UserDefaultsCacheSettings(defaultExpirationInterval: .minutes(20))),
-                  subscriptionService: subscriptionService
-        )
-    }
-
-    public convenience init(subscriptionAppGroup: String, subscriptionService: SubscriptionService) {
-        let accessTokenStorage = SubscriptionTokenKeychainStorage(keychainType: .dataProtection(.named(subscriptionAppGroup)))
-        self.init(accessTokenStorage: accessTokenStorage,
-                  entitlementsCache: UserDefaultsCache<[Entitlement]>(userDefaults: UserDefaults(suiteName: subscriptionAppGroup) ?? UserDefaults.standard,
-                                                                      key: UserDefaultsCacheKey.subscriptionEntitlements,
-                                                                      settings: UserDefaultsCacheSettings(defaultExpirationInterval: .minutes(20))),
-                  subscriptionService: subscriptionService
-        )
-    }
+//    public convenience init(subscriptionAppGroup: String?, 
+//                            accessTokenStorage: SubscriptionTokenStoring,
+//                            subscriptionService: SubscriptionService,
+//                            authService: AuthService) {
+//        self.init(accessTokenStorage: accessTokenStorage,
+//                  entitlementsCache: UserDefaultsCache<[Entitlement]>(userDefaults: UserDefaults(suiteName: subscriptionAppGroup) ?? UserDefaults.standard,
+//                                                                      key: UserDefaultsCacheKey.subscriptionEntitlements,
+//                                                                      settings: UserDefaultsCacheSettings(defaultExpirationInterval: .minutes(20))),
+//                  subscriptionService: subscriptionService,
+//                  authService: authService
+//        )
+//    }
+//
+//    public convenience init(subscriptionAppGroup: String, 
+//                            subscriptionService: SubscriptionService,
+//                            authService: AuthService) {
+//        let accessTokenStorage = SubscriptionTokenKeychainStorage(keychainType: .dataProtection(.named(subscriptionAppGroup)))
+//        self.init(accessTokenStorage: accessTokenStorage,
+//                  entitlementsCache: UserDefaultsCache<[Entitlement]>(userDefaults: UserDefaults(suiteName: subscriptionAppGroup) ?? UserDefaults.standard,
+//                                                                      key: UserDefaultsCacheKey.subscriptionEntitlements,
+//                                                                      settings: UserDefaultsCacheSettings(defaultExpirationInterval: .minutes(20))),
+//                  subscriptionService: subscriptionService,
+//                  authService: authService
+//        )
+//    }
 
     public init(storage: AccountStoring = AccountKeychainStorage(),
                 accessTokenStorage: SubscriptionTokenStoring,
                 entitlementsCache: UserDefaultsCache<[Entitlement]>,
-                subscriptionService: SubscriptionService) {
+                subscriptionService: SubscriptionService,
+                authService: AuthService) {
         self.storage = storage
         self.entitlementsCache = entitlementsCache
         self.accessTokenStorage = accessTokenStorage
         self.subscriptionService = subscriptionService
+        self.authService = authService
     }
 
     // MARK: -
@@ -279,7 +250,7 @@ public class AccountManager: AccountManaging {
             return .failure(EntitlementsError.noAccessToken)
         }
 
-        switch await AuthService.validateToken(accessToken: accessToken) {
+        switch await authService.validateToken(accessToken: accessToken) {
         case .success(let response):
             let entitlements = response.account.entitlements
             updateCache(with: entitlements)
@@ -329,7 +300,7 @@ public class AccountManager: AccountManaging {
     }
 
     public func exchangeAuthTokenToAccessToken(_ authToken: String) async -> Result<String, Error> {
-        switch await AuthService.getAccessToken(token: authToken) {
+        switch await authService.getAccessToken(token: authToken) {
         case .success(let response):
             return .success(response.accessToken)
         case .failure(let error):
@@ -341,7 +312,7 @@ public class AccountManager: AccountManaging {
 //    public typealias AccountDetails = (email: String?, externalID: String)
 
     public func fetchAccountDetails(with accessToken: String) async -> Result<AccountDetails, Error> {
-        switch await AuthService.validateToken(accessToken: accessToken) {
+        switch await authService.validateToken(accessToken: accessToken) {
         case .success(let response):
             return .success(AccountDetails(email: response.account.email, externalID: response.account.externalID))
         case .failure(let error):

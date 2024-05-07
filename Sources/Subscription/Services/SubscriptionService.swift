@@ -19,7 +19,14 @@
 import Common
 import Foundation
 
+/// Communicates with our backend
 public final class SubscriptionService: APIService {
+
+    let currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment
+
+    public init(currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment) {
+        self.currentServiceEnvironment = currentServiceEnvironment
+    }
 
     public let session = {
         let configuration = URLSessionConfiguration.ephemeral
@@ -27,7 +34,7 @@ public final class SubscriptionService: APIService {
     }()
 
     public var baseURL: URL {
-        switch SubscriptionPurchaseEnvironment.currentServiceEnvironment {
+        switch currentServiceEnvironment {
         case .production:
             URL(string: "https://subscriptions.duckduckgo.com/api")!
         case .staging:
@@ -52,8 +59,8 @@ public final class SubscriptionService: APIService {
     // MARK: - Subscription fetching with caching
 
     private func getRemoteSubscription(accessToken: String) async -> Result<Subscription, SubscriptionServiceError> {
-        let result: Result<Subscription, APIServiceError> = await executeAPICall(method: "GET", endpoint: "subscription", headers: makeAuthorizationHeader(for: accessToken))
 
+        let result: Result<Subscription, APIServiceError> = await executeAPICall(method: "GET", endpoint: "subscription", headers: makeAuthorizationHeader(for: accessToken))
         switch result {
         case .success(let subscriptionResponse):
             updateCache(with: subscriptionResponse)
@@ -64,8 +71,8 @@ public final class SubscriptionService: APIService {
     }
 
     public func updateCache(with subscription: Subscription) {
-        let cachedSubscription: Subscription? = subscriptionCache.get()
 
+        let cachedSubscription: Subscription? = subscriptionCache.get()
         if subscription != cachedSubscription {
             let defaultExpiryDate = Date().addingTimeInterval(subscriptionCache.settings.defaultExpirationInterval)
             let expiryDate = min(defaultExpiryDate, subscription.expiresOrRenewsAt)
@@ -101,15 +108,11 @@ public final class SubscriptionService: APIService {
         subscriptionCache.reset()
     }
 
-//    public typealias GetSubscriptionResponse = Subscription
-
     // MARK: -
 
     public func getProducts() async -> Result<[GetProductsItem], APIServiceError> {
         await executeAPICall(method: "GET", endpoint: "products")
     }
-
-//    public typealias GetProductsResponse = [GetProductsItem]
 
     public struct GetProductsItem: Decodable {
         public let productId: String

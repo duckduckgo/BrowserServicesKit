@@ -48,7 +48,7 @@ final class SubscriptionFeatureAvailabilityTests: XCTestCase {
     // MARK: - Tests for App Store
 
     func testSubscriptionFeatureNotAvailableWhenAllFlagsDisabledAndNotInternalUser() {
-        let purchasePlatform = SubscriptionPurchaseEnvironment.Environment.appStore
+        let purchasePlatform = SubscriptionEnvironment.Platform.appStore
 
         internalUserDeciderStore.isInternalUser = false
         XCTAssertFalse(internalUserDeciderStore.isInternalUser)
@@ -64,7 +64,7 @@ final class SubscriptionFeatureAvailabilityTests: XCTestCase {
     }
 
     func testSubscriptionFeatureAvailableWhenIsLaunchedFlagEnabled() {
-        let purchasePlatform = SubscriptionPurchaseEnvironment.Environment.appStore
+        let purchasePlatform = SubscriptionEnvironment.Platform.appStore
 
         internalUserDeciderStore.isInternalUser = false
         XCTAssertFalse(internalUserDeciderStore.isInternalUser)
@@ -82,7 +82,7 @@ final class SubscriptionFeatureAvailabilityTests: XCTestCase {
     }
 
     func testSubscriptionFeatureAvailableWhenIsLaunchedOverrideFlagEnabled() {
-        let purchasePlatform = SubscriptionPurchaseEnvironment.Environment.appStore
+        let purchasePlatform = SubscriptionEnvironment.Platform.appStore
 
         internalUserDeciderStore.isInternalUser = false
         XCTAssertFalse(internalUserDeciderStore.isInternalUser)
@@ -100,7 +100,7 @@ final class SubscriptionFeatureAvailabilityTests: XCTestCase {
     }
 
     func testSubscriptionFeatureAvailableAndPurchaseNotAllowed() {
-        let purchasePlatform = SubscriptionPurchaseEnvironment.Environment.appStore
+        let purchasePlatform = SubscriptionEnvironment.Platform.appStore
 
         internalUserDeciderStore.isInternalUser = false
         XCTAssertFalse(internalUserDeciderStore.isInternalUser)
@@ -118,7 +118,7 @@ final class SubscriptionFeatureAvailabilityTests: XCTestCase {
     }
 
     func testSubscriptionFeatureAvailableWhenAllFlagsDisabledAndInternalUser() {
-        let purchasePlatform = SubscriptionPurchaseEnvironment.Environment.appStore
+        let purchasePlatform = SubscriptionEnvironment.Platform.appStore
 
         internalUserDeciderStore.isInternalUser = true
         XCTAssertTrue(internalUserDeciderStore.isInternalUser)
@@ -136,7 +136,7 @@ final class SubscriptionFeatureAvailabilityTests: XCTestCase {
     // MARK: - Tests for Stripe
 
     func testStripeSubscriptionFeatureNotAvailableWhenAllFlagsDisabledAndNotInternalUser() {
-        let purchasePlatform = SubscriptionPurchaseEnvironment.Environment.stripe
+        let purchasePlatform = SubscriptionEnvironment.Platform.stripe
 
         internalUserDeciderStore.isInternalUser = false
         XCTAssertFalse(internalUserDeciderStore.isInternalUser)
@@ -152,7 +152,7 @@ final class SubscriptionFeatureAvailabilityTests: XCTestCase {
     }
 
     func testStripeSubscriptionFeatureAvailableWhenIsLaunchedFlagEnabled() {
-        let purchasePlatform = SubscriptionPurchaseEnvironment.Environment.stripe
+        let purchasePlatform = SubscriptionEnvironment.Platform.stripe
 
         internalUserDeciderStore.isInternalUser = false
         XCTAssertFalse(internalUserDeciderStore.isInternalUser)
@@ -170,7 +170,7 @@ final class SubscriptionFeatureAvailabilityTests: XCTestCase {
     }
 
     func testStripeSubscriptionFeatureAvailableWhenIsLaunchedOverrideFlagEnabled() {
-        let purchasePlatform = SubscriptionPurchaseEnvironment.Environment.stripe
+        let purchasePlatform = SubscriptionEnvironment.Platform.stripe
 
         internalUserDeciderStore.isInternalUser = false
         XCTAssertFalse(internalUserDeciderStore.isInternalUser)
@@ -188,7 +188,7 @@ final class SubscriptionFeatureAvailabilityTests: XCTestCase {
     }
 
     func testStripeSubscriptionFeatureAvailableAndPurchaseNotAllowed() {
-        let purchasePlatform = SubscriptionPurchaseEnvironment.Environment.stripe
+        let purchasePlatform = SubscriptionEnvironment.Platform.stripe
 
         internalUserDeciderStore.isInternalUser = false
         XCTAssertFalse(internalUserDeciderStore.isInternalUser)
@@ -206,7 +206,7 @@ final class SubscriptionFeatureAvailabilityTests: XCTestCase {
     }
 
     func testStripeSubscriptionFeatureAvailableWhenAllFlagsDisabledAndInternalUser() {
-        let purchasePlatform = SubscriptionPurchaseEnvironment.Environment.stripe
+        let purchasePlatform = SubscriptionEnvironment.Platform.stripe
 
         internalUserDeciderStore.isInternalUser = true
         XCTAssertTrue(internalUserDeciderStore.isInternalUser)

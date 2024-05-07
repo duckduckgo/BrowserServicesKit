@@ -24,34 +24,23 @@ import Common
 @available(macOS 12.0, iOS 15.0, *) typealias RenewalInfo = StoreKit.Product.SubscriptionInfo.RenewalInfo
 @available(macOS 12.0, iOS 15.0, *) typealias RenewalState = StoreKit.Product.SubscriptionInfo.RenewalState
 
-public enum StoreError: Error {
-    case failedVerification
-}
-
-public enum PurchaseManagerError: Error {
-    case productNotFound
-    case externalIDisNotAValidUUID
-    case purchaseFailed
-    case transactionCannotBeVerified
-    case transactionPendingAuthentication
-    case purchaseCancelledByUser
-    case unknownError
-}
-
 @available(macOS 12.0, iOS 15.0, *)
-public final class StorePurchaseManager: ObservableObject {
+public final class StorePurchaseManager: ObservableObject, StorePurchaseManaging {
 
-    static let productIdentifiers = ["ios.subscription.1month", "ios.subscription.1year",
-                                     "subscription.1month", "subscription.1year",
-                                     "review.subscription.1month", "review.subscription.1year",
-                                     "tf.sandbox.subscription.1month", "tf.sandbox.subscription.1year",
-                                     "ddg.privacy.pro.monthly.renews.us", "ddg.privacy.pro.yearly.renews.us"]
+    let productIdentifiers = ["ios.subscription.1month", "ios.subscription.1year",
+                              "subscription.1month", "subscription.1year",
+                              "review.subscription.1month", "review.subscription.1year",
+                              "tf.sandbox.subscription.1month", "tf.sandbox.subscription.1year",
+                              "ddg.privacy.pro.monthly.renews.us", "ddg.privacy.pro.yearly.renews.us"]
 
-    @Published public private(set) var availableProducts: [Product] = []
+    @Published public var availableProducts: [Product] = []
     @Published public private(set) var purchasedProductIDs: [String] = []
     @Published public private(set) var purchaseQueue: [String] = []
+    @Published private var subscriptionGroupStatus: RenewalState?
 
-    @Published private(set) var subscriptionGroupStatus: RenewalState?
+    public var areProductsAvailable: Bool {
+        !availableProducts.isEmpty
+    }
 
     private var transactionUpdates: Task<Void, Never>?
     private var storefrontChanges: Task<Void, Never>?
@@ -88,12 +77,37 @@ public final class StorePurchaseManager: ObservableObject {
         }
     }
 
+    public func subscriptionOptions() async -> SubscriptionOptions? {
+        os_log(.info, log: .subscription, "[AppStorePurchaseFlow] subscriptionOptions")
+        let products = availableProducts
+        let monthly = products.first(where: { $0.subscription?.subscriptionPeriod.unit == .month && $0.subscription?.subscriptionPeriod.value == 1 })
+        let yearly = products.first(where: { $0.subscription?.subscriptionPeriod.unit == .year && $0.subscription?.subscriptionPeriod.value == 1 })
+        guard let monthly, let yearly else {
+            os_log(.error, log: .subscription, "[AppStorePurchaseFlow] No products found")
+            return nil
+        }
+
+        let options = [SubscriptionOption(id: monthly.id, cost: .init(displayPrice: monthly.displayPrice, recurrence: "monthly")),
+                       SubscriptionOption(id: yearly.id, cost: .init(displayPrice: yearly.displayPrice, recurrence: "yearly"))]
+        let features = SubscriptionFeatureName.allCases.map { SubscriptionFeature(name: $0.rawValue) }
+        let platform: SubscriptionPlatformName
+
+#if os(iOS)
+        platform = .ios
+#else
+        platform = .macos
+#endif
+        return SubscriptionOptions(platform: platform.rawValue,
+                                   options: options,
+                                   features: features)
+    }
+
     @MainActor
     public func updateAvailableProducts() async {
         os_log(.info, log: .subscription, "[StorePurchaseManager] updateAvailableProducts")
 
         do {
-            let availableProducts = try await Product.products(for: Self.productIdentifiers)
+            let availableProducts = try await Product.products(for: productIdentifiers)
             os_log(.info, log: .subscription, "[StorePurchaseManager] updateAvailableProducts fetched %d products", availableProducts.count)
 
             if self.availableProducts != availableProducts {

@@ -22,12 +22,13 @@ import Common
 
 public final class StripePurchaseFlow {
 
-    let accountManager: AccountManaging
-    let subscriptionService: SubscriptionService
+    private let subscriptionManager: SubscriptionManager
+    var accountManager: AccountManaging {
+        subscriptionManager.accountManager
+    }
 
-    public init(accountManager: AccountManaging, subscriptionService: SubscriptionService) {
-        self.accountManager = accountManager
-        self.subscriptionService = subscriptionService
+    public init(subscriptionManager: SubscriptionManager) {
+        self.subscriptionManager = subscriptionManager
     }
 
     public enum Error: Swift.Error {
@@ -38,7 +39,7 @@ public final class StripePurchaseFlow {
     public func subscriptionOptions() async -> Result<SubscriptionOptions, StripePurchaseFlow.Error> {
         os_log(.info, log: .subscription, "[StripePurchaseFlow] subscriptionOptions")
 
-        guard case let .success(products) = await subscriptionService.getProducts(), !products.isEmpty else {
+        guard case let .success(products) = await subscriptionManager.subscriptionService.getProducts(), !products.isEmpty else {
             os_log(.error, log: .subscription, "[StripePurchaseFlow] Error: noProductsFound")
             return .failure(.noProductsFound)
         }
@@ -73,7 +74,7 @@ public final class StripePurchaseFlow {
         os_log(.info, log: .subscription, "[StripePurchaseFlow] prepareSubscriptionPurchase")
 
         // Clear subscription Cache
-        subscriptionService.signOut()
+        subscriptionManager.subscriptionService.signOut()
         var token: String = ""
 
         if let accessToken = accountManager.accessToken {
@@ -81,7 +82,7 @@ public final class StripePurchaseFlow {
                 token = accessToken
             }
         } else {
-            switch await AuthService.createAccount(emailAccessToken: emailAccessToken) {
+            switch await subscriptionManager.authService.createAccount(emailAccessToken: emailAccessToken) {
             case .success(let response):
                 token = response.authToken
                 accountManager.storeAuthToken(token: token)
@@ -95,7 +96,7 @@ public final class StripePurchaseFlow {
     }
 
     private func isSubscriptionExpired(accessToken: String) async -> Bool {
-        if case .success(let subscription) = await subscriptionService.getSubscription(accessToken: accessToken) {
+        if case .success(let subscription) = await subscriptionManager.subscriptionService.getSubscription(accessToken: accessToken) {
             return !subscription.isActive
         }
 
@@ -105,7 +106,7 @@ public final class StripePurchaseFlow {
     public func completeSubscriptionPurchase() async {
 
         // Clear subscription Cache
-        subscriptionService.signOut()
+        subscriptionManager.subscriptionService.signOut()
 
         os_log(.info, log: .subscription, "[StripePurchaseFlow] completeSubscriptionPurchase")
         if !accountManager.isUserAuthenticated,
