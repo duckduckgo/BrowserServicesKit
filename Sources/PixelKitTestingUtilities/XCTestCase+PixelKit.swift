@@ -138,9 +138,8 @@ public extension XCTestCase {
     }
 
     func expectedPixelNames(originalName: String, frequency: PixelKit.Frequency) -> [String] {
-        let expectedPixelNameWithoutSuffix = originalName
         var expectedPixelNames: [String] = []
-
+        
         switch frequency {
         case .standard:
             expectedPixelNames.append(originalName)
