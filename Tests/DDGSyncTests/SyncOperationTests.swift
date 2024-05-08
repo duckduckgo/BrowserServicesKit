@@ -271,9 +271,9 @@ class SyncOperationTests: XCTestCase {
         try await syncOperation.sync(fetchOnly: false)
 
         XCTAssertTrue(try sentModels.isJSONRepresentationEquivalent(to: objectsToSync))
-        XCTAssertTrue(errors.isEmpty)
         XCTAssertEqual(requestMaker.makePatchRequestCallCount, 1)
         XCTAssertEqual(requestMaker.makePatchRequestCallArgs[0].isCompressed, true)
+        XCTAssertTrue(errors.isEmpty)
     }
 
     func testWhenPatchPayloadCompressionFailsThenPayloadIsSentUncompressed() async throws {
@@ -299,12 +299,15 @@ class SyncOperationTests: XCTestCase {
         try await syncOperation.sync(fetchOnly: false)
 
         XCTAssertTrue(try sentModels.isJSONRepresentationEquivalent(to: objectsToSync))
-        XCTAssertEqual(errors.count, 1)
-        let error = try XCTUnwrap(errors.first as? GzipError)
-        XCTAssertEqual(error.kind, .unknown(code: errorCode))
         XCTAssertEqual(requestMaker.makePatchRequestCallCount, 2)
         XCTAssertEqual(requestMaker.makePatchRequestCallArgs[0].isCompressed, true)
         XCTAssertEqual(requestMaker.makePatchRequestCallArgs[1].isCompressed, false)
+        XCTAssertEqual(errors.count, 1)
+        let error = try XCTUnwrap(errors.first)
+        guard case SyncError.patchPayloadCompressionFailed(errorCode) = error else {
+            XCTFail("Unexpected error thrown: \(error)")
+            return
+        }
     }
 }
 

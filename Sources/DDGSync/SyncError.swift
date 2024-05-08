@@ -57,6 +57,7 @@ public enum SyncError: Error, Equatable {
     case settingsMetadataNotPresent
 
     case unauthenticatedWhileLoggedIn
+    case patchPayloadCompressionFailed(_ errorCode: Int)
 
     public var isServerError: Bool {
         switch self {
@@ -137,6 +138,8 @@ public enum SyncError: Error, Equatable {
             return [syncErrorString: "settingsMetadataNotPresent"]
         case .unauthenticatedWhileLoggedIn:
             return [syncErrorString: "unauthenticatedWhileLoggedIn"]
+        case .patchPayloadCompressionFailed:
+            return [syncErrorString: "patchPayloadCompressionFailed"]
         }
     }
 }
@@ -183,6 +186,7 @@ extension SyncError: CustomNSError {
         case .emailProtectionUsernamePresentButTokenMissing: return 26
         case .settingsMetadataNotPresent: return 27
         case .unauthenticatedWhileLoggedIn: return 28
+        case .patchPayloadCompressionFailed: return 29
         }
     }
 

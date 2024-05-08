@@ -218,7 +218,7 @@ final class SyncOperation: Operation {
             do {
                 return try requestMaker.makePatchRequest(with: syncRequest, clientTimestamp: timestamp, isCompressed: true)
             } catch let error as GzipError {
-                dataProvider.handleSyncError(error)
+                dataProvider.handleSyncError(SyncError.patchPayloadCompressionFailed(error.errorCode))
                 return try requestMaker.makePatchRequest(with: syncRequest, clientTimestamp: timestamp, isCompressed: false)
             }
         }

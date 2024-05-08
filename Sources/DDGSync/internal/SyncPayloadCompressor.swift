@@ -29,10 +29,10 @@ struct SyncPayloadCompressor: SyncPayloadCompressing {
     }
 }
 
-extension GzipError: CustomNSError {
-    public static let errorDomain: String = "GzipError"
-
-    public var errorCode: Int {
+extension GzipError {
+    /// Mapping is taken from `GzipError.Kind` documentation which maps zlib error codes to enum cases,
+    /// and we're effectively reversing that mapping here.
+    var errorCode: Int {
         switch kind {
         case .stream:
             return -2
