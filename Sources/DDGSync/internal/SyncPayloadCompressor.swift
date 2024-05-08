@@ -28,3 +28,24 @@ struct SyncPayloadCompressor: SyncPayloadCompressing {
         try payload.gzipped()
     }
 }
+
+extension GzipError: CustomNSError {
+    public static let errorDomain: String = "GzipError"
+
+    public var errorCode: Int {
+        switch kind {
+        case .stream:
+            return -2
+        case .data:
+            return -3
+        case .memory:
+            return -4
+        case .buffer:
+            return -5
+        case .version:
+            return -6
+        case .unknown(let code):
+            return code
+        }
+    }
+}
