@@ -1,7 +1,7 @@
 //
-//  ExtensionRequest.swift
+//  KnownFailureObserver.swift
 //
-//  Copyright © 2023 DuckDuckGo. All rights reserved.
+//  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -16,18 +16,11 @@
 //  limitations under the License.
 //
 
+import Combine
 import Foundation
+import NetworkExtension
 
-public enum DebugCommand: Codable {
-    case expireRegistrationKey
-    case removeSystemExtension
-    case removeVPNConfiguration
-    case sendTestNotification
-    case simulateKnownFailure
-    case disableConnectOnDemandAndShutDown
-}
-
-public enum ExtensionRequest: Codable {
-    case changeTunnelSetting(_ change: VPNSettings.Change)
-    case debugCommand(_ command: DebugCommand)
+public protocol KnownFailureObserver {
+    var publisher: AnyPublisher<KnownFailure?, Never> { get }
+    var recentValue: KnownFailure? { get }
 }

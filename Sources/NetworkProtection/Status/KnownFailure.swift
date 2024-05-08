@@ -1,7 +1,7 @@
 //
-//  ExtensionRequest.swift
+//  KnownFailure.swift
 //
-//  Copyright © 2023 DuckDuckGo. All rights reserved.
+//  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -18,16 +18,21 @@
 
 import Foundation
 
-public enum DebugCommand: Codable {
-    case expireRegistrationKey
-    case removeSystemExtension
-    case removeVPNConfiguration
-    case sendTestNotification
-    case simulateKnownFailure
-    case disableConnectOnDemandAndShutDown
-}
+@objc
+final public class KnownFailure: NSObject, Codable {
+    public let domain: String
+    public let code: Int
+    public let localizedDescription: String
 
-public enum ExtensionRequest: Codable {
-    case changeTunnelSetting(_ change: VPNSettings.Change)
-    case debugCommand(_ command: DebugCommand)
+    public init?(_ error: Error?) {
+        guard let nsError = error as? NSError else { return nil }
+
+        domain = nsError.domain
+        code = nsError.code
+        localizedDescription = nsError.localizedDescription
+    }
+
+    public override var description: String {
+        "Error domain=\(domain) code=\(code)\n\(localizedDescription)"
+    }
 }

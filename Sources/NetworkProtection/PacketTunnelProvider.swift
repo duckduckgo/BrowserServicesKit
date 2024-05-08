@@ -1021,6 +1021,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             handleExpireRegistrationKey(completionHandler: completionHandler)
         case .sendTestNotification:
             handleSendTestNotification(completionHandler: completionHandler)
+        case .simulateKnownFailure:
+            completionHandler?(nil)
         case .disableConnectOnDemandAndShutDown:
             Task { [weak self] in
                 await self?.attemptShutdown {

@@ -41,6 +41,7 @@ public enum NetworkProtectionClientError: CustomNSError, NetworkProtectionErrorC
     case failedToParseRedeemResponse(Error)
     case invalidAuthToken
     case accessDenied
+    case loginItemVersionMismatched
 
     var networkProtectionError: NetworkProtectionError {
         switch self {
@@ -58,6 +59,7 @@ public enum NetworkProtectionClientError: CustomNSError, NetworkProtectionErrorC
         case .failedToParseRedeemResponse(let error): return .failedToParseRedeemResponse(error)
         case .invalidAuthToken: return .invalidAuthToken
         case .accessDenied: return .vpnAccessRevoked
+        case .loginItemVersionMismatched: return .loginItemVersionMismatched
         }
     }
 
@@ -77,6 +79,7 @@ public enum NetworkProtectionClientError: CustomNSError, NetworkProtectionErrorC
         case .failedToParseRedeemResponse: return 11
         case .invalidAuthToken: return 12
         case .accessDenied: return 13
+        case .loginItemVersionMismatched: return 14
         }
     }
 
@@ -96,7 +99,8 @@ public enum NetworkProtectionClientError: CustomNSError, NetworkProtectionErrorC
                 .invalidInviteCode,
                 .failedToRetrieveAuthToken,
                 .invalidAuthToken,
-                .accessDenied:
+                .accessDenied,
+                .loginItemVersionMismatched:
             return [:]
         }
     }
