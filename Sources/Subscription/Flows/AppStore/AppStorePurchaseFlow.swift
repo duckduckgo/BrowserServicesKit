@@ -34,12 +34,12 @@ public final class AppStorePurchaseFlow {
         case internalError
     }
 
-    private let subscriptionManager: SubscriptionManager
+    private let subscriptionManager: SubscriptionManaging
     var accountManager: AccountManaging {
         subscriptionManager.accountManager
     }
 
-    public init(subscriptionManager: SubscriptionManager) {
+    public init(subscriptionManager: SubscriptionManaging) {
         self.subscriptionManager = subscriptionManager
     }
 
@@ -88,12 +88,7 @@ public final class AppStorePurchaseFlow {
         }
 
         // Make the purchase
-        guard let storePurchaseManager = subscriptionManager.storePurchaseManager else {
-            assertionFailure("Missing accountManagerDataSource")
-            return .failure(.internalError)
-        }
-
-        switch await storePurchaseManager.purchaseSubscription(with: subscriptionIdentifier, externalID: externalID) {
+        switch await subscriptionManager.getStorePurchaseManager().purchaseSubscription(with: subscriptionIdentifier, externalID: externalID) {
         case .success(let transactionJWS):
             return .success(transactionJWS)
         case .failure(let error):

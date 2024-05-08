@@ -22,12 +22,12 @@ import Common
 
 public final class StripePurchaseFlow {
 
-    private let subscriptionManager: SubscriptionManager
+    private let subscriptionManager: SubscriptionManaging
     var accountManager: AccountManaging {
         subscriptionManager.accountManager
     }
 
-    public init(subscriptionManager: SubscriptionManager) {
+    public init(subscriptionManager: SubscriptionManaging) {
         self.subscriptionManager = subscriptionManager
     }
 

@@ -20,92 +20,28 @@ import Foundation
 import Common
 import PixelKit
 
-public struct SubscriptionEnvironment {
+public protocol SubscriptionManaging {
 
-    public enum ServiceEnvironment: String, Codable {
-        case production
-        case staging
-
-        public static var `default`: ServiceEnvironment = .production
-
-        public var description: String {
-            switch self {
-            case .production: return "Production"
-            case .staging: return "Staging"
-            }
-        }
-    }
-
-    public enum Platform: String {
-        case appStore, stripe
-    }
-
-    public var serviceEnvironment: ServiceEnvironment
-    public var platform: Platform
-}
-
-// MARK: - URLs, ex URL+Subscription
-
-public enum SubscriptionURL {
-    case baseURL
-    case purchase
-    case FAQ
-    case activateViaEmail
-    case addEmail
-    case manageEmail
-    case activateSuccess
-    case addEmailToSubscriptionSuccess
-    case addEmailToSubscriptionOTP
-    case manageSubscriptionsInAppStore
-    case identityTheftRestoration
-
-    public func subscriptionURL(environment: SubscriptionEnvironment.ServiceEnvironment) -> URL {
-        switch self {
-        case .baseURL:
-            switch environment {
-            case .production:
-                URL(string: "https://duckduckgo.com/subscriptions")!
-            case .staging:
-                URL(string: "https://duckduckgo.com/subscriptions?environment=staging")!
-            }
-        case .purchase:
-            SubscriptionURL.baseURL.subscriptionURL(environment: environment).appendingPathComponent("welcome")
-        case .FAQ:
-            URL(string: "https://duckduckgo.com/duckduckgo-help-pages/privacy-pro/")!
-        case .activateViaEmail:
-            SubscriptionURL.baseURL.subscriptionURL(environment: environment).appendingPathComponent("activate")
-        case .addEmail:
-            SubscriptionURL.baseURL.subscriptionURL(environment: environment).appendingPathComponent("add-email")
-        case .manageEmail:
-            SubscriptionURL.baseURL.subscriptionURL(environment: environment).appendingPathComponent("manage")
-        case .activateSuccess:
-            SubscriptionURL.baseURL.subscriptionURL(environment: environment).appendingPathComponent("activate/success")
-        case .addEmailToSubscriptionSuccess:
-            SubscriptionURL.baseURL.subscriptionURL(environment: environment).appendingPathComponent("add-email/success")
-        case .addEmailToSubscriptionOTP:
-            SubscriptionURL.baseURL.subscriptionURL(environment: environment).appendingPathComponent("add-email/otp")
-        case .manageSubscriptionsInAppStore:
-            URL(string: "macappstores://apps.apple.com/account/subscriptions")!
-        case .identityTheftRestoration:
-            switch environment {
-            case .production:
-                URL(string: "https://duckduckgo.com/identity-theft-restoration")!
-            case .staging:
-                URL(string: "https://duckduckgo.com/identity-theft-restoration?environment=staging")!
-            }
-        }
-    }
+    var accountManager: AccountManaging { get }
+    var subscriptionService: SubscriptionService { get }
+    var authService: AuthService { get }
+    @available(macOS 12.0, iOS 15.0, *)
+    func getStorePurchaseManager() -> StorePurchaseManaging
+    var currentEnvironment: SubscriptionEnvironment  { get }
+    var canPurchase: Bool { get }
+    func loadInitialData()
+    func updateSubscriptionStatus(completion: @escaping (_ isActive: Bool) -> Void)
 }
 
 /// Single entry point for everything related to Subscription. This manager is disposable, every time something related to the environment changes this need to be recreated.
-final public class SubscriptionManager {
+final public class SubscriptionManager: SubscriptionManaging {
 
-    let storePurchaseManager: StorePurchaseManaging?
+    private let storePurchaseManager: StorePurchaseManaging?
+
     public let accountManager: AccountManaging
-
     public let subscriptionService: SubscriptionService
     public let authService: AuthService
-    
+
     public init(storePurchaseManager: StorePurchaseManaging? = nil,
                 accountManager: AccountManaging,
                 subscriptionService: SubscriptionService,
@@ -122,6 +58,8 @@ final public class SubscriptionManager {
         case .appStore:
             if #available(macOS 12.0, iOS 15.0, *) {
                 setupForAppStore()
+            } else {
+
             }
         case .stripe:
             setupForStripe()

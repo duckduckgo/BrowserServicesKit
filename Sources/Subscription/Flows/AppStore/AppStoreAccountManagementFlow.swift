@@ -23,12 +23,12 @@ import Common
 @available(macOS 12.0, iOS 15.0, *)
 public final class AppStoreAccountManagementFlow {
 
-    private let subscriptionManager: SubscriptionManager
+    private let subscriptionManager: SubscriptionManaging
     private var accountManager: AccountManaging {
         subscriptionManager.accountManager
     }
 
-    public init(subscriptionManager: SubscriptionManager) {
+    public init(subscriptionManager: SubscriptionManaging) {
         self.subscriptionManager = subscriptionManager
     }
 
@@ -47,7 +47,7 @@ public final class AppStoreAccountManagementFlow {
             os_log(.error, log: .subscription, "[AppStoreAccountManagementFlow] validateToken error: %{public}s", String(reflecting: validateTokenError))
 
             // In case of invalid token attempt store based authentication to obtain a new one
-            guard let lastTransactionJWSRepresentation = await subscriptionManager.storePurchaseManager?.mostRecentTransaction() else { return .failure(.noPastTransaction) }
+            guard let lastTransactionJWSRepresentation = await subscriptionManager.getStorePurchaseManager().mostRecentTransaction() else { return .failure(.noPastTransaction) }
 
             switch await subscriptionManager.authService.storeLogin(signature: lastTransactionJWSRepresentation) {
             case .success(let response):

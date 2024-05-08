@@ -34,12 +34,12 @@ public final class AppStoreRestoreFlow {
         case subscriptionExpired(accountDetails: RestoredAccountDetails)
     }
 
-    private let subscriptionManager: SubscriptionManager
+    private let subscriptionManager: SubscriptionManaging
     var accountManager: AccountManaging {
         subscriptionManager.accountManager
     }
 
-    public init(subscriptionManager: SubscriptionManager) {
+    public init(subscriptionManager: SubscriptionManaging) {
         self.subscriptionManager = subscriptionManager
     }
 
@@ -51,7 +51,7 @@ public final class AppStoreRestoreFlow {
 
         os_log(.info, log: .subscription, "[AppStoreRestoreFlow] restoreAccountFromPastPurchase")
 
-        guard let lastTransactionJWSRepresentation = await subscriptionManager.storePurchaseManager?.mostRecentTransaction() else {
+        guard let lastTransactionJWSRepresentation = await subscriptionManager.getStorePurchaseManager().mostRecentTransaction() else {
             os_log(.error, log: .subscription, "[AppStoreRestoreFlow] Error: missingAccountOrTransactions")
             return .failure(.missingAccountOrTransactions)
         }
