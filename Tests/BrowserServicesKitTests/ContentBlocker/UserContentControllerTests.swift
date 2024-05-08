@@ -55,7 +55,7 @@ final class UserContentControllerTests: XCTestCase {
     @MainActor
     override func setUp() async throws {
         _=WKUserContentController.swizzleContentRuleListsMethodsOnce
-        ucc = UserContentController(assetsPublisher: assetsSubject, privacyConfigurationManager: MockPrivacyConfigurationManager())
+        ucc = UserContentController(assetsPublisher: assetsSubject, privacyConfigurationManager: MockPrivacyConfigurationManager2())
         ucc.delegate = self
     }
 
@@ -256,11 +256,11 @@ extension UserContentControllerTests: UserContentControllerDelegate {
     }
 }
 
-class MockPrivacyConfigurationManager: PrivacyConfigurationManaging {
+class MockPrivacyConfigurationManager2: PrivacyConfigurationManaging {
     var currentConfig: Data = .init()
     var updatesSubject = PassthroughSubject<Void, Never>()
     let updatesPublisher: AnyPublisher<Void, Never>
-    var privacyConfig: PrivacyConfiguration = MockPrivacyConfiguration()
+    var privacyConfig: PrivacyConfiguration = MockPrivacyConfiguration2()
     let internalUserDecider: InternalUserDecider = DefaultInternalUserDecider()
     var toggleProtectionsCounter = ToggleProtectionsCounter(eventReporting: EventMapping<ToggleProtectionsCounterEvent> { _, _, _, _ in })
     func reload(etag: String?, data: Data?) -> PrivacyConfigurationManager.ReloadResult {
@@ -272,7 +272,7 @@ class MockPrivacyConfigurationManager: PrivacyConfigurationManaging {
     }
 }
 
-class MockPrivacyConfiguration: PrivacyConfiguration {
+class MockPrivacyConfiguration2: PrivacyConfiguration {
 
     func isEnabled(featureKey: PrivacyFeature, versionProvider: AppVersionProvider) -> Bool { true }
 
