@@ -19,16 +19,21 @@
 import Foundation
 import Subscription
 
-class AccountManagerMock: AccountManaging {
+public final class AccountManagerMock: AccountManaging {
 
-    var delegate: AccountManagerKeychainAccessDelegate?
-    var isUserAuthenticated: Bool
-    var accessToken: String?
-    var authToken: String?
-    var email: String?
-    var externalID: String?
+    public var delegate: AccountManagerKeychainAccessDelegate?
+    public var isUserAuthenticated: Bool
+    public var accessToken: String?
+    public var authToken: String?
+    public var email: String?
+    public var externalID: String?
 
-    init(delegate: AccountManagerKeychainAccessDelegate? = nil, isUserAuthenticated: Bool, accessToken: String? = nil, authToken: String? = nil, email: String? = nil, externalID: String? = nil) {
+    public init(delegate: AccountManagerKeychainAccessDelegate? = nil,
+                isUserAuthenticated: Bool,
+                accessToken: String? = nil,
+                authToken: String? = nil,
+                email: String? = nil,
+                externalID: String? = nil) {
         self.delegate = delegate
         self.isUserAuthenticated = isUserAuthenticated
         self.accessToken = accessToken
@@ -37,55 +42,60 @@ class AccountManagerMock: AccountManaging {
         self.externalID = externalID
     }
 
-    func storeAuthToken(token: String) {
+    public func storeAuthToken(token: String) {
         authToken = token
     }
 
-    func storeAccount(token: String, email: String?, externalID: String?) {
-        <#code#>
+    public func storeAccount(token: String, email: String?, externalID: String?) {
+        accessToken = token
     }
 
-    func signOut(skipNotification: Bool) {
-        <#code#>
+    public func signOut(skipNotification: Bool) {
+        accessToken = nil
     }
 
-    func signOut() {
-        <#code#>
+    public func signOut() {
+        accessToken = nil
     }
 
-    func migrateAccessTokenToNewStore() throws {
-        <#code#>
+    public func migrateAccessTokenToNewStore() throws {
+
     }
 
-    func hasEntitlement(for entitlement: Entitlement.ProductName, cachePolicy: CachePolicy) async -> Result<Bool, Error> {
-        <#code#>
+    public func hasEntitlement(for entitlement: Entitlement.ProductName, cachePolicy: CachePolicy) async -> Result<Bool, Error> {
+        return .success(true)
     }
 
-    func hasEntitlement(for entitlement: Entitlement.ProductName) async -> Result<Bool, Error> {
-        <#code#>
+    public func hasEntitlement(for entitlement: Entitlement.ProductName) async -> Result<Bool, Error> {
+        return .success(true)
     }
 
-    func updateCache(with entitlements: [Entitlement]) {
-        <#code#>
+    public func updateCache(with entitlements: [Entitlement]) {
+
     }
 
-    func fetchEntitlements(cachePolicy: CachePolicy) async -> Result<[Entitlement], Error> {
-        <#code#>
+    public func fetchEntitlements(cachePolicy: CachePolicy) async -> Result<[Entitlement], Error> {
+        return .success([])
     }
 
-    func exchangeAuthTokenToAccessToken(_ authToken: String) async -> Result<String, Error> {
-        <#code#>
+    public func exchangeAuthTokenToAccessToken(_ authToken: String) async -> Result<String, Error> {
+        return .success("")
     }
 
-    func fetchAccountDetails(with accessToken: String) async -> Result<AccountDetails, Error> {
-        <#code#>
+    public func fetchAccountDetails(with accessToken: String) async -> Result<AccountDetails, Error> {
+        if let email, let externalID {
+            let details: AccountDetails = (email: email, externalID: externalID)
+            return .success(details)
+        } else {
+            return .failure(APIServiceError.unknownServerError)
+        }
     }
 
-    func refreshSubscriptionAndEntitlements() async {
-        <#code#>
+    public func refreshSubscriptionAndEntitlements() async {
+
     }
 
-    func checkForEntitlements(wait waitTime: Double, retry retryCount: Int) async -> Bool {
-        <#code#>
+    public func checkForEntitlements(wait waitTime: Double, retry retryCount: Int) async -> Bool {
+        return true
     }
 }
