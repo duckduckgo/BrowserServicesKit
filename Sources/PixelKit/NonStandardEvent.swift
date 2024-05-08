@@ -1,7 +1,7 @@
 //
-//  PixelKitEvent.swift
+//  NonStandardEvent.swift
 //
-//  Copyright © 2023 DuckDuckGo. All rights reserved.
+//  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -18,9 +18,24 @@
 
 import Foundation
 
-/// An event that can be fired using PixelKit.
-///
-public protocol PixelKitEvent {
-    var name: String { get }
-    var parameters: [String: String]? { get }
+/// This custom event is used for special cases, like pixels with non-standard names and uses, these pixels are sent as is and the names remain unchanged
+public final class NonStandardEvent: PixelKitEventV2 {
+
+    let event: PixelKitEventV2
+
+    public init(_ event: PixelKitEventV2) {
+        self.event = event
+    }
+
+    public var name: String {
+        event.name
+    }
+
+    public var parameters: [String: String]? {
+        event.parameters
+    }
+
+    public var error: Error? {
+        event.error
+    }
 }
