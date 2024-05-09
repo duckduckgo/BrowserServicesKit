@@ -18,7 +18,7 @@
 
 import Foundation
 
-/// A protocol defining the storage for subscription origin information.
+/// A protocol defining the storage for the Privacy Pro subscription attribution information.
 public protocol SubscriptionOriginStorage: AnyObject {
     /// The subscription origin information.
     ///
@@ -29,7 +29,7 @@ public protocol SubscriptionOriginStorage: AnyObject {
     var origin: String? { get set }
 }
 
-/// A class that provides storage for subscription origin information using UserDefaults.
+/// A class that provides storage for the Privacy Pro subscription attribution information.
 ///
 /// Upon retrieval, the stored value is automatically set to `nil` to ensure that the value is read only once.
 ///
@@ -39,7 +39,7 @@ public protocol SubscriptionOriginStorage: AnyObject {
 /// let originStore = SubscriptionOriginStore(userDefaults: UserDefaults.standard)
 /// originStore.origin = "App Store"
 /// let origin = originStore.origin // After this read operation, the stored value will be set to nil.
-/// print(origin) // Output: Optional("App Store")
+/// print(origin) // Output: "App Store"
 /// ```
 public final class SubscriptionOriginStore: SubscriptionOriginStorage {
     enum Keys {
