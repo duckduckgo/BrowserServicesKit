@@ -27,11 +27,11 @@ public protocol SubscriptionFeatureAvailability {
 public final class DefaultSubscriptionFeatureAvailability: SubscriptionFeatureAvailability {
 
     private let privacyConfigurationManager: PrivacyConfigurationManaging
-    private let subscriptionEnvironment: SubscriptionEnvironment
+    private let subscriptionPlatform: SubscriptionEnvironment.Platform
 
-    public init(privacyConfigurationManager: PrivacyConfigurationManaging, subscriptionEnvironment: SubscriptionEnvironment) {
+    public init(privacyConfigurationManager: PrivacyConfigurationManaging, subscriptionPlatform: SubscriptionEnvironment.Platform) {
         self.privacyConfigurationManager = privacyConfigurationManager
-        self.subscriptionEnvironment = subscriptionEnvironment
+        self.subscriptionPlatform = subscriptionPlatform
     }
 
     public var isFeatureAvailable: Bool {
@@ -41,7 +41,7 @@ public final class DefaultSubscriptionFeatureAvailability: SubscriptionFeatureAv
     public var isSubscriptionPurchaseAllowed: Bool {
         let isPurchaseAllowed: Bool
 
-        switch subscriptionEnvironment.platform {
+        switch subscriptionPlatform {
         case .appStore:
             isPurchaseAllowed = privacyConfigurationManager.privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.allowPurchase)
         case .stripe:
@@ -58,7 +58,7 @@ public final class DefaultSubscriptionFeatureAvailability: SubscriptionFeatureAv
     }
 
     private var isSubscriptionLaunched: Bool {
-        switch subscriptionEnvironment.platform {
+        switch subscriptionPlatform {
         case .appStore:
             privacyConfigurationManager.privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.isLaunched)
         case .stripe:
@@ -67,7 +67,7 @@ public final class DefaultSubscriptionFeatureAvailability: SubscriptionFeatureAv
     }
 
     private var isSubscriptionLaunchedOverride: Bool {
-        switch subscriptionEnvironment.platform {
+        switch subscriptionPlatform {
         case .appStore:
             privacyConfigurationManager.privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.isLaunchedOverride)
         case .stripe:

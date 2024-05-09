@@ -70,3 +70,23 @@ public enum SubscriptionURL {
         }
     }
 }
+
+extension URL {
+    
+    public func forComparison() -> URL {
+        guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else {
+            return self
+        }
+
+        if let queryItems = components.queryItems, !queryItems.isEmpty {
+            components.queryItems = queryItems.filter { !["environment"].contains($0.name) }
+
+            if components.queryItems?.isEmpty ?? true {
+                components.queryItems = nil
+            }
+        } else {
+            components.queryItems = nil
+        }
+        return components.url ?? self
+    }
+}
