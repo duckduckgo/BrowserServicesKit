@@ -499,6 +499,12 @@ let package = Package(
             ]
         ),
         .testTarget(
+            name: "SubscriptionTests",
+            dependencies: [
+                "Subscription",
+            ]
+        ),
+        .testTarget(
             name: "PrivacyDashboardTests",
             dependencies: [
                 "PrivacyDashboard",
