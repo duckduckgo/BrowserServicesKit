@@ -17,7 +17,7 @@
 //
 
 import Foundation
-@testable import Gzip
+import Gzip
 
 protocol SyncPayloadCompressing {
     func compress(_ payload: Data) throws -> Data
@@ -25,7 +25,6 @@ protocol SyncPayloadCompressing {
 
 struct SyncPayloadCompressor: SyncPayloadCompressing {
     func compress(_ payload: Data) throws -> Data {
-        throw GzipError(code: 400, msg: nil)
         try payload.gzipped()
     }
 }
