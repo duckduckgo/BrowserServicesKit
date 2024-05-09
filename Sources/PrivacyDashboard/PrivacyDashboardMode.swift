@@ -28,7 +28,7 @@ public enum PrivacyDashboardMode: Equatable {
         switch self {
         case .dashboard: return .primaryScreen
         case .report: return .breakageForm
-        case .prompt: return .breakageForm // TODO: Privacy dashboard needs to support new name here
+        case .prompt: return .promptBreakageForm
         case .toggleReport: return .toggleReport
         }
     }
