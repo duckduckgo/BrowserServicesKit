@@ -96,6 +96,10 @@ internal class MockAutofillDatabaseProvider: AutofillDatabaseProvider {
         return _accounts
     }
 
+    func accountsCount() throws -> Int {
+        return _accounts.count
+    }
+
     func notes() throws -> [SecureVaultModels.Note] {
         return _notes
     }
