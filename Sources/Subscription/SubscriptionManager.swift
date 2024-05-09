@@ -41,25 +41,25 @@ final public class SubscriptionManager: SubscriptionManaging {
     public let accountManager: AccountManaging
     public let subscriptionService: SubscriptionService
     public let authService: AuthService
+    public let currentEnvironment: SubscriptionEnvironment
+    public private(set) var canPurchase: Bool = false
 
     public init(storePurchaseManager: StorePurchaseManaging? = nil,
                 accountManager: AccountManaging,
                 subscriptionService: SubscriptionService,
                 authService: AuthService,
-                currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment = .default,
-                current: SubscriptionEnvironment.Platform = .appStore) {
+                subscriptionEnvironment: SubscriptionEnvironment) {
         self.storePurchaseManager = storePurchaseManager
         self.accountManager = accountManager
         self.subscriptionService = subscriptionService
         self.authService = authService
-        self.currentEnvironment = SubscriptionEnvironment(serviceEnvironment: currentServiceEnvironment,
-                                                          platform: current)
-        switch current {
+        self.currentEnvironment = subscriptionEnvironment
+        switch currentEnvironment.platform {
         case .appStore:
             if #available(macOS 12.0, iOS 15.0, *) {
                 setupForAppStore()
             } else {
-
+                assertionFailure("Trying to setup AppStore where not supported")
             }
         case .stripe:
             setupForStripe()
@@ -70,10 +70,34 @@ final public class SubscriptionManager: SubscriptionManaging {
         return storePurchaseManager!
     }
 
-    // MARK: - Environment, ex SubscriptionPurchaseEnvironment
+    // MARK: Load and Save SubscriptionEnvironment
 
-    public let currentEnvironment: SubscriptionEnvironment
-    public private(set) var canPurchase: Bool = false
+    static public func getSavedOrDefaultEnvironment(userDefaults: UserDefaults) -> SubscriptionEnvironment {
+        if let savedEnvironment = loadEnvironmentFrom(userDefaults: userDefaults) {
+            return savedEnvironment
+        }
+        return SubscriptionEnvironment.default
+    }
+
+    static private let subscriptionEnvironmentStorageKey = "com.duckduckgo.subscription.environment"
+    static public func loadEnvironmentFrom(userDefaults: UserDefaults) -> SubscriptionEnvironment? {
+        if let savedData = userDefaults.object(forKey: Self.subscriptionEnvironmentStorageKey) as? Data {
+            let decoder = JSONDecoder()
+            if let loadedData = try? decoder.decode(SubscriptionEnvironment.self, from: savedData) {
+                return loadedData
+            }
+        }
+        return nil
+    }
+
+    static public func save(subscriptionEnvironment: SubscriptionEnvironment, userDefaults: UserDefaults) {
+        let encoder = JSONEncoder()
+        if let encodedData = try? encoder.encode(subscriptionEnvironment) {
+            userDefaults.set(encodedData, forKey: Self.subscriptionEnvironmentStorageKey)
+        }
+    }
+
+    // MARK: - Environment, ex SubscriptionPurchaseEnvironment
 
     @available(macOS 12.0, iOS 15.0, *) private func setupForAppStore() {
         Task {

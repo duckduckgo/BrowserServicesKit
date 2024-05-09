@@ -18,13 +18,10 @@
 
 import Foundation
 
-public struct SubscriptionEnvironment {
+public struct SubscriptionEnvironment: Codable {
 
-    public enum ServiceEnvironment: String, Codable {
-        case production
-        case staging
-
-        public static var `default`: ServiceEnvironment = .production
+    public enum ServiceEnvironment: Codable {
+        case production, staging
 
         public var description: String {
             switch self {
@@ -34,10 +31,19 @@ public struct SubscriptionEnvironment {
         }
     }
 
-    public enum Platform: String {
+    public enum Platform: String, Codable {
         case appStore, stripe
     }
 
     public var serviceEnvironment: ServiceEnvironment
     public var platform: Platform
+
+    static var `default`: SubscriptionEnvironment {
+#if APPSTORE || !STRIPE
+        let platform: SubscriptionEnvironment.Platform = .appStore
+#else
+        let platform: SubscriptionEnvironment.Platform = .stripe
+#endif
+        return SubscriptionEnvironment(serviceEnvironment: ServiceEnvironment.production, platform: platform)
+    }
 }
