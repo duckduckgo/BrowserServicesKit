@@ -1,7 +1,7 @@
 //
-//  PixelKitEvent.swift
+//  MockReasserting.swift
 //
-//  Copyright © 2023 DuckDuckGo. All rights reserved.
+//  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -17,10 +17,17 @@
 //
 
 import Foundation
+@testable import NetworkProtection
 
-/// An event that can be fired using PixelKit.
-///
-public protocol PixelKitEvent {
-    var name: String { get }
-    var parameters: [String: String]? { get }
+class MockReasserting: Reasserting {
+
+    var startReassertingCallCount = 0
+    func startReasserting() {
+        startReassertingCallCount += 1
+    }
+
+    var stopReassertingCallCount = 0
+    func stopReasserting() {
+        stopReassertingCallCount += 1
+    }
 }

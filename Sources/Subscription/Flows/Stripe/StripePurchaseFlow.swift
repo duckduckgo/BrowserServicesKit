@@ -66,19 +66,34 @@ public final class StripePurchaseFlow {
 
         // Clear subscription Cache
         SubscriptionService.signOut()
+        let accountManager = AccountManager(subscriptionAppGroup: subscriptionAppGroup)
 
-        var authToken: String = ""
+        var token: String = ""
 
-        switch await AuthService.createAccount(emailAccessToken: emailAccessToken) {
-        case .success(let response):
-            authToken = response.authToken
-            AccountManager(subscriptionAppGroup: subscriptionAppGroup).storeAuthToken(token: authToken)
-        case .failure:
-            os_log(.error, log: .subscription, "[StripePurchaseFlow] Error: accountCreationFailed")
-            return .failure(.accountCreationFailed)
+        if let accessToken = accountManager.accessToken {
+            if await isSubscriptionExpired(accessToken: accessToken) {
+                token = accessToken
+            }
+        } else {
+            switch await AuthService.createAccount(emailAccessToken: emailAccessToken) {
+            case .success(let response):
+                token = response.authToken
+                AccountManager(subscriptionAppGroup: subscriptionAppGroup).storeAuthToken(token: token)
+            case .failure:
+                os_log(.error, log: .subscription, "[StripePurchaseFlow] Error: accountCreationFailed")
+                return .failure(.accountCreationFailed)
+            }
         }
 
-        return .success(PurchaseUpdate(type: "redirect", token: authToken))
+        return .success(PurchaseUpdate(type: "redirect", token: token))
+    }
+
+    private static func isSubscriptionExpired(accessToken: String) async -> Bool {
+        if case .success(let subscription) = await SubscriptionService.getSubscription(accessToken: accessToken) {
+            return !subscription.isActive
+        }
+
+        return false
     }
 
     public static func completeSubscriptionPurchase(subscriptionAppGroup: String) async {
@@ -90,7 +105,8 @@ public final class StripePurchaseFlow {
 
         let accountManager = AccountManager(subscriptionAppGroup: subscriptionAppGroup)
 
-        if let authToken = accountManager.authToken {
+        if !accountManager.isUserAuthenticated,
+           let authToken = accountManager.authToken {
             if case let .success(accessToken) = await accountManager.exchangeAuthTokenToAccessToken(authToken),
                case let .success(accountDetails) = await accountManager.fetchAccountDetails(with: accessToken) {
                 accountManager.storeAuthToken(token: authToken)

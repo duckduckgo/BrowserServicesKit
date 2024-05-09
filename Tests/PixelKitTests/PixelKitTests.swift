@@ -27,23 +27,38 @@ final class PixelKitTests: XCTestCase {
     }
 
     /// Test events for convenience
-    ///
+
     private enum TestEvent: String, PixelKitEvent {
+
+        case testEventPrefixed = "m_mac_testEventPrefixed"
+        case testEvent
+
+        var name: String {
+            return rawValue
+        }
+
+        var parameters: [String: String]? {
+            return nil
+        }
+
+        var error: Error? {
+            return nil
+        }
+    }
+
+    private enum TestEventV2: String, PixelKitEventV2 {
+
         case testEvent
         case testEventWithoutParameters
         case dailyEvent
         case dailyEventWithoutParameters
         case dailyAndContinuousEvent
         case dailyAndContinuousEventWithoutParameters
-        case uniqueEvent
+        case uniqueEvent = "uniqueEvent_u"
+        case nameWithDot = "test.pixel.with.dot"
 
         var name: String {
-            switch self {
-            case .uniqueEvent:
-                return "\(rawValue)_u"
-            default:
-                return rawValue
-            }
+            return rawValue
         }
 
         var parameters: [String: String]? {
@@ -53,14 +68,18 @@ final class PixelKitTests: XCTestCase {
                     "eventParam1": "eventParamValue1",
                     "eventParam2": "eventParamValue2"
                 ]
-            case .testEventWithoutParameters, .dailyEventWithoutParameters, .dailyAndContinuousEventWithoutParameters:
+            default:
                 return nil
             }
         }
 
+        var error: Error? {
+            return nil
+        }
+
         var frequency: PixelKit.Frequency {
             switch self {
-            case .testEvent, .testEventWithoutParameters:
+            case .testEvent, .testEventWithoutParameters, .nameWithDot:
                 return .standard
             case .uniqueEvent:
                 return .unique
@@ -83,7 +102,95 @@ final class PixelKitTests: XCTestCase {
             XCTFail("This callback should not be executed when doing a dry run")
         }
 
-        pixelKit.fire(TestEvent.testEvent)
+        pixelKit.fire(TestEventV2.testEvent)
+    }
+
+    func testNonStandardEvent() {
+        func testReportBrokenSitePixel() {
+            fire(NonStandardEvent(TestEventV2.testEvent),
+                 frequency: .standard,
+                 and: .expect(pixelName: TestEventV2.testEvent.name),
+                 file: #filePath,
+                 line: #line)
+        }
+    }
+
+    func testDebugEventPrefixed() {
+        let appVersion = "1.0.5"
+        let headers = ["a": "2", "b": "3", "c": "2000"]
+        let event = DebugEvent(TestEvent.testEventPrefixed)
+        let userDefaults = userDefaults()
+
+        // Set expectations
+        let expectedPixelName = TestEvent.testEventPrefixed.name
+        let fireCallbackCalled = expectation(description: "Expect the pixel firing callback to be called")
+
+        // Prepare mock to validate expectations
+        let pixelKit = PixelKit(dryRun: false,
+                                appVersion: appVersion,
+                                defaultHeaders: headers,
+                                dailyPixelCalendar: nil,
+                                defaults: userDefaults) { firedPixelName, firedHeaders, parameters, _, _, _ in
+
+            fireCallbackCalled.fulfill()
+            XCTAssertEqual(expectedPixelName, firedPixelName)
+        }
+        // Run test
+        pixelKit.fire(event)
+        // Wait for expectations to be fulfilled
+        wait(for: [fireCallbackCalled], timeout: 0.5)
+    }
+
+    func testDebugEventNotPrefixed() {
+        let appVersion = "1.0.5"
+        let headers = ["a": "2", "b": "3", "c": "2000"]
+        let event = DebugEvent(TestEvent.testEvent)
+        let userDefaults = userDefaults()
+
+        // Set expectations
+        let expectedPixelName = "m_mac_debug_\(TestEvent.testEvent.name)"
+        let fireCallbackCalled = expectation(description: "Expect the pixel firing callback to be called")
+
+        // Prepare mock to validate expectations
+        let pixelKit = PixelKit(dryRun: false,
+                                appVersion: appVersion,
+                                defaultHeaders: headers,
+                                dailyPixelCalendar: nil,
+                                defaults: userDefaults) { firedPixelName, firedHeaders, parameters, _, _, _ in
+
+            fireCallbackCalled.fulfill()
+            XCTAssertEqual(expectedPixelName, firedPixelName)
+        }
+        // Run test
+        pixelKit.fire(event)
+        // Wait for expectations to be fulfilled
+        wait(for: [fireCallbackCalled], timeout: 0.5)
+    }
+
+    func testDebugEventDaily() {
+        let appVersion = "1.0.5"
+        let headers = ["a": "2", "b": "3", "c": "2000"]
+        let event = DebugEvent(TestEvent.testEvent)
+        let userDefaults = userDefaults()
+
+        // Set expectations
+        let expectedPixelName = "m_mac_debug_\(TestEvent.testEvent.name)_d"
+        let fireCallbackCalled = expectation(description: "Expect the pixel firing callback to be called")
+
+        // Prepare mock to validate expectations
+        let pixelKit = PixelKit(dryRun: false,
+                                appVersion: appVersion,
+                                defaultHeaders: headers,
+                                dailyPixelCalendar: nil,
+                                defaults: userDefaults) { firedPixelName, firedHeaders, parameters, _, _, _ in
+
+            fireCallbackCalled.fulfill()
+            XCTAssertEqual(expectedPixelName, firedPixelName)
+        }
+        // Run test
+        pixelKit.fire(event, frequency: .daily)
+        // Wait for expectations to be fulfilled
+        wait(for: [fireCallbackCalled], timeout: 0.5)
     }
 
     /// Tests firing a sample pixel and ensuring that all fields are properly set in the fire request callback.
@@ -92,7 +199,7 @@ final class PixelKitTests: XCTestCase {
         // Prepare test parameters
         let appVersion = "1.0.5"
         let headers = ["a": "2", "b": "3", "c": "2000"]
-        let event = TestEvent.testEvent
+        let event = TestEventV2.testEvent
         let userDefaults = userDefaults()
 
         // Set expectations
@@ -136,7 +243,7 @@ final class PixelKitTests: XCTestCase {
         // Prepare test parameters
         let appVersion = "1.0.5"
         let headers = ["a": "2", "b": "3", "c": "2000"]
-        let event = TestEvent.dailyEvent
+        let event = TestEventV2.dailyEvent
         let userDefaults = userDefaults()
 
         // Set expectations
@@ -180,7 +287,7 @@ final class PixelKitTests: XCTestCase {
         // Prepare test parameters
         let appVersion = "1.0.5"
         let headers = ["a": "2", "b": "3", "c": "2000"]
-        let event = TestEvent.dailyEvent
+        let event = TestEventV2.dailyEvent
         let userDefaults = userDefaults()
 
         // Set expectations
@@ -226,7 +333,7 @@ final class PixelKitTests: XCTestCase {
         // Prepare test parameters
         let appVersion = "1.0.5"
         let headers = ["a": "2", "b": "3", "c": "2000"]
-        let event = TestEvent.dailyEvent
+        let event = TestEventV2.dailyEvent
         let userDefaults = userDefaults()
 
         let timeMachine = TimeMachine()
@@ -270,7 +377,7 @@ final class PixelKitTests: XCTestCase {
         // Prepare test parameters
         let appVersion = "1.0.5"
         let headers = ["a": "2", "b": "3", "c": "2000"]
-        let event = TestEvent.uniqueEvent
+        let event = TestEventV2.uniqueEvent
         let userDefaults = userDefaults()
 
         let timeMachine = TimeMachine()

@@ -20,13 +20,12 @@ import Foundation
 
 public extension Task where Success == Never, Failure == Error {
 
-    static func periodic(priority: TaskPriority? = nil,
-                         delay: TimeInterval? = nil,
+    static func periodic(delay: TimeInterval? = nil,
                          interval: TimeInterval,
                          operation: @escaping @Sendable () async -> Void,
                          cancellationHandler: (@Sendable () async -> Void)? = nil) -> Task {
 
-        Task.detached(priority: priority) {
+        Task {
             do {
                 if let delay {
                     try await Task<Never, Never>.sleep(interval: delay)
@@ -42,9 +41,7 @@ public extension Task where Success == Never, Failure == Error {
                 throw error
             }
         }
-
     }
-
 }
 
 public extension Task where Success == Never, Failure == Never {
