@@ -59,7 +59,12 @@ struct SyncRequestMaker: SyncRequestMaking {
         let body = try JSONSerialization.data(withJSONObject: json, options: [])
 
         guard isCompressed else {
-            return api.createAuthenticatedJSONRequest(url: endpoints.syncPatch, method: .PATCH, authToken: try getToken(), json: body)
+            return api.createAuthenticatedJSONRequest(
+                url: endpoints.syncPatch,
+                method: .PATCH,
+                authToken: try getToken(),
+                json: body
+            )
         }
 
         let compressedBody = try payloadCompressor.compress(body)

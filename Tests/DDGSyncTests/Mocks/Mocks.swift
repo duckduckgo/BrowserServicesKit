@@ -200,7 +200,7 @@ struct MockSyncDependencies: SyncDependencies, SyncDependenciesDebuggingSupport 
     var endpoints: Endpoints = Endpoints(baseURL: URL(string: "https://dev.null")!)
     var account: AccountManaging = AccountManagingMock()
     var api: RemoteAPIRequestCreating = RemoteAPIRequestCreatingMock()
-    var payloadCompressor: SyncPayloadCompressing = SyncPayloadCompressorMock()
+    var payloadCompressor: SyncPayloadCompressing = SyncGzipPayloadCompressorMock()
     var secureStore: SecureStoring = SecureStorageStub()
     var crypter: CryptingInternal = CryptingMock()
     var scheduler: SchedulingInternal = SchedulerMock()
@@ -306,7 +306,7 @@ class InspectableSyncRequestMaker: SyncRequestMaking {
     var makePatchRequestCallArgs: [MakePatchRequestCallArgs] = []
 }
 
-class SyncPayloadCompressorMock: SyncPayloadCompressing {
+class SyncGzipPayloadCompressorMock: SyncPayloadCompressing {
     var error: Error?
 
     func compress(_ payload: Data) throws -> Data {

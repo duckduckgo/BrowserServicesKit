@@ -73,7 +73,7 @@ struct ProductionDependencies: SyncDependencies {
         self.getLog = log
 
         api = RemoteAPIRequestCreator(log: log())
-        payloadCompressor = SyncPayloadCompressor()
+        payloadCompressor = SyncGzipPayloadCompressor()
 
         crypter = Crypter(secureStore: secureStore)
         account = AccountManager(endpoints: endpoints, api: api, crypter: crypter)

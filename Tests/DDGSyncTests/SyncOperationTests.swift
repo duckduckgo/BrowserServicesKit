@@ -25,7 +25,7 @@ class SyncOperationTests: XCTestCase {
     var apiMock: RemoteAPIRequestCreatingMock!
     var request: HTTPRequestingMock!
     var endpoints: Endpoints!
-    var payloadCompressor: SyncPayloadCompressorMock!
+    var payloadCompressor: SyncGzipPayloadCompressorMock!
     var storage: SecureStorageStub!
     var crypter: CryptingMock!
     var requestMaker: InspectableSyncRequestMaker!
@@ -37,7 +37,7 @@ class SyncOperationTests: XCTestCase {
         request = HTTPRequestingMock()
         apiMock.request = request
         endpoints = Endpoints(baseURL: URL(string: "https://example.com")!)
-        payloadCompressor = SyncPayloadCompressorMock()
+        payloadCompressor = SyncGzipPayloadCompressorMock()
         storage = SecureStorageStub()
         crypter = CryptingMock()
         try storage.persistAccount(

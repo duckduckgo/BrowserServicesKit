@@ -35,7 +35,7 @@ class SyncQueueTests: XCTestCase {
         apiMock = RemoteAPIRequestCreatingMock()
         request = HTTPRequestingMock()
         apiMock.request = request
-        payloadCompressor = SyncPayloadCompressorMock()
+        payloadCompressor = SyncGzipPayloadCompressorMock()
         endpoints = Endpoints(baseURL: URL(string: "https://example.com")!)
         storage = SecureStorageStub()
         crypter = CryptingMock()

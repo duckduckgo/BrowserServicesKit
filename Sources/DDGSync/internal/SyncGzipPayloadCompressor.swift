@@ -1,5 +1,5 @@
 //
-//  SyncPayloadCompressor.swift
+//  SyncGzipPayloadCompressor.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -23,7 +23,7 @@ protocol SyncPayloadCompressing {
     func compress(_ payload: Data) throws -> Data
 }
 
-struct SyncPayloadCompressor: SyncPayloadCompressing {
+struct SyncGzipPayloadCompressor: SyncPayloadCompressing {
     func compress(_ payload: Data) throws -> Data {
         try payload.gzipped()
     }
