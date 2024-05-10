@@ -22,21 +22,17 @@ import XCTest
 
 final class URLExtensionTests: XCTestCase {
 
-    override func setUpWithError() throws {
-        try super.setUpWithError()
-
-        if #available(macOS 14, *) {
-            throw XCTSkip("This test can't run on macOS 14 or higher")
-        }
-    }
-
     func test_external_urls_are_valid() {
         XCTAssertTrue("mailto://user@host.tld".url!.isValid)
         XCTAssertTrue("sms://+44776424232323".url!.isValid)
         XCTAssertTrue("ftp://example.com".url!.isValid)
     }
 
-    func test_navigational_urls_are_valid() {
+    func test_navigational_urls_are_valid() throws {
+        if #available(macOS 14, *) {
+            throw XCTSkip("This test can't run on macOS 14 or higher")
+        }
+
         struct TestItem {
             let rawValue: String
             let line: UInt
@@ -82,7 +78,11 @@ final class URLExtensionTests: XCTestCase {
         }
     }
 
-    func test_non_valid_urls() {
+    func test_non_valid_urls() throws {
+        if #available(macOS 14, *) {
+            throw XCTSkip("This test can't run on macOS 14 or higher")
+        }
+
         let urls = [
             "about:user:pass@blank",
             "data:user:pass@text/vnd-example+xyz;foo=bar;base64,R0lGODdh",
@@ -124,7 +124,11 @@ final class URLExtensionTests: XCTestCase {
         XCTAssert(rootUrl.isRoot)
     }
 
-    func testBasicAuthCredential() {
+    func testBasicAuthCredential() throws {
+        if #available(macOS 14, *) {
+            throw XCTSkip("This test can't run on macOS 14 or higher")
+        }
+
         struct TestItem {
             let url: String
             let user: String?
@@ -161,7 +165,11 @@ final class URLExtensionTests: XCTestCase {
         }
     }
 
-    func testURLRemovingBasicAuthCredential() {
+    func testURLRemovingBasicAuthCredential() throws {
+        if #available(macOS 14, *) {
+            throw XCTSkip("This test can't run on macOS 14 or higher")
+        }
+        
         struct TestItem {
             let url: String
             let removingCredential: String
@@ -482,6 +490,52 @@ final class URLExtensionTests: XCTestCase {
         XCTAssertFalse("https://youtube.com:123".url!.matches(URLProtectionSpace(host: "youtube.com", port: 1234, protocol: "https", realm: "realm", authenticationMethod: "basic")))
         XCTAssertFalse("https://youtube.com:123".url!.matches(URLProtectionSpace(host: "youtube.com", port: 123, protocol: "http", realm: "realm", authenticationMethod: "basic")))
         XCTAssertFalse("https://www.youtube.com:123".url!.matches(URLProtectionSpace(host: "youtube.com", port: 123, protocol: "https", realm: "realm", authenticationMethod: "basic")))
+    }
+
+    func testWhenCallQueryItemWithNameAndURLHasQueryItemThenReturnQueryItem() throws {
+        // GIVEN
+        let url = try XCTUnwrap(URL(string: "www.duckduckgo.com?origin=test"))
+
+        // WHEN
+        let result = url.queryItem(withName: "origin")
+
+        // THEN
+        let queryItem = try XCTUnwrap(result)
+        XCTAssertEqual(queryItem.name, "origin")
+        XCTAssertEqual(queryItem.value, "test")
+    }
+
+    func testWhenCallQueryItemWithNameAndURLDoesNotHaveQueryItemThenReturnNil() throws {
+        // GIVEN
+        let url = try XCTUnwrap(URL(string: "www.duckduckgo.com"))
+
+        // WHEN
+        let result = url.queryItem(withName: "test")
+
+        // THEN
+        XCTAssertNil(result)
+    }
+
+    func testWhenCallAppendingQueryItemThenReturnURLWithQueryItem() throws {
+        // GIVEN
+        let url = try XCTUnwrap(URL(string: "www.duckduckgo.com"))
+
+        // WHEN
+        let result = url.appendingQueryItem(.init(name: "origin", value: "test"))
+
+        // THEN
+        XCTAssertEqual(result.absoluteString, "www.duckduckgo.com?origin=test")
+    }
+
+    func testWhenCallAppendingQueryItemsThenReturnURLWithQueryItems() throws {
+        // GIVEN
+        let url = try XCTUnwrap(URL(string: "www.duckduckgo.com"))
+
+        // WHEN
+        let result = url.appendingQueryItems([.init(name: "origin", value: "test"), .init(name: "environment", value: "staging")])
+
+        // THEN
+        XCTAssertEqual(result.absoluteString, "www.duckduckgo.com?origin=test&environment=staging")
     }
 
 }

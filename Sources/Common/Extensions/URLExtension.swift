@@ -423,6 +423,47 @@ extension URL {
         return host == protectionSpace.host && (port ?? navigationalScheme?.defaultPort) == protectionSpace.port && scheme == protectionSpace.protocol
     }
 
+    /// Retrieves a URL query item with the specified name from the URL's query parameters.
+    ///
+    /// - Parameter name: The name of the query item to retrieve.
+    /// - Returns: The URL query item with the specified name if found, otherwise `nil`.
+    ///
+    /// This method extracts query items from the URL's query parameters and returns the first query item
+    /// with a matching name. If no query item matches the specified name, `nil` is returned.
+    ///
+    public func queryItem(withName name: String) -> URLQueryItem? {
+        URLComponents(url: self, resolvingAgainstBaseURL: false)?
+            .queryItems?
+            .first(where: { $0.name == name })
+    }
+
+    /// Appends a single query item to the URL's existing query parameters.
+    ///
+    /// - Parameter queryItem: The query item to append.
+    /// - Returns: A new URL with the specified query item appended to its query parameters.
+    ///
+    public func appendingQueryItem(_ queryItem: URLQueryItem) -> Self {
+        appendingQueryItems([queryItem])
+    }
+
+    /// Appends an array of query items to the URL's existing query parameters.
+    ///
+    /// - Parameter queryItems: An array of query items to append.
+    /// - Returns: A new URL with the specified query items appended to its query parameters.
+    ///
+    public func appendingQueryItems(_ queryItems: [URLQueryItem]) -> Self {
+        if #available(macOS 13.0, iOS 16.0, *) {
+            let url = appending(queryItems: queryItems)
+            return url
+        } else {
+            guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else { return self }
+            var queryItems = components.queryItems ?? []
+            queryItems.append(contentsOf: queryItems)
+            components.queryItems = queryItems
+            return components.url ?? self
+        }
+    }
+
 }
 
 public extension CharacterSet {
