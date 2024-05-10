@@ -40,6 +40,7 @@ extension OSLog {
         case passwordManager = "Password Manager"
         case remoteMessaging = "Remote Messaging"
         case subscription = "Subscription"
+        case phishingDetection = "PhishingDetection"
         case history = "History"
     }
 
@@ -49,11 +50,12 @@ extension OSLog {
     static var debugCategories: Set<Categories> = [ /* .userScripts, */ ]
 #endif
 
-    @OSLogWrapper(.userScripts)     public static var userScripts
-    @OSLogWrapper(.passwordManager) public static var passwordManager
-    @OSLogWrapper(.remoteMessaging) public static var remoteMessaging
-    @OSLogWrapper(.subscription)    public static var subscription
-    @OSLogWrapper(.history)         public static var history
+    @OSLogWrapper(.userScripts)         public static var userScripts
+    @OSLogWrapper(.passwordManager)     public static var passwordManager
+    @OSLogWrapper(.remoteMessaging)     public static var remoteMessaging
+    @OSLogWrapper(.subscription)        public static var subscription
+    @OSLogWrapper(.phishingDetection)   public static var phishingDetection
+    @OSLogWrapper(.history)             public static var history
 
     public static var enabledLoggingCategories = Set<String>()
 

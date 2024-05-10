@@ -34,6 +34,7 @@ let package = Package(
         .library(name: "Subscription", targets: ["Subscription"]),
         .library(name: "History", targets: ["History"]),
         .library(name: "Suggestions", targets: ["Suggestions"]),
+        .library(name: "PhishingDetection", targets: ["PhishingDetection"]),
     ],
     dependencies: [
         .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "11.0.1"),
@@ -327,6 +328,15 @@ let package = Package(
                 .define("DEBUG", .when(configuration: .debug))
             ]
         ),
+        .target(
+            name: "PhishingDetection",
+            dependencies: [
+                "BrowserServicesKit",
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
+            ]
+        ),
 
         // MARK: - Test Targets
         .testTarget(
@@ -492,6 +502,12 @@ let package = Package(
             name: "SubscriptionTests",
             dependencies: [
                 "Subscription",
+            ]
+        ),
+        .testTarget(
+            name: "PhishingDetectionTests",
+            dependencies: [
+                "PhishingDetection",
             ]
         ),
     ],
