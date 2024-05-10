@@ -32,7 +32,7 @@ let package = Package(
         .library(name: "NetworkProtectionTestUtils", targets: ["NetworkProtectionTestUtils"]),
         .library(name: "SecureStorage", targets: ["SecureStorage"]),
         .library(name: "Subscription", targets: ["Subscription"]),
-        .library(name: "SubscriptionTestingUtilities", targets: ["SubscriptionTestingUtilities"]),
+        .library(name: "SubscriptionTestUtils", targets: ["SubscriptionTestUtils"]),
         .library(name: "History", targets: ["History"]),
         .library(name: "Suggestions", targets: ["Suggestions"]),
         .library(name: "PixelKit", targets: ["PixelKit"]),
@@ -333,7 +333,7 @@ let package = Package(
             ]
         ),
         .target(
-            name: "SubscriptionTestingUtilities",
+            name: "SubscriptionTestUtils",
             dependencies: [
                 "Subscription"
             ]

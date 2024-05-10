@@ -169,7 +169,7 @@ final class URLExtensionTests: XCTestCase {
         if #available(macOS 14, *) {
             throw XCTSkip("This test can't run on macOS 14 or higher")
         }
-        
+
         struct TestItem {
             let url: String
             let removingCredential: String
@@ -497,7 +497,7 @@ final class URLExtensionTests: XCTestCase {
         let url = try XCTUnwrap(URL(string: "www.duckduckgo.com?origin=test"))
 
         // WHEN
-        let result = url.queryItem(withName: "origin")
+        let result = url.getQueryItem(named: "origin")
 
         // THEN
         let queryItem = try XCTUnwrap(result)
@@ -510,7 +510,7 @@ final class URLExtensionTests: XCTestCase {
         let url = try XCTUnwrap(URL(string: "www.duckduckgo.com"))
 
         // WHEN
-        let result = url.queryItem(withName: "test")
+        let result = url.getQueryItem(named: "test")
 
         // THEN
         XCTAssertNil(result)
@@ -521,21 +521,10 @@ final class URLExtensionTests: XCTestCase {
         let url = try XCTUnwrap(URL(string: "www.duckduckgo.com"))
 
         // WHEN
-        let result = url.appendingQueryItem(.init(name: "origin", value: "test"))
+        let result = url.appending(percentEncodedQueryItem: .init(name: "origin", value: "test"))
 
         // THEN
         XCTAssertEqual(result.absoluteString, "www.duckduckgo.com?origin=test")
-    }
-
-    func testWhenCallAppendingQueryItemsThenReturnURLWithQueryItems() throws {
-        // GIVEN
-        let url = try XCTUnwrap(URL(string: "www.duckduckgo.com"))
-
-        // WHEN
-        let result = url.appendingQueryItems([.init(name: "origin", value: "test"), .init(name: "environment", value: "staging")])
-
-        // THEN
-        XCTAssertEqual(result.absoluteString, "www.duckduckgo.com?origin=test&environment=staging")
     }
 
 }

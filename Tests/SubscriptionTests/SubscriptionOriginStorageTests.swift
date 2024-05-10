@@ -83,16 +83,4 @@ final class SubscriptionOriginStorageTests: XCTestCase {
         // THEN
         XCTAssertNil(result)
     }
-
-    func testWhenValueIsReadThenUserDefaultsDeletesStoredOriginValue() {
-        // GIVEN
-        let value = "12345"
-        userDefaults.set(value, forKey: SubscriptionOriginStore.Keys.privacyProSubscriptionOriginKey)
-
-        // WHEN
-        _ = sut.origin
-
-        // THEN
-        XCTAssertNil(userDefaults.string(forKey: SubscriptionOriginStore.Keys.privacyProSubscriptionOriginKey))
-    }
 }
