@@ -26,6 +26,7 @@ import SecureStorage
 public protocol AutofillDatabaseProvider: SecureStorageDatabaseProvider {
 
     func accounts() throws -> [SecureVaultModels.WebsiteAccount]
+    func accountsCount() throws -> Int
     func hasAccountFor(username: String?, domain: String?) throws -> Bool
 
     @discardableResult
@@ -117,6 +118,13 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
         try db.read {
             try SecureVaultModels.WebsiteAccount.fetchAll($0)
         }
+    }
+
+    public func accountsCount() throws -> Int {
+        let count = try db.read {
+            try SecureVaultModels.WebsiteAccount.fetchCount($0)
+        }
+        return count
     }
 
     public func hasAccountFor(username: String?, domain: String?) throws -> Bool {
