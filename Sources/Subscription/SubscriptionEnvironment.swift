@@ -35,10 +35,10 @@ public struct SubscriptionEnvironment: Codable {
         case appStore, stripe
     }
 
-    public var serviceEnvironment: ServiceEnvironment
-    public var platform: Platform
+    public var serviceEnvironment: SubscriptionEnvironment.ServiceEnvironment
+    public var platform: SubscriptionEnvironment.Platform
 
-    static var `default`: SubscriptionEnvironment {
+    public static var `default`: SubscriptionEnvironment {
         #if os(OSX)
 #if APPSTORE || !STRIPE
         let platform: SubscriptionEnvironment.Platform = .appStore

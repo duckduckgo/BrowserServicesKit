@@ -26,7 +26,7 @@ public protocol SubscriptionManaging {
     var authService: AuthService { get }
     @available(macOS 12.0, iOS 15.0, *)
     func getStorePurchaseManager() -> StorePurchaseManaging
-    var currentEnvironment: SubscriptionEnvironment  { get }
+    var currentEnvironment: SubscriptionEnvironment { get }
     var canPurchase: Bool { get }
     func loadInitialData()
     func updateSubscriptionStatus(completion: @escaping (_ isActive: Bool) -> Void)
