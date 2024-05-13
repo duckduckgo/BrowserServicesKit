@@ -39,7 +39,7 @@ public struct SubscriptionEnvironment: Codable {
     public var platform: SubscriptionEnvironment.Platform
 
     public init(serviceEnvironment: SubscriptionEnvironment.ServiceEnvironment,
-         platform: SubscriptionEnvironment.Platform) {
+                platform: SubscriptionEnvironment.Platform) {
         self.serviceEnvironment = serviceEnvironment
         self.platform = platform
     }

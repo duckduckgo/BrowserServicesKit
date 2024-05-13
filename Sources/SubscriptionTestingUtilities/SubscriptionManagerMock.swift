@@ -20,7 +20,7 @@ import Foundation
 import Subscription
 
 public final class SubscriptionManagerMock: SubscriptionManaging {
-    
+
     public var accountManager: AccountManaging
     public var subscriptionService: SubscriptionService
     public var authService: AuthService
@@ -30,15 +30,15 @@ public final class SubscriptionManagerMock: SubscriptionManaging {
     public func getStorePurchaseManager() -> StorePurchaseManaging {
         storePurchaseManaging
     }
-    
+
     public func loadInitialData() {
 
     }
-    
+
     public func updateSubscriptionStatus(completion: @escaping (Bool) -> Void) {
         completion(true)
     }
-    
+
     public init(accountManager: AccountManaging,
                 subscriptionService: SubscriptionService,
                 authService: AuthService,
@@ -52,8 +52,8 @@ public final class SubscriptionManagerMock: SubscriptionManaging {
         self.currentEnvironment = currentEnvironment
         self.canPurchase = canPurchase
     }
-    
+
     // MARK: -
-    
+
     let storePurchaseManaging: StorePurchaseManaging
 }
