@@ -22,5 +22,4 @@ import SubscriptionTestingUtilities
 
 final class SubscriptionTests: XCTestCase {
 
-    
 }

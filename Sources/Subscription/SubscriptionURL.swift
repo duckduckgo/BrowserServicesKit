@@ -33,6 +33,7 @@ public enum SubscriptionURL {
     case manageSubscriptionsInAppStore
     case identityTheftRestoration
 
+    // swiftlint:disable:next cyclomatic_complexity
     public func subscriptionURL(environment: SubscriptionEnvironment.ServiceEnvironment) -> URL {
         switch self {
         case .baseURL:
@@ -72,7 +73,7 @@ public enum SubscriptionURL {
 }
 
 extension URL {
-    
+
     public func forComparison() -> URL {
         guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else {
             return self
