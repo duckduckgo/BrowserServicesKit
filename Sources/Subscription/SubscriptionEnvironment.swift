@@ -38,6 +38,12 @@ public struct SubscriptionEnvironment: Codable {
     public var serviceEnvironment: SubscriptionEnvironment.ServiceEnvironment
     public var platform: SubscriptionEnvironment.Platform
 
+    public init(serviceEnvironment: SubscriptionEnvironment.ServiceEnvironment,
+         platform: SubscriptionEnvironment.Platform) {
+        self.serviceEnvironment = serviceEnvironment
+        self.platform = platform
+    }
+
     public static var `default`: SubscriptionEnvironment {
         #if os(OSX)
 #if APPSTORE || !STRIPE
