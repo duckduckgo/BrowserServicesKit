@@ -19,6 +19,7 @@
 import Foundation
 import Combine
 import Common
+import Gzip
 
 final class SyncOperation: Operation {
 
@@ -143,7 +144,7 @@ final class SyncOperation: Operation {
                         try checkCancellation()
                         let syncRequest = try await self.makeSyncRequest(for: dataProvider, fetchOnly: fetchOnly)
                         let clientTimestamp = Date()
-                        let httpRequest = try self.makeHTTPRequest(with: syncRequest, timestamp: clientTimestamp)
+                        let httpRequest = try self.makeHTTPRequest(for: dataProvider, with: syncRequest, timestamp: clientTimestamp)
 
                         try checkCancellation()
                         let httpResult: HTTPResult = try await httpRequest.execute()
@@ -211,10 +212,15 @@ final class SyncOperation: Operation {
         return SyncRequest(feature: dataProvider.feature, previousSyncTimestamp: dataProvider.lastSyncTimestamp, sent: localChanges)
     }
 
-    private func makeHTTPRequest(with syncRequest: SyncRequest, timestamp: Date) throws -> HTTPRequesting {
+    private func makeHTTPRequest(for dataProvider: DataProviding, with syncRequest: SyncRequest, timestamp: Date) throws -> HTTPRequesting {
         let hasLocalChanges = !syncRequest.sent.isEmpty
         if hasLocalChanges {
-            return try requestMaker.makePatchRequest(with: syncRequest, clientTimestamp: timestamp)
+            do {
+                return try requestMaker.makePatchRequest(with: syncRequest, clientTimestamp: timestamp, isCompressed: true)
+            } catch let error as GzipError {
+                dataProvider.handleSyncError(SyncError.patchPayloadCompressionFailed(error.errorCode))
+                return try requestMaker.makePatchRequest(with: syncRequest, clientTimestamp: timestamp, isCompressed: false)
+            }
         }
         return try requestMaker.makeGetRequest(with: syncRequest)
     }

@@ -49,6 +49,7 @@ let package = Package(
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
         .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
         .package(url: "https://github.com/duckduckgo/wireguard-apple", exact: "1.1.3"),
+        .package(url: "https://github.com/1024jp/GzipSwift.git", exact: "6.0.1")
     ],
     targets: [
         .target(
@@ -154,6 +155,7 @@ let package = Package(
                 "BrowserServicesKit",
                 "Common",
                 .product(name: "DDGSyncCrypto", package: "sync_crypto"),
+                .product(name: "Gzip", package: "GzipSwift"),
                 "Networking",
             ],
             resources: [
