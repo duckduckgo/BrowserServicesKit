@@ -166,7 +166,7 @@ public protocol WebViewNavigationAction {
     var isUserInitiated: Bool? { get }
 }
 
-public class HistoryItemIdentity: Hashable {
+public struct HistoryItemIdentity: Hashable {
     let identifier: ObjectIdentifier
     let title: String?
     let url: URL?
