@@ -244,6 +244,18 @@
           "min": 5
         }
       }
-    }
+    },
+    {
+      "id": 9,
+      "targetPercentile": {
+        "before": 0.9
+      },
+      "attributes": {
+        "daysSinceInstalled": {
+          "min": 5,
+          "max": 8
+        },
+      }
+    },
   ]
 }
