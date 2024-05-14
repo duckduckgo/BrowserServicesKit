@@ -123,3 +123,62 @@ extension URLResponse {
         return String(httpStatusCode)
     }
 }
+
+public protocol PhishingDetectionAPIServiceProtocol {
+    func updateFilterSet(revision: Int) async -> [Filter]
+    func updateHashPrefixes(revision: Int) async -> [String]
+    func getMatches(hashPrefix: String) async -> [Match]
+}
+
+public class PhishingDetectionAPIService: APIService, PhishingDetectionAPIServiceProtocol {
+    
+    public static let baseURL: URL = URL(string: "http://localhost:3000")!
+    public static let session: URLSession = .shared
+    var headers: [String: String]? = [:]
+    
+    public func updateFilterSet(revision: Int) async -> [Filter] {
+        var endpoint = "filterSet"
+        if revision > 0 {
+            endpoint += "?revision=\(revision)"
+        }
+        let result: Result<FilterSetResponse, APIServiceError> = await Self.executeAPICall(method: "GET", endpoint: endpoint, headers: headers, body: nil)
+        switch result {
+        case .success(let filterSetResponse):
+            return filterSetResponse.filters
+        case .failure(let error):
+            print("Failed to load: \(error)")
+        }
+        return []
+    }
+    
+    public func updateHashPrefixes(revision: Int) async -> [String] {
+        var endpoint = "hashPrefix"
+        if revision > 0 {
+            endpoint += "?revision=\(revision)"
+        }
+        let result: Result<HashPrefixResponse, APIServiceError> = await Self.executeAPICall(method: "GET", endpoint: endpoint, headers: headers, body: nil)
+        
+        switch result {
+        case .success(let filterSetResponse):
+            return filterSetResponse.hashPrefixes
+        case .failure(let error):
+            print("Failed to load: \(error)")
+        }
+        return []
+    }
+    
+    public func getMatches(hashPrefix: String) async -> [Match] {
+        let endpoint = "matches"
+        let queryParams = ["hashPrefix": hashPrefix]
+        let result: Result<MatchResponse, APIServiceError> = await Self.executeAPICall(method: "GET", endpoint: endpoint, headers: headers, body: nil, queryParameters: queryParams)
+        
+        switch result {
+        case .success(let matchResponse):
+            return matchResponse.matches
+        case .failure(let error):
+            print("Failed to load: \(error)")
+            return []
+        }
+    }
+    
+}

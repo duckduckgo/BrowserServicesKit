@@ -5,12 +5,13 @@ import XCTest
 @testable import PhishingDetection
 
 class PhishingDetectionServiceTests: XCTestCase {
-    var service: PhishingDetectionService!
+    var service: PhishingDetectionServiceProtocol!
 
     override func setUp() {
         super.setUp()
-        service = PhishingDetectionService()
-        service.loadData() // Assuming you want to load test data
+        let mockAPI = MockPhishingDetectionAPIService()
+        service = PhishingDetectionService(apiService: mockAPI)
+        
     }
 
     override func tearDown() {
@@ -26,18 +27,25 @@ class PhishingDetectionServiceTests: XCTestCase {
     func testUpdateHashPrefixes() async {
         await service.updateHashPrefixes()
         XCTAssertFalse(service.hashPrefixes.isEmpty, "Hash prefixes should not be empty after update.")
+        XCTAssertEqual(service.hashPrefixes, [
+            "aa00bb11",
+            "bb00cc11",
+            "cc00dd11",
+            "dd00ee11",
+            "a379a6f6"
+        ])
     }
 
     func testGetMatches() async {
-        let matches = await service.getMatches(hashPrefix: "c51470e2")
+        let matches = await service.getMatches(hashPrefix: "aa00bb11")
         XCTAssertFalse(matches.isEmpty, "Should return matches for given hash prefix.")
-        XCTAssertEqual(matches[0].hash, "c51470e2a70dd0e28d3049202883cf16113235a946bc7ce3e5b774c42348b67d")
-        XCTAssertEqual(matches[0].url, "https://tv-licence_renew_easily_update-multiple-changes-6492a17447198.13000moveu.com.au/licence-home_cs_renewFilter-authorizationUpdate/index.php")
+        XCTAssertEqual(matches[0].hash, "a379a6f6eeafb9a55e378c118034e2751e682fab9f2d30ab13d2125586ce1947")
+        XCTAssertEqual(matches[0].url, "https://example.com/mal")
     }
 
     func testCheckURL() async {
-        service.loadData()
-        let trueResult = await service.isMalicious(url: "https://tv-licence_renew_easily_update-multiple-changes-6492a17447198.13000moveu.com.au/licence-home_cs_renewFilter-authorizationUpdate/index.php")
+        await service.updateHashPrefixes()
+        let trueResult = await service.isMalicious(url: "https://example.com/bad/path")
         XCTAssertTrue(trueResult, "URL check should return true for phishing URLs.")
         let falseResult = await service.isMalicious(url: "https://duck.com")
         XCTAssertFalse(falseResult, "URL check should return false for normal URLs.")

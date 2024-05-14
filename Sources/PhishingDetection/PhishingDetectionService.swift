@@ -20,9 +20,13 @@ import BrowserServicesKit
 import CryptoKit
 
 public protocol PhishingDetectionServiceProtocol {
+    var filterSet: [Filter] {get set}
+    var hashPrefixes: [String] {get set}
     func updateFilterSet() async
     func updateHashPrefixes() async
     func getMatches(hashPrefix: String) async -> [Match]
+    func loadData()
+    func writeData()
     func isMalicious(url: String) async -> Bool
 }
 
@@ -57,64 +61,36 @@ public struct Match: Decodable, Encodable {
     var hash: String
 }
 
-class PhishingDetectionService: APIService {
-    
-    static let baseURL: URL = URL(string: "http://localhost:3000")!
-    static let session: URLSession = .shared
+public class PhishingDetectionService: PhishingDetectionServiceProtocol {
+
+    public var filterSet: [Filter] = []
+    public var hashPrefixes = [String]()
     var currentRevision = 0
-    var filterSet: [Filter] = []
-    var hashPrefixes = [String]()
-    var headers: [String: String]? = [:]
-    
-    func updateFilterSet() async {
-        var endpoint = "filterSet"
-        if currentRevision != 0 {
-            endpoint += "?revision=\(currentRevision)"
-        }
-        let result: Result<FilterSetResponse, APIServiceError> = await Self.executeAPICall(method: "GET", endpoint: endpoint, headers: headers, body: nil)
-        
-        switch result {
-        case .success(let filterSetResponse):
-            self.filterSet = filterSetResponse.filters
-        case .failure(let error):
-            print("Failed to load: \(error)")
-        }
+    var apiService: PhishingDetectionAPIServiceProtocol
+
+    init(apiService: PhishingDetectionAPIServiceProtocol? = nil) {
+        self.apiService = apiService ?? PhishingDetectionAPIService()
     }
     
-    func updateHashPrefixes() async {
-        var endpoint = "hashPrefix"
-        if currentRevision != 0 {
-            endpoint += "?revision=\(currentRevision)"
-        }
-        let result: Result<HashPrefixResponse, APIServiceError> = await Self.executeAPICall(method: "GET", endpoint: endpoint, headers: headers, body: nil)
-        
-        switch result {
-        case .success(let filterSetResponse):
-            self.hashPrefixes = filterSetResponse.hashPrefixes
-        case .failure(let error):
-            print("Failed to load: \(error)")
-        }
+    public func updateFilterSet() async {
+        let filterSet = await apiService.updateFilterSet(revision: currentRevision)
+        self.filterSet = filterSet
     }
     
-    func getMatches(hashPrefix: String) async -> [Match] {
-        let endpoint = "matches"
-        let queryParams = ["hashPrefix": hashPrefix]
-        let result: Result<MatchResponse, APIServiceError> = await Self.executeAPICall(method: "GET", endpoint: endpoint, headers: headers, body: nil, queryParameters: queryParams)
-        
-        switch result {
-        case .success(let matchResponse):
-            return matchResponse.matches
-        case .failure(let error):
-            print("Failed to load: \(error)")
-            return []
-        }
+    public func updateHashPrefixes() async {
+        let hashPrefixes = await apiService.updateHashPrefixes(revision: currentRevision)
+        self.hashPrefixes = hashPrefixes
+    }
+    
+    public func getMatches(hashPrefix: String) async -> [Match] {
+        return await apiService.getMatches(hashPrefix: hashPrefix)
     }
     
     func inFilterSet(hash: String) -> [Filter] {
         return filterSet.filter { $0.hashValue == hash }
     }
     
-    func isMalicious(url: String) async -> Bool {
+    public func isMalicious(url: String) async -> Bool {
         guard let hostname = URL(string: url)?.host else { return false }
         let hostnameHash = SHA256.hash(data: Data(hostname.utf8)).map { String(format: "%02hhx", $0) }.joined()
         let hashPrefix = String(hostnameHash.prefix(8))
@@ -123,7 +99,7 @@ class PhishingDetectionService: APIService {
             if !filterHit.isEmpty, let regex = filterHit.first?.regex, let _ = try? NSRegularExpression(pattern: regex, options: []) {
                 return true
             }
-            let matches = await getMatches(hashPrefix: hashPrefix)
+            let matches = await apiService.getMatches(hashPrefix: hashPrefix)
             for match in matches {
                 if match.hash == hostnameHash, let _ = try? NSRegularExpression(pattern: match.regex, options: []) {
                     return true
@@ -133,7 +109,7 @@ class PhishingDetectionService: APIService {
         return false
     }
 
-    func writeData() {
+    public func writeData() {
         let encoder = JSONEncoder()
         do {
             let hashPrefixesData = try encoder.encode(hashPrefixes)
@@ -145,7 +121,7 @@ class PhishingDetectionService: APIService {
         }
     }
 
-    func loadData() {
+    public func loadData() {
         let decoder = JSONDecoder()
         do {
             let hashPrefixesData = try Data(contentsOf: URL(fileURLWithPath: "/tmp/hashPrefixes.json"))
