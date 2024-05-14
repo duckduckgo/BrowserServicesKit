@@ -99,13 +99,10 @@ final public class SubscriptionManager: SubscriptionManaging {
     // MARK: - Environment, ex SubscriptionPurchaseEnvironment
 
     @available(macOS 12.0, iOS 15.0, *) private func setupForAppStore() {
+        let storePurchaseManager = getStorePurchaseManager()
         Task {
-            await storePurchaseManager?.updateAvailableProducts()
-            if let storePurchaseManager {
-                canPurchase = !storePurchaseManager.areProductsAvailable
-            } else {
-                canPurchase = false
-            }
+            await storePurchaseManager.updateAvailableProducts()
+            canPurchase = storePurchaseManager.areProductsAvailable
         }
     }
 
