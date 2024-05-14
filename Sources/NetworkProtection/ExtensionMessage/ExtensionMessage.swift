@@ -49,7 +49,7 @@ public enum ExtensionMessage: RawRepresentable {
     // This is actually an improved way to send messages.
     // Please avoid adding new messages to this enum, and instead
     // add them to `ExtensionRequest`
-    case request(_ request: ExtensionRequest)
+    case request(_ request: ExtensionRequest.Message)
 
     // important: Preserve this order because Message Name is represented by Int value
     case resetAllState
@@ -75,11 +75,11 @@ public enum ExtensionMessage: RawRepresentable {
         let name = data.first.flatMap(Name.init(rawValue:))
         switch name {
         case .request:
-            guard let request = try? JSONDecoder().decode(ExtensionRequest.self, from: data[1...]) else {
+            guard let message = try? JSONDecoder().decode(ExtensionRequest.Message.self, from: data[1...]) else {
                 return nil
             }
 
-            self = .request(request)
+            self = .request(message)
         case .resetAllState:
             self = .resetAllState
         case .getRuntimeConfiguration:

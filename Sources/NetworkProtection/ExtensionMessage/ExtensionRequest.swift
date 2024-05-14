@@ -26,7 +26,54 @@ public enum DebugCommand: Codable {
     case disableConnectOnDemandAndShutDown
 }
 
-public enum ExtensionRequest: Codable {
+public enum ExtensionRequest {
     case changeTunnelSetting(_ change: VPNSettings.Change)
     case debugCommand(_ command: DebugCommand)
+    case getTunnelName(completion: (String) -> Void)
+
+    public enum Message: Codable {
+        case changeTunnelSetting(_ change: VPNSettings.Change)
+        case debugCommand(_ command: DebugCommand)
+        case getAdapterInterfaceName
+    }
+
+    var message: Message {
+        switch self {
+        case .changeTunnelSetting(let change):
+            return .changeTunnelSetting(change)
+        case .debugCommand(let command):
+            return .debugCommand(command)
+        case .getTunnelName:
+            return .getAdapterInterfaceName
+        }
+    }
+
+    func handleResponse(data: Data?) throws {
+        switch self {
+        case .changeTunnelSetting,
+                .debugCommand:
+            // None of these commands handle the response
+            return
+        case .getTunnelName(let completion):
+            let tunnelName = try decodeTunnelName(data)
+            completion(tunnelName)
+        }
+    }
+
+    enum GetTunnelNameError: Error {
+        case noData
+        case decodingFailed
+    }
+
+    func decodeTunnelName(_ data: Data?) throws -> String {
+        guard let data else {
+            throw GetTunnelNameError.noData
+        }
+
+        guard let tunnelName = String(data: data, encoding: .utf8) else {
+            throw GetTunnelNameError.decodingFailed
+        }
+
+        return tunnelName
+    }
 }

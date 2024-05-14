@@ -943,13 +943,20 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - App Requests: Handling
 
-    private func handleRequest(_ request: ExtensionRequest, completionHandler: ((Data?) -> Void)? = nil) {
+    private func handleRequest(_ request: ExtensionRequest.Message, completionHandler: ((Data?) -> Void)? = nil) {
+        guard let completionHandler else {
+            return
+        }
+
         switch request {
         case .changeTunnelSetting(let change):
             handleSettingChangeAppRequest(change, completionHandler: completionHandler)
-            completionHandler?(nil)
+            completionHandler(nil)
         case .debugCommand(let command):
             handleDebugCommand(command, completionHandler: completionHandler)
+        case .getAdapterInterfaceName:
+            let payload = String(reflecting: adapter.interfaceName).data(using: .utf8)
+            completionHandler(payload)
         }
     }
 
