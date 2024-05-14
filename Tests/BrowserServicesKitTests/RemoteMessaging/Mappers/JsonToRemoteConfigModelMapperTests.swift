@@ -127,7 +127,7 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
 
         let rule8 = config.rules.filter { $0.key == 8 }.first
         XCTAssertNotNil(rule8)
-        XCTAssertTrue(rule8?.value.count == 2)
+        XCTAssertTrue(rule8?.value.count == 1)
         attribs = rule8?.value.filter { $0 is DaysSinceNetPEnabledMatchingAttribute }
         XCTAssertEqual(attribs?.count, 1)
         XCTAssertEqual(attribs?.first as? DaysSinceNetPEnabledMatchingAttribute, DaysSinceNetPEnabledMatchingAttribute(min: 5, fallback: nil))
