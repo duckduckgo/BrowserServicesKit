@@ -52,7 +52,7 @@ final class NetworkProtectionClientTests: XCTestCase {
 
     func testRegister401Response_ThrowsInvalidTokenError() async {
         let emptyData = "".data(using: .utf8)!
-        MockURLProtocol.stubs[client.redeemURL] = (response: HTTPURLResponse(url: client.registerKeyURL, statusCode: 401)!,
+        MockURLProtocol.stubs[client.registerKeyURL] = (response: HTTPURLResponse(url: client.registerKeyURL, statusCode: 401)!,
                                                    .success(emptyData))
 
         let body = RegisterKeyRequestBody(publicKey: .testData, serverSelection: .server(name: "MockServer"))
@@ -68,7 +68,7 @@ final class NetworkProtectionClientTests: XCTestCase {
 
     func testGetServer401Response_ThrowsInvalidTokenError() async {
         let emptyData = "".data(using: .utf8)!
-        MockURLProtocol.stubs[client.redeemURL] = (response: HTTPURLResponse(url: client.serversURL, statusCode: 401)!,
+        MockURLProtocol.stubs[client.serversURL] = (response: HTTPURLResponse(url: client.serversURL, statusCode: 401)!,
                                                    .success(emptyData))
 
         let result = await client.getServers(authToken: "anAuthToken")
@@ -83,7 +83,7 @@ final class NetworkProtectionClientTests: XCTestCase {
 
     func testLocationsSuccess() async {
         let successData = TestData.mockLocations
-        MockURLProtocol.stubs[client.locationsURL] = (response: HTTPURLResponse(url: client.redeemURL, statusCode: 200)!,
+        MockURLProtocol.stubs[client.locationsURL] = (response: HTTPURLResponse(url: client.locationsURL, statusCode: 200)!,
                                                    .success(successData))
 
         let result = await client.getLocations(authToken: "DH76F8S")
@@ -122,7 +122,7 @@ final class NetworkProtectionClientTests: XCTestCase {
 
     func testLocationsDecodeFailure() async {
         let undecodableData = "sdfghj".data(using: .utf8)!
-        MockURLProtocol.stubs[client.locationsURL] = (response: HTTPURLResponse(url: client.redeemURL, statusCode: 200)!,
+        MockURLProtocol.stubs[client.locationsURL] = (response: HTTPURLResponse(url: client.locationsURL, statusCode: 200)!,
                                                    .success(undecodableData))
 
         let result = await client.getLocations(authToken: "DH76F8S")

@@ -53,7 +53,6 @@ class UserAttributeMatcherTests: XCTestCase {
                                                     favoritesCount: 88,
                                                     appTheme: "default",
                                                     isWidgetInstalled: true,
-                                                    isNetPWaitlistUser: true,
                                                     daysSinceNetPEnabled: 3)
     }
 
