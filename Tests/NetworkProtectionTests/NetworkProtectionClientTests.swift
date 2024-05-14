@@ -24,7 +24,7 @@ final class NetworkProtectionClientTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        client = NetworkProtectionBackendClient(environment: .default, isSubscriptionEnabled: false)
+        client = NetworkProtectionBackendClient(environment: .production, isSubscriptionEnabled: false)
     }
 
     override class func setUp() {

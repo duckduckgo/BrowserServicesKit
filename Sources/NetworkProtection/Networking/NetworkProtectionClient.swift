@@ -78,6 +78,27 @@ public enum NetworkProtectionClientError: CustomNSError, NetworkProtectionErrorC
         case .accessDenied: return 13
         }
     }
+
+    public var errorUserInfo: [String: Any] {
+        switch self {
+        case .failedToFetchLocationList(let error),
+                .failedToParseLocationListResponse(let error),
+                .failedToFetchServerList(let error),
+                .failedToParseServerListResponse(let error),
+                .failedToFetchRegisteredServers(let error),
+                .failedToParseRegisteredServersResponse(let error),
+                .failedToRedeemInviteCode(let error),
+                .failedToParseRedeemResponse(let error):
+            return [NSUnderlyingErrorKey: error as NSError]
+        case .failedToEncodeRegisterKeyRequest,
+                .failedToEncodeRedeemRequest,
+                .invalidInviteCode,
+                .failedToRetrieveAuthToken,
+                .invalidAuthToken,
+                .accessDenied:
+            return [:]
+        }
+    }
 }
 
 struct RegisterKeyRequestBody: Encodable {
@@ -85,6 +106,7 @@ struct RegisterKeyRequestBody: Encodable {
     let server: String?
     let country: String?
     let city: String?
+    let mode: String?
 
     init(publicKey: PublicKey,
          serverSelection: RegisterServerSelection) {
@@ -102,7 +124,12 @@ struct RegisterKeyRequestBody: Encodable {
             server = nil
             self.country = country
             self.city = city
+        case .recovery(server: let server):
+            self.server = server
+            self.country = nil
+            self.city = nil
         }
+        mode = serverSelection.mode
     }
 }
 
@@ -110,6 +137,16 @@ enum RegisterServerSelection {
     case automatic
     case server(name: String)
     case location(country: String, city: String?)
+    case recovery(server: String)
+
+    var mode: String? {
+        switch self {
+        case .recovery:
+            "failureRecovery"
+        case .automatic, .location, .server:
+            nil
+        }
+    }
 }
 
 struct RedeemInviteCodeRequestBody: Encodable {

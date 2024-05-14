@@ -33,6 +33,7 @@ final class SuggestionProcessing {
     func result(for query: Query,
                 from history: [HistorySuggestion],
                 bookmarks: [Bookmark],
+                internalPages: [InternalPage],
                 apiResult: APIResult?) -> SuggestionResult? {
         let query = query.lowercased()
 
@@ -48,24 +49,21 @@ final class SuggestionProcessing {
         }
 
         // Get best matches from history and bookmarks
-        let allHistoryAndBookmarkSuggestions = historyAndBookmarkSuggestions(from: history,
-                                                                          bookmarks: bookmarks,
-                                                                          query: query)
+        let allLocalSuggestions = localSuggestions(from: history, bookmarks: bookmarks, internalPages: internalPages, query: query)
 
         // Combine HaB and domains into navigational suggestions and remove duplicates
-        var navigationalSuggestions = allHistoryAndBookmarkSuggestions + duckDuckGoDomainSuggestions
+        var navigationalSuggestions = allLocalSuggestions + duckDuckGoDomainSuggestions
 
         let maximumOfNavigationalSuggestions = min(
             Self.maximumNumberOfSuggestions - Self.minimumNumberInSuggestionGroup,
             query.count + 1)
-        navigationalSuggestions = merge(navigationalSuggestions,
-                                                   maximum: maximumOfNavigationalSuggestions)
+        navigationalSuggestions = merge(navigationalSuggestions, maximum: maximumOfNavigationalSuggestions)
 
         // Split the Top Hits and the History and Bookmarks section
         let topHits = topHits(from: navigationalSuggestions)
-        let historyAndBookmarkSuggestions = Array(navigationalSuggestions.dropFirst(topHits.count).filter { suggestion in
+        let localSuggestions = Array(navigationalSuggestions.dropFirst(topHits.count).filter { suggestion in
             switch suggestion {
-            case .bookmark, .historyEntry:
+            case .bookmark, .historyEntry, .internalPage:
                 return true
             default:
                 return false
@@ -74,7 +72,7 @@ final class SuggestionProcessing {
 
         return makeResult(topHits: topHits,
                           duckduckgoSuggestions: duckDuckGoSuggestions,
-                          historyAndBookmarks: historyAndBookmarkSuggestions)
+                          localSuggestions: localSuggestions)
     }
 
     // MARK: - DuckDuckGo Suggestions
@@ -87,21 +85,25 @@ final class SuggestionProcessing {
 
     // MARK: - History and Bookmarks
 
-    private func historyAndBookmarkSuggestions(from history: [HistorySuggestion], bookmarks: [Bookmark], query: Query) -> [Suggestion] {
-        let historyAndBookmarks: [Any] = bookmarks + history
+    private func localSuggestions(from history: [HistorySuggestion], bookmarks: [Bookmark], internalPages: [InternalPage], query: Query) -> [Suggestion] {
+        enum LocalSuggestion {
+            case bookmark(Bookmark)
+            case history(HistorySuggestion)
+            case internalPage(InternalPage)
+        }
+        let localSuggestions: [LocalSuggestion] = bookmarks.map(LocalSuggestion.bookmark) + history.map(LocalSuggestion.history) + internalPages.map(LocalSuggestion.internalPage)
         let queryTokens = Score.tokens(from: query)
 
-        let historyAndBookmarkSuggestions: [Suggestion] = historyAndBookmarks
+        let result: [Suggestion] = localSuggestions
             // Score items
-            .map { item -> (item: Any, score: Score) in
-                let score: Score
-                switch item {
-                case let bookmark as Bookmark:
-                    score = Score(bookmark: bookmark, query: query, queryTokens: queryTokens)
-                case let historyEntry as HistorySuggestion:
-                    score = Score(historyEntry: historyEntry, query: query, queryTokens: queryTokens)
-                default:
-                    score = 0
+            .map { item -> (item: LocalSuggestion, score: Score) in
+                let score = switch item {
+                case .bookmark(let bookmark):
+                    Score(bookmark: bookmark, query: query, queryTokens: queryTokens)
+                case .history(let historyEntry):
+                    Score(historyEntry: historyEntry, query: query, queryTokens: queryTokens)
+                case .internalPage(let internalPage):
+                    Score(internalPage: internalPage, query: query, queryTokens: queryTokens)
                 }
 
                 return (item, score)
@@ -113,16 +115,16 @@ final class SuggestionProcessing {
             // Create suggestion array
             .compactMap {
                 switch $0.item {
-                case let bookmark as Bookmark:
+                case .bookmark(let bookmark):
                     return Suggestion(bookmark: bookmark)
-                case let historyEntry as HistorySuggestion:
+                case .history(let historyEntry):
                     return Suggestion(historyEntry: historyEntry)
-                default:
-                    return nil
+                case .internalPage(let internalPage):
+                    return Suggestion(internalPage: internalPage)
                 }
             }
 
-        return historyAndBookmarkSuggestions
+        return result
     }
 
     // MARK: - Elimination of duplicates and merging of suggestions
@@ -203,7 +205,7 @@ final class SuggestionProcessing {
                 newSuggestion = findBookmarkDuplicate(to: suggestion, nakedUrl: suggestionNakedUrl, from: suggestions)
             case .bookmark:
                 newSuggestion = findAndMergeHistoryDuplicate(with: suggestion, nakedUrl: suggestionNakedUrl, from: suggestions)
-            case .phrase, .website, .unknown:
+            case .phrase, .website, .internalPage, .unknown:
                 break
             }
 
@@ -212,7 +214,7 @@ final class SuggestionProcessing {
                 switch suggestion {
                 case .historyEntry:
                     newSuggestion = findDuplicateContainingTitle(suggestion, nakedUrl: suggestionNakedUrl, from: suggestions)
-                case .bookmark, .phrase, .website, .unknown:
+                case .bookmark, .phrase, .website, .internalPage, .unknown:
                     break
                 }
             }
@@ -254,15 +256,15 @@ final class SuggestionProcessing {
 
     private func makeResult(topHits: [Suggestion],
                             duckduckgoSuggestions: [Suggestion],
-                            historyAndBookmarks: [Suggestion]) -> SuggestionResult {
+                            localSuggestions: [Suggestion]) -> SuggestionResult {
         // Top Hits
         let topHits = Array(topHits.prefix(2))
         var total = topHits.count
 
         // History and Bookmarks
-        let prefixForHistoryAndBookmarks = Self.maximumNumberOfSuggestions - (total + Self.minimumNumberInSuggestionGroup)
-        let historyAndBookmarks = Array(historyAndBookmarks.prefix(prefixForHistoryAndBookmarks))
-        total += historyAndBookmarks.count
+        let prefixForLocalSuggestions = Self.maximumNumberOfSuggestions - (total + Self.minimumNumberInSuggestionGroup)
+        let localSuggestions = Array(localSuggestions.prefix(prefixForLocalSuggestions))
+        total += localSuggestions.count
 
         // DuckDuckGo Suggestions
         let prefixForDuckDuckGoSuggestions = Self.maximumNumberOfSuggestions - total
@@ -270,7 +272,7 @@ final class SuggestionProcessing {
 
         return SuggestionResult(topHits: topHits,
                                 duckduckgoSuggestions: duckduckgoSuggestions,
-                                historyAndBookmarks: historyAndBookmarks)
+                                localSuggestions: localSuggestions)
     }
 
 }

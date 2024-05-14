@@ -76,6 +76,7 @@ public actor NetworkProtectionEntitlementMonitor {
     public func stop() {
         os_log("⚫️ Stopping entitlement monitor", log: .networkProtectionEntitlementMonitorLog)
 
+        task?.cancel() // Just making extra sure in case it's detached
         task = nil
     }
 }

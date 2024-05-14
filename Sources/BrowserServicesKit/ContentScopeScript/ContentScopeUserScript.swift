@@ -27,15 +27,28 @@ public final class ContentScopeProperties: Encodable {
     public let globalPrivacyControlValue: Bool
     public let debug: Bool = false
     public let sessionKey: String
+    public let languageCode: String
     public let platform = ContentScopePlatform()
     public let features: [String: ContentScopeFeature]
 
     public init(gpcEnabled: Bool, sessionKey: String, featureToggles: ContentScopeFeatureToggles) {
         self.globalPrivacyControlValue = gpcEnabled
         self.sessionKey = sessionKey
+        languageCode = Locale.current.languageCode ?? "en"
         features = [
             "autofill": ContentScopeFeature(featureToggles: featureToggles)
         ]
+    }
+
+    enum CodingKeys: String, CodingKey {
+        // Rename 'languageCode' to 'language' to conform to autofill.js's interface.
+        case languageCode = "language"
+
+        case globalPrivacyControlValue
+        case debug
+        case sessionKey
+        case platform
+        case features
     }
 }
 

@@ -29,6 +29,7 @@ final class SuggestionProcessingTests: XCTestCase {
         let result = processing.result(for: "DuckDuckGo",
                                        from: HistoryEntryMock.aHistory,
                                        bookmarks: BookmarkMock.someBookmarks,
+                                       internalPages: InternalPage.someInternalPages,
                                        apiResult: APIResult.anAPIResult)
 
         XCTAssertEqual(result!.topHits.count, 1)
@@ -62,6 +63,15 @@ extension BookmarkMock {
 
 }
 
+extension InternalPage {
+    static var someInternalPages: [InternalPage] {
+        [
+            InternalPage(title: "Settings", url: URL(string: "duck://settings")!),
+            InternalPage(title: "Bookmarks", url: URL(string: "duck://bookmarks")!),
+            InternalPage(title: "Duck Player Settings", url: URL(string: "duck://bookmarks/duck-player")!),
+        ]
+    }
+}
 extension APIResult {
 
     static var anAPIResult: APIResult {

@@ -144,6 +144,63 @@ final class BookmarkListViewModelTests: XCTestCase {
         }
     }
 
+    func testWhenBookmarkIsMovedAndThereAreStubsThenCorrectIndexIsCalculated() {
+
+        let context = bookmarkListViewModel.context
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark(id: "1")
+            Bookmark(id: "s1", isStub: true)
+            Bookmark(id: "2")
+            Bookmark(id: "s2", isStub: true)
+            Bookmark(id: "3")
+            Bookmark(id: "s3", isStub: true)
+        }
+
+        context.performAndWait {
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+
+            let rootFolder = BookmarkUtils.fetchRootFolder(context)!
+
+            let bookmark = BookmarkEntity.fetchBookmark(withUUID: "1", context: context)!
+
+            bookmarkListViewModel.reloadData()
+
+            bookmarkListViewModel.moveBookmark(bookmark, fromIndex: 0, toIndex: 0)
+            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+                Bookmark(id: "1")
+                Bookmark(id: "s1", isStub: true)
+                Bookmark(id: "2")
+                Bookmark(id: "s2", isStub: true)
+                Bookmark(id: "3")
+                Bookmark(id: "s3", isStub: true)
+            })
+
+            bookmarkListViewModel.moveBookmark(bookmark, fromIndex: 0, toIndex: 1)
+            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+                Bookmark(id: "s1", isStub: true)
+                Bookmark(id: "2")
+                Bookmark(id: "1")
+                Bookmark(id: "s2", isStub: true)
+                Bookmark(id: "3")
+                Bookmark(id: "s3", isStub: true)
+            })
+
+            bookmarkListViewModel.moveBookmark(bookmark, fromIndex: 1, toIndex: 2)
+            assertEquivalent(withTimestamps: false, rootFolder, BookmarkTree {
+                Bookmark(id: "s1", isStub: true)
+                Bookmark(id: "2")
+                Bookmark(id: "s2", isStub: true)
+                Bookmark(id: "3")
+                Bookmark(id: "1")
+                Bookmark(id: "s3", isStub: true)
+            })
+
+            XCTAssertEqual(firedEvents, [])
+        }
+    }
+
     func testWhenOrphanedBookmarkIsMovedThenItIsAttachedToRootFolder() async throws {
 
         let context = bookmarkListViewModel.context

@@ -1,5 +1,5 @@
 //
-//  PixelKitEvent.swift
+//  WireGuardAdapter+HandshakeReporting.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -18,9 +18,13 @@
 
 import Foundation
 
-/// An event that can be fired using PixelKit.
-///
-public protocol PixelKitEvent {
-    var name: String { get }
-    var parameters: [String: String]? { get }
+protocol HandshakeReporting {
+    /// Retrieves the number of seconds of the most recent handshake for the previously added peer entry, expressed relative to the Unix epoch.
+    ///
+    /// - Throws: ConfigReadingError
+    /// - Returns: Interval between the most recent handshake and the Unix epoch.
+    ///
+    func getMostRecentHandshake() async throws -> TimeInterval
 }
+
+extension WireGuardAdapter: HandshakeReporting {}
