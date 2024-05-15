@@ -111,16 +111,8 @@ final class NetworkProtectionConnectionBandwidthAnalyzer {
 
     private func bytesPerSecond(newer: Snapshot, older: Snapshot) -> (rx: Double, tx: Double) {
         let deltaSeconds = newer.date.timeIntervalSince1970 - older.date.timeIntervalSince1970
-        let rx: Double
-        let tx: Double
-
-        if deltaSeconds > 0 {
-            rx = Double(newer.rxBytes - older.rxBytes) / deltaSeconds
-            tx = Double(newer.txBytes - older.txBytes) / deltaSeconds
-        } else {
-            rx = 0
-            tx = 0
-        }
+        let rx = Double(newer.rxBytes - older.rxBytes) / deltaSeconds
+        let tx = Double(newer.txBytes - older.txBytes) / deltaSeconds
 
         return (rx, tx)
     }
