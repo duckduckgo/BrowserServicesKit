@@ -20,13 +20,6 @@ import BrowserServicesKit
 import CryptoKit
 
 public protocol PhishingDetectionServiceProtocol {
-    var filterSet: [Filter] {get set}
-    var hashPrefixes: [String] {get set}
-    func updateFilterSet() async
-    func updateHashPrefixes() async
-    func getMatches(hashPrefix: String) async -> [Match]
-    func loadData()
-    func writeData()
     func isMalicious(url: String) async -> Bool
 }
 
@@ -62,28 +55,29 @@ public struct Match: Decodable, Encodable {
 }
 
 public class PhishingDetectionService: PhishingDetectionServiceProtocol {
+    
 
     public var filterSet: [Filter] = []
     public var hashPrefixes = [String]()
     var currentRevision = 0
-    var apiService: PhishingDetectionAPIServiceProtocol
+    var apiClient: PhishingDetectionClientProtocol
 
-    init(apiService: PhishingDetectionAPIServiceProtocol? = nil) {
-        self.apiService = apiService ?? PhishingDetectionAPIService()
+    init(apiClient: PhishingDetectionClientProtocol? = nil) {
+        self.apiClient = apiClient ?? PhishingDetectionAPIClient() as PhishingDetectionClientProtocol
     }
     
     public func updateFilterSet() async {
-        let filterSet = await apiService.updateFilterSet(revision: currentRevision)
+        let filterSet = await apiClient.updateFilterSet(revision: currentRevision)
         self.filterSet = filterSet
     }
     
     public func updateHashPrefixes() async {
-        let hashPrefixes = await apiService.updateHashPrefixes(revision: currentRevision)
+        let hashPrefixes = await apiClient.updateHashPrefixes(revision: currentRevision)
         self.hashPrefixes = hashPrefixes
     }
     
     public func getMatches(hashPrefix: String) async -> [Match] {
-        return await apiService.getMatches(hashPrefix: hashPrefix)
+        return await apiClient.getMatches(hashPrefix: hashPrefix)
     }
     
     func inFilterSet(hash: String) -> [Filter] {
@@ -99,7 +93,7 @@ public class PhishingDetectionService: PhishingDetectionServiceProtocol {
             if !filterHit.isEmpty, let regex = filterHit.first?.regex, let _ = try? NSRegularExpression(pattern: regex, options: []) {
                 return true
             }
-            let matches = await apiService.getMatches(hashPrefix: hashPrefix)
+            let matches = await apiClient.getMatches(hashPrefix: hashPrefix)
             for match in matches {
                 if match.hash == hostnameHash, let _ = try? NSRegularExpression(pattern: match.regex, options: []) {
                     return true
