@@ -41,6 +41,11 @@ public struct Filter: Decodable, Encodable {
         case hashValue = "hash"
         case regex
     }
+
+    public init(hashValue: String, regex: String) {
+        self.hashValue = hashValue
+        self.regex = regex
+    }
 }
 
 public struct MatchResponse: Decodable, Encodable {
@@ -52,6 +57,13 @@ public struct Match: Decodable, Encodable {
     var url: String
     var regex: String
     var hash: String
+
+    public init(hostname: String, url: String, regex: String, hash: String) {
+        self.hostname = hostname
+        self.url = url
+        self.regex = regex
+        self.hash = hash
+    }
 }
 
 public class PhishingDetectionService: PhishingDetectionServiceProtocol {
