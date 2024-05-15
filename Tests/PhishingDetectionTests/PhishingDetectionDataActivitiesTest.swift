@@ -20,23 +20,24 @@ class PhishingDetectionDataActivitiesTest: XCTestCase {
     }
 
     func testDataActivitySchedulerRuns() async {
-        let expectation = XCTestExpectation(description: "HashPrefixDataActivity should run and update hash prefixes")
+        let hpExpectation = XCTestExpectation(description: "HashPrefixDataActivity should run and update hash prefixes")
 
         Task {
             await dataActivities.run()
             XCTAssertTrue(mockDetectionService.didUpdateHashPrefixes, "Hash prefixes should be updated")
-            expectation.fulfill()
+            hpExpectation.fulfill()
         }
         
-        await XCTWaiter().fulfillment(of: [expectation], timeout: 5.0)
+        await XCTWaiter().fulfillment(of: [hpExpectation], timeout: 5.0)
         
+        let fsExpectation = XCTestExpectation(description: "FilterSetDataActivity should run and update filter set")
         Task {
             await dataActivities.run()
             XCTAssertTrue(mockDetectionService.didUpdateFilterSet, "Filter set should be updated")
-            expectation.fulfill()
+            fsExpectation.fulfill()
         }
         
-        await XCTWaiter().fulfillment(of: [expectation], timeout: 5.0)
+        await XCTWaiter().fulfillment(of: [fsExpectation], timeout: 5.0)
     }
 }
 

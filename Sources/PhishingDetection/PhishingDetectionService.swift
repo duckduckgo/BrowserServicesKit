@@ -19,14 +19,6 @@ import Foundation
 import BrowserServicesKit
 import CryptoKit
 
-public protocol PhishingDetectionServiceProtocol {
-    func isMalicious(url: String) async -> Bool
-    func updateFilterSet() async
-    func updateHashPrefixes() async
-    func getMatches(hashPrefix: String) async -> [Match]
-    func loadData()
-}
-
 public struct HashPrefixResponse: Decodable, Encodable {
     public var hashPrefixes: [String]
     public var revision: Int
@@ -70,13 +62,24 @@ public struct Match: Decodable, Encodable {
     }
 }
 
+public protocol PhishingDetectionServiceProtocol {
+    var filterSet: [Filter] {get set}
+    var hashPrefixes: [String] {get set}
+    func isMalicious(url: String) async -> Bool
+    func updateFilterSet() async
+    func updateHashPrefixes() async
+    func getMatches(hashPrefix: String) async -> [Match]
+    func loadData()
+    func writeData()
+}
+
 public class PhishingDetectionService: PhishingDetectionServiceProtocol {
     public var filterSet: [Filter] = []
     public var hashPrefixes = [String]()
     var currentRevision = 0
     var apiClient: PhishingDetectionClientProtocol
 
-    init(apiClient: PhishingDetectionClientProtocol? = nil) {
+    public init(apiClient: PhishingDetectionClientProtocol? = nil) {
         self.apiClient = apiClient ?? PhishingDetectionAPIClient() as PhishingDetectionClientProtocol
     }
     

@@ -5,7 +5,7 @@ import XCTest
 @testable import PhishingDetection
 
 class PhishingDetectionServiceTests: XCTestCase {
-    var service: PhishingDetectionService!
+    var service: PhishingDetectionServiceProtocol!
 
     override func setUp() {
         super.setUp()

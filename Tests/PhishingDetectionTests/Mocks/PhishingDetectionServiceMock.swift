@@ -3,9 +3,9 @@ import PhishingDetection
 
 public class MockPhishingDetectionService: PhishingDetectionServiceProtocol {
     private var mockClient: PhishingDetectionClientProtocol
-    private var hashPrefixes: [String] = []
-    private var filterSet: [Filter] = []
+    public var hashPrefixes: [String] = []
     private var revision = 0
+    public var filterSet: [Filter] = []
     public var didUpdateHashPrefixes: Bool = false
     public var didUpdateFilterSet: Bool = false
 
@@ -38,6 +38,10 @@ public class MockPhishingDetectionService: PhishingDetectionServiceProtocol {
     public func loadData() {
         didUpdateHashPrefixes = true
         didUpdateFilterSet = true
+        return
+    }
+    
+    public func writeData() {
         return
     }
 }
