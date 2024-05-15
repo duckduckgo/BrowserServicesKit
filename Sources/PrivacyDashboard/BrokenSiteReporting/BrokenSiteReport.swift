@@ -69,7 +69,7 @@ public struct BrokenSiteReport {
         case navigation
     }
 
-    public static let allowedQueryReservedCharacters = CharacterSet(charactersIn: ",")
+    public static let allowedQueryReservedCharacters = CharacterSet.urlQueryParameterAllowed
 
     let siteUrl: URL
     let category: String
@@ -270,8 +270,7 @@ public struct BrokenSiteReport {
             return "\(error.code) - \(error.domain):\(error.localizedDescription)"
         }
         let jsonString = try? String(data: JSONSerialization.data(withJSONObject: errorDescriptions), encoding: .utf8)!
-        let encodedString = jsonString?.addingPercentEncoding(withAllowedCharacters: .urlQueryParameterAllowed)
-        return encodedString ?? ""
+        return jsonString ?? ""
     }
 
 }
