@@ -527,6 +527,30 @@ final class URLExtensionTests: XCTestCase {
         XCTAssertEqual(result.absoluteString, "www.duckduckgo.com?origin=test")
     }
 
+    func testWhenCallAppendingQueryItemsThenReturnURLWithQueryItems() throws {
+        // GIVEN
+        let queryItems = [URLQueryItem(name: "origin", value: "test"), URLQueryItem(name: "another_item", value: "test_2")]
+        let url = try XCTUnwrap(URL(string: "www.duckduckgo.com"))
+
+        // WHEN
+        let result = url.appending(percentEncodedQueryItems: queryItems)
+
+        // THEN
+        XCTAssertEqual(result.absoluteString, "www.duckduckgo.com?origin=test&another_item=test_2")
+    }
+
+    func testWhenCallGetQueryItemsThenReturnQueryItemsForURL() throws {
+        // GIVEN
+        let url = try XCTUnwrap(URL(string: "www.duckduckgo.com?origin=test&another_item=test_2"))
+
+        // WHEN
+        let result = try XCTUnwrap(url.getQueryItems())
+
+        // THEN
+        XCTAssertEqual(result.first, .init(name: "origin", value: "test"))
+        XCTAssertEqual(result.last, .init(name: "another_item", value: "test_2"))
+    }
+
 }
 
 extension String {
