@@ -71,13 +71,6 @@ final public class SubscriptionManager: SubscriptionManaging {
 
     // MARK: Load and Save SubscriptionEnvironment
 
-    static public func getSavedOrDefaultEnvironment(userDefaults: UserDefaults) -> SubscriptionEnvironment {
-        if let savedEnvironment = loadEnvironmentFrom(userDefaults: userDefaults) {
-            return savedEnvironment
-        }
-        return SubscriptionEnvironment.default
-    }
-
     static private let subscriptionEnvironmentStorageKey = "com.duckduckgo.subscription.environment"
     static public func loadEnvironmentFrom(userDefaults: UserDefaults) -> SubscriptionEnvironment? {
         if let savedData = userDefaults.object(forKey: Self.subscriptionEnvironmentStorageKey) as? Data {

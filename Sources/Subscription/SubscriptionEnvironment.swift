@@ -43,23 +43,4 @@ public struct SubscriptionEnvironment: Codable {
         self.serviceEnvironment = serviceEnvironment
         self.platform = platform
     }
-
-    public static var `default`: SubscriptionEnvironment {
-        #if os(OSX)
-#if APPSTORE || !STRIPE
-        let platform: SubscriptionEnvironment.Platform = .appStore
-#else
-        let platform: SubscriptionEnvironment.Platform = .stripe
-#endif
-        #else
-        let platform: SubscriptionEnvironment.Platform = .appStore
-        #endif
-
-#if ALPHA || DEBUG
-        let environment: SubscriptionEnvironment.ServiceEnvironment = .staging
-#else
-        let environment: SubscriptionEnvironment.ServiceEnvironment = .production
-#endif
-        return SubscriptionEnvironment(serviceEnvironment: environment, platform: platform)
-    }
 }
