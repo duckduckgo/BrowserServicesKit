@@ -27,22 +27,55 @@ public protocol PhishingDetectionClientProtocol {
 
 class PhishingDetectionAPIClient: PhishingDetectionClientProtocol {
     
-    public static let baseURL: URL = URL(string: "http://localhost:3000")!
-    public static let session: URLSession = .shared
-    var headers: [String: String]? = [:]
+    enum Constants {
+        static let productionEndpoint = URL(string: "https://tbd.unknown.duckduckgo.com")!
+        static let stagingEndpoint = URL(string: "http://localhost:3000")!
+    }
+    
+    private let endpointURL: URL
+    private let session: URLSession = .shared
+    private var headers: [String: String]? = [:]
+    
+    var filterSetURL: URL {
+        endpointURL.appendingPathComponent("filterSet")
+    }
+    
+    var hashPrefixURL: URL {
+        endpointURL.appendingPathComponent("hashPrefix")
+    }
+    
+    var matchesURL: URL {
+        endpointURL.appendingPathComponent("matches")
+    }
+    
+    init(environment: Environment = .staging) {
+        switch environment {
+        case .production:
+            endpointURL = Constants.productionEndpoint
+        case .staging:
+            endpointURL = Constants.stagingEndpoint
+        }
+    }
     
     public func updateFilterSet(revision: Int) async -> [Filter] {
-        var endpoint = "filterSet"
+        let url: URL
         if revision > 0 {
-            endpoint += "?revision=\(revision)"
+            var urlComponents = URLComponents(url: filterSetURL, resolvingAgainstBaseURL: true)
+            urlComponents?.queryItems = [URLQueryItem(name: "revision", value: String(revision))]
+            guard let resolvedURL = urlComponents?.url else {
+                print("Invalid filterSet revision URL: \(revision)")
+                return []
+            }
+            url = resolvedURL
+        } else {
+            url = filterSetURL
         }
-        let url = Self.baseURL.appendingPathComponent(endpoint)
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.allHTTPHeaderFields = headers
         
         do {
-            let (data, _) = try await Self.session.data(for: request)
+            let (data, _) = try await session.data(for: request)
             if let filterSetResponse = try? JSONDecoder().decode(FilterSetResponse.self, from: data) {
                 return filterSetResponse.filters
             } else {
@@ -55,17 +88,24 @@ class PhishingDetectionAPIClient: PhishingDetectionClientProtocol {
     }
     
     public func updateHashPrefixes(revision: Int) async -> [String] {
-        var endpoint = "hashPrefix"
+        let url: URL
         if revision > 0 {
-            endpoint += "?revision=\(revision)"
+            var urlComponents = URLComponents(url: hashPrefixURL, resolvingAgainstBaseURL: true)
+            urlComponents?.queryItems = [URLQueryItem(name: "revision", value: String(revision))]
+            guard let resolvedURL = urlComponents?.url else {
+                print("Invalid hashPrefix revision URL: \(revision)")
+                return []
+            }
+            url = resolvedURL
+        } else {
+            url = hashPrefixURL
         }
-        let url = Self.baseURL.appendingPathComponent(endpoint)
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.allHTTPHeaderFields = headers
         
         do {
-            let (data, _) = try await Self.session.data(for: request)
+            let (data, _) = try await session.data(for: request)
             if let hashPrefixResponse = try? JSONDecoder().decode(HashPrefixResponse.self, from: data) {
                 return hashPrefixResponse.hashPrefixes
             } else {
@@ -78,10 +118,8 @@ class PhishingDetectionAPIClient: PhishingDetectionClientProtocol {
     }
     
     public func getMatches(hashPrefix: String) async -> [Match] {
-        let endpoint = "matches"
-        let queryParams = ["hashPrefix": hashPrefix]
-        var urlComponents = URLComponents(string: Self.baseURL.appendingPathComponent(endpoint).absoluteString)
-        urlComponents?.queryItems = queryParams.map { URLQueryItem(name: $0.key, value: $0.value) }
+        var urlComponents = URLComponents(url: matchesURL, resolvingAgainstBaseURL: true)
+        urlComponents?.queryItems = [URLQueryItem(name: "hashPrefix", value: hashPrefix)]
         
         guard let url = urlComponents?.url else {
             print("Invalid URL")
@@ -93,7 +131,7 @@ class PhishingDetectionAPIClient: PhishingDetectionClientProtocol {
         request.allHTTPHeaderFields = headers
         
         do {
-            let (data, _) = try await Self.session.data(for: request)
+            let (data, _) = try await session.data(for: request)
             if let matchResponse = try? JSONDecoder().decode(MatchResponse.self, from: data) {
                 return matchResponse.matches
             } else {
@@ -104,6 +142,11 @@ class PhishingDetectionAPIClient: PhishingDetectionClientProtocol {
             return []
         }
         return []
+    }
+    
+    enum Environment {
+        case production
+        case staging
     }
     
 }
