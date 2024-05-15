@@ -5,13 +5,12 @@ import XCTest
 @testable import PhishingDetection
 
 class PhishingDetectionServiceTests: XCTestCase {
-    var service: PhishingDetectionServiceProtocol!
+    var service: PhishingDetectionService!
 
     override func setUp() {
         super.setUp()
-        let mockAPI = MockPhishingDetectionAPIService()
-        service = PhishingDetectionService(apiService: mockAPI)
-        
+        let mockClient = MockPhishingDetectionClient()
+        service = PhishingDetectionService(apiClient: mockClient)
     }
 
     override func tearDown() {
