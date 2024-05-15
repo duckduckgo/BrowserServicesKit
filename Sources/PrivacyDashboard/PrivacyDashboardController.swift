@@ -363,8 +363,8 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
             privacyDashboardDelegate?.privacyDashboardController(self, didChangeProtectionSwitch: protectionState, didSendReport: didSendReport)
         case .breakageForm:
             privacyDashboardReportBrokenSiteDelegate?.privacyDashboardController(self, reportBrokenSiteDidChangeProtectionSwitch: protectionState)
-        case .toggleReport:
-            assertionFailure("Simple Breakage report screen doesn't have toggling capability")
+        case .toggleReport, .promptBreakageForm:
+            assertionFailure("These screen don't have toggling capability")
         }
     }
 
@@ -485,6 +485,7 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
         case .report: source = .appMenu
         case .dashboard: source = .dashboard
         case .toggleReport: source = .onProtectionsOffMenu
+        case .prompt(let event): source = .prompt(event)
         }
         if protectionStateToSubmitOnToggleReportDismiss != nil {
             source = .onProtectionsOffDashboard
