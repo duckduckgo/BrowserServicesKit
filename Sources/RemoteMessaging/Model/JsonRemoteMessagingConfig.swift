@@ -64,8 +64,13 @@ public enum RemoteMessageResponse {
         let secondaryActionText: String?
     }
 
+    struct JsonTargetPercentile: Decodable {
+        let before: Float?
+    }
+
     struct JsonMatchingRule: Decodable {
         let id: Int
+        let targetPercentile: JsonTargetPercentile?
         let attributes: [String: AnyDecodable]
     }
 
