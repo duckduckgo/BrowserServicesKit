@@ -23,6 +23,7 @@ public protocol KeychainService {
     func itemMatching(_ query: [String: Any], _ result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus
     func add(_ attributes: [String: Any], _ result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus
     func delete(_ query: [String: Any]) -> OSStatus
+    func update(_ query: [String: Any], _ attributesToUpdate: [String: Any]) -> OSStatus
 }
 
 public extension KeychainService {
@@ -37,6 +38,11 @@ public extension KeychainService {
     func delete(_ query: [String: Any]) -> OSStatus {
         SecItemDelete(query as CFDictionary)
     }
+
+    func update(_ query: [String: Any], _ attributesToUpdate: [String: Any]) -> OSStatus {
+        SecItemUpdate(query as CFDictionary, attributesToUpdate as CFDictionary)
+    }
+
 }
 
 public struct DefaultKeychainService: KeychainService {
@@ -56,6 +62,7 @@ public protocol SecureStorageKeyStoreProvider {
     var l1KeyEntryName: String { get }
     var l2KeyEntryName: String { get }
     var keychainServiceName: String { get }
+    var keychainAccessibilityValue: String { get }
 
     func storeGeneratedPassword(_ password: Data) throws
     func generatedPassword() throws -> Data?
@@ -77,6 +84,10 @@ public extension SecureStorageKeyStoreProvider {
 
     var keychainService: KeychainService {
         DefaultKeychainService()
+    }
+
+    var keychainAccessibilityValue: String {
+        kSecAttrAccessibleWhenUnlocked as String
     }
 
     func generatedPassword() throws -> Data? {
@@ -144,7 +155,7 @@ public extension SecureStorageKeyStoreProvider {
 
         var query = attributesForEntry(named: name, serviceName: serviceName)
         query[kSecAttrService as String] = serviceName
-        query[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlocked
+        query[kSecAttrAccessible as String] = keychainAccessibilityValue
         query[kSecValueData as String] = base64Data
 
         let status = keychainService.add(query, nil)
