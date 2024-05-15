@@ -23,14 +23,12 @@ public final class VPNConfigurationManager {
 
     public init() {}
 
-    public func removeVPNConfiguration() async {
-        let tunnels = try? await NETunnelProviderManager.loadAllFromPreferences()
+    public func removeVPNConfiguration() async throws {
+        let tunnels = try await NETunnelProviderManager.loadAllFromPreferences()
 
-        if let tunnels = tunnels {
-            for tunnel in tunnels {
-                tunnel.connection.stopVPNTunnel()
-                try? await tunnel.removeFromPreferences()
-            }
+        for tunnel in tunnels {
+            tunnel.connection.stopVPNTunnel()
+            try await tunnel.removeFromPreferences()
         }
     }
 }
