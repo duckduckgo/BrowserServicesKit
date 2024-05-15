@@ -27,9 +27,9 @@ public protocol SubscriptionFeatureAvailability {
 public final class DefaultSubscriptionFeatureAvailability: SubscriptionFeatureAvailability {
 
     private let privacyConfigurationManager: PrivacyConfigurationManaging
-    private let subscriptionPlatform: SubscriptionEnvironment.Platform
+    private let subscriptionPlatform: SubscriptionEnvironment.PurchasePlatform
 
-    public init(privacyConfigurationManager: PrivacyConfigurationManaging, subscriptionPlatform: SubscriptionEnvironment.Platform) {
+    public init(privacyConfigurationManager: PrivacyConfigurationManaging, subscriptionPlatform: SubscriptionEnvironment.PurchasePlatform) {
         self.privacyConfigurationManager = privacyConfigurationManager
         self.subscriptionPlatform = subscriptionPlatform
     }

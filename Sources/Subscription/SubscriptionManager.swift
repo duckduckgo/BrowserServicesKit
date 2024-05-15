@@ -53,7 +53,7 @@ final public class SubscriptionManager: SubscriptionManaging {
         self.subscriptionService = subscriptionService
         self.authService = authService
         self.currentEnvironment = subscriptionEnvironment
-        switch currentEnvironment.platform {
+        switch currentEnvironment.purchasePlatform {
         case .appStore:
             if #available(macOS 12.0, iOS 15.0, *) {
                 setupForAppStore()

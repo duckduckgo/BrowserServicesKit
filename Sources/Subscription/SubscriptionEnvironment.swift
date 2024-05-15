@@ -31,16 +31,15 @@ public struct SubscriptionEnvironment: Codable {
         }
     }
 
-    public enum Platform: String, Codable {
+    public enum PurchasePlatform: String, Codable {
         case appStore, stripe
     }
 
     public var serviceEnvironment: SubscriptionEnvironment.ServiceEnvironment
-    public var platform: SubscriptionEnvironment.Platform
+    public var purchasePlatform: SubscriptionEnvironment.PurchasePlatform
 
-    public init(serviceEnvironment: SubscriptionEnvironment.ServiceEnvironment,
-                platform: SubscriptionEnvironment.Platform) {
+    public init(serviceEnvironment: SubscriptionEnvironment.ServiceEnvironment, purchasePlatform: SubscriptionEnvironment.PurchasePlatform) {
         self.serviceEnvironment = serviceEnvironment
-        self.platform = platform
+        self.purchasePlatform = purchasePlatform
     }
 }
