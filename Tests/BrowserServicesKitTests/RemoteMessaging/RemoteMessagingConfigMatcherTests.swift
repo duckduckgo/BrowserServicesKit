@@ -45,6 +45,7 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            isWidgetInstalled: false,
                                                            isNetPWaitlistUser: false,
                                                            daysSinceNetPEnabled: -1),
+                percentileStore: MockRemoteMessagePercentileStore(),
                 dismissedMessageIds: []
         )
     }
@@ -56,7 +57,7 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
     }
 
     func testWhenEmptyConfigThenReturnNull() throws {
-        let emptyConfig = RemoteConfigModel(messages: [], rules: [:])
+        let emptyConfig = RemoteConfigModel(messages: [], rules: [])
 
         XCTAssertNil(matcher.evaluate(remoteConfig: emptyConfig))
     }
@@ -64,41 +65,54 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
     func testWhenNoMatchingRulesThenReturnFirstMessage() throws {
         let noRulesRemoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [1], exclusionRules: []),
                                                           mediumMessage(matchingRules: [], exclusionRules: [])],
-                                               rules: [:])
+                                               rules: [])
         XCTAssertEqual(matcher.evaluate(remoteConfig: noRulesRemoteConfig), mediumMessage(matchingRules: [], exclusionRules: []))
     }
 
     func testWhenNotExistingRuleThenReturnSkipMessage() throws {
         let noRulesRemoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [1], exclusionRules: []),
                                                           mediumMessage(matchingRules: [], exclusionRules: [])],
-                                               rules: [:])
+                                               rules: [])
 
         XCTAssertEqual(matcher.evaluate(remoteConfig: noRulesRemoteConfig), mediumMessage(matchingRules: [], exclusionRules: []))
     }
 
     func testWhenNoMessagesThenReturnNull() throws {
         let os = ProcessInfo().operatingSystemVersion
-        let noRulesRemoteConfig = RemoteConfigModel(messages: [],
-                                               rules: [1: [OSMatchingAttribute(min: "0.0", max: String(os.majorVersion + 1), fallback: nil)]])
+        let noRulesRemoteConfig = RemoteConfigModel(messages: [], rules: [
+            RemoteConfigRule(id: 1, targetPercentile: nil, attributes: [
+                OSMatchingAttribute(min: "0.0", max: String(os.majorVersion + 1), fallback: nil)
+            ])
+        ])
 
         XCTAssertNil(matcher.evaluate(remoteConfig: noRulesRemoteConfig))
     }
 
     func testWhenDeviceDoesNotMatchMessageRulesThenReturnNull() throws {
         let os = ProcessInfo().operatingSystemVersion
-        let remoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [1], exclusionRules: []),
-                                                   mediumMessage(matchingRules: [1], exclusionRules: [])],
-                                        rules: [1: [OSMatchingAttribute(min: "0.0", max: String(os.majorVersion - 1), fallback: nil)]])
+        let remoteConfig = RemoteConfigModel(messages: [
+            mediumMessage(matchingRules: [1], exclusionRules: []),
+            mediumMessage(matchingRules: [1], exclusionRules: [])
+        ], rules: [
+            RemoteConfigRule(id: 1, targetPercentile: nil, attributes: [
+                OSMatchingAttribute(min: "0.0", max: String(os.majorVersion - 1), fallback: nil)
+            ])
+        ])
 
         XCTAssertNil(matcher.evaluate(remoteConfig: remoteConfig))
     }
 
     func testWhenNoMatchingRulesThenReturnFirstNonExcludedMessage() {
-        let remoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [], exclusionRules: [2]),
-                                                   mediumMessage(matchingRules: [], exclusionRules: [3])],
-                                        rules: [1: [OSMatchingAttribute(value: AppVersion.shared.osVersion, fallback: nil)],
-                                                2: [LocaleMatchingAttribute(value: [LocaleMatchingAttribute.localeIdentifierAsJsonFormat(Locale.current.identifier)], fallback: nil)],
-                                                3: [EmailEnabledMatchingAttribute(value: false, fallback: nil)]])
+        let remoteConfig = RemoteConfigModel(messages: [
+            mediumMessage(matchingRules: [], exclusionRules: [2]),
+            mediumMessage(matchingRules: [], exclusionRules: [3])
+        ], rules: [
+            RemoteConfigRule(id: 1, targetPercentile: nil, attributes: [OSMatchingAttribute(value: AppVersion.shared.osVersion, fallback: nil)]),
+            RemoteConfigRule(id: 2, targetPercentile: nil, attributes: [
+                LocaleMatchingAttribute(value: [LocaleMatchingAttribute.localeIdentifierAsJsonFormat(Locale.current.identifier)], fallback: nil)
+            ]),
+            RemoteConfigRule(id: 3, targetPercentile: nil, attributes: [EmailEnabledMatchingAttribute(value: false, fallback: nil)])
+        ])
 
         XCTAssertEqual(matcher.evaluate(remoteConfig: remoteConfig), mediumMessage(matchingRules: [], exclusionRules: [3]))
     }
@@ -115,60 +129,85 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            isWidgetInstalled: false,
                                                            isNetPWaitlistUser: false,
                                                            daysSinceNetPEnabled: -1),
+                percentileStore: MockRemoteMessagePercentileStore(),
                 dismissedMessageIds: [])
 
-        let remoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [1], exclusionRules: [2])],
-                                        rules: [1: [OSMatchingAttribute(value: AppVersion.shared.osVersion, fallback: nil)],
-                                                2: [LocaleMatchingAttribute(value: ["en-US"], fallback: nil)]])
+        let remoteConfig = RemoteConfigModel(messages: [
+            mediumMessage(matchingRules: [1], exclusionRules: [2])
+        ], rules: [
+            RemoteConfigRule(id: 1, targetPercentile: nil, attributes: [OSMatchingAttribute(value: AppVersion.shared.osVersion, fallback: nil)]),
+            RemoteConfigRule(id: 2, targetPercentile: nil, attributes: [LocaleMatchingAttribute(value: ["en-US"], fallback: nil)])
+        ])
 
         XCTAssertNil(matcher.evaluate(remoteConfig: remoteConfig))
     }
 
     func testWhenMatchingMessageShouldBeExcludedByOneOfMultipleRulesThenReturnNull() {
-        let remoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [1], exclusionRules: [4]),
-                                                   mediumMessage(matchingRules: [1], exclusionRules: [2, 3]),
-                                                   mediumMessage(matchingRules: [1], exclusionRules: [2, 3, 4]),
-                                                   mediumMessage(matchingRules: [1], exclusionRules: [2, 4]),
-                                                   mediumMessage(matchingRules: [1], exclusionRules: [4])],
-                                        rules: [1: [OSMatchingAttribute(value: AppVersion.shared.osVersion, fallback: nil)],
-                                                2: [EmailEnabledMatchingAttribute(value: true, fallback: nil), BookmarksMatchingAttribute(max: 10, fallback: nil)],
-                                                3: [EmailEnabledMatchingAttribute(value: true, fallback: nil), BookmarksMatchingAttribute(max: 10, fallback: nil)],
-                                                4: [OSMatchingAttribute(value: AppVersion.shared.osVersion, fallback: nil)],
-                                                5: [EmailEnabledMatchingAttribute(value: true, fallback: nil)]])
+        let remoteConfig = RemoteConfigModel(messages: [
+            mediumMessage(matchingRules: [1], exclusionRules: [4]),
+            mediumMessage(matchingRules: [1], exclusionRules: [2, 3]),
+            mediumMessage(matchingRules: [1], exclusionRules: [2, 3, 4]),
+            mediumMessage(matchingRules: [1], exclusionRules: [2, 4]),
+            mediumMessage(matchingRules: [1], exclusionRules: [4])
+        ], rules: [
+            RemoteConfigRule(id: 1, targetPercentile: nil, attributes: [OSMatchingAttribute(value: AppVersion.shared.osVersion, fallback: nil)]),
+            RemoteConfigRule(id: 2, targetPercentile: nil, attributes: [
+                EmailEnabledMatchingAttribute(value: true, fallback: nil), BookmarksMatchingAttribute(max: 10, fallback: nil)
+            ]),
+            RemoteConfigRule(id: 3, targetPercentile: nil, attributes: [
+                EmailEnabledMatchingAttribute(value: true, fallback: nil), BookmarksMatchingAttribute(max: 10, fallback: nil)
+            ]),
+            RemoteConfigRule(id: 4, targetPercentile: nil, attributes: [OSMatchingAttribute(value: AppVersion.shared.osVersion, fallback: nil)]),
+            RemoteConfigRule(id: 5, targetPercentile: nil, attributes: [EmailEnabledMatchingAttribute(value: true, fallback: nil)])
+        ])
 
         XCTAssertNil(matcher.evaluate(remoteConfig: remoteConfig))
     }
 
     func testWhenMultipleMatchingMessagesAndSomeExcludedThenReturnFirstNonExcludedMatch() {
-        let remoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [1], exclusionRules: [2]),
-                                                   mediumMessage(matchingRules: [1], exclusionRules: [2]),
-                                                   mediumMessage(matchingRules: [1], exclusionRules: [])],
-                                        rules: [1: [OSMatchingAttribute(value: AppVersion.shared.osVersion, fallback: nil)],
-                                                2: [LocaleMatchingAttribute(value: [LocaleMatchingAttribute.localeIdentifierAsJsonFormat(Locale.current.identifier)], fallback: nil)]])
+        let remoteConfig = RemoteConfigModel(messages: [
+            mediumMessage(matchingRules: [1], exclusionRules: [2]),
+            mediumMessage(matchingRules: [1], exclusionRules: [2]),
+            mediumMessage(matchingRules: [1], exclusionRules: [])
+        ], rules: [
+            RemoteConfigRule(id: 1, targetPercentile: nil, attributes: [OSMatchingAttribute(value: AppVersion.shared.osVersion, fallback: nil)]),
+            RemoteConfigRule(id: 2, targetPercentile: nil, attributes: [
+                LocaleMatchingAttribute(value: [LocaleMatchingAttribute.localeIdentifierAsJsonFormat(Locale.current.identifier)], fallback: nil)
+            ])
+        ])
 
         XCTAssertEqual(matcher.evaluate(remoteConfig: remoteConfig), mediumMessage(matchingRules: [1], exclusionRules: []))
     }
 
     func testWhenMessageMatchesAndExclusionRuleFailsThenReturnMessage() {
-        let remoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [1], exclusionRules: [2])],
-                                        rules: [1: [OSMatchingAttribute(value: AppVersion.shared.osVersion, fallback: nil)],
-                                                2: [EmailEnabledMatchingAttribute(value: false, fallback: nil)]])
+        let remoteConfig = RemoteConfigModel(messages: [
+            mediumMessage(matchingRules: [1], exclusionRules: [2])
+        ], rules: [
+            RemoteConfigRule(id: 1, targetPercentile: nil, attributes: [OSMatchingAttribute(value: AppVersion.shared.osVersion, fallback: nil)]),
+            RemoteConfigRule(id: 2, targetPercentile: nil, attributes: [EmailEnabledMatchingAttribute(value: false, fallback: nil)])
+        ])
 
         XCTAssertEqual(matcher.evaluate(remoteConfig: remoteConfig), mediumMessage(matchingRules: [1], exclusionRules: [2]))
     }
 
     func testWhenDeviceMatchesMessageRulesThenReturnFirstMatch() {
-        let remoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [1], exclusionRules: [])],
-                                        rules: [1: [OSMatchingAttribute(value: AppVersion.shared.osVersion, fallback: nil)]])
+        let remoteConfig = RemoteConfigModel(messages: [
+            mediumMessage(matchingRules: [1], exclusionRules: [])
+        ], rules: [
+            RemoteConfigRule(id: 1, targetPercentile: nil, attributes: [OSMatchingAttribute(value: AppVersion.shared.osVersion, fallback: nil)])
+        ])
 
         XCTAssertEqual(matcher.evaluate(remoteConfig: remoteConfig), mediumMessage(matchingRules: [1], exclusionRules: []))
     }
 
     func testWhenDeviceMatchesMessageRulesForOneOfMultipleMessagesThenReturnMatch() {
-        let remoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [2], exclusionRules: []),
-                                                   mediumMessage(matchingRules: [1, 2], exclusionRules: [])],
-                                        rules: [1: [OSMatchingAttribute(value: AppVersion.shared.osVersion, fallback: nil)],
-                                                2: [EmailEnabledMatchingAttribute(value: false, fallback: nil)]])
+        let remoteConfig = RemoteConfigModel(messages: [
+            mediumMessage(matchingRules: [2], exclusionRules: []),
+            mediumMessage(matchingRules: [1, 2], exclusionRules: [])
+        ], rules: [
+            RemoteConfigRule(id: 1, targetPercentile: nil, attributes: [OSMatchingAttribute(value: AppVersion.shared.osVersion, fallback: nil)]),
+            RemoteConfigRule(id: 2, targetPercentile: nil, attributes: [EmailEnabledMatchingAttribute(value: false, fallback: nil)])
+        ])
 
         XCTAssertEqual(matcher.evaluate(remoteConfig: remoteConfig), mediumMessage(matchingRules: [1, 2], exclusionRules: []))
     }
@@ -184,19 +223,26 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            isWidgetInstalled: false,
                                                            isNetPWaitlistUser: false,
                                                            daysSinceNetPEnabled: -1),
+                percentileStore: MockRemoteMessagePercentileStore(),
                 dismissedMessageIds: ["1"])
 
-        let remoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [1], exclusionRules: []),
-                                                   mediumMessage(id: "2", matchingRules: [1], exclusionRules: [])],
-                                        rules: [1: [OSMatchingAttribute(value: AppVersion.shared.osVersion, fallback: nil)]])
+        let remoteConfig = RemoteConfigModel(messages: [
+            mediumMessage(matchingRules: [1], exclusionRules: []),
+            mediumMessage(id: "2", matchingRules: [1], exclusionRules: [])
+        ], rules: [
+            RemoteConfigRule(id: 1, targetPercentile: nil, attributes: [OSMatchingAttribute(value: AppVersion.shared.osVersion, fallback: nil)])
+        ])
 
         XCTAssertEqual(matcher.evaluate(remoteConfig: remoteConfig), mediumMessage(id: "2", matchingRules: [1], exclusionRules: []))
     }
 
     func testWhenDeviceMatchesAnyRuleThenReturnFirstMatch() {
-        let remoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [1, 2], exclusionRules: [])],
-                                        rules: [1: [LocaleMatchingAttribute(value: [Locale.current.identifier], fallback: nil)],
-                                                2: [OSMatchingAttribute(min: "0", max: "100", fallback: nil)]])
+        let remoteConfig = RemoteConfigModel(messages: [
+            mediumMessage(matchingRules: [1, 2], exclusionRules: [])
+        ], rules: [
+            RemoteConfigRule(id: 1, targetPercentile: nil, attributes: [LocaleMatchingAttribute(value: [Locale.current.identifier], fallback: nil)]),
+            RemoteConfigRule(id: 2, targetPercentile: nil, attributes: [OSMatchingAttribute(min: "0", max: "100", fallback: nil)])
+        ])
 
         XCTAssertEqual(matcher.evaluate(remoteConfig: remoteConfig), mediumMessage(matchingRules: [1, 2], exclusionRules: []))
     }
@@ -214,28 +260,166 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            isWidgetInstalled: false,
                                                            isNetPWaitlistUser: false,
                                                            daysSinceNetPEnabled: -1),
+                percentileStore: MockRemoteMessagePercentileStore(),
                 dismissedMessageIds: [])
 
-        let remoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [1, 2], exclusionRules: []),
-                                                   mediumMessage(matchingRules: [1, 2], exclusionRules: [])],
-                                        rules: [1: [OSMatchingAttribute(min: "0.0", max: String(os.majorVersion - 1), fallback: nil)],
-                                                2: [OSMatchingAttribute(min: "0.0", max: String(os.majorVersion - 1), fallback: nil)]])
+        let remoteConfig = RemoteConfigModel(messages: [
+            mediumMessage(matchingRules: [1, 2], exclusionRules: []),
+            mediumMessage(matchingRules: [1, 2], exclusionRules: [])
+        ], rules: [
+            RemoteConfigRule(id: 1, targetPercentile: nil, attributes: [
+                OSMatchingAttribute(min: "0.0", max: String(os.majorVersion - 1), fallback: nil)
+            ]),
+            RemoteConfigRule(id: 2, targetPercentile: nil, attributes: [
+                OSMatchingAttribute(min: "0.0", max: String(os.majorVersion - 1), fallback: nil)
+            ])
+        ])
 
         XCTAssertNil(matcher.evaluate(remoteConfig: remoteConfig))
     }
 
+    func testWhenDeviceMatchesMessageRules_AndIsPartOfPercentile_ThenReturnMatch() {
+        let percentileStore = MockRemoteMessagePercentileStore()
+        percentileStore.defaultPercentage = 0.1
+
+        matcher = RemoteMessagingConfigMatcher(
+                appAttributeMatcher: AppAttributeMatcher(statisticsStore: MockStatisticsStore(), variantManager: MockVariantManager()),
+                deviceAttributeMatcher: DeviceAttributeMatcher(osVersion: AppVersion.shared.osVersion, locale: "en-US"),
+                userAttributeMatcher: UserAttributeMatcher(statisticsStore: MockStatisticsStore(),
+                                                           variantManager: MockVariantManager(),
+                                                           bookmarksCount: 0,
+                                                           favoritesCount: 0,
+                                                           appTheme: "light",
+                                                           isWidgetInstalled: false,
+                                                           isNetPWaitlistUser: false,
+                                                           daysSinceNetPEnabled: -1),
+                percentileStore: percentileStore,
+                dismissedMessageIds: [])
+
+        let remoteConfig = RemoteConfigModel(messages: [
+            mediumMessage(matchingRules: [1], exclusionRules: [])
+        ], rules: [
+            RemoteConfigRule(
+                id: 1,
+                targetPercentile: RemoteConfigTargetPercentile(before: 0.3),
+                attributes: [OSMatchingAttribute(value: AppVersion.shared.osVersion, fallback: nil)]
+            )
+        ])
+
+        XCTAssertEqual(matcher.evaluate(remoteConfig: remoteConfig), mediumMessage(matchingRules: [1], exclusionRules: []))
+    }
+
+    func testWhenDeviceMatchesMessageRules_AndIsNotPartOfPercentile_ThenReturnNull() {
+        let percentileStore = MockRemoteMessagePercentileStore()
+        percentileStore.defaultPercentage = 0.5
+
+        matcher = RemoteMessagingConfigMatcher(
+                appAttributeMatcher: AppAttributeMatcher(statisticsStore: MockStatisticsStore(), variantManager: MockVariantManager()),
+                deviceAttributeMatcher: DeviceAttributeMatcher(osVersion: AppVersion.shared.osVersion, locale: "en-US"),
+                userAttributeMatcher: UserAttributeMatcher(statisticsStore: MockStatisticsStore(),
+                                                           variantManager: MockVariantManager(),
+                                                           bookmarksCount: 0,
+                                                           favoritesCount: 0,
+                                                           appTheme: "light",
+                                                           isWidgetInstalled: false,
+                                                           isNetPWaitlistUser: false,
+                                                           daysSinceNetPEnabled: -1),
+                percentileStore: percentileStore,
+                dismissedMessageIds: [])
+
+        let remoteConfig = RemoteConfigModel(messages: [
+            mediumMessage(matchingRules: [1], exclusionRules: [])
+        ], rules: [
+            RemoteConfigRule(
+                id: 1,
+                targetPercentile: RemoteConfigTargetPercentile(before: 0.3),
+                attributes: [OSMatchingAttribute(value: AppVersion.shared.osVersion, fallback: nil)]
+            )
+        ])
+
+        XCTAssertNil(matcher.evaluate(remoteConfig: remoteConfig))
+    }
+
+    func testWhenDeviceExcludesMessageRules_AndIsPartOfPercentile_ThenReturnNull() {
+        let percentileStore = MockRemoteMessagePercentileStore()
+        percentileStore.defaultPercentage = 0.3
+
+        matcher = RemoteMessagingConfigMatcher(
+                appAttributeMatcher: AppAttributeMatcher(statisticsStore: MockStatisticsStore(), variantManager: MockVariantManager()),
+                deviceAttributeMatcher: DeviceAttributeMatcher(osVersion: AppVersion.shared.osVersion, locale: "en-US"),
+                userAttributeMatcher: UserAttributeMatcher(statisticsStore: MockStatisticsStore(),
+                                                           variantManager: MockVariantManager(),
+                                                           bookmarksCount: 0,
+                                                           favoritesCount: 0,
+                                                           appTheme: "light",
+                                                           isWidgetInstalled: false,
+                                                           isNetPWaitlistUser: false,
+                                                           daysSinceNetPEnabled: -1),
+                percentileStore: percentileStore,
+                dismissedMessageIds: [])
+
+        let remoteConfig = RemoteConfigModel(messages: [
+            mediumMessage(matchingRules: [], exclusionRules: [1])
+        ], rules: [
+            RemoteConfigRule(
+                id: 1,
+                targetPercentile: RemoteConfigTargetPercentile(before: 0.5),
+                attributes: [OSMatchingAttribute(value: AppVersion.shared.osVersion, fallback: nil)]
+            )
+        ])
+
+        XCTAssertNil(matcher.evaluate(remoteConfig: remoteConfig))
+    }
+
+    func testWhenDeviceExcludesMessageRules_AndIsNotPartOfPercentile_ThenReturnMatch() {
+        let percentileStore = MockRemoteMessagePercentileStore()
+        percentileStore.defaultPercentage = 0.6
+
+        matcher = RemoteMessagingConfigMatcher(
+                appAttributeMatcher: AppAttributeMatcher(statisticsStore: MockStatisticsStore(), variantManager: MockVariantManager()),
+                deviceAttributeMatcher: DeviceAttributeMatcher(osVersion: AppVersion.shared.osVersion, locale: "en-US"),
+                userAttributeMatcher: UserAttributeMatcher(statisticsStore: MockStatisticsStore(),
+                                                           variantManager: MockVariantManager(),
+                                                           bookmarksCount: 0,
+                                                           favoritesCount: 0,
+                                                           appTheme: "light",
+                                                           isWidgetInstalled: false,
+                                                           isNetPWaitlistUser: false,
+                                                           daysSinceNetPEnabled: -1),
+                percentileStore: percentileStore,
+                dismissedMessageIds: [])
+
+        let remoteConfig = RemoteConfigModel(messages: [
+            mediumMessage(matchingRules: [], exclusionRules: [1])
+        ], rules: [
+            RemoteConfigRule(
+                id: 1,
+                targetPercentile: RemoteConfigTargetPercentile(before: 0.5),
+                attributes: [OSMatchingAttribute(value: AppVersion.shared.osVersion, fallback: nil)]
+            )
+        ])
+
+        XCTAssertEqual(matcher.evaluate(remoteConfig: remoteConfig), mediumMessage(matchingRules: [], exclusionRules: [1]))
+    }
+
     func testWhenUnknownRuleFailsThenReturnNull() {
-        let remoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [1], exclusionRules: []),
-                                                   mediumMessage(matchingRules: [1], exclusionRules: [])],
-                                        rules: [1: [UnknownMatchingAttribute(fallback: false)]])
+        let remoteConfig = RemoteConfigModel(messages: [
+            mediumMessage(matchingRules: [1], exclusionRules: []),
+            mediumMessage(matchingRules: [1], exclusionRules: [])
+        ], rules: [
+            RemoteConfigRule(id: 1, targetPercentile: nil, attributes: [UnknownMatchingAttribute(fallback: false)])
+        ])
 
         XCTAssertNil(matcher.evaluate(remoteConfig: remoteConfig))
     }
 
     func testWhenUnknownRuleMatchesThenReturnFirstMatch() {
-        let remoteConfig = RemoteConfigModel(messages: [mediumMessage(matchingRules: [1], exclusionRules: []),
-                                                   mediumMessage(id: "2", matchingRules: [1], exclusionRules: [])],
-                                        rules: [1: [UnknownMatchingAttribute(fallback: true)]])
+        let remoteConfig = RemoteConfigModel(messages: [
+            mediumMessage(matchingRules: [1], exclusionRules: []),
+            mediumMessage(id: "2", matchingRules: [1], exclusionRules: [])
+        ], rules: [
+            RemoteConfigRule(id: 1, targetPercentile: nil, attributes: [UnknownMatchingAttribute(fallback: true)])
+        ])
 
         XCTAssertEqual(matcher.evaluate(remoteConfig: remoteConfig), mediumMessage(matchingRules: [1], exclusionRules: []))
     }

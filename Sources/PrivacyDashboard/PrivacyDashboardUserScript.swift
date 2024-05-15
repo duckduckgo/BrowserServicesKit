@@ -53,6 +53,7 @@ public enum Screen: String, Decodable {
     case primaryScreen
     case breakageForm
     case toggleReport
+    case promptBreakageForm
 
 }
 

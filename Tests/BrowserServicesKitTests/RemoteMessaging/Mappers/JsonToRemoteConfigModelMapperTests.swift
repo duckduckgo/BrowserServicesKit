@@ -102,39 +102,49 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
 
     func testWhenValidJsonParsedThenRulesMappedIntoRemoteConfig() throws {
         let config = try decodeAndMapJson(fileName: "Resources/remote-messaging-config.json")
-        XCTAssertTrue(config.rules.count == 4)
+        XCTAssertTrue(config.rules.count == 5)
 
-        let rule5 = config.rules.filter { $0.key == 5 }.first
+        let rule5 = config.rules.filter { $0.id == 5 }.first
         XCTAssertNotNil(rule5)
-        XCTAssertTrue(rule5?.value.count == 16)
-        var attribs = rule5?.value.filter { $0 is LocaleMatchingAttribute }
+        XCTAssertNil(rule5?.targetPercentile)
+        XCTAssertTrue(rule5?.attributes.count == 16)
+        var attribs = rule5?.attributes.filter { $0 is LocaleMatchingAttribute }
         XCTAssertEqual(attribs?.count, 1)
         XCTAssertEqual(attribs?.first as? LocaleMatchingAttribute, LocaleMatchingAttribute(value: ["en-US", "en-GB"], fallback: true))
 
-        let rule6 = config.rules.filter { $0.key == 6 }.first
+        let rule6 = config.rules.filter { $0.id == 6 }.first
         XCTAssertNotNil(rule6)
-        XCTAssertTrue(rule6?.value.count == 1)
-        attribs = rule6?.value.filter { $0 is LocaleMatchingAttribute }
+        XCTAssertNil(rule6?.targetPercentile)
+        XCTAssertTrue(rule6?.attributes.count == 1)
+        attribs = rule6?.attributes.filter { $0 is LocaleMatchingAttribute }
         XCTAssertEqual(attribs?.count, 1)
         XCTAssertEqual(attribs?.first as? LocaleMatchingAttribute, LocaleMatchingAttribute(value: ["en-GB"], fallback: nil))
 
-        let rule7 = config.rules.filter { $0.key == 7 }.first
+        let rule7 = config.rules.filter { $0.id == 7 }.first
         XCTAssertNotNil(rule7)
-        XCTAssertTrue(rule7?.value.count == 1)
-        attribs = rule7?.value.filter { $0 is WidgetAddedMatchingAttribute }
+        XCTAssertNil(rule7?.targetPercentile)
+        XCTAssertTrue(rule7?.attributes.count == 1)
+        attribs = rule7?.attributes.filter { $0 is WidgetAddedMatchingAttribute }
         XCTAssertEqual(attribs?.count, 1)
         XCTAssertEqual(attribs?.first as? WidgetAddedMatchingAttribute, WidgetAddedMatchingAttribute(value: false, fallback: nil))
 
-        let rule8 = config.rules.filter { $0.key == 8 }.first
+        let rule8 = config.rules.filter { $0.id == 8 }.first
         XCTAssertNotNil(rule8)
-        XCTAssertTrue(rule8?.value.count == 2)
-        attribs = rule8?.value.filter { $0 is DaysSinceNetPEnabledMatchingAttribute }
+        XCTAssertNil(rule8?.targetPercentile)
+        XCTAssertTrue(rule8?.attributes.count == 2)
+        attribs = rule8?.attributes.filter { $0 is DaysSinceNetPEnabledMatchingAttribute }
         XCTAssertEqual(attribs?.count, 1)
         XCTAssertEqual(attribs?.first as? DaysSinceNetPEnabledMatchingAttribute, DaysSinceNetPEnabledMatchingAttribute(min: 5, fallback: nil))
 
-        attribs = rule8?.value.filter { $0 is IsNetPWaitlistUserMatchingAttribute }
+        attribs = rule8?.attributes.filter { $0 is IsNetPWaitlistUserMatchingAttribute }
         XCTAssertEqual(attribs?.count, 1)
         XCTAssertEqual(attribs?.first as? IsNetPWaitlistUserMatchingAttribute, IsNetPWaitlistUserMatchingAttribute(value: true, fallback: nil))
+
+        let rule9 = config.rules.filter { $0.id == 9 }.first
+        XCTAssertNotNil(rule9)
+        XCTAssertNotNil(rule9?.targetPercentile)
+        XCTAssertTrue(rule9?.attributes.count == 1)
+        XCTAssertEqual(rule9?.targetPercentile?.before, 0.9)
     }
 
     func testWhenJsonMessagesHaveUnknownTypesThenMessagesNotMappedIntoConfig() throws {
@@ -147,15 +157,15 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
         let config = try decodeAndMapJson(fileName: "Resources/remote-messaging-config-unsupported-items.json")
         XCTAssertTrue(config.rules.count == 2)
 
-        let rule6 = config.rules.filter { $0.key == 6 }.first
+        let rule6 = config.rules.filter { $0.id == 6 }.first
         XCTAssertNotNil(rule6)
-        var attribs = rule6?.value.filter { $0 is UnknownMatchingAttribute }
+        var attribs = rule6?.attributes.filter { $0 is UnknownMatchingAttribute }
         XCTAssertEqual(attribs?.count, 1)
         XCTAssertEqual(attribs?.first as? UnknownMatchingAttribute, UnknownMatchingAttribute(fallback: true))
 
-        let rule7 = config.rules.filter { $0.key == 7 }.first
+        let rule7 = config.rules.filter { $0.id == 7 }.first
         XCTAssertNotNil(rule7)
-        attribs = rule7?.value.filter { $0 is WidgetAddedMatchingAttribute }
+        attribs = rule7?.attributes.filter { $0 is WidgetAddedMatchingAttribute }
         XCTAssertEqual(attribs?.count, 1)
         XCTAssertEqual(attribs?.first as? WidgetAddedMatchingAttribute, WidgetAddedMatchingAttribute(value: true, fallback: nil))
     }
@@ -167,11 +177,11 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
         let config = JsonToRemoteConfigModelMapper.mapJson(remoteMessagingConfig: remoteMessagingConfig)
         XCTAssertTrue(config.rules.count == 2)
 
-        let rule6 = config.rules.filter { $0.key == 6 }.first
+        let rule6 = config.rules.filter { $0.id == 6 }.first
         XCTAssertNotNil(rule6)
-        XCTAssertEqual(rule6?.value.filter { $0 is LocaleMatchingAttribute }.count, 1)
-        XCTAssertEqual(rule6?.value.filter { $0 is OSMatchingAttribute }.count, 1)
-        XCTAssertEqual(rule6?.value.filter { $0 is UnknownMatchingAttribute }.count, 1)
+        XCTAssertEqual(rule6?.attributes.filter { $0 is LocaleMatchingAttribute }.count, 1)
+        XCTAssertEqual(rule6?.attributes.filter { $0 is OSMatchingAttribute }.count, 1)
+        XCTAssertEqual(rule6?.attributes.filter { $0 is UnknownMatchingAttribute }.count, 1)
     }
 
     func decodeAndMapJson(fileName: String) throws -> RemoteConfigModel {

@@ -70,10 +70,17 @@ extension Suggestion {
 
     init?(bookmark: Bookmark) {
         guard let urlObject = URL(string: bookmark.url) else { return nil }
+        #if os(macOS)
         self = .bookmark(title: bookmark.title,
                          url: urlObject,
                          isFavorite: bookmark.isFavorite,
                          allowedInTopHits: bookmark.isFavorite)
+        #else
+        self = .bookmark(title: bookmark.title,
+                         url: urlObject,
+                         isFavorite: bookmark.isFavorite,
+                         allowedInTopHits: true)
+        #endif
     }
 
     init(historyEntry: HistorySuggestion) {

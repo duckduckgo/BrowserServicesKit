@@ -1,7 +1,7 @@
 //
-//  RemoteConfigModel.swift
+//  NonStandardEvent.swift
 //
-//  Copyright © 2022 DuckDuckGo. All rights reserved.
+//  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -18,17 +18,24 @@
 
 import Foundation
 
-public struct RemoteConfigModel {
-    let messages: [RemoteMessageModel]
-    let rules: [RemoteConfigRule]
-}
+/// This custom event is used for special cases, like pixels with non-standard names and uses, these pixels are sent as is and the names remain unchanged
+public final class NonStandardEvent: PixelKitEventV2 {
 
-public struct RemoteConfigRule {
-    let id: Int
-    let targetPercentile: RemoteConfigTargetPercentile?
-    let attributes: [MatchingAttribute]
-}
+    let event: PixelKitEventV2
 
-public struct RemoteConfigTargetPercentile {
-    let before: Float?
+    public init(_ event: PixelKitEventV2) {
+        self.event = event
+    }
+
+    public var name: String {
+        event.name
+    }
+
+    public var parameters: [String: String]? {
+        event.parameters
+    }
+
+    public var error: Error? {
+        event.error
+    }
 }
