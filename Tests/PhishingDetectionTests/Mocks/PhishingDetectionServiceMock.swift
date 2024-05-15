@@ -1,29 +1,44 @@
 import Foundation
 import PhishingDetection
 
-public class MockPhishingDetectionClient: PhishingDetectionClientProtocol {
-    public func updateFilterSet(revision: Int) async -> [Filter] {
-        return [
-            Filter(hashValue: "testhash1", regex: ".*example.*"),
-            Filter(hashValue: "testhash2", regex: ".*test.*")
-        ]
+public class MockPhishingDetectionService: PhishingDetectionServiceProtocol {
+    private var mockClient: PhishingDetectionClientProtocol
+    private var hashPrefixes: [String] = []
+    private var filterSet: [Filter] = []
+    private var revision = 0
+    public var didUpdateHashPrefixes: Bool = false
+    public var didUpdateFilterSet: Bool = false
+
+    init() {
+        self.mockClient = MockPhishingDetectionClient()
     }
 
-    public func updateHashPrefixes(revision: Int) async -> [String] {
-        return [
-            "aa00bb11",
-            "bb00cc11",
-            "cc00dd11",
-            "dd00ee11",
-            "a379a6f6"
-        ]
+    public func updateFilterSet() async {
+        filterSet = await mockClient.updateFilterSet(revision: revision)
+        if !filterSet.isEmpty {
+            didUpdateFilterSet = true
+        }
+    }
+
+    public func updateHashPrefixes() async {
+        hashPrefixes = await mockClient.updateHashPrefixes(revision: revision)
+        if !hashPrefixes.isEmpty {
+            didUpdateHashPrefixes = true
+        }
     }
 
     public func getMatches(hashPrefix: String) async -> [Match] {
-        return [
-            Match(hostname: "example.com", url: "https://example.com/mal", regex: ".", hash: "a379a6f6eeafb9a55e378c118034e2751e682fab9f2d30ab13d2125586ce1947"),
-            Match(hostname: "test.com", url: "https://test.com/mal", regex: ".*test.*", hash: "aa00bb11aa00cc11bb00cc11")
-        ]
+        return await mockClient.getMatches(hashPrefix: hashPrefix)
+    }
+
+    public func isMalicious(url: String) async -> Bool {
+        return false
+    }
+    
+    public func loadData() {
+        didUpdateHashPrefixes = true
+        didUpdateFilterSet = true
+        return
     }
 }
 

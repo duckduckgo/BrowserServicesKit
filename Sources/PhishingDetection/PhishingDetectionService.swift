@@ -21,6 +21,10 @@ import CryptoKit
 
 public protocol PhishingDetectionServiceProtocol {
     func isMalicious(url: String) async -> Bool
+    func updateFilterSet() async
+    func updateHashPrefixes() async
+    func getMatches(hashPrefix: String) async -> [Match]
+    func loadData()
 }
 
 public struct HashPrefixResponse: Decodable, Encodable {
@@ -67,8 +71,6 @@ public struct Match: Decodable, Encodable {
 }
 
 public class PhishingDetectionService: PhishingDetectionServiceProtocol {
-    
-
     public var filterSet: [Filter] = []
     public var hashPrefixes = [String]()
     var currentRevision = 0
