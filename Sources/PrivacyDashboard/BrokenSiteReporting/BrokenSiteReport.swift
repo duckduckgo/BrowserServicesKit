@@ -69,7 +69,7 @@ public struct BrokenSiteReport {
         case navigation
     }
 
-    public static let allowedQueryReservedCharacters = CharacterSet.urlQueryParameterAllowed
+    public static let allowedQueryReservedCharacters = CharacterSet(charactersIn: ",")
 
     let siteUrl: URL
     let category: String
