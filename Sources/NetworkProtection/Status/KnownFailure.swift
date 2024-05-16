@@ -25,11 +25,23 @@ final public class KnownFailure: NSObject, Codable {
     public let localizedDescription: String
 
     public init?(_ error: Error?) {
-        guard let nsError = error as? NSError else { return nil }
+        if let tunnelError = error as? PacketTunnelProvider.TunnelError,
+           case .couldNotGenerateTunnelConfiguration(let internalError) = tunnelError {
+            let nsError = internalError as NSError
+            domain = nsError.domain
+            code = nsError.code
+            localizedDescription = nsError.localizedDescription
+            return
+        }
 
-        domain = nsError.domain
-        code = nsError.code
-        localizedDescription = nsError.localizedDescription
+        if let nsError = error as? NSError {
+            domain = nsError.domain
+            code = nsError.code
+            localizedDescription = nsError.localizedDescription
+            return
+        }
+
+        return nil
     }
 
     public override var description: String {

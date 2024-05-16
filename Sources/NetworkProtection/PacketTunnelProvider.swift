@@ -335,6 +335,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private let bandwidthAnalyzer = NetworkProtectionConnectionBandwidthAnalyzer()
     private let tunnelHealth: NetworkProtectionTunnelHealthStore
     private let controllerErrorStore: NetworkProtectionTunnelErrorStore
+    private let knownFailureStore: NetworkProtectionKnownFailureStore
 
     // MARK: - Cancellables
 
@@ -352,6 +353,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     public init(notificationsPresenter: NetworkProtectionNotificationsPresenter,
                 tunnelHealthStore: NetworkProtectionTunnelHealthStore,
                 controllerErrorStore: NetworkProtectionTunnelErrorStore,
+                knownFailureStore: NetworkProtectionKnownFailureStore = NetworkProtectionKnownFailureStore(),
                 keychainType: KeychainType,
                 tokenStore: NetworkProtectionTokenStore,
                 debugEvents: EventMapping<NetworkProtectionError>?,
@@ -369,6 +371,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         self.providerEvents = providerEvents
         self.tunnelHealth = tunnelHealthStore
         self.controllerErrorStore = controllerErrorStore
+        self.knownFailureStore = knownFailureStore
         self.settings = settings
         self.defaults = defaults
         self.isSubscriptionEnabled = isSubscriptionEnabled
@@ -563,6 +566,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                     os_log("Tunnel startup error: %{public}@", type: .error, errorDescription)
                     self?.controllerErrorStore.lastErrorMessage = errorDescription
                     self?.connectionStatus = .disconnected
+                    self?.knownFailureStore.lastKnownFailure = KnownFailure(error)
 
                     providerEvents.fire(.tunnelStartAttempt(.failure(error)))
                     completionHandler(error)
