@@ -17,7 +17,7 @@
 //
 
 import Foundation
-import Subscription
+@testable import Subscription
 
 public final class SubscriptionManagerMock: SubscriptionManaging {
 
@@ -40,7 +40,7 @@ public final class SubscriptionManagerMock: SubscriptionManaging {
     }
 
     public func url(for type: SubscriptionURL) -> URL {
-        URL(string: "https://duckduckgo.com")!
+        type.subscriptionURL(environment: currentEnvironment.serviceEnvironment)
     }
 
     public init(accountManager: AccountManaging,
