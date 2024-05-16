@@ -24,10 +24,9 @@ public protocol SubscriptionManaging {
     var accountManager: AccountManaging { get }
     var subscriptionService: SubscriptionService { get }
     var authService: AuthService { get }
-    @available(macOS 12.0, iOS 15.0, *)
-    func getStorePurchaseManager() -> StorePurchaseManaging
     var currentEnvironment: SubscriptionEnvironment { get }
     var canPurchase: Bool { get }
+    @available(macOS 12.0, iOS 15.0, *) func storePurchaseManager() -> StorePurchaseManaging
     func loadInitialData()
     func updateSubscriptionStatus(completion: @escaping (_ isActive: Bool) -> Void)
 }
@@ -35,7 +34,7 @@ public protocol SubscriptionManaging {
 /// Single entry point for everything related to Subscription. This manager is disposable, every time something related to the environment changes this need to be recreated.
 final public class SubscriptionManager: SubscriptionManaging {
 
-    private let storePurchaseManager: StorePurchaseManaging?
+    private let _storePurchaseManager: StorePurchaseManaging?
 
     public let accountManager: AccountManaging
     public let subscriptionService: SubscriptionService
@@ -48,7 +47,7 @@ final public class SubscriptionManager: SubscriptionManaging {
                 subscriptionService: SubscriptionService,
                 authService: AuthService,
                 subscriptionEnvironment: SubscriptionEnvironment) {
-        self.storePurchaseManager = storePurchaseManager
+        self._storePurchaseManager = storePurchaseManager
         self.accountManager = accountManager
         self.subscriptionService = subscriptionService
         self.authService = authService
@@ -65,8 +64,9 @@ final public class SubscriptionManager: SubscriptionManaging {
         }
     }
 
-    @available(macOS 12.0, iOS 15.0, *) public func getStorePurchaseManager() -> StorePurchaseManaging {
-        return storePurchaseManager!
+    @available(macOS 12.0, iOS 15.0, *)
+    public func storePurchaseManager() -> StorePurchaseManaging {
+        return _storePurchaseManager!
     }
 
     // MARK: Load and Save SubscriptionEnvironment
@@ -92,10 +92,9 @@ final public class SubscriptionManager: SubscriptionManaging {
     // MARK: - Environment, ex SubscriptionPurchaseEnvironment
 
     @available(macOS 12.0, iOS 15.0, *) private func setupForAppStore() {
-        let storePurchaseManager = getStorePurchaseManager()
         Task {
-            await storePurchaseManager.updateAvailableProducts()
-            canPurchase = storePurchaseManager.areProductsAvailable
+            await storePurchaseManager().updateAvailableProducts()
+            canPurchase = storePurchaseManager().areProductsAvailable
         }
     }
 

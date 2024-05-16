@@ -51,7 +51,7 @@ public final class AppStoreRestoreFlow {
 
         os_log(.info, log: .subscription, "[AppStoreRestoreFlow] restoreAccountFromPastPurchase")
 
-        guard let lastTransactionJWSRepresentation = await subscriptionManager.getStorePurchaseManager().mostRecentTransaction() else {
+        guard let lastTransactionJWSRepresentation = await subscriptionManager.storePurchaseManager().mostRecentTransaction() else {
             os_log(.error, log: .subscription, "[AppStoreRestoreFlow] Error: missingAccountOrTransactions")
             return .failure(.missingAccountOrTransactions)
         }

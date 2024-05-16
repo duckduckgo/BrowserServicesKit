@@ -88,7 +88,7 @@ public final class AppStorePurchaseFlow {
         }
 
         // Make the purchase
-        switch await subscriptionManager.getStorePurchaseManager().purchaseSubscription(with: subscriptionIdentifier, externalID: externalID) {
+        switch await subscriptionManager.storePurchaseManager().purchaseSubscription(with: subscriptionIdentifier, externalID: externalID) {
         case .success(let transactionJWS):
             return .success(transactionJWS)
         case .failure(let error):

@@ -27,8 +27,8 @@ public final class SubscriptionManagerMock: SubscriptionManaging {
     public var currentEnvironment: SubscriptionEnvironment
     public var canPurchase: Bool
 
-    public func getStorePurchaseManager() -> StorePurchaseManaging {
-        storePurchaseManaging
+    public func storePurchaseManager() -> StorePurchaseManaging {
+        internalStorePurchaseManager
     }
 
     public func loadInitialData() {
@@ -42,18 +42,18 @@ public final class SubscriptionManagerMock: SubscriptionManaging {
     public init(accountManager: AccountManaging,
                 subscriptionService: SubscriptionService,
                 authService: AuthService,
-                storePurchaseManaging: StorePurchaseManaging,
+                storePurchaseManager: StorePurchaseManaging,
                 currentEnvironment: SubscriptionEnvironment,
                 canPurchase: Bool) {
         self.accountManager = accountManager
         self.subscriptionService = subscriptionService
         self.authService = authService
-        self.storePurchaseManaging = storePurchaseManaging
+        self.internalStorePurchaseManager = storePurchaseManager
         self.currentEnvironment = currentEnvironment
         self.canPurchase = canPurchase
     }
 
     // MARK: -
 
-    let storePurchaseManaging: StorePurchaseManaging
+    let internalStorePurchaseManager: StorePurchaseManaging
 }
