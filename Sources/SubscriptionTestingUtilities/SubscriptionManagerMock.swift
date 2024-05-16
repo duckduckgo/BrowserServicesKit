@@ -39,6 +39,10 @@ public final class SubscriptionManagerMock: SubscriptionManaging {
         completion(true)
     }
 
+    public func url(for type: SubscriptionURL) -> URL {
+        URL(string: "https://duckduckgo.com")!
+    }
+
     public init(accountManager: AccountManaging,
                 subscriptionService: SubscriptionService,
                 authService: AuthService,

@@ -29,6 +29,7 @@ public protocol SubscriptionManaging {
     @available(macOS 12.0, iOS 15.0, *) func storePurchaseManager() -> StorePurchaseManaging
     func loadInitialData()
     func updateSubscriptionStatus(completion: @escaping (_ isActive: Bool) -> Void)
+    func url(for type: SubscriptionURL) -> URL
 }
 
 /// Single entry point for everything related to Subscription. This manager is disposable, every time something related to the environment changes this need to be recreated.
@@ -127,5 +128,11 @@ final public class SubscriptionManager: SubscriptionManaging {
 
             _ = await accountManager.fetchEntitlements(cachePolicy: .reloadIgnoringLocalCacheData)
         }
+    }
+
+    // MARK: - URLs
+
+    public func url(for type: SubscriptionURL) -> URL {
+        type.subscriptionURL(environment: currentEnvironment.serviceEnvironment)
     }
 }
