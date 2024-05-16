@@ -80,8 +80,7 @@ extension URL {
         }
 
         if let queryItems = components.queryItems, !queryItems.isEmpty {
-            components.queryItems = queryItems.filter { !["environment"].contains($0.name) }
-
+            components.queryItems = queryItems.filter { !["environment", "origin"].contains($0.name) }
             if components.queryItems?.isEmpty ?? true {
                 components.queryItems = nil
             }
