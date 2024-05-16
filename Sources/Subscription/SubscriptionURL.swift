@@ -23,7 +23,7 @@ import Foundation
 public enum SubscriptionURL {
     case baseURL
     case purchase
-    case FAQ
+    case faq
     case activateViaEmail
     case addEmail
     case manageEmail
@@ -45,7 +45,7 @@ public enum SubscriptionURL {
             }
         case .purchase:
             SubscriptionURL.baseURL.subscriptionURL(environment: environment).appendingPathComponent("welcome")
-        case .FAQ:
+        case .faq:
             URL(string: "https://duckduckgo.com/duckduckgo-help-pages/privacy-pro/")!
         case .activateViaEmail:
             SubscriptionURL.baseURL.subscriptionURL(environment: environment).appendingPathComponent("activate")

@@ -21,7 +21,7 @@ import Common
 
 public struct AuthService: APIService {
 
-    let currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment
+    private let currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment
 
     public init(currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment) {
         self.currentServiceEnvironment = currentServiceEnvironment

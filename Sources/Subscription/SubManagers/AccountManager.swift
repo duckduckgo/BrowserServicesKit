@@ -32,32 +32,6 @@ public class AccountManager: AccountManaging {
 
     // MARK: - Initialisers
 
-//    public convenience init(subscriptionAppGroup: String?, 
-//                            accessTokenStorage: SubscriptionTokenStoring,
-//                            subscriptionService: SubscriptionService,
-//                            authService: AuthService) {
-//        self.init(accessTokenStorage: accessTokenStorage,
-//                  entitlementsCache: UserDefaultsCache<[Entitlement]>(userDefaults: UserDefaults(suiteName: subscriptionAppGroup) ?? UserDefaults.standard,
-//                                                                      key: UserDefaultsCacheKey.subscriptionEntitlements,
-//                                                                      settings: UserDefaultsCacheSettings(defaultExpirationInterval: .minutes(20))),
-//                  subscriptionService: subscriptionService,
-//                  authService: authService
-//        )
-//    }
-//
-//    public convenience init(subscriptionAppGroup: String, 
-//                            subscriptionService: SubscriptionService,
-//                            authService: AuthService) {
-//        let accessTokenStorage = SubscriptionTokenKeychainStorage(keychainType: .dataProtection(.named(subscriptionAppGroup)))
-//        self.init(accessTokenStorage: accessTokenStorage,
-//                  entitlementsCache: UserDefaultsCache<[Entitlement]>(userDefaults: UserDefaults(suiteName: subscriptionAppGroup) ?? UserDefaults.standard,
-//                                                                      key: UserDefaultsCacheKey.subscriptionEntitlements,
-//                                                                      settings: UserDefaultsCacheSettings(defaultExpirationInterval: .minutes(20))),
-//                  subscriptionService: subscriptionService,
-//                  authService: authService
-//        )
-//    }
-
     public init(storage: AccountStoring = AccountKeychainStorage(),
                 accessTokenStorage: SubscriptionTokenStoring,
                 entitlementsCache: UserDefaultsCache<[Entitlement]>,
@@ -308,8 +282,6 @@ public class AccountManager: AccountManaging {
             return .failure(error)
         }
     }
-
-//    public typealias AccountDetails = (email: String?, externalID: String)
 
     public func fetchAccountDetails(with accessToken: String) async -> Result<AccountDetails, Error> {
         switch await authService.validateToken(accessToken: accessToken) {

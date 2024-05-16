@@ -33,7 +33,7 @@ public final class StorePurchaseManager: ObservableObject, StorePurchaseManaging
                               "tf.sandbox.subscription.1month", "tf.sandbox.subscription.1year",
                               "ddg.privacy.pro.monthly.renews.us", "ddg.privacy.pro.yearly.renews.us"]
 
-    @Published public var availableProducts: [Product] = []
+    @Published public private(set) var availableProducts: [Product] = []
     @Published public private(set) var purchasedProductIDs: [String] = []
     @Published public private(set) var purchaseQueue: [String] = []
     @Published private var subscriptionGroupStatus: RenewalState?

@@ -99,7 +99,7 @@ public extension APIService {
         os_log(.info, log: .subscription, "[API] %d %{public}s /%{public}s :: %{public}s", statusCode, method, endpoint, stringData)
     }
 
-    internal func makeAuthorizationHeader(for token: String) -> [String: String] {
+    func makeAuthorizationHeader(for token: String) -> [String: String] {
         ["Authorization": "Bearer " + token]
     }
 }

@@ -22,7 +22,7 @@ import Foundation
 /// Communicates with our backend
 public final class SubscriptionService: APIService {
 
-    let currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment
+    private let currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment
 
     public init(currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment) {
         self.currentServiceEnvironment = currentServiceEnvironment
