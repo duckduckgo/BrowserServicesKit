@@ -37,15 +37,19 @@ final public class NetworkProtectionKnownFailureStore {
         }
 
         set {
-            guard let data = try? JSONEncoder().encode(newValue) else { return }
-            userDefaults.set(data, forKey: Self.lastKnownFailureKey)
-            postKnownFailureUpdatedNotification(data: data)
+            if let newValue, let data = try? JSONEncoder().encode(newValue) {
+                userDefaults.set(data, forKey: Self.lastKnownFailureKey)
+                postKnownFailureUpdatedNotification(data: data)
+            } else {
+                userDefaults.removeObject(forKey: Self.lastKnownFailureKey)
+                postKnownFailureUpdatedNotification()
+            }
         }
     }
 
     // MARK: - Posting Notifications
 
-    private func postKnownFailureUpdatedNotification(data: Data?) {
+    private func postKnownFailureUpdatedNotification(data: Data? = nil) {
         let object: String? = {
             guard let data else { return nil }
             return String(data: data, encoding: .utf8)

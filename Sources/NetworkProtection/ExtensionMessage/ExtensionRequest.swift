@@ -23,7 +23,7 @@ public enum VPNCommand: Codable {
     case removeSystemExtension
     case removeVPNConfiguration
     case sendTestNotification
-    case simulateKnownFailure
+    case simulateKnownFailure(String, Int)
     case uninstallVPN
     case disableConnectOnDemandAndShutDown
 }
