@@ -55,28 +55,26 @@ public final class CrashCollection {
 
         os_log("😵 Requesting diagnostics from MXMetricManager")
         crashHandler.crashDiagnosticsPayloadHandler = { payloads in
-            os_log("😵 diagnostics callback %{public}s", "\(payloads)")
+            os_log("😵 diagnostics callback with %{public}d payloads", payloads.count)
             for payload in payloads {
-                var params = payload.dictionaryRepresentation()
                 if let diagnostics = payload.crashDiagnostics {
                     for diagnostic in diagnostics {
                         if #available(macOS 14.0, *),
                            let reason = diagnostic.exceptionReason {
-                            params["className"] = reason.className
-                            params["composedMessage"] = reason.composedMessage
-                            params["exceptionName"] = reason.exceptionName
-                            params["exceptionType"] = reason.exceptionType
-                        } else {
-                            params["exceptionReason"] = "unavailable"
-                        }
 
-                        os_log("😵 crash: %{public}s", "\(params)")
+                            os_log("😵 className: %{public}s", reason.className)
+                            os_log("😵 composedMessage: %{public}s", reason.composedMessage)
+                            os_log("😵 exceptionName: %{public}s", reason.exceptionName)
+                            os_log("😵 exceptionType: %{public}s", reason.exceptionType)
+                        } else {
+                            os_log("😵 exceptionReason: unavailable")
+                        }
                     }
                     continue
                 } else {
-                    params["crashDiagnostics"] = "unavailable"
+                    os_log("😵 crashDiagnostics: unavailable")
                 }
-                os_log("😵 payload: %{public}s", "\(params)")
+
             }
             let pixelParameters = payloads
                 .compactMap(\.crashDiagnostics)
