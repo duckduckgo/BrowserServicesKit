@@ -300,14 +300,6 @@ extension NavigationPreferences: CustomDebugStringConvertible {
 
 extension HistoryItemIdentity: CustomDebugStringConvertible {
     public var debugDescription: String {
-        "\(object)".replacingOccurrences(of: "WKBackForwardListItem: ", with: "").dropping(suffix: ">")
-        + {
-            guard let backForwardListItem = object as? WKBackForwardListItem else { return "" }
-            var url = " " + backForwardListItem.url.absoluteString
-            if backForwardListItem.initialURL != backForwardListItem.url {
-                url += " (initial: \(backForwardListItem.initialURL.absoluteString))"
-            }
-            return url
-        }() + ">"
+        "<\(identifier) url: \(url?.absoluteString ?? "") title: \(title ?? "<nil>")>"
     }
 }

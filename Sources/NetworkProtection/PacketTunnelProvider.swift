@@ -952,8 +952,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         case .changeTunnelSetting(let change):
             handleSettingChangeAppRequest(change, completionHandler: completionHandler)
             completionHandler?(nil)
-        case .debugCommand(let command):
-            handleDebugCommand(command, completionHandler: completionHandler)
+        case .command(let command):
+            handle(command, completionHandler: completionHandler)
         }
     }
 
@@ -1016,7 +1016,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
-    private func handleDebugCommand(_ command: DebugCommand, completionHandler: ((Data?) -> Void)? = nil) {
+    private func handle(_ command: VPNCommand, completionHandler: ((Data?) -> Void)? = nil) {
         switch command {
         case .removeSystemExtension:
             // Since the system extension is being removed we may as well reset all state
@@ -1034,6 +1034,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 }
             }
         case .removeVPNConfiguration:
+            // Since the VPN configuration is being removed we may as well reset all state
+            handleResetAllState(completionHandler: completionHandler)
+        case .uninstallVPN:
             // Since the VPN configuration is being removed we may as well reset all state
             handleResetAllState(completionHandler: completionHandler)
         }
