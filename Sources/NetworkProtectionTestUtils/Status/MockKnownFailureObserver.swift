@@ -21,6 +21,7 @@ import Foundation
 import NetworkProtection
 
 public final class MockKnownFailureObserver: KnownFailureObserver {
+    public init() {}
     public let subject = CurrentValueSubject<KnownFailure?, Never>(nil)
     public lazy var publisher = subject.eraseToAnyPublisher()
     public var recentValue: KnownFailure? {
