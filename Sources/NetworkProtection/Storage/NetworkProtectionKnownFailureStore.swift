@@ -22,6 +22,8 @@ import Common
 final public class NetworkProtectionKnownFailureStore {
     private static let lastKnownFailureKey = "com.duckduckgo.NetworkProtectionKnownFailureStore.knownFailure"
     private let userDefaults: UserDefaults
+
+#if os(macOS)
     private let distributedNotificationCenter: DistributedNotificationCenter
 
     public init(userDefaults: UserDefaults = .standard,
@@ -29,6 +31,11 @@ final public class NetworkProtectionKnownFailureStore {
         self.userDefaults = userDefaults
         self.distributedNotificationCenter = distributedNotificationCenter
     }
+#else
+    public init(userDefaults: UserDefaults = .standard) {
+        self.userDefaults = userDefaults
+    }
+#endif
 
     public var lastKnownFailure: KnownFailure? {
         get {
@@ -39,16 +46,21 @@ final public class NetworkProtectionKnownFailureStore {
         set {
             if let newValue, let data = try? JSONEncoder().encode(newValue) {
                 userDefaults.set(data, forKey: Self.lastKnownFailureKey)
+#if os(macOS)
                 postKnownFailureUpdatedNotification(data: data)
+#endif
             } else {
                 userDefaults.removeObject(forKey: Self.lastKnownFailureKey)
+#if os(macOS)
                 postKnownFailureUpdatedNotification()
+#endif
             }
         }
     }
 
     // MARK: - Posting Notifications
 
+#if os(macOS)
     private func postKnownFailureUpdatedNotification(data: Data? = nil) {
         let object: String? = {
             guard let data else { return nil }
@@ -56,4 +68,5 @@ final public class NetworkProtectionKnownFailureStore {
         }()
         distributedNotificationCenter.post(.knownFailureUpdated, object: object)
     }
+#endif
 }
