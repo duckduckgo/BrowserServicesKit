@@ -43,20 +43,43 @@ public final class CrashCollection {
     }
     private let getLog: () -> OSLog
 
-    public init(platform: CrashCollectionPlatform, log: @escaping @autoclosure () -> OSLog = .disabled) {
+    public init(platform: CrashCollectionPlatform, log: @escaping @autoclosure () -> OSLog = OSLog.disabled) {
         self.getLog = log
         crashHandler = CrashHandler()
         crashSender = CrashReportSender(platform: platform, log: log())
     }
 
-    public func start(_ didFindCrashReports: @escaping (_ pixelParameters: [[String: String]],
-                                                        _ payloads: [MXDiagnosticPayload],
-                                                        _ uploadReports: @escaping () -> Void) -> Void
-    ) {
+    public func start(_ didFindCrashReports: @escaping (_ pixelParameters: [[String: String]], _ payloads: [MXDiagnosticPayload], _ uploadReports: @escaping () -> Void) -> Void) {
         let first = isFirstCrash
         isFirstCrash = false
 
+        os_log("😵 Requesting diagnostics from MXMetricManager")
+        print("😵 Requesting diagnostics from MXMetricManager")
         crashHandler.crashDiagnosticsPayloadHandler = { payloads in
+            for payload in payloads {
+                var params = payload.dictionaryRepresentation()
+                if let diagnostics = payload.crashDiagnostics {
+                    for diagnostic in diagnostics {
+                        if #available(macOS 14.0, *),
+                           let reason = diagnostic.exceptionReason {
+                            params["className"] = reason.className
+                            params["composedMessage"] = reason.composedMessage
+                            params["exceptionName"] = reason.exceptionName
+                            params["exceptionType"] = reason.exceptionType
+                        } else {
+                            params["exceptionReason"] = "unavailable"
+                        }
+
+                        os_log("😵 crash: %{public}s", "\(params)")
+                        print("😵 crash:", params)
+                    }
+                    continue
+                } else {
+                    params["crashDiagnostics"] = "unavailable"
+                }
+                os_log("😵 payload: %{public}s", "\(params)")
+                print("😵 payload:", params)
+            }
             let pixelParameters = payloads
                 .compactMap(\.crashDiagnostics)
                 .flatMap { $0 }
@@ -67,21 +90,11 @@ public final class CrashCollection {
                         "type": "\(diagnostic.exceptionType ?? -1)",
                         "signal": "\(diagnostic.signal ?? -1)",
                     ]
-                    if #available(macOS 14.0, *),
-                       let reason = diagnostic.exceptionReason {
-                        params["className"] = reason.className
-                        params["composedMessage"] = reason.composedMessage
-                        params["exceptionName"] = reason.exceptionName
-                        params["exceptionType"] = reason.exceptionType
-                    } else {
-                        params["exceptionReason"] = "unavailable"
-                    }
                     if first {
                         params["first"] = "1"
                     }
                     return params
                 }
-            print("😵 crash reports:", pixelParameters)
             didFindCrashReports(pixelParameters, payloads) {
                 Task {
                     for payload in payloads {

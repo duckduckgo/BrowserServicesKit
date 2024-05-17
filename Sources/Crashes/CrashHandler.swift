@@ -26,8 +26,7 @@ final class CrashHandler: NSObject, MXMetricManagerSubscriber {
     var crashDiagnosticsPayloadHandler: ([MXDiagnosticPayload]) -> Void = { _ in }
 
     func didReceive(_ payloads: [MXDiagnosticPayload]) {
-        let payloadsWithCrash = payloads.filter { !($0.crashDiagnostics?.isEmpty ?? true) }
-        crashDiagnosticsPayloadHandler(payloadsWithCrash)
+        crashDiagnosticsPayloadHandler(payloads)
     }
 
 }
