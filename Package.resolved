@@ -75,10 +75,10 @@
     {
       "identity" : "trackerradarkit",
       "kind" : "remoteSourceControl",
-      "location" : "https://github.com/ladamski/TrackerRadarKit",
+      "location" : "https://github.com/duckduckgo/TrackerRadarKit",
       "state" : {
-        "branch" : "la/support-ctl-action",
-        "revision" : "d2d19fdb980acd35851cbafc5294319b156be638"
+        "revision" : "2a79006fccde6483f47f9d508b11f153f24da30d",
+        "version" : "2.1.0"
       }
     },
     {
