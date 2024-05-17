@@ -54,8 +54,8 @@ public final class CrashCollection {
         isFirstCrash = false
 
         os_log("😵 Requesting diagnostics from MXMetricManager")
-        print("😵 Requesting diagnostics from MXMetricManager")
         crashHandler.crashDiagnosticsPayloadHandler = { payloads in
+            os_log("😵 diagnostics callback %{public}s", "\(payloads)")
             for payload in payloads {
                 var params = payload.dictionaryRepresentation()
                 if let diagnostics = payload.crashDiagnostics {
@@ -71,14 +71,12 @@ public final class CrashCollection {
                         }
 
                         os_log("😵 crash: %{public}s", "\(params)")
-                        print("😵 crash:", params)
                     }
                     continue
                 } else {
                     params["crashDiagnostics"] = "unavailable"
                 }
                 os_log("😵 payload: %{public}s", "\(params)")
-                print("😵 payload:", params)
             }
             let pixelParameters = payloads
                 .compactMap(\.crashDiagnostics)
