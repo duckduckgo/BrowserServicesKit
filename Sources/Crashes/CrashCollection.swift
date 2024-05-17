@@ -65,14 +65,23 @@ public final class CrashCollection {
                         "appVersion": "\(diagnostic.applicationVersion).\(diagnostic.metaData.applicationBuildVersion)",
                         "code": "\(diagnostic.exceptionCode ?? -1)",
                         "type": "\(diagnostic.exceptionType ?? -1)",
-                        "signal": "\(diagnostic.signal ?? -1)"
+                        "signal": "\(diagnostic.signal ?? -1)",
                     ]
+                    if #available(macOS 14.0, *),
+                       let reason = diagnostic.exceptionReason {
+                        params["className"] = reason.className
+                        params["composedMessage"] = reason.composedMessage
+                        params["exceptionName"] = reason.exceptionName
+                        params["exceptionType"] = reason.exceptionType
+                    } else {
+                        params["exceptionReason"] = "unavailable"
+                    }
                     if first {
                         params["first"] = "1"
                     }
                     return params
                 }
-
+            print("😵 crash reports:", pixelParameters)
             didFindCrashReports(pixelParameters, payloads) {
                 Task {
                     for payload in payloads {
