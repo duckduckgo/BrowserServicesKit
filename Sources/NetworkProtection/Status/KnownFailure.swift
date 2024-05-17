@@ -18,6 +18,10 @@
 
 import Foundation
 
+public protocol InternalErrorWrapping: Error {
+    var internalError: Error? { get }
+}
+
 @objc
 final public class KnownFailure: NSObject, Codable {
     public let domain: String
@@ -25,9 +29,8 @@ final public class KnownFailure: NSObject, Codable {
     public let localizedDescription: String
 
     public init?(_ error: Error?) {
-        if let tunnelError = error as? PacketTunnelProvider.TunnelError,
-           case .couldNotGenerateTunnelConfiguration(let internalError) = tunnelError {
-            let nsError = internalError as NSError
+        if let error = error as? InternalErrorWrapping,
+           let nsError = error.internalError as? NSError {
             domain = nsError.domain
             code = nsError.code
             localizedDescription = nsError.localizedDescription

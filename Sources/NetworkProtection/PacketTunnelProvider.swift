@@ -63,7 +63,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Error Handling
 
-    enum TunnelError: LocalizedError, CustomNSError {
+    public enum TunnelError: LocalizedError, CustomNSError {
         // Tunnel Setup Errors - 0+
         case startingTunnelWithoutAuthToken
         case couldNotGenerateTunnelConfiguration(internalError: Error)
@@ -72,7 +72,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         // Subscription Errors - 100+
         case vpnAccessRevoked
 
-        var errorDescription: String? {
+        public var errorDescription: String? {
             switch self {
             case .startingTunnelWithoutAuthToken:
                 return "Missing auth token at startup"
@@ -85,7 +85,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             }
         }
 
-        var errorCode: Int {
+        public var errorCode: Int {
             switch self {
                 // Tunnel Setup Errors - 0+
             case .startingTunnelWithoutAuthToken: return 0
@@ -96,7 +96,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             }
         }
 
-        var errorUserInfo: [String: Any] {
+        public var errorUserInfo: [String: Any] {
             switch self {
             case .startingTunnelWithoutAuthToken,
                     .simulateTunnelFailureError,

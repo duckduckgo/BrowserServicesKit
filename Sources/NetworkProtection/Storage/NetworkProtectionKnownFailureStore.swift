@@ -37,7 +37,6 @@ final public class NetworkProtectionKnownFailureStore {
         }
 
         set {
-            os_log("🟢 Known failure set to \(newValue)")
             guard let data = try? JSONEncoder().encode(newValue) else { return }
             userDefaults.set(data, forKey: Self.lastKnownFailureKey)
             postKnownFailureUpdatedNotification(data: data)

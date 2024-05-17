@@ -66,9 +66,6 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
     // Subscription errors
     case vpnAccessRevoked
 
-    // Login item errors
-    case loginItemVersionMismatched
-
     // Unhandled error
     case unhandledError(function: String, line: Int, error: Error)
 
@@ -97,7 +94,6 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
         case .failedToParseRedeemResponse: return 111
         case .invalidAuthToken: return 112
         case .serverListInconsistency: return 113
-        case .loginItemVersionMismatched: return 114
             // 200+ - Keychain errors
         case .failedToCastKeychainValueToData: return 300
         case .keychainReadError: return 201
@@ -142,8 +138,7 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
                 .wireGuardDnsResolution,
                 .startWireGuardBackend,
                 .noAuthTokenFound,
-                .vpnAccessRevoked,
-                .loginItemVersionMismatched:
+                .vpnAccessRevoked:
             return [:]
         case .failedToFetchServerList(let error),
                 .failedToFetchRegisteredServers(let error),
