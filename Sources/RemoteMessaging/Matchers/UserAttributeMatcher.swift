@@ -29,8 +29,9 @@ public struct UserAttributeMatcher: AttributeMatcher {
     private let bookmarksCount: Int
     private let favoritesCount: Int
     private let isWidgetInstalled: Bool
-    private let isNetPWaitlistUser: Bool
     private let daysSinceNetPEnabled: Int
+    private let isPrivacyProEligibleUser: Bool
+    private let isPrivacyProSubscriber: Bool
 
     public init(statisticsStore: StatisticsStore,
                 variantManager: VariantManager,
@@ -39,8 +40,9 @@ public struct UserAttributeMatcher: AttributeMatcher {
                 favoritesCount: Int,
                 appTheme: String,
                 isWidgetInstalled: Bool,
-                isNetPWaitlistUser: Bool,
-                daysSinceNetPEnabled: Int
+                daysSinceNetPEnabled: Int,
+                isPrivacyProEligibleUser: Bool,
+                isPrivacyProSubscriber: Bool
 	) {
         self.statisticsStore = statisticsStore
         self.variantManager = variantManager
@@ -49,8 +51,9 @@ public struct UserAttributeMatcher: AttributeMatcher {
         self.bookmarksCount = bookmarksCount
         self.favoritesCount = favoritesCount
         self.isWidgetInstalled = isWidgetInstalled
-        self.isNetPWaitlistUser = isNetPWaitlistUser
         self.daysSinceNetPEnabled = daysSinceNetPEnabled
+        self.isPrivacyProEligibleUser = isPrivacyProEligibleUser
+        self.isPrivacyProSubscriber = isPrivacyProSubscriber
     }
 
     // swiftlint:disable:next cyclomatic_complexity function_body_length
@@ -97,18 +100,24 @@ public struct UserAttributeMatcher: AttributeMatcher {
             }
 
             return BooleanMatchingAttribute(value).matches(value: isWidgetInstalled)
-        case let matchingAttribute as IsNetPWaitlistUserMatchingAttribute:
-            guard let value = matchingAttribute.value else {
-                return .fail
-            }
-
-            return BooleanMatchingAttribute(value).matches(value: isNetPWaitlistUser)
         case let matchingAttribute as DaysSinceNetPEnabledMatchingAttribute:
             if matchingAttribute.value != MatchingAttributeDefaults.intDefaultValue {
                 return IntMatchingAttribute(matchingAttribute.value).matches(value: daysSinceNetPEnabled)
             } else {
                 return RangeIntMatchingAttribute(min: matchingAttribute.min, max: matchingAttribute.max).matches(value: daysSinceNetPEnabled)
             }
+        case let matchingAttribute as IsPrivacyProEligibleUserMatchingAttribute:
+            guard let value = matchingAttribute.value else {
+                return .fail
+            }
+
+            return BooleanMatchingAttribute(value).matches(value: isPrivacyProEligibleUser)
+        case let matchingAttribute as IsPrivacyProSubscriberUserMatchingAttribute:
+            guard let value = matchingAttribute.value else {
+                return .fail
+            }
+
+            return BooleanMatchingAttribute(value).matches(value: isPrivacyProSubscriber)
         default:
             assertionFailure("Could not find matching attribute")
             return nil

@@ -43,8 +43,9 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            favoritesCount: 0,
                                                            appTheme: "light",
                                                            isWidgetInstalled: false,
-                                                           isNetPWaitlistUser: false,
-                                                           daysSinceNetPEnabled: -1),
+                                                           daysSinceNetPEnabled: -1,
+                                                           isPrivacyProEligibleUser: false,
+                                                           isPrivacyProSubscriber: false),
                 percentileStore: MockRemoteMessagePercentileStore(),
                 dismissedMessageIds: []
         )
@@ -127,8 +128,9 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            favoritesCount: 0,
                                                            appTheme: "light",
                                                            isWidgetInstalled: false,
-                                                           isNetPWaitlistUser: false,
-                                                           daysSinceNetPEnabled: -1),
+                                                           daysSinceNetPEnabled: -1,
+                                                           isPrivacyProEligibleUser: false,
+                                                           isPrivacyProSubscriber: false),
                 percentileStore: MockRemoteMessagePercentileStore(),
                 dismissedMessageIds: [])
 
@@ -221,8 +223,9 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            favoritesCount: 0,
                                                            appTheme: "light",
                                                            isWidgetInstalled: false,
-                                                           isNetPWaitlistUser: false,
-                                                           daysSinceNetPEnabled: -1),
+                                                           daysSinceNetPEnabled: -1,
+                                                           isPrivacyProEligibleUser: false,
+                                                           isPrivacyProSubscriber: false),
                 percentileStore: MockRemoteMessagePercentileStore(),
                 dismissedMessageIds: ["1"])
 
@@ -258,8 +261,9 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            favoritesCount: 0,
                                                            appTheme: "light",
                                                            isWidgetInstalled: false,
-                                                           isNetPWaitlistUser: false,
-                                                           daysSinceNetPEnabled: -1),
+                                                           daysSinceNetPEnabled: -1,
+                                                           isPrivacyProEligibleUser: false,
+                                                           isPrivacyProSubscriber: false),
                 percentileStore: MockRemoteMessagePercentileStore(),
                 dismissedMessageIds: [])
 
@@ -291,8 +295,9 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            favoritesCount: 0,
                                                            appTheme: "light",
                                                            isWidgetInstalled: false,
-                                                           isNetPWaitlistUser: false,
-                                                           daysSinceNetPEnabled: -1),
+                                                           daysSinceNetPEnabled: -1,
+                                                           isPrivacyProEligibleUser: false,
+                                                           isPrivacyProSubscriber: false),
                 percentileStore: percentileStore,
                 dismissedMessageIds: [])
 
@@ -322,8 +327,9 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            favoritesCount: 0,
                                                            appTheme: "light",
                                                            isWidgetInstalled: false,
-                                                           isNetPWaitlistUser: false,
-                                                           daysSinceNetPEnabled: -1),
+                                                           daysSinceNetPEnabled: -1,
+                                                           isPrivacyProEligibleUser: false,
+                                                           isPrivacyProSubscriber: false),
                 percentileStore: percentileStore,
                 dismissedMessageIds: [])
 
@@ -353,8 +359,9 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            favoritesCount: 0,
                                                            appTheme: "light",
                                                            isWidgetInstalled: false,
-                                                           isNetPWaitlistUser: false,
-                                                           daysSinceNetPEnabled: -1),
+                                                           daysSinceNetPEnabled: -1,
+                                                           isPrivacyProEligibleUser: false,
+                                                           isPrivacyProSubscriber: false),
                 percentileStore: percentileStore,
                 dismissedMessageIds: [])
 
@@ -384,8 +391,9 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            favoritesCount: 0,
                                                            appTheme: "light",
                                                            isWidgetInstalled: false,
-                                                           isNetPWaitlistUser: false,
-                                                           daysSinceNetPEnabled: -1),
+                                                           daysSinceNetPEnabled: -1,
+                                                           isPrivacyProEligibleUser: false,
+                                                           isPrivacyProSubscriber: false),
                 percentileStore: percentileStore,
                 dismissedMessageIds: [])
 

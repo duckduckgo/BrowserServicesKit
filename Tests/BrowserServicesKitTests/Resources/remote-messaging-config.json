@@ -237,11 +237,14 @@
     {
       "id": 8,
       "attributes": {
-        "isNetPWaitlistUser": {
-          "value": true
-        },
         "daysSinceNetPEnabled": {
           "min": 5
+        },
+        "pproEligible": {
+          "value": true
+        },
+        "pproSubscriber": {
+          "value": true
         }
       }
     },

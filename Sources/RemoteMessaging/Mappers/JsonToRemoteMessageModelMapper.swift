@@ -36,8 +36,9 @@ private enum AttributesKey: String, CaseIterable {
     case favorites
     case appTheme
     case daysSinceInstalled
-    case isNetPWaitlistUser
     case daysSinceNetPEnabled
+    case pproEligible
+    case pproSubscriber
 
     func matchingAttribute(jsonMatchingAttribute: AnyDecodable) -> MatchingAttribute {
         switch self {
@@ -56,8 +57,9 @@ private enum AttributesKey: String, CaseIterable {
         case .favorites: return FavoritesMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         case .appTheme: return AppThemeMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         case .daysSinceInstalled: return DaysSinceInstalledMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
-        case .isNetPWaitlistUser: return IsNetPWaitlistUserMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         case .daysSinceNetPEnabled: return DaysSinceNetPEnabledMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .pproEligible: return IsPrivacyProEligibleUserMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .pproSubscriber: return IsPrivacyProSubscriberUserMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         }
     }
 }

@@ -131,14 +131,24 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
         let rule8 = config.rules.filter { $0.id == 8 }.first
         XCTAssertNotNil(rule8)
         XCTAssertNil(rule8?.targetPercentile)
-        XCTAssertTrue(rule8?.attributes.count == 2)
+        XCTAssertTrue(rule8?.attributes.count == 3)
         attribs = rule8?.attributes.filter { $0 is DaysSinceNetPEnabledMatchingAttribute }
         XCTAssertEqual(attribs?.count, 1)
         XCTAssertEqual(attribs?.first as? DaysSinceNetPEnabledMatchingAttribute, DaysSinceNetPEnabledMatchingAttribute(min: 5, fallback: nil))
 
-        attribs = rule8?.attributes.filter { $0 is IsNetPWaitlistUserMatchingAttribute }
+        attribs = rule8?.attributes.filter { $0 is IsPrivacyProEligibleUserMatchingAttribute }
         XCTAssertEqual(attribs?.count, 1)
-        XCTAssertEqual(attribs?.first as? IsNetPWaitlistUserMatchingAttribute, IsNetPWaitlistUserMatchingAttribute(value: true, fallback: nil))
+        XCTAssertEqual(
+            attribs?.first as? IsPrivacyProEligibleUserMatchingAttribute,
+            IsPrivacyProEligibleUserMatchingAttribute(value: true, fallback: nil)
+        )
+
+        attribs = rule8?.attributes.filter { $0 is IsPrivacyProSubscriberUserMatchingAttribute }
+        XCTAssertEqual(attribs?.count, 1)
+        XCTAssertEqual(
+            attribs?.first as? IsPrivacyProSubscriberUserMatchingAttribute,
+            IsPrivacyProSubscriberUserMatchingAttribute(value: true, fallback: nil)
+        )
 
         let rule9 = config.rules.filter { $0.id == 9 }.first
         XCTAssertNotNil(rule9)
