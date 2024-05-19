@@ -129,7 +129,7 @@ final class AutofillKeyStoreProviderTests: XCTestCase {
         }
     }
 
-    func testWhenAddData_correctKeychainAccessibilityValueIsUsed() throws {
+    func testWhenWriteData_correctKeychainAccessibilityValueIsUsed() throws {
         try AutofillKeyStoreProvider.EntryName.allCases.forEach { entry in
             // Given
             let originalString = "Mock Keychain data!"
