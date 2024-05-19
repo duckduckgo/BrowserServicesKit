@@ -44,6 +44,8 @@ public enum SecureStorageError: Error {
     case secError(status: Int32)
     case generalCryptoError
     case encodingFailed
+    case keystoreReadError(status: Int32)
+    case keystoreUpdateError(status: Int32)
 }
 
 extension SecureStorageError: CustomNSError {
@@ -66,6 +68,8 @@ extension SecureStorageError: CustomNSError {
         case .secError: return 11
         case .generalCryptoError: return 12
         case .encodingFailed: return 13
+        case .keystoreReadError: return 14
+        case .keystoreUpdateError: return 15
         }
     }
 
@@ -85,7 +89,7 @@ extension SecureStorageError: CustomNSError {
                 errorUserInfo["SQLiteResultCode"] = NSNumber(value: sqliteError.resultCode.rawValue)
                 errorUserInfo["SQLiteExtendedResultCode"] = NSNumber(value: sqliteError.extendedResultCode.rawValue)
             }
-        case .keystoreError(status: let code):
+        case .keystoreError(status: let code), .keystoreReadError(status: let code), .keystoreUpdateError(status: let code):
             errorUserInfo["NSUnderlyingError"] = NSError(domain: "keystoreError", code: Int(code), userInfo: nil)
         case .secError(status: let code):
             errorUserInfo["NSUnderlyingError"] = NSError(domain: "secError", code: Int(code), userInfo: nil)
