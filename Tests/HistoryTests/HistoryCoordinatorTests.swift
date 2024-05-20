@@ -134,6 +134,7 @@ class HistoryCoordinatorTests: XCTestCase {
         XCTAssert(historyCoordinator.history!.count == 4)
 
         historyCoordinator.burnAll {
+            // Test a theory
             XCTAssert(historyStoringMock.removeEntriesArray.count == 4)
         }
     }
