@@ -19,12 +19,13 @@
 import Foundation
 
 public enum RemoteMessagingSurveyActionParameter: String, CaseIterable {
+    case appVersion = "ddgv"
     case atb = "atb"
     case atbVariant = "var"
     case daysInstalled = "delta"
-    case osVersion = "osv"
-    case appVersion = "ddgv"
+    case hardwareModel = "mo"
     case lastActiveDate = "da"
+    case osVersion = "osv"
 }
 
 public protocol RemoteMessagingSurveyActionMapping {
