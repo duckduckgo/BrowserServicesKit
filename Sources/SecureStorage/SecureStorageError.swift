@@ -89,8 +89,12 @@ extension SecureStorageError: CustomNSError {
                 errorUserInfo["SQLiteResultCode"] = NSNumber(value: sqliteError.resultCode.rawValue)
                 errorUserInfo["SQLiteExtendedResultCode"] = NSNumber(value: sqliteError.extendedResultCode.rawValue)
             }
-        case .keystoreError(status: let code), .keystoreReadError(status: let code), .keystoreUpdateError(status: let code):
+        case .keystoreError(status: let code):
             errorUserInfo["NSUnderlyingError"] = NSError(domain: "keystoreError", code: Int(code), userInfo: nil)
+        case .keystoreReadError(status: let code):
+            errorUserInfo["NSUnderlyingError"] = NSError(domain: "keystoreReadError", code: Int(code), userInfo: nil)
+        case .keystoreUpdateError(status: let code):
+            errorUserInfo["NSUnderlyingError"] = NSError(domain: "keystoreUpdateError", code: Int(code), userInfo: nil)
         case .secError(status: let code):
             errorUserInfo["NSUnderlyingError"] = NSError(domain: "secError", code: Int(code), userInfo: nil)
         case .authRequired, .invalidPassword, .noL1Key, .noL2Key, .duplicateRecord, .generalCryptoError, .encodingFailed:
