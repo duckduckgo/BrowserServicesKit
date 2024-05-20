@@ -23,6 +23,7 @@ public enum RemoteMessagingSurveyActionParameter: String, CaseIterable {
     case atbVariant = "var"
     case daysInstalled = "delta"
     case osVersion = "osv"
+    case appVersion = "ddgv"
     case lastActiveDate = "da"
 }
 

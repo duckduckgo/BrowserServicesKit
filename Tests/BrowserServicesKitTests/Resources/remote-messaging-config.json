@@ -146,7 +146,7 @@
                 "type": "survey",
                 "value": "https://duckduckgo.com/survey",
                 "additionalParameters": {
-                    "queryParams": "atb;var;delta;iosv;ddgv;da"
+                    "queryParams": "atb;var;delta;osv;ddgv;da"
                 }
             }
         },
