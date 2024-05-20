@@ -92,7 +92,7 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
                 descriptionText: "Survey Description",
                 placeholder: .vpnAnnounce,
                 actionText: "Survey Action",
-                action: .surveyURL(value: "https://duckduckgo.com/survey")
+                action: .survey(value: "https://duckduckgo.com/survey")
             ),
             matchingRules: [8],
             exclusionRules: [])
@@ -183,8 +183,9 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
     func testWhenJsonAttributeMissingThenUnknownIntoConfig() throws {
         let validJson = data.fromJsonFile("Resources/remote-messaging-config-malformed.json")
         let remoteMessagingConfig = try JSONDecoder().decode(RemoteMessageResponse.JsonRemoteMessagingConfig.self, from: validJson)
+        let surveyMapper = MockRemoteMessageSurveyActionMapper()
         XCTAssertNotNil(remoteMessagingConfig)
-        let config = JsonToRemoteConfigModelMapper.mapJson(remoteMessagingConfig: remoteMessagingConfig)
+        let config = JsonToRemoteConfigModelMapper.mapJson(remoteMessagingConfig: remoteMessagingConfig, surveyActionMapper: surveyMapper)
         XCTAssertTrue(config.rules.count == 2)
 
         let rule6 = config.rules.filter { $0.id == 6 }.first
@@ -197,9 +198,10 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
     func decodeAndMapJson(fileName: String) throws -> RemoteConfigModel {
         let validJson = data.fromJsonFile(fileName)
         let remoteMessagingConfig = try JSONDecoder().decode(RemoteMessageResponse.JsonRemoteMessagingConfig.self, from: validJson)
+        let surveyMapper = MockRemoteMessageSurveyActionMapper()
         XCTAssertNotNil(remoteMessagingConfig)
 
-        let config = JsonToRemoteConfigModelMapper.mapJson(remoteMessagingConfig: remoteMessagingConfig)
+        let config = JsonToRemoteConfigModelMapper.mapJson(remoteMessagingConfig: remoteMessagingConfig, surveyActionMapper: surveyMapper)
         XCTAssertNotNil(config)
         return config
     }

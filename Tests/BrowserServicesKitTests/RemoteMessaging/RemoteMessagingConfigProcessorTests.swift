@@ -40,6 +40,7 @@ class RemoteMessagingConfigProcessorTests: XCTestCase {
                                                        isPrivacyProEligibleUser: false,
                                                        isPrivacyProSubscriber: false),
             percentileStore: MockRemoteMessagePercentileStore(),
+            surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
             dismissedMessageIds: []
         )
 
@@ -70,6 +71,7 @@ class RemoteMessagingConfigProcessorTests: XCTestCase {
                                                            isPrivacyProEligibleUser: false,
                                                            isPrivacyProSubscriber: false),
                 percentileStore: MockRemoteMessagePercentileStore(),
+                surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
                 dismissedMessageIds: [])
 
         let processor = RemoteMessagingConfigProcessor(remoteMessagingConfigMatcher: remoteMessagingConfigMatcher)

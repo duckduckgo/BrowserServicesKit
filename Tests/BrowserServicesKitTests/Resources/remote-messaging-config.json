@@ -143,8 +143,11 @@
             "placeholder": "VPNAnnounce",
             "actionText": "Survey Action",
             "action": {
-                "type": "survey_url",
-                "value": "https://duckduckgo.com/survey"
+                "type": "survey",
+                "value": "https://duckduckgo.com/survey",
+                "additionalParameters": {
+                    "queryParams": "atb;var;delta;iosv;ddgv;da"
+                }
             }
         },
         "matchingRules": [
