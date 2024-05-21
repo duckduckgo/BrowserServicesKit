@@ -25,7 +25,7 @@ final class VPNServerSelectionResolverTests: XCTestCase {
     var resolver: VPNServerSelectionResolver!
     var vpnSettings: VPNSettings!
     var locationListRepository: MockNetworkProtectionLocationListRepository!
-    
+
     override func setUp() {
         super.setUp()
         locationListRepository = MockNetworkProtectionLocationListRepository()
@@ -35,7 +35,7 @@ final class VPNServerSelectionResolverTests: XCTestCase {
             vpnSettings: vpnSettings
         )
     }
-    
+
     override func tearDown() {
         vpnSettings.resetToDefaults()
         vpnSettings = nil
@@ -43,7 +43,7 @@ final class VPNServerSelectionResolverTests: XCTestCase {
         locationListRepository = nil
         super.tearDown()
     }
-    
+
     func testResolvedServerSelectionMethod_selectedServer_returnsPreferredServer() async {
         let serverName = "serverName"
         vpnSettings.selectedServer = .endpoint(serverName)
@@ -54,7 +54,7 @@ final class VPNServerSelectionResolverTests: XCTestCase {
         }
         XCTAssertEqual(preferredServerName, serverName)
     }
-    
+
     func testResolvedServerSelectionMethod_selectedLocationIsNearest_returnsAutomatic() async {
         vpnSettings.selectedLocation = .nearest
         let result = await resolver.resolvedServerSelectionMethod()
@@ -63,13 +63,13 @@ final class VPNServerSelectionResolverTests: XCTestCase {
             return
         }
     }
-    
+
     func testResolvedServerSelectionMethod_selectedLocationIsCity_fetchesListIgnoringCache() async {
         vpnSettings.selectedLocation = .location(.init(country: "nl", city: "Rotterdam"))
         _ = await resolver.resolvedServerSelectionMethod()
         XCTAssertTrue(locationListRepository.spyIgnoreCache)
     }
-    
+
     func testResolvedServerSelectionMethod_selectedLocationIsCity_fetchedLocationsContainThatCity_returnsPreferredCity() async {
         let selectedLocation = NetworkProtectionSelectedLocation(country: "nl", city: "Rotterdam")
         vpnSettings.selectedLocation = .location(selectedLocation)
@@ -87,7 +87,7 @@ final class VPNServerSelectionResolverTests: XCTestCase {
         }
         XCTAssertEqual(location, selectedLocation)
     }
-    
+
     func testResolvedServerSelectionMethod_selectedLocationIsCity_fetchedLocationsContainThatCountry_butNotCity_returnsPreferredCountryWithNilCity() async {
         let selectedLocation = NetworkProtectionSelectedLocation(country: "nl", city: nil)
         vpnSettings.selectedLocation = .location(selectedLocation)
@@ -105,7 +105,7 @@ final class VPNServerSelectionResolverTests: XCTestCase {
         }
         XCTAssertEqual(location, selectedLocation)
     }
-    
+
     func testResolvedServerSelectionMethod_selectedLocationIsCity_fetchedLocationsDoesNotContainCountry_returnsAutomatic() async {
         let selectedLocation = NetworkProtectionSelectedLocation(country: "nl", city: nil)
         vpnSettings.selectedLocation = .location(selectedLocation)
@@ -118,7 +118,7 @@ final class VPNServerSelectionResolverTests: XCTestCase {
             return
         }
     }
-    
+
     func testResolvedServerSelectionMethod_overridesAllLocationSelectionMethods_returnsPreferredServer() async {
         let cases: [VPNSettings.SelectedLocation] = [
             .location(.init(country: "nl", city: "Rotterdam")),

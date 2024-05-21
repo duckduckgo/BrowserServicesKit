@@ -30,7 +30,7 @@ class MockNetworkProtectionLocationListRepository: NetworkProtectionLocationList
         }
         return stubFetchLocationList
     }
-    
+
     func fetchLocationListIgnoringCache() async throws -> [NetworkProtection.NetworkProtectionLocation] {
         spyIgnoreCache = true
         return try await fetchLocationList()
