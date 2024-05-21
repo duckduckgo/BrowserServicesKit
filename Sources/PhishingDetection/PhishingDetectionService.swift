@@ -78,9 +78,12 @@ public class PhishingDetectionService: PhishingDetectionServiceProtocol {
     public var hashPrefixes = [String]()
     var currentRevision = 0
     var apiClient: PhishingDetectionClientProtocol
+    var dataStore: URL?
+    
 
     public init(apiClient: PhishingDetectionClientProtocol? = nil) {
         self.apiClient = apiClient ?? PhishingDetectionAPIClient() as PhishingDetectionClientProtocol
+        createDataStore()
     }
     
     public func updateFilterSet() async {
@@ -125,14 +128,29 @@ public class PhishingDetectionService: PhishingDetectionServiceProtocol {
         }
         return false
     }
+    
+    func createDataStore() {
+        do {
+            let fileManager = FileManager.default
+            let appSupportDirectory = try fileManager.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+            dataStore = appSupportDirectory.appendingPathComponent(Bundle.main.bundleIdentifier!, isDirectory: true)
+            try fileManager.createDirectory(at: dataStore!, withIntermediateDirectories: true, attributes: nil)
+        } catch {
+            print("Error creating phishing protection data directory: \(error)")
+        }
+    }
 
     public func writeData() {
         let encoder = JSONEncoder()
         do {
             let hashPrefixesData = try encoder.encode(hashPrefixes)
             let filterSetData = try encoder.encode(filterSet)
-            try hashPrefixesData.write(to: URL(fileURLWithPath: "/tmp/hashPrefixes.json"))
-            try filterSetData.write(to: URL(fileURLWithPath: "/tmp/filterSet.json"))
+
+            let hashPrefixesFileURL = dataStore!.appendingPathComponent("hashPrefixes.json")
+            let filterSetFileURL = dataStore!.appendingPathComponent("filterSet.json")
+
+            try hashPrefixesData.write(to: hashPrefixesFileURL)
+            try filterSetData.write(to: filterSetFileURL)
         } catch {
             print("Error saving phishing protection data: \(error)")
         }
@@ -141,8 +159,12 @@ public class PhishingDetectionService: PhishingDetectionServiceProtocol {
     public func loadData() {
         let decoder = JSONDecoder()
         do {
-            let hashPrefixesData = try Data(contentsOf: URL(fileURLWithPath: "/tmp/hashPrefixes.json"))
-            let filterSetData = try Data(contentsOf: URL(fileURLWithPath: "/tmp/filterSet.json"))
+            let hashPrefixesFileURL = dataStore!.appendingPathComponent("hashPrefixes.json")
+            let filterSetFileURL = dataStore!.appendingPathComponent("filterSet.json")
+
+            let hashPrefixesData = try Data(contentsOf: hashPrefixesFileURL)
+            let filterSetData = try Data(contentsOf: filterSetFileURL)
+
             hashPrefixes = try decoder.decode([String].self, from: hashPrefixesData)
             filterSet = try decoder.decode([Filter].self, from: filterSetData)
         } catch {
