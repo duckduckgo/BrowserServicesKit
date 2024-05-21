@@ -1,5 +1,5 @@
 //
-//  PhishingService.swift
+//  PhishingDetectionService.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -15,8 +15,8 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
+
 import Foundation
-import BrowserServicesKit
 import CryptoKit
 
 public struct HashPrefixResponse: Decodable, Encodable {

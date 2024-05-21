@@ -53,6 +53,7 @@ extension OSLog {
     static var debugCategories: Set<Categories> = [ /*.autofill*/ ]
 #endif
 
+    @OSLogWrapper(.contentBlocking)     public static var contentBlocking
     @OSLogWrapper(.userScripts)         public static var userScripts
     @OSLogWrapper(.passwordManager)     public static var passwordManager
     @OSLogWrapper(.remoteMessaging)     public static var remoteMessaging

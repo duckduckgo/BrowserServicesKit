@@ -335,10 +335,7 @@ let package = Package(
         .target(
             name: "PhishingDetection",
             dependencies: [
-                "Networking",
-            ],
-            swiftSettings: [
-                .define("DEBUG", .when(configuration: .debug))
+                "Common"
             ]
         ),
         .target(
