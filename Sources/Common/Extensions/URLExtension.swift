@@ -433,46 +433,46 @@ extension URL {
     public func matches(_ protectionSpace: URLProtectionSpace) -> Bool {
         return host == protectionSpace.host && (port ?? navigationalScheme?.defaultPort) == protectionSpace.port && scheme == protectionSpace.protocol
     }
-    
+
     // MARK: Canonicalization 
     public func canonicalHost() -> String {
             guard let host = self.host else {
                 return ""
             }
-            
+
             // Step 1: Extract out the hostname portion from the URL
             var canonicalHost = host
-            
+
             // Step 2: Decode any %XX escapes present in the hostname
             if let decodedHost = canonicalHost.removingPercentEncoding {
                 canonicalHost = decodedHost
             }
-            
+
             // Step 3: Discard any characters outside the range 0x20 to 0x7E
             canonicalHost = canonicalHost.filter { character in
                 let asciiValue = character.unicodeScalars.first?.value ?? 0
                 return (asciiValue >= 0x20 && asciiValue <= 0x7E)
             }
-            
+
             // Step 4: Discard any leading and/or trailing full-stops
             canonicalHost = canonicalHost.trimmingCharacters(in: CharacterSet(charactersIn: "."))
-            
+
             // Step 5: Replace sequences of two or more full-stops with a single full-stop
             canonicalHost = canonicalHost.replacingOccurrences(of: "\\.+", with: ".", options: .regularExpression)
-            
+
             // Step 6: If the hostname is a numeric IPv4 address then reduce it to the canonical dotted quad form
             let ipv4AddressComponents = canonicalHost.components(separatedBy: ".")
             if ipv4AddressComponents.count == 4, ipv4AddressComponents.allSatisfy({ Int($0) != nil }) {
                 canonicalHost = ipv4AddressComponents.joined(separator: ".")
             }
-            
+
             // Step 7: Replace any characters other than letters, numbers, ".", and "-" with "%XX" escape codes, using lowercase hexadecimal digits
             canonicalHost = canonicalHost.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed) ?? ""
-            
+
             // Step 8: If more than six components in the resulting hostname, discard all but the rightmost six components
             let components = canonicalHost.components(separatedBy: ".").suffix(6)
             canonicalHost = components.joined(separator: ".")
-            
+
             return canonicalHost
         }
 }
@@ -509,3 +509,4 @@ extension URLQueryItem {
     }
 
 }
+
