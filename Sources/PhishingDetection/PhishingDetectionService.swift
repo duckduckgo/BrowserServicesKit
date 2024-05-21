@@ -65,7 +65,7 @@ public struct Match: Decodable, Encodable {
 public protocol PhishingDetectionServiceProtocol {
     var filterSet: [Filter] {get set}
     var hashPrefixes: [String] {get set}
-    func isMalicious(url: String) async -> Bool
+    func isMalicious(url: URL) async -> Bool
     func updateFilterSet() async
     func updateHashPrefixes() async
     func getMatches(hashPrefix: String) async -> [Match]
@@ -101,9 +101,9 @@ public class PhishingDetectionService: PhishingDetectionServiceProtocol {
         return filterSet.filter { $0.hashValue == hash }
     }
     
-    public func isMalicious(url: String) async -> Bool {
-        guard let hostname = URL(string: url)?.host else { return false }
-        let hostnameHash = SHA256.hash(data: Data(hostname.utf8)).map { String(format: "%02hhx", $0) }.joined()
+    public func isMalicious(url: URL) async -> Bool {
+        let canonicalHost = url.canonicalHost()
+        let hostnameHash = SHA256.hash(data: Data(canonicalHost.utf8)).map { String(format: "%02hhx", $0) }.joined()
         let hashPrefix = String(hostnameHash.prefix(8))
         if hashPrefixes.contains(hashPrefix) {
             let filterHit = inFilterSet(hash: hostnameHash)
@@ -112,8 +112,14 @@ public class PhishingDetectionService: PhishingDetectionServiceProtocol {
             }
             let matches = await apiClient.getMatches(hashPrefix: hashPrefix)
             for match in matches {
-                if match.hash == hostnameHash, let _ = try? NSRegularExpression(pattern: match.regex, options: []) {
-                    return true
+                if match.hash == hostnameHash {
+                    if let regex = try? NSRegularExpression(pattern: match.regex, options: []) {
+                        let urlString = url.absoluteString
+                        let range = NSRange(location: 0, length: urlString.utf16.count)
+                        if regex.firstMatch(in: urlString, options: [], range: range) != nil {
+                            return true
+                        }
+                    }
                 }
             }
         }
@@ -141,6 +147,11 @@ public class PhishingDetectionService: PhishingDetectionServiceProtocol {
             filterSet = try decoder.decode([Filter].self, from: filterSetData)
         } catch {
             print("Error loading phishing protection data: \(error)")
+            Task {
+                await self.updateFilterSet()
+                await self.updateHashPrefixes()
+                self.writeData()
+            }
         }
     }
     

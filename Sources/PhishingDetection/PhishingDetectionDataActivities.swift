@@ -13,7 +13,7 @@ public class PhishingDetectionDataActivities {
     private let detectionService: PhishingDetectionServiceProtocol
     
     public init(detectionService: PhishingDetectionServiceProtocol? = nil) {
-        let givenDetectionService = detectionService ?? PhishingDetectionService() 
+        let givenDetectionService = detectionService ?? PhishingDetectionService()
         self.detectionService = givenDetectionService
         self.hashPrefixDataActivity = HashPrefixDataActivity(identifier: "com.duckduckgo.protection.hashPrefix", detectionService: givenDetectionService)
         self.filterSetDataActivity = FilterSetDataActivity(identifier: "com.duckduckgo.protection.filterSet", detectionService: givenDetectionService)
