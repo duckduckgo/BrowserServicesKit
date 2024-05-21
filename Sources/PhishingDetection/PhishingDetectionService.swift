@@ -18,6 +18,7 @@
 
 import Foundation
 import CryptoKit
+import Common
 
 public struct HashPrefixResponse: Decodable, Encodable {
     public var hashPrefixes: [String]
@@ -136,7 +137,7 @@ public class PhishingDetectionService: PhishingDetectionServiceProtocol {
             dataStore = appSupportDirectory.appendingPathComponent(Bundle.main.bundleIdentifier!, isDirectory: true)
             try fileManager.createDirectory(at: dataStore!, withIntermediateDirectories: true, attributes: nil)
         } catch {
-            print("Error creating phishing protection data directory: \(error)")
+            os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error creating phishing protection data directory: \(error)")
         }
     }
 
@@ -152,7 +153,7 @@ public class PhishingDetectionService: PhishingDetectionServiceProtocol {
             try hashPrefixesData.write(to: hashPrefixesFileURL)
             try filterSetData.write(to: filterSetFileURL)
         } catch {
-            print("Error saving phishing protection data: \(error)")
+            os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error saving phishing protection data: \(error)")
         }
     }
 
@@ -168,7 +169,7 @@ public class PhishingDetectionService: PhishingDetectionServiceProtocol {
             hashPrefixes = try decoder.decode([String].self, from: hashPrefixesData)
             filterSet = try decoder.decode([Filter].self, from: filterSetData)
         } catch {
-            print("Error loading phishing protection data: \(error)")
+            os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error loading phishing protection data: \(error)")
             Task {
                 await self.updateFilterSet()
                 await self.updateHashPrefixes()

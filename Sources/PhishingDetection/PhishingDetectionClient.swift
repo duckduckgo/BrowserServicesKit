@@ -63,7 +63,7 @@ class PhishingDetectionAPIClient: PhishingDetectionClientProtocol {
             var urlComponents = URLComponents(url: filterSetURL, resolvingAgainstBaseURL: true)
             urlComponents?.queryItems = [URLQueryItem(name: "revision", value: String(revision))]
             guard let resolvedURL = urlComponents?.url else {
-                print("Invalid filterSet revision URL: \(revision)")
+                os_log(.debug, log: .phishingDetection, "\(self): 🔸 Invalid filterSet revision URL: \(revision)")
                 return []
             }
             url = resolvedURL
@@ -79,10 +79,10 @@ class PhishingDetectionAPIClient: PhishingDetectionClientProtocol {
             if let filterSetResponse = try? JSONDecoder().decode(FilterSetResponse.self, from: data) {
                 return filterSetResponse.filters
             } else {
-                print("Failed to decode response")
+                os_log(.debug, log: .phishingDetection, "\(self): 🔸 Failed to decode filterSet response: \(data)")
             }
         } catch {
-            print("Failed to load: \(error)")
+            os_log(.debug, log: .phishingDetection, "\(self): 🔴 Failed to load filterSet data: \(error)")
         }
         return []
     }
@@ -93,7 +93,7 @@ class PhishingDetectionAPIClient: PhishingDetectionClientProtocol {
             var urlComponents = URLComponents(url: hashPrefixURL, resolvingAgainstBaseURL: true)
             urlComponents?.queryItems = [URLQueryItem(name: "revision", value: String(revision))]
             guard let resolvedURL = urlComponents?.url else {
-                print("Invalid hashPrefix revision URL: \(revision)")
+                os_log(.debug, log: .phishingDetection, "\(self): 🔸 Invalid hashPrefix revision URL: \(revision)")
                 return []
             }
             url = resolvedURL
@@ -109,10 +109,10 @@ class PhishingDetectionAPIClient: PhishingDetectionClientProtocol {
             if let hashPrefixResponse = try? JSONDecoder().decode(HashPrefixResponse.self, from: data) {
                 return hashPrefixResponse.hashPrefixes
             } else {
-                print("Failed to decode response")
+                os_log(.debug, log: .phishingDetection, "\(self): 🔸 Failed to decode hashPrefix response: \(data)")
             }
         } catch {
-            print("Failed to load: \(error)")
+            os_log(.debug, log: .phishingDetection, "\(self): 🔴 Failed to load hashPrefix data: \(error)")
         }
         return []
     }
@@ -122,7 +122,7 @@ class PhishingDetectionAPIClient: PhishingDetectionClientProtocol {
         urlComponents?.queryItems = [URLQueryItem(name: "hashPrefix", value: hashPrefix)]
         
         guard let url = urlComponents?.url else {
-            print("Invalid URL")
+            os_log(.debug, log: .phishingDetection, "\(self): 🔸 Invalid matches URL: \(hashPrefix)")
             return []
         }
         
@@ -135,10 +135,10 @@ class PhishingDetectionAPIClient: PhishingDetectionClientProtocol {
             if let matchResponse = try? JSONDecoder().decode(MatchResponse.self, from: data) {
                 return matchResponse.matches
             } else {
-                print("Failed to decode response")
+                os_log(.debug, log: .phishingDetection, "\(self): 🔸 Failed to decode matches response: \(data)")
             }
         } catch {
-            print("Failed to load: \(error)")
+            os_log(.debug, log: .phishingDetection, "\(self): 🔴 Failed to get matches: \(error)")
             return []
         }
         return []
