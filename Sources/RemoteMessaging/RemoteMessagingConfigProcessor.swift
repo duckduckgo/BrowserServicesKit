@@ -56,9 +56,6 @@ public struct RemoteMessagingConfigProcessor {
     }
 
     func shouldProcessConfig(_ currentConfig: RemoteMessagingConfig?) -> Bool {
-        // TODO: Remove  before merging
-        return true
-
         guard let currentConfig = currentConfig else {
             return true
         }
