@@ -26,7 +26,7 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
 
     func testWhenValidJsonParsedThenMessagesMappedIntoRemoteConfig() throws {
         let config = try decodeAndMapJson(fileName: "Resources/remote-messaging-config.json")
-        XCTAssertEqual(config.messages.count, 8)
+        XCTAssertEqual(config.messages.count, 9)
 
         XCTAssertEqual(config.messages[0], RemoteMessageModel(
                 id: "8274589c-8aeb-4322-a737-3852911569e3",
@@ -95,6 +95,13 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
                 action: .survey(value: "https://duckduckgo.com/survey")
             ),
             matchingRules: [8],
+            exclusionRules: [])
+        )
+
+        XCTAssertEqual(config.messages[8], RemoteMessageModel(
+            id: "9848E904-4345-09C8-FEAA-3B2C75DC285B",
+            content: nil,
+            matchingRules: [],
             exclusionRules: [])
         )
 
