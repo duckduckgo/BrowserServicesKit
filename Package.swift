@@ -335,15 +335,18 @@ let package = Package(
         .target(
             name: "PhishingDetection",
             dependencies: [
-                "BrowserServicesKit",
+                "Networking",
             ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
+            ]
         ),
         .target(
             name: "PixelKit",
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
             ]
-        )
+        ),
         .target(
             name: "PixelKitTestingUtilities",
             dependencies: [
