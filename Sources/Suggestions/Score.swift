@@ -99,6 +99,10 @@ extension Score {
                   queryTokens: queryTokens)
     }
 
+    init(internalPage: InternalPage, query: Query, queryTokens: [Query]? = nil) {
+        self.init(title: internalPage.title, url: internalPage.url, visitCount: 0, query: query, queryTokens: queryTokens)
+    }
+
     static func tokens(from query: Query) -> [Query] {
         return query
             .split(whereSeparator: {

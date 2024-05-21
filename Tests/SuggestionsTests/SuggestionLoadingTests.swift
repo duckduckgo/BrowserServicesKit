@@ -23,8 +23,9 @@ final class SuggestionLoadingTests: XCTestCase {
 
     class SuggestionLoadingDataSourceMock: SuggestionLoadingDataSource {
 
-        private var bookmarks = [Bookmark]()
-        private var history = [HistorySuggestion]()
+        private var bookmarks: [Bookmark]
+        private var history: [HistorySuggestion]
+        private var internalPages: [InternalPage]
 
         private var completionData: Data?
         private var completionError: Error?
@@ -34,15 +35,18 @@ final class SuggestionLoadingTests: XCTestCase {
         private(set) var bookmarkCallCount = 0
         private(set) var historyCallCount = 0
         private(set) var dataCallCount = 0
+        private(set) var internalPagesCallCount = 0
 
         init(data: Data? = nil,
              error: Error? = nil,
              history: [HistorySuggestion] = [],
              bookmarks: [Bookmark] = [],
+             internalPages: [InternalPage] = [],
              delay: TimeInterval? = 0.01) {
             self.completionData = data
             self.bookmarks = bookmarks
             self.history = history
+            self.internalPages = internalPages
             self.completionError = error
             self.asyncDelay = delay
         }
@@ -55,6 +59,11 @@ final class SuggestionLoadingTests: XCTestCase {
         func bookmarks(for suggestionLoading: SuggestionLoading) -> [Bookmark] {
             bookmarkCallCount += 1
             return bookmarks
+        }
+
+        func internalPages(for suggestionLoading: Suggestions.SuggestionLoading) -> [Suggestions.InternalPage] {
+            internalPagesCallCount += 1
+            return internalPages
         }
 
         func suggestionLoading(_ suggestionLoading: SuggestionLoading,
@@ -107,6 +116,7 @@ final class SuggestionLoadingTests: XCTestCase {
         loader.getSuggestions(query: "test") { (_, _) in
             XCTAssertEqual(dataSource.historyCallCount, 1)
             XCTAssertEqual(dataSource.bookmarkCallCount, 1)
+            XCTAssertEqual(dataSource.internalPagesCallCount, 1)
             XCTAssertEqual(dataSource.dataCallCount, 1)
             e.fulfill()
         }

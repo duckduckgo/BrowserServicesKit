@@ -186,6 +186,9 @@ public final class PixelKit {
         headers[Header.moreInfo] = "See " + Self.duckDuckGoMorePrivacyInfo.absoluteString
         headers[Header.client] = "macOS"
 
+        // The event name can't contain `.`
+        reportErrorIf(pixel: pixelName, contains: ".")
+
         switch frequency {
         case .standard:
             reportErrorIf(pixel: pixelName, endsWith: "_u")
@@ -204,6 +207,7 @@ public final class PixelKit {
             reportErrorIf(pixel: pixelName, endsWith: "_d")
             guard pixelName.hasSuffix("_u") else {
                 assertionFailure("Unique pixel: must end with _u")
+                onComplete(false, nil)
                 return
             }
             if !pixelHasBeenFiredEver(pixelName) {
@@ -253,6 +257,14 @@ public final class PixelKit {
         }
     }
 
+    /// If the pixel name contains the forbiddenString then an error is logged or an assertion failure is fired in debug
+    func reportErrorIf(pixel: String, contains forbiddenString: String) {
+        if pixel.contains(forbiddenString) {
+            logger.error("Pixel \(pixel, privacy: .public) must not contain \(forbiddenString, privacy: .public)")
+            assertionFailure("Pixel \(pixel) must not contain \(forbiddenString)")
+        }
+    }
+
     private func printDebugInfo(pixelName: String, frequency: Frequency, parameters: [String: String], skipped: Bool = false) {
         let params = parameters.filter { key, _ in !["test"].contains(key) }
         logger.debug("👾[\(frequency.description, privacy: .public)-\(skipped ? "Skipped" : "Fired", privacy: .public)] \(pixelName, privacy: .public) \(params, privacy: .public)")
@@ -279,11 +291,14 @@ public final class PixelKit {
 
     private func prefixedName(for event: Event) -> String {
         if event.name.hasPrefix("m_mac_") {
+            // Can be a debug event or not, if already prefixed the name remains unchanged
             return event.name
-        }
-
-        if let debugEvent = event as? DebugEvent {
+        } else if let debugEvent = event as? DebugEvent {
+            // Is a Debug event not already prefixed
             return "m_mac_debug_\(debugEvent.name)"
+        } else if let nonStandardEvent = event as? NonStandardEvent {
+            // Special kind of pixel event that don't follow the standard naming conventions
+            return nonStandardEvent.name
         } else {
             return "m_mac_\(event.name)"
         }
@@ -328,7 +343,7 @@ public final class PixelKit {
            let error = event.error {
 
             // For v2 events we only consider the error specified in the event
-            // and purposedly ignore the parameter in this call.
+            // and purposely ignore the parameter in this call.
             // This is to encourage moving the error over to the protocol error
             // instead of still relying on the parameter of this call.
             newError = error

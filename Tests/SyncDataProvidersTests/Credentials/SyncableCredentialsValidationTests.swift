@@ -34,54 +34,30 @@ final class SyncableCredentialsValidationTests: XCTestCase {
     }
 
     func testWhenCredentialsFieldsPassLengthValidationThenSyncableIsInitializedWithoutThrowingErrors() throws {
-        guard DDGSync.isFieldValidationEnabled else {
-            throw XCTSkip("Field validation is disabled")
-        }
-
         XCTAssertNoThrow(try Syncable(syncableCredentials: syncableCredentials, encryptedUsing: { $0 }))
     }
 
     func testWhenAccountTitleIsTooLongThenSyncableInitializerThrowsError() throws {
-        guard DDGSync.isFieldValidationEnabled else {
-            throw XCTSkip("Field validation is disabled")
-        }
-
         syncableCredentials.account?.title = String(repeating: "x", count: 10000)
         assertSyncableInitializerThrowsValidationError()
     }
 
     func testWhenAccountUsernameIsTooLongThenSyncableInitializerThrowsError() throws {
-        guard DDGSync.isFieldValidationEnabled else {
-            throw XCTSkip("Field validation is disabled")
-        }
-
         syncableCredentials.account?.username = String(repeating: "x", count: 10000)
         assertSyncableInitializerThrowsValidationError()
     }
 
     func testWhenAccountDomainIsTooLongThenSyncableInitializerThrowsError() throws {
-        guard DDGSync.isFieldValidationEnabled else {
-            throw XCTSkip("Field validation is disabled")
-        }
-
         syncableCredentials.account?.domain = String(repeating: "x", count: 10000)
         assertSyncableInitializerThrowsValidationError()
     }
 
     func testWhenAccountNotesIsTooLongThenSyncableInitializerThrowsError() throws {
-        guard DDGSync.isFieldValidationEnabled else {
-            throw XCTSkip("Field validation is disabled")
-        }
-
         syncableCredentials.account?.notes = String(repeating: "x", count: 10000)
         assertSyncableInitializerThrowsValidationError()
     }
 
     func testWhenPasswordIsTooLongThenSyncableInitializerThrowsError() throws {
-        guard DDGSync.isFieldValidationEnabled else {
-            throw XCTSkip("Field validation is disabled")
-        }
-
         syncableCredentials.credentials?.password = String(repeating: "x", count: 10000).data(using: .utf8)
         assertSyncableInitializerThrowsValidationError()
     }

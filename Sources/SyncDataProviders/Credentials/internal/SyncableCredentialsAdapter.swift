@@ -71,7 +71,7 @@ extension Syncable {
         static let maxEncryptedNotesLength = 1000
     }
 
-    // swiftlint:disable:next cyclomatic_complexity function_body_length
+    // swiftlint:disable:next cyclomatic_complexity
     init(syncableCredentials: SecureVaultModels.SyncableCredentials, encryptedUsing encrypt: (String) throws -> String) throws {
         var payload: [String: Any] = [:]
 
@@ -85,47 +85,37 @@ extension Syncable {
 
         if let title = credential.account.title {
             let encryptedTitle = try encrypt(title)
-            if DDGSync.isFieldValidationEnabled {
-                guard encryptedTitle.count <= CredentialValidationConstraints.maxEncryptedTitleLength else {
-                    throw SyncableCredentialError.validationFailed
-                }
+            guard encryptedTitle.count <= CredentialValidationConstraints.maxEncryptedTitleLength else {
+                throw SyncableCredentialError.validationFailed
             }
             payload["title"] = encryptedTitle
         }
         if let domain = credential.account.domain {
             let encryptedDomain = try encrypt(domain)
-            if DDGSync.isFieldValidationEnabled {
-                guard encryptedDomain.count <= CredentialValidationConstraints.maxEncryptedDomainLength else {
-                    throw SyncableCredentialError.validationFailed
-                }
+            guard encryptedDomain.count <= CredentialValidationConstraints.maxEncryptedDomainLength else {
+                throw SyncableCredentialError.validationFailed
             }
             payload["domain"] = encryptedDomain
         }
         if let username = credential.account.username {
             let encryptedUsername = try encrypt(username)
-            if DDGSync.isFieldValidationEnabled {
-                guard encryptedUsername.count <= CredentialValidationConstraints.maxEncryptedUsernameLength else {
-                    throw SyncableCredentialError.validationFailed
-                }
+            guard encryptedUsername.count <= CredentialValidationConstraints.maxEncryptedUsernameLength else {
+                throw SyncableCredentialError.validationFailed
             }
             payload["username"] = encryptedUsername
         }
         if let notes = credential.account.notes {
             let encryptedNotes = try encrypt(notes)
-            if DDGSync.isFieldValidationEnabled {
-                guard encryptedNotes.count <= CredentialValidationConstraints.maxEncryptedNotesLength else {
-                    throw SyncableCredentialError.validationFailed
-                }
+            guard encryptedNotes.count <= CredentialValidationConstraints.maxEncryptedNotesLength else {
+                throw SyncableCredentialError.validationFailed
             }
             payload["notes"] = encryptedNotes
         }
 
         if let passwordData = credential.password, let password = String(data: passwordData, encoding: .utf8) {
             let encryptedPassword = try encrypt(password)
-            if DDGSync.isFieldValidationEnabled {
-                guard encryptedPassword.count <= CredentialValidationConstraints.maxEncryptedPasswordLength else {
-                    throw SyncableCredentialError.validationFailed
-                }
+            guard encryptedPassword.count <= CredentialValidationConstraints.maxEncryptedPasswordLength else {
+                throw SyncableCredentialError.validationFailed
             }
             payload["password"] = encryptedPassword
         }

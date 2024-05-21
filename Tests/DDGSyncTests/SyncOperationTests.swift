@@ -18,15 +18,17 @@
 
 import XCTest
 
+@testable import Gzip
 @testable import DDGSync
 
 class SyncOperationTests: XCTestCase {
     var apiMock: RemoteAPIRequestCreatingMock!
     var request: HTTPRequestingMock!
     var endpoints: Endpoints!
+    var payloadCompressor: SyncGzipPayloadCompressorMock!
     var storage: SecureStorageStub!
     var crypter: CryptingMock!
-    var requestMaker: SyncRequestMaking!
+    var requestMaker: InspectableSyncRequestMaker!
 
     override func setUpWithError() throws {
         try super.setUpWithError()
@@ -35,6 +37,7 @@ class SyncOperationTests: XCTestCase {
         request = HTTPRequestingMock()
         apiMock.request = request
         endpoints = Endpoints(baseURL: URL(string: "https://example.com")!)
+        payloadCompressor = SyncGzipPayloadCompressorMock()
         storage = SecureStorageStub()
         crypter = CryptingMock()
         try storage.persistAccount(
@@ -50,7 +53,9 @@ class SyncOperationTests: XCTestCase {
             )
         )
 
-        requestMaker = SyncRequestMaker(storage: storage, api: apiMock, endpoints: endpoints)
+        requestMaker = InspectableSyncRequestMaker(
+            requestMaker: .init(storage: storage, api: apiMock, endpoints: endpoints, payloadCompressor: payloadCompressor)
+        )
     }
 
     func testWhenThereAreNoChangesThenGetRequestIsFired() async throws {
@@ -167,16 +172,16 @@ class SyncOperationTests: XCTestCase {
 
         for body in bodies.compactMap({$0}) {
             do {
-                let payload = try JSONDecoder.snakeCaseKeys.decode(BookmarksPayload.self, from: body)
+                let payload = try JSONDecoder.snakeCaseKeys.decode(BookmarksPayload.self, from: body.gunzipped())
                 XCTAssertEqual(payload, bookmarks)
                 payloadCount -= 1
             } catch {
                 do {
-                    let payload = try JSONDecoder.snakeCaseKeys.decode(SettingsPayload.self, from: body)
+                    let payload = try JSONDecoder.snakeCaseKeys.decode(SettingsPayload.self, from: body.gunzipped())
                     XCTAssertEqual(payload, settings)
                     payloadCount -= 1
                 } catch {
-                    let payload = try JSONDecoder.snakeCaseKeys.decode(AutofillPayload.self, from: body)
+                    let payload = try JSONDecoder.snakeCaseKeys.decode(AutofillPayload.self, from: body.gunzipped())
                     XCTAssertEqual(payload, autofill)
                     payloadCount -= 1
                 }
@@ -244,6 +249,65 @@ class SyncOperationTests: XCTestCase {
         try await syncOperation.sync(fetchOnly: false)
 
         XCTAssertTrue(try sentModels.isJSONRepresentationEquivalent(to: objectsToSync))
+    }
+
+    func testWhenPatchPayloadCompressionSucceedsThenPayloadIsSentCompressed() async throws {
+        let objectsToSync = [
+            Syncable(jsonObject: ["id": "1", "name": "bookmark1", "url": "https://example.com"]),
+        ]
+        let dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
+        var sentModels: [Syncable] = []
+        var errors: [any Error] = []
+        dataProvider.updateSyncTimestamps(server: "1234", local: nil)
+        dataProvider._fetchChangedObjects = { _ in objectsToSync }
+        dataProvider._handleSyncError = { errors.append($0) }
+        dataProvider.handleSyncResponse = { sent, _, _, _, _ in
+            sentModels = sent
+        }
+
+        let syncOperation = SyncOperation(dataProviders: [dataProvider], storage: storage, crypter: crypter, requestMaker: requestMaker)
+        request.result = .init(data: nil, response: HTTPURLResponse(url: URL(string: "https://example.com")!, statusCode: 304, httpVersion: nil, headerFields: nil)!)
+
+        try await syncOperation.sync(fetchOnly: false)
+
+        XCTAssertTrue(try sentModels.isJSONRepresentationEquivalent(to: objectsToSync))
+        XCTAssertEqual(requestMaker.makePatchRequestCallCount, 1)
+        XCTAssertEqual(requestMaker.makePatchRequestCallArgs[0].isCompressed, true)
+        XCTAssertTrue(errors.isEmpty)
+    }
+
+    func testWhenPatchPayloadCompressionFailsThenPayloadIsSentUncompressed() async throws {
+        let errorCode = 100200300
+        payloadCompressor.error = GzipError(code: Int32(errorCode), msg: nil)
+
+        let objectsToSync = [
+            Syncable(jsonObject: ["id": "1", "name": "bookmark1", "url": "https://example.com"]),
+        ]
+        let dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
+        var sentModels: [Syncable] = []
+        var errors: [any Error] = []
+        dataProvider.updateSyncTimestamps(server: "1234", local: nil)
+        dataProvider._fetchChangedObjects = { _ in objectsToSync }
+        dataProvider._handleSyncError = { errors.append($0) }
+        dataProvider.handleSyncResponse = { sent, _, _, _, _ in
+            sentModels = sent
+        }
+
+        let syncOperation = SyncOperation(dataProviders: [dataProvider], storage: storage, crypter: crypter, requestMaker: requestMaker)
+        request.result = .init(data: nil, response: HTTPURLResponse(url: URL(string: "https://example.com")!, statusCode: 304, httpVersion: nil, headerFields: nil)!)
+
+        try await syncOperation.sync(fetchOnly: false)
+
+        XCTAssertTrue(try sentModels.isJSONRepresentationEquivalent(to: objectsToSync))
+        XCTAssertEqual(requestMaker.makePatchRequestCallCount, 2)
+        XCTAssertEqual(requestMaker.makePatchRequestCallArgs[0].isCompressed, true)
+        XCTAssertEqual(requestMaker.makePatchRequestCallArgs[1].isCompressed, false)
+        XCTAssertEqual(errors.count, 1)
+        let error = try XCTUnwrap(errors.first)
+        guard case SyncError.patchPayloadCompressionFailed(errorCode) = error else {
+            XCTFail("Unexpected error thrown: \(error)")
+            return
+        }
     }
 }
 

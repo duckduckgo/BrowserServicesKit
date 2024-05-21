@@ -129,6 +129,7 @@ public actor NetworkProtectionLatencyMonitor {
         os_log("⚫️ Stopping latency monitor", log: .networkProtectionLatencyMonitorLog)
 
         latencyCancellable = nil
+        task?.cancel() // Just making extra sure in case it's detached
         task = nil
     }
 

@@ -54,6 +54,8 @@ public protocol AutofillSecureVault: SecureVault {
     func resetL2Password(oldPassword: Data?, newPassword: Data) throws
 
     func accounts() throws -> [SecureVaultModels.WebsiteAccount]
+    func accountsCount() throws -> Int
+    func accountsCountBucket() throws -> String
     func accountsFor(domain: String) throws -> [SecureVaultModels.WebsiteAccount]
     func accountsWithPartialMatchesFor(eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount]
     func hasAccountFor(username: String?, domain: String?) throws -> Bool
@@ -225,6 +227,33 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
             return try self.providers.database.accounts()
         } catch {
             throw SecureStorageError.databaseError(cause: error)
+        }
+    }
+
+    public func accountsCount() throws -> Int {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+
+        do {
+            return try self.providers.database.accountsCount()
+        } catch {
+            throw SecureStorageError.databaseError(cause: error)
+        }
+    }
+
+    public func accountsCountBucket() throws -> String {
+        let accountsCount = try accountsCount()
+
+        if accountsCount < 3 {
+            return "none"
+        } else if accountsCount < 11 {
+            return "some"
+        } else if accountsCount < 50 {
+            return "many"
+        } else {
+            return "lots"
         }
     }
 

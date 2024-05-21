@@ -1,0 +1,31 @@
+name: Assign GitHub Reviewer to Asana Task
+
+on:
+    pull_request:
+        types: [review_requested]
+
+jobs:
+
+    create-asana-pr-subtask-if-needed:
+
+        name: "Create the PR subtask in Asana"
+    
+        runs-on: ubuntu-latest
+    
+        steps:
+        - name: Get Task ID
+          id: get-task-id
+          env:
+            BODY: ${{ github.event.pull_request.body }}
+          run: |
+            task_id=$(grep -i "task/issue url.*https://app.asana.com/" <<< "$BODY" \
+            | sed -E 's|.*https://(.*)|\1|' \
+            | cut -d '/' -f 4)
+            echo "task_id=$task_id" >> $GITHUB_OUTPUT
+
+        - name: Create or Update PR Subtask
+          uses: duckduckgo/apple-toolbox/actions/asana-create-pr-subtask@main
+          with:
+            access-token: ${{ secrets.ASANA_ACCESS_TOKEN }}
+            asana-task-id: ${{ steps.get-task-id.outputs.task_id }}
+            github-reviewer-user: ${{ github.event.requested_reviewer.login }}
