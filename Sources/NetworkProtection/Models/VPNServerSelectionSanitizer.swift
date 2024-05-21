@@ -31,7 +31,7 @@ final class VPNServerSelectionResolver: VPNServerSelectionResolving {
     private let locationListRepository: NetworkProtectionLocationListRepository
     private let vpnSettings: VPNSettings
 
-    public init(locationListRepository: NetworkProtectionLocationListRepository, vpnSettings: VPNSettings) {
+    init(locationListRepository: NetworkProtectionLocationListRepository, vpnSettings: VPNSettings) {
         self.locationListRepository = locationListRepository
         self.vpnSettings = vpnSettings
     }

@@ -167,7 +167,15 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Server Selection
 
-    private let serverSelection: VPNServerSelectionResolving
+    private lazy var serverSelection: VPNServerSelectionResolving = {
+        let locationRepository = NetworkProtectionLocationListCompositeRepository(
+            environment: settings.selectedEnvironment,
+            tokenStore: tokenStore,
+            errorEvents: debugEvents,
+            isSubscriptionEnabled: isSubscriptionEnabled
+        )
+        return VPNServerSelectionResolver(locationListRepository: locationRepository, vpnSettings: settings)
+    }()
 
     public var lastSelectedServerInfo: NetworkProtectionServerInfo? {
         didSet {
@@ -344,7 +352,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 debugEvents: EventMapping<NetworkProtectionError>,
                 providerEvents: EventMapping<Event>,
                 settings: VPNSettings,
-                serverSelection: VPNServerSelectionResolving,
                 defaults: UserDefaults,
                 isSubscriptionEnabled: Bool,
                 entitlementCheck: (() async -> Result<Bool, Error>)?) {
@@ -358,7 +365,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         self.tunnelHealth = tunnelHealthStore
         self.controllerErrorStore = controllerErrorStore
         self.settings = settings
-        self.serverSelection = serverSelection
         self.defaults = defaults
         self.isSubscriptionEnabled = isSubscriptionEnabled
         self.entitlementCheck = isSubscriptionEnabled ? entitlementCheck : nil
