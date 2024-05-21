@@ -27,6 +27,7 @@ struct ProductionDependencies: SyncDependencies {
     let endpoints: Endpoints
     let account: AccountManaging
     let api: RemoteAPIRequestCreating
+    let payloadCompressor: SyncPayloadCompressing
     var keyValueStore: KeyValueStoring
     let secureStore: SecureStoring
     let crypter: CryptingInternal
@@ -72,6 +73,7 @@ struct ProductionDependencies: SyncDependencies {
         self.getLog = log
 
         api = RemoteAPIRequestCreator(log: log())
+        payloadCompressor = SyncGzipPayloadCompressor()
 
         crypter = Crypter(secureStore: secureStore)
         account = AccountManager(endpoints: endpoints, api: api, crypter: crypter)

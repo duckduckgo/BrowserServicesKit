@@ -24,13 +24,15 @@ public enum Suggestion: Equatable {
     case website(url: URL)
     case bookmark(title: String, url: URL, isFavorite: Bool, allowedInTopHits: Bool)
     case historyEntry(title: String?, url: URL, allowedInTopHits: Bool)
+    case internalPage(title: String, url: URL)
     case unknown(value: String)
 
     var url: URL? {
         switch self {
         case .website(url: let url),
              .historyEntry(title: _, url: let url, allowedInTopHits: _),
-             .bookmark(title: _, url: let url, isFavorite: _, allowedInTopHits: _):
+             .bookmark(title: _, url: let url, isFavorite: _, allowedInTopHits: _),
+             .internalPage(title: _, url: let url):
             return url
         case .phrase, .unknown:
             return nil
@@ -41,7 +43,8 @@ public enum Suggestion: Equatable {
         switch self {
         case .historyEntry(title: let title, url: _, allowedInTopHits: _):
             return title
-        case .bookmark(title: let title, url: _, isFavorite: _, allowedInTopHits: _):
+        case .bookmark(title: let title, url: _, isFavorite: _, allowedInTopHits: _),
+             .internalPage(title: let title, url: _):
             return title
         case .phrase, .website, .unknown:
             return nil
@@ -56,7 +59,7 @@ public enum Suggestion: Equatable {
             return allowedInTopHits
         case .bookmark(title: _, url: _, isFavorite: _, allowedInTopHits: let allowedInTopHits):
             return allowedInTopHits
-        case .phrase, .unknown:
+        case .internalPage, .phrase, .unknown:
             return false
         }
     }
@@ -67,10 +70,17 @@ extension Suggestion {
 
     init?(bookmark: Bookmark) {
         guard let urlObject = URL(string: bookmark.url) else { return nil }
+        #if os(macOS)
         self = .bookmark(title: bookmark.title,
                          url: urlObject,
                          isFavorite: bookmark.isFavorite,
                          allowedInTopHits: bookmark.isFavorite)
+        #else
+        self = .bookmark(title: bookmark.title,
+                         url: urlObject,
+                         isFavorite: bookmark.isFavorite,
+                         allowedInTopHits: true)
+        #endif
     }
 
     init(historyEntry: HistorySuggestion) {
@@ -80,6 +90,10 @@ extension Suggestion {
         self = .historyEntry(title: historyEntry.title,
                              url: historyEntry.url,
                              allowedInTopHits: allowedInTopHits)
+    }
+
+    init(internalPage: InternalPage) {
+        self = .internalPage(title: internalPage.title, url: internalPage.url)
     }
 
     init(url: URL) {

@@ -38,7 +38,7 @@ final class VPNServerSelectionResolver: VPNServerSelectionResolving {
 
     public func resolvedServerSelectionMethod() async -> NetworkProtectionServerSelectionMethod {
         switch currentServerSelectionMethod {
-        case .automatic, .preferredServer, .avoidServer:
+        case .automatic, .preferredServer, .avoidServer, .failureRecovery:
             return currentServerSelectionMethod
         case .preferredLocation(let networkProtectionSelectedLocation):
             do {
