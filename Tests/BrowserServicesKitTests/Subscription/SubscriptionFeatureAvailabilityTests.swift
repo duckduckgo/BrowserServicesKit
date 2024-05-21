@@ -56,7 +56,7 @@ final class SubscriptionFeatureAvailabilityTests: XCTestCase {
         XCTAssertFalse(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.allowPurchase))
 
         let subscriptionFeatureAvailability = DefaultSubscriptionFeatureAvailability(privacyConfigurationManager: privacyConfigurationManager,
-                                                                                     subscriptionPlatform: .appStore)
+                                                                                     purchasePlatform: .appStore)
         XCTAssertFalse(subscriptionFeatureAvailability.isFeatureAvailable)
         XCTAssertFalse(subscriptionFeatureAvailability.isSubscriptionPurchaseAllowed)
     }
@@ -72,7 +72,7 @@ final class SubscriptionFeatureAvailabilityTests: XCTestCase {
         XCTAssertTrue(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.allowPurchase))
 
         let subscriptionFeatureAvailability = DefaultSubscriptionFeatureAvailability(privacyConfigurationManager: privacyConfigurationManager,
-                                                                                     subscriptionPlatform: .appStore)
+                                                                                     purchasePlatform: .appStore)
         XCTAssertTrue(subscriptionFeatureAvailability.isFeatureAvailable)
         XCTAssertTrue(subscriptionFeatureAvailability.isSubscriptionPurchaseAllowed)
     }
@@ -88,7 +88,7 @@ final class SubscriptionFeatureAvailabilityTests: XCTestCase {
         XCTAssertTrue(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.allowPurchase))
 
         let subscriptionFeatureAvailability = DefaultSubscriptionFeatureAvailability(privacyConfigurationManager: privacyConfigurationManager,
-                                                                                     subscriptionPlatform: .appStore)
+                                                                                     purchasePlatform: .appStore)
         XCTAssertTrue(subscriptionFeatureAvailability.isFeatureAvailable)
         XCTAssertTrue(subscriptionFeatureAvailability.isSubscriptionPurchaseAllowed)
     }
@@ -104,7 +104,7 @@ final class SubscriptionFeatureAvailabilityTests: XCTestCase {
         XCTAssertFalse(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.allowPurchase))
 
         let subscriptionFeatureAvailability = DefaultSubscriptionFeatureAvailability(privacyConfigurationManager: privacyConfigurationManager,
-                                                                                     subscriptionPlatform: .appStore)
+                                                                                     purchasePlatform: .appStore)
         XCTAssertTrue(subscriptionFeatureAvailability.isFeatureAvailable)
         XCTAssertFalse(subscriptionFeatureAvailability.isSubscriptionPurchaseAllowed)
     }
@@ -118,7 +118,7 @@ final class SubscriptionFeatureAvailabilityTests: XCTestCase {
         XCTAssertFalse(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.allowPurchase))
 
         let subscriptionFeatureAvailability = DefaultSubscriptionFeatureAvailability(privacyConfigurationManager: privacyConfigurationManager,
-                                                                                     subscriptionPlatform: .appStore)
+                                                                                     purchasePlatform: .appStore)
         XCTAssertTrue(subscriptionFeatureAvailability.isFeatureAvailable)
         XCTAssertTrue(subscriptionFeatureAvailability.isSubscriptionPurchaseAllowed)
     }
@@ -134,7 +134,7 @@ final class SubscriptionFeatureAvailabilityTests: XCTestCase {
         XCTAssertFalse(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.allowPurchaseStripe))
 
         let subscriptionFeatureAvailability = DefaultSubscriptionFeatureAvailability(privacyConfigurationManager: privacyConfigurationManager,
-                                                                                     subscriptionPlatform: .stripe)
+                                                                                     purchasePlatform: .stripe)
         XCTAssertFalse(subscriptionFeatureAvailability.isFeatureAvailable)
         XCTAssertFalse(subscriptionFeatureAvailability.isSubscriptionPurchaseAllowed)
     }
@@ -150,7 +150,7 @@ final class SubscriptionFeatureAvailabilityTests: XCTestCase {
         XCTAssertTrue(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.allowPurchaseStripe))
 
         let subscriptionFeatureAvailability = DefaultSubscriptionFeatureAvailability(privacyConfigurationManager: privacyConfigurationManager,
-                                                                                     subscriptionPlatform: .stripe)
+                                                                                     purchasePlatform: .stripe)
         XCTAssertTrue(subscriptionFeatureAvailability.isFeatureAvailable)
         XCTAssertTrue(subscriptionFeatureAvailability.isSubscriptionPurchaseAllowed)
     }
@@ -166,7 +166,7 @@ final class SubscriptionFeatureAvailabilityTests: XCTestCase {
         XCTAssertTrue(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.allowPurchaseStripe))
 
         let subscriptionFeatureAvailability = DefaultSubscriptionFeatureAvailability(privacyConfigurationManager: privacyConfigurationManager,
-                                                                                     subscriptionPlatform: .stripe)
+                                                                                     purchasePlatform: .stripe)
         XCTAssertTrue(subscriptionFeatureAvailability.isFeatureAvailable)
         XCTAssertTrue(subscriptionFeatureAvailability.isSubscriptionPurchaseAllowed)
     }
@@ -182,7 +182,7 @@ final class SubscriptionFeatureAvailabilityTests: XCTestCase {
         XCTAssertFalse(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.allowPurchaseStripe))
 
         let subscriptionFeatureAvailability = DefaultSubscriptionFeatureAvailability(privacyConfigurationManager: privacyConfigurationManager,
-                                                                                     subscriptionPlatform: .stripe)
+                                                                                     purchasePlatform: .stripe)
         XCTAssertTrue(subscriptionFeatureAvailability.isFeatureAvailable)
         XCTAssertFalse(subscriptionFeatureAvailability.isSubscriptionPurchaseAllowed)
     }
@@ -196,7 +196,7 @@ final class SubscriptionFeatureAvailabilityTests: XCTestCase {
         XCTAssertFalse(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.allowPurchaseStripe))
 
         let subscriptionFeatureAvailability = DefaultSubscriptionFeatureAvailability(privacyConfigurationManager: privacyConfigurationManager,
-                                                                                     subscriptionPlatform: .stripe)
+                                                                                     purchasePlatform: .stripe)
         XCTAssertTrue(subscriptionFeatureAvailability.isFeatureAvailable)
         XCTAssertTrue(subscriptionFeatureAvailability.isSubscriptionPurchaseAllowed)
     }
