@@ -54,6 +54,16 @@ public extension URL {
         subscriptionBaseURL.appendingPathComponent("activate/success")
     }
 
+    // Add Email Success
+    static var addEmailToSubscriptionSuccess: URL {
+        subscriptionBaseURL.appendingPathComponent("add-email/success")
+    }
+
+    // Add Email OTP
+    static var addEmailToSubscriptionOTP: URL {
+        subscriptionBaseURL.appendingPathComponent("add-email/otp")
+    }
+
     // MARK: - App Store app manage subscription URL
 
     static var manageSubscriptionsInAppStoreAppURL: URL {
@@ -77,7 +87,7 @@ public extension URL {
             }
 
             if let queryItems = components.queryItems, !queryItems.isEmpty {
-                components.queryItems = queryItems.filter { !["environment"].contains($0.name) }
+                components.queryItems = queryItems.filter { !["environment", "origin"].contains($0.name) }
 
                 if components.queryItems?.isEmpty ?? true {
                     components.queryItems = nil

@@ -29,16 +29,28 @@ public struct BrokenSiteReport {
 
     }
 
-    public enum Source: String {
+    public enum Source {
 
         /// From the app menu's "Report Broken Site"
-        case appMenu = "menu"
+        case appMenu
         /// From the privacy dashboard's "Website not working?"
         case dashboard
         /// From the app menu's "Disable Privacy Protection"
-        case onProtectionsOffMenu = "on_protections_off_menu"
+        case onProtectionsOffMenu
         /// From the privacy dashboard's on protections toggle off
-        case onProtectionsOffDashboard = "on_protections_off_dashboard_main"
+        case onProtectionsOffDashboard
+        /// From the 'Site Not Working?' prompt that appears on various events
+        case prompt(String)
+
+        public var rawValue: String {
+            switch self {
+            case .appMenu: return "menu"
+            case .dashboard: return "dashboard"
+            case .onProtectionsOffMenu: return "on_protections_off_menu"
+            case .onProtectionsOffDashboard: return "on_protections_off_dashboard_main"
+            case .prompt(let event): return event
+            }
+        }
 
     }
 
@@ -236,11 +248,7 @@ public struct BrokenSiteReport {
         }
 
         if let errors {
-            let errorDescriptions: [String] = errors.map {
-                let error = $0 as NSError
-                return "\(error.code) - \(error.domain):\(error.localizedDescription)"
-            }
-            result["errorDescriptions"] = errorDescriptions.joined(separator: ",")
+            result["errorDescriptions"] = encodeErrors(errors)
         }
 
         if let jsPerformance {
@@ -254,6 +262,15 @@ public struct BrokenSiteReport {
         result["model"] = model
 #endif
         return result
+    }
+
+    private func encodeErrors(_ errors: [Error]) -> String {
+        let errorDescriptions: [String] = errors.map {
+            let error = $0 as NSError
+            return "\(error.code) - \(error.domain):\(error.localizedDescription)"
+        }
+        let jsonString = try? String(data: JSONSerialization.data(withJSONObject: errorDescriptions), encoding: .utf8)!
+        return jsonString ?? ""
     }
 
 }

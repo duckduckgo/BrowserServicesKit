@@ -98,6 +98,46 @@ final class FavoriteListViewModelTests: XCTestCase {
         }
     }
 
+    func testWhenBookmarkIsMovedAndThereAreStubsThenCorrectIndexIsCalculated() {
+
+        let context = favoriteListViewModel.context
+
+        let bookmarkTree = BookmarkTree {
+            Bookmark(id: "1", favoritedOn: [.mobile, .unified])
+            Bookmark(id: "s1", favoritedOn: [.mobile, .unified], isStub: true)
+            Bookmark(id: "2", favoritedOn: [.mobile, .unified])
+            Bookmark(id: "s2", favoritedOn: [.mobile, .unified], isStub: true)
+            Bookmark(id: "3", favoritedOn: [.mobile, .unified])
+            Bookmark(id: "s3", favoritedOn: [.mobile, .unified], isStub: true)
+        }
+
+        context.performAndWait {
+            bookmarkTree.createEntities(in: context)
+            try! context.save()
+
+            let bookmark = BookmarkEntity.fetchBookmark(withUUID: "1", context: context)!
+
+            let favoriteFolderUUID = favoriteListViewModel.favoritesDisplayMode.displayedFolder.rawValue
+            let rootFavoriteFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: favoriteFolderUUID, in: context)!
+
+            favoriteListViewModel.reloadData()
+
+            favoriteListViewModel.moveFavorite(bookmark, fromIndex: 0, toIndex: 0)
+            XCTAssertEqual((rootFavoriteFolder.favorites?.array as! [BookmarkEntity]).map(\.uuid), ["1", "s1", "2", "s2", "3", "s3"])
+            XCTAssertEqual(rootFavoriteFolder.favoritesArray.map(\.title), ["1", "2", "3"])
+
+            favoriteListViewModel.moveFavorite(bookmark, fromIndex: 0, toIndex: 1)
+            XCTAssertEqual((rootFavoriteFolder.favorites?.array as! [BookmarkEntity]).map(\.uuid), ["s1", "2", "1", "s2", "3", "s3"])
+            XCTAssertEqual(rootFavoriteFolder.favoritesArray.map(\.title), ["2", "1", "3"])
+
+            favoriteListViewModel.moveFavorite(bookmark, fromIndex: 1, toIndex: 2)
+            XCTAssertEqual((rootFavoriteFolder.favorites?.array as! [BookmarkEntity]).map(\.uuid), ["s1", "2", "s2", "3", "1", "s3"])
+            XCTAssertEqual(rootFavoriteFolder.favoritesArray.map(\.title), ["2", "3", "1"])
+
+            XCTAssertEqual(firedEvents, [])
+        }
+    }
+
     func testDisplayNativeMode_WhenFavoriteIsUnfavoritedThenItIsRemovedFromNativeAndUnifiedFolder() async throws {
 
         favoriteListViewModel.favoritesDisplayMode = .displayNative(.mobile)

@@ -167,24 +167,28 @@ public protocol WebViewNavigationAction {
 }
 
 public struct HistoryItemIdentity: Hashable {
-    let object: any AnyObject & Hashable
+    let identifier: ObjectIdentifier
+    let title: String?
+    let url: URL?
 
-    public init(_ object: any AnyObject & Hashable) {
-        self.object = object
+    public init(backForwardListItem: WKBackForwardListItem) {
+        self.identifier = ObjectIdentifier(backForwardListItem)
+        self.title = backForwardListItem.title
+        self.url = backForwardListItem.url
     }
 
     public static func == (lhs: HistoryItemIdentity, rhs: HistoryItemIdentity) -> Bool {
-        lhs.object === rhs.object
+        lhs.identifier == rhs.identifier
     }
 
     public func hash(into hasher: inout Hasher) {
-        hasher.combine(object)
+        hasher.combine(identifier)
     }
 }
 
 extension WKBackForwardListItem {
 
-    public var identity: HistoryItemIdentity { HistoryItemIdentity(self) }
+    public var identity: HistoryItemIdentity { HistoryItemIdentity(backForwardListItem: self) }
 
 }
 

@@ -918,7 +918,7 @@ private class MockSecureVaultManagerDelegate: SecureVaultManagerDelegate {
 
     func secureVaultManager(_: SecureVaultManager, didRequestAuthenticationWithCompletionHandler: @escaping (Bool) -> Void) {}
 
-    func secureVaultInitFailed(_ error: SecureStorageError) {}
+    func secureVaultError(_ error: SecureStorageError) {}
 
     func secureVaultManagerShouldSaveData(_: BrowserServicesKit.SecureVaultManager) -> Bool {
         true

@@ -93,4 +93,9 @@ final class TLDTests: XCTestCase {
         XCTAssertFalse(tld.tlds.isEmpty)
     }
 
+    func testWhenTLDIsExampleThenItIsMatched() {
+        XCTAssertEqual("something.example", tld.domain("something.example"))
+        XCTAssertEqual("example", tld.domain("example"))
+    }
+
 }

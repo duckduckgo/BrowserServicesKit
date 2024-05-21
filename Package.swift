@@ -35,18 +35,21 @@ let package = Package(
         .library(name: "History", targets: ["History"]),
         .library(name: "Suggestions", targets: ["Suggestions"]),
         .library(name: "PhishingDetection", targets: ["PhishingDetection"]),
+        .library(name: "PixelKit", targets: ["PixelKit"]),
+        .library(name: "PixelKitTestingUtilities", targets: ["PixelKitTestingUtilities"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "11.0.1"),
+        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "11.0.2"),
         .package(url: "https://github.com/duckduckgo/GRDB.swift.git", exact: "2.3.0"),
-        .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "2.0.0"),
+        .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "2.1.1"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.2.0"),
         .package(url: "https://github.com/gumob/PunycodeSwift.git", exact: "2.1.0"),
-        .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "3.5.0"),
-        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "5.12.0"),
+        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "5.15.0"),
+        .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "3.6.0"),
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
         .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
         .package(url: "https://github.com/duckduckgo/wireguard-apple", exact: "1.1.3"),
+        .package(url: "https://github.com/1024jp/GzipSwift.git", exact: "6.0.1")
     ],
     targets: [
         .target(
@@ -61,6 +64,7 @@ let package = Package(
                 "UserScript",
                 "ContentBlocking",
                 "SecureStorage",
+                "Subscription"
             ],
             resources: [
                 .process("ContentBlocking/UserScripts/contentblockerrules.js"),
@@ -151,6 +155,7 @@ let package = Package(
                 "BrowserServicesKit",
                 "Common",
                 .product(name: "DDGSyncCrypto", package: "sync_crypto"),
+                .product(name: "Gzip", package: "GzipSwift"),
                 "Networking",
             ],
             resources: [
@@ -321,8 +326,7 @@ let package = Package(
         .target(
             name: "Subscription",
             dependencies: [
-                "BrowserServicesKit",
-                "Common",
+                "Common"
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
@@ -333,8 +337,17 @@ let package = Package(
             dependencies: [
                 "BrowserServicesKit",
             ],
+        ),
+        .target(
+            name: "PixelKit",
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
+            ]
+        )
+        .target(
+            name: "PixelKitTestingUtilities",
+            dependencies: [
+                "PixelKit"
             ]
         ),
 
@@ -382,6 +395,7 @@ let package = Package(
                 "RemoteMessaging", // Move tests later (lots of test dependencies in BSK)
                 "SecureStorageTestsUtils",
                 "TestUtils",
+                "Subscription"
             ],
             resources: [
                 .copy("Resources")
@@ -499,9 +513,10 @@ let package = Package(
             ]
         ),
         .testTarget(
-            name: "SubscriptionTests",
+            name: "PixelKitTests",
             dependencies: [
-                "Subscription",
+                "PixelKit",
+                "PixelKitTestingUtilities",
             ]
         ),
         .testTarget(

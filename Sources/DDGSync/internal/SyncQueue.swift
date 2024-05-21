@@ -69,6 +69,7 @@ final class SyncQueue {
             crypter: dependencies.crypter,
             api: dependencies.api,
             endpoints: dependencies.endpoints,
+            payloadCompressor: dependencies.payloadCompressor,
             log: dependencies.log
         )
     }
@@ -79,13 +80,14 @@ final class SyncQueue {
         crypter: Crypting,
         api: RemoteAPIRequestCreating,
         endpoints: Endpoints,
+        payloadCompressor: SyncPayloadCompressing,
         log: @escaping @autoclosure () -> OSLog = .disabled
     ) {
         self.dataProviders = dataProviders
         self.storage = storage
         self.crypter = crypter
         self.getLog = log
-        requestMaker = SyncRequestMaker(storage: storage, api: api, endpoints: endpoints)
+        requestMaker = SyncRequestMaker(storage: storage, api: api, endpoints: endpoints, payloadCompressor: payloadCompressor)
         syncDidFinishPublisher = syncDidFinishSubject.eraseToAnyPublisher()
         syncHTTPRequestErrorPublisher = syncHTTPRequestErrorSubject.eraseToAnyPublisher()
         isSyncInProgressPublisher = Publishers

@@ -344,24 +344,35 @@ extension URL {
     }
 
     public func appending(percentEncodedQueryItem: URLQueryItem) -> URL {
+        appending(percentEncodedQueryItems: [percentEncodedQueryItem])
+    }
+
+    public func appending(percentEncodedQueryItems: [URLQueryItem]) -> URL {
         guard var components = URLComponents(url: self, resolvingAgainstBaseURL: true) else { return self }
 
-        var percentEncodedQueryItems = components.percentEncodedQueryItems ?? [URLQueryItem]()
-        percentEncodedQueryItems.append(percentEncodedQueryItem)
-        components.percentEncodedQueryItems = percentEncodedQueryItems
+        var existingPercentEncodedQueryItems = components.percentEncodedQueryItems ?? [URLQueryItem]()
+        existingPercentEncodedQueryItems.append(contentsOf: percentEncodedQueryItems)
+        components.percentEncodedQueryItems = existingPercentEncodedQueryItems
 
         return components.url ?? self
     }
 
-    public func getParameter(named name: String) -> String? {
+    public func getQueryItems() -> [URLQueryItem]? {
         guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false),
               let encodedQuery = components.percentEncodedQuery
         else { return nil }
         components.percentEncodedQuery = encodedQuery.encodingPlusesAsSpaces()
-        let queryItem = components.queryItems?.first(where: { queryItem -> Bool in
+        return components.queryItems ?? nil
+    }
+
+    public func getQueryItem(named name: String) -> URLQueryItem? {
+        getQueryItems()?.first(where: { queryItem -> Bool in
             queryItem.name == name
         })
-        return queryItem?.value
+    }
+
+    public func getParameter(named name: String) -> String? {
+        getQueryItem(named: name)?.value
     }
 
     public func isThirdParty(to otherUrl: URL, tld: TLD) -> Bool {
@@ -466,7 +477,7 @@ extension URL {
         }
 }
 
-fileprivate extension CharacterSet {
+public extension CharacterSet {
 
     /**
      * As per [RFC 3986](https://www.rfc-editor.org/rfc/rfc3986#section-2.2).

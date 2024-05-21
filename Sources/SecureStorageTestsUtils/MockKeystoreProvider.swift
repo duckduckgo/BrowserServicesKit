@@ -19,11 +19,79 @@
 import Foundation
 import SecureStorage
 
+public final class MockKeychainService: KeychainService {
+
+    public enum Mode {
+        case nothingFound
+        case v3Found
+        case v2Found
+        case v1Found
+    }
+
+    public var latestAddQuery: [String: Any] = [:]
+    public var latestItemMatchingQuery: [String: Any] = [:]
+    public var itemMatchingCallCount = 0
+    public var addCallCount = 0
+
+    public var mode: Mode = .nothingFound
+
+    public init() {}
+
+    public func itemMatching(_ query: [String: Any], _ result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus {
+        itemMatchingCallCount += 1
+        latestItemMatchingQuery = query
+
+        func setResult() {
+            let originalString = "Mock Keychain data!"
+            let data = originalString.data(using: .utf8)!
+            let encodedString = data.base64EncodedString()
+            let mockResult = encodedString.data(using: .utf8)! as CFData
+
+            if let result = result {
+                result.pointee = mockResult
+            }
+        }
+
+        switch mode {
+        case .nothingFound:
+            return errSecItemNotFound
+        case .v3Found:
+            setResult()
+            return errSecSuccess
+        case .v2Found:
+            if itemMatchingCallCount == 2 {
+                setResult()
+                return errSecSuccess
+            } else {
+                return errSecItemNotFound
+            }
+        case .v1Found:
+            if itemMatchingCallCount == 3 {
+                setResult()
+                return errSecSuccess
+            } else {
+                return errSecItemNotFound
+            }
+        }
+    }
+
+    public func add(_ query: [String: Any], _ result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus {
+        latestAddQuery = query
+        addCallCount += 1
+        return errSecSuccess
+    }
+
+    public func delete(_ query: [String: Any]) -> OSStatus {
+        return errSecSuccess
+    }
+}
+
 public class MockKeystoreProvider: SecureStorageKeyStoreProvider {
 
     public init() {}
 
     // swiftlint:disable identifier_name
+    public let keychainService: SecureStorage.KeychainService = MockKeychainService()
     public var _l1Key: Data?
     public var _encryptedL2Key: Data?
     public var _generatedPassword: Data?

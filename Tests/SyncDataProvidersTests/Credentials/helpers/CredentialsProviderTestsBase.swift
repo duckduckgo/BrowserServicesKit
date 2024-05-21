@@ -26,9 +26,9 @@ import SecureStorage
 @testable import BrowserServicesKit
 @testable import SyncDataProviders
 
-final class MockSecureVaultErrorReporter: SecureVaultErrorReporting {
+final class MockSecureVaultErrorReporter: SecureVaultReporting {
     var _secureVaultInitFailed: (SecureStorageError) -> Void = { _ in }
-    func secureVaultInitFailed(_ error: SecureStorageError) {
+    func secureVaultError(_ error: SecureStorageError) {
         _secureVaultInitFailed(error)
     }
 }
@@ -107,7 +107,7 @@ internal class CredentialsProviderTestsBase: XCTestCase {
     // MARK: - Helpers
 
     func makeSecureVault() throws {
-        secureVault = try secureVaultFactory.makeVault(errorReporter: nil)
+        secureVault = try secureVaultFactory.makeVault(reporter: nil)
         _ = try secureVault.authWith(password: "abcd".data(using: .utf8)!)
     }
 

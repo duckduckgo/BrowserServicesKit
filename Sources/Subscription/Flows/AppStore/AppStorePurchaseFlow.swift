@@ -67,41 +67,46 @@ public final class AppStorePurchaseFlow {
     public typealias TransactionJWS = String
 
     // swiftlint:disable cyclomatic_complexity
-    public static func purchaseSubscription(with subscriptionIdentifier: String, emailAccessToken: String?, subscriptionAppGroup: String) async -> Result<TransactionJWS, AppStorePurchaseFlow.Error> {
+    public static func purchaseSubscription(with subscriptionIdentifier: String,
+                                            emailAccessToken: String?,
+                                            subscriptionAppGroup: String) async -> Result<TransactionJWS, AppStorePurchaseFlow.Error> {
         os_log(.info, log: .subscription, "[AppStorePurchaseFlow] purchaseSubscription")
 
         let accountManager = AccountManager(subscriptionAppGroup: subscriptionAppGroup)
         let externalID: String
 
-        // Clear the Subscription cache
-        SubscriptionService.signOut()
+        // If the current account is a third party expired account, we want to purchase and attach subs to it
+        if let existingExternalID = await getExpiredSubscriptionID(accountManager: accountManager) {
+            externalID = existingExternalID
 
-        // Check for past transactions most recent
-        switch await AppStoreRestoreFlow.restoreAccountFromPastPurchase(subscriptionAppGroup: subscriptionAppGroup) {
-        case .success:
-            os_log(.info, log: .subscription, "[AppStorePurchaseFlow] purchaseSubscription -> restoreAccountFromPastPurchase: activeSubscriptionAlreadyPresent")
-            return .failure(.activeSubscriptionAlreadyPresent)
-        case .failure(let error):
-            os_log(.info, log: .subscription, "[AppStorePurchaseFlow] purchaseSubscription -> restoreAccountFromPastPurchase: %{public}s", String(reflecting: error))
-            switch error {
-            case .subscriptionExpired(let expiredAccountDetails):
-                externalID = expiredAccountDetails.externalID
-                accountManager.storeAuthToken(token: expiredAccountDetails.authToken)
-                accountManager.storeAccount(token: expiredAccountDetails.accessToken, email: expiredAccountDetails.email, externalID: expiredAccountDetails.externalID)
-            default:
-                // No history, create new account
-                switch await AuthService.createAccount(emailAccessToken: emailAccessToken) {
-                case .success(let response):
-                    externalID = response.externalID
+        // Otherwise, try to retrieve an expired Apple subscription or create a new one
+        } else {
+            // Check for past transactions most recent
+            switch await AppStoreRestoreFlow.restoreAccountFromPastPurchase(subscriptionAppGroup: subscriptionAppGroup) {
+            case .success:
+                os_log(.info, log: .subscription, "[AppStorePurchaseFlow] purchaseSubscription -> restoreAccountFromPastPurchase: activeSubscriptionAlreadyPresent")
+                return .failure(.activeSubscriptionAlreadyPresent)
+            case .failure(let error):
+                os_log(.info, log: .subscription, "[AppStorePurchaseFlow] purchaseSubscription -> restoreAccountFromPastPurchase: %{public}s", String(reflecting: error))
+                switch error {
+                case .subscriptionExpired(let expiredAccountDetails):
+                    externalID = expiredAccountDetails.externalID
+                    accountManager.storeAuthToken(token: expiredAccountDetails.authToken)
+                    accountManager.storeAccount(token: expiredAccountDetails.accessToken, email: expiredAccountDetails.email, externalID: expiredAccountDetails.externalID)
+                default:
+                    switch await AuthService.createAccount(emailAccessToken: emailAccessToken) {
+                    case .success(let response):
+                        externalID = response.externalID
 
-                    if case let .success(accessToken) = await accountManager.exchangeAuthTokenToAccessToken(response.authToken),
-                       case let .success(accountDetails) = await accountManager.fetchAccountDetails(with: accessToken) {
-                        accountManager.storeAuthToken(token: response.authToken)
-                        accountManager.storeAccount(token: accessToken, email: accountDetails.email, externalID: accountDetails.externalID)
+                        if case let .success(accessToken) = await accountManager.exchangeAuthTokenToAccessToken(response.authToken),
+                           case let .success(accountDetails) = await accountManager.fetchAccountDetails(with: accessToken) {
+                            accountManager.storeAuthToken(token: response.authToken)
+                            accountManager.storeAccount(token: accessToken, email: accountDetails.email, externalID: accountDetails.externalID)
+                        }
+                    case .failure(let error):
+                        os_log(.error, log: .subscription, "[AppStorePurchaseFlow] createAccount error: %{public}s", String(reflecting: error))
+                        return .failure(.accountCreationFailed)
                     }
-                case .failure(let error):
-                    os_log(.error, log: .subscription, "[AppStorePurchaseFlow] createAccount error: %{public}s", String(reflecting: error))
-                    return .failure(.accountCreationFailed)
                 }
             }
         }
@@ -164,5 +169,23 @@ public final class AppStorePurchaseFlow {
         } while !successful && count < retryCount
 
         return successful
+    }
+
+    private static func getExpiredSubscriptionID(accountManager: AccountManager) async -> String? {
+        guard accountManager.isUserAuthenticated,
+              let externalID = accountManager.externalID,
+              let token = accountManager.accessToken
+        else { return nil }
+
+        let subscriptionInfo = await SubscriptionService.getSubscription(accessToken: token, cachePolicy: .reloadIgnoringLocalCacheData)
+
+        // Only return an externalID if the subscription is expired
+        // To prevent creating multiple subscriptions in the same account
+        if case .success(let subscription) = subscriptionInfo,
+           !subscription.isActive,
+            subscription.platform != .apple {
+            return externalID
+        }
+        return nil
     }
 }

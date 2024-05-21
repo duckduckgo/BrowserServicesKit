@@ -36,7 +36,7 @@ public final class CredentialsDatabaseCleaner {
 
     public convenience init(
         secureVaultFactory: AutofillVaultFactory,
-        secureVaultErrorReporter: SecureVaultErrorReporting,
+        secureVaultErrorReporter: SecureVaultReporting,
         errorEvents: EventMapping<CredentialsCleanupError>?,
         log: @escaping @autoclosure () -> OSLog = .disabled
     ) {
@@ -51,7 +51,7 @@ public final class CredentialsDatabaseCleaner {
 
     init(
         secureVaultFactory: AutofillVaultFactory,
-        secureVaultErrorReporter: SecureVaultErrorReporting,
+        secureVaultErrorReporter: SecureVaultReporting,
         errorEvents: EventMapping<CredentialsCleanupError>?,
         log: @escaping @autoclosure () -> OSLog = .disabled,
         removeSyncMetadataPendingDeletion: @escaping ((Database) throws -> Int)
@@ -99,7 +99,7 @@ public final class CredentialsDatabaseCleaner {
         var saveAttemptsLeft = Const.maxContextSaveRetries
 
         do {
-            let secureVault = try secureVaultFactory.makeVault(errorReporter: secureVaultErrorReporter)
+            let secureVault = try secureVaultFactory.makeVault(reporter: secureVaultErrorReporter)
 
             while true {
                 do {
@@ -153,7 +153,7 @@ public final class CredentialsDatabaseCleaner {
 
     private let errorEvents: EventMapping<CredentialsCleanupError>?
     private let secureVaultFactory: AutofillVaultFactory
-    private let secureVaultErrorReporter: SecureVaultErrorReporting
+    private let secureVaultErrorReporter: SecureVaultReporting
     private let externalTriggerSubject = PassthroughSubject<Void, Never>()
     private let scheduledTriggerSubject = PassthroughSubject<Void, Never>()
     private let workQueue = DispatchQueue(label: "CredentialsDatabaseCleaner queue", qos: .userInitiated)

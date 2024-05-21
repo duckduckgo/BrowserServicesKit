@@ -1,5 +1,5 @@
 //
-//  VPNConfigurationManager.swift
+//  PixelKitEvent.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -17,20 +17,10 @@
 //
 
 import Foundation
-import NetworkExtension
 
-public final class VPNConfigurationManager {
-
-    public init() {}
-
-    public func removeVPNConfiguration() async {
-        let tunnels = try? await NETunnelProviderManager.loadAllFromPreferences()
-
-        if let tunnels = tunnels {
-            for tunnel in tunnels {
-                tunnel.connection.stopVPNTunnel()
-                try? await tunnel.removeFromPreferences()
-            }
-        }
-    }
+/// An event that can be fired using PixelKit.
+///
+public protocol PixelKitEvent {
+    var name: String { get }
+    var parameters: [String: String]? { get }
 }

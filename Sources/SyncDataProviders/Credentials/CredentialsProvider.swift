@@ -28,7 +28,7 @@ public final class CredentialsProvider: DataProvider {
 
     public init(
         secureVaultFactory: AutofillVaultFactory = AutofillSecureVaultFactory,
-        secureVaultErrorReporter: SecureVaultErrorReporting,
+        secureVaultErrorReporter: SecureVaultReporting,
         metadataStore: SyncMetadataStore,
         metricsEvents: EventMapping<MetricsEvent>? = nil,
         log: @escaping @autoclosure () -> OSLog = .disabled,
@@ -43,7 +43,7 @@ public final class CredentialsProvider: DataProvider {
     // MARK: - DataProviding
 
     public override func prepareForFirstSync() throws {
-        let secureVault = try secureVaultFactory.makeVault(errorReporter: secureVaultErrorReporter)
+        let secureVault = try secureVaultFactory.makeVault(reporter: secureVaultErrorReporter)
         try secureVault.inDatabaseTransaction { database in
 
             let accountIds = try Row.fetchAll(
@@ -84,12 +84,12 @@ public final class CredentialsProvider: DataProvider {
             return []
         }
 
-        let secureVault = try secureVaultFactory.makeVault(errorReporter: secureVaultErrorReporter)
+        let secureVault = try secureVaultFactory.makeVault(reporter: secureVaultErrorReporter)
         return try secureVault.accountTitlesForSyncableCredentials(modifiedBefore: lastSyncLocalTimestamp)
     }
 
     public override func fetchChangedObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable] {
-        let secureVault = try secureVaultFactory.makeVault(errorReporter: secureVaultErrorReporter)
+        let secureVault = try secureVaultFactory.makeVault(reporter: secureVaultErrorReporter)
         let syncableCredentials = try secureVault.modifiedSyncableCredentials()
         let encryptionKey = try crypter.fetchSecretKey()
         return try syncableCredentials.compactMap { credentials in
@@ -147,7 +147,7 @@ public final class CredentialsProvider: DataProvider {
                             crypter: Crypting) async throws {
         var saveError: Error?
 
-        let secureVault = try secureVaultFactory.makeVault(errorReporter: secureVaultErrorReporter)
+        let secureVault = try secureVaultFactory.makeVault(reporter: secureVaultErrorReporter)
         let clientTimestampMilliseconds = clientTimestamp.withMillisecondPrecision
         var saveAttemptsLeft = Const.maxContextSaveRetries
 
@@ -257,7 +257,7 @@ public final class CredentialsProvider: DataProvider {
     // MARK: - Private
 
     private let secureVaultFactory: AutofillVaultFactory
-    private let secureVaultErrorReporter: SecureVaultErrorReporting
+    private let secureVaultErrorReporter: SecureVaultReporting
     private let metricsEvents: EventMapping<MetricsEvent>?
 
     enum Const {

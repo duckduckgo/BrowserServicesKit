@@ -37,9 +37,9 @@ final class MockEventMapper: EventMapping<CredentialsCleanupError> {
     }
 }
 
-final class MockSecureVaultErrorReporter: SecureVaultErrorReporting {
+final class MockSecureVaultErrorReporter: SecureVaultReporting {
     var _secureVaultInitFailed: (SecureStorageError) -> Void = { _ in }
-    func secureVaultInitFailed(_ error: SecureStorageError) {
+    func secureVaultError(_ error: SecureStorageError) {
         _secureVaultInitFailed(error)
     }
 }
@@ -48,7 +48,7 @@ extension AutofillVaultFactory {
     static func testFactory(databaseProvider: DefaultAutofillDatabaseProvider) -> AutofillVaultFactory {
         AutofillVaultFactory(makeCryptoProvider: {
             NoOpCryptoProvider()
-        }, makeKeyStoreProvider: {
+        }, makeKeyStoreProvider: { _ in
             let provider = MockKeystoreProvider()
             provider._l1Key = "l1".data(using: .utf8)
             provider._encryptedL2Key = "encrypted".data(using: .utf8)
@@ -77,7 +77,7 @@ final class CredentialsDatabaseCleanerTests: XCTestCase {
         databaseLocation = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString + ".db")
         databaseProvider = try DefaultAutofillDatabaseProvider(file: databaseLocation, key: simpleL1Key)
         secureVaultFactory = AutofillVaultFactory.testFactory(databaseProvider: databaseProvider)
-        secureVault = try secureVaultFactory.makeVault(errorReporter: nil)
+        secureVault = try secureVaultFactory.makeVault(reporter: nil)
         _ = try secureVault.authWith(password: "abcd".data(using: .utf8)!)
 
         eventMapper = MockEventMapper()

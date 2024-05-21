@@ -18,15 +18,16 @@
 
 import Foundation
 
-public enum DebugCommand: Codable {
+public enum VPNCommand: Codable {
     case expireRegistrationKey
     case removeSystemExtension
     case removeVPNConfiguration
     case sendTestNotification
+    case uninstallVPN
     case disableConnectOnDemandAndShutDown
 }
 
 public enum ExtensionRequest: Codable {
     case changeTunnelSetting(_ change: VPNSettings.Change)
-    case debugCommand(_ command: DebugCommand)
+    case command(_ command: VPNCommand)
 }
