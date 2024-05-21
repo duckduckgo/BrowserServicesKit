@@ -17,11 +17,12 @@
 //
 
 import Foundation
-import NetworkProtection
+@testable import NetworkProtection
 
 class MockNetworkProtectionLocationListRepository: NetworkProtectionLocationListRepository {
     var stubFetchLocationList: [NetworkProtectionLocation] = []
     var stubFetchLocationListError: Error?
+    var spyIgnoreCache: Bool = false
 
     func fetchLocationList() async throws -> [NetworkProtectionLocation] {
         if let stubFetchLocationListError {
@@ -31,6 +32,19 @@ class MockNetworkProtectionLocationListRepository: NetworkProtectionLocationList
     }
     
     func fetchLocationListIgnoringCache() async throws -> [NetworkProtection.NetworkProtectionLocation] {
-        try await fetchLocationList()
+        spyIgnoreCache = true
+        return try await fetchLocationList()
+    }
+}
+
+extension NetworkProtectionLocation {
+    static func testData(country: String = "", cities: [City] = []) -> NetworkProtectionLocation {
+        return Self(country: country, cities: cities)
+    }
+}
+
+extension NetworkProtectionLocation.City {
+    static func testData(name: String = "") -> NetworkProtectionLocation.City {
+        Self(name: name)
     }
 }

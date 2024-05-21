@@ -140,15 +140,3 @@ class NetworkProtectionLocationListCompositeRepositoryTests: XCTestCase {
         XCTAssertTrue(didReceiveError)
     }
 }
-
-private extension NetworkProtectionLocation {
-    static func testData(country: String = "", cities: [City] = []) -> NetworkProtectionLocation {
-        return Self(country: country, cities: cities)
-    }
-}
-
-private extension NetworkProtectionLocation.City {
-    static func testData(name: String = "") -> NetworkProtectionLocation.City {
-        Self(name: name)
-    }
-}
