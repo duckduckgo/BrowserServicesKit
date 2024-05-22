@@ -23,10 +23,10 @@ public typealias DDGSubscription = Subscription // to avoid conflicts when Combi
 public struct Subscription: Codable, Equatable {
     public let productId: String
     public let name: String
-    public let billingPeriod: BillingPeriod
+    public let billingPeriod: Subscription.BillingPeriod
     public let startedAt: Date
     public let expiresOrRenewsAt: Date
-    public let platform: Platform
+    public let platform: Subscription.Platform
     public let status: Status
 
     public enum BillingPeriod: String, Codable {

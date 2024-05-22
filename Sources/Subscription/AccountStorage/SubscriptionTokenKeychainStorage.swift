@@ -18,7 +18,7 @@
 
 import Foundation
 
-public class SubscriptionTokenKeychainStorage: SubscriptionTokenStorage {
+public class SubscriptionTokenKeychainStorage: SubscriptionTokenStoring {
 
     private let keychainType: KeychainType
 
@@ -65,6 +65,7 @@ private extension SubscriptionTokenKeychainStorage {
             throw AccountKeychainAccessError.failedToDecodeKeychainDataAsString
         }
     }
+
     func retrieveData(forField field: AccountKeychainField) throws -> Data? {
         var query = defaultAttributes()
         query[kSecAttrService] = field.keyValue
@@ -153,11 +154,8 @@ private extension SubscriptionTokenKeychainStorage {
 
 public enum KeychainType {
     case dataProtection(_ accessGroup: AccessGroup)
-
     /// Uses the system keychain.
-    ///
     case system
-
     case fileBased
 
     public enum AccessGroup {
