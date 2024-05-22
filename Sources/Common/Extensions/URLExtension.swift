@@ -435,13 +435,11 @@ extension URL {
     }
 
     // MARK: Canonicalization 
-    public func canonicalHost() -> String {
-            guard let host = self.host else {
-                return ""
+    public func canonicalHost() -> String? {
+            // Step 1: Extract hostname portion from the URL
+            guard var canonicalHost = self.host else {
+                return nil
             }
-
-            // Step 1: Extract out the hostname portion from the URL
-            var canonicalHost = host
 
             // Step 2: Decode any %XX escapes present in the hostname
             if let decodedHost = canonicalHost.removingPercentEncoding {
