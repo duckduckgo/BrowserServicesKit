@@ -27,12 +27,20 @@ final class AutofillPixelReporterTests: XCTestCase {
 
     private class MockEventMapping: EventMapping<AutofillPixelEvent> {
         static var events: [AutofillPixelEvent] = []
-        static var param: String?
+        static var loginsParam: String?
+        static var creditCardsParam: String?
 
         public init() {
             super.init { event, _, param, _ in
                 Self.events.append(event)
-                Self.param = param?[AutofillPixelEvent.Parameter.countBucket]
+                switch event {
+                case .autofillLoginsStacked:
+                    Self.loginsParam = param?[AutofillPixelEvent.Parameter.countBucket]
+                case .autofillCreditCardsStacked:
+                    Self.creditCardsParam = param?[AutofillPixelEvent.Parameter.countBucket]
+                default:
+                    break
+                }
             }
         }
 
@@ -82,17 +90,19 @@ final class AutofillPixelReporterTests: XCTestCase {
         XCTAssertEqual(MockEventMapping.events.count, 0)
     }
 
-    func testWhenFirstFillAndSearchDauIsTodayAndAccountsCountIsZeroThenTwoEventsAreFiredAndParamIsNone() {
+    func testWhenFirstFillAndSearchDauIsTodayAndAccountsCountIsZeroThenThreeEventsAreFiredWithNoneParams() {
         let autofillPixelReporter = createAutofillPixelReporter()
         autofillPixelReporter.resetStoreDefaults()
         setAutofillSearchDauDate(daysAgo: 0)
 
         NotificationCenter.default.post(name: .autofillFillEvent, object: nil)
 
-        XCTAssertEqual(MockEventMapping.events.count, 2)
+        XCTAssertEqual(MockEventMapping.events.count, 3)
         XCTAssertTrue(MockEventMapping.events.contains(.autofillActiveUser))
         XCTAssertTrue(MockEventMapping.events.contains(.autofillLoginsStacked))
-        XCTAssertEqual(MockEventMapping.param, AutofillPixelReporter.BucketName.none.rawValue)
+        XCTAssertTrue(MockEventMapping.events.contains(.autofillCreditCardsStacked))
+        XCTAssertEqual(MockEventMapping.loginsParam, AutofillPixelReporter.BucketName.none.rawValue)
+        XCTAssertEqual(MockEventMapping.creditCardsParam, AutofillPixelReporter.BucketName.none.rawValue)
     }
 
     func testWhenFirstSearchDauAndFillDateIsNotTodayAndAccountsCountIsZeroThenNoEventsAreFired() {
@@ -117,7 +127,7 @@ final class AutofillPixelReporterTests: XCTestCase {
         XCTAssertEqual(event, .autofillEnabledUser)
     }
 
-    func testWhenFirstSearchDauAndThenFirstFillAndAccountsCountIsZeroThenTwoEventsAreFiredWithNoneParam() {
+    func testWhenFirstSearchDauAndThenFirstFillAndAccountsCountIsZeroThenThreeEventsAreFiredWithNoneParams() {
         let autofillPixelReporter = createAutofillPixelReporter()
         autofillPixelReporter.resetStoreDefaults()
         createAccountsInVault(count: 0)
@@ -125,12 +135,15 @@ final class AutofillPixelReporterTests: XCTestCase {
         NotificationCenter.default.post(name: .searchDAU, object: nil)
         NotificationCenter.default.post(name: .autofillFillEvent, object: nil)
 
-        XCTAssertEqual(MockEventMapping.events.count, 2)
-        XCTAssertEqual(MockEventMapping.events, [.autofillActiveUser, .autofillLoginsStacked])
-        XCTAssertEqual(MockEventMapping.param, AutofillPixelReporter.BucketName.none.rawValue)
+        XCTAssertEqual(MockEventMapping.events.count, 3)
+        XCTAssertTrue(MockEventMapping.events.contains(.autofillActiveUser))
+        XCTAssertTrue(MockEventMapping.events.contains(.autofillLoginsStacked))
+        XCTAssertTrue(MockEventMapping.events.contains(.autofillCreditCardsStacked))
+        XCTAssertEqual(MockEventMapping.loginsParam, AutofillPixelReporter.BucketName.none.rawValue)
+        XCTAssertEqual(MockEventMapping.creditCardsParam, AutofillPixelReporter.BucketName.none.rawValue)
     }
 
-    func testWhenFirstSearchDauAndThenFirstFillAndAccountsCountIsThreeThenTwoEventsAreFiredWithFewParam() {
+    func testWhenFirstSearchDauAndThenFirstFillAndAccountsCountIsThreeThenTwoEventsAreFiredWithCorrectParams() {
         let autofillPixelReporter = createAutofillPixelReporter()
         autofillPixelReporter.resetStoreDefaults()
         createAccountsInVault(count: 3)
@@ -138,13 +151,15 @@ final class AutofillPixelReporterTests: XCTestCase {
         NotificationCenter.default.post(name: .searchDAU, object: nil)
         NotificationCenter.default.post(name: .autofillFillEvent, object: nil)
 
-        XCTAssertEqual(MockEventMapping.events.count, 2)
+        XCTAssertEqual(MockEventMapping.events.count, 3)
         XCTAssertTrue(MockEventMapping.events.contains(.autofillActiveUser))
         XCTAssertTrue(MockEventMapping.events.contains(.autofillLoginsStacked))
-        XCTAssertEqual(MockEventMapping.param, AutofillPixelReporter.BucketName.few.rawValue)
+        XCTAssertTrue(MockEventMapping.events.contains(.autofillCreditCardsStacked))
+        XCTAssertEqual(MockEventMapping.loginsParam, AutofillPixelReporter.BucketName.few.rawValue)
+        XCTAssertEqual(MockEventMapping.creditCardsParam, AutofillPixelReporter.BucketName.none.rawValue)
     }
 
-    func testWhenFirstSearchDauAndThenFirstFillAndAccountsCountIsTenThenThreeEventsAreFiredWithSomeParam() {
+    func testWhenFirstSearchDauAndThenFirstFillAndAccountsCountIsTenThenFourEventsAreFiredWithCorrectParams() {
         let autofillPixelReporter = createAutofillPixelReporter()
         autofillPixelReporter.resetStoreDefaults()
         createAccountsInVault(count: 10)
@@ -152,14 +167,16 @@ final class AutofillPixelReporterTests: XCTestCase {
         NotificationCenter.default.post(name: .searchDAU, object: nil)
         NotificationCenter.default.post(name: .autofillFillEvent, object: nil)
 
-        XCTAssertEqual(MockEventMapping.events.count, 3)
+        XCTAssertEqual(MockEventMapping.events.count, 4)
         XCTAssertTrue(MockEventMapping.events.contains(.autofillActiveUser))
         XCTAssertTrue(MockEventMapping.events.contains(.autofillLoginsStacked))
+        XCTAssertTrue(MockEventMapping.events.contains(.autofillCreditCardsStacked))
         XCTAssertTrue(MockEventMapping.events.contains(.autofillEnabledUser))
-        XCTAssertEqual(MockEventMapping.param, AutofillPixelReporter.BucketName.some.rawValue)
+        XCTAssertEqual(MockEventMapping.loginsParam, AutofillPixelReporter.BucketName.some.rawValue)
+        XCTAssertEqual(MockEventMapping.creditCardsParam, AutofillPixelReporter.BucketName.none.rawValue)
     }
 
-    func testWhenFirstSearchDauAndThenFirstFillAndAccountsCountIsElevenThenThreeEventsAreFiredWithManyParam() {
+    func testWhenFirstSearchDauAndThenFirstFillAndAccountsCountIsElevenThenFourEventsAreFiredWithManyParam() {
         let autofillPixelReporter = createAutofillPixelReporter()
         autofillPixelReporter.resetStoreDefaults()
         createAccountsInVault(count: 11)
@@ -167,14 +184,16 @@ final class AutofillPixelReporterTests: XCTestCase {
         NotificationCenter.default.post(name: .searchDAU, object: nil)
         NotificationCenter.default.post(name: .autofillFillEvent, object: nil)
 
-        XCTAssertEqual(MockEventMapping.events.count, 3)
+        XCTAssertEqual(MockEventMapping.events.count, 4)
         XCTAssertTrue(MockEventMapping.events.contains(.autofillActiveUser))
         XCTAssertTrue(MockEventMapping.events.contains(.autofillLoginsStacked))
+        XCTAssertTrue(MockEventMapping.events.contains(.autofillCreditCardsStacked))
         XCTAssertTrue(MockEventMapping.events.contains(.autofillEnabledUser))
-        XCTAssertEqual(MockEventMapping.param, AutofillPixelReporter.BucketName.many.rawValue)
+        XCTAssertEqual(MockEventMapping.loginsParam, AutofillPixelReporter.BucketName.many.rawValue)
+        XCTAssertEqual(MockEventMapping.creditCardsParam, AutofillPixelReporter.BucketName.none.rawValue)
     }
 
-    func testWhenFirstSearchDauAndThenFirstFillAndAccountsCountIsFortyThenThreeEventsAreFiredWithManyParam() {
+    func testWhenFirstSearchDauAndThenFirstFillAndAccountsCountIsFortyThenFourEventsAreFiredWithCorrectParams() {
         let autofillPixelReporter = createAutofillPixelReporter()
         autofillPixelReporter.resetStoreDefaults()
         createAccountsInVault(count: 40)
@@ -182,14 +201,15 @@ final class AutofillPixelReporterTests: XCTestCase {
         NotificationCenter.default.post(name: .searchDAU, object: nil)
         NotificationCenter.default.post(name: .autofillFillEvent, object: nil)
 
-        XCTAssertEqual(MockEventMapping.events.count, 3)
+        XCTAssertEqual(MockEventMapping.events.count, 4)
         XCTAssertTrue(MockEventMapping.events.contains(.autofillActiveUser))
         XCTAssertTrue(MockEventMapping.events.contains(.autofillLoginsStacked))
         XCTAssertTrue(MockEventMapping.events.contains(.autofillEnabledUser))
-        XCTAssertEqual(MockEventMapping.param, AutofillPixelReporter.BucketName.many.rawValue)
+        XCTAssertEqual(MockEventMapping.loginsParam, AutofillPixelReporter.BucketName.many.rawValue)
+        XCTAssertEqual(MockEventMapping.creditCardsParam, AutofillPixelReporter.BucketName.none.rawValue)
     }
 
-    func testWhenFirstSearchDauAndThenFirstFillAndAccountsCountIsFiftyThenThreeEventsAreFiredWithLotsParam() {
+    func testWhenFirstSearchDauAndThenFirstFillAndAccountsCountIsFiftyThenFourEventsAreFiredWithCorrectParams() {
         let autofillPixelReporter = createAutofillPixelReporter()
         autofillPixelReporter.resetStoreDefaults()
         createAccountsInVault(count: 50)
@@ -197,11 +217,64 @@ final class AutofillPixelReporterTests: XCTestCase {
         NotificationCenter.default.post(name: .searchDAU, object: nil)
         NotificationCenter.default.post(name: .autofillFillEvent, object: nil)
 
+        XCTAssertEqual(MockEventMapping.events.count, 4)
+        XCTAssertTrue(MockEventMapping.events.contains(.autofillActiveUser))
+        XCTAssertTrue(MockEventMapping.events.contains(.autofillLoginsStacked))
+        XCTAssertTrue(MockEventMapping.events.contains(.autofillCreditCardsStacked))
+        XCTAssertTrue(MockEventMapping.events.contains(.autofillEnabledUser))
+        XCTAssertEqual(MockEventMapping.loginsParam, AutofillPixelReporter.BucketName.lots.rawValue)
+        XCTAssertEqual(MockEventMapping.creditCardsParam, AutofillPixelReporter.BucketName.none.rawValue)
+    }
+
+    func testWhenFirstSearchDauAndThenFirstFillAndCreditCardsCountIsOneThenThreeEventsAreFiredWithCorrectParams() {
+        let autofillPixelReporter = createAutofillPixelReporter()
+        autofillPixelReporter.resetStoreDefaults()
+        createAccountsInVault(count: 0)
+        createCreditCardsInVault(count: 1)
+
+        NotificationCenter.default.post(name: .searchDAU, object: nil)
+        NotificationCenter.default.post(name: .autofillFillEvent, object: nil)
+
         XCTAssertEqual(MockEventMapping.events.count, 3)
         XCTAssertTrue(MockEventMapping.events.contains(.autofillActiveUser))
         XCTAssertTrue(MockEventMapping.events.contains(.autofillLoginsStacked))
-        XCTAssertTrue(MockEventMapping.events.contains(.autofillEnabledUser))
-        XCTAssertEqual(MockEventMapping.param, AutofillPixelReporter.BucketName.lots.rawValue)
+        XCTAssertTrue(MockEventMapping.events.contains(.autofillCreditCardsStacked))
+        XCTAssertEqual(MockEventMapping.loginsParam, AutofillPixelReporter.BucketName.none.rawValue)
+        XCTAssertEqual(MockEventMapping.creditCardsParam, AutofillPixelReporter.BucketName.some.rawValue)
+    }
+
+    func testWhenFirstSearchDauAndThenFirstFillAndCreditCardsCountIsThreeThenThreeEventsAreFiredWithCorrectParams() {
+        let autofillPixelReporter = createAutofillPixelReporter()
+        autofillPixelReporter.resetStoreDefaults()
+        createAccountsInVault(count: 0)
+        createCreditCardsInVault(count: 3)
+
+        NotificationCenter.default.post(name: .searchDAU, object: nil)
+        NotificationCenter.default.post(name: .autofillFillEvent, object: nil)
+
+        XCTAssertEqual(MockEventMapping.events.count, 3)
+        XCTAssertTrue(MockEventMapping.events.contains(.autofillActiveUser))
+        XCTAssertTrue(MockEventMapping.events.contains(.autofillLoginsStacked))
+        XCTAssertTrue(MockEventMapping.events.contains(.autofillCreditCardsStacked))
+        XCTAssertEqual(MockEventMapping.loginsParam, AutofillPixelReporter.BucketName.none.rawValue)
+        XCTAssertEqual(MockEventMapping.creditCardsParam, AutofillPixelReporter.BucketName.some.rawValue)
+    }
+
+     func testWhenFirstSearchDauAndThenFirstFillAndCreditCardsCountIsFourThenThreeEventsAreFiredWithCorrectParams() {
+        let autofillPixelReporter = createAutofillPixelReporter()
+        autofillPixelReporter.resetStoreDefaults()
+        createAccountsInVault(count: 0)
+        createCreditCardsInVault(count: 4)
+
+        NotificationCenter.default.post(name: .searchDAU, object: nil)
+        NotificationCenter.default.post(name: .autofillFillEvent, object: nil)
+
+        XCTAssertEqual(MockEventMapping.events.count, 3)
+        XCTAssertTrue(MockEventMapping.events.contains(.autofillActiveUser))
+        XCTAssertTrue(MockEventMapping.events.contains(.autofillLoginsStacked))
+        XCTAssertTrue(MockEventMapping.events.contains(.autofillCreditCardsStacked))
+        XCTAssertEqual(MockEventMapping.loginsParam, AutofillPixelReporter.BucketName.none.rawValue)
+        XCTAssertEqual(MockEventMapping.creditCardsParam, AutofillPixelReporter.BucketName.many.rawValue)
     }
 
     func testWhenSubsequentFillAndSearchDauIsNotTodayThenNoEventsAreFired() {
@@ -311,6 +384,23 @@ final class AutofillPixelReporterTests: XCTestCase {
 
         for i in 0..<count {
             mockDatabaseProvider._accounts.append(SecureVaultModels.WebsiteAccount(username: "dax-\(i)@duck.com", domain: "domain.com"))
+        }
+    }
+
+    private func createCreditCardsInVault(count: Int) {
+        let creditCards = try? vault.creditCards()
+        for card in creditCards ?? [] {
+            if let id = card.id {
+                try? vault.deleteCreditCardFor(cardId: id)
+            }
+        }
+
+        for i in 0..<count {
+            mockDatabaseProvider._creditCards[Int64(i)] = SecureVaultModels.CreditCard(cardNumber: "1234 5678 9012 345\(i)",
+                                                                                       cardholderName: "Dax \(i)",
+                                                                                       cardSecurityCode: nil,
+                                                                                       expirationMonth: 12,
+                                                                                       expirationYear: 24)
         }
     }
 

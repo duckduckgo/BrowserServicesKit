@@ -57,6 +57,7 @@ public protocol AutofillDatabaseProvider: SecureStorageDatabaseProvider {
     func deleteIdentityForIdentityId(_ identityId: Int64) throws
 
     func creditCards() throws -> [SecureVaultModels.CreditCard]
+    func creditCardsCount() throws -> Int
     func creditCardForCardId(_ cardId: Int64) throws -> SecureVaultModels.CreditCard?
     @discardableResult
     func storeCreditCard(_ creditCard: SecureVaultModels.CreditCard) throws -> Int64
@@ -555,6 +556,13 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
         return try db.read {
             return try SecureVaultModels.CreditCard.fetchAll($0)
         }
+    }
+
+    public func creditCardsCount() throws -> Int {
+        let count = try db.read {
+            try SecureVaultModels.WebsiteAccount.fetchCount($0)
+        }
+        return count
     }
 
     public func creditCardForCardId(_ cardId: Int64) throws -> SecureVaultModels.CreditCard? {

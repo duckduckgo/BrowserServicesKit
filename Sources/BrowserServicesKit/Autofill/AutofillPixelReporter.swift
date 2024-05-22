@@ -26,6 +26,7 @@ public enum AutofillPixelEvent {
     case autofillEnabledUser
     case autofillOnboardedUser
     case autofillLoginsStacked
+    case autofillCreditCardsStacked
 
     enum Parameter {
         static let countBucket = "count_bucket"
@@ -130,6 +131,10 @@ public final class AutofillPixelReporter {
             if let count = try? vault()?.accountsCount() {
                 eventMapping.fire(.autofillLoginsStacked, parameters: [AutofillPixelEvent.Parameter.countBucket: accountsBucketNameFrom(count: count)])
             }
+
+            if let count = try? vault()?.creditCardsCount() {
+                eventMapping.fire(.autofillCreditCardsStacked, parameters: [AutofillPixelEvent.Parameter.countBucket: creditCardsBucketNameFrom(count: count)])
+            }
         }
 
         switch type {
@@ -194,6 +199,16 @@ public final class AutofillPixelReporter {
             return BucketName.many.rawValue
         } else {
             return BucketName.lots.rawValue
+        }
+    }
+
+    private func creditCardsBucketNameFrom(count: Int) -> String {
+        if count == 0 {
+            return BucketName.none.rawValue
+        } else if count < 4 {
+            return BucketName.some.rawValue
+        } else {
+            return BucketName.many.rawValue
         }
     }
 
