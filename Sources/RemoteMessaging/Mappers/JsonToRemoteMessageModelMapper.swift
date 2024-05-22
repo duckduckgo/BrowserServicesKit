@@ -195,21 +195,29 @@ struct JsonToRemoteMessageModelMapper {
         }
     }
 
-    static func maps(jsonRemoteRules: [RemoteMessageResponse.JsonMatchingRule]) -> [Int: [MatchingAttribute]] {
-        var rules: [Int: [MatchingAttribute]] = [:]
-        jsonRemoteRules.forEach { rule in
-            var matchingAttributes: [MatchingAttribute] = []
-            rule.attributes.forEach { attribute in
+    static func maps(jsonRemoteRules: [RemoteMessageResponse.JsonMatchingRule]) -> [RemoteConfigRule] {
+        return jsonRemoteRules.map { jsonRule in
+            let mappedAttributes = jsonRule.attributes.map { attribute in
                 if let key = AttributesKey(rawValue: attribute.key) {
-                    matchingAttributes.append(key.matchingAttribute(jsonMatchingAttribute: attribute.value))
+                    return key.matchingAttribute(jsonMatchingAttribute: attribute.value)
                 } else {
                     os_log("Unknown attribute key %s", log: .remoteMessaging, type: .debug, attribute.key)
-                    matchingAttributes.append(UnknownMatchingAttribute(jsonMatchingAttribute: attribute.value))
+                    return UnknownMatchingAttribute(jsonMatchingAttribute: attribute.value)
                 }
             }
-            rules[rule.id] = matchingAttributes
+
+            var mappedTargetPercentile: RemoteConfigTargetPercentile?
+
+            if let jsonTargetPercentile = jsonRule.targetPercentile {
+                mappedTargetPercentile = .init(before: jsonTargetPercentile.before)
+            }
+
+            return RemoteConfigRule(
+                id: jsonRule.id,
+                targetPercentile: mappedTargetPercentile,
+                attributes: mappedAttributes
+            )
         }
-        return rules
     }
 
     static func getTranslation(from translations: [String: RemoteMessageResponse.JsonContentTranslation]?,

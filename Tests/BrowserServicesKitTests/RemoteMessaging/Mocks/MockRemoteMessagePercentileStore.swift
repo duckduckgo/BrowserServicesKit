@@ -1,7 +1,7 @@
 //
-//  RemoteConfigModel.swift
+//  MockRemoteMessagePercentileStore.swift
 //
-//  Copyright © 2022 DuckDuckGo. All rights reserved.
+//  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -17,18 +17,20 @@
 //
 
 import Foundation
+import RemoteMessaging
 
-public struct RemoteConfigModel {
-    let messages: [RemoteMessageModel]
-    let rules: [RemoteConfigRule]
-}
+class MockRemoteMessagePercentileStore: RemoteMessagingPercentileStoring {
 
-public struct RemoteConfigRule {
-    let id: Int
-    let targetPercentile: RemoteConfigTargetPercentile?
-    let attributes: [MatchingAttribute]
-}
+    var percentileStorage: [String: Float] = [:]
+    var defaultPercentage: Float = 0
 
-public struct RemoteConfigTargetPercentile {
-    let before: Float?
+    func percentile(forMessageId messageID: String) -> Float {
+        if let percentile = percentileStorage[messageID] {
+            return percentile
+        }
+
+        percentileStorage[messageID] = defaultPercentage
+        return defaultPercentage
+    }
+
 }

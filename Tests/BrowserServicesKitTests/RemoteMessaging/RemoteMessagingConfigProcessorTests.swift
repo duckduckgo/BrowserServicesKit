@@ -37,6 +37,7 @@ class RemoteMessagingConfigProcessorTests: XCTestCase {
                                                        appTheme: "light",
                                                        isWidgetInstalled: false,
                                                        daysSinceNetPEnabled: -1),
+            percentileStore: MockRemoteMessagePercentileStore(),
             dismissedMessageIds: []
         )
 
@@ -64,6 +65,7 @@ class RemoteMessagingConfigProcessorTests: XCTestCase {
                                                            appTheme: "light",
                                                            isWidgetInstalled: false,
                                                            daysSinceNetPEnabled: -1),
+                percentileStore: MockRemoteMessagePercentileStore(),
                 dismissedMessageIds: [])
 
         let processor = RemoteMessagingConfigProcessor(remoteMessagingConfigMatcher: remoteMessagingConfigMatcher)
