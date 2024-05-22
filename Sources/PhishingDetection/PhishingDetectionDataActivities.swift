@@ -18,41 +18,76 @@
 
 import Foundation
 
+// Tried this but pain ensued
+//protocol ActivitySchedulerProtocol {
+//    var repeats: Bool { get set }
+//    var interval: TimeInterval { get set }
+//    var tolerance: TimeInterval { get set }
+//    var qualityOfService: QualityOfService { get set }
+//    func schedule(completion: @escaping @Sendable (@escaping NSBackgroundActivityScheduler.CompletionHandler) -> Void)
+//}
+//
+//class MockActivityScheduler: ActivitySchedulerProtocol {
+//    
+//    var repeats: Bool = false
+//    var interval: TimeInterval = 0
+//    var tolerance: TimeInterval = 0
+//    var qualityOfService: QualityOfService = .utility
+//    var scheduleCalled = false
+//    
+//    func schedule(completion: @escaping @Sendable (@escaping NSBackgroundActivityScheduler.CompletionHandler) -> Void) {
+//        scheduleCalled = true
+//        DispatchQueue.main.async {
+//            completion(NSBackgroundActivityScheduler.Result.finished)
+//        }
+//    }
+//}
+//
+//extension NSBackgroundActivityScheduler: ActivitySchedulerProtocol {
+//    func schedule(completion: @escaping @Sendable (@escaping NSBackgroundActivityScheduler.CompletionHandler) -> Void) {
+//        self.schedule(completion: completion)
+//    }
+//}
+
 public class PhishingDetectionDataActivities {
     private let hashPrefixDataActivity: HashPrefixDataActivity
     private let filterSetDataActivity: FilterSetDataActivity
     private let detectionService: PhishingDetectionServiceProtocol
     
-    public init(detectionService: PhishingDetectionServiceProtocol? = nil) {
+    public init(detectionService: PhishingDetectionServiceProtocol? = nil, hashPrefixInterval: TimeInterval = 20 * 60, filterSetInterval: TimeInterval = 12 * 60 * 60) {
         let givenDetectionService = detectionService ?? PhishingDetectionService()
         self.detectionService = givenDetectionService
-        self.hashPrefixDataActivity = HashPrefixDataActivity(identifier: "com.duckduckgo.protection.hashPrefix", detectionService: givenDetectionService)
-        self.filterSetDataActivity = FilterSetDataActivity(identifier: "com.duckduckgo.protection.filterSet", detectionService: givenDetectionService)
+        self.hashPrefixDataActivity = HashPrefixDataActivity(identifier: "com.duckduckgo.protection.hashPrefix", detectionService: givenDetectionService, interval: hashPrefixInterval)
+        self.filterSetDataActivity = FilterSetDataActivity(identifier: "com.duckduckgo.protection.filterSet", detectionService: givenDetectionService, interval: filterSetInterval)
     }
     
     public func run() async {
-        await self.hashPrefixDataActivity.start()
-        await self.filterSetDataActivity.start()
+        Task {
+            self.hashPrefixDataActivity.start()
+            self.filterSetDataActivity.start()
+        }
     }
 }
 
 class HashPrefixDataActivity {
-    private let activityScheduler: NSBackgroundActivityScheduler
+    private var activityScheduler: NSBackgroundActivityScheduler
     private let detectionService: PhishingDetectionServiceProtocol
 
-    init(identifier: String, detectionService: PhishingDetectionServiceProtocol) {
-        activityScheduler = NSBackgroundActivityScheduler(identifier: identifier)
-        activityScheduler.repeats = true
-        activityScheduler.interval = 20 * 60 // Run every 20 minutes
+    init(identifier: String, detectionService: PhishingDetectionServiceProtocol, interval: TimeInterval) {
+        self.activityScheduler = NSBackgroundActivityScheduler(identifier: "com.duckduckgo.protection.hashprefixes")
+        self.activityScheduler.repeats = true
+        self.activityScheduler.interval = interval
+        self.activityScheduler.tolerance = interval / 10
+        self.activityScheduler.qualityOfService = .utility
         self.detectionService = detectionService
     }
     
-    func start() async {
-        activityScheduler.schedule { (completion: NSBackgroundActivityScheduler.CompletionHandler) in
-            Task {
+    func start() {
+        activityScheduler.schedule { (completion: @escaping NSBackgroundActivityScheduler.CompletionHandler) in
+            Task.detached {
                 await self.detectionService.updateHashPrefixes()
+                completion(NSBackgroundActivityScheduler.Result.finished)
             }
-            completion(.finished)
         }
     }
 }
@@ -61,22 +96,23 @@ class FilterSetDataActivity {
     private let activityScheduler: NSBackgroundActivityScheduler
     private let detectionService: PhishingDetectionServiceProtocol
 
-    init(identifier: String, detectionService: PhishingDetectionServiceProtocol) {
-        activityScheduler = NSBackgroundActivityScheduler(identifier: identifier)
-        activityScheduler.repeats = true
-        activityScheduler.interval = 12 * 60 * 60 // Run every 12 hours
+    init(identifier: String, detectionService: PhishingDetectionServiceProtocol, interval: TimeInterval) {
+        self.activityScheduler = NSBackgroundActivityScheduler(identifier: "com.duckduckgo.protection.filterset")
+        self.activityScheduler.repeats = true
+        self.activityScheduler.interval = interval
+        self.activityScheduler.tolerance = interval / 10
+        self.activityScheduler.qualityOfService = .utility
         self.detectionService = detectionService
     }
     
-    func start() async {
-        activityScheduler.schedule { (completion: NSBackgroundActivityScheduler.CompletionHandler) in
-            Task {
-                await self.detectionService.updateFilterSet()
+    func start() {
+        let detectionService = self.detectionService
+        activityScheduler.schedule { [weak self] (completion: @escaping NSBackgroundActivityScheduler.CompletionHandler) in
+            guard self != nil else { return }
+            Task.detached {
+                await detectionService.updateFilterSet()
+                completion(.finished)
             }
-            completion(.finished)
-
         }
     }
 }
-
-

@@ -20,24 +20,26 @@ class PhishingDetectionDataActivitiesTest: XCTestCase {
     }
 
     func testDataActivitySchedulerRuns() async {
-        let hpExpectation = XCTestExpectation(description: "HashPrefixDataActivity should run and update hash prefixes")
+        let expectation1 = expectation(description: "Update filter set")
+        let expectation2 = expectation(description: "Update hash prefixes")
 
-        Task {
-            await dataActivities.run()
-            XCTAssertTrue(mockDetectionService.didUpdateHashPrefixes, "Hash prefixes should be updated")
-            hpExpectation.fulfill()
+        mockDetectionService.updateFilterSetCompletion = {
+            expectation1.fulfill()
         }
-        
-        await XCTWaiter().fulfillment(of: [hpExpectation], timeout: 5.0)
-        
-        let fsExpectation = XCTestExpectation(description: "FilterSetDataActivity should run and update filter set")
-        Task {
-            await dataActivities.run()
+
+        mockDetectionService.updateHashPrefixesCompletion = {
+            expectation2.fulfill()
+        }
+
+        do {
+            try await dataActivities.run()
+            await waitForExpectations(timeout: 60, handler: nil)
             XCTAssertTrue(mockDetectionService.didUpdateFilterSet, "Filter set should be updated")
-            fsExpectation.fulfill()
+            XCTAssertTrue(mockDetectionService.didUpdateHashPrefixes, "Hash prefixes should be updated")
+        } catch {
+            XCTFail("Error updating Phishing Detection data")
         }
-        
-        await XCTWaiter().fulfillment(of: [fsExpectation], timeout: 5.0)
     }
+
 }
 
