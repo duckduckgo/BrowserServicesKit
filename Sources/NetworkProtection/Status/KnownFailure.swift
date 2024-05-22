@@ -48,6 +48,6 @@ final public class KnownFailure: NSObject, Codable {
     }
 
     public override var description: String {
-        "Error domain=\(domain) code=\(code)\n\(localizedDescription)"
+        "Error domain=\(domain) code=\(code)"
     }
 }
