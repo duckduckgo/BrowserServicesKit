@@ -25,29 +25,40 @@ public protocol PhishingDetectionClientProtocol {
     func getMatches(hashPrefix: String) async -> [Match]
 }
 
+public protocol PhishingDetectionClientProtocol {
+    func updateFilterSet(revision: Int) async -> [Filter]
+    func updateHashPrefixes(revision: Int) async -> [String]
+    func getMatches(hashPrefix: String) async -> [Match]
+}
+
 class PhishingDetectionAPIClient: PhishingDetectionClientProtocol {
-    
+
+    enum Environment {
+        case production
+        case staging
+    }
+
     enum Constants {
         static let productionEndpoint = URL(string: "https://tbd.unknown.duckduckgo.com")!
         static let stagingEndpoint = URL(string: "http://localhost:3000")!
     }
-    
+
     private let endpointURL: URL
     private let session: URLSession = .shared
     private var headers: [String: String]? = [:]
-    
+
     var filterSetURL: URL {
         endpointURL.appendingPathComponent("filterSet")
     }
-    
+
     var hashPrefixURL: URL {
         endpointURL.appendingPathComponent("hashPrefix")
     }
-    
+
     var matchesURL: URL {
         endpointURL.appendingPathComponent("matches")
     }
-    
+
     init(environment: Environment = .staging) {
         switch environment {
         case .production:
@@ -56,97 +67,65 @@ class PhishingDetectionAPIClient: PhishingDetectionClientProtocol {
             endpointURL = Constants.stagingEndpoint
         }
     }
-    
+
     public func updateFilterSet(revision: Int) async -> [Filter] {
-        let url: URL
-        if revision > 0 {
-            var urlComponents = URLComponents(url: filterSetURL, resolvingAgainstBaseURL: true)
-            urlComponents?.queryItems = [URLQueryItem(name: "revision", value: String(revision))]
-            guard let resolvedURL = urlComponents?.url else {
-                os_log(.debug, log: .phishingDetection, "\(self): 🔸 Invalid filterSet revision URL: \(revision)")
-                return []
-            }
-            url = resolvedURL
-        } else {
-            url = filterSetURL
+        guard let url = createURL(baseURL: filterSetURL, revision: revision, queryItemName: "revision") else {
+            logDebug("🔸 Invalid filterSet revision URL: \(revision)")
+            return []
         }
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.allHTTPHeaderFields = headers
-        
-        do {
-            let (data, _) = try await session.data(for: request)
-            if let filterSetResponse = try? JSONDecoder().decode(FilterSetResponse.self, from: data) {
-                return filterSetResponse.filters
-            } else {
-                os_log(.debug, log: .phishingDetection, "\(self): 🔸 Failed to decode filterSet response: \(data)")
-            }
-        } catch {
-            os_log(.debug, log: .phishingDetection, "\(self): 🔴 Failed to load filterSet data: \(error)")
-        }
-        return []
+        return await fetch(url: url, responseType: FilterSetResponse.self)?.filters ?? []
     }
-    
+
     public func updateHashPrefixes(revision: Int) async -> [String] {
-        let url: URL
-        if revision > 0 {
-            var urlComponents = URLComponents(url: hashPrefixURL, resolvingAgainstBaseURL: true)
-            urlComponents?.queryItems = [URLQueryItem(name: "revision", value: String(revision))]
-            guard let resolvedURL = urlComponents?.url else {
-                os_log(.debug, log: .phishingDetection, "\(self): 🔸 Invalid hashPrefix revision URL: \(revision)")
-                return []
-            }
-            url = resolvedURL
-        } else {
-            url = hashPrefixURL
+        guard let url = createURL(baseURL: hashPrefixURL, revision: revision, queryItemName: "revision") else {
+            logDebug("🔸 Invalid hashPrefix revision URL: \(revision)")
+            return []
         }
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.allHTTPHeaderFields = headers
-        
-        do {
-            let (data, _) = try await session.data(for: request)
-            if let hashPrefixResponse = try? JSONDecoder().decode(HashPrefixResponse.self, from: data) {
-                return hashPrefixResponse.hashPrefixes
-            } else {
-                os_log(.debug, log: .phishingDetection, "\(self): 🔸 Failed to decode hashPrefix response: \(data)")
-            }
-        } catch {
-            os_log(.debug, log: .phishingDetection, "\(self): 🔴 Failed to load hashPrefix data: \(error)")
-        }
-        return []
+        return await fetch(url: url, responseType: HashPrefixResponse.self)?.hashPrefixes ?? []
     }
-    
+
     public func getMatches(hashPrefix: String) async -> [Match] {
-        var urlComponents = URLComponents(url: matchesURL, resolvingAgainstBaseURL: true)
-        urlComponents?.queryItems = [URLQueryItem(name: "hashPrefix", value: hashPrefix)]
-        
-        guard let url = urlComponents?.url else {
-            os_log(.debug, log: .phishingDetection, "\(self): 🔸 Invalid matches URL: \(hashPrefix)")
-            return []
-        }
-        
+         var urlComponents = URLComponents(url: matchesURL, resolvingAgainstBaseURL: true)
+         urlComponents?.queryItems = [URLQueryItem(name: "hashPrefix", value: hashPrefix)]
+         guard let url = urlComponents?.url else {
+             logDebug("🔸 Invalid matches URL: \(hashPrefix)")
+             return []
+         }
+         return await fetch(url: url, responseType: MatchResponse.self)?.matches ?? []
+     }
+}
+
+// MARK: Private Methods
+extension PhishingDetectionAPIClient {
+
+    private func logDebug(_ message: String) {
+        os_log(.debug, log: .phishingDetection, "\(self): \(message)")
+    }
+
+    private func createURL(baseURL: URL, revision: Int, queryItemName: String) -> URL? {
+        guard revision > 0 else { return baseURL }
+        var urlComponents = URLComponents(url: baseURL, resolvingAgainstBaseURL: true)
+        urlComponents?.queryItems = [URLQueryItem(name: queryItemName, value: String(revision))]
+        return urlComponents?.url
+    }
+
+
+    private func fetch<T: Decodable>(url: URL, responseType: T.Type) async -> T? {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.allHTTPHeaderFields = headers
-        
+
         do {
             let (data, _) = try await session.data(for: request)
-            if let matchResponse = try? JSONDecoder().decode(MatchResponse.self, from: data) {
-                return matchResponse.matches
+            if let response = try? JSONDecoder().decode(responseType, from: data) {
+                return response
             } else {
-                os_log(.debug, log: .phishingDetection, "\(self): 🔸 Failed to decode matches response: \(data)")
+                logDebug("🔸 Failed to decode response for \(String(describing: responseType)): \(data)")
             }
         } catch {
-            os_log(.debug, log: .phishingDetection, "\(self): 🔴 Failed to get matches: \(error)")
-            return []
+            logDebug("🔴 Failed to load \(String(describing: responseType)) data: \(error)")
         }
-        return []
+        return nil
     }
-    
-    enum Environment {
-        case production
-        case staging
-    }
-    
 }
+
