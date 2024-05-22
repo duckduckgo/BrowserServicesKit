@@ -104,6 +104,7 @@ public final class AutofillPixelReporter {
 
     @objc
     private func didReceiveFillEvent() {
+        os_log(.debug, "Autofill fill event fired")
         guard let autofillFillDate = autofillFillDate, !Date.isSameDay(Date(), autofillFillDate) else {
             return
         }
@@ -115,6 +116,7 @@ public final class AutofillPixelReporter {
 
     @objc
     private func didReceiveSaveEvent() {
+        os_log(.debug, "Autofill save event fired")
         guard !autofillOnboardedUser else {
             return
         }
