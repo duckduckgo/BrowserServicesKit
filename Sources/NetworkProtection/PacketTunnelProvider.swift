@@ -1052,7 +1052,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private func handleResetAllState(completionHandler: ((Data?) -> Void)? = nil) {
         resetRegistrationKey()
 
+#if os(macOS)
         try? tokenStore.deleteToken()
+#endif
 
         // This is not really an error, we received a command to reset the connection
         cancelTunnelWithError(nil)
