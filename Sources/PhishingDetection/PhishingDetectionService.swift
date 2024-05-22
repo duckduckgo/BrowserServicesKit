@@ -30,7 +30,7 @@ public struct FilterSetResponse: Decodable, Encodable {
     public var revision: Int
 }
 
-public struct Filter: Decodable, Encodable {
+public struct Filter: Decodable, Encodable, Hashable {
     public var hashValue: String
     public var regex: String
 
@@ -45,11 +45,11 @@ public struct Filter: Decodable, Encodable {
     }
 }
 
-public struct MatchResponse: Decodable, Encodable {
+public struct MatchResponse: Codable {
     public var matches: [Match]
 }
 
-public struct Match: Decodable, Encodable {
+public struct Match: Decodable, Encodable, Hashable {
     var hostname: String
     var url: String
     var regex: String
@@ -64,19 +64,19 @@ public struct Match: Decodable, Encodable {
 }
 
 public protocol PhishingDetectionServiceProtocol {
-    var filterSet: [Filter] {get set}
-    var hashPrefixes: [String] {get set}
+    var filterSet: Set<Filter> {get set}
+    var hashPrefixes: Set<String> {get set}
     func isMalicious(url: URL) async -> Bool
     func updateFilterSet() async
     func updateHashPrefixes() async
-    func getMatches(hashPrefix: String) async -> [Match]
+    func getMatches(hashPrefix: String) async -> Set<Match>
     func loadData()
     func writeData()
 }
 
 public class PhishingDetectionService: PhishingDetectionServiceProtocol {
-    public var filterSet: [Filter] = []
-    public var hashPrefixes = [String]()
+    public var filterSet: Set<Filter> = []
+    public var hashPrefixes = Set<String>()
     var currentRevision = 0
     var apiClient: PhishingDetectionClientProtocol
     var dataStore: URL?
@@ -89,24 +89,24 @@ public class PhishingDetectionService: PhishingDetectionServiceProtocol {
     
     public func updateFilterSet() async {
         let filterSet = await apiClient.updateFilterSet(revision: currentRevision)
-        self.filterSet = filterSet
+        self.filterSet = Set(filterSet)
     }
     
     public func updateHashPrefixes() async {
         let hashPrefixes = await apiClient.updateHashPrefixes(revision: currentRevision)
-        self.hashPrefixes = hashPrefixes
+        self.hashPrefixes = Set(hashPrefixes)
     }
     
-    public func getMatches(hashPrefix: String) async -> [Match] {
-        return await apiClient.getMatches(hashPrefix: hashPrefix)
+    public func getMatches(hashPrefix: String) async -> Set<Match> {
+        return Set(await apiClient.getMatches(hashPrefix: hashPrefix))
     }
     
-    func inFilterSet(hash: String) -> [Filter] {
-        return filterSet.filter { $0.hashValue == hash }
+    func inFilterSet(hash: String) -> Set<Filter> {
+        return Set(filterSet.filter { $0.hashValue == hash })
     }
     
     public func isMalicious(url: URL) async -> Bool {
-        let canonicalHost = url.canonicalHost()
+        guard let canonicalHost = url.canonicalHost() else { return false }
         let hostnameHash = SHA256.hash(data: Data(canonicalHost.utf8)).map { String(format: "%02hhx", $0) }.joined()
         let hashPrefix = String(hostnameHash.prefix(8))
         if hashPrefixes.contains(hashPrefix) {
@@ -144,8 +144,8 @@ public class PhishingDetectionService: PhishingDetectionServiceProtocol {
     public func writeData() {
         let encoder = JSONEncoder()
         do {
-            let hashPrefixesData = try encoder.encode(hashPrefixes)
-            let filterSetData = try encoder.encode(filterSet)
+            let hashPrefixesData = try encoder.encode(Array(hashPrefixes))
+            let filterSetData = try encoder.encode(Array(filterSet))
 
             let hashPrefixesFileURL = dataStore!.appendingPathComponent("hashPrefixes.json")
             let filterSetFileURL = dataStore!.appendingPathComponent("filterSet.json")
@@ -166,8 +166,8 @@ public class PhishingDetectionService: PhishingDetectionServiceProtocol {
             let hashPrefixesData = try Data(contentsOf: hashPrefixesFileURL)
             let filterSetData = try Data(contentsOf: filterSetFileURL)
 
-            hashPrefixes = try decoder.decode([String].self, from: hashPrefixesData)
-            filterSet = try decoder.decode([Filter].self, from: filterSetData)
+            hashPrefixes = Set(try decoder.decode([String].self, from: hashPrefixesData))
+            filterSet = Set(try decoder.decode([Filter].self, from: filterSetData))
         } catch {
             os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error loading phishing protection data: \(error)")
             Task {

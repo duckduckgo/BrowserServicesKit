@@ -25,12 +25,6 @@ public protocol PhishingDetectionClientProtocol {
     func getMatches(hashPrefix: String) async -> [Match]
 }
 
-public protocol PhishingDetectionClientProtocol {
-    func updateFilterSet(revision: Int) async -> [Filter]
-    func updateHashPrefixes(revision: Int) async -> [String]
-    func getMatches(hashPrefix: String) async -> [Match]
-}
-
 class PhishingDetectionAPIClient: PhishingDetectionClientProtocol {
 
     enum Environment {

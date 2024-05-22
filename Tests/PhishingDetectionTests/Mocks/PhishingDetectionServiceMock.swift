@@ -3,9 +3,9 @@ import PhishingDetection
 
 public class MockPhishingDetectionService: PhishingDetectionServiceProtocol {
     private var mockClient: PhishingDetectionClientProtocol
-    public var hashPrefixes: [String] = []
+    public var hashPrefixes: Set<String> = Set()
     private var revision = 0
-    public var filterSet: [Filter] = []
+    public var filterSet: Set<Filter> = Set()
     public var didUpdateHashPrefixes: Bool = false
     public var didUpdateFilterSet: Bool = false
 
@@ -14,24 +14,27 @@ public class MockPhishingDetectionService: PhishingDetectionServiceProtocol {
     }
 
     public func updateFilterSet() async {
-        filterSet = await mockClient.updateFilterSet(revision: revision)
+        let filterSetArray = await mockClient.updateFilterSet(revision: revision)
+        filterSet = Set(filterSetArray)
         if !filterSet.isEmpty {
             didUpdateFilterSet = true
         }
     }
 
     public func updateHashPrefixes() async {
-        hashPrefixes = await mockClient.updateHashPrefixes(revision: revision)
+        let hashPrefixesArray = await mockClient.updateHashPrefixes(revision: revision)
+        hashPrefixes = Set(hashPrefixesArray)
         if !hashPrefixes.isEmpty {
             didUpdateHashPrefixes = true
         }
     }
 
-    public func getMatches(hashPrefix: String) async -> [Match] {
-        return await mockClient.getMatches(hashPrefix: hashPrefix)
+    public func getMatches(hashPrefix: String) async -> Set<Match> {
+        let matches = await mockClient.getMatches(hashPrefix: hashPrefix)
+        return Set(matches)
     }
 
-    public func isMalicious(url: String) async -> Bool {
+    public func isMalicious(url: URL) async -> Bool {
         return false
     }
     
