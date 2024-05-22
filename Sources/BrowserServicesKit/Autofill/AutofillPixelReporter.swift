@@ -128,12 +128,12 @@ public final class AutofillPixelReporter {
         if shouldFireActiveUserPixel() {
             eventMapping.fire(.autofillActiveUser)
 
-            if let count = try? vault()?.accountsCount() {
-                eventMapping.fire(.autofillLoginsStacked, parameters: [AutofillPixelEvent.Parameter.countBucket: accountsBucketNameFrom(count: count)])
+            if let accountsCount = try? vault()?.accountsCount() {
+                eventMapping.fire(.autofillLoginsStacked, parameters: [AutofillPixelEvent.Parameter.countBucket: accountsBucketNameFrom(count: accountsCount)])
             }
 
-            if let count = try? vault()?.creditCardsCount() {
-                eventMapping.fire(.autofillCreditCardsStacked, parameters: [AutofillPixelEvent.Parameter.countBucket: creditCardsBucketNameFrom(count: count)])
+            if let cardsCount = try? vault()?.creditCardsCount() {
+                eventMapping.fire(.autofillCreditCardsStacked, parameters: [AutofillPixelEvent.Parameter.countBucket: creditCardsBucketNameFrom(count: cardsCount)])
             }
         }
 

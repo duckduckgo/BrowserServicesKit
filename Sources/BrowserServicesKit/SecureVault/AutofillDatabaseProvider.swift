@@ -560,7 +560,7 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
 
     public func creditCardsCount() throws -> Int {
         let count = try db.read {
-            try SecureVaultModels.WebsiteAccount.fetchCount($0)
+            try SecureVaultModels.CreditCard.fetchCount($0)
         }
         return count
     }
