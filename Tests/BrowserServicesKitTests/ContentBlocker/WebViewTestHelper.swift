@@ -87,7 +87,7 @@ final class MockSurrogatesUserScriptDelegate: NSObject, SurrogatesUserScriptDele
     }
 
     func surrogatesUserScriptShouldProcessCTLTrackers(_ script: SurrogatesUserScript) -> Bool {
-        return shouldProcessCTLTrackers
+        shouldProcessCTLTrackers
     }
 
     func surrogatesUserScript(_ script: SurrogatesUserScript,
