@@ -71,11 +71,12 @@ struct JsonToRemoteMessageModelMapper {
                      surveyActionMapper: RemoteMessagingSurveyActionMapping) -> [RemoteMessageModel] {
         var remoteMessages: [RemoteMessageModel] = []
         jsonRemoteMessages.forEach { message in
+            guard let content = mapToContent( content: message.content, surveyActionMapper: surveyActionMapper) else {
+                return
+            }
+
             var remoteMessage = RemoteMessageModel(id: message.id,
-                                              content: mapToContent(
-                                                content: message.content,
-                                                surveyActionMapper: surveyActionMapper
-                                              ),
+                                              content: content,
                                               matchingRules: message.matchingRules ?? [],
                                               exclusionRules: message.exclusionRules ?? [])
 
