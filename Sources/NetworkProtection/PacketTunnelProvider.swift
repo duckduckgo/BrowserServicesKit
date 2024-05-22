@@ -418,7 +418,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         loadSelectedServer(from: options)
         loadSelectedLocation(from: options)
         loadTesterEnabled(from: options)
+#if os(macOS)
         try loadAuthToken(from: options)
+#endif
     }
 
     open func loadVendorOptions(from provider: NETunnelProviderProtocol?) throws {
@@ -482,6 +484,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
+#if os(macOS)
     private func loadAuthToken(from options: StartupOptions) throws {
         switch options.authToken {
         case .set(let newAuthToken):
@@ -499,6 +502,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             throw TunnelError.startingTunnelWithoutAuthToken
         }
     }
+#endif
 
     private func loadRoutes(from options: [String: Any]?) {
         self.includedRoutes = (options?[NetworkProtectionOptionKey.includedRoutes] as? [String])?.compactMap(IPAddressRange.init(from:)) ?? []

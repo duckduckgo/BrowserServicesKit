@@ -107,7 +107,9 @@ struct StartupOptions {
     let selectedEnvironment: StoredOption<VPNSettings.SelectedEnvironment>
     let selectedServer: StoredOption<VPNSettings.SelectedServer>
     let selectedLocation: StoredOption<VPNSettings.SelectedLocation>
+#if os(macOS)
     let authToken: StoredOption<String>
+#endif
     let enableTester: StoredOption<Bool>
 
     init(options: [String: Any]) {
@@ -128,7 +130,9 @@ struct StartupOptions {
         simulateMemoryCrash = options[NetworkProtectionOptionKey.tunnelMemoryCrashSimulation] as? Bool ?? false
 
         let resetStoredOptionsIfNil = startupMethod == .manualByMainApp
+#if os(macOS)
         authToken = Self.readAuthToken(from: options, resetIfNil: resetStoredOptionsIfNil)
+#endif
         enableTester = Self.readEnableTester(from: options, resetIfNil: resetStoredOptionsIfNil)
         keyValidity = Self.readKeyValidity(from: options, resetIfNil: resetStoredOptionsIfNil)
         selectedEnvironment = Self.readSelectedEnvironment(from: options, resetIfNil: resetStoredOptionsIfNil)
@@ -154,6 +158,7 @@ struct StartupOptions {
 
     // MARK: - Helpers for reading stored options
 
+#if os(macOS)
     private static func readAuthToken(from options: [String: Any], resetIfNil: Bool) -> StoredOption<String> {
         StoredOption(resetIfNil: resetIfNil) {
             guard let authToken = options[NetworkProtectionOptionKey.authToken] as? String,
@@ -164,6 +169,7 @@ struct StartupOptions {
             return authToken
         }
     }
+#endif
 
     private static func readKeyValidity(from options: [String: Any], resetIfNil: Bool) -> StoredOption<TimeInterval> {
         StoredOption(resetIfNil: resetIfNil) {
