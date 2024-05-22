@@ -51,19 +51,14 @@ public struct Match: Decodable, Encodable, Hashable {
 }
 
 public protocol PhishingDetectionServiceProtocol {
-    var filterSet: Set<Filter> {get set}
-    var hashPrefixes: Set<String> {get set}
     func isMalicious(url: URL) async -> Bool
     func updateFilterSet() async
     func updateHashPrefixes() async
-    func getMatches(hashPrefix: String) async -> Set<Match>
-    func loadData()
-    func writeData()
 }
 
 public class PhishingDetectionService: PhishingDetectionServiceProtocol {
-    public var filterSet: Set<Filter> = []
-    public var hashPrefixes = Set<String>()
+    var filterSet: Set<Filter> = []
+    var hashPrefixes = Set<String>()
     var currentRevision = 0
     var apiClient: PhishingDetectionClientProtocol
     var dataStore: URL?
