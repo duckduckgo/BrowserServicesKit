@@ -50,14 +50,10 @@ class HashPrefixDataActivity {
     
     func start() async {
         activityScheduler.schedule { (completion: NSBackgroundActivityScheduler.CompletionHandler) in
-            let semaphore = DispatchSemaphore(value: 0)
-
             Task {
                 await self.detectionService.updateHashPrefixes()
-                semaphore.signal()
+                completion(.finished)
             }
-
-            semaphore.wait()
         }
     }
 }
@@ -75,14 +71,10 @@ class FilterSetDataActivity {
     
     func start() async {
         activityScheduler.schedule { (completion: NSBackgroundActivityScheduler.CompletionHandler) in
-            let semaphore = DispatchSemaphore(value: 0)
-
             Task {
                 await self.detectionService.updateFilterSet()
-                semaphore.signal()
+                completion(.finished)
             }
-
-            semaphore.wait()
         }
     }
 }
