@@ -132,6 +132,35 @@ public extension String {
         self.replacing(regex(pattern), with: replacement)
     }
 
+    func firstMatch(of regex: RegEx, options: RegEx.MatchingOptions = [], range: Range<String.Index>? = nil) -> NSTextCheckingResult? {
+        let nsRange = range.map { NSRange($0, in: self) } ?? fullRange
+        return regex.firstMatch(in: self, options: options, range: nsRange)
+    }
+
+}
+
+public extension NSTextCheckingResult {
+
+    func range(in string: String) -> Range<String.Index>? {
+        let range = self.range
+        guard range.location != NSNotFound, let matchRange = Range(self.range, in: string) else {
+            assertionFailure("Could not convert match range \(range) to Range in \"\(string)\"")
+            return nil
+       }
+       return matchRange
+    }
+
+    func range(at idx: Int, in string: String) -> Range<String.Index>? {
+        guard numberOfRanges > idx else { return nil }
+        let range = self.range(at: idx)
+        guard range.location != NSNotFound else { return nil }
+        guard let matchRange = Range(range, in: string) else {
+            assertionFailure("Could not convert match range \(range) to Range in \"\(string)\"")
+            return nil
+       }
+       return matchRange
+    }
+
 }
 
 public extension StringProtocol {

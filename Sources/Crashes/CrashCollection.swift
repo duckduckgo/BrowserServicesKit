@@ -43,39 +43,24 @@ public final class CrashCollection {
     }
     private let getLog: () -> OSLog
 
-    public init(platform: CrashCollectionPlatform, log: @escaping @autoclosure () -> OSLog = OSLog.disabled) {
+    public init(platform: CrashCollectionPlatform, log: @escaping @autoclosure () -> OSLog = .disabled) {
         self.getLog = log
         crashHandler = CrashHandler()
         crashSender = CrashReportSender(platform: platform, log: log())
     }
 
-    public func start(_ didFindCrashReports: @escaping (_ pixelParameters: [[String: String]], _ payloads: [MXDiagnosticPayload], _ uploadReports: @escaping () -> Void) -> Void) {
+    public func start(didFindCrashReports: @escaping (_ pixelParameters: [[String: String]], _ payloads: [Data], _ uploadReports: @escaping () -> Void) -> Void) {
+        start(process: { payloads in
+            payloads.map { $0.jsonRepresentation() }
+        }, didFindCrashReports: didFindCrashReports)
+    }
+
+    public func start(process: @escaping ([MXDiagnosticPayload]) -> [Data], didFindCrashReports: @escaping (_ pixelParameters: [[String: String]], _ payloads: [Data], _ uploadReports: @escaping () -> Void) -> Void) {
         let first = isFirstCrash
         isFirstCrash = false
 
-        os_log("😵 Requesting diagnostics from MXMetricManager")
-        crashHandler.crashDiagnosticsPayloadHandler = { payloads in
-            os_log("😵 diagnostics callback with %{public}d payloads", payloads.count)
-            for payload in payloads {
-                if let diagnostics = payload.crashDiagnostics {
-                    for diagnostic in diagnostics {
-                        if #available(macOS 14.0, *),
-                           let reason = diagnostic.exceptionReason {
-
-                            os_log("😵 className: %{public}s", reason.className)
-                            os_log("😵 composedMessage: %{public}s", reason.composedMessage)
-                            os_log("😵 exceptionName: %{public}s", reason.exceptionName)
-                            os_log("😵 exceptionType: %{public}s", reason.exceptionType)
-                        } else {
-                            os_log("😵 exceptionReason: unavailable")
-                        }
-                    }
-                    continue
-                } else {
-                    os_log("😵 crashDiagnostics: unavailable")
-                }
-
-            }
+        crashHandler.crashDiagnosticsPayloadHandler = { [log] payloads in
+            os_log("😵 loaded %{public}d diagnostic payloads", log: log, payloads.count)
             let pixelParameters = payloads
                 .compactMap(\.crashDiagnostics)
                 .flatMap { $0 }
@@ -91,10 +76,11 @@ public final class CrashCollection {
                     }
                     return params
                 }
-            didFindCrashReports(pixelParameters, payloads) {
+            let processedData = process(payloads)
+            didFindCrashReports(pixelParameters, processedData) {
                 Task {
-                    for payload in payloads {
-                        await self.crashSender.send(payload.jsonRepresentation())
+                    for payload in processedData {
+                        await self.crashSender.send(payload)
                     }
                 }
             }
