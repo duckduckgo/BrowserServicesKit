@@ -20,16 +20,6 @@ import Foundation
 import CryptoKit
 import Common
 
-public struct HashPrefixResponse: Decodable, Encodable {
-    public var hashPrefixes: [String]
-    public var revision: Int
-}
-
-public struct FilterSetResponse: Decodable, Encodable {
-    public var filters: [Filter]
-    public var revision: Int
-}
-
 public struct Filter: Decodable, Encodable, Hashable {
     public var hashValue: String
     public var regex: String
@@ -45,9 +35,6 @@ public struct Filter: Decodable, Encodable, Hashable {
     }
 }
 
-public struct MatchResponse: Codable {
-    public var matches: [Match]
-}
 
 public struct Match: Decodable, Encodable, Hashable {
     var hostname: String
@@ -88,23 +75,39 @@ public class PhishingDetectionService: PhishingDetectionServiceProtocol {
     }
     
     public func updateFilterSet() async {
-        let filterSet = await apiClient.updateFilterSet(revision: currentRevision)
-        self.filterSet = Set(filterSet)
+        let response = await apiClient.getFilterSet(revision: currentRevision)
+        switch response {
+        case .filterSetResponse(let fullResponse):
+            currentRevision = fullResponse.revision
+            self.filterSet = Set(fullResponse.filters)
+        case .filterSetUpdateResponse(let updateResponse):
+            currentRevision = updateResponse.revision
+            updateResponse.insert.forEach { self.filterSet.insert($0) }
+            updateResponse.delete.forEach { self.filterSet.remove($0) }
+        }
     }
-    
+
     public func updateHashPrefixes() async {
-        let hashPrefixes = await apiClient.updateHashPrefixes(revision: currentRevision)
-        self.hashPrefixes = Set(hashPrefixes)
+        let response = await apiClient.getHashPrefixes(revision: currentRevision)
+        switch response {
+        case .hashPrefixResponse(let fullResponse):
+            currentRevision = fullResponse.revision
+            self.hashPrefixes = Set(fullResponse.hashPrefixes)
+        case .hashPrefixUpdateResponse(let updateResponse):
+            currentRevision = updateResponse.revision
+            updateResponse.insert.forEach { self.hashPrefixes.insert($0) }
+            updateResponse.delete.forEach { self.hashPrefixes.remove($0) }
+        }
     }
-    
+
     public func getMatches(hashPrefix: String) async -> Set<Match> {
         return Set(await apiClient.getMatches(hashPrefix: hashPrefix))
     }
-    
+
     func inFilterSet(hash: String) -> Set<Filter> {
         return Set(filterSet.filter { $0.hashValue == hash })
     }
-    
+
     public func isMalicious(url: URL) async -> Bool {
         guard let canonicalHost = url.canonicalHost() else { return false }
         let hostnameHash = SHA256.hash(data: Data(canonicalHost.utf8)).map { String(format: "%02hhx", $0) }.joined()
@@ -129,7 +132,7 @@ public class PhishingDetectionService: PhishingDetectionServiceProtocol {
         }
         return false
     }
-    
+
     func createDataStore() {
         do {
             let fileManager = FileManager.default

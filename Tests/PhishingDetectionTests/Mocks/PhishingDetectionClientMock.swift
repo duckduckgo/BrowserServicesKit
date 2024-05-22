@@ -2,22 +2,38 @@ import Foundation
 import PhishingDetection
 
 public class MockPhishingDetectionClient: PhishingDetectionClientProtocol {
-
-    public func updateFilterSet(revision: Int) async -> [Filter] {
-        return [
+    private var filterRevisions: [Int: FilterSetResponseGeneric] = [
+        0: FilterSetResponseGeneric(filters: [
             Filter(hashValue: "testhash1", regex: ".*example.*"),
             Filter(hashValue: "testhash2", regex: ".*test.*")
-        ]
-    }
+        ], revision: 0),
+        1: FilterSetResponseGeneric(filters: [
+            Filter(hashValue: "testhash3", regex: ".*test.*")
+        ], revision: 1, delete: [
+            Filter(hashValue: "testhash1", regex: ".*example.*"),
+        ])
+    ]
 
-    public func updateHashPrefixes(revision: Int) async -> [String] {
-        return [
+    private var hashPrefixRevisions: [Int: HashPrefixResponseGeneric] = [
+        0: HashPrefixResponseGeneric(hashPrefixes: [
             "aa00bb11",
             "bb00cc11",
             "cc00dd11",
             "dd00ee11",
             "a379a6f6"
-        ]
+        ], revision: 0),
+        1: HashPrefixResponseGeneric(hashPrefixes: ["93e2435e"], revision: 1, delete: [
+            "cc00dd11",
+            "dd00ee11",
+        ])
+    ]
+
+    public func getFilterSet(revision: Int) async -> FilterSetResponseGeneric {
+        return filterRevisions[revision] ?? FilterSetResponseGeneric(filters: [], revision: revision)
+    }
+
+    public func getHashPrefixes(revision: Int) async -> HashPrefixResponseGeneric {
+        return hashPrefixRevisions[revision] ?? HashPrefixResponseGeneric(hashPrefixes: [], revision: revision)
     }
 
     public func getMatches(hashPrefix: String) async -> [Match] {
@@ -27,4 +43,3 @@ public class MockPhishingDetectionClient: PhishingDetectionClientProtocol {
         ]
     }
 }
-
