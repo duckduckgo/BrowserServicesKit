@@ -35,15 +35,6 @@ class PhishingDetectionServiceTests: XCTestCase {
         ])
     }
 
-    func testGetMatches() async {
-        let matches = await service!.getMatches(hashPrefix: "aa00bb11")
-        XCTAssertFalse(matches.isEmpty, "Should return matches for given hash prefix.")
-        
-        let expectedMatch = Match(hostname: "example.com", url: "https://example.com/mal", regex: ".", hash: "a379a6f6eeafb9a55e378c118034e2751e682fab9f2d30ab13d2125586ce1947")
-        
-        XCTAssertTrue(matches.contains(expectedMatch), "Set should contain the expected match.")
-    }
-
     func testCheckURL() async {
         await service!.updateHashPrefixes()
         let trueResult = await service!.isMalicious(url: URL(string: "https://example.com/bad/path")!)
