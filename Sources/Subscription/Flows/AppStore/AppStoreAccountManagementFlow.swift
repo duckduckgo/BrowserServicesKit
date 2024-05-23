@@ -23,26 +23,33 @@ import Common
 @available(macOS 12.0, iOS 15.0, *)
 public final class AppStoreAccountManagementFlow {
 
-        public enum Error: Swift.Error {
-            case noPastTransaction
-            case authenticatingWithTransactionFailed
-        }
+    private let subscriptionManager: SubscriptionManaging
+    private var accountManager: AccountManaging {
+        subscriptionManager.accountManager
+    }
+
+    public init(subscriptionManager: SubscriptionManaging) {
+        self.subscriptionManager = subscriptionManager
+    }
+
+    public enum Error: Swift.Error {
+        case noPastTransaction
+        case authenticatingWithTransactionFailed
+    }
 
     @discardableResult
-    public static func refreshAuthTokenIfNeeded(subscriptionAppGroup: String) async -> Result<String, AppStoreAccountManagementFlow.Error> {
+    public func refreshAuthTokenIfNeeded() async -> Result<String, AppStoreAccountManagementFlow.Error> {
         os_log(.info, log: .subscription, "[AppStoreAccountManagementFlow] refreshAuthTokenIfNeeded")
-        let accountManager = AccountManager(subscriptionAppGroup: subscriptionAppGroup)
-
         var authToken = accountManager.authToken ?? ""
 
         // Check if auth token if still valid
-        if case let .failure(validateTokenError) = await AuthService.validateToken(accessToken: authToken) {
+        if case let .failure(validateTokenError) = await subscriptionManager.authService.validateToken(accessToken: authToken) {
             os_log(.error, log: .subscription, "[AppStoreAccountManagementFlow] validateToken error: %{public}s", String(reflecting: validateTokenError))
 
             // In case of invalid token attempt store based authentication to obtain a new one
-            guard let lastTransactionJWSRepresentation = await PurchaseManager.mostRecentTransaction() else { return .failure(.noPastTransaction) }
+            guard let lastTransactionJWSRepresentation = await subscriptionManager.storePurchaseManager().mostRecentTransaction() else { return .failure(.noPastTransaction) }
 
-            switch await AuthService.storeLogin(signature: lastTransactionJWSRepresentation) {
+            switch await subscriptionManager.authService.storeLogin(signature: lastTransactionJWSRepresentation) {
             case .success(let response):
                 if response.externalID == accountManager.externalID {
                     authToken = response.authToken

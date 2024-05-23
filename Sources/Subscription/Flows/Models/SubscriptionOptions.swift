@@ -1,7 +1,7 @@
 //
-//  PurchaseFlow.swift
+//  SubscriptionOptions.swift
 //
-//  Copyright © 2023 DuckDuckGo. All rights reserved.
+//  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -46,34 +46,4 @@ struct SubscriptionOptionCost: Encodable {
 
 public struct SubscriptionFeature: Encodable {
     let name: String
-}
-
-// MARK: -
-
-public enum SubscriptionFeatureName: String, CaseIterable {
-    case privateBrowsing = "private-browsing"
-    case privateSearch = "private-search"
-    case emailProtection = "email-protection"
-    case appTrackingProtection = "app-tracking-protection"
-    case vpn = "vpn"
-    case personalInformationRemoval = "personal-information-removal"
-    case identityTheftRestoration = "identity-theft-restoration"
-}
-
-public enum SubscriptionPlatformName: String {
-    case ios
-    case macos
-    case stripe
-}
-
-// MARK: -
-
-public struct PurchaseUpdate: Codable {
-    let type: String
-    let token: String?
-
-    public init(type: String, token: String? = nil) {
-        self.type = type
-        self.token = token
-    }
 }
