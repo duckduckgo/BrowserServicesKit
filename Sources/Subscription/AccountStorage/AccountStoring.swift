@@ -1,5 +1,5 @@
 //
-//  AccountStorage.swift
+//  AccountStoring.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -18,7 +18,7 @@
 
 import Foundation
 
-public protocol AccountStorage: AnyObject {
+public protocol AccountStoring: AnyObject {
     func getAuthToken() throws -> String?
     func store(authToken: String) throws
     func getAccessToken() throws -> String?
