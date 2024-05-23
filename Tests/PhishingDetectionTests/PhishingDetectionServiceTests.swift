@@ -57,4 +57,31 @@ class PhishingDetectionServiceTests: XCTestCase {
         XCTAssertFalse(service!.hashPrefixes.isEmpty, "Hash prefixes should not be empty after load.")
         XCTAssertFalse(service!.filterSet.isEmpty, "Filter set should not be empty after load.")
     }
+    
+    func testRevision1AddsData() async {
+        service!.currentRevision = 1
+        await service!.updateFilterSet()
+        await service!.updateHashPrefixes()
+        XCTAssertTrue(service!.filterSet.contains(where: { $0.hashValue == "testhash3" }), "Filter set should contain added data after update.")
+        XCTAssertTrue(service!.hashPrefixes.contains("93e2435e"), "Hash prefixes should contain added data after update.")
+    }
+
+    func testRevision2DeletesData() async {
+        service!.currentRevision = 2
+        await service!.updateFilterSet()
+        await service!.updateHashPrefixes()
+        XCTAssertFalse(service!.filterSet.contains(where: { $0.hashValue == "testhash2" }), "Filter set should not contain deleted data after update.")
+        XCTAssertFalse(service!.hashPrefixes.contains("bb00cc11"), "Hash prefixes should not contain deleted data after update.")
+    }
+
+    func testRevision4AddsAndDeletesData() async {
+        service!.currentRevision = 4
+        await service!.updateFilterSet()
+        await service!.updateHashPrefixes()
+        XCTAssertTrue(service!.filterSet.contains(where: { $0.hashValue == "testhash5" }), "Filter set should contain added data after update.")
+        XCTAssertFalse(service!.filterSet.contains(where: { $0.hashValue == "testhash3" }), "Filter set should not contain deleted data after update.")
+        XCTAssertTrue(service!.hashPrefixes.contains("a379a6f6"), "Hash prefixes should contain added data after update.")
+        XCTAssertFalse(service!.hashPrefixes.contains("aa00bb11"), "Hash prefixes should not contain deleted data after update.")
+    }
+
 }

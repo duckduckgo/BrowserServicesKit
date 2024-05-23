@@ -11,7 +11,17 @@ public class MockPhishingDetectionClient: PhishingDetectionClientProtocol {
             Filter(hashValue: "testhash3", regex: ".*test.*")
         ], delete: [
             Filter(hashValue: "testhash1", regex: ".*example.*"),
-        ], revision: 1, replace: false)
+        ], revision: 1, replace: false),
+        2: FilterSetResponse(insert: [
+            Filter(hashValue: "testhash4", regex: ".*test.*")
+        ], delete: [
+            Filter(hashValue: "testhash2", regex: ".*test.*"),
+        ], revision: 2, replace: false),
+        4: FilterSetResponse(insert: [
+            Filter(hashValue: "testhash5", regex: ".*test.*")
+        ], delete: [
+            Filter(hashValue: "testhash3", regex: ".*test.*"),
+        ], revision: 4, replace: false)
     ]
 
     private var hashPrefixRevisions: [Int: HashPrefixResponse] = [
@@ -25,7 +35,13 @@ public class MockPhishingDetectionClient: PhishingDetectionClientProtocol {
         1: HashPrefixResponse(insert: ["93e2435e"], delete: [
             "cc00dd11",
             "dd00ee11",
-        ], revision: 1, replace: false)
+        ], revision: 1, replace: false),
+        2: HashPrefixResponse(insert: ["93e2435e"], delete: [
+            "bb00cc11",
+        ], revision: 2, replace: false),
+        4: HashPrefixResponse(insert: ["a379a6f6"], delete: [
+            "aa00bb11",
+        ], revision: 4, replace: false)
     ]
 
     public func getFilterSet(revision: Int) async -> FilterSetResponse {
