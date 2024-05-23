@@ -241,6 +241,7 @@ extension PrivacyDashboardController: WKNavigationDelegate {
         subscribeToServerTrust()
         subscribeToConsentManaged()
         subscribeToAllowedPermissions()
+        subscribeToIsPhishing()
     }
 
     private func subscribeToTheme() {
@@ -286,6 +287,16 @@ extension PrivacyDashboardController: WKNavigationDelegate {
             .sink(receiveValue: { [weak self] serverTrustViewModel in
                 guard let self = self, let serverTrustViewModel = serverTrustViewModel, let webView = self.webView else { return }
                 self.privacyDashboardScript.setServerTrust(serverTrustViewModel, webView: webView)
+            })
+            .store(in: &cancellables)
+    }
+
+    private func subscribeToIsPhishing() {
+        privacyInfo?.$isPhishing
+            .receive(on: DispatchQueue.main )
+            .sink(receiveValue: { [weak self] isPhishing in
+                guard let self = self, let webView = self.webView else { return }
+                self.privacyDashboardScript.setIsPhishing(isPhishing, webView: webView)
             })
             .store(in: &cancellables)
     }
