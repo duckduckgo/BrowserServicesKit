@@ -19,73 +19,31 @@
 import Foundation
 import Common
 
-public enum HashPrefixResponseGeneric {
-    case hashPrefixResponse(HashPrefixResponse)
-    case hashPrefixUpdateResponse(HashPrefixUpdateResponse)
-    
-    public init(hashPrefixes: [String], revision: Int, insert: [String] = [], delete: [String] = []) {
-        if insert.isEmpty && delete.isEmpty {
-            self = .hashPrefixResponse(HashPrefixResponse(hashPrefixes: hashPrefixes, revision: revision))
-        } else {
-            self = .hashPrefixUpdateResponse(HashPrefixUpdateResponse(insert: insert, delete: delete, revision: revision))
-        }
-    }
-}
-
 public struct HashPrefixResponse: Decodable, Encodable {
-    public var hashPrefixes: [String]
-    public var revision: Int
-    
-    public init(hashPrefixes: [String], revision: Int) {
-        self.hashPrefixes = hashPrefixes
-        self.revision = revision
-    }
-}
-
-public struct HashPrefixUpdateResponse: Decodable, Encodable {
     public var insert: [String]
     public var delete: [String]
     public var revision: Int
+    public var replace: Bool
     
-    public init(insert: [String], delete: [String], revision: Int) {
+    public init(insert: [String], delete: [String], revision: Int, replace: Bool) {
         self.insert = insert
         self.delete = delete
         self.revision = revision
-    }
-}
-
-public enum FilterSetResponseGeneric {
-    case filterSetResponse(FilterSetResponse)
-    case filterSetUpdateResponse(FilterSetUpdateResponse)
-    
-    public init(filters: [Filter], revision: Int, insert: [Filter] = [], delete: [Filter] = []) {
-        if insert.isEmpty && delete.isEmpty {
-            self = .filterSetResponse(FilterSetResponse(filters: filters, revision: revision))
-        } else {
-            self = .filterSetUpdateResponse(FilterSetUpdateResponse(insert: insert, delete: delete, revision: revision))
-        }
+        self.replace = replace
     }
 }
 
 public struct FilterSetResponse: Decodable, Encodable {
-    public var filters: [Filter]
-    public var revision: Int
-    
-    init(filters: [Filter], revision: Int) {
-        self.filters = filters
-        self.revision = revision
-    }
-}
-
-public struct FilterSetUpdateResponse: Decodable, Encodable {
     public var insert: [Filter]
     public var delete: [Filter]
     public var revision: Int
+    public var replace: Bool
     
-    init(insert: [Filter], delete: [Filter], revision: Int) {
+    init(insert: [Filter], delete: [Filter], revision: Int, replace: Bool) {
         self.insert = insert
         self.delete = delete
         self.revision = revision
+        self.replace = replace
     }
 }
 
@@ -96,8 +54,8 @@ public struct MatchResponse: Codable {
 
 
 public protocol PhishingDetectionClientProtocol {
-    func getFilterSet(revision: Int) async -> FilterSetResponseGeneric
-    func getHashPrefixes(revision: Int) async -> HashPrefixResponseGeneric
+    func getFilterSet(revision: Int) async -> FilterSetResponse
+    func getHashPrefixes(revision: Int) async -> HashPrefixResponse
     func getMatches(hashPrefix: String) async -> [Match]
 }
 
@@ -138,35 +96,21 @@ class PhishingDetectionAPIClient: PhishingDetectionClientProtocol {
         }
     }
 
-    public func getFilterSet(revision: Int) async -> FilterSetResponseGeneric {
+    public func getFilterSet(revision: Int) async -> FilterSetResponse {
         guard let url = createURL(baseURL: filterSetURL, revision: revision, queryItemName: "revision") else {
             logDebug("🔸 Invalid filterSet revision URL: \(revision)")
-            return .filterSetResponse(FilterSetResponse(filters: [], revision: revision))
+            return FilterSetResponse(insert: [], delete: [], revision: revision, replace: false)
         }
-        let response = await fetch(url: url, responseType: FilterSetUpdateResponse.self, fallbackResponseType: FilterSetResponse.self)
-        if let updateResponse = response as? FilterSetUpdateResponse {
-            return .filterSetUpdateResponse(updateResponse)
-        } else if let regularResponse = response as? FilterSetResponse {
-            return .filterSetResponse(regularResponse)
-        }
-        return .filterSetResponse(FilterSetResponse(filters: [], revision: revision))
+        return await fetch(url: url, responseType: FilterSetResponse.self) ?? FilterSetResponse(insert: [], delete: [], revision: revision, replace: false)
     }
 
-    public func getHashPrefixes(revision: Int) async -> HashPrefixResponseGeneric {
+    public func getHashPrefixes(revision: Int) async -> HashPrefixResponse {
         guard let url = createURL(baseURL: hashPrefixURL, revision: revision, queryItemName: "revision") else {
             logDebug("🔸 Invalid hashPrefix revision URL: \(revision)")
-            return .hashPrefixResponse(HashPrefixResponse(hashPrefixes: [], revision: revision))
+            return HashPrefixResponse(insert: [], delete: [], revision: revision, replace: false)
         }
-        let response = await fetch(url: url, responseType: FilterSetUpdateResponse.self, fallbackResponseType: FilterSetResponse.self)
-        if let updateResponse = response as? HashPrefixUpdateResponse {
-            return .hashPrefixUpdateResponse(updateResponse)
-        } else if let fullResponse = response as? HashPrefixResponse {
-            return .hashPrefixResponse(fullResponse)
-        }
-        return .hashPrefixResponse(HashPrefixResponse(hashPrefixes: [], revision: revision))
+        return await fetch(url: url, responseType: HashPrefixResponse.self) ?? HashPrefixResponse(insert: [], delete: [], revision: revision, replace: false)
     }
-
-
 
     public func getMatches(hashPrefix: String) async -> [Match] {
          var urlComponents = URLComponents(url: matchesURL, resolvingAgainstBaseURL: true)
@@ -202,26 +146,6 @@ extension PhishingDetectionAPIClient {
             let (data, _) = try await session.data(for: request)
             if let response = try? JSONDecoder().decode(responseType, from: data) {
                 return response
-            } else {
-                logDebug("🔸 Failed to decode response for \(String(describing: responseType)): \(data)")
-            }
-        } catch {
-            logDebug("🔴 Failed to load \(String(describing: responseType)) data: \(error)")
-        }
-        return nil
-    }
-
-    private func fetch<T: Decodable, U: Decodable>(url: URL, responseType: T.Type, fallbackResponseType: U.Type? = nil) async -> Any? {
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.allHTTPHeaderFields = headers
-
-        do {
-            let (data, _) = try await session.data(for: request)
-            if let response = try? JSONDecoder().decode(responseType, from: data) {
-                return response
-            } else if let fallbackResponseType = fallbackResponseType, let fallbackResponse = try? JSONDecoder().decode(fallbackResponseType, from: data) {
-                return fallbackResponse
             } else {
                 logDebug("🔸 Failed to decode response for \(String(describing: responseType)): \(data)")
             }

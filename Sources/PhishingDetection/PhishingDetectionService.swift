@@ -56,6 +56,10 @@ public protocol PhishingDetectionServiceProtocol {
     func updateHashPrefixes() async
 }
 
+enum PhishingDetectionDataError: Error {
+    case empty
+}
+
 public class PhishingDetectionService: PhishingDetectionServiceProtocol {
     var filterSet: Set<Filter> = []
     var hashPrefixes = Set<String>()
@@ -71,27 +75,25 @@ public class PhishingDetectionService: PhishingDetectionServiceProtocol {
     
     public func updateFilterSet() async {
         let response = await apiClient.getFilterSet(revision: currentRevision)
-        switch response {
-        case .filterSetResponse(let fullResponse):
-            currentRevision = fullResponse.revision
-            self.filterSet = Set(fullResponse.filters)
-        case .filterSetUpdateResponse(let updateResponse):
-            currentRevision = updateResponse.revision
-            updateResponse.insert.forEach { self.filterSet.insert($0) }
-            updateResponse.delete.forEach { self.filterSet.remove($0) }
+        if response.replace {
+            currentRevision = response.revision
+            self.filterSet = Set(response.insert)
+        } else {
+            currentRevision = response.revision
+            response.insert.forEach { self.filterSet.insert($0) }
+            response.delete.forEach { self.filterSet.remove($0) }
         }
     }
 
     public func updateHashPrefixes() async {
         let response = await apiClient.getHashPrefixes(revision: currentRevision)
-        switch response {
-        case .hashPrefixResponse(let fullResponse):
-            currentRevision = fullResponse.revision
-            self.hashPrefixes = Set(fullResponse.hashPrefixes)
-        case .hashPrefixUpdateResponse(let updateResponse):
-            currentRevision = updateResponse.revision
-            updateResponse.insert.forEach { self.hashPrefixes.insert($0) }
-            updateResponse.delete.forEach { self.hashPrefixes.remove($0) }
+        if response.replace {
+            currentRevision = response.revision
+            self.hashPrefixes = Set(response.insert)
+        } else {
+            currentRevision = response.revision
+            response.insert.forEach { self.hashPrefixes.insert($0) }
+            response.delete.forEach { self.hashPrefixes.remove($0) }
         }
     }
 
@@ -142,6 +144,9 @@ public class PhishingDetectionService: PhishingDetectionServiceProtocol {
     public func writeData() {
         let encoder = JSONEncoder()
         do {
+            if hashPrefixes.isEmpty && filterSet.isEmpty {
+                throw PhishingDetectionDataError.empty
+            }
             let hashPrefixesData = try encoder.encode(Array(hashPrefixes))
             let filterSetData = try encoder.encode(Array(filterSet))
 
@@ -166,6 +171,10 @@ public class PhishingDetectionService: PhishingDetectionServiceProtocol {
 
             hashPrefixes = Set(try decoder.decode([String].self, from: hashPrefixesData))
             filterSet = Set(try decoder.decode([Filter].self, from: filterSetData))
+            
+            if hashPrefixes.isEmpty && filterSet.isEmpty {
+                throw PhishingDetectionDataError.empty
+            }
         } catch {
             os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error loading phishing protection data: \(error)")
             Task {
