@@ -58,6 +58,8 @@ public final class AutofillPixelReporter {
     private let eventMapping: EventMapping<AutofillPixelEvent>
     private var secureVault: (any AutofillSecureVault)?
     private var reporter: SecureVaultReporting?
+    // Third party password manager
+    private let passwordManager: PasswordManager?
     private var installDate: Date?
 
     private var autofillSearchDauDate: Date? { userDefaults.object(forKey: Keys.autofillSearchDauDateKey) as? Date ?? .distantPast }
@@ -68,12 +70,14 @@ public final class AutofillPixelReporter {
                 eventMapping: EventMapping<AutofillPixelEvent>,
                 secureVault: (any AutofillSecureVault)? = nil,
                 reporter: SecureVaultReporting? = nil,
+                passwordManager: PasswordManager? = nil,
                 installDate: Date? = nil
     ) {
-        self.eventMapping = eventMapping
         self.userDefaults = userDefaults
+        self.eventMapping = eventMapping
         self.secureVault = secureVault
         self.reporter = reporter
+        self.passwordManager = passwordManager
         self.installDate = installDate
 
         createNotificationObservers()
@@ -130,8 +134,8 @@ public final class AutofillPixelReporter {
         if shouldFireActiveUserPixel() {
             eventMapping.fire(.autofillActiveUser)
 
-            if let accountsCount = try? vault()?.accountsCount() {
-                eventMapping.fire(.autofillLoginsStacked, parameters: [AutofillPixelEvent.Parameter.countBucket: accountsBucketNameFrom(count: accountsCount)])
+            if let accountsCountBucket = getAccountsCountBucket() {
+                eventMapping.fire(.autofillLoginsStacked, parameters: [AutofillPixelEvent.Parameter.countBucket: accountsCountBucket])
             }
 
             if let cardsCount = try? vault()?.creditCardsCount() {
@@ -149,6 +153,16 @@ public final class AutofillPixelReporter {
         }
     }
 
+    private func getAccountsCountBucket() -> String? {
+        if let passwordManager = passwordManager, passwordManager.isEnabled {
+            // if a user is using a password manager we can't get a count of their passwords so we are assuming they are likely to have a lot of passwords saved
+            return BucketName.lots.rawValue
+        } else if let accountsCount = try? vault()?.accountsCount() {
+            return accountsBucketNameFrom(count: accountsCount)
+        }
+        return nil
+    }
+
     private func shouldFireActiveUserPixel() -> Bool {
         let today = Date()
         if Date.isSameDay(today, autofillSearchDauDate) && Date.isSameDay(today, autofillFillDate) {
@@ -158,8 +172,12 @@ public final class AutofillPixelReporter {
     }
 
     private func shouldFireEnabledUserPixel() -> Bool {
-        if Date.isSameDay(Date(), autofillSearchDauDate), let count = try? vault()?.accountsCount(), count >= 10 {
-            return true
+        if Date.isSameDay(Date(), autofillSearchDauDate) {
+            if let passwordManager = passwordManager, passwordManager.isEnabled {
+                return true
+            } else if let count = try? vault()?.accountsCount(), count >= 10 {
+                return true
+            }
         }
         return false
     }
@@ -172,7 +190,9 @@ public final class AutofillPixelReporter {
         let pastWeek = Date().addingTimeInterval(.days(-7))
 
         if installDate >= pastWeek {
-            if let count = try? vault()?.accountsCount(), count > 0 {
+            if let passwordManager = passwordManager, passwordManager.isEnabled {
+                return true
+            } else if let count = try? vault()?.accountsCount(), count > 0 {
                 userDefaults.set(true, forKey: Keys.autofillOnboardedUserKey)
                 return true
             }
