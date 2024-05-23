@@ -87,7 +87,6 @@ public protocol AutofillSecureVault: SecureVault {
     func deleteIdentityFor(identityId: Int64) throws
 
     func creditCards() throws -> [SecureVaultModels.CreditCard]
-    func creditCardsCount() throws -> Int
     func creditCardFor(id: Int64) throws -> SecureVaultModels.CreditCard?
     func existingCardForAutofill(matching proposedCard: SecureVaultModels.CreditCard) throws -> SecureVaultModels.CreditCard?
     @discardableResult
@@ -232,8 +231,15 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
     }
 
     public func accountsCount() throws -> Int {
-        return try executeThrowingDatabaseOperation {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+
+        do {
             return try self.providers.database.accountsCount()
+        } catch {
+            throw SecureStorageError.databaseError(cause: error)
         }
     }
 
@@ -517,12 +523,6 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
             }
 
             return decryptedCards
-        }
-    }
-
-    public func creditCardsCount() throws -> Int {
-        return try executeThrowingDatabaseOperation {
-            return try self.providers.database.creditCardsCount()
         }
     }
 

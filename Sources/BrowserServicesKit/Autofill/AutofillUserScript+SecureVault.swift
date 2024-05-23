@@ -721,10 +721,6 @@ extension AutofillUserScript {
             case autofillPrivateAddress = "autofill_private_address"
         }
 
-        private enum IdentityPixelName: String {
-            case autofillIdentity = "autofill_identity"
-        }
-
         /// The pixel name sent by the JS layer. This name does not include the platform on which it was sent.
         private let originalPixelName: String
 
@@ -741,13 +737,6 @@ extension AutofillUserScript {
                 EmailPixelName.autofillPrivateAddress.rawValue: return true
             default: return false
             }
-        }
-
-        public var isIdentityPixel: Bool {
-            if case IdentityPixelName.autofillIdentity.rawValue = originalPixelName {
-                return true
-            }
-            return false
         }
 
         public var pixelName: String {

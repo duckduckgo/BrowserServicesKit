@@ -209,11 +209,6 @@ public final class CredentialsProvider: DataProvider {
         } else {
             lastSyncLocalTimestamp = clientTimestamp
         }
-
-        if !received.isEmpty {
-            NotificationCenter.default.post(name: .autofillSaveEvent, object: nil, userInfo: nil)
-        }
-
         syncDidFinish()
     }
 
