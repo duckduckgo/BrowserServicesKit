@@ -16,6 +16,7 @@
 //  limitations under the License.
 //
 
+import Foundation
 import Subscription
 
 public protocol SubscriptionFeatureAvailability {
@@ -26,9 +27,10 @@ public protocol SubscriptionFeatureAvailability {
 public final class DefaultSubscriptionFeatureAvailability: SubscriptionFeatureAvailability {
 
     private let privacyConfigurationManager: PrivacyConfigurationManaging
-    private let purchasePlatform: SubscriptionPurchaseEnvironment.Environment
+    private let purchasePlatform: SubscriptionEnvironment.PurchasePlatform
 
-    public init(privacyConfigurationManager: PrivacyConfigurationManaging, purchasePlatform: SubscriptionPurchaseEnvironment.Environment) {
+    public init(privacyConfigurationManager: PrivacyConfigurationManaging,
+                purchasePlatform: SubscriptionEnvironment.PurchasePlatform) {
         self.privacyConfigurationManager = privacyConfigurationManager
         self.purchasePlatform = purchasePlatform
     }
