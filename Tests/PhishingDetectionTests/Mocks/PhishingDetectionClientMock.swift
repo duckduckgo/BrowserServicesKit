@@ -2,38 +2,38 @@ import Foundation
 import PhishingDetection
 
 public class MockPhishingDetectionClient: PhishingDetectionClientProtocol {
-    private var filterRevisions: [Int: FilterSetResponseGeneric] = [
-        0: FilterSetResponseGeneric(filters: [
+    private var filterRevisions: [Int: FilterSetResponse] = [
+        0: FilterSetResponse(insert: [
             Filter(hashValue: "testhash1", regex: ".*example.*"),
             Filter(hashValue: "testhash2", regex: ".*test.*")
-        ], revision: 0),
-        1: FilterSetResponseGeneric(filters: [
+        ], delete: [], revision: 0, replace: true),
+        1: FilterSetResponse(insert: [
             Filter(hashValue: "testhash3", regex: ".*test.*")
-        ], revision: 1, delete: [
+        ], delete: [
             Filter(hashValue: "testhash1", regex: ".*example.*"),
-        ])
+        ], revision: 1, replace: false)
     ]
 
-    private var hashPrefixRevisions: [Int: HashPrefixResponseGeneric] = [
-        0: HashPrefixResponseGeneric(hashPrefixes: [
+    private var hashPrefixRevisions: [Int: HashPrefixResponse] = [
+        0: HashPrefixResponse(insert: [
             "aa00bb11",
             "bb00cc11",
             "cc00dd11",
             "dd00ee11",
             "a379a6f6"
-        ], revision: 0),
-        1: HashPrefixResponseGeneric(hashPrefixes: ["93e2435e"], revision: 1, delete: [
+        ], delete: [], revision: 0, replace: true),
+        1: HashPrefixResponse(insert: ["93e2435e"], delete: [
             "cc00dd11",
             "dd00ee11",
-        ])
+        ], revision: 1, replace: false)
     ]
 
-    public func getFilterSet(revision: Int) async -> FilterSetResponseGeneric {
-        return filterRevisions[revision] ?? FilterSetResponseGeneric(filters: [], revision: revision)
+    public func getFilterSet(revision: Int) async -> FilterSetResponse {
+        return filterRevisions[revision] ?? FilterSetResponse(insert: [], delete: [], revision: revision, replace: false)
     }
 
-    public func getHashPrefixes(revision: Int) async -> HashPrefixResponseGeneric {
-        return hashPrefixRevisions[revision] ?? HashPrefixResponseGeneric(hashPrefixes: [], revision: revision)
+    public func getHashPrefixes(revision: Int) async -> HashPrefixResponse {
+        return hashPrefixRevisions[revision] ?? HashPrefixResponse(insert: [], delete: [], revision: revision, replace: false)
     }
 
     public func getMatches(hashPrefix: String) async -> [Match] {

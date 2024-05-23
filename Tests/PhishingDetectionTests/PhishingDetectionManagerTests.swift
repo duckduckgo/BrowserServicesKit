@@ -19,7 +19,6 @@
 import Foundation
 import XCTest
 import PhishingDetection
-@testable import DuckDuckGo_Privacy_Browser
 
 class PhishingDetectionManagerTests: XCTestCase {
 

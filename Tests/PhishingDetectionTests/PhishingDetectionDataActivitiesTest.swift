@@ -7,7 +7,6 @@
 
 import Foundation
 import XCTest
-@testable import BrowserServicesKit
 @testable import PhishingDetection
 
 class PhishingDetectionDataActivitiesTest: XCTestCase {

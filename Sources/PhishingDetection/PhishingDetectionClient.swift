@@ -39,7 +39,7 @@ public struct FilterSetResponse: Decodable, Encodable {
     public var revision: Int
     public var replace: Bool
     
-    init(insert: [Filter], delete: [Filter], revision: Int, replace: Bool) {
+    public init(insert: [Filter], delete: [Filter], revision: Int, replace: Bool) {
         self.insert = insert
         self.delete = delete
         self.revision = revision

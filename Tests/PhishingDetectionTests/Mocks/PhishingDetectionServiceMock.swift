@@ -18,14 +18,13 @@ public class MockPhishingDetectionService: PhishingDetectionServiceProtocol {
 
     public func updateFilterSet() async {
         let response = await mockClient.getFilterSet(revision: currentRevision)
-        switch response {
-        case .filterSetResponse(let fullResponse):
-            currentRevision = fullResponse.revision
-            filterSet = Set(fullResponse.filters)
-        case .filterSetUpdateResponse(let updateResponse):
-            currentRevision = updateResponse.revision
-            updateResponse.insert.forEach { self.filterSet.insert($0) }
-            updateResponse.delete.forEach { self.filterSet.remove($0) }
+        if response.replace {
+            currentRevision = response.revision
+            filterSet = Set(response.insert)
+        } else {
+            currentRevision = response.revision
+            response.insert.forEach { self.filterSet.insert($0) }
+            response.delete.forEach { self.filterSet.remove($0) }
         }
         didUpdateFilterSet = true
         updateFilterSetCompletion?()
@@ -33,14 +32,13 @@ public class MockPhishingDetectionService: PhishingDetectionServiceProtocol {
 
     public func updateHashPrefixes() async {
         let response = await mockClient.getHashPrefixes(revision: currentRevision)
-        switch response {
-        case .hashPrefixResponse(let fullResponse):
-            currentRevision = fullResponse.revision
-            hashPrefixes = Set(fullResponse.hashPrefixes)
-        case .hashPrefixUpdateResponse(let updateResponse):
-            currentRevision = updateResponse.revision
-            updateResponse.insert.forEach { self.hashPrefixes.insert($0) }
-            updateResponse.delete.forEach { self.hashPrefixes.remove($0) }
+        if response.replace {
+            currentRevision = response.revision
+            hashPrefixes = Set(response.insert)
+        } else {
+            currentRevision = response.revision
+            response.insert.forEach { self.hashPrefixes.insert($0) }
+            response.delete.forEach { self.hashPrefixes.remove($0) }
         }
         didUpdateHashPrefixes = true
         updateHashPrefixesCompletion?()
