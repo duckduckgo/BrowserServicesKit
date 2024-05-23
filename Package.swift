@@ -32,6 +32,7 @@ let package = Package(
         .library(name: "NetworkProtectionTestUtils", targets: ["NetworkProtectionTestUtils"]),
         .library(name: "SecureStorage", targets: ["SecureStorage"]),
         .library(name: "Subscription", targets: ["Subscription"]),
+        .library(name: "SubscriptionTestingUtilities", targets: ["SubscriptionTestingUtilities"]),
         .library(name: "History", targets: ["History"]),
         .library(name: "Suggestions", targets: ["Suggestions"]),
         .library(name: "PixelKit", targets: ["PixelKit"]),
@@ -332,6 +333,12 @@ let package = Package(
             ]
         ),
         .target(
+            name: "SubscriptionTestingUtilities",
+            dependencies: [
+                "Subscription"
+            ]
+        ),
+        .target(
             name: "PixelKit",
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
@@ -503,6 +510,13 @@ let package = Package(
             dependencies: [
                 "PrivacyDashboard",
                 "TestUtils",
+            ]
+        ),
+        .testTarget(
+            name: "SubscriptionTests",
+            dependencies: [
+                "Subscription",
+                "SubscriptionTestingUtilities",
             ]
         ),
         .testTarget(

@@ -34,24 +34,32 @@ public final class AppStoreRestoreFlow {
         case subscriptionExpired(accountDetails: RestoredAccountDetails)
     }
 
-    public static func restoreAccountFromPastPurchase(subscriptionAppGroup: String) async -> Result<Void, AppStoreRestoreFlow.Error> {
+    private let subscriptionManager: SubscriptionManaging
+    var accountManager: AccountManaging {
+        subscriptionManager.accountManager
+    }
+
+    public init(subscriptionManager: SubscriptionManaging) {
+        self.subscriptionManager = subscriptionManager
+    }
+
+    @discardableResult
+    public func restoreAccountFromPastPurchase() async -> Result<Void, AppStoreRestoreFlow.Error> {
 
         // Clear subscription Cache
-        SubscriptionService.signOut()
+        subscriptionManager.subscriptionService.signOut()
 
         os_log(.info, log: .subscription, "[AppStoreRestoreFlow] restoreAccountFromPastPurchase")
 
-        guard let lastTransactionJWSRepresentation = await PurchaseManager.mostRecentTransaction() else {
+        guard let lastTransactionJWSRepresentation = await subscriptionManager.storePurchaseManager().mostRecentTransaction() else {
             os_log(.error, log: .subscription, "[AppStoreRestoreFlow] Error: missingAccountOrTransactions")
             return .failure(.missingAccountOrTransactions)
         }
 
-        let accountManager = AccountManager(subscriptionAppGroup: subscriptionAppGroup)
-
         // Do the store login to get short-lived token
         let authToken: String
 
-        switch await AuthService.storeLogin(signature: lastTransactionJWSRepresentation) {
+        switch await subscriptionManager.authService.storeLogin(signature: lastTransactionJWSRepresentation) {
         case .success(let response):
             authToken = response.authToken
         case .failure:
@@ -82,7 +90,7 @@ public final class AppStoreRestoreFlow {
 
         var isSubscriptionActive = false
 
-        switch await SubscriptionService.getSubscription(accessToken: accessToken, cachePolicy: .reloadIgnoringLocalCacheData) {
+        switch await subscriptionManager.subscriptionService.getSubscription(accessToken: accessToken, cachePolicy: .reloadIgnoringLocalCacheData) {
         case .success(let subscription):
             isSubscriptionActive = subscription.isActive
         case .failure:

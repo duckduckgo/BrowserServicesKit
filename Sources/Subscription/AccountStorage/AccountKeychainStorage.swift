@@ -48,57 +48,56 @@ public enum AccountKeychainAccessError: Error, Equatable {
     }
 }
 
-public class AccountKeychainStorage: AccountStorage {
+public class AccountKeychainStorage: AccountStoring {
 
     public init() {}
 
     public func getAuthToken() throws -> String? {
-        try Self.getString(forField: .authToken)
+        try getString(forField: .authToken)
     }
 
     public func store(authToken: String) throws {
-        try Self.set(string: authToken, forField: .authToken)
+        try set(string: authToken, forField: .authToken)
     }
 
     public func getAccessToken() throws -> String? {
-        try Self.getString(forField: .accessToken)
+        try getString(forField: .accessToken)
     }
 
     public func store(accessToken: String) throws {
-        try Self.set(string: accessToken, forField: .accessToken)
+        try set(string: accessToken, forField: .accessToken)
     }
 
     public func getEmail() throws -> String? {
-        try Self.getString(forField: .email)
+        try getString(forField: .email)
     }
 
     public func getExternalID() throws -> String? {
-        try Self.getString(forField: .externalID)
+        try getString(forField: .externalID)
     }
 
     public func store(externalID: String?) throws {
         if let externalID = externalID, !externalID.isEmpty {
-            try Self.set(string: externalID, forField: .externalID)
+            try set(string: externalID, forField: .externalID)
         } else {
-            try Self.deleteItem(forField: .externalID)
+            try deleteItem(forField: .externalID)
         }
     }
 
     public func store(email: String?) throws {
         if let email = email, !email.isEmpty {
-            try Self.set(string: email, forField: .email)
+            try set(string: email, forField: .email)
         } else {
-            try Self.deleteItem(forField: .email)
+            try deleteItem(forField: .email)
         }
     }
 
     public func clearAuthenticationState() throws {
-        try Self.deleteItem(forField: .authToken)
-        try Self.deleteItem(forField: .accessToken)
-        try Self.deleteItem(forField: .email)
-        try Self.deleteItem(forField: .externalID)
+        try deleteItem(forField: .authToken)
+        try deleteItem(forField: .accessToken)
+        try deleteItem(forField: .email)
+        try deleteItem(forField: .externalID)
     }
-
 }
 
 private extension AccountKeychainStorage {
@@ -118,7 +117,7 @@ private extension AccountKeychainStorage {
         }
     }
 
-    static func getString(forField field: AccountKeychainField) throws -> String? {
+    func getString(forField field: AccountKeychainField) throws -> String? {
         guard let data = try retrieveData(forField: field) else {
             return nil
         }
@@ -130,7 +129,7 @@ private extension AccountKeychainStorage {
         }
     }
 
-    static func retrieveData(forField field: AccountKeychainField, useDataProtectionKeychain: Bool = true) throws -> Data? {
+    func retrieveData(forField field: AccountKeychainField, useDataProtectionKeychain: Bool = true) throws -> Data? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecMatchLimit as String: kSecMatchLimitOne,
@@ -155,7 +154,7 @@ private extension AccountKeychainStorage {
         }
     }
 
-    static func set(string: String, forField field: AccountKeychainField) throws {
+    func set(string: String, forField field: AccountKeychainField) throws {
         guard let stringData = string.data(using: .utf8) else {
             return
         }
@@ -164,7 +163,7 @@ private extension AccountKeychainStorage {
         try store(data: stringData, forField: field)
     }
 
-    static func store(data: Data, forField field: AccountKeychainField, useDataProtectionKeychain: Bool = true) throws {
+    func store(data: Data, forField field: AccountKeychainField, useDataProtectionKeychain: Bool = true) throws {
         let query = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrSynchronizable: false,
@@ -180,7 +179,7 @@ private extension AccountKeychainStorage {
         }
     }
 
-    static func deleteItem(forField field: AccountKeychainField, useDataProtectionKeychain: Bool = true) throws {
+    func deleteItem(forField field: AccountKeychainField, useDataProtectionKeychain: Bool = true) throws {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: field.keyValue,
