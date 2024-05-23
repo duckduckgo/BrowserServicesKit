@@ -287,7 +287,6 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            favoritesCount: 0,
                                                            appTheme: "light",
                                                            isWidgetInstalled: false,
-                                                           isNetPWaitlistUser: false,
                                                            daysSinceNetPEnabled: -1),
                 percentileStore: percentileStore,
                 dismissedMessageIds: [])
@@ -318,7 +317,6 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            favoritesCount: 0,
                                                            appTheme: "light",
                                                            isWidgetInstalled: false,
-                                                           isNetPWaitlistUser: false,
                                                            daysSinceNetPEnabled: -1),
                 percentileStore: percentileStore,
                 dismissedMessageIds: [])
@@ -349,7 +347,6 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            favoritesCount: 0,
                                                            appTheme: "light",
                                                            isWidgetInstalled: false,
-                                                           isNetPWaitlistUser: false,
                                                            daysSinceNetPEnabled: -1),
                 percentileStore: percentileStore,
                 dismissedMessageIds: [])
@@ -380,7 +377,6 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            favoritesCount: 0,
                                                            appTheme: "light",
                                                            isWidgetInstalled: false,
-                                                           isNetPWaitlistUser: false,
                                                            daysSinceNetPEnabled: -1),
                 percentileStore: percentileStore,
                 dismissedMessageIds: [])
