@@ -36,7 +36,7 @@ public class MockPhishingDetectionClient: PhishingDetectionClientProtocol {
             "cc00dd11",
             "dd00ee11",
         ], revision: 1, replace: false),
-        2: HashPrefixResponse(insert: ["93e2435e"], delete: [
+        2: HashPrefixResponse(insert: ["c0be0d0a6"], delete: [
             "bb00cc11",
         ], revision: 2, replace: false),
         4: HashPrefixResponse(insert: ["a379a6f6"], delete: [

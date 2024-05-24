@@ -66,12 +66,13 @@ class PhishingDetectionServiceTests: XCTestCase {
         XCTAssertTrue(service!.hashPrefixes.contains("93e2435e"), "Hash prefixes should contain added data after update.")
     }
 
-    func testRevision2DeletesData() async {
+    func testRevision2AddsAndDeletesData() async {
         service!.currentRevision = 2
         await service!.updateFilterSet()
         await service!.updateHashPrefixes()
         XCTAssertFalse(service!.filterSet.contains(where: { $0.hashValue == "testhash2" }), "Filter set should not contain deleted data after update.")
         XCTAssertFalse(service!.hashPrefixes.contains("bb00cc11"), "Hash prefixes should not contain deleted data after update.")
+        XCTAssertTrue(service!.hashPrefixes.contains("c0be0d0a6"))
     }
 
     func testRevision4AddsAndDeletesData() async {

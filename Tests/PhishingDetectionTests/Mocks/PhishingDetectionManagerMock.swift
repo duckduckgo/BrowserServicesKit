@@ -20,7 +20,6 @@ import Foundation
 import PhishingDetection
 
 final class MockPhishingDetectionManager: PhishingDetectionManaging {
-    
     public var didLoadData = false
 
     func isMalicious(url: URL) async -> Bool {
@@ -30,6 +29,5 @@ final class MockPhishingDetectionManager: PhishingDetectionManaging {
     func loadDataAsync() {
         self.didLoadData = true
     }
-
 }
 

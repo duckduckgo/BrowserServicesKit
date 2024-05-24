@@ -19,10 +19,19 @@
 import Foundation
 import Common
 
+public class PhishingStateManager {
+    public var tabIsPhishing: Bool = false
+    
+    public init(){}
+    
+    public func setIsPhishing(_ isPhishing: Bool) {
+        tabIsPhishing = isPhishing
+    }
+}
+
 public protocol PhishingDetectionManaging {
     func isMalicious(url: URL) async -> Bool
     func loadDataAsync()
-    func isCachedMalicious(url: URL) async -> Bool
 }
 
 public final class PhishingDetectionManager: PhishingDetectionManaging {
@@ -30,18 +39,13 @@ public final class PhishingDetectionManager: PhishingDetectionManaging {
 
     private let phishingDetectionService = PhishingDetectionService()
     private let phishingDetectionDataActivities = PhishingDetectionDataActivities()
-    private var cache: CacheSet<URL>
 
     private init() {
-        cache = CacheSet<URL>(capacity: 50)
         loadDataAsync()
     }
 
     public func isMalicious(url: URL) async -> Bool {
         let malicious = await phishingDetectionService.isMalicious(url: url)
-        if malicious {
-            cache.insert(url)
-        }
         return malicious
     }
 
@@ -51,9 +55,4 @@ public final class PhishingDetectionManager: PhishingDetectionManaging {
             await phishingDetectionDataActivities.run()
         }
     }
-    
-    public func isCachedMalicious(url: URL) async -> Bool {
-        return cache.contains(url)
-    }
-
 }
