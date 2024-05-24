@@ -646,6 +646,56 @@ struct DaysSinceNetPEnabledMatchingAttribute: MatchingAttribute, Equatable {
     }
 }
 
+struct IsPrivacyProEligibleUserMatchingAttribute: MatchingAttribute, Equatable {
+    var value: Bool?
+    var fallback: Bool?
+
+    init(jsonMatchingAttribute: AnyDecodable) {
+        guard let jsonMatchingAttribute = jsonMatchingAttribute.value as? [String: Any] else { return }
+
+        if let value = jsonMatchingAttribute[RuleAttributes.value] as? Bool {
+            self.value = value
+        }
+        if let fallback = jsonMatchingAttribute[RuleAttributes.fallback] as? Bool {
+            self.fallback = fallback
+        }
+    }
+
+    init(value: Bool?, fallback: Bool?) {
+        self.value = value
+        self.fallback = fallback
+    }
+
+    static func == (lhs: IsPrivacyProEligibleUserMatchingAttribute, rhs: IsPrivacyProEligibleUserMatchingAttribute) -> Bool {
+        return lhs.value == rhs.value && lhs.fallback == rhs.fallback
+    }
+}
+
+struct IsPrivacyProSubscriberUserMatchingAttribute: MatchingAttribute, Equatable {
+    var value: Bool?
+    var fallback: Bool?
+
+    init(jsonMatchingAttribute: AnyDecodable) {
+        guard let jsonMatchingAttribute = jsonMatchingAttribute.value as? [String: Any] else { return }
+
+        if let value = jsonMatchingAttribute[RuleAttributes.value] as? Bool {
+            self.value = value
+        }
+        if let fallback = jsonMatchingAttribute[RuleAttributes.fallback] as? Bool {
+            self.fallback = fallback
+        }
+    }
+
+    init(value: Bool?, fallback: Bool?) {
+        self.value = value
+        self.fallback = fallback
+    }
+
+    static func == (lhs: IsPrivacyProSubscriberUserMatchingAttribute, rhs: IsPrivacyProSubscriberUserMatchingAttribute) -> Bool {
+        return lhs.value == rhs.value && lhs.fallback == rhs.fallback
+    }
+}
+
 enum MatchingAttributeDefaults {
     static let intDefaultValue = -1
     static let intDefaultMaxValue = Int.max

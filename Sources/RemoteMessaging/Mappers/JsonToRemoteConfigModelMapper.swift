@@ -21,8 +21,12 @@ import Foundation
 
 struct JsonToRemoteConfigModelMapper {
 
-    static func mapJson(remoteMessagingConfig: RemoteMessageResponse.JsonRemoteMessagingConfig) -> RemoteConfigModel {
-        let remoteMessages = JsonToRemoteMessageModelMapper.maps(jsonRemoteMessages: remoteMessagingConfig.messages)
+    static func mapJson(remoteMessagingConfig: RemoteMessageResponse.JsonRemoteMessagingConfig,
+                        surveyActionMapper: RemoteMessagingSurveyActionMapping) -> RemoteConfigModel {
+        let remoteMessages = JsonToRemoteMessageModelMapper.maps(
+            jsonRemoteMessages: remoteMessagingConfig.messages,
+            surveyActionMapper: surveyActionMapper
+        )
         os_log("remoteMessages mapped = %s", log: .remoteMessaging, type: .debug, String(describing: remoteMessages))
         let rules = JsonToRemoteMessageModelMapper.maps(jsonRemoteRules: remoteMessagingConfig.rules)
         os_log("rules mapped = %s", log: .remoteMessaging, type: .debug, String(describing: rules))
