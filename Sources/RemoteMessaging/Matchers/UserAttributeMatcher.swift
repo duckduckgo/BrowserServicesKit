@@ -56,7 +56,7 @@ public struct UserAttributeMatcher: AttributeMatcher {
         self.isPrivacyProSubscriber = isPrivacyProSubscriber
     }
 
-    // swiftlint:disable:next cyclomatic_complexity
+    // swiftlint:disable:next cyclomatic_complexity function_body_length
     func evaluate(matchingAttribute: MatchingAttribute) -> EvaluationResult? {
         switch matchingAttribute {
         case let matchingAttribute as AppThemeMatchingAttribute:
