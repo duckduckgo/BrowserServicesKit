@@ -157,11 +157,18 @@ final class SuggestionProcessing {
                 if case .bookmark = $0, $0.url?.naked == nakedUrl { return true }
                 return false
             }), case let Suggestion.bookmark(title: title, url: url, isFavorite: isFavorite, allowedInTopHits: _) = newSuggestion {
+                #if os(macOS)
                 // Copy allowedInTopHits from original suggestion
                 return Suggestion.bookmark(title: title,
                                            url: url,
                                            isFavorite: isFavorite,
                                            allowedInTopHits: historySuggestion.allowedInTopHits)
+                #else
+                return Suggestion.bookmark(title: title,
+                                           url: url,
+                                           isFavorite: isFavorite,
+                                           allowedInTopHits: true)
+                #endif
             } else {
                 return nil
             }
@@ -178,10 +185,17 @@ final class SuggestionProcessing {
                 if case .historyEntry = $0, $0.url?.naked == nakedUrl { return true }
                 return false
             }), historySuggestion.allowedInTopHits {
+                #if os(macOS)
                 return Suggestion.bookmark(title: title,
                                            url: url,
                                            isFavorite: isFavorite,
                                            allowedInTopHits: historySuggestion.allowedInTopHits)
+                #else
+                return Suggestion.bookmark(title: title,
+                                           url: url,
+                                           isFavorite: isFavorite,
+                                           allowedInTopHits: true)
+                #endif
             } else {
                 return nil
             }

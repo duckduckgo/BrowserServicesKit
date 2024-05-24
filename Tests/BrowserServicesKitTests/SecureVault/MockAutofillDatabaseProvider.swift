@@ -142,6 +142,10 @@ internal class MockAutofillDatabaseProvider: AutofillDatabaseProvider {
         return Array(_creditCards.values)
     }
 
+    func creditCardsCount() throws -> Int {
+        return _creditCards.count
+    }
+
     func creditCardForCardId(_ cardId: Int64) throws -> SecureVaultModels.CreditCard? {
         return _creditCards[cardId]
     }

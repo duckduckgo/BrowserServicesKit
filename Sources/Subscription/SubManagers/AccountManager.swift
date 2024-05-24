@@ -19,63 +19,32 @@
 import Foundation
 import Common
 
-public extension Notification.Name {
-    static let accountDidSignIn = Notification.Name("com.duckduckgo.subscription.AccountDidSignIn")
-    static let accountDidSignOut = Notification.Name("com.duckduckgo.subscription.AccountDidSignOut")
-    static let entitlementsDidChange = Notification.Name("com.duckduckgo.subscription.EntitlementsDidChange")
-    static let subscriptionDidChange = Notification.Name("com.duckduckgo.subscription.SubscriptionDidChange")
-}
-
-public protocol AccountManagerKeychainAccessDelegate: AnyObject {
-    func accountManagerKeychainAccessFailed(accessType: AccountKeychainAccessType, error: AccountKeychainAccessError)
-}
-
-public protocol AccountManaging {
-
-    var accessToken: String? { get }
-
-}
-
 public class AccountManager: AccountManaging {
 
-    public enum CachePolicy {
-        case reloadIgnoringLocalCacheData
-        case returnCacheDataElseLoad
-        case returnCacheDataDontLoad
-    }
-
-    private let storage: AccountStorage
+    private let storage: AccountStoring
     private let entitlementsCache: UserDefaultsCache<[Entitlement]>
-    private let accessTokenStorage: SubscriptionTokenStorage
+    private let accessTokenStorage: SubscriptionTokenStoring
+    private let subscriptionService: SubscriptionService
+    private let authService: AuthService
 
     public weak var delegate: AccountManagerKeychainAccessDelegate?
+    public var isUserAuthenticated: Bool { accessToken != nil }
 
-    public var isUserAuthenticated: Bool {
-        return accessToken != nil
-    }
+    // MARK: - Initialisers
 
-    public convenience init(subscriptionAppGroup: String?, accessTokenStorage: SubscriptionTokenStorage) {
-        self.init(accessTokenStorage: accessTokenStorage,
-                  entitlementsCache: UserDefaultsCache<[Entitlement]>(userDefaults: UserDefaults(suiteName: subscriptionAppGroup) ?? UserDefaults.standard,
-                                                                      key: UserDefaultsCacheKey.subscriptionEntitlements,
-                                                                      settings: UserDefaultsCacheSettings(defaultExpirationInterval: .minutes(20))))
-    }
-
-    public convenience init(subscriptionAppGroup: String) {
-        let accessTokenStorage = SubscriptionTokenKeychainStorage(keychainType: .dataProtection(.named(subscriptionAppGroup)))
-        self.init(accessTokenStorage: accessTokenStorage,
-                  entitlementsCache: UserDefaultsCache<[Entitlement]>(userDefaults: UserDefaults(suiteName: subscriptionAppGroup) ?? UserDefaults.standard,
-                                                                      key: UserDefaultsCacheKey.subscriptionEntitlements,
-                                                                      settings: UserDefaultsCacheSettings(defaultExpirationInterval: .minutes(20))))
-    }
-
-    public init(storage: AccountStorage = AccountKeychainStorage(),
-                accessTokenStorage: SubscriptionTokenStorage,
-                entitlementsCache: UserDefaultsCache<[Entitlement]>) {
+    public init(storage: AccountStoring = AccountKeychainStorage(),
+                accessTokenStorage: SubscriptionTokenStoring,
+                entitlementsCache: UserDefaultsCache<[Entitlement]>,
+                subscriptionService: SubscriptionService,
+                authService: AuthService) {
         self.storage = storage
         self.entitlementsCache = entitlementsCache
         self.accessTokenStorage = accessTokenStorage
+        self.subscriptionService = subscriptionService
+        self.authService = authService
     }
+
+    // MARK: -
 
     public var authToken: String? {
         do {
@@ -182,13 +151,17 @@ public class AccountManager: AccountManaging {
         NotificationCenter.default.post(name: .accountDidSignIn, object: self, userInfo: nil)
     }
 
+    public func signOut() {
+        signOut(skipNotification: false)
+    }
+
     public func signOut(skipNotification: Bool = false) {
         os_log(.info, log: .subscription, "[AccountManager] signOut")
 
         do {
             try storage.clearAuthenticationState()
             try accessTokenStorage.removeAccessToken()
-            SubscriptionService.signOut()
+            subscriptionService.signOut()
             entitlementsCache.reset()
         } catch {
             if let error = error as? AccountKeychainAccessError {
@@ -241,13 +214,17 @@ public class AccountManager: AccountManaging {
         }
     }
 
+    public func hasEntitlement(for entitlement: Entitlement.ProductName) async -> Result<Bool, Error> {
+        return await hasEntitlement(for: entitlement, cachePolicy: .returnCacheDataElseLoad)
+    }
+
     private func fetchRemoteEntitlements() async -> Result<[Entitlement], Error> {
         guard let accessToken else {
             entitlementsCache.reset()
             return .failure(EntitlementsError.noAccessToken)
         }
 
-        switch await AuthService.validateToken(accessToken: accessToken) {
+        switch await authService.validateToken(accessToken: accessToken) {
         case .success(let response):
             let entitlements = response.account.entitlements
             updateCache(with: entitlements)
@@ -272,6 +249,7 @@ public class AccountManager: AccountManaging {
         }
     }
 
+    @discardableResult
     public func fetchEntitlements(cachePolicy: CachePolicy = .returnCacheDataElseLoad) async -> Result<[Entitlement], Error> {
 
         switch cachePolicy {
@@ -296,7 +274,7 @@ public class AccountManager: AccountManaging {
     }
 
     public func exchangeAuthTokenToAccessToken(_ authToken: String) async -> Result<String, Error> {
-        switch await AuthService.getAccessToken(token: authToken) {
+        switch await authService.getAccessToken(token: authToken) {
         case .success(let response):
             return .success(response.accessToken)
         case .failure(let error):
@@ -305,10 +283,8 @@ public class AccountManager: AccountManaging {
         }
     }
 
-    public typealias AccountDetails = (email: String?, externalID: String)
-
     public func fetchAccountDetails(with accessToken: String) async -> Result<AccountDetails, Error> {
-        switch await AuthService.validateToken(accessToken: accessToken) {
+        switch await authService.validateToken(accessToken: accessToken) {
         case .success(let response):
             return .success(AccountDetails(email: response.account.email, externalID: response.account.externalID))
         case .failure(let error):
@@ -321,27 +297,27 @@ public class AccountManager: AccountManaging {
         os_log(.info, log: .subscription, "[AccountManager] refreshSubscriptionAndEntitlements")
 
         guard let token = accessToken else {
-            SubscriptionService.signOut()
+            subscriptionService.signOut()
             entitlementsCache.reset()
             return
         }
 
-        if case .success(let subscription) = await SubscriptionService.getSubscription(accessToken: token, cachePolicy: .reloadIgnoringLocalCacheData) {
+        if case .success(let subscription) = await subscriptionService.getSubscription(accessToken: token, cachePolicy: .reloadIgnoringLocalCacheData) {
             if !subscription.isActive {
                 signOut()
             }
         }
 
-        _ = await fetchEntitlements(cachePolicy: .reloadIgnoringLocalCacheData)
+        await fetchEntitlements(cachePolicy: .reloadIgnoringLocalCacheData)
     }
 
     @discardableResult
-    public static func checkForEntitlements(subscriptionAppGroup: String, wait waitTime: Double, retry retryCount: Int) async -> Bool {
+    public func checkForEntitlements(wait waitTime: Double, retry retryCount: Int) async -> Bool {
         var count = 0
         var hasEntitlements = false
 
         repeat {
-            switch await AccountManager(subscriptionAppGroup: subscriptionAppGroup).fetchEntitlements() {
+            switch await fetchEntitlements() {
             case .success(let entitlements):
                 hasEntitlements = !entitlements.isEmpty
             case .failure:

@@ -32,6 +32,7 @@ let package = Package(
         .library(name: "NetworkProtectionTestUtils", targets: ["NetworkProtectionTestUtils"]),
         .library(name: "SecureStorage", targets: ["SecureStorage"]),
         .library(name: "Subscription", targets: ["Subscription"]),
+        .library(name: "SubscriptionTestingUtilities", targets: ["SubscriptionTestingUtilities"]),
         .library(name: "History", targets: ["History"]),
         .library(name: "Suggestions", targets: ["Suggestions"]),
         .library(name: "PixelKit", targets: ["PixelKit"]),
@@ -43,7 +44,7 @@ let package = Package(
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "2.1.1"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.2.0"),
         .package(url: "https://github.com/gumob/PunycodeSwift.git", exact: "2.1.0"),
-        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "5.15.0"),
+        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "5.17.0"),
         .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "3.6.0"),
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
         .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
@@ -332,6 +333,12 @@ let package = Package(
             ]
         ),
         .target(
+            name: "SubscriptionTestingUtilities",
+            dependencies: [
+                "Subscription"
+            ]
+        ),
+        .target(
             name: "PixelKit",
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
@@ -503,6 +510,13 @@ let package = Package(
             dependencies: [
                 "PrivacyDashboard",
                 "TestUtils",
+            ]
+        ),
+        .testTarget(
+            name: "SubscriptionTests",
+            dependencies: [
+                "Subscription",
+                "SubscriptionTestingUtilities",
             ]
         ),
         .testTarget(
