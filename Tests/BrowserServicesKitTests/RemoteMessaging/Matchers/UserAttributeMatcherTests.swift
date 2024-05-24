@@ -53,7 +53,9 @@ class UserAttributeMatcherTests: XCTestCase {
                                                     favoritesCount: 88,
                                                     appTheme: "default",
                                                     isWidgetInstalled: true,
-                                                    daysSinceNetPEnabled: 3)
+                                                    daysSinceNetPEnabled: 3,
+                                                    isPrivacyProEligibleUser: true,
+                                                    isPrivacyProSubscriber: true)
     }
 
     override func tearDownWithError() throws {
@@ -204,7 +206,7 @@ class UserAttributeMatcherTests: XCTestCase {
                        .fail)
     }
 
-    // MARK: - Network Protection Waitlist
+    // MARK: - Privacy Pro
 
     func testWhenDaysSinceNetPEnabledMatchesThenReturnMatch() throws {
         XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: DaysSinceNetPEnabledMatchingAttribute(min: 1, fallback: nil)),
@@ -213,6 +215,26 @@ class UserAttributeMatcherTests: XCTestCase {
 
     func testWhenDaysSinceNetPEnabledDoesNotMatchThenReturnFail() throws {
         XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: DaysSinceNetPEnabledMatchingAttribute(min: 7, fallback: nil)),
+                       .fail)
+    }
+
+    func testWhenIsPrivacyProEligibleUserMatchesThenReturnMatch() throws {
+        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: IsPrivacyProEligibleUserMatchingAttribute(value: true, fallback: nil)),
+                       .match)
+    }
+
+    func testWhenIsPrivacyProEligibleUserDoesNotMatchThenReturnFail() throws {
+        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: IsPrivacyProEligibleUserMatchingAttribute(value: false, fallback: nil)),
+                       .fail)
+    }
+
+    func testWhenIsPrivacyProSubscriberMatchesThenReturnMatch() throws {
+        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: IsPrivacyProSubscriberUserMatchingAttribute(value: true, fallback: nil)),
+                       .match)
+    }
+
+    func testWhenIsPrivacyProSubscriberDoesNotMatchThenReturnFail() throws {
+        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: IsPrivacyProSubscriberUserMatchingAttribute(value: false, fallback: nil)),
                        .fail)
     }
 

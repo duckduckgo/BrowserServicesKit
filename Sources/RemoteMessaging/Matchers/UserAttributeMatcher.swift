@@ -30,6 +30,8 @@ public struct UserAttributeMatcher: AttributeMatcher {
     private let favoritesCount: Int
     private let isWidgetInstalled: Bool
     private let daysSinceNetPEnabled: Int
+    private let isPrivacyProEligibleUser: Bool
+    private let isPrivacyProSubscriber: Bool
 
     public init(statisticsStore: StatisticsStore,
                 variantManager: VariantManager,
@@ -38,7 +40,9 @@ public struct UserAttributeMatcher: AttributeMatcher {
                 favoritesCount: Int,
                 appTheme: String,
                 isWidgetInstalled: Bool,
-                daysSinceNetPEnabled: Int
+                daysSinceNetPEnabled: Int,
+                isPrivacyProEligibleUser: Bool,
+                isPrivacyProSubscriber: Bool
 	) {
         self.statisticsStore = statisticsStore
         self.variantManager = variantManager
@@ -48,6 +52,8 @@ public struct UserAttributeMatcher: AttributeMatcher {
         self.favoritesCount = favoritesCount
         self.isWidgetInstalled = isWidgetInstalled
         self.daysSinceNetPEnabled = daysSinceNetPEnabled
+        self.isPrivacyProEligibleUser = isPrivacyProEligibleUser
+        self.isPrivacyProSubscriber = isPrivacyProSubscriber
     }
 
     // swiftlint:disable:next cyclomatic_complexity
@@ -100,6 +106,18 @@ public struct UserAttributeMatcher: AttributeMatcher {
             } else {
                 return RangeIntMatchingAttribute(min: matchingAttribute.min, max: matchingAttribute.max).matches(value: daysSinceNetPEnabled)
             }
+        case let matchingAttribute as IsPrivacyProEligibleUserMatchingAttribute:
+            guard let value = matchingAttribute.value else {
+                return .fail
+            }
+
+            return BooleanMatchingAttribute(value).matches(value: isPrivacyProEligibleUser)
+        case let matchingAttribute as IsPrivacyProSubscriberUserMatchingAttribute:
+            guard let value = matchingAttribute.value else {
+                return .fail
+            }
+
+            return BooleanMatchingAttribute(value).matches(value: isPrivacyProSubscriber)
         default:
             assertionFailure("Could not find matching attribute")
             return nil

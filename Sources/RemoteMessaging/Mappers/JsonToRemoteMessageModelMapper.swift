@@ -37,6 +37,8 @@ private enum AttributesKey: String, CaseIterable {
     case appTheme
     case daysSinceInstalled
     case daysSinceNetPEnabled
+    case pproEligible
+    case pproSubscriber
 
     func matchingAttribute(jsonMatchingAttribute: AnyDecodable) -> MatchingAttribute {
         switch self {
@@ -56,6 +58,8 @@ private enum AttributesKey: String, CaseIterable {
         case .appTheme: return AppThemeMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         case .daysSinceInstalled: return DaysSinceInstalledMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         case .daysSinceNetPEnabled: return DaysSinceNetPEnabledMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .pproEligible: return IsPrivacyProEligibleUserMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .pproSubscriber: return IsPrivacyProSubscriberUserMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         }
     }
 }
@@ -63,11 +67,16 @@ private enum AttributesKey: String, CaseIterable {
 
 struct JsonToRemoteMessageModelMapper {
 
-    static func maps(jsonRemoteMessages: [RemoteMessageResponse.JsonRemoteMessage]) -> [RemoteMessageModel] {
+    static func maps(jsonRemoteMessages: [RemoteMessageResponse.JsonRemoteMessage],
+                     surveyActionMapper: RemoteMessagingSurveyActionMapping) -> [RemoteMessageModel] {
         var remoteMessages: [RemoteMessageModel] = []
         jsonRemoteMessages.forEach { message in
+            guard let content = mapToContent( content: message.content, surveyActionMapper: surveyActionMapper) else {
+                return
+            }
+
             var remoteMessage = RemoteMessageModel(id: message.id,
-                                              content: mapToContent(content: message.content),
+                                              content: content,
                                               matchingRules: message.matchingRules ?? [],
                                               exclusionRules: message.exclusionRules ?? [])
 
@@ -81,7 +90,8 @@ struct JsonToRemoteMessageModelMapper {
     }
 
     // swiftlint:disable cyclomatic_complexity function_body_length
-    static func mapToContent(content: RemoteMessageResponse.JsonContent) -> RemoteMessageModelType? {
+    static func mapToContent(content: RemoteMessageResponse.JsonContent,
+                             surveyActionMapper: RemoteMessagingSurveyActionMapping) -> RemoteMessageModelType? {
         switch RemoteMessageResponse.JsonMessageType(rawValue: content.messageType) {
         case .small:
             guard !content.titleText.isEmpty, !content.descriptionText.isEmpty else {
@@ -101,7 +111,7 @@ struct JsonToRemoteMessageModelMapper {
         case .bigSingleAction:
             guard let primaryActionText = content.primaryActionText,
                   !primaryActionText.isEmpty,
-                  let action = mapToAction(content.primaryAction)
+                  let action = mapToAction(content.primaryAction, surveyActionMapper: surveyActionMapper)
             else {
                 return nil
             }
@@ -114,10 +124,10 @@ struct JsonToRemoteMessageModelMapper {
         case .bigTwoAction:
             guard let primaryActionText = content.primaryActionText,
                   !primaryActionText.isEmpty,
-                  let primaryAction = mapToAction(content.primaryAction),
+                  let primaryAction = mapToAction(content.primaryAction, surveyActionMapper: surveyActionMapper),
                   let secondaryActionText = content.secondaryActionText,
                   !secondaryActionText.isEmpty,
-                  let secondaryAction = mapToAction(content.secondaryAction)
+                  let secondaryAction = mapToAction(content.secondaryAction, surveyActionMapper: surveyActionMapper)
             else {
                 return nil
             }
@@ -132,7 +142,7 @@ struct JsonToRemoteMessageModelMapper {
         case .promoSingleAction:
             guard let actionText = content.actionText,
                   !actionText.isEmpty,
-                  let action = mapToAction(content.action)
+                  let action = mapToAction(content.action, surveyActionMapper: surveyActionMapper)
             else {
                 return nil
             }
@@ -149,7 +159,8 @@ struct JsonToRemoteMessageModelMapper {
     }
     // swiftlint:enable cyclomatic_complexity function_body_length
 
-    static func mapToAction(_ jsonAction: RemoteMessageResponse.JsonMessageAction?) -> RemoteAction? {
+    static func mapToAction(_ jsonAction: RemoteMessageResponse.JsonMessageAction?,
+                            surveyActionMapper: RemoteMessagingSurveyActionMapping) -> RemoteAction? {
         guard let jsonAction = jsonAction else {
             return nil
         }
@@ -159,8 +170,23 @@ struct JsonToRemoteMessageModelMapper {
             return .share(value: jsonAction.value, title: jsonAction.additionalParameters?["title"])
         case .url:
             return .url(value: jsonAction.value)
-        case .surveyURL:
-            return .surveyURL(value: jsonAction.value)
+        case .survey:
+            if let queryParamsString = jsonAction.additionalParameters?["queryParams"] as? String {
+                let queryParams = queryParamsString.components(separatedBy: ";")
+                let mappedQueryParams = queryParams.compactMap { param in
+                    return RemoteMessagingSurveyActionParameter(rawValue: param)
+                }
+
+                if mappedQueryParams.count == queryParams.count, let surveyURL = URL(string: jsonAction.value) {
+                    let updatedURL = surveyActionMapper.add(parameters: mappedQueryParams, to: surveyURL)
+                    return .survey(value: updatedURL.absoluteString)
+                } else {
+                    // The message requires a parameter that isn't supported
+                    return nil
+                }
+            } else {
+                return .survey(value: jsonAction.value)
+            }
         case .appStore:
             return .appStore
         case .dismiss:
