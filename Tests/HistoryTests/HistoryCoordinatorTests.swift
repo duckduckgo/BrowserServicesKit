@@ -116,6 +116,7 @@ class HistoryCoordinatorTests: XCTestCase {
     }
 
     func testWhenHistoryIsBurning_ThenHistoryIsCleanedIncludingFireproofDomains() {
+        let burnAllFinished = expectation(description: "Burn All Finished")
         let (historyStoringMock, historyCoordinator) = HistoryCoordinator.aHistoryCoordinator
 
         let url1 = URL(string: "https://duckduckgo.com")!
@@ -134,8 +135,16 @@ class HistoryCoordinatorTests: XCTestCase {
         XCTAssert(historyCoordinator.history!.count == 4)
 
         historyCoordinator.burnAll {
-            XCTAssert(historyStoringMock.removeEntriesArray.count == 4)
+            // We now clean the database directly so we don't burn by entry
+            XCTAssert(historyStoringMock.removeEntriesArray.count == 0)
+
+            // And we reset the entries dictionary
+            XCTAssert(historyCoordinator.history!.count == 0)
+
+            burnAllFinished.fulfill()
         }
+
+        waitForExpectations(timeout: 2.0)
     }
 
     func testWhenBurningVisits_removesHistoryWhenVisitsCountHitsZero() {

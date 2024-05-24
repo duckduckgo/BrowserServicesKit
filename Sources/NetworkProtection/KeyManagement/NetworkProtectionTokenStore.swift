@@ -41,7 +41,8 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
     private let keychainStore: NetworkProtectionKeychainStore
     private let errorEvents: EventMapping<NetworkProtectionError>?
     private let isSubscriptionEnabled: Bool
-    private let accessTokenProvider: () -> String?
+    public typealias AccessTokenProvider = () -> String?
+    private let accessTokenProvider: AccessTokenProvider
 
     public static var authTokenPrefix: String { "ddg:" }
 
@@ -57,7 +58,7 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
                 serviceName: String = Defaults.tokenStoreService,
                 errorEvents: EventMapping<NetworkProtectionError>?,
                 isSubscriptionEnabled: Bool,
-                accessTokenProvider: @escaping () -> String?) {
+                accessTokenProvider: @escaping AccessTokenProvider) {
         keychainStore = NetworkProtectionKeychainStore(label: Defaults.tokenStoreEntryLabel,
                                                        serviceName: serviceName,
                                                        keychainType: keychainType)
