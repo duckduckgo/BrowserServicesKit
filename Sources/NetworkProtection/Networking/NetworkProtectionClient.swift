@@ -19,7 +19,6 @@
 import Foundation
 
 protocol NetworkProtectionClient {
-    func redeem(inviteCode: String) async -> Result<String, NetworkProtectionClientError>
     func getLocations(authToken: String) async -> Result<[NetworkProtectionLocation], NetworkProtectionClientError>
     func getServers(authToken: String) async -> Result<[NetworkProtectionServer], NetworkProtectionClientError>
     func register(authToken: String,
@@ -187,10 +186,6 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
 
     var registerKeyURL: URL {
         endpointURL.appending("/register")
-    }
-
-    var redeemURL: URL {
-        endpointURL.appending("/redeem")
     }
 
     private let decoder: JSONDecoder = {
@@ -379,11 +374,6 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
                 return 100000 + status
             }
         }
-    }
-
-    public func redeem(inviteCode: String) async -> Result<String, NetworkProtectionClientError> {
-        let requestBody = RedeemInviteCodeRequestBody(code: inviteCode)
-        return await retrieveAuthToken(requestBody: requestBody, endpoint: redeemURL)
     }
 
     private func retrieveAuthToken<RequestBody: Encodable>(
