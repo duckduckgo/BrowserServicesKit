@@ -354,7 +354,7 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             assertionFailure("Can't encode phishingStatus into JSON")
             return
         }
-        evaluate(js: "window.onChangePhishingRegex(\(phishingStatusJson))", in: webView)
+        evaluate(js: "window.onChangePhishingStatus(\(phishingStatusJson))", in: webView)
     }
 
     func setIsPendingUpdates(_ isPendingUpdates: Bool, webView: WKWebView) {

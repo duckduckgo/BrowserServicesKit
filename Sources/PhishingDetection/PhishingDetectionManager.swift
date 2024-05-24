@@ -17,6 +17,7 @@
 //
 
 import Foundation
+import Common
 
 public protocol PhishingDetectionManaging {
     func isMalicious(url: URL) async -> Bool
@@ -29,9 +30,10 @@ public final class PhishingDetectionManager: PhishingDetectionManaging {
 
     private let phishingDetectionService = PhishingDetectionService()
     private let phishingDetectionDataActivities = PhishingDetectionDataActivities()
-    private var cache: Set<URL> = Set()
+    private var cache: CacheSet<URL>
 
     private init() {
+        cache = CacheSet<URL>(capacity: 50)
         loadDataAsync()
     }
 
