@@ -932,7 +932,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         settings.apply(change: change)
     }
 
-    // swiftlint:disable:next cyclomatic_complexity
     private func handleSettingsChange(_ change: VPNSettings.Change, completionHandler: ((Data?) -> Void)? = nil) {
         switch change {
         case .setExcludeLocalNetworks:
