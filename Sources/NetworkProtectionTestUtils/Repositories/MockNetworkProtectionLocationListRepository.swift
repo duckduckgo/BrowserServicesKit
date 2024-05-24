@@ -19,7 +19,7 @@
 import Foundation
 @testable import NetworkProtection
 
-class MockNetworkProtectionLocationListRepository: NetworkProtectionLocationListRepository {
+final class MockNetworkProtectionLocationListRepository: NetworkProtectionLocationListRepository {
     var stubFetchLocationList: [NetworkProtectionLocation] = []
     var stubFetchLocationListError: Error?
     var spyIgnoreCache: Bool = false

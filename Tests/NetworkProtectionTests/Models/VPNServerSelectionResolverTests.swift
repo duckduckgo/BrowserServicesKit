@@ -49,7 +49,7 @@ final class VPNServerSelectionResolverTests: XCTestCase {
         vpnSettings.selectedServer = .endpoint(serverName)
         let result = await resolver.resolvedServerSelectionMethod()
         guard case .preferredServer(let preferredServerName) = result else {
-            XCTFail()
+            XCTFail("Expected preferredServer method")
             return
         }
         XCTAssertEqual(preferredServerName, serverName)
@@ -59,7 +59,7 @@ final class VPNServerSelectionResolverTests: XCTestCase {
         vpnSettings.selectedLocation = .nearest
         let result = await resolver.resolvedServerSelectionMethod()
         guard case .automatic = result else {
-            XCTFail()
+            XCTFail("Expected automatic method")
             return
         }
     }
@@ -82,7 +82,7 @@ final class VPNServerSelectionResolverTests: XCTestCase {
         ]
         let result = await resolver.resolvedServerSelectionMethod()
         guard case .preferredLocation(let location) = result else {
-            XCTFail()
+            XCTFail("Expected preferredLocation method")
             return
         }
         XCTAssertEqual(location, selectedLocation)
@@ -100,7 +100,7 @@ final class VPNServerSelectionResolverTests: XCTestCase {
         ]
         let result = await resolver.resolvedServerSelectionMethod()
         guard case .preferredLocation(let location) = result else {
-            XCTFail()
+            XCTFail("Expected preferredLocation method")
             return
         }
         XCTAssertEqual(location, selectedLocation)
@@ -114,7 +114,7 @@ final class VPNServerSelectionResolverTests: XCTestCase {
         ]
         let result = await resolver.resolvedServerSelectionMethod()
         guard case .automatic = result else {
-            XCTFail()
+            XCTFail("Expected automatic method")
             return
         }
     }
@@ -139,7 +139,7 @@ final class VPNServerSelectionResolverTests: XCTestCase {
             ]
             let result = await resolver.resolvedServerSelectionMethod()
             guard case .preferredServer(let server) = result else {
-                XCTFail()
+                XCTFail("Expected preferredServer method")
                 return
             }
             XCTAssertEqual(server, selectedServerName)

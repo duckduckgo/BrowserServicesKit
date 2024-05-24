@@ -1,5 +1,5 @@
 //
-//  VPNServerSelectionSanitizer.swift
+//  VPNServerSelectionResolver.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
