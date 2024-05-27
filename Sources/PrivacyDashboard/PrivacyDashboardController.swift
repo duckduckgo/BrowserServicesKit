@@ -500,6 +500,10 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
 
     // Experiment flows
 
+    func userScript(_ userScript: PrivacyDashboardUserScript, didRequestSelectOverallCategory category: String) {
+        // TODO: fire pixel
+    }
+
     func userScriptDidRequestShowAlertForMissingDescription(_ userScript: PrivacyDashboardUserScript) {
         privacyDashboardReportBrokenSiteDelegate?.privacyDashboardControllerDidRequestShowAlertForMissingDescription(self)
     }

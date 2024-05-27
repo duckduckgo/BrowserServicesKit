@@ -39,6 +39,7 @@ protocol PrivacyDashboardUserScriptDelegate: AnyObject {
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectReportAction shouldSendReport: Bool)
     func userScriptDidOpenReportInfo(_ userScript: PrivacyDashboardUserScript)
     // Experiment flows
+    func userScript(_ userScript: PrivacyDashboardUserScript, didRequestSelectOverallCategory category: String)
     func userScriptDidRequestShowAlertForMissingDescription(_ userScript: PrivacyDashboardUserScript)
 
 }
@@ -89,6 +90,7 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         case privacyDashboardSendToggleReport
         case privacyDashboardRejectToggleReport
         case privacyDashboardSeeWhatIsSent
+        case privacyDashboardSelectOverallCategory
         case privacyDashboardShowAlertForMissingDescription
 
     }
@@ -141,6 +143,8 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             handleDoNotSendToggleReport()
         case .privacyDashboardSeeWhatIsSent:
             handleDidOpenReportInfo()
+        case .privacyDashboardSelectOverallCategory:
+            handleSelectOverallCategory(message: message)
         case .privacyDashboardShowAlertForMissingDescription:
             handleShowAlertForMissingDescription()
         }
@@ -253,6 +257,16 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
 
     private func handleDidOpenReportInfo() {
         delegate?.userScriptDidOpenReportInfo(self)
+    }
+
+    private func handleSelectOverallCategory(message: WKScriptMessage) {
+        guard let dict = message.body as? [String: Any],
+              let category = dict["category"] as? String
+        else {
+            assertionFailure("handleSelectOverallCategory: expected { category: String }")
+            return
+        }
+        delegate?.userScript(self, didRequestSelectOverallCategory: category)
     }
 
     private func handleShowAlertForMissingDescription() {
