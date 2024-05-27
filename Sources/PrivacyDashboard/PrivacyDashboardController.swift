@@ -58,6 +58,7 @@ public protocol PrivacyDashboardReportBrokenSiteDelegate: AnyObject {
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
                                     reportBrokenSiteDidChangeProtectionSwitch protectionState: ProtectionState)
     func privacyDashboardControllerDidRequestShowAlertForMissingDescription(_ privacyDashboardController: PrivacyDashboardController)
+    func privacyDashboardControllerDidRequestShowGeneralFeedback(_ privacyDashboardController: PrivacyDashboardController)
 
 }
 
@@ -482,10 +483,10 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
         handleUserScriptClosing(toggleReportDismissType: toggleReportDismissType)
     }
 
-    private var source: BrokenSiteReport.Source {
+    public var source: BrokenSiteReport.Source {
         var source: BrokenSiteReport.Source
         switch initDashboardMode {
-        case .report, .reportA, .reportB: 
+        case .report, .reportA, .reportB:
             source = .appMenu
         case .dashboard, .dashboardA, .dashboardB:
             source = .dashboard
@@ -506,6 +507,9 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectOverallCategory category: String) {
         // TODO: fire pixel
+        if category == "general_feedback" { // TODO: fix name
+            privacyDashboardReportBrokenSiteDelegate?.privacyDashboardControllerDidRequestShowGeneralFeedback(self)
+        }
     }
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectBreakageCategory category: String) {
