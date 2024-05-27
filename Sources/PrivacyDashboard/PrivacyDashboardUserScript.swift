@@ -38,6 +38,8 @@ protocol PrivacyDashboardUserScriptDelegate: AnyObject {
     func userScriptDidRequestToggleReportOptions(_ userScript: PrivacyDashboardUserScript)
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectReportAction shouldSendReport: Bool)
     func userScriptDidOpenReportInfo(_ userScript: PrivacyDashboardUserScript)
+    // Experiment flows
+    func userScriptDidRequestShowAlertForMissingDescription(_ userScript: PrivacyDashboardUserScript)
 
 }
 
@@ -87,6 +89,7 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         case privacyDashboardSendToggleReport
         case privacyDashboardRejectToggleReport
         case privacyDashboardSeeWhatIsSent
+        case privacyDashboardShowAlertForMissingDescription
 
     }
 
@@ -138,6 +141,8 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             handleDoNotSendToggleReport()
         case .privacyDashboardSeeWhatIsSent:
             handleDidOpenReportInfo()
+        case .privacyDashboardShowAlertForMissingDescription:
+            handleShowAlertForMissingDescription()
         }
     }
 
@@ -248,6 +253,10 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
 
     private func handleDidOpenReportInfo() {
         delegate?.userScriptDidOpenReportInfo(self)
+    }
+
+    private func handleShowAlertForMissingDescription() {
+        delegate?.userScriptDidRequestShowAlertForMissingDescription(self)
     }
 
     // MARK: - Calls to script's JS API

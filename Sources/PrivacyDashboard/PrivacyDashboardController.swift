@@ -57,6 +57,7 @@ public protocol PrivacyDashboardReportBrokenSiteDelegate: AnyObject {
                                     description: String)
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
                                     reportBrokenSiteDidChangeProtectionSwitch protectionState: ProtectionState)
+    func privacyDashboardControllerDidRequestShowAlertForMissingDescription(_ privacyDashboardController: PrivacyDashboardController)
 
 }
 
@@ -497,4 +498,9 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
         didOpenReportInfo = true
     }
 
+    // Experiment flows
+
+    func userScriptDidRequestShowAlertForMissingDescription(_ userScript: PrivacyDashboardUserScript) {
+        privacyDashboardReportBrokenSiteDelegate?.privacyDashboardControllerDidRequestShowAlertForMissingDescription(self)
+    }
 }
