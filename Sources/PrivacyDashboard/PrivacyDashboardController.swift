@@ -438,6 +438,7 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
 
     func userScriptDidRequestShowReportBrokenSite(_ userScript: PrivacyDashboardUserScript) {
         privacyDashboardDelegate?.privacyDashboardControllerDidRequestShowReportBrokenSite(self)
+        // TODO: fire pixel + move here Pixel.fire(pixel: .privacyDashboardReportBrokenSite)?
     }
 
     func userScript(_ userScript: PrivacyDashboardUserScript, setHeight height: Int) {
