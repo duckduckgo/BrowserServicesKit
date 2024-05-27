@@ -360,11 +360,11 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
 
     private func didChangeProtectionState(_ protectionState: ProtectionState, didSendReport: Bool = false) {
         switch protectionState.eventOrigin.screen {
-        case .primaryScreen:
+        case .primaryScreen, .primaryScreenA, .primaryScreenB:
             privacyDashboardDelegate?.privacyDashboardController(self, didChangeProtectionSwitch: protectionState, didSendReport: didSendReport)
-        case .breakageForm:
+        case .breakageForm, .breakageFormB:
             privacyDashboardReportBrokenSiteDelegate?.privacyDashboardController(self, reportBrokenSiteDidChangeProtectionSwitch: protectionState)
-        case .toggleReport, .promptBreakageForm:
+        case .toggleReport, .promptBreakageForm, .breakageFormA:
             assertionFailure("These screen don't have toggling capability")
         }
     }
@@ -485,8 +485,10 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     private var source: BrokenSiteReport.Source {
         var source: BrokenSiteReport.Source
         switch initDashboardMode {
-        case .report: source = .appMenu
-        case .dashboard: source = .dashboard
+        case .report, .reportA, .reportB: 
+            source = .appMenu
+        case .dashboard, .dashboardA, .dashboardB:
+            source = .dashboard
         case .toggleReport: source = .onProtectionsOffMenu
         case .prompt(let event): source = .prompt(event)
         }
