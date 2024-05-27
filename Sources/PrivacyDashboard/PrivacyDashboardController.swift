@@ -501,7 +501,11 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
 
     // Experiment flows
 
-    func userScript(_ userScript: PrivacyDashboardUserScript, didRequestSelectOverallCategory category: String) {
+    func userScript(_ userScript: PrivacyDashboardUserScript, didSelectOverallCategory category: String) {
+        // TODO: fire pixel
+    }
+
+    func userScript(_ userScript: PrivacyDashboardUserScript, didSelectBreakageCategory category: String) {
         // TODO: fire pixel
     }
 

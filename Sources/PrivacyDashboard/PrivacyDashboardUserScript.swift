@@ -39,7 +39,8 @@ protocol PrivacyDashboardUserScriptDelegate: AnyObject {
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectReportAction shouldSendReport: Bool)
     func userScriptDidOpenReportInfo(_ userScript: PrivacyDashboardUserScript)
     // Experiment flows
-    func userScript(_ userScript: PrivacyDashboardUserScript, didRequestSelectOverallCategory category: String)
+    func userScript(_ userScript: PrivacyDashboardUserScript, didSelectOverallCategory category: String)
+    func userScript(_ userScript: PrivacyDashboardUserScript, didSelectBreakageCategory category: String)
     func userScriptDidRequestShowAlertForMissingDescription(_ userScript: PrivacyDashboardUserScript)
 
 }
@@ -91,6 +92,7 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         case privacyDashboardRejectToggleReport
         case privacyDashboardSeeWhatIsSent
         case privacyDashboardSelectOverallCategory
+        case privacyDashboardSelectBreakageCategory
         case privacyDashboardShowAlertForMissingDescription
 
     }
@@ -145,6 +147,8 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             handleDidOpenReportInfo()
         case .privacyDashboardSelectOverallCategory:
             handleSelectOverallCategory(message: message)
+        case .privacyDashboardSelectBreakageCategory:
+            handleSelectBreakageCategory(message: message)
         case .privacyDashboardShowAlertForMissingDescription:
             handleShowAlertForMissingDescription()
         }
@@ -266,7 +270,17 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             assertionFailure("handleSelectOverallCategory: expected { category: String }")
             return
         }
-        delegate?.userScript(self, didRequestSelectOverallCategory: category)
+        delegate?.userScript(self, didSelectOverallCategory: category)
+    }
+
+    private func handleSelectBreakageCategory(message: WKScriptMessage) {
+        guard let dict = message.body as? [String: Any],
+              let category = dict["category"] as? String
+        else {
+            assertionFailure("handleSelectBreakageCategory: expected { category: String }")
+            return
+        }
+        delegate?.userScript(self, didSelectBreakageCategory: category)
     }
 
     private func handleShowAlertForMissingDescription() {
