@@ -471,6 +471,7 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectReportAction shouldSendReport: Bool) {
         if shouldSendReport {
+            // TODO: send another pixel
             privacyDashboardToggleReportDelegate?.privacyDashboardController(self,
                                                                              didRequestSubmitToggleReportWithSource: source,
                                                                              didOpenReportInfo: didOpenReportInfo,
