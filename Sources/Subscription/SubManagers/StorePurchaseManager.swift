@@ -253,7 +253,7 @@ public final class StorePurchaseManager: ObservableObject, StorePurchaseManaging
 
     private func observeTransactionUpdates() -> Task<Void, Never> {
 
-        Task.detached { [unowned self] in
+        Task.detached { [weak self] in
             for await result in Transaction.updates {
                 os_log(.info, log: .subscription, "[StorePurchaseManager] observeTransactionUpdates")
 
@@ -261,18 +261,18 @@ public final class StorePurchaseManager: ObservableObject, StorePurchaseManaging
                     await transaction.finish()
                 }
 
-                await self.updatePurchasedProducts()
+                await self?.updatePurchasedProducts()
             }
         }
     }
 
     private func observeStorefrontChanges() -> Task<Void, Never> {
 
-        Task.detached { [unowned self] in
+        Task.detached { [weak self] in
             for await result in Storefront.updates {
                 os_log(.info, log: .subscription, "[StorePurchaseManager] observeStorefrontChanges: %s", result.countryCode)
-                await updatePurchasedProducts()
-                await updateAvailableProducts()
+                await self?.updatePurchasedProducts()
+                await self?.updateAvailableProducts()
             }
         }
     }
