@@ -20,26 +20,24 @@
 public enum PrivacyDashboardMode: Equatable {
 
     case dashboard
-    case dashboardA
-    case dashboardB
     case report
-    case reportA
-    case reportB
     case prompt(String)
     case toggleReport(completionHandler: (Bool) -> Void)
+    case afterTogglePrompt(didToggleProtectionsOff: Bool, didToggleProtectionsFixIssue: Bool)
 
-    var screen: PrivacyDashboard.Screen {
-        switch self {
-        case .dashboard: return .primaryScreen
-        case .dashboardA: return .primaryScreenA
-        case .dashboardB: return .primaryScreenB
+    func screen(for variant: PrivacyDashboardVariant) -> Screen {
+        switch (self, variant) {
+        case (.dashboard, .control): return .primaryScreen
+        case (.dashboard, .a): return .primaryScreenA
+        case (.dashboard, .b): return .primaryScreenB
 
-        case .report: return .breakageForm
-        case .reportA: return .breakageFormA
-        case .reportB: return .breakageFormB
+        case (.report, .control): return .breakageForm
+        case (.report, .a): return .breakageFormA
+        case (.report, .b): return .breakageFormB
+        case (.afterTogglePrompt, _): return .breakageFormB
 
-        case .prompt: return .promptBreakageForm
-        case .toggleReport: return .toggleReport
+        case (.prompt, _): return .promptBreakageForm
+        case (.toggleReport, _): return .toggleReport
         }
     }
 
@@ -47,13 +45,10 @@ public enum PrivacyDashboardMode: Equatable {
         switch (lhs, rhs) {
         case 
             (.dashboard, .dashboard),
-            (.dashboardA, .dashboardA),
-            (.dashboardB, .dashboardB),
             (.report, .report),
-            (.reportA, .reportA),
-            (.reportB, .reportB),
             (.toggleReport, .toggleReport),
-            (.prompt, .prompt):
+            (.prompt, .prompt),
+            (.afterTogglePrompt, .afterTogglePrompt):
             return true
         default:
             return false

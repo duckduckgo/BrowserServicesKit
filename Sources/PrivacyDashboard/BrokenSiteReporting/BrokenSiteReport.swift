@@ -41,6 +41,8 @@ public struct BrokenSiteReport {
         case onProtectionsOffDashboard
         /// From the 'Site Not Working?' prompt that appears on various events
         case prompt(String)
+        /// From the prompt that appears after user toggled off protections which asks if it helped
+        case afterTogglePrompt
 
         public var rawValue: String {
             switch self {
@@ -49,6 +51,7 @@ public struct BrokenSiteReport {
             case .onProtectionsOffMenu: return "on_protections_off_menu"
             case .onProtectionsOffDashboard: return "on_protections_off_dashboard_main"
             case .prompt(let event): return event
+            case .afterTogglePrompt: return "after_toggle_prompt" // TODO: verify!
             }
         }
 
