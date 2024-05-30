@@ -2,6 +2,9 @@ import Foundation
 import PhishingDetection
 
 public class MockPhishingDetectionClient: PhishingDetectionClientProtocol {
+    public var updateHashPrefixesWasCalled: Bool = false
+    public var updateFilterSetsWasCalled: Bool = false
+    
     private var filterRevisions: [Int: FilterSetResponse] = [
         0: FilterSetResponse(insert: [
             Filter(hashValue: "testhash1", regex: ".*example.*"),
@@ -45,10 +48,12 @@ public class MockPhishingDetectionClient: PhishingDetectionClientProtocol {
     ]
 
     public func getFilterSet(revision: Int) async -> FilterSetResponse {
+        updateFilterSetsWasCalled = true
         return filterRevisions[revision] ?? FilterSetResponse(insert: [], delete: [], revision: revision, replace: false)
     }
 
     public func getHashPrefixes(revision: Int) async -> HashPrefixResponse {
+        updateHashPrefixesWasCalled = true
         return hashPrefixRevisions[revision] ?? HashPrefixResponse(insert: [], delete: [], revision: revision, replace: false)
     }
 

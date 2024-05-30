@@ -58,6 +58,7 @@ public protocol PhishingDetectionServiceProtocol {
 
 enum PhishingDetectionDataError: Error {
     case empty
+    case stale
 }
 
 public class PhishingDetectionService: PhishingDetectionServiceProtocol {
@@ -65,36 +66,44 @@ public class PhishingDetectionService: PhishingDetectionServiceProtocol {
     var hashPrefixes = Set<String>()
     var currentRevision = 0
     var apiClient: PhishingDetectionClientProtocol
+    var dataProvider: PhishingDetectionDataProviderProtocol
+
     var dataStore: URL?
+    var hashPrefixFilename: String = "hashPrefixes.json"
+    var filterSetFilename: String = "filterSet.json"
+    var revisionFilename: String = "revision.txt"
     
 
-    public init(apiClient: PhishingDetectionClientProtocol? = nil) {
+    public init(apiClient: PhishingDetectionClientProtocol? = nil, dataProvider: PhishingDetectionDataProviderProtocol? = nil) {
         self.apiClient = apiClient ?? PhishingDetectionAPIClient() as PhishingDetectionClientProtocol
+        self.dataProvider = dataProvider ?? PhishingDetectionDataProvider()
         createDataStore()
+        
     }
     
     public func updateFilterSet() async {
         let response = await apiClient.getFilterSet(revision: currentRevision)
         if response.replace {
-            currentRevision = response.revision
             self.filterSet = Set(response.insert)
         } else {
-            currentRevision = response.revision
             response.insert.forEach { self.filterSet.insert($0) }
             response.delete.forEach { self.filterSet.remove($0) }
         }
+        currentRevision = response.revision
+        self.writeData()
     }
 
     public func updateHashPrefixes() async {
         let response = await apiClient.getHashPrefixes(revision: currentRevision)
         if response.replace {
-            currentRevision = response.revision
             self.hashPrefixes = Set(response.insert)
         } else {
-            currentRevision = response.revision
+            
             response.insert.forEach { self.hashPrefixes.insert($0) }
             response.delete.forEach { self.hashPrefixes.remove($0) }
         }
+        currentRevision = response.revision
+        self.writeData()
     }
 
     public func getMatches(hashPrefix: String) async -> Set<Match> {
@@ -158,39 +167,62 @@ public class PhishingDetectionService: PhishingDetectionServiceProtocol {
             }
             let hashPrefixesData = try encoder.encode(Array(hashPrefixes))
             let filterSetData = try encoder.encode(Array(filterSet))
+            let revision = try encoder.encode(self.currentRevision)
 
-            let hashPrefixesFileURL = dataStore!.appendingPathComponent("hashPrefixes.json")
-            let filterSetFileURL = dataStore!.appendingPathComponent("filterSet.json")
+            let hashPrefixesFileURL = dataStore!.appendingPathComponent(hashPrefixFilename)
+            let filterSetFileURL = dataStore!.appendingPathComponent(filterSetFilename)
+            let revisionFileURL = dataStore!.appendingPathComponent(revisionFilename)
 
             try hashPrefixesData.write(to: hashPrefixesFileURL)
             try filterSetData.write(to: filterSetFileURL)
+            try revision.write(to:revisionFileURL)
         } catch {
             os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error saving phishing protection data: \(error)")
         }
     }
 
-    public func loadData() {
+    public func loadData() async {
         let decoder = JSONDecoder()
         do {
             let hashPrefixesFileURL = dataStore!.appendingPathComponent("hashPrefixes.json")
             let filterSetFileURL = dataStore!.appendingPathComponent("filterSet.json")
-
+            let revisionFileURL = dataStore!.appendingPathComponent("revision.txt")
+            
             let hashPrefixesData = try Data(contentsOf: hashPrefixesFileURL)
             let filterSetData = try Data(contentsOf: filterSetFileURL)
-
+            let revisionData = try Data(contentsOf: revisionFileURL)
+            
             hashPrefixes = Set(try decoder.decode([String].self, from: hashPrefixesData))
             filterSet = Set(try decoder.decode([Filter].self, from: filterSetData))
+            currentRevision = try decoder.decode(Int.self, from: revisionData)
             
-            if hashPrefixes.isEmpty && filterSet.isEmpty {
+            if (hashPrefixes.isEmpty && filterSet.isEmpty) || currentRevision == 0 {
                 throw PhishingDetectionDataError.empty
             }
-        } catch {
-            os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error loading phishing protection data: \(error)")
-            Task {
-                await self.updateFilterSet()
-                await self.updateHashPrefixes()
-                self.writeData()
+            
+            // Get file timestamps
+            let hashPrefixesFileAttributes = try hashPrefixesFileURL.resourceValues(forKeys: [.contentModificationDateKey])
+            let filterSetFileAttributes = try filterSetFileURL.resourceValues(forKeys: [.contentModificationDateKey])
+            let twelveHoursAgo = Date().addingTimeInterval(-12 * 60 * 60)
+            
+            if let hashPrefixesFileTimestamp = hashPrefixesFileAttributes.contentModificationDate,
+               let filterSetFileTimestamp = filterSetFileAttributes.contentModificationDate,
+               hashPrefixesFileTimestamp < twelveHoursAgo || filterSetFileTimestamp < twelveHoursAgo {
+                throw PhishingDetectionDataError.stale
             }
+        }  catch PhishingDetectionDataError.stale {
+            os_log(.debug, log: .phishingDetection, "\(self): 🟨 Phishing protection data is stale. Updating from server.")
+            await self.updateFilterSet()
+            await self.updateHashPrefixes()
+            self.writeData()
+        } catch {
+            os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error loading phishing protection data: \(error). Reloading from embedded dataset.")
+            self.currentRevision = PhishingDetectionDataProvider.embeddedRevision
+            self.hashPrefixes = dataProvider.embeddedHashPrefixes
+            self.filterSet = dataProvider.embeddedFilterSet
+            await self.updateFilterSet()
+            await self.updateHashPrefixes()
+            self.writeData()
         }
     }
     

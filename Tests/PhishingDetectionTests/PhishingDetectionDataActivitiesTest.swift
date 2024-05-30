@@ -9,36 +9,75 @@ import Foundation
 import XCTest
 @testable import PhishingDetection
 
-class PhishingDetectionDataActivitiesTest: XCTestCase {
-    var dataActivities: PhishingDetectionDataActivities!
-    var mockDetectionService: MockPhishingDetectionService = MockPhishingDetectionService()
+class PhishingDetectionDataActivitiesTests: XCTestCase {
+    var mockDetectionService: MockPhishingDetectionService!
+    var activities: PhishingDetectionDataActivities!
 
     override func setUp() {
         super.setUp()
-        dataActivities = PhishingDetectionDataActivities(detectionService: mockDetectionService)
+        mockDetectionService = MockPhishingDetectionService()
+        activities = PhishingDetectionDataActivities(detectionService: mockDetectionService, hashPrefixInterval: 1, filterSetInterval: 1)
     }
 
-    func testDataActivitySchedulerRuns() async {
-        let expectation1 = expectation(description: "Update filter set")
-        let expectation2 = expectation(description: "Update hash prefixes")
+    func testRun() async {
+        let expectation = XCTestExpectation(description: "updateHashPrefixes and updateFilterSet completes")
 
-        mockDetectionService.updateFilterSetCompletion = {
-            expectation1.fulfill()
+        mockDetectionService.completionHandler = {
+            expectation.fulfill()
         }
 
-        mockDetectionService.updateHashPrefixesCompletion = {
-            expectation2.fulfill()
-        }
+        await activities.run()
+        
+        await fulfillment(of: [expectation], timeout: 10.0)
 
-        do {
-            try await dataActivities.run()
-            await waitForExpectations(timeout: 60, handler: nil)
-            XCTAssertTrue(mockDetectionService.didUpdateFilterSet, "Filter set should be updated")
-            XCTAssertTrue(mockDetectionService.didUpdateHashPrefixes, "Hash prefixes should be updated")
-        } catch {
-            XCTFail("Error updating Phishing Detection data")
-        }
+        XCTAssertTrue(mockDetectionService.didUpdateHashPrefixes)
+        XCTAssertTrue(mockDetectionService.didUpdateFilterSet)
+
     }
-
 }
 
+class HashPrefixDataActivityTests: XCTestCase {
+    var mockDetectionService: MockPhishingDetectionService!
+    var mockScheduler: MockBackgroundActivityScheduler!
+    var activity: HashPrefixDataActivity!
+
+    override func setUp() {
+        super.setUp()
+        mockDetectionService = MockPhishingDetectionService()
+        mockScheduler = MockBackgroundActivityScheduler()
+        activity = HashPrefixDataActivity(identifier: "test", detectionService: mockDetectionService, interval: 1, scheduler: mockScheduler)
+    }
+
+    func testStart() {
+        activity.start()
+        XCTAssertTrue(mockScheduler.startCalled)
+    }
+
+    func testStop() {
+        activity.stop()
+        XCTAssertTrue(mockScheduler.stopCalled)
+    }
+}
+
+class FilterSetDataActivityTests: XCTestCase {
+    var mockDetectionService: MockPhishingDetectionService!
+    var mockScheduler: MockBackgroundActivityScheduler!
+    var activity: FilterSetDataActivity!
+
+    override func setUp() {
+        super.setUp()
+        mockDetectionService = MockPhishingDetectionService()
+        mockScheduler = MockBackgroundActivityScheduler()
+        activity = FilterSetDataActivity(identifier: "test", detectionService: mockDetectionService, interval: 1, scheduler: mockScheduler)
+    }
+
+    func testStart() {
+        activity.start()
+        XCTAssertTrue(mockScheduler.startCalled)
+    }
+
+    func testStop() {
+        activity.stop()
+        XCTAssertTrue(mockScheduler.stopCalled)
+    }
+}

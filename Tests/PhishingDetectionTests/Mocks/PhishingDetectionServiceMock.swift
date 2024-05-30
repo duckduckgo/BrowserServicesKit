@@ -8,9 +8,7 @@ public class MockPhishingDetectionService: PhishingDetectionServiceProtocol {
     public var filterSet: Set<Filter> = Set()
     public var didUpdateHashPrefixes: Bool = false
     public var didUpdateFilterSet: Bool = false
-
-    public var updateFilterSetCompletion: (() -> Void)?
-    public var updateHashPrefixesCompletion: (() -> Void)?
+    var completionHandler: (() -> Void)?
 
     init() {
         self.mockClient = MockPhishingDetectionClient()
@@ -27,7 +25,7 @@ public class MockPhishingDetectionService: PhishingDetectionServiceProtocol {
             response.delete.forEach { self.filterSet.remove($0) }
         }
         didUpdateFilterSet = true
-        updateFilterSetCompletion?()
+        checkCompletion()
     }
 
     public func updateHashPrefixes() async {
@@ -41,7 +39,13 @@ public class MockPhishingDetectionService: PhishingDetectionServiceProtocol {
             response.delete.forEach { self.hashPrefixes.remove($0) }
         }
         didUpdateHashPrefixes = true
-        updateHashPrefixesCompletion?()
+        checkCompletion()
+    }
+    
+    private func checkCompletion() {
+        if didUpdateFilterSet && didUpdateHashPrefixes {
+            completionHandler?()
+        }
     }
 
     public func getMatches(hashPrefix: String) async -> Set<Match> {
