@@ -5,21 +5,70 @@ import XCTest
 
 class PhishingDetectionServiceTests: XCTestCase {
     var service: PhishingDetectionService?
+    var mockClient: MockPhishingDetectionClient?
+    var mockDataProvider: MockPhishingDetectionDataProvider?
+    let datasetFiles: [String] = ["hashPrefixes.json", "filterSet.json", "revision.txt"]
 
     override func setUp() {
         super.setUp()
-        let mockClient = MockPhishingDetectionClient()
-        service = PhishingDetectionService(apiClient: mockClient)
+        mockClient = MockPhishingDetectionClient()
+        mockDataProvider = MockPhishingDetectionDataProvider()
+        service = PhishingDetectionService(apiClient: mockClient, dataProvider: mockDataProvider)
     }
 
     override func tearDown() {
         service = nil
         super.tearDown()
     }
+    
+    func clearDatasets() {
+        for fileName in datasetFiles {
+            let fileURL = service!.dataStore!.appendingPathComponent(fileName)
+            do {
+                try "".write(to: fileURL, atomically: true, encoding: .utf8)
+            } catch {
+                print("Failed to clear contents of \(fileName): \(error)")
+            }
+        }
+    }
+    
+    func timestompDatasets() {
+        let fileManager = FileManager.default
+        let newModificationDate = Date(timeIntervalSinceNow: -24*60*60)
+
+        for fileName in datasetFiles {
+            let fileURL = service!.dataStore!.appendingPathComponent(fileName)
+            do {
+                try fileManager.setAttributes([.modificationDate: newModificationDate], ofItemAtPath: fileURL.path)
+            } catch {
+                print("Failed to update modification date of \(fileName): \(error)")
+            }
+        }
+    }
 
     func testUpdateFilterSet() async {
         await service!.updateFilterSet()
         XCTAssertFalse(service!.filterSet.isEmpty, "Filter set should not be empty after update.")
+    }
+    
+    func testLoadDataStale() async {
+        timestompDatasets()
+        await service!.loadData()
+        // Stale => update from server only
+        XCTAssertTrue(mockClient!.updateFilterSetsWasCalled)
+        XCTAssertTrue(mockClient!.updateHashPrefixesWasCalled)
+        XCTAssertFalse(mockDataProvider!.loadFilterSetCalled)
+        XCTAssertFalse(mockDataProvider!.loadHashPrefixesCalled)
+    }
+    
+    func testLoadDataError() async {
+        clearDatasets()
+        await service!.loadData()
+        // Error => reload from embedded data and then update from server
+        XCTAssertTrue(mockClient!.updateFilterSetsWasCalled)
+        XCTAssertTrue(mockClient!.updateHashPrefixesWasCalled)
+        XCTAssertTrue(mockDataProvider!.loadFilterSetCalled)
+        XCTAssertTrue(mockDataProvider!.loadHashPrefixesCalled)
     }
 
     func testUpdateHashPrefixes() async {
@@ -53,7 +102,7 @@ class PhishingDetectionServiceTests: XCTestCase {
         service!.filterSet = []
         
         // Load data
-        service!.loadData()
+        await service!.loadData()
         XCTAssertFalse(service!.hashPrefixes.isEmpty, "Hash prefixes should not be empty after load.")
         XCTAssertFalse(service!.filterSet.isEmpty, "Filter set should not be empty after load.")
     }

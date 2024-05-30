@@ -336,7 +336,8 @@ let package = Package(
             name: "PhishingDetection",
             dependencies: [
                 "Common"
-            ]
+            ],
+            resources: [.process("filterSet.json"), .process("hashPrefixes.json")]
         ),
         .target(
             name: "PixelKit",

@@ -51,7 +51,7 @@ public final class PhishingDetectionManager: PhishingDetectionManaging {
 
     public func loadDataAsync() {
         Task {
-            phishingDetectionService.loadData()
+            await phishingDetectionService.loadData()
             await phishingDetectionDataActivities.run()
         }
     }
