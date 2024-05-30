@@ -24,6 +24,7 @@ if [ "$1" == "-c" ]; then
 fi
 
 temp_filename="phishing_data_new_file"
+new_revision=$(curl -s "${API_URL}/revision" | jq -r '.revision')
 
 rm -f "$temp_filename"
 
@@ -49,11 +50,8 @@ performUpdate() {
 	printf "Existing SHA256: %s\n" "${old_sha}"
 	printf "Existing revision: %s\n" "${old_revision}"
 
-	curl -o $temp_filename -s "${API_URL}/${data_type}"
-	revision=$(cat "$temp_filename" | jq -r '.revision')
-	printf "New revision: %s\n" "${revision}"
-
-	if [ $old_revision -lt $revision ]; then
+	if [ $old_revision -lt $new_revision ]; then
+        curl -o $temp_filename -s "${API_URL}/${data_type}"
 		cat "$temp_filename" | jq -r '.insert' > "$data_path"
 
 		new_sha=$(shasum -a 256 "$data_path" | awk -F ' ' '{print $1}')
@@ -71,11 +69,14 @@ performUpdate() {
 }
 
 updateRevision() {
-	local provider_path=$1
-	curl -o $temp_filename -s "${API_URL}/revision"
-	new_revision=$(cat "$temp_filename" | jq -r '.revision')
-	sed -i '' -e "s/public static let revision =.*/public static let revision = $new_revision/" "${provider_path}"
-	rm -f "$temp_filename"
+    local new_revision=$1
+	local provider_path=$2
+	old_revision=$(grep 'public static let revision' "${provider_path}" | awk -F '=' '{print $2}' | tr -d ' ')
+
+	if [ $old_revision -lt $new_revision ]; then
+		sed -i '' -e "s/public static let revision =.*/public static let revision = $new_revision/" "${provider_path}"
+        printf "Updated revision from $old_revision to $new_revision\n"
+	fi
 }
 
 performUpdate hashPrefix \
@@ -86,5 +87,4 @@ performUpdate filterSet \
 		"${PWD}/Sources/PhishingDetection/PhishingDetectionDataProvider.swift" \
 		"${PWD}/Sources/PhishingDetection/filterSet.json"
 
-updateRevision "${PWD}/Sources/PhishingDetection/PhishingDetectionDataProvider.swift" \
- 
+updateRevision $new_revision "${PWD}/Sources/PhishingDetection/PhishingDetectionDataProvider.swift" 
