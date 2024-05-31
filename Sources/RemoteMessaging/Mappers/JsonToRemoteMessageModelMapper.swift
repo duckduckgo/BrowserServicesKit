@@ -39,6 +39,8 @@ private enum AttributesKey: String, CaseIterable {
     case daysSinceNetPEnabled
     case pproEligible
     case pproSubscriber
+    case pproDaysSinceSubscribed
+    case pproDaysUntilExpiryOrRenewal
 
     func matchingAttribute(jsonMatchingAttribute: AnyDecodable) -> MatchingAttribute {
         switch self {
@@ -60,6 +62,8 @@ private enum AttributesKey: String, CaseIterable {
         case .daysSinceNetPEnabled: return DaysSinceNetPEnabledMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         case .pproEligible: return IsPrivacyProEligibleUserMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         case .pproSubscriber: return IsPrivacyProSubscriberUserMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .pproDaysSinceSubscribed: return PrivacyProDaysSinceSubscribedMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .pproDaysUntilExpiryOrRenewal: return PrivacyProDaysUntilExpiryMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         }
     }
 }
