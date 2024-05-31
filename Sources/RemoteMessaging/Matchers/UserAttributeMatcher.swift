@@ -32,6 +32,8 @@ public struct UserAttributeMatcher: AttributeMatcher {
     private let daysSinceNetPEnabled: Int
     private let isPrivacyProEligibleUser: Bool
     private let isPrivacyProSubscriber: Bool
+    private let privacyProDaysSinceSubscribed: Int
+    private let privacyProDaysUntilExpiry: Int
 
     public init(statisticsStore: StatisticsStore,
                 variantManager: VariantManager,
@@ -42,7 +44,9 @@ public struct UserAttributeMatcher: AttributeMatcher {
                 isWidgetInstalled: Bool,
                 daysSinceNetPEnabled: Int,
                 isPrivacyProEligibleUser: Bool,
-                isPrivacyProSubscriber: Bool
+                isPrivacyProSubscriber: Bool,
+                privacyProDaysSinceSubscribed: Int,
+                privacyProDaysUntilExpiry: Int
 	) {
         self.statisticsStore = statisticsStore
         self.variantManager = variantManager
@@ -54,6 +58,8 @@ public struct UserAttributeMatcher: AttributeMatcher {
         self.daysSinceNetPEnabled = daysSinceNetPEnabled
         self.isPrivacyProEligibleUser = isPrivacyProEligibleUser
         self.isPrivacyProSubscriber = isPrivacyProSubscriber
+        self.privacyProDaysSinceSubscribed = privacyProDaysSinceSubscribed
+        self.privacyProDaysUntilExpiry = privacyProDaysUntilExpiry
     }
 
     // swiftlint:disable:next cyclomatic_complexity function_body_length
