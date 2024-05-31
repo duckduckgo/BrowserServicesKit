@@ -306,7 +306,7 @@ class CTLReferenceTests: XCTestCase {
     var compiledCTLRules: WKContentRuleList!
 
     func setupWebView(trackerData: TrackerData,
-                      ctlTrackerData: TrackerData?,
+                      ctlTrackerData: TrackerData,
                       userScriptDelegate: ContentBlockerRulesUserScriptDelegate,
                       schemeHandler: TestSchemeHandler,
                       completion: @escaping (WKWebView) -> Void) {
@@ -321,7 +321,7 @@ class CTLReferenceTests: XCTestCase {
                 return
             }
 
-            WebKitTestHelper.prepareContentBlockingRules(trackerData: trackerData,
+            WebKitTestHelper.prepareContentBlockingRules(trackerData: ctlTrackerData,
                                                          exceptions: [],
                                                          tempUnprotected: [],
                                                          trackerExceptions: []) { ctlRules in
@@ -440,6 +440,17 @@ class CTLReferenceTests: XCTestCase {
         }
 
         userScriptDelegateMock.reset()
+
+        if test.ctlEnabled {
+            // CTL enabled by user - removing rule list
+            webView.configuration.userContentController.remove(self.compiledCTLRules)
+            userScriptDelegateMock.shouldProcessCTLTrackers = false
+
+        } else {
+            // CTL disabled by user - adding rule list
+            webView.configuration.userContentController.add(self.compiledCTLRules)
+            userScriptDelegateMock.shouldProcessCTLTrackers = true
+        }
 
         os_log("Loading %s ...", siteURL.absoluteString)
         let request = URLRequest(url: siteURL)
