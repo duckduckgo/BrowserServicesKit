@@ -60,6 +60,41 @@ class SurrogatesUserScriptsTests: XCTestCase {
         "Analytics",
         "Third-Party Analytics Marketing"
       ]
+    },
+    "ctl-tracker.com": {
+      "domain": "ctl-tracker.com",
+      "default": "ignore",
+      "rules": [
+        {
+          "rule": "ctl-tracker\\\\.com\\\\/scripts\\\\/ctl\\\\.js",
+          "surrogate": "ctl.js",
+          "action": "block-ctl-fb"
+        }
+      ],
+      "owner": {
+        "name": "Fake Tracking Inc",
+        "displayName": "FT Inc",
+        "privacyPolicy": "https://tracker.com/privacy",
+        "url": "http://tracker.com"
+      },
+      "source": [
+        "DDG"
+      ],
+      "prevalence": 0.002,
+      "fingerprinting": 0,
+      "cookies": 0.002,
+      "performance": {
+        "time": 1,
+        "size": 1,
+        "cpu": 1,
+        "cache": 3
+      },
+      "categories": [
+        "Ad Motivated Tracking",
+        "Advertising",
+        "Analytics",
+        "Third-Party Analytics Marketing"
+      ]
     }
   },
   "entities": {
@@ -100,6 +135,20 @@ class SurrogatesUserScriptsTests: XCTestCase {
             window.surrT = surrogatesScriptTest
         })();
 
+        ctl-tracker.com/ctl.js application/javascript
+        (() => {
+            'use strict';
+            var surrogatesScriptTest = function() {
+                function ping() {
+                    return "success"
+                }
+                return {
+                    ping: ping
+                }
+            }()
+            window.surrCTLT = surrogatesScriptTest
+        })();
+
         othertracker.net/track.js application/javascript
         (() => {
             'use strict';
@@ -117,6 +166,7 @@ class SurrogatesUserScriptsTests: XCTestCase {
     let nonTrackerURL = URL(string: "test://nontracker.com/1.png")!
     let trackerURL = URL(string: "test://tracker.com/1.png")!
     let surrogateScriptURL = URL(string: "test://tracker.com/scripts/script.js")!
+    let surrogateScriptCTLURL = URL(string: "test://ctl-tracker.com/scripts/ctl.js")!
     let nonSurrogateScriptURL = URL(string: "test://tracker.com/other/script.js")!
 
     var website: MockWebsite!
@@ -127,6 +177,7 @@ class SurrogatesUserScriptsTests: XCTestCase {
         website = MockWebsite(resources: [.init(type: .image, url: nonTrackerURL),
                                           .init(type: .image, url: trackerURL),
                                           .init(type: .script, url: surrogateScriptURL),
+                                          .init(type: .script, url: surrogateScriptCTLURL),
                                           .init(type: .script, url: nonSurrogateScriptURL)])
     }
 
@@ -223,10 +274,81 @@ class SurrogatesUserScriptsTests: XCTestCase {
         navigationDelegateMock.onDidFinishNavigation = {
             websiteLoaded.fulfill()
 
-            XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 1)
-            XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.first?.url, self.surrogateScriptURL.absoluteString)
+            XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 2)
+            XCTAssertTrue(self.userScriptDelegateMock.detectedSurrogates.contains(where: { $0.url == self.surrogateScriptURL.absoluteString }))
 
             self.webView?.evaluateJavaScript("window.surrT.ping()", completionHandler: { result, err in
+                XCTAssertNil(err)
+                if let result = result as? String {
+                    XCTAssertEqual(result, "success")
+                    surrogateValidated.fulfill()
+                }
+            })
+
+            let expectedRequests: Set<URL> = [websiteURL, self.nonTrackerURL]
+            XCTAssertEqual(Set(self.schemeHandler.handledRequests), expectedRequests)
+        }
+
+        performTestFor(privacyConfig: privacyConfig, websiteURL: websiteURL)
+
+        self.wait(for: [websiteLoaded, surrogateValidated], timeout: 15)
+    }
+
+    func testWhenThereIsCTLSurrogateRuleThenSurrogateIsInjected() {
+
+        let privacyConfig = WebKitTestHelper.preparePrivacyConfig(locallyUnprotected: [],
+                                                                  tempUnprotected: [],
+                                                                  trackerAllowlist: [:],
+                                                                  contentBlockingEnabled: true,
+                                                                  exceptions: [])
+        let websiteURL = URL(string: "test://example.com")!
+
+        let websiteLoaded = self.expectation(description: "Website Loaded")
+        let surrogateValidated = self.expectation(description: "Validated CTL surrogate injection")
+
+        navigationDelegateMock.onDidFinishNavigation = {
+            websiteLoaded.fulfill()
+
+            XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 2)
+            XCTAssertTrue(self.userScriptDelegateMock.detectedSurrogates.contains(where: { $0.url == self.surrogateScriptCTLURL.absoluteString }))
+
+            self.webView?.evaluateJavaScript("window.surrCTLT.ping()", completionHandler: { result, err in
+                XCTAssertNil(err)
+                if let result = result as? String {
+                    XCTAssertEqual(result, "success")
+                    surrogateValidated.fulfill()
+                }
+            })
+
+            let expectedRequests: Set<URL> = [websiteURL, self.nonTrackerURL]
+            XCTAssertEqual(Set(self.schemeHandler.handledRequests), expectedRequests)
+        }
+
+        performTestFor(privacyConfig: privacyConfig, websiteURL: websiteURL)
+
+        self.wait(for: [websiteLoaded, surrogateValidated], timeout: 15)
+    }
+
+    func testWhenThereIsCTLIsDisabledThenCTLSurrogateIsNotInjected() {
+
+        let privacyConfig = WebKitTestHelper.preparePrivacyConfig(locallyUnprotected: [],
+                                                                  tempUnprotected: [],
+                                                                  trackerAllowlist: [:],
+                                                                  contentBlockingEnabled: true,
+                                                                  exceptions: [],
+                                                                  clickToLoadEnabled: false)
+        let websiteURL = URL(string: "test://example.com")!
+
+        let websiteLoaded = self.expectation(description: "Website Loaded")
+        let surrogateValidated = self.expectation(description: "Validated surrogate injection")
+
+        navigationDelegateMock.onDidFinishNavigation = {
+            websiteLoaded.fulfill()
+
+            XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 1)
+            XCTAssertTrue(self.userScriptDelegateMock.detectedSurrogates.contains(where: { $0.url == self.surrogateScriptURL.absoluteString }))
+
+            self.webView?.evaluateJavaScript("window.surrCTLT.ping()", completionHandler: { result, err in
                 XCTAssertNil(err)
                 if let result = result as? String {
                     XCTAssertEqual(result, "success")
@@ -266,7 +388,7 @@ class SurrogatesUserScriptsTests: XCTestCase {
                 surrogateValidated.fulfill()
             })
 
-            let expectedRequests: Set<URL> = [websiteURL, self.nonTrackerURL, self.trackerURL, self.nonSurrogateScriptURL, self.surrogateScriptURL]
+            let expectedRequests: Set<URL> = [websiteURL, self.nonTrackerURL, self.trackerURL, self.nonSurrogateScriptURL, self.surrogateScriptURL, self.surrogateScriptCTLURL]
             XCTAssertEqual(Set(self.schemeHandler.handledRequests), expectedRequests)
         }
 
@@ -291,8 +413,9 @@ class SurrogatesUserScriptsTests: XCTestCase {
         navigationDelegateMock.onDidFinishNavigation = {
             websiteLoaded.fulfill()
 
-            XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 1)
-            XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.first?.url, self.surrogateScriptURL.absoluteString)
+            XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 2)
+            XCTAssertTrue(self.userScriptDelegateMock.detectedSurrogates.contains(where: { $0.url == self.surrogateScriptURL.absoluteString }))
+            XCTAssertTrue(self.userScriptDelegateMock.detectedSurrogates.contains(where: { $0.url == self.surrogateScriptCTLURL.absoluteString }))
 
             self.webView?.evaluateJavaScript("window.surrT.ping()", completionHandler: { result, err in
                 XCTAssertNil(err)
@@ -334,7 +457,7 @@ class SurrogatesUserScriptsTests: XCTestCase {
                 surrogateValidated.fulfill()
             })
 
-            let expectedRequests: Set<URL> = [websiteURL, self.nonTrackerURL, self.trackerURL, self.nonSurrogateScriptURL, self.surrogateScriptURL]
+            let expectedRequests: Set<URL> = [websiteURL, self.nonTrackerURL, self.trackerURL, self.nonSurrogateScriptURL, self.surrogateScriptURL, self.surrogateScriptCTLURL]
             XCTAssertEqual(Set(self.schemeHandler.handledRequests), expectedRequests)
         }
 
@@ -366,7 +489,7 @@ class SurrogatesUserScriptsTests: XCTestCase {
                 surrogateValidated.fulfill()
             })
 
-            let expectedRequests: Set<URL> = [websiteURL, self.nonTrackerURL, self.trackerURL, self.nonSurrogateScriptURL, self.surrogateScriptURL]
+            let expectedRequests: Set<URL> = [websiteURL, self.nonTrackerURL, self.trackerURL, self.nonSurrogateScriptURL, self.surrogateScriptURL, self.surrogateScriptCTLURL]
             XCTAssertEqual(Set(self.schemeHandler.handledRequests), expectedRequests)
         }
 
@@ -379,7 +502,7 @@ class SurrogatesUserScriptsTests: XCTestCase {
 
         let websiteURL = URL(string: "test://example.com/index.html")!
 
-        let allowlist = ["tracker.com": [PrivacyConfigurationData.TrackerAllowlist.Entry(rule: "tracker.com/", domains: ["example.com"])]]
+        let allowlist = ["tracker.com": [PrivacyConfigurationData.TrackerAllowlist.Entry(rule: "tracker.com/", domains: ["example.com"])], "ctl-tracker.com": [PrivacyConfigurationData.TrackerAllowlist.Entry(rule: "ctl-tracker.com/", domains: ["example.com"])]]
 
         let privacyConfig = WebKitTestHelper.preparePrivacyConfig(locallyUnprotected: [],
                                                                   tempUnprotected: [],
@@ -400,7 +523,7 @@ class SurrogatesUserScriptsTests: XCTestCase {
                 surrogateValidated.fulfill()
             })
 
-            let expectedRequests: Set<URL> = [websiteURL, self.nonTrackerURL, self.trackerURL, self.nonSurrogateScriptURL, self.surrogateScriptURL]
+            let expectedRequests: Set<URL> = [websiteURL, self.nonTrackerURL, self.trackerURL, self.nonSurrogateScriptURL, self.surrogateScriptURL, self.surrogateScriptCTLURL]
             XCTAssertEqual(Set(self.schemeHandler.handledRequests), expectedRequests)
         }
 
@@ -427,7 +550,7 @@ class SurrogatesUserScriptsTests: XCTestCase {
         navigationDelegateMock.onDidFinishNavigation = {
             websiteLoaded.fulfill()
 
-            XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 1)
+            XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 2)
 
             self.webView?.evaluateJavaScript("window.surrT.ping()", completionHandler: { _, err in
                 XCTAssertNil(err)
@@ -466,7 +589,7 @@ class SurrogatesUserScriptsTests: XCTestCase {
                 surrogateValidated.fulfill()
             })
 
-            let expectedRequests: Set<URL> = [websiteURL, self.nonTrackerURL, self.trackerURL, self.nonSurrogateScriptURL, self.surrogateScriptURL]
+            let expectedRequests: Set<URL> = [websiteURL, self.nonTrackerURL, self.trackerURL, self.nonSurrogateScriptURL, self.surrogateScriptURL, self.surrogateScriptCTLURL]
             XCTAssertEqual(Set(self.schemeHandler.handledRequests), expectedRequests)
         }
 
@@ -498,7 +621,7 @@ class SurrogatesUserScriptsTests: XCTestCase {
                 surrogateValidated.fulfill()
             })
 
-            let expectedRequests: Set<URL> = [websiteURL, self.nonTrackerURL, self.trackerURL, self.nonSurrogateScriptURL, self.surrogateScriptURL]
+            let expectedRequests: Set<URL> = [websiteURL, self.nonTrackerURL, self.trackerURL, self.nonSurrogateScriptURL, self.surrogateScriptURL, self.surrogateScriptCTLURL]
             XCTAssertEqual(Set(self.schemeHandler.handledRequests), expectedRequests)
         }
 

@@ -73,7 +73,7 @@ final class MockRulesUserScriptDelegate: NSObject, ContentBlockerRulesUserScript
 final class MockSurrogatesUserScriptDelegate: NSObject, SurrogatesUserScriptDelegate {
 
     var shouldProcessTrackers = true
-    var shouldProcessCTLTrackers = true
+    var shouldProcessCTLTrackers = false
 
     var onSurrogateDetected: ((DetectedRequest, String) -> Void)?
     var detectedSurrogates = Set<DetectedRequest>()
@@ -174,13 +174,17 @@ final class WebKitTestHelper {
                                      trackerAllowlist: [String: [PrivacyConfigurationData.TrackerAllowlist.Entry]],
                                      contentBlockingEnabled: Bool,
                                      exceptions: [String],
-                                     httpsUpgradesEnabled: Bool = false) -> PrivacyConfiguration {
+                                     httpsUpgradesEnabled: Bool = false,
+                                     clickToLoadEnabled: Bool = true) -> PrivacyConfiguration {
         let contentBlockingExceptions = exceptions.map { PrivacyConfigurationData.ExceptionEntry(domain: $0, reason: nil) }
         let contentBlockingStatus = contentBlockingEnabled ? "enabled" : "disabled"
         let httpsStatus = httpsUpgradesEnabled ? "enabled" : "disabled"
+        let clickToLoadStatus = clickToLoadEnabled ? "enabled" : "disabled"
         let features = [PrivacyFeature.contentBlocking.rawValue: PrivacyConfigurationData.PrivacyFeature(state: contentBlockingStatus,
                                                                                                          exceptions: contentBlockingExceptions),
-                        PrivacyFeature.httpsUpgrade.rawValue: PrivacyConfigurationData.PrivacyFeature(state: httpsStatus, exceptions: [])]
+                        PrivacyFeature.httpsUpgrade.rawValue: PrivacyConfigurationData.PrivacyFeature(state: httpsStatus, exceptions: []),
+                        PrivacyFeature.clickToLoad.rawValue: PrivacyConfigurationData.PrivacyFeature(state: clickToLoadStatus,
+                                                                                                         exceptions: contentBlockingExceptions)]
         let unprotectedTemporary = tempUnprotected.map { PrivacyConfigurationData.ExceptionEntry(domain: $0, reason: nil) }
         let privacyData = PrivacyConfigurationData(features: features,
                                                    unprotectedTemporary: unprotectedTemporary,
