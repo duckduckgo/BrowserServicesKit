@@ -124,6 +124,18 @@ public struct UserAttributeMatcher: AttributeMatcher {
             }
 
             return BooleanMatchingAttribute(value).matches(value: isPrivacyProSubscriber)
+        case let matchingAttribute as PrivacyProDaysSinceSubscribedMatchingAttribute:
+            if matchingAttribute.value != MatchingAttributeDefaults.intDefaultValue {
+                return IntMatchingAttribute(matchingAttribute.value).matches(value: privacyProDaysSinceSubscribed)
+            } else {
+                return RangeIntMatchingAttribute(min: matchingAttribute.min, max: matchingAttribute.max).matches(value: privacyProDaysSinceSubscribed)
+            }
+        case let matchingAttribute as PrivacyProDaysUntilExpiryMatchingAttribute:
+            if matchingAttribute.value != MatchingAttributeDefaults.intDefaultValue {
+                return IntMatchingAttribute(matchingAttribute.value).matches(value: privacyProDaysUntilExpiry)
+            } else {
+                return RangeIntMatchingAttribute(min: matchingAttribute.min, max: matchingAttribute.max).matches(value: privacyProDaysUntilExpiry)
+            }
         default:
             assertionFailure("Could not find matching attribute")
             return nil
