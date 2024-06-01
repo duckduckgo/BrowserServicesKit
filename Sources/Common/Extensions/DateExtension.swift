@@ -41,6 +41,11 @@ public extension Date {
         return Calendar.current.date(byAdding: .day, value: -days, to: Date())!
     }
 
+    static func isSameDay(_ date1: Date, _ date2: Date?) -> Bool {
+        guard let date2 = date2 else { return false }
+        return Calendar.current.isDate(date1, inSameDayAs: date2)
+    }
+
     static var startOfDayTomorrow: Date {
         let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: Date())!
         return Calendar.current.startOfDay(for: tomorrow)
