@@ -34,16 +34,29 @@ public struct ClickToLoadRulesSplitter {
     }
 
     public func split() -> (withoutBlockCTL: ContentBlockerRulesList, withBlockCTL: ContentBlockerRulesList)? {
-        guard let trackerData = rulesList.trackerData, let splitTDS = split(trackerData: trackerData) else { return nil }
+        // This needs to be able to process cases when only fallback data is available.
+        // FIXME Also needs to be cleaned up to avoid code duplication around return.
 
-        return (
-            ContentBlockerRulesList(name: rulesList.name,
-                                    trackerData: splitTDS.withoutBlockCTL,
-                                    fallbackTrackerData: split(trackerData: rulesList.fallbackTrackerData)!.withoutBlockCTL),
-            ContentBlockerRulesList(name: DefaultContentBlockerRulesListsSource.Constants.clickToLoadRulesListName,
-                                    trackerData: splitTDS.withBlockCTL,
-                                    fallbackTrackerData: split(trackerData: rulesList.fallbackTrackerData)!.withBlockCTL)
-        )
+        if let trackerData = rulesList.trackerData {
+            let splitTDS = split(trackerData: trackerData)
+            return (
+                ContentBlockerRulesList(name: rulesList.name,
+                                        trackerData: splitTDS?.withoutBlockCTL,
+                                        fallbackTrackerData: split(trackerData: rulesList.fallbackTrackerData)!.withoutBlockCTL),
+                ContentBlockerRulesList(name: DefaultContentBlockerRulesListsSource.Constants.clickToLoadRulesListName,
+                                        trackerData: splitTDS?.withBlockCTL,
+                                        fallbackTrackerData: split(trackerData: rulesList.fallbackTrackerData)!.withBlockCTL)
+            )
+        } else {
+            return (
+                ContentBlockerRulesList(name: rulesList.name,
+                                        trackerData: nil,
+                                        fallbackTrackerData: split(trackerData: rulesList.fallbackTrackerData)!.withoutBlockCTL),
+                ContentBlockerRulesList(name: DefaultContentBlockerRulesListsSource.Constants.clickToLoadRulesListName,
+                                        trackerData: nil,
+                                        fallbackTrackerData: split(trackerData: rulesList.fallbackTrackerData)!.withBlockCTL)
+            )
+        }
     }
 
     private func split(trackerData: TrackerDataManager.DataSet) -> (withoutBlockCTL: TrackerDataManager.DataSet, withBlockCTL: TrackerDataManager.DataSet)? {

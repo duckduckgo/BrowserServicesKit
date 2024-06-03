@@ -1,5 +1,5 @@
 //
-//  CTLReferenceTests.swift
+//  ClickToLoadBlockingTests.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -22,157 +22,6 @@ import WebKit
 import BrowserServicesKit
 import TrackerRadarKit
 import Common
-
-struct LocalClickToLoadRulesSplitter {
-
-    public enum Constants {
-
-        public static let clickToLoadRuleListPrefix = "CTL_"
-        public static let tdsRuleListPrefix = "TDS_"
-
-    }
-
-    private let rulesList: ContentBlockerRulesList
-
-    init(rulesList: ContentBlockerRulesList) {
-        self.rulesList = rulesList
-    }
-
-    func split() -> (withoutBlockCTL: ContentBlockerRulesList, withBlockCTL: ContentBlockerRulesList)? {
-        // This needs to be able to process cases when only fallback data is available.
-        // Also needs to be cleaned up to avoid code duplication around return.
-
-        if let trackerData = rulesList.trackerData {
-            let splitTDS = split(trackerData: trackerData)
-            return (
-                ContentBlockerRulesList(name: rulesList.name,
-                                        trackerData: splitTDS?.withoutBlockCTL,
-                                        fallbackTrackerData: split(trackerData: rulesList.fallbackTrackerData)!.withoutBlockCTL),
-                ContentBlockerRulesList(name: "CTL List name", // fixme
-                                        trackerData: splitTDS?.withBlockCTL,
-                                        fallbackTrackerData: split(trackerData: rulesList.fallbackTrackerData)!.withBlockCTL)
-            )
-        } else {
-            return (
-                ContentBlockerRulesList(name: rulesList.name,
-                                        trackerData: nil,
-                                        fallbackTrackerData: split(trackerData: rulesList.fallbackTrackerData)!.withoutBlockCTL),
-                ContentBlockerRulesList(name: "CTL List name", // fixme
-                                        trackerData: nil,
-                                        fallbackTrackerData: split(trackerData: rulesList.fallbackTrackerData)!.withBlockCTL)
-            )
-        }
-
-
-    }
-
-    private func split(trackerData: TrackerDataManager.DataSet) -> (withoutBlockCTL: TrackerDataManager.DataSet, withBlockCTL: TrackerDataManager.DataSet)? {
-        let (mainTrackers, ctlTrackers) = processCTLActions(trackerData.tds.trackers)
-        guard !ctlTrackers.isEmpty else { return nil }
-
-        let trackerDataWithoutBlockCTL = makeTrackerData(using: mainTrackers, originalTDS: trackerData.tds)
-        let trackerDataWithBlockCTL = makeTrackerData(using: ctlTrackers, originalTDS: trackerData.tds)
-
-        return (
-           (tds: trackerDataWithoutBlockCTL, etag: Constants.tdsRuleListPrefix + trackerData.etag),
-           (tds: trackerDataWithBlockCTL, etag: Constants.clickToLoadRuleListPrefix + trackerData.etag)
-        )
-    }
-
-    private func makeTrackerData(using trackers: [String: KnownTracker], originalTDS: TrackerData) -> TrackerData {
-        let entities = originalTDS.extractEntities(for: trackers)
-        let domains = extractDomains(from: entities)
-        return TrackerData(trackers: trackers,
-                           entities: entities,
-                           domains: domains,
-                           cnames: originalTDS.cnames)
-    }
-
-    private func processCTLActions(_ trackers: [String: KnownTracker]) -> (mainTrackers: [String: KnownTracker], ctlTrackers: [String: KnownTracker]) {
-        var mainTDSTrackers: [String: KnownTracker] = [:]
-        var ctlTrackers: [String: KnownTracker] = [:]
-
-        for (key, tracker) in trackers {
-            guard tracker.containsCTLActions else {
-                mainTDSTrackers[key] = tracker
-                continue
-            }
-
-            // if we found some CTL rules, split out into its own list
-            if let rules = tracker.rules as [KnownTracker.Rule]? {
-                var mainRules: [KnownTracker.Rule] = []
-                var ctlRules: [KnownTracker.Rule] = []
-
-                for rule in rules.reversed() {
-                    if let action = rule.action, action == .blockCTLFB {
-                        ctlRules.insert(rule, at: 0)
-                    } else {
-                        ctlRules.insert(rule, at: 0)
-                        mainRules.insert(rule, at: 0)
-                    }
-                }
-
-                let mainTracker = KnownTracker(domain: tracker.domain,
-                                               defaultAction: tracker.defaultAction,
-                                               owner: tracker.owner,
-                                               prevalence: tracker.prevalence,
-                                               subdomains: tracker.subdomains,
-                                               categories: tracker.categories,
-                                               rules: mainRules)
-                let ctlTracker = KnownTracker(domain: tracker.domain,
-                                              defaultAction: tracker.defaultAction,
-                                              owner: tracker.owner,
-                                              prevalence: tracker.prevalence,
-                                              subdomains: tracker.subdomains,
-                                              categories: tracker.categories,
-                                              rules: ctlRules)
-                mainTDSTrackers[key] = mainTracker
-                ctlTrackers[key] = ctlTracker
-            }
-        }
-
-        return (mainTDSTrackers, ctlTrackers)
-    }
-
-    private func extractDomains(from entities: [String: Entity]) -> [String: String] {
-        var domains = [String: String]()
-        for entity in entities {
-            for domain in entity.value.domains ?? [] {
-                domains[domain] = entity.key
-            }
-        }
-        return domains
-    }
-
-}
-
-private extension TrackerData {
-
-    func extractEntities(for trackers: [String: KnownTracker]) -> [String: Entity] {
-        let trackerOwners = Set(trackers.values.compactMap { $0.owner?.name })
-        let entities = entities.filter { trackerOwners.contains($0.key) }
-        return entities
-    }
-
-}
-
-private extension KnownTracker {
-
-    var containsCTLActions: Bool {
-        if let rules = rules {
-            for rule in rules {
-                if let action = rule.action, action == .blockCTLFB {
-                    return true
-                }
-            }
-        }
-        return false
-    }
-
-}
-
-// Remove the above after moving splitter to BSK
-// ---------
 
 struct CTLTests: Decodable {
 
@@ -291,7 +140,7 @@ struct CTLTests: Decodable {
     ]
 }
 
-class CTLReferenceTests: XCTestCase {
+class ClickToLoadBlockingTests: XCTestCase {
 
     let schemeHandler = TestSchemeHandler()
     let userScriptDelegateMock = MockRulesUserScriptDelegate()
@@ -387,10 +236,10 @@ class CTLReferenceTests: XCTestCase {
         let fullTrackerData = (try? JSONDecoder().decode(TrackerData.self, from: fullTDS))!
 
         let dataSet = TrackerDataManager.DataSet(tds: fullTrackerData, etag: UUID().uuidString)
-        let ruleList = ContentBlockerRulesList(name: "test",
-                                               trackerData: nil,
+        let ruleList = ContentBlockerRulesList(name: "TrackerDataSet",
+                                               trackerData: dataSet,
                                                fallbackTrackerData: dataSet)
-        let ctlSplitter = LocalClickToLoadRulesSplitter(rulesList: ruleList)
+        let ctlSplitter = ClickToLoadRulesSplitter(rulesList: ruleList)
 
         guard let splitRules = ctlSplitter.split() else {
             XCTFail("Could not split rules")
