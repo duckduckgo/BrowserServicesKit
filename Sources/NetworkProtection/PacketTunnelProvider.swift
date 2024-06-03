@@ -63,7 +63,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Error Handling
 
-    public enum TunnelError: LocalizedError, CustomNSError {
+    public enum TunnelError: LocalizedError, CustomNSError, SilentErrorConvertible {
         // Tunnel Setup Errors - 0+
         case startingTunnelWithoutAuthToken
         case couldNotGenerateTunnelConfiguration(internalError: Error)
@@ -105,6 +105,16 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             case .couldNotGenerateTunnelConfiguration(let underlyingError):
                 return [NSUnderlyingErrorKey: underlyingError]
             }
+        }
+
+        public var asSilentError: KnownFailure.SilentError? {
+            guard case .couldNotGenerateTunnelConfiguration(let internalError) = self,
+                  let clientError = internalError as? NetworkProtectionClientError,
+                  case .failedToFetchRegisteredServers = clientError else {
+                return nil
+            }
+
+            return .registeredServerFetchingFailed
         }
     }
 

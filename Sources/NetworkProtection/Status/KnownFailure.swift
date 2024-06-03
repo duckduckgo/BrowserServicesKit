@@ -18,36 +18,61 @@
 
 import Foundation
 
-public protocol InternalErrorWrapping: Error {
-    var internalError: Error? { get }
+public protocol SilentErrorConvertible: Error {
+    var asSilentError: KnownFailure.SilentError? { get }
 }
 
 @objc
 final public class KnownFailure: NSObject, Codable {
-    public let domain: String
-    public let code: Int
-    public let localizedDescription: String
+    public enum SilentError: Int {
+        case operationNotPermitted
+        case loginItemVersionMismatched
+        case registeredServerFetchingFailed
+    }
+
+    public let error: Int
 
     public init?(_ error: Error?) {
-        if let error = error as? InternalErrorWrapping,
-           let nsError = error.internalError as? NSError {
-            domain = nsError.domain
-            code = nsError.code
-            localizedDescription = nsError.localizedDescription
+        if let nsError = error as? NSError, nsError.domain == "SMAppServiceErrorDomain", nsError.code == 1 {
+            self.error = SilentError.operationNotPermitted.rawValue
             return
         }
 
-        if let nsError = error as? NSError {
-            domain = nsError.domain
-            code = nsError.code
-            localizedDescription = nsError.localizedDescription
+        if let error = error as? SilentErrorConvertible, let silentError = error.asSilentError {
+            self.error = silentError.rawValue
             return
         }
 
         return nil
     }
-
-    public override var description: String {
-        "Error domain=\(domain) code=\(code)"
-    }
 }
+
+//@objc
+//final public class KnownFailure: NSObject, Codable {
+//    public let domain: String
+//    public let code: Int
+//    public let localizedDescription: String
+//
+//    public init?(_ error: Error?) {
+//        if let error = error as? InternalErrorWrapping,
+//           let nsError = error.internalError as? NSError {
+//            domain = nsError.domain
+//            code = nsError.code
+//            localizedDescription = nsError.localizedDescription
+//            return
+//        }
+//
+//        if let nsError = error as? NSError {
+//            domain = nsError.domain
+//            code = nsError.code
+//            localizedDescription = nsError.localizedDescription
+//            return
+//        }
+//
+//        return nil
+//    }
+//
+//    public override var description: String {
+//        "Error domain=\(domain) code=\(code)"
+//    }
+//}
