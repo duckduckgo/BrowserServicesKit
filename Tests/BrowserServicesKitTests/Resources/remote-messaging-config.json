@@ -140,7 +140,7 @@
             "messageType": "promo_single_action",
             "titleText": "Survey Title",
             "descriptionText": "Survey Description",
-            "placeholder": "VPNAnnounce",
+            "placeholder": "PrivacyPro",
             "actionText": "Survey Action",
             "action": {
                 "type": "survey",
@@ -157,7 +157,7 @@
             "messageType": "promo_single_action",
             "titleText": "Survey Title",
             "descriptionText": "Survey Description",
-            "placeholder": "VPNAnnounce",
+            "placeholder": "PrivacyPro",
             "actionText": "Survey Action",
             "action": {
                 "type": "survey",
@@ -265,6 +265,14 @@
         },
         "pproSubscriber": {
           "value": true
+        },
+        "pproDaysSinceSubscribed": {
+            "min": 5,
+            "max": 8
+        },
+        "pproDaysUntilExpiryOrRenewal": {
+            "min": 25,
+            "max": 30
         }
       }
     },
