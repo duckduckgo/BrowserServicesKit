@@ -134,7 +134,7 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
     public func store(_ token: String) throws {
         assertionFailure("Unsupported operation")
     }
-    
+
     public func fetchToken() throws -> String? {
         accessTokenProvider().map { makeToken(from: $0) }
     }
