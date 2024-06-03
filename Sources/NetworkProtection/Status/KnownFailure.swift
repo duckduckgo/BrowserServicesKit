@@ -46,33 +46,3 @@ final public class KnownFailure: NSObject, Codable {
         return nil
     }
 }
-
-//@objc
-//final public class KnownFailure: NSObject, Codable {
-//    public let domain: String
-//    public let code: Int
-//    public let localizedDescription: String
-//
-//    public init?(_ error: Error?) {
-//        if let error = error as? InternalErrorWrapping,
-//           let nsError = error.internalError as? NSError {
-//            domain = nsError.domain
-//            code = nsError.code
-//            localizedDescription = nsError.localizedDescription
-//            return
-//        }
-//
-//        if let nsError = error as? NSError {
-//            domain = nsError.domain
-//            code = nsError.code
-//            localizedDescription = nsError.localizedDescription
-//            return
-//        }
-//
-//        return nil
-//    }
-//
-//    public override var description: String {
-//        "Error domain=\(domain) code=\(code)"
-//    }
-//}
