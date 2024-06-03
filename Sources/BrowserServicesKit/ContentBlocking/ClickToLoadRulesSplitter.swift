@@ -34,8 +34,8 @@ public struct ClickToLoadRulesSplitter {
     }
 
     public func split() -> (withoutBlockCTL: ContentBlockerRulesList, withBlockCTL: ContentBlockerRulesList)? {
-        var withoutBlockCTL: Optional<(tds: TrackerData, etag: String)> = nil
-        var withBlockCTL: Optional<(tds: TrackerData, etag: String)> = nil
+        var withoutBlockCTL: (tds: TrackerData, etag: String)?
+        var withBlockCTL: (tds: TrackerData, etag: String)?
 
         if let trackerData = rulesList.trackerData {
             let splitTDS = split(trackerData: trackerData)
@@ -126,7 +126,7 @@ public struct ClickToLoadRulesSplitter {
             for domain in entity.domains ?? [] {
                 domains[domain] = key
             }
-        }        
+        }
         return domains
     }
 

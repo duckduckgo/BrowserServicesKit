@@ -33,14 +33,6 @@ struct CTLTests: Decodable {
         let ctlEnabled: Bool
         let isRequestLoaded: Bool
 
-        init(description: String, site: String, request: String, ctlEnabled: Bool, isRequestLoaded: Bool) {
-            self.description = description
-            self.site = site
-            self.request = request
-            self.ctlEnabled = ctlEnabled
-            self.isRequestLoaded = isRequestLoaded
-        }
-
     }
 
     static let exampleRules = """
@@ -224,7 +216,7 @@ class ClickToLoadBlockingTests: XCTestCase {
             return TrackerData(trackers: [:], entities: [:], domains: [:], cnames: [:])
         }
 
-        return TrackerData(trackers: ["facebook.net" : fbTracker],
+        return TrackerData(trackers: ["facebook.net": fbTracker],
                            entities: tds.entities,
                            domains: tds.domains,
                            cnames: [:])
