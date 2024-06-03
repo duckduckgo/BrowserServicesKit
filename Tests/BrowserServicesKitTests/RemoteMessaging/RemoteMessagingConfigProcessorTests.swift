@@ -38,7 +38,9 @@ class RemoteMessagingConfigProcessorTests: XCTestCase {
                                                        isWidgetInstalled: false,
                                                        daysSinceNetPEnabled: -1,
                                                        isPrivacyProEligibleUser: false,
-                                                       isPrivacyProSubscriber: false),
+                                                       isPrivacyProSubscriber: false,
+                                                       privacyProDaysSinceSubscribed: -1,
+                                                       privacyProDaysUntilExpiry: -1),
             percentileStore: MockRemoteMessagePercentileStore(),
             surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
             dismissedMessageIds: []
@@ -69,7 +71,9 @@ class RemoteMessagingConfigProcessorTests: XCTestCase {
                                                            isWidgetInstalled: false,
                                                            daysSinceNetPEnabled: -1,
                                                            isPrivacyProEligibleUser: false,
-                                                           isPrivacyProSubscriber: false),
+                                                           isPrivacyProSubscriber: false,
+                                                           privacyProDaysSinceSubscribed: -1,
+                                                           privacyProDaysUntilExpiry: -1),
                 percentileStore: MockRemoteMessagePercentileStore(),
                 surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
                 dismissedMessageIds: [])

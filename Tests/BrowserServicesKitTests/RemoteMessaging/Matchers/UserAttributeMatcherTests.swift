@@ -55,7 +55,9 @@ class UserAttributeMatcherTests: XCTestCase {
                                                     isWidgetInstalled: true,
                                                     daysSinceNetPEnabled: 3,
                                                     isPrivacyProEligibleUser: true,
-                                                    isPrivacyProSubscriber: true)
+                                                    isPrivacyProSubscriber: true,
+                                                    privacyProDaysSinceSubscribed: 5,
+                                                    privacyProDaysUntilExpiry: 25)
     }
 
     override func tearDownWithError() throws {

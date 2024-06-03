@@ -32,6 +32,8 @@ public struct UserAttributeMatcher: AttributeMatcher {
     private let daysSinceNetPEnabled: Int
     private let isPrivacyProEligibleUser: Bool
     private let isPrivacyProSubscriber: Bool
+    private let privacyProDaysSinceSubscribed: Int
+    private let privacyProDaysUntilExpiry: Int
 
     public init(statisticsStore: StatisticsStore,
                 variantManager: VariantManager,
@@ -42,7 +44,9 @@ public struct UserAttributeMatcher: AttributeMatcher {
                 isWidgetInstalled: Bool,
                 daysSinceNetPEnabled: Int,
                 isPrivacyProEligibleUser: Bool,
-                isPrivacyProSubscriber: Bool
+                isPrivacyProSubscriber: Bool,
+                privacyProDaysSinceSubscribed: Int,
+                privacyProDaysUntilExpiry: Int
 	) {
         self.statisticsStore = statisticsStore
         self.variantManager = variantManager
@@ -54,6 +58,8 @@ public struct UserAttributeMatcher: AttributeMatcher {
         self.daysSinceNetPEnabled = daysSinceNetPEnabled
         self.isPrivacyProEligibleUser = isPrivacyProEligibleUser
         self.isPrivacyProSubscriber = isPrivacyProSubscriber
+        self.privacyProDaysSinceSubscribed = privacyProDaysSinceSubscribed
+        self.privacyProDaysUntilExpiry = privacyProDaysUntilExpiry
     }
 
     // swiftlint:disable:next cyclomatic_complexity
@@ -118,6 +124,18 @@ public struct UserAttributeMatcher: AttributeMatcher {
             }
 
             return BooleanMatchingAttribute(value).matches(value: isPrivacyProSubscriber)
+        case let matchingAttribute as PrivacyProDaysSinceSubscribedMatchingAttribute:
+            if matchingAttribute.value != MatchingAttributeDefaults.intDefaultValue {
+                return IntMatchingAttribute(matchingAttribute.value).matches(value: privacyProDaysSinceSubscribed)
+            } else {
+                return RangeIntMatchingAttribute(min: matchingAttribute.min, max: matchingAttribute.max).matches(value: privacyProDaysSinceSubscribed)
+            }
+        case let matchingAttribute as PrivacyProDaysUntilExpiryMatchingAttribute:
+            if matchingAttribute.value != MatchingAttributeDefaults.intDefaultValue {
+                return IntMatchingAttribute(matchingAttribute.value).matches(value: privacyProDaysUntilExpiry)
+            } else {
+                return RangeIntMatchingAttribute(min: matchingAttribute.min, max: matchingAttribute.max).matches(value: privacyProDaysUntilExpiry)
+            }
         default:
             assertionFailure("Could not find matching attribute")
             return nil
