@@ -62,7 +62,7 @@ public struct UserAttributeMatcher: AttributeMatcher {
         self.privacyProDaysUntilExpiry = privacyProDaysUntilExpiry
     }
 
-    // swiftlint:disable:next cyclomatic_complexity
+    // swiftlint:disable:next cyclomatic_complexity function_body_length
     func evaluate(matchingAttribute: MatchingAttribute) -> EvaluationResult? {
         switch matchingAttribute {
         case let matchingAttribute as AppThemeMatchingAttribute:
