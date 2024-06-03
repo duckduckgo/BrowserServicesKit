@@ -24,13 +24,15 @@ public protocol SilentErrorConvertible: Error {
 
 @objc
 final public class KnownFailure: NSObject, Codable {
-    public enum SilentError: Int {
+    public typealias SilentErrorCode = Int
+
+    public enum SilentError: SilentErrorCode {
         case operationNotPermitted
         case loginItemVersionMismatched
         case registeredServerFetchingFailed
     }
 
-    public let error: Int
+    public let error: SilentErrorCode
 
     public init?(_ error: Error?) {
         if let nsError = error as? NSError, nsError.domain == "SMAppServiceErrorDomain", nsError.code == 1 {
