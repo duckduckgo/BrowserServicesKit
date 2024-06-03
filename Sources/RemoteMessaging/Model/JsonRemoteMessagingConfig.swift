@@ -97,7 +97,7 @@ public enum RemoteMessageResponse {
         case appUpdate = "AppUpdate"
         case macComputer = "MacComputer"
         case newForMacAndWindows = "NewForMacAndWindows"
-        case vpnAnnounce = "VPNAnnounce"
+        case privacyPro = "PrivacyPro"
     }
 
     public enum StatusError: Error {
