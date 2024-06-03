@@ -58,6 +58,10 @@ final public class NetworkProtectionKnownFailureStore {
         }
     }
 
+    public func reset() {
+        lastKnownFailure = nil
+    }
+
     // MARK: - Posting Notifications
 
 #if os(macOS)
