@@ -30,7 +30,7 @@ struct CTLTests: Decodable {
         let description: String
         let site: String
         let request: String
-        let ctlEnabled: Bool
+        let ctlProtectionsEnabled: Bool
         let isRequestLoaded: Bool
 
     }
@@ -119,16 +119,36 @@ struct CTLTests: Decodable {
 """
 
     static let domainTests: [CTLTests.Test] = [
-        CTLTests.Test(description: "Basic blocking - tracker request",
+        CTLTests.Test(description: "non-CTL tracker request, CTL enabled",
+                      site: "https://example.com",
+                      request: "https://www.facebook.net/signals/config/config.js",
+                      ctlProtectionsEnabled: true,
+                      isRequestLoaded: false),
+        CTLTests.Test(description: "non-CTL tracker request, CTL disabled",
                       site: "https://www.example.com",
                       request: "https://www.facebook.net/signals/config/config.js",
-                      ctlEnabled: false,
+                      ctlProtectionsEnabled: false,
                       isRequestLoaded: false),
-        CTLTests.Test(description: "Basic blocking - ctl request",
+        CTLTests.Test(description: "CTL catch-all tracker, CTL enabled",
                       site: "https://www.example.com",
                       request: "https://www.facebook.net/some.js",
-                      ctlEnabled: false,
-                      isRequestLoaded: false)
+                      ctlProtectionsEnabled: true,
+                      isRequestLoaded: false),
+        CTLTests.Test(description: "CTL catch-all tracker, CTL disabled",
+                      site: "https://www.example.com",
+                      request: "https://www.facebook.net/some.js",
+                      ctlProtectionsEnabled: false,
+                      isRequestLoaded: true),
+        CTLTests.Test(description: "CTL SDK request, CTL enabled",
+                      site: "https://www.example.com",
+                      request: "https://www.facebook.net/EN/fb-sdk.js",
+                      ctlProtectionsEnabled: true,
+                      isRequestLoaded: false),
+        CTLTests.Test(description: "CTL SDK request, CTL disabled",
+                      site: "https://www.example.com",
+                      request: "https://www.facebook.net/EN/fb-sdk.js",
+                      ctlProtectionsEnabled: false,
+                      isRequestLoaded: true)
     ]
 }
 
@@ -145,6 +165,7 @@ class ClickToLoadBlockingTests: XCTestCase {
     var mockWebsite: MockWebsite!
 
     var compiledCTLRules: WKContentRuleList!
+    var compiledNonCTLRules: WKContentRuleList!
 
     func setupWebView(trackerData: TrackerData,
                       ctlTrackerData: TrackerData,
@@ -155,17 +176,20 @@ class ClickToLoadBlockingTests: XCTestCase {
         WebKitTestHelper.prepareContentBlockingRules(trackerData: trackerData,
                                                      exceptions: [],
                                                      tempUnprotected: [],
-                                                     trackerExceptions: []) { fullRules in
+                                                     trackerExceptions: [],
+                                                     identifier: "nonCTLRules") { nonCTLRules in
 
-            guard let fullRules = fullRules else {
+            guard let nonCTLRules = nonCTLRules else {
                 XCTFail("Rules were not compiled properly")
                 return
             }
 
+            self.compiledNonCTLRules = nonCTLRules
             WebKitTestHelper.prepareContentBlockingRules(trackerData: ctlTrackerData,
                                                          exceptions: [],
                                                          tempUnprotected: [],
-                                                         trackerExceptions: []) { ctlRules in
+                                                         trackerExceptions: [],
+                                                         identifier: "ctlRules") { ctlRules in
 
                 guard let ctlRules = ctlRules else {
                     XCTFail("Rules were not compiled properly")
@@ -202,7 +226,7 @@ class ClickToLoadBlockingTests: XCTestCase {
                 configuration.userContentController.addUserScript(WKUserScript(source: userScript.source,
                                                                                injectionTime: .atDocumentStart,
                                                                                forMainFrameOnly: false))
-                configuration.userContentController.add(fullRules)
+                configuration.userContentController.add(nonCTLRules)
 
                 completion(webView)
             }
@@ -226,10 +250,11 @@ class ClickToLoadBlockingTests: XCTestCase {
 
         let fullTDS = CTLTests.exampleRules.data(using: .utf8)!
         let fullTrackerData = (try? JSONDecoder().decode(TrackerData.self, from: fullTDS))!
+        self.tds = fullTrackerData
 
         let dataSet = TrackerDataManager.DataSet(tds: fullTrackerData, etag: UUID().uuidString)
         let ruleList = ContentBlockerRulesList(name: "TrackerDataSet",
-                                               trackerData: dataSet,
+                                               trackerData: nil,
                                                fallbackTrackerData: dataSet)
         let ctlSplitter = ClickToLoadRulesSplitter(rulesList: ruleList)
 
@@ -282,15 +307,14 @@ class ClickToLoadBlockingTests: XCTestCase {
 
         userScriptDelegateMock.reset()
 
-        if test.ctlEnabled {
-            // CTL enabled by user - removing rule list
-            webView.configuration.userContentController.remove(self.compiledCTLRules)
-            userScriptDelegateMock.shouldProcessCTLTrackers = false
-
-        } else {
-            // CTL disabled by user - adding rule list
+        if test.ctlProtectionsEnabled {
+            // CTL protections enabled - adding rule list
             webView.configuration.userContentController.add(self.compiledCTLRules)
             userScriptDelegateMock.shouldProcessCTLTrackers = true
+        } else {
+            // CTL protections disabled - removing rule list
+            webView.configuration.userContentController.remove(self.compiledCTLRules)
+            userScriptDelegateMock.shouldProcessCTLTrackers = false
         }
 
         os_log("Loading %s ...", siteURL.absoluteString)

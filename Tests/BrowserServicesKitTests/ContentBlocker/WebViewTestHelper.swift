@@ -205,6 +205,7 @@ final class WebKitTestHelper {
                                             exceptions: [String],
                                             tempUnprotected: [String],
                                             trackerExceptions: [TrackerException],
+                                            identifier: String = "test",
                                             completion: @escaping (WKContentRuleList?) -> Void) {
 
         let rules = ContentBlockerRulesBuilder(trackerData: trackerData).buildRules(withExceptions: exceptions,
@@ -217,7 +218,7 @@ final class WebKitTestHelper {
         // Replace https scheme regexp with test
         ruleList = ruleList.replacingOccurrences(of: "https", with: "test", options: [], range: nil)
 
-        WKContentRuleListStore.default().compileContentRuleList(forIdentifier: "test", encodedContentRuleList: ruleList) { list, _ in
+        WKContentRuleListStore.default().compileContentRuleList(forIdentifier: identifier, encodedContentRuleList: ruleList) { list, _ in
 
             DispatchQueue.main.async {
                 completion(list)
