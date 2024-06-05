@@ -96,6 +96,7 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
     fileprivate enum Constant {
 
         static let screenKey = "screen"
+        static let breakageScreenKey = "breakageScreen"
         static let openerKey = "opener"
 
         static let menuScreenKey = "menu"
@@ -161,7 +162,7 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
                 userDefaults: UserDefaults = UserDefaults.standard) {
         self.privacyInfo = privacyInfo
         self.initDashboardMode = dashboardMode
-        self.variant = variant
+        self.variant = .a // TODO: this is just for tests
         self.privacyConfigurationManager = privacyConfigurationManager
         privacyDashboardScript = PrivacyDashboardUserScript(privacyConfigurationManager: privacyConfigurationManager)
         self.eventMapping = eventMapping
@@ -218,11 +219,22 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
         guard var url = Bundle.privacyDashboardURL else { return }
         let screen = initDashboardMode.screen(for: variant).rawValue
         url = url.appendingParameter(name: Constant.screenKey, value: screen)
+        if let breakageScreen = breakageScreen(for: variant)?.rawValue {
+            url = url.appendingParameter(name: Constant.breakageScreenKey, value: breakageScreen)
+        }
         if case .toggleReport = initDashboardMode {
             url = url.appendingParameter(name: Constant.openerKey, value: Constant.menuScreenKey)
             userDefaults.toggleReportCounter += 1
         }
         webView?.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent().deletingLastPathComponent())
+    }
+
+    private func breakageScreen(for variant: PrivacyDashboardVariant) -> BreakageScreen? {
+        switch variant {
+        case .control: return nil
+        case .a: return .categorySelection
+        case .b: return .categoryTypeSelection
+        }
     }
 }
 
@@ -364,12 +376,17 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     }
 
     private func didChangeProtectionState(_ protectionState: ProtectionState, didSendReport: Bool = false) {
+
+        if variant == .b {
+            // save if protection was turned off and post notification so we can prompt the dialog
+        }
+
         switch protectionState.eventOrigin.screen {
-        case .primaryScreen, .primaryScreenA, .primaryScreenB:
+        case .primaryScreen:
             privacyDashboardDelegate?.privacyDashboardController(self, didChangeProtectionSwitch: protectionState, didSendReport: didSendReport)
-        case .breakageForm, .breakageFormB:
+        case .breakageForm:
             privacyDashboardReportBrokenSiteDelegate?.privacyDashboardController(self, reportBrokenSiteDidChangeProtectionSwitch: protectionState)
-        case .toggleReport, .promptBreakageForm, .breakageFormA:
+        case .toggleReport, .promptBreakageForm, .categorySelection, .categoryTypeSelection, .choiceBreakageForm:
             assertionFailure("These screen don't have toggling capability")
         }
     }

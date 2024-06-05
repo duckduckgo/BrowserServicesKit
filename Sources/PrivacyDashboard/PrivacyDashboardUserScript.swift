@@ -55,15 +55,21 @@ public enum PrivacyDashboardTheme: String, Encodable {
 public enum Screen: String, Decodable {
 
     case primaryScreen
-    case primaryScreenA
-    case primaryScreenB
 
     case breakageForm
-    case breakageFormA
-    case breakageFormB
+    case categorySelection
+    case categoryTypeSelection
+    case choiceBreakageForm
 
     case toggleReport
     case promptBreakageForm
+
+}
+
+public enum BreakageScreen: String, Decodable {
+
+    case categorySelection
+    case categoryTypeSelection
 
 }
 
