@@ -39,7 +39,6 @@ public enum PrivacyFeature: String {
     case windowsDownloadLink
     case incontextSignup
     case newTabContinueSetUp
-    case networkProtection
     case dbp
     case sync
     case privacyDashboard
@@ -69,15 +68,6 @@ public enum AutofillSubfeature: String, PrivacySubfeature {
     case accessCredentialManagement
     case autofillPasswordGeneration
     case onByDefault
-}
-
-public enum NetworkProtectionSubfeature: String, Equatable, PrivacySubfeature {
-    public var parent: PrivacyFeature {
-        .networkProtection
-    }
-
-    case waitlist
-    case waitlistBetaActive
 }
 
 public enum DBPSubfeature: String, Equatable, PrivacySubfeature {
