@@ -35,6 +35,8 @@ public protocol NetworkProtectionTokenStore {
     func deleteToken() throws
 }
 
+#if os(macOS)
+
 /// Store an auth token for NetworkProtection on behalf of the user. This key is then used to authenticate requests for registration and server fetches from the Network Protection backend servers.
 /// Writing a new auth token will replace the old one.
 public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenStore {
@@ -117,3 +119,33 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
         errorEvents?.fire(error.networkProtectionError)
     }
 }
+
+#else
+
+public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenStore {
+    private let accessTokenProvider: () -> String?
+
+    public static var authTokenPrefix: String { "ddg:" }
+
+    public init(accessTokenProvider: @escaping () -> String?) {
+        self.accessTokenProvider = accessTokenProvider
+    }
+
+    public func store(_ token: String) throws {
+        assertionFailure("Unsupported operation")
+    }
+
+    public func fetchToken() throws -> String? {
+        accessTokenProvider().map { makeToken(from: $0) }
+    }
+
+    public func deleteToken() throws {
+        assertionFailure("Unsupported operation")
+    }
+
+    private func makeToken(from subscriptionAccessToken: String) -> String {
+        Self.authTokenPrefix + subscriptionAccessToken
+    }
+}
+
+#endif
