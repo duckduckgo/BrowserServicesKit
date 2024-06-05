@@ -23,7 +23,7 @@ public enum PrivacyDashboardMode: Equatable {
     case report
     case prompt(String)
     case toggleReport(completionHandler: (Bool) -> Void)
-    case afterTogglePrompt(didToggleProtectionsFixIssue: Bool)
+    case afterTogglePrompt(category: String, didToggleProtectionsFixIssue: Bool)
 
     func screen(for variant: PrivacyDashboardVariant) -> Screen {
         switch (self, variant) {
