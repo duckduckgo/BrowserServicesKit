@@ -63,7 +63,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Error Handling
 
-    enum TunnelError: LocalizedError, CustomNSError {
+    public enum TunnelError: LocalizedError, CustomNSError, SilentErrorConvertible {
         // Tunnel Setup Errors - 0+
         case startingTunnelWithoutAuthToken
         case couldNotGenerateTunnelConfiguration(internalError: Error)
@@ -72,7 +72,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         // Subscription Errors - 100+
         case vpnAccessRevoked
 
-        var errorDescription: String? {
+        public var errorDescription: String? {
             switch self {
             case .startingTunnelWithoutAuthToken:
                 return "Missing auth token at startup"
@@ -85,7 +85,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             }
         }
 
-        var errorCode: Int {
+        public var errorCode: Int {
             switch self {
                 // Tunnel Setup Errors - 0+
             case .startingTunnelWithoutAuthToken: return 0
@@ -96,7 +96,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             }
         }
 
-        var errorUserInfo: [String: Any] {
+        public var errorUserInfo: [String: Any] {
             switch self {
             case .startingTunnelWithoutAuthToken,
                     .simulateTunnelFailureError,
@@ -105,6 +105,16 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             case .couldNotGenerateTunnelConfiguration(let underlyingError):
                 return [NSUnderlyingErrorKey: underlyingError]
             }
+        }
+
+        public var asSilentError: KnownFailure.SilentError? {
+            guard case .couldNotGenerateTunnelConfiguration(let internalError) = self,
+                  let clientError = internalError as? NetworkProtectionClientError,
+                  case .failedToFetchRegisteredServers = clientError else {
+                return nil
+            }
+
+            return .registeredServerFetchingFailed
         }
     }
 
@@ -335,6 +345,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private let bandwidthAnalyzer = NetworkProtectionConnectionBandwidthAnalyzer()
     private let tunnelHealth: NetworkProtectionTunnelHealthStore
     private let controllerErrorStore: NetworkProtectionTunnelErrorStore
+    private let knownFailureStore: NetworkProtectionKnownFailureStore
 
     // MARK: - Cancellables
 
@@ -352,6 +363,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     public init(notificationsPresenter: NetworkProtectionNotificationsPresenter,
                 tunnelHealthStore: NetworkProtectionTunnelHealthStore,
                 controllerErrorStore: NetworkProtectionTunnelErrorStore,
+                knownFailureStore: NetworkProtectionKnownFailureStore = NetworkProtectionKnownFailureStore(),
                 keychainType: KeychainType,
                 tokenStore: NetworkProtectionTokenStore,
                 debugEvents: EventMapping<NetworkProtectionError>?,
@@ -369,6 +381,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         self.providerEvents = providerEvents
         self.tunnelHealth = tunnelHealthStore
         self.controllerErrorStore = controllerErrorStore
+        self.knownFailureStore = knownFailureStore
         self.settings = settings
         self.defaults = defaults
         self.isSubscriptionEnabled = isSubscriptionEnabled
@@ -567,6 +580,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                     os_log("Tunnel startup error: %{public}@", type: .error, errorDescription)
                     self?.controllerErrorStore.lastErrorMessage = errorDescription
                     self?.connectionStatus = .disconnected
+                    self?.knownFailureStore.lastKnownFailure = KnownFailure(error)
 
                     providerEvents.fire(.tunnelStartAttempt(.failure(error)))
                     completionHandler(error)
