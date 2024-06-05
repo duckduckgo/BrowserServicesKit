@@ -473,8 +473,8 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestSubmitBrokenSiteReportWithCategory category: String, description: String) {
         var parameters = [PrivacyDashboardEvents.Parameters.variant: variant.rawValue]
-        if case let .afterTogglePrompt(didToggleProtectionsOff, didToggleProtectionsFixIssue) = initDashboardMode {
-            parameters[PrivacyDashboardEvents.Parameters.didToggleProtectionsOff] = didToggleProtectionsOff.description
+        if case let .afterTogglePrompt(didToggleProtectionsFixIssue) = initDashboardMode {
+            parameters[PrivacyDashboardEvents.Parameters.didToggleProtectionsOff] = true.description
             parameters[PrivacyDashboardEvents.Parameters.didToggleProtectionsFixIssue] = didToggleProtectionsFixIssue.description
         }
         eventMapping.fire(.reportBrokenSiteSent, parameters: parameters)
@@ -537,7 +537,7 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectOverallCategory category: String) {
         eventMapping.fire(.overallCategorySelected, parameters: [PrivacyDashboardEvents.Parameters.category: category])
-        if category == "generalFeedback" { // TODO: check name?
+        if category == "general" { // TODO: check name?
             privacyDashboardReportBrokenSiteDelegate?.privacyDashboardControllerDidRequestShowGeneralFeedback(self)
         }
     }
