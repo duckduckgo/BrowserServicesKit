@@ -312,9 +312,11 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     // swiftlint:enable function_parameter_count
 
     private func handle(clientError: NetworkProtectionClientError) {
+#if os(macOS)
         if case .invalidAuthToken = clientError {
             try? tokenStore.deleteToken()
         }
+#endif
         errorEvents?.fire(clientError.networkProtectionError)
     }
 }
