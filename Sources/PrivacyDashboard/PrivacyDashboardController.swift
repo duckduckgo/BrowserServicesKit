@@ -165,7 +165,7 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
                 userDefaults: UserDefaults = UserDefaults.standard) {
         self.privacyInfo = privacyInfo
         self.initDashboardMode = dashboardMode
-        self.variant = .a // TODO: this is just for tests
+        self.variant = .b // TODO: this is just for tests
         self.privacyConfigurationManager = privacyConfigurationManager
         privacyDashboardScript = PrivacyDashboardUserScript(privacyConfigurationManager: privacyConfigurationManager)
         self.eventMapping = eventMapping
@@ -385,7 +385,7 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
         switch protectionState.eventOrigin.screen {
         case .primaryScreen:
             privacyDashboardDelegate?.privacyDashboardController(self, didChangeProtectionSwitch: protectionState, didSendReport: didSendReport)
-        case .breakageForm:
+        case .breakageForm, .choiceToggle:
             privacyDashboardReportBrokenSiteDelegate?.privacyDashboardController(self, reportBrokenSiteDidChangeProtectionSwitch: protectionState)
         case .toggleReport, .promptBreakageForm, .categorySelection, .categoryTypeSelection, .choiceBreakageForm:
             assertionFailure("These screen don't have toggling capability")
@@ -538,9 +538,6 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectOverallCategory category: String) {
         eventMapping.fire(.overallCategorySelected, parameters: [PrivacyDashboardEvents.Parameters.category: category])
-        if category == "general" {
-            privacyDashboardReportBrokenSiteDelegate?.privacyDashboardControllerDidRequestShowGeneralFeedback(self)
-        }
     }
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectBreakageCategory category: String) {
@@ -554,5 +551,9 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
 
     func userScriptDidRequestShowAlertForMissingDescription(_ userScript: PrivacyDashboardUserScript) {
         privacyDashboardReportBrokenSiteDelegate?.privacyDashboardControllerDidRequestShowAlertForMissingDescription(self)
+    }
+
+    func userScriptDidRequestShowNativeFeedback(_ userScript: PrivacyDashboardUserScript) {
+        privacyDashboardReportBrokenSiteDelegate?.privacyDashboardControllerDidRequestShowGeneralFeedback(self)
     }
 }

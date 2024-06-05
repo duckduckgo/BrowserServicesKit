@@ -42,6 +42,7 @@ protocol PrivacyDashboardUserScriptDelegate: AnyObject {
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectOverallCategory category: String)
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectBreakageCategory category: String)
     func userScriptDidRequestShowAlertForMissingDescription(_ userScript: PrivacyDashboardUserScript)
+    func userScriptDidRequestShowNativeFeedback(_ userScript: PrivacyDashboardUserScript)
 
 }
 
@@ -60,6 +61,7 @@ public enum Screen: String, Decodable {
     case categorySelection
     case categoryTypeSelection
     case choiceBreakageForm
+    case choiceToggle
 
     case toggleReport
     case promptBreakageForm
@@ -106,6 +108,7 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         case privacyDashboardSelectOverallCategory
         case privacyDashboardSelectBreakageCategory
         case privacyDashboardShowAlertForMissingDescription
+        case privacyDashboardShowNativeFeedback
 
     }
 
@@ -163,6 +166,8 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             handleSelectBreakageCategory(message: message)
         case .privacyDashboardShowAlertForMissingDescription:
             handleShowAlertForMissingDescription()
+        case .privacyDashboardShowNativeFeedback:
+            handleShowNativeFeedback()
         }
     }
 
@@ -297,6 +302,10 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
 
     private func handleShowAlertForMissingDescription() {
         delegate?.userScriptDidRequestShowAlertForMissingDescription(self)
+    }
+
+    private func handleShowNativeFeedback() {
+        delegate?.userScriptDidRequestShowNativeFeedback(self)
     }
 
     // MARK: - Calls to script's JS API
