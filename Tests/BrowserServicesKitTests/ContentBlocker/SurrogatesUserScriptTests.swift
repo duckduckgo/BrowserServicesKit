@@ -67,15 +67,15 @@ class SurrogatesUserScriptsTests: XCTestCase {
       "rules": [
         {
           "rule": "ctl-tracker\\\\.com\\\\/scripts\\\\/ctl\\\\.js",
-          "surrogate": "ctl.js",
+          "surrogate": "fb-sdk.js",
           "action": "block-ctl-fb"
         }
       ],
       "owner": {
-        "name": "Fake Tracking Inc",
-        "displayName": "FT Inc",
-        "privacyPolicy": "https://tracker.com/privacy",
-        "url": "http://tracker.com"
+        "name": "Another Tracker Inc",
+        "displayName": "AT Inc",
+        "privacyPolicy": "https://ctl-tracker.com/privacy",
+        "url": "http://ctl-tracker.com"
       },
       "source": [
         "DDG"
@@ -104,10 +104,18 @@ class SurrogatesUserScriptsTests: XCTestCase {
       ],
       "displayName": "Fake Tracking Inc",
       "prevalence": 0.1
+    },
+    "Another Tracker Inc": {
+      "domains": [
+        "ctl-tracker.com"
+      ],
+      "displayName": "AT Inc",
+      "prevalence": 0.1
     }
   },
   "domains": {
-    "tracker.com": "Fake Tracking Inc"
+    "tracker.com": "Fake Tracking Inc",
+    "ctl-tracker.com": "Another Tracker Inc"
   }
 }
 """
@@ -135,7 +143,7 @@ class SurrogatesUserScriptsTests: XCTestCase {
             window.surrT = surrogatesScriptTest
         })();
 
-        ctl-tracker.com/ctl.js application/javascript
+        ctl-tracker.com/fb-sdk.js application/javascript
         (() => {
             'use strict';
             var surrogatesScriptTest = function() {
@@ -266,6 +274,8 @@ class SurrogatesUserScriptsTests: XCTestCase {
                                                                   trackerAllowlist: [:],
                                                                   contentBlockingEnabled: true,
                                                                   exceptions: [])
+        userScriptDelegateMock.shouldProcessCTLTrackers = true
+
         let websiteURL = URL(string: "test://example.com")!
 
         let websiteLoaded = self.expectation(description: "Website Loaded")
