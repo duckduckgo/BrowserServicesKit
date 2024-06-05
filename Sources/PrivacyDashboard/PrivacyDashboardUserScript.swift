@@ -88,10 +88,31 @@ public struct ProtectionState: Decodable {
 
 }
 
+public struct TelemetrySpan: Decodable {
+
+    public let attributes: Attributes
+    public let eventOrigin: EventOrigin
+
+    public struct Attributes: Decodable {
+
+        public let name: String
+        public let value: String
+
+    }
+
+    public struct EventOrigin: Decodable {
+
+        public let screen: Screen
+
+    }
+
+}
+
 final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
 
     enum MessageNames: String, CaseIterable {
 
+        case privacyDashboardTelemetrySpan
         case privacyDashboardSetProtection
         case privacyDashboardSetSize
         case privacyDashboardClose
@@ -105,8 +126,6 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         case privacyDashboardSendToggleReport
         case privacyDashboardRejectToggleReport
         case privacyDashboardSeeWhatIsSent
-        case privacyDashboardSelectOverallCategory
-        case privacyDashboardSelectBreakageCategory
         case privacyDashboardShowAlertForMissingDescription
         case privacyDashboardShowNativeFeedback
 
@@ -160,14 +179,12 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             handleDoNotSendToggleReport()
         case .privacyDashboardSeeWhatIsSent:
             handleDidOpenReportInfo()
-        case .privacyDashboardSelectOverallCategory:
-            handleSelectOverallCategory(message: message)
-        case .privacyDashboardSelectBreakageCategory:
-            handleSelectBreakageCategory(message: message)
         case .privacyDashboardShowAlertForMissingDescription:
             handleShowAlertForMissingDescription()
         case .privacyDashboardShowNativeFeedback:
             handleShowNativeFeedback()
+        case .privacyDashboardTelemetrySpan:
+            handleTelemetrySpan(message: message)
         }
     }
 
@@ -306,6 +323,22 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
 
     private func handleShowNativeFeedback() {
         delegate?.userScriptDidRequestShowNativeFeedback(self)
+    }
+
+    private func handleTelemetrySpan(message: WKScriptMessage) {
+        guard let telemetrySpan: TelemetrySpan = DecodableHelper.decode(from: message.messageBody) else {
+            assertionFailure("privacyDashboardTelemetrySpan: expected TelemetrySpan")
+            return
+        }
+
+        if telemetrySpan.attributes.name == "categoryTypeSelected" {
+            let category = telemetrySpan.attributes.value
+            delegate?.userScript(self, didSelectOverallCategory: category)
+        } else if telemetrySpan.attributes.name == "categorySelected" {
+            let category = telemetrySpan.attributes.value
+            delegate?.userScript(self, didSelectBreakageCategory: category)
+        }
+
     }
 
     // MARK: - Calls to script's JS API
