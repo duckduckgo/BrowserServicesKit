@@ -218,8 +218,8 @@ struct JsonToRemoteMessageModelMapper {
             return .macComputer
         case .newForMacAndWindows:
             return .newForMacAndWindows
-        case .privacyPro:
-            return .privacyPro
+        case .privacyShield:
+            return .privacyShield
         case .none:
             return .announce
         }
