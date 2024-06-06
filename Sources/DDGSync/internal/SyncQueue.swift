@@ -151,17 +151,25 @@ final class SyncQueue {
 
     // MARK: - Private
 
-    private func makeSyncOperation(for features: [Feature]) -> SyncOperation {
+    private func dataProvidersToSync(for features: [Feature]) -> [DataProviding] {
+        guard !features.isEmpty else {
+            return dataProviders
+        }
+
         let includedFeatureNames = Set(features.map(\.name))
 
-        let dataProvidersToSync = dataProviders.filter { dataProvider in
+        return dataProviders.filter { dataProvider in
             guard dataProvider.feature.supportsSelectiveSync else {
                 return true
             }
             return includedFeatureNames.contains(dataProvider.feature.name)
         }
+    }
+
+    private func makeSyncOperation(for features: [Feature]) -> SyncOperation {
+
         let operation = SyncOperation(
-            dataProviders: dataProvidersToSync,
+            dataProviders: dataProvidersToSync(for: features),
             storage: storage,
             crypter: crypter,
             requestMaker: requestMaker,

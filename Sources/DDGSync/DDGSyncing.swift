@@ -292,4 +292,20 @@ public extension Scheduling {
     func requestSyncImmediately() {
         requestSyncImmediately(for: [])
     }
+
+    func notifyDataChanged(for feature: Feature?) {
+        if let feature {
+            notifyDataChanged(for: [feature])
+        } else {
+            notifyDataChanged(for: [])
+        }
+    }
+
+    func requestSyncImmediately(for feature: Feature?) {
+        if let feature {
+            requestSyncImmediately(for: [feature])
+        } else {
+            requestSyncImmediately(for: [])
+        }
+    }
 }
