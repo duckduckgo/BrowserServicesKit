@@ -26,6 +26,11 @@ public enum RemoteMessagingSurveyActionParameter: String, CaseIterable {
     case hardwareModel = "mo"
     case lastActiveDate = "da"
     case osVersion = "osv"
+    case privacyProStatus = "ppro_status"
+    case privacyProPlatform = "ppro_platform"
+    case privacyProBilling = "ppro_billing"
+    case privacyProDaysSincePurchase = "ppro_days_since_purchase"
+    case privacyProDaysUntilExpiry = "ppro_days_until_exp"
 }
 
 public protocol RemoteMessagingSurveyActionMapping {
