@@ -114,7 +114,8 @@ open class SurrogatesUserScript: NSObject, UserScript, WKScriptMessageHandlerWit
 
     public var messageNames: [String] = [
         "trackerDetectedMessage",
-        "isCTLEnabled"
+        "isCTLEnabled",
+        "debugTemp"
     ]
 
     public weak var delegate: SurrogatesUserScriptDelegate?
@@ -142,6 +143,11 @@ open class SurrogatesUserScript: NSObject, UserScript, WKScriptMessageHandlerWit
             if let isSurrogate = dict[TrackerDetectedKey.isSurrogate] as? Bool, isSurrogate, let host = URL(string: urlString)?.host {
                 delegate.surrogatesUserScript(self, detectedTracker: tracker, withSurrogate: host)
             }
+            replyHandler(nil, nil)
+            return
+        } else if message.name == "debugTemp" {
+            let dict = message.body as? [String: Any]
+            print(dict)
             replyHandler(nil, nil)
             return
         }

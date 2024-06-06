@@ -56,7 +56,16 @@
 
     function surrogateInjected (data) {
         try {
+            debug(data)
             webkit.messageHandlers.trackerDetectedMessage.postMessage(data)
+        } catch (error) {
+            // webkit might not be defined
+        }
+    }
+
+    function debug (data) {
+        try {
+            webkit.messageHandlers.debugTemp.postMessage(data)
         } catch (error) {
             // webkit might not be defined
         }
@@ -511,13 +520,24 @@
 
         // set flag for CTL enable check if request is blocked and matches a CTL surrogate
         const isCTLSurrogate = blocked && isSurrogate && ctlSurrogates.includes(result.matchedRule.surrogate)
-
+        debug( {
+            blocked,
+            isSurrogate,
+            matchedRule: result.matchedRule.surrogate,
+            isCTLSurrogate: ctlSurrogates.includes(result.matchedRule.surrogate)
+        } )
         // if a CTL surrogate, check if CTL is enabled first otherwise continue immediately
         const promise = isCTLSurrogate ? isCTLEnabled() : Promise.resolve(true)
 
         return promise.then ((surrogateEnabled) => {
             // Tracker blocking is dealt with by content rules
             // Only handle surrogates here
+            debug( {
+                blocked,
+                isSurrogate,
+                surrogateEnabled,
+                allowListed: isTrackerAllowlisted(topLevelUrl)
+            } )
             if (blocked && isSurrogate && !isTrackerAllowlisted(topLevelUrl, trackerUrl) && surrogateEnabled) {
                 // Remove error handlers on the original element
                 if (element && element.onerror) {
@@ -530,6 +550,7 @@
                         element.onload(new Event('load'))
                     }
                 } catch (e) {
+                    debug( { error: e.toString() } )
                     duckduckgoDebugMessaging.log(`error loading surrogate: ${e.toString()}`)
                 }
                 const pageUrl = window.location.href
