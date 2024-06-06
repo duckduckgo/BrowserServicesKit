@@ -116,6 +116,7 @@ public enum NetworkProtectionNotification: String {
     // Error Events
     case tunnelErrorChanged
     case controllerErrorChanged
+    case knownFailureUpdated
 
     // New Status Observer
     case requestStatusUpdate

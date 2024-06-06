@@ -35,6 +35,7 @@ public final class MockNetworkProtectionStatusReporter: NetworkProtectionStatusR
     public let connectivityIssuesObserver: ConnectivityIssueObserver
     public let controllerErrorMessageObserver: ControllerErrorMesssageObserver
     public let dataVolumeObserver: DataVolumeObserver
+    public let knownFailureObserver: KnownFailureObserver
 
     // MARK: - Init & deinit
 
@@ -44,6 +45,7 @@ public final class MockNetworkProtectionStatusReporter: NetworkProtectionStatusR
                 connectivityIssuesObserver: ConnectivityIssueObserver = MockConnectivityIssueObserver(),
                 controllerErrorMessageObserver: ControllerErrorMesssageObserver = MockControllerErrorMesssageObserver(),
                 dataVolumeObserver: DataVolumeObserver = MockDataVolumeObserver(),
+                knownFailureObserver: KnownFailureObserver = MockKnownFailureObserver(),
                 distributedNotificationCenter: DistributedNotificationCenter = .default()) {
 
         self.statusObserver = statusObserver
@@ -51,6 +53,7 @@ public final class MockNetworkProtectionStatusReporter: NetworkProtectionStatusR
         self.connectionErrorObserver = connectionErrorObserver
         self.connectivityIssuesObserver = connectivityIssuesObserver
         self.dataVolumeObserver = dataVolumeObserver
+        self.knownFailureObserver = knownFailureObserver
         self.controllerErrorMessageObserver = controllerErrorMessageObserver
     }
 
