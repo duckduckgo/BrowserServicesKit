@@ -165,7 +165,14 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
                 userDefaults: UserDefaults = UserDefaults.standard) {
         self.privacyInfo = privacyInfo
         self.initDashboardMode = dashboardMode
-        self.variant = .b // TODO: this is just for tests
+        // TODO: this is just for the test build
+        if privacyInfo?.url.isPart(ofDomain: "cnn.com") ?? false {
+            self.variant = .a
+        } else if privacyInfo?.url.isPart(ofDomain: "bbc.com") ?? false {
+            self.variant = .b
+        } else {
+            self.variant = .control
+        }
         self.privacyConfigurationManager = privacyConfigurationManager
         privacyDashboardScript = PrivacyDashboardUserScript(privacyConfigurationManager: privacyConfigurationManager)
         self.eventMapping = eventMapping
@@ -216,8 +223,6 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
         privacyDashboardScript.messageNames.forEach { messageName in
             webView.configuration.userContentController.add(privacyDashboardScript, name: messageName)
         }
-
-        //TODO!!!
     }
 
     private func loadPrivacyDashboardHTML() {
