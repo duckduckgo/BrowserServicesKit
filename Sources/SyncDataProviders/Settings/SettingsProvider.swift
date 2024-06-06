@@ -92,7 +92,7 @@ public final class SettingsProvider: DataProvider, SettingSyncHandlingDelegate {
         self.metadataDatabase = metadataDatabase
         self.settingsHandlers = settingsHandlersBySetting
         self.metricsEvents = metricsEvents
-        super.init(feature: .init(name: "settings"), metadataStore: metadataStore, log: log(), syncDidUpdateData: syncDidUpdateData)
+        super.init(feature: .init(name: "settings", supportsSelectiveSync: false), metadataStore: metadataStore, log: log(), syncDidUpdateData: syncDidUpdateData)
     }
 
     // MARK: - DataProviding

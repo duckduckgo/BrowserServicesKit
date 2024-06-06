@@ -25,9 +25,11 @@ import Foundation
  */
 public struct Feature: Hashable {
     public var name: String
+    public var supportsSelectiveSync: Bool
 
-    public init(name: String) {
+    public init(name: String, supportsSelectiveSync: Bool = true) {
         self.name = name
+        self.supportsSelectiveSync = supportsSelectiveSync
     }
 }
 

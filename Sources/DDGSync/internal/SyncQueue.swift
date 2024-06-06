@@ -153,7 +153,13 @@ final class SyncQueue {
 
     private func makeSyncOperation(for features: [Feature]) -> SyncOperation {
         let includedFeatureNames = Set(features.map(\.name))
-        let dataProvidersToSync = dataProviders.filter { includedFeatureNames.contains($0.feature.name) }
+
+        let dataProvidersToSync = dataProviders.filter { dataProvider in
+            guard dataProvider.feature.supportsSelectiveSync else {
+                return true
+            }
+            return includedFeatureNames.contains(dataProvider.feature.name)
+        }
         let operation = SyncOperation(
             dataProviders: dataProvidersToSync,
             storage: storage,
