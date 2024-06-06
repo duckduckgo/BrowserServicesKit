@@ -78,7 +78,7 @@ struct AccountManagingMock: AccountManaging {
 final class SchedulerMock: SchedulingInternal {
     var isEnabled: Bool = false
 
-    let startSyncPublisher: AnyPublisher<Void, Never>
+    let startSyncPublisher: AnyPublisher<[Feature], Never>
     let cancelSyncPublisher: AnyPublisher<Void, Never>
     let resumeSyncPublisher: AnyPublisher<Void, Never>
 
@@ -88,21 +88,21 @@ final class SchedulerMock: SchedulingInternal {
         resumeSyncPublisher = resumeSyncSubject.eraseToAnyPublisher()
     }
 
-    func notifyDataChanged() {
+    func notifyDataChanged(for features: [Feature]) {
         if isEnabled {
-            startSyncSubject.send()
+            startSyncSubject.send(features)
         }
     }
 
     func notifyAppLifecycleEvent() {
         if isEnabled {
-            startSyncSubject.send()
+            startSyncSubject.send([])
         }
     }
 
-    func requestSyncImmediately() {
+    func requestSyncImmediately(for features: [Feature]) {
         if isEnabled {
-            startSyncSubject.send()
+            startSyncSubject.send(features)
         }
     }
 
@@ -114,7 +114,7 @@ final class SchedulerMock: SchedulingInternal {
         resumeSyncSubject.send()
     }
 
-    private var startSyncSubject = PassthroughSubject<Void, Never>()
+    private var startSyncSubject = PassthroughSubject<[Feature], Never>()
     private var cancelSyncSubject = PassthroughSubject<Void, Never>()
     private var resumeSyncSubject = PassthroughSubject<Void, Never>()
 }

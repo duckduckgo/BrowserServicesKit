@@ -26,7 +26,7 @@ protocol SchedulingInternal: AnyObject, Scheduling {
     /// Used to control scheduling. If set to false, scheduler is off.
     var isEnabled: Bool { get set }
     /// Publishes events to notify Sync Queue that sync operation should be started.
-    var startSyncPublisher: AnyPublisher<Void, Never> { get }
+    var startSyncPublisher: AnyPublisher<[Feature], Never> { get }
     /// Publishes events to notify Sync Queue that sync operation should be cancelled.
     var cancelSyncPublisher: AnyPublisher<Void, Never> { get }
     /// Publishes events to notify Sync Queue that sync operations can be resumed.
@@ -34,9 +34,9 @@ protocol SchedulingInternal: AnyObject, Scheduling {
 }
 
 final class SyncScheduler: SchedulingInternal {
-    func notifyDataChanged() {
+    func notifyDataChanged(for features: [Feature]) {
         if isEnabled {
-            syncTriggerSubject.send()
+            syncTriggerSubject.send(features)
         }
     }
 
@@ -46,9 +46,9 @@ final class SyncScheduler: SchedulingInternal {
         }
     }
 
-    func requestSyncImmediately() {
+    func requestSyncImmediately(for features: [Feature]) {
         if isEnabled {
-            syncTriggerSubject.send()
+            syncTriggerSubject.send(features)
         }
     }
 
@@ -61,13 +61,14 @@ final class SyncScheduler: SchedulingInternal {
     }
 
     var isEnabled: Bool = false
-    let startSyncPublisher: AnyPublisher<Void, Never>
+    let startSyncPublisher: AnyPublisher<[Feature], Never>
     let cancelSyncPublisher: AnyPublisher<Void, Never>
     let resumeSyncPublisher: AnyPublisher<Void, Never>
 
     init() {
         let throttledAppLifecycleEvents = appLifecycleEventSubject
             .throttle(for: .seconds(Const.appLifecycleEventsDebounceInterval), scheduler: DispatchQueue.main, latest: true)
+            .map { [Feature]() }
 
         let throttledSyncTriggerEvents = syncTriggerSubject
             .throttle(for: .seconds(Const.immediateSyncDebounceInterval), scheduler: DispatchQueue.main, latest: true)
@@ -77,14 +78,14 @@ final class SyncScheduler: SchedulingInternal {
         resumeSyncPublisher = resumeSyncSubject.eraseToAnyPublisher()
 
         startSyncCancellable = Publishers.Merge(throttledAppLifecycleEvents, throttledSyncTriggerEvents)
-            .sink(receiveValue: { [weak self] _ in
-                self?.startSyncSubject.send()
+            .sink(receiveValue: { [weak self] features in
+                self?.startSyncSubject.send(features)
             })
     }
 
     private let appLifecycleEventSubject: PassthroughSubject<Void, Never> = .init()
-    private let syncTriggerSubject: PassthroughSubject<Void, Never> = .init()
-    private let startSyncSubject: PassthroughSubject<Void, Never> = .init()
+    private let syncTriggerSubject: PassthroughSubject<[Feature], Never> = .init()
+    private let startSyncSubject: PassthroughSubject<[Feature], Never> = .init()
     private let cancelSyncSubject: PassthroughSubject<Void, Never> = .init()
     private let resumeSyncSubject: PassthroughSubject<Void, Never> = .init()
     private var startSyncCancellable: AnyCancellable?

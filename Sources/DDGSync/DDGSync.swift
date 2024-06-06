@@ -295,8 +295,8 @@ public class DDGSync: DDGSyncing {
             })
 
         startSyncCancellable = dependencies.scheduler.startSyncPublisher
-            .sink { [weak self] in
-                self?.syncQueue?.startSync()
+            .sink { [weak self] features in
+                self?.syncQueue?.startSync(for: features)
             }
 
         syncQueueRequestErrorCancellable = syncQueue.syncHTTPRequestErrorPublisher

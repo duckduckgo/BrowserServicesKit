@@ -129,12 +129,12 @@ final class SyncQueue {
         }
     }
 
-    func startSync() {
+    func startSync(for features: [Feature] = []) {
         guard isDataSyncingFeatureFlagEnabled else {
             os_log(.debug, log: self.log, "Sync Feature is temporarily disabled, not starting sync")
             return
         }
-        let operation = makeSyncOperation()
+        let operation = makeSyncOperation(for: features)
         operationQueue.addOperation(operation)
     }
 
@@ -151,9 +151,11 @@ final class SyncQueue {
 
     // MARK: - Private
 
-    private func makeSyncOperation() -> SyncOperation {
+    private func makeSyncOperation(for features: [Feature]) -> SyncOperation {
+        let includedFeatureNames = Set(features.map(\.name))
+        let dataProvidersToSync = dataProviders.filter { includedFeatureNames.contains($0.feature.name) }
         let operation = SyncOperation(
-            dataProviders: dataProviders,
+            dataProviders: dataProvidersToSync,
             storage: storage,
             crypter: crypter,
             requestMaker: requestMaker,

@@ -273,13 +273,23 @@ public protocol RemoteConnecting {
  */
 public protocol Scheduling {
     /// This should be called whenever any syncable object changes.
-    func notifyDataChanged()
+    func notifyDataChanged(for features: [Feature])
     /// This should be called on application launch and when the app becomes active.
     func notifyAppLifecycleEvent()
     /// This should be called from externally scheduled background jobs that trigger sync periodically.
-    func requestSyncImmediately()
+    func requestSyncImmediately(for features: [Feature])
     /// This should be called when sync needs to be cancelled, e.g. in response to app going to background.
     func cancelSyncAndSuspendSyncQueue()
     /// This should be called when sync can be resumed, e.g. in response to app going to foreground.
     func resumeSyncQueue()
+}
+
+public extension Scheduling {
+    func notifyDataChanged() {
+        notifyDataChanged(for: [])
+    }
+
+    func requestSyncImmediately() {
+        requestSyncImmediately(for: [])
+    }
 }
