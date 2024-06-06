@@ -149,7 +149,7 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
     private var protectionStateToSubmitOnToggleReportDismiss: ProtectionState?
     private let privacyConfigurationManager: PrivacyConfigurationManaging
     private let eventMapping: EventMapping<PrivacyDashboardEvents>
-    
+
     private let variant: PrivacyDashboardVariant
 
     private var toggleReportCounter: Int? { userDefaults.toggleReportCounter > 20 ? nil : userDefaults.toggleReportCounter }

@@ -22,4 +22,3 @@ public enum PrivacyDashboardVariant: String {
     case a, b
 
 }
-

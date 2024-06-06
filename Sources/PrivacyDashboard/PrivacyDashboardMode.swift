@@ -41,7 +41,7 @@ public enum PrivacyDashboardMode: Equatable {
 
     public static func == (lhs: PrivacyDashboardMode, rhs: PrivacyDashboardMode) -> Bool {
         switch (lhs, rhs) {
-        case 
+        case
             (.dashboard, .dashboard),
             (.report, .report),
             (.toggleReport, .toggleReport),
