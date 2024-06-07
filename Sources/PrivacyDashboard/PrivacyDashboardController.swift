@@ -165,7 +165,7 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
                 userDefaults: UserDefaults = UserDefaults.standard) {
         self.privacyInfo = privacyInfo
         self.initDashboardMode = dashboardMode
-        // TODO: this is just for the test build
+        // This is just for the ship review build
         if privacyInfo?.url.isPart(ofDomain: "cnn.com") ?? false {
             self.variant = .a
         } else if privacyInfo?.url.isPart(ofDomain: "bbc.com") ?? false {
@@ -528,7 +528,7 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
         case .dashboard: source = .dashboard
         case .toggleReport: source = .onProtectionsOffMenu
         case .prompt(let event): source = .prompt(event)
-        case .afterTogglePrompt: source = .afterTogglePrompt // TODO: new value?
+        case .afterTogglePrompt: source = .afterTogglePrompt
         }
         if protectionStateToSubmitOnToggleReportDismiss != nil {
             source = .onProtectionsOffDashboard
