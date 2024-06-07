@@ -482,7 +482,6 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestSubmitBrokenSiteReportWithCategory category: String, description: String) {
         var parameters = [PrivacyDashboardEvents.Parameters.variant: variant.rawValue]
         if case let .afterTogglePrompt(_, didToggleProtectionsFixIssue) = initDashboardMode {
-            parameters[PrivacyDashboardEvents.Parameters.didToggleProtectionsOff] = true.description
             parameters[PrivacyDashboardEvents.Parameters.didToggleProtectionsFixIssue] = didToggleProtectionsFixIssue.description
         }
         eventMapping.fire(.reportBrokenSiteSent, parameters: parameters)

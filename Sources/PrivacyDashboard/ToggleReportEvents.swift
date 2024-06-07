@@ -27,7 +27,6 @@ public enum PrivacyDashboardEvents {
         public static let variant = "variant"
         public static let source = "source"
         public static let category = "category"
-        public static let didToggleProtectionsOff = "didToggleProtectionsOff"
         public static let didToggleProtectionsFixIssue = "didToggleProtectionsFixIssue"
 
     }
