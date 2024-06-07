@@ -116,7 +116,8 @@ class SurrogatesUserScriptsTests: XCTestCase {
   "domains": {
     "tracker.com": "Fake Tracking Inc",
     "ctl-tracker.com": "Another Tracker Inc"
-  }
+  },
+  "cnames": {}
 }
 """
 
@@ -146,7 +147,7 @@ class SurrogatesUserScriptsTests: XCTestCase {
         ctl-tracker.com/fb-sdk.js application/javascript
         (() => {
             'use strict';
-            var surrogatesScriptTest = function() {
+            var ctlSurrogatesScriptTest = function() {
                 function ping() {
                     return "success"
                 }
@@ -154,7 +155,7 @@ class SurrogatesUserScriptsTests: XCTestCase {
                     ping: ping
                 }
             }()
-            window.surrCTLT = surrogatesScriptTest
+            window.ctlSurrT = ctlSurrogatesScriptTest
         })();
 
         othertracker.net/track.js application/javascript
@@ -178,6 +179,12 @@ class SurrogatesUserScriptsTests: XCTestCase {
     let nonSurrogateScriptURL = URL(string: "test://tracker.com/other/script.js")!
 
     var website: MockWebsite!
+
+    var fulfillWait = 0.05
+
+    private func sleepFor(secs: Double) async {
+        try! await Task.sleep(nanoseconds: UInt64(secs * Double(NSEC_PER_SEC)))
+    }
 
     override func setUp() {
         super.setUp()
@@ -214,6 +221,9 @@ class SurrogatesUserScriptsTests: XCTestCase {
             let webView = WKWebView(frame: .init(origin: .zero, size: .init(width: 500, height: 1000)),
                                  configuration: configuration)
             webView.navigationDelegate = self.navigationDelegateMock
+            if #available(macOS 13.3, *) {
+                webView.isInspectable = true
+            }
 
             let config = TestSchemeSurrogatesUserScriptConfig(privacyConfig: privacyConfig,
                                                               surrogates: Self.exampleSurrogates,
@@ -282,10 +292,14 @@ class SurrogatesUserScriptsTests: XCTestCase {
         let surrogateValidated = self.expectation(description: "Validated surrogate injection")
 
         navigationDelegateMock.onDidFinishNavigation = {
-            websiteLoaded.fulfill()
 
-            XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 2)
-            XCTAssertTrue(self.userScriptDelegateMock.detectedSurrogates.contains(where: { $0.url == self.surrogateScriptURL.absoluteString }))
+            Task {
+                await self.sleepFor(secs: self.fulfillWait)
+
+                XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 2)
+                XCTAssertTrue(self.userScriptDelegateMock.detectedSurrogates.contains(where: { $0.url == self.surrogateScriptURL.absoluteString }))
+                websiteLoaded.fulfill()
+            }
 
             self.webView?.evaluateJavaScript("window.surrT.ping()", completionHandler: { result, err in
                 XCTAssertNil(err)
@@ -311,18 +325,24 @@ class SurrogatesUserScriptsTests: XCTestCase {
                                                                   trackerAllowlist: [:],
                                                                   contentBlockingEnabled: true,
                                                                   exceptions: [])
+        userScriptDelegateMock.shouldProcessCTLTrackers = true
+
         let websiteURL = URL(string: "test://example.com")!
 
         let websiteLoaded = self.expectation(description: "Website Loaded")
-        let surrogateValidated = self.expectation(description: "Validated CTL surrogate injection")
+        let surrogateValidated = self.expectation(description: "Validated surrogate injection")
 
         navigationDelegateMock.onDidFinishNavigation = {
-            websiteLoaded.fulfill()
 
-            XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 2)
-            XCTAssertTrue(self.userScriptDelegateMock.detectedSurrogates.contains(where: { $0.url == self.surrogateScriptCTLURL.absoluteString }))
+            Task {
+                await self.sleepFor(secs: self.fulfillWait)
 
-            self.webView?.evaluateJavaScript("window.surrCTLT.ping()", completionHandler: { result, err in
+                XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 2)
+                XCTAssertTrue(self.userScriptDelegateMock.detectedSurrogates.contains(where: { $0.url == self.surrogateScriptURL.absoluteString }))
+                websiteLoaded.fulfill()
+            }
+
+            self.webView?.evaluateJavaScript("window.ctlSurrT.ping()", completionHandler: { result, err in
                 XCTAssertNil(err)
                 if let result = result as? String {
                     XCTAssertEqual(result, "success")
@@ -345,23 +365,28 @@ class SurrogatesUserScriptsTests: XCTestCase {
                                                                   tempUnprotected: [],
                                                                   trackerAllowlist: [:],
                                                                   contentBlockingEnabled: true,
-                                                                  exceptions: [],
-                                                                  clickToLoadEnabled: false)
+                                                                  exceptions: [])
+        userScriptDelegateMock.shouldProcessCTLTrackers = false
+
         let websiteURL = URL(string: "test://example.com")!
 
         let websiteLoaded = self.expectation(description: "Website Loaded")
         let surrogateValidated = self.expectation(description: "Validated surrogate injection")
 
         navigationDelegateMock.onDidFinishNavigation = {
-            websiteLoaded.fulfill()
 
-            XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 1)
-            XCTAssertTrue(self.userScriptDelegateMock.detectedSurrogates.contains(where: { $0.url == self.surrogateScriptURL.absoluteString }))
+            Task {
+                await self.sleepFor(secs: self.fulfillWait)
 
-            self.webView?.evaluateJavaScript("window.surrCTLT.ping()", completionHandler: { result, err in
+                XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 1)
+                XCTAssertTrue(self.userScriptDelegateMock.detectedSurrogates.contains(where: { $0.url == self.surrogateScriptURL.absoluteString }))
+                websiteLoaded.fulfill()
+            }
+
+            self.webView?.evaluateJavaScript("typeof(window.ctlSurrT) == \"undefined\"", completionHandler: { result, err in
                 XCTAssertNil(err)
-                if let result = result as? String {
-                    XCTAssertEqual(result, "success")
+                if let result = result as? Bool {
+                    XCTAssertEqual(result, true)
                     surrogateValidated.fulfill()
                 }
             })
@@ -384,14 +409,19 @@ class SurrogatesUserScriptsTests: XCTestCase {
                                                                   trackerAllowlist: [:],
                                                                   contentBlockingEnabled: true,
                                                                   exceptions: [])
+        userScriptDelegateMock.shouldProcessCTLTrackers = true
 
         let websiteLoaded = self.expectation(description: "Website Loaded")
         let surrogateValidated = self.expectation(description: "Validated surrogate injection")
 
         navigationDelegateMock.onDidFinishNavigation = {
-            websiteLoaded.fulfill()
 
-            XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 0)
+            Task {
+                await self.sleepFor(secs: self.fulfillWait)
+
+                XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 0)
+                websiteLoaded.fulfill()
+            }
 
             self.webView?.evaluateJavaScript("window.surrT.ping()", completionHandler: { _, err in
                 XCTAssertNotNil(err)
@@ -414,6 +444,7 @@ class SurrogatesUserScriptsTests: XCTestCase {
                                                                   trackerAllowlist: [:],
                                                                   contentBlockingEnabled: true,
                                                                   exceptions: [])
+        userScriptDelegateMock.shouldProcessCTLTrackers = true
 
         let websiteURL = URL(string: "test://sub.example.com")!
 
@@ -421,11 +452,15 @@ class SurrogatesUserScriptsTests: XCTestCase {
         let surrogateValidated = self.expectation(description: "Validated surrogate injection")
 
         navigationDelegateMock.onDidFinishNavigation = {
-            websiteLoaded.fulfill()
 
-            XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 2)
-            XCTAssertTrue(self.userScriptDelegateMock.detectedSurrogates.contains(where: { $0.url == self.surrogateScriptURL.absoluteString }))
-            XCTAssertTrue(self.userScriptDelegateMock.detectedSurrogates.contains(where: { $0.url == self.surrogateScriptCTLURL.absoluteString }))
+            Task {
+                await self.sleepFor(secs: self.fulfillWait)
+
+                XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 2)
+                XCTAssertTrue(self.userScriptDelegateMock.detectedSurrogates.contains(where: { $0.url == self.surrogateScriptURL.absoluteString }))
+                XCTAssertTrue(self.userScriptDelegateMock.detectedSurrogates.contains(where: { $0.url == self.surrogateScriptCTLURL.absoluteString }))
+                websiteLoaded.fulfill()
+            }
 
             self.webView?.evaluateJavaScript("window.surrT.ping()", completionHandler: { result, err in
                 XCTAssertNil(err)
@@ -453,14 +488,19 @@ class SurrogatesUserScriptsTests: XCTestCase {
                                                                   trackerAllowlist: [:],
                                                                   contentBlockingEnabled: true,
                                                                   exceptions: [])
+        userScriptDelegateMock.shouldProcessCTLTrackers = true
 
         let websiteLoaded = self.expectation(description: "Website Loaded")
         let surrogateValidated = self.expectation(description: "Validated surrogate injection")
 
         navigationDelegateMock.onDidFinishNavigation = {
-            websiteLoaded.fulfill()
 
-            XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 0)
+            Task {
+                await self.sleepFor(secs: self.fulfillWait)
+
+                XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 0)
+                websiteLoaded.fulfill()
+            }
 
             self.webView?.evaluateJavaScript("window.surrT.ping()", completionHandler: { _, err in
                 XCTAssertNotNil(err)
@@ -485,14 +525,19 @@ class SurrogatesUserScriptsTests: XCTestCase {
                                                                   trackerAllowlist: [:],
                                                                   contentBlockingEnabled: true,
                                                                   exceptions: [])
+        userScriptDelegateMock.shouldProcessCTLTrackers = true
 
         let websiteLoaded = self.expectation(description: "Website Loaded")
         let surrogateValidated = self.expectation(description: "Validated surrogate injection")
 
         navigationDelegateMock.onDidFinishNavigation = {
-            websiteLoaded.fulfill()
 
-            XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 0)
+            Task {
+                await self.sleepFor(secs: self.fulfillWait)
+
+                XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 0)
+                websiteLoaded.fulfill()
+            }
 
             self.webView?.evaluateJavaScript("window.surrT.ping()", completionHandler: { _, err in
                 XCTAssertNotNil(err)
@@ -519,14 +564,19 @@ class SurrogatesUserScriptsTests: XCTestCase {
                                                                   trackerAllowlist: allowlist,
                                                                   contentBlockingEnabled: true,
                                                                   exceptions: [])
+        userScriptDelegateMock.shouldProcessCTLTrackers = true
 
         let websiteLoaded = self.expectation(description: "Website Loaded")
         let surrogateValidated = self.expectation(description: "Validated surrogate injection")
 
         navigationDelegateMock.onDidFinishNavigation = {
-            websiteLoaded.fulfill()
 
-            XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 0)
+            Task {
+                await self.sleepFor(secs: self.fulfillWait)
+
+                XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 0)
+                websiteLoaded.fulfill()
+            }
 
             self.webView?.evaluateJavaScript("window.surrT.ping()", completionHandler: { _, err in
                 XCTAssertNotNil(err)
@@ -553,14 +603,19 @@ class SurrogatesUserScriptsTests: XCTestCase {
                                                                   trackerAllowlist: allowlist,
                                                                   contentBlockingEnabled: true,
                                                                   exceptions: [])
+        userScriptDelegateMock.shouldProcessCTLTrackers = true
 
         let websiteLoaded = self.expectation(description: "Website Loaded")
         let surrogateValidated = self.expectation(description: "Validated surrogate injection")
 
         navigationDelegateMock.onDidFinishNavigation = {
-            websiteLoaded.fulfill()
 
-            XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 2)
+            Task {
+                await self.sleepFor(secs: self.fulfillWait)
+
+                XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 2)
+                websiteLoaded.fulfill()
+            }
 
             self.webView?.evaluateJavaScript("window.surrT.ping()", completionHandler: { _, err in
                 XCTAssertNil(err)
@@ -585,14 +640,19 @@ class SurrogatesUserScriptsTests: XCTestCase {
                                                                   trackerAllowlist: [:],
                                                                   contentBlockingEnabled: true,
                                                                   exceptions: ["example.com"])
+        userScriptDelegateMock.shouldProcessCTLTrackers = true
 
         let websiteLoaded = self.expectation(description: "Website Loaded")
         let surrogateValidated = self.expectation(description: "Validated surrogate injection")
 
         navigationDelegateMock.onDidFinishNavigation = {
-            websiteLoaded.fulfill()
 
-            XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 0)
+            Task {
+                await self.sleepFor(secs: self.fulfillWait)
+
+                XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 0)
+                websiteLoaded.fulfill()
+            }
 
             self.webView?.evaluateJavaScript("window.surrT.ping()", completionHandler: { _, err in
                 XCTAssertNotNil(err)
@@ -617,14 +677,19 @@ class SurrogatesUserScriptsTests: XCTestCase {
                                                                   trackerAllowlist: [:],
                                                                   contentBlockingEnabled: true,
                                                                   exceptions: ["example.com"])
+        userScriptDelegateMock.shouldProcessCTLTrackers = true
 
         let websiteLoaded = self.expectation(description: "Website Loaded")
         let surrogateValidated = self.expectation(description: "Validated surrogate injection")
 
         navigationDelegateMock.onDidFinishNavigation = {
-            websiteLoaded.fulfill()
 
-            XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 0)
+            Task {
+                await self.sleepFor(secs: self.fulfillWait)
+
+                XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 0)
+                websiteLoaded.fulfill()
+            }
 
             self.webView?.evaluateJavaScript("window.surrT.ping()", completionHandler: { _, err in
                 XCTAssertNotNil(err)
@@ -649,14 +714,19 @@ class SurrogatesUserScriptsTests: XCTestCase {
                                                                   trackerAllowlist: [:],
                                                                   contentBlockingEnabled: false,
                                                                   exceptions: [])
+        userScriptDelegateMock.shouldProcessCTLTrackers = true
 
         let websiteLoaded = self.expectation(description: "Website Loaded")
         let surrogateValidated = self.expectation(description: "Validated surrogate injection")
 
         navigationDelegateMock.onDidFinishNavigation = {
-            websiteLoaded.fulfill()
 
-            XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 0)
+            Task {
+                await self.sleepFor(secs: self.fulfillWait)
+
+                XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 0)
+                websiteLoaded.fulfill()
+            }
 
             self.webView?.evaluateJavaScript("window.surrT.ping()", completionHandler: { _, err in
                 XCTAssertNotNil(err)

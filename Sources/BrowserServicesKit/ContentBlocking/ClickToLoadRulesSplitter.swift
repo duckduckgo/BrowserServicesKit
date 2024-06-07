@@ -37,20 +37,23 @@ public struct ClickToLoadRulesSplitter {
         var withoutBlockCTL: (tds: TrackerData, etag: String)?
         var withBlockCTL: (tds: TrackerData, etag: String)?
 
-        if let trackerData = rulesList.trackerData {
-            let splitTDS = split(trackerData: trackerData)
 
-            withoutBlockCTL = splitTDS?.withoutBlockCTL
-            withBlockCTL = splitTDS?.withBlockCTL
+        if let trackerData = rulesList.trackerData {
+            guard let splitTDS = split(trackerData: trackerData) else { return nil }
+
+            withoutBlockCTL = splitTDS.withoutBlockCTL
+            withBlockCTL = splitTDS.withBlockCTL
         }
+
+        guard let splitFallbackTDS = split(trackerData: rulesList.fallbackTrackerData) else { return nil }
 
         return (
             ContentBlockerRulesList(name: rulesList.name,
                                     trackerData: withoutBlockCTL,
-                                    fallbackTrackerData: split(trackerData: rulesList.fallbackTrackerData)!.withoutBlockCTL),
+                                    fallbackTrackerData: splitFallbackTDS.withoutBlockCTL),
             ContentBlockerRulesList(name: DefaultContentBlockerRulesListsSource.Constants.clickToLoadRulesListName,
                                     trackerData: withBlockCTL,
-                                    fallbackTrackerData: split(trackerData: rulesList.fallbackTrackerData)!.withBlockCTL)
+                                    fallbackTrackerData: splitFallbackTDS.withBlockCTL)
         )
     }
 
@@ -144,15 +147,6 @@ private extension TrackerData {
 
 private extension KnownTracker {
 
-    var containsCTLActions: Bool {
-        if let rules = rules {
-            for rule in rules {
-                if let action = rule.action, action == .blockCTLFB {
-                    return true
-                }
-            }
-        }
-        return false
-    }
+    var containsCTLActions: Bool { rules?.first { $0.action == .blockCTLFB } != nil }
 
 }

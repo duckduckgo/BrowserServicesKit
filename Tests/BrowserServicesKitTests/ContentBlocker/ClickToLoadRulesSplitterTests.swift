@@ -22,10 +22,51 @@ import XCTest
 
 final class ClickToLoadRulesSplitterTests: XCTestCase {
 
-    func testShouldNotSplitIfThereAreNoTrackers() {
+    private let ctlTdsName = DefaultContentBlockerRulesListsSource.Constants.clickToLoadRulesListName
+    private let mainTdsName = DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName
+
+    func testShoulNotdSplitTrackerDataWithoutCTLActions() {
         // given
-        let trackerData = TrackerData(trackers: [:], entities: [:], domains: [:], cnames: nil)
-        let rulesList = ContentBlockerRulesList(name: "", trackerData: nil, fallbackTrackerData: (trackerData, "embedded"))
+        let etag = UUID().uuidString
+
+        let dataSet = buildTrackerDataSet(rawTDS: exampleNonCTLRules, etag: etag)
+        XCTAssertNotNil(dataSet)
+
+        let splitRules = splitTrackerDataSet(dataSet: dataSet!)
+
+        // then
+        XCTAssertNil(splitRules)
+
+    }
+
+    func testShouldFallbackToCTLEmbeddedIfThereAreNoTrackers() {
+        // given
+        let etag = UUID().uuidString
+        let dataSet = buildTrackerDataSet(rawTDS: exampleCTLRules, etag: etag)
+        let rulesList = ContentBlockerRulesList(name: "TrackerDataSet", trackerData: nil, fallbackTrackerData: dataSet!)
+        let splitter = ClickToLoadRulesSplitter(rulesList: rulesList)
+
+        // when
+        let result = splitter.split()
+
+        // then
+        XCTAssertNotNil(result)
+
+        XCTAssertNotNil(result?.withBlockCTL)
+        XCTAssertNil(result?.withBlockCTL.trackerData)
+        XCTAssertNotNil(result?.withBlockCTL.fallbackTrackerData)
+
+        XCTAssertNotNil(result?.withoutBlockCTL)
+        XCTAssertNil(result?.withoutBlockCTL.trackerData)
+        XCTAssertNotNil(result?.withoutBlockCTL.fallbackTrackerData)
+
+    }
+
+    func testShoulNotdSplitTrackerDataWithoutCTLActionsInFallback() {
+        // given
+        let etag = UUID().uuidString
+        let dataSet = buildTrackerDataSet(rawTDS: exampleNonCTLRules, etag: etag)
+        let rulesList = ContentBlockerRulesList(name: "TrackerDataSet", trackerData: nil, fallbackTrackerData: dataSet!)
         let splitter = ClickToLoadRulesSplitter(rulesList: rulesList)
 
         // when
@@ -33,102 +74,63 @@ final class ClickToLoadRulesSplitterTests: XCTestCase {
 
         // then
         XCTAssertNil(result)
+
     }
 
-    func testShouldNotSplitIfThereAreNoMatchingTrackerNames() {
+    func testShouldSplitTrackerDataWithCTLActions() {
         // given
-        let trackerData = TrackerData(trackers: [:], entities: [:], domains: [:], cnames: nil)
-        let rulesList = ContentBlockerRulesList(name: "", trackerData: nil, fallbackTrackerData: (trackerData, "embedded"))
-        let splitter = ClickToLoadRulesSplitter(rulesList: rulesList)
+        let etag = UUID().uuidString
 
-        // when
-        let result = splitter.split()
+        let dataSet = buildTrackerDataSet(rawTDS: exampleCTLRules, etag: etag)
+        XCTAssertNotNil(dataSet)
+
+        guard let splitRules =  splitTrackerDataSet(dataSet: dataSet!) else {
+            XCTFail("Could not split rules")
+            return
+        }
 
         // then
-        XCTAssertNil(result)
+        XCTAssertNotNil(splitRules)
+        let rulesWithBlockCTL = splitRules.withBlockCTL
+        let rulesWithoutBlockCTL = splitRules.withoutBlockCTL
+
+        // withBlockCTL list
+        XCTAssertEqual(rulesWithBlockCTL.name, ctlTdsName)
+        XCTAssertEqual(rulesWithBlockCTL.trackerData!.etag, "CTL_" + etag)
+        XCTAssertEqual(rulesWithBlockCTL.fallbackTrackerData.etag, "CTL_" + etag)
+        XCTAssertEqual(rulesWithBlockCTL.trackerData!.tds.trackers.count, 1)
+        XCTAssertEqual(rulesWithBlockCTL.trackerData!.tds.trackers.first?.key, "facebook.net")
+
+
+        // withoutBlockCTL list
+        XCTAssertEqual(rulesWithoutBlockCTL.name, mainTdsName)
+        XCTAssertEqual(rulesWithoutBlockCTL.trackerData!.etag, "TDS_" + etag)
+        XCTAssertEqual(rulesWithoutBlockCTL.fallbackTrackerData.etag, "TDS_" + etag)
+        XCTAssertEqual(rulesWithoutBlockCTL.trackerData!.tds.trackers.count, 1)
+        XCTAssertEqual(rulesWithoutBlockCTL.trackerData!.tds.trackers.first?.key, "facebook.net")
+
+        let (fbMainRules, mainCTLRuleCount) = getFBTrackerRules(ruleSet: rulesWithoutBlockCTL)
+        let (fbCTLRules, ctlCTLRuleCount) = getFBTrackerRules(ruleSet: rulesWithBlockCTL)
+
+        let fbMainRuleCount = fbMainRules!.count
+        let fbCTLRuleCount = fbCTLRules!.count
+
+        // ensure both rulesets contains facebook.net rules
+        XCTAssert(fbMainRuleCount == 6)
+        XCTAssert(fbCTLRuleCount == 9)
+
+        // ensure FB CTL rules include CTL custom actions, and main rules FB do not
+        XCTAssert(mainCTLRuleCount == 0)
+        XCTAssert(ctlCTLRuleCount == 3)
+
+        // ensure FB CTL rules are the sum of the main rules + CTL custom action rules
+        XCTAssert(fbMainRuleCount + ctlCTLRuleCount == fbCTLRuleCount)
+
     }
 
-//    func testSplitWithSingleTrackerNameShouldMakeOriginalTrackerListEmptyAndAttributionTrackerListEqualToOriginalListBeforeStripping() {
-//        // given
-//        let allowlistedTrackerNames = ["example.com"]
-//        let trackerData = TrackerData(trackers: ["example.com": makeKnownTracker(withName: "example.com",
-//                                                                                 ownerName: "Example")],
-//                                      entities: ["Example": makeEntity(withName: "Example", domains: ["example.com"])],
-//                                      domains: ["example.com": "Example"],
-//                                      cnames: nil)
-//        let rulesList = ContentBlockerRulesList(name: "TrackerDataSet",
-//                                                trackerData: (trackerData, "etag"),
-//                                                fallbackTrackerData: (trackerData, "embedded"))
-//        let splitter = ClickToLoadRulesSplitter(rulesList: rulesList, allowlistedTrackerNames: allowlistedTrackerNames)
-//
-//        // when
-//        let result = splitter.split()
-//
-//        // then
-//        XCTAssertNotNil(result)
-//
-//        // original list
-//        XCTAssertEqual(result!.0.name, rulesList.name)
-//
-//        let attributionNamePrefix = ClickToLoadRulesSplitter.Constants.attributionRuleListNamePrefix
-//        let attributionEtagPrefix = ClickToLoadRulesSplitter.Constants.attributionRuleListETagPrefix
-//
-//        XCTAssertEqual(result!.0.trackerData!.etag, attributionEtagPrefix + rulesList.trackerData!.etag)
-//        XCTAssertEqual(result!.0.fallbackTrackerData.etag, attributionEtagPrefix + rulesList.fallbackTrackerData.etag)
-//
-//        XCTAssertTrue(result!.0.trackerData!.tds.trackers.isEmpty)
-//        XCTAssertTrue(result!.0.fallbackTrackerData.tds.trackers.isEmpty)
-//
-//        // attribution list
-//        XCTAssertEqual(result!.1.name, attributionNamePrefix + rulesList.name)
-//        XCTAssertEqual(result!.1.trackerData!.etag, attributionEtagPrefix + rulesList.trackerData!.etag)
-//        XCTAssertEqual(result!.1.fallbackTrackerData.etag, attributionEtagPrefix + "\(rulesList.fallbackTrackerData.etag)")
-//        XCTAssertEqual(result!.1.trackerData!.tds, rulesList.trackerData!.tds)
-//        XCTAssertEqual(result!.1.fallbackTrackerData.tds, rulesList.fallbackTrackerData.tds)
-//
-//    }
-//
-//    func testWhenSplittingManyTrackersThenDomainsRelatedToEntitiesArePreserved() {
-//
-//        // given
-//        let allowlistedTrackerNames = ["trackerone.com"]
-//        let trackerData = TrackerData(trackers: ["trackerone.com": makeKnownTracker(withName: "trackerone.com",
-//                                                                                   ownerName: "Tracker Owner"),
-//                                                 "trackertwo.com": makeKnownTracker(withName: "trackertwo.com",
-//                                                                                   ownerName: "Tracker Owner")],
-//                                      entities: ["Tracker Owner": makeEntity(withName: "Tracker Owner",
-//                                                                             domains: ["trackerone.com", "example.com"]),
-//                                                 "Tracker Owner Two": makeEntity(withName: "Tracker Owner Two",
-//                                                                                 domains: ["trackertwo.com"])],
-//                                      domains: ["example.com": "Tracker Owner",
-//                                                "trackerone.com": "Tracker Owner",
-//                                                "trackertwo.com": "Tracker Owner Two"],
-//                                      cnames: nil)
-//        let rulesList = ContentBlockerRulesList(name: "TrackerDataSet",
-//                                                trackerData: (trackerData, "etag"),
-//                                                fallbackTrackerData: (trackerData, "embedded"))
-//        let splitter = ClickToLoadRulesSplitter(rulesList: rulesList, allowlistedTrackerNames: allowlistedTrackerNames)
-//
-//        // when
-//        let result = splitter.split()
-//
-//        // attribution list
-//
-//        guard let attributionTDS = result!.1.trackerData else {
-//            XCTFail("No attribution list found")
-//            return
-//        }
-//
-//        let attributionEtagPrefix = ClickToLoadRulesSplitter.Constants.attributionRuleListETagPrefix
-//        XCTAssertEqual(attributionTDS.etag, attributionEtagPrefix + rulesList.trackerData!.etag)
-//
-//        XCTAssertEqual(attributionTDS.tds.trackers.count, 1)
-//        XCTAssertEqual(attributionTDS.tds.trackers.first?.key, "trackerone.com")
-//        XCTAssertEqual(attributionTDS.tds.entities.count, 1)
-//        XCTAssertEqual(attributionTDS.tds.entities.first?.key, "Tracker Owner")
-//        XCTAssertEqual(Set(attributionTDS.tds.domains.keys), Set(["example.com", "trackerone.com"]))
-//
-//    }
+    private func makeEntity(withName name: String, domains: [String]) -> Entity {
+        Entity(displayName: name, domains: domains, prevalence: 5.0)
+    }
 
     private func makeKnownTracker(withName name: String, ownerName: String) -> KnownTracker {
         KnownTracker(domain: name,
@@ -140,8 +142,161 @@ final class ClickToLoadRulesSplitterTests: XCTestCase {
                      rules: nil)
     }
 
-    private func makeEntity(withName name: String, domains: [String]) -> Entity {
-        Entity(displayName: name, domains: domains, prevalence: 5.0)
+    private func getFBTrackerRules(ruleSet: ContentBlockerRulesList) -> (rules: [KnownTracker.Rule]?, countCTLActions: Int) {
+        let tracker = ruleSet.trackerData?.tds.trackers["facebook.net"]
+        return (tracker?.rules, tracker?.countCTLActions ?? 0)
+    }
+
+    private func buildTrackerDataSet(rawTDS: String, etag: String) -> TrackerDataManager.DataSet? {
+        let fullTDS = rawTDS.data(using: .utf8)!
+        let fullTrackerData = (try? JSONDecoder().decode(TrackerData.self, from: fullTDS))!
+        return TrackerDataManager.DataSet(tds: fullTrackerData, etag)
+    }
+
+    private func splitTrackerDataSet(dataSet: TrackerDataManager.DataSet) -> (withoutBlockCTL: ContentBlockerRulesList, withBlockCTL: ContentBlockerRulesList)? {
+        let rulesList = ContentBlockerRulesList(name: "TrackerDataSet",
+                                               trackerData: dataSet,
+                                               fallbackTrackerData: dataSet)
+        let ctlSplitter = ClickToLoadRulesSplitter(rulesList: rulesList)
+
+        return ctlSplitter.split()
     }
 
 }
+
+private extension KnownTracker {
+
+    var countCTLActions: Int { rules?.filter { $0.action == .blockCTLFB }.count ?? 0 }
+
+}
+
+let exampleCTLRules = """
+{
+"trackers": {
+    "facebook.net": {
+        "domain": "facebook.net",
+        "owner": {
+            "name": "Facebook, Inc.",
+            "displayName": "Facebook",
+            "privacyPolicy": "https://www.facebook.com/privacy/explanation",
+            "url": "https://facebook.com"
+        },
+        "prevalence": 0.268,
+        "fingerprinting": 2,
+        "cookies": 0.208,
+        "categories": [],
+        "default": "ignore",
+        "rules": [
+            {
+                "rule": "facebook\\\\.net/.*/all\\\\.js",
+                "surrogate": "fb-sdk.js",
+                "action": "block-ctl-fb",
+                "fingerprinting": 1,
+                "cookies": 0.0000408
+            },
+            {
+                "rule": "facebook\\\\.net/.*/fbevents\\\\.js",
+                "fingerprinting": 1,
+                "cookies": 0.108
+            },
+            {
+                "rule": "facebook\\\\.net/[a-z_A-Z]+/sdk\\\\.js",
+                "surrogate": "fb-sdk.js",
+                "action": "block-ctl-fb",
+                "fingerprinting": 1,
+                "cookies": 0.000334
+            },
+            {
+                "rule": "facebook\\\\.net/signals/config/",
+                "fingerprinting": 1,
+                "cookies": 0.000101
+            },
+            {
+                "rule": "facebook\\\\.net\\\\/signals\\\\/plugins\\\\/openbridge3\\\\.js",
+                "fingerprinting": 1,
+                "cookies": 0
+            },
+            {
+                "rule": "facebook\\\\.net/.*/sdk/.*customerchat\\\\.js",
+                "fingerprinting": 1,
+                "cookies": 0.00000681
+            },
+            {
+                "rule": "facebook\\\\.net\\\\/en_US\\\\/messenger\\\\.Extensions\\\\.js",
+                "fingerprinting": 1,
+                "cookies": 0
+            },
+            {
+                "rule": "facebook\\\\.net\\\\/en_US\\\\/sdk\\\\/xfbml\\\\.save\\\\.js",
+                "fingerprinting": 1,
+                "cookies": 0
+            },
+            {
+                "rule": "facebook\\\\.net/",
+                "action": "block-ctl-fb"
+            }
+            ]
+    },
+},
+"entities": {
+"Facebook, Inc.": {
+  "domains": [
+    "facebook.net"
+  ],
+  "displayName": "Facebook",
+  "prevalence": 0.1
+}
+},
+"domains": {
+"facebook.net": "Facebook, Inc."
+},
+"cnames": {}
+}
+"""
+
+let exampleNonCTLRules = """
+{
+"trackers": {
+"tracker.com": {
+  "domain": "tracker.com",
+  "default": "block",
+  "owner": {
+    "name": "Fake Tracking Inc",
+    "displayName": "FT Inc",
+    "privacyPolicy": "https://tracker.com/privacy",
+    "url": "http://tracker.com"
+  },
+  "source": [
+    "DDG"
+  ],
+  "prevalence": 0.002,
+  "fingerprinting": 0,
+  "cookies": 0.002,
+  "performance": {
+    "time": 1,
+    "size": 1,
+    "cpu": 1,
+    "cache": 3
+  },
+  "categories": [
+    "Ad Motivated Tracking",
+    "Advertising",
+    "Analytics",
+    "Third-Party Analytics Marketing"
+  ]
+}
+},
+"entities": {
+"Fake Tracking Inc": {
+  "domains": [
+    "tracker.com"
+  ],
+  "displayName": "Fake Tracking Inc",
+  "prevalence": 0.1
+}
+},
+"domains": {
+"tracker.com": "Fake Tracking Inc"
+}
+}
+"""

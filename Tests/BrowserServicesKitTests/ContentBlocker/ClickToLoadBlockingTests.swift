@@ -114,7 +114,8 @@ struct CTLTests: Decodable {
   },
   "domains": {
     "facebook.net": "Facebook, Inc."
-  }
+  },
+  "cnames": {}
 }
 """
 
