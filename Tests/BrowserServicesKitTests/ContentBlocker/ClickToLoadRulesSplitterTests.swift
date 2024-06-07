@@ -101,7 +101,6 @@ final class ClickToLoadRulesSplitterTests: XCTestCase {
         XCTAssertEqual(rulesWithBlockCTL.trackerData!.tds.trackers.count, 1)
         XCTAssertEqual(rulesWithBlockCTL.trackerData!.tds.trackers.first?.key, "facebook.net")
 
-
         // withoutBlockCTL list
         XCTAssertEqual(rulesWithoutBlockCTL.name, mainTdsName)
         XCTAssertEqual(rulesWithoutBlockCTL.trackerData!.etag, "TDS_" + etag)
