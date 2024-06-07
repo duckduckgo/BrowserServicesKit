@@ -37,12 +37,12 @@ public struct ClickToLoadRulesSplitter {
         var withoutBlockCTL: (tds: TrackerData, etag: String)?
         var withBlockCTL: (tds: TrackerData, etag: String)?
 
-        guard let trackerData = rulesList.trackerData else { return nil }
+        if let trackerData = rulesList.trackerData {
+            guard let splitTDS = split(trackerData: trackerData) else { return nil }
 
-        guard let splitTDS = split(trackerData: trackerData) else { return nil }
-
-        withoutBlockCTL = splitTDS.withoutBlockCTL
-        withBlockCTL = splitTDS.withBlockCTL
+            withoutBlockCTL = splitTDS.withoutBlockCTL
+            withBlockCTL = splitTDS.withBlockCTL
+        }
 
         return (
             ContentBlockerRulesList(name: rulesList.name,
