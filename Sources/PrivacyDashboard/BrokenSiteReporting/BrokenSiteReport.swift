@@ -267,10 +267,53 @@ public struct BrokenSiteReport {
     private func encodeErrors(_ errors: [Error]) -> String {
         let errorDescriptions: [String] = errors.map {
             let error = $0 as NSError
-            return "\(error.code) - \(error.domain):\(error.localizedDescription)"
+            return "\(error.code) - \(error.domain):\(error.shortDescription)"
         }
         let jsonString = try? String(data: JSONSerialization.data(withJSONObject: errorDescriptions), encoding: .utf8)!
         return jsonString ?? ""
+    }
+
+}
+
+extension NSError {
+
+    var shortDescription: String {
+        switch code {
+        case -1205:
+            return "The server did not accept the certificate."
+        case -1202:
+            return "The certificate for this server is invalid."
+        case -1200:
+            return "An SSL error has occurred and a secure connection to the server cannot be made."
+        case -1009:
+            return "The Internet connection appears to be offline."
+        case -1007:
+            return "Too many HTTP redirects."
+        case -1005:
+            return "The network connection was lost."
+        case -1004:
+            return "Could not connect to the server."
+        case -1003:
+            return "A server with the specified hostname could not be found."
+        case -1001:
+            return "The request timed out."
+        case -1000:
+            return "Bad URL"
+        case -999:
+            return "The operation couldn’t be completed."
+        case 0:
+            return localizedDescription
+        case 101:
+            return "The URL can’t be shown."
+        case 102:
+            return "Frame load interrupted."
+        case 300:
+            return "WebKit encountered an internal error."
+        case 303:
+            return "The operation couldn't be completed."
+        default:
+            return "Unknown error"
+        }
     }
 
 }
