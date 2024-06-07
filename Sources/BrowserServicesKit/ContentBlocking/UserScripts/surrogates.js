@@ -536,7 +536,7 @@
                 blocked,
                 isSurrogate,
                 surrogateEnabled,
-                allowListed: isTrackerAllowlisted(topLevelUrl)
+                allowListed: isTrackerAllowlisted(topLevelUrl, trackerUrl)
             } )
             if (blocked && isSurrogate && !isTrackerAllowlisted(topLevelUrl, trackerUrl) && surrogateEnabled) {
                 // Remove error handlers on the original element

@@ -103,20 +103,21 @@ class SurrogatesUserScriptsTests: XCTestCase {
         "tracker.com"
       ],
       "displayName": "Fake Tracking Inc",
-      "prevalence": 0.1
+      "prevalence": 0.05
     },
     "Another Tracker Inc": {
       "domains": [
         "ctl-tracker.com"
       ],
       "displayName": "AT Inc",
-      "prevalence": 0.1
+      "prevalence": 0.05
     }
   },
   "domains": {
     "tracker.com": "Fake Tracking Inc",
     "ctl-tracker.com": "Another Tracker Inc"
-  }
+  },
+  "cnames": {}
 }
 """
 
@@ -291,7 +292,7 @@ class SurrogatesUserScriptsTests: XCTestCase {
         navigationDelegateMock.onDidFinishNavigation = {
 
             Task {
-                await self.sleepFor(secs: 0.1)
+                await self.sleepFor(secs: 0.05)
 
                 XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 2)
                 XCTAssertTrue(self.userScriptDelegateMock.detectedSurrogates.contains(where: { $0.url == self.surrogateScriptURL.absoluteString }))
@@ -332,7 +333,7 @@ class SurrogatesUserScriptsTests: XCTestCase {
         navigationDelegateMock.onDidFinishNavigation = {
 
             Task {
-                await self.sleepFor(secs: 0.1)
+                await self.sleepFor(secs: 0.05)
 
                 XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 2)
                 XCTAssertTrue(self.userScriptDelegateMock.detectedSurrogates.contains(where: { $0.url == self.surrogateScriptURL.absoluteString }))
@@ -373,7 +374,7 @@ class SurrogatesUserScriptsTests: XCTestCase {
         navigationDelegateMock.onDidFinishNavigation = {
 
             Task {
-                await self.sleepFor(secs: 0.1)
+                await self.sleepFor(secs: 0.05)
 
                 XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 1)
                 XCTAssertTrue(self.userScriptDelegateMock.detectedSurrogates.contains(where: { $0.url == self.surrogateScriptURL.absoluteString }))
@@ -414,7 +415,7 @@ class SurrogatesUserScriptsTests: XCTestCase {
         navigationDelegateMock.onDidFinishNavigation = {
 
             Task {
-                await self.sleepFor(secs: 0.1)
+                await self.sleepFor(secs: 0.05)
 
                 XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 0)
                 websiteLoaded.fulfill()
@@ -451,7 +452,7 @@ class SurrogatesUserScriptsTests: XCTestCase {
         navigationDelegateMock.onDidFinishNavigation = {
 
             Task {
-                await self.sleepFor(secs: 0.1)
+                await self.sleepFor(secs: 0.05)
 
                 XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 2)
                 XCTAssertTrue(self.userScriptDelegateMock.detectedSurrogates.contains(where: { $0.url == self.surrogateScriptURL.absoluteString }))
@@ -493,7 +494,7 @@ class SurrogatesUserScriptsTests: XCTestCase {
         navigationDelegateMock.onDidFinishNavigation = {
 
             Task {
-                await self.sleepFor(secs: 0.1)
+                await self.sleepFor(secs: 0.05)
 
                 XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 0)
                 websiteLoaded.fulfill()
@@ -530,7 +531,7 @@ class SurrogatesUserScriptsTests: XCTestCase {
         navigationDelegateMock.onDidFinishNavigation = {
 
             Task {
-                await self.sleepFor(secs: 0.1)
+                await self.sleepFor(secs: 0.05)
 
                 XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 0)
                 websiteLoaded.fulfill()
@@ -569,7 +570,7 @@ class SurrogatesUserScriptsTests: XCTestCase {
         navigationDelegateMock.onDidFinishNavigation = {
 
             Task {
-                await self.sleepFor(secs: 0.1)
+                await self.sleepFor(secs: 0.05)
 
                 XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 0)
                 websiteLoaded.fulfill()
@@ -608,7 +609,7 @@ class SurrogatesUserScriptsTests: XCTestCase {
         navigationDelegateMock.onDidFinishNavigation = {
 
             Task {
-                await self.sleepFor(secs: 0.1)
+                await self.sleepFor(secs: 0.05)
 
                 XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 2)
                 websiteLoaded.fulfill()
@@ -645,7 +646,7 @@ class SurrogatesUserScriptsTests: XCTestCase {
         navigationDelegateMock.onDidFinishNavigation = {
 
             Task {
-                await self.sleepFor(secs: 0.1)
+                await self.sleepFor(secs: 0.05)
 
                 XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 0)
                 websiteLoaded.fulfill()
@@ -682,7 +683,7 @@ class SurrogatesUserScriptsTests: XCTestCase {
         navigationDelegateMock.onDidFinishNavigation = {
 
             Task {
-                await self.sleepFor(secs: 0.1)
+                await self.sleepFor(secs: 0.05)
 
                 XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 0)
                 websiteLoaded.fulfill()
@@ -719,7 +720,7 @@ class SurrogatesUserScriptsTests: XCTestCase {
         navigationDelegateMock.onDidFinishNavigation = {
 
             Task {
-                await self.sleepFor(secs: 0.1)
+                await self.sleepFor(secs: 0.05)
 
                 XCTAssertEqual(self.userScriptDelegateMock.detectedSurrogates.count, 0)
                 websiteLoaded.fulfill()
