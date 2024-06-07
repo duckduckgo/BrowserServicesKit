@@ -90,7 +90,7 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
             content: .promoSingleAction(
                 titleText: "Survey Title",
                 descriptionText: "Survey Description",
-                placeholder: .privacyPro,
+                placeholder: .privacyShield,
                 actionText: "Survey Action",
                 action: .survey(value: "https://duckduckgo.com/survey")
             ),
