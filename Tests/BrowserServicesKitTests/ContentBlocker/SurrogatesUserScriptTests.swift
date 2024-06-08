@@ -221,9 +221,6 @@ class SurrogatesUserScriptsTests: XCTestCase {
             let webView = WKWebView(frame: .init(origin: .zero, size: .init(width: 500, height: 1000)),
                                  configuration: configuration)
             webView.navigationDelegate = self.navigationDelegateMock
-            if #available(macOS 13.3, *) {
-                webView.isInspectable = true
-            }
 
             let config = TestSchemeSurrogatesUserScriptConfig(privacyConfig: privacyConfig,
                                                               surrogates: Self.exampleSurrogates,
