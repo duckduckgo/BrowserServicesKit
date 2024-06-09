@@ -114,5 +114,5 @@ public enum RemotePlaceholder: String, Codable {
     case appUpdate = "RemoteMessageAppUpdate"
     case macComputer = "RemoteMessageMacComputer"
     case newForMacAndWindows = "RemoteMessageNewForMacAndWindows"
-    case privacyPro = "RemoteMessagePrivacyPro"
+    case privacyShield = "RemoteMessagePrivacyShield"
 }
