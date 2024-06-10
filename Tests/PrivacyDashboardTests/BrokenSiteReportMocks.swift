@@ -47,7 +47,8 @@ struct BrokenSiteReportMocks {
                          jsPerformance: nil,
                          userRefreshCount: 0,
                          didOpenReportInfo: true,
-                         toggleReportCounter: 0)
+                         toggleReportCounter: 0,
+                         variant: "")
 #else
         BrokenSiteReport(siteUrl: URL(string: "https://duckduckgo.com")!,
                          category: "test",
@@ -100,7 +101,8 @@ struct BrokenSiteReportMocks {
                          jsPerformance: nil,
                          userRefreshCount: 0,
                          didOpenReportInfo: true,
-                         toggleReportCounter: 0)
+                         toggleReportCounter: 0,
+                         variant: "")
 #else
         BrokenSiteReport(siteUrl: URL(string: "https://somethingelse.zz")!,
                          category: "test",
@@ -153,7 +155,8 @@ struct BrokenSiteReportMocks {
                          jsPerformance: nil,
                          userRefreshCount: 0,
                          didOpenReportInfo: true,
-                         toggleReportCounter: 0)
+                         toggleReportCounter: 0,
+                         variant: "")
 #else
         BrokenSiteReport(siteUrl: URL(string: "https://www.subdomain.example.com/some/pathname?t=param#aaa")!,
                          category: "test",
