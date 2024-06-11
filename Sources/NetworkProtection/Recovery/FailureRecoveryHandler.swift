@@ -35,6 +35,7 @@ protocol FailureRecoveryHandling {
         to lastConnectedServer: NetworkProtectionServer,
         includedRoutes: [IPAddressRange],
         excludedRoutes: [IPAddressRange],
+        dnsSettings: NetworkProtectionDNSSettings,
         isKillSwitchEnabled: Bool,
         updateConfig: @escaping (NetworkProtectionDeviceManagement.GenerateTunnelConfigurationResult) async throws -> Void
     ) async
@@ -85,6 +86,7 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
         to lastConnectedServer: NetworkProtectionServer,
         includedRoutes: [IPAddressRange],
         excludedRoutes: [IPAddressRange],
+        dnsSettings: NetworkProtectionDNSSettings,
         isKillSwitchEnabled: Bool,
         updateConfig: @escaping (NetworkProtectionDeviceManagement.GenerateTunnelConfigurationResult) async throws -> Void
     ) async {
@@ -100,6 +102,7 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
                     to: lastConnectedServer,
                     includedRoutes: includedRoutes,
                     excludedRoutes: excludedRoutes,
+                    dnsSettings: dnsSettings,
                     isKillSwitchEnabled: isKillSwitchEnabled
                 )
                 switch result {
@@ -127,6 +130,7 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
         to lastConnectedServer: NetworkProtectionServer,
         includedRoutes: [IPAddressRange],
         excludedRoutes: [IPAddressRange],
+        dnsSettings: NetworkProtectionDNSSettings,
         isKillSwitchEnabled: Bool
     ) async throws -> FailureRecoveryResult {
         let serverSelectionMethod: NetworkProtectionServerSelectionMethod = .failureRecovery(serverName: lastConnectedServer.serverName)
@@ -136,6 +140,7 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
             selectionMethod: serverSelectionMethod,
             includedRoutes: includedRoutes,
             excludedRoutes: excludedRoutes,
+            dnsSettings: dnsSettings,
             isKillSwitchEnabled: isKillSwitchEnabled,
             regenerateKey: false
         )

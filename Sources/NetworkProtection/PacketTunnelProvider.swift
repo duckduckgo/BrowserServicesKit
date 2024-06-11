@@ -651,6 +651,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 let tunnelConfiguration = try await generateTunnelConfiguration(serverSelectionMethod: currentServerSelectionMethod,
                                                                                 includedRoutes: includedRoutes ?? [],
                                                                                 excludedRoutes: settings.excludedRanges,
+                                                                                dnsSettings: settings.dnsSettings,
                                                                                 regenerateKey: true)
                 startTunnel(with: tunnelConfiguration, onDemand: onDemand, completionHandler: completionHandler)
                 os_log("🔵 Done generating tunnel config", log: .networkProtection, type: .info)
@@ -793,9 +794,12 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     // MARK: - Tunnel Configuration
 
     @MainActor
-    public func updateTunnelConfiguration(reassert: Bool, regenerateKey: Bool = false) async throws {
+    public func updateTunnelConfiguration(reassert: Bool,
+                                          customDNSSettings: NetworkProtectionDNSSettings? = nil,
+                                          regenerateKey: Bool = false) async throws {
         try await updateTunnelConfiguration(
             serverSelectionMethod: currentServerSelectionMethod,
+            customDNSSettings: customDNSSettings,
             reassert: reassert,
             regenerateKey: regenerateKey
         )
@@ -803,6 +807,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     @MainActor
     public func updateTunnelConfiguration(serverSelectionMethod: NetworkProtectionServerSelectionMethod,
+                                          customDNSSettings: NetworkProtectionDNSSettings? = nil,
                                           reassert: Bool,
                                           regenerateKey: Bool = false) async throws {
 
@@ -815,9 +820,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         let tunnelConfiguration: TunnelConfiguration
         do {
             tunnelConfiguration = try await generateTunnelConfiguration(serverSelectionMethod: serverSelectionMethod,
-                                                                            includedRoutes: includedRoutes ?? [],
-                                                                            excludedRoutes: settings.excludedRanges,
-                                                                            regenerateKey: regenerateKey)
+                                                                        includedRoutes: includedRoutes ?? [],
+                                                                        excludedRoutes: settings.excludedRanges,
+                                                                        dnsSettings: customDNSSettings ?? settings.dnsSettings,
+                                                                        regenerateKey: regenerateKey)
         } catch {
             providerEvents.fire(.tunnelUpdateAttempt(.failure(error)))
             throw error
@@ -867,6 +873,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private func generateTunnelConfiguration(serverSelectionMethod: NetworkProtectionServerSelectionMethod,
                                              includedRoutes: [IPAddressRange],
                                              excludedRoutes: [IPAddressRange],
+                                             dnsSettings: NetworkProtectionDNSSettings,
                                              regenerateKey: Bool) async throws -> TunnelConfiguration {
 
         let configurationResult: NetworkProtectionDeviceManager.GenerateTunnelConfigurationResult
@@ -876,6 +883,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 selectionMethod: serverSelectionMethod,
                 includedRoutes: includedRoutes,
                 excludedRoutes: excludedRoutes,
+                dnsSettings: dnsSettings,
                 isKillSwitchEnabled: isKillSwitchEnabled,
                 regenerateKey: regenerateKey
             )
@@ -1014,6 +1022,13 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             Task { @MainActor in
                 if case .connected = connectionStatus {
                     try? await updateTunnelConfiguration(serverSelectionMethod: serverSelectionMethod, reassert: true)
+                }
+                completionHandler?(nil)
+            }
+        case .setDNSSettings(let dnsSettings):
+            Task { @MainActor in
+                if case .connected = connectionStatus {
+                    try? await updateTunnelConfiguration(reassert: true, customDNSSettings: dnsSettings)
                 }
                 completionHandler?(nil)
             }
@@ -1315,6 +1330,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 to: server,
                 includedRoutes: self.includedRoutes ?? [],
                 excludedRoutes: self.settings.excludedRanges,
+                dnsSettings: self.settings.dnsSettings,
                 isKillSwitchEnabled: self.isKillSwitchEnabled
             ) { [weak self] generateConfigResult in
                 try await self?.handleFailureRecoveryConfigUpdate(result: generateConfigResult)

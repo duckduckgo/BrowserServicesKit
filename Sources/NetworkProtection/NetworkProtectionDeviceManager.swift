@@ -54,6 +54,7 @@ public protocol NetworkProtectionDeviceManagement {
     func generateTunnelConfiguration(selectionMethod: NetworkProtectionServerSelectionMethod,
                                      includedRoutes: [IPAddressRange],
                                      excludedRoutes: [IPAddressRange],
+                                     dnsSettings: NetworkProtectionDNSSettings,
                                      isKillSwitchEnabled: Bool,
                                      regenerateKey: Bool) async throws -> GenerateTunnelConfigurationResult
 
@@ -123,6 +124,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     public func generateTunnelConfiguration(selectionMethod: NetworkProtectionServerSelectionMethod,
                                             includedRoutes: [IPAddressRange],
                                             excludedRoutes: [IPAddressRange],
+                                            dnsSettings: NetworkProtectionDNSSettings,
                                             isKillSwitchEnabled: Bool,
                                             regenerateKey: Bool) async throws -> GenerateTunnelConfigurationResult {
         var keyPair: KeyPair
@@ -161,6 +163,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
                                                         server: selectedServer,
                                                         includedRoutes: includedRoutes,
                                                         excludedRoutes: excludedRoutes,
+                                                        dnsSettings: dnsSettings,
                                                         isKillSwitchEnabled: isKillSwitchEnabled)
             return (configuration, selectedServer)
         } catch let error as NetworkProtectionError {
@@ -255,6 +258,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
                              server: NetworkProtectionServer,
                              includedRoutes: [IPAddressRange],
                              excludedRoutes: [IPAddressRange],
+                             dnsSettings: NetworkProtectionDNSSettings,
                              isKillSwitchEnabled: Bool) throws -> TunnelConfiguration {
 
         guard let allowedIPs = server.allowedIPs else {
@@ -275,11 +279,21 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
             throw NetworkProtectionError.couldNotGetInterfaceAddressRange
         }
 
+        let dns: [DNSServer]
+        switch dnsSettings {
+        case .default:
+            dns = [DNSServer(address: server.serverInfo.internalIP)]
+        case .custom(let servers):
+            dns = servers
+                .compactMap { IPv4Address($0) }
+                .map { DNSServer(address: $0) }
+        }
+
         let interface = interfaceConfiguration(privateKey: interfacePrivateKey,
                                                addressRange: interfaceAddressRange,
                                                includedRoutes: includedRoutes,
                                                excludedRoutes: excludedRoutes,
-                                               dns: [DNSServer(address: server.serverInfo.internalIP)],
+                                               dns: dns,
                                                isKillSwitchEnabled: isKillSwitchEnabled)
 
         return TunnelConfiguration(name: "DuckDuckGo VPN", interface: interface, peers: [peerConfiguration])
