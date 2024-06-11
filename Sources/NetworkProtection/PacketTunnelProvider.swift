@@ -795,11 +795,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     @MainActor
     public func updateTunnelConfiguration(reassert: Bool,
-                                          customDNSSettings: NetworkProtectionDNSSettings? = nil,
                                           regenerateKey: Bool = false) async throws {
         try await updateTunnelConfiguration(
             serverSelectionMethod: currentServerSelectionMethod,
-            customDNSSettings: customDNSSettings,
             reassert: reassert,
             regenerateKey: regenerateKey
         )
@@ -807,7 +805,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     @MainActor
     public func updateTunnelConfiguration(serverSelectionMethod: NetworkProtectionServerSelectionMethod,
-                                          customDNSSettings: NetworkProtectionDNSSettings? = nil,
                                           reassert: Bool,
                                           regenerateKey: Bool = false) async throws {
 
@@ -822,7 +819,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             tunnelConfiguration = try await generateTunnelConfiguration(serverSelectionMethod: serverSelectionMethod,
                                                                         includedRoutes: includedRoutes ?? [],
                                                                         excludedRoutes: settings.excludedRanges,
-                                                                        dnsSettings: customDNSSettings ?? settings.dnsSettings,
+                                                                        dnsSettings: settings.dnsSettings,
                                                                         regenerateKey: regenerateKey)
         } catch {
             providerEvents.fire(.tunnelUpdateAttempt(.failure(error)))
@@ -1025,10 +1022,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 }
                 completionHandler?(nil)
             }
-        case .setDNSSettings(let dnsSettings):
+        case .setDNSSettings:
             Task { @MainActor in
                 if case .connected = connectionStatus {
-                    try? await updateTunnelConfiguration(reassert: true, customDNSSettings: dnsSettings)
+                    try? await updateTunnelConfiguration(reassert: true)
                 }
                 completionHandler?(nil)
             }
