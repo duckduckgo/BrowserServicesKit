@@ -43,6 +43,11 @@ public enum NetworkProtectionServerSelectionMethod: CustomDebugStringConvertible
     case failureRecovery(serverName: String)
 }
 
+public enum NetworkProtectionDNSSettings: Codable, Equatable {
+    case `default`
+    case custom([String])
+}
+
 public protocol NetworkProtectionDeviceManagement {
     typealias GenerateTunnelConfigurationResult = (tunnelConfiguration: TunnelConfiguration, server: NetworkProtectionServer)
 
