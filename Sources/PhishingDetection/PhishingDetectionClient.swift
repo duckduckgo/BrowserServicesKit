@@ -155,4 +155,3 @@ extension PhishingDetectionAPIClient {
         return nil
     }
 }
-

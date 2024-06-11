@@ -21,9 +21,9 @@ import Common
 
 public class PhishingStateManager {
     public var tabIsPhishing: Bool = false
-    
+
     public init(){}
-    
+
     public func setIsPhishing(_ isPhishing: Bool) {
         tabIsPhishing = isPhishing
     }

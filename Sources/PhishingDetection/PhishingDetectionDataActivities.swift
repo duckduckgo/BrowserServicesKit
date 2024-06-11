@@ -54,14 +54,14 @@ public class PhishingDetectionDataActivities {
     private let hashPrefixDataActivity: HashPrefixDataActivity
     private let filterSetDataActivity: FilterSetDataActivity
     private let detectionService: PhishingDetectionServiceProtocol
-    
+
     public init(detectionService: PhishingDetectionServiceProtocol? = nil, hashPrefixInterval: TimeInterval = 20 * 60, filterSetInterval: TimeInterval = 12 * 60 * 60) {
         let givenDetectionService = detectionService ?? PhishingDetectionService()
         self.detectionService = givenDetectionService
         self.hashPrefixDataActivity = HashPrefixDataActivity(identifier: "com.duckduckgo.protection.hashPrefix", detectionService: givenDetectionService, interval: hashPrefixInterval)
         self.filterSetDataActivity = FilterSetDataActivity(identifier: "com.duckduckgo.protection.filterSet", detectionService: givenDetectionService, interval: filterSetInterval)
     }
-    
+
     public func run() async {
         self.hashPrefixDataActivity.start()
         self.filterSetDataActivity.start()
@@ -80,7 +80,7 @@ class HashPrefixDataActivity {
         self.interval = interval
         self.activityScheduler = scheduler ?? BackgroundActivityScheduler(identifier: identifier, interval: interval)
     }
-    
+
     func start() {
         activityScheduler.start { [weak self] in
             guard let self = self else { return }
@@ -89,7 +89,7 @@ class HashPrefixDataActivity {
             }
         }
     }
-    
+
     func stop() {
         activityScheduler.stop()
     }

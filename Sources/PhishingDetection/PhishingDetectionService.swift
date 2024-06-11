@@ -35,7 +35,6 @@ public struct Filter: Decodable, Encodable, Hashable {
     }
 }
 
-
 public struct Match: Decodable, Encodable, Hashable {
     var hostname: String
     var url: String
@@ -72,15 +71,13 @@ public class PhishingDetectionService: PhishingDetectionServiceProtocol {
     var hashPrefixFilename: String = "hashPrefixes.json"
     var filterSetFilename: String = "filterSet.json"
     var revisionFilename: String = "revision.txt"
-    
 
     public init(apiClient: PhishingDetectionClientProtocol? = nil, dataProvider: PhishingDetectionDataProviderProtocol? = nil) {
         self.apiClient = apiClient ?? PhishingDetectionAPIClient() as PhishingDetectionClientProtocol
         self.dataProvider = dataProvider ?? PhishingDetectionDataProvider()
         createDataStore()
-        
     }
-    
+
     public func updateFilterSet() async {
         let response = await apiClient.getFilterSet(revision: currentRevision)
         if response.replace {
@@ -98,7 +95,6 @@ public class PhishingDetectionService: PhishingDetectionServiceProtocol {
         if response.replace {
             self.hashPrefixes = Set(response.insert)
         } else {
-            
             response.insert.forEach { self.hashPrefixes.insert($0) }
             response.delete.forEach { self.hashPrefixes.remove($0) }
         }
@@ -113,7 +109,7 @@ public class PhishingDetectionService: PhishingDetectionServiceProtocol {
     func inFilterSet(hash: String) -> Set<Filter> {
         return Set(filterSet.filter { $0.hashValue == hash })
     }
-    
+
     func matchesUrl(hash: String, regexPattern: String, url: URL, hostnameHash: String) -> Bool {
         if hash == hostnameHash,
            let regex = try? NSRegularExpression(pattern: regexPattern, options: [])
@@ -187,24 +183,24 @@ public class PhishingDetectionService: PhishingDetectionServiceProtocol {
             let hashPrefixesFileURL = dataStore!.appendingPathComponent("hashPrefixes.json")
             let filterSetFileURL = dataStore!.appendingPathComponent("filterSet.json")
             let revisionFileURL = dataStore!.appendingPathComponent("revision.txt")
-            
+
             let hashPrefixesData = try Data(contentsOf: hashPrefixesFileURL)
             let filterSetData = try Data(contentsOf: filterSetFileURL)
             let revisionData = try Data(contentsOf: revisionFileURL)
-            
+
             hashPrefixes = Set(try decoder.decode([String].self, from: hashPrefixesData))
             filterSet = Set(try decoder.decode([Filter].self, from: filterSetData))
             currentRevision = try decoder.decode(Int.self, from: revisionData)
-            
+
             if (hashPrefixes.isEmpty && filterSet.isEmpty) || currentRevision == 0 {
                 throw PhishingDetectionDataError.empty
             }
-            
+
             // Get file timestamps
             let hashPrefixesFileAttributes = try hashPrefixesFileURL.resourceValues(forKeys: [.contentModificationDateKey])
             let filterSetFileAttributes = try filterSetFileURL.resourceValues(forKeys: [.contentModificationDateKey])
             let twelveHoursAgo = Date().addingTimeInterval(-12 * 60 * 60)
-            
+
             if let hashPrefixesFileTimestamp = hashPrefixesFileAttributes.contentModificationDate,
                let filterSetFileTimestamp = filterSetFileAttributes.contentModificationDate,
                hashPrefixesFileTimestamp < twelveHoursAgo || filterSetFileTimestamp < twelveHoursAgo {
@@ -225,5 +221,4 @@ public class PhishingDetectionService: PhishingDetectionServiceProtocol {
             self.writeData()
         }
     }
-    
 }

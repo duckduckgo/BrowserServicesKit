@@ -26,9 +26,9 @@ public protocol PhishingDetectionDataProviderProtocol {
 
 public class PhishingDetectionDataProvider: PhishingDetectionDataProviderProtocol {
     public struct Constants {
-        public static let hashPrefixDataSHA = "21b047a9950fcaf86034a6b16181e18815cb8d276386d85c8977ca8c5f8aa05f"
-        public static let filterSetDataSHA = "4fd2868a4f264501ec175ab866504a2a96c8d21a3b5195b405a4a83b51eae504"
-        public static let revision = 2
+        public static let hashPrefixDataSHA = "f759863fae40088f555e7a994e26be8f2c9c17f4cff4f89d563d47f6456c07c9"
+        public static let filterSetDataSHA = "1879b748ad6e4c1df83797cd2b1201b53b547f3a729067af3f7012a5530ce3a1"
+        public static let revision = 1643651
     }
     
     public var embeddedFilterSet: Set<Filter> {
@@ -74,13 +74,12 @@ public class PhishingDetectionDataProvider: PhishingDetectionDataProviderProtoco
             let hashPrefixData = try Data(contentsOf: hashPrefixURL)
             let sha256 = SHA256.hash(data: hashPrefixData)
             let hashString = sha256.compactMap { String(format: "%02x", $0) }.joined()
-            
+
             guard hashString == PhishingDetectionDataProvider.Constants.hashPrefixDataSHA else {
                 fatalError("SHA mismatch for hashPrefixes JSON file. Expected \(PhishingDetectionDataProvider.Constants.hashPrefixDataSHA) got \(hashString)")
             }
 
             let hashPrefixes = try JSONDecoder().decode(Set<String>.self, from: hashPrefixData)
-
             return hashPrefixes
         } catch {
             fatalError("Error loading hashPrefixes data: \(error)")
