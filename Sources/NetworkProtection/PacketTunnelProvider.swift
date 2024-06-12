@@ -341,8 +341,11 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     public lazy var latencyMonitor = NetworkProtectionLatencyMonitor()
     public lazy var entitlementMonitor = NetworkProtectionEntitlementMonitor()
     public lazy var serverStatusMonitor = NetworkProtectionServerStatusMonitor(
-        networkClient: NetworkProtectionBackendClient(isSubscriptionEnabled: true),
-        tokenStore: NetworkProtectionKeychainTokenStore()
+        networkClient: NetworkProtectionBackendClient(
+            environment: self.settings.selectedEnvironment,
+            isSubscriptionEnabled: true
+        ),
+        tokenStore: self.tokenStore
     )
 
     private var lastTestFailed = false
@@ -1378,6 +1381,23 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
+    private func startServerStatusMonitor() async {
+        guard let serverName = await lastSelectedServerInfo?.name else {
+            await serverStatusMonitor.stop()
+            return
+        }
+
+        if await serverStatusMonitor.isStarted {
+            await serverStatusMonitor.stop()
+        }
+
+        await serverStatusMonitor.start(serverName: serverName) { status in
+            if status.shouldMigrate {
+                try await self.updateTunnelConfiguration(reassert: false, regenerateKey: true)
+            }
+        }
+    }
+
     @MainActor
     private func handleInvalidEntitlement(attemptsShutdown: Bool) async {
         defaults.enableEntitlementMessaging()
@@ -1410,6 +1430,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         await startTunnelFailureMonitor()
         await startLatencyMonitor()
         await startEntitlementMonitor()
+        await startServerStatusMonitor()
 
         do {
             try await startConnectionTester(testImmediately: testImmediately)
@@ -1425,6 +1446,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         await self.tunnelFailureMonitor.stop()
         await self.latencyMonitor.stop()
         await self.entitlementMonitor.stop()
+        await self.serverStatusMonitor.stop()
     }
 
     // MARK: - Entitlement handling

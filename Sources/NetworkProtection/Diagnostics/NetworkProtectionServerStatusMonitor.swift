@@ -26,6 +26,13 @@ public actor NetworkProtectionServerStatusMonitor {
     public enum ServerStatusResult {
         case serverMigrationRequested
         case error(Error)
+
+        var shouldMigrate: Bool {
+            switch self {
+            case .serverMigrationRequested: return true
+            case .error: return false
+            }
+        }
     }
 
     private static let monitoringInterval: TimeInterval = .minutes(5)
@@ -60,8 +67,8 @@ public actor NetworkProtectionServerStatusMonitor {
 
     // MARK: - Start/Stop monitoring
 
-    public func start(serverName: String, callback: @escaping (ServerStatusResult) -> Void) {
-        os_log("⚫️ Starting server status monitor", log: .networkProtectionServerStatusMonitorLog)
+    public func start(serverName: String, callback: @escaping (ServerStatusResult) async throws -> Void) {
+        os_log("⚫️ Starting server status monitor with server %{public}s", log: .networkProtectionServerStatusMonitorLog, serverName)
 
         task = Task.periodic(interval: Self.monitoringInterval) {
             let result = await self.checkServerStatus(for: serverName)
@@ -69,14 +76,22 @@ public actor NetworkProtectionServerStatusMonitor {
             switch result {
             case .success(let serverStatus):
                 if serverStatus.shouldMigrate {
-                    os_log("⚫️ Beginning server migration", log: .networkProtectionServerStatusMonitorLog)
-                    callback(.serverMigrationRequested)
+                    os_log("⚫️ Beginning server migration away from %{public}s", log: .networkProtectionServerStatusMonitorLog, serverName)
+                    do {
+                        try await callback(.serverMigrationRequested)
+                    } catch {
+                        // TODO: Send migration failure pixel
+                    }
                 } else {
-                    os_log("⚫️ Not migrating server", log: .networkProtectionServerStatusMonitorLog)
+                    os_log("⚫️ Not migrating server away from %{public}s", log: .networkProtectionServerStatusMonitorLog, serverName)
                 }
             case .failure(let error):
                 os_log("⚫️ Error retrieving server status: %{public}@", log: .networkProtectionServerStatusMonitorLog, error.localizedDescription)
-                callback(.error(error))
+                do {
+                    try await callback(.error(error))
+                } catch {
+                    // do nothing in this case
+                }
             }
         }
     }
