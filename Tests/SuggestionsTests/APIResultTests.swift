@@ -41,7 +41,7 @@ final class APIResultTests: XCTestCase {
         let value3 = "value3"
 
         let json = """
-        [ 
+        [
             { "phrase": "\(value1)" },
             { "phrase": "\(value2)", "isNav": false },
             { "phrase": "\(value3)", "isNav": true },
