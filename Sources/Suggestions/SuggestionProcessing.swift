@@ -79,8 +79,12 @@ final class SuggestionProcessing {
 
     private func duckDuckGoSuggestions(from result: APIResult?) throws -> [Suggestion]? {
         return result?.items
-            .joined()
-            .map { Suggestion(key: $0.key, value: $0.value) }
+            .compactMap {
+                guard let phrase = $0.phrase else {
+                    return nil
+                }
+                return Suggestion(phrase: phrase, isNav: $0.isNav ?? false)
+            }
     }
 
     // MARK: - History and Bookmarks

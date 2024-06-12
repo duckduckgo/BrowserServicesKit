@@ -100,13 +100,11 @@ extension Suggestion {
         self = .website(url: url)
     }
 
-    static let phraseKey = "phrase"
-
-    init(key: String, value: String) {
-        if key == Self.phraseKey {
-            self = .phrase(phrase: value)
+    init(phrase: String, isNav: Bool) {
+        if isNav, let url = URL(string: "http://\(phrase)") {
+            self = .website(url: url)
         } else {
-            self = .unknown(value: value)
+            self = .phrase(phrase: phrase)
         }
     }
 

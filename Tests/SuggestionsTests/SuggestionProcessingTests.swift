@@ -77,9 +77,9 @@ extension APIResult {
     static var anAPIResult: APIResult {
         var result = APIResult()
         result.items = [
-            [ "phrase": "Test" ],
-            [ "phrase": "Test 2" ],
-            [ "phrase": "Unrelated" ]
+            .init(phrase: "Test", isNav: nil),
+            .init(phrase: "Test 2", isNav: nil),
+            .init(phrase: "Unrelated", isNav: nil),
         ]
         return result
     }
