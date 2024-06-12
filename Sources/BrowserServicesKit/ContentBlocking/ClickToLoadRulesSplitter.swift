@@ -44,15 +44,13 @@ public struct ClickToLoadRulesSplitter {
             withBlockCTL = splitTDS.withBlockCTL
         }
 
-        guard let splitFallbackTDS = split(trackerData: rulesList.fallbackTrackerData) else { return nil }
-
         return (
             ContentBlockerRulesList(name: rulesList.name,
                                     trackerData: withoutBlockCTL,
-                                    fallbackTrackerData: splitFallbackTDS.withoutBlockCTL),
+                                    fallbackTrackerData: split(trackerData: rulesList.fallbackTrackerData)!.withoutBlockCTL),
             ContentBlockerRulesList(name: DefaultContentBlockerRulesListsSource.Constants.clickToLoadRulesListName,
                                     trackerData: withBlockCTL,
-                                    fallbackTrackerData: splitFallbackTDS.withBlockCTL)
+                                    fallbackTrackerData: split(trackerData: rulesList.fallbackTrackerData)!.withBlockCTL)
         )
     }
 

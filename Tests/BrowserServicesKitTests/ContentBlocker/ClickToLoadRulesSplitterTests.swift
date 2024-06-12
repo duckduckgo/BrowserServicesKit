@@ -62,21 +62,6 @@ final class ClickToLoadRulesSplitterTests: XCTestCase {
 
     }
 
-    func testShoulNotdSplitTrackerDataWithoutCTLActionsInFallback() {
-        // given
-        let etag = UUID().uuidString
-        let dataSet = buildTrackerDataSet(rawTDS: exampleNonCTLRules, etag: etag)
-        let rulesList = ContentBlockerRulesList(name: "TrackerDataSet", trackerData: nil, fallbackTrackerData: dataSet!)
-        let splitter = ClickToLoadRulesSplitter(rulesList: rulesList)
-
-        // when
-        let result = splitter.split()
-
-        // then
-        XCTAssertNil(result)
-
-    }
-
     func testShouldSplitTrackerDataWithCTLActions() {
         // given
         let etag = UUID().uuidString
