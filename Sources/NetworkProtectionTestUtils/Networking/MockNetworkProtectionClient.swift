@@ -34,6 +34,16 @@ public final class MockNetworkProtectionClient: NetworkProtectionClient {
         return stubGetLocations
     }
 
+    public var spyGetServerStatusAuthToken: String?
+    public var spyGetServerStatusServerName: String?
+    public var stubServerStatus: Result<NetworkProtection.NetworkProtectionServerStatus, NetworkProtection.NetworkProtectionClientError> = .success(
+        .init(shouldMigrate: true)
+    )
+    public func getServerStatus(authToken: String, serverName: String) async -> Result<NetworkProtection.NetworkProtectionServerStatus, NetworkProtection.NetworkProtectionClientError> {
+        spyGetServerStatusAuthToken = authToken
+        spyGetServerStatusServerName = serverName
+        return stubServerStatus
+    }
     public var spyRedeemInviteCode: String?
     public var spyRedeemAccessToken: String?
     public var stubRedeem: Result<String, NetworkProtection.NetworkProtectionClientError> = .success("")
