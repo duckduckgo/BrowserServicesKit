@@ -188,7 +188,7 @@ public final class AutofillPixelReporter {
         if Date.isSameDay(Date(), autofillSearchDauDate) {
             if let passwordManager = passwordManager, passwordManager.isEnabled {
                 return true
-            } else if let count = try? vault()?.accountsCount(), count >= 10 {
+            } else if autofillEnabled, let count = try? vault()?.accountsCount(), count >= 10 {
                 return true
             }
         }
