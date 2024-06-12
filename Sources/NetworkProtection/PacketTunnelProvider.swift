@@ -340,6 +340,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     public lazy var latencyMonitor = NetworkProtectionLatencyMonitor()
     public lazy var entitlementMonitor = NetworkProtectionEntitlementMonitor()
+    public lazy var serverStatusMonitor = NetworkProtectionServerStatusMonitor(
+        networkClient: NetworkProtectionBackendClient(isSubscriptionEnabled: true),
+        tokenStore: NetworkProtectionKeychainTokenStore()
+    )
 
     private var lastTestFailed = false
     private let bandwidthAnalyzer = NetworkProtectionConnectionBandwidthAnalyzer()
