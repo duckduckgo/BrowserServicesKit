@@ -33,7 +33,6 @@ extension OSLog {
         Logging.networkProtectionServerStatusMonitorLoggingEnabled ? Logging.networkProtectionServerStatusMonitor : .disabled
     }
 
-
     public static var networkProtectionLatencyMonitorLog: OSLog {
         Logging.networkProtectionLatencyMonitorLoggingEnabled ? Logging.networkProtectionLatencyMonitor : .disabled
     }

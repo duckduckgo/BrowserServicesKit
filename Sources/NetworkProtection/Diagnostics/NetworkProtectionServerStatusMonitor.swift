@@ -35,7 +35,7 @@ public actor NetworkProtectionServerStatusMonitor {
         }
     }
 
-    private static let monitoringInterval: TimeInterval = .seconds(30) // .minutes(5)
+    private static let monitoringInterval: TimeInterval = .minutes(5)
 
     private var task: Task<Never, Error>? {
         willSet {
@@ -55,7 +55,7 @@ public actor NetworkProtectionServerStatusMonitor {
     init(networkClient: NetworkProtectionClient, tokenStore: NetworkProtectionTokenStore) {
         self.networkClient = networkClient
         self.tokenStore = tokenStore
-        
+
         os_log("[+] %{public}@", log: .networkProtectionMemoryLog, type: .debug, String(describing: self))
     }
 
