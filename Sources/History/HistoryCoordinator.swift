@@ -161,13 +161,10 @@ final public class HistoryCoordinator: HistoryCoordinating {
     }
 
     public func burnAll(completion: @escaping () -> Void) {
-        guard let historyDictionary = historyDictionary else { return }
-
-        let entries = Array(historyDictionary.values)
-
-        removeEntries(entries, completionHandler: { _ in
+        clean(until: Date()) {
+            self.historyDictionary = [:]
             completion()
-        })
+        }
     }
 
     public func burnDomains(_ baseDomains: Set<String>, tld: TLD, completion: @escaping () -> Void) {

@@ -102,7 +102,7 @@ public enum RemoteMessageModelType: Codable, Equatable {
 public enum RemoteAction: Codable, Equatable {
     case share(value: String, title: String?)
     case url(value: String)
-    case surveyURL(value: String)
+    case survey(value: String)
     case appStore
     case dismiss
 }
@@ -114,5 +114,5 @@ public enum RemotePlaceholder: String, Codable {
     case appUpdate = "RemoteMessageAppUpdate"
     case macComputer = "RemoteMessageMacComputer"
     case newForMacAndWindows = "RemoteMessageNewForMacAndWindows"
-    case vpnAnnounce = "RemoteMessageVPNAnnounce"
+    case privacyShield = "RemoteMessagePrivacyShield"
 }

@@ -36,9 +36,13 @@ class RemoteMessagingConfigProcessorTests: XCTestCase {
                                                        favoritesCount: 0,
                                                        appTheme: "light",
                                                        isWidgetInstalled: false,
-                                                       isNetPWaitlistUser: false,
-                                                       daysSinceNetPEnabled: -1),
+                                                       daysSinceNetPEnabled: -1,
+                                                       isPrivacyProEligibleUser: false,
+                                                       isPrivacyProSubscriber: false,
+                                                       privacyProDaysSinceSubscribed: -1,
+                                                       privacyProDaysUntilExpiry: -1),
             percentileStore: MockRemoteMessagePercentileStore(),
+            surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
             dismissedMessageIds: []
         )
 
@@ -65,9 +69,13 @@ class RemoteMessagingConfigProcessorTests: XCTestCase {
                                                            favoritesCount: 0,
                                                            appTheme: "light",
                                                            isWidgetInstalled: false,
-                                                           isNetPWaitlistUser: false,
-                                                           daysSinceNetPEnabled: -1),
+                                                           daysSinceNetPEnabled: -1,
+                                                           isPrivacyProEligibleUser: false,
+                                                           isPrivacyProSubscriber: false,
+                                                           privacyProDaysSinceSubscribed: -1,
+                                                           privacyProDaysUntilExpiry: -1),
                 percentileStore: MockRemoteMessagePercentileStore(),
+                surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
                 dismissedMessageIds: [])
 
         let processor = RemoteMessagingConfigProcessor(remoteMessagingConfigMatcher: remoteMessagingConfigMatcher)

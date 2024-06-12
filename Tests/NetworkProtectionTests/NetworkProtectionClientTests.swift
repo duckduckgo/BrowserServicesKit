@@ -52,7 +52,7 @@ final class NetworkProtectionClientTests: XCTestCase {
 
     func testRegister401Response_ThrowsInvalidTokenError() async {
         let emptyData = "".data(using: .utf8)!
-        MockURLProtocol.stubs[client.redeemURL] = (response: HTTPURLResponse(url: client.registerKeyURL, statusCode: 401)!,
+        MockURLProtocol.stubs[client.registerKeyURL] = (response: HTTPURLResponse(url: client.registerKeyURL, statusCode: 401)!,
                                                    .success(emptyData))
 
         let body = RegisterKeyRequestBody(publicKey: .testData, serverSelection: .server(name: "MockServer"))
@@ -68,7 +68,7 @@ final class NetworkProtectionClientTests: XCTestCase {
 
     func testGetServer401Response_ThrowsInvalidTokenError() async {
         let emptyData = "".data(using: .utf8)!
-        MockURLProtocol.stubs[client.redeemURL] = (response: HTTPURLResponse(url: client.serversURL, statusCode: 401)!,
+        MockURLProtocol.stubs[client.serversURL] = (response: HTTPURLResponse(url: client.serversURL, statusCode: 401)!,
                                                    .success(emptyData))
 
         let result = await client.getServers(authToken: "anAuthToken")
@@ -79,74 +79,11 @@ final class NetworkProtectionClientTests: XCTestCase {
         }
     }
 
-    // MARK: redeem(inviteCode:)
-
-    func testRedeemSuccess() async {
-        let token = "a6s7ad6ad76aasa7s6a"
-        let successData = redeemSuccessData(token: token)
-        MockURLProtocol.stubs[client.redeemURL] = (response: HTTPURLResponse(url: client.redeemURL, statusCode: 200)!,
-                                                   .success(successData))
-
-        let result = await client.redeem(inviteCode: "DH76F8S")
-
-        XCTAssertEqual(try? result.get(), token)
-    }
-
-    func testRedeem400Response() async {
-        let emptyData = "".data(using: .utf8)!
-        MockURLProtocol.stubs[client.redeemURL] = (response: HTTPURLResponse(url: client.redeemURL, statusCode: 400)!,
-                                                   .success(emptyData))
-
-        let result = await client.redeem(inviteCode: "DH76F8S")
-
-        guard case .failure(let error) = result, case .invalidInviteCode = error else {
-            XCTFail("Expected an invalidInviteCode error to be thrown")
-            return
-        }
-    }
-
-    func testRedeemNon200Or400Response() async {
-        let emptyData = "".data(using: .utf8)!
-
-        for code in [401, 304, 500] {
-            MockURLProtocol.stubs[client.redeemURL] = (response: HTTPURLResponse(url: client.redeemURL, statusCode: code)!,
-                                                       .success(emptyData))
-
-            let result = await client.redeem(inviteCode: "DH76F8S")
-
-            guard case .failure(let error) = result, case .failedToRedeemInviteCode = error else {
-                XCTFail("Expected a failedToRedeemInviteCode error to be thrown")
-                return
-            }
-        }
-    }
-
-    func testRedeemDecodeFailure() async {
-        let undecodableData = "sdfghj".data(using: .utf8)!
-        MockURLProtocol.stubs[client.redeemURL] = (response: HTTPURLResponse(url: client.redeemURL, statusCode: 200)!,
-                                                   .success(undecodableData))
-
-        let result = await client.redeem(inviteCode: "DH76F8S")
-
-        guard case .failure(let error) = result, case .failedToParseRedeemResponse = error else {
-            XCTFail("Expected a failedToRedeemInviteCode error to be thrown")
-            return
-        }
-    }
-
-    private func redeemSuccessData(token: String) -> Data {
-        return """
-        {
-            "token": "\(token)"
-        }
-        """.data(using: .utf8)!
-    }
-
     // MARK: locations(authToken:)
 
     func testLocationsSuccess() async {
         let successData = TestData.mockLocations
-        MockURLProtocol.stubs[client.locationsURL] = (response: HTTPURLResponse(url: client.redeemURL, statusCode: 200)!,
+        MockURLProtocol.stubs[client.locationsURL] = (response: HTTPURLResponse(url: client.locationsURL, statusCode: 200)!,
                                                    .success(successData))
 
         let result = await client.getLocations(authToken: "DH76F8S")
@@ -185,7 +122,7 @@ final class NetworkProtectionClientTests: XCTestCase {
 
     func testLocationsDecodeFailure() async {
         let undecodableData = "sdfghj".data(using: .utf8)!
-        MockURLProtocol.stubs[client.locationsURL] = (response: HTTPURLResponse(url: client.redeemURL, statusCode: 200)!,
+        MockURLProtocol.stubs[client.locationsURL] = (response: HTTPURLResponse(url: client.locationsURL, statusCode: 200)!,
                                                    .success(undecodableData))
 
         let result = await client.getLocations(authToken: "DH76F8S")

@@ -26,6 +26,7 @@ public struct RemoteMessagingConfigMatcher {
     private let userAttributeMatcher: UserAttributeMatcher
     private let percentileStore: RemoteMessagingPercentileStoring
     private let dismissedMessageIds: [String]
+    let surveyActionMapper: RemoteMessagingSurveyActionMapping
 
     private let matchers: [AttributeMatcher]
 
@@ -33,11 +34,13 @@ public struct RemoteMessagingConfigMatcher {
                 deviceAttributeMatcher: DeviceAttributeMatcher = DeviceAttributeMatcher(),
                 userAttributeMatcher: UserAttributeMatcher,
                 percentileStore: RemoteMessagingPercentileStoring,
+                surveyActionMapper: RemoteMessagingSurveyActionMapping,
                 dismissedMessageIds: [String]) {
         self.appAttributeMatcher = appAttributeMatcher
         self.deviceAttributeMatcher = deviceAttributeMatcher
         self.userAttributeMatcher = userAttributeMatcher
         self.percentileStore = percentileStore
+        self.surveyActionMapper = surveyActionMapper
         self.dismissedMessageIds = dismissedMessageIds
 
         matchers = [appAttributeMatcher, deviceAttributeMatcher, userAttributeMatcher]
