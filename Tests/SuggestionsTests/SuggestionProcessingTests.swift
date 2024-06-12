@@ -36,6 +36,22 @@ final class SuggestionProcessingTests: XCTestCase {
         XCTAssertEqual(result!.topHits.first!.title, "DuckDuckGo")
     }
 
+    func testWhenBuildingTopHits_ThenOnlyWebsiteSuggestionsAreUsedForNavigationalSuggestions() {
+
+        let processing = SuggestionProcessing(urlFactory: Self.simpleUrlFactory)
+
+        let result = processing.result(for: "DuckDuckGo",
+                                       from: HistoryEntryMock.aHistory,
+                                       bookmarks: BookmarkMock.someBookmarks,
+                                       internalPages: InternalPage.someInternalPages,
+                                       apiResult: APIResult.anAPIResultWithNav)
+
+        XCTAssertEqual(result!.topHits.count, 2)
+        XCTAssertEqual(result!.topHits.first!.title, "DuckDuckGo")
+        XCTAssertEqual(result!.topHits.last!.url?.absoluteString, "http://www.example.com")
+
+    }
+
 }
 
 extension HistoryEntryMock {
@@ -79,7 +95,18 @@ extension APIResult {
         result.items = [
             .init(phrase: "Test", isNav: nil),
             .init(phrase: "Test 2", isNav: nil),
-            .init(phrase: "Unrelated", isNav: nil),
+            .init(phrase: "www.example.com", isNav: nil),
+        ]
+        return result
+    }
+
+    static var anAPIResultWithNav: APIResult {
+        var result = APIResult()
+        result.items = [
+            .init(phrase: "Test", isNav: nil),
+            .init(phrase: "Test 2", isNav: nil),
+            .init(phrase: "www.example.com", isNav: true),
+            .init(phrase: "www.othersite.com", isNav: false),
         ]
         return result
     }

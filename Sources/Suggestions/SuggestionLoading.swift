@@ -76,7 +76,7 @@ public class SuggestionLoader: SuggestionLoading {
                                          suggestionDataFromUrl: Self.remoteSuggestionsUrl,
                                          withParameters: [
                                             Self.searchParameter: query,
-                                            "is_app": "1" // Enables is_nav in the JSON response
+                                            "is_nav": "1", // Enables is_nav in the JSON response
                                          ]) { data, error in
                 defer { group.leave() }
                 guard let data = data else {
