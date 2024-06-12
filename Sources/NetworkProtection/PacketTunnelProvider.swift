@@ -1397,12 +1397,14 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
         await serverStatusMonitor.start(serverName: serverName) { status in
             if status.shouldMigrate {
-                self.providerEvents.fire(.serverMigrationAttempt(.begin))
-                do {
-                    try await self.updateTunnelConfiguration(reassert: false, regenerateKey: true)
-                    self.providerEvents.fire(.serverMigrationAttempt(.success))
-                } catch {
-                    self.providerEvents.fire(.serverMigrationAttempt(.failure(error)))
+                Task {
+                    self.providerEvents.fire(.serverMigrationAttempt(.begin))
+                    do {
+                        try await self.updateTunnelConfiguration(reassert: true, regenerateKey: true)
+                        self.providerEvents.fire(.serverMigrationAttempt(.success))
+                    } catch {
+                        self.providerEvents.fire(.serverMigrationAttempt(.failure(error)))
+                    }
                 }
             }
         }
