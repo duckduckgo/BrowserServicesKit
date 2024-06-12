@@ -25,6 +25,8 @@ public enum AutofillPixelEvent {
     case autofillActiveUser
     case autofillEnabledUser
     case autofillOnboardedUser
+    case autofillToggledOn
+    case autofillToggledOff
     case autofillLoginsStacked
     case autofillCreditCardsStacked
 
@@ -153,6 +155,12 @@ public final class AutofillPixelReporter {
             if shouldFireEnabledUserPixel() {
                 eventMapping.fire(.autofillEnabledUser)
             }
+
+            if let accountsCountBucket = getAccountsCountBucket() {
+                eventMapping.fire(autofillEnabled ? .autofillToggledOn : .autofillToggledOff,
+                                  parameters: [AutofillPixelEvent.Parameter.countBucket: accountsCountBucket])
+            }
+
         default:
             break
         }
