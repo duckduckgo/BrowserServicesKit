@@ -339,6 +339,7 @@ let package = Package(
                 "Common"
             ]
         ),
+        .target(
             name: "SubscriptionTestingUtilities",
             dependencies: [
                 "Subscription"
