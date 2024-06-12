@@ -19,6 +19,7 @@
 import Foundation
 import Common
 
+// live in the client
 public class PhishingStateManager {
     public var tabIsPhishing: Bool = false
 
@@ -34,14 +35,14 @@ public protocol PhishingDetectionManaging {
     func loadDataAsync()
 }
 
-public final class PhishingDetectionManager: PhishingDetectionManaging {
-    public static let shared = PhishingDetectionManager()
+public class PhishingDetectionManager: PhishingDetectionManaging {
+    private var phishingDetectionService: PhishingDetectionService
+    private var phishingDetectionDataActivities: PhishingDetectionDataActivities
 
-    private let phishingDetectionService = PhishingDetectionService()
-    private let phishingDetectionDataActivities = PhishingDetectionDataActivities()
-
-    private init() {
-        loadDataAsync()
+    public init(service: PhishingDetectionService, dataActivities: PhishingDetectionDataActivities) {
+        self.phishingDetectionService = service
+        self.phishingDetectionDataActivities = dataActivities
+        loadDataAsync() // should be called from app or not?
     }
 
     public func isMalicious(url: URL) async -> Bool {

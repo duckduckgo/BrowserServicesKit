@@ -59,9 +59,9 @@ public protocol PhishingDetectionClientProtocol {
     func getMatches(hashPrefix: String) async -> [Match]
 }
 
-class PhishingDetectionAPIClient: PhishingDetectionClientProtocol {
+public class PhishingDetectionAPIClient: PhishingDetectionClientProtocol {
 
-    enum Environment {
+    public enum Environment {
         case production
         case staging
     }
@@ -87,7 +87,7 @@ class PhishingDetectionAPIClient: PhishingDetectionClientProtocol {
         endpointURL.appendingPathComponent("matches")
     }
 
-    init(environment: Environment = .staging) {
+    public init(environment: Environment = .staging) {
         switch environment {
         case .production:
             endpointURL = Constants.productionEndpoint

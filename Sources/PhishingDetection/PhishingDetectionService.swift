@@ -65,16 +65,16 @@ public class PhishingDetectionService: PhishingDetectionServiceProtocol {
     var hashPrefixes = Set<String>()
     var currentRevision = 0
     var apiClient: PhishingDetectionClientProtocol
-    var dataProvider: PhishingDetectionDataProviderProtocol
+    var dataProvider: PhishingDetectionDataProviding
 
     var dataStore: URL?
     var hashPrefixFilename: String = "hashPrefixes.json"
     var filterSetFilename: String = "filterSet.json"
     var revisionFilename: String = "revision.txt"
 
-    public init(apiClient: PhishingDetectionClientProtocol? = nil, dataProvider: PhishingDetectionDataProviderProtocol? = nil) {
-        self.apiClient = apiClient ?? PhishingDetectionAPIClient() as PhishingDetectionClientProtocol
-        self.dataProvider = dataProvider ?? PhishingDetectionDataProvider()
+    public init(apiClient: PhishingDetectionClientProtocol, dataProvider: PhishingDetectionDataProviding) {
+        self.apiClient = apiClient
+        self.dataProvider = dataProvider
         createDataStore()
     }
 
@@ -195,27 +195,11 @@ public class PhishingDetectionService: PhishingDetectionServiceProtocol {
             if (hashPrefixes.isEmpty && filterSet.isEmpty) || currentRevision == 0 {
                 throw PhishingDetectionDataError.empty
             }
-
-            // Get file timestamps
-            let hashPrefixesFileAttributes = try hashPrefixesFileURL.resourceValues(forKeys: [.contentModificationDateKey])
-            let filterSetFileAttributes = try filterSetFileURL.resourceValues(forKeys: [.contentModificationDateKey])
-            let twelveHoursAgo = Date().addingTimeInterval(-12 * 60 * 60)
-
-            if let hashPrefixesFileTimestamp = hashPrefixesFileAttributes.contentModificationDate,
-               let filterSetFileTimestamp = filterSetFileAttributes.contentModificationDate,
-               hashPrefixesFileTimestamp < twelveHoursAgo || filterSetFileTimestamp < twelveHoursAgo {
-                throw PhishingDetectionDataError.stale
-            }
-        }  catch PhishingDetectionDataError.stale {
-            os_log(.debug, log: .phishingDetection, "\(self): 🟨 Phishing protection data is stale. Updating from server.")
-            await self.updateFilterSet()
-            await self.updateHashPrefixes()
-            self.writeData()
         } catch {
             os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error loading phishing protection data: \(error). Reloading from embedded dataset.")
-            self.currentRevision = PhishingDetectionDataProvider.embeddedRevision
-            self.hashPrefixes = dataProvider.embeddedHashPrefixes
-            self.filterSet = dataProvider.embeddedFilterSet
+            self.currentRevision = dataProvider.embeddedRevision
+            self.hashPrefixes = dataProvider.loadEmbeddedHashPrefixes()
+            self.filterSet = dataProvider.loadEmbeddedFilterSet()
             await self.updateFilterSet()
             await self.updateHashPrefixes()
             self.writeData()

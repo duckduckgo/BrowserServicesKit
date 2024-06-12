@@ -19,46 +19,36 @@
 import Foundation
 import CryptoKit
 
-public protocol PhishingDetectionDataProviderProtocol {
-    var embeddedFilterSet: Set<Filter> { get }
-    var embeddedHashPrefixes: Set<String> { get }
+public protocol PhishingDetectionDataProviding {
+    var embeddedRevision: Int { get }
+    func loadEmbeddedFilterSet() -> Set<Filter>
+    func loadEmbeddedHashPrefixes() -> Set<String>
 }
 
-public class PhishingDetectionDataProvider: PhishingDetectionDataProviderProtocol {
-    public struct Constants {
-        public static let hashPrefixDataSHA = "f759863fae40088f555e7a994e26be8f2c9c17f4cff4f89d563d47f6456c07c9"
-        public static let filterSetDataSHA = "1879b748ad6e4c1df83797cd2b1201b53b547f3a729067af3f7012a5530ce3a1"
-        public static let revision = 1643651
-    }
+public class PhishingDetectionDataProvider: PhishingDetectionDataProviding {
+    public var embeddedRevision: Int
+    var embeddedFilterSetURL: URL
+    var embeddedFilterSetDataSHA: String
+    var embeddedHashPrefixURL: URL
+    var embeddedHashPrefixDataSHA: String
     
-    public var embeddedFilterSet: Set<Filter> {
-        return Self.loadFilterSet()
-    }
-    
-    public var embeddedHashPrefixes: Set<String> {
-        return Self.loadHashPrefixes()
-    }
-    
-    static var embeddedRevision: Int {
-        return Self.Constants.revision
-    }
-    
-    static var hashPrefixURL: URL {
-        return Bundle.module.url(forResource: "hashPrefixes", withExtension: "json")!
-    }
-    
-    static var filterSetURL: URL {
-        return Bundle.module.url(forResource: "filterSet", withExtension: "json")!
+
+    public init(revision: Int, filterSetURL: URL, filterSetDataSHA: String, hashPrefixURL: URL, hashPrefixDataSHA: String) {
+        embeddedFilterSetURL = filterSetURL
+        embeddedFilterSetDataSHA = filterSetDataSHA
+        embeddedHashPrefixURL = hashPrefixURL
+        embeddedHashPrefixDataSHA = hashPrefixDataSHA
+        embeddedRevision = revision
     }
 
-    public static func loadFilterSet() -> Set<Filter> {
+    public func loadEmbeddedFilterSet() -> Set<Filter> {
         do {
-            let filterSetData = try Data(contentsOf: filterSetURL)
+            let filterSetData = try Data(contentsOf: embeddedFilterSetURL)
             let sha256 = SHA256.hash(data: filterSetData)
             let hashString = sha256.compactMap { String(format: "%02x", $0) }.joined()
             
-            guard hashString == PhishingDetectionDataProvider.Constants.filterSetDataSHA else {
-                fatalError("SHA mismatch for filterSet JSON file. Expected \(PhishingDetectionDataProvider.Constants.filterSetDataSHA), got \(hashString)")
+            guard hashString == embeddedFilterSetDataSHA else {
+                fatalError("SHA mismatch for filterSet JSON file. Expected \(embeddedFilterSetDataSHA), got \(hashString)")
             }
 
             let filterSet = try JSONDecoder().decode(Set<Filter>.self, from: filterSetData)
@@ -69,14 +59,14 @@ public class PhishingDetectionDataProvider: PhishingDetectionDataProviderProtoco
         }
     }
 
-    public static func loadHashPrefixes() -> Set<String> {
+    public func loadEmbeddedHashPrefixes() -> Set<String> {
         do {
-            let hashPrefixData = try Data(contentsOf: hashPrefixURL)
+            let hashPrefixData = try Data(contentsOf: embeddedHashPrefixURL)
             let sha256 = SHA256.hash(data: hashPrefixData)
             let hashString = sha256.compactMap { String(format: "%02x", $0) }.joined()
 
-            guard hashString == PhishingDetectionDataProvider.Constants.hashPrefixDataSHA else {
-                fatalError("SHA mismatch for hashPrefixes JSON file. Expected \(PhishingDetectionDataProvider.Constants.hashPrefixDataSHA) got \(hashString)")
+            guard hashString == embeddedHashPrefixDataSHA else {
+                fatalError("SHA mismatch for hashPrefixes JSON file. Expected \(embeddedHashPrefixDataSHA) got \(hashString)")
             }
 
             let hashPrefixes = try JSONDecoder().decode(Set<String>.self, from: hashPrefixData)

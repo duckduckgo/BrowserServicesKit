@@ -31,34 +31,10 @@ class PhishingDetectionServiceTests: XCTestCase {
             }
         }
     }
-    
-    func timestompDatasets() {
-        let fileManager = FileManager.default
-        let newModificationDate = Date(timeIntervalSinceNow: -24*60*60)
-
-        for fileName in datasetFiles {
-            let fileURL = service!.dataStore!.appendingPathComponent(fileName)
-            do {
-                try fileManager.setAttributes([.modificationDate: newModificationDate], ofItemAtPath: fileURL.path)
-            } catch {
-                print("Failed to update modification date of \(fileName): \(error)")
-            }
-        }
-    }
 
     func testUpdateFilterSet() async {
         await service!.updateFilterSet()
         XCTAssertFalse(service!.filterSet.isEmpty, "Filter set should not be empty after update.")
-    }
-    
-    func testLoadDataStale() async {
-        timestompDatasets()
-        await service!.loadData()
-        // Stale => update from server only
-        XCTAssertTrue(mockClient!.updateFilterSetsWasCalled)
-        XCTAssertTrue(mockClient!.updateHashPrefixesWasCalled)
-        XCTAssertFalse(mockDataProvider!.loadFilterSetCalled)
-        XCTAssertFalse(mockDataProvider!.loadHashPrefixesCalled)
     }
     
     func testLoadDataError() async {
