@@ -1393,7 +1393,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
         await serverStatusMonitor.start(serverName: serverName) { status in
             if status.shouldMigrate {
-                try await self.updateTunnelConfiguration(reassert: false, regenerateKey: true)
+                try await self.updateTunnelConfiguration(reassert: true, regenerateKey: true)
             }
         }
     }

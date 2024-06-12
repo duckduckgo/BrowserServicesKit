@@ -68,7 +68,7 @@ public actor NetworkProtectionServerStatusMonitor {
     // MARK: - Start/Stop monitoring
 
     public func start(serverName: String, callback: @escaping (ServerStatusResult) async throws -> Void) {
-        os_log("⚫️ Starting server status monitor with server %{public}s", log: .networkProtectionServerStatusMonitorLog, serverName)
+        os_log("⚫️ Starting server status monitor for %{public}s", log: .networkProtectionServerStatusMonitorLog, serverName)
 
         task = Task.periodic(interval: Self.monitoringInterval) {
             let result = await self.checkServerStatus(for: serverName)
@@ -79,11 +79,16 @@ public actor NetworkProtectionServerStatusMonitor {
                     os_log("⚫️ Beginning server migration away from %{public}s", log: .networkProtectionServerStatusMonitorLog, serverName)
                     do {
                         try await callback(.serverMigrationRequested)
+                        os_log("⚫️ Completed server migration away from %{public}s", log: .networkProtectionServerStatusMonitorLog, serverName)
                     } catch {
+                        os_log("⚫️ Failed server migration away from %{public}s, error: %{public}s",
+                               log: .networkProtectionServerStatusMonitorLog,
+                               serverName,
+                               error.localizedDescription)
                         // TODO: Send migration failure pixel
                     }
                 } else {
-                    os_log("⚫️ Not migrating server away from %{public}s", log: .networkProtectionServerStatusMonitorLog, serverName)
+                    os_log("⚫️ No migration requested for %{public}s", log: .networkProtectionServerStatusMonitorLog, serverName)
                 }
             case .failure(let error):
                 os_log("⚫️ Error retrieving server status: %{public}@", log: .networkProtectionServerStatusMonitorLog, error.localizedDescription)
