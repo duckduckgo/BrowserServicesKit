@@ -1508,6 +1508,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         await tunnelFailureMonitor.stop()
         await latencyMonitor.stop()
         await entitlementMonitor.stop()
+        await serverStatusMonitor.stop()
     }
 
     public override func wake() {
