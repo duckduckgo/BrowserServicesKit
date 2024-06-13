@@ -38,7 +38,8 @@ public struct ClickToLoadRulesSplitter {
         var withBlockCTL: (tds: TrackerData, etag: String)?
 
         if let trackerData = rulesList.trackerData {
-            guard let splitTDS = split(trackerData: trackerData) else { return nil }
+            let splitTDS = split(trackerData: trackerData)
+            guard !splitTDS.withBlockCTL.tds.trackers.isEmpty else { return nil }
 
             withoutBlockCTL = splitTDS.withoutBlockCTL
             withBlockCTL = splitTDS.withBlockCTL
@@ -47,16 +48,15 @@ public struct ClickToLoadRulesSplitter {
         return (
             ContentBlockerRulesList(name: rulesList.name,
                                     trackerData: withoutBlockCTL,
-                                    fallbackTrackerData: split(trackerData: rulesList.fallbackTrackerData)!.withoutBlockCTL),
+                                    fallbackTrackerData: split(trackerData: rulesList.fallbackTrackerData).withoutBlockCTL),
             ContentBlockerRulesList(name: DefaultContentBlockerRulesListsSource.Constants.clickToLoadRulesListName,
                                     trackerData: withBlockCTL,
-                                    fallbackTrackerData: split(trackerData: rulesList.fallbackTrackerData)!.withBlockCTL)
+                                    fallbackTrackerData: split(trackerData: rulesList.fallbackTrackerData).withBlockCTL)
         )
     }
 
-    private func split(trackerData: TrackerDataManager.DataSet) -> (withoutBlockCTL: TrackerDataManager.DataSet, withBlockCTL: TrackerDataManager.DataSet)? {
+    private func split(trackerData: TrackerDataManager.DataSet) -> (withoutBlockCTL: TrackerDataManager.DataSet, withBlockCTL: TrackerDataManager.DataSet) {
         let (mainTrackers, ctlTrackers) = processCTLActions(trackerData.tds.trackers)
-        guard !ctlTrackers.isEmpty else { return nil }
 
         let trackerDataWithoutBlockCTL = makeTrackerData(using: mainTrackers, originalTDS: trackerData.tds)
         let trackerDataWithBlockCTL = makeTrackerData(using: ctlTrackers, originalTDS: trackerData.tds)
