@@ -165,14 +165,7 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
                 userDefaults: UserDefaults = UserDefaults.standard) {
         self.privacyInfo = privacyInfo
         self.initDashboardMode = dashboardMode
-        // This is just for the ship review build
-        if privacyInfo?.url.isPart(ofDomain: "cnn.com") ?? false {
-            self.variant = .a
-        } else if privacyInfo?.url.isPart(ofDomain: "bbc.com") ?? false {
-            self.variant = .b
-        } else {
-            self.variant = .control
-        }
+        self.variant = variant
         self.privacyConfigurationManager = privacyConfigurationManager
         privacyDashboardScript = PrivacyDashboardUserScript(privacyConfigurationManager: privacyConfigurationManager)
         self.eventMapping = eventMapping
