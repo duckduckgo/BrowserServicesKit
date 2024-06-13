@@ -6,7 +6,7 @@ class MockBackgroundActivityScheduler: BackgroundActivityScheduling {
     var interval: Int = 1
     var identifier: String = "test"
 
-    func start(activity: @escaping () -> Void) {
+    func start(activity: @escaping () async -> Void) {
         startCalled = true
     }
 

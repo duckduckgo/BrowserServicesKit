@@ -17,106 +17,85 @@
 //
 
 import Foundation
+import Common
 
 public protocol BackgroundActivityScheduling {
-    func start(activity: @escaping () -> Void)
+    func start(activity: @escaping () async -> Void)
     func stop()
 }
 
 class BackgroundActivityScheduler: BackgroundActivityScheduling {
-    private var timer: Timer?
+    private var task: Task<Void, Never>?
     private let interval: TimeInterval
-    let identifier: String
+    private let identifier: String
 
-    init(identifier: String, interval: TimeInterval) {
-        self.identifier = identifier
+    init(interval: TimeInterval, identifier: String) {
         self.interval = interval
+        self.identifier = identifier
     }
 
-    func start(activity: @escaping () -> Void) {
+    func start(activity: @escaping () async -> Void) {
         stop()
-        DispatchQueue.main.async {
-            self.timer = Timer.scheduledTimer(withTimeInterval: self.interval, repeats: true) { _ in
-                DispatchQueue.global().async {
-                    activity()
+        task = Task {
+            while true {
+                let now = Date()
+                let formatter = DateFormatter()
+                formatter.timeStyle = .medium
+                print("[+] Updating \(identifier) at \(formatter.string(from: now))")
+                await activity()
+                do {
+                    try await Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
+                } catch {
+                    os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error \(identifier) task was cancelled before it could finish sleeping.")
                 }
             }
         }
     }
 
     func stop() {
-        timer?.invalidate()
-        timer = nil
+        task?.cancel()
+        task = nil
+    }
+}
+
+class DataActivity {
+    private let scheduler: BackgroundActivityScheduling
+    private let updateAction: () async -> Void
+
+    init(scheduler: BackgroundActivityScheduling, updateAction: @escaping () async -> Void) {
+        self.scheduler = scheduler
+        self.updateAction = updateAction
+    }
+
+    func start() {
+        scheduler.start(activity: updateAction)
+    }
+
+    func stop() {
+        scheduler.stop()
     }
 }
 
 public class PhishingDetectionDataActivities {
-    private let hashPrefixDataActivity: HashPrefixDataActivity
-    private let filterSetDataActivity: FilterSetDataActivity
-    private let detectionService: PhishingDetectionServiceProtocol
+    private var activities: [DataActivity]
 
     public init(detectionService: PhishingDetectionServiceProtocol, hashPrefixInterval: TimeInterval = 20 * 60, filterSetInterval: TimeInterval = 12 * 60 * 60) {
-        self.detectionService = detectionService
-        self.hashPrefixDataActivity = HashPrefixDataActivity(identifier: "com.duckduckgo.protection.hashPrefix", detectionService: detectionService, interval: hashPrefixInterval)
-        self.filterSetDataActivity = FilterSetDataActivity(identifier: "com.duckduckgo.protection.filterSet", detectionService: detectionService, interval: filterSetInterval)
-    }
-
-    public func run() async {
-        self.hashPrefixDataActivity.start()
-        self.filterSetDataActivity.start()
-    }
-}
-
-class HashPrefixDataActivity {
-    private let activityScheduler: BackgroundActivityScheduling
-    private let detectionService: PhishingDetectionServiceProtocol
-    private let identifier: String
-    private let interval: TimeInterval
-
-    init(identifier: String, detectionService: PhishingDetectionServiceProtocol, interval: TimeInterval, scheduler: BackgroundActivityScheduling? = nil) {
-        self.detectionService = detectionService
-        self.identifier = identifier
-        self.interval = interval
-        self.activityScheduler = scheduler ?? BackgroundActivityScheduler(identifier: identifier, interval: interval)
+        let hashPrefixActivity = DataActivity(
+            scheduler: BackgroundActivityScheduler(interval: hashPrefixInterval, identifier: "hashPrefixes.update"),
+            updateAction: { await detectionService.updateHashPrefixes() }
+        )
+        let filterSetActivity = DataActivity(
+            scheduler: BackgroundActivityScheduler(interval: filterSetInterval,  identifier: "filterSet.update"),
+            updateAction: { await detectionService.updateFilterSet() }
+        )
+        activities = [hashPrefixActivity, filterSetActivity]
     }
 
     func start() {
-        activityScheduler.start { [weak self] in
-            guard let self = self else { return }
-            Task {
-                await self.detectionService.updateHashPrefixes()
-            }
-        }
+        activities.forEach { $0.start() }
     }
 
     func stop() {
-        activityScheduler.stop()
-    }
-}
-
-class FilterSetDataActivity {
-    private let activityScheduler: BackgroundActivityScheduling
-    private let detectionService: PhishingDetectionServiceProtocol
-    private let identifier: String
-    private let interval: TimeInterval
-
-    init(identifier: String, detectionService: PhishingDetectionServiceProtocol, interval: TimeInterval, scheduler: BackgroundActivityScheduling? = nil) {
-        self.detectionService = detectionService
-        self.identifier = identifier
-        self.interval = interval
-        self.activityScheduler = scheduler ?? BackgroundActivityScheduler(identifier: identifier, interval: interval)
-    }
-    
-    func start() {
-        activityScheduler.start { [weak self] in
-            guard let self = self else { return }
-            Task {
-                await self.detectionService.updateFilterSet()
-            }
-        }
-    }
-    
-    func stop() {
-        activityScheduler.stop()
+        activities.forEach { $0.stop() }
     }
 }

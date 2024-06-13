@@ -14,7 +14,7 @@ class BackgroundActivitySchedulerTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        scheduler = BackgroundActivityScheduler(identifier: "test", interval: 1)
+        scheduler = BackgroundActivityScheduler(interval: 1, identifier: "test")
     }
 
     override func tearDown() {
