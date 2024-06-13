@@ -53,6 +53,7 @@ public protocol PhishingDetectionServiceProtocol {
     func isMalicious(url: URL) async -> Bool
     func updateFilterSet() async
     func updateHashPrefixes() async
+    func loadData() async
 }
 
 enum PhishingDetectionDataError: Error {

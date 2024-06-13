@@ -537,6 +537,10 @@ let package = Package(
             name: "PhishingDetectionTests",
             dependencies: [
                 "PhishingDetection",
+            ],
+            resources: [
+                .copy("hashPrefixes.json"),
+                .copy("filterSet.json")
             ]
         ),
     ],

@@ -26,7 +26,7 @@ class PhishingDetectionDataActivitiesTests: XCTestCase {
             expectation.fulfill()
         }
 
-        await activities.run()
+        await activities.start()
         
         await fulfillment(of: [expectation], timeout: 10.0)
 
@@ -39,13 +39,13 @@ class PhishingDetectionDataActivitiesTests: XCTestCase {
 class HashPrefixDataActivityTests: XCTestCase {
     var mockDetectionService: MockPhishingDetectionService!
     var mockScheduler: MockBackgroundActivityScheduler!
-    var activity: HashPrefixDataActivity!
+    var activity: DataActivity!
 
     override func setUp() {
         super.setUp()
         mockDetectionService = MockPhishingDetectionService()
         mockScheduler = MockBackgroundActivityScheduler()
-        activity = HashPrefixDataActivity(identifier: "test", detectionService: mockDetectionService, interval: 1, scheduler: mockScheduler)
+        activity = DataActivity(scheduler: mockScheduler, updateAction: mockDetectionService.updateFilterSet)
     }
 
     func testStart() {
@@ -62,13 +62,13 @@ class HashPrefixDataActivityTests: XCTestCase {
 class FilterSetDataActivityTests: XCTestCase {
     var mockDetectionService: MockPhishingDetectionService!
     var mockScheduler: MockBackgroundActivityScheduler!
-    var activity: FilterSetDataActivity!
+    var activity: DataActivity!
 
     override func setUp() {
         super.setUp()
         mockDetectionService = MockPhishingDetectionService()
         mockScheduler = MockBackgroundActivityScheduler()
-        activity = FilterSetDataActivity(identifier: "test", detectionService: mockDetectionService, interval: 1, scheduler: mockScheduler)
+        activity = DataActivity(scheduler: mockScheduler, updateAction: mockDetectionService.updateHashPrefixes)
     }
 
     func testStart() {

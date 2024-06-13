@@ -18,6 +18,7 @@
 
 import Foundation
 import CryptoKit
+import Common
 
 public protocol PhishingDetectionDataProviding {
     var embeddedRevision: Int { get }
@@ -48,7 +49,9 @@ public class PhishingDetectionDataProvider: PhishingDetectionDataProviding {
             let hashString = sha256.compactMap { String(format: "%02x", $0) }.joined()
             
             guard hashString == embeddedFilterSetDataSHA else {
-                fatalError("SHA mismatch for filterSet JSON file. Expected \(embeddedFilterSetDataSHA), got \(hashString)")
+                os_log(.debug, log: .phishingDetection, "\(self): 🔴 Fatal Error: SHA mismatch for filterSet JSON file. Expected \(embeddedFilterSetDataSHA), got \(hashString)")
+//                assertionFailure("SHA mismatch for filterSet JSON file. Expected \(embeddedFilterSetDataSHA), got \(hashString)")
+                return Set()
             }
 
             let filterSet = try JSONDecoder().decode(Set<Filter>.self, from: filterSetData)
@@ -66,7 +69,9 @@ public class PhishingDetectionDataProvider: PhishingDetectionDataProviding {
             let hashString = sha256.compactMap { String(format: "%02x", $0) }.joined()
 
             guard hashString == embeddedHashPrefixDataSHA else {
-                fatalError("SHA mismatch for hashPrefixes JSON file. Expected \(embeddedHashPrefixDataSHA) got \(hashString)")
+                os_log(.debug, log: .phishingDetection, "\(self): 🔴 Fatal Error: SHA mismatch for hashPrefixes JSON file. Expected \(embeddedHashPrefixDataSHA) got \(hashString)")
+//                assertionFailure("SHA mismatch for hashPrefixes JSON file. Expected \(embeddedHashPrefixDataSHA) got \(hashString)")
+                return Set()
             }
 
             let hashPrefixes = try JSONDecoder().decode(Set<String>.self, from: hashPrefixData)

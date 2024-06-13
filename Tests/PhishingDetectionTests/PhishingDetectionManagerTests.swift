@@ -22,11 +22,15 @@ import PhishingDetection
 
 class PhishingDetectionManagerTests: XCTestCase {
 
-    public var phishingDetectionManager: MockPhishingDetectionManager!
+    public var phishingDetectionManager: PhishingDetectionManager!
+    var service: MockPhishingDetectionService!
+    var activities: PhishingDetectionDataActivities!
 
     override func setUp() {
         super.setUp()
-        phishingDetectionManager = MockPhishingDetectionManager()
+        service = MockPhishingDetectionService()
+        activities = PhishingDetectionDataActivities(detectionService: service, hashPrefixInterval: 1, filterSetInterval: 1)
+        phishingDetectionManager = PhishingDetectionManager(service: service, dataActivities: activities)
     }
 
     override func tearDown() {
@@ -36,7 +40,7 @@ class PhishingDetectionManagerTests: XCTestCase {
 
     func testIsMalicious() async {
         let maliciousURL = URL(string: "https://malicious.com")!
-        let nonMaliciousURL = URL(string: "https://nonmalicious.com")!
+        let nonMaliciousURL = URL(string: "https://clean.com")!
 
         let shouldBeMalicious = await phishingDetectionManager.isMalicious(url: maliciousURL)
         XCTAssertTrue(shouldBeMalicious)
@@ -46,6 +50,7 @@ class PhishingDetectionManagerTests: XCTestCase {
 
     func testLoadDataAsync() {
         phishingDetectionManager.loadDataAsync()
-        XCTAssertTrue(phishingDetectionManager.didLoadData)
+        XCTAssertTrue(service.didUpdateFilterSet)
+        XCTAssertTrue(service.didUpdateHashPrefixes)
     }
 }

@@ -8,6 +8,7 @@ public class MockPhishingDetectionService: PhishingDetectionServiceProtocol {
     public var filterSet: Set<Filter> = Set()
     public var didUpdateHashPrefixes: Bool = false
     public var didUpdateFilterSet: Bool = false
+    public var didCallIsMalicious: Bool = false
     var completionHandler: (() -> Void)?
 
     init() {
@@ -54,7 +55,7 @@ public class MockPhishingDetectionService: PhishingDetectionServiceProtocol {
     }
 
     public func isMalicious(url: URL) async -> Bool {
-        return false
+        return url.absoluteString.contains("malicious")
     }
     
     public func loadData() {

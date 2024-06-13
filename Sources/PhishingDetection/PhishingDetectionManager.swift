@@ -19,27 +19,16 @@
 import Foundation
 import Common
 
-// live in the client
-public class PhishingStateManager {
-    public var tabIsPhishing: Bool = false
-
-    public init(){}
-
-    public func setIsPhishing(_ isPhishing: Bool) {
-        tabIsPhishing = isPhishing
-    }
-}
-
 public protocol PhishingDetectionManaging {
     func isMalicious(url: URL) async -> Bool
     func loadDataAsync()
 }
 
 public class PhishingDetectionManager: PhishingDetectionManaging {
-    private var phishingDetectionService: PhishingDetectionService
+    private var phishingDetectionService: PhishingDetectionServiceProtocol
     private var phishingDetectionDataActivities: PhishingDetectionDataActivities
 
-    public init(service: PhishingDetectionService, dataActivities: PhishingDetectionDataActivities) {
+    public init(service: PhishingDetectionServiceProtocol, dataActivities: PhishingDetectionDataActivities) {
         self.phishingDetectionService = service
         self.phishingDetectionDataActivities = dataActivities
         loadDataAsync() // should be called from app or not?
@@ -53,7 +42,7 @@ public class PhishingDetectionManager: PhishingDetectionManaging {
     public func loadDataAsync() {
         Task {
             await phishingDetectionService.loadData()
-            await phishingDetectionDataActivities.run()
+            phishingDetectionDataActivities.start()
         }
     }
 }

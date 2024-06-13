@@ -8,25 +8,18 @@
 import Foundation
 import PhishingDetection
 
-public class MockPhishingDetectionDataProvider: PhishingDetectionDataProviderProtocol {
-    public var loadFilterSetCalled = false
-    public var loadHashPrefixesCalled = false
+public class MockPhishingDetectionDataProvider: PhishingDetectionDataProviding {
+    public var embeddedRevision: Int = 0
+    var loadHashPrefixesCalled: Bool = false
+    var loadFilterSetCalled: Bool = true
     
-    public var embeddedFilterSet: Set<Filter> {
-        return self.loadFilterSet()
-    }
-    
-    public var embeddedHashPrefixes: Set<String> {
-        return self.loadHashPrefixes()
-    }
-    
-    func loadFilterSet() -> Set<Filter> {
-        self.loadFilterSetCalled = true
+    public func loadEmbeddedFilterSet() -> Set<PhishingDetection.Filter> {
+        self.loadHashPrefixesCalled = true
         return []
     }
     
-    func loadHashPrefixes() -> Set<String> {
-        self.loadHashPrefixesCalled = true
+    public func loadEmbeddedHashPrefixes() -> Set<String> {
+        self.loadFilterSetCalled = true
         return []
     }
     
