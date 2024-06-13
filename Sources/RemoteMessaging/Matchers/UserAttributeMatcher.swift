@@ -34,6 +34,7 @@ public struct UserAttributeMatcher: AttributeMatcher {
     private let isPrivacyProSubscriber: Bool
     private let privacyProDaysSinceSubscribed: Int
     private let privacyProDaysUntilExpiry: Int
+    private let dismissedMessageIds: [String]
 
     public init(statisticsStore: StatisticsStore,
                 variantManager: VariantManager,
@@ -46,7 +47,8 @@ public struct UserAttributeMatcher: AttributeMatcher {
                 isPrivacyProEligibleUser: Bool,
                 isPrivacyProSubscriber: Bool,
                 privacyProDaysSinceSubscribed: Int,
-                privacyProDaysUntilExpiry: Int
+                privacyProDaysUntilExpiry: Int,
+                dismissedMessageIds: [String]
 	) {
         self.statisticsStore = statisticsStore
         self.variantManager = variantManager
@@ -60,6 +62,7 @@ public struct UserAttributeMatcher: AttributeMatcher {
         self.isPrivacyProSubscriber = isPrivacyProSubscriber
         self.privacyProDaysSinceSubscribed = privacyProDaysSinceSubscribed
         self.privacyProDaysUntilExpiry = privacyProDaysUntilExpiry
+        self.dismissedMessageIds = dismissedMessageIds
     }
 
     // swiftlint:disable:next cyclomatic_complexity function_body_length
@@ -135,6 +138,14 @@ public struct UserAttributeMatcher: AttributeMatcher {
                 return IntMatchingAttribute(matchingAttribute.value).matches(value: privacyProDaysUntilExpiry)
             } else {
                 return RangeIntMatchingAttribute(min: matchingAttribute.min, max: matchingAttribute.max).matches(value: privacyProDaysUntilExpiry)
+            }
+        case let matchingAttribute as InteractedWithMessageMatchingAttribute:
+            if dismissedMessageIds.contains(where: { messageId in
+                StringArrayMatchingAttribute(matchingAttribute.value).matches(value: messageId) == .match
+            }) {
+                return .match
+            } else {
+                return .fail
             }
         default:
             assertionFailure("Could not find matching attribute")
