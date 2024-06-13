@@ -107,7 +107,7 @@ extension UserScript {
     }
 
     public func makeWKUserScript() async -> WKUserScriptBox {
-        let source = (try? await Task.detached { [source] in Self.prepareScriptSource(from: source) }.result.get())!
+        let source = await Task.detached { [source] in Self.prepareScriptSource(from: source) }.result.get()
         return await Self.makeWKUserScript(from: source,
                                            injectionTime: injectionTime,
                                            forMainFrameOnly: forMainFrameOnly,

@@ -52,7 +52,7 @@ extension WKError.Code {
 #endif
 }
 
-extension WKError: LocalizedError {
+extension WKError: @retroactive LocalizedError {
 
     public var errorDescription: String? {
         "<WKError \((self as NSError).domain) error \(code.rawValue) \"\(self.localizedDescription)\"" +

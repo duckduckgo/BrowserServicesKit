@@ -1308,7 +1308,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     private func startServerFailureRecovery() {
         Task {
-            guard let server = await self.lastSelectedServer else {
+            guard let server = self.lastSelectedServer else {
                 return
             }
             await self.failureRecoveryHandler.attemptRecovery(
@@ -1466,7 +1466,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     public override func sleep() async {
         os_log("Sleep", log: .networkProtectionSleepLog, type: .info)
 
-        await connectionTester.stop()
+        connectionTester.stop()
         await tunnelFailureMonitor.stop()
         await latencyMonitor.stop()
         await entitlementMonitor.stop()

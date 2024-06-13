@@ -19,6 +19,7 @@
 import Foundation
 import NetworkExtension
 
+@MainActor
 protocol Reasserting: AnyObject {
     func startReasserting()
     func stopReasserting()

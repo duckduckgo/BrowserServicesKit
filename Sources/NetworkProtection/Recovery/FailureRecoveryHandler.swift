@@ -88,10 +88,8 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
         isKillSwitchEnabled: Bool,
         updateConfig: @escaping (NetworkProtectionDeviceManagement.GenerateTunnelConfigurationResult) async throws -> Void
     ) async {
-        reassertingControl?.startReasserting()
-        defer {
-            reassertingControl?.stopReasserting()
-        }
+        await reassertingControl?.startReasserting()
+        let eventHandler = eventHandler
         await incrementalPeriodicChecks(retryConfig) { [weak self] in
             guard let self else { return }
             eventHandler(.started)
@@ -117,6 +115,7 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
                 throw error
             }
         }
+        await reassertingControl?.stopReasserting()
     }
 
     func stop() {
