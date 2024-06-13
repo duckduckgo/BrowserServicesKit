@@ -89,7 +89,7 @@ public actor NetworkProtectionServerStatusMonitor {
     }
 
     public func stop() {
-        os_log("⚫️ Stopping server status monitor", log: .networkProtectionEntitlementMonitorLog)
+        os_log("⚫️ Stopping server status monitor", log: .networkProtectionServerStatusMonitorLog)
 
         task?.cancel()
         task = nil
