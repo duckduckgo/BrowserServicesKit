@@ -47,7 +47,8 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            isPrivacyProEligibleUser: false,
                                                            isPrivacyProSubscriber: false,
                                                            privacyProDaysSinceSubscribed: -1,
-                                                           privacyProDaysUntilExpiry: -1),
+                                                           privacyProDaysUntilExpiry: -1,
+                                                           dismissedMessageIds: []),
                 percentileStore: MockRemoteMessagePercentileStore(),
                 surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
                 dismissedMessageIds: []
@@ -135,7 +136,8 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            isPrivacyProEligibleUser: false,
                                                            isPrivacyProSubscriber: false,
                                                            privacyProDaysSinceSubscribed: -1,
-                                                           privacyProDaysUntilExpiry: -1),
+                                                           privacyProDaysUntilExpiry: -1,
+                                                           dismissedMessageIds: []),
                 percentileStore: MockRemoteMessagePercentileStore(),
                 surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
                 dismissedMessageIds: [])
@@ -233,7 +235,8 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            isPrivacyProEligibleUser: false,
                                                            isPrivacyProSubscriber: false,
                                                            privacyProDaysSinceSubscribed: -1,
-                                                           privacyProDaysUntilExpiry: -1),
+                                                           privacyProDaysUntilExpiry: -1,
+                                                           dismissedMessageIds: []),
                 percentileStore: MockRemoteMessagePercentileStore(),
                 surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
                 dismissedMessageIds: ["1"])
@@ -274,7 +277,8 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            isPrivacyProEligibleUser: false,
                                                            isPrivacyProSubscriber: false,
                                                            privacyProDaysSinceSubscribed: -1,
-                                                           privacyProDaysUntilExpiry: -1),
+                                                           privacyProDaysUntilExpiry: -1,
+                                                           dismissedMessageIds: []),
                 percentileStore: MockRemoteMessagePercentileStore(),
                 surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
                 dismissedMessageIds: [])
@@ -311,7 +315,8 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            isPrivacyProEligibleUser: false,
                                                            isPrivacyProSubscriber: false,
                                                            privacyProDaysSinceSubscribed: -1,
-                                                           privacyProDaysUntilExpiry: -1),
+                                                           privacyProDaysUntilExpiry: -1,
+                                                           dismissedMessageIds: []),
                 percentileStore: percentileStore,
                 surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
                 dismissedMessageIds: [])
@@ -346,7 +351,8 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            isPrivacyProEligibleUser: false,
                                                            isPrivacyProSubscriber: false,
                                                            privacyProDaysSinceSubscribed: -1,
-                                                           privacyProDaysUntilExpiry: -1),
+                                                           privacyProDaysUntilExpiry: -1,
+                                                           dismissedMessageIds: []),
                 percentileStore: percentileStore,
                 surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
                 dismissedMessageIds: [])
@@ -381,7 +387,8 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            isPrivacyProEligibleUser: false,
                                                            isPrivacyProSubscriber: false,
                                                            privacyProDaysSinceSubscribed: -1,
-                                                           privacyProDaysUntilExpiry: -1),
+                                                           privacyProDaysUntilExpiry: -1,
+                                                           dismissedMessageIds: []),
                 percentileStore: percentileStore,
                 surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
                 dismissedMessageIds: [])
@@ -416,7 +423,8 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            isPrivacyProEligibleUser: false,
                                                            isPrivacyProSubscriber: false,
                                                            privacyProDaysSinceSubscribed: -1,
-                                                           privacyProDaysUntilExpiry: -1),
+                                                           privacyProDaysUntilExpiry: -1,
+                                                           dismissedMessageIds: []),
                 percentileStore: percentileStore,
                 surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
                 dismissedMessageIds: [])

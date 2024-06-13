@@ -102,7 +102,7 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
 
     func testWhenValidJsonParsedThenRulesMappedIntoRemoteConfig() throws {
         let config = try decodeAndMapJson(fileName: "Resources/remote-messaging-config.json")
-        XCTAssertTrue(config.rules.count == 5)
+        XCTAssertTrue(config.rules.count == 6)
 
         let rule5 = config.rules.filter { $0.id == 5 }.first
         XCTAssertNotNil(rule5)
@@ -166,6 +166,15 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
         XCTAssertNotNil(rule9?.targetPercentile)
         XCTAssertTrue(rule9?.attributes.count == 1)
         XCTAssertEqual(rule9?.targetPercentile?.before, 0.9)
+
+        let rule10 = config.rules.filter { $0.id == 10 }.first
+        XCTAssertNotNil(rule10)
+        XCTAssertNil(rule10?.targetPercentile)
+        XCTAssertTrue(rule10?.attributes.count == 1)
+
+        attribs = rule10?.attributes.filter { $0 is InteractedWithMessageMatchingAttribute }
+        XCTAssertEqual(attribs?.first as? InteractedWithMessageMatchingAttribute, InteractedWithMessageMatchingAttribute(value: ["One", "Two"], fallback: nil))
+
     }
 
     func testWhenJsonMessagesHaveUnknownTypesThenMessagesNotMappedIntoConfig() throws {
