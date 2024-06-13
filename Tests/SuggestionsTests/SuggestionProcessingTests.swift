@@ -52,6 +52,33 @@ final class SuggestionProcessingTests: XCTestCase {
 
     }
 
+    func testWhenWebsiteInTopHits_ThenWebsiteRemovedFromSuggestions() {
+        
+        let processing = SuggestionProcessing(urlFactory: Self.simpleUrlFactory)
+
+        guard let result = processing.result(for: "DuckDuckGo",
+                                             from: [],
+                                             bookmarks: [],
+                                             internalPages: [],
+                                             apiResult: APIResult.anAPIResultWithNav) else {
+            XCTFail("Expected result")
+            return
+        }
+
+        XCTAssertEqual(result.topHits.count, 1)
+        XCTAssertEqual(result.topHits[0].url?.absoluteString, "http://www.example.com")
+
+        XCTAssertFalse(
+            result.duckduckgoSuggestions.contains(where: {
+                if case .website(let url) = $0, url.absoluteString.hasSuffix("://www.example.com") {
+                    return true
+                }
+                return false
+            })
+        )
+
+    }
+
 }
 
 extension HistoryEntryMock {

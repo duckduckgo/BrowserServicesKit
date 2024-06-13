@@ -70,9 +70,22 @@ final class SuggestionProcessing {
             }
         })
 
+        let dedupedDuckDuckGoSuggestions = removeDuplicateWebsiteSuggestions(in: topHits, from: duckDuckGoSuggestions)
+
         return makeResult(topHits: topHits,
-                          duckduckgoSuggestions: duckDuckGoSuggestions,
+                          duckduckgoSuggestions: dedupedDuckDuckGoSuggestions,
                           localSuggestions: localSuggestions)
+    }
+
+    private func removeDuplicateWebsiteSuggestions(in sourceSuggestions: [Suggestion], from targetSuggestions: [Suggestion]) -> [Suggestion] {
+        return targetSuggestions.compactMap { targetSuggestion in
+            if case .website = targetSuggestion, sourceSuggestions.contains(where: {
+                targetSuggestion == $0
+            }) {
+                return nil
+            }
+            return targetSuggestion
+        }
     }
 
     // MARK: - DuckDuckGo Suggestions
