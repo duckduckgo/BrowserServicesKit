@@ -118,7 +118,6 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
                 throw error
             }
         }
-        await reassertingControl?.stopReasserting()
     }
 
     func stop() {
