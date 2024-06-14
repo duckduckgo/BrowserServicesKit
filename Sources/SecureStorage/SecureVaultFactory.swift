@@ -60,14 +60,13 @@ public class SecureVaultFactory<Vault: SecureVault> {
     /// * Generates a user password to encrypt the L2 key with
     /// * Stores encrypted L2 key in Keychain
     public func makeVault(reporter: SecureVaultReporting?) throws -> Vault {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
         if let vault = self.vault {
             return vault
         } else {
-            lock.lock()
-            defer {
-                lock.unlock()
-            }
-
             do {
                 let providers = try makeSecureStorageProviders(reporter: reporter)
                 let vault = Vault(providers: providers)
