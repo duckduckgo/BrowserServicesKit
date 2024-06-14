@@ -22,12 +22,6 @@ public protocol AccountManagerKeychainAccessDelegate: AnyObject {
     func accountManagerKeychainAccessFailed(accessType: AccountKeychainAccessType, error: AccountKeychainAccessError)
 }
 
-public enum AccountManagingCachePolicy {
-    case reloadIgnoringLocalCacheData
-    case returnCacheDataElseLoad
-    case returnCacheDataDontLoad
-}
-
 public protocol AccountManaging {
 
     var delegate: AccountManagerKeychainAccessDelegate? { get set }
@@ -44,15 +38,25 @@ public protocol AccountManaging {
     func migrateAccessTokenToNewStore() throws
 
     // Entitlements
-    typealias CachePolicy = AccountManagingCachePolicy
-    func hasEntitlement(for entitlement: Entitlement.ProductName, cachePolicy: CachePolicy) async -> Result<Bool, Error>
-    func hasEntitlement(for entitlement: Entitlement.ProductName) async -> Result<Bool, Error>
+    func hasEntitlement(forProductName productName: Entitlement.ProductName, cachePolicy: APICachePolicy) async -> Result<Bool, Error>
+
     func updateCache(with entitlements: [Entitlement])
-    @discardableResult func fetchEntitlements(cachePolicy: CachePolicy) async -> Result<[Entitlement], Error>
+    @discardableResult func fetchEntitlements(cachePolicy: APICachePolicy) async -> Result<[Entitlement], Error>
     func exchangeAuthTokenToAccessToken(_ authToken: String) async -> Result<String, Error>
 
     typealias AccountDetails = (email: String?, externalID: String)
     func fetchAccountDetails(with accessToken: String) async -> Result<AccountDetails, Error>
     func refreshSubscriptionAndEntitlements() async
     @discardableResult func checkForEntitlements(wait waitTime: Double, retry retryCount: Int) async -> Bool
+}
+
+extension AccountManaging {
+
+    public func hasEntitlement(forProductName productName: Entitlement.ProductName) async -> Result<Bool, Error> {
+        await hasEntitlement(forProductName: productName, cachePolicy: .returnCacheDataElseLoad)
+    }
+
+    public func fetchEntitlements() async -> Result<[Entitlement], Error> {
+        await fetchEntitlements(cachePolicy: .returnCacheDataElseLoad)
+    }
 }

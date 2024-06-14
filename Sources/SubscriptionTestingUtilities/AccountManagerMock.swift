@@ -17,7 +17,7 @@
 //
 
 import Foundation
-import Subscription
+@testable import Subscription
 
 public final class AccountManagerMock: AccountManaging {
 
@@ -62,7 +62,7 @@ public final class AccountManagerMock: AccountManaging {
 
     }
 
-    public func hasEntitlement(for entitlement: Entitlement.ProductName, cachePolicy: CachePolicy) async -> Result<Bool, Error> {
+    public func hasEntitlement(forProductName entitlement: Entitlement.ProductName, cachePolicy: APICachePolicy) async -> Result<Bool, Error> {
         return .success(true)
     }
 
@@ -74,7 +74,7 @@ public final class AccountManagerMock: AccountManaging {
 
     }
 
-    public func fetchEntitlements(cachePolicy: CachePolicy) async -> Result<[Entitlement], Error> {
+    public func fetchEntitlements(cachePolicy: APICachePolicy) async -> Result<[Entitlement], Error> {
         return .success([])
     }
 

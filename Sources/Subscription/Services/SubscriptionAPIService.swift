@@ -1,5 +1,5 @@
 //
-//  SubscriptionService.swift
+//  SubscriptionAPIService.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -19,48 +19,62 @@
 import Common
 import Foundation
 
+public struct GetProductsItem: Decodable {
+    public let productId: String
+    public let productLabel: String
+    public let billingPeriod: String
+    public let price: String
+    public let currency: String
+}
+
+public struct GetCustomerPortalURLResponse: Decodable {
+    public let customerPortalUrl: String
+}
+
+public struct ConfirmPurchaseResponse: Decodable {
+    public let email: String?
+    public let entitlements: [Entitlement]
+    public let subscription: Subscription
+}
+
+public enum SubscriptionServiceError: Error {
+    case noCachedData
+    case apiError(APIServiceError)
+}
+
+public protocol SubscriptionAPIServicing {
+    func updateCache(with subscription: Subscription)
+    func getSubscription(accessToken: String, cachePolicy: APICachePolicy) async -> Result<Subscription, SubscriptionServiceError>
+    func signOut()
+    func getProducts() async -> Result<[GetProductsItem], APIServiceError>
+    func getCustomerPortalURL(accessToken: String, externalID: String) async -> Result<GetCustomerPortalURLResponse, APIServiceError>
+    func confirmPurchase(accessToken: String, signature: String) async -> Result<ConfirmPurchaseResponse, APIServiceError>
+}
+
+extension SubscriptionAPIServicing {
+
+    public func getSubscription(accessToken: String) async -> Result<Subscription, SubscriptionServiceError> {
+        await getSubscription(accessToken: accessToken, cachePolicy: .returnCacheDataElseLoad)
+    }
+}
+
 /// Communicates with our backend
-public final class SubscriptionService: APIService {
-
+public struct SubscriptionAPIService: SubscriptionAPIServicing {
     private let currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment
-
-    public init(currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment) {
-        self.currentServiceEnvironment = currentServiceEnvironment
-    }
-
-    public let session = {
-        let configuration = URLSessionConfiguration.ephemeral
-        return URLSession(configuration: configuration)
-    }()
-
-    public var baseURL: URL {
-        switch currentServiceEnvironment {
-        case .production:
-            URL(string: "https://subscriptions.duckduckgo.com/api")!
-        case .staging:
-            URL(string: "https://subscriptions-dev.duckduckgo.com/api")!
-        }
-    }
-
+    private let apiService: any APIServicing
     private let subscriptionCache = UserDefaultsCache<Subscription>(key: UserDefaultsCacheKey.subscription,
                                                                     settings: UserDefaultsCacheSettings(defaultExpirationInterval: .minutes(20)))
 
-    public enum CachePolicy {
-        case reloadIgnoringLocalCacheData
-        case returnCacheDataElseLoad
-        case returnCacheDataDontLoad
-    }
-
-    public enum SubscriptionServiceError: Error {
-        case noCachedData
-        case apiError(APIServiceError)
+    public init(currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment, apiService: any APIServicing) {
+        self.currentServiceEnvironment = currentServiceEnvironment
+        self.apiService = apiService
     }
 
     // MARK: - Subscription fetching with caching
 
     private func getRemoteSubscription(accessToken: String) async -> Result<Subscription, SubscriptionServiceError> {
 
-        let result: Result<Subscription, APIServiceError> = await executeAPICall(method: "GET", endpoint: "subscription", headers: makeAuthorizationHeader(for: accessToken))
+        let result: Result<Subscription, APIServiceError> = await apiService.executeAPICall(method: "GET", endpoint: "subscription", headers: apiService.makeAuthorizationHeader(for: accessToken), body: nil)
         switch result {
         case .success(let subscriptionResponse):
             updateCache(with: subscriptionResponse)
@@ -82,7 +96,7 @@ public final class SubscriptionService: APIService {
         }
     }
 
-    public func getSubscription(accessToken: String, cachePolicy: CachePolicy = .returnCacheDataElseLoad) async -> Result<Subscription, SubscriptionServiceError> {
+    public func getSubscription(accessToken: String, cachePolicy: APICachePolicy = .returnCacheDataElseLoad) async -> Result<Subscription, SubscriptionServiceError> {
 
         switch cachePolicy {
         case .reloadIgnoringLocalCacheData:
@@ -111,42 +125,34 @@ public final class SubscriptionService: APIService {
     // MARK: -
 
     public func getProducts() async -> Result<[GetProductsItem], APIServiceError> {
-        await executeAPICall(method: "GET", endpoint: "products")
-    }
-
-    public struct GetProductsItem: Decodable {
-        public let productId: String
-        public let productLabel: String
-        public let billingPeriod: String
-        public let price: String
-        public let currency: String
+        await apiService.executeAPICall(method: "GET", endpoint: "products", headers: nil, body: nil)
     }
 
     // MARK: -
 
     public func getCustomerPortalURL(accessToken: String, externalID: String) async -> Result<GetCustomerPortalURLResponse, APIServiceError> {
-        var headers = makeAuthorizationHeader(for: accessToken)
+        var headers = apiService.makeAuthorizationHeader(for: accessToken)
         headers["externalAccountId"] = externalID
-        return await executeAPICall(method: "GET", endpoint: "checkout/portal", headers: headers)
-    }
-
-    public struct GetCustomerPortalURLResponse: Decodable {
-        public let customerPortalUrl: String
+        return await apiService.executeAPICall(method: "GET", endpoint: "checkout/portal", headers: headers, body: nil)
     }
 
     // MARK: -
 
     public func confirmPurchase(accessToken: String, signature: String) async -> Result<ConfirmPurchaseResponse, APIServiceError> {
-        let headers = makeAuthorizationHeader(for: accessToken)
+        let headers = apiService.makeAuthorizationHeader(for: accessToken)
         let bodyDict = ["signedTransactionInfo": signature]
 
         guard let bodyData = try? JSONEncoder().encode(bodyDict) else { return .failure(.encodingError) }
-        return await executeAPICall(method: "POST", endpoint: "purchase/confirm/apple", headers: headers, body: bodyData)
+        return await apiService.executeAPICall(method: "POST", endpoint: "purchase/confirm/apple", headers: headers, body: bodyData)
     }
+}
 
-    public struct ConfirmPurchaseResponse: Decodable {
-        public let email: String?
-        public let entitlements: [Entitlement]
-        public let subscription: Subscription
+extension SubscriptionAPIService {
+
+    public init(currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment) {
+        self.currentServiceEnvironment = currentServiceEnvironment
+        let baseURL = currentServiceEnvironment == .production ? URL(string: "https://subscriptions.duckduckgo.com/api")! : URL(string: "https://subscriptions-dev.duckduckgo.com/api")!
+        let session = URLSession(configuration: URLSessionConfiguration.ephemeral)
+        self.apiService = APIService(baseURL: baseURL, session: session)
     }
 }

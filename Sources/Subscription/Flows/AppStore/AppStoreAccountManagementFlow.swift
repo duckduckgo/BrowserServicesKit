@@ -43,13 +43,13 @@ public final class AppStoreAccountManagementFlow {
         var authToken = accountManager.authToken ?? ""
 
         // Check if auth token if still valid
-        if case let .failure(validateTokenError) = await subscriptionManager.authService.validateToken(accessToken: authToken) {
+        if case let .failure(validateTokenError) = await subscriptionManager.authAPIService.validateToken(accessToken: authToken) {
             os_log(.error, log: .subscription, "[AppStoreAccountManagementFlow] validateToken error: %{public}s", String(reflecting: validateTokenError))
 
             // In case of invalid token attempt store based authentication to obtain a new one
             guard let lastTransactionJWSRepresentation = await subscriptionManager.storePurchaseManager().mostRecentTransaction() else { return .failure(.noPastTransaction) }
 
-            switch await subscriptionManager.authService.storeLogin(signature: lastTransactionJWSRepresentation) {
+            switch await subscriptionManager.authAPIService.storeLogin(signature: lastTransactionJWSRepresentation) {
             case .success(let response):
                 if response.externalID == accountManager.externalID {
                     authToken = response.authToken

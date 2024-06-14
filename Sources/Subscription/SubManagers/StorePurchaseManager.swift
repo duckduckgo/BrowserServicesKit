@@ -56,8 +56,7 @@ public final class StorePurchaseManager: ObservableObject, StorePurchaseManaging
     }
 
     @MainActor
-    @discardableResult
-    public func syncAppleIDAccount() async -> Result<Void, Error> {
+    public func syncAppleIDAccount() async throws {
         do {
             purchaseQueue.removeAll()
 
@@ -69,11 +68,9 @@ public final class StorePurchaseManager: ObservableObject, StorePurchaseManaging
 
             await updatePurchasedProducts()
             await updateAvailableProducts()
-
-            return .success(())
         } catch {
             os_log(.error, log: .subscription, "[StorePurchaseManager] Error: %{public}s (%{public}s)", String(reflecting: error), error.localizedDescription)
-            return .failure(error)
+            throw error
         }
     }
 

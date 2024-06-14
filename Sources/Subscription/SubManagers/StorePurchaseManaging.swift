@@ -42,7 +42,7 @@ public protocol StorePurchaseManaging {
 
     var areProductsAvailable: Bool { get }
 
-    @discardableResult @MainActor func syncAppleIDAccount() async -> Result<Void, Error>
+    @MainActor func syncAppleIDAccount() async throws
 
     @MainActor func updateAvailableProducts() async
 

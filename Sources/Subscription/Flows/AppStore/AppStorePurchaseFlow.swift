@@ -70,7 +70,7 @@ public final class AppStorePurchaseFlow {
                     accountManager.storeAuthToken(token: expiredAccountDetails.authToken)
                     accountManager.storeAccount(token: expiredAccountDetails.accessToken, email: expiredAccountDetails.email, externalID: expiredAccountDetails.externalID)
                 default:
-                    switch await subscriptionManager.authService.createAccount(emailAccessToken: emailAccessToken) {
+                    switch await subscriptionManager.authAPIService.createAccount(emailAccessToken: emailAccessToken) {
                     case .success(let response):
                         externalID = response.externalID
 
@@ -108,16 +108,16 @@ public final class AppStorePurchaseFlow {
     public func completeSubscriptionPurchase(with transactionJWS: TransactionJWS) async -> Result<PurchaseUpdate, AppStorePurchaseFlow.Error> {
 
         // Clear subscription Cache
-        subscriptionManager.subscriptionService.signOut()
+        subscriptionManager.subscriptionAPIService.signOut()
 
         os_log(.info, log: .subscription, "[AppStorePurchaseFlow] completeSubscriptionPurchase")
 
         guard let accessToken = accountManager.accessToken else { return .failure(.missingEntitlements) }
 
         let result = await callWithRetries(retry: 5, wait: 2.0) {
-            switch await subscriptionManager.subscriptionService.confirmPurchase(accessToken: accessToken, signature: transactionJWS) {
+            switch await subscriptionManager.subscriptionAPIService.confirmPurchase(accessToken: accessToken, signature: transactionJWS) {
             case .success(let confirmation):
-                subscriptionManager.subscriptionService.updateCache(with: confirmation.subscription)
+                subscriptionManager.subscriptionAPIService.updateCache(with: confirmation.subscription)
                 accountManager.updateCache(with: confirmation.entitlements)
                 return true
             case .failure:
@@ -152,7 +152,7 @@ public final class AppStorePurchaseFlow {
               let token = accountManager.accessToken
         else { return nil }
 
-        let subscriptionInfo = await subscriptionManager.subscriptionService.getSubscription(accessToken: token, cachePolicy: .reloadIgnoringLocalCacheData)
+        let subscriptionInfo = await subscriptionManager.subscriptionAPIService.getSubscription(accessToken: token, cachePolicy: .reloadIgnoringLocalCacheData)
 
         // Only return an externalID if the subscription is expired
         // To prevent creating multiple subscriptions in the same account
