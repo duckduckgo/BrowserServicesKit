@@ -57,7 +57,11 @@ class UserAttributeMatcherTests: XCTestCase {
                                                     isPrivacyProEligibleUser: true,
                                                     isPrivacyProSubscriber: true,
                                                     privacyProDaysSinceSubscribed: 5,
-                                                    privacyProDaysUntilExpiry: 25)
+                                                    privacyProDaysUntilExpiry: 25,
+                                                    privacyProPurchasePlatform: "apple",
+                                                    isPrivacyProSubscriptionActive: true,
+                                                    isPrivacyProSubscriptionExpiring: false,
+                                                    isPrivacyProSubscriptionExpired: false)
     }
 
     override func tearDownWithError() throws {
@@ -238,6 +242,40 @@ class UserAttributeMatcherTests: XCTestCase {
     func testWhenIsPrivacyProSubscriberDoesNotMatchThenReturnFail() throws {
         XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: IsPrivacyProSubscriberUserMatchingAttribute(value: false, fallback: nil)),
                        .fail)
+    }
+
+    func testWhenPrivacyProPurchasePlatformMatchesThenReturnMatch() throws {
+        XCTAssertEqual(userAttributeMatcher.evaluate(
+            matchingAttribute: PrivacyProPurchasePlatformMatchingAttribute(
+                value: ["apple"], fallback: nil
+            )
+        ), .match)
+    }
+
+    func testWhenPrivacyProPurchasePlatformDoesNotMatchThenReturnFail() throws {
+        XCTAssertEqual(userAttributeMatcher.evaluate(
+            matchingAttribute: PrivacyProPurchasePlatformMatchingAttribute(
+                value: ["stripe"], fallback: nil
+            )
+        ), .fail)
+    }
+
+    func testWhenPrivacyProSubscriptionStatusMatchesThenReturnMatch() throws {
+        XCTAssertEqual(userAttributeMatcher.evaluate(
+            matchingAttribute: PrivacyProSubscriptionStatusMatchingAttribute(value: "active", fallback: nil)
+        ), .match)
+    }
+
+    func testWhenPrivacyProSubscriptionStatusDoesNotMatchThenReturnFail() throws {
+        XCTAssertEqual(userAttributeMatcher.evaluate(
+            matchingAttribute: PrivacyProSubscriptionStatusMatchingAttribute(value: "expiring", fallback: nil)
+        ), .fail)
+    }
+
+    func testWhenPrivacyProSubscriptionStatusHasUnsupportedStatusThenReturnFail() throws {
+        XCTAssertEqual(userAttributeMatcher.evaluate(
+            matchingAttribute: PrivacyProSubscriptionStatusMatchingAttribute(value: "unsupported_status", fallback: nil)
+        ), .fail)
     }
 
 }
