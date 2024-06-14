@@ -53,7 +53,7 @@ final class SuggestionProcessingTests: XCTestCase {
     }
 
     func testWhenWebsiteInTopHits_ThenWebsiteRemovedFromSuggestions() {
-        
+
         let processing = SuggestionProcessing(urlFactory: Self.simpleUrlFactory)
 
         guard let result = processing.result(for: "DuckDuckGo",
