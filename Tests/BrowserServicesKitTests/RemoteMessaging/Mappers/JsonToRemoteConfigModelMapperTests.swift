@@ -131,7 +131,7 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
         let rule8 = config.rules.filter { $0.id == 8 }.first
         XCTAssertNotNil(rule8)
         XCTAssertNil(rule8?.targetPercentile)
-        XCTAssertTrue(rule8?.attributes.count == 5)
+        XCTAssertTrue(rule8?.attributes.count == 7)
 
         attribs = rule8?.attributes.filter { $0 is DaysSinceNetPEnabledMatchingAttribute }
         XCTAssertEqual(attribs?.count, 1)
@@ -159,6 +159,16 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
         attribs = rule8?.attributes.filter { $0 is PrivacyProDaysUntilExpiryMatchingAttribute }
         XCTAssertEqual(attribs?.first as? PrivacyProDaysUntilExpiryMatchingAttribute, PrivacyProDaysUntilExpiryMatchingAttribute(
             min: 25, max: 30, fallback: nil
+        ))
+
+        attribs = rule8?.attributes.filter { $0 is PrivacyProPurchasePlatformMatchingAttribute }
+        XCTAssertEqual(attribs?.first as? PrivacyProPurchasePlatformMatchingAttribute, PrivacyProPurchasePlatformMatchingAttribute(
+            value: ["apple", "stripe"], fallback: nil
+        ))
+
+        attribs = rule8?.attributes.filter { $0 is PrivacyProSubscriptionStatusMatchingAttribute }
+        XCTAssertEqual(attribs?.first as? PrivacyProSubscriptionStatusMatchingAttribute, PrivacyProSubscriptionStatusMatchingAttribute(
+            value: "active", fallback: nil
         ))
 
         let rule9 = config.rules.filter { $0.id == 9 }.first
