@@ -22,7 +22,7 @@ import BrowserServicesKit
 
 public struct UserAttributeMatcher: AttributeMatcher {
 
-    enum PrivacyProSubscriptionStatus: String {
+    private enum PrivacyProSubscriptionStatus: String {
         case active
         case expiring
         case expired
