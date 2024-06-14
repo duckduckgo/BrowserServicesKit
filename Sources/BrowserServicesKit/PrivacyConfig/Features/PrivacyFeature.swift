@@ -28,7 +28,7 @@ public enum PrivacyFeature: String {
     case gpc
     case httpsUpgrade = "https"
     case autoconsent
-    case clickToPlay
+    case clickToLoad
     case autofill
     case ampLinks
     case trackingParameters

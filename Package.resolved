@@ -86,8 +86,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/TrackerRadarKit",
       "state" : {
-        "revision" : "c01e6a59d000356b58ec77053e0a99d538be56a5",
-        "version" : "2.1.1"
+        "revision" : "1403e17eeeb8493b92fb9d11eb8c846bb9776581",
+        "version" : "2.1.2"
       }
     },
     {
