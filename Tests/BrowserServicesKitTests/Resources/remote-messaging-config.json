@@ -140,13 +140,13 @@
             "messageType": "promo_single_action",
             "titleText": "Survey Title",
             "descriptionText": "Survey Description",
-            "placeholder": "PrivacyPro",
+            "placeholder": "PrivacyShield",
             "actionText": "Survey Action",
             "action": {
                 "type": "survey",
                 "value": "https://duckduckgo.com/survey",
                 "additionalParameters": {
-                    "queryParams": "atb;var;delta;osv;ddgv;da;unknown_param_which_is_not_supported"
+                    "queryParams": "atb;var;delta;osv;ddgv;unknown_param_which_is_not_supported"
                 }
             }
         }
@@ -157,13 +157,13 @@
             "messageType": "promo_single_action",
             "titleText": "Survey Title",
             "descriptionText": "Survey Description",
-            "placeholder": "PrivacyPro",
+            "placeholder": "PrivacyShield",
             "actionText": "Survey Action",
             "action": {
                 "type": "survey",
                 "value": "https://duckduckgo.com/survey",
                 "additionalParameters": {
-                    "queryParams": "atb;var;delta;osv;ddgv;da"
+                    "queryParams": "atb;var;delta;osv;ddgv"
                 }
             }
         },
