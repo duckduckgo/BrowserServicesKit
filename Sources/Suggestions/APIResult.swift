@@ -21,17 +21,22 @@ import Foundation
 /// A structure representing suggestions fetched from duckduckgo.com/ac
 public struct APIResult: Codable {
 
-    var items = [[String: String]]()
+    public struct SuggestionResult: Codable {
+
+        let phrase: String?
+        let isNav: Bool?
+
+    }
+
+    var items = [SuggestionResult]()
 
     init() {}
 
     public init(from decoder: Decoder) throws {
         var container = try decoder.unkeyedContainer()
-
         while !container.isAtEnd {
-            let item = try container.decode([String: String].self)
+            let item = try container.decode(SuggestionResult.self)
             items.append(item)
         }
     }
-
 }
