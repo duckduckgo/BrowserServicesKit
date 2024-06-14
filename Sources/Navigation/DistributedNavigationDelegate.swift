@@ -305,7 +305,7 @@ private extension DistributedNavigationDelegate {
 }
 
 // MARK: - WKNavigationDelegate
-extension DistributedNavigationDelegate: @preconcurrency WKNavigationDelegate {
+extension DistributedNavigationDelegate: WKNavigationDelegate {
 
     // MARK: Policy making
 

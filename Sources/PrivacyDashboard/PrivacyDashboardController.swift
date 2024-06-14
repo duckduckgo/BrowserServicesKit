@@ -222,7 +222,7 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
 
 // MARK: - WKNavigationDelegate
 
-extension PrivacyDashboardController: @preconcurrency WKNavigationDelegate {
+extension PrivacyDashboardController: WKNavigationDelegate {
 
     public func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
         subscribeToDataModelChanges()
