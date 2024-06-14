@@ -46,6 +46,7 @@ public enum PrivacyFeature: String {
     case performanceMetrics
     case privacyPro
     case sslCertificates
+    case brokenSiteReportExperiment
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
