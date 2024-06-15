@@ -32,20 +32,16 @@ final class SuggestionTests: XCTestCase {
         XCTAssertEqual(suggestion, Suggestion.bookmark(title: title, url: url, isFavorite: isFavorite, allowedInTopHits: isFavorite))
     }
 
-    func testWhenSuggestionKeyIsPhrase_ThenSuggestionIsPhrase() {
-        let key = Suggestion.phraseKey
-        let phraseValue = "value"
-        let suggestion = Suggestion(key: key, value: phraseValue)
-
-        XCTAssertEqual(suggestion, Suggestion.phrase(phrase: phraseValue))
+    func testWhenIsNav_ThenSuggestionIsURL() {
+        let suggestion = Suggestion(phrase: "example.com", isNav: true)
+        let expected = Suggestion.website(url: URL(string: "http://example.com")!)
+        XCTAssertEqual(suggestion, expected)
     }
 
-    func testWhenSuggestionKeyIsNotPhrase_ThenSuggestionIsUnknown() {
-        let key = "Key"
-        let value = "value"
-        let suggestion = Suggestion(key: key, value: value)
-
-        XCTAssertEqual(suggestion, Suggestion.unknown(value: value))
+    func testWhenIsNotNav_ThenSuggestionIsPhrase() {
+        let suggestion = Suggestion(phrase: "example.com", isNav: false)
+        let expected = Suggestion.phrase(phrase: "example.com")
+        XCTAssertEqual(suggestion, expected)
     }
 
     func testWhenUrlIsAccessed_ThenOnlySuggestionsThatContainUrlReturnsIt() {

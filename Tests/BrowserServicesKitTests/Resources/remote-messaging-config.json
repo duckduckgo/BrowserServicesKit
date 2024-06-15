@@ -266,6 +266,12 @@
         "pproSubscriber": {
           "value": true
         },
+        "pproPurchasePlatform": {
+          "value": ["apple", "stripe"]
+        },
+        "pproSubscriptionStatus": {
+          "value": "active"
+        },
         "pproDaysSinceSubscribed": {
             "min": 5,
             "max": 8

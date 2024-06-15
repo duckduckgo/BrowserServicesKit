@@ -22,6 +22,12 @@ import BrowserServicesKit
 
 public struct UserAttributeMatcher: AttributeMatcher {
 
+    private enum PrivacyProSubscriptionStatus: String {
+        case active
+        case expiring
+        case expired
+    }
+
     private let statisticsStore: StatisticsStore
     private let variantManager: VariantManager
     private let emailManager: EmailManager
@@ -34,6 +40,10 @@ public struct UserAttributeMatcher: AttributeMatcher {
     private let isPrivacyProSubscriber: Bool
     private let privacyProDaysSinceSubscribed: Int
     private let privacyProDaysUntilExpiry: Int
+    private let privacyProPurchasePlatform: String?
+    private let isPrivacyProSubscriptionActive: Bool
+    private let isPrivacyProSubscriptionExpiring: Bool
+    private let isPrivacyProSubscriptionExpired: Bool
     private let dismissedMessageIds: [String]
 
     public init(statisticsStore: StatisticsStore,
@@ -48,6 +58,10 @@ public struct UserAttributeMatcher: AttributeMatcher {
                 isPrivacyProSubscriber: Bool,
                 privacyProDaysSinceSubscribed: Int,
                 privacyProDaysUntilExpiry: Int,
+                privacyProPurchasePlatform: String?,
+                isPrivacyProSubscriptionActive: Bool,
+                isPrivacyProSubscriptionExpiring: Bool,
+                isPrivacyProSubscriptionExpired: Bool
                 dismissedMessageIds: [String]
 	) {
         self.statisticsStore = statisticsStore
@@ -62,6 +76,10 @@ public struct UserAttributeMatcher: AttributeMatcher {
         self.isPrivacyProSubscriber = isPrivacyProSubscriber
         self.privacyProDaysSinceSubscribed = privacyProDaysSinceSubscribed
         self.privacyProDaysUntilExpiry = privacyProDaysUntilExpiry
+        self.privacyProPurchasePlatform = privacyProPurchasePlatform
+        self.isPrivacyProSubscriptionActive = isPrivacyProSubscriptionActive
+        self.isPrivacyProSubscriptionExpiring = isPrivacyProSubscriptionExpiring
+        self.isPrivacyProSubscriptionExpired = isPrivacyProSubscriptionExpired
         self.dismissedMessageIds = dismissedMessageIds
     }
 
@@ -138,6 +156,22 @@ public struct UserAttributeMatcher: AttributeMatcher {
                 return IntMatchingAttribute(matchingAttribute.value).matches(value: privacyProDaysUntilExpiry)
             } else {
                 return RangeIntMatchingAttribute(min: matchingAttribute.min, max: matchingAttribute.max).matches(value: privacyProDaysUntilExpiry)
+            }
+        case let matchingAttribute as PrivacyProPurchasePlatformMatchingAttribute:
+            return StringArrayMatchingAttribute(matchingAttribute.value).matches(value: privacyProPurchasePlatform ?? "")
+        case let matchingAttribute as PrivacyProSubscriptionStatusMatchingAttribute:
+            guard let value = matchingAttribute.value else {
+                return .fail
+            }
+
+            guard let status = PrivacyProSubscriptionStatus(rawValue: value) else {
+                return .fail
+            }
+
+            switch status {
+            case .active: return isPrivacyProSubscriptionActive ? .match : .fail
+            case .expiring: return isPrivacyProSubscriptionExpiring ? .match : .fail
+            case .expired: return isPrivacyProSubscriptionExpired ? .match : .fail
             }
         case let matchingAttribute as InteractedWithMessageMatchingAttribute:
             if dismissedMessageIds.contains(where: { messageId in

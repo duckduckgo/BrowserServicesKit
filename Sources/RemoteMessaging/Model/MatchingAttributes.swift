@@ -772,6 +772,57 @@ struct PrivacyProDaysUntilExpiryMatchingAttribute: MatchingAttribute, Equatable 
     }
 }
 
+struct PrivacyProPurchasePlatformMatchingAttribute: MatchingAttribute, Equatable {
+    var value: [String] = []
+    var fallback: Bool?
+
+    init(jsonMatchingAttribute: AnyDecodable) {
+        guard let jsonMatchingAttribute = jsonMatchingAttribute.value as? [String: Any] else {
+            return
+        }
+        if let value = jsonMatchingAttribute[RuleAttributes.value] as? [String] {
+            self.value = value
+        }
+        if let fallback = jsonMatchingAttribute[RuleAttributes.fallback] as? Bool {
+            self.fallback = fallback
+        }
+    }
+
+    init(value: [String], fallback: Bool?) {
+        self.value = value
+        self.fallback = fallback
+    }
+
+    static func == (lhs: PrivacyProPurchasePlatformMatchingAttribute, rhs: PrivacyProPurchasePlatformMatchingAttribute) -> Bool {
+        return lhs.value == rhs.value && lhs.fallback == rhs.fallback
+    }
+}
+
+struct PrivacyProSubscriptionStatusMatchingAttribute: MatchingAttribute, Equatable {
+    var value: String?
+    var fallback: Bool?
+
+    init(jsonMatchingAttribute: AnyDecodable) {
+        guard let jsonMatchingAttribute = jsonMatchingAttribute.value as? [String: Any] else { return }
+
+        if let value = jsonMatchingAttribute[RuleAttributes.value] as? String {
+            self.value = value
+        }
+        if let fallback = jsonMatchingAttribute[RuleAttributes.fallback] as? Bool {
+            self.fallback = fallback
+        }
+    }
+
+    init(value: String?, fallback: Bool?) {
+        self.value = value
+        self.fallback = fallback
+    }
+
+    static func == (lhs: PrivacyProSubscriptionStatusMatchingAttribute, rhs: PrivacyProSubscriptionStatusMatchingAttribute) -> Bool {
+        return lhs.value == rhs.value && lhs.fallback == rhs.fallback
+    }
+}
+
 struct InteractedWithMessageMatchingAttribute: MatchingAttribute, Equatable {
     var value: [String] = []
     var fallback: Bool?
