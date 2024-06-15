@@ -61,7 +61,7 @@ public struct UserAttributeMatcher: AttributeMatcher {
                 privacyProPurchasePlatform: String?,
                 isPrivacyProSubscriptionActive: Bool,
                 isPrivacyProSubscriptionExpiring: Bool,
-                isPrivacyProSubscriptionExpired: Bool
+                isPrivacyProSubscriptionExpired: Bool,
                 dismissedMessageIds: [String]
 	) {
         self.statisticsStore = statisticsStore
