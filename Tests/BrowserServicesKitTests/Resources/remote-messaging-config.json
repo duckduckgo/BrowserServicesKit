@@ -294,5 +294,16 @@
         },
       }
     },
+    {
+      "id": 10,
+      "attributes": {
+          "interactedWithMessage": {
+              "value": [
+                  "One",
+                  "Two"
+              ]
+          },
+      }
+    }
   ]
 }

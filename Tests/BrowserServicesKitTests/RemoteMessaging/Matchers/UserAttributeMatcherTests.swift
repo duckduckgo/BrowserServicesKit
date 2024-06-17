@@ -23,6 +23,9 @@ import Foundation
 
 class UserAttributeMatcherTests: XCTestCase {
 
+    var mockStatisticsStore: MockStatisticsStore!
+    var manager: MockVariantManager!
+    var emailManager: EmailManager!
     var userAttributeMatcher: UserAttributeMatcher!
     var dateYesterday: Date!
 
@@ -31,13 +34,13 @@ class UserAttributeMatcherTests: XCTestCase {
         let yesterday = DateComponents(year: now.year, month: now.month, day: now.day! - 1)
         let dateYesterday = Calendar.current.date(from: yesterday)!
 
-        let mockStatisticsStore = MockStatisticsStore()
+        mockStatisticsStore = MockStatisticsStore()
         mockStatisticsStore.atb = "v105-2"
         mockStatisticsStore.appRetentionAtb = "v105-44"
         mockStatisticsStore.searchRetentionAtb = "v105-88"
         mockStatisticsStore.installDate = dateYesterday
 
-        let manager = MockVariantManager(isSupportedReturns: true,
+        manager = MockVariantManager(isSupportedReturns: true,
                                          currentVariant: MockVariant(name: "zo", weight: 44, isIncluded: { return true }, features: [.dummy]))
         let emailManagerStorage = MockEmailManagerStorage()
 
@@ -45,23 +48,8 @@ class UserAttributeMatcherTests: XCTestCase {
         emailManagerStorage.mockUsername = "username"
         emailManagerStorage.mockToken = "token"
 
-        let emailManager = EmailManager(storage: emailManagerStorage)
-        userAttributeMatcher = UserAttributeMatcher(statisticsStore: mockStatisticsStore,
-                                                    variantManager: manager,
-                                                    emailManager: emailManager,
-                                                    bookmarksCount: 44,
-                                                    favoritesCount: 88,
-                                                    appTheme: "default",
-                                                    isWidgetInstalled: true,
-                                                    daysSinceNetPEnabled: 3,
-                                                    isPrivacyProEligibleUser: true,
-                                                    isPrivacyProSubscriber: true,
-                                                    privacyProDaysSinceSubscribed: 5,
-                                                    privacyProDaysUntilExpiry: 25,
-                                                    privacyProPurchasePlatform: "apple",
-                                                    isPrivacyProSubscriptionActive: true,
-                                                    isPrivacyProSubscriptionExpiring: false,
-                                                    isPrivacyProSubscriptionExpired: false)
+        emailManager = EmailManager(storage: emailManagerStorage)
+        setUpUserAttributeMatcher()
     }
 
     override func tearDownWithError() throws {
@@ -278,4 +266,48 @@ class UserAttributeMatcherTests: XCTestCase {
         ), .fail)
     }
 
+    func testWhenOneDismissedMessageIdMatchesThenReturnMatch() throws {
+        setUpUserAttributeMatcher(dismissedMessageIds: ["1"])
+        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: InteractedWithMessageMatchingAttribute(value: ["1", "2", "3"], fallback: nil)), .match)
+    }
+
+    func testWhenAllDismissedMessageIdsMatchThenReturnMatch() throws {
+        setUpUserAttributeMatcher(dismissedMessageIds: ["1", "2", "3"])
+        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: InteractedWithMessageMatchingAttribute(value: ["1", "2", "3"], fallback: nil)), .match)
+    }
+
+    func testWhenNoDismissedMessageIdsMatchThenReturnFail() throws {
+        setUpUserAttributeMatcher(dismissedMessageIds: ["1", "2", "3"])
+        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: InteractedWithMessageMatchingAttribute(value: ["4", "5"], fallback: nil)), .fail)
+    }
+
+    func testWhenHaveDismissedMessageIdsAndMatchAttributeIsEmptyThenReturnFail() throws {
+        setUpUserAttributeMatcher(dismissedMessageIds: ["1", "2", "3"])
+        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: InteractedWithMessageMatchingAttribute(value: [], fallback: nil)), .fail)
+    }
+
+    func testWhenHaveNoDismissedMessageIdsAndMatchAttributeIsNotEmptyThenReturnFail() throws {
+        setUpUserAttributeMatcher(dismissedMessageIds: [])
+        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: InteractedWithMessageMatchingAttribute(value: ["1", "2"], fallback: nil)), .fail)
+    }
+
+    private func setUpUserAttributeMatcher(dismissedMessageIds: [String] = []) {
+        userAttributeMatcher = UserAttributeMatcher(statisticsStore: mockStatisticsStore,
+                                                    variantManager: manager,
+                                                    emailManager: emailManager,
+                                                    bookmarksCount: 44,
+                                                    favoritesCount: 88,
+                                                    appTheme: "default",
+                                                    isWidgetInstalled: true,
+                                                    daysSinceNetPEnabled: 3,
+                                                    isPrivacyProEligibleUser: true,
+                                                    isPrivacyProSubscriber: true,
+                                                    privacyProDaysSinceSubscribed: 5,
+                                                    privacyProDaysUntilExpiry: 25,
+                                                    privacyProPurchasePlatform: "apple",
+                                                    isPrivacyProSubscriptionActive: true,
+                                                    isPrivacyProSubscriptionExpiring: false,
+                                                    isPrivacyProSubscriptionExpired: false,
+                                                    dismissedMessageIds: dismissedMessageIds)
+    }
 }
