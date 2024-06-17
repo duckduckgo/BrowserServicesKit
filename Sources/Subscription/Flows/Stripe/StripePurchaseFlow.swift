@@ -77,7 +77,7 @@ public final class StripePurchaseFlow {
         subscriptionManager.subscriptionService.signOut()
         var token: String = ""
 
-        if let accessToken = accountManager.accessToken {
+        if let accessToken = try? accountManager.accessToken {
             if await isSubscriptionExpired(accessToken: accessToken) {
                 token = accessToken
             }

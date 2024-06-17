@@ -32,7 +32,7 @@ public protocol AccountManaging {
 
     var delegate: AccountManagerKeychainAccessDelegate? { get set }
     var isUserAuthenticated: Bool { get }
-    var accessToken: String? { get }
+    var accessToken: String? { get throws }
     var authToken: String? { get }
     var email: String? { get }
     var externalID: String? { get }

@@ -111,7 +111,7 @@ final public class SubscriptionManager: SubscriptionManaging {
 
     public func loadInitialData() {
         Task {
-            if let token = accountManager.accessToken {
+            if let token = try? accountManager.accessToken {
                 _ = await subscriptionService.getSubscription(accessToken: token, cachePolicy: .reloadIgnoringLocalCacheData)
                 _ = await accountManager.fetchEntitlements(cachePolicy: .reloadIgnoringLocalCacheData)
             }
@@ -120,7 +120,7 @@ final public class SubscriptionManager: SubscriptionManaging {
 
     public func updateSubscriptionStatus(completion: @escaping (_ isActive: Bool) -> Void) {
         Task {
-           guard let token = accountManager.accessToken else { return }
+           guard let token = try? accountManager.accessToken else { return }
 
             if case .success(let subscription) = await subscriptionService.getSubscription(accessToken: token, cachePolicy: .reloadIgnoringLocalCacheData) {
                 completion(subscription.isActive)

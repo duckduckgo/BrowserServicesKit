@@ -112,7 +112,7 @@ public final class AppStorePurchaseFlow {
 
         os_log(.info, log: .subscription, "[AppStorePurchaseFlow] completeSubscriptionPurchase")
 
-        guard let accessToken = accountManager.accessToken else { return .failure(.missingEntitlements) }
+        guard let accessToken = try? accountManager.accessToken else { return .failure(.missingEntitlements) }
 
         let result = await callWithRetries(retry: 5, wait: 2.0) {
             switch await subscriptionManager.subscriptionService.confirmPurchase(accessToken: accessToken, signature: transactionJWS) {
@@ -149,7 +149,7 @@ public final class AppStorePurchaseFlow {
     private func getExpiredSubscriptionID() async -> String? {
         guard accountManager.isUserAuthenticated,
               let externalID = accountManager.externalID,
-              let token = accountManager.accessToken
+              let token = try? accountManager.accessToken
         else { return nil }
 
         let subscriptionInfo = await subscriptionManager.subscriptionService.getSubscription(accessToken: token, cachePolicy: .reloadIgnoringLocalCacheData)

@@ -28,7 +28,10 @@ public class AccountManager: AccountManaging {
     private let authService: AuthService
 
     public weak var delegate: AccountManagerKeychainAccessDelegate?
-    public var isUserAuthenticated: Bool { accessToken != nil }
+    public var isUserAuthenticated: Bool {
+        let token = try? accessToken
+        return token != nil
+    }
 
     // MARK: - Initialisers
 
@@ -61,16 +64,18 @@ public class AccountManager: AccountManaging {
     }
 
     public var accessToken: String? {
-        do {
-            return try accessTokenStorage.getAccessToken()
-        } catch {
-            if let error = error as? AccountKeychainAccessError {
-                delegate?.accountManagerKeychainAccessFailed(accessType: .getAccessToken, error: error)
-            } else {
-                assertionFailure("Expected AccountKeychainAccessError")
-            }
+        get throws {
+            do {
+                return try accessTokenStorage.getAccessToken()
+            } catch {
+                if let error = error as? AccountKeychainAccessError {
+                    delegate?.accountManagerKeychainAccessFailed(accessType: .getAccessToken, error: error)
+                } else {
+                    assertionFailure("Expected AccountKeychainAccessError")
+                }
 
-            return nil
+                throw error
+            }
         }
     }
 
@@ -219,7 +224,7 @@ public class AccountManager: AccountManaging {
     }
 
     private func fetchRemoteEntitlements() async -> Result<[Entitlement], Error> {
-        guard let accessToken else {
+        guard let accessToken = try? accessToken else {
             entitlementsCache.reset()
             return .failure(EntitlementsError.noAccessToken)
         }
@@ -296,7 +301,7 @@ public class AccountManager: AccountManaging {
     public func refreshSubscriptionAndEntitlements() async {
         os_log(.info, log: .subscription, "[AccountManager] refreshSubscriptionAndEntitlements")
 
-        guard let token = accessToken else {
+        guard let token = try? accessToken else {
             subscriptionService.signOut()
             entitlementsCache.reset()
             return
