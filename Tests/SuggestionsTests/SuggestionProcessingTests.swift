@@ -36,6 +36,49 @@ final class SuggestionProcessingTests: XCTestCase {
         XCTAssertEqual(result!.topHits.first!.title, "DuckDuckGo")
     }
 
+    func testWhenBuildingTopHits_ThenOnlyWebsiteSuggestionsAreUsedForNavigationalSuggestions() {
+
+        let processing = SuggestionProcessing(urlFactory: Self.simpleUrlFactory)
+
+        let result = processing.result(for: "DuckDuckGo",
+                                       from: HistoryEntryMock.aHistory,
+                                       bookmarks: BookmarkMock.someBookmarks,
+                                       internalPages: InternalPage.someInternalPages,
+                                       apiResult: APIResult.anAPIResultWithNav)
+
+        XCTAssertEqual(result!.topHits.count, 2)
+        XCTAssertEqual(result!.topHits.first!.title, "DuckDuckGo")
+        XCTAssertEqual(result!.topHits.last!.url?.absoluteString, "http://www.example.com")
+
+    }
+
+    func testWhenWebsiteInTopHits_ThenWebsiteRemovedFromSuggestions() {
+
+        let processing = SuggestionProcessing(urlFactory: Self.simpleUrlFactory)
+
+        guard let result = processing.result(for: "DuckDuckGo",
+                                             from: [],
+                                             bookmarks: [],
+                                             internalPages: [],
+                                             apiResult: APIResult.anAPIResultWithNav) else {
+            XCTFail("Expected result")
+            return
+        }
+
+        XCTAssertEqual(result.topHits.count, 1)
+        XCTAssertEqual(result.topHits[0].url?.absoluteString, "http://www.example.com")
+
+        XCTAssertFalse(
+            result.duckduckgoSuggestions.contains(where: {
+                if case .website(let url) = $0, url.absoluteString.hasSuffix("://www.example.com") {
+                    return true
+                }
+                return false
+            })
+        )
+
+    }
+
 }
 
 extension HistoryEntryMock {
@@ -77,9 +120,20 @@ extension APIResult {
     static var anAPIResult: APIResult {
         var result = APIResult()
         result.items = [
-            [ "phrase": "Test" ],
-            [ "phrase": "Test 2" ],
-            [ "phrase": "Unrelated" ]
+            .init(phrase: "Test", isNav: nil),
+            .init(phrase: "Test 2", isNav: nil),
+            .init(phrase: "www.example.com", isNav: nil),
+        ]
+        return result
+    }
+
+    static var anAPIResultWithNav: APIResult {
+        var result = APIResult()
+        result.items = [
+            .init(phrase: "Test", isNav: nil),
+            .init(phrase: "Test 2", isNav: nil),
+            .init(phrase: "www.example.com", isNav: true),
+            .init(phrase: "www.othersite.com", isNav: false),
         ]
         return result
     }
