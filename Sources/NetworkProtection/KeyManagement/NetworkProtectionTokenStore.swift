@@ -123,11 +123,11 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
 #else
 
 public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenStore {
-    private let accessTokenProvider: () -> String?
+    private let accessTokenProvider: () throws -> String?
 
     public static var authTokenPrefix: String { "ddg:" }
 
-    public init(accessTokenProvider: @escaping () -> String?) {
+    public init(accessTokenProvider: @escaping () throws -> String?) {
         self.accessTokenProvider = accessTokenProvider
     }
 
@@ -136,7 +136,7 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
     }
 
     public func fetchToken() throws -> String? {
-        accessTokenProvider().map { makeToken(from: $0) }
+        try accessTokenProvider().map { makeToken(from: $0) }
     }
 
     public func deleteToken() throws {
