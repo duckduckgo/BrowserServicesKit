@@ -20,9 +20,8 @@ import Foundation
 import Subscription
 
 public class StripePurchaseFlowMock: StripePurchaseFlowing {
-
-    var subscriptionOptionsResult: Result<SubscriptionOptions, StripePurchaseFlowError>
-    var prepareSubscriptionPurchaseResult: Result<PurchaseUpdate, StripePurchaseFlowError>
+    public var subscriptionOptionsResult: Result<SubscriptionOptions, StripePurchaseFlowError>
+    public var prepareSubscriptionPurchaseResult: Result<PurchaseUpdate, StripePurchaseFlowError>
 
     public init(subscriptionOptionsResult: Result<SubscriptionOptions, StripePurchaseFlowError>, prepareSubscriptionPurchaseResult: Result<PurchaseUpdate, StripePurchaseFlowError>) {
         self.subscriptionOptionsResult = subscriptionOptionsResult

@@ -20,8 +20,7 @@ import Foundation
 import Subscription
 
 public class AppStoreAccountManagementFlowMock: AppStoreAccountManagementFlowing {
-
-    var refreshAuthTokenIfNeededResult: Result<String, AppStoreAccountManagementFlowError>
+    public var refreshAuthTokenIfNeededResult: Result<String, AppStoreAccountManagementFlowError>
 
     public init(refreshAuthTokenIfNeededResult: Result<String, AppStoreAccountManagementFlowError>) {
         self.refreshAuthTokenIfNeededResult = refreshAuthTokenIfNeededResult

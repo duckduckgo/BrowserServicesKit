@@ -20,7 +20,7 @@ import Foundation
 import Subscription
 
 public class AppStoreRestoreFlowMock: AppStoreRestoreFlowing {
-    var restoreAccountFromPastPurchaseResult: Result<Void, AppStoreRestoreFlowError>
+    public var restoreAccountFromPastPurchaseResult: Result<Void, AppStoreRestoreFlowError>
 
     public init(restoreAccountFromPastPurchaseResult: Result<Void, AppStoreRestoreFlowError>) {
         self.restoreAccountFromPastPurchaseResult = restoreAccountFromPastPurchaseResult

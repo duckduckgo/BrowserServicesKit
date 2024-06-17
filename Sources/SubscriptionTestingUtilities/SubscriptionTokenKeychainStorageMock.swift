@@ -21,7 +21,7 @@ import Subscription
 
 public class SubscriptionTokenKeychainStorageMock: SubscriptionTokenStoring {
 
-    var accessToken: String?
+    public var accessToken: String?
 
     public func getAccessToken() throws -> String? {
         accessToken

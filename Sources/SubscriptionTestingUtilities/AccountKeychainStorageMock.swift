@@ -20,10 +20,10 @@ import Foundation
 import Subscription
 
 public class AccountKeychainStorageMock: AccountStoring {
-    var authToken: String?
-    var accessToken: String?
-    var email: String?
-    var externalID: String?
+    public var authToken: String?
+    public var accessToken: String?
+    public var email: String?
+    public var externalID: String?
 
     public func getAuthToken() throws -> String? {
         authToken
