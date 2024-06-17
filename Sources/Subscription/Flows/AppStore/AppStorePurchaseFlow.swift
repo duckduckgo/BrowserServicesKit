@@ -20,33 +20,37 @@ import Foundation
 import StoreKit
 import Common
 
-@available(macOS 12.0, iOS 15.0, *)
-public final class AppStorePurchaseFlow {
+public typealias TransactionJWS = String
 
-    public enum Error: Swift.Error {
-        case noProductsFound
-        case activeSubscriptionAlreadyPresent
-        case authenticatingWithTransactionFailed
-        case accountCreationFailed
-        case purchaseFailed
-        case cancelledByUser
-        case missingEntitlements
-        case internalError
-    }
+public enum AppStorePurchaseFlowError: Swift.Error {
+    case noProductsFound
+    case activeSubscriptionAlreadyPresent
+    case authenticatingWithTransactionFailed
+    case accountCreationFailed
+    case purchaseFailed
+    case cancelledByUser
+    case missingEntitlements
+    case internalError
+}
+
+@available(macOS 12.0, iOS 15.0, *)
+public protocol AppStorePurchaseFlowing {
+    func purchaseSubscription(with subscriptionIdentifier: String, emailAccessToken: String?) async -> Result<TransactionJWS, AppStorePurchaseFlowError>
+    func completeSubscriptionPurchase(with transactionJWS: TransactionJWS) async -> Result<PurchaseUpdate, AppStorePurchaseFlowError>
+}
+
+@available(macOS 12.0, iOS 15.0, *)
+public final class AppStorePurchaseFlow: AppStorePurchaseFlowing {
 
     private let subscriptionManager: SubscriptionManaging
-    var accountManager: AccountManaging {
-        subscriptionManager.accountManager
-    }
+    private var accountManager: AccountManaging { subscriptionManager.accountManager }
 
     public init(subscriptionManager: SubscriptionManaging) {
         self.subscriptionManager = subscriptionManager
     }
 
-    public typealias TransactionJWS = String
-
     // swiftlint:disable cyclomatic_complexity
-    public func purchaseSubscription(with subscriptionIdentifier: String, emailAccessToken: String?) async -> Result<TransactionJWS, AppStorePurchaseFlow.Error> {
+    public func purchaseSubscription(with subscriptionIdentifier: String, emailAccessToken: String?) async -> Result<TransactionJWS, AppStorePurchaseFlowError> {
         os_log(.info, log: .subscription, "[AppStorePurchaseFlow] purchaseSubscription")
         let externalID: String
 
@@ -105,7 +109,7 @@ public final class AppStorePurchaseFlow {
 
     // swiftlint:enable cyclomatic_complexity
     @discardableResult
-    public func completeSubscriptionPurchase(with transactionJWS: TransactionJWS) async -> Result<PurchaseUpdate, AppStorePurchaseFlow.Error> {
+    public func completeSubscriptionPurchase(with transactionJWS: TransactionJWS) async -> Result<PurchaseUpdate, AppStorePurchaseFlowError> {
 
         // Clear subscription Cache
         subscriptionManager.subscriptionAPIService.signOut()

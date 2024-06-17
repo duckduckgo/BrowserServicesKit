@@ -20,25 +20,28 @@ import Foundation
 import StoreKit
 import Common
 
+public enum AppStoreAccountManagementFlowError: Swift.Error {
+    case noPastTransaction
+    case authenticatingWithTransactionFailed
+}
+
+@available(macOS 12.0, iOS 15.0, *)
+public protocol AppStoreAccountManagementFlowing {
+    func refreshAuthTokenIfNeeded() async -> Result<String, AppStoreAccountManagementFlowError>
+}
+
 @available(macOS 12.0, iOS 15.0, *)
 public final class AppStoreAccountManagementFlow {
 
     private let subscriptionManager: SubscriptionManaging
-    private var accountManager: AccountManaging {
-        subscriptionManager.accountManager
-    }
+    private var accountManager: AccountManaging { subscriptionManager.accountManager }
 
     public init(subscriptionManager: SubscriptionManaging) {
         self.subscriptionManager = subscriptionManager
     }
 
-    public enum Error: Swift.Error {
-        case noPastTransaction
-        case authenticatingWithTransactionFailed
-    }
-
     @discardableResult
-    public func refreshAuthTokenIfNeeded() async -> Result<String, AppStoreAccountManagementFlow.Error> {
+    public func refreshAuthTokenIfNeeded() async -> Result<String, AppStoreAccountManagementFlowError> {
         os_log(.info, log: .subscription, "[AppStoreAccountManagementFlow] refreshAuthTokenIfNeeded")
         var authToken = accountManager.authToken ?? ""
 

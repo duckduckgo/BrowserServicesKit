@@ -20,23 +20,27 @@ import Foundation
 import StoreKit
 import Common
 
-public final class StripePurchaseFlow {
+public enum StripePurchaseFlowError: Swift.Error {
+    case noProductsFound
+    case accountCreationFailed
+}
+
+public protocol StripePurchaseFlowing {
+    func subscriptionOptions() async -> Result<SubscriptionOptions, StripePurchaseFlowError>
+    func prepareSubscriptionPurchase(emailAccessToken: String?) async -> Result<PurchaseUpdate, StripePurchaseFlowError>
+    func completeSubscriptionPurchase() async
+}
+
+public final class StripePurchaseFlow: StripePurchaseFlowing {
 
     private let subscriptionManager: SubscriptionManaging
-    var accountManager: AccountManaging {
-        subscriptionManager.accountManager
-    }
+    var accountManager: AccountManaging { subscriptionManager.accountManager }
 
     public init(subscriptionManager: SubscriptionManaging) {
         self.subscriptionManager = subscriptionManager
     }
 
-    public enum Error: Swift.Error {
-        case noProductsFound
-        case accountCreationFailed
-    }
-
-    public func subscriptionOptions() async -> Result<SubscriptionOptions, StripePurchaseFlow.Error> {
+    public func subscriptionOptions() async -> Result<SubscriptionOptions, StripePurchaseFlowError> {
         os_log(.info, log: .subscription, "[StripePurchaseFlow] subscriptionOptions")
 
         guard case let .success(products) = await subscriptionManager.subscriptionAPIService.getProducts(), !products.isEmpty else {
@@ -70,7 +74,7 @@ public final class StripePurchaseFlow {
                                             features: features))
     }
 
-    public func prepareSubscriptionPurchase(emailAccessToken: String?) async -> Result<PurchaseUpdate, StripePurchaseFlow.Error> {
+    public func prepareSubscriptionPurchase(emailAccessToken: String?) async -> Result<PurchaseUpdate, StripePurchaseFlowError> {
         os_log(.info, log: .subscription, "[StripePurchaseFlow] prepareSubscriptionPurchase")
 
         // Clear subscription Cache
@@ -104,7 +108,6 @@ public final class StripePurchaseFlow {
     }
 
     public func completeSubscriptionPurchase() async {
-
         // Clear subscription Cache
         subscriptionManager.subscriptionAPIService.signOut()
 

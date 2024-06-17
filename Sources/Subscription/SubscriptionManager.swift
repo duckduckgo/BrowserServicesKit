@@ -33,7 +33,7 @@ public protocol SubscriptionManaging {
 }
 
 /// Single entry point for everything related to Subscription. This manager is disposable, every time something related to the environment changes this need to be recreated.
-final public class SubscriptionManager: SubscriptionManaging {
+public final class SubscriptionManager: SubscriptionManaging {
 
     private let _storePurchaseManager: StorePurchaseManaging?
 

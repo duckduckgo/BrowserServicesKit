@@ -19,7 +19,7 @@
 import Foundation
 import Common
 
-public class AccountManager: AccountManaging {
+public final class AccountManager: AccountManaging {
 
     private let storage: AccountStoring
     private let entitlementsCache: UserDefaultsCache<[Entitlement]>

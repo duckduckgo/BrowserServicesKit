@@ -20,31 +20,33 @@ import Foundation
 import StoreKit
 import Common
 
+public typealias RestoredAccountDetails = (authToken: String, accessToken: String, externalID: String, email: String?)
+
+public enum AppStoreRestoreFlowError: Swift.Error {
+    case missingAccountOrTransactions
+    case pastTransactionAuthenticationError
+    case failedToObtainAccessToken
+    case failedToFetchAccountDetails
+    case failedToFetchSubscriptionDetails
+    case subscriptionExpired(accountDetails: RestoredAccountDetails)
+}
+
 @available(macOS 12.0, iOS 15.0, *)
-public final class AppStoreRestoreFlow {
+protocol AppStoreRestoreFlowing {
+    func restoreAccountFromPastPurchase() async -> Result<Void, AppStoreRestoreFlowError>
+}
 
-    public typealias RestoredAccountDetails = (authToken: String, accessToken: String, externalID: String, email: String?)
-
-    public enum Error: Swift.Error {
-        case missingAccountOrTransactions
-        case pastTransactionAuthenticationError
-        case failedToObtainAccessToken
-        case failedToFetchAccountDetails
-        case failedToFetchSubscriptionDetails
-        case subscriptionExpired(accountDetails: RestoredAccountDetails)
-    }
-
+@available(macOS 12.0, iOS 15.0, *)
+public final class AppStoreRestoreFlow: AppStoreRestoreFlowing {
     private let subscriptionManager: SubscriptionManaging
-    var accountManager: AccountManaging {
-        subscriptionManager.accountManager
-    }
+    var accountManager: AccountManaging { subscriptionManager.accountManager }
 
     public init(subscriptionManager: SubscriptionManaging) {
         self.subscriptionManager = subscriptionManager
     }
 
     @discardableResult
-    public func restoreAccountFromPastPurchase() async -> Result<Void, AppStoreRestoreFlow.Error> {
+    public func restoreAccountFromPastPurchase() async -> Result<Void, AppStoreRestoreFlowError> {
 
         // Clear subscription Cache
         subscriptionManager.subscriptionAPIService.signOut()
