@@ -17,54 +17,11 @@
 //  limitations under the License.
 //
 
-import BrowserServicesKit
 import CoreData
 import Foundation
 import Persistence
 import XCTest
 @testable import RemoteMessaging
-
-class MockStatisticsStore: StatisticsStore {
-
-    var installDate: Date?
-    var atb: String?
-    var searchRetentionAtb: String?
-    var appRetentionAtb: String?
-
-    var hasInstallStatistics: Bool {
-        return atb != nil
-    }
-
-    var variant: String?
-}
-
-struct MockVariantManager: VariantManager {
-
-    var isSupportedReturns = false {
-        didSet {
-            let newValue = isSupportedReturns
-            isSupportedBlock = { _ in return newValue }
-        }
-    }
-
-    var isSupportedBlock: (FeatureName) -> Bool
-
-    var currentVariant: Variant?
-
-    init(isSupportedReturns: Bool = false, currentVariant: Variant? = nil) {
-        self.isSupportedReturns = isSupportedReturns
-        self.isSupportedBlock = { _ in return isSupportedReturns }
-        self.currentVariant = currentVariant
-    }
-
-    func assignVariantIfNeeded(_ newInstallCompletion: (VariantManager) -> Void) {
-    }
-
-    func isSupported(feature: FeatureName) -> Bool {
-        return isSupportedBlock(feature)
-    }
-
-}
 
 class RemoteMessagingStoreTests: XCTestCase {
 
