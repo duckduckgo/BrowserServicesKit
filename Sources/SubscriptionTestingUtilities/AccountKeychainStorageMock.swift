@@ -20,44 +20,43 @@ import Foundation
 @testable import Subscription
 
 public class AccountKeychainStorageMock: AccountStoring {
-
-    var authToken: String? = nil
-    var accessToken: String? = nil
-    var email: String? = nil
-    var externalID: String? = nil
+    var authToken: String?
+    var accessToken: String?
+    var email: String?
+    var externalID: String?
 
     public func getAuthToken() throws -> String? {
         authToken
     }
-    
+
     public func store(authToken: String) throws {
         self.authToken = authToken
     }
-    
+
     public func getAccessToken() throws -> String? {
         accessToken
     }
-    
+
     public func store(accessToken: String) throws {
         self.accessToken = accessToken
     }
-    
+
     public func getEmail() throws -> String? {
         email
     }
-    
+
     public func store(email: String?) throws {
         self.email = email
     }
-    
+
     public func getExternalID() throws -> String? {
         externalID
     }
-    
+
     public func store(externalID: String?) throws {
         self.externalID = externalID
     }
-    
+
     public func clearAuthenticationState() throws {
         authToken = nil
         accessToken = nil

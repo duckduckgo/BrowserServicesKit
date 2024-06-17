@@ -21,18 +21,17 @@ import Foundation
 
 public class SubscriptionTokenKeychainStorageMock: SubscriptionTokenStoring {
 
-    var accessToken: String? = nil
+    var accessToken: String?
 
     public func getAccessToken() throws -> String? {
         accessToken
     }
-    
+
     public func store(accessToken: String) throws {
         self.accessToken = accessToken
     }
-    
+
     public func removeAccessToken() throws {
         accessToken = nil
     }
 }
-

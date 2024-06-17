@@ -32,11 +32,11 @@ public class StripePurchaseFlowMock: StripePurchaseFlowing {
     public func subscriptionOptions() async -> Result<SubscriptionOptions, StripePurchaseFlowError> {
         subscriptionOptionsResult
     }
-    
+
     public func prepareSubscriptionPurchase(emailAccessToken: String?) async -> Result<PurchaseUpdate, StripePurchaseFlowError> {
         prepareSubscriptionPurchaseResult
     }
-    
+
     public func completeSubscriptionPurchase() async {
 
     }

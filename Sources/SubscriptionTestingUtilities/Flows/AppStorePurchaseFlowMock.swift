@@ -32,7 +32,7 @@ public class AppStorePurchaseFlowMock: AppStorePurchaseFlowing {
     public func purchaseSubscription(with subscriptionIdentifier: String, emailAccessToken: String?) async -> Result<TransactionJWS, AppStorePurchaseFlowError> {
         purchaseSubscriptionResult
     }
-    
+
     public func completeSubscriptionPurchase(with transactionJWS: TransactionJWS) async -> Result<PurchaseUpdate, AppStorePurchaseFlowError> {
         completeSubscriptionPurchaseResult
     }
