@@ -20,7 +20,6 @@ import Foundation
 import Subscription
 
 public class SubscriptionTokenKeychainStorageMock: SubscriptionTokenStoring {
-
     public var accessToken: String?
 
     public func getAccessToken() throws -> String? {

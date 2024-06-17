@@ -20,7 +20,6 @@ import Foundation
 import Subscription
 
 public final class AccountManagerMock: AccountManaging {
-
     public var delegate: AccountManagerKeychainAccessDelegate?
     public var isUserAuthenticated: Bool
     public var accessToken: String?
