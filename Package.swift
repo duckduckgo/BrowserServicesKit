@@ -262,6 +262,7 @@ let package = Package(
             dependencies: [
                 "Common",
                 "BrowserServicesKit",
+                "Networking",
                 "Persistence",
             ],
             resources: [
@@ -473,6 +474,15 @@ let package = Package(
             dependencies: [
                 "Persistence",
                 "TrackerRadarKit",
+            ]
+        ),
+        .testTarget(
+            name: "RemoteMessagingTests",
+            dependencies: [
+                "RemoteMessaging",
+            ],
+            resources: [
+                .copy("Resources/remote-messaging-config-example.json"),
             ]
         ),
         .testTarget(
