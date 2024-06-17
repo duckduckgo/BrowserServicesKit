@@ -33,7 +33,7 @@ public enum AppStoreRestoreFlowError: Swift.Error {
 
 @available(macOS 12.0, iOS 15.0, *)
 public protocol AppStoreRestoreFlowing {
-    func restoreAccountFromPastPurchase() async -> Result<Void, AppStoreRestoreFlowError>
+    @discardableResult func restoreAccountFromPastPurchase() async -> Result<Void, AppStoreRestoreFlowError>
 }
 
 @available(macOS 12.0, iOS 15.0, *)

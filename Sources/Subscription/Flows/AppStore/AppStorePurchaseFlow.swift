@@ -36,6 +36,7 @@ public enum AppStorePurchaseFlowError: Swift.Error {
 @available(macOS 12.0, iOS 15.0, *)
 public protocol AppStorePurchaseFlowing {
     func purchaseSubscription(with subscriptionIdentifier: String, emailAccessToken: String?) async -> Result<TransactionJWS, AppStorePurchaseFlowError>
+    @discardableResult
     func completeSubscriptionPurchase(with transactionJWS: TransactionJWS) async -> Result<PurchaseUpdate, AppStorePurchaseFlowError>
 }
 

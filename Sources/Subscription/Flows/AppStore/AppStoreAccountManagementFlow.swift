@@ -27,7 +27,7 @@ public enum AppStoreAccountManagementFlowError: Swift.Error {
 
 @available(macOS 12.0, iOS 15.0, *)
 public protocol AppStoreAccountManagementFlowing {
-    func refreshAuthTokenIfNeeded() async -> Result<String, AppStoreAccountManagementFlowError>
+    @discardableResult func refreshAuthTokenIfNeeded() async -> Result<String, AppStoreAccountManagementFlowError>
 }
 
 @available(macOS 12.0, iOS 15.0, *)

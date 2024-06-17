@@ -68,9 +68,9 @@ public protocol AuthAPIServicing {
 
 public struct AuthAPIService: AuthAPIServicing {
     private let currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment
-    private let apiService: any APIServicing
+    private let apiService: APIServicing
 
-    public init(currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment, apiService: any APIServicing) {
+    public init(currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment, apiService: APIServicing) {
         self.currentServiceEnvironment = currentServiceEnvironment
         self.apiService = apiService
     }

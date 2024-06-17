@@ -61,11 +61,11 @@ extension SubscriptionAPIServicing {
 /// Communicates with our backend
 public struct SubscriptionAPIService: SubscriptionAPIServicing {
     private let currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment
-    private let apiService: any APIServicing
+    private let apiService: APIServicing
     private let subscriptionCache = UserDefaultsCache<Subscription>(key: UserDefaultsCacheKey.subscription,
                                                                     settings: UserDefaultsCacheSettings(defaultExpirationInterval: .minutes(20)))
 
-    public init(currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment, apiService: any APIServicing) {
+    public init(currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment, apiService: APIServicing) {
         self.currentServiceEnvironment = currentServiceEnvironment
         self.apiService = apiService
     }
