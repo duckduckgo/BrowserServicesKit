@@ -123,7 +123,6 @@ public enum sslCertificatesSubfeature: String, PrivacySubfeature {
     case allowBypass
 }
 
-
 public enum DuckPlayerSubfeature: String, PrivacySubfeature {
     public var parent: PrivacyFeature { .duckPlayer }
     case pip
