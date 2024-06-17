@@ -295,6 +295,7 @@ let package = Package(
                 .target(name: "WireGuardC"),
                 .product(name: "WireGuard", package: "wireguard-apple"),
                 "Common",
+                "Subscription"
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))

@@ -64,6 +64,8 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
 
     // Auth errors
     case noAuthTokenFound
+    case keychainError
+    case keychainLocked
 
     // Subscription errors
     case vpnAccessRevoked
@@ -112,6 +114,8 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
         case .startWireGuardBackend: return 304
             // 400+ Auth errors
         case .noAuthTokenFound: return 400
+        case .keychainError: return 401
+        case .keychainLocked: return 402
             // 500+ Subscription errors
         case .vpnAccessRevoked: return 500
             // 600+ Unhandled errors
@@ -142,6 +146,8 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
                 .wireGuardDnsResolution,
                 .startWireGuardBackend,
                 .noAuthTokenFound,
+                .keychainError,
+                .keychainLocked,
                 .vpnAccessRevoked:
             return [:]
         case .failedToFetchServerList(let error),

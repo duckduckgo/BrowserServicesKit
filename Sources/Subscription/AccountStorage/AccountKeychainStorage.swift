@@ -37,6 +37,18 @@ public enum AccountKeychainAccessError: Error, Equatable {
     case keychainDeleteFailure(OSStatus)
     case keychainLookupFailure(OSStatus)
 
+    public var isKeychainLockedError: Bool {
+        switch self {
+        case .failedToDecodeKeychainValueAsData,
+                .failedToDecodeKeychainDataAsString,
+                .keychainSaveFailure,
+                .keychainDeleteFailure:
+            return false
+        case .keychainLookupFailure(let osStatus):
+            return osStatus == errSecInteractionNotAllowed
+        }
+    }
+
     public var errorDescription: String {
         switch self {
         case .failedToDecodeKeychainValueAsData: return "failedToDecodeKeychainValueAsData"

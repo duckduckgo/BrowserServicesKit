@@ -18,6 +18,7 @@
 
 import Foundation
 import Common
+import Subscription
 import NetworkExtension
 
 public enum NetworkProtectionServerSelectionMethod: CustomDebugStringConvertible {
@@ -91,9 +92,22 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     /// This method will return the remote server list if available, or the local server list if there was a problem with the service call.
     ///
     public func refreshServerList() async throws -> [NetworkProtectionServer] {
-        guard let token = try? tokenStore.fetchToken() else {
+        let token: String?
+
+        do {
+            token = try tokenStore.fetchToken()
+        } catch {
+            if let error = error as? AccountKeychainAccessError, error.isKeychainLockedError {
+                throw NetworkProtectionError.keychainLocked
+            } else {
+                throw NetworkProtectionError.keychainError
+            }
+        }
+
+        guard let token = token else {
             throw NetworkProtectionError.noAuthTokenFound
         }
+
         let result = await networkClient.getServers(authToken: token)
         let completeServerList: [NetworkProtectionServer]
 
@@ -180,7 +194,19 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
                           selectionMethod: NetworkProtectionServerSelectionMethod) async throws -> (server: NetworkProtectionServer,
                                                                                                     newExpiration: Date?) {
 
-        guard let token = try? tokenStore.fetchToken() else { throw NetworkProtectionError.noAuthTokenFound }
+        let token: String?
+
+        do {
+            token = try tokenStore.fetchToken()
+        } catch {
+            if let error = error as? AccountKeychainAccessError, error.isKeychainLockedError {
+                throw NetworkProtectionError.keychainLocked
+            } else {
+                throw NetworkProtectionError.keychainError
+            }
+        }
+
+        guard let token = token else { throw NetworkProtectionError.noAuthTokenFound }
 
         let serverSelection: RegisterServerSelection
         let excludedServerName: String?
