@@ -17,7 +17,7 @@
 //
 
 import Foundation
-@testable import Subscription
+import Subscription
 
 public struct APIServiceMock: APIServicing {
     public var mockAuthHeaders: [String: String]

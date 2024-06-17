@@ -17,7 +17,7 @@
 //
 
 import Foundation
-@testable import Subscription
+import Subscription
 
 public class AccountKeychainStorageMock: AccountStoring {
     var authToken: String?

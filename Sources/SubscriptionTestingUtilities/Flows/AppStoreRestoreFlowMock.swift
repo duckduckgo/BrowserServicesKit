@@ -17,7 +17,7 @@
 //
 
 import Foundation
-@testable import Subscription
+import Subscription
 
 public class AppStoreRestoreFlowMock: AppStoreRestoreFlowing {
     var restoreAccountFromPastPurchaseResult: Result<Void, AppStoreRestoreFlowError>

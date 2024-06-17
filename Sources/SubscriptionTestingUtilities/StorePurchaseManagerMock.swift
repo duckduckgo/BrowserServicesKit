@@ -17,7 +17,7 @@
 //
 
 import Foundation
-@testable import Subscription
+import Subscription
 
 public struct StorePurchaseManagerMock: StorePurchaseManaging {
     public var purchasedProductIDs: [String]
