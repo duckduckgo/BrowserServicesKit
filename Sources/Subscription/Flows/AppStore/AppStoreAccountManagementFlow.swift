@@ -31,7 +31,7 @@ public protocol AppStoreAccountManagementFlowing {
 }
 
 @available(macOS 12.0, iOS 15.0, *)
-public final class AppStoreAccountManagementFlow {
+public final class AppStoreAccountManagementFlow: AppStoreAccountManagementFlowing {
 
     private let subscriptionManager: SubscriptionManaging
     private var accountManager: AccountManaging { subscriptionManager.accountManager }

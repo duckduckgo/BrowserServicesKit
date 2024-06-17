@@ -44,9 +44,11 @@ public final class AppStorePurchaseFlow: AppStorePurchaseFlowing {
 
     private let subscriptionManager: SubscriptionManaging
     private var accountManager: AccountManaging { subscriptionManager.accountManager }
+    private let appStoreRestoreFlow: AppStoreRestoreFlowing
 
-    public init(subscriptionManager: SubscriptionManaging) {
+    public init(subscriptionManager: SubscriptionManaging, appStoreRestoreFlow: AppStoreRestoreFlowing) {
         self.subscriptionManager = subscriptionManager
+        self.appStoreRestoreFlow = appStoreRestoreFlow
     }
 
     // swiftlint:disable cyclomatic_complexity
@@ -61,7 +63,6 @@ public final class AppStorePurchaseFlow: AppStorePurchaseFlowing {
         // Otherwise, try to retrieve an expired Apple subscription or create a new one
         } else {
             // Check for past transactions most recent
-            let appStoreRestoreFlow = AppStoreRestoreFlow(subscriptionManager: subscriptionManager)
             switch await appStoreRestoreFlow.restoreAccountFromPastPurchase() {
             case .success:
                 os_log(.info, log: .subscription, "[AppStorePurchaseFlow] purchaseSubscription -> restoreAccountFromPastPurchase: activeSubscriptionAlreadyPresent")
