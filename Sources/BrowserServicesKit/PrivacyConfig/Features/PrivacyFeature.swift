@@ -122,3 +122,9 @@ public enum sslCertificatesSubfeature: String, PrivacySubfeature {
     public var parent: PrivacyFeature { .sslCertificates }
     case allowBypass
 }
+
+
+public enum DuckPlayerSubfeature: String, PrivacySubfeature {
+    public var parent: PrivacyFeature { .duckPlayer }
+    case pip
+}
