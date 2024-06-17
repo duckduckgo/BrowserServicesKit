@@ -262,6 +262,10 @@ let package = Package(
             dependencies: [
                 "Common",
                 "BrowserServicesKit",
+                "Persistence",
+            ],
+            resources: [
+                .process("RemoteMessaging.xcdatamodeld")
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
