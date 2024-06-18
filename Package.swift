@@ -292,6 +292,7 @@ let package = Package(
         .target(
             name: "NetworkProtection",
             dependencies: [
+                "PixelKit",
                 .target(name: "WireGuardC"),
                 .product(name: "WireGuard", package: "wireguard-apple"),
                 "Common",

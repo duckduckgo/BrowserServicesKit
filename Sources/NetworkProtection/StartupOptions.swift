@@ -47,6 +47,16 @@ struct StartupOptions {
                 return "manually by the system"
             }
         }
+
+        init(options: [String: Any]) {
+            if options[NetworkProtectionOptionKey.isOnDemand] as? Bool == true {
+                self = .automaticOnDemand
+            } else if options[NetworkProtectionOptionKey.activationAttemptId] != nil {
+                self = .manualByMainApp
+            } else {
+                self = .manualByTheSystem
+            }
+        }
     }
 
     /// Stored options are the options that the our network extension stores / remembers.
@@ -113,17 +123,7 @@ struct StartupOptions {
     let enableTester: StoredOption<Bool>
 
     init(options: [String: Any]) {
-        let startupMethod: StartupMethod = {
-            if options[NetworkProtectionOptionKey.isOnDemand] as? Bool == true {
-                return .automaticOnDemand
-            } else if options[NetworkProtectionOptionKey.activationAttemptId] != nil {
-                return .manualByMainApp
-            } else {
-                return .manualByTheSystem
-            }
-        }()
-
-        self.startupMethod = startupMethod
+        self.startupMethod = StartupMethod(options: options)
 
         simulateError = options[NetworkProtectionOptionKey.tunnelFailureSimulation] as? Bool ?? false
         simulateCrash = options[NetworkProtectionOptionKey.tunnelFatalErrorCrashSimulation] as? Bool ?? false

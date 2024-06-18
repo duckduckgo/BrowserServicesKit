@@ -566,20 +566,27 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     open override func startTunnel(options: [String: NSObject]?, completionHandler: @escaping (Error?) -> Void) {
         Task { @MainActor in
-            providerEvents.fire(.tunnelStartAttempt(.begin))
+            let options = options ?? [:]
+            let startupMethod = StartupOptions.StartupMethod(options: options)
+            let startedByOnDemand = startupMethod == .automaticOnDemand
+            let pixelHandler = VPNTunnelStartPixelHandler(eventHandler: providerEvents, userDefaults: defaults)
+
+            //providerEvents.fire(.tunnelStartAttempt(.begin))
+            pixelHandler.handle(.begin, onDemand: startedByOnDemand)
             prepareToConnect(using: tunnelProviderProtocol)
 
             connectionStatus = .connecting
 
-            let startupOptions = StartupOptions(options: options ?? [:])
+            let startupOptions = StartupOptions(options: options)
             os_log("Starting tunnel with options: %{public}s", log: .networkProtection, startupOptions.description)
 
             resetIssueStateOnTunnelStart(startupOptions)
 
-            let internalCompletionHandler = { [weak self, providerEvents] (error: Error?) in
+            let internalCompletionHandler = { [weak self] (error: Error?) in
                 guard let error else {
                     completionHandler(nil)
-                    providerEvents.fire(.tunnelStartAttempt(.success))
+                    //providerEvents.fire(.tunnelStartAttempt(.success))
+                    pixelHandler.handle(.success, onDemand: startedByOnDemand)
                     return
                 }
 
@@ -591,11 +598,12 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                     self?.connectionStatus = .disconnected
                     self?.knownFailureStore.lastKnownFailure = KnownFailure(error)
 
-                    providerEvents.fire(.tunnelStartAttempt(.failure(error)))
+                    //providerEvents.fire(.tunnelStartAttempt(.failure(error)))
+                    pixelHandler.handle(.failure(error), onDemand: startedByOnDemand)
                     completionHandler(error)
                 }
 
-                if startupOptions.startupMethod == .automaticOnDemand {
+                if startedByOnDemand {
                     Task {
                         // We add a 10 seconds delay when the VPN is started by
                         // on-demand and there's an error, to avoid frenetic ON/OFF
