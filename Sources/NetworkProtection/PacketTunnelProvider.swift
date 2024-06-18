@@ -41,6 +41,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         case reportLatency(result: NetworkProtectionLatencyMonitor.Result)
         case rekeyAttempt(_ step: RekeyAttemptStep)
         case failureRecoveryAttempt(_ step: FailureRecoveryStep)
+        case serverMigrationAttempt(_ step: ServerMigrationAttemptStep)
     }
 
     public enum AttemptStep {
@@ -54,6 +55,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     public typealias TunnelUpdateAttemptStep = AttemptStep
     public typealias TunnelWakeAttemptStep = AttemptStep
     public typealias RekeyAttemptStep = AttemptStep
+    public typealias ServerMigrationAttemptStep = AttemptStep
 
     public enum ConnectionAttempt {
         case connecting
@@ -340,6 +342,13 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     public lazy var latencyMonitor = NetworkProtectionLatencyMonitor()
     public lazy var entitlementMonitor = NetworkProtectionEntitlementMonitor()
+    public lazy var serverStatusMonitor = NetworkProtectionServerStatusMonitor(
+        networkClient: NetworkProtectionBackendClient(
+            environment: self.settings.selectedEnvironment,
+            isSubscriptionEnabled: true
+        ),
+        tokenStore: self.tokenStore
+    )
 
     private var lastTestFailed = false
     private let bandwidthAnalyzer = NetworkProtectionConnectionBandwidthAnalyzer()
@@ -688,10 +697,12 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                     try await self.handleAdapterStarted(startReason: startReason)
 
                     // Enable Connect on Demand when manually enabling the tunnel on iOS 17.0+.
+#if os(iOS)
                     if #available(iOS 17.0, *), startReason == .manual {
                         try? await updateConnectOnDemand(enabled: true)
                         os_log("Enabled Connect on Demand due to user-initiated startup", log: .networkProtection, type: .info)
                     }
+#endif
                 } catch {
                     self.cancelTunnelWithError(error)
                     return
@@ -1387,6 +1398,31 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
+    private func startServerStatusMonitor() async {
+        guard let serverName = await lastSelectedServerInfo?.name else {
+            await serverStatusMonitor.stop()
+            return
+        }
+
+        if await serverStatusMonitor.isStarted {
+            await serverStatusMonitor.stop()
+        }
+
+        await serverStatusMonitor.start(serverName: serverName) { status in
+            if status.shouldMigrate {
+                Task {
+                    self.providerEvents.fire(.serverMigrationAttempt(.begin))
+                    do {
+                        try await self.updateTunnelConfiguration(reassert: true, regenerateKey: true)
+                        self.providerEvents.fire(.serverMigrationAttempt(.success))
+                    } catch {
+                        self.providerEvents.fire(.serverMigrationAttempt(.failure(error)))
+                    }
+                }
+            }
+        }
+    }
+
     @MainActor
     private func handleInvalidEntitlement(attemptsShutdown: Bool) async {
         defaults.enableEntitlementMessaging()
@@ -1419,6 +1455,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         await startTunnelFailureMonitor()
         await startLatencyMonitor()
         await startEntitlementMonitor()
+        await startServerStatusMonitor()
 
         do {
             try await startConnectionTester(testImmediately: testImmediately)
@@ -1434,6 +1471,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         await self.tunnelFailureMonitor.stop()
         await self.latencyMonitor.stop()
         await self.entitlementMonitor.stop()
+        await self.serverStatusMonitor.stop()
     }
 
     // MARK: - Entitlement handling
@@ -1483,6 +1521,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         await tunnelFailureMonitor.stop()
         await latencyMonitor.stop()
         await entitlementMonitor.stop()
+        await serverStatusMonitor.stop()
     }
 
     public override func wake() {

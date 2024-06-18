@@ -57,6 +57,8 @@ public protocol PrivacyDashboardReportBrokenSiteDelegate: AnyObject {
                                     description: String)
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
                                     reportBrokenSiteDidChangeProtectionSwitch protectionState: ProtectionState)
+    func privacyDashboardControllerDidRequestShowAlertForMissingDescription(_ privacyDashboardController: PrivacyDashboardController)
+    func privacyDashboardControllerDidRequestShowGeneralFeedback(_ privacyDashboardController: PrivacyDashboardController)
 
 }
 
@@ -79,7 +81,8 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
                                     didRequestOpenUrlInNewTab url: URL)
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
                                     didRequestOpenSettings target: PrivacyDashboardOpenSettingsTarget)
-    func privacyDashboardControllerDidRequestShowReportBrokenSite(_ privacyDashboardController: PrivacyDashboardController)
+    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
+                                    didSelectBreakageCategory category: String)
 
 #if os(macOS)
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
@@ -95,7 +98,9 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
     fileprivate enum Constant {
 
         static let screenKey = "screen"
+        static let breakageScreenKey = "breakageScreen"
         static let openerKey = "opener"
+        static let categoryKey = "category"
 
         static let menuScreenKey = "menu"
         static let dashboardScreenKey = "dashboard"
@@ -110,7 +115,7 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
         case doNotSend
         case dismiss
 
-        var event: ToggleReportEvents? {
+        var event: PrivacyDashboardEvents? {
             switch self {
             case .send: return nil
             case .doNotSend: return .toggleReportDoNotSend
@@ -143,7 +148,9 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
     private var cancellables = Set<AnyCancellable>()
     private var protectionStateToSubmitOnToggleReportDismiss: ProtectionState?
     private let privacyConfigurationManager: PrivacyConfigurationManaging
-    private let eventMapping: EventMapping<ToggleReportEvents>
+    private let eventMapping: EventMapping<PrivacyDashboardEvents>
+
+    private let variant: PrivacyDashboardVariant
 
     private var toggleReportCounter: Int? { userDefaults.toggleReportCounter > 20 ? nil : userDefaults.toggleReportCounter }
 
@@ -152,11 +159,13 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
 
     public init(privacyInfo: PrivacyInfo?,
                 dashboardMode: PrivacyDashboardMode,
+                variant: PrivacyDashboardVariant,
                 privacyConfigurationManager: PrivacyConfigurationManaging,
-                eventMapping: EventMapping<ToggleReportEvents>,
+                eventMapping: EventMapping<PrivacyDashboardEvents>,
                 userDefaults: UserDefaults = UserDefaults.standard) {
         self.privacyInfo = privacyInfo
         self.initDashboardMode = dashboardMode
+        self.variant = variant
         self.privacyConfigurationManager = privacyConfigurationManager
         privacyDashboardScript = PrivacyDashboardUserScript(privacyConfigurationManager: privacyConfigurationManager)
         self.eventMapping = eventMapping
@@ -211,12 +220,27 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
 
     private func loadPrivacyDashboardHTML() {
         guard var url = Bundle.privacyDashboardURL else { return }
-        url = url.appendingParameter(name: Constant.screenKey, value: initDashboardMode.screen.rawValue)
+        let screen = initDashboardMode.screen(for: variant).rawValue
+        url = url.appendingParameter(name: Constant.screenKey, value: screen)
+        if let breakageScreen = breakageScreen(for: variant)?.rawValue {
+            url = url.appendingParameter(name: Constant.breakageScreenKey, value: breakageScreen)
+        }
+        if case .afterTogglePrompt(let category, _) = initDashboardMode {
+            url = url.appendingParameter(name: Constant.categoryKey, value: category)
+        }
         if case .toggleReport = initDashboardMode {
             url = url.appendingParameter(name: Constant.openerKey, value: Constant.menuScreenKey)
             userDefaults.toggleReportCounter += 1
         }
         webView?.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent().deletingLastPathComponent())
+    }
+
+    private func breakageScreen(for variant: PrivacyDashboardVariant) -> BreakageScreen? {
+        switch variant {
+        case .control: return nil
+        case .a: return .categorySelection
+        case .b: return .categoryTypeSelection
+        }
     }
 }
 
@@ -341,6 +365,9 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     }
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didChangeProtectionState protectionState: ProtectionState) {
+        if protectionState.eventOrigin.screen == .choiceToggle {
+            eventMapping.fire(.toggleProtectionOff)
+        }
         if shouldSegueToToggleReportScreen(with: protectionState) {
             segueToToggleReportScreen(with: protectionState)
         } else {
@@ -361,9 +388,9 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
         switch protectionState.eventOrigin.screen {
         case .primaryScreen:
             privacyDashboardDelegate?.privacyDashboardController(self, didChangeProtectionSwitch: protectionState, didSendReport: didSendReport)
-        case .breakageForm:
+        case .breakageForm, .choiceToggle:
             privacyDashboardReportBrokenSiteDelegate?.privacyDashboardController(self, reportBrokenSiteDidChangeProtectionSwitch: protectionState)
-        case .toggleReport, .promptBreakageForm:
+        case .toggleReport, .promptBreakageForm, .categorySelection, .categoryTypeSelection, .choiceBreakageForm:
             assertionFailure("These screen don't have toggling capability")
         }
     }
@@ -423,9 +450,9 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
 
     private func fireToggleReportEventIfNeeded(for toggleReportDismissType: ToggleReportDismissType) {
         if let eventToFire = toggleReportDismissType.event {
-            var parameters = [ToggleReportEvents.Parameters.didOpenReportInfo: didOpenReportInfo.description]
+            var parameters = [PrivacyDashboardEvents.Parameters.didOpenReportInfo: didOpenReportInfo.description]
             if let toggleReportCounter {
-                parameters[ToggleReportEvents.Parameters.toggleReportCounter] = String(toggleReportCounter)
+                parameters[PrivacyDashboardEvents.Parameters.toggleReportCounter] = String(toggleReportCounter)
             }
             eventMapping.fire(eventToFire, parameters: parameters)
         }
@@ -436,7 +463,12 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     }
 
     func userScriptDidRequestShowReportBrokenSite(_ userScript: PrivacyDashboardUserScript) {
-        privacyDashboardDelegate?.privacyDashboardControllerDidRequestShowReportBrokenSite(self)
+        let parameters = [
+            PrivacyDashboardEvents.Parameters.variant: variant.rawValue,
+            PrivacyDashboardEvents.Parameters.source: source.rawValue
+        ]
+        eventMapping.fire(.reportBrokenSiteShown, parameters: parameters)
+        eventMapping.fire(.showReportBrokenSite)
     }
 
     func userScript(_ userScript: PrivacyDashboardUserScript, setHeight height: Int) {
@@ -444,7 +476,13 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     }
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestSubmitBrokenSiteReportWithCategory category: String, description: String) {
-        privacyDashboardReportBrokenSiteDelegate?.privacyDashboardController(self, didRequestSubmitBrokenSiteReportWithCategory: category,
+        var parameters = [PrivacyDashboardEvents.Parameters.variant: variant.rawValue]
+        if case let .afterTogglePrompt(_, didToggleProtectionsFixIssue) = initDashboardMode {
+            parameters[PrivacyDashboardEvents.Parameters.didToggleProtectionsFixIssue] = didToggleProtectionsFixIssue.description
+        }
+        eventMapping.fire(.reportBrokenSiteSent, parameters: parameters)
+        privacyDashboardReportBrokenSiteDelegate?.privacyDashboardController(self,
+                                                                             didRequestSubmitBrokenSiteReportWithCategory: category,
                                                                              description: description)
     }
 
@@ -479,13 +517,14 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
         handleUserScriptClosing(toggleReportDismissType: toggleReportDismissType)
     }
 
-    private var source: BrokenSiteReport.Source {
+    public var source: BrokenSiteReport.Source {
         var source: BrokenSiteReport.Source
         switch initDashboardMode {
         case .report: source = .appMenu
         case .dashboard: source = .dashboard
         case .toggleReport: source = .onProtectionsOffMenu
         case .prompt(let event): source = .prompt(event)
+        case .afterTogglePrompt: source = .afterTogglePrompt
         }
         if protectionStateToSubmitOnToggleReportDismiss != nil {
             source = .onProtectionsOffDashboard
@@ -497,4 +536,30 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
         didOpenReportInfo = true
     }
 
+    // Experiment flows
+
+    func userScript(_ userScript: PrivacyDashboardUserScript, didSelectOverallCategory category: String) {
+        eventMapping.fire(.overallCategorySelected, parameters: [PrivacyDashboardEvents.Parameters.category: category])
+    }
+
+    func userScript(_ userScript: PrivacyDashboardUserScript, didSelectBreakageCategory category: String) {
+        let parameters = [
+            PrivacyDashboardEvents.Parameters.variant: variant.rawValue,
+            PrivacyDashboardEvents.Parameters.category: category
+        ]
+        eventMapping.fire(.breakageCategorySelected, parameters: parameters)
+        privacyDashboardDelegate?.privacyDashboardController(self, didSelectBreakageCategory: category)
+    }
+
+    func userScriptDidRequestShowAlertForMissingDescription(_ userScript: PrivacyDashboardUserScript) {
+        privacyDashboardReportBrokenSiteDelegate?.privacyDashboardControllerDidRequestShowAlertForMissingDescription(self)
+    }
+
+    func userScriptDidRequestShowNativeFeedback(_ userScript: PrivacyDashboardUserScript) {
+        privacyDashboardReportBrokenSiteDelegate?.privacyDashboardControllerDidRequestShowGeneralFeedback(self)
+    }
+
+    func userScriptDidSkipTogglingStep(_ userScript: PrivacyDashboardUserScript) {
+        eventMapping.fire(.skipToggleStep)
+    }
 }
