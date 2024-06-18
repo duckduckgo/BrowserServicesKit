@@ -45,8 +45,6 @@ public final class RemoteMessagingStore: RemoteMessagingStoring {
 
     public enum Constants {
         public static let privateContextName = "RemoteMessaging"
-        static let remoteMessagingConfigManagedObject = "RemoteMessagingConfigManagedObject"
-        static let remoteMessageManagedObject = "RemoteMessageManagedObject"
     }
 
     let context: NSManagedObjectContext
@@ -110,8 +108,7 @@ extension RemoteMessagingStore {
     public func fetchRemoteMessagingConfig() -> RemoteMessagingConfig? {
         var config: RemoteMessagingConfig?
         context.performAndWait {
-            let fetchRequest: NSFetchRequest<RemoteMessagingConfigManagedObject>
-                    = RemoteMessagingConfigManagedObject.fetchRequest()
+            let fetchRequest = RemoteMessagingConfigManagedObject.fetchRequest()
             fetchRequest.fetchLimit = 1
             fetchRequest.sortDescriptors = [NSSortDescriptor(key: "version", ascending: false)]
 
@@ -119,9 +116,7 @@ extension RemoteMessagingStore {
                 return
             }
             if let remoteMessagingConfigManagedObject = results.first {
-                config = RemoteMessagingConfig(version: remoteMessagingConfigManagedObject.version,
-                                               invalidate: remoteMessagingConfigManagedObject.invalidate,
-                                               evaluationTimestamp: remoteMessagingConfigManagedObject.evaluationTimestamp)
+                config = RemoteMessagingConfig(remoteMessagingConfigManagedObject)
             }
         }
 
@@ -144,11 +139,8 @@ extension RemoteMessagingStore {
                 result.evaluationTimestamp = Date()
                 result.invalidate = false
             } else {
-                let managedObject = NSEntityDescription.insertNewObject(forEntityName: Constants.remoteMessagingConfigManagedObject, into: context)
-                guard let remoteMessagingConfigManagedObject = managedObject as? RemoteMessagingConfigManagedObject else {
-                    return
-                }
-                remoteMessagingConfigManagedObject.version = version
+                let remoteMessagingConfigManagedObject = RemoteMessagingConfigManagedObject(context: context)
+                remoteMessagingConfigManagedObject.version = NSNumber(value: version)
                 remoteMessagingConfigManagedObject.evaluationTimestamp = Date()
                 remoteMessagingConfigManagedObject.invalidate = false
             }
@@ -318,12 +310,11 @@ extension RemoteMessagingStore {
 
     private func save(remoteMessage: RemoteMessageModel) {
         context.performAndWait {
-            let managedObject = NSEntityDescription.insertNewObject(forEntityName: Constants.remoteMessageManagedObject, into: context)
-            guard let remoteMessageManagedObject = managedObject as? RemoteMessageManagedObject else { return }
+            let remoteMessageManagedObject = RemoteMessageManagedObject(context: context)
 
             remoteMessageManagedObject.id = remoteMessage.id
             remoteMessageManagedObject.message = RemoteMessageMapper.toString(remoteMessage) ?? ""
-            remoteMessageManagedObject.status = RemoteMessageStatus.scheduled.rawValue
+            remoteMessageManagedObject.status = NSNumber(value: RemoteMessageStatus.scheduled.rawValue)
             remoteMessageManagedObject.shown = false
 
             do {
@@ -343,7 +334,7 @@ extension RemoteMessagingStore {
 
             guard let results = try? context.fetch(fetchRequest) else { return }
 
-            results.forEach { $0.status = status.rawValue }
+            results.forEach { $0.status = NSNumber(value: status.rawValue) }
 
             do {
                 try context.save()

@@ -266,7 +266,7 @@ let package = Package(
                 "Persistence",
             ],
             resources: [
-                .process("RemoteMessaging.xcdatamodeld")
+                .process("CoreData/RemoteMessaging.xcdatamodeld")
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
@@ -345,6 +345,9 @@ let package = Package(
         ),
         .target(
             name: "PixelKit",
+            exclude: [
+                "README.md"
+            ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
             ]
