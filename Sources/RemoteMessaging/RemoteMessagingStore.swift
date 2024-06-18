@@ -23,6 +23,15 @@ import CoreData
 import BrowserServicesKit
 import Persistence
 
+public enum RemoteMessagingStoreError: Error {
+    case saveConfigFailed
+    case invalidateConfigFailed
+    case updateMessageShownFailed
+    case saveMessageFailed
+    case updateMessageStatusFailed
+    case deleteScheduledMessageFailed
+}
+
 public final class RemoteMessagingStore: RemoteMessagingStoring {
 
     public struct Notifications {
@@ -44,20 +53,34 @@ public final class RemoteMessagingStore: RemoteMessagingStoring {
     let context: NSManagedObjectContext
     let notificationCenter: NotificationCenter
 
-    public convenience init(database: CoreDataDatabase, notificationCenter: NotificationCenter = .default) {
+    public convenience init(
+        database: CoreDataDatabase,
+        notificationCenter: NotificationCenter = .default,
+        errorEvents: EventMapping<RemoteMessagingStoreError>?,
+        log: @escaping @autoclosure () -> OSLog = .disabled
+    ) {
         self.init(
             context: database.makeContext(concurrencyType: .privateQueueConcurrencyType, name: Constants.privateContextName),
-            notificationCenter: notificationCenter
+            notificationCenter: notificationCenter,
+            errorEvents: errorEvents,
+            log: log()
         )
     }
 
-    public init(context: NSManagedObjectContext, notificationCenter: NotificationCenter = .default) {
+    public init(
+        context: NSManagedObjectContext,
+        notificationCenter: NotificationCenter = .default,
+        errorEvents: EventMapping<RemoteMessagingStoreError>?,
+        log: @escaping @autoclosure () -> OSLog = .disabled
+    ) {
         self.context = context
         self.notificationCenter = notificationCenter
+        self.errorEvents = errorEvents
+        self.getLog = log
     }
 
     public func saveProcessedResult(_ processorResult: RemoteMessagingConfigProcessor.ProcessorResult) {
-        os_log("Remote messaging config - save processed version: %d", log: .remoteMessaging, type: .debug, processorResult.version)
+        os_log("Remote messaging config - save processed version: %d", log: log, type: .debug, processorResult.version)
         saveRemoteMessagingConfig(withVersion: processorResult.version)
 
         if let remoteMessage = processorResult.message {
@@ -71,6 +94,13 @@ public final class RemoteMessagingStore: RemoteMessagingStoring {
         DispatchQueue.main.async {
             self.notificationCenter.post(name: Notifications.remoteMessagesDidChange, object: nil)
         }
+    }
+
+    private let errorEvents: EventMapping<RemoteMessagingStoreError>?
+
+    private let getLog: () -> OSLog
+    private var log: OSLog {
+        getLog()
     }
 }
 
@@ -127,9 +157,9 @@ extension RemoteMessagingStore {
             do {
                 try context.save()
             } catch {
-//                Pixel.fire(pixel: .dbRemoteMessagingSaveConfigError, error: error)
+                errorEvents?.fire(.saveConfigFailed, error: error)
                 os_log("Failed to save remote messaging config: %@",
-                       log: OSLog.remoteMessaging,
+                       log: log,
                        type: .error, error.localizedDescription)
             }
         }
@@ -147,9 +177,9 @@ extension RemoteMessagingStore {
             do {
                 try context.save()
             } catch {
-//                Pixel.fire(pixel: .dbRemoteMessagingInvalidateConfigError, error: error)
+                errorEvents?.fire(.invalidateConfigFailed, error: error)
                 os_log("Failed to save remote messaging config entity invalidate: %@",
-                       log: OSLog.remoteMessaging,
+                       log: log,
                        type: .error, error.localizedDescription)
             }
         }
@@ -258,7 +288,7 @@ extension RemoteMessagingStore {
                 let results = try context.fetch(fetchRequest)
                 dismissedMessageIds = results.compactMap { $0.id }
             } catch {
-                os_log("Failed to fetch dismissed remote messages: %@", log: .remoteMessaging, type: .error, error.localizedDescription)
+                os_log("Failed to fetch dismissed remote messages: %@", log: log, type: .error, error.localizedDescription)
             }
         }
         return dismissedMessageIds
@@ -276,8 +306,8 @@ extension RemoteMessagingStore {
             do {
                 try context.save()
             } catch {
-//                Pixel.fire(pixel: .dbRemoteMessagingUpdateMessageShownError, error: error)
-                os_log("Failed to save message update as shown", log: .remoteMessaging, type: .error)
+                errorEvents?.fire(.updateMessageShownFailed, error: error)
+                os_log("Failed to save message update as shown", log: log, type: .error)
             }
         }
     }
@@ -300,8 +330,8 @@ extension RemoteMessagingStore {
             do {
                 try context.save()
             } catch {
-//                Pixel.fire(pixel: .dbRemoteMessagingSaveMessageError, error: error)
-                os_log("Failed to save remote message entity: %@", log: OSLog.remoteMessaging, type: .error, error.localizedDescription)
+                errorEvents?.fire(.saveMessageFailed, error: error)
+                os_log("Failed to save remote message entity: %@", log: log, type: .error, error.localizedDescription)
             }
         }
     }
@@ -319,8 +349,8 @@ extension RemoteMessagingStore {
             do {
                 try context.save()
             } catch {
-//                Pixel.fire(pixel: .dbRemoteMessagingUpdateMessageStatusError, error: error)
-                os_log("Error saving updateMessageStatus", log: .remoteMessaging, type: .error)
+                errorEvents?.fire(.updateMessageStatusFailed, error: error)
+                os_log("Error saving updateMessageStatus", log: log, type: .error)
             }
         }
     }
@@ -338,8 +368,8 @@ extension RemoteMessagingStore {
             do {
                 try context.save()
             } catch {
-//                Pixel.fire(pixel: .dbRemoteMessagingDeleteScheduledMessageError, error: error)
-                os_log("Error deleting scheduled remote messages", log: .remoteMessaging, type: .error)
+                errorEvents?.fire(.deleteScheduledMessageFailed, error: error)
+                os_log("Error deleting scheduled remote messages", log: log, type: .error)
             }
         }
     }

@@ -46,7 +46,7 @@ class RemoteMessagingStoreTests: XCTestCase {
         remoteMessagingDatabase.loadStore()
         let context = remoteMessagingDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
-        store = RemoteMessagingStore(context: context, notificationCenter: notificationCenter)
+        store = RemoteMessagingStore(context: context, notificationCenter: notificationCenter, errorEvents: nil)
 
         defaults = UserDefaults(suiteName: Self.userDefaultsSuiteName)!
         defaults.removePersistentDomain(forName: Self.userDefaultsSuiteName)
