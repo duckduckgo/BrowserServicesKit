@@ -365,6 +365,9 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     }
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didChangeProtectionState protectionState: ProtectionState) {
+        if protectionState.eventOrigin.screen == .choiceToggle {
+            eventMapping.fire(.toggleProtectionOff)
+        }
         if shouldSegueToToggleReportScreen(with: protectionState) {
             segueToToggleReportScreen(with: protectionState)
         } else {
@@ -554,5 +557,9 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
 
     func userScriptDidRequestShowNativeFeedback(_ userScript: PrivacyDashboardUserScript) {
         privacyDashboardReportBrokenSiteDelegate?.privacyDashboardControllerDidRequestShowGeneralFeedback(self)
+    }
+
+    func userScriptDidSkipTogglingStep(_ userScript: PrivacyDashboardUserScript) {
+        eventMapping.fire(.skipToggleStep)
     }
 }
