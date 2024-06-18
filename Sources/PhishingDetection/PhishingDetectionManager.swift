@@ -19,30 +19,30 @@
 import Foundation
 import Common
 
-public protocol PhishingDetectionManaging {
-    func isMalicious(url: URL) async -> Bool
+public protocol PhishingDetectionDataManaging {
     func loadDataAsync()
 }
 
-public class PhishingDetectionManager: PhishingDetectionManaging {
-    private var phishingDetectionService: PhishingDetectionServiceProtocol
+public class PhishingDetectionDataManager: PhishingDetectionDataManaging {
     private var phishingDetectionDataActivities: PhishingDetectionDataActivities
+    private var dataStore: PhishingDetectionDataStore
+    private var updateManager: PhishingDetectionUpdateManager
 
-    public init(service: PhishingDetectionServiceProtocol, dataActivities: PhishingDetectionDataActivities) {
-        self.phishingDetectionService = service
+    public init(dataActivities: PhishingDetectionDataActivities, dataStore: PhishingDetectionDataStore, updateManager: PhishingDetectionUpdateManager) {
         self.phishingDetectionDataActivities = dataActivities
-        loadDataAsync() // should be called from app or not?
+        self.updateManager = updateManager
+        self.dataStore = dataStore
     }
-
-    public func isMalicious(url: URL) async -> Bool {
-        let malicious = await phishingDetectionService.isMalicious(url: url)
-        return malicious
+    
+    public func startDataActivities() {
+        phishingDetectionDataActivities.start()
     }
 
     public func loadDataAsync() {
         Task {
-            await phishingDetectionService.loadData()
-            phishingDetectionDataActivities.start()
+            await dataStore.loadData()
+            await updateManager.updateFilterSet()
+            await updateManager.updateHashPrefixes()
         }
     }
 }

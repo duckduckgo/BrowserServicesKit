@@ -1,7 +1,7 @@
 //
 //  PhishingDetectionDataActivities.swift
 //
-//  Copyright © 2023 DuckDuckGo. All rights reserved.
+//  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -37,15 +37,17 @@ class BackgroundActivityScheduler: BackgroundActivityScheduling {
     func start(activity: @escaping () async -> Void) {
         stop()
         task = Task {
+            let taskId = UUID().uuidString
             while true {
                 let now = Date()
                 let formatter = DateFormatter()
                 formatter.timeStyle = .medium
-                print("[+] Updating \(identifier) at \(formatter.string(from: now))")
+                print("[+] Calling \(identifier) at \(formatter.string(from: now)) in task \(taskId)")
                 await activity()
                 do {
                     try await Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
                 } catch {
+                    print("[+] Task cancelled.")
                     os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error \(identifier) task was cancelled before it could finish sleeping.")
                 }
             }
@@ -78,17 +80,20 @@ class DataActivity {
 
 public class PhishingDetectionDataActivities {
     private var activities: [DataActivity]
+    
+    var dataProvider: PhishingDetectionDataProviding
 
-    public init(detectionService: PhishingDetectionServiceProtocol, hashPrefixInterval: TimeInterval = 20 * 60, filterSetInterval: TimeInterval = 12 * 60 * 60) {
+    public init(detectionService: PhishingDetecting, hashPrefixInterval: TimeInterval = 20 * 60, filterSetInterval: TimeInterval = 12 * 60 * 60, phishingDetectionDataProvider: PhishingDetectionDataProviding, updateManager: PhishingDetectionUpdateManager) {
         let hashPrefixActivity = DataActivity(
             scheduler: BackgroundActivityScheduler(interval: hashPrefixInterval, identifier: "hashPrefixes.update"),
-            updateAction: { await detectionService.updateHashPrefixes() }
+            updateAction: { await updateManager.updateHashPrefixes() }
         )
         let filterSetActivity = DataActivity(
             scheduler: BackgroundActivityScheduler(interval: filterSetInterval,  identifier: "filterSet.update"),
-            updateAction: { await detectionService.updateFilterSet() }
+            updateAction: { await updateManager.updateFilterSet() }
         )
-        activities = [hashPrefixActivity, filterSetActivity]
+        self.activities = [hashPrefixActivity, filterSetActivity]
+        self.dataProvider = phishingDetectionDataProvider
     }
 
     func start() {

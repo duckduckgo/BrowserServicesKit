@@ -10,12 +10,12 @@ import XCTest
 @testable import PhishingDetection
 
 class PhishingDetectionDataActivitiesTests: XCTestCase {
-    var mockDetectionService: MockPhishingDetectionService!
+    var mockDetectionService: MockPhishingDetector!
     var activities: PhishingDetectionDataActivities!
 
     override func setUp() {
         super.setUp()
-        mockDetectionService = MockPhishingDetectionService()
+        mockDetectionService = MockPhishingDetector()
         activities = PhishingDetectionDataActivities(detectionService: mockDetectionService, hashPrefixInterval: 1, filterSetInterval: 1)
     }
 
@@ -26,7 +26,7 @@ class PhishingDetectionDataActivitiesTests: XCTestCase {
             expectation.fulfill()
         }
 
-        await activities.start()
+        activities.start()
         
         await fulfillment(of: [expectation], timeout: 10.0)
 
