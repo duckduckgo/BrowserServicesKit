@@ -31,7 +31,7 @@ extension UserDefaults {
     }
 
     private var dnsSettingKey: String {
-        "dnsSetting"
+        "dnsSettingStorageValue"
     }
 
     private static func dnsSettingsFromStorageValue(_ value: StorableDNSSettings) -> NetworkProtectionDNSSettings {

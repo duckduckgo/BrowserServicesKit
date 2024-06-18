@@ -110,6 +110,10 @@ public extension String {
         return false
     }
 
+    var isValidIpv4Host: Bool {
+        IPv4Address(self) != nil
+    }
+
     // MARK: Regex
 
     func matches(_ regex: NSRegularExpression) -> Bool {
