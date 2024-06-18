@@ -22,15 +22,11 @@ import Networking
 
 public struct RemoteMessageRequest {
 
-    private var endpoint: URL {
-        #if DEBUG
-        return URL(string: "https://raw.githubusercontent.com/duckduckgo/remote-messaging-config/main/samples/ios/sample1.json")!
-        #else
-        return URL(string: "https://staticcdn.duckduckgo.com/remotemessaging/config/v1/ios-config.json")!
-        #endif
-    }
+    public let endpoint: URL
 
-    public init() { }
+    public init(endpoint: URL) {
+        self.endpoint = endpoint
+    }
 
     public func getRemoteMessage(completionHandler: @escaping (Result<RemoteMessageResponse.JsonRemoteMessagingConfig, RemoteMessageResponse.StatusError>) -> Void) {
         let configuration = APIRequest.Configuration(url: endpoint)
