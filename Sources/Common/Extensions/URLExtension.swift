@@ -34,8 +34,8 @@ extension URL {
             == string2.droppingHashedSuffix().dropping(suffix: "/").appending(string2.hashedSuffix ?? "")
     }
 
-    // URL without the scheme and the '/' suffix of the path
-    // For finding duplicate URLs
+    /// URL without the scheme and the '/' suffix of the path.  
+    /// Useful for finding duplicate URLs
     public var naked: URL? {
         guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else { return self }
         components.scheme = nil

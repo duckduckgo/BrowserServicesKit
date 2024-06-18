@@ -28,7 +28,7 @@ public enum PrivacyFeature: String {
     case gpc
     case httpsUpgrade = "https"
     case autoconsent
-    case clickToPlay
+    case clickToLoad
     case autofill
     case ampLinks
     case trackingParameters
@@ -46,6 +46,7 @@ public enum PrivacyFeature: String {
     case performanceMetrics
     case privacyPro
     case sslCertificates
+    case brokenSiteReportExperiment
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
