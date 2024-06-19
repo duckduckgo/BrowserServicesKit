@@ -519,7 +519,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             guard try tokenStore.fetchToken() != nil else {
                 throw TunnelError.startingTunnelWithoutAuthToken
             }
-            break
         case .reset:
             // This case should in theory not be possible, but it's ideal to have this in place
             // in case an error in the controller on the client side allows it.
@@ -568,7 +567,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     // MARK: - Tunnel Start
 
     @MainActor
-    open override func startTunnel(options: [String : NSObject]? = nil) async throws {
+    open override func startTunnel(options: [String: NSObject]? = nil) async throws {
 
         let startupOptions = StartupOptions(options: options ?? [:])
         os_log("Starting tunnel with options: %{public}s", log: .networkProtection, startupOptions.description)

@@ -223,17 +223,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
             return (selectedServer, selectedServer.expirationDate)
         case .failure(let error):
             handle(clientError: error)
-
-            switch error {
-            case .accessDenied, .invalidAuthToken:
-                if isSubscriptionEnabled {
-                    errorEvents?.fire(.vpnAccessRevoked)
-                    throw NetworkProtectionError.vpnAccessRevoked
-                }
-            default:
-                break
-            }
-
+            try handleAccessRevoked(error)
             throw error
         }
     }
@@ -324,5 +314,17 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
         }
 #endif
         errorEvents?.fire(clientError.networkProtectionError)
+    }
+
+    private func handleAccessRevoked(_ error: NetworkProtectionClientError) throws {
+        switch error {
+        case .accessDenied, .invalidAuthToken:
+            if isSubscriptionEnabled {
+                errorEvents?.fire(.vpnAccessRevoked)
+                throw NetworkProtectionError.vpnAccessRevoked
+            }
+        default:
+            break
+        }
     }
 }
