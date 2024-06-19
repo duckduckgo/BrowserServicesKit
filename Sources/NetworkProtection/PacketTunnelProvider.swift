@@ -439,6 +439,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         loadSelectedEnvironment(from: options)
         loadSelectedServer(from: options)
         loadSelectedLocation(from: options)
+        loadDNSSettings(from: options)
         loadTesterEnabled(from: options)
 #if os(macOS)
         try loadAuthToken(from: options)
@@ -486,12 +487,23 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     private func loadSelectedLocation(from options: StartupOptions) {
         switch options.selectedLocation {
-        case .set(let selectedServer):
-            settings.selectedLocation = selectedServer
+        case .set(let selectedLocation):
+            settings.selectedLocation = selectedLocation
         case .useExisting:
             break
         case .reset:
             settings.selectedServer = .automatic
+        }
+    }
+
+    private func loadDNSSettings(from options: StartupOptions) {
+        switch options.dnsSettings {
+        case .set(let dnsSettings):
+            settings.dnsSettings = dnsSettings
+        case .useExisting:
+            break
+        case .reset:
+            settings.dnsSettings = .default
         }
     }
 
@@ -657,6 +669,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 os_log("🔵 Generating tunnel config", log: .networkProtection, type: .info)
                 os_log("🔵 Excluded ranges are: %{public}@", log: .networkProtection, type: .info, String(describing: settings.excludedRanges))
                 os_log("🔵 Server selection method: %{public}@", log: .networkProtection, type: .info, currentServerSelectionMethod.debugDescription)
+                os_log("🔵 DNS server: %{public}@", log: .networkProtection, type: .info, String(describing: settings.dnsSettings))
                 let tunnelConfiguration = try await generateTunnelConfiguration(serverSelectionMethod: currentServerSelectionMethod,
                                                                                 includedRoutes: includedRoutes ?? [],
                                                                                 excludedRoutes: settings.excludedRanges,

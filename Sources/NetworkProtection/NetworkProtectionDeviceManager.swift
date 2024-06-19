@@ -43,9 +43,21 @@ public enum NetworkProtectionServerSelectionMethod: CustomDebugStringConvertible
     case failureRecovery(serverName: String)
 }
 
-public enum NetworkProtectionDNSSettings: Codable, Equatable {
+public enum NetworkProtectionDNSSettings: Codable, Equatable, CustomStringConvertible {
     case `default`
     case custom([String])
+
+    public var usesCustomDNS: Bool {
+        guard case .custom(let servers) = self, !servers.isEmpty else { return false }
+        return true
+    }
+
+    public var description: String {
+        switch self {
+        case .default: return "Default"
+        case .custom(let servers): return servers.joined(separator: ", ")
+        }
+    }
 }
 
 public protocol NetworkProtectionDeviceManagement {
