@@ -222,12 +222,18 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
             selectedServer = registeredServer
             return (selectedServer, selectedServer.expirationDate)
         case .failure(let error):
-            if isSubscriptionEnabled, case .accessDenied = error {
-                errorEvents?.fire(.vpnAccessRevoked)
-                throw NetworkProtectionError.vpnAccessRevoked
+            handle(clientError: error)
+
+            switch error {
+            case .accessDenied, .invalidAuthToken:
+                if isSubscriptionEnabled {
+                    errorEvents?.fire(.vpnAccessRevoked)
+                    throw NetworkProtectionError.vpnAccessRevoked
+                }
+            default:
+                break
             }
 
-            handle(clientError: error)
             throw error
         }
     }
