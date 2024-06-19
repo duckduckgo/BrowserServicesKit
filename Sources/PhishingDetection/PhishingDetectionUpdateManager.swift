@@ -18,7 +18,12 @@
 
 import Foundation
 
-public class PhishingDetectionUpdateManager {
+public protocol PhishingDetectionUpdateManaging {
+    func updateFilterSet() async
+    func updateHashPrefixes() async
+}
+
+public class PhishingDetectionUpdateManager: PhishingDetectionUpdateManaging {
     var apiClient: PhishingDetectionClientProtocol
     var dataStore: PhishingDetectionDataStore
     

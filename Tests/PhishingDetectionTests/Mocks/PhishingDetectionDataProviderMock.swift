@@ -15,12 +15,12 @@ public class MockPhishingDetectionDataProvider: PhishingDetectionDataProviding {
     
     public func loadEmbeddedFilterSet() -> Set<PhishingDetection.Filter> {
         self.loadHashPrefixesCalled = true
-        return []
+        return [Filter(hashValue: "dummyhash", regex: "dummyregex")]
     }
     
     public func loadEmbeddedHashPrefixes() -> Set<String> {
         self.loadFilterSetCalled = true
-        return []
+        return ["aabb"]
     }
     
 }
