@@ -54,7 +54,7 @@ public enum NetworkProtectionDNSSettings: Codable, Equatable, CustomStringConver
 
     public var description: String {
         switch self {
-        case .default: return "Default"
+        case .default: return "DuckDuckGo"
         case .custom(let servers): return servers.joined(separator: ", ")
         }
     }
