@@ -1480,7 +1480,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             }
         }
 
-        var errorUserInfo: [String : Any] {
+        var errorUserInfo: [String: Any] {
             switch self {
             case .couldNotRetrieveInterfaceNameFromAdapter:
                 return [:]
