@@ -49,7 +49,7 @@ public final class DefaultAppStoreRestoreFlow: AppStoreRestoreFlow {
     public func restoreAccountFromPastPurchase() async -> Result<Void, AppStoreRestoreFlowError> {
 
         // Clear subscription Cache
-        subscriptionManager.subscriptionAPIService.signOut()
+        subscriptionManager.subscriptionEndpointService.signOut()
 
         os_log(.info, log: .subscription, "[AppStoreRestoreFlow] restoreAccountFromPastPurchase")
 
@@ -61,7 +61,7 @@ public final class DefaultAppStoreRestoreFlow: AppStoreRestoreFlow {
         // Do the store login to get short-lived token
         let authToken: String
 
-        switch await subscriptionManager.authAPIService.storeLogin(signature: lastTransactionJWSRepresentation) {
+        switch await subscriptionManager.authEndpointService.storeLogin(signature: lastTransactionJWSRepresentation) {
         case .success(let response):
             authToken = response.authToken
         case .failure:
@@ -92,7 +92,7 @@ public final class DefaultAppStoreRestoreFlow: AppStoreRestoreFlow {
 
         var isSubscriptionActive = false
 
-        switch await subscriptionManager.subscriptionAPIService.getSubscription(accessToken: accessToken, cachePolicy: .reloadIgnoringLocalCacheData) {
+        switch await subscriptionManager.subscriptionEndpointService.getSubscription(accessToken: accessToken, cachePolicy: .reloadIgnoringLocalCacheData) {
         case .success(let subscription):
             isSubscriptionActive = subscription.isActive
         case .failure:

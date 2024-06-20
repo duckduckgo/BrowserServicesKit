@@ -21,8 +21,8 @@ import Foundation
 
 public final class SubscriptionManagerMock: SubscriptionManager {
     public var accountManager: AccountManager
-    public var subscriptionAPIService: SubscriptionEndpointService
-    public var authAPIService: AuthEndpointService
+    public var subscriptionEndpointService: SubscriptionEndpointService
+    public var authEndpointService: AuthEndpointService
     public var currentEnvironment: SubscriptionEnvironment
     public var canPurchase: Bool
 
@@ -43,14 +43,14 @@ public final class SubscriptionManagerMock: SubscriptionManager {
     }
 
     public init(accountManager: AccountManager,
-                subscriptionAPIService: SubscriptionEndpointService,
-                authAPIService: AuthEndpointService,
+                subscriptionEndpointService: SubscriptionEndpointService,
+                authEndpointService: AuthEndpointService,
                 storePurchaseManager: StorePurchaseManager,
                 currentEnvironment: SubscriptionEnvironment,
                 canPurchase: Bool) {
         self.accountManager = accountManager
-        self.subscriptionAPIService = subscriptionAPIService
-        self.authAPIService = authAPIService
+        self.subscriptionEndpointService = subscriptionEndpointService
+        self.authEndpointService = authEndpointService
         self.internalStorePurchaseManager = storePurchaseManager
         self.currentEnvironment = currentEnvironment
         self.canPurchase = canPurchase

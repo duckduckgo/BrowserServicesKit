@@ -67,8 +67,8 @@ public final class DefaultAccountManager: AccountManager {
     private let storage: AccountStoring
     private let entitlementsCache: UserDefaultsCache<[Entitlement]>
     private let accessTokenStorage: SubscriptionTokenStoring
-    private let subscriptionAPIService: SubscriptionEndpointService
-    private let authAPIService: AuthEndpointService
+    private let subscriptionEndpointService: SubscriptionEndpointService
+    private let authEndpointService: AuthEndpointService
 
     public weak var delegate: AccountManagerKeychainAccessDelegate?
     public var isUserAuthenticated: Bool { accessToken != nil }
@@ -78,13 +78,13 @@ public final class DefaultAccountManager: AccountManager {
     public init(storage: AccountStoring = AccountKeychainStorage(),
                 accessTokenStorage: SubscriptionTokenStoring,
                 entitlementsCache: UserDefaultsCache<[Entitlement]>,
-                subscriptionAPIService: SubscriptionEndpointService,
-                authAPIService: AuthEndpointService) {
+                subscriptionEndpointService: SubscriptionEndpointService,
+                authEndpointService: AuthEndpointService) {
         self.storage = storage
         self.entitlementsCache = entitlementsCache
         self.accessTokenStorage = accessTokenStorage
-        self.subscriptionAPIService = subscriptionAPIService
-        self.authAPIService = authAPIService
+        self.subscriptionEndpointService = subscriptionEndpointService
+        self.authEndpointService = authEndpointService
     }
 
     // MARK: -
@@ -204,7 +204,7 @@ public final class DefaultAccountManager: AccountManager {
         do {
             try storage.clearAuthenticationState()
             try accessTokenStorage.removeAccessToken()
-            subscriptionAPIService.signOut()
+            subscriptionEndpointService.signOut()
             entitlementsCache.reset()
         } catch {
             if let error = error as? AccountKeychainAccessError {
@@ -257,7 +257,7 @@ public final class DefaultAccountManager: AccountManager {
             return .failure(EntitlementsError.noAccessToken)
         }
 
-        switch await authAPIService.validateToken(accessToken: accessToken) {
+        switch await authEndpointService.validateToken(accessToken: accessToken) {
         case .success(let response):
             let entitlements = response.account.entitlements
             updateCache(with: entitlements)
@@ -312,7 +312,7 @@ public final class DefaultAccountManager: AccountManager {
     }
 
     public func exchangeAuthTokenToAccessToken(_ authToken: String) async -> Result<String, Error> {
-        switch await authAPIService.getAccessToken(token: authToken) {
+        switch await authEndpointService.getAccessToken(token: authToken) {
         case .success(let response):
             return .success(response.accessToken)
         case .failure(let error):
@@ -322,7 +322,7 @@ public final class DefaultAccountManager: AccountManager {
     }
 
     public func fetchAccountDetails(with accessToken: String) async -> Result<AccountDetails, Error> {
-        switch await authAPIService.validateToken(accessToken: accessToken) {
+        switch await authEndpointService.validateToken(accessToken: accessToken) {
         case .success(let response):
             return .success(AccountDetails(email: response.account.email, externalID: response.account.externalID))
         case .failure(let error):
@@ -335,12 +335,12 @@ public final class DefaultAccountManager: AccountManager {
         os_log(.info, log: .subscription, "[AccountManager] refreshSubscriptionAndEntitlements")
 
         guard let token = accessToken else {
-            subscriptionAPIService.signOut()
+            subscriptionEndpointService.signOut()
             entitlementsCache.reset()
             return
         }
 
-        if case .success(let subscription) = await subscriptionAPIService.getSubscription(accessToken: token, cachePolicy: .reloadIgnoringLocalCacheData) {
+        if case .success(let subscription) = await subscriptionEndpointService.getSubscription(accessToken: token, cachePolicy: .reloadIgnoringLocalCacheData) {
             if !subscription.isActive {
                 signOut()
             }

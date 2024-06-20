@@ -22,8 +22,8 @@ import Common
 public protocol SubscriptionManager {
 
     var accountManager: AccountManager { get }
-    var subscriptionAPIService: SubscriptionEndpointService { get }
-    var authAPIService: AuthEndpointService { get }
+    var subscriptionEndpointService: SubscriptionEndpointService { get }
+    var authEndpointService: AuthEndpointService { get }
     var currentEnvironment: SubscriptionEnvironment { get }
     var canPurchase: Bool { get }
     @available(macOS 12.0, iOS 15.0, *) func storePurchaseManager() -> StorePurchaseManager
@@ -38,20 +38,20 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     private let _storePurchaseManager: StorePurchaseManager?
 
     public let accountManager: AccountManager
-    public let subscriptionAPIService: SubscriptionEndpointService
-    public let authAPIService: AuthEndpointService
+    public let subscriptionEndpointService: SubscriptionEndpointService
+    public let authEndpointService: AuthEndpointService
     public let currentEnvironment: SubscriptionEnvironment
     public private(set) var canPurchase: Bool = false
 
     public init(storePurchaseManager: StorePurchaseManager? = nil,
                 accountManager: AccountManager,
-                subscriptionAPIService: SubscriptionEndpointService,
-                authAPIService: AuthEndpointService,
+                subscriptionEndpointService: SubscriptionEndpointService,
+                authEndpointService: AuthEndpointService,
                 subscriptionEnvironment: SubscriptionEnvironment) {
         self._storePurchaseManager = storePurchaseManager
         self.accountManager = accountManager
-        self.subscriptionAPIService = subscriptionAPIService
-        self.authAPIService = authAPIService
+        self.subscriptionEndpointService = subscriptionEndpointService
+        self.authEndpointService = authEndpointService
         self.currentEnvironment = subscriptionEnvironment
         switch currentEnvironment.purchasePlatform {
         case .appStore:
@@ -101,7 +101,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
 
     private func setupForStripe() {
         Task {
-            if case let .success(products) = await subscriptionAPIService.getProducts() {
+            if case let .success(products) = await subscriptionEndpointService.getProducts() {
                 canPurchase = !products.isEmpty
             }
         }
@@ -112,7 +112,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     public func loadInitialData() {
         Task {
             if let token = accountManager.accessToken {
-                _ = await subscriptionAPIService.getSubscription(accessToken: token, cachePolicy: .reloadIgnoringLocalCacheData)
+                _ = await subscriptionEndpointService.getSubscription(accessToken: token, cachePolicy: .reloadIgnoringLocalCacheData)
                 _ = await accountManager.fetchEntitlements(cachePolicy: .reloadIgnoringLocalCacheData)
             }
         }
@@ -122,7 +122,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
         Task {
            guard let token = accountManager.accessToken else { return }
 
-            if case .success(let subscription) = await subscriptionAPIService.getSubscription(accessToken: token, cachePolicy: .reloadIgnoringLocalCacheData) {
+            if case .success(let subscription) = await subscriptionEndpointService.getSubscription(accessToken: token, cachePolicy: .reloadIgnoringLocalCacheData) {
                 completion(subscription.isActive)
             }
 
