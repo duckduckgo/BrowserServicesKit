@@ -41,27 +41,27 @@ final class SuggestionProcessing {
 
         // Get domain suggestions from the DuckDuckGo Suggestions section (for the Top Hits section)
         let duckDuckGoDomainSuggestions = duckDuckGoSuggestions.compactMap { suggestion -> Suggestion? in
-            guard case let .phrase(phrase) = suggestion, let url = urlFactory(phrase) else {
-                return nil
+            // The JSON response tells us explicitly what is navigational now, so we only need to find website suggestions here
+            if case .website = suggestion {
+                return suggestion
             }
-
-            return Suggestion(url: url)
+            return nil
         }
 
         // Get best matches from history and bookmarks
         let allLocalSuggestions = localSuggestions(from: history, bookmarks: bookmarks, internalPages: internalPages, query: query)
 
         // Combine HaB and domains into navigational suggestions and remove duplicates
-        var navigationalSuggestions = allLocalSuggestions + duckDuckGoDomainSuggestions
+        let navigationalSuggestions = allLocalSuggestions + duckDuckGoDomainSuggestions
 
         let maximumOfNavigationalSuggestions = min(
             Self.maximumNumberOfSuggestions - Self.minimumNumberInSuggestionGroup,
             query.count + 1)
-        navigationalSuggestions = merge(navigationalSuggestions, maximum: maximumOfNavigationalSuggestions)
+        let mergedSuggestions = merge(navigationalSuggestions, maximum: maximumOfNavigationalSuggestions)
 
         // Split the Top Hits and the History and Bookmarks section
-        let topHits = topHits(from: navigationalSuggestions)
-        let localSuggestions = Array(navigationalSuggestions.dropFirst(topHits.count).filter { suggestion in
+        let topHits = topHits(from: mergedSuggestions)
+        let localSuggestions = Array(mergedSuggestions.dropFirst(topHits.count).filter { suggestion in
             switch suggestion {
             case .bookmark, .historyEntry, .internalPage:
                 return true
@@ -70,17 +70,34 @@ final class SuggestionProcessing {
             }
         })
 
+        let dedupedDuckDuckGoSuggestions = removeDuplicateWebsiteSuggestions(in: topHits, from: duckDuckGoSuggestions)
+
         return makeResult(topHits: topHits,
-                          duckduckgoSuggestions: duckDuckGoSuggestions,
+                          duckduckgoSuggestions: dedupedDuckDuckGoSuggestions,
                           localSuggestions: localSuggestions)
+    }
+
+    private func removeDuplicateWebsiteSuggestions(in sourceSuggestions: [Suggestion], from targetSuggestions: [Suggestion]) -> [Suggestion] {
+        return targetSuggestions.compactMap { targetSuggestion in
+            if case .website = targetSuggestion, sourceSuggestions.contains(where: {
+                targetSuggestion == $0
+            }) {
+                return nil
+            }
+            return targetSuggestion
+        }
     }
 
     // MARK: - DuckDuckGo Suggestions
 
     private func duckDuckGoSuggestions(from result: APIResult?) throws -> [Suggestion]? {
         return result?.items
-            .joined()
-            .map { Suggestion(key: $0.key, value: $0.value) }
+            .compactMap {
+                guard let phrase = $0.phrase else {
+                    return nil
+                }
+                return Suggestion(phrase: phrase, isNav: $0.isNav ?? false)
+            }
     }
 
     // MARK: - History and Bookmarks
@@ -157,11 +174,18 @@ final class SuggestionProcessing {
                 if case .bookmark = $0, $0.url?.naked == nakedUrl { return true }
                 return false
             }), case let Suggestion.bookmark(title: title, url: url, isFavorite: isFavorite, allowedInTopHits: _) = newSuggestion {
+                #if os(macOS)
                 // Copy allowedInTopHits from original suggestion
                 return Suggestion.bookmark(title: title,
                                            url: url,
                                            isFavorite: isFavorite,
                                            allowedInTopHits: historySuggestion.allowedInTopHits)
+                #else
+                return Suggestion.bookmark(title: title,
+                                           url: url,
+                                           isFavorite: isFavorite,
+                                           allowedInTopHits: true)
+                #endif
             } else {
                 return nil
             }
@@ -178,10 +202,17 @@ final class SuggestionProcessing {
                 if case .historyEntry = $0, $0.url?.naked == nakedUrl { return true }
                 return false
             }), historySuggestion.allowedInTopHits {
+                #if os(macOS)
                 return Suggestion.bookmark(title: title,
                                            url: url,
                                            isFavorite: isFavorite,
                                            allowedInTopHits: historySuggestion.allowedInTopHits)
+                #else
+                return Suggestion.bookmark(title: title,
+                                           url: url,
+                                           isFavorite: isFavorite,
+                                           allowedInTopHits: true)
+                #endif
             } else {
                 return nil
             }

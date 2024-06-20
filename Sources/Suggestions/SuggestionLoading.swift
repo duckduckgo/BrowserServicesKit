@@ -74,7 +74,9 @@ public class SuggestionLoader: SuggestionLoading {
             group.enter()
             dataSource.suggestionLoading(self,
                                          suggestionDataFromUrl: Self.remoteSuggestionsUrl,
-                                         withParameters: [Self.searchParameter: query]) { data, error in
+                                         withParameters: [ Self.searchParameter: query,
+                                                           "is_nav": "1", // Enables is_nav in the JSON response
+                                                         ]) { data, error in
                 defer { group.leave() }
                 guard let data = data else {
                     apiError = error

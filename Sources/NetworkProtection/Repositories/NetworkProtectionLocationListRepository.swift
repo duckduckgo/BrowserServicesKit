@@ -55,6 +55,7 @@ final public class NetworkProtectionLocationListCompositeRepository: NetworkProt
     }
 
     @MainActor
+    @discardableResult
     public func fetchLocationList() async throws -> [NetworkProtectionLocation] {
         guard !canUseCache else {
             return Self.locationList

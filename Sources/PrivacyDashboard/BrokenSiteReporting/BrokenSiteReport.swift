@@ -41,6 +41,8 @@ public struct BrokenSiteReport {
         case onProtectionsOffDashboard
         /// From the 'Site Not Working?' prompt that appears on various events
         case prompt(String)
+        /// From the prompt that appears after user toggled off protections which asks if it helped
+        case afterTogglePrompt
 
         public var rawValue: String {
             switch self {
@@ -49,6 +51,7 @@ public struct BrokenSiteReport {
             case .onProtectionsOffMenu: return "on_protections_off_menu"
             case .onProtectionsOffDashboard: return "on_protections_off_dashboard_main"
             case .prompt(let event): return event
+            case .afterTogglePrompt: return "after_toggle_prompt"
             }
         }
 
@@ -98,6 +101,7 @@ public struct BrokenSiteReport {
     let siteType: SiteType
     let atb: String
     let model: String
+    let variant: String
 #endif
 
 #if os(macOS)
@@ -176,7 +180,8 @@ public struct BrokenSiteReport {
         jsPerformance: [Double]?,
         userRefreshCount: Int,
         didOpenReportInfo: Bool,
-        toggleReportCounter: Int?
+        toggleReportCounter: Int?,
+        variant: String
     ) {
         self.siteUrl = siteUrl
         self.category = category
@@ -203,6 +208,7 @@ public struct BrokenSiteReport {
         self.userRefreshCount = userRefreshCount
         self.didOpenReportInfo = didOpenReportInfo
         self.toggleReportCounter = toggleReportCounter
+        self.variant = variant
     }
 #endif
 
@@ -260,6 +266,7 @@ public struct BrokenSiteReport {
         result["siteType"] = siteType.rawValue
         result["atb"] = atb
         result["model"] = model
+        result["variant"] = variant
 #endif
         return result
     }

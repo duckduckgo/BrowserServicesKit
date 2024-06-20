@@ -128,4 +128,23 @@ final class AutofillKeyStoreProviderTests: XCTestCase {
             XCTAssertEqual(keychainService.latestAddQuery[kSecAttrService as String] as! String, AutofillKeyStoreProvider.Constants.v3ServiceName)
         }
     }
+
+    func testWhenWriteData_correctKeychainAccessibilityValueIsUsed() throws {
+        try AutofillKeyStoreProvider.EntryName.allCases.forEach { entry in
+            // Given
+            let originalString = "Mock Keychain data!"
+            let data = originalString.data(using: .utf8)!
+            let encodedString = data.base64EncodedString()
+            let mockData = encodedString.data(using: .utf8)!
+            let keychainService = MockKeychainService()
+            let sut = AutofillKeyStoreProvider(keychainService: keychainService)
+
+            // When
+            _ = try sut.writeData(mockData, named: entry.keychainIdentifier, serviceName: sut.keychainServiceName)
+
+            // Then
+            XCTAssertEqual(keychainService.addCallCount, 1)
+            XCTAssertEqual(keychainService.latestAddQuery[kSecAttrAccessible as String] as! String, kSecAttrAccessibleWhenUnlocked as String)
+        }
+    }
 }

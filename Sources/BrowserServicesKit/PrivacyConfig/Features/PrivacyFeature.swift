@@ -28,7 +28,7 @@ public enum PrivacyFeature: String {
     case gpc
     case httpsUpgrade = "https"
     case autoconsent
-    case clickToPlay
+    case clickToLoad
     case autofill
     case ampLinks
     case trackingParameters
@@ -39,7 +39,6 @@ public enum PrivacyFeature: String {
     case windowsDownloadLink
     case incontextSignup
     case newTabContinueSetUp
-    case networkProtection
     case dbp
     case sync
     case privacyDashboard
@@ -47,6 +46,7 @@ public enum PrivacyFeature: String {
     case performanceMetrics
     case privacyPro
     case sslCertificates
+    case brokenSiteReportExperiment
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -69,15 +69,6 @@ public enum AutofillSubfeature: String, PrivacySubfeature {
     case accessCredentialManagement
     case autofillPasswordGeneration
     case onByDefault
-}
-
-public enum NetworkProtectionSubfeature: String, Equatable, PrivacySubfeature {
-    public var parent: PrivacyFeature {
-        .networkProtection
-    }
-
-    case waitlist
-    case waitlistBetaActive
 }
 
 public enum DBPSubfeature: String, Equatable, PrivacySubfeature {
@@ -130,4 +121,9 @@ public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {
 public enum sslCertificatesSubfeature: String, PrivacySubfeature {
     public var parent: PrivacyFeature { .sslCertificates }
     case allowBypass
+}
+
+public enum DuckPlayerSubfeature: String, PrivacySubfeature {
+    public var parent: PrivacyFeature { .duckPlayer }
+    case pip
 }

@@ -90,9 +90,9 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
             content: .promoSingleAction(
                 titleText: "Survey Title",
                 descriptionText: "Survey Description",
-                placeholder: .vpnAnnounce,
+                placeholder: .privacyShield,
                 actionText: "Survey Action",
-                action: .surveyURL(value: "https://duckduckgo.com/survey")
+                action: .survey(value: "https://duckduckgo.com/survey")
             ),
             matchingRules: [8],
             exclusionRules: [])
@@ -102,7 +102,7 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
 
     func testWhenValidJsonParsedThenRulesMappedIntoRemoteConfig() throws {
         let config = try decodeAndMapJson(fileName: "Resources/remote-messaging-config.json")
-        XCTAssertTrue(config.rules.count == 5)
+        XCTAssertTrue(config.rules.count == 6)
 
         let rule5 = config.rules.filter { $0.id == 5 }.first
         XCTAssertNotNil(rule5)
@@ -131,20 +131,60 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
         let rule8 = config.rules.filter { $0.id == 8 }.first
         XCTAssertNotNil(rule8)
         XCTAssertNil(rule8?.targetPercentile)
-        XCTAssertTrue(rule8?.attributes.count == 2)
+        XCTAssertTrue(rule8?.attributes.count == 7)
+
         attribs = rule8?.attributes.filter { $0 is DaysSinceNetPEnabledMatchingAttribute }
         XCTAssertEqual(attribs?.count, 1)
         XCTAssertEqual(attribs?.first as? DaysSinceNetPEnabledMatchingAttribute, DaysSinceNetPEnabledMatchingAttribute(min: 5, fallback: nil))
 
-        attribs = rule8?.attributes.filter { $0 is IsNetPWaitlistUserMatchingAttribute }
+        attribs = rule8?.attributes.filter { $0 is IsPrivacyProEligibleUserMatchingAttribute }
         XCTAssertEqual(attribs?.count, 1)
-        XCTAssertEqual(attribs?.first as? IsNetPWaitlistUserMatchingAttribute, IsNetPWaitlistUserMatchingAttribute(value: true, fallback: nil))
+        XCTAssertEqual(
+            attribs?.first as? IsPrivacyProEligibleUserMatchingAttribute,
+            IsPrivacyProEligibleUserMatchingAttribute(value: true, fallback: nil)
+        )
+
+        attribs = rule8?.attributes.filter { $0 is IsPrivacyProSubscriberUserMatchingAttribute }
+        XCTAssertEqual(attribs?.count, 1)
+        XCTAssertEqual(
+            attribs?.first as? IsPrivacyProSubscriberUserMatchingAttribute,
+            IsPrivacyProSubscriberUserMatchingAttribute(value: true, fallback: nil)
+        )
+
+        attribs = rule8?.attributes.filter { $0 is PrivacyProDaysSinceSubscribedMatchingAttribute }
+        XCTAssertEqual(attribs?.first as? PrivacyProDaysSinceSubscribedMatchingAttribute, PrivacyProDaysSinceSubscribedMatchingAttribute(
+            min: 5, max: 8, fallback: nil
+        ))
+
+        attribs = rule8?.attributes.filter { $0 is PrivacyProDaysUntilExpiryMatchingAttribute }
+        XCTAssertEqual(attribs?.first as? PrivacyProDaysUntilExpiryMatchingAttribute, PrivacyProDaysUntilExpiryMatchingAttribute(
+            min: 25, max: 30, fallback: nil
+        ))
+
+        attribs = rule8?.attributes.filter { $0 is PrivacyProPurchasePlatformMatchingAttribute }
+        XCTAssertEqual(attribs?.first as? PrivacyProPurchasePlatformMatchingAttribute, PrivacyProPurchasePlatformMatchingAttribute(
+            value: ["apple", "stripe"], fallback: nil
+        ))
+
+        attribs = rule8?.attributes.filter { $0 is PrivacyProSubscriptionStatusMatchingAttribute }
+        XCTAssertEqual(attribs?.first as? PrivacyProSubscriptionStatusMatchingAttribute, PrivacyProSubscriptionStatusMatchingAttribute(
+            value: "active", fallback: nil
+        ))
 
         let rule9 = config.rules.filter { $0.id == 9 }.first
         XCTAssertNotNil(rule9)
         XCTAssertNotNil(rule9?.targetPercentile)
         XCTAssertTrue(rule9?.attributes.count == 1)
         XCTAssertEqual(rule9?.targetPercentile?.before, 0.9)
+
+        let rule10 = config.rules.filter { $0.id == 10 }.first
+        XCTAssertNotNil(rule10)
+        XCTAssertNil(rule10?.targetPercentile)
+        XCTAssertTrue(rule10?.attributes.count == 1)
+
+        attribs = rule10?.attributes.filter { $0 is InteractedWithMessageMatchingAttribute }
+        XCTAssertEqual(attribs?.first as? InteractedWithMessageMatchingAttribute, InteractedWithMessageMatchingAttribute(value: ["One", "Two"], fallback: nil))
+
     }
 
     func testWhenJsonMessagesHaveUnknownTypesThenMessagesNotMappedIntoConfig() throws {
@@ -173,8 +213,9 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
     func testWhenJsonAttributeMissingThenUnknownIntoConfig() throws {
         let validJson = data.fromJsonFile("Resources/remote-messaging-config-malformed.json")
         let remoteMessagingConfig = try JSONDecoder().decode(RemoteMessageResponse.JsonRemoteMessagingConfig.self, from: validJson)
+        let surveyMapper = MockRemoteMessageSurveyActionMapper()
         XCTAssertNotNil(remoteMessagingConfig)
-        let config = JsonToRemoteConfigModelMapper.mapJson(remoteMessagingConfig: remoteMessagingConfig)
+        let config = JsonToRemoteConfigModelMapper.mapJson(remoteMessagingConfig: remoteMessagingConfig, surveyActionMapper: surveyMapper)
         XCTAssertTrue(config.rules.count == 2)
 
         let rule6 = config.rules.filter { $0.id == 6 }.first
@@ -187,9 +228,10 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
     func decodeAndMapJson(fileName: String) throws -> RemoteConfigModel {
         let validJson = data.fromJsonFile(fileName)
         let remoteMessagingConfig = try JSONDecoder().decode(RemoteMessageResponse.JsonRemoteMessagingConfig.self, from: validJson)
+        let surveyMapper = MockRemoteMessageSurveyActionMapper()
         XCTAssertNotNil(remoteMessagingConfig)
 
-        let config = JsonToRemoteConfigModelMapper.mapJson(remoteMessagingConfig: remoteMessagingConfig)
+        let config = JsonToRemoteConfigModelMapper.mapJson(remoteMessagingConfig: remoteMessagingConfig, surveyActionMapper: surveyMapper)
         XCTAssertNotNil(config)
         return config
     }

@@ -27,4 +27,9 @@ public extension NSNotification.Name {
     static let openVPN = Notification.Name("com.duckduckgo.subscription.open.vpn")
     static let openPersonalInformationRemoval = Notification.Name("com.duckduckgo.subscription.open.personal-information-removal")
     static let openIdentityTheftRestoration = Notification.Name("com.duckduckgo.subscription.open.identity-theft-restoration")
+
+    static let accountDidSignIn = Notification.Name("com.duckduckgo.subscription.AccountDidSignIn")
+    static let accountDidSignOut = Notification.Name("com.duckduckgo.subscription.AccountDidSignOut")
+    static let entitlementsDidChange = Notification.Name("com.duckduckgo.subscription.EntitlementsDidChange")
+    static let subscriptionDidChange = Notification.Name("com.duckduckgo.subscription.SubscriptionDidChange")
 }

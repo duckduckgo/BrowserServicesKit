@@ -41,6 +41,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         case reportLatency(result: NetworkProtectionLatencyMonitor.Result)
         case rekeyAttempt(_ step: RekeyAttemptStep)
         case failureRecoveryAttempt(_ step: FailureRecoveryStep)
+        case serverMigrationAttempt(_ step: ServerMigrationAttemptStep)
     }
 
     public enum AttemptStep {
@@ -54,6 +55,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     public typealias TunnelUpdateAttemptStep = AttemptStep
     public typealias TunnelWakeAttemptStep = AttemptStep
     public typealias RekeyAttemptStep = AttemptStep
+    public typealias ServerMigrationAttemptStep = AttemptStep
 
     public enum ConnectionAttempt {
         case connecting
@@ -63,7 +65,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Error Handling
 
-    enum TunnelError: LocalizedError, CustomNSError {
+    public enum TunnelError: LocalizedError, CustomNSError, SilentErrorConvertible {
         // Tunnel Setup Errors - 0+
         case startingTunnelWithoutAuthToken
         case couldNotGenerateTunnelConfiguration(internalError: Error)
@@ -72,7 +74,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         // Subscription Errors - 100+
         case vpnAccessRevoked
 
-        var errorDescription: String? {
+        public var errorDescription: String? {
             switch self {
             case .startingTunnelWithoutAuthToken:
                 return "Missing auth token at startup"
@@ -85,7 +87,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             }
         }
 
-        var errorCode: Int {
+        public var errorCode: Int {
             switch self {
                 // Tunnel Setup Errors - 0+
             case .startingTunnelWithoutAuthToken: return 0
@@ -96,7 +98,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             }
         }
 
-        var errorUserInfo: [String: Any] {
+        public var errorUserInfo: [String: Any] {
             switch self {
             case .startingTunnelWithoutAuthToken,
                     .simulateTunnelFailureError,
@@ -105,6 +107,16 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             case .couldNotGenerateTunnelConfiguration(let underlyingError):
                 return [NSUnderlyingErrorKey: underlyingError]
             }
+        }
+
+        public var asSilentError: KnownFailure.SilentError? {
+            guard case .couldNotGenerateTunnelConfiguration(let internalError) = self,
+                  let clientError = internalError as? NetworkProtectionClientError,
+                  case .failedToFetchRegisteredServers = clientError else {
+                return nil
+            }
+
+            return .registeredServerFetchingFailed
         }
     }
 
@@ -330,11 +342,19 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     public lazy var latencyMonitor = NetworkProtectionLatencyMonitor()
     public lazy var entitlementMonitor = NetworkProtectionEntitlementMonitor()
+    public lazy var serverStatusMonitor = NetworkProtectionServerStatusMonitor(
+        networkClient: NetworkProtectionBackendClient(
+            environment: self.settings.selectedEnvironment,
+            isSubscriptionEnabled: true
+        ),
+        tokenStore: self.tokenStore
+    )
 
     private var lastTestFailed = false
     private let bandwidthAnalyzer = NetworkProtectionConnectionBandwidthAnalyzer()
     private let tunnelHealth: NetworkProtectionTunnelHealthStore
     private let controllerErrorStore: NetworkProtectionTunnelErrorStore
+    private let knownFailureStore: NetworkProtectionKnownFailureStore
 
     // MARK: - Cancellables
 
@@ -352,6 +372,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     public init(notificationsPresenter: NetworkProtectionNotificationsPresenter,
                 tunnelHealthStore: NetworkProtectionTunnelHealthStore,
                 controllerErrorStore: NetworkProtectionTunnelErrorStore,
+                knownFailureStore: NetworkProtectionKnownFailureStore = NetworkProtectionKnownFailureStore(),
                 keychainType: KeychainType,
                 tokenStore: NetworkProtectionTokenStore,
                 debugEvents: EventMapping<NetworkProtectionError>?,
@@ -369,6 +390,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         self.providerEvents = providerEvents
         self.tunnelHealth = tunnelHealthStore
         self.controllerErrorStore = controllerErrorStore
+        self.knownFailureStore = knownFailureStore
         self.settings = settings
         self.defaults = defaults
         self.isSubscriptionEnabled = isSubscriptionEnabled
@@ -418,7 +440,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         loadSelectedServer(from: options)
         loadSelectedLocation(from: options)
         loadTesterEnabled(from: options)
+#if os(macOS)
         try loadAuthToken(from: options)
+#endif
     }
 
     open func loadVendorOptions(from provider: NETunnelProviderProtocol?) throws {
@@ -482,6 +506,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
+#if os(macOS)
     private func loadAuthToken(from options: StartupOptions) throws {
         switch options.authToken {
         case .set(let newAuthToken):
@@ -499,6 +524,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             throw TunnelError.startingTunnelWithoutAuthToken
         }
     }
+#endif
 
     private func loadRoutes(from options: [String: Any]?) {
         self.includedRoutes = (options?[NetworkProtectionOptionKey.includedRoutes] as? [String])?.compactMap(IPAddressRange.init(from:)) ?? []
@@ -563,6 +589,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                     os_log("Tunnel startup error: %{public}@", type: .error, errorDescription)
                     self?.controllerErrorStore.lastErrorMessage = errorDescription
                     self?.connectionStatus = .disconnected
+                    self?.knownFailureStore.lastKnownFailure = KnownFailure(error)
 
                     providerEvents.fire(.tunnelStartAttempt(.failure(error)))
                     completionHandler(error)
@@ -669,10 +696,12 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                     try await self.handleAdapterStarted(startReason: startReason)
 
                     // Enable Connect on Demand when manually enabling the tunnel on iOS 17.0+.
+#if os(iOS)
                     if #available(iOS 17.0, *), startReason == .manual {
                         try? await updateConnectOnDemand(enabled: true)
                         os_log("Enabled Connect on Demand due to user-initiated startup", log: .networkProtection, type: .info)
                     }
+#endif
                 } catch {
                     self.cancelTunnelWithError(error)
                     return
@@ -1048,7 +1077,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private func handleResetAllState(completionHandler: ((Data?) -> Void)? = nil) {
         resetRegistrationKey()
 
+#if os(macOS)
         try? tokenStore.deleteToken()
+#endif
 
         // This is not really an error, we received a command to reset the connection
         cancelTunnelWithError(nil)
@@ -1354,6 +1385,31 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
+    private func startServerStatusMonitor() async {
+        guard let serverName = await lastSelectedServerInfo?.name else {
+            await serverStatusMonitor.stop()
+            return
+        }
+
+        if await serverStatusMonitor.isStarted {
+            await serverStatusMonitor.stop()
+        }
+
+        await serverStatusMonitor.start(serverName: serverName) { status in
+            if status.shouldMigrate {
+                Task {
+                    self.providerEvents.fire(.serverMigrationAttempt(.begin))
+                    do {
+                        try await self.updateTunnelConfiguration(reassert: true, regenerateKey: true)
+                        self.providerEvents.fire(.serverMigrationAttempt(.success))
+                    } catch {
+                        self.providerEvents.fire(.serverMigrationAttempt(.failure(error)))
+                    }
+                }
+            }
+        }
+    }
+
     @MainActor
     private func handleInvalidEntitlement(attemptsShutdown: Bool) async {
         defaults.enableEntitlementMessaging()
@@ -1386,6 +1442,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         await startTunnelFailureMonitor()
         await startLatencyMonitor()
         await startEntitlementMonitor()
+        await startServerStatusMonitor()
 
         do {
             try await startConnectionTester(testImmediately: testImmediately)
@@ -1401,6 +1458,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         await self.tunnelFailureMonitor.stop()
         await self.latencyMonitor.stop()
         await self.entitlementMonitor.stop()
+        await self.serverStatusMonitor.stop()
     }
 
     // MARK: - Entitlement handling
@@ -1450,6 +1508,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         await tunnelFailureMonitor.stop()
         await latencyMonitor.stop()
         await entitlementMonitor.stop()
+        await serverStatusMonitor.stop()
     }
 
     public override func wake() {

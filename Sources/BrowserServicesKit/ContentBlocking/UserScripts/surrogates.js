@@ -18,6 +18,9 @@
 //
 
 (function () {
+
+    let ctlSurrogates = ['fb-sdk.js']
+
     const duckduckgoDebugMessaging = (function () {
         let log = () => {}
         let signpostEvent = () => {}
@@ -41,6 +44,15 @@
             log
         }
     }())
+
+    async function isCTLEnabled () {
+        try {
+            const response = await webkit.messageHandlers.isCTLEnabled.postMessage('') // message body required but ignored
+            return response
+        } catch (error) {
+            // webkit might not be defined
+        }
+    }
 
     function surrogateInjected (data) {
         try {
@@ -472,9 +484,8 @@
     }
 
     // public
-    function shouldBlock (trackerUrl, type, element) {
+    async function shouldBlock (trackerUrl, type, element) {
         const startTime = performance.now()
-
         if (!blockingEnabled) {
             return false
         }
@@ -498,54 +509,62 @@
 
         const isSurrogate = !!(result.matchedRule && result.matchedRule.surrogate)
 
-        // Tracker blocking is dealt with by content rules
-        // Only handle surrogates here
-        if (blocked && isSurrogate && !isTrackerAllowlisted(topLevelUrl, trackerUrl)) {
-            // Remove error handlers on the original element
-            if (element && element.onerror) {
-                element.onerror = () => {}
-            }
-            try {
-                loadSurrogate(result.matchedRule.surrogate)
-                // Trigger a load event on the original element
-                if (element && element.onload) {
-                    element.onload(new Event('load'))
+        // set flag for CTL enable check if request is blocked and matches a CTL surrogate
+        const isCTLSurrogate = blocked && isSurrogate && ctlSurrogates.includes(result.matchedRule.surrogate)
+
+        // if a CTL surrogate, check if CTL is enabled first otherwise continue immediately
+        const promise = isCTLSurrogate ? isCTLEnabled() : Promise.resolve(true)
+
+        return promise.then ((surrogateEnabled) => {
+            // Tracker blocking is dealt with by content rules
+            // Only handle surrogates here
+            if (blocked && isSurrogate && !isTrackerAllowlisted(topLevelUrl, trackerUrl) && surrogateEnabled) {
+                // Remove error handlers on the original element
+                if (element && element.onerror) {
+                    element.onerror = () => {}
                 }
-            } catch (e) {
-                duckduckgoDebugMessaging.log(`error loading surrogate: ${e.toString()}`)
+                try {
+                    loadSurrogate(result.matchedRule.surrogate)
+                    // Trigger a load event on the original element
+                    if (element && element.onload) {
+                        element.onload(new Event('load'))
+                    }
+                } catch (e) {
+                    duckduckgoDebugMessaging.log(`error loading surrogate: ${e.toString()}`)
+                }
+                const pageUrl = window.location.href
+                surrogateInjected({
+                    url: trackerUrl,
+                    blocked: blocked,
+                    reason: result.reason,
+                    isSurrogate: isSurrogate,
+                    pageUrl: pageUrl
+                })
+
+                duckduckgoDebugMessaging.signpostEvent({
+                    event: 'Surrogate Injected',
+                    url: trackerUrl,
+                    time: performance.now() - startTime
+                })
+
+                return true
             }
-            const pageUrl = window.location.href
-            surrogateInjected({
-                url: trackerUrl,
-                blocked: blocked,
-                reason: result.reason,
-                isSurrogate: isSurrogate,
-                pageUrl: pageUrl
-            })
 
-            duckduckgoDebugMessaging.signpostEvent({
-                event: 'Surrogate Injected',
-                url: trackerUrl,
-                time: performance.now() - startTime
-            })
-
-            return true
-        }
-
-        return false
+            return false
+        })
     }
 
-    const observer = new MutationObserver((records) => {
+    const observer = new MutationObserver(async (records) => {
         for (const record of records) {
-            record.addedNodes.forEach((node) => {
+            record.addedNodes.forEach(async (node) => {
                 if (node instanceof HTMLScriptElement) {
-                    if (shouldBlock(node.src, 'script', node)) {
+                    if (await shouldBlock(node.src, 'script', node)) {
                         duckduckgoDebugMessaging.log('blocking load')
                     }
                 }
             })
             if (record.target instanceof HTMLScriptElement) {
-                if (shouldBlock(record.target.src, 'script', record.target)) {
+                if (await shouldBlock(record.target.src, 'script', record.target)) {
                     duckduckgoDebugMessaging.log('blocking load')
                 }
             }
@@ -553,8 +572,8 @@
     })
     const rootElement = document.body || document.documentElement
     observer.observe(rootElement, {
-        childList: true, 
-        subtree: true, 
+        childList: true,
+        subtree: true,
         attributeFilter: ['src']
     });
 

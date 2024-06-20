@@ -22,6 +22,12 @@ import BrowserServicesKit
 
 public struct UserAttributeMatcher: AttributeMatcher {
 
+    private enum PrivacyProSubscriptionStatus: String {
+        case active
+        case expiring
+        case expired
+    }
+
     private let statisticsStore: StatisticsStore
     private let variantManager: VariantManager
     private let emailManager: EmailManager
@@ -29,8 +35,16 @@ public struct UserAttributeMatcher: AttributeMatcher {
     private let bookmarksCount: Int
     private let favoritesCount: Int
     private let isWidgetInstalled: Bool
-    private let isNetPWaitlistUser: Bool
     private let daysSinceNetPEnabled: Int
+    private let isPrivacyProEligibleUser: Bool
+    private let isPrivacyProSubscriber: Bool
+    private let privacyProDaysSinceSubscribed: Int
+    private let privacyProDaysUntilExpiry: Int
+    private let privacyProPurchasePlatform: String?
+    private let isPrivacyProSubscriptionActive: Bool
+    private let isPrivacyProSubscriptionExpiring: Bool
+    private let isPrivacyProSubscriptionExpired: Bool
+    private let dismissedMessageIds: [String]
 
     public init(statisticsStore: StatisticsStore,
                 variantManager: VariantManager,
@@ -39,8 +53,16 @@ public struct UserAttributeMatcher: AttributeMatcher {
                 favoritesCount: Int,
                 appTheme: String,
                 isWidgetInstalled: Bool,
-                isNetPWaitlistUser: Bool,
-                daysSinceNetPEnabled: Int
+                daysSinceNetPEnabled: Int,
+                isPrivacyProEligibleUser: Bool,
+                isPrivacyProSubscriber: Bool,
+                privacyProDaysSinceSubscribed: Int,
+                privacyProDaysUntilExpiry: Int,
+                privacyProPurchasePlatform: String?,
+                isPrivacyProSubscriptionActive: Bool,
+                isPrivacyProSubscriptionExpiring: Bool,
+                isPrivacyProSubscriptionExpired: Bool,
+                dismissedMessageIds: [String]
 	) {
         self.statisticsStore = statisticsStore
         self.variantManager = variantManager
@@ -49,8 +71,16 @@ public struct UserAttributeMatcher: AttributeMatcher {
         self.bookmarksCount = bookmarksCount
         self.favoritesCount = favoritesCount
         self.isWidgetInstalled = isWidgetInstalled
-        self.isNetPWaitlistUser = isNetPWaitlistUser
         self.daysSinceNetPEnabled = daysSinceNetPEnabled
+        self.isPrivacyProEligibleUser = isPrivacyProEligibleUser
+        self.isPrivacyProSubscriber = isPrivacyProSubscriber
+        self.privacyProDaysSinceSubscribed = privacyProDaysSinceSubscribed
+        self.privacyProDaysUntilExpiry = privacyProDaysUntilExpiry
+        self.privacyProPurchasePlatform = privacyProPurchasePlatform
+        self.isPrivacyProSubscriptionActive = isPrivacyProSubscriptionActive
+        self.isPrivacyProSubscriptionExpiring = isPrivacyProSubscriptionExpiring
+        self.isPrivacyProSubscriptionExpired = isPrivacyProSubscriptionExpired
+        self.dismissedMessageIds = dismissedMessageIds
     }
 
     // swiftlint:disable:next cyclomatic_complexity function_body_length
@@ -97,17 +127,59 @@ public struct UserAttributeMatcher: AttributeMatcher {
             }
 
             return BooleanMatchingAttribute(value).matches(value: isWidgetInstalled)
-        case let matchingAttribute as IsNetPWaitlistUserMatchingAttribute:
-            guard let value = matchingAttribute.value else {
-                return .fail
-            }
-
-            return BooleanMatchingAttribute(value).matches(value: isNetPWaitlistUser)
         case let matchingAttribute as DaysSinceNetPEnabledMatchingAttribute:
             if matchingAttribute.value != MatchingAttributeDefaults.intDefaultValue {
                 return IntMatchingAttribute(matchingAttribute.value).matches(value: daysSinceNetPEnabled)
             } else {
                 return RangeIntMatchingAttribute(min: matchingAttribute.min, max: matchingAttribute.max).matches(value: daysSinceNetPEnabled)
+            }
+        case let matchingAttribute as IsPrivacyProEligibleUserMatchingAttribute:
+            guard let value = matchingAttribute.value else {
+                return .fail
+            }
+
+            return BooleanMatchingAttribute(value).matches(value: isPrivacyProEligibleUser)
+        case let matchingAttribute as IsPrivacyProSubscriberUserMatchingAttribute:
+            guard let value = matchingAttribute.value else {
+                return .fail
+            }
+
+            return BooleanMatchingAttribute(value).matches(value: isPrivacyProSubscriber)
+        case let matchingAttribute as PrivacyProDaysSinceSubscribedMatchingAttribute:
+            if matchingAttribute.value != MatchingAttributeDefaults.intDefaultValue {
+                return IntMatchingAttribute(matchingAttribute.value).matches(value: privacyProDaysSinceSubscribed)
+            } else {
+                return RangeIntMatchingAttribute(min: matchingAttribute.min, max: matchingAttribute.max).matches(value: privacyProDaysSinceSubscribed)
+            }
+        case let matchingAttribute as PrivacyProDaysUntilExpiryMatchingAttribute:
+            if matchingAttribute.value != MatchingAttributeDefaults.intDefaultValue {
+                return IntMatchingAttribute(matchingAttribute.value).matches(value: privacyProDaysUntilExpiry)
+            } else {
+                return RangeIntMatchingAttribute(min: matchingAttribute.min, max: matchingAttribute.max).matches(value: privacyProDaysUntilExpiry)
+            }
+        case let matchingAttribute as PrivacyProPurchasePlatformMatchingAttribute:
+            return StringArrayMatchingAttribute(matchingAttribute.value).matches(value: privacyProPurchasePlatform ?? "")
+        case let matchingAttribute as PrivacyProSubscriptionStatusMatchingAttribute:
+            guard let value = matchingAttribute.value else {
+                return .fail
+            }
+
+            guard let status = PrivacyProSubscriptionStatus(rawValue: value) else {
+                return .fail
+            }
+
+            switch status {
+            case .active: return isPrivacyProSubscriptionActive ? .match : .fail
+            case .expiring: return isPrivacyProSubscriptionExpiring ? .match : .fail
+            case .expired: return isPrivacyProSubscriptionExpired ? .match : .fail
+            }
+        case let matchingAttribute as InteractedWithMessageMatchingAttribute:
+            if dismissedMessageIds.contains(where: { messageId in
+                StringArrayMatchingAttribute(matchingAttribute.value).matches(value: messageId) == .match
+            }) {
+                return .match
+            } else {
+                return .fail
             }
         default:
             assertionFailure("Could not find matching attribute")

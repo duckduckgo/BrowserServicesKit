@@ -43,9 +43,18 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            favoritesCount: 0,
                                                            appTheme: "light",
                                                            isWidgetInstalled: false,
-                                                           isNetPWaitlistUser: false,
-                                                           daysSinceNetPEnabled: -1),
+                                                           daysSinceNetPEnabled: -1,
+                                                           isPrivacyProEligibleUser: false,
+                                                           isPrivacyProSubscriber: false,
+                                                           privacyProDaysSinceSubscribed: -1,
+                                                           privacyProDaysUntilExpiry: -1,
+                                                           privacyProPurchasePlatform: nil,
+                                                           isPrivacyProSubscriptionActive: false,
+                                                           isPrivacyProSubscriptionExpiring: false,
+                                                           isPrivacyProSubscriptionExpired: false,
+                                                           dismissedMessageIds: []),
                 percentileStore: MockRemoteMessagePercentileStore(),
+                surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
                 dismissedMessageIds: []
         )
     }
@@ -127,9 +136,18 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            favoritesCount: 0,
                                                            appTheme: "light",
                                                            isWidgetInstalled: false,
-                                                           isNetPWaitlistUser: false,
-                                                           daysSinceNetPEnabled: -1),
+                                                           daysSinceNetPEnabled: -1,
+                                                           isPrivacyProEligibleUser: false,
+                                                           isPrivacyProSubscriber: false,
+                                                           privacyProDaysSinceSubscribed: -1,
+                                                           privacyProDaysUntilExpiry: -1,
+                                                           privacyProPurchasePlatform: nil,
+                                                           isPrivacyProSubscriptionActive: false,
+                                                           isPrivacyProSubscriptionExpiring: false,
+                                                           isPrivacyProSubscriptionExpired: false,
+                                                           dismissedMessageIds: []),
                 percentileStore: MockRemoteMessagePercentileStore(),
+                surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
                 dismissedMessageIds: [])
 
         let remoteConfig = RemoteConfigModel(messages: [
@@ -221,9 +239,18 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            favoritesCount: 0,
                                                            appTheme: "light",
                                                            isWidgetInstalled: false,
-                                                           isNetPWaitlistUser: false,
-                                                           daysSinceNetPEnabled: -1),
+                                                           daysSinceNetPEnabled: -1,
+                                                           isPrivacyProEligibleUser: false,
+                                                           isPrivacyProSubscriber: false,
+                                                           privacyProDaysSinceSubscribed: -1,
+                                                           privacyProDaysUntilExpiry: -1,
+                                                           privacyProPurchasePlatform: nil,
+                                                           isPrivacyProSubscriptionActive: false,
+                                                           isPrivacyProSubscriptionExpiring: false,
+                                                           isPrivacyProSubscriptionExpired: false,
+                                                           dismissedMessageIds: []),
                 percentileStore: MockRemoteMessagePercentileStore(),
+                surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
                 dismissedMessageIds: ["1"])
 
         let remoteConfig = RemoteConfigModel(messages: [
@@ -258,9 +285,18 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            favoritesCount: 0,
                                                            appTheme: "light",
                                                            isWidgetInstalled: false,
-                                                           isNetPWaitlistUser: false,
-                                                           daysSinceNetPEnabled: -1),
+                                                           daysSinceNetPEnabled: -1,
+                                                           isPrivacyProEligibleUser: false,
+                                                           isPrivacyProSubscriber: false,
+                                                           privacyProDaysSinceSubscribed: -1,
+                                                           privacyProDaysUntilExpiry: -1,
+                                                           privacyProPurchasePlatform: nil,
+                                                           isPrivacyProSubscriptionActive: false,
+                                                           isPrivacyProSubscriptionExpiring: false,
+                                                           isPrivacyProSubscriptionExpired: false,
+                                                           dismissedMessageIds: []),
                 percentileStore: MockRemoteMessagePercentileStore(),
+                surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
                 dismissedMessageIds: [])
 
         let remoteConfig = RemoteConfigModel(messages: [
@@ -291,9 +327,18 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            favoritesCount: 0,
                                                            appTheme: "light",
                                                            isWidgetInstalled: false,
-                                                           isNetPWaitlistUser: false,
-                                                           daysSinceNetPEnabled: -1),
+                                                           daysSinceNetPEnabled: -1,
+                                                           isPrivacyProEligibleUser: false,
+                                                           isPrivacyProSubscriber: false,
+                                                           privacyProDaysSinceSubscribed: -1,
+                                                           privacyProDaysUntilExpiry: -1,
+                                                           privacyProPurchasePlatform: nil,
+                                                           isPrivacyProSubscriptionActive: false,
+                                                           isPrivacyProSubscriptionExpiring: false,
+                                                           isPrivacyProSubscriptionExpired: false,
+                                                           dismissedMessageIds: []),
                 percentileStore: percentileStore,
+                surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
                 dismissedMessageIds: [])
 
         let remoteConfig = RemoteConfigModel(messages: [
@@ -322,9 +367,18 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            favoritesCount: 0,
                                                            appTheme: "light",
                                                            isWidgetInstalled: false,
-                                                           isNetPWaitlistUser: false,
-                                                           daysSinceNetPEnabled: -1),
+                                                           daysSinceNetPEnabled: -1,
+                                                           isPrivacyProEligibleUser: false,
+                                                           isPrivacyProSubscriber: false,
+                                                           privacyProDaysSinceSubscribed: -1,
+                                                           privacyProDaysUntilExpiry: -1,
+                                                           privacyProPurchasePlatform: nil,
+                                                           isPrivacyProSubscriptionActive: false,
+                                                           isPrivacyProSubscriptionExpiring: false,
+                                                           isPrivacyProSubscriptionExpired: false,
+                                                           dismissedMessageIds: []),
                 percentileStore: percentileStore,
+                surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
                 dismissedMessageIds: [])
 
         let remoteConfig = RemoteConfigModel(messages: [
@@ -353,9 +407,18 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            favoritesCount: 0,
                                                            appTheme: "light",
                                                            isWidgetInstalled: false,
-                                                           isNetPWaitlistUser: false,
-                                                           daysSinceNetPEnabled: -1),
+                                                           daysSinceNetPEnabled: -1,
+                                                           isPrivacyProEligibleUser: false,
+                                                           isPrivacyProSubscriber: false,
+                                                           privacyProDaysSinceSubscribed: -1,
+                                                           privacyProDaysUntilExpiry: -1,
+                                                           privacyProPurchasePlatform: nil,
+                                                           isPrivacyProSubscriptionActive: false,
+                                                           isPrivacyProSubscriptionExpiring: false,
+                                                           isPrivacyProSubscriptionExpired: false,
+                                                           dismissedMessageIds: []),
                 percentileStore: percentileStore,
+                surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
                 dismissedMessageIds: [])
 
         let remoteConfig = RemoteConfigModel(messages: [
@@ -384,9 +447,18 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                                                            favoritesCount: 0,
                                                            appTheme: "light",
                                                            isWidgetInstalled: false,
-                                                           isNetPWaitlistUser: false,
-                                                           daysSinceNetPEnabled: -1),
+                                                           daysSinceNetPEnabled: -1,
+                                                           isPrivacyProEligibleUser: false,
+                                                           isPrivacyProSubscriber: false,
+                                                           privacyProDaysSinceSubscribed: -1,
+                                                           privacyProDaysUntilExpiry: -1,
+                                                           privacyProPurchasePlatform: nil,
+                                                           isPrivacyProSubscriptionActive: false,
+                                                           isPrivacyProSubscriptionExpiring: false,
+                                                           isPrivacyProSubscriptionExpired: false,
+                                                           dismissedMessageIds: []),
                 percentileStore: percentileStore,
+                surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
                 dismissedMessageIds: [])
 
         let remoteConfig = RemoteConfigModel(messages: [
@@ -435,9 +507,10 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
     func decodeAndMapJson(fileName: String) throws -> RemoteConfigModel {
         let validJson = data.fromJsonFile(fileName)
         let remoteMessagingConfig = try JSONDecoder().decode(RemoteMessageResponse.JsonRemoteMessagingConfig.self, from: validJson)
+        let surveyMapper = MockRemoteMessageSurveyActionMapper()
         XCTAssertNotNil(remoteMessagingConfig)
 
-        let config = JsonToRemoteConfigModelMapper.mapJson(remoteMessagingConfig: remoteMessagingConfig)
+        let config = JsonToRemoteConfigModelMapper.mapJson(remoteMessagingConfig: remoteMessagingConfig, surveyActionMapper: surveyMapper)
         XCTAssertNotNil(config)
         return config
     }

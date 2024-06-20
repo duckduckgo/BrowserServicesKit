@@ -19,11 +19,10 @@
 import Foundation
 
 protocol NetworkProtectionClient {
-    func redeem(inviteCode: String) async -> Result<String, NetworkProtectionClientError>
     func getLocations(authToken: String) async -> Result<[NetworkProtectionLocation], NetworkProtectionClientError>
     func getServers(authToken: String) async -> Result<[NetworkProtectionServer], NetworkProtectionClientError>
-    func register(authToken: String,
-                  requestBody: RegisterKeyRequestBody) async -> Result<[NetworkProtectionServer], NetworkProtectionClientError>
+    func getServerStatus(authToken: String, serverName: String) async -> Result<NetworkProtectionServerStatus, NetworkProtectionClientError>
+    func register(authToken: String, requestBody: RegisterKeyRequestBody) async -> Result<[NetworkProtectionServer], NetworkProtectionClientError>
 }
 
 public enum NetworkProtectionClientError: CustomNSError, NetworkProtectionErrorConvertible {
@@ -31,6 +30,8 @@ public enum NetworkProtectionClientError: CustomNSError, NetworkProtectionErrorC
     case failedToParseLocationListResponse(Error)
     case failedToFetchServerList(Error)
     case failedToParseServerListResponse(Error)
+    case failedToFetchServerStatus(Error)
+    case failedToParseServerStatusResponse(Error)
     case failedToEncodeRegisterKeyRequest
     case failedToFetchRegisteredServers(Error)
     case failedToParseRegisteredServersResponse(Error)
@@ -48,6 +49,8 @@ public enum NetworkProtectionClientError: CustomNSError, NetworkProtectionErrorC
         case .failedToParseLocationListResponse(let error): return .failedToParseLocationListResponse(error)
         case .failedToFetchServerList(let error): return .failedToFetchServerList(error)
         case .failedToParseServerListResponse(let error): return .failedToParseServerListResponse(error)
+        case .failedToFetchServerStatus(let error): return .failedToFetchServerStatus(error)
+        case .failedToParseServerStatusResponse(let error): return .failedToParseServerStatusResponse(error)
         case .failedToEncodeRegisterKeyRequest: return .failedToEncodeRegisterKeyRequest
         case .failedToFetchRegisteredServers(let error): return .failedToFetchRegisteredServers(error)
         case .failedToParseRegisteredServersResponse(let error): return .failedToParseRegisteredServersResponse(error)
@@ -77,6 +80,8 @@ public enum NetworkProtectionClientError: CustomNSError, NetworkProtectionErrorC
         case .failedToParseRedeemResponse: return 11
         case .invalidAuthToken: return 12
         case .accessDenied: return 13
+        case .failedToFetchServerStatus: return 14
+        case .failedToParseServerStatusResponse: return 15
         }
     }
 
@@ -89,7 +94,9 @@ public enum NetworkProtectionClientError: CustomNSError, NetworkProtectionErrorC
                 .failedToFetchRegisteredServers(let error),
                 .failedToParseRegisteredServersResponse(let error),
                 .failedToRedeemInviteCode(let error),
-                .failedToParseRedeemResponse(let error):
+                .failedToParseRedeemResponse(let error),
+                .failedToFetchServerStatus(let error),
+                .failedToParseServerStatusResponse(let error):
             return [NSUnderlyingErrorKey: error as NSError]
         case .failedToEncodeRegisterKeyRequest,
                 .failedToEncodeRedeemRequest,
@@ -189,8 +196,8 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
         endpointURL.appending("/register")
     }
 
-    var redeemURL: URL {
-        endpointURL.appending("/redeem")
+    func serverStatusURL(serverName: String) -> URL {
+        endpointURL.appending("/servers/\(serverName)/status")
     }
 
     private let decoder: JSONDecoder = {
@@ -306,6 +313,49 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
         }
     }
 
+    public enum GetServerStatusError: CustomNSError {
+        case noResponse
+        case unexpectedStatus(status: Int)
+
+        var errorCode: Int {
+            switch self {
+            case .noResponse:
+                return 0
+            case .unexpectedStatus(let status):
+                // Adding a large number so that we can get a somewhat reasonable status code
+                return 100000 + status
+            }
+        }
+    }
+
+    func getServerStatus(authToken: String, serverName: String) async -> Result<NetworkProtectionServerStatus, NetworkProtectionClientError> {
+        var request = URLRequest(url: serverStatusURL(serverName: serverName))
+        request.setValue("bearer \(authToken)", forHTTPHeaderField: "Authorization")
+        let downloadedData: Data
+
+        do {
+            let (data, response) = try await URLSession.shared.data(for: request)
+            guard let response = response as? HTTPURLResponse else {
+                throw GetServerStatusError.noResponse
+            }
+            switch response.statusCode {
+            case 200: downloadedData = data
+            case 401: return .failure(.invalidAuthToken)
+            default:
+                throw GetServerStatusError.unexpectedStatus(status: response.statusCode)
+            }
+        } catch {
+            return .failure(NetworkProtectionClientError.failedToFetchServerList(error))
+        }
+
+        do {
+            let serverStatus = try decoder.decode(NetworkProtectionServerStatus.self, from: downloadedData)
+            return .success(serverStatus)
+        } catch {
+            return .failure(NetworkProtectionClientError.failedToParseServerStatusResponse(error))
+        }
+    }
+
     public enum RegisterError: CustomNSError {
         case noResponse
         case unexpectedStatus(status: Int)
@@ -379,11 +429,6 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
                 return 100000 + status
             }
         }
-    }
-
-    public func redeem(inviteCode: String) async -> Result<String, NetworkProtectionClientError> {
-        let requestBody = RedeemInviteCodeRequestBody(code: inviteCode)
-        return await retrieveAuthToken(requestBody: requestBody, endpoint: redeemURL)
     }
 
     private func retrieveAuthToken<RequestBody: Encodable>(
