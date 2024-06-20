@@ -70,6 +70,13 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
         self.apiService = apiService
     }
 
+    public init(currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment) {
+        self.currentServiceEnvironment = currentServiceEnvironment
+        let baseURL = currentServiceEnvironment == .production ? URL(string: "https://subscriptions.duckduckgo.com/api")! : URL(string: "https://subscriptions-dev.duckduckgo.com/api")!
+        let session = URLSession(configuration: URLSessionConfiguration.ephemeral)
+        self.apiService = DefaultAPIService(baseURL: baseURL, session: session)
+    }
+
     // MARK: - Subscription fetching with caching
 
     private func getRemoteSubscription(accessToken: String) async -> Result<Subscription, SubscriptionServiceError> {
@@ -144,15 +151,5 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
 
         guard let bodyData = try? JSONEncoder().encode(bodyDict) else { return .failure(.encodingError) }
         return await apiService.executeAPICall(method: "POST", endpoint: "purchase/confirm/apple", headers: headers, body: bodyData)
-    }
-}
-
-extension DefaultSubscriptionEndpointService {
-
-    public init(currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment) {
-        self.currentServiceEnvironment = currentServiceEnvironment
-        let baseURL = currentServiceEnvironment == .production ? URL(string: "https://subscriptions.duckduckgo.com/api")! : URL(string: "https://subscriptions-dev.duckduckgo.com/api")!
-        let session = URLSession(configuration: URLSessionConfiguration.ephemeral)
-        self.apiService = DefaultAPIService(baseURL: baseURL, session: session)
     }
 }

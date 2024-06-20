@@ -27,9 +27,16 @@ public struct StorePurchaseManagerMock: StorePurchaseManager {
     public var syncAppleIDAccountResultError: Error?
     public var mostRecentTransactionResult: String?
     public var hasActiveSubscriptionResult: Bool
-    public var purchaseSubscriptionResult: Result<TransactionJWS, PurchaseManagerError>
+    public var purchaseSubscriptionResult: Result<TransactionJWS, StorePurchaseManagerError>
 
-    public init(purchasedProductIDs: [String], purchaseQueue: [String], areProductsAvailable: Bool, subscriptionOptionsResult: SubscriptionOptions? = nil, syncAppleIDAccountResultError: Error? = nil, mostRecentTransactionResult: String? = nil, hasActiveSubscriptionResult: Bool, purchaseSubscriptionResult: Result<StorePurchaseManager.TransactionJWS, PurchaseManagerError>) {
+    public init(purchasedProductIDs: [String], 
+                purchaseQueue: [String],
+                areProductsAvailable: Bool,
+                subscriptionOptionsResult: SubscriptionOptions? = nil,
+                syncAppleIDAccountResultError: Error? = nil,
+                mostRecentTransactionResult: String? = nil,
+                hasActiveSubscriptionResult: Bool,
+                purchaseSubscriptionResult: Result<StorePurchaseManager.TransactionJWS, StorePurchaseManagerError>) {
         self.purchasedProductIDs = purchasedProductIDs
         self.purchaseQueue = purchaseQueue
         self.areProductsAvailable = areProductsAvailable
@@ -62,7 +69,7 @@ public struct StorePurchaseManagerMock: StorePurchaseManager {
         hasActiveSubscriptionResult
     }
 
-    public func purchaseSubscription(with identifier: String, externalID: String) async -> Result<TransactionJWS, PurchaseManagerError> {
+    public func purchaseSubscription(with identifier: String, externalID: String) async -> Result<TransactionJWS, StorePurchaseManagerError> {
         purchaseSubscriptionResult
     }
 }

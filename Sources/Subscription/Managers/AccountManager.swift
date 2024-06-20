@@ -26,7 +26,6 @@ public protocol AccountManagerKeychainAccessDelegate: AnyObject {
 public protocol AccountManager {
 
     var delegate: AccountManagerKeychainAccessDelegate? { get set }
-    var isUserAuthenticated: Bool { get }
     var accessToken: String? { get }
     var authToken: String? { get }
     var email: String? { get }
@@ -60,6 +59,8 @@ extension AccountManager {
     public func fetchEntitlements() async -> Result<[Entitlement], Error> {
         await fetchEntitlements(cachePolicy: .returnCacheDataElseLoad)
     }
+
+    public var isUserAuthenticated: Bool { accessToken != nil }
 }
 
 public final class DefaultAccountManager: AccountManager {
@@ -71,7 +72,6 @@ public final class DefaultAccountManager: AccountManager {
     private let authEndpointService: AuthEndpointService
 
     public weak var delegate: AccountManagerKeychainAccessDelegate?
-    public var isUserAuthenticated: Bool { accessToken != nil }
 
     // MARK: - Initialisers
 

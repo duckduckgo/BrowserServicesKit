@@ -20,18 +20,19 @@ import Foundation
 import Subscription
 
 public struct SubscriptionEndpointServiceMock: SubscriptionEndpointService {
+    var getSubscriptionResult: Result<Subscription, SubscriptionServiceError>?
+    var getProductsResult: Result<[GetProductsItem], APIServiceError>?
+    var getCustomerPortalURLResult: Result<GetCustomerPortalURLResponse, APIServiceError>?
+    var confirmPurchaseResult: Result<ConfirmPurchaseResponse, APIServiceError>?
 
-    let getSubscriptionResult: Result<Subscription, SubscriptionServiceError>
-    let getProductsResult: Result<[GetProductsItem], APIServiceError>
-    let getCustomerPortalURLResult: Result<GetCustomerPortalURLResponse, APIServiceError>
-    let confirmPurchaseResult: Result<ConfirmPurchaseResponse, APIServiceError>
+    public init() {}
 
     public func updateCache(with subscription: Subscription) {
 
     }
 
     public func getSubscription(accessToken: String, cachePolicy: APICachePolicy) async -> Result<Subscription, SubscriptionServiceError> {
-        getSubscriptionResult
+        getSubscriptionResult!
     }
 
     public func signOut() {
@@ -39,14 +40,14 @@ public struct SubscriptionEndpointServiceMock: SubscriptionEndpointService {
     }
 
     public func getProducts() async -> Result<[GetProductsItem], APIServiceError> {
-        getProductsResult
+        getProductsResult!
     }
 
     public func getCustomerPortalURL(accessToken: String, externalID: String) async -> Result<GetCustomerPortalURLResponse, APIServiceError> {
-        getCustomerPortalURLResult
+        getCustomerPortalURLResult!
     }
 
     public func confirmPurchase(accessToken: String, signature: String) async -> Result<ConfirmPurchaseResponse, APIServiceError> {
-        confirmPurchaseResult
+        confirmPurchaseResult!
     }
 }

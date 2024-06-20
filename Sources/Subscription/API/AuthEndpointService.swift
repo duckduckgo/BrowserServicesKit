@@ -75,6 +75,13 @@ public struct DefaultAuthEndpointService: AuthEndpointService {
         self.apiService = apiService
     }
 
+    public init(currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment) {
+        self.currentServiceEnvironment = currentServiceEnvironment
+        let baseURL = currentServiceEnvironment == .production ? URL(string: "https://quack.duckduckgo.com/api/auth")! : URL(string: "https://quackdev.duckduckgo.com/api/auth")!
+        let session = URLSession(configuration: URLSessionConfiguration.ephemeral)
+        self.apiService = DefaultAPIService(baseURL: baseURL, session: session)
+    }
+
     public func getAccessToken(token: String) async -> Result<AccessTokenResponse, APIServiceError> {
         await apiService.executeAPICall(method: "GET", endpoint: "access-token", headers: apiService.makeAuthorizationHeader(for: token), body: nil)
     }
@@ -99,15 +106,5 @@ public struct DefaultAuthEndpointService: AuthEndpointService {
 
         guard let bodyData = try? JSONEncoder().encode(bodyDict) else { return .failure(.encodingError) }
         return await apiService.executeAPICall(method: "POST", endpoint: "store-login", headers: nil, body: bodyData)
-    }
-}
-
-extension DefaultAuthEndpointService {
-
-    public init(currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment) {
-        self.currentServiceEnvironment = currentServiceEnvironment
-        let baseURL = currentServiceEnvironment == .production ? URL(string: "https://quack.duckduckgo.com/api/auth")! : URL(string: "https://quackdev.duckduckgo.com/api/auth")!
-        let session = URLSession(configuration: URLSessionConfiguration.ephemeral)
-        self.apiService = DefaultAPIService(baseURL: baseURL, session: session)
     }
 }

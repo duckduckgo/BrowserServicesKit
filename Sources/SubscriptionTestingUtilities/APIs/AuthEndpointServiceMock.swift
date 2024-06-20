@@ -20,31 +20,26 @@ import Foundation
 import Subscription
 
 public struct AuthEndpointServiceMock: AuthEndpointService {
-    public var accessTokenResult: Result<AccessTokenResponse, APIServiceError>
-    public var validateTokenResult: Result<ValidateTokenResponse, APIServiceError>
-    public var createAccountResult: Result<CreateAccountResponse, APIServiceError>
-    public var storeLoginResult: Result<StoreLoginResponse, APIServiceError>
+    public var accessTokenResult: Result<AccessTokenResponse, APIServiceError>? = nil
+    public var validateTokenResult: Result<ValidateTokenResponse, APIServiceError>? = nil
+    public var createAccountResult: Result<CreateAccountResponse, APIServiceError>? = nil
+    public var storeLoginResult: Result<StoreLoginResponse, APIServiceError>? = nil
 
-    public init(accessTokenResult: Result<AccessTokenResponse, APIServiceError>, validateTokenResult: Result<ValidateTokenResponse, APIServiceError>, createAccountResult: Result<CreateAccountResponse, APIServiceError>, storeLoginResult: Result<StoreLoginResponse, APIServiceError>) {
-        self.accessTokenResult = accessTokenResult
-        self.validateTokenResult = validateTokenResult
-        self.createAccountResult = createAccountResult
-        self.storeLoginResult = storeLoginResult
-    }
+    public init() {}
 
     public func getAccessToken(token: String) async -> Result<AccessTokenResponse, APIServiceError> {
-        accessTokenResult
+        accessTokenResult!
     }
 
     public func validateToken(accessToken: String) async -> Result<ValidateTokenResponse, APIServiceError> {
-        validateTokenResult
+        validateTokenResult!
     }
 
     public func createAccount(emailAccessToken: String?) async -> Result<CreateAccountResponse, APIServiceError> {
-        createAccountResult
+        createAccountResult!
     }
 
     public func storeLogin(signature: String) async -> Result<StoreLoginResponse, APIServiceError> {
-        storeLoginResult
+        storeLoginResult!
     }
 }

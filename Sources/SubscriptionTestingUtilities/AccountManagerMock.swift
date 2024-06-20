@@ -21,20 +21,17 @@ import Subscription
 
 public final class AccountManagerMock: AccountManager {
     public var delegate: AccountManagerKeychainAccessDelegate?
-    public var isUserAuthenticated: Bool
     public var accessToken: String?
     public var authToken: String?
     public var email: String?
     public var externalID: String?
 
     public init(delegate: AccountManagerKeychainAccessDelegate? = nil,
-                isUserAuthenticated: Bool,
                 accessToken: String? = nil,
                 authToken: String? = nil,
                 email: String? = nil,
                 externalID: String? = nil) {
         self.delegate = delegate
-        self.isUserAuthenticated = isUserAuthenticated
         self.accessToken = accessToken
         self.authToken = authToken
         self.email = email
