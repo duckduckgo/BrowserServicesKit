@@ -1,5 +1,5 @@
 //
-//  SubscriptionAPIServiceMock.swift
+//  SubscriptionEndpointServiceMock.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -19,7 +19,7 @@
 import Foundation
 import Subscription
 
-public struct SubscriptionAPIServiceMock: SubscriptionAPIServicing {
+public struct SubscriptionEndpointServiceMock: SubscriptionEndpointService {
 
     let getSubscriptionResult: Result<Subscription, SubscriptionServiceError>
     let getProductsResult: Result<[GetProductsItem], APIServiceError>

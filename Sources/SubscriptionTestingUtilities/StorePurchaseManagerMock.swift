@@ -19,7 +19,7 @@
 import Foundation
 import Subscription
 
-public struct StorePurchaseManagerMock: StorePurchaseManaging {
+public struct StorePurchaseManagerMock: StorePurchaseManager {
     public var purchasedProductIDs: [String]
     public var purchaseQueue: [String]
     public var areProductsAvailable: Bool
@@ -29,7 +29,7 @@ public struct StorePurchaseManagerMock: StorePurchaseManaging {
     public var hasActiveSubscriptionResult: Bool
     public var purchaseSubscriptionResult: Result<TransactionJWS, PurchaseManagerError>
 
-    public init(purchasedProductIDs: [String], purchaseQueue: [String], areProductsAvailable: Bool, subscriptionOptionsResult: SubscriptionOptions? = nil, syncAppleIDAccountResultError: Error? = nil, mostRecentTransactionResult: String? = nil, hasActiveSubscriptionResult: Bool, purchaseSubscriptionResult: Result<StorePurchaseManagerMock.TransactionJWS, PurchaseManagerError>) {
+    public init(purchasedProductIDs: [String], purchaseQueue: [String], areProductsAvailable: Bool, subscriptionOptionsResult: SubscriptionOptions? = nil, syncAppleIDAccountResultError: Error? = nil, mostRecentTransactionResult: String? = nil, hasActiveSubscriptionResult: Bool, purchaseSubscriptionResult: Result<StorePurchaseManager.TransactionJWS, PurchaseManagerError>) {
         self.purchasedProductIDs = purchasedProductIDs
         self.purchaseQueue = purchaseQueue
         self.areProductsAvailable = areProductsAvailable

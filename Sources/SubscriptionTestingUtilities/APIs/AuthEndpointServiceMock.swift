@@ -1,5 +1,5 @@
 //
-//  AuthAPIServiceMock.swift
+//  AuthEndpointServiceMock.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -19,7 +19,7 @@
 import Foundation
 import Subscription
 
-public struct AuthAPIServiceMock: AuthAPIServicing {
+public struct AuthEndpointServiceMock: AuthEndpointService {
     public var accessTokenResult: Result<AccessTokenResponse, APIServiceError>
     public var validateTokenResult: Result<ValidateTokenResponse, APIServiceError>
     public var createAccountResult: Result<CreateAccountResponse, APIServiceError>

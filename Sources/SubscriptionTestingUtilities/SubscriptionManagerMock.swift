@@ -19,14 +19,14 @@
 import Foundation
 @testable import Subscription
 
-public final class SubscriptionManagerMock: SubscriptionManaging {
-    public var accountManager: AccountManaging
-    public var subscriptionAPIService: SubscriptionAPIServicing
-    public var authAPIService: AuthAPIServicing
+public final class SubscriptionManagerMock: SubscriptionManager {
+    public var accountManager: AccountManager
+    public var subscriptionAPIService: SubscriptionEndpointService
+    public var authAPIService: AuthEndpointService
     public var currentEnvironment: SubscriptionEnvironment
     public var canPurchase: Bool
 
-    public func storePurchaseManager() -> StorePurchaseManaging {
+    public func storePurchaseManager() -> StorePurchaseManager {
         internalStorePurchaseManager
     }
 
@@ -42,10 +42,10 @@ public final class SubscriptionManagerMock: SubscriptionManaging {
         type.subscriptionURL(environment: currentEnvironment.serviceEnvironment)
     }
 
-    public init(accountManager: AccountManaging,
-                subscriptionAPIService: SubscriptionAPIServicing,
-                authAPIService: AuthAPIServicing,
-                storePurchaseManager: StorePurchaseManaging,
+    public init(accountManager: AccountManager,
+                subscriptionAPIService: SubscriptionEndpointService,
+                authAPIService: AuthEndpointService,
+                storePurchaseManager: StorePurchaseManager,
                 currentEnvironment: SubscriptionEnvironment,
                 canPurchase: Bool) {
         self.accountManager = accountManager
@@ -58,5 +58,5 @@ public final class SubscriptionManagerMock: SubscriptionManaging {
 
     // MARK: -
 
-    let internalStorePurchaseManager: StorePurchaseManaging
+    let internalStorePurchaseManager: StorePurchaseManager
 }

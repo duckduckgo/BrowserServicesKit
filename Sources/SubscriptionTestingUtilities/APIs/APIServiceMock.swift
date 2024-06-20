@@ -19,7 +19,7 @@
 import Foundation
 import Subscription
 
-public struct APIServiceMock: APIServicing {
+public struct APIServiceMock: APIService {
     public var mockAuthHeaders: [String: String]
     public var mockAPICallResults: Result<Any, APIServiceError>
 

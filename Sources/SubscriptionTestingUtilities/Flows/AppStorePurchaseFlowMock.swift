@@ -19,7 +19,7 @@
 import Foundation
 import Subscription
 
-public class AppStorePurchaseFlowMock: AppStorePurchaseFlowing {
+public class AppStorePurchaseFlowMock: AppStorePurchaseFlow {
     public var purchaseSubscriptionResult: Result<TransactionJWS, AppStorePurchaseFlowError>
     public var completeSubscriptionPurchaseResult: Result<PurchaseUpdate, AppStorePurchaseFlowError>
 
