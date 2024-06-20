@@ -331,7 +331,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
             if let error = error as? AccountKeychainAccessError, error.isKeychainLockedError {
                 throw NetworkProtectionError.keychainLocked
             } else {
-                throw NetworkProtectionError.keychainError
+                throw NetworkProtectionError.keychainError(error)
             }
         }
     }
