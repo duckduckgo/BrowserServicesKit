@@ -325,9 +325,22 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
             }
         } catch {
             if let error = error as? AccountKeychainAccessError, error.isKeychainLockedError {
-                throw NetworkProtectionError.keychainLocked
+                switch error {
+                case .failedToDecodeKeychainValueAsData, .failedToDecodeKeychainDataAsString:
+                    throw error
+                case .keychainSaveFailure(let status):
+                    throw NetworkProtectionError.keychainError(status: status)
+                case .keychainDeleteFailure(let status):
+                    throw NetworkProtectionError.keychainError(status: status)
+                case .keychainLookupFailure(let status):
+                    if status == errSecInteractionNotAllowed {
+                        throw NetworkProtectionError.keychainLocked
+                    } else {
+                        throw NetworkProtectionError.keychainError(status: status)
+                    }
+                }
             } else {
-                throw NetworkProtectionError.keychainError(error)
+                throw error
             }
         }
     }

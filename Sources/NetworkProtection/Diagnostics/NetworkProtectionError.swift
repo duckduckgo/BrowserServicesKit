@@ -64,7 +64,7 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
 
     // Auth errors
     case noAuthTokenFound
-    case keychainError(Error)
+    case keychainError(status: Int32)
     case keychainLocked
 
     // Subscription errors
