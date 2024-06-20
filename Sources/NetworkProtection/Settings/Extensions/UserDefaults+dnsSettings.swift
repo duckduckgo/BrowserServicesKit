@@ -63,7 +63,12 @@ extension UserDefaults {
             case .default:
                 dnsSettingStorageValue = StorableDNSSettings()
             case .custom(let dnsServers):
-                dnsSettingStorageValue = StorableDNSSettings(usesCustomDNS: true, dnsServers: dnsServers)
+                let hosts = dnsServers.compactMap(\.toIPv4Host)
+                if hosts.isEmpty {
+                    dnsSettingStorageValue = StorableDNSSettings()
+                } else {
+                    dnsSettingStorageValue = StorableDNSSettings(usesCustomDNS: true, dnsServers: hosts)
+                }
             }
         }
     }
