@@ -53,6 +53,5 @@ class PhishingDetectionDataProviderTest: XCTestCase {
         XCTAssertTrue(dataProvider.loadEmbeddedFilterSet().isEmpty)
         XCTAssertTrue(dataProvider.loadEmbeddedHashPrefixes().isEmpty)
     }
-
 }
 
