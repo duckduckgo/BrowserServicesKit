@@ -515,7 +515,7 @@ final class AutofillPixelReporterTests: XCTestCase {
         }
 
         for i in 0..<count {
-            mockDatabaseProvider._identities[Int64(i)] = SecureVaultModels.Identity(title: "Identity \(i)", 
+            mockDatabaseProvider._identities[Int64(i)] = SecureVaultModels.Identity(title: "Identity \(i)",
                                                                                     created: Date(),
                                                                                     lastUpdated: Date(),
                                                                                     firstName: "Dax \(i)",
