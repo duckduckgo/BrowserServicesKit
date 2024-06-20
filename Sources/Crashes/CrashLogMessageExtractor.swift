@@ -76,6 +76,17 @@ public struct CrashLogMessageExtractor {
         let diagnosticsUrl = fm.diagnosticsDirectory
         try? fm.createDirectory(at: diagnosticsUrl, withIntermediateDirectories: true)
         Self.diagnosticsDirectory = diagnosticsUrl
+
+        // clean-up log files older than a week
+        let weekAgo = Date.weekAgo
+        for fileName in (try? fm.contentsOfDirectory(atPath: diagnosticsUrl.path)) ?? [] {
+            let fileUrl = diagnosticsUrl.appending(fileName)
+            let timestamp = CrashLog(url: fileUrl)?.timestamp ?? .distantPast
+
+            if timestamp <= weekAgo {
+                try? fm.removeItem(at: fileUrl)
+            }
+        }
     }
 
     /// Find saved crash diagnostics message for crash PID/timestamp
