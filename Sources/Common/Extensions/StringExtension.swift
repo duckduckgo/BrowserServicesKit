@@ -111,7 +111,12 @@ public extension String {
     }
 
     var isValidIpv4Host: Bool {
-        IPv4Address(self) != nil
+        guard let toIPv4Host, !toIPv4Host.isEmpty else { return false }
+        return true
+    }
+
+    var toIPv4Host: String? {
+        IPv4Address(self)?.debugDescription
     }
 
     // MARK: Regex

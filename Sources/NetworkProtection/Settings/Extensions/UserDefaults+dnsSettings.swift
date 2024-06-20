@@ -35,7 +35,7 @@ extension UserDefaults {
     }
 
     private static func dnsSettingsFromStorageValue(_ value: StorableDNSSettings) -> NetworkProtectionDNSSettings {
-        guard value.usesCustomDNS else { return .default }
+        guard value.usesCustomDNS, !value.dnsServers.isEmpty else { return .default }
         return .custom(value.dnsServers)
     }
 
