@@ -262,6 +262,11 @@ let package = Package(
             dependencies: [
                 "Common",
                 "BrowserServicesKit",
+                "Networking",
+                "Persistence",
+            ],
+            resources: [
+                .process("CoreData/RemoteMessaging.xcdatamodeld")
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
@@ -340,6 +345,9 @@ let package = Package(
         ),
         .target(
             name: "PixelKit",
+            exclude: [
+                "README.md"
+            ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
             ]
@@ -469,6 +477,15 @@ let package = Package(
             dependencies: [
                 "Persistence",
                 "TrackerRadarKit",
+            ]
+        ),
+        .testTarget(
+            name: "RemoteMessagingTests",
+            dependencies: [
+                "RemoteMessaging",
+            ],
+            resources: [
+                .copy("Resources/remote-messaging-config-example.json"),
             ]
         ),
         .testTarget(
