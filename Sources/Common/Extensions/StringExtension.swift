@@ -182,7 +182,7 @@ public extension String {
     }
 
     /// find all the substring ranges looking like a file path
-    private func rangesOfFilePaths() -> [Range<String.Index>] { // swiftlint:disable:this cyclomatic_complexity function_body_length
+    internal func rangesOfFilePaths() -> [Range<String.Index>] { // swiftlint:disable:this cyclomatic_complexity function_body_length
         var result = IndexSet()
 
         func dropLineNumberAndTrimSpaces(_ range: inout Range<String.Index>) {
