@@ -335,8 +335,7 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
         }
     }
 
-    static func extractSurrogates(from tds: TrackerData) -> TrackerData {
-
+    public static func extractSurrogates(from tds: TrackerData) -> TrackerData {
         let trackers = tds.trackers.filter { pair in
             return pair.value.rules?.first(where: { rule in
                 rule.surrogate != nil
@@ -363,7 +362,6 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
     }
 
     private func compilationCompleted() {
-
         var changes = [String: ContentBlockerRulesIdentifier.Difference]()
 
         lock.lock()

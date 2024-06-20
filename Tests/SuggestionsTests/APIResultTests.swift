@@ -36,13 +36,17 @@ final class APIResultTests: XCTestCase {
     }
 
     func testWhenJSONHasValidFormat_ThenItemsAreInTheResult() {
-        let phrase1 = "phrase"
         let value1 = "value1"
-        let phrase2 = "phrase"
         let value2 = "value2"
+        let value3 = "value3"
 
         let json = """
-        [ { "\(phrase1)": "\(value1)" }, { "\(phrase2)": "\(value2)" } ]
+        [
+            { "phrase": "\(value1)" },
+            { "phrase": "\(value2)", "isNav": false },
+            { "phrase": "\(value3)", "isNav": true },
+            { "random": "nonesense" },
+        ]
         """
         let data = json.data(using: .utf8)!
 
@@ -51,9 +55,18 @@ final class APIResultTests: XCTestCase {
             return
         }
 
-        XCTAssertEqual(suggestionsAPIResult.items.count, 2)
-        XCTAssertEqual(suggestionsAPIResult.items[0][phrase1], value1)
-        XCTAssertEqual(suggestionsAPIResult.items[1][phrase2], value2)
+        XCTAssertEqual(suggestionsAPIResult.items.count, 4)
+        XCTAssertEqual(suggestionsAPIResult.items[0].phrase, value1)
+        XCTAssertNil(suggestionsAPIResult.items[0].isNav)
+
+        XCTAssertEqual(suggestionsAPIResult.items[1].phrase, value2)
+        XCTAssertEqual(suggestionsAPIResult.items[1].isNav, false)
+
+        XCTAssertEqual(suggestionsAPIResult.items[2].phrase, value3)
+        XCTAssertEqual(suggestionsAPIResult.items[2].isNav, true)
+
+        XCTAssertNil(suggestionsAPIResult.items[3].phrase)
+        XCTAssertNil(suggestionsAPIResult.items[3].isNav)
     }
 
     func testWhenJSONHasInvalidFormat_ThenDecodingFails() {
