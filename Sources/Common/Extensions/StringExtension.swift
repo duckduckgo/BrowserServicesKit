@@ -96,7 +96,7 @@ public extension String {
     }
 
     // MARK: Sanitizing
-    
+
     // clean-up file paths and email addresses
     func sanitized() -> String {
         var message = self
