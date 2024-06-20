@@ -35,6 +35,7 @@ public enum PurchaseManagerError: Error {
 }
 
 public protocol StorePurchaseManager {
+    typealias TransactionJWS = String
     func subscriptionOptions() async -> SubscriptionOptions?
     var purchasedProductIDs: [String] { get }
     var purchaseQueue: [String] { get }
@@ -44,8 +45,7 @@ public protocol StorePurchaseManager {
     @MainActor func updatePurchasedProducts() async
     @MainActor func mostRecentTransaction() async -> String?
     @MainActor func hasActiveSubscription() async -> Bool
-    typealias TransactionJWS = String
-    @MainActor func purchaseSubscription(with identifier: String, externalID: String) async -> Result<TransactionJWS, PurchaseManagerError>
+    @MainActor func purchaseSubscription(with identifier: String, externalID: String) async -> Result<StorePurchaseManager.TransactionJWS, PurchaseManagerError>
 }
 
 @available(macOS 12.0, iOS 15.0, *) typealias Transaction = StoreKit.Transaction
@@ -202,8 +202,6 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
 
         return !transactions.isEmpty
     }
-
-    public typealias TransactionJWS = String
 
     @MainActor
     public func purchaseSubscription(with identifier: String, externalID: String) async -> Result<TransactionJWS, PurchaseManagerError> {

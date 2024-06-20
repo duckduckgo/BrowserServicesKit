@@ -20,8 +20,6 @@ import Foundation
 import StoreKit
 import Common
 
-public typealias TransactionJWS = String
-
 public enum AppStorePurchaseFlowError: Swift.Error {
     case noProductsFound
     case activeSubscriptionAlreadyPresent
@@ -35,9 +33,10 @@ public enum AppStorePurchaseFlowError: Swift.Error {
 
 @available(macOS 12.0, iOS 15.0, *)
 public protocol AppStorePurchaseFlow {
-    func purchaseSubscription(with subscriptionIdentifier: String, emailAccessToken: String?) async -> Result<TransactionJWS, AppStorePurchaseFlowError>
+    typealias TransactionJWS = String
+    func purchaseSubscription(with subscriptionIdentifier: String, emailAccessToken: String?) async -> Result<AppStorePurchaseFlow.TransactionJWS, AppStorePurchaseFlowError>
     @discardableResult
-    func completeSubscriptionPurchase(with transactionJWS: TransactionJWS) async -> Result<PurchaseUpdate, AppStorePurchaseFlowError>
+    func completeSubscriptionPurchase(with transactionJWS: AppStorePurchaseFlow.TransactionJWS) async -> Result<PurchaseUpdate, AppStorePurchaseFlowError>
 }
 
 @available(macOS 12.0, iOS 15.0, *)
