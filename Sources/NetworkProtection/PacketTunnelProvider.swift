@@ -608,7 +608,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             providerEvents.fire(.tunnelStartAttempt(.success))
         } catch {
             if startupOptions.startupMethod == .automaticOnDemand {
-                // We add a 10 seconds delay when the VPN is started by
+                // We add a delay when the VPN is started by
                 // on-demand and there's an error, to avoid frenetic ON/OFF
                 // cycling.
                 try? await Task.sleep(interval: .seconds(15))
