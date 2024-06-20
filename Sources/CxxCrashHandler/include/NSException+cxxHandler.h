@@ -19,6 +19,10 @@
 #ifndef HDR_KSCrashMonitor_CPPException_h
 #define HDR_KSCrashMonitor_CPPException_h
 
+#import <Foundation/Foundation.h>
+
+NS_ASSUME_NONNULL_BEGIN
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -35,10 +39,6 @@ void kscm_enableSwapCxaThrow(void);
 #ifdef __cplusplus
 }
 #endif
-
-#import <Foundation/Foundation.h>
-
-NS_ASSUME_NONNULL_BEGIN
 
 @interface NSException (CPPException)
 

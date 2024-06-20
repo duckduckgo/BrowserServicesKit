@@ -54,7 +54,7 @@ public struct CrashLogMessageExtractor {
         }
     }
 
-    fileprivate static var nextUncaughtExceptionHandler: NSUncaughtExceptionHandler!
+    fileprivate static var nextUncaughtExceptionHandler: NSUncaughtExceptionHandler?
     fileprivate static var nextCppTerminateHandler: (() -> Void)!
     fileprivate static var diagnosticsDirectory: URL!
 
@@ -147,7 +147,7 @@ private func handleException(_ exception: NSException) {
     try? message.utf8data.write(to: fileURL)
 
     // default handler
-    CrashLogMessageExtractor.nextUncaughtExceptionHandler(exception)
+    CrashLogMessageExtractor.nextUncaughtExceptionHandler?(exception)
 }
 
 /// Throw test C++ exception – used for debug purpose
