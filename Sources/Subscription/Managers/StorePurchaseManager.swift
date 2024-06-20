@@ -20,12 +20,40 @@ import Foundation
 import StoreKit
 import Common
 
+public enum StoreError: Error {
+    case failedVerification
+}
+
+public enum PurchaseManagerError: Error {
+    case productNotFound
+    case externalIDisNotAValidUUID
+    case purchaseFailed
+    case transactionCannotBeVerified
+    case transactionPendingAuthentication
+    case purchaseCancelledByUser
+    case unknownError
+}
+
+public protocol StorePurchaseManager {
+    func subscriptionOptions() async -> SubscriptionOptions?
+    var purchasedProductIDs: [String] { get }
+    var purchaseQueue: [String] { get }
+    var areProductsAvailable: Bool { get }
+    @MainActor func syncAppleIDAccount() async throws
+    @MainActor func updateAvailableProducts() async
+    @MainActor func updatePurchasedProducts() async
+    @MainActor func mostRecentTransaction() async -> String?
+    @MainActor func hasActiveSubscription() async -> Bool
+    typealias TransactionJWS = String
+    @MainActor func purchaseSubscription(with identifier: String, externalID: String) async -> Result<TransactionJWS, PurchaseManagerError>
+}
+
 @available(macOS 12.0, iOS 15.0, *) typealias Transaction = StoreKit.Transaction
 @available(macOS 12.0, iOS 15.0, *) typealias RenewalInfo = StoreKit.Product.SubscriptionInfo.RenewalInfo
 @available(macOS 12.0, iOS 15.0, *) typealias RenewalState = StoreKit.Product.SubscriptionInfo.RenewalState
 
 @available(macOS 12.0, iOS 15.0, *)
-public final class StorePurchaseManager: ObservableObject, StorePurchaseManaging {
+public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseManager {
 
     let productIdentifiers = ["ios.subscription.1month", "ios.subscription.1year",
                               "subscription.1month", "subscription.1year",

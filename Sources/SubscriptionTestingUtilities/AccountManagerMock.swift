@@ -61,11 +61,7 @@ public final class AccountManagerMock: AccountManaging {
 
     }
 
-    public func hasEntitlement(forProductName entitlement: Entitlement.ProductName, cachePolicy: APICachePolicy) async -> Result<Bool, Error> {
-        return .success(true)
-    }
-
-    public func hasEntitlement(for entitlement: Entitlement.ProductName) async -> Result<Bool, Error> {
+    public func hasEntitlement(forProductName productName: Entitlement.ProductName, cachePolicy: APICachePolicy) async -> Result<Bool, Error> {
         return .success(true)
     }
 

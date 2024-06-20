@@ -26,17 +26,17 @@ public enum AppStoreAccountManagementFlowError: Swift.Error {
 }
 
 @available(macOS 12.0, iOS 15.0, *)
-public protocol AppStoreAccountManagementFlowing {
+public protocol AppStoreAccountManagementFlow {
     @discardableResult func refreshAuthTokenIfNeeded() async -> Result<String, AppStoreAccountManagementFlowError>
 }
 
 @available(macOS 12.0, iOS 15.0, *)
-public final class AppStoreAccountManagementFlow: AppStoreAccountManagementFlowing {
+public final class DefaultAppStoreAccountManagementFlow: AppStoreAccountManagementFlow {
 
-    private let subscriptionManager: SubscriptionManaging
-    private var accountManager: AccountManaging { subscriptionManager.accountManager }
+    private let subscriptionManager: SubscriptionManager
+    private var accountManager: AccountManager { subscriptionManager.accountManager }
 
-    public init(subscriptionManager: SubscriptionManaging) {
+    public init(subscriptionManager: SubscriptionManager) {
         self.subscriptionManager = subscriptionManager
     }
 

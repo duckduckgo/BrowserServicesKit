@@ -59,18 +59,18 @@ public struct StoreLoginResponse: Decodable {
     }
 }
 
-public protocol AuthAPIServicing {
+public protocol AuthEndpointService {
     func getAccessToken(token: String) async -> Result<AccessTokenResponse, APIServiceError>
     func validateToken(accessToken: String) async -> Result<ValidateTokenResponse, APIServiceError>
     func createAccount(emailAccessToken: String?) async -> Result<CreateAccountResponse, APIServiceError>
     func storeLogin(signature: String) async -> Result<StoreLoginResponse, APIServiceError>
 }
 
-public struct AuthAPIService: AuthAPIServicing {
+public struct DefaultAuthEndpointService: AuthEndpointService {
     private let currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment
-    private let apiService: APIServicing
+    private let apiService: APIService
 
-    public init(currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment, apiService: APIServicing) {
+    public init(currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment, apiService: APIService) {
         self.currentServiceEnvironment = currentServiceEnvironment
         self.apiService = apiService
     }
@@ -102,12 +102,12 @@ public struct AuthAPIService: AuthAPIServicing {
     }
 }
 
-extension AuthAPIService {
+extension DefaultAuthEndpointService {
 
     public init(currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment) {
         self.currentServiceEnvironment = currentServiceEnvironment
         let baseURL = currentServiceEnvironment == .production ? URL(string: "https://quack.duckduckgo.com/api/auth")! : URL(string: "https://quackdev.duckduckgo.com/api/auth")!
         let session = URLSession(configuration: URLSessionConfiguration.ephemeral)
-        self.apiService = APIService(baseURL: baseURL, session: session)
+        self.apiService = DefaultAPIService(baseURL: baseURL, session: session)
     }
 }

@@ -19,13 +19,56 @@
 import Foundation
 import Common
 
-public final class AccountManager: AccountManaging {
+public protocol AccountManagerKeychainAccessDelegate: AnyObject {
+    func accountManagerKeychainAccessFailed(accessType: AccountKeychainAccessType, error: AccountKeychainAccessError)
+}
+
+public protocol AccountManager {
+
+    var delegate: AccountManagerKeychainAccessDelegate? { get set }
+    var isUserAuthenticated: Bool { get }
+    var accessToken: String? { get }
+    var authToken: String? { get }
+    var email: String? { get }
+    var externalID: String? { get }
+
+    func storeAuthToken(token: String)
+    func storeAccount(token: String, email: String?, externalID: String?)
+    func signOut(skipNotification: Bool)
+    func signOut()
+    func migrateAccessTokenToNewStore() throws
+
+    // Entitlements
+    func hasEntitlement(forProductName productName: Entitlement.ProductName, cachePolicy: APICachePolicy) async -> Result<Bool, Error>
+
+    func updateCache(with entitlements: [Entitlement])
+    @discardableResult func fetchEntitlements(cachePolicy: APICachePolicy) async -> Result<[Entitlement], Error>
+    func exchangeAuthTokenToAccessToken(_ authToken: String) async -> Result<String, Error>
+
+    typealias AccountDetails = (email: String?, externalID: String)
+    func fetchAccountDetails(with accessToken: String) async -> Result<AccountDetails, Error>
+    func refreshSubscriptionAndEntitlements() async
+    @discardableResult func checkForEntitlements(wait waitTime: Double, retry retryCount: Int) async -> Bool
+}
+
+extension AccountManager {
+
+    public func hasEntitlement(forProductName productName: Entitlement.ProductName) async -> Result<Bool, Error> {
+        await hasEntitlement(forProductName: productName, cachePolicy: .returnCacheDataElseLoad)
+    }
+
+    public func fetchEntitlements() async -> Result<[Entitlement], Error> {
+        await fetchEntitlements(cachePolicy: .returnCacheDataElseLoad)
+    }
+}
+
+public final class DefaultAccountManager: AccountManager {
 
     private let storage: AccountStoring
     private let entitlementsCache: UserDefaultsCache<[Entitlement]>
     private let accessTokenStorage: SubscriptionTokenStoring
-    private let subscriptionAPIService: SubscriptionAPIServicing
-    private let authAPIService: AuthAPIServicing
+    private let subscriptionAPIService: SubscriptionEndpointService
+    private let authAPIService: AuthEndpointService
 
     public weak var delegate: AccountManagerKeychainAccessDelegate?
     public var isUserAuthenticated: Bool { accessToken != nil }
@@ -35,8 +78,8 @@ public final class AccountManager: AccountManaging {
     public init(storage: AccountStoring = AccountKeychainStorage(),
                 accessTokenStorage: SubscriptionTokenStoring,
                 entitlementsCache: UserDefaultsCache<[Entitlement]>,
-                subscriptionAPIService: SubscriptionAPIServicing,
-                authAPIService: AuthAPIServicing) {
+                subscriptionAPIService: SubscriptionEndpointService,
+                authAPIService: AuthEndpointService) {
         self.storage = storage
         self.entitlementsCache = entitlementsCache
         self.accessTokenStorage = accessTokenStorage

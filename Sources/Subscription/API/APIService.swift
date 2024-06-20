@@ -31,7 +31,7 @@ struct ErrorResponse: Decodable {
     let error: String
 }
 
-public protocol APIServicing {
+public protocol APIService {
     func executeAPICall<T>(method: String, endpoint: String, headers: [String: String]?, body: Data?) async -> Result<T, APIServiceError> where T: Decodable
     func makeAuthorizationHeader(for token: String) -> [String: String]
 }
@@ -42,7 +42,7 @@ public enum APICachePolicy {
     case returnCacheDataDontLoad
 }
 
-public struct APIService: APIServicing {
+public struct DefaultAPIService: APIService {
     private let baseURL: URL
     private let session: URLSession
 

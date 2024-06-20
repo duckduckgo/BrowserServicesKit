@@ -32,16 +32,16 @@ public enum AppStoreRestoreFlowError: Swift.Error {
 }
 
 @available(macOS 12.0, iOS 15.0, *)
-public protocol AppStoreRestoreFlowing {
+public protocol AppStoreRestoreFlow {
     @discardableResult func restoreAccountFromPastPurchase() async -> Result<Void, AppStoreRestoreFlowError>
 }
 
 @available(macOS 12.0, iOS 15.0, *)
-public final class AppStoreRestoreFlow: AppStoreRestoreFlowing {
-    private let subscriptionManager: SubscriptionManaging
-    var accountManager: AccountManaging { subscriptionManager.accountManager }
+public final class DefaultAppStoreRestoreFlow: AppStoreRestoreFlow {
+    private let subscriptionManager: SubscriptionManager
+    var accountManager: AccountManager { subscriptionManager.accountManager }
 
-    public init(subscriptionManager: SubscriptionManaging) {
+    public init(subscriptionManager: SubscriptionManager) {
         self.subscriptionManager = subscriptionManager
     }
 

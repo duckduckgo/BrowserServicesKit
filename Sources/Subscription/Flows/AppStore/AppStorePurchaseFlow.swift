@@ -34,20 +34,20 @@ public enum AppStorePurchaseFlowError: Swift.Error {
 }
 
 @available(macOS 12.0, iOS 15.0, *)
-public protocol AppStorePurchaseFlowing {
+public protocol AppStorePurchaseFlow {
     func purchaseSubscription(with subscriptionIdentifier: String, emailAccessToken: String?) async -> Result<TransactionJWS, AppStorePurchaseFlowError>
     @discardableResult
     func completeSubscriptionPurchase(with transactionJWS: TransactionJWS) async -> Result<PurchaseUpdate, AppStorePurchaseFlowError>
 }
 
 @available(macOS 12.0, iOS 15.0, *)
-public final class AppStorePurchaseFlow: AppStorePurchaseFlowing {
+public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
 
-    private let subscriptionManager: SubscriptionManaging
-    private var accountManager: AccountManaging { subscriptionManager.accountManager }
-    private let appStoreRestoreFlow: AppStoreRestoreFlowing
+    private let subscriptionManager: SubscriptionManager
+    private var accountManager: AccountManager { subscriptionManager.accountManager }
+    private let appStoreRestoreFlow: AppStoreRestoreFlow
 
-    public init(subscriptionManager: SubscriptionManaging, appStoreRestoreFlow: AppStoreRestoreFlowing) {
+    public init(subscriptionManager: SubscriptionManager, appStoreRestoreFlow: AppStoreRestoreFlow) {
         self.subscriptionManager = subscriptionManager
         self.appStoreRestoreFlow = appStoreRestoreFlow
     }

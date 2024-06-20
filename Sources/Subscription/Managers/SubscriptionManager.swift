@@ -19,34 +19,34 @@
 import Foundation
 import Common
 
-public protocol SubscriptionManaging {
+public protocol SubscriptionManager {
 
-    var accountManager: AccountManaging { get }
-    var subscriptionAPIService: SubscriptionAPIServicing { get }
-    var authAPIService: AuthAPIServicing { get }
+    var accountManager: AccountManager { get }
+    var subscriptionAPIService: SubscriptionEndpointService { get }
+    var authAPIService: AuthEndpointService { get }
     var currentEnvironment: SubscriptionEnvironment { get }
     var canPurchase: Bool { get }
-    @available(macOS 12.0, iOS 15.0, *) func storePurchaseManager() -> StorePurchaseManaging
+    @available(macOS 12.0, iOS 15.0, *) func storePurchaseManager() -> StorePurchaseManager
     func loadInitialData()
     func updateSubscriptionStatus(completion: @escaping (_ isActive: Bool) -> Void)
     func url(for type: SubscriptionURL) -> URL
 }
 
 /// Single entry point for everything related to Subscription. This manager is disposable, every time something related to the environment changes this need to be recreated.
-public final class SubscriptionManager: SubscriptionManaging {
+public final class DefaultSubscriptionManager: SubscriptionManager {
 
-    private let _storePurchaseManager: StorePurchaseManaging?
+    private let _storePurchaseManager: StorePurchaseManager?
 
-    public let accountManager: AccountManaging
-    public let subscriptionAPIService: SubscriptionAPIServicing
-    public let authAPIService: AuthAPIServicing
+    public let accountManager: AccountManager
+    public let subscriptionAPIService: SubscriptionEndpointService
+    public let authAPIService: AuthEndpointService
     public let currentEnvironment: SubscriptionEnvironment
     public private(set) var canPurchase: Bool = false
 
-    public init(storePurchaseManager: StorePurchaseManaging? = nil,
-                accountManager: AccountManaging,
-                subscriptionAPIService: SubscriptionAPIServicing,
-                authAPIService: AuthAPIServicing,
+    public init(storePurchaseManager: StorePurchaseManager? = nil,
+                accountManager: AccountManager,
+                subscriptionAPIService: SubscriptionEndpointService,
+                authAPIService: AuthEndpointService,
                 subscriptionEnvironment: SubscriptionEnvironment) {
         self._storePurchaseManager = storePurchaseManager
         self.accountManager = accountManager
@@ -66,7 +66,7 @@ public final class SubscriptionManager: SubscriptionManaging {
     }
 
     @available(macOS 12.0, iOS 15.0, *)
-    public func storePurchaseManager() -> StorePurchaseManaging {
+    public func storePurchaseManager() -> StorePurchaseManager {
         return _storePurchaseManager!
     }
 

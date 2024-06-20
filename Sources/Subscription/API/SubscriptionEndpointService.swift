@@ -42,7 +42,7 @@ public enum SubscriptionServiceError: Error {
     case apiError(APIServiceError)
 }
 
-public protocol SubscriptionAPIServicing {
+public protocol SubscriptionEndpointService {
     func updateCache(with subscription: Subscription)
     func getSubscription(accessToken: String, cachePolicy: APICachePolicy) async -> Result<Subscription, SubscriptionServiceError>
     func signOut()
@@ -51,7 +51,7 @@ public protocol SubscriptionAPIServicing {
     func confirmPurchase(accessToken: String, signature: String) async -> Result<ConfirmPurchaseResponse, APIServiceError>
 }
 
-extension SubscriptionAPIServicing {
+extension SubscriptionEndpointService {
 
     public func getSubscription(accessToken: String) async -> Result<Subscription, SubscriptionServiceError> {
         await getSubscription(accessToken: accessToken, cachePolicy: .returnCacheDataElseLoad)
@@ -59,13 +59,13 @@ extension SubscriptionAPIServicing {
 }
 
 /// Communicates with our backend
-public struct SubscriptionAPIService: SubscriptionAPIServicing {
+public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
     private let currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment
-    private let apiService: APIServicing
+    private let apiService: APIService
     private let subscriptionCache = UserDefaultsCache<Subscription>(key: UserDefaultsCacheKey.subscription,
                                                                     settings: UserDefaultsCacheSettings(defaultExpirationInterval: .minutes(20)))
 
-    public init(currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment, apiService: APIServicing) {
+    public init(currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment, apiService: APIService) {
         self.currentServiceEnvironment = currentServiceEnvironment
         self.apiService = apiService
     }
@@ -147,12 +147,12 @@ public struct SubscriptionAPIService: SubscriptionAPIServicing {
     }
 }
 
-extension SubscriptionAPIService {
+extension DefaultSubscriptionEndpointService {
 
     public init(currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment) {
         self.currentServiceEnvironment = currentServiceEnvironment
         let baseURL = currentServiceEnvironment == .production ? URL(string: "https://subscriptions.duckduckgo.com/api")! : URL(string: "https://subscriptions-dev.duckduckgo.com/api")!
         let session = URLSession(configuration: URLSessionConfiguration.ephemeral)
-        self.apiService = APIService(baseURL: baseURL, session: session)
+        self.apiService = DefaultAPIService(baseURL: baseURL, session: session)
     }
 }

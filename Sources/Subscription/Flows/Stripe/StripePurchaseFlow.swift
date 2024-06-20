@@ -25,18 +25,18 @@ public enum StripePurchaseFlowError: Swift.Error {
     case accountCreationFailed
 }
 
-public protocol StripePurchaseFlowing {
+public protocol StripePurchaseFlow {
     func subscriptionOptions() async -> Result<SubscriptionOptions, StripePurchaseFlowError>
     func prepareSubscriptionPurchase(emailAccessToken: String?) async -> Result<PurchaseUpdate, StripePurchaseFlowError>
     func completeSubscriptionPurchase() async
 }
 
-public final class StripePurchaseFlow: StripePurchaseFlowing {
+public final class DefaultStripePurchaseFlow: StripePurchaseFlow {
 
-    private let subscriptionManager: SubscriptionManaging
-    var accountManager: AccountManaging { subscriptionManager.accountManager }
+    private let subscriptionManager: SubscriptionManager
+    var accountManager: AccountManager { subscriptionManager.accountManager }
 
-    public init(subscriptionManager: SubscriptionManaging) {
+    public init(subscriptionManager: SubscriptionManager) {
         self.subscriptionManager = subscriptionManager
     }
 
