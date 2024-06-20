@@ -569,6 +569,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     @MainActor
     open override func startTunnel(options: [String: NSObject]? = nil) async throws {
 
+        // It's important to have this as soon as possible since it helps setup PixelKit
+        prepareToConnect(using: tunnelProviderProtocol)
+
         let startupOptions = StartupOptions(options: options ?? [:])
         os_log("Starting tunnel with options: %{public}s", log: .networkProtection, startupOptions.description)
 
@@ -598,7 +601,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
         do {
             providerEvents.fire(.tunnelStartAttempt(.begin))
-            prepareToConnect(using: tunnelProviderProtocol)
             connectionStatus = .connecting
             resetIssueStateOnTunnelStart(startupOptions)
 
