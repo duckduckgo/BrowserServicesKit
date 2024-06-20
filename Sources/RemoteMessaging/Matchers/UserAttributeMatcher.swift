@@ -44,6 +44,7 @@ public struct UserAttributeMatcher: AttributeMatcher {
     private let isPrivacyProSubscriptionActive: Bool
     private let isPrivacyProSubscriptionExpiring: Bool
     private let isPrivacyProSubscriptionExpired: Bool
+    private let dismissedMessageIds: [String]
 
     public init(statisticsStore: StatisticsStore,
                 variantManager: VariantManager,
@@ -60,7 +61,8 @@ public struct UserAttributeMatcher: AttributeMatcher {
                 privacyProPurchasePlatform: String?,
                 isPrivacyProSubscriptionActive: Bool,
                 isPrivacyProSubscriptionExpiring: Bool,
-                isPrivacyProSubscriptionExpired: Bool
+                isPrivacyProSubscriptionExpired: Bool,
+                dismissedMessageIds: [String]
 	) {
         self.statisticsStore = statisticsStore
         self.variantManager = variantManager
@@ -78,6 +80,7 @@ public struct UserAttributeMatcher: AttributeMatcher {
         self.isPrivacyProSubscriptionActive = isPrivacyProSubscriptionActive
         self.isPrivacyProSubscriptionExpiring = isPrivacyProSubscriptionExpiring
         self.isPrivacyProSubscriptionExpired = isPrivacyProSubscriptionExpired
+        self.dismissedMessageIds = dismissedMessageIds
     }
 
     // swiftlint:disable:next cyclomatic_complexity function_body_length
@@ -169,6 +172,14 @@ public struct UserAttributeMatcher: AttributeMatcher {
             case .active: return isPrivacyProSubscriptionActive ? .match : .fail
             case .expiring: return isPrivacyProSubscriptionExpiring ? .match : .fail
             case .expired: return isPrivacyProSubscriptionExpired ? .match : .fail
+            }
+        case let matchingAttribute as InteractedWithMessageMatchingAttribute:
+            if dismissedMessageIds.contains(where: { messageId in
+                StringArrayMatchingAttribute(matchingAttribute.value).matches(value: messageId) == .match
+            }) {
+                return .match
+            } else {
+                return .fail
             }
         default:
             assertionFailure("Could not find matching attribute")
