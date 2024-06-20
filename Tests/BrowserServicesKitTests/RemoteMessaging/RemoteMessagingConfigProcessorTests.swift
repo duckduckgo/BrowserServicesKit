@@ -44,7 +44,8 @@ class RemoteMessagingConfigProcessorTests: XCTestCase {
                                                        privacyProPurchasePlatform: nil,
                                                        isPrivacyProSubscriptionActive: false,
                                                        isPrivacyProSubscriptionExpiring: false,
-                                                       isPrivacyProSubscriptionExpired: false),
+                                                       isPrivacyProSubscriptionExpired: false,
+                                                       dismissedMessageIds: []),
             percentileStore: MockRemoteMessagePercentileStore(),
             surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
             dismissedMessageIds: []
@@ -81,7 +82,8 @@ class RemoteMessagingConfigProcessorTests: XCTestCase {
                                                            privacyProPurchasePlatform: nil,
                                                            isPrivacyProSubscriptionActive: false,
                                                            isPrivacyProSubscriptionExpiring: false,
-                                                           isPrivacyProSubscriptionExpired: false),
+                                                           isPrivacyProSubscriptionExpired: false,
+                                                           dismissedMessageIds: []),
                 percentileStore: MockRemoteMessagePercentileStore(),
                 surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
                 dismissedMessageIds: [])

@@ -43,6 +43,7 @@ protocol PrivacyDashboardUserScriptDelegate: AnyObject {
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectBreakageCategory category: String)
     func userScriptDidRequestShowAlertForMissingDescription(_ userScript: PrivacyDashboardUserScript)
     func userScriptDidRequestShowNativeFeedback(_ userScript: PrivacyDashboardUserScript)
+    func userScriptDidSkipTogglingStep(_ userScript: PrivacyDashboardUserScript)
 
 }
 
@@ -96,7 +97,7 @@ public struct TelemetrySpan: Decodable {
     public struct Attributes: Decodable {
 
         public let name: String
-        public let value: String
+        public let value: String?
 
     }
 
@@ -332,11 +333,13 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         }
 
         if telemetrySpan.attributes.name == "categoryTypeSelected" {
-            let category = telemetrySpan.attributes.value
+            let category = telemetrySpan.attributes.value ?? ""
             delegate?.userScript(self, didSelectOverallCategory: category)
         } else if telemetrySpan.attributes.name == "categorySelected" {
-            let category = telemetrySpan.attributes.value
+            let category = telemetrySpan.attributes.value ?? ""
             delegate?.userScript(self, didSelectBreakageCategory: category)
+        } else if telemetrySpan.attributes.name == "toggleSkipped" {
+            delegate?.userScriptDidSkipTogglingStep(self)
         }
 
     }

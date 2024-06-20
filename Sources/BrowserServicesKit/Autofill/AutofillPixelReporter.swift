@@ -25,6 +25,8 @@ public enum AutofillPixelEvent {
     case autofillActiveUser
     case autofillEnabledUser
     case autofillOnboardedUser
+    case autofillToggledOn
+    case autofillToggledOff
     case autofillLoginsStacked
     case autofillCreditCardsStacked
 
@@ -61,12 +63,14 @@ public final class AutofillPixelReporter {
     // Third party password manager
     private let passwordManager: PasswordManager?
     private var installDate: Date?
+    private var autofillEnabled: Bool
 
     private var autofillSearchDauDate: Date? { userDefaults.object(forKey: Keys.autofillSearchDauDateKey) as? Date ?? .distantPast }
     private var autofillFillDate: Date? { userDefaults.object(forKey: Keys.autofillFillDateKey) as? Date ?? .distantPast }
     private var autofillOnboardedUser: Bool { userDefaults.object(forKey: Keys.autofillOnboardedUserKey) as? Bool ?? false }
 
     public init(userDefaults: UserDefaults,
+                autofillEnabled: Bool,
                 eventMapping: EventMapping<AutofillPixelEvent>,
                 secureVault: (any AutofillSecureVault)? = nil,
                 reporter: SecureVaultReporting? = nil,
@@ -74,6 +78,7 @@ public final class AutofillPixelReporter {
                 installDate: Date? = nil
     ) {
         self.userDefaults = userDefaults
+        self.autofillEnabled = autofillEnabled
         self.eventMapping = eventMapping
         self.secureVault = secureVault
         self.reporter = reporter
@@ -81,6 +86,10 @@ public final class AutofillPixelReporter {
         self.installDate = installDate
 
         createNotificationObservers()
+    }
+
+    public func updateAutofillEnabledStatus(_ autofillEnabled: Bool) {
+        self.autofillEnabled = autofillEnabled
     }
 
     public func resetStoreDefaults() {
@@ -146,6 +155,12 @@ public final class AutofillPixelReporter {
             if shouldFireEnabledUserPixel() {
                 eventMapping.fire(.autofillEnabledUser)
             }
+
+            if let accountsCountBucket = getAccountsCountBucket() {
+                eventMapping.fire(autofillEnabled ? .autofillToggledOn : .autofillToggledOff,
+                                  parameters: [AutofillPixelEvent.Parameter.countBucket: accountsCountBucket])
+            }
+
         default:
             break
         }
@@ -173,7 +188,7 @@ public final class AutofillPixelReporter {
         if Date.isSameDay(Date(), autofillSearchDauDate) {
             if let passwordManager = passwordManager, passwordManager.isEnabled {
                 return true
-            } else if let count = try? vault()?.accountsCount(), count >= 10 {
+            } else if autofillEnabled, let count = try? vault()?.accountsCount(), count >= 10 {
                 return true
             }
         }
