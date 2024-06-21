@@ -9,7 +9,6 @@ class PhishingDetectionUpdateManagerTests: XCTestCase {
     var mockDataProvider: MockPhishingDetectionDataProvider!
     let datasetFiles: [String] = ["hashPrefixes.json", "filterSet.json", "revision.txt"]
     var dataStore: PhishingDetectionDataStore!
-    
 
     override func setUp() {
         super.setUp()
@@ -26,7 +25,7 @@ class PhishingDetectionUpdateManagerTests: XCTestCase {
         updateManager = nil
         super.tearDown()
     }
-    
+
     func clearDatasets() {
         for fileName in datasetFiles {
             let fileURL = dataStore.dataStore!.appendingPathComponent(fileName)
@@ -42,7 +41,7 @@ class PhishingDetectionUpdateManagerTests: XCTestCase {
         await updateManager.updateFilterSet()
         XCTAssertFalse(dataStore.filterSet.isEmpty, "Filter set should not be empty after update.")
     }
-    
+
     func testLoadDataError() async {
         clearDatasets()
         await dataStore.loadData()
@@ -76,17 +75,17 @@ class PhishingDetectionUpdateManagerTests: XCTestCase {
         await updateManager.updateFilterSet()
         await updateManager.updateHashPrefixes()
         dataStore.writeData()
-        
+
         // Clear data
         dataStore.hashPrefixes = []
         dataStore.filterSet = []
-        
+
         // Load data
         await dataStore.loadData()
         XCTAssertFalse(dataStore.hashPrefixes.isEmpty, "Hash prefixes should not be empty after load.")
         XCTAssertFalse(dataStore.filterSet.isEmpty, "Filter set should not be empty after load.")
     }
-    
+
     func testRevision1AddsData() async {
         dataStore.currentRevision = 1
         await updateManager.updateFilterSet()

@@ -24,7 +24,7 @@ public struct HashPrefixResponse: Decodable, Encodable {
     public var delete: [String]
     public var revision: Int
     public var replace: Bool
-    
+
     public init(insert: [String], delete: [String], revision: Int, replace: Bool) {
         self.insert = insert
         self.delete = delete
@@ -38,7 +38,7 @@ public struct FilterSetResponse: Decodable, Encodable {
     public var delete: [Filter]
     public var revision: Int
     public var replace: Bool
-    
+
     public init(insert: [Filter], delete: [Filter], revision: Int, replace: Bool) {
         self.insert = insert
         self.delete = delete
@@ -47,11 +47,9 @@ public struct FilterSetResponse: Decodable, Encodable {
     }
 }
 
-
 public struct MatchResponse: Codable {
     public var matches: [Match]
 }
-
 
 public protocol PhishingDetectionClientProtocol {
     func getFilterSet(revision: Int) async -> FilterSetResponse

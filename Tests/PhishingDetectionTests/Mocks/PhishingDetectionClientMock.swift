@@ -22,7 +22,7 @@ import PhishingDetection
 public class MockPhishingDetectionClient: PhishingDetectionClientProtocol {
     public var updateHashPrefixesWasCalled: Bool = false
     public var updateFilterSetsWasCalled: Bool = false
-    
+
     private var filterRevisions: [Int: FilterSetResponse] = [
         0: FilterSetResponse(insert: [
             Filter(hashValue: "testhash1", regex: ".*example.*"),

@@ -47,11 +47,10 @@ class PhishingDetectionDataProviderTest: XCTestCase {
         XCTAssertTrue(dataProvider.loadEmbeddedFilterSet().contains(expectedFilter))
         XCTAssertTrue(dataProvider.loadEmbeddedHashPrefixes().contains("012db806"))
     }
-    
+
     func testReturnsNoneWhenSHAMismatch() {
         dataProvider = PhishingDetectionDataProvider(revision: 0, filterSetURL: filterSetURL, filterSetDataSHA: "xx0", hashPrefixURL: hashPrefixURL, hashPrefixDataSHA: "00x")
         XCTAssertTrue(dataProvider.loadEmbeddedFilterSet().isEmpty)
         XCTAssertTrue(dataProvider.loadEmbeddedHashPrefixes().isEmpty)
     }
 }
-

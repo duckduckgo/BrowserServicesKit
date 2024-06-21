@@ -23,7 +23,7 @@ public class MockPhishingDetectionUpdateManager: PhishingDetectionUpdateManaging
     var didUpdateFilterSet = false
     var didUpdateHashPrefixes = false
     var completionHandler: (() -> Void)?
-    
+
     public func updateFilterSet() async {
         didUpdateFilterSet = true
         checkCompletion()
@@ -39,5 +39,5 @@ public class MockPhishingDetectionUpdateManager: PhishingDetectionUpdateManaging
             completionHandler?()
         }
     }
-    
+
 }

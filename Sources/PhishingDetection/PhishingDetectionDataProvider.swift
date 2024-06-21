@@ -32,7 +32,6 @@ public class PhishingDetectionDataProvider: PhishingDetectionDataProviding {
     var embeddedFilterSetDataSHA: String
     var embeddedHashPrefixURL: URL
     var embeddedHashPrefixDataSHA: String
-    
 
     public init(revision: Int, filterSetURL: URL, filterSetDataSHA: String, hashPrefixURL: URL, hashPrefixDataSHA: String) {
         embeddedFilterSetURL = filterSetURL
@@ -47,7 +46,7 @@ public class PhishingDetectionDataProvider: PhishingDetectionDataProviding {
             let filterSetData = try Data(contentsOf: embeddedFilterSetURL)
             let sha256 = SHA256.hash(data: filterSetData)
             let hashString = sha256.compactMap { String(format: "%02x", $0) }.joined()
-            
+
             guard hashString == embeddedFilterSetDataSHA else {
                 os_log(.debug, log: .phishingDetection, "\(self): 🔴 Fatal Error: SHA mismatch for filterSet JSON file. Expected \(embeddedFilterSetDataSHA), got \(hashString)")
 //                assertionFailure("SHA mismatch for filterSet JSON file. Expected \(embeddedFilterSetDataSHA), got \(hashString)")

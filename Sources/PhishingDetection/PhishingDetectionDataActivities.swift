@@ -81,7 +81,7 @@ class DataActivity {
 
 public class PhishingDetectionDataActivities {
     private var activities: [DataActivity]
-    
+
     var dataProvider: PhishingDetectionDataProviding
 
     public init(detectionService: PhishingDetecting, hashPrefixInterval: TimeInterval = 20 * 60, filterSetInterval: TimeInterval = 12 * 60 * 60, phishingDetectionDataProvider: PhishingDetectionDataProviding, updateManager: PhishingDetectionUpdateManaging) {
@@ -90,7 +90,7 @@ public class PhishingDetectionDataActivities {
             updateAction: { await updateManager.updateHashPrefixes() }
         )
         let filterSetActivity = DataActivity(
-            scheduler: BackgroundActivityScheduler(interval: filterSetInterval,  identifier: "filterSet.update"),
+            scheduler: BackgroundActivityScheduler(interval: filterSetInterval, identifier: "filterSet.update"),
             updateAction: { await updateManager.updateFilterSet() }
         )
         self.activities = [hashPrefixActivity, filterSetActivity]

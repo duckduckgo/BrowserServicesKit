@@ -26,12 +26,12 @@ public protocol PhishingDetectionUpdateManaging {
 public class PhishingDetectionUpdateManager: PhishingDetectionUpdateManaging {
     var apiClient: PhishingDetectionClientProtocol
     var dataStore: PhishingDetectionDataStore
-    
+
     public init(client: PhishingDetectionClientProtocol, dataStore: PhishingDetectionDataStore) {
         self.apiClient = client
         self.dataStore = dataStore
     }
-    
+
     public func updateFilterSet() async {
         let response = await apiClient.getFilterSet(revision: dataStore.currentRevision)
         if response.replace {

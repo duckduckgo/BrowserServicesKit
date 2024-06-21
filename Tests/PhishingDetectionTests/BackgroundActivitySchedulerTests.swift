@@ -33,7 +33,7 @@ class BackgroundActivitySchedulerTests: XCTestCase {
         waitForExpectations(timeout: 2, handler: nil)
         XCTAssertTrue(activityWasRun)
     }
-    
+
     func testRepeats() {
         let expectation = self.expectation(description: "Activity should repeat")
         var runCount = 0

@@ -37,7 +37,7 @@ public class PhishingDetectionDataStore {
         self.dataProvider = dataProvider
         createFileDataStore()
     }
-    
+
     func createFileDataStore() {
         do {
             let fileManager = FileManager.default
@@ -48,7 +48,7 @@ public class PhishingDetectionDataStore {
             os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error creating phishing protection data directory: \(error)")
         }
     }
-    
+
     public func writeData() {
         let encoder = JSONEncoder()
         do {
@@ -62,7 +62,7 @@ public class PhishingDetectionDataStore {
 
             try hashPrefixesData.write(to: hashPrefixesFileURL)
             try filterSetData.write(to: filterSetFileURL)
-            try revision.write(to:revisionFileURL)
+            try revision.write(to: revisionFileURL)
         } catch {
             os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error saving phishing protection data: \(error)")
         }

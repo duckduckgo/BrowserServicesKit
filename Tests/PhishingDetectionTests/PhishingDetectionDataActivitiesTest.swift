@@ -29,7 +29,7 @@ class PhishingDetectionDataActivitiesTests: XCTestCase {
         }
 
         activities.start()
-        
+
         await fulfillment(of: [expectation], timeout: 10.0)
 
         XCTAssertTrue(mockUpdateManager.didUpdateHashPrefixes)
@@ -37,5 +37,3 @@ class PhishingDetectionDataActivitiesTests: XCTestCase {
 
     }
 }
-
-
