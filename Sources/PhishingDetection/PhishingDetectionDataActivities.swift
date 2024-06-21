@@ -47,8 +47,9 @@ class BackgroundActivityScheduler: BackgroundActivityScheduling {
                 do {
                     try await Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
                 } catch {
-                    print("[+] Task cancelled.")
+                    print("[+] Task cancelled: \(error)")
                     os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error \(identifier) task was cancelled before it could finish sleeping.")
+                    break
                 }
             }
         }
@@ -96,11 +97,11 @@ public class PhishingDetectionDataActivities {
         self.dataProvider = phishingDetectionDataProvider
     }
 
-    func start() {
+    public func start() {
         activities.forEach { $0.start() }
     }
 
-    func stop() {
+    public func stop() {
         activities.forEach { $0.stop() }
     }
 }

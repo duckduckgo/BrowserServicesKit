@@ -21,7 +21,6 @@ import Common
 
 enum PhishingDetectionDataError: Error {
     case empty
-    case stale
 }
 
 public class PhishingDetectionDataStore {
