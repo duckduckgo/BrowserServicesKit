@@ -40,5 +40,7 @@ public enum PrivacyDashboardEvents {
     case breakageCategorySelected
     case reportBrokenSiteSent
     case overallCategorySelected
+    case skipToggleStep
+    case toggleProtectionOff
 
 }

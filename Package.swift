@@ -44,8 +44,8 @@ let package = Package(
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "2.1.2"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.2.0"),
         .package(url: "https://github.com/gumob/PunycodeSwift.git", exact: "2.1.0"),
-        .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "4.0.0"),
-        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "5.19.0"),
+        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "5.21.0"),
+        .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "4.1.0"),
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
         .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
         .package(url: "https://github.com/duckduckgo/wireguard-apple", exact: "1.1.3"),
@@ -262,6 +262,11 @@ let package = Package(
             dependencies: [
                 "Common",
                 "BrowserServicesKit",
+                "Networking",
+                "Persistence",
+            ],
+            resources: [
+                .process("CoreData/RemoteMessaging.xcdatamodeld")
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
@@ -340,6 +345,9 @@ let package = Package(
         ),
         .target(
             name: "PixelKit",
+            exclude: [
+                "README.md"
+            ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
             ]
@@ -469,6 +477,15 @@ let package = Package(
             dependencies: [
                 "Persistence",
                 "TrackerRadarKit",
+            ]
+        ),
+        .testTarget(
+            name: "RemoteMessagingTests",
+            dependencies: [
+                "RemoteMessaging",
+            ],
+            resources: [
+                .copy("Resources/remote-messaging-config-example.json"),
             ]
         ),
         .testTarget(
