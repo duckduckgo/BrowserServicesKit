@@ -116,7 +116,8 @@ public extension String {
     }
 
     var toIPv4Host: String? {
-        IPv4Address(self)?.debugDescription
+        guard let ipv4 = IPv4Address(self) else { return nil }
+        return [UInt8](ipv4.rawValue).map { String($0) }.joined(separator: ".")
     }
 
     // MARK: Regex
