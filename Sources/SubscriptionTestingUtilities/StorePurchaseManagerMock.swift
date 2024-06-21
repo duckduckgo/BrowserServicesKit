@@ -29,7 +29,7 @@ public struct StorePurchaseManagerMock: StorePurchaseManager {
     public var hasActiveSubscriptionResult: Bool
     public var purchaseSubscriptionResult: Result<TransactionJWS, StorePurchaseManagerError>
 
-    public init(purchasedProductIDs: [String], 
+    public init(purchasedProductIDs: [String],
                 purchaseQueue: [String],
                 areProductsAvailable: Bool,
                 subscriptionOptionsResult: SubscriptionOptions? = nil,

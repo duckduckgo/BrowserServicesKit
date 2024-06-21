@@ -20,10 +20,10 @@ import Foundation
 import Subscription
 
 public struct AuthEndpointServiceMock: AuthEndpointService {
-    public var accessTokenResult: Result<AccessTokenResponse, APIServiceError>? = nil
-    public var validateTokenResult: Result<ValidateTokenResponse, APIServiceError>? = nil
-    public var createAccountResult: Result<CreateAccountResponse, APIServiceError>? = nil
-    public var storeLoginResult: Result<StoreLoginResponse, APIServiceError>? = nil
+    public var accessTokenResult: Result<AccessTokenResponse, APIServiceError>?
+    public var validateTokenResult: Result<ValidateTokenResponse, APIServiceError>?
+    public var createAccountResult: Result<CreateAccountResponse, APIServiceError>?
+    public var storeLoginResult: Result<StoreLoginResponse, APIServiceError>?
 
     public init() {}
 
