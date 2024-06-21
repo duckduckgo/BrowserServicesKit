@@ -88,4 +88,9 @@ final class StringExtensionTests: XCTestCase {
         XCTAssertEqual("about:blank#navlink1".url!.absoluteString.droppingHashedSuffix(), "about:blank")
     }
 
+    func testToIPv4Host() {
+        XCTAssertEqual("1.1.1.1".toIPv4Host, "1.1.1.1")
+        XCTAssertEqual("1".toIPv4Host, "0.0.0.1")
+        XCTAssertEqual("1.2".toIPv4Host, "1.0.0.2")
+    }
 }
