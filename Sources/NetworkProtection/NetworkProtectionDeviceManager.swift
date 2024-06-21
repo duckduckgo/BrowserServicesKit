@@ -324,7 +324,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
                 throw NetworkProtectionError.noAuthTokenFound
             }
         } catch {
-            if let error = error as? AccountKeychainAccessError, error.isKeychainLockedError {
+            if let error = error as? AccountKeychainAccessError {
                 switch error {
                 case .failedToDecodeKeychainValueAsData, .failedToDecodeKeychainDataAsString:
                     throw error
