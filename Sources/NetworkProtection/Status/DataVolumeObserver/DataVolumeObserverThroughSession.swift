@@ -99,7 +99,9 @@ public class DataVolumeObserverThroughSession: DataVolumeObserver {
 
     private func updateDataVolume() {
         Task {
-            guard let session = await tunnelSessionProvider.activeSession() else {
+            guard let session = await tunnelSessionProvider.activeSession(),
+                session.status == .connected else {
+
                 return
             }
 
