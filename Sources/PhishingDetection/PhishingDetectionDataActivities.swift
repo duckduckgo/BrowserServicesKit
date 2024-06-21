@@ -24,7 +24,7 @@ public protocol BackgroundActivityScheduling {
     func stop()
 }
 
-class BackgroundActivityScheduler: BackgroundActivityScheduling {
+final class BackgroundActivityScheduler: BackgroundActivityScheduling {
     private var task: Task<Void, Never>?
     private let interval: TimeInterval
     private let identifier: String
@@ -61,7 +61,7 @@ class BackgroundActivityScheduler: BackgroundActivityScheduling {
     }
 }
 
-class DataActivity {
+final class DataActivity {
     private let scheduler: BackgroundActivityScheduling
     private let updateAction: () async -> Void
 
