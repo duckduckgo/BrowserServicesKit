@@ -20,36 +20,39 @@ import Foundation
 import StoreKit
 import Common
 
+public enum AppStoreAccountManagementFlowError: Swift.Error {
+    case noPastTransaction
+    case authenticatingWithTransactionFailed
+}
+
 @available(macOS 12.0, iOS 15.0, *)
-public final class AppStoreAccountManagementFlow {
+public protocol AppStoreAccountManagementFlow {
+    @discardableResult func refreshAuthTokenIfNeeded() async -> Result<String, AppStoreAccountManagementFlowError>
+}
 
-    private let subscriptionManager: SubscriptionManaging
-    private var accountManager: AccountManaging {
-        subscriptionManager.accountManager
-    }
+@available(macOS 12.0, iOS 15.0, *)
+public final class DefaultAppStoreAccountManagementFlow: AppStoreAccountManagementFlow {
 
-    public init(subscriptionManager: SubscriptionManaging) {
+    private let subscriptionManager: SubscriptionManager
+    private var accountManager: AccountManager { subscriptionManager.accountManager }
+
+    public init(subscriptionManager: SubscriptionManager) {
         self.subscriptionManager = subscriptionManager
     }
 
-    public enum Error: Swift.Error {
-        case noPastTransaction
-        case authenticatingWithTransactionFailed
-    }
-
     @discardableResult
-    public func refreshAuthTokenIfNeeded() async -> Result<String, AppStoreAccountManagementFlow.Error> {
+    public func refreshAuthTokenIfNeeded() async -> Result<String, AppStoreAccountManagementFlowError> {
         os_log(.info, log: .subscription, "[AppStoreAccountManagementFlow] refreshAuthTokenIfNeeded")
         var authToken = accountManager.authToken ?? ""
 
         // Check if auth token if still valid
-        if case let .failure(validateTokenError) = await subscriptionManager.authService.validateToken(accessToken: authToken) {
+        if case let .failure(validateTokenError) = await subscriptionManager.authEndpointService.validateToken(accessToken: authToken) {
             os_log(.error, log: .subscription, "[AppStoreAccountManagementFlow] validateToken error: %{public}s", String(reflecting: validateTokenError))
 
             // In case of invalid token attempt store based authentication to obtain a new one
             guard let lastTransactionJWSRepresentation = await subscriptionManager.storePurchaseManager().mostRecentTransaction() else { return .failure(.noPastTransaction) }
 
-            switch await subscriptionManager.authService.storeLogin(signature: lastTransactionJWSRepresentation) {
+            switch await subscriptionManager.authEndpointService.storeLogin(signature: lastTransactionJWSRepresentation) {
             case .success(let response):
                 if response.externalID == accountManager.externalID {
                     authToken = response.authToken
