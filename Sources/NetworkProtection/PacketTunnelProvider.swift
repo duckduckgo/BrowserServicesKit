@@ -184,6 +184,16 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Server Selection
 
+    private lazy var serverSelection: VPNServerSelectionResolving = {
+        let locationRepository = NetworkProtectionLocationListCompositeRepository(
+            environment: settings.selectedEnvironment,
+            tokenStore: tokenStore,
+            errorEvents: debugEvents,
+            isSubscriptionEnabled: isSubscriptionEnabled
+        )
+        return VPNServerSelectionResolver(locationListRepository: locationRepository, vpnSettings: settings)
+    }()
+
     @MainActor
     private var lastSelectedServer: NetworkProtectionServer? {
         didSet {
@@ -363,7 +373,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     // MARK: - Initializers
 
     private let keychainType: KeychainType
-    private let debugEvents: EventMapping<NetworkProtectionError>?
+    private let debugEvents: EventMapping<NetworkProtectionError>
     private let providerEvents: EventMapping<Event>
 
     public let isSubscriptionEnabled: Bool
@@ -375,7 +385,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 knownFailureStore: NetworkProtectionKnownFailureStore = NetworkProtectionKnownFailureStore(),
                 keychainType: KeychainType,
                 tokenStore: NetworkProtectionTokenStore,
-                debugEvents: EventMapping<NetworkProtectionError>?,
+                debugEvents: EventMapping<NetworkProtectionError>,
                 providerEvents: EventMapping<Event>,
                 settings: VPNSettings,
                 defaults: UserDefaults,
@@ -668,10 +678,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         do {
             os_log("🔵 Generating tunnel config", log: .networkProtection, type: .info)
             os_log("🔵 Excluded ranges are: %{public}@", log: .networkProtection, type: .info, String(describing: settings.excludedRanges))
-            os_log("🔵 Server selection method: %{public}@", log: .networkProtection, type: .info, currentServerSelectionMethod.debugDescription)
-			os_log("🔵 DNS server: %{public}@", log: .networkProtection, type: .info, String(describing: settings.dnsSettings))
-            let tunnelConfiguration = try await generateTunnelConfiguration(serverSelectionMethod: currentServerSelectionMethod,
-                                                                            includedRoutes: includedRoutes ?? [],
+            os_log("🔵 DNS server: %{public}@", log: .networkProtection, type: .info, String(describing: settings.dnsSettings))
+            let tunnelConfiguration = try await generateTunnelConfiguration(includedRoutes: includedRoutes ?? [],
                                                                             excludedRoutes: settings.excludedRanges,
                                                                             dnsSettings: settings.dnsSettings,
                                                                             regenerateKey: true)
@@ -692,7 +700,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             adapter.start(tunnelConfiguration: tunnelConfiguration) { [weak self] error in
                 if let error {
                     os_log("🔵 Starting tunnel failed with %{public}@", log: .networkProtection, type: .error, error.localizedDescription)
-                    self?.debugEvents?.fire(error.networkProtectionError)
+                    self?.debugEvents.fire(error.networkProtectionError)
                     continuation.resume(throwing: error)
                     return
                 }
@@ -789,7 +797,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
                 if let error {
                     os_log("🔵 Error while stopping adapter: %{public}@", log: .networkProtection, type: .error, error.localizedDescription)
-                    self?.debugEvents?.fire(error.networkProtectionError)
+                    self?.debugEvents.fire(error.networkProtectionError)
 
                     continuation.resume(throwing: error)
                     return
@@ -821,17 +829,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     @MainActor
     public func updateTunnelConfiguration(reassert: Bool,
                                           regenerateKey: Bool = false) async throws {
-        try await updateTunnelConfiguration(
-            serverSelectionMethod: currentServerSelectionMethod,
-            reassert: reassert,
-            regenerateKey: regenerateKey
-        )
-    }
-
-    @MainActor
-    public func updateTunnelConfiguration(serverSelectionMethod: NetworkProtectionServerSelectionMethod,
-                                          reassert: Bool,
-                                          regenerateKey: Bool = false) async throws {
 
         providerEvents.fire(.tunnelUpdateAttempt(.begin))
 
@@ -841,8 +838,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
         let tunnelConfiguration: TunnelConfiguration
         do {
-            tunnelConfiguration = try await generateTunnelConfiguration(serverSelectionMethod: serverSelectionMethod,
-                                                                        includedRoutes: includedRoutes ?? [],
+            tunnelConfiguration = try await generateTunnelConfiguration(includedRoutes: includedRoutes ?? [],
                                                                         excludedRoutes: settings.excludedRanges,
                                                                         dnsSettings: settings.dnsSettings,
                                                                         regenerateKey: regenerateKey)
@@ -865,7 +861,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 self.adapter.update(tunnelConfiguration: tunnelConfiguration, reassert: reassert) { [weak self] error in
                     if let error = error {
                         os_log("🔵 Failed to update the configuration: %{public}@", type: .error, error.localizedDescription)
-                        self?.debugEvents?.fire(error.networkProtectionError)
+                        self?.debugEvents.fire(error.networkProtectionError)
                         continuation.resume(throwing: error)
                         return
                     }
@@ -892,8 +888,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     @MainActor
-    private func generateTunnelConfiguration(serverSelectionMethod: NetworkProtectionServerSelectionMethod,
-                                             includedRoutes: [IPAddressRange],
+    private func generateTunnelConfiguration(includedRoutes: [IPAddressRange],
                                              excludedRoutes: [IPAddressRange],
                                              dnsSettings: NetworkProtectionDNSSettings,
                                              regenerateKey: Bool) async throws -> TunnelConfiguration {
@@ -901,6 +896,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         let configurationResult: NetworkProtectionDeviceManager.GenerateTunnelConfigurationResult
 
         do {
+            let serverSelectionMethod = await serverSelection.resolvedServerSelectionMethod()
             configurationResult = try await deviceManager.generateTunnelConfiguration(
                 selectionMethod: serverSelectionMethod,
                 includedRoutes: includedRoutes,
@@ -1015,39 +1011,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 }
                 completionHandler?(nil)
             }
-        case .setSelectedServer(let selectedServer):
-            let serverSelectionMethod: NetworkProtectionServerSelectionMethod
-
-            switch selectedServer {
-            case .automatic:
-                serverSelectionMethod = .automatic
-            case .endpoint(let serverName):
-                serverSelectionMethod = .preferredServer(serverName: serverName)
-            }
-
-            Task { @MainActor in
-                if case .connected = connectionStatus {
-                    try? await updateTunnelConfiguration(serverSelectionMethod: serverSelectionMethod, reassert: true)
-                }
-                completionHandler?(nil)
-            }
-        case .setSelectedLocation(let selectedLocation):
-            let serverSelectionMethod: NetworkProtectionServerSelectionMethod
-
-            switch selectedLocation {
-            case .nearest:
-                serverSelectionMethod = .automatic
-            case .location(let location):
-                serverSelectionMethod = .preferredLocation(location)
-            }
-
-            Task { @MainActor in
-                if case .connected = connectionStatus {
-                    try? await updateTunnelConfiguration(serverSelectionMethod: serverSelectionMethod, reassert: true)
-                }
-                completionHandler?(nil)
-            }
-        case .setDNSSettings:
+        case .setSelectedServer, .setSelectedLocation, .setDNSSettings:
             Task { @MainActor in
                 if case .connected = connectionStatus {
                     try? await updateTunnelConfiguration(reassert: true)
@@ -1149,7 +1113,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
             settings.selectedServer = .endpoint(serverName)
             if case .connected = connectionStatus {
-                try? await updateTunnelConfiguration(serverSelectionMethod: .preferredServer(serverName: serverName), reassert: true)
+                try? await updateTunnelConfiguration(reassert: true)
             }
             completionHandler?(nil)
         }
@@ -1230,7 +1194,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
             adapter.stop { [weak self] error in
                 if let error {
-                    self?.debugEvents?.fire(error.networkProtectionError)
+                    self?.debugEvents.fire(error.networkProtectionError)
                     os_log("🔵 Failed to stop WireGuard adapter: %{public}@", log: .networkProtection, type: .info, error.localizedDescription)
                 }
 
