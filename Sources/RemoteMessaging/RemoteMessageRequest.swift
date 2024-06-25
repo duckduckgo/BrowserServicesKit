@@ -27,24 +27,18 @@ public struct RemoteMessageRequest {
         self.endpoint = endpoint
     }
 
-    public func getRemoteMessage(completionHandler: @escaping (Result<RemoteMessageResponse.JsonRemoteMessagingConfig, RemoteMessageResponse.StatusError>) -> Void) {
+    public func getRemoteMessage() async throws -> RemoteMessageResponse.JsonRemoteMessagingConfig {
         let configuration = APIRequest.Configuration(url: endpoint)
         let request = APIRequest(configuration: configuration, urlSession: .session())
 
-        request.fetch { response, error in
-            guard let data = response?.data, error == nil else {
-                completionHandler(.failure(.noData))
-                return
-            }
+        guard let responseData = try? await request.fetch().data else {
+            throw RemoteMessageResponse.StatusError.noData
+        }
 
-            do {
-                let decoder  = JSONDecoder()
-                let response = try decoder.decode(RemoteMessageResponse.JsonRemoteMessagingConfig.self, from: data)
-
-                completionHandler(.success(response))
-            } catch {
-                completionHandler(.failure(.parsingFailed))
-            }
+        do {
+            return try JSONDecoder().decode(RemoteMessageResponse.JsonRemoteMessagingConfig.self, from: responseData)
+        } catch {
+            throw RemoteMessageResponse.StatusError.parsingFailed
         }
     }
 }
