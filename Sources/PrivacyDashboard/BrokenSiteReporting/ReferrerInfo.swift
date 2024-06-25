@@ -16,22 +16,24 @@
 //  limitations under the License.
 //
 
+import Common
 import Foundation
 import WebKit
 
 extension WKWebView {
+
+    @MainActor
+    var referrer: String? {
+        get async {
+            try? await self.evaluateJavaScript("document.referrer")
+        }
+    }
+
     @MainActor
     public var isCurrentSiteReferredFromDuckDuckGo: Bool {
         get async {
-            do {
-                if let result = try await self.evaluateJavaScript("document.referrer") as? String {
-                    return result.contains("duckduckgo.com")
-                }
-            } catch {
-                return false
-            }
-
-            return false
+            await referrer?.contains("duckduckgo.com") ?? false
         }
     }
+
 }
