@@ -121,6 +121,10 @@ internal class MockAutofillDatabaseProvider: AutofillDatabaseProvider {
         return Array(_identities.values)
     }
 
+    func identitiesCount() throws -> Int {
+        return _identities.count
+    }
+
     func identityForIdentityId(_ identityId: Int64) throws -> SecureVaultModels.Identity? {
         return _identities[identityId]
     }
