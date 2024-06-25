@@ -23,12 +23,21 @@ enum PhishingDetectionDataError: Error {
     case empty
 }
 
-public class PhishingDetectionDataStore {
+public protocol PhishingDetectionDataStoring {
+    var filterSet: Set<Filter> { get set }
+    var hashPrefixes: Set<String> { get set }
+    var currentRevision: Int { get set }
+    func writeData()
+    func loadData() async
+}
+
+public class PhishingDetectionDataStore: PhishingDetectionDataStoring {
+    public var filterSet: Set<Filter> = []
+    public var hashPrefixes = Set<String>()
+    public var currentRevision = 0
+
     var dataProvider: PhishingDetectionDataProviding
     var dataStore: URL?
-    var filterSet: Set<Filter> = []
-    var hashPrefixes = Set<String>()
-    var currentRevision = 0
     var hashPrefixFilename: String = "hashPrefixes.json"
     var filterSetFilename: String = "filterSet.json"
     var revisionFilename: String = "revision.txt"

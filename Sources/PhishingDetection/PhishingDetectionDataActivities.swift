@@ -79,7 +79,12 @@ final class DataActivity {
     }
 }
 
-public class PhishingDetectionDataActivities {
+public protocol PhishingDetectionDataActivityHandling {
+    func start()
+    func stop()
+}
+
+public class PhishingDetectionDataActivities: PhishingDetectionDataActivityHandling {
     private var activities: [DataActivity]
 
     var dataProvider: PhishingDetectionDataProviding

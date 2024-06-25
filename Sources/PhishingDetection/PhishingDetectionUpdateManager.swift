@@ -25,9 +25,9 @@ public protocol PhishingDetectionUpdateManaging {
 
 public class PhishingDetectionUpdateManager: PhishingDetectionUpdateManaging {
     var apiClient: PhishingDetectionClientProtocol
-    var dataStore: PhishingDetectionDataStore
+    var dataStore: PhishingDetectionDataStoring
 
-    public init(client: PhishingDetectionClientProtocol, dataStore: PhishingDetectionDataStore) {
+    public init(client: PhishingDetectionClientProtocol, dataStore: PhishingDetectionDataStoring) {
         self.apiClient = client
         self.dataStore = dataStore
     }

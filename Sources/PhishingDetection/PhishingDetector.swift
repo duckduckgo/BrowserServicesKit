@@ -55,9 +55,9 @@ public protocol PhishingDetecting {
 
 public class PhishingDetector: PhishingDetecting {
 	var apiClient: PhishingDetectionClientProtocol
-	var dataStore: PhishingDetectionDataStore
+	var dataStore: PhishingDetectionDataStoring
 
-	public init(apiClient: PhishingDetectionClientProtocol, dataProvider: PhishingDetectionDataProviding, dataStore: PhishingDetectionDataStore) {
+	public init(apiClient: PhishingDetectionClientProtocol, dataProvider: PhishingDetectionDataProviding, dataStore: PhishingDetectionDataStoring) {
 		self.apiClient = apiClient
 		self.dataStore = dataStore
 	}
