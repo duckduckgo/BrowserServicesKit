@@ -46,8 +46,7 @@ open class RemoteMessagingClientBase: RemoteMessagingFetching {
             let processor = RemoteMessagingConfigProcessor(remoteMessagingConfigMatcher: remoteMessagingConfigMatcher)
             let config = remoteMessagingStore.fetchRemoteMessagingConfig()
 
-            if let processorResult = processor.process(jsonRemoteMessagingConfig: statusResponse,
-                                                       currentConfig: config) {
+            if let processorResult = processor.process(jsonRemoteMessagingConfig: statusResponse, currentConfig: config) {
                 remoteMessagingStore.saveProcessedResult(processorResult)
             }
 
