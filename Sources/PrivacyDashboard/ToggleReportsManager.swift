@@ -68,7 +68,6 @@ public struct ToggleReportsManager {
     }
 
     public mutating func recordPrompt(date: Date = Date()) {
-        guard feature.isPromptLimitLogicEnabled else { return }
         if let windowStart = store.promptWindowStart, date.timeIntervalSince(windowStart) > feature.promptInterval {
             resetPromptWindow()
         } else if store.promptWindowStart == nil {
@@ -87,7 +86,6 @@ public struct ToggleReportsManager {
     }
 
     public mutating func recordDismissal(date: Date = Date()) {
-        guard feature.isDismissLogicEnabled else { return }
         store.dismissedAt = date
     }
 

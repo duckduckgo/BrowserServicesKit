@@ -49,9 +49,6 @@ public final class ToggleReportsFeature: ToggleReporting {
 
     }
 
-    private let configManager: PrivacyConfigurationManaging
-    private var updateCancellable: AnyCancellable?
-
     public private(set) var isEnabled: Bool = false
 
     public private(set) var isDismissLogicEnabled: Bool = false
@@ -62,22 +59,13 @@ public final class ToggleReportsFeature: ToggleReporting {
     public private(set) var maxPromptCount: Int = 0
 
     public init(manager: PrivacyConfigurationManaging) {
-        configManager = manager
-        updateCancellable = configManager.updatesPublisher.receive(on: DispatchQueue.main).sink { [weak self] in
-            guard let self else { return }
-            update(with: configManager.privacyConfig)
-        }
-        update(with: manager.privacyConfig)
-    }
-
-    private func update(with config: PrivacyConfiguration) {
-        isEnabled = config.isEnabled(featureKey: .toggleReports)
+        isEnabled = manager.privacyConfig.isEnabled(featureKey: .toggleReports)
         guard isEnabled else {
             isDismissLogicEnabled = false
             isPromptLimitLogicEnabled = false
             return
         }
-        let settings = config.settings(for: .toggleReports)
+        let settings = manager.privacyConfig.settings(for: .toggleReports)
         isDismissLogicEnabled = settings[Constants.dismissLogicEnabledKey] as? Bool ?? false
         dismissInterval = settings[Constants.dismissIntervalKey] as? TimeInterval ?? Constants.defaultTimeInterval
         isPromptLimitLogicEnabled = settings[Constants.promptLimitLogicEnabledKey] as? Bool ?? false
