@@ -37,6 +37,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         case tunnelStopAttempt(_ step: TunnelStopAttemptStep)
         case tunnelUpdateAttempt(_ step: TunnelUpdateAttemptStep)
         case tunnelWakeAttempt(_ step: TunnelWakeAttemptStep)
+        case tunnelStartWithoutAccessToken
         case reportTunnelFailure(result: NetworkProtectionTunnelFailureMonitor.Result)
         case reportLatency(result: NetworkProtectionLatencyMonitor.Result)
         case rekeyAttempt(_ step: RekeyAttemptStep)
@@ -590,6 +591,12 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         do {
             try load(options: startupOptions)
             try loadVendorOptions(from: tunnelProviderProtocol)
+
+            if (try? tokenStore.fetchToken()) == nil {
+                providerEvents.fire(.tunnelStartWithoutAccessToken)
+                try? await Task.sleep(interval: .seconds(15))
+                throw TunnelError.startingTunnelWithoutAuthToken
+            }
         } catch {
             if startupOptions.startupMethod == .automaticOnDemand {
                 // If the VPN was started by on-demand without the basic prerequisites for
@@ -599,7 +606,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 // for these prerequisited to avoid flooding our metrics.
                 try? await Task.sleep(interval: .seconds(15))
             } else {
-                // If the VPN was started manually without the basic prerequisited we always
+                // If the VPN was started manually without the basic prerequisites we always
                 // want to know as this should not be possible.
                 providerEvents.fire(.tunnelStartAttempt(.begin))
                 providerEvents.fire(.tunnelStartAttempt(.failure(error)))
