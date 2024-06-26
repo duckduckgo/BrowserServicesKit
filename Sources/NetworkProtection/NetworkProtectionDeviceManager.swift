@@ -43,12 +43,30 @@ public enum NetworkProtectionServerSelectionMethod: CustomDebugStringConvertible
     case failureRecovery(serverName: String)
 }
 
+public enum NetworkProtectionDNSSettings: Codable, Equatable, CustomStringConvertible {
+    case `default`
+    case custom([String])
+
+    public var usesCustomDNS: Bool {
+        guard case .custom(let servers) = self, !servers.isEmpty else { return false }
+        return true
+    }
+
+    public var description: String {
+        switch self {
+        case .default: return "DuckDuckGo"
+        case .custom(let servers): return servers.joined(separator: ", ")
+        }
+    }
+}
+
 public protocol NetworkProtectionDeviceManagement {
     typealias GenerateTunnelConfigurationResult = (tunnelConfiguration: TunnelConfiguration, server: NetworkProtectionServer)
 
     func generateTunnelConfiguration(selectionMethod: NetworkProtectionServerSelectionMethod,
                                      includedRoutes: [IPAddressRange],
                                      excludedRoutes: [IPAddressRange],
+                                     dnsSettings: NetworkProtectionDNSSettings,
                                      isKillSwitchEnabled: Bool,
                                      regenerateKey: Bool) async throws -> GenerateTunnelConfigurationResult
 
@@ -118,6 +136,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     public func generateTunnelConfiguration(selectionMethod: NetworkProtectionServerSelectionMethod,
                                             includedRoutes: [IPAddressRange],
                                             excludedRoutes: [IPAddressRange],
+                                            dnsSettings: NetworkProtectionDNSSettings,
                                             isKillSwitchEnabled: Bool,
                                             regenerateKey: Bool) async throws -> GenerateTunnelConfigurationResult {
         var keyPair: KeyPair
@@ -156,6 +175,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
                                                         server: selectedServer,
                                                         includedRoutes: includedRoutes,
                                                         excludedRoutes: excludedRoutes,
+                                                        dnsSettings: dnsSettings,
                                                         isKillSwitchEnabled: isKillSwitchEnabled)
             return (configuration, selectedServer)
         } catch let error as NetworkProtectionError {
@@ -222,12 +242,8 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
             selectedServer = registeredServer
             return (selectedServer, selectedServer.expirationDate)
         case .failure(let error):
-            if isSubscriptionEnabled, case .accessDenied = error {
-                errorEvents?.fire(.vpnAccessRevoked)
-                throw NetworkProtectionError.vpnAccessRevoked
-            }
-
             handle(clientError: error)
+            try handleAccessRevoked(error)
             throw error
         }
     }
@@ -250,6 +266,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
                              server: NetworkProtectionServer,
                              includedRoutes: [IPAddressRange],
                              excludedRoutes: [IPAddressRange],
+                             dnsSettings: NetworkProtectionDNSSettings,
                              isKillSwitchEnabled: Bool) throws -> TunnelConfiguration {
 
         guard let allowedIPs = server.allowedIPs else {
@@ -270,11 +287,21 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
             throw NetworkProtectionError.couldNotGetInterfaceAddressRange
         }
 
+        let dns: [DNSServer]
+        switch dnsSettings {
+        case .default:
+            dns = [DNSServer(address: server.serverInfo.internalIP)]
+        case .custom(let servers):
+            dns = servers
+                .compactMap { IPv4Address($0) }
+                .map { DNSServer(address: $0) }
+        }
+
         let interface = interfaceConfiguration(privateKey: interfacePrivateKey,
                                                addressRange: interfaceAddressRange,
                                                includedRoutes: includedRoutes,
                                                excludedRoutes: excludedRoutes,
-                                               dns: [DNSServer(address: server.serverInfo.internalIP)],
+                                               dns: dns,
                                                isKillSwitchEnabled: isKillSwitchEnabled)
 
         return TunnelConfiguration(name: "DuckDuckGo VPN", interface: interface, peers: [peerConfiguration])
@@ -318,5 +345,17 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
         }
 #endif
         errorEvents?.fire(clientError.networkProtectionError)
+    }
+
+    private func handleAccessRevoked(_ error: NetworkProtectionClientError) throws {
+        switch error {
+        case .accessDenied, .invalidAuthToken:
+            if isSubscriptionEnabled {
+                errorEvents?.fire(.vpnAccessRevoked)
+                throw NetworkProtectionError.vpnAccessRevoked
+            }
+        default:
+            break
+        }
     }
 }

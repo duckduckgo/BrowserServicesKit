@@ -215,6 +215,7 @@ extension NetworkProtectionDeviceManager {
             selectionMethod: selectionMethod,
             includedRoutes: [],
             excludedRoutes: [],
+            dnsSettings: .default,
             isKillSwitchEnabled: false,
             regenerateKey: regenerateKey
         )

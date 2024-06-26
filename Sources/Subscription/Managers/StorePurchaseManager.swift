@@ -20,12 +20,40 @@ import Foundation
 import StoreKit
 import Common
 
+public enum StoreError: Error {
+    case failedVerification
+}
+
+public enum StorePurchaseManagerError: Error {
+    case productNotFound
+    case externalIDisNotAValidUUID
+    case purchaseFailed
+    case transactionCannotBeVerified
+    case transactionPendingAuthentication
+    case purchaseCancelledByUser
+    case unknownError
+}
+
+public protocol StorePurchaseManager {
+    typealias TransactionJWS = String
+    func subscriptionOptions() async -> SubscriptionOptions?
+    var purchasedProductIDs: [String] { get }
+    var purchaseQueue: [String] { get }
+    var areProductsAvailable: Bool { get }
+    @MainActor func syncAppleIDAccount() async throws
+    @MainActor func updateAvailableProducts() async
+    @MainActor func updatePurchasedProducts() async
+    @MainActor func mostRecentTransaction() async -> String?
+    @MainActor func hasActiveSubscription() async -> Bool
+    @MainActor func purchaseSubscription(with identifier: String, externalID: String) async -> Result<StorePurchaseManager.TransactionJWS, StorePurchaseManagerError>
+}
+
 @available(macOS 12.0, iOS 15.0, *) typealias Transaction = StoreKit.Transaction
 @available(macOS 12.0, iOS 15.0, *) typealias RenewalInfo = StoreKit.Product.SubscriptionInfo.RenewalInfo
 @available(macOS 12.0, iOS 15.0, *) typealias RenewalState = StoreKit.Product.SubscriptionInfo.RenewalState
 
 @available(macOS 12.0, iOS 15.0, *)
-public final class StorePurchaseManager: ObservableObject, StorePurchaseManaging {
+public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseManager {
 
     let productIdentifiers = ["ios.subscription.1month", "ios.subscription.1year",
                               "subscription.1month", "subscription.1year",
@@ -56,8 +84,7 @@ public final class StorePurchaseManager: ObservableObject, StorePurchaseManaging
     }
 
     @MainActor
-    @discardableResult
-    public func syncAppleIDAccount() async -> Result<Void, Error> {
+    public func syncAppleIDAccount() async throws {
         do {
             purchaseQueue.removeAll()
 
@@ -69,11 +96,9 @@ public final class StorePurchaseManager: ObservableObject, StorePurchaseManaging
 
             await updatePurchasedProducts()
             await updateAvailableProducts()
-
-            return .success(())
         } catch {
             os_log(.error, log: .subscription, "[StorePurchaseManager] Error: %{public}s (%{public}s)", String(reflecting: error), error.localizedDescription)
-            return .failure(error)
+            throw error
         }
     }
 
@@ -178,12 +203,10 @@ public final class StorePurchaseManager: ObservableObject, StorePurchaseManaging
         return !transactions.isEmpty
     }
 
-    public typealias TransactionJWS = String
-
     @MainActor
-    public func purchaseSubscription(with identifier: String, externalID: String) async -> Result<TransactionJWS, PurchaseManagerError> {
+    public func purchaseSubscription(with identifier: String, externalID: String) async -> Result<TransactionJWS, StorePurchaseManagerError> {
 
-        guard let product = availableProducts.first(where: { $0.id == identifier }) else { return .failure(PurchaseManagerError.productNotFound) }
+        guard let product = availableProducts.first(where: { $0.id == identifier }) else { return .failure(StorePurchaseManagerError.productNotFound) }
 
         os_log(.info, log: .subscription, "[StorePurchaseManager] purchaseSubscription %{public}s (%{public}s)", product.displayName, externalID)
 
@@ -195,7 +218,7 @@ public final class StorePurchaseManager: ObservableObject, StorePurchaseManaging
             options.insert(.appAccountToken(token))
         } else {
             os_log(.error, log: .subscription, "[StorePurchaseManager] Error: Failed to create UUID")
-            return .failure(PurchaseManagerError.externalIDisNotAValidUUID)
+            return .failure(StorePurchaseManagerError.externalIDisNotAValidUUID)
         }
 
         let purchaseResult: Product.PurchaseResult
@@ -203,7 +226,7 @@ public final class StorePurchaseManager: ObservableObject, StorePurchaseManaging
             purchaseResult = try await product.purchase(options: options)
         } catch {
             os_log(.error, log: .subscription, "[StorePurchaseManager] Error: %{public}s", String(reflecting: error))
-            return .failure(PurchaseManagerError.purchaseFailed)
+            return .failure(StorePurchaseManagerError.purchaseFailed)
         }
 
         os_log(.info, log: .subscription, "[StorePurchaseManager] purchaseSubscription complete")
@@ -223,19 +246,19 @@ public final class StorePurchaseManager: ObservableObject, StorePurchaseManaging
                 os_log(.info, log: .subscription, "[StorePurchaseManager] purchaseSubscription result: success /unverified/ - %{public}s", String(reflecting: error))
                 // Successful purchase but transaction/receipt can't be verified
                 // Could be a jailbroken phone
-                return .failure(PurchaseManagerError.transactionCannotBeVerified)
+                return .failure(StorePurchaseManagerError.transactionCannotBeVerified)
             }
         case .pending:
             os_log(.info, log: .subscription, "[StorePurchaseManager] purchaseSubscription result: pending")
             // Transaction waiting on SCA (Strong Customer Authentication) or
             // approval from Ask to Buy
-            return .failure(PurchaseManagerError.transactionPendingAuthentication)
+            return .failure(StorePurchaseManagerError.transactionPendingAuthentication)
         case .userCancelled:
             os_log(.info, log: .subscription, "[StorePurchaseManager] purchaseSubscription result: user cancelled")
-            return .failure(PurchaseManagerError.purchaseCancelledByUser)
+            return .failure(StorePurchaseManagerError.purchaseCancelledByUser)
         @unknown default:
             os_log(.info, log: .subscription, "[StorePurchaseManager] purchaseSubscription result: unknown")
-            return .failure(PurchaseManagerError.unknownError)
+            return .failure(StorePurchaseManagerError.unknownError)
         }
     }
 

@@ -19,7 +19,7 @@
 import XCTest
 import Common
 import Combine
-@testable import Subscription
+import Subscription
 @testable import BrowserServicesKit
 
 final class SubscriptionFeatureAvailabilityTests: XCTestCase {
