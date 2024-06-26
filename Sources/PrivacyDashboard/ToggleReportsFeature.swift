@@ -51,20 +51,16 @@ public final class ToggleReportsFeature: ToggleReporting {
 
     public private(set) var isEnabled: Bool = false
 
-    public private(set) var isDismissLogicEnabled: Bool = false
+    public private(set) var isDismissLogicEnabled: Bool = true
     public private(set) var dismissInterval: TimeInterval = 0
 
-    public private(set) var isPromptLimitLogicEnabled: Bool = false
+    public private(set) var isPromptLimitLogicEnabled: Bool = true
     public private(set) var promptInterval: TimeInterval = 0
     public private(set) var maxPromptCount: Int = 0
 
     public init(manager: PrivacyConfigurationManaging) {
         isEnabled = manager.privacyConfig.isEnabled(featureKey: .toggleReports)
-        guard isEnabled else {
-            isDismissLogicEnabled = false
-            isPromptLimitLogicEnabled = false
-            return
-        }
+        guard isEnabled else { return }
         let settings = manager.privacyConfig.settings(for: .toggleReports)
         isDismissLogicEnabled = settings[Constants.dismissLogicEnabledKey] as? Bool ?? false
         dismissInterval = settings[Constants.dismissIntervalKey] as? TimeInterval ?? Constants.defaultTimeInterval

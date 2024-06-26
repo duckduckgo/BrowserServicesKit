@@ -92,6 +92,15 @@ final class ToggleReportsManagerTests: XCTestCase {
         XCTAssertFalse(manager.shouldShowToggleReport)
     }
 
+    func testShouldShowToggleReportWhenPromptLimitReachedButPromptIntervalPassed() {
+        let store = MockToggleReportsStore()
+        store.promptCount = 3
+        store.promptWindowStart = Date().addingTimeInterval(-72 * 60 * 60)
+        let manager = ToggleReportsManager(feature: MockToggleReportsFeature(), store: store)
+
+        XCTAssertTrue(manager.shouldShowToggleReport)
+    }
+
     // MARK: - Rolling window
 
     func testRecordPromptWhenWithinWindowShouldIncrementCount() {
