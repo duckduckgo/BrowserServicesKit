@@ -122,11 +122,12 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
         Task {
            guard let token = accountManager.accessToken else { return }
 
-            if case .success(let subscription) = await subscriptionEndpointService.getSubscription(accessToken: token, cachePolicy: .reloadIgnoringLocalCacheData) {
+            // We are using .returnCacheDataElseLoad for subscription and entitlements to trigger refreshing stale caches (by default set to 20min)
+            if case .success(let subscription) = await subscriptionEndpointService.getSubscription(accessToken: token, cachePolicy: .returnCacheDataElseLoad) {
                 completion(subscription.isActive)
             }
 
-            _ = await accountManager.fetchEntitlements(cachePolicy: .reloadIgnoringLocalCacheData)
+            _ = await accountManager.fetchEntitlements(cachePolicy: .returnCacheDataElseLoad)
         }
     }
 
