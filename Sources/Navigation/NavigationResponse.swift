@@ -50,7 +50,7 @@ public struct NavigationResponse {
 public extension NavigationResponse {
 
     var url: URL {
-        response.url!
+        response.url ?? .empty
     }
 
     var httpResponse: HTTPURLResponse? {
