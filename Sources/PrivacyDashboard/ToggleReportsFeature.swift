@@ -57,7 +57,7 @@ public final class ToggleReportsFeature: ToggleReporting {
     public private(set) var isDismissLogicEnabled: Bool = false
     public private(set) var dismissInterval: TimeInterval = 0
 
-    public private(set) var isPromptLimitLogicEnabled = false
+    public private(set) var isPromptLimitLogicEnabled: Bool = false
     public private(set) var promptInterval: TimeInterval = 0
     public private(set) var maxPromptCount: Int = 0
 
@@ -78,7 +78,9 @@ public final class ToggleReportsFeature: ToggleReporting {
             return
         }
         let settings = config.settings(for: .toggleReports)
+        isDismissLogicEnabled = settings[Constants.dismissLogicEnabledKey] as? Bool ?? false
         dismissInterval = settings[Constants.dismissIntervalKey] as? TimeInterval ?? Constants.defaultTimeInterval
+        isPromptLimitLogicEnabled = settings[Constants.promptLimitLogicEnabledKey] as? Bool ?? false
         promptInterval = settings[Constants.promptIntervalKey] as? TimeInterval ?? Constants.defaultTimeInterval
         maxPromptCount = settings[Constants.maxPromptCountKey] as? Int ?? Constants.defaultPromptCount
     }

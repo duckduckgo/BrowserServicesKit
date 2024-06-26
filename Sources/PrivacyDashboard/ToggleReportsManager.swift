@@ -94,13 +94,14 @@ public struct ToggleReportsManager {
     public var shouldShowToggleReport: Bool { shouldShowToggleReport(date: Date()) }
     public func shouldShowToggleReport(date: Date = Date()) -> Bool {
         var didDismissalIntervalPass: Bool {
-            guard feature.isDismissLogicEnabled, let dismissedAt = store.dismissedAt else { return true }
+            guard feature.isDismissLogicEnabled else { return false }
+            guard let dismissedAt = store.dismissedAt else { return true }
             let timeIntervalSinceLastDismiss = date.timeIntervalSince(dismissedAt)
             return timeIntervalSinceLastDismiss >= feature.dismissInterval
         }
 
         var isWithinPromptLimit: Bool {
-            guard feature.isPromptLimitLogicEnabled else { return true }
+            guard feature.isPromptLimitLogicEnabled else { return false }
             return store.promptCount < feature.maxPromptCount
         }
 
