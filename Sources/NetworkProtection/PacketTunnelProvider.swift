@@ -968,6 +968,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             simulateConnectionInterruption(completionHandler: completionHandler)
         case .getDataVolume:
             getDataVolume(completionHandler: completionHandler)
+        case .startSnooze(let duration):
+            startSnooze(duration, completionHandler: completionHandler)
+        case .cancelSnooze:
+            cancelSnooze(completionHandler: completionHandler)
         }
     }
 
@@ -1253,6 +1257,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         case onDemand
         case reconnected
         case wake
+        case snoozeEnded
     }
 
     /// Called when the adapter reports that the tunnel was successfully started.
@@ -1518,12 +1523,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     public override func sleep() async {
         os_log("Sleep", log: .networkProtectionSleepLog, type: .info)
-
-        await connectionTester.stop()
-        await tunnelFailureMonitor.stop()
-        await latencyMonitor.stop()
-        await entitlementMonitor.stop()
-        await serverStatusMonitor.stop()
+        await stopMonitors()
     }
 
     public override func wake() {
@@ -1540,6 +1540,36 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             }
         }
     }
+
+    // MARK: - Snooze
+
+    var snoozeTimer: Timer?
+
+    private func startSnooze(_ duration: TimeInterval, completionHandler: ((Data?) -> Void)? = nil) {
+        Task {
+            await startSnooze(duration: duration)
+            completionHandler?(nil)
+        }
+    }
+
+    private func cancelSnooze(completionHandler: ((Data?) -> Void)? = nil) {
+        completionHandler?(nil)
+    }
+
+    @MainActor
+    private func startSnooze(duration: TimeInterval) async {
+        await stopMonitors()
+        self.connectionStatus = .snoozing
+        self.snoozeTimer = Timer.scheduledTimer(withTimeInterval: duration, repeats: false) { _ in
+            print("snooze ended")
+        }
+    }
+
+    private func cancelSnooze() async {
+        try? await handleAdapterStarted(startReason: .snoozeEnded)
+
+    }
+
 }
 
 extension WireGuardAdapterError: LocalizedError, CustomDebugStringConvertible {

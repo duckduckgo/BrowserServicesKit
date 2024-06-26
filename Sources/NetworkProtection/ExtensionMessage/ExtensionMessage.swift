@@ -44,6 +44,8 @@ public enum ExtensionMessage: RawRepresentable {
         case simulateTunnelMemoryOveruse
         case simulateConnectionInterruption
         case getDataVolume
+        case startSnooze
+        case cancelSnooze
     }
 
     // This is actually an improved way to send messages.
@@ -69,6 +71,8 @@ public enum ExtensionMessage: RawRepresentable {
     case simulateTunnelMemoryOveruse
     case simulateConnectionInterruption
     case getDataVolume
+    case startSnooze(TimeInterval)
+    case cancelSnooze
 
     // swiftlint:disable:next cyclomatic_complexity function_body_length
     public init?(rawValue data: Data) {
@@ -139,6 +143,18 @@ public enum ExtensionMessage: RawRepresentable {
         case .getDataVolume:
             self = .getDataVolume
 
+        case .startSnooze:
+            guard data.count == MemoryLayout<UInt>.size + 1 else { return nil }
+            let uintValue = data.withUnsafeBytes {
+                $0.loadUnaligned(fromByteOffset: 1, as: UInt.self)
+            }
+            let snoozeDuration = TimeInterval(uintValue.littleEndian)
+
+            self = .startSnooze(snoozeDuration)
+
+        case .cancelSnooze:
+            self = .cancelSnooze
+
         case .none:
             assertionFailure("Invalid data")
             return nil
@@ -166,6 +182,8 @@ public enum ExtensionMessage: RawRepresentable {
         case .simulateTunnelMemoryOveruse: return .simulateTunnelMemoryOveruse
         case .simulateConnectionInterruption: return .simulateConnectionInterruption
         case .getDataVolume: return .getDataVolume
+        case .startSnooze: return .startSnooze
+        case .cancelSnooze: return .cancelSnooze
         }
     }
 
@@ -200,7 +218,12 @@ public enum ExtensionMessage: RawRepresentable {
                     assertionFailure("could not encode routes: \(error)")
                 }
             }
-
+        case .startSnooze(let interval):
+            encoder = { data in
+                withUnsafeBytes(of: UInt(interval).littleEndian) { buffer in
+                    data.append(Data(buffer))
+                }
+            }
         case .setSelectedServer(.none),
              .setKeyValidity(.none),
              .resetAllState,
@@ -215,7 +238,8 @@ public enum ExtensionMessage: RawRepresentable {
              .simulateTunnelFatalError,
              .simulateTunnelMemoryOveruse,
              .simulateConnectionInterruption,
-             .getDataVolume: break
+             .getDataVolume,
+             .cancelSnooze: break
 
         }
 
