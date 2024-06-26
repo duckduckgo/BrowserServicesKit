@@ -1542,18 +1542,24 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Computer sleeping
 
+    @MainActor
     public override func sleep() async {
         os_log("Sleep", log: .networkProtectionSleepLog, type: .info)
 
-        await connectionTester.stop()
-        await tunnelFailureMonitor.stop()
-        await latencyMonitor.stop()
-        await entitlementMonitor.stop()
-        await serverStatusMonitor.stop()
+        await stopMonitors()
     }
 
+    @MainActor
     public override func wake() {
         os_log("Wake up", log: .networkProtectionSleepLog, type: .info)
+
+        // macOS can launch the extension due to calls to `sendProviderMessage`, so there's
+        // a chance this is being called when the VPN isn't really meant to be connected or
+        // running.  We want to avoid firing pixels or handling adapter changes when this is
+        // the case.
+        guard connectionStatus != .disconnected else {
+            return
+        }
 
         Task {
             providerEvents.fire(.tunnelWakeAttempt(.begin))
