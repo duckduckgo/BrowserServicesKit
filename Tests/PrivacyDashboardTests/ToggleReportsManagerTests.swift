@@ -84,15 +84,16 @@ final class ToggleReportsManagerTests: XCTestCase {
         XCTAssertTrue(manager.shouldShowToggleReport)
     }
 
-    func testShouldNotShowToggleReportWhenPromptLimitReached() {
+    func testShouldNotShowToggleReportWhenPromptLimitReachedAndPromptIntervalIsLessThan48HoursAgo() {
         let store = MockToggleReportsStore()
         store.promptCount = 3
+        store.promptWindowStart = Date().addingTimeInterval(-24 * 60 * 60)
         let manager = ToggleReportsManager(feature: MockToggleReportsFeature(), store: store)
 
         XCTAssertFalse(manager.shouldShowToggleReport)
     }
 
-    func testShouldShowToggleReportWhenPromptLimitReachedButPromptIntervalPassed() {
+    func testShouldShowToggleReportWhenPromptLimitReachedButPromptIntervalIsMoreThan48HoursAgo() {
         let store = MockToggleReportsStore()
         store.promptCount = 3
         store.promptWindowStart = Date().addingTimeInterval(-72 * 60 * 60)
@@ -173,6 +174,7 @@ final class ToggleReportsManagerTests: XCTestCase {
     func testShouldNotShowToggleReportWhenDismissedMoreThan48HoursAndPromptLimitReached() {
         let store = MockToggleReportsStore()
         store.dismissedAt = Date().addingTimeInterval(-72 * 60 * 60)
+        store.promptWindowStart = Date().addingTimeInterval(-24 * 60 * 60)
         store.promptCount = 3
         let manager = ToggleReportsManager(feature: MockToggleReportsFeature(), store: store)
 
@@ -192,8 +194,7 @@ final class ToggleReportsManagerTests: XCTestCase {
 
     func testShouldNotShowToggleReportWhenFeatureDisabled() {
         let feature = MockToggleReportsFeature()
-        feature.isDismissLogicEnabled = false
-        feature.isPromptLimitLogicEnabled = false
+        feature.isEnabled = false
         let manager = ToggleReportsManager(feature: feature, store: MockToggleReportsStore())
         XCTAssertFalse(manager.shouldShowToggleReport)
     }
