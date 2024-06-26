@@ -34,7 +34,7 @@ open class RemoteMessagingClientBase: RemoteMessagingFetching {
         self.dataSource = dataSource
     }
 
-    public func fetchAndProcess(remoteMessagingStore: RemoteMessagingStore) async throws {
+    public func fetchAndProcess(remoteMessagingStore: RemoteMessagingStoring) async throws {
 
         do {
             let statusResponse = try await fetchRemoteMessages(request: RemoteMessageRequest(endpoint: endpoint))
