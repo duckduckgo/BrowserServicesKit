@@ -377,11 +377,8 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     }
 
     private func shouldSegueToToggleReportScreen(with protectionState: ProtectionState) -> Bool {
-        !protectionState.isProtected && protectionState.eventOrigin.screen == .primaryScreen && isToggleReportsFeatureEnabled
-    }
-
-    private var isToggleReportsFeatureEnabled: Bool {
-        return ToggleReportsFeature(privacyConfiguration: privacyConfigurationManager.privacyConfig).isEnabled
+        let manager = ToggleReportsManager(feature: ToggleReportsFeature(manager: privacyConfigurationManager))
+        return !protectionState.isProtected && protectionState.eventOrigin.screen == .primaryScreen && manager.shouldShowToggleReport
     }
 
     private func didChangeProtectionState(_ protectionState: ProtectionState, didSendReport: Bool = false) {

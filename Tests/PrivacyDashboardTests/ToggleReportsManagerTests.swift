@@ -19,11 +19,17 @@
 @testable import PrivacyDashboard
 import XCTest
 
+final class MockToggleReportsFeature: ToggleReporting {
+    
+    
+
+}
+
 final class MockToggleReportsStore: ToggleReportsStoring {
 
     var dismissedAt: Date?
-    var appearanceWindowStart: Date?
-    var appearanceCount: Int = 0
+    var promptWindowStart: Date?
+    var promptCount: Int = 0
 
 }
 
@@ -51,7 +57,7 @@ final class ToggleReportsManagerTests: XCTestCase {
         let pastDate = Date(timeIntervalSinceNow: -49 * 60 * 60) // 49 hours ago
         store.dismissedAt = pastDate
 
-        XCTAssertTrue(manager.shouldShowToggleReport(date: Date(), minimumDismissalInterval: 48 * 60 * 60))
+        XCTAssertTrue(manager.shouldShowToggleReport(date: Date(), dismissalInterval: 48 * 60 * 60))
     }
 
     func testShouldNotShowToggleReportWhenDismissedDateIsLessThan48HoursAgo() {
@@ -60,22 +66,22 @@ final class ToggleReportsManagerTests: XCTestCase {
         let recentDate = Date(timeIntervalSinceNow: -47 * 60 * 60) // 47 hours ago
         store.dismissedAt = recentDate
 
-        XCTAssertFalse(manager.shouldShowToggleReport(date: Date(), minimumDismissalInterval: 48 * 60 * 60))
+        XCTAssertFalse(manager.shouldShowToggleReport(date: Date(), dismissalInterval: 48 * 60 * 60))
     }
 
-    // MARK: - Appearance logic
+    // MARK: - Prompt logic
 
-    func testShouldShowToggleReportWhenAppearanceLimitNotReached() {
+    func testShouldShowToggleReportWhenPromptLimitNotReached() {
         let store = MockToggleReportsStore()
-        store.appearanceCount = 2
+        store.promptCount = 2
         let manager = ToggleReportsManager(store: store)
 
         XCTAssertTrue(manager.shouldShowToggleReport)
     }
 
-    func testShouldNotShowToggleReportWhenAppearanceLimitReached() {
+    func testShouldNotShowToggleReportWhenPromptLimitReached() {
         let store = MockToggleReportsStore()
-        store.appearanceCount = 3
+        store.promptCount = 3
         let manager = ToggleReportsManager(store: store)
 
         XCTAssertFalse(manager.shouldShowToggleReport)
@@ -83,86 +89,86 @@ final class ToggleReportsManagerTests: XCTestCase {
 
     // MARK: - Rolling window
 
-    func testRecordAppearanceWhenWithinWindowShouldIncrementCount() {
+    func testRecordPromptWhenWithinWindowShouldIncrementCount() {
         let store = MockToggleReportsStore()
         // Set initial window start within the last 48 hours
         let windowStart = Date().addingTimeInterval(-24 * 60 * 60)
-        store.appearanceWindowStart = windowStart
-        store.appearanceCount = 1
+        store.promptWindowStart = windowStart
+        store.promptCount = 1
         
         var manager = ToggleReportsManager(store: store)
-        // Record another appearance within the same window
-        manager.recordAppearance(date: Date())
+        // Record another prompt within the same window
+        manager.recordPrompt(date: Date())
 
-        XCTAssertEqual(store.appearanceCount, 2)
-        XCTAssertEqual(store.appearanceWindowStart, windowStart)
+        XCTAssertEqual(store.promptCount, 2)
+        XCTAssertEqual(store.promptWindowStart, windowStart)
     }
 
-    func testRecordAppearanceWhenOutsideWindowShouldResetCount() {
+    func testRecordPromptWhenOutsideWindowShouldResetCount() {
         let store = MockToggleReportsStore()
         // Set initial window start more than 48 hours ago
-        store.appearanceWindowStart = Date().addingTimeInterval(-72 * 60 * 60)
-        store.appearanceCount = 2
+        store.promptWindowStart = Date().addingTimeInterval(-72 * 60 * 60)
+        store.promptCount = 2
 
         var manager = ToggleReportsManager(store: store)
-        // Record appearance outside the previous window
+        // Record prompt outside the previous window
         let now = Date()
-        manager.recordAppearance(date: now)
+        manager.recordPrompt(date: now)
 
-        XCTAssertEqual(store.appearanceCount, 1)
-        XCTAssertNotNil(store.appearanceWindowStart)
-        XCTAssertEqual(store.appearanceWindowStart, now)
+        XCTAssertEqual(store.promptCount, 1)
+        XCTAssertNotNil(store.promptWindowStart)
+        XCTAssertEqual(store.promptWindowStart, now)
     }
 
-    func testRecordAppearanceWhenNoWindowShouldStartNewWindow() {
+    func testRecordPromptWhenNoWindowShouldStartNewWindow() {
         let store = MockToggleReportsStore()
         // No initial window start
-        store.appearanceWindowStart = nil
-        store.appearanceCount = 0
+        store.promptWindowStart = nil
+        store.promptCount = 0
 
         var manager = ToggleReportsManager(store: store)
-        // Record appearance without previous window
+        // Record prompt without previous window
         let now = Date()
-        manager.recordAppearance(date: now)
+        manager.recordPrompt(date: now)
 
-        XCTAssertEqual(store.appearanceCount, 1)
-        XCTAssertNotNil(store.appearanceWindowStart)
-        XCTAssertEqual(store.appearanceWindowStart, now)
+        XCTAssertEqual(store.promptCount, 1)
+        XCTAssertNotNil(store.promptWindowStart)
+        XCTAssertEqual(store.promptWindowStart, now)
     }
 
-    // MARK: - Combination of both appearances and dismissal logic
+    // MARK: - Combination of both prompts and dismissal logic
 
-    func testShouldNotShowToggleReportWhenDismissedLessThan48HoursAndAppearanceLimitNotReached() {
+    func testShouldNotShowToggleReportWhenDismissedLessThan48HoursAndPromptLimitNotReached() {
         let store = MockToggleReportsStore()
         store.dismissedAt = Date().addingTimeInterval(-24 * 60 * 60)
-        store.appearanceCount = 2
+        store.promptCount = 2
         let manager = ToggleReportsManager(store: store)
 
         XCTAssertFalse(manager.shouldShowToggleReport(date: Date()))
     }
 
-    func testShouldNotShowToggleReportWhenDismissedLessThan48HoursAndAppearanceLimitReached() {
+    func testShouldNotShowToggleReportWhenDismissedLessThan48HoursAndPromptLimitReached() {
         let store = MockToggleReportsStore()
         store.dismissedAt = Date().addingTimeInterval(-24 * 60 * 60)
-        store.appearanceCount = 3
+        store.promptCount = 3
         let manager = ToggleReportsManager(store: store)
 
         XCTAssertFalse(manager.shouldShowToggleReport(date: Date()))
     }
 
-    func testShouldNotShowToggleReportWhenDismissedMoreThan48HoursAndAppearanceLimitReached() {
+    func testShouldNotShowToggleReportWhenDismissedMoreThan48HoursAndPromptLimitReached() {
         let store = MockToggleReportsStore()
         store.dismissedAt = Date().addingTimeInterval(-72 * 60 * 60)
-        store.appearanceCount = 3
+        store.promptCount = 3
         let manager = ToggleReportsManager(store: store)
 
         XCTAssertFalse(manager.shouldShowToggleReport(date: Date()))
     }
 
-    func testShouldShowToggleReportWhenDismissedMoreThan48HoursAndAppearanceLimitNotReached() {
+    func testShouldShowToggleReportWhenDismissedMoreThan48HoursAndPromptLimitNotReached() {
         let store = MockToggleReportsStore()
         store.dismissedAt = Date().addingTimeInterval(-72 * 60 * 60)
-        store.appearanceCount = 2
+        store.promptCount = 2
         let manager = ToggleReportsManager(store: store)
 
         XCTAssertTrue(manager.shouldShowToggleReport(date: Date()))

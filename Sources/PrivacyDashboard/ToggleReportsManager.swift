@@ -17,12 +17,13 @@
 //
 
 import Foundation
+import BrowserServicesKit
 
-protocol ToggleReportsStoring {
+public protocol ToggleReportsStoring {
 
     var dismissedAt: Date? { get set }
-    var appearanceWindowStart: Date? { get set }
-    var appearanceCount: Int { get set }
+    var promptWindowStart: Date? { get set }
+    var promptCount: Int { get set }
 
 }
 
@@ -31,74 +32,79 @@ public struct ToggleReportsStore: ToggleReportsStoring {
     private enum Key {
 
         static let dismissedAt = "com.duckduckgo.app.toggleReports.dismissedAt"
-        static let appearanceWindowStart = "com.duckduckgo.app.toggleReports.appearanceWindowStart"
-        static let appearanceCount = "com.duckduckgo.app.toggleReports.appearanceCount"
+        static let promptWindowStart = "com.duckduckgo.app.toggleReports.promptWindowStart"
+        static let promptCount = "com.duckduckgo.app.toggleReports.promptCount"
 
     }
 
     private let userDefaults = UserDefaults()
+    public init() {}
 
-    var dismissedAt: Date? {
+    public var dismissedAt: Date? {
         get { userDefaults.object(forKey: Key.dismissedAt) as? Date }
         set { userDefaults.set(newValue, forKey: Key.dismissedAt) }
     }
 
-    var appearanceWindowStart: Date? {
-        get { userDefaults.object(forKey: Key.appearanceWindowStart) as? Date }
-        set { userDefaults.set(newValue, forKey: Key.appearanceWindowStart) }
+    public var promptWindowStart: Date? {
+        get { userDefaults.object(forKey: Key.promptWindowStart) as? Date }
+        set { userDefaults.set(newValue, forKey: Key.promptWindowStart) }
     }
 
-    var appearanceCount: Int {
-        get { userDefaults.object(forKey: Key.appearanceCount) as? Int ?? 0 }
-        set { userDefaults.set(newValue, forKey: Key.appearanceCount) }
+    public var promptCount: Int {
+        get { userDefaults.object(forKey: Key.promptCount) as? Int ?? 0 }
+        set { userDefaults.set(newValue, forKey: Key.promptCount) }
     }
 
 }
 
 public struct ToggleReportsManager {
 
-    private enum Constant {
-
-        static let twoDays: TimeInterval = 48 * 60 * 60
-
-    }
-
+    private let feature: ToggleReporting
     private var store: ToggleReportsStoring
 
-    init(store: ToggleReportsStoring = ToggleReportsStore()) {
+    public init(feature: ToggleReporting, store: ToggleReportsStoring = ToggleReportsStore()) {
         self.store = store
+        self.feature = feature
     }
 
-    mutating func recordAppearance(date: Date = Date()) {
-        if let windowStart = store.appearanceWindowStart {
-            if date.timeIntervalSince(windowStart) > ToggleReportsManager.Constant.twoDays {
-                store.appearanceWindowStart = date
-                store.appearanceCount = 0
-            }
-        } else {
-            store.appearanceWindowStart = date
+    public mutating func recordPrompt(date: Date = Date()) {
+        guard feature.isPromptLimitLogicEnabled else { return }
+        if let windowStart = store.promptWindowStart, date.timeIntervalSince(windowStart) > feature.promptInterval {
+            resetPromptWindow()
+        } else if store.promptWindowStart == nil {
+            startPromptWindow()
         }
-        store.appearanceCount += 1
+        store.promptCount += 1
+
+        func resetPromptWindow() {
+            store.promptWindowStart = date
+            store.promptCount = 0
+        }
+
+        func startPromptWindow() {
+            store.promptWindowStart = date
+        }
     }
 
-    mutating func recordDismissal(date: Date = Date()) {
+    public mutating func recordDismissal(date: Date = Date()) {
+        guard feature.isDismissLogicEnabled else { return }
         store.dismissedAt = date
     }
 
-    var shouldShowToggleReport: Bool { shouldShowToggleReport(date: Date()) }
-    func shouldShowToggleReport(date: Date = Date(),
-                                minimumDismissalInterval: TimeInterval = Constant.twoDays) -> Bool {
+    public var shouldShowToggleReport: Bool { shouldShowToggleReport(date: Date()) }
+    public func shouldShowToggleReport(date: Date = Date()) -> Bool {
         var didDismissalIntervalPass: Bool {
-            guard let dismissedAt = store.dismissedAt else { return true }
+            guard feature.isDismissLogicEnabled, let dismissedAt = store.dismissedAt else { return true }
             let timeIntervalSinceLastDismiss = date.timeIntervalSince(dismissedAt)
-            return timeIntervalSinceLastDismiss >= minimumDismissalInterval
+            return timeIntervalSinceLastDismiss >= feature.dismissInterval
         }
 
-        var isWithinAppearanceLimit: Bool {
-            store.appearanceCount < 3
+        var isWithinPromptLimit: Bool {
+            guard feature.isPromptLimitLogicEnabled else { return true }
+            return store.promptCount < feature.maxPromptCount
         }
 
-        return didDismissalIntervalPass && isWithinAppearanceLimit
+        return didDismissalIntervalPass && isWithinPromptLimit
     }
 
 }

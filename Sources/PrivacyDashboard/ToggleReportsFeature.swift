@@ -17,19 +17,70 @@
 //
 
 import Foundation
+import Combine
 import BrowserServicesKit
 
-public struct ToggleReportsFeature {
+public protocol ToggleReporting {
 
-    public var privacyConfiguration: PrivacyConfiguration
-    public init(privacyConfiguration: PrivacyConfiguration) {
-        self.privacyConfiguration = privacyConfiguration
+    var isEnabled: Bool { get }
+
+    var isDismissLogicEnabled: Bool { get }
+    var dismissInterval: TimeInterval { get }
+
+    var isPromptLimitLogicEnabled: Bool { get }
+    var promptInterval: TimeInterval { get }
+    var maxPromptCount: Int { get }
+
+}
+
+public final class ToggleReportsFeature: ToggleReporting {
+
+    enum Constants {
+
+        static let dismissLogicEnabledKey = "dismissLogicEnabled"
+        static let dismissIntervalKey = "dismissInterval"
+
+        static let promptLimitLogicEnabledKey = "promptLimitLogicEnabled"
+        static let promptIntervalKey = "promptInterval"
+        static let maxPromptCountKey = "maxPromptCount"
+
+        static let defaultTimeInterval: TimeInterval = 48 * 60 * 60 // Two days
+        static let defaultPromptCount = 3
+
     }
 
-    public var isEnabled: Bool {
-        let isFeatureEnabledInConfig = privacyConfiguration.isSubfeatureEnabled(PrivacyDashboardSubfeature.toggleReports)
-        let isCurrentLanguageEnglish = Locale.current.languageCode == "en"
-        return isFeatureEnabledInConfig && isCurrentLanguageEnglish
+    private let configManager: PrivacyConfigurationManaging
+    private var updateCancellable: AnyCancellable?
+
+    public private(set) var isEnabled: Bool = false
+
+    public private(set) var isDismissLogicEnabled: Bool = false
+    public private(set) var dismissInterval: TimeInterval = 0
+
+    public private(set) var isPromptLimitLogicEnabled = false
+    public private(set) var promptInterval: TimeInterval = 0
+    public private(set) var maxPromptCount: Int = 0
+
+    public init(manager: PrivacyConfigurationManaging) {
+        configManager = manager
+        updateCancellable = configManager.updatesPublisher.receive(on: DispatchQueue.main).sink { [weak self] in
+            guard let self else { return }
+            update(with: configManager.privacyConfig)
+        }
+        update(with: manager.privacyConfig)
+    }
+
+    private func update(with config: PrivacyConfiguration) {
+        isEnabled = config.isEnabled(featureKey: .toggleReports)
+        guard isEnabled else {
+            isDismissLogicEnabled = false
+            isPromptLimitLogicEnabled = false
+            return
+        }
+        let settings = config.settings(for: .toggleReports)
+        dismissInterval = settings[Constants.dismissIntervalKey] as? TimeInterval ?? Constants.defaultTimeInterval
+        promptInterval = settings[Constants.promptIntervalKey] as? TimeInterval ?? Constants.defaultTimeInterval
+        maxPromptCount = settings[Constants.maxPromptCountKey] as? Int ?? Constants.defaultPromptCount
     }
 
 }
