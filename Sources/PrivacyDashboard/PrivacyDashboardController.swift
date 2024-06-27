@@ -447,7 +447,11 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
 
     private func processToggleReport(for type: ToggleReportDismissType) {
         fireToggleReportEventIfNeeded(for: type)
-        type == .send ? toggleReportsManager.recordPrompt() : toggleReportsManager.recordDismissal()
+        if type == .send {
+            toggleReportsManager.recordPrompt()
+        } else {
+            toggleReportsManager.recordDismissal()
+        }
     }
 
     public func handleViewWillDisappear() {
