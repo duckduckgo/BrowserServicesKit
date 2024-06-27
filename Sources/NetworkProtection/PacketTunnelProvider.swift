@@ -1062,6 +1062,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         case .uninstallVPN:
             // Since the VPN configuration is being removed we may as well reset all state
             handleResetAllState(completionHandler: completionHandler)
+        case .quitAgent:
+            // No-op since this is intended for the agent app
+            break
         }
     }
 
