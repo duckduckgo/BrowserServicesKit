@@ -204,8 +204,9 @@ final class ToggleReportsManagerTests: XCTestCase {
         store.promptWindowStart = Date().addingTimeInterval(-24 * 60 * 60)
         store.promptCount = 5
         let feature = MockToggleReportsFeature()
-        feature.isPromptLimitLogicEnabled = false
         let manager = ToggleReportsManager(feature: feature, store: store)
+        XCTAssertFalse(manager.shouldShowToggleReport)
+        feature.isPromptLimitLogicEnabled = false
         XCTAssertTrue(manager.shouldShowToggleReport)
     }
 
@@ -213,8 +214,9 @@ final class ToggleReportsManagerTests: XCTestCase {
         let store = MockToggleReportsStore()
         store.dismissedAt = Date().addingTimeInterval(-47 * 60 * 60)
         let feature = MockToggleReportsFeature()
-        feature.isDismissLogicEnabled = false
         let manager = ToggleReportsManager(feature: feature, store: store)
+        XCTAssertFalse(manager.shouldShowToggleReport)
+        feature.isDismissLogicEnabled = false
         XCTAssertTrue(manager.shouldShowToggleReport)
     }
 
