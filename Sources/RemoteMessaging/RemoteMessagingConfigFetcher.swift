@@ -35,7 +35,16 @@ public struct RemoteMessagingConfigFetcher: RemoteMessagingConfigFetching {
     }
 
     public func fetchRemoteMessagingConfig() async throws -> RemoteMessageResponse.JsonRemoteMessagingConfig {
-        try await configurationFetcher.fetch(all: [.remoteMessagingConfig])
+        let isDebug: Bool = {
+#if DEBUG
+            true
+#else
+            false
+#endif
+        }()
+        do {
+            try await configurationFetcher.fetch(.remoteMessagingConfig, isDebug: isDebug)
+        } catch APIRequest.Error.invalidStatusCode(304) {}
 
         guard let responseData = configurationStore.loadData(for: .remoteMessagingConfig) else {
             throw RemoteMessageResponse.StatusError.noData
