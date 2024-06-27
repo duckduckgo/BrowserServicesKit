@@ -110,7 +110,7 @@ final class ToggleReportsManagerTests: XCTestCase {
         let windowStart = Date().addingTimeInterval(-24 * 60 * 60)
         store.promptWindowStart = windowStart
         store.promptCount = 1
-        
+
         var manager = ToggleReportsManager(feature: MockToggleReportsFeature(), store: store)
         // Record another prompt within the same window
         manager.recordPrompt(date: Date())
