@@ -98,6 +98,10 @@ public class ConnectionServerInfoObserverThroughSession: ConnectionServerInfoObs
     // MARK: - Obtaining the NetP VPN status
 
     private func updateServerInfo(session: NETunnelProviderSession) async {
+        guard session.status == .connected else {
+            return
+        }
+
         let serverAddress = await self.serverAddress(from: session)
         let serverLocation = await self.serverLocation(from: session)
 

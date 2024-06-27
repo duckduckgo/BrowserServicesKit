@@ -439,6 +439,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         loadSelectedEnvironment(from: options)
         loadSelectedServer(from: options)
         loadSelectedLocation(from: options)
+        loadDNSSettings(from: options)
         loadTesterEnabled(from: options)
 #if os(macOS)
         try loadAuthToken(from: options)
@@ -486,12 +487,23 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     private func loadSelectedLocation(from options: StartupOptions) {
         switch options.selectedLocation {
-        case .set(let selectedServer):
-            settings.selectedLocation = selectedServer
+        case .set(let selectedLocation):
+            settings.selectedLocation = selectedLocation
         case .useExisting:
             break
         case .reset:
             settings.selectedServer = .automatic
+        }
+    }
+
+    private func loadDNSSettings(from options: StartupOptions) {
+        switch options.dnsSettings {
+        case .set(let dnsSettings):
+            settings.dnsSettings = dnsSettings
+        case .useExisting:
+            break
+        case .reset:
+            settings.dnsSettings = .default
         }
     }
 
@@ -516,7 +528,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
             try tokenStore.store(newAuthToken)
         case .useExisting:
-            break
+            guard try tokenStore.fetchToken() != nil else {
+                throw TunnelError.startingTunnelWithoutAuthToken
+            }
         case .reset:
             // This case should in theory not be possible, but it's ideal to have this in place
             // in case an error in the controller on the client side allows it.
@@ -564,69 +578,68 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Tunnel Start
 
-    open override func startTunnel(options: [String: NSObject]?, completionHandler: @escaping (Error?) -> Void) {
-        Task { @MainActor in
-            providerEvents.fire(.tunnelStartAttempt(.begin))
-            prepareToConnect(using: tunnelProviderProtocol)
+    @MainActor
+    open override func startTunnel(options: [String: NSObject]? = nil) async throws {
 
-            connectionStatus = .connecting
+        // It's important to have this as soon as possible since it helps setup PixelKit
+        prepareToConnect(using: tunnelProviderProtocol)
 
-            let startupOptions = StartupOptions(options: options ?? [:])
-            os_log("Starting tunnel with options: %{public}s", log: .networkProtection, startupOptions.description)
+        let startupOptions = StartupOptions(options: options ?? [:])
+        os_log("Starting tunnel with options: %{public}s", log: .networkProtection, startupOptions.description)
 
-            resetIssueStateOnTunnelStart(startupOptions)
-
-            let internalCompletionHandler = { [weak self, providerEvents] (error: Error?) in
-                guard let error else {
-                    completionHandler(nil)
-                    providerEvents.fire(.tunnelStartAttempt(.success))
-                    return
-                }
-
-                let handler = {
-                    let errorDescription = (error as? LocalizedError)?.localizedDescription ?? String(describing: error)
-
-                    os_log("Tunnel startup error: %{public}@", type: .error, errorDescription)
-                    self?.controllerErrorStore.lastErrorMessage = errorDescription
-                    self?.connectionStatus = .disconnected
-                    self?.knownFailureStore.lastKnownFailure = KnownFailure(error)
-
-                    providerEvents.fire(.tunnelStartAttempt(.failure(error)))
-                    completionHandler(error)
-                }
-
-                if startupOptions.startupMethod == .automaticOnDemand {
-                    Task {
-                        // We add a 10 seconds delay when the VPN is started by
-                        // on-demand and there's an error, to avoid frenetic ON/OFF
-                        // cycling.
-                        try? await Task.sleep(interval: .seconds(10))
-                        handler()
-                    }
-                } else {
-                    handler()
-                }
-            }
-
-            startTunnel(options: startupOptions, completionHandler: internalCompletionHandler)
-        }
-    }
-
-    private func startTunnel(options: StartupOptions, completionHandler: @escaping (Error?) -> Void) {
         do {
-            try runDebugSimulations(options: options)
-            try load(options: options)
+            try load(options: startupOptions)
             try loadVendorOptions(from: tunnelProviderProtocol)
         } catch {
-            completionHandler(error)
-            return
+            if startupOptions.startupMethod == .automaticOnDemand {
+                // If the VPN was started by on-demand without the basic prerequisites for
+                // it to work we skip firing pixels.  This should only be possible if the
+                // manual start attempt that preceded failed, or if the subscription has
+                // expired.  In either case it should be enough to record the manual failures
+                // for these prerequisited to avoid flooding our metrics.
+                try? await Task.sleep(interval: .seconds(15))
+            } else {
+                // If the VPN was started manually without the basic prerequisited we always
+                // want to know as this should not be possible.
+                providerEvents.fire(.tunnelStartAttempt(.begin))
+                providerEvents.fire(.tunnelStartAttempt(.failure(error)))
+            }
+
+            os_log("🔴 Stopping VPN due to no auth token: %{public}s", log: .networkProtection)
+            await attemptShutdown()
+
+            throw error
         }
 
-        let onDemand = options.startupMethod == .automaticOnDemand
+        do {
+            providerEvents.fire(.tunnelStartAttempt(.begin))
+            connectionStatus = .connecting
+            resetIssueStateOnTunnelStart(startupOptions)
 
-        os_log("Starting tunnel %{public}@", log: .networkProtection, options.startupMethod.debugDescription)
-        startTunnel(onDemand: onDemand,
-                    completionHandler: completionHandler)
+            try runDebugSimulations(options: startupOptions)
+            try await startTunnel(onDemand: startupOptions.startupMethod == .automaticOnDemand)
+
+            providerEvents.fire(.tunnelStartAttempt(.success))
+        } catch {
+            if startupOptions.startupMethod == .automaticOnDemand {
+                // We add a delay when the VPN is started by
+                // on-demand and there's an error, to avoid frenetic ON/OFF
+                // cycling.
+                try? await Task.sleep(interval: .seconds(15))
+            }
+
+            let errorDescription = (error as? LocalizedError)?.localizedDescription ?? String(describing: error)
+
+            os_log("Tunnel startup error: %{public}@", type: .error, errorDescription)
+            self.controllerErrorStore.lastErrorMessage = errorDescription
+            self.connectionStatus = .disconnected
+            self.knownFailureStore.lastKnownFailure = KnownFailure(error)
+
+            providerEvents.fire(.tunnelStartAttempt(.failure(error)))
+
+            os_log("🔴 Stopping VPN due to error: %{public}s", log: .networkProtection, error.localizedDescription)
+            throw error
+        }
     }
 
     var currentServerSelectionMethod: NetworkProtectionServerSelectionMethod {
@@ -651,60 +664,62 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         return serverSelectionMethod
     }
 
-    private func startTunnel(onDemand: Bool, completionHandler: @escaping (Error?) -> Void) {
-        Task {
-            do {
-                os_log("🔵 Generating tunnel config", log: .networkProtection, type: .info)
-                os_log("🔵 Excluded ranges are: %{public}@", log: .networkProtection, type: .info, String(describing: settings.excludedRanges))
-                os_log("🔵 Server selection method: %{public}@", log: .networkProtection, type: .info, currentServerSelectionMethod.debugDescription)
-                let tunnelConfiguration = try await generateTunnelConfiguration(serverSelectionMethod: currentServerSelectionMethod,
-                                                                                includedRoutes: includedRoutes ?? [],
-                                                                                excludedRoutes: settings.excludedRanges,
-                                                                                regenerateKey: true)
-                startTunnel(with: tunnelConfiguration, onDemand: onDemand, completionHandler: completionHandler)
-                os_log("🔵 Done generating tunnel config", log: .networkProtection, type: .info)
-            } catch {
-                os_log("🔵 Error starting tunnel: %{public}@", log: .networkProtection, type: .info, error.localizedDescription)
+    private func startTunnel(onDemand: Bool) async throws {
+        do {
+            os_log("🔵 Generating tunnel config", log: .networkProtection, type: .info)
+            os_log("🔵 Excluded ranges are: %{public}@", log: .networkProtection, type: .info, String(describing: settings.excludedRanges))
+            os_log("🔵 Server selection method: %{public}@", log: .networkProtection, type: .info, currentServerSelectionMethod.debugDescription)
+			os_log("🔵 DNS server: %{public}@", log: .networkProtection, type: .info, String(describing: settings.dnsSettings))
+            let tunnelConfiguration = try await generateTunnelConfiguration(serverSelectionMethod: currentServerSelectionMethod,
+                                                                            includedRoutes: includedRoutes ?? [],
+                                                                            excludedRoutes: settings.excludedRanges,
+                                                                            dnsSettings: settings.dnsSettings,
+                                                                            regenerateKey: true)
+            try await startTunnel(with: tunnelConfiguration, onDemand: onDemand)
+            os_log("🔵 Done generating tunnel config", log: .networkProtection, type: .info)
+        } catch {
+            os_log("🔵 Error starting tunnel: %{public}@", log: .networkProtection, type: .info, error.localizedDescription)
 
-                controllerErrorStore.lastErrorMessage = error.localizedDescription
+            controllerErrorStore.lastErrorMessage = error.localizedDescription
 
-                completionHandler(error)
-            }
+            throw error
         }
     }
 
-    private func startTunnel(with tunnelConfiguration: TunnelConfiguration, onDemand: Bool, completionHandler: @escaping (Error?) -> Void) {
+    private func startTunnel(with tunnelConfiguration: TunnelConfiguration, onDemand: Bool) async throws {
 
-        adapter.start(tunnelConfiguration: tunnelConfiguration) { [weak self] error in
-            if let error {
-                os_log("🔵 Starting tunnel failed with %{public}@", log: .networkProtection, type: .error, error.localizedDescription)
-                self?.debugEvents?.fire(error.networkProtectionError)
-                completionHandler(error)
-                return
-            }
-
-            Task { @MainActor [weak self] in
-                // It's important to call this completion handler before running the tester
-                // as if we don't, the tester will just fail.  It seems like the connection
-                // won't fully work until the completion handler is called.
-                completionHandler(nil)
-
-                guard let self else { return }
-
-                do {
-                    let startReason: AdapterStartReason = onDemand ? .onDemand : .manual
-                    try await self.handleAdapterStarted(startReason: startReason)
-
-                    // Enable Connect on Demand when manually enabling the tunnel on iOS 17.0+.
-#if os(iOS)
-                    if #available(iOS 17.0, *), startReason == .manual {
-                        try? await updateConnectOnDemand(enabled: true)
-                        os_log("Enabled Connect on Demand due to user-initiated startup", log: .networkProtection, type: .info)
-                    }
-#endif
-                } catch {
-                    self.cancelTunnelWithError(error)
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            adapter.start(tunnelConfiguration: tunnelConfiguration) { [weak self] error in
+                if let error {
+                    os_log("🔵 Starting tunnel failed with %{public}@", log: .networkProtection, type: .error, error.localizedDescription)
+                    self?.debugEvents?.fire(error.networkProtectionError)
+                    continuation.resume(throwing: error)
                     return
+                }
+
+                Task { @MainActor [weak self] in
+                    // It's important to call this completion handler before running the tester
+                    // as if we don't, the tester will just fail.  It seems like the connection
+                    // won't fully work until the completion handler is called.
+                    continuation.resume()
+
+                    guard let self else { return }
+
+                    do {
+                        let startReason: AdapterStartReason = onDemand ? .onDemand : .manual
+                        try await self.handleAdapterStarted(startReason: startReason)
+
+                        // Enable Connect on Demand when manually enabling the tunnel on iOS 17.0+.
+#if os(iOS)
+                        if #available(iOS 17.0, *), startReason == .manual {
+                            try? await updateConnectOnDemand(enabled: true)
+                            os_log("Enabled Connect on Demand due to user-initiated startup", log: .networkProtection, type: .info)
+                        }
+#endif
+                    } catch {
+                        self.cancelTunnelWithError(error)
+                        return
+                    }
                 }
             }
         }
@@ -804,7 +819,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     // MARK: - Tunnel Configuration
 
     @MainActor
-    public func updateTunnelConfiguration(reassert: Bool, regenerateKey: Bool = false) async throws {
+    public func updateTunnelConfiguration(reassert: Bool,
+                                          regenerateKey: Bool = false) async throws {
         try await updateTunnelConfiguration(
             serverSelectionMethod: currentServerSelectionMethod,
             reassert: reassert,
@@ -826,9 +842,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         let tunnelConfiguration: TunnelConfiguration
         do {
             tunnelConfiguration = try await generateTunnelConfiguration(serverSelectionMethod: serverSelectionMethod,
-                                                                            includedRoutes: includedRoutes ?? [],
-                                                                            excludedRoutes: settings.excludedRanges,
-                                                                            regenerateKey: regenerateKey)
+                                                                        includedRoutes: includedRoutes ?? [],
+                                                                        excludedRoutes: settings.excludedRanges,
+                                                                        dnsSettings: settings.dnsSettings,
+                                                                        regenerateKey: regenerateKey)
         } catch {
             providerEvents.fire(.tunnelUpdateAttempt(.failure(error)))
             throw error
@@ -878,6 +895,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private func generateTunnelConfiguration(serverSelectionMethod: NetworkProtectionServerSelectionMethod,
                                              includedRoutes: [IPAddressRange],
                                              excludedRoutes: [IPAddressRange],
+                                             dnsSettings: NetworkProtectionDNSSettings,
                                              regenerateKey: Bool) async throws -> TunnelConfiguration {
 
         let configurationResult: NetworkProtectionDeviceManager.GenerateTunnelConfigurationResult
@@ -887,6 +905,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 selectionMethod: serverSelectionMethod,
                 includedRoutes: includedRoutes,
                 excludedRoutes: excludedRoutes,
+                dnsSettings: dnsSettings,
                 isKillSwitchEnabled: isKillSwitchEnabled,
                 regenerateKey: regenerateKey
             )
@@ -986,7 +1005,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         settings.apply(change: change)
     }
 
-    // swiftlint:disable:next cyclomatic_complexity
+    // swiftlint:disable:next cyclomatic_complexity function_body_length
     private func handleSettingsChange(_ change: VPNSettings.Change, completionHandler: ((Data?) -> Void)? = nil) {
         switch change {
         case .setExcludeLocalNetworks:
@@ -1028,6 +1047,13 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 }
                 completionHandler?(nil)
             }
+        case .setDNSSettings:
+            Task { @MainActor in
+                if case .connected = connectionStatus {
+                    try? await updateTunnelConfiguration(reassert: true)
+                }
+                completionHandler?(nil)
+            }
         case .setConnectOnLogin,
                 .setIncludeAllNetworks,
                 .setEnforceRoutes,
@@ -1052,9 +1078,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             handleSendTestNotification(completionHandler: completionHandler)
         case .disableConnectOnDemandAndShutDown:
             Task { [weak self] in
-                await self?.attemptShutdown {
-                    completionHandler?(nil)
-                }
+                await self?.attemptShutdown()
+                completionHandler?(nil)
             }
         case .removeVPNConfiguration:
             // Since the VPN configuration is being removed we may as well reset all state
@@ -1062,6 +1087,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         case .uninstallVPN:
             // Since the VPN configuration is being removed we may as well reset all state
             handleResetAllState(completionHandler: completionHandler)
+        case .quitAgent:
+            // No-op since this is intended for the agent app
+            break
         }
     }
 
@@ -1326,6 +1354,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 to: server,
                 includedRoutes: self.includedRoutes ?? [],
                 excludedRoutes: self.settings.excludedRanges,
+                dnsSettings: self.settings.dnsSettings,
                 isKillSwitchEnabled: self.isKillSwitchEnabled
             ) { [weak self] generateConfigResult in
                 try await self?.handleFailureRecoveryConfigUpdate(result: generateConfigResult)
@@ -1428,13 +1457,12 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     // Attempt to shut down the tunnel
     // On iOS 16 and below, as a workaround, we rekey to force a 403 error so that the tunnel fails to restart
     @MainActor
-    private func attemptShutdown(completion: (() -> Void)? = nil) async {
+    private func attemptShutdown() async {
         if #available(iOS 17, *) {
             handleShutDown()
         } else {
             try? await rekey()
         }
-        completion?()
     }
 
     @MainActor
@@ -1470,9 +1498,25 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Connection Tester
 
-    private enum ConnectionTesterError: Error {
+    private enum ConnectionTesterError: CustomNSError {
         case couldNotRetrieveInterfaceNameFromAdapter
         case testerFailedToStart(internalError: Error)
+
+        var errorCode: Int {
+            switch self {
+            case .couldNotRetrieveInterfaceNameFromAdapter: return 0
+            case .testerFailedToStart: return 1
+            }
+        }
+
+        var errorUserInfo: [String: Any] {
+            switch self {
+            case .couldNotRetrieveInterfaceNameFromAdapter:
+                return [:]
+            case .testerFailedToStart(let internalError):
+                return [NSUnderlyingErrorKey: internalError as NSError]
+            }
+        }
     }
 
     private func startConnectionTester(testImmediately: Bool) async throws {
@@ -1501,18 +1545,24 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Computer sleeping
 
+    @MainActor
     public override func sleep() async {
         os_log("Sleep", log: .networkProtectionSleepLog, type: .info)
 
-        await connectionTester.stop()
-        await tunnelFailureMonitor.stop()
-        await latencyMonitor.stop()
-        await entitlementMonitor.stop()
-        await serverStatusMonitor.stop()
+        await stopMonitors()
     }
 
+    @MainActor
     public override func wake() {
         os_log("Wake up", log: .networkProtectionSleepLog, type: .info)
+
+        // macOS can launch the extension due to calls to `sendProviderMessage`, so there's
+        // a chance this is being called when the VPN isn't really meant to be connected or
+        // running.  We want to avoid firing pixels or handling adapter changes when this is
+        // the case.
+        guard connectionStatus != .disconnected else {
+            return
+        }
 
         Task {
             providerEvents.fire(.tunnelWakeAttempt(.begin))

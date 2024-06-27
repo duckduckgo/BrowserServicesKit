@@ -32,14 +32,26 @@ struct ErrorResponse: Decodable {
 }
 
 public protocol APIService {
-    var baseURL: URL { get }
-    var session: URLSession { get }
     func executeAPICall<T>(method: String, endpoint: String, headers: [String: String]?, body: Data?) async -> Result<T, APIServiceError> where T: Decodable
+    func makeAuthorizationHeader(for token: String) -> [String: String]
 }
 
-public extension APIService {
+public enum APICachePolicy {
+    case reloadIgnoringLocalCacheData
+    case returnCacheDataElseLoad
+    case returnCacheDataDontLoad
+}
 
-    func executeAPICall<T>(method: String, endpoint: String, headers: [String: String]? = nil, body: Data? = nil) async -> Result<T, APIServiceError> where T: Decodable {
+public struct DefaultAPIService: APIService {
+    private let baseURL: URL
+    private let session: URLSession
+
+    public init(baseURL: URL, session: URLSession) {
+        self.baseURL = baseURL
+        self.session = session
+    }
+
+    public func executeAPICall<T>(method: String, endpoint: String, headers: [String: String]? = nil, body: Data? = nil) async -> Result<T, APIServiceError> where T: Decodable {
         let request = makeAPIRequest(method: method, endpoint: endpoint, headers: headers, body: body)
 
         do {
@@ -99,7 +111,7 @@ public extension APIService {
         os_log(.info, log: .subscription, "[API] %d %{public}s /%{public}s :: %{public}s", statusCode, method, endpoint, stringData)
     }
 
-    func makeAuthorizationHeader(for token: String) -> [String: String] {
+    public func makeAuthorizationHeader(for token: String) -> [String: String] {
         ["Authorization": "Bearer " + token]
     }
 }

@@ -19,15 +19,14 @@
 import Foundation
 @testable import Subscription
 
-public final class SubscriptionManagerMock: SubscriptionManaging {
-
-    public var accountManager: AccountManaging
-    public var subscriptionService: SubscriptionService
-    public var authService: AuthService
+public final class SubscriptionManagerMock: SubscriptionManager {
+    public var accountManager: AccountManager
+    public var subscriptionEndpointService: SubscriptionEndpointService
+    public var authEndpointService: AuthEndpointService
     public var currentEnvironment: SubscriptionEnvironment
     public var canPurchase: Bool
 
-    public func storePurchaseManager() -> StorePurchaseManaging {
+    public func storePurchaseManager() -> StorePurchaseManager {
         internalStorePurchaseManager
     }
 
@@ -43,15 +42,15 @@ public final class SubscriptionManagerMock: SubscriptionManaging {
         type.subscriptionURL(environment: currentEnvironment.serviceEnvironment)
     }
 
-    public init(accountManager: AccountManaging,
-                subscriptionService: SubscriptionService,
-                authService: AuthService,
-                storePurchaseManager: StorePurchaseManaging,
+    public init(accountManager: AccountManager,
+                subscriptionEndpointService: SubscriptionEndpointService,
+                authEndpointService: AuthEndpointService,
+                storePurchaseManager: StorePurchaseManager,
                 currentEnvironment: SubscriptionEnvironment,
                 canPurchase: Bool) {
         self.accountManager = accountManager
-        self.subscriptionService = subscriptionService
-        self.authService = authService
+        self.subscriptionEndpointService = subscriptionEndpointService
+        self.authEndpointService = authEndpointService
         self.internalStorePurchaseManager = storePurchaseManager
         self.currentEnvironment = currentEnvironment
         self.canPurchase = canPurchase
@@ -59,5 +58,5 @@ public final class SubscriptionManagerMock: SubscriptionManaging {
 
     // MARK: -
 
-    let internalStorePurchaseManager: StorePurchaseManaging
+    let internalStorePurchaseManager: StorePurchaseManager
 }
