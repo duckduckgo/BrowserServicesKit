@@ -28,12 +28,8 @@ public struct RemoteMessagingConfigProcessor {
 
     let remoteMessagingConfigMatcher: RemoteMessagingConfigMatcher
 
-    public init(remoteMessagingConfigMatcher: RemoteMessagingConfigMatcher) {
-        self.remoteMessagingConfigMatcher = remoteMessagingConfigMatcher
-    }
-
-    public func process(jsonRemoteMessagingConfig: RemoteMessageResponse.JsonRemoteMessagingConfig,
-                        currentConfig: RemoteMessagingConfig?) -> ProcessorResult? {
+    func process(jsonRemoteMessagingConfig: RemoteMessageResponse.JsonRemoteMessagingConfig,
+                 currentConfig: RemoteMessagingConfig?) -> ProcessorResult? {
         os_log("Processing version %s", log: .remoteMessaging, type: .debug, String(jsonRemoteMessagingConfig.version))
 
         let currentVersion = currentConfig?.version ?? 0
