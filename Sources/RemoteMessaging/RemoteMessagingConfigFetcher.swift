@@ -1,5 +1,5 @@
 //
-//  RemoteMessageRequest.swift
+//  RemoteMessagingConfigFetcher.swift
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -16,22 +16,28 @@
 //  limitations under the License.
 //
 
+import Configuration
 import Foundation
 import Networking
 
-public struct RemoteMessageRequest {
+public protocol RemoteMessagingConfigFetching {
+    func fetchRemoteMessagingConfig() async throws -> RemoteMessageResponse.JsonRemoteMessagingConfig
+}
 
-    public let endpoint: URL
+public struct RemoteMessagingConfigFetcher: RemoteMessagingConfigFetching {
 
-    public init(endpoint: URL) {
-        self.endpoint = endpoint
+    public let configurationFetcher: ConfigurationFetcher
+    public let configurationStore: ConfigurationStoring
+
+    public init(configurationFetcher: ConfigurationFetcher, configurationStore: ConfigurationStoring) {
+        self.configurationFetcher = configurationFetcher
+        self.configurationStore = configurationStore
     }
 
-    public func getRemoteMessage() async throws -> RemoteMessageResponse.JsonRemoteMessagingConfig {
-        let configuration = APIRequest.Configuration(url: endpoint)
-        let request = APIRequest(configuration: configuration, urlSession: .session())
+    public func fetchRemoteMessagingConfig() async throws -> RemoteMessageResponse.JsonRemoteMessagingConfig {
+        try await configurationFetcher.fetch(all: [.remoteMessagingConfig])
 
-        guard let responseData = try? await request.fetch().data else {
+        guard let responseData = configurationStore.loadData(for: .remoteMessagingConfig) else {
             throw RemoteMessageResponse.StatusError.noData
         }
 

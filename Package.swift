@@ -261,6 +261,7 @@ let package = Package(
             name: "RemoteMessaging",
             dependencies: [
                 "Common",
+                "Configuration",
                 "BrowserServicesKit",
                 "Networking",
                 "Persistence",

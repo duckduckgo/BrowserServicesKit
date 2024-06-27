@@ -18,14 +18,16 @@
 
 import BrowserServicesKit
 import Common
+import Configuration
 import Foundation
 
 public protocol RemoteMessagingConfigMatcherProviding {
     func refreshConfigMatcher(using store: RemoteMessagingStoring) async -> RemoteMessagingConfigMatcher
 }
 
-public protocol RemoteMessagingProcessing: RemoteMessagingFetching {
+public protocol RemoteMessagingProcessing {
     var endpoint: URL { get }
+    var configurationFetcher: RemoteMessagingConfigFetching { get }
     var configMatcherProvider: RemoteMessagingConfigMatcherProviding { get }
 
     func fetchAndProcess(using store: RemoteMessagingStoring) async throws
@@ -35,7 +37,7 @@ public extension RemoteMessagingProcessing {
 
     func fetchAndProcess(using store: RemoteMessagingStoring) async throws {
         do {
-            let statusResponse = try await fetchRemoteMessages(request: RemoteMessageRequest(endpoint: endpoint))
+            let statusResponse = try await configurationFetcher.fetchRemoteMessagingConfig()
 
             os_log("Successfully fetched remote messages", log: .remoteMessaging, type: .debug)
 
