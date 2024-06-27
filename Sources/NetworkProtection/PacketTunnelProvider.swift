@@ -594,7 +594,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
             if (try? tokenStore.fetchToken()) == nil {
                 providerEvents.fire(.tunnelStartWithoutAccessToken)
-                try? await Task.sleep(interval: .seconds(15))
                 throw TunnelError.startingTunnelWithoutAuthToken
             }
         } catch {
