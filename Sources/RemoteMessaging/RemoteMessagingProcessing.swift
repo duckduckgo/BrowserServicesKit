@@ -1,5 +1,5 @@
 //
-//  RemoteMessagingClientBase.swift
+//  RemoteMessagingProcessing.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -21,33 +21,31 @@ import Common
 import Foundation
 
 public protocol RemoteMessagingConfigMatcherProviding {
-    func refreshConfigMatcher(with store: RemoteMessagingStoring) async -> RemoteMessagingConfigMatcher
+    func refreshConfigMatcher(using store: RemoteMessagingStoring) async -> RemoteMessagingConfigMatcher
 }
 
-open class RemoteMessagingClientBase: RemoteMessagingFetching {
+public protocol RemoteMessagingProcessing: RemoteMessagingFetching {
+    var endpoint: URL { get }
+    var configMatcherProvider: RemoteMessagingConfigMatcherProviding { get }
 
-    public let endpoint: URL
-    public let configMatcherProvider: RemoteMessagingConfigMatcherProviding
+    func fetchAndProcess(using store: RemoteMessagingStoring) async throws
+}
 
-    public init(endpoint: URL, configMatcherProvider: RemoteMessagingConfigMatcherProviding) {
-        self.endpoint = endpoint
-        self.configMatcherProvider = configMatcherProvider
-    }
+public extension RemoteMessagingProcessing {
 
-    public func fetchAndProcess(remoteMessagingStore: RemoteMessagingStoring) async throws {
-
+    func fetchAndProcess(using store: RemoteMessagingStoring) async throws {
         do {
             let statusResponse = try await fetchRemoteMessages(request: RemoteMessageRequest(endpoint: endpoint))
 
             os_log("Successfully fetched remote messages", log: .remoteMessaging, type: .debug)
 
-            let remoteMessagingConfigMatcher = await configMatcherProvider.refreshConfigMatcher(with: remoteMessagingStore)
+            let remoteMessagingConfigMatcher = await configMatcherProvider.refreshConfigMatcher(using: store)
 
             let processor = RemoteMessagingConfigProcessor(remoteMessagingConfigMatcher: remoteMessagingConfigMatcher)
-            let config = remoteMessagingStore.fetchRemoteMessagingConfig()
+            let config = store.fetchRemoteMessagingConfig()
 
             if let processorResult = processor.process(jsonRemoteMessagingConfig: statusResponse, currentConfig: config) {
-                remoteMessagingStore.saveProcessedResult(processorResult)
+                store.saveProcessedResult(processorResult)
             }
 
         } catch {
@@ -55,5 +53,4 @@ open class RemoteMessagingClientBase: RemoteMessagingFetching {
             throw error
         }
     }
-
 }
