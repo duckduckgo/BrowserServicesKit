@@ -69,6 +69,8 @@ private enum State {
 
     /// The tunnel is temporarily shutdown due to device going offline
     case temporaryShutdown(_ settingsGenerator: PacketTunnelSettingsGenerator)
+
+    case snoozing
 }
 
 // swiftlint:disable:next type_body_length
@@ -298,10 +300,10 @@ public class WireGuardAdapter {
     ///   - completionHandler: completion handler.
     public func start(tunnelConfiguration: TunnelConfiguration, completionHandler: @escaping (WireGuardAdapterError?) -> Void) {
         workQueue.async {
-            guard case .stopped = self.state else {
-                completionHandler(.invalidState(.alreadyStarted))
-                return
-            }
+//            guard case .stopped = self.state else {
+//                completionHandler(.invalidState(.alreadyStarted))
+//                return
+//            }
 
             let networkMonitor = NWPathMonitor()
             networkMonitor.pathUpdateHandler = { [weak self] path in
@@ -339,7 +341,7 @@ public class WireGuardAdapter {
             case .started(let handle, _):
                 wgTurnOff(handle)
 
-            case .temporaryShutdown:
+            case .temporaryShutdown, .snoozing:
                 break
 
             case .stopped:
@@ -351,6 +353,31 @@ public class WireGuardAdapter {
             self.networkMonitor = nil
 
             self.state = .stopped
+
+            completionHandler(nil)
+        }
+    }
+
+    public func snooze(completionHandler: @escaping (WireGuardAdapterError?) -> Void) {
+        workQueue.async {
+            switch self.state {
+            case .started(let handle, _):
+                wgTurnOff(handle)
+
+            case .temporaryShutdown, .snoozing:
+                break
+
+            case .stopped:
+                completionHandler(.invalidState(.alreadyStopped))
+                return
+            }
+
+            self.networkMonitor?.cancel()
+            self.networkMonitor = nil
+
+            self.state = .snoozing
+
+            try? self.setNetworkSettings(nil)
 
             completionHandler(nil)
         }
@@ -401,6 +428,9 @@ public class WireGuardAdapter {
 
                 case .temporaryShutdown:
                     self.state = .temporaryShutdown(settingsGenerator)
+
+                case .snoozing:
+                    break // TODO: Handle this
 
                 case .stopped:
                     fatalError()
@@ -586,7 +616,7 @@ public class WireGuardAdapter {
                 self.logHandler(.error, "Failed to restart backend: \(error.localizedDescription)")
             }
 
-        case .stopped:
+        case .stopped, .snoozing:
             // no-op
             break
         }

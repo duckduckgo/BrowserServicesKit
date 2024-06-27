@@ -40,4 +40,9 @@ public protocol NetworkProtectionNotificationsPresenter {
 
     /// Present a "expired subscription" notification to the user.
     func showEntitlementNotification()
+
+    func showSnoozeBeganNotification()
+
+    func showSnoozeEndedNotification()
+
 }

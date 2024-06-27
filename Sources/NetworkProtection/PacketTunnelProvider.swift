@@ -1579,8 +1579,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Snooze
 
-    var snoozeTimer: Timer?
-
     private func startSnooze(_ duration: TimeInterval, completionHandler: ((Data?) -> Void)? = nil) {
         Task {
             await startSnooze(duration: duration)
@@ -1589,21 +1587,41 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     private func cancelSnooze(completionHandler: ((Data?) -> Void)? = nil) {
-        completionHandler?(nil)
+        Task {
+            await cancelSnooze()
+            completionHandler?(nil)
+        }
     }
 
     @MainActor
     private func startSnooze(duration: TimeInterval) async {
+        os_log("Starting snooze mode with duration: %{public}d", log: .networkProtection, duration)
+
         await stopMonitors()
         self.connectionStatus = .snoozing
-        self.snoozeTimer = Timer.scheduledTimer(withTimeInterval: duration, repeats: false) { _ in
-            print("snooze ended")
+        self.adapter.snooze { error in
+            if error == nil {
+                self.notificationsPresenter.showSnoozeBeganNotification()
+
+                let timer = DispatchSource.makeTimerSource(queue: self.timerQueue)
+                timer.schedule(deadline: .now() + duration, repeating: .never)
+                timer.setEventHandler {
+                    Task {
+                        await self.cancelSnooze()
+                    }
+
+                    timer.cancel()
+                }
+
+                timer.resume()
+            }
         }
     }
 
     private func cancelSnooze() async {
-        try? await handleAdapterStarted(startReason: .snoozeEnded)
-
+        os_log("Ending snooze mode", log: .networkProtection)
+        self.notificationsPresenter.showSnoozeEndedNotification()
+        try? await startTunnel(onDemand: false)
     }
 
 }
