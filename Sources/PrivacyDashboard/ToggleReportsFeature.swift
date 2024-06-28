@@ -59,7 +59,8 @@ public final class ToggleReportsFeature: ToggleReporting {
     public private(set) var maxPromptCount: Int = 0
 
     public init(manager: PrivacyConfigurationManaging) {
-        isEnabled = manager.privacyConfig.isEnabled(featureKey: .toggleReports)
+        let isCurrentLanguageEnglish = Locale.current.languageCode == "en"
+        isEnabled = manager.privacyConfig.isEnabled(featureKey: .toggleReports) && isCurrentLanguageEnglish
         guard isEnabled else { return }
         let settings = manager.privacyConfig.settings(for: .toggleReports)
         isDismissLogicEnabled = settings[Constants.dismissLogicEnabledKey] as? Bool ?? false
