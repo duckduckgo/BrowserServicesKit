@@ -146,7 +146,10 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
     private weak var webView: WKWebView?
     private let privacyDashboardScript: PrivacyDashboardUserScript
     private var cancellables = Set<AnyCancellable>()
+
     private var protectionStateToSubmitOnToggleReportDismiss: ProtectionState?
+    private var didSendToggleReport: Bool = false
+
     private let privacyConfigurationManager: PrivacyConfigurationManaging
     private let eventMapping: EventMapping<PrivacyDashboardEvents>
 
@@ -437,8 +440,10 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
         if type != .send {
             if let protectionStateToSubmitOnToggleReportDismiss {
                 didChangeProtectionState(protectionStateToSubmitOnToggleReportDismiss)
-                fireToggleReportEventIfNeeded(for: type)
-                // todo: processToggleReport on mac
+                if !didSendToggleReport {
+                    fireToggleReportEventIfNeeded(for: type)
+                    toggleReportsManager.recordDismissal()
+                }
             }
             closeDashboard()
         }
@@ -447,9 +452,7 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
 
     private func processToggleReport(for type: ToggleReportDismissType) {
         fireToggleReportEventIfNeeded(for: type)
-        if type == .send {
-            toggleReportsManager.recordPrompt()
-        } else {
+        if type != .send {
             toggleReportsManager.recordDismissal()
         }
     }
@@ -518,10 +521,12 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectReportAction shouldSendReport: Bool) {
         if shouldSendReport {
+            toggleReportsManager.recordPrompt()
             privacyDashboardToggleReportDelegate?.privacyDashboardController(self,
                                                                              didRequestSubmitToggleReportWithSource: source,
                                                                              didOpenReportInfo: didOpenReportInfo,
                                                                              toggleReportCounter: toggleReportCounter)
+            didSendToggleReport = true
         }
         let toggleReportDismissType: ToggleReportDismissType = shouldSendReport ? .send : .doNotSend
         handleUserScriptClosing(toggleReportDismissType: toggleReportDismissType)
