@@ -28,7 +28,7 @@ public protocol SubscriptionManager {
     var canPurchase: Bool { get }
     @available(macOS 12.0, iOS 15.0, *) func storePurchaseManager() -> StorePurchaseManager
     func loadInitialData()
-    func updateSubscriptionStatus(completion: @escaping (_ isActive: Bool) -> Void)
+    func refreshCachedSubscriptionAndEntitlements(completion: @escaping (_ isSubscriptionActive: Bool) -> Void)
     func url(for type: SubscriptionURL) -> URL
 }
 
@@ -118,7 +118,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
         }
     }
 
-    public func updateSubscriptionStatus(completion: @escaping (_ isActive: Bool) -> Void) {
+    public func refreshCachedSubscriptionAndEntitlements(completion: @escaping (_ isSubscriptionActive: Bool) -> Void) {
         Task {
             guard let token = accountManager.accessToken else { return }
 
