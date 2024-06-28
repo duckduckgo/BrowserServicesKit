@@ -18,6 +18,7 @@
 
 import Foundation
 import BrowserServicesKit
+import Persistence
 
 public protocol ToggleReportsStoring {
 
@@ -37,8 +38,10 @@ public struct ToggleReportsStore: ToggleReportsStoring {
 
     }
 
-    private let userDefaults = UserDefaults()
-    public init() {}
+    private let userDefaults: KeyValueStoring
+    public init(userDefaults: KeyValueStoring = UserDefaults()) {
+        self.userDefaults = userDefaults
+    }
 
     public var dismissedAt: Date? {
         get { userDefaults.object(forKey: Key.dismissedAt) as? Date }
