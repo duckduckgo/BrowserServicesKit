@@ -25,6 +25,7 @@ public enum VPNCommand: Codable {
     case sendTestNotification
     case uninstallVPN
     case disableConnectOnDemandAndShutDown
+    case quitAgent
 }
 
 public enum ExtensionRequest: Codable {
