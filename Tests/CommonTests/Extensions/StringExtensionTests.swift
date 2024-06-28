@@ -286,8 +286,3 @@ final class StringExtensionTests: XCTestCase {
     }
 
 }
-
-private func + (lhs: UInt, rhs: String) -> (UInt, String) {
-    (lhs, rhs)
-}
-
