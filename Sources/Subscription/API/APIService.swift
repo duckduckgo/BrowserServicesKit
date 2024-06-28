@@ -22,7 +22,7 @@ import Common
 public enum APIServiceError: Swift.Error {
     case decodingError
     case encodingError
-    case serverError(description: String)
+    case serverError(statusCode: Int, error: String?)
     case unknownServerError
     case connectionError
 }
@@ -58,8 +58,10 @@ public struct DefaultAPIService: APIService {
             let (data, urlResponse) = try await session.data(for: request)
 
             printDebugInfo(method: method, endpoint: endpoint, data: data, response: urlResponse)
+            
+            guard let httpResponse = urlResponse as? HTTPURLResponse else { return .failure(.unknownServerError) }
 
-            if let httpResponse = urlResponse as? HTTPURLResponse, (200..<300).contains(httpResponse.statusCode) {
+            if (200..<300).contains(httpResponse.statusCode) {
                 if let decodedResponse = decode(T.self, from: data) {
                     return .success(decodedResponse)
                 } else {
@@ -67,14 +69,15 @@ public struct DefaultAPIService: APIService {
                     return .failure(.decodingError)
                 }
             } else {
+                var errorString: String?
+
                 if let decodedResponse = decode(ErrorResponse.self, from: data) {
-                    let errorDescription = "[\(endpoint)] \(urlResponse.httpStatusCodeAsString ?? ""): \(decodedResponse.error)"
-                    os_log(.error, log: .subscription, "Service error: %{public}@", errorDescription)
-                    return .failure(.serverError(description: errorDescription))
-                } else {
-                    os_log(.error, log: .subscription, "Service error: APIServiceError.unknownServerError")
-                    return .failure(.unknownServerError)
+                    errorString = decodedResponse.error
                 }
+
+                let errorLogMessage = "/\(endpoint) \(httpResponse.statusCode): \(errorString ?? "")"
+                os_log(.error, log: .subscription, "Service error: %{public}@", errorLogMessage)
+                return .failure(.serverError(statusCode: httpResponse.statusCode, error: errorString))
             }
         } catch {
             os_log(.error, log: .subscription, "Service error: %{public}@", error.localizedDescription)
