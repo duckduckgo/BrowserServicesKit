@@ -105,22 +105,24 @@ public extension String {
         let pathRanges = message.rangesOfFilePaths()
 
         let moduleNamePrefix = #fileID.split(separator: "/")[0] + "/"
-        let bundleUrlPrefix = Bundle.main.bundleURL.absoluteString
-        let bundlePathPrefix = Bundle.main.bundlePath + "/"
+        let bundleUrlPrefix = Bundle.main.bundleURL.absoluteString.dropping(suffix: "/")
+        let bundlePathPrefix = Bundle.main.bundlePath.dropping(suffix: "/")
         let allowedExtensions = ["swift", "m", "mm", "c", "cpp", "js", "go", "o", "a", "framework", "lib", "dylib", "xib", "storyboard"]
 
         for range in pathRanges.reversed() {
             if message[range].hasPrefix(moduleNamePrefix) {
                 // allow DuckDuckGo_Privacy_Browser/something…
-            } else if let appUrlRange = message[range].range(of: bundleUrlPrefix) {
+            } else if let appUrlRange = message[range].range(of: bundleUrlPrefix),
+                      appUrlRange.upperBound == range.upperBound || message[appUrlRange.upperBound] == "/" {
                 // replace path to the app with just "DuckDuckGo.app"
-                message.replaceSubrange(appUrlRange, with: "file:///DuckDuckGo.app/")
-            } else if let appPathRange = message[range].range(of: bundlePathPrefix) {
+                message.replaceSubrange(appUrlRange, with: "file:///DuckDuckGo.app")
+            } else if let appPathRange = message[range].range(of: bundlePathPrefix),
+                      appPathRange.upperBound == range.upperBound || message[appPathRange.upperBound] == "/" {
                 // replace path to the app with just "DuckDuckGo.app"
-                message.replaceSubrange(appPathRange, with: "DuckDuckGo.app/")
+                message.replaceSubrange(appPathRange, with: "DuckDuckGo.app")
             } else {
                 let path = String(message[range])
-                if allowedExtensions.contains(path.pathExtension) {
+                if allowedExtensions.contains(path.pathExtension) && !(path.hasPrefix("http://") || path.hasPrefix("https://")) {
                     // drop leading path components
                     message.replaceSubrange(range, with: path.lastPathComponent)
                 } else {
@@ -138,7 +140,7 @@ public extension String {
 
     private enum FileRegex {
         //                           "(matching url/file/path/at/in..-like prefix)(not an end of expr)(=|:)  (open quote/brace)
-        static let varStart = regex(#"(?:url\b|\bfile\b|path\b|\bin\b|\bfrom\b|\bat)[^.,;?!"'`\])}]\s*[:= ]?\s*["'“`\[({]?"#, .caseInsensitive)
+        static let varStart = regex(#"(?:url\b|\bfile\b|path\b|\bin\b|\bfrom\b|\bat)[^.,;?!"'`\])}>]\s*[:= ]?\s*["'“`\[({<]?"#, .caseInsensitive)
         static let closingQuotes = [
             "\"": regex(#""[,.;:]?(?:\s|$)|$"#),
             "'": regex(#"'[,.;:]?(?:\s|$)|$"#),
@@ -147,19 +149,20 @@ public extension String {
             "[": regex(#"`[,.;:]?(?:\s|$)|$"#),
             "{": regex(#"`[,.;:]?(?:\s|$)|$"#),
             "(": regex(#"`[,.;:]?(?:\s|$)|$"#),
+            "<": regex(#">[,.;:]?(?:\s|$)|$"#),
         ]
-        static let leadingSlash = regex(#"\s(\/)"#)
+        static let leadingSlash = regex(#"[\s\[({<"'`“](\/)"#)
         static let trailingSlash = regex(#"[^\s](\/)"#)
-        static let filePathBound = regex(#"([\p{L}\p{N}])[.,;:\])}](?:\s\w+|$)"#)
-        static let fileExt = regex(#"(\.\w{1,15})(?:[.,;:\])}\s]|$)"#)
+        static let filePathBound = regex(#"([\p{L}\p{N}])[.,;:\])}>"”'`](?:\s\S+|$)"#)
+        static let fileExt = regex(#"(\.(?:\w|\.){1,15})(?:\s|[.,;:\])}>"”'`](?:\s|$)|:\d+|$)"#)
 
         static let filePathStart = regex(#"/[\p{L}\p{N}._+]"#)
         static let urlScheme = regex(#"\w+:$"#)
 
-        static let fileName = regex(#"([\p{L}\p{N}._+]+\.\w{1,15})(?:$|\s|[.,;:\])}])"#)
+        static let fileName = regex(#"([\p{L}\p{N}._+]+\.\w{1,15})(?:$|\s|[.,;:\])}>])"#)
 
         static let lineNumber = regex(#":\d+$"#)
-        static let trailingSpaces = regex(#"\s+$"#)
+        static let trailingSpecialCharacters = regex(#"[\s\.,;:\])}>"”'`]+$"#)
     }
 
     // MARK: File Paths
@@ -189,7 +192,7 @@ public extension String {
             if let lineNumberRange = self.firstMatch(of: FileRegex.lineNumber, range: range)?.range(in: self) {
                 range = range.lowerBound..<lineNumberRange.lowerBound
             }
-            if let trailingSpacesRange = self.firstMatch(of: FileRegex.trailingSpaces, range: range)?.range(in: self) {
+            if let trailingSpacesRange = self.firstMatch(of: FileRegex.trailingSpecialCharacters, range: range)?.range(in: self) {
                 range = range.lowerBound..<trailingSpacesRange.lowerBound
             }
         }
@@ -207,8 +210,8 @@ public extension String {
             var resultRange: Range<String.Index>
             var isCertainlyFilePath = false
             // if the path is enquoted – find trailing quote
-            if ["\"", "'", "“", "`", "(", "[", "{"].contains(self[openingCharIdx]) {
-                isCertainlyFilePath = self[matchRange].localizedCaseInsensitiveContains("file") || self[matchRange].localizedCaseInsensitiveContains("path")
+            if FileRegex.closingQuotes.keys.contains(String(self[openingCharIdx])) {
+                isCertainlyFilePath = self[matchRange].localizedCaseInsensitiveContains("file") || self[matchRange].localizedCaseInsensitiveContains("path") || self[matchRange].localizedCaseInsensitiveContains("directory")
                 searchRange = matchRange.upperBound..<endIndex
 
                 let endRegex = FileRegex.closingQuotes[String(self[openingCharIdx])]!
@@ -248,20 +251,31 @@ public extension String {
 
         // next find all non-matched expressions looking like a file path
         // 1. find `/something` pattern
-        for match in FileRegex.filePathStart.matches(in: self, range: fullRange) {
-            guard let matchIndices = Range(match.range), let matchRange = Range(match.range, in: self),
-                  !result.intersects(integersIn: matchIndices) else { continue /* already matched */ }
+        searchRange = startIndex..<endIndex
+        while !searchRange.isEmpty {
+            // find absolute start
+            guard let match = self.firstMatch(of: FileRegex.filePathStart, range: searchRange),
+                  let matchIndices = Range(match.range), let matchRange = Range(match.range, in: self) else { break }
+            guard !result.intersects(integersIn: matchIndices) else {
+                // already matched
+                searchRange = matchRange.upperBound..<endIndex
+                continue
+            }
 
             // 2. look backwards for possibly relative path first component start (limited by a whitespace or newline)
-            var pathStartIdx = self.rangeOfCharacter(from: .whitespacesAndNewlines, options: .backwards, range: startIndex..<matchRange.lowerBound)?.upperBound ?? startIndex
+            var pathStartIdx = self.rangeOfCharacter(from: .whitespacesAndNewlines.union(.init(charactersIn: "[({<\"'`“=")), options: .backwards, range: startIndex..<matchRange.lowerBound)?.upperBound
+                // otherwise take search range start as all the preceding characters are valid path characters
+                ?? searchRange.lowerBound
+
             // 3. look backwards for a possible URL scheme
-            if let schemeRange = self.firstMatch(of: FileRegex.urlScheme, range: startIndex..<pathStartIdx)?.range(in: self) {
+            if let schemeRange = self.firstMatch(of: FileRegex.urlScheme, range: pathStartIdx..<pathStartIdx)?.range(in: self) {
                 pathStartIdx = schemeRange.lowerBound
             }
             // 4. heuristically find the end of the path
             let pathEndIdx = self.findFilePathEnd(from: pathStartIdx)
-
             var resultRange = pathStartIdx..<pathEndIdx
+            searchRange = max(resultRange.upperBound, self.index(after: matchRange.lowerBound))..<endIndex
+
             dropLineNumberAndTrimSpaces(&resultRange)
 
             guard let pathRange = Range(NSRange(resultRange, in: self)), pathRange.count > 2 else { continue }
@@ -271,12 +285,12 @@ public extension String {
 
         // next find all non-matched expressions looking like a file name (filename.ext)
         for match in FileRegex.fileName.matches(in: self, range: fullRange) {
-            guard let matchIndices = Range(match.range(at: 1)), matchIndices.count > 2, var matchRange = Range(match.range, in: self),
+            guard let matchIndices = Range(match.range(at: 1)), matchIndices.count > 2, var resultRange = Range(match.range, in: self),
                   !result.intersects(integersIn: matchIndices) else { continue /* already matched */ }
 
-            dropLineNumberAndTrimSpaces(&matchRange)
+            dropLineNumberAndTrimSpaces(&resultRange)
 
-            guard let pathRange = Range(NSRange(matchRange, in: self)), pathRange.count > 2 else { continue }
+            guard let pathRange = Range(NSRange(resultRange, in: self)), pathRange.count > 2 else { continue }
             // collect the result
             result.insert(integersIn: pathRange)
         }
@@ -298,27 +312,38 @@ public extension String {
         //   although technically it‘s possible, but if the next path component starts with `/` we'll treat it as another path
         //
         // 1. find end of the line
-        let lineEnd = self.rangeOfCharacter(from: .newlines, range: pathStartIdx..<endIndex)?.lowerBound ?? endIndex
+        var lineEnd = self.rangeOfCharacter(from: .newlines, range: pathStartIdx..<endIndex)?.lowerBound ?? endIndex
+        // next leading slash means another path start so set it as a current component boundary
+        if let firstNonSlashCharacter = self.rangeOfCharacter(from: .init(charactersIn: "/").inverted, range: pathStartIdx..<lineEnd)?.lowerBound,
+           let leadingSlashIdx = self.firstMatch(of: FileRegex.leadingSlash, range: firstNonSlashCharacter..<lineEnd)?.range(in: self)?.lowerBound {
+            lineEnd = leadingSlashIdx
+        }
 
         // 2. find a boundary of the path component
         var componentStart = pathStartIdx
         while componentStart < lineEnd {
-            let pathCompEnd = self.distance(from: componentStart, to: lineEnd) < 255 ? lineEnd : self.index(componentStart, offsetBy: 255)
-
-            guard let nextSlashIdx = self.firstMatch(of: FileRegex.trailingSlash, range: componentStart..<pathCompEnd)?.range(in: self)?.upperBound else {
-                // no next slash, find the most probable file name end
-                let fileExtEnd = self.firstMatch(of: FileRegex.fileExt, range: componentStart..<pathCompEnd)?.range(at: 1, in: self)?.upperBound ?? pathCompEnd
-                let boundary = self.firstMatch(of: FileRegex.filePathBound, range: componentStart..<pathCompEnd)?.range(at: 1, in: self)?.upperBound ?? pathCompEnd
-                return min(boundary, fileExtEnd)
+            // max path component end (line end or after 255 characters)
+            var pathCompEnd = self.distance(from: componentStart, to: lineEnd) < 255 ? lineEnd : self.index(componentStart, offsetBy: 255)
+            let trailingSlashIdx = self.firstMatch(of: FileRegex.trailingSlash, range: componentStart..<pathCompEnd)?.range(in: self)?.upperBound
+            // limit path component end by next trailing slash
+            if let trailingSlashIdx {
+                pathCompEnd = trailingSlashIdx
             }
 
-            // does it look like like a normal path component?
-            // assume if we find something like `filename; next_word` - it would mean the end of the file path
-            if let boundRange = self.firstMatch(of: FileRegex.filePathBound, range: componentStart..<nextSlashIdx)?.range(at: 1, in: self)?.upperBound {
-                return boundRange
+            // find the most probable file name end (file with extension followed by a separator)
+            let fileExtEnd = self.firstMatch(of: FileRegex.fileExt, range: componentStart..<pathCompEnd)?.range(at: 1, in: self)?.upperBound
+            // find possible file path boundary (unicode letters followed by a separator)
+            let filePathBound = self.firstMatch(of: FileRegex.filePathBound, range: componentStart..<pathCompEnd)?.range(at: 1, in: self)?.upperBound ?? fileExtEnd
+
+            if let filePathBound {
+                let boundary = min(filePathBound, fileExtEnd ?? filePathBound)
+                return boundary
+
+            } else if let trailingSlashIdx {
+                componentStart = trailingSlashIdx
             } else {
-                // continue with the next path component
-                componentStart = nextSlashIdx
+                // this is the last component but we could not find its boundary – take max available
+                return pathCompEnd
             }
         }
         return lineEnd

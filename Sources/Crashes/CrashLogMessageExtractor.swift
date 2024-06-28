@@ -143,12 +143,11 @@ private func handleException(_ exception: NSException) {
     os_log(.error, "Trapped exception \(exception)")
 
     // collect exception diagnostics data
-    let message = """
-    \(exception.name.rawValue): \(exception.reason ?? "")
-    \(exception.userInfo.map { $0.description + "\n" } ?? "")[
-      \(exception.callStackSymbols.joined(separator: ",\n  "))
-    ]
-    """.sanitized() // clean-up possible filenames and emails
+    let message = "\(exception.name.rawValue): " +
+    (exception.reason?.sanitized() /* clean-up possible filenames and emails */ ?? "") + "\n" +
+    (exception.userInfo ?? [:]).map { "\($0.key): " + "\($0.value)\n".sanitized() }.joined() +
+    exception.callStackSymbols.joined(separator: ",\n  ")
+    os_log("😵 crashing on: %{public}s", message)
 
     // save crash log with `2024-05-20T12:11:33Z-%pid%.log` file name format
     let timestamp = ISO8601DateFormatter().string(from: Date())
