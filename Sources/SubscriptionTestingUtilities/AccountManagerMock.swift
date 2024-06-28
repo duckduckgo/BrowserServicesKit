@@ -19,23 +19,19 @@
 import Foundation
 import Subscription
 
-public final class AccountManagerMock: AccountManaging {
-
+public final class AccountManagerMock: AccountManager {
     public var delegate: AccountManagerKeychainAccessDelegate?
-    public var isUserAuthenticated: Bool
     public var accessToken: String?
     public var authToken: String?
     public var email: String?
     public var externalID: String?
 
     public init(delegate: AccountManagerKeychainAccessDelegate? = nil,
-                isUserAuthenticated: Bool,
                 accessToken: String? = nil,
                 authToken: String? = nil,
                 email: String? = nil,
                 externalID: String? = nil) {
         self.delegate = delegate
-        self.isUserAuthenticated = isUserAuthenticated
         self.accessToken = accessToken
         self.authToken = authToken
         self.email = email
@@ -62,11 +58,7 @@ public final class AccountManagerMock: AccountManaging {
 
     }
 
-    public func hasEntitlement(for entitlement: Entitlement.ProductName, cachePolicy: CachePolicy) async -> Result<Bool, Error> {
-        return .success(true)
-    }
-
-    public func hasEntitlement(for entitlement: Entitlement.ProductName) async -> Result<Bool, Error> {
+    public func hasEntitlement(forProductName productName: Entitlement.ProductName, cachePolicy: APICachePolicy) async -> Result<Bool, Error> {
         return .success(true)
     }
 
@@ -74,7 +66,7 @@ public final class AccountManagerMock: AccountManaging {
 
     }
 
-    public func fetchEntitlements(cachePolicy: CachePolicy) async -> Result<[Entitlement], Error> {
+    public func fetchEntitlements(cachePolicy: APICachePolicy) async -> Result<[Entitlement], Error> {
         return .success([])
     }
 

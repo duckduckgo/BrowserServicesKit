@@ -366,6 +366,16 @@ public extension String {
         return false
     }
 
+    var isValidIpv4Host: Bool {
+        guard let toIPv4Host, !toIPv4Host.isEmpty else { return false }
+        return true
+    }
+
+    var toIPv4Host: String? {
+        guard let ipv4 = IPv4Address(self) else { return nil }
+        return [UInt8](ipv4.rawValue).map { String($0) }.joined(separator: ".")
+    }
+
     // MARK: Regex
 
     func matches(_ regex: NSRegularExpression) -> Bool {

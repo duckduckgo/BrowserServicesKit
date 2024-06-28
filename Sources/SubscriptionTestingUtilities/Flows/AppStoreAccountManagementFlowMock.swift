@@ -1,5 +1,5 @@
 //
-//  ReferrerInfo.swift
+//  AppStoreAccountManagementFlowMock.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -16,24 +16,17 @@
 //  limitations under the License.
 //
 
-import Common
 import Foundation
-import WebKit
+import Subscription
 
-extension WKWebView {
+public class AppStoreAccountManagementFlowMock: AppStoreAccountManagementFlow {
+    public var refreshAuthTokenIfNeededResult: Result<String, AppStoreAccountManagementFlowError>
 
-    @MainActor
-    var referrer: String? {
-        get async {
-            try? await self.evaluateJavaScript("document.referrer")
-        }
+    public init(refreshAuthTokenIfNeededResult: Result<String, AppStoreAccountManagementFlowError>) {
+        self.refreshAuthTokenIfNeededResult = refreshAuthTokenIfNeededResult
     }
 
-    @MainActor
-    public var isCurrentSiteReferredFromDuckDuckGo: Bool {
-        get async {
-            await referrer?.contains("duckduckgo.com") ?? false
-        }
+    public func refreshAuthTokenIfNeeded() async -> Result<String, AppStoreAccountManagementFlowError> {
+        refreshAuthTokenIfNeededResult
     }
-
 }

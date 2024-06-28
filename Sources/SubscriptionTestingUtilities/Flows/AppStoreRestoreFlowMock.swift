@@ -1,5 +1,5 @@
 //
-//  ReferrerInfo.swift
+//  AppStoreRestoreFlowMock.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -16,24 +16,17 @@
 //  limitations under the License.
 //
 
-import Common
 import Foundation
-import WebKit
+import Subscription
 
-extension WKWebView {
+public class AppStoreRestoreFlowMock: AppStoreRestoreFlow {
+    public var restoreAccountFromPastPurchaseResult: Result<Void, AppStoreRestoreFlowError>
 
-    @MainActor
-    var referrer: String? {
-        get async {
-            try? await self.evaluateJavaScript("document.referrer")
-        }
+    public init(restoreAccountFromPastPurchaseResult: Result<Void, AppStoreRestoreFlowError>) {
+        self.restoreAccountFromPastPurchaseResult = restoreAccountFromPastPurchaseResult
     }
 
-    @MainActor
-    public var isCurrentSiteReferredFromDuckDuckGo: Bool {
-        get async {
-            await referrer?.contains("duckduckgo.com") ?? false
-        }
+    public func restoreAccountFromPastPurchase() async -> Result<Void, AppStoreRestoreFlowError> {
+        restoreAccountFromPastPurchaseResult
     }
-
 }

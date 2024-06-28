@@ -107,6 +107,7 @@ struct StartupOptions {
     let selectedEnvironment: StoredOption<VPNSettings.SelectedEnvironment>
     let selectedServer: StoredOption<VPNSettings.SelectedServer>
     let selectedLocation: StoredOption<VPNSettings.SelectedLocation>
+    let dnsSettings: StoredOption<NetworkProtectionDNSSettings>
 #if os(macOS)
     let authToken: StoredOption<String>
 #endif
@@ -138,6 +139,7 @@ struct StartupOptions {
         selectedEnvironment = Self.readSelectedEnvironment(from: options, resetIfNil: resetStoredOptionsIfNil)
         selectedServer = Self.readSelectedServer(from: options, resetIfNil: resetStoredOptionsIfNil)
         selectedLocation = Self.readSelectedLocation(from: options, resetIfNil: resetStoredOptionsIfNil)
+        dnsSettings = Self.readDNSSettings(from: options, resetIfNil: resetStoredOptionsIfNil)
     }
 
     var description: String {
@@ -151,6 +153,7 @@ struct StartupOptions {
             selectedEnvironment: \(self.selectedEnvironment.description),
             selectedServer: \(self.selectedServer.description),
             selectedLocation: \(self.selectedLocation.description),
+            dnsSettings: \(self.dnsSettings.description),
             enableTester: \(self.enableTester)
         )
         """
@@ -213,6 +216,17 @@ struct StartupOptions {
             }
 
             return selectedLocation
+        }
+    }
+
+    private static func readDNSSettings(from options: [String: Any], resetIfNil: Bool) -> StoredOption<NetworkProtectionDNSSettings> {
+        StoredOption(resetIfNil: resetIfNil) {
+            guard let data = options[NetworkProtectionOptionKey.dnsSettings] as? Data,
+                  let dnsSettings = try? JSONDecoder().decode(NetworkProtectionDNSSettings.self, from: data) else {
+                return nil
+            }
+
+            return dnsSettings
         }
     }
 

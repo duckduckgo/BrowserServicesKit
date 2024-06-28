@@ -20,34 +20,36 @@ import Foundation
 import StoreKit
 import Common
 
+public typealias RestoredAccountDetails = (authToken: String, accessToken: String, externalID: String, email: String?)
+
+public enum AppStoreRestoreFlowError: Swift.Error {
+    case missingAccountOrTransactions
+    case pastTransactionAuthenticationError
+    case failedToObtainAccessToken
+    case failedToFetchAccountDetails
+    case failedToFetchSubscriptionDetails
+    case subscriptionExpired(accountDetails: RestoredAccountDetails)
+}
+
 @available(macOS 12.0, iOS 15.0, *)
-public final class AppStoreRestoreFlow {
+public protocol AppStoreRestoreFlow {
+    @discardableResult func restoreAccountFromPastPurchase() async -> Result<Void, AppStoreRestoreFlowError>
+}
 
-    public typealias RestoredAccountDetails = (authToken: String, accessToken: String, externalID: String, email: String?)
+@available(macOS 12.0, iOS 15.0, *)
+public final class DefaultAppStoreRestoreFlow: AppStoreRestoreFlow {
+    private let subscriptionManager: SubscriptionManager
+    var accountManager: AccountManager { subscriptionManager.accountManager }
 
-    public enum Error: Swift.Error {
-        case missingAccountOrTransactions
-        case pastTransactionAuthenticationError
-        case failedToObtainAccessToken
-        case failedToFetchAccountDetails
-        case failedToFetchSubscriptionDetails
-        case subscriptionExpired(accountDetails: RestoredAccountDetails)
-    }
-
-    private let subscriptionManager: SubscriptionManaging
-    var accountManager: AccountManaging {
-        subscriptionManager.accountManager
-    }
-
-    public init(subscriptionManager: SubscriptionManaging) {
+    public init(subscriptionManager: SubscriptionManager) {
         self.subscriptionManager = subscriptionManager
     }
 
     @discardableResult
-    public func restoreAccountFromPastPurchase() async -> Result<Void, AppStoreRestoreFlow.Error> {
+    public func restoreAccountFromPastPurchase() async -> Result<Void, AppStoreRestoreFlowError> {
 
         // Clear subscription Cache
-        subscriptionManager.subscriptionService.signOut()
+        subscriptionManager.subscriptionEndpointService.signOut()
 
         os_log(.info, log: .subscription, "[AppStoreRestoreFlow] restoreAccountFromPastPurchase")
 
@@ -59,7 +61,7 @@ public final class AppStoreRestoreFlow {
         // Do the store login to get short-lived token
         let authToken: String
 
-        switch await subscriptionManager.authService.storeLogin(signature: lastTransactionJWSRepresentation) {
+        switch await subscriptionManager.authEndpointService.storeLogin(signature: lastTransactionJWSRepresentation) {
         case .success(let response):
             authToken = response.authToken
         case .failure:
@@ -90,7 +92,7 @@ public final class AppStoreRestoreFlow {
 
         var isSubscriptionActive = false
 
-        switch await subscriptionManager.subscriptionService.getSubscription(accessToken: accessToken, cachePolicy: .reloadIgnoringLocalCacheData) {
+        switch await subscriptionManager.subscriptionEndpointService.getSubscription(accessToken: accessToken, cachePolicy: .reloadIgnoringLocalCacheData) {
         case .success(let subscription):
             isSubscriptionActive = subscription.isActive
         case .failure:

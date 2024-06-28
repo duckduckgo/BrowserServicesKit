@@ -23,6 +23,7 @@ public enum NetworkProtectionOptionKey {
     public static let selectedEnvironment = "selectedEnvironment"
     public static let selectedServer = "selectedServer"
     public static let selectedLocation = "selectedLocation"
+    public static let dnsSettings = "dnsSettings"
     public static let authToken = "authToken"
     public static let isOnDemand = "is-on-demand"
     public static let activationAttemptId = "activationAttemptId"
