@@ -20,7 +20,15 @@ import Foundation
 import Common
 import BrowserServicesKit
 
-public struct UserAttributeMatcher: AttributeMatcher {
+#if os(iOS)
+public typealias UserAttributeMatcher = MobileUserAttributeMatcher
+#elseif os(macOS)
+public typealias UserAttributeMatcher = DesktopUserAttributeMatcher
+#endif
+
+public typealias DesktopUserAttributeMatcher = CommonUserAttributeMatcher
+
+public struct MobileUserAttributeMatcher: AttributeMatcher {
 
     private enum PrivacyProSubscriptionStatus: String {
         case active
@@ -28,23 +36,9 @@ public struct UserAttributeMatcher: AttributeMatcher {
         case expired
     }
 
-    private let statisticsStore: StatisticsStore
-    private let variantManager: VariantManager
-    private let emailManager: EmailManager
-    private let appTheme: String
-    private let bookmarksCount: Int
-    private let favoritesCount: Int
     private let isWidgetInstalled: Bool
-    private let daysSinceNetPEnabled: Int
-    private let isPrivacyProEligibleUser: Bool
-    private let isPrivacyProSubscriber: Bool
-    private let privacyProDaysSinceSubscribed: Int
-    private let privacyProDaysUntilExpiry: Int
-    private let privacyProPurchasePlatform: String?
-    private let isPrivacyProSubscriptionActive: Bool
-    private let isPrivacyProSubscriptionExpiring: Bool
-    private let isPrivacyProSubscriptionExpired: Bool
-    private let dismissedMessageIds: [String]
+
+    private let commonUserAttributeMatcher: CommonUserAttributeMatcher
 
     public init(statisticsStore: StatisticsStore,
                 variantManager: VariantManager,
@@ -63,6 +57,86 @@ public struct UserAttributeMatcher: AttributeMatcher {
                 isPrivacyProSubscriptionExpiring: Bool,
                 isPrivacyProSubscriptionExpired: Bool,
                 dismissedMessageIds: [String]
+    ) {
+        self.isWidgetInstalled = isWidgetInstalled
+
+        commonUserAttributeMatcher = .init(
+            statisticsStore: statisticsStore,
+            variantManager: variantManager,
+            emailManager: emailManager,
+            bookmarksCount: bookmarksCount,
+            favoritesCount: favoritesCount,
+            appTheme: appTheme,
+            daysSinceNetPEnabled: daysSinceNetPEnabled,
+            isPrivacyProEligibleUser: isPrivacyProEligibleUser,
+            isPrivacyProSubscriber: isPrivacyProSubscriber,
+            privacyProDaysSinceSubscribed: privacyProDaysSinceSubscribed,
+            privacyProDaysUntilExpiry: privacyProDaysUntilExpiry,
+            privacyProPurchasePlatform: privacyProPurchasePlatform,
+            isPrivacyProSubscriptionActive: isPrivacyProSubscriptionActive,
+            isPrivacyProSubscriptionExpiring: isPrivacyProSubscriptionExpiring,
+            isPrivacyProSubscriptionExpired: isPrivacyProSubscriptionExpired,
+            dismissedMessageIds: dismissedMessageIds
+        )
+    }
+
+    // swiftlint:disable:next cyclomatic_complexity function_body_length
+    func evaluate(matchingAttribute: MatchingAttribute) -> EvaluationResult? {
+        switch matchingAttribute {
+        case let matchingAttribute as WidgetAddedMatchingAttribute:
+            guard let value = matchingAttribute.value else {
+                return .fail
+            }
+
+            return BooleanMatchingAttribute(value).matches(value: isWidgetInstalled)
+        default:
+            return commonUserAttributeMatcher.evaluate(matchingAttribute: matchingAttribute)
+        }
+    }
+
+}
+
+public struct CommonUserAttributeMatcher: AttributeMatcher {
+
+    private enum PrivacyProSubscriptionStatus: String {
+        case active
+        case expiring
+        case expired
+    }
+
+    private let statisticsStore: StatisticsStore
+    private let variantManager: VariantManager
+    private let emailManager: EmailManager
+    private let appTheme: String
+    private let bookmarksCount: Int
+    private let favoritesCount: Int
+    private let daysSinceNetPEnabled: Int
+    private let isPrivacyProEligibleUser: Bool
+    private let isPrivacyProSubscriber: Bool
+    private let privacyProDaysSinceSubscribed: Int
+    private let privacyProDaysUntilExpiry: Int
+    private let privacyProPurchasePlatform: String?
+    private let isPrivacyProSubscriptionActive: Bool
+    private let isPrivacyProSubscriptionExpiring: Bool
+    private let isPrivacyProSubscriptionExpired: Bool
+    private let dismissedMessageIds: [String]
+
+    public init(statisticsStore: StatisticsStore,
+                variantManager: VariantManager,
+                emailManager: EmailManager = EmailManager(),
+                bookmarksCount: Int,
+                favoritesCount: Int,
+                appTheme: String,
+                daysSinceNetPEnabled: Int,
+                isPrivacyProEligibleUser: Bool,
+                isPrivacyProSubscriber: Bool,
+                privacyProDaysSinceSubscribed: Int,
+                privacyProDaysUntilExpiry: Int,
+                privacyProPurchasePlatform: String?,
+                isPrivacyProSubscriptionActive: Bool,
+                isPrivacyProSubscriptionExpiring: Bool,
+                isPrivacyProSubscriptionExpired: Bool,
+                dismissedMessageIds: [String]
 	) {
         self.statisticsStore = statisticsStore
         self.variantManager = variantManager
@@ -70,7 +144,6 @@ public struct UserAttributeMatcher: AttributeMatcher {
         self.appTheme = appTheme
         self.bookmarksCount = bookmarksCount
         self.favoritesCount = favoritesCount
-        self.isWidgetInstalled = isWidgetInstalled
         self.daysSinceNetPEnabled = daysSinceNetPEnabled
         self.isPrivacyProEligibleUser = isPrivacyProEligibleUser
         self.isPrivacyProSubscriber = isPrivacyProSubscriber
@@ -121,12 +194,6 @@ public struct UserAttributeMatcher: AttributeMatcher {
             } else {
                 return RangeIntMatchingAttribute(min: matchingAttribute.min, max: matchingAttribute.max).matches(value: favoritesCount)
             }
-        case let matchingAttribute as WidgetAddedMatchingAttribute:
-            guard let value = matchingAttribute.value else {
-                return .fail
-            }
-
-            return BooleanMatchingAttribute(value).matches(value: isWidgetInstalled)
         case let matchingAttribute as DaysSinceNetPEnabledMatchingAttribute:
             if matchingAttribute.value != MatchingAttributeDefaults.intDefaultValue {
                 return IntMatchingAttribute(matchingAttribute.value).matches(value: daysSinceNetPEnabled)
