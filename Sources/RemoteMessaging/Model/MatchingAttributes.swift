@@ -27,7 +27,7 @@ private enum RuleAttributes {
     static let since = "since"
 }
 
-protocol MatchingAttribute {
+public protocol MatchingAttribute {
     var fallback: Bool? { get }
 }
 

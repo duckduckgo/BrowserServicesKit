@@ -48,7 +48,7 @@ public struct AppAttributeMatcher: AttributeMatcher {
     }
 
     // swiftlint:disable cyclomatic_complexity
-    func evaluate(matchingAttribute: MatchingAttribute) -> EvaluationResult? {
+    public func evaluate(matchingAttribute: MatchingAttribute) -> EvaluationResult? {
         switch matchingAttribute {
         case let matchingAttribute as IsInternalUserMatchingAttribute:
             guard let value = matchingAttribute.value else {

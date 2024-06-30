@@ -1,5 +1,5 @@
 //
-//  UserAttributeMatcherTests.swift
+//  CommonUserAttributeMatcherTests.swift
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -21,12 +21,12 @@ import Foundation
 @testable import BrowserServicesKit
 @testable import RemoteMessaging
 
-class UserAttributeMatcherTests: XCTestCase {
+class CommonUserAttributeMatcherTests: XCTestCase {
 
     var mockStatisticsStore: MockStatisticsStore!
     var manager: MockVariantManager!
     var emailManager: EmailManager!
-    var userAttributeMatcher: UserAttributeMatcher!
+    var matcher: CommonUserAttributeMatcher!
     var dateYesterday: Date!
 
     override func setUpWithError() throws {
@@ -55,185 +55,185 @@ class UserAttributeMatcherTests: XCTestCase {
     override func tearDownWithError() throws {
         try super.tearDownWithError()
 
-        userAttributeMatcher = nil
+        matcher = nil
     }
 
     // MARK: - AppTheme
 
     func testWhenAppThemeMatchesThenReturnMatch() throws {
-        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: AppThemeMatchingAttribute(value: "default", fallback: nil)),
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: AppThemeMatchingAttribute(value: "default", fallback: nil)),
                        .match)
     }
 
     func testWhenAppThemeDoesNotMatchThenReturnFail() throws {
-        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: AppThemeMatchingAttribute(value: "light", fallback: nil)),
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: AppThemeMatchingAttribute(value: "light", fallback: nil)),
                        .fail)
     }
 
     // MARK: - Bookmarks
 
     func testWhenBookmarksMatchesThenReturnMatch() throws {
-        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: BookmarksMatchingAttribute(value: 44, fallback: nil)),
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: BookmarksMatchingAttribute(value: 44, fallback: nil)),
                        .match)
     }
 
     func testWhenBookmarksDoesNotMatchThenReturnFail() throws {
-        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: BookmarksMatchingAttribute(value: 22, fallback: nil)),
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: BookmarksMatchingAttribute(value: 22, fallback: nil)),
                        .fail)
     }
 
     func testWhenBookmarksEqualOrLowerThanMaxThenReturnMatch() throws {
-        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: BookmarksMatchingAttribute(max: 44, fallback: nil)),
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: BookmarksMatchingAttribute(max: 44, fallback: nil)),
                        .match)
     }
 
     func testWhenBookmarksGreaterThanMaxThenReturnFail() throws {
-        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: BookmarksMatchingAttribute(max: 40, fallback: nil)),
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: BookmarksMatchingAttribute(max: 40, fallback: nil)),
                        .fail)
     }
 
     func testWhenBookmarksLowerThanMinThenReturnFail() throws {
-        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: BookmarksMatchingAttribute(min: 88, fallback: nil)),
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: BookmarksMatchingAttribute(min: 88, fallback: nil)),
                        .fail)
     }
 
     func testWhenBookmarksInRangeThenReturnMatch() throws {
-        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: BookmarksMatchingAttribute(min: 40, max: 48, fallback: nil)),
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: BookmarksMatchingAttribute(min: 40, max: 48, fallback: nil)),
                        .match)
     }
 
     func testWhenBookmarksNotInRangeThenReturnFail() throws {
-        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: BookmarksMatchingAttribute(min: 47, max: 48, fallback: nil)),
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: BookmarksMatchingAttribute(min: 47, max: 48, fallback: nil)),
                        .fail)
     }
 
     // MARK: - Favorites
 
     func testWhenFavoritesMatchesThenReturnMatch() throws {
-        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: FavoritesMatchingAttribute(value: 88, fallback: nil)),
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: FavoritesMatchingAttribute(value: 88, fallback: nil)),
                        .match)
     }
 
     func testWhenFavoritesDoesNotMatchThenReturnFail() throws {
-        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: FavoritesMatchingAttribute(value: 22, fallback: nil)),
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: FavoritesMatchingAttribute(value: 22, fallback: nil)),
                        .fail)
     }
 
     func testWhenFavoritesEqualOrLowerThanMaxThenReturnMatch() throws {
-        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: FavoritesMatchingAttribute(max: 88, fallback: nil)),
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: FavoritesMatchingAttribute(max: 88, fallback: nil)),
                        .match)
     }
 
     func testWhenFavoritesGreaterThanMaxThenReturnFail() throws {
-        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: FavoritesMatchingAttribute(max: 40, fallback: nil)),
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: FavoritesMatchingAttribute(max: 40, fallback: nil)),
                        .fail)
     }
 
     func testWhenFavoritesLowerThanMinThenReturnFail() throws {
-        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: FavoritesMatchingAttribute(min: 100, fallback: nil)),
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: FavoritesMatchingAttribute(min: 100, fallback: nil)),
                        .fail)
     }
 
     func testWhenFavoritesInRangeThenReturnMatch() throws {
-        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: FavoritesMatchingAttribute(min: 40, max: 98, fallback: nil)),
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: FavoritesMatchingAttribute(min: 40, max: 98, fallback: nil)),
                        .match)
     }
 
     func testWhenFavoritesNotInRangeThenReturnFail() throws {
-        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: FavoritesMatchingAttribute(min: 89, max: 98, fallback: nil)),
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: FavoritesMatchingAttribute(min: 89, max: 98, fallback: nil)),
                        .fail)
     }
 
     // MARK: - DaysSinceInstalled
 
     func testWhenDaysSinceInstalledEqualOrLowerThanMaxThenReturnMatch() throws {
-        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: DaysSinceInstalledMatchingAttribute(max: 1, fallback: nil)),
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: DaysSinceInstalledMatchingAttribute(max: 1, fallback: nil)),
                        .match)
     }
 
     func testWhenDaysSinceInstalledGreaterThanMaxThenReturnFail() throws {
-        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: DaysSinceInstalledMatchingAttribute(max: 0, fallback: nil)),
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: DaysSinceInstalledMatchingAttribute(max: 0, fallback: nil)),
                        .fail)
     }
 
     func testWhenDaysSinceInstalledEqualOrGreaterThanMinThenReturnMatch() throws {
-        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: DaysSinceInstalledMatchingAttribute(min: 1, fallback: nil)),
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: DaysSinceInstalledMatchingAttribute(min: 1, fallback: nil)),
                        .match)
     }
 
     func testWhenDaysSinceInstalledLowerThanMinThenReturnFail() throws {
-        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: DaysSinceInstalledMatchingAttribute(min: 2, fallback: nil)),
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: DaysSinceInstalledMatchingAttribute(min: 2, fallback: nil)),
                        .fail)
     }
 
     func testWhenDaysSinceInstalledInRangeThenReturnMatch() throws {
-        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: DaysSinceInstalledMatchingAttribute(min: 0, max: 1, fallback: nil)),
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: DaysSinceInstalledMatchingAttribute(min: 0, max: 1, fallback: nil)),
                        .match)
     }
 
     func testWhenDaysSinceInstalledNotInRangeThenReturnFail() throws {
-        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: DaysSinceInstalledMatchingAttribute(min: 2, max: 44, fallback: nil)),
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: DaysSinceInstalledMatchingAttribute(min: 2, max: 44, fallback: nil)),
                        .fail)
     }
 
     // MARK: - EmailEnabled
 
     func testWhenEmailEnabledMatchesThenReturnMatch() throws {
-        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: EmailEnabledMatchingAttribute(value: true, fallback: nil)),
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: EmailEnabledMatchingAttribute(value: true, fallback: nil)),
                        .match)
     }
 
     func testWhenEmailEnabledDoesNotMatchThenReturnFail() throws {
-        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: EmailEnabledMatchingAttribute(value: false, fallback: nil)),
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: EmailEnabledMatchingAttribute(value: false, fallback: nil)),
                        .fail)
     }
 
-    // MARK: - WidgetAdded
-
-    func testWhenWidgetAddedMatchesThenReturnMatch() throws {
-        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: WidgetAddedMatchingAttribute(value: true, fallback: nil)),
-                       .match)
-    }
-
-    func testWhenWidgetAddedDoesNotMatchThenReturnFail() throws {
-        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: WidgetAddedMatchingAttribute(value: false, fallback: nil)),
-                       .fail)
-    }
-
+//    // MARK: - WidgetAdded
+//
+//    func testWhenWidgetAddedMatchesThenReturnMatch() throws {
+//        XCTAssertEqual(matcher.evaluate(matchingAttribute: WidgetAddedMatchingAttribute(value: true, fallback: nil)),
+//                       .match)
+//    }
+//
+//    func testWhenWidgetAddedDoesNotMatchThenReturnFail() throws {
+//        XCTAssertEqual(matcher.evaluate(matchingAttribute: WidgetAddedMatchingAttribute(value: false, fallback: nil)),
+//                       .fail)
+//    }
+//
     // MARK: - Privacy Pro
 
     func testWhenDaysSinceNetPEnabledMatchesThenReturnMatch() throws {
-        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: DaysSinceNetPEnabledMatchingAttribute(min: 1, fallback: nil)),
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: DaysSinceNetPEnabledMatchingAttribute(min: 1, fallback: nil)),
                        .match)
     }
 
     func testWhenDaysSinceNetPEnabledDoesNotMatchThenReturnFail() throws {
-        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: DaysSinceNetPEnabledMatchingAttribute(min: 7, fallback: nil)),
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: DaysSinceNetPEnabledMatchingAttribute(min: 7, fallback: nil)),
                        .fail)
     }
 
     func testWhenIsPrivacyProEligibleUserMatchesThenReturnMatch() throws {
-        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: IsPrivacyProEligibleUserMatchingAttribute(value: true, fallback: nil)),
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: IsPrivacyProEligibleUserMatchingAttribute(value: true, fallback: nil)),
                        .match)
     }
 
     func testWhenIsPrivacyProEligibleUserDoesNotMatchThenReturnFail() throws {
-        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: IsPrivacyProEligibleUserMatchingAttribute(value: false, fallback: nil)),
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: IsPrivacyProEligibleUserMatchingAttribute(value: false, fallback: nil)),
                        .fail)
     }
 
     func testWhenIsPrivacyProSubscriberMatchesThenReturnMatch() throws {
-        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: IsPrivacyProSubscriberUserMatchingAttribute(value: true, fallback: nil)),
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: IsPrivacyProSubscriberUserMatchingAttribute(value: true, fallback: nil)),
                        .match)
     }
 
     func testWhenIsPrivacyProSubscriberDoesNotMatchThenReturnFail() throws {
-        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: IsPrivacyProSubscriberUserMatchingAttribute(value: false, fallback: nil)),
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: IsPrivacyProSubscriberUserMatchingAttribute(value: false, fallback: nil)),
                        .fail)
     }
 
     func testWhenPrivacyProPurchasePlatformMatchesThenReturnMatch() throws {
-        XCTAssertEqual(userAttributeMatcher.evaluate(
+        XCTAssertEqual(matcher.evaluate(
             matchingAttribute: PrivacyProPurchasePlatformMatchingAttribute(
                 value: ["apple"], fallback: nil
             )
@@ -241,7 +241,7 @@ class UserAttributeMatcherTests: XCTestCase {
     }
 
     func testWhenPrivacyProPurchasePlatformDoesNotMatchThenReturnFail() throws {
-        XCTAssertEqual(userAttributeMatcher.evaluate(
+        XCTAssertEqual(matcher.evaluate(
             matchingAttribute: PrivacyProPurchasePlatformMatchingAttribute(
                 value: ["stripe"], fallback: nil
             )
@@ -249,65 +249,66 @@ class UserAttributeMatcherTests: XCTestCase {
     }
 
     func testWhenPrivacyProSubscriptionStatusMatchesThenReturnMatch() throws {
-        XCTAssertEqual(userAttributeMatcher.evaluate(
+        XCTAssertEqual(matcher.evaluate(
             matchingAttribute: PrivacyProSubscriptionStatusMatchingAttribute(value: "active", fallback: nil)
         ), .match)
     }
 
     func testWhenPrivacyProSubscriptionStatusDoesNotMatchThenReturnFail() throws {
-        XCTAssertEqual(userAttributeMatcher.evaluate(
+        XCTAssertEqual(matcher.evaluate(
             matchingAttribute: PrivacyProSubscriptionStatusMatchingAttribute(value: "expiring", fallback: nil)
         ), .fail)
     }
 
     func testWhenPrivacyProSubscriptionStatusHasUnsupportedStatusThenReturnFail() throws {
-        XCTAssertEqual(userAttributeMatcher.evaluate(
+        XCTAssertEqual(matcher.evaluate(
             matchingAttribute: PrivacyProSubscriptionStatusMatchingAttribute(value: "unsupported_status", fallback: nil)
         ), .fail)
     }
 
     func testWhenOneDismissedMessageIdMatchesThenReturnMatch() throws {
         setUpUserAttributeMatcher(dismissedMessageIds: ["1"])
-        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: InteractedWithMessageMatchingAttribute(value: ["1", "2", "3"], fallback: nil)), .match)
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: InteractedWithMessageMatchingAttribute(value: ["1", "2", "3"], fallback: nil)), .match)
     }
 
     func testWhenAllDismissedMessageIdsMatchThenReturnMatch() throws {
         setUpUserAttributeMatcher(dismissedMessageIds: ["1", "2", "3"])
-        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: InteractedWithMessageMatchingAttribute(value: ["1", "2", "3"], fallback: nil)), .match)
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: InteractedWithMessageMatchingAttribute(value: ["1", "2", "3"], fallback: nil)), .match)
     }
 
     func testWhenNoDismissedMessageIdsMatchThenReturnFail() throws {
         setUpUserAttributeMatcher(dismissedMessageIds: ["1", "2", "3"])
-        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: InteractedWithMessageMatchingAttribute(value: ["4", "5"], fallback: nil)), .fail)
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: InteractedWithMessageMatchingAttribute(value: ["4", "5"], fallback: nil)), .fail)
     }
 
     func testWhenHaveDismissedMessageIdsAndMatchAttributeIsEmptyThenReturnFail() throws {
         setUpUserAttributeMatcher(dismissedMessageIds: ["1", "2", "3"])
-        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: InteractedWithMessageMatchingAttribute(value: [], fallback: nil)), .fail)
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: InteractedWithMessageMatchingAttribute(value: [], fallback: nil)), .fail)
     }
 
     func testWhenHaveNoDismissedMessageIdsAndMatchAttributeIsNotEmptyThenReturnFail() throws {
         setUpUserAttributeMatcher(dismissedMessageIds: [])
-        XCTAssertEqual(userAttributeMatcher.evaluate(matchingAttribute: InteractedWithMessageMatchingAttribute(value: ["1", "2"], fallback: nil)), .fail)
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: InteractedWithMessageMatchingAttribute(value: ["1", "2"], fallback: nil)), .fail)
     }
 
     private func setUpUserAttributeMatcher(dismissedMessageIds: [String] = []) {
-        userAttributeMatcher = UserAttributeMatcher(statisticsStore: mockStatisticsStore,
-                                                    variantManager: manager,
-                                                    emailManager: emailManager,
-                                                    bookmarksCount: 44,
-                                                    favoritesCount: 88,
-                                                    appTheme: "default",
-                                                    isWidgetInstalled: true,
-                                                    daysSinceNetPEnabled: 3,
-                                                    isPrivacyProEligibleUser: true,
-                                                    isPrivacyProSubscriber: true,
-                                                    privacyProDaysSinceSubscribed: 5,
-                                                    privacyProDaysUntilExpiry: 25,
-                                                    privacyProPurchasePlatform: "apple",
-                                                    isPrivacyProSubscriptionActive: true,
-                                                    isPrivacyProSubscriptionExpiring: false,
-                                                    isPrivacyProSubscriptionExpired: false,
-                                                    dismissedMessageIds: dismissedMessageIds)
+        matcher = CommonUserAttributeMatcher(
+            statisticsStore: mockStatisticsStore,
+            variantManager: manager,
+            emailManager: emailManager,
+            bookmarksCount: 44,
+            favoritesCount: 88,
+            appTheme: "default",
+            daysSinceNetPEnabled: 3,
+            isPrivacyProEligibleUser: true,
+            isPrivacyProSubscriber: true,
+            privacyProDaysSinceSubscribed: 5,
+            privacyProDaysUntilExpiry: 25,
+            privacyProPurchasePlatform: "apple",
+            isPrivacyProSubscriptionActive: true,
+            isPrivacyProSubscriptionExpiring: false,
+            isPrivacyProSubscriptionExpired: false,
+            dismissedMessageIds: dismissedMessageIds
+        )
     }
 }

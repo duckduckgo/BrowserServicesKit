@@ -80,8 +80,7 @@ public struct MobileUserAttributeMatcher: AttributeMatcher {
         )
     }
 
-    // swiftlint:disable:next cyclomatic_complexity function_body_length
-    func evaluate(matchingAttribute: MatchingAttribute) -> EvaluationResult? {
+    public func evaluate(matchingAttribute: MatchingAttribute) -> EvaluationResult? {
         switch matchingAttribute {
         case let matchingAttribute as WidgetAddedMatchingAttribute:
             guard let value = matchingAttribute.value else {
@@ -157,7 +156,7 @@ public struct CommonUserAttributeMatcher: AttributeMatcher {
     }
 
     // swiftlint:disable:next cyclomatic_complexity function_body_length
-    func evaluate(matchingAttribute: MatchingAttribute) -> EvaluationResult? {
+    public func evaluate(matchingAttribute: MatchingAttribute) -> EvaluationResult? {
         switch matchingAttribute {
         case let matchingAttribute as AppThemeMatchingAttribute:
             guard let value = matchingAttribute.value else {

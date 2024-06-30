@@ -18,6 +18,6 @@
 
 import Foundation
 
-protocol AttributeMatcher {
+public protocol AttributeMatcher {
     func evaluate(matchingAttribute: MatchingAttribute) -> EvaluationResult?
 }

@@ -43,9 +43,12 @@ class RemoteMessagingStoreTests: XCTestCase {
         }
         remoteMessagingDatabase = CoreDataDatabase(name: type(of: self).description(), containerLocation: location, model: model)
         remoteMessagingDatabase.loadStore()
-        let context = remoteMessagingDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
-        store = RemoteMessagingStore(context: context, notificationCenter: notificationCenter, errorEvents: nil)
+        store = RemoteMessagingStore(
+            database: remoteMessagingDatabase,
+            notificationCenter: notificationCenter,
+            errorEvents: nil
+        )
 
         defaults = UserDefaults(suiteName: Self.userDefaultsSuiteName)!
         defaults.removePersistentDomain(forName: Self.userDefaultsSuiteName)
@@ -149,22 +152,24 @@ class RemoteMessagingStoreTests: XCTestCase {
         let jsonRemoteMessagingConfig = try decodeJson(fileName: "remote-messaging-config-example.json")
         let remoteMessagingConfigMatcher = RemoteMessagingConfigMatcher(
                 appAttributeMatcher: AppAttributeMatcher(statisticsStore: MockStatisticsStore(), variantManager: MockVariantManager()),
-                userAttributeMatcher: UserAttributeMatcher(statisticsStore: MockStatisticsStore(),
-                                                           variantManager: MockVariantManager(),
-                                                           bookmarksCount: 0,
-                                                           favoritesCount: 0,
-                                                           appTheme: "light",
-                                                           isWidgetInstalled: false,
-                                                           daysSinceNetPEnabled: -1,
-                                                           isPrivacyProEligibleUser: false,
-                                                           isPrivacyProSubscriber: false,
-                                                           privacyProDaysSinceSubscribed: -1,
-                                                           privacyProDaysUntilExpiry: -1,
-                                                           privacyProPurchasePlatform: nil,
-                                                           isPrivacyProSubscriptionActive: false,
-                                                           isPrivacyProSubscriptionExpiring: false,
-                                                           isPrivacyProSubscriptionExpired: false,
-                                                           dismissedMessageIds: []),
+                userAttributeMatcher: MobileUserAttributeMatcher(
+                    statisticsStore: MockStatisticsStore(),
+                    variantManager: MockVariantManager(),
+                    bookmarksCount: 0,
+                    favoritesCount: 0,
+                    appTheme: "light",
+                    isWidgetInstalled: false,
+                    daysSinceNetPEnabled: -1,
+                    isPrivacyProEligibleUser: false,
+                    isPrivacyProSubscriber: false,
+                    privacyProDaysSinceSubscribed: -1,
+                    privacyProDaysUntilExpiry: -1,
+                    privacyProPurchasePlatform: nil,
+                    isPrivacyProSubscriptionActive: false,
+                    isPrivacyProSubscriptionExpiring: false,
+                    isPrivacyProSubscriptionExpired: false,
+                    dismissedMessageIds: []
+                ),
                 percentileStore: RemoteMessagingPercentileUserDefaultsStore(userDefaults: self.defaults),
                 surveyActionMapper: MockRemoteMessagingSurveyActionMapper(),
                 dismissedMessageIds: []
