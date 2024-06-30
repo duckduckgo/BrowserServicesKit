@@ -47,6 +47,7 @@ public enum PrivacyFeature: String {
     case privacyPro
     case sslCertificates
     case brokenSiteReportExperiment
+    case toggleReports
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -89,14 +90,6 @@ public enum SyncSubfeature: String, PrivacySubfeature {
     case level1AllowDataSyncing
     case level2AllowSetupFlows
     case level3AllowCreateAccount
-}
-
-public enum PrivacyDashboardSubfeature: String, PrivacySubfeature {
-
-    public var parent: PrivacyFeature { .privacyDashboard }
-
-    case toggleReports
-
 }
 
 public enum AutoconsentSubfeature: String, PrivacySubfeature {

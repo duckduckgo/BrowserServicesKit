@@ -28,7 +28,7 @@ public struct ValidateTokenResponse: Decodable {
 
     public struct Account: Decodable {
         public let email: String?
-        let entitlements: [Entitlement]
+        public let entitlements: [Entitlement]
         public let externalID: String
 
         enum CodingKeys: String, CodingKey {
