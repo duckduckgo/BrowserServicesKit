@@ -58,7 +58,7 @@ public struct DefaultAPIService: APIService {
             let (data, urlResponse) = try await session.data(for: request)
 
             printDebugInfo(method: method, endpoint: endpoint, data: data, response: urlResponse)
-            
+
             guard let httpResponse = urlResponse as? HTTPURLResponse else { return .failure(.unknownServerError) }
 
             if (200..<300).contains(httpResponse.statusCode) {
