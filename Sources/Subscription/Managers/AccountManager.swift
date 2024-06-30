@@ -46,7 +46,7 @@ public protocol AccountManager {
 
     typealias AccountDetails = (email: String?, externalID: String)
     func fetchAccountDetails(with accessToken: String) async -> Result<AccountDetails, Error>
-    func refreshSubscriptionAndEntitlements() async
+
     @discardableResult func checkForEntitlements(wait waitTime: Double, retry retryCount: Int) async -> Bool
 }
 
@@ -329,24 +329,6 @@ public final class DefaultAccountManager: AccountManager {
             os_log(.error, log: .subscription, "[AccountManager] fetchAccountDetails error: %{public}@", error.localizedDescription)
             return .failure(error)
         }
-    }
-
-    public func refreshSubscriptionAndEntitlements() async {
-        os_log(.info, log: .subscription, "[AccountManager] refreshSubscriptionAndEntitlements")
-
-        guard let token = accessToken else {
-            subscriptionEndpointService.signOut()
-            entitlementsCache.reset()
-            return
-        }
-
-        if case .success(let subscription) = await subscriptionEndpointService.getSubscription(accessToken: token, cachePolicy: .reloadIgnoringLocalCacheData) {
-            if !subscription.isActive {
-                signOut()
-            }
-        }
-
-        await fetchEntitlements(cachePolicy: .reloadIgnoringLocalCacheData)
     }
 
     @discardableResult

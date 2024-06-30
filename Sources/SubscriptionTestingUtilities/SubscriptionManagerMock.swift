@@ -34,7 +34,7 @@ public final class SubscriptionManagerMock: SubscriptionManager {
 
     }
 
-    public func updateSubscriptionStatus(completion: @escaping (Bool) -> Void) {
+    public func refreshCachedSubscriptionAndEntitlements(completion: @escaping (Bool) -> Void) {
         completion(true)
     }
 
