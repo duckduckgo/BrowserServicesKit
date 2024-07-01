@@ -78,7 +78,7 @@ public actor NetworkProtectionTunnelFailureMonitor {
     // MARK: - Start/Stop monitoring
 
     func start(callback: @escaping (Result) -> Void) {
-        os_log("⚫️ Starting tunnel failure monitor", log: .networkProtectionTunnelFailureMonitorLog)
+        os_log("⚫️ Starting tunnel failure monitor", log: .networkProtectionTunnelFailureMonitorLog, type: .info)
 
         failureReported = false
         firstCheckSkipped = false
@@ -93,7 +93,7 @@ public actor NetworkProtectionTunnelFailureMonitor {
     }
 
     func stop() {
-        os_log("⚫️ Stopping tunnel failure monitor", log: .networkProtectionTunnelFailureMonitorLog)
+        os_log("⚫️ Stopping tunnel failure monitor", log: .networkProtectionTunnelFailureMonitorLog, type: .info)
 
         networkMonitor.cancel()
         networkMonitor.pathUpdateHandler = nil
@@ -132,7 +132,7 @@ public actor NetworkProtectionTunnelFailureMonitor {
                 failureReported = true
             }
         } else if difference <= Result.failureRecovered.threshold, failureReported {
-            os_log("⚫️ Tunnel failure recovery", log: .networkProtectionTunnelFailureMonitorLog, type: .debug)
+            os_log("⚫️ Tunnel recovered from failure", log: .networkProtectionTunnelFailureMonitorLog, type: .debug)
             callback(.failureRecovered)
             failureReported = false
         }

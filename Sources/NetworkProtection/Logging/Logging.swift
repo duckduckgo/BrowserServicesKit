@@ -84,7 +84,7 @@ extension OSLog {
 
 struct Logging {
 
-    static let subsystem = "com.duckduckgo.macos.browser.network-protection"
+    static let subsystem = Bundle.main.bundleIdentifier!
 
     fileprivate static let networkProtectionLoggingEnabled = true
     fileprivate static let networkProtection: OSLog = OSLog(subsystem: subsystem, category: "Network Protection")
