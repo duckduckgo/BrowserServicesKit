@@ -24,19 +24,12 @@ import BrowserServicesKit
 import Common
 
 public enum PrivacyDashboardOpenSettingsTarget: String {
+
     case general
     case cookiePopupManagement = "cpm"
-}
-
-/// Navigation delegate for the pages provided by the PrivacyDashboardController
-public protocol PrivacyDashboardNavigationDelegate: AnyObject {
-
-    func privacyDashboardControllerDidRequestClose(_ privacyDashboardController: PrivacyDashboardController)
-    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didSetHeight height: Int)
 
 }
 
-/// `Privacy Dashboard` web page delegate
 public protocol PrivacyDashboardControllerDelegate: AnyObject {
 
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
@@ -55,40 +48,28 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
     func privacyDashboardControllerDidRequestShowGeneralFeedback(_ privacyDashboardController: PrivacyDashboardController)
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
                                     didRequestSubmitToggleReportWithSource source: BrokenSiteReport.Source)
+    func privacyDashboardControllerDidRequestClose(_ privacyDashboardController: PrivacyDashboardController)
+    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didSetHeight height: Int)
 
 #if os(macOS)
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
-                                    didSetPermission permissionName: String, to state: PermissionAuthorizationState)
+                                    didSetPermission permissionName: String, 
+                                    to state: PermissionAuthorizationState)
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
-                                    setPermission permissionName: String, paused: Bool)
+                                    setPermission permissionName: String, 
+                                    paused: Bool)
 #endif
 
 }
 
 @MainActor public final class PrivacyDashboardController: NSObject {
 
-    private enum ToggleReportDismissType {
-
-        case send
-        case doNotSend
-        case dismiss
-
-    }
-
-    private enum ToggleReportDismissSource {
-
-        case userScript
-        case viewWillDisappear
-
-    }
-
     public weak var privacyDashboardDelegate: PrivacyDashboardControllerDelegate?
-    public weak var privacyDashboardNavigationDelegate: PrivacyDashboardNavigationDelegate?
 
     @Published public var theme: PrivacyDashboardTheme?
-    public var preferredLocale: String?
     @Published public var allowedPermissions: [AllowedPermission] = []
-    
+    public var preferredLocale: String?
+
     public private(set) weak var privacyInfo: PrivacyInfo?
     private let entryPoint: PrivacyDashboardEntryPoint
     private let variant: PrivacyDashboardVariant
@@ -111,7 +92,6 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
         self.entryPoint = entryPoint
         self.variant = variant
         self.eventMapping = eventMapping
-
         privacyDashboardScript = PrivacyDashboardUserScript(privacyConfigurationManager: privacyConfigurationManager)
         toggleReportsManager = ToggleReportsManager(feature: ToggleReportsFeature(manager: privacyConfigurationManager))
     }
@@ -121,10 +101,10 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
         webView.navigationDelegate = self
 
         setupPrivacyDashboardUserScript()
-        loadInitialPrivacyDashboardScreen()
+        loadStartScreen()
     }
 
-    private func loadInitialPrivacyDashboardScreen() {
+    private func loadStartScreen() {
         let url = PrivacyDashboardURLBuilder(configuration: .startScreen(entryPoint: entryPoint, variant: variant)).build()
         webView?.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent().deletingLastPathComponent())
     }
@@ -137,7 +117,7 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
         sendProtectionStatus()
     }
 
-    public func cleanUp() {
+    public func cleanup() {
         cancellables.removeAll()
         privacyDashboardScript.messageNames.forEach { messageName in
             webView?.configuration.userContentController.removeScriptMessageHandler(forName: messageName)
@@ -289,7 +269,7 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
             segueToToggleReportScreen(with: protectionState)
         } else {
             privacyDashboardDelegate?.privacyDashboardController(self, didChangeProtectionSwitch: protectionState, didSendReport: false)
-            privacyDashboardNavigationDelegate?.privacyDashboardControllerDidRequestClose(self)
+            privacyDashboardDelegate?.privacyDashboardControllerDidRequestClose(self)
         }
     }
 
@@ -325,6 +305,7 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
                                                                  didChangeProtectionSwitch: protectionStateToSubmitOnToggleReportDismiss,
                                                                  didSendReport: didSendReport)
             // privacyDashboardNavigationDelegate?.privacyDashboardControllerDidRequestClose(self) potentially missing for mac!
+            // if needed move it outside of this func anyway!
         }
     }
 
@@ -357,7 +338,7 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     }
 
     func userScript(_ userScript: PrivacyDashboardUserScript, setHeight height: Int) {
-        privacyDashboardNavigationDelegate?.privacyDashboardController(self, didSetHeight: height)
+        privacyDashboardDelegate?.privacyDashboardController(self, didSetHeight: height)
     }
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestSubmitBrokenSiteReportWithCategory category: String, description: String) {
@@ -425,11 +406,10 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     }
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectBreakageCategory category: String) {
-        let parameters = [
+        eventMapping.fire(.breakageCategorySelected, parameters: [
             PrivacyDashboardEvents.Parameters.variant: variant.rawValue,
             PrivacyDashboardEvents.Parameters.category: category
-        ]
-        eventMapping.fire(.breakageCategorySelected, parameters: parameters)
+        ])
         privacyDashboardDelegate?.privacyDashboardController(self, didSelectBreakageCategory: category)
     }
 
