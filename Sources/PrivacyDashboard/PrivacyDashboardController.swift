@@ -336,7 +336,7 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     private func segueToToggleReportScreen(with protectionStateToSubmit: ProtectionState) {
         let url = PrivacyDashboardURLBuilder(configuration: .segueToScreen(.toggleReport, currentMode: initDashboardMode)).build()
         webView?.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent().deletingLastPathComponent())
-        self.protectionStateToSubmitOnToggleReportDismiss = protectionStateToSubmit
+        protectionStateToSubmitOnToggleReportDismiss = protectionStateToSubmit
     }
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestOpenUrlInNewTab url: URL) {

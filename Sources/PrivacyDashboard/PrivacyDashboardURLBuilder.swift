@@ -50,42 +50,27 @@ final class PrivacyDashboardURLBuilder {
         }
 
         func addBreakageScreenParameterIfNeeded(to url: URL) -> URL {
-            switch self {
-            case .initialScreen(_, let variant):
-                if let breakageScreen = variant.breakageScreen?.rawValue {
-                    return url.appendingParameter(name: Constant.breakageScreenKey, value: breakageScreen)
-                }
-                return url
-            case .segueToScreen:
-                return url
+            if case .initialScreen(_, let variant) = self, let breakageScreen = variant.breakageScreen?.rawValue {
+                return url.appendingParameter(name: Constant.breakageScreenKey, value: breakageScreen)
             }
+            return url
         }
 
         func addCategoryParameterIfNeeded(to url: URL) -> URL {
-            switch self {
-            case .initialScreen(let dashboardMode, _):
-                if case .afterTogglePrompt(let category, _) = dashboardMode {
-                    return url.appendingParameter(name: Constant.categoryKey, value: category)
-                }
-                return url
-            case .segueToScreen:
-                return url
+            if case .initialScreen(let dashboardMode, _) = self, case .afterTogglePrompt(let category, _) = dashboardMode {
+                return url.appendingParameter(name: Constant.categoryKey, value: category)
             }
+            return url
         }
 
         func addOpenerParameterIfNeeded(to url: URL) -> URL {
-            switch self {
-            case .initialScreen(let dashboardMode, _):
-                if case .toggleReport = dashboardMode {
-                    return url.appendingParameter(name: Constant.openerKey, value: Constant.menuScreenKey)
-                }
-                return url
-            case .segueToScreen(_, let currentMode):
-                if currentMode == .dashboard {
-                    return url.appendingParameter(name: Constant.openerKey, value: Constant.dashboardScreenKey)
-                }
-                return url
+            if case .initialScreen(let dashboardMode, _) = self, case .toggleReport = dashboardMode {
+                return url.appendingParameter(name: Constant.openerKey, value: Constant.menuScreenKey)
             }
+            if case .segueToScreen(_, let currentMode) = self, currentMode == .dashboard {
+                return url.appendingParameter(name: Constant.openerKey, value: Constant.dashboardScreenKey)
+            }
+            return url
         }
 
     }
