@@ -80,18 +80,6 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
 
 @MainActor public final class PrivacyDashboardController: NSObject {
 
-    fileprivate enum Constant {
-
-        static let screenKey = "screen"
-        static let breakageScreenKey = "breakageScreen"
-        static let openerKey = "opener"
-        static let categoryKey = "category"
-
-        static let menuScreenKey = "menu"
-        static let dashboardScreenKey = "dashboard"
-
-    }
-
     private enum ToggleReportDismissType {
 
         case send
@@ -158,6 +146,11 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
         loadPrivacyDashboardHTML()
     }
 
+    private func loadPrivacyDashboardHTML() {
+        let url = PrivacyDashboardURLBuilder(configuration: .initialScreen(dashboardMode: initDashboardMode, variant: variant)).build()
+        webView?.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent().deletingLastPathComponent())
+    }
+
     public func updatePrivacyInfo(_ privacyInfo: PrivacyInfo?) {
         cancellables.removeAll()
         self.privacyInfo = privacyInfo
@@ -175,50 +168,26 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
     }
 
     public func didStartRulesCompilation() {
-        guard let webView = self.webView else { return }
+        guard let webView else { return }
         privacyDashboardScript.setIsPendingUpdates(true, webView: webView)
     }
 
     public func didFinishRulesCompilation() {
-        guard let webView = self.webView else { return }
+        guard let webView else { return }
         privacyDashboardScript.setIsPendingUpdates(false, webView: webView)
     }
 
     private func setupPrivacyDashboardUserScript() {
-        guard let webView = self.webView else { return }
+        guard let webView else { return }
 
         privacyDashboardScript.delegate = self
 
         webView.configuration.userContentController.addUserScript(privacyDashboardScript.makeWKUserScriptSync())
-
         privacyDashboardScript.messageNames.forEach { messageName in
             webView.configuration.userContentController.add(privacyDashboardScript, name: messageName)
         }
     }
 
-    private func loadPrivacyDashboardHTML() {
-        guard var url = Bundle.privacyDashboardURL else { return }
-        let screen = initDashboardMode.screen(for: variant).rawValue
-        url = url.appendingParameter(name: Constant.screenKey, value: screen)
-        if let breakageScreen = breakageScreen(for: variant)?.rawValue {
-            url = url.appendingParameter(name: Constant.breakageScreenKey, value: breakageScreen)
-        }
-        if case .afterTogglePrompt(let category, _) = initDashboardMode {
-            url = url.appendingParameter(name: Constant.categoryKey, value: category)
-        }
-        if case .toggleReport = initDashboardMode {
-            url = url.appendingParameter(name: Constant.openerKey, value: Constant.menuScreenKey)
-        }
-        webView?.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent().deletingLastPathComponent())
-    }
-
-    private func breakageScreen(for variant: PrivacyDashboardVariant) -> BreakageScreen? {
-        switch variant {
-        case .control: return nil
-        case .a: return .categorySelection
-        case .b: return .categoryTypeSelection
-        }
-    }
 }
 
 // MARK: - WKNavigationDelegate
@@ -317,12 +286,12 @@ extension PrivacyDashboardController: WKNavigationDelegate {
     }
 
     private func sendParentEntity() {
-        guard let webView = self.webView else { return }
+        guard let webView else { return }
         privacyDashboardScript.setParentEntity(privacyInfo?.parentEntity, webView: webView)
     }
 
     private func sendCurrentLocale() {
-        guard let webView = self.webView else { return }
+        guard let webView else { return }
         let locale = preferredLocale ?? "en"
         privacyDashboardScript.setLocale(locale, webView: webView)
     }
@@ -365,12 +334,7 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     }
 
     private func segueToToggleReportScreen(with protectionStateToSubmit: ProtectionState) {
-        guard var url = Bundle.privacyDashboardURL else { return }
-        url = url.appendingParameter(name: Constant.screenKey, value: Screen.toggleReport.rawValue)
-        if case .dashboard = initDashboardMode {
-            url = url.appendingParameter(name: Constant.openerKey, value: Constant.dashboardScreenKey)
-        }
-
+        let url = PrivacyDashboardURLBuilder(configuration: .segueToScreen(.toggleReport, currentMode: initDashboardMode)).build()
         webView?.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent().deletingLastPathComponent())
         self.protectionStateToSubmitOnToggleReportDismiss = protectionStateToSubmit
     }
@@ -469,7 +433,7 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     // Toggle reports
 
     func userScriptDidRequestToggleReportOptions(_ userScript: PrivacyDashboardUserScript) {
-        guard let webView = self.webView else { return }
+        guard let webView else { return }
         let site = privacyInfo?.url.trimmingQueryItemsAndFragment().absoluteString ?? ""
         privacyDashboardScript.setToggleReportOptions(forSite: site, webView: webView)
     }
@@ -499,7 +463,7 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
         return source
     }
 
-    // MARK: - Experiment flows
+    // MARK: - Experiment flows (soon to be removed)
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectOverallCategory category: String) {
         eventMapping.fire(.overallCategorySelected, parameters: [PrivacyDashboardEvents.Parameters.category: category])
