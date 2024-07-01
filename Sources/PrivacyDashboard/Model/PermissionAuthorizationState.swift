@@ -19,7 +19,9 @@
 import Foundation
 
 public enum PermissionAuthorizationState: String, CaseIterable {
+
     case ask
     case grant
     case deny
+    
 }

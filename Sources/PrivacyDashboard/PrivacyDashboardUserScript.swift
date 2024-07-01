@@ -419,7 +419,6 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             assertionFailure("Can't encode themeName into JSON")
             return
         }
-
         evaluate(js: "window.onChangeTheme(\(themeJson))", in: webView)
     }
 
@@ -428,7 +427,6 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             assertionFailure("Can't encode serverTrustViewModel into JSON")
             return
         }
-
         evaluate(js: "window.onChangeCertificateData(\(certificateDataJson))", in: webView)
     }
 
@@ -461,8 +459,7 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             assertionFailure("PrivacyDashboardUserScript: could not serialize permissions object")
             return
         }
-
-        self.evaluate(js: "window.onChangeAllowedPermissions(\(allowedPermissionsJson))", in: webView)
+        evaluate(js: "window.onChangeAllowedPermissions(\(allowedPermissionsJson))", in: webView)
     }
 
     private func evaluate(js: String, in webView: WKWebView) {
@@ -474,7 +471,7 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
 extension Data {
 
     func utf8String() -> String? {
-        return String(data: self, encoding: .utf8)
+        String(data: self, encoding: .utf8)
     }
 
 }

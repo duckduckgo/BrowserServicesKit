@@ -113,29 +113,24 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
     private var protectionStateToSubmitOnToggleReportDismiss: ProtectionState?
     private var didSendToggleReport: Bool = false
 
-    private let privacyConfigurationManager: PrivacyConfigurationManaging
     private let eventMapping: EventMapping<PrivacyDashboardEvents>
 
     private let variant: PrivacyDashboardVariant
 
     private var toggleReportsManager: ToggleReportsManager
 
-    private let userDefaults: UserDefaults
-
     public init(privacyInfo: PrivacyInfo?,
                 dashboardMode: PrivacyDashboardMode,
                 variant: PrivacyDashboardVariant,
                 privacyConfigurationManager: PrivacyConfigurationManaging,
-                eventMapping: EventMapping<PrivacyDashboardEvents>,
-                userDefaults: UserDefaults = UserDefaults.standard) {
+                eventMapping: EventMapping<PrivacyDashboardEvents>) {
         self.privacyInfo = privacyInfo
         self.initDashboardMode = dashboardMode
         self.variant = variant
-        self.privacyConfigurationManager = privacyConfigurationManager
-        privacyDashboardScript = PrivacyDashboardUserScript(privacyConfigurationManager: privacyConfigurationManager)
         self.eventMapping = eventMapping
-        self.userDefaults = userDefaults
-        self.toggleReportsManager = ToggleReportsManager(feature: ToggleReportsFeature(manager: privacyConfigurationManager))
+
+        privacyDashboardScript = PrivacyDashboardUserScript(privacyConfigurationManager: privacyConfigurationManager)
+        toggleReportsManager = ToggleReportsManager(feature: ToggleReportsFeature(manager: privacyConfigurationManager))
     }
 
     public func setup(for webView: WKWebView) {
@@ -143,10 +138,10 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
         webView.navigationDelegate = self
 
         setupPrivacyDashboardUserScript()
-        loadPrivacyDashboardHTML()
+        loadInitialPrivacyDashboardScreen()
     }
 
-    private func loadPrivacyDashboardHTML() {
+    private func loadInitialPrivacyDashboardScreen() {
         let url = PrivacyDashboardURLBuilder(configuration: .initialScreen(dashboardMode: initDashboardMode, variant: variant)).build()
         webView?.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent().deletingLastPathComponent())
     }
@@ -161,7 +156,6 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
 
     public func cleanUp() {
         cancellables.removeAll()
-
         privacyDashboardScript.messageNames.forEach { messageName in
             webView?.configuration.userContentController.removeScriptMessageHandler(forName: messageName)
         }

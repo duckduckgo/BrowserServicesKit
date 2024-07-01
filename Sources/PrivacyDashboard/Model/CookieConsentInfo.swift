@@ -19,6 +19,7 @@
 import Foundation
 
 public struct CookieConsentInfo: Encodable {
+
     let consentManaged: Bool
     let cosmetic: Bool?
     let optoutFailed: Bool?
@@ -31,4 +32,5 @@ public struct CookieConsentInfo: Encodable {
         self.optoutFailed = optoutFailed
         self.selftestFailed = selftestFailed
     }
+    
 }
