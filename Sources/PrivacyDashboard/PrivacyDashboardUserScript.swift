@@ -27,7 +27,7 @@ protocol PrivacyDashboardUserScriptDelegate: AnyObject {
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didChangeProtectionState protectionState: ProtectionState)
     func userScript(_ userScript: PrivacyDashboardUserScript, setHeight height: Int)
-    func userScriptDidRequestClosing(_ userScript: PrivacyDashboardUserScript)
+    func userScriptDidRequestClose(_ userScript: PrivacyDashboardUserScript)
     func userScriptDidRequestShowReportBrokenSite(_ userScript: PrivacyDashboardUserScript)
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestSubmitBrokenSiteReportWithCategory category: String, description: String)
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestOpenUrlInNewTab: URL)

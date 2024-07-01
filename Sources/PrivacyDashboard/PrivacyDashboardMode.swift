@@ -17,8 +17,10 @@
 //
 
 /// Type of web page displayed
-public enum PrivacyDashboardMode: Equatable {
+public enum PrivacyDashboardEntryPoint: Equatable {
 
+    // TODO: missing documentation, what is each option, etc.
+    // what is NOT present on mac (toggleReport)
     case dashboard
     case report
     case prompt(String)
@@ -40,7 +42,7 @@ public enum PrivacyDashboardMode: Equatable {
         }
     }
 
-    public static func == (lhs: PrivacyDashboardMode, rhs: PrivacyDashboardMode) -> Bool {
+    public static func == (lhs: PrivacyDashboardEntryPoint, rhs: PrivacyDashboardEntryPoint) -> Bool {
         switch (lhs, rhs) {
         case
             (.dashboard, .dashboard),

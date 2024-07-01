@@ -90,7 +90,7 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
     @Published public var allowedPermissions: [AllowedPermission] = []
     
     public private(set) weak var privacyInfo: PrivacyInfo?
-    private let initDashboardMode: PrivacyDashboardMode
+    private let entryPoint: PrivacyDashboardEntryPoint
     private let variant: PrivacyDashboardVariant
     private let eventMapping: EventMapping<PrivacyDashboardEvents>
 
@@ -98,18 +98,17 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
     private var cancellables = Set<AnyCancellable>()
 
     private var protectionStateToSubmitOnToggleReportDismiss: ProtectionState?
-    private var didSendToggleReport: Bool = false
 
     private let privacyDashboardScript: PrivacyDashboardUserScript
     private var toggleReportsManager: ToggleReportsManager
 
     public init(privacyInfo: PrivacyInfo?,
-                dashboardMode: PrivacyDashboardMode,
+                entryPoint: PrivacyDashboardEntryPoint,
                 variant: PrivacyDashboardVariant,
                 privacyConfigurationManager: PrivacyConfigurationManaging,
                 eventMapping: EventMapping<PrivacyDashboardEvents>) {
         self.privacyInfo = privacyInfo
-        self.initDashboardMode = dashboardMode
+        self.entryPoint = entryPoint
         self.variant = variant
         self.eventMapping = eventMapping
 
@@ -126,7 +125,7 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
     }
 
     private func loadInitialPrivacyDashboardScreen() {
-        let url = PrivacyDashboardURLBuilder(configuration: .initialScreen(dashboardMode: initDashboardMode, variant: variant)).build()
+        let url = PrivacyDashboardURLBuilder(configuration: .startScreen(entryPoint: entryPoint, variant: variant)).build()
         webView?.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent().deletingLastPathComponent())
     }
 
@@ -230,7 +229,7 @@ extension PrivacyDashboardController: WKNavigationDelegate {
             }
             .receive(on: DispatchQueue.main)
             .sink(receiveValue: { [weak self] serverTrustViewModel in
-                guard let self, let serverTrustViewModel = serverTrustViewModel, let webView else { return }
+                guard let self, let serverTrustViewModel, let webView else { return }
                 privacyDashboardScript.setServerTrust(serverTrustViewModel, webView: webView)
             })
             .store(in: &cancellables)
@@ -299,7 +298,7 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     }
 
     private func segueToToggleReportScreen(with protectionStateToSubmit: ProtectionState) {
-        let url = PrivacyDashboardURLBuilder(configuration: .segueToScreen(.toggleReport, currentMode: initDashboardMode)).build()
+        let url = PrivacyDashboardURLBuilder(configuration: .segueToScreen(.toggleReport, entryPoint: entryPoint)).build()
         webView?.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent().deletingLastPathComponent())
         protectionStateToSubmitOnToggleReportDismiss = protectionStateToSubmit
     }
@@ -308,56 +307,45 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
         privacyDashboardDelegate?.privacyDashboardController(self, didRequestOpenUrlInNewTab: url)
     }
 
-    func userScriptDidRequestClosing(_ userScript: PrivacyDashboardUserScript) {
-        handleUserScriptClosing(toggleReportDismissType: .dismiss)
-    }
-
-    private func handleUserScriptClosing(toggleReportDismissType: ToggleReportDismissType) {
-        handleDismiss(with: toggleReportDismissType, source: .userScript)
-    }
-
-    private func handleDismiss(with type: ToggleReportDismissType, source: ToggleReportDismissSource) {
+    func userScriptDidRequestClose(_ userScript: PrivacyDashboardUserScript) {
+        processToggleReportIfNeeded(didSendReport: false)
+        recordToggleDismissalIfNeeded()
 #if os(iOS)
-        // called when protection is toggled off from app menu
-        if case .toggleReport(completionHandler: let completionHandler) = initDashboardMode {
-            completionHandler(type == .send)
-            processToggleReport(for: type)
-        // called when protection is toggled off from privacy dashboard
-        } else if let protectionStateToSubmitOnToggleReportDismiss {
-            privacyDashboardDelegate?.privacyDashboardController(self, 
-                                                                 didChangeProtectionSwitch: protectionStateToSubmitOnToggleReportDismiss,
-                                                                 didSendReport: type == .send)
-            processToggleReport(for: type)
-        }
-        if source == .userScript {
-            privacyDashboardNavigationDelegate?.privacyDashboardControllerDidRequestClose(self)
-        }
-#else
-        // macOS implementation is different here - after user taps on Send Report we don't want to trigger any action
-        // because of 'Thank you' screen that appears right after.
-        if type != .send {
-            if let protectionStateToSubmitOnToggleReportDismiss {
-                privacyDashboardDelegate?.privacyDashboardController(self, 
-                                                                     didChangeProtectionSwitch: protectionStateToSubmitOnToggleReportDismiss,
-                                                                     didSendReport: false)
-                if !didSendToggleReport {
-                    toggleReportsManager.recordDismissal()
-                }
-            }
-            privacyDashboardNavigationDelegate?.privacyDashboardControllerDidRequestClose(self)
-        }
+        privacyDashboardNavigationDelegate?.privacyDashboardControllerDidRequestClose(self)
 #endif
     }
 
-    private func processToggleReport(for type: ToggleReportDismissType) {
-        if type != .send {
+    private func processToggleReportIfNeeded(didSendReport: Bool) {
+        // called when protection is toggled off from app menu
+        if case .toggleReport(completionHandler: let completionHandler) = entryPoint {
+            completionHandler(didSendReport)
+        // called when protection is toggled off from privacy dashboard
+        } else if let protectionStateToSubmitOnToggleReportDismiss {
+            privacyDashboardDelegate?.privacyDashboardController(self,
+                                                                 didChangeProtectionSwitch: protectionStateToSubmitOnToggleReportDismiss,
+                                                                 didSendReport: didSendReport)
+            // privacyDashboardNavigationDelegate?.privacyDashboardControllerDidRequestClose(self) potentially missing for mac!
+        }
+    }
+
+    private var isInToggleReportingFlow: Bool {
+        if case .toggleReport = entryPoint {
+            return true
+        } else if protectionStateToSubmitOnToggleReportDismiss != nil {
+            return true
+        }
+        return false
+    }
+
+    private func recordToggleDismissalIfNeeded() {
+        if isInToggleReportingFlow {
             toggleReportsManager.recordDismissal()
         }
     }
 
-    // forced by user by swiping down the screen
     public func handleViewWillDisappear() {
-        handleDismiss(with: .dismiss, source: .viewWillDisappear)
+        processToggleReportIfNeeded(didSendReport: false)
+        recordToggleDismissalIfNeeded()
     }
 
     func userScriptDidRequestShowReportBrokenSite(_ userScript: PrivacyDashboardUserScript) {
@@ -374,7 +362,7 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestSubmitBrokenSiteReportWithCategory category: String, description: String) {
         var parameters = [PrivacyDashboardEvents.Parameters.variant: variant.rawValue]
-        if case let .afterTogglePrompt(_, didToggleProtectionsFixIssue) = initDashboardMode {
+        if case let .afterTogglePrompt(_, didToggleProtectionsFixIssue) = entryPoint {
             parameters[PrivacyDashboardEvents.Parameters.didToggleProtectionsFixIssue] = didToggleProtectionsFixIssue.description
         }
         eventMapping.fire(.reportBrokenSiteSent, parameters: parameters)
@@ -401,17 +389,23 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectReportAction shouldSendReport: Bool) {
         if shouldSendReport {
-            toggleReportsManager.recordPrompt()
             privacyDashboardDelegate?.privacyDashboardController(self, didRequestSubmitToggleReportWithSource: source)
-            didSendToggleReport = true
+            toggleReportsManager.recordPrompt()
+            // macOS implementation differs here: After the user taps 'Send Report',
+            // no immediate action should be triggered due to the subsequent 'Thank you' screen.
+            // Processing of the toggle report should only proceed once the user dismisses the 'Thank you' screen.
+#if os(iOS)
+            processToggleReportIfNeeded(didSendReport: shouldSendReport)
+#endif
+        } else {
+            toggleReportsManager.recordDismissal()
+            processToggleReportIfNeeded(didSendReport: shouldSendReport)
         }
-        let toggleReportDismissType: ToggleReportDismissType = shouldSendReport ? .send : .doNotSend
-        handleUserScriptClosing(toggleReportDismissType: toggleReportDismissType)
     }
 
     public var source: BrokenSiteReport.Source {
         var source: BrokenSiteReport.Source
-        switch initDashboardMode {
+        switch entryPoint {
         case .report: source = .appMenu
         case .dashboard: source = .dashboard
         case .toggleReport: source = .onProtectionsOffMenu

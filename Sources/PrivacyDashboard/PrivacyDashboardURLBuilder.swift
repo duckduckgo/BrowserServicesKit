@@ -35,14 +35,14 @@ final class PrivacyDashboardURLBuilder {
 
     enum Configuration {
 
-        case initialScreen(dashboardMode: PrivacyDashboardMode, variant: PrivacyDashboardVariant)
-        case segueToScreen(_ screen: Screen, currentMode: PrivacyDashboardMode)
+        case startScreen(entryPoint: PrivacyDashboardEntryPoint, variant: PrivacyDashboardVariant)
+        case segueToScreen(_ screen: Screen, entryPoint: PrivacyDashboardEntryPoint)
 
         func addScreenParameter(to url: URL) -> URL {
             var screen: Screen
             switch self {
-            case .initialScreen(let dashboardMode, let variant):
-                screen = dashboardMode.screen(for: variant)
+            case .startScreen(let entryPoint, let variant):
+                screen = entryPoint.screen(for: variant)
             case .segueToScreen(let destinationScreen, _):
                 screen = destinationScreen
             }
@@ -50,24 +50,24 @@ final class PrivacyDashboardURLBuilder {
         }
 
         func addBreakageScreenParameterIfNeeded(to url: URL) -> URL {
-            if case .initialScreen(_, let variant) = self, let breakageScreen = variant.breakageScreen?.rawValue {
+            if case .startScreen(_, let variant) = self, let breakageScreen = variant.breakageScreen?.rawValue {
                 return url.appendingParameter(name: Constant.breakageScreenKey, value: breakageScreen)
             }
             return url
         }
 
         func addCategoryParameterIfNeeded(to url: URL) -> URL {
-            if case .initialScreen(let dashboardMode, _) = self, case .afterTogglePrompt(let category, _) = dashboardMode {
+            if case .startScreen(let entryPoint, _) = self, case .afterTogglePrompt(let category, _) = entryPoint {
                 return url.appendingParameter(name: Constant.categoryKey, value: category)
             }
             return url
         }
 
         func addOpenerParameterIfNeeded(to url: URL) -> URL {
-            if case .initialScreen(let dashboardMode, _) = self, case .toggleReport = dashboardMode {
+            if case .startScreen(let entryPoint, _) = self, case .toggleReport = entryPoint {
                 return url.appendingParameter(name: Constant.openerKey, value: Constant.menuScreenKey)
             }
-            if case .segueToScreen(_, let currentMode) = self, currentMode == .dashboard {
+            if case .segueToScreen(_, let entryPoint) = self, entryPoint == .dashboard {
                 return url.appendingParameter(name: Constant.openerKey, value: Constant.dashboardScreenKey)
             }
             return url
