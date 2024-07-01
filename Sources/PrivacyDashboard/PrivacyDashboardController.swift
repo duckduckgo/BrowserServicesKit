@@ -115,14 +115,6 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
         case doNotSend
         case dismiss
 
-        var event: PrivacyDashboardEvents? {
-            switch self {
-            case .send: return nil
-            case .doNotSend: return .toggleReportDoNotSend
-            case .dismiss: return .toggleReportDismiss
-            }
-        }
-
     }
 
     private enum ToggleReportDismissSource {
@@ -441,7 +433,6 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
             if let protectionStateToSubmitOnToggleReportDismiss {
                 didChangeProtectionState(protectionStateToSubmitOnToggleReportDismiss)
                 if !didSendToggleReport {
-                    fireToggleReportEventIfNeeded(for: type)
                     toggleReportsManager.recordDismissal()
                 }
             }
@@ -451,7 +442,6 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     }
 
     private func processToggleReport(for type: ToggleReportDismissType) {
-        fireToggleReportEventIfNeeded(for: type)
         if type != .send {
             toggleReportsManager.recordDismissal()
         }
@@ -459,16 +449,6 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
 
     public func handleViewWillDisappear() {
         handleDismiss(with: .dismiss, source: .viewWillDisappear)
-    }
-
-    private func fireToggleReportEventIfNeeded(for toggleReportDismissType: ToggleReportDismissType) {
-        if let eventToFire = toggleReportDismissType.event {
-            var parameters = [PrivacyDashboardEvents.Parameters.didOpenReportInfo: didOpenReportInfo.description]
-            if let toggleReportCounter {
-                parameters[PrivacyDashboardEvents.Parameters.toggleReportCounter] = String(toggleReportCounter)
-            }
-            eventMapping.fire(eventToFire, parameters: parameters)
-        }
     }
 
     private func closeDashboard() {
