@@ -1,6 +1,5 @@
 //
 //  SubscriptionOptionsTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -32,6 +31,6 @@ final class SubscriptionOptionsTests: XCTestCase {
     }
 
     func testCodable() throws {
-        // TODO: Test
+
     }
 }

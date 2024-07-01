@@ -1,6 +1,6 @@
 //
 //  SubscriptionEndpointServiceTests.swift
-//  DuckDuckGo
+//
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -47,7 +47,7 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
         switch await service.getSubscription(accessToken: token, cachePolicy: .reloadIgnoringLocalCacheData) {
         case .success(let success):
             XCTAssertEqual(subscription, success)
-        case .failure(_):
+        case .failure:
             XCTFail("Unexpected failure")
         }
     }

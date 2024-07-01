@@ -20,7 +20,6 @@ import Foundation
 import Common
 
 public protocol SubscriptionManager {
-
     var accountManager: AccountManager { get }
     var subscriptionEndpointService: SubscriptionEndpointService { get }
     var authEndpointService: AuthEndpointService { get }
@@ -34,9 +33,7 @@ public protocol SubscriptionManager {
 
 /// Single entry point for everything related to Subscription. This manager is disposable, every time something related to the environment changes this need to be recreated.
 public final class DefaultSubscriptionManager: SubscriptionManager {
-
     private let _storePurchaseManager: StorePurchaseManager?
-
     public let accountManager: AccountManager
     public let subscriptionEndpointService: SubscriptionEndpointService
     public let authEndpointService: AuthEndpointService

@@ -1,5 +1,5 @@
 //
-//  SubscriptionURLTests.swift
+//  AppStoreAccountManagementFlowTests.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -20,7 +20,7 @@ import XCTest
 @testable import Subscription
 import SubscriptionTestingUtilities
 
-final class SubscriptionURLTests: XCTestCase {
+final class AppStoreAccountManagementFlowTests: XCTestCase {
 
     override func setUpWithError() throws {
         // Put setup code here. This method is called before the invocation of each test method in the class.
@@ -30,9 +30,19 @@ final class SubscriptionURLTests: XCTestCase {
         // Put teardown code here. This method is called after the invocation of each test method in the class.
     }
 
-    func testURLs() throws {
-        let url = SubscriptionURL.activateSuccess.subscriptionURL(environment: SubscriptionEnvironment.ServiceEnvironment.staging)
-        XCTAssertEqual(url.absoluteString, "https://duckduckgo.com/subscriptions/activate/success?environment=staging")
-        // test all other URLs
+    func testRefreshAuthTokenIfNeededSuccess() async throws {
+        let authEndpointService = SubscriptionMockFactory.authEndpointService
+        let storePurchaseManager = SubscriptionMockFactory.storePurchaseManager
+        let accountManager = SubscriptionMockFactory.accountManager
+
+        let flow = DefaultAppStoreAccountManagementFlow(authEndpointService: authEndpointService,
+                                                        storePurchaseManager: storePurchaseManager,
+                                                        accountManager: accountManager)
+        switch await flow.refreshAuthTokenIfNeeded() {
+        case .success:
+            break
+        case .failure(let error):
+            XCTFail("Unexpected failure: \(error.localizedDescription)")
+        }
     }
 }

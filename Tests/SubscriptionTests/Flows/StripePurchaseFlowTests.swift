@@ -1,6 +1,5 @@
 //
 //  StripePurchaseFlowTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -54,7 +53,6 @@ final class StripePurchaseFlowTests: XCTestCase {
             }
         case .failure(let failure):
             XCTFail("Unexpected failure: \(failure)")
-            break
         }
     }
 }

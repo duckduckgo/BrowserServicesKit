@@ -1,6 +1,6 @@
 //
 //  AuthEndpointServiceTests.swift
-//  DuckDuckGo
+//
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -46,7 +46,7 @@ final class AuthEndpointServiceTests: XCTestCase {
             XCTAssertEqual(success.authToken, token)
             XCTAssertEqual(success.externalID, externalID)
             XCTAssertEqual(success.status, status)
-        case .failure(_):
+        case .failure:
             XCTFail("Unexpected failure")
         }
     }
@@ -59,7 +59,7 @@ final class AuthEndpointServiceTests: XCTestCase {
                                                  apiService: apiService)
         let result = await service.createAccount(emailAccessToken: token)
         switch result {
-        case .success(_):
+        case .success:
             XCTFail("Unexpected success")
         case .failure(let failure):
             switch failure {

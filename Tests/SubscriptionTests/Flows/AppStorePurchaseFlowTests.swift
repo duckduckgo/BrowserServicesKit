@@ -1,6 +1,5 @@
 //
 //  AppStorePurchaseFlowTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -18,6 +17,8 @@
 //
 
 import XCTest
+@testable import Subscription
+import SubscriptionTestingUtilities
 
 final class AppStorePurchaseFlowTests: XCTestCase {
 
@@ -29,7 +30,26 @@ final class AppStorePurchaseFlowTests: XCTestCase {
         // Put teardown code here. This method is called after the invocation of each test method in the class.
     }
 
-    func testExample() throws {
-        
+    func testPurchaseSubscriptionSuccess() async throws {
+        let subscriptionEndpointService = SubscriptionMockFactory.subscriptionEndpointService
+        let storePurchaseManager = SubscriptionMockFactory.storePurchaseManager
+        let appStoreRestoreFlow = SubscriptionMockFactory.appStoreRestoreFlow
+        appStoreRestoreFlow.restoreAccountFromPastPurchaseResult = .failure(.missingAccountOrTransactions)
+        let authEndpointService = SubscriptionMockFactory.authEndpointService
+        let accountManager = SubscriptionMockFactory.accountManager
+
+        let flow = DefaultAppStorePurchaseFlow(subscriptionEndpointService: subscriptionEndpointService,
+                                               storePurchaseManager: storePurchaseManager,
+                                               accountManager: accountManager,
+                                               appStoreRestoreFlow: appStoreRestoreFlow,
+                                               authEndpointService: authEndpointService)
+
+        switch await flow.purchaseSubscription(with: SubscriptionMockFactory.subscription.productId,
+                                               emailAccessToken: SubscriptionMockFactory.authToken) {
+        case .success:
+            break
+        case .failure(let error):
+            XCTFail("Unexpected failure: \(error.localizedDescription)")
+        }
     }
 }

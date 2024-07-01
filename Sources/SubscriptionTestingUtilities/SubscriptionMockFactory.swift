@@ -22,7 +22,8 @@ import Foundation
 /// Provides all mock needed for testing subscription initialised with positive outcomes and basic configurations. All mocks can be partially reconfigured with failures or incorrect data
 public struct SubscriptionMockFactory {
 
-    public static let accountManager = AccountManagerMock()
+    public static let accountManager = AccountManagerMock(email: "5p2d4sx1@duck.com",
+                                                          externalID: "someExternalID")
     /// No mock result or error configured, that must be done per-test basis
     public static let apiService = APIServiceMock(mockAuthHeaders: [:])
     public static let subscription = Subscription(productId: "1",
@@ -41,8 +42,7 @@ public struct SubscriptionMockFactory {
     public static let entitlements = [Entitlement(product: .dataBrokerProtection),
                                       Entitlement(product: .identityTheftRestoration),
                                       Entitlement(product: .networkProtection)]
-    public static let email = "test@test.com"
-    public static let confirmPurchase = ConfirmPurchaseResponse(email: email,
+    public static let confirmPurchase = ConfirmPurchaseResponse(email: accountManager.email,
                                                                 entitlements: entitlements,
                                                                 subscription: subscription)
     public static let subscriptionEndpointService = SubscriptionEndpointServiceMock(getSubscriptionResult: .success(subscription),
@@ -51,13 +51,15 @@ public struct SubscriptionMockFactory {
                                                                                     confirmPurchaseResult: .success(confirmPurchase))
     public static let authToken = "someToken"
 
+    private static let validateTokenResponse = ValidateTokenResponse(account: ValidateTokenResponse.Account(email: accountManager.email,
+                                                                                                            entitlements: entitlements, externalID: "?"))
     public static let authEndpointService = AuthEndpointServiceMock(accessTokenResult: .success(AccessTokenResponse(accessToken: "some")),
-                                                                    validateTokenResult: .success(ValidateTokenResponse(account: ValidateTokenResponse.Account(email: "test@test.com", entitlements: entitlements, externalID: "?"))),
+                                                                    validateTokenResult: .success(validateTokenResponse),
                                                                     createAccountResult: .success(CreateAccountResponse(authToken: authToken,
                                                                                                                         externalID: "?",
                                                                                                                         status: "?")),
                                                                     storeLoginResult: .success(StoreLoginResponse(authToken: authToken,
-                                                                                                                  email: email,
+                                                                                                                  email: accountManager.email!,
                                                                                                                   externalID: "?",
                                                                                                                   id: 1,
                                                                                                                   status: "?")))
@@ -69,7 +71,7 @@ public struct SubscriptionMockFactory {
                                                                       syncAppleIDAccountResultError: nil,
                                                                       mostRecentTransactionResult: nil,
                                                                       hasActiveSubscriptionResult: false,
-                                                                      purchaseSubscriptionResult: .success("JWS?"))
+                                                                      purchaseSubscriptionResult: .success("transactionJWS?"))
 
     public static let currentEnvironment = SubscriptionEnvironment(serviceEnvironment: .staging,
                                                                    purchasePlatform: .appStore)

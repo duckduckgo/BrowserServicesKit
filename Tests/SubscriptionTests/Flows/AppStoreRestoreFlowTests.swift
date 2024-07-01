@@ -1,6 +1,5 @@
 //
 //  AppStoreRestoreFlowTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -42,7 +41,7 @@ final class AppStoreRestoreFlowTests: XCTestCase {
                                               subscriptionEndpointService: SubscriptionMockFactory.subscriptionEndpointService,
                                               authEndpointService: SubscriptionMockFactory.authEndpointService)
         switch await appStoreRestoreFlow.restoreAccountFromPastPurchase() {
-        case .success():
+        case .success:
             break
         case .failure(let error):
             XCTFail("Unexpected failure: \(error)")
