@@ -31,21 +31,8 @@ public enum PrivacyDashboardOpenSettingsTarget: String {
 /// Navigation delegate for the pages provided by the PrivacyDashboardController
 public protocol PrivacyDashboardNavigationDelegate: AnyObject {
 
-    func privacyDashboardControllerDidTapClose(_ privacyDashboardController: PrivacyDashboardController)
+    func privacyDashboardControllerDidRequestClose(_ privacyDashboardController: PrivacyDashboardController)
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didSetHeight height: Int)
-
-}
-
-/// `Report broken site` web page delegate
-public protocol PrivacyDashboardReportBrokenSiteDelegate: AnyObject {
-
-    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
-                                    didRequestSubmitBrokenSiteReportWithCategory category: String,
-                                    description: String)
-    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
-                                    reportBrokenSiteDidChangeProtectionSwitch protectionState: ProtectionState)
-    func privacyDashboardControllerDidRequestShowAlertForMissingDescription(_ privacyDashboardController: PrivacyDashboardController)
-    func privacyDashboardControllerDidRequestShowGeneralFeedback(_ privacyDashboardController: PrivacyDashboardController)
 
 }
 
@@ -68,6 +55,11 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
                                     didRequestOpenSettings target: PrivacyDashboardOpenSettingsTarget)
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
                                     didSelectBreakageCategory category: String)
+    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
+                                    didRequestSubmitBrokenSiteReportWithCategory category: String,
+                                    description: String)
+    func privacyDashboardControllerDidRequestShowAlertForMissingDescription(_ privacyDashboardController: PrivacyDashboardController)
+    func privacyDashboardControllerDidRequestShowGeneralFeedback(_ privacyDashboardController: PrivacyDashboardController)
 
 #if os(macOS)
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
@@ -97,7 +89,6 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
 
     public weak var privacyDashboardDelegate: PrivacyDashboardControllerDelegate?
     public weak var privacyDashboardNavigationDelegate: PrivacyDashboardNavigationDelegate?
-    public weak var privacyDashboardReportBrokenSiteDelegate: PrivacyDashboardReportBrokenSiteDelegate?
     public weak var privacyDashboardToggleReportDelegate: PrivacyDashboardToggleReportDelegate?
 
     @Published public var theme: PrivacyDashboardTheme?
@@ -307,24 +298,13 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
         if shouldSegueToToggleReportScreen(with: protectionState) {
             segueToToggleReportScreen(with: protectionState)
         } else {
-            didChangeProtectionState(protectionState)
-            closeDashboard()
+            privacyDashboardDelegate?.privacyDashboardController(self, didChangeProtectionSwitch: protectionState, didSendReport: false)
+            privacyDashboardNavigationDelegate?.privacyDashboardControllerDidRequestClose(self)
         }
     }
 
     private func shouldSegueToToggleReportScreen(with protectionState: ProtectionState) -> Bool {
         !protectionState.isProtected && protectionState.eventOrigin.screen == .primaryScreen && toggleReportsManager.shouldShowToggleReport
-    }
-
-    private func didChangeProtectionState(_ protectionState: ProtectionState, didSendReport: Bool = false) {
-        switch protectionState.eventOrigin.screen {
-        case .primaryScreen:
-            privacyDashboardDelegate?.privacyDashboardController(self, didChangeProtectionSwitch: protectionState, didSendReport: didSendReport)
-        case .breakageForm, .choiceToggle:
-            privacyDashboardReportBrokenSiteDelegate?.privacyDashboardController(self, reportBrokenSiteDidChangeProtectionSwitch: protectionState)
-        case .toggleReport, .promptBreakageForm, .categorySelection, .categoryTypeSelection, .choiceBreakageForm:
-            assertionFailure("These screen don't have toggling capability")
-        }
     }
 
     private func segueToToggleReportScreen(with protectionStateToSubmit: ProtectionState) {
@@ -353,7 +333,8 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
             processToggleReport(for: type)
         // called when protection is toggled off from privacy dashboard
         } else if let protectionStateToSubmitOnToggleReportDismiss {
-            didChangeProtectionState(protectionStateToSubmitOnToggleReportDismiss, didSendReport: type == .send)
+            privacyDashboardDelegate?.privacyDashboardController(self, didChangeProtectionSwitch: protectionStateToSubmitOnToggleReportDismiss,
+                                                                 didSendReport: type == .send)
             processToggleReport(for: type)
         }
         if source == .userScript {
@@ -364,12 +345,13 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
         // because of 'Thank you' screen that appears right after.
         if type != .send {
             if let protectionStateToSubmitOnToggleReportDismiss {
-                didChangeProtectionState(protectionStateToSubmitOnToggleReportDismiss)
+                privacyDashboardDelegate?.privacyDashboardController(self, didChangeProtectionSwitch: protectionStateToSubmitOnToggleReportDismiss,
+                                                                     didSendReport: false)
                 if !didSendToggleReport {
                     toggleReportsManager.recordDismissal()
                 }
             }
-            closeDashboard()
+            privacyDashboardNavigationDelegate?.privacyDashboardControllerDidRequestClose(self)
         }
 #endif
     }
@@ -382,10 +364,6 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
 
     public func handleViewWillDisappear() {
         handleDismiss(with: .dismiss, source: .viewWillDisappear)
-    }
-
-    private func closeDashboard() {
-        privacyDashboardNavigationDelegate?.privacyDashboardControllerDidTapClose(self)
     }
 
     func userScriptDidRequestShowReportBrokenSite(_ userScript: PrivacyDashboardUserScript) {
@@ -407,22 +385,18 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
             parameters[PrivacyDashboardEvents.Parameters.didToggleProtectionsFixIssue] = didToggleProtectionsFixIssue.description
         }
         eventMapping.fire(.reportBrokenSiteSent, parameters: parameters)
-        privacyDashboardReportBrokenSiteDelegate?.privacyDashboardController(self,
-                                                                             didRequestSubmitBrokenSiteReportWithCategory: category,
-                                                                             description: description)
+        privacyDashboardDelegate?.privacyDashboardController(self, didRequestSubmitBrokenSiteReportWithCategory: category, description: description)
     }
 
-    func userScript(_ userScript: PrivacyDashboardUserScript, didSetPermission permission: String, to state: PermissionAuthorizationState) {
 #if os(macOS)
+    func userScript(_ userScript: PrivacyDashboardUserScript, didSetPermission permission: String, to state: PermissionAuthorizationState) {
         privacyDashboardDelegate?.privacyDashboardController(self, didSetPermission: permission, to: state)
-#endif
     }
 
     func userScript(_ userScript: PrivacyDashboardUserScript, setPermission permission: String, paused: Bool) {
-#if os(macOS)
         privacyDashboardDelegate?.privacyDashboardController(self, setPermission: permission, paused: paused)
-#endif
     }
+#endif
 
     // Toggle reports
 
@@ -473,11 +447,11 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     }
 
     func userScriptDidRequestShowAlertForMissingDescription(_ userScript: PrivacyDashboardUserScript) {
-        privacyDashboardReportBrokenSiteDelegate?.privacyDashboardControllerDidRequestShowAlertForMissingDescription(self)
+        privacyDashboardDelegate?.privacyDashboardControllerDidRequestShowAlertForMissingDescription(self)
     }
 
     func userScriptDidRequestShowNativeFeedback(_ userScript: PrivacyDashboardUserScript) {
-        privacyDashboardReportBrokenSiteDelegate?.privacyDashboardControllerDidRequestShowGeneralFeedback(self)
+        privacyDashboardDelegate?.privacyDashboardControllerDidRequestShowGeneralFeedback(self)
     }
 
     func userScriptDidSkipTogglingStep(_ userScript: PrivacyDashboardUserScript) {
