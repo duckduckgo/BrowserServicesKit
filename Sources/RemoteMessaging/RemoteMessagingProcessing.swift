@@ -26,10 +26,10 @@ public protocol RemoteMessagingConfigMatcherProviding {
 }
 
 public protocol RemoteMessagingProcessing {
+    var isRemoteMessagingEnabled: Bool { get }
     var endpoint: URL { get }
     var configurationFetcher: RemoteMessagingConfigFetching { get }
     var configMatcherProvider: RemoteMessagingConfigMatcherProviding { get }
-    var privacyConfigurationManager: PrivacyConfigurationManaging { get }
 
     func fetchAndProcess(using store: RemoteMessagingStoring) async throws
 }
@@ -37,7 +37,7 @@ public protocol RemoteMessagingProcessing {
 public extension RemoteMessagingProcessing {
 
     func fetchAndProcess(using store: RemoteMessagingStoring) async throws {
-        guard privacyConfigurationManager.privacyConfig.isEnabled(featureKey: .remoteMessaging) else {
+        guard isRemoteMessagingEnabled else {
             os_log("Remote messaging feature flag is disabled, skipping fetching messages", log: .remoteMessaging, type: .debug)
             return
         }
