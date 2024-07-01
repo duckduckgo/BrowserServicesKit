@@ -36,13 +36,6 @@ public protocol PrivacyDashboardNavigationDelegate: AnyObject {
 
 }
 
-public protocol PrivacyDashboardToggleReportDelegate: AnyObject {
-
-    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
-                                    didRequestSubmitToggleReportWithSource source: BrokenSiteReport.Source)
-
-}
-
 /// `Privacy Dashboard` web page delegate
 public protocol PrivacyDashboardControllerDelegate: AnyObject {
 
@@ -60,6 +53,8 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
                                     description: String)
     func privacyDashboardControllerDidRequestShowAlertForMissingDescription(_ privacyDashboardController: PrivacyDashboardController)
     func privacyDashboardControllerDidRequestShowGeneralFeedback(_ privacyDashboardController: PrivacyDashboardController)
+    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
+                                    didRequestSubmitToggleReportWithSource source: BrokenSiteReport.Source)
 
 #if os(macOS)
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
@@ -89,25 +84,23 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
 
     public weak var privacyDashboardDelegate: PrivacyDashboardControllerDelegate?
     public weak var privacyDashboardNavigationDelegate: PrivacyDashboardNavigationDelegate?
-    public weak var privacyDashboardToggleReportDelegate: PrivacyDashboardToggleReportDelegate?
 
     @Published public var theme: PrivacyDashboardTheme?
     public var preferredLocale: String?
     @Published public var allowedPermissions: [AllowedPermission] = []
+    
     public private(set) weak var privacyInfo: PrivacyInfo?
-    public let initDashboardMode: PrivacyDashboardMode
+    private let initDashboardMode: PrivacyDashboardMode
+    private let variant: PrivacyDashboardVariant
+    private let eventMapping: EventMapping<PrivacyDashboardEvents>
 
     private weak var webView: WKWebView?
-    private let privacyDashboardScript: PrivacyDashboardUserScript
     private var cancellables = Set<AnyCancellable>()
 
     private var protectionStateToSubmitOnToggleReportDismiss: ProtectionState?
     private var didSendToggleReport: Bool = false
 
-    private let eventMapping: EventMapping<PrivacyDashboardEvents>
-
-    private let variant: PrivacyDashboardVariant
-
+    private let privacyDashboardScript: PrivacyDashboardUserScript
     private var toggleReportsManager: ToggleReportsManager
 
     public init(privacyInfo: PrivacyInfo?,
@@ -164,9 +157,7 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
 
     private func setupPrivacyDashboardUserScript() {
         guard let webView else { return }
-
         privacyDashboardScript.delegate = self
-
         webView.configuration.userContentController.addUserScript(privacyDashboardScript.makeWKUserScriptSync())
         privacyDashboardScript.messageNames.forEach { messageName in
             webView.configuration.userContentController.add(privacyDashboardScript, name: messageName)
@@ -333,19 +324,21 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
             processToggleReport(for: type)
         // called when protection is toggled off from privacy dashboard
         } else if let protectionStateToSubmitOnToggleReportDismiss {
-            privacyDashboardDelegate?.privacyDashboardController(self, didChangeProtectionSwitch: protectionStateToSubmitOnToggleReportDismiss,
+            privacyDashboardDelegate?.privacyDashboardController(self, 
+                                                                 didChangeProtectionSwitch: protectionStateToSubmitOnToggleReportDismiss,
                                                                  didSendReport: type == .send)
             processToggleReport(for: type)
         }
         if source == .userScript {
-            closeDashboard()
+            privacyDashboardNavigationDelegate?.privacyDashboardControllerDidRequestClose(self)
         }
 #else
         // macOS implementation is different here - after user taps on Send Report we don't want to trigger any action
         // because of 'Thank you' screen that appears right after.
         if type != .send {
             if let protectionStateToSubmitOnToggleReportDismiss {
-                privacyDashboardDelegate?.privacyDashboardController(self, didChangeProtectionSwitch: protectionStateToSubmitOnToggleReportDismiss,
+                privacyDashboardDelegate?.privacyDashboardController(self, 
+                                                                     didChangeProtectionSwitch: protectionStateToSubmitOnToggleReportDismiss,
                                                                      didSendReport: false)
                 if !didSendToggleReport {
                     toggleReportsManager.recordDismissal()
@@ -362,16 +355,16 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
         }
     }
 
+    // forced by user by swiping down the screen
     public func handleViewWillDisappear() {
         handleDismiss(with: .dismiss, source: .viewWillDisappear)
     }
 
     func userScriptDidRequestShowReportBrokenSite(_ userScript: PrivacyDashboardUserScript) {
-        let parameters = [
+        eventMapping.fire(.reportBrokenSiteShown, parameters: [
             PrivacyDashboardEvents.Parameters.variant: variant.rawValue,
             PrivacyDashboardEvents.Parameters.source: source.rawValue
-        ]
-        eventMapping.fire(.reportBrokenSiteShown, parameters: parameters)
+        ])
         eventMapping.fire(.showReportBrokenSite)
     }
 
@@ -409,7 +402,7 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectReportAction shouldSendReport: Bool) {
         if shouldSendReport {
             toggleReportsManager.recordPrompt()
-            privacyDashboardToggleReportDelegate?.privacyDashboardController(self, didRequestSubmitToggleReportWithSource: source)
+            privacyDashboardDelegate?.privacyDashboardController(self, didRequestSubmitToggleReportWithSource: source)
             didSendToggleReport = true
         }
         let toggleReportDismissType: ToggleReportDismissType = shouldSendReport ? .send : .doNotSend
