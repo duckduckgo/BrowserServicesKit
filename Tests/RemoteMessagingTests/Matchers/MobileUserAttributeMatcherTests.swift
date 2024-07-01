@@ -17,11 +17,11 @@
 //  limitations under the License.
 //
 
+import BrowserServicesKit
 import EmailTestsUtils
-import XCTest
 import Foundation
 import RemoteMessagingTestsUtils
-@testable import BrowserServicesKit
+import XCTest
 @testable import RemoteMessaging
 
 class MobileUserAttributeMatcherTests: XCTestCase {

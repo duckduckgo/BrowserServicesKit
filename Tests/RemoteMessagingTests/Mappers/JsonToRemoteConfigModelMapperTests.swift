@@ -18,7 +18,6 @@
 
 import XCTest
 import RemoteMessagingTestsUtils
-@testable import BrowserServicesKit
 @testable import RemoteMessaging
 
 class JsonToRemoteConfigModelMapperTests: XCTestCase {

@@ -16,11 +16,11 @@
 //  limitations under the License.
 //
 
+import BrowserServicesKit
+import Common
 import EmailTestsUtils
 import RemoteMessagingTestsUtils
 import XCTest
-@testable import Common
-@testable import BrowserServicesKit
 @testable import RemoteMessaging
 
 class RemoteMessagingConfigMatcherTests: XCTestCase {

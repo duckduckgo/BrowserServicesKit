@@ -17,7 +17,6 @@
 //
 
 import XCTest
-@testable import BrowserServicesKit
 @testable import RemoteMessaging
 
 class RemoteMessagingPercentileUserDefaultsStoreTests: XCTestCase {
