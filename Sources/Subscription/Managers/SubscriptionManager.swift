@@ -28,7 +28,7 @@ public protocol SubscriptionManager {
     var canPurchase: Bool { get }
     @available(macOS 12.0, iOS 15.0, *) func storePurchaseManager() -> StorePurchaseManager
     func loadInitialData()
-    func updateSubscriptionStatus(completion: @escaping (_ isActive: Bool) -> Void)
+    func refreshCachedSubscriptionAndEntitlements(completion: @escaping (_ isSubscriptionActive: Bool) -> Void)
     func url(for type: SubscriptionURL) -> URL
 }
 
@@ -118,14 +118,31 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
         }
     }
 
-    public func updateSubscriptionStatus(completion: @escaping (_ isActive: Bool) -> Void) {
+    public func refreshCachedSubscriptionAndEntitlements(completion: @escaping (_ isSubscriptionActive: Bool) -> Void) {
         Task {
-           guard let token = accountManager.accessToken else { return }
+            guard let token = accountManager.accessToken else { return }
 
-            if case .success(let subscription) = await subscriptionEndpointService.getSubscription(accessToken: token, cachePolicy: .reloadIgnoringLocalCacheData) {
-                completion(subscription.isActive)
+            var isSubscriptionActive = false
+
+            defer {
+                completion(isSubscriptionActive)
             }
 
+            // Refetch and cache subscription
+            switch await subscriptionEndpointService.getSubscription(accessToken: token, cachePolicy: .reloadIgnoringLocalCacheData) {
+            case .success(let subscription):
+                isSubscriptionActive = subscription.isActive
+            case .failure(let error):
+                if case let .apiError(serviceError) = error, case let .serverError(statusCode, error) = serviceError {
+                    if statusCode == 401 {
+                        // Token is no longer valid
+                        accountManager.signOut()
+                        return
+                    }
+                }
+            }
+
+            // Refetch and cache entitlements
             _ = await accountManager.fetchEntitlements(cachePolicy: .reloadIgnoringLocalCacheData)
         }
     }
