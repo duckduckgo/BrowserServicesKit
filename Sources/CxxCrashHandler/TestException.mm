@@ -1,7 +1,7 @@
 //
-//  CrashHandler.swift
+//  TestException.mm
 //
-//  Copyright © 2023 DuckDuckGo. All rights reserved.
+//  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -16,17 +16,22 @@
 //  limitations under the License.
 //
 
-import Foundation
-import MetricKit
+#include "TestException.h"
 
-@available(iOSApplicationExtension, unavailable)
-@available(iOS 13, macOS 12, *)
-final class CrashHandler: NSObject, MXMetricManagerSubscriber {
+#include <stdexcept>
+#include <string>
 
-    var crashDiagnosticsPayloadHandler: ([MXDiagnosticPayload]) -> Void = { _ in }
-
-    func didReceive(_ payloads: [MXDiagnosticPayload]) {
-        crashDiagnosticsPayloadHandler(payloads)
+class TestException : public std::exception {
+public:
+    TestException(const std::string& message) : msg(message) {}
+    virtual const char* what() const noexcept override {
+        return msg.c_str();
     }
 
+private:
+    std::string msg;
+};
+
+extern "C" void _throwTestCppException(NSString *message) {
+    throw TestException(std::string([message UTF8String]));
 }

@@ -1,7 +1,7 @@
 //
-//  CrashHandler.swift
+//  RandomAccessCollectionExtension.swift
 //
-//  Copyright © 2023 DuckDuckGo. All rights reserved.
+//  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -17,16 +17,16 @@
 //
 
 import Foundation
-import MetricKit
 
-@available(iOSApplicationExtension, unavailable)
-@available(iOS 13, macOS 12, *)
-final class CrashHandler: NSObject, MXMetricManagerSubscriber {
+public extension RandomAccessCollection {
 
-    var crashDiagnosticsPayloadHandler: ([MXDiagnosticPayload]) -> Void = { _ in }
+    subscript(safe index: Index) -> Element? {
+        guard self.indices.contains(index) else { return nil }
+        return self[index]
+    }
 
-    func didReceive(_ payloads: [MXDiagnosticPayload]) {
-        crashDiagnosticsPayloadHandler(payloads)
+    subscript(_ index: Index, default value: Element) -> Element {
+        return self[safe: index] ?? value
     }
 
 }

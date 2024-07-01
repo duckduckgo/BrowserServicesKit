@@ -291,6 +291,14 @@ extension URL {
         return components.url
     }
 
+    public func appending(_ path: String) -> URL {
+        if #available(macOS 13.0, iOS 16.0, *) {
+            return appending(path: path)
+        } else {
+            return appendingPathComponent(path)
+        }
+    }
+
     /// returns true if URLs are equal except the #fragment part
     public func isSameDocument(_ other: URL) -> Bool {
         self.absoluteString.droppingHashedSuffix() == other.absoluteString.droppingHashedSuffix()

@@ -1,7 +1,7 @@
 //
-//  CrashHandler.swift
+//  KSLogger.h
 //
-//  Copyright © 2023 DuckDuckGo. All rights reserved.
+//  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -16,17 +16,15 @@
 //  limitations under the License.
 //
 
-import Foundation
-import MetricKit
+#ifndef KSLogger_h
 
-@available(iOSApplicationExtension, unavailable)
-@available(iOS 13, macOS 12, *)
-final class CrashHandler: NSObject, MXMetricManagerSubscriber {
+#include <stdio.h>
+#define KSLogger_h
 
-    var crashDiagnosticsPayloadHandler: ([MXDiagnosticPayload]) -> Void = { _ in }
+#define KSLOG_DEBUG(X...)
+#define KSLOG_WARN(X...)
+#define KSLOG_TRACE(X...)
+#define KSLOG_ERROR(format, ...) \
+    fprintf(stderr, "[ERROR] " format "\n", ##__VA_ARGS__)
 
-    func didReceive(_ payloads: [MXDiagnosticPayload]) {
-        crashDiagnosticsPayloadHandler(payloads)
-    }
-
-}
+#endif /* KSLogger_h */
