@@ -23,19 +23,6 @@ import PrivacyDashboardResources
 import BrowserServicesKit
 import Common
 
-extension UserDefaults {
-
-    var toggleReportCounter: Int {
-        get {
-            integer(forKey: PrivacyDashboardController.Constant.toggleReportsCounter)
-        }
-        set {
-            set(newValue, forKey: PrivacyDashboardController.Constant.toggleReportsCounter)
-        }
-    }
-
-}
-
 public enum PrivacyDashboardOpenSettingsTarget: String {
     case general
     case cookiePopupManagement = "cpm"
@@ -65,9 +52,7 @@ public protocol PrivacyDashboardReportBrokenSiteDelegate: AnyObject {
 public protocol PrivacyDashboardToggleReportDelegate: AnyObject {
 
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
-                                    didRequestSubmitToggleReportWithSource source: BrokenSiteReport.Source,
-                                    didOpenReportInfo: Bool,
-                                    toggleReportCounter: Int?)
+                                    didRequestSubmitToggleReportWithSource source: BrokenSiteReport.Source)
 
 }
 
@@ -104,8 +89,6 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
 
         static let menuScreenKey = "menu"
         static let dashboardScreenKey = "dashboard"
-
-        static let toggleReportsCounter = "com.duckduckgo.toggle-reports-counter"
 
     }
 
@@ -147,11 +130,9 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
 
     private let variant: PrivacyDashboardVariant
 
-    private var toggleReportCounter: Int? { userDefaults.toggleReportCounter > 20 ? nil : userDefaults.toggleReportCounter }
     private var toggleReportsManager: ToggleReportsManager
 
     private let userDefaults: UserDefaults
-    private var didOpenReportInfo: Bool = false
 
     public init(privacyInfo: PrivacyInfo?,
                 dashboardMode: PrivacyDashboardMode,
@@ -227,7 +208,6 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
         }
         if case .toggleReport = initDashboardMode {
             url = url.appendingParameter(name: Constant.openerKey, value: Constant.menuScreenKey)
-            userDefaults.toggleReportCounter += 1
         }
         webView?.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent().deletingLastPathComponent())
     }
@@ -397,7 +377,6 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
 
         webView?.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent().deletingLastPathComponent())
         self.protectionStateToSubmitOnToggleReportDismiss = protectionStateToSubmit
-        userDefaults.toggleReportCounter += 1
     }
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestOpenUrlInNewTab url: URL) {
@@ -502,10 +481,7 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectReportAction shouldSendReport: Bool) {
         if shouldSendReport {
             toggleReportsManager.recordPrompt()
-            privacyDashboardToggleReportDelegate?.privacyDashboardController(self,
-                                                                             didRequestSubmitToggleReportWithSource: source,
-                                                                             didOpenReportInfo: didOpenReportInfo,
-                                                                             toggleReportCounter: toggleReportCounter)
+            privacyDashboardToggleReportDelegate?.privacyDashboardController(self, didRequestSubmitToggleReportWithSource: source)
             didSendToggleReport = true
         }
         let toggleReportDismissType: ToggleReportDismissType = shouldSendReport ? .send : .doNotSend
@@ -527,11 +503,7 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
         return source
     }
 
-    func userScriptDidOpenReportInfo(_ userScript: PrivacyDashboardUserScript) {
-        didOpenReportInfo = true
-    }
-
-    // Experiment flows
+    // MARK: - Experiment flows
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectOverallCategory category: String) {
         eventMapping.fire(.overallCategorySelected, parameters: [PrivacyDashboardEvents.Parameters.category: category])
@@ -557,4 +529,5 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     func userScriptDidSkipTogglingStep(_ userScript: PrivacyDashboardUserScript) {
         eventMapping.fire(.skipToggleStep)
     }
+
 }

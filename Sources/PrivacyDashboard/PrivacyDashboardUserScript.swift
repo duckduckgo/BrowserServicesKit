@@ -37,7 +37,7 @@ protocol PrivacyDashboardUserScriptDelegate: AnyObject {
     // Toggle reports
     func userScriptDidRequestToggleReportOptions(_ userScript: PrivacyDashboardUserScript)
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectReportAction shouldSendReport: Bool)
-    func userScriptDidOpenReportInfo(_ userScript: PrivacyDashboardUserScript)
+    
     // Experiment flows
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectOverallCategory category: String)
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectBreakageCategory category: String)
@@ -126,7 +126,6 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         case privacyDashboardGetToggleReportOptions
         case privacyDashboardSendToggleReport
         case privacyDashboardRejectToggleReport
-        case privacyDashboardSeeWhatIsSent
         case privacyDashboardShowAlertForMissingDescription
         case privacyDashboardShowNativeFeedback
 
@@ -178,8 +177,6 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             handleSendToggleReport()
         case .privacyDashboardRejectToggleReport:
             handleDoNotSendToggleReport()
-        case .privacyDashboardSeeWhatIsSent:
-            handleDidOpenReportInfo()
         case .privacyDashboardShowAlertForMissingDescription:
             handleShowAlertForMissingDescription()
         case .privacyDashboardShowNativeFeedback:
@@ -210,7 +207,6 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             assertionFailure("privacyDashboardSetHeight: expected height to be an Int")
             return
         }
-
         delegate?.userScript(self, setHeight: height)
     }
 
@@ -294,10 +290,6 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         delegate?.userScript(self, didSelectReportAction: false)
     }
 
-    private func handleDidOpenReportInfo() {
-        delegate?.userScriptDidOpenReportInfo(self)
-    }
-
     private func handleSelectOverallCategory(message: WKScriptMessage) {
         guard let dict = message.body as? [String: Any],
               let category = dict["category"] as? String
@@ -372,8 +364,6 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
                              {"id": "httpErrorCodes"},
                              {"id": "reportFlow"},
                              {"id": "lastSentDay"},
-                             {"id": "didOpenReportInfo"},
-                             {"id": "toggleReportCounter"},
                              {"id": "jsPerformance"},
                              {"id": "openerContext"},
                              {"id": "userRefreshCount"},
