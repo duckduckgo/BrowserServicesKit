@@ -249,8 +249,8 @@ extension PrivacyDashboardController: WKNavigationDelegate {
             .removeDuplicates()
             .receive(on: DispatchQueue.main)
             .sink(receiveValue: { [weak self] themeName in
-                guard let self = self, let webView = self.webView else { return }
-                self.privacyDashboardScript.setTheme(themeName, webView: webView)
+                guard let self, let webView else { return }
+                privacyDashboardScript.setTheme(themeName, webView: webView)
             })
             .store(in: &cancellables)
     }
@@ -260,8 +260,8 @@ extension PrivacyDashboardController: WKNavigationDelegate {
             .receive(on: DispatchQueue.main)
             .throttle(for: 0.25, scheduler: RunLoop.main, latest: true)
             .sink(receiveValue: { [weak self] trackerInfo in
-                guard let self = self, let url = self.privacyInfo?.url, let webView = self.webView else { return }
-                self.privacyDashboardScript.setTrackerInfo(url, trackerInfo: trackerInfo, webView: webView)
+                guard let self, let url = privacyInfo?.url, let webView else { return }
+                privacyDashboardScript.setTrackerInfo(url, trackerInfo: trackerInfo, webView: webView)
             })
             .store(in: &cancellables)
     }
@@ -270,9 +270,9 @@ extension PrivacyDashboardController: WKNavigationDelegate {
         privacyInfo?.$connectionUpgradedTo
             .receive(on: DispatchQueue.main)
             .sink(receiveValue: { [weak self] connectionUpgradedTo in
-                guard let self = self, let webView = self.webView else { return }
+                guard let self, let webView else { return }
                 let upgradedHttps = connectionUpgradedTo != nil
-                self.privacyDashboardScript.setUpgradedHttps(upgradedHttps, webView: webView)
+                privacyDashboardScript.setUpgradedHttps(upgradedHttps, webView: webView)
             })
             .store(in: &cancellables)
     }
@@ -285,8 +285,8 @@ extension PrivacyDashboardController: WKNavigationDelegate {
             }
             .receive(on: DispatchQueue.main)
             .sink(receiveValue: { [weak self] serverTrustViewModel in
-                guard let self = self, let serverTrustViewModel = serverTrustViewModel, let webView = self.webView else { return }
-                self.privacyDashboardScript.setServerTrust(serverTrustViewModel, webView: webView)
+                guard let self, let serverTrustViewModel = serverTrustViewModel, let webView else { return }
+                privacyDashboardScript.setServerTrust(serverTrustViewModel, webView: webView)
             })
             .store(in: &cancellables)
     }
@@ -295,8 +295,8 @@ extension PrivacyDashboardController: WKNavigationDelegate {
         privacyInfo?.$cookieConsentManaged
             .receive(on: DispatchQueue.main)
             .sink(receiveValue: { [weak self] consentManaged in
-                guard let self = self, let webView = self.webView else { return }
-                self.privacyDashboardScript.setConsentManaged(consentManaged, webView: webView)
+                guard let self, let webView else { return }
+                privacyDashboardScript.setConsentManaged(consentManaged, webView: webView)
             })
             .store(in: &cancellables)
     }
@@ -305,17 +305,14 @@ extension PrivacyDashboardController: WKNavigationDelegate {
         $allowedPermissions
             .receive(on: DispatchQueue.main)
             .sink(receiveValue: { [weak self] allowedPermissions in
-                guard let self = self, let webView = self.webView else { return }
-                self.privacyDashboardScript.setPermissions(allowedPermissions: allowedPermissions, webView: webView)
+                guard let self, let webView else { return }
+                privacyDashboardScript.setPermissions(allowedPermissions: allowedPermissions, webView: webView)
             })
             .store(in: &cancellables)
     }
 
     private func sendProtectionStatus() {
-        guard let webView = self.webView,
-              let protectionStatus = privacyInfo?.protectionStatus
-        else { return }
-
+        guard let webView, let protectionStatus = privacyInfo?.protectionStatus else { return }
         privacyDashboardScript.setProtectionStatus(protectionStatus, webView: webView)
     }
 
@@ -326,7 +323,6 @@ extension PrivacyDashboardController: WKNavigationDelegate {
 
     private func sendCurrentLocale() {
         guard let webView = self.webView else { return }
-
         let locale = preferredLocale ?? "en"
         privacyDashboardScript.setLocale(locale, webView: webView)
     }
