@@ -17,8 +17,10 @@
 //  limitations under the License.
 //
 
+import EmailTestsUtils
 import XCTest
 import Foundation
+import RemoteMessagingTestsUtils
 @testable import BrowserServicesKit
 @testable import RemoteMessaging
 

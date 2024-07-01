@@ -18,6 +18,7 @@
 
 import XCTest
 import Foundation
+import RemoteMessagingTestsUtils
 @testable import Common
 @testable import BrowserServicesKit
 @testable import RemoteMessaging

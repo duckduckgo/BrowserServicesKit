@@ -19,12 +19,17 @@
 import Foundation
 import RemoteMessaging
 
-class MockRemoteMessagePercentileStore: RemoteMessagingPercentileStoring {
+public class MockRemoteMessagePercentileStore: RemoteMessagingPercentileStoring {
 
-    var percentileStorage: [String: Float] = [:]
-    var defaultPercentage: Float = 0
+    public var percentileStorage: [String: Float]
+    public var defaultPercentage: Float
 
-    func percentile(forMessageId messageID: String) -> Float {
+    public init(percentileStorage: [String : Float] = [:], defaultPercentage: Float = 0) {
+        self.percentileStorage = percentileStorage
+        self.defaultPercentage = defaultPercentage
+    }
+
+    public func percentile(forMessageId messageID: String) -> Float {
         if let percentile = percentileStorage[messageID] {
             return percentile
         }

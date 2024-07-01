@@ -166,6 +166,12 @@ let package = Package(
                 .define("DEBUG", .when(configuration: .debug))
             ]
         ),
+        .target(
+            name: "EmailTestsUtils",
+            dependencies: [
+                "BrowserServicesKit",
+            ]
+        ),
         .executableTarget(
             name: "SyncMetadataTestDBBuilder",
             dependencies: [
@@ -271,6 +277,13 @@ let package = Package(
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
+            ]
+        ),
+        .target(
+            name: "RemoteMessagingTestsUtils",
+            dependencies: [
+                "BrowserServicesKit",
+                "RemoteMessaging",
             ]
         ),
         .target(
@@ -401,7 +414,7 @@ let package = Package(
             name: "BrowserServicesKitTests",
             dependencies: [
                 "BrowserServicesKit",
-                "RemoteMessaging", // Move tests later (lots of test dependencies in BSK)
+                "EmailTestsUtils",
                 "SecureStorageTestsUtils",
                 "TestUtils",
                 "Subscription"
@@ -483,10 +496,15 @@ let package = Package(
         .testTarget(
             name: "RemoteMessagingTests",
             dependencies: [
+                "EmailTestsUtils",
                 "RemoteMessaging",
+                "RemoteMessagingTestsUtils",
             ],
             resources: [
                 .copy("Resources/remote-messaging-config-example.json"),
+                .copy("Resources/remote-messaging-config-malformed.json"),
+                .copy("Resources/remote-messaging-config-unsupported-items.json"),
+                .copy("Resources/remote-messaging-config.json"),
             ]
         ),
         .testTarget(

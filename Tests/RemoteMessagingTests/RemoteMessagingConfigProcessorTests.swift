@@ -16,16 +16,15 @@
 //  limitations under the License.
 //
 
+import RemoteMessagingTestsUtils
 import XCTest
 @testable import BrowserServicesKit
 @testable import RemoteMessaging
 
 class RemoteMessagingConfigProcessorTests: XCTestCase {
 
-    private var data = JsonTestDataLoader()
-
     func testWhenNewVersionThenShouldHaveBeenProcessedAndResultReturned() throws {
-        let jsonRemoteMessagingConfig = try decodeJson(fileName: "Resources/remote-messaging-config.json")
+        let jsonRemoteMessagingConfig = try decodeJson(fileName: "remote-messaging-config.json")
         XCTAssertNotNil(jsonRemoteMessagingConfig)
 
         let remoteMessagingConfigMatcher = RemoteMessagingConfigMatcher(
@@ -65,7 +64,7 @@ class RemoteMessagingConfigProcessorTests: XCTestCase {
     }
 
     func testWhenSameVersionThenNotProcessedAndResultNil() throws {
-        let jsonRemoteMessagingConfig = try decodeJson(fileName: "Resources/remote-messaging-config-malformed.json")
+        let jsonRemoteMessagingConfig = try decodeJson(fileName: "remote-messaging-config-malformed.json")
         XCTAssertNotNil(jsonRemoteMessagingConfig)
 
         let remoteMessagingConfigMatcher = RemoteMessagingConfigMatcher(
@@ -102,7 +101,8 @@ class RemoteMessagingConfigProcessorTests: XCTestCase {
     }
 
     func decodeJson(fileName: String) throws -> RemoteMessageResponse.JsonRemoteMessagingConfig {
-        let validJson = data.fromJsonFile(fileName)
+        let resourceURL = Bundle.module.resourceURL!.appendingPathComponent(fileName, conformingTo: .json)
+        let validJson = try Data(contentsOf: resourceURL)
         let remoteMessagingConfig = try JSONDecoder().decode(RemoteMessageResponse.JsonRemoteMessagingConfig.self, from: validJson)
         XCTAssertNotNil(remoteMessagingConfig)
 

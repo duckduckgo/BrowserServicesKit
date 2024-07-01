@@ -19,9 +19,11 @@
 import Foundation
 import RemoteMessaging
 
-class MockRemoteMessageSurveyActionMapper: RemoteMessagingSurveyActionMapping {
+public class MockRemoteMessageSurveyActionMapper: RemoteMessagingSurveyActionMapping {
 
-    func add(parameters: [RemoteMessaging.RemoteMessagingSurveyActionParameter], to url: URL) -> URL {
+    public init() {}
+
+    public func add(parameters: [RemoteMessaging.RemoteMessagingSurveyActionParameter], to url: URL) -> URL {
         return url
     }
 

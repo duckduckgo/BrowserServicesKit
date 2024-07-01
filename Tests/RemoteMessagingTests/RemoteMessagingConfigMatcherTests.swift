@@ -16,6 +16,8 @@
 //  limitations under the License.
 //
 
+import EmailTestsUtils
+import RemoteMessagingTestsUtils
 import XCTest
 @testable import Common
 @testable import BrowserServicesKit
@@ -23,7 +25,6 @@ import XCTest
 
 class RemoteMessagingConfigMatcherTests: XCTestCase {
 
-    private var data = JsonTestDataLoader()
     private var matcher: RemoteMessagingConfigMatcher!
 
     override func setUpWithError() throws {
@@ -518,16 +519,5 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                              matchingRules: matchingRules,
                              exclusionRules: exclusionRules
         )
-    }
-
-    func decodeAndMapJson(fileName: String) throws -> RemoteConfigModel {
-        let validJson = data.fromJsonFile(fileName)
-        let remoteMessagingConfig = try JSONDecoder().decode(RemoteMessageResponse.JsonRemoteMessagingConfig.self, from: validJson)
-        let surveyMapper = MockRemoteMessageSurveyActionMapper()
-        XCTAssertNotNil(remoteMessagingConfig)
-
-        let config = JsonToRemoteConfigModelMapper.mapJson(remoteMessagingConfig: remoteMessagingConfig, surveyActionMapper: surveyMapper)
-        XCTAssertNotNil(config)
-        return config
     }
 }

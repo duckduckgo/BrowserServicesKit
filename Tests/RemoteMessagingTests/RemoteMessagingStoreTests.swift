@@ -19,6 +19,7 @@
 import CoreData
 import Foundation
 import Persistence
+import RemoteMessagingTestsUtils
 import XCTest
 @testable import RemoteMessaging
 
@@ -139,7 +140,7 @@ class RemoteMessagingStoreTests: XCTestCase {
     }
 
     func decodeJson(fileName: String) throws -> RemoteMessageResponse.JsonRemoteMessagingConfig {
-        let resourceURL = Bundle.module.resourceURL!.appendingPathComponent("remote-messaging-config-example.json", conformingTo: .json)
+        let resourceURL = Bundle.module.resourceURL!.appendingPathComponent(fileName, conformingTo: .json)
 
         let validJson = try Data(contentsOf: resourceURL)
         let remoteMessagingConfig = try JSONDecoder().decode(RemoteMessageResponse.JsonRemoteMessagingConfig.self, from: validJson)
