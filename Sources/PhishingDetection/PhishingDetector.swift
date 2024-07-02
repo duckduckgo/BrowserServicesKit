@@ -19,6 +19,32 @@
 import Foundation
 import CryptoKit
 import Common
+import WebKit
+
+public enum PhishingDetectionError: CustomNSError {
+    case detected
+
+    public static let errorDomain: String = "PhishingDetectionError"
+
+    public var errorCode: Int {
+        switch self {
+        case .detected:
+            return 1
+        }
+    }
+
+    public var errorUserInfo: [String : Any] {
+        switch self {
+        case .detected:
+            return [NSLocalizedDescriptionKey: "Phishing detected"]
+        }
+    }
+    
+    public var rawValue: Int {
+        return self.errorCode
+    }
+}
+
 
 public struct Filter: Decodable, Encodable, Hashable {
 	public var hashValue: String
@@ -88,9 +114,9 @@ public class PhishingDetector: PhishingDetecting {
 		if dataStore.hashPrefixes.contains(hashPrefix) {
 			// Check local filterSet first
 			let filterHit = inFilterSet(hash: hostnameHash)
-		for filter in filterHit where matchesUrl(hash: filter.hashValue, regexPattern: filter.regex, url: url, hostnameHash: hostnameHash) {
-			return true
-		}
+            for filter in filterHit where matchesUrl(hash: filter.hashValue, regexPattern: filter.regex, url: url, hostnameHash: hostnameHash) {
+                return true
+            }
 			// If nothing found, hit the API to get matches
 			let matches = await apiClient.getMatches(hashPrefix: hashPrefix)
 			for match in matches where matchesUrl(hash: match.hash, regexPattern: match.regex, url: url, hostnameHash: hostnameHash) {
