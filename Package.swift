@@ -35,6 +35,7 @@ let package = Package(
         .library(name: "SubscriptionTestingUtilities", targets: ["SubscriptionTestingUtilities"]),
         .library(name: "History", targets: ["History"]),
         .library(name: "Suggestions", targets: ["Suggestions"]),
+        .library(name: "PhishingDetection", targets: ["PhishingDetection"]),
         .library(name: "PixelKit", targets: ["PixelKit"]),
         .library(name: "PixelKitTestingUtilities", targets: ["PixelKitTestingUtilities"]),
     ],
@@ -338,6 +339,12 @@ let package = Package(
             ]
         ),
         .target(
+            name: "PhishingDetection",
+            dependencies: [
+                "Common"
+            ]
+        ),
+        .target(
             name: "SubscriptionTestingUtilities",
             dependencies: [
                 "Subscription"
@@ -541,6 +548,16 @@ let package = Package(
             dependencies: [
                 "PixelKit",
                 "PixelKitTestingUtilities",
+            ]
+        ),
+        .testTarget(
+            name: "PhishingDetectionTests",
+            dependencies: [
+                "PhishingDetection",
+            ],
+            resources: [
+                .copy("hashPrefixes.json"),
+                .copy("filterSet.json")
             ]
         ),
     ],
