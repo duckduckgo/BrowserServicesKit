@@ -20,6 +20,7 @@
 import XCTest
 @testable import Subscription
 import SubscriptionTestingUtilities
+import StoreKit
 import StoreKitTest
 
 final class StorePurchaseManagerTests: XCTestCase {
@@ -32,10 +33,21 @@ final class StorePurchaseManagerTests: XCTestCase {
         // Put teardown code here. This method is called after the invocation of each test method in the class.
     }
 
-    func testExample() throws {
-        let session = try SKTestSession(configurationFileNamed: "DDG")
+    func testExample() async throws {
+        
+        // Option 1: make the `SubscriptionsTestConfig.storekit` to work as explained in https://developer.apple.com/documentation/xcode/setting-up-storekit-testing-in-xcode and https://developer.apple.com/videos/play/wwdc2020/10659/, then test `DefaultStorePurchaseManager` as it is
+        /*
+        let manager = DefaultStorePurchaseManager()
+        try await manager.syncAppleIDAccount()
+        XCTAssert(manager.availableProducts.count == 2)
+         */
+
+        // Option 2: create a protocol abstracting `StoreKit` from `DefaultStorePurchaseManager` and create a mock that uses SKTestSession
+        /*
+        let path = Bundle.module.path(forResource: "TestingConfiguration", ofType: "storekit")!
+        let session = try SKTestSession(contentsOf: URL(fileURLWithPath: path, isDirectory: false))
         session.disableDialogs = true
         session.clearTransactions()
-        
+         */
     }
 }

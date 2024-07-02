@@ -20,10 +20,16 @@ import Foundation
 import Common
 
 public protocol SubscriptionManager {
+    // Dependencies
     var accountManager: AccountManager { get }
     var subscriptionEndpointService: SubscriptionEndpointService { get }
     var authEndpointService: AuthEndpointService { get }
+
+    // Environment
+    static func loadEnvironmentFrom(userDefaults: UserDefaults) -> SubscriptionEnvironment?
+    static func save(subscriptionEnvironment: SubscriptionEnvironment, userDefaults: UserDefaults)
     var currentEnvironment: SubscriptionEnvironment { get }
+    
     var canPurchase: Bool { get }
     @available(macOS 12.0, iOS 15.0, *) func storePurchaseManager() -> StorePurchaseManager
     func loadInitialData()

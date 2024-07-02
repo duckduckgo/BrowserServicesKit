@@ -22,8 +22,10 @@ import Foundation
 /// Provides all mock needed for testing subscription initialised with positive outcomes and basic configurations. All mocks can be partially reconfigured with failures or incorrect data
 public struct SubscriptionMockFactory {
 
-    public static let accountManager = AccountManagerMock(email: "5p2d4sx1@duck.com",
-                                                          externalID: "someExternalID")
+    public static let email = "5p2d4sx1@duck.com"
+    public static let externalId = "someExternalID"
+    public static let accountManager = AccountManagerMock(email: email,
+                                                          externalID: externalId)
     /// No mock result or error configured, that must be done per-test basis
     public static let apiService = APIServiceMock(mockAuthHeaders: [:])
     public static let subscription = Subscription(productId: "1",
@@ -42,7 +44,7 @@ public struct SubscriptionMockFactory {
     public static let entitlements = [Entitlement(product: .dataBrokerProtection),
                                       Entitlement(product: .identityTheftRestoration),
                                       Entitlement(product: .networkProtection)]
-    public static let confirmPurchase = ConfirmPurchaseResponse(email: accountManager.email,
+    public static let confirmPurchase = ConfirmPurchaseResponse(email: email,
                                                                 entitlements: entitlements,
                                                                 subscription: subscription)
     public static let subscriptionEndpointService = SubscriptionEndpointServiceMock(getSubscriptionResult: .success(subscription),
@@ -51,7 +53,7 @@ public struct SubscriptionMockFactory {
                                                                                     confirmPurchaseResult: .success(confirmPurchase))
     public static let authToken = "someToken"
 
-    private static let validateTokenResponse = ValidateTokenResponse(account: ValidateTokenResponse.Account(email: accountManager.email,
+    private static let validateTokenResponse = ValidateTokenResponse(account: ValidateTokenResponse.Account(email: email,
                                                                                                             entitlements: entitlements, externalID: "?"))
     public static let authEndpointService = AuthEndpointServiceMock(accessTokenResult: .success(AccessTokenResponse(accessToken: "some")),
                                                                     validateTokenResult: .success(validateTokenResponse),
@@ -59,7 +61,7 @@ public struct SubscriptionMockFactory {
                                                                                                                         externalID: "?",
                                                                                                                         status: "?")),
                                                                     storeLoginResult: .success(StoreLoginResponse(authToken: authToken,
-                                                                                                                  email: accountManager.email!,
+                                                                                                                  email: email,
                                                                                                                   externalID: "?",
                                                                                                                   id: 1,
                                                                                                                   status: "?")))
