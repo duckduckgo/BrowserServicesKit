@@ -24,8 +24,14 @@ public protocol RemoteMessagingAvailabilityProviding {
     var isRemoteMessagingAvailable: Bool { get }
 }
 
-extension PrivacyConfigurationManager: RemoteMessagingAvailabilityProviding {
-    public var isRemoteMessagingAvailable: Bool {
-        privacyConfig.isEnabled(featureKey: .remoteMessaging)
+public struct PrivacyConfigurationRemoteMessagingAvailabilityProvider: RemoteMessagingAvailabilityProviding {
+    public init(privacyConfigurationManager: PrivacyConfigurationManaging) {
+        self.privacyConfigurationManager = privacyConfigurationManager
     }
+
+    public var isRemoteMessagingAvailable: Bool {
+        privacyConfigurationManager.privacyConfig.isEnabled(featureKey: .remoteMessaging)
+    }
+
+    private var privacyConfigurationManager: PrivacyConfigurationManaging
 }
