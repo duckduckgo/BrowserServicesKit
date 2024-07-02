@@ -1058,7 +1058,7 @@ extension DefaultAutofillDatabaseProvider {
                     )
                 )
 
-                guard let accountHash = decryptedCredentials?.account.djb2HashValue,
+                guard let accountHash = decryptedCredentials?.account.hashValue,
                       let password = decryptedCredentials?.password else {
                     continue
                 }

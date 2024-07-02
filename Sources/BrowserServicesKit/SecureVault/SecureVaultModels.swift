@@ -111,29 +111,14 @@ public struct SecureVaultModels {
         }
 
         // djb2 hash from the account
-        var djb2HashValue: Data {
-            let someUsername = username ?? ""
-            var hash = djb2Hash("\(someUsername)\(tld)")
-
-            if (someUsername.isEmpty || tld.isEmpty) {
-                if let title, !title.isEmpty {
-                    hash ^= djb2Hash("title:\(title)")
-                } else if let notes, !notes.isEmpty {
-                    hash ^= djb2Hash("title:\(notes)")
-                }
+        var hashValue: Data {
+            var hash = 5381
+            for char in "\(username ?? "")\(tld)".utf8 {
+                hash = ((hash << 5) &+ hash) &+ Int(char)
             }
-
             let hashString = String(format: "%02x", hash)
             guard let hash = hashString.data(using: .utf8) else {
                 return Data()
-            }
-            return hash
-        }
-
-        private func djb2Hash(_ string: String) -> Int {
-            var hash = 5381
-            for char in string.utf8 {
-                hash = ((hash << 5) &+ hash) &+ Int(char)
             }
             return hash
         }

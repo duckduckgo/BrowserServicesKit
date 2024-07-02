@@ -380,7 +380,7 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
                 assertionFailure("Encrypted password passed to \(#function)")
             }
             // Generate a new signature
-            let hashData = credentials.account.djb2HashValue + (credentials.password ?? Data())
+            let hashData = credentials.account.hashValue + (credentials.password ?? Data())
             var creds = credentials
             creds.account.signature = try providers.crypto.hashData(hashData, salt: salt)
             let encryptedPassword = credentials.password == nil ? nil : try self.l2Encrypt(data: credentials.password!, using: l2Key)
