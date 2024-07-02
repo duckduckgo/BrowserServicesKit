@@ -19,7 +19,7 @@
 import Foundation
 @testable import Subscription
 
-/// Provides all mock needed for testing subscription initialised with positive outcomes and basic configurations. All mocks can be partially reconfigured with failures or incorrect data
+/// Provides all mocks needed for testing subscription initialised with positive outcomes and basic configurations. All mocks can be partially reconfigured with failures or incorrect data
 public struct SubscriptionMockFactory {
 
     public static let email = "5p2d4sx1@duck.com"

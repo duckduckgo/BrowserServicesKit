@@ -43,7 +43,10 @@ public final class DefaultAppStoreRestoreFlow: AppStoreRestoreFlow {
     private let subscriptionEndpointService: SubscriptionEndpointService
     private let authEndpointService: AuthEndpointService
 
-    public init(accountManager: any AccountManager, storePurchaseManager: any StorePurchaseManager, subscriptionEndpointService: any SubscriptionEndpointService, authEndpointService: any AuthEndpointService) {
+    public init(accountManager: any AccountManager,
+                storePurchaseManager: any StorePurchaseManager,
+                subscriptionEndpointService: any SubscriptionEndpointService,
+                authEndpointService: any AuthEndpointService) {
         self.accountManager = accountManager
         self.storePurchaseManager = storePurchaseManager
         self.subscriptionEndpointService = subscriptionEndpointService

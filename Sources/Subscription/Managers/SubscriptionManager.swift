@@ -136,7 +136,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
             case .success(let subscription):
                 isSubscriptionActive = subscription.isActive
             case .failure(let error):
-                if case let .apiError(serviceError) = error, case let .serverError(statusCode, error) = serviceError {
+                if case let .apiError(serviceError) = error, case let .serverError(statusCode, _) = serviceError {
                     if statusCode == 401 {
                         // Token is no longer valid
                         accountManager.signOut()
