@@ -390,7 +390,6 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
         case .report: source = .appMenu
         case .dashboard: source = .dashboard
         case .toggleReport: source = .onProtectionsOffMenu
-        case .prompt(let event): source = .prompt(event)
         case .afterTogglePrompt: source = .afterTogglePrompt
         }
         if protectionStateToSubmitOnToggleReportDismiss != nil {

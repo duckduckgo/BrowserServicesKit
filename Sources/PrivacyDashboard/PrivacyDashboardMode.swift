@@ -23,7 +23,6 @@ public enum PrivacyDashboardEntryPoint: Equatable {
     // what is NOT present on mac (toggleReport)
     case dashboard
     case report
-    case prompt(String)
     case toggleReport(completionHandler: (Bool) -> Void)
     case afterTogglePrompt(category: String, didToggleProtectionsFixIssue: Bool)
 
@@ -37,7 +36,6 @@ public enum PrivacyDashboardEntryPoint: Equatable {
         
         case (.afterTogglePrompt, _): return .choiceBreakageForm
 
-        case (.prompt, _): return .promptBreakageForm
         case (.toggleReport, _): return .toggleReport
         }
     }
@@ -48,7 +46,6 @@ public enum PrivacyDashboardEntryPoint: Equatable {
             (.dashboard, .dashboard),
             (.report, .report),
             (.toggleReport, .toggleReport),
-            (.prompt, .prompt),
             (.afterTogglePrompt, .afterTogglePrompt):
             return true
         default:
