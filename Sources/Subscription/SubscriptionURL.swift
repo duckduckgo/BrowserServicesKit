@@ -34,7 +34,7 @@ public enum SubscriptionURL {
     case identityTheftRestoration
 
     // swiftlint:disable:next cyclomatic_complexity
-    func subscriptionURL(environment: SubscriptionEnvironment.ServiceEnvironment) -> URL {
+    public func subscriptionURL(environment: SubscriptionEnvironment.ServiceEnvironment) -> URL {
         switch self {
         case .baseURL:
             switch environment {

@@ -38,22 +38,30 @@ public protocol AppStoreRestoreFlow {
 
 @available(macOS 12.0, iOS 15.0, *)
 public final class DefaultAppStoreRestoreFlow: AppStoreRestoreFlow {
-    private let subscriptionManager: SubscriptionManager
-    var accountManager: AccountManager { subscriptionManager.accountManager }
+    private let accountManager: AccountManager
+    private let storePurchaseManager: StorePurchaseManager
+    private let subscriptionEndpointService: SubscriptionEndpointService
+    private let authEndpointService: AuthEndpointService
 
-    public init(subscriptionManager: SubscriptionManager) {
-        self.subscriptionManager = subscriptionManager
+    public init(accountManager: any AccountManager,
+                storePurchaseManager: any StorePurchaseManager,
+                subscriptionEndpointService: any SubscriptionEndpointService,
+                authEndpointService: any AuthEndpointService) {
+        self.accountManager = accountManager
+        self.storePurchaseManager = storePurchaseManager
+        self.subscriptionEndpointService = subscriptionEndpointService
+        self.authEndpointService = authEndpointService
     }
 
     @discardableResult
     public func restoreAccountFromPastPurchase() async -> Result<Void, AppStoreRestoreFlowError> {
 
         // Clear subscription Cache
-        subscriptionManager.subscriptionEndpointService.signOut()
+        subscriptionEndpointService.signOut()
 
         os_log(.info, log: .subscription, "[AppStoreRestoreFlow] restoreAccountFromPastPurchase")
 
-        guard let lastTransactionJWSRepresentation = await subscriptionManager.storePurchaseManager().mostRecentTransaction() else {
+        guard let lastTransactionJWSRepresentation = await storePurchaseManager.mostRecentTransaction() else {
             os_log(.error, log: .subscription, "[AppStoreRestoreFlow] Error: missingAccountOrTransactions")
             return .failure(.missingAccountOrTransactions)
         }
@@ -61,7 +69,7 @@ public final class DefaultAppStoreRestoreFlow: AppStoreRestoreFlow {
         // Do the store login to get short-lived token
         let authToken: String
 
-        switch await subscriptionManager.authEndpointService.storeLogin(signature: lastTransactionJWSRepresentation) {
+        switch await authEndpointService.storeLogin(signature: lastTransactionJWSRepresentation) {
         case .success(let response):
             authToken = response.authToken
         case .failure:
@@ -92,7 +100,7 @@ public final class DefaultAppStoreRestoreFlow: AppStoreRestoreFlow {
 
         var isSubscriptionActive = false
 
-        switch await subscriptionManager.subscriptionEndpointService.getSubscription(accessToken: accessToken, cachePolicy: .reloadIgnoringLocalCacheData) {
+        switch await subscriptionEndpointService.getSubscription(accessToken: accessToken, cachePolicy: .reloadIgnoringLocalCacheData) {
         case .success(let subscription):
             isSubscriptionActive = subscription.isActive
         case .failure:

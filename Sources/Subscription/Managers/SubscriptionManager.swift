@@ -20,11 +20,16 @@ import Foundation
 import Common
 
 public protocol SubscriptionManager {
-
+    // Dependencies
     var accountManager: AccountManager { get }
     var subscriptionEndpointService: SubscriptionEndpointService { get }
     var authEndpointService: AuthEndpointService { get }
+
+    // Environment
+    static func loadEnvironmentFrom(userDefaults: UserDefaults) -> SubscriptionEnvironment?
+    static func save(subscriptionEnvironment: SubscriptionEnvironment, userDefaults: UserDefaults)
     var currentEnvironment: SubscriptionEnvironment { get }
+
     var canPurchase: Bool { get }
     @available(macOS 12.0, iOS 15.0, *) func storePurchaseManager() -> StorePurchaseManager
     func loadInitialData()
@@ -34,9 +39,7 @@ public protocol SubscriptionManager {
 
 /// Single entry point for everything related to Subscription. This manager is disposable, every time something related to the environment changes this need to be recreated.
 public final class DefaultSubscriptionManager: SubscriptionManager {
-
     private let _storePurchaseManager: StorePurchaseManager?
-
     public let accountManager: AccountManager
     public let subscriptionEndpointService: SubscriptionEndpointService
     public let authEndpointService: AuthEndpointService
@@ -133,7 +136,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
             case .success(let subscription):
                 isSubscriptionActive = subscription.isActive
             case .failure(let error):
-                if case let .apiError(serviceError) = error, case let .serverError(statusCode, error) = serviceError {
+                if case let .apiError(serviceError) = error, case let .serverError(statusCode, _) = serviceError {
                     if statusCode == 401 {
                         // Token is no longer valid
                         accountManager.signOut()

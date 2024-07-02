@@ -25,6 +25,13 @@ public class AccountKeychainStorageMock: AccountStoring {
     public var email: String?
     public var externalID: String?
 
+    public init(authToken: String? = nil, accessToken: String? = nil, email: String? = nil, externalID: String? = nil) {
+        self.authToken = authToken
+        self.accessToken = accessToken
+        self.email = email
+        self.externalID = externalID
+    }
+
     public func getAuthToken() throws -> String? {
         authToken
     }
