@@ -51,6 +51,7 @@ public protocol AutofillDatabaseProvider: SecureStorageDatabaseProvider {
     func deleteNoteForNoteId(_ noteId: Int64) throws
 
     func identities() throws -> [SecureVaultModels.Identity]
+    func identitiesCount() throws -> Int
     func identityForIdentityId(_ identityId: Int64) throws -> SecureVaultModels.Identity?
     @discardableResult
     func storeIdentity(_ identity: SecureVaultModels.Identity) throws -> Int64
@@ -501,6 +502,13 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
         return try db.read {
             return try SecureVaultModels.Identity.fetchAll($0)
         }
+    }
+
+    public func identitiesCount() throws -> Int {
+        let count = try db.read {
+            try SecureVaultModels.Identity.fetchCount($0)
+        }
+        return count
     }
 
     public func identityForIdentityId(_ identityId: Int64) throws -> SecureVaultModels.Identity? {
