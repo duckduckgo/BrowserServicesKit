@@ -49,28 +49,24 @@ public final class RemoteMessagingStore: RemoteMessagingStoring {
 
     let database: CoreDataDatabase
     let notificationCenter: NotificationCenter
-    let privacyConfigurationManager: PrivacyConfigurationManaging
-
-    public var isRemoteMessagingEnabled: Bool {
-        privacyConfigurationManager.privacyConfig.isEnabled(featureKey: .remoteMessaging)
-    }
+    let remoteMessagingAvailabilityProvider: RemoteMessagingAvailabilityProviding
 
     public init(
         database: CoreDataDatabase,
         notificationCenter: NotificationCenter = .default,
         errorEvents: EventMapping<RemoteMessagingStoreError>?,
-        privacyConfigurationManager: PrivacyConfigurationManaging,
+        remoteMessagingAvailabilityProvider: RemoteMessagingAvailabilityProviding,
         log: @escaping @autoclosure () -> OSLog = .disabled
     ) {
         self.database = database
         self.notificationCenter = notificationCenter
         self.errorEvents = errorEvents
-        self.privacyConfigurationManager = privacyConfigurationManager
+        self.remoteMessagingAvailabilityProvider = remoteMessagingAvailabilityProvider
         self.getLog = log
     }
 
     public func saveProcessedResult(_ processorResult: RemoteMessagingConfigProcessor.ProcessorResult) {
-        guard isRemoteMessagingEnabled else {
+        guard remoteMessagingAvailabilityProvider.isRemoteMessagingAvailable else {
             os_log(
                 "Remote messaging feature flag is disabled, skipping saving processed version: %d",
                 log: log,
@@ -110,7 +106,7 @@ public final class RemoteMessagingStore: RemoteMessagingStoring {
 extension RemoteMessagingStore {
 
     public func fetchRemoteMessagingConfig() -> RemoteMessagingConfig? {
-        guard isRemoteMessagingEnabled else {
+        guard remoteMessagingAvailabilityProvider.isRemoteMessagingAvailable else {
             return nil
         }
 
@@ -191,7 +187,7 @@ extension RemoteMessagingStore {
 extension RemoteMessagingStore {
 
     public func fetchScheduledRemoteMessage() -> RemoteMessageModel? {
-        guard isRemoteMessagingEnabled else {
+        guard remoteMessagingAvailabilityProvider.isRemoteMessagingAvailable else {
             return nil
         }
 
@@ -220,7 +216,7 @@ extension RemoteMessagingStore {
     }
 
     public func fetchRemoteMessage(withId id: String) -> RemoteMessageModel? {
-        guard isRemoteMessagingEnabled else {
+        guard remoteMessagingAvailabilityProvider.isRemoteMessagingAvailable else {
             return nil
         }
 
@@ -249,7 +245,7 @@ extension RemoteMessagingStore {
     }
 
     public func hasShownRemoteMessage(withId id: String) -> Bool {
-        guard isRemoteMessagingEnabled else {
+        guard remoteMessagingAvailabilityProvider.isRemoteMessagingAvailable else {
             return false
         }
 
@@ -270,7 +266,7 @@ extension RemoteMessagingStore {
     }
 
     public func hasDismissedRemoteMessage(withId id: String) -> Bool {
-        guard isRemoteMessagingEnabled else {
+        guard remoteMessagingAvailabilityProvider.isRemoteMessagingAvailable else {
             return false
         }
 
@@ -291,7 +287,7 @@ extension RemoteMessagingStore {
     }
 
     public func dismissRemoteMessage(withId id: String) {
-        guard isRemoteMessagingEnabled else {
+        guard remoteMessagingAvailabilityProvider.isRemoteMessagingAvailable else {
             return
         }
 
@@ -303,7 +299,7 @@ extension RemoteMessagingStore {
     }
 
     public func fetchDismissedRemoteMessageIds() -> [String] {
-        guard isRemoteMessagingEnabled else {
+        guard remoteMessagingAvailabilityProvider.isRemoteMessagingAvailable else {
             return []
         }
 
@@ -325,7 +321,7 @@ extension RemoteMessagingStore {
     }
 
     public func updateRemoteMessage(withId id: String, asShown shown: Bool) {
-        guard isRemoteMessagingEnabled else {
+        guard remoteMessagingAvailabilityProvider.isRemoteMessagingAvailable else {
             return
         }
 

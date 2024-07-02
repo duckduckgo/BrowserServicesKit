@@ -20,8 +20,6 @@ import Foundation
 
 public protocol RemoteMessagingStoring {
 
-    var isRemoteMessagingEnabled: Bool { get }
-
     func saveProcessedResult(_ processorResult: RemoteMessagingConfigProcessor.ProcessorResult)
     func fetchRemoteMessagingConfig() -> RemoteMessagingConfig?
     func fetchScheduledRemoteMessage() -> RemoteMessageModel?

@@ -48,7 +48,8 @@ class RemoteMessagingStoreTests: XCTestCase {
         store = RemoteMessagingStore(
             database: remoteMessagingDatabase,
             notificationCenter: notificationCenter,
-            errorEvents: nil
+            errorEvents: nil,
+            remoteMessagingAvailabilityProvider: MockRemoteMessagingAvailabilityProvider()
         )
 
         defaults = UserDefaults(suiteName: Self.userDefaultsSuiteName)!
