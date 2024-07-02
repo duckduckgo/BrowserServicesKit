@@ -20,7 +20,7 @@ import Common
 import Foundation
 import WebKit
 
-public struct MainFrame {
+public struct MainFrame: Sendable {
     fileprivate init() {}
 }
 
@@ -239,11 +239,11 @@ public struct NavigationPreferences: Equatable {
 
 }
 
-public enum NavigationActionPolicy {
+public enum NavigationActionPolicy: Sendable {
     case allow
     case cancel
     case download
-    case redirect(MainFrame, (Navigator) -> Void)
+    case redirect(MainFrame, @Sendable @MainActor (Navigator) -> Void)
 }
 
 extension NavigationActionPolicy? {

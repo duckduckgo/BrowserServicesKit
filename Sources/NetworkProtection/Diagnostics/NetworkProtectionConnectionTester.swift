@@ -79,7 +79,7 @@ final class NetworkProtectionConnectionTester {
 
     // MARK: - Logging
 
-    private let log: OSLog
+    private nonisolated let log: OSLog
 
     // MARK: - Test result handling
 

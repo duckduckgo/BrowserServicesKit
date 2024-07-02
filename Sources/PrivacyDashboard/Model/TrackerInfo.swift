@@ -27,7 +27,7 @@ public struct TrackerInfo: Encodable {
         case installedSurrogates
     }
 
-    public private (set) var trackers = Set<DetectedRequest>()
+    public private(set) var trackers = Set<DetectedRequest>()
     private(set) var thirdPartyRequests = Set<DetectedRequest>()
     public private(set) var installedSurrogates = Set<String>()
 
