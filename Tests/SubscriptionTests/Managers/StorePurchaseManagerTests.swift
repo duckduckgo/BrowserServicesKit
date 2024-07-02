@@ -1,6 +1,5 @@
 //
 //  StorePurchaseManagerTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -34,7 +33,7 @@ final class StorePurchaseManagerTests: XCTestCase {
     }
 
     func testExample() async throws {
-        
+
         // Option 1: make the `SubscriptionsTestConfig.storekit` to work as explained in https://developer.apple.com/documentation/xcode/setting-up-storekit-testing-in-xcode and https://developer.apple.com/videos/play/wwdc2020/10659/, then test `DefaultStorePurchaseManager` as it is
         /*
         let manager = DefaultStorePurchaseManager()

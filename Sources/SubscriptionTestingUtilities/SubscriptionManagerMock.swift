@@ -23,7 +23,7 @@ public final class SubscriptionManagerMock: SubscriptionManager {
     public var accountManager: AccountManager
     public var subscriptionEndpointService: SubscriptionEndpointService
     public var authEndpointService: AuthEndpointService
-    
+
     public static var storedEnvironment: SubscriptionEnvironment?
     public static func loadEnvironmentFrom(userDefaults: UserDefaults) -> SubscriptionEnvironment? {
         return storedEnvironment

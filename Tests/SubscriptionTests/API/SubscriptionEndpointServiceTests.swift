@@ -1,7 +1,6 @@
 //
 //  SubscriptionEndpointServiceTests.swift
 //
-//
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
@@ -53,10 +52,10 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
     }
 
     func testGetSubscriptionSuccessCache() async throws {
-        // TODO: Implement
+        // Implement
     }
 
     func testGetSubscriptionFailure() async throws {
-        // TODO: Implement
+        // Implement
     }
 }

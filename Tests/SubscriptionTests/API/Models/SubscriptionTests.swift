@@ -1,6 +1,5 @@
 //
 //  SubscriptionTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -58,6 +57,6 @@ final class SubscriptionTests: XCTestCase {
     }
 
     func testDecoding() throws {
-        // TODO: Decode 
+        // Decode 
     }
 }

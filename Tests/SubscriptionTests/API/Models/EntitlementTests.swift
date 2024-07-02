@@ -1,6 +1,5 @@
 //
 //  EntitlementTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -37,6 +36,6 @@ final class EntitlementTests: XCTestCase {
     }
 
     func testDecoding() throws {
-        // TODO: Decode Entitlement
+        // Decode Entitlement
     }
 }
