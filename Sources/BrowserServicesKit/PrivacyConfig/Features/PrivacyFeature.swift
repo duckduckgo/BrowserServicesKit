@@ -119,4 +119,5 @@ public enum sslCertificatesSubfeature: String, PrivacySubfeature {
 public enum DuckPlayerSubfeature: String, PrivacySubfeature {
     public var parent: PrivacyFeature { .duckPlayer }
     case pip
+    case autoplay
 }
