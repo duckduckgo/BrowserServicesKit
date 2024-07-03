@@ -20,7 +20,7 @@ import Foundation
 import Common
 import BrowserServicesKit
 
-public struct AppAttributeMatcher: AttributeMatcher {
+public struct AppAttributeMatcher: AttributeMatching {
 
     private let bundleId: String
     private let appVersion: String

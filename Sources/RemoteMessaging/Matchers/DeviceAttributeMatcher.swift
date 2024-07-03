@@ -19,7 +19,7 @@
 import Foundation
 import Common
 
-public struct DeviceAttributeMatcher: AttributeMatcher {
+public struct DeviceAttributeMatcher: AttributeMatching {
 
     let osVersion: String
     let localeIdentifier: String

@@ -28,7 +28,7 @@ public typealias UserAttributeMatcher = DesktopUserAttributeMatcher
 
 public typealias DesktopUserAttributeMatcher = CommonUserAttributeMatcher
 
-public struct MobileUserAttributeMatcher: AttributeMatcher {
+public struct MobileUserAttributeMatcher: AttributeMatching {
 
     private enum PrivacyProSubscriptionStatus: String {
         case active
@@ -95,7 +95,7 @@ public struct MobileUserAttributeMatcher: AttributeMatcher {
 
 }
 
-public struct CommonUserAttributeMatcher: AttributeMatcher {
+public struct CommonUserAttributeMatcher: AttributeMatching {
 
     private enum PrivacyProSubscriptionStatus: String {
         case active

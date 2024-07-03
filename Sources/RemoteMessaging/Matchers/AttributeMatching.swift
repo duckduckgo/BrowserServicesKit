@@ -1,5 +1,5 @@
 //
-//  AttributeMatcher.swift
+//  AttributeMatching.swift
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -18,6 +18,6 @@
 
 import Foundation
 
-public protocol AttributeMatcher {
+public protocol AttributeMatching {
     func evaluate(matchingAttribute: MatchingAttribute) -> EvaluationResult?
 }
