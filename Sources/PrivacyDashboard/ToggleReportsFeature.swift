@@ -25,6 +25,17 @@ public struct PrivacyConfigurationToggleReportsFeature {
     let isEnabled: Bool
     let settings: PrivacyConfigurationData.PrivacyFeature.FeatureSettings
 
+    public init(isEnabled: Bool, settings: PrivacyConfigurationData.PrivacyFeature.FeatureSettings) {
+        self.isEnabled = isEnabled
+        self.settings = settings
+    }
+
+    public init(privacyConfigurationManager: PrivacyConfigurationManaging) {
+        let privacyConfig = privacyConfigurationManager.privacyConfig
+        self.isEnabled = privacyConfig.isEnabled(featureKey: .toggleReports)
+        self.settings = privacyConfig.settings(for: .toggleReports)
+    }
+
 }
 
 public protocol ToggleReporting {
