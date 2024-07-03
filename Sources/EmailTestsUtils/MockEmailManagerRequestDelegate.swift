@@ -16,8 +16,8 @@
 //  limitations under the License.
 //
 
-import BrowserServicesKit
 import Foundation
+@testable import BrowserServicesKit
 
 public class MockEmailManagerRequestDelegate: EmailManagerRequestDelegate {
 
