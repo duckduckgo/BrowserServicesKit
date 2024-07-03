@@ -19,7 +19,7 @@
 import Foundation
 import BrowserServicesKit
 
-public struct MockVariantManager: VariantManager {
+public class MockVariantManager: VariantManager {
 
     public var isSupportedReturns = false {
         didSet {

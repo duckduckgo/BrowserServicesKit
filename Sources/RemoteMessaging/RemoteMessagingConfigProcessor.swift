@@ -19,17 +19,28 @@
 import Common
 import Foundation
 
-public struct RemoteMessagingConfigProcessor {
+public protocol RemoteMessagingConfigProcessing {
+    var remoteMessagingConfigMatcher: RemoteMessagingConfigMatcher { get }
+
+    func shouldProcessConfig(_ currentConfig: RemoteMessagingConfig?) -> Bool
+
+    func process(
+        jsonRemoteMessagingConfig: RemoteMessageResponse.JsonRemoteMessagingConfig,
+        currentConfig: RemoteMessagingConfig?
+    ) -> RemoteMessagingConfigProcessor.ProcessorResult?
+}
+
+public struct RemoteMessagingConfigProcessor: RemoteMessagingConfigProcessing {
 
     public struct ProcessorResult {
         public let version: Int64
         public let message: RemoteMessageModel?
     }
 
-    let remoteMessagingConfigMatcher: RemoteMessagingConfigMatcher
+    public let remoteMessagingConfigMatcher: RemoteMessagingConfigMatcher
 
-    func process(jsonRemoteMessagingConfig: RemoteMessageResponse.JsonRemoteMessagingConfig,
-                 currentConfig: RemoteMessagingConfig?) -> ProcessorResult? {
+    public func process(jsonRemoteMessagingConfig: RemoteMessageResponse.JsonRemoteMessagingConfig,
+                        currentConfig: RemoteMessagingConfig?) -> ProcessorResult? {
         os_log("Processing version %s", log: .remoteMessaging, type: .debug, String(jsonRemoteMessagingConfig.version))
 
         let currentVersion = currentConfig?.version ?? 0
@@ -51,7 +62,7 @@ public struct RemoteMessagingConfigProcessor {
         return nil
     }
 
-    func shouldProcessConfig(_ currentConfig: RemoteMessagingConfig?) -> Bool {
+    public func shouldProcessConfig(_ currentConfig: RemoteMessagingConfig?) -> Bool {
         guard let currentConfig = currentConfig else {
             return true
         }

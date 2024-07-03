@@ -20,16 +20,20 @@
 import Foundation
 @testable import RemoteMessaging
 
-public struct MockRemoteMessagingConfigFetcher: RemoteMessagingConfigFetching {
+public class MockRemoteMessagingConfigFetcher: RemoteMessagingConfigFetching {
 
     public init(config: RemoteMessageResponse.JsonRemoteMessagingConfig = .empty) {
         self.config = config
     }
 
+    public var error: Error?
     public var config: RemoteMessageResponse.JsonRemoteMessagingConfig
 
     public func fetchRemoteMessagingConfig() async throws -> RemoteMessageResponse.JsonRemoteMessagingConfig {
-        config
+        if let error {
+            throw error
+        }
+        return config
     }
 }
 

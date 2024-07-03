@@ -23,41 +23,52 @@ import RemoteMessagingTestsUtils
 import XCTest
 @testable import RemoteMessaging
 
-struct RemoteMessagingProcessorMock: RemoteMessagingProcessing {
+struct TestRemoteMessagingProcessor: RemoteMessagingProcessing {
     var endpoint: URL
     var configurationFetcher: RemoteMessagingConfigFetching
     var configMatcherProvider: RemoteMessagingConfigMatcherProviding
     var remoteMessagingAvailabilityProvider: RemoteMessagingAvailabilityProviding
+    var remoteMessagingConfigProcessor: RemoteMessagingConfigProcessing
 
     init(
         endpoint: URL = URL(string: "https://example.com/config.json")!,
         configurationFetcher: RemoteMessagingConfigFetching,
         configMatcherProvider: RemoteMessagingConfigMatcherProviding,
-        remoteMessagingAvailabilityProvider: RemoteMessagingAvailabilityProviding = MockRemoteMessagingAvailabilityProvider()
+        remoteMessagingAvailabilityProvider: RemoteMessagingAvailabilityProviding,
+        remoteMessagingConfigProcessor: RemoteMessagingConfigProcessing
     ) {
         self.endpoint = endpoint
         self.configurationFetcher = configurationFetcher
         self.configMatcherProvider = configMatcherProvider
         self.remoteMessagingAvailabilityProvider = remoteMessagingAvailabilityProvider
+        self.remoteMessagingConfigProcessor = remoteMessagingConfigProcessor
+    }
+
+    func configProcessor(for configMatcher: RemoteMessagingConfigMatcher) -> RemoteMessagingConfigProcessing {
+        remoteMessagingConfigProcessor
     }
 }
 
 class RemoteMessagingProcessingTests: XCTestCase {
 
-    func testProcessing() async throws {
+    var availabilityProvider: MockRemoteMessagingAvailabilityProvider!
+    var configFetcher: MockRemoteMessagingConfigFetcher!
+    var configProcessor: MockRemoteMessagingConfigProcessor!
+    var store: MockRemoteMessagingStore!
+
+    var processor: TestRemoteMessagingProcessor!
+
+    override func setUpWithError() throws {
         let emailManagerStorage = MockEmailManagerStorage()
 
-        // EmailEnabledMatchingAttribute isSignedIn = true
-        emailManagerStorage.mockUsername = "username"
-        emailManagerStorage.mockToken = "token"
+        availabilityProvider = MockRemoteMessagingAvailabilityProvider()
 
-        let emailManager = EmailManager(storage: emailManagerStorage)
         let matcher = RemoteMessagingConfigMatcher(
                 appAttributeMatcher: AppAttributeMatcher(statisticsStore: MockStatisticsStore(), variantManager: MockVariantManager()),
                 userAttributeMatcher: MobileUserAttributeMatcher(
                     statisticsStore: MockStatisticsStore(),
                     variantManager: MockVariantManager(),
-                    emailManager: emailManager,
+                    emailManager: EmailManager(storage: emailManagerStorage),
                     bookmarksCount: 10,
                     favoritesCount: 0,
                     appTheme: "light",
@@ -78,14 +89,63 @@ class RemoteMessagingProcessingTests: XCTestCase {
                 dismissedMessageIds: []
         )
 
-        let configurationFetcher = MockRemoteMessagingConfigFetcher()
-        let configMatcherProvider = MockRemoteMessagingConfigMatcherProvider { _ in
-            matcher
-        }
-        let store = MockRemoteMessagingStore()
-        let processor = RemoteMessagingProcessorMock(configurationFetcher: configurationFetcher, configMatcherProvider: configMatcherProvider)
+        configFetcher = MockRemoteMessagingConfigFetcher()
+        store = MockRemoteMessagingStore()
 
-        try await processor.fetchAndProcess(using: store)
+        configProcessor = MockRemoteMessagingConfigProcessor(remoteMessagingConfigMatcher: matcher)
+
+        processor = TestRemoteMessagingProcessor(
+            configurationFetcher: configFetcher,
+            configMatcherProvider: MockRemoteMessagingConfigMatcherProvider { _ in matcher },
+            remoteMessagingAvailabilityProvider: availabilityProvider,
+            remoteMessagingConfigProcessor: configProcessor
+        )
+    }
+
+    func testWhenFeatureFlagIsDisabledThenProcessingIsSkipped() async throws {
+        availabilityProvider.isRemoteMessagingAvailable = false
+
+        do {
+            try await processor.fetchAndProcess(using: store)
+        } catch {
+            XCTFail("Unexpected error thrown: \(error).")
+        }
+        XCTAssertEqual(store.saveProcessedResultCalls, 0)
+    }
+
+    func testWhenConfigProcessorReturnsNilThenResultIsNotSaved() async throws {
+        configProcessor.processConfig = { _,_ in nil }
+
+        do {
+            try await processor.fetchAndProcess(using: store)
+        } catch {
+            XCTFail("Unexpected error thrown: \(error).")
+        }
+        XCTAssertEqual(store.saveProcessedResultCalls, 0)
+    }
+
+    func testWhenConfigProcessorReturnsMessageThenResultIsSaved() async throws {
+        configProcessor.processConfig = { _,_ in .init(version: 0, message: nil) }
+
+        do {
+            try await processor.fetchAndProcess(using: store)
+        } catch {
+            XCTFail("Unexpected error thrown: \(error).")
+        }
+        XCTAssertEqual(store.saveProcessedResultCalls, 1)
+    }
+
+    func testWhenFetchingConfigFailsThenErrorIsThrown() async throws {
+        struct SampleError: Error {}
+        configFetcher.error = SampleError()
+
+        do {
+            try await processor.fetchAndProcess(using: store)
+            XCTFail("Expected to throw error")
+        } catch {
+            XCTAssertTrue(error is SampleError)
+        }
+        XCTAssertEqual(store.saveProcessedResultCalls, 0)
     }
 
 }

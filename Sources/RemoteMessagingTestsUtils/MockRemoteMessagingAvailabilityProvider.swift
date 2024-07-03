@@ -19,7 +19,7 @@
 
 import RemoteMessaging
 
-public struct MockRemoteMessagingAvailabilityProvider: RemoteMessagingAvailabilityProviding {
+public class MockRemoteMessagingAvailabilityProvider: RemoteMessagingAvailabilityProviding {
 
     public init(isRemoteMessagingAvailable: Bool = true) {
         self.isRemoteMessagingAvailable = isRemoteMessagingAvailable

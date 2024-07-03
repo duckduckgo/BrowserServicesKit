@@ -20,7 +20,17 @@
 import Foundation
 import RemoteMessaging
 
-public struct MockRemoteMessagingStore: RemoteMessagingStoring {
+public class MockRemoteMessagingStore: RemoteMessagingStoring {
+
+    public var saveProcessedResultCalls = 0
+    public var fetchRemoteMessagingConfigCalls = 0
+    public var fetchScheduledRemoteMessageCalls = 0
+    public var fetchRemoteMessageCalls = 0
+    public var hasShownRemoteMessageCalls = 0
+    public var hasDismissedRemoteMessageCalls = 0
+    public var dismissRemoteMessageCalls = 0
+    public var fetchDismissedRemoteMessageIdsCalls = 0
+    public var updateRemoteMessageCalls = 0
 
     public var remoteMessagingConfig: RemoteMessagingConfig?
     public var scheduledRemoteMessage: RemoteMessageModel?
@@ -43,33 +53,44 @@ public struct MockRemoteMessagingStore: RemoteMessagingStoring {
     }
 
     public func saveProcessedResult(_ processorResult: RemoteMessagingConfigProcessor.ProcessorResult) {
+        saveProcessedResultCalls += 1
     }
 
     public func fetchRemoteMessagingConfig() -> RemoteMessagingConfig? {
-        remoteMessagingConfig
+        fetchRemoteMessagingConfigCalls += 1
+        return remoteMessagingConfig
     }
 
     public func fetchScheduledRemoteMessage() -> RemoteMessageModel? {
-        scheduledRemoteMessage
+        fetchScheduledRemoteMessageCalls += 1
+        return scheduledRemoteMessage
     }
 
     public func fetchRemoteMessage(withId id: String) -> RemoteMessageModel? {
-        remoteMessages[id]
+        fetchRemoteMessageCalls += 1
+        return remoteMessages[id]
     }
 
     public func hasShownRemoteMessage(withId id: String) -> Bool {
-        shownRemoteMessagesIDs.contains(id)
+        hasShownRemoteMessageCalls += 1
+        return shownRemoteMessagesIDs.contains(id)
     }
 
     public func hasDismissedRemoteMessage(withId id: String) -> Bool {
-        dismissedRemoteMessagesIDs.contains(id)
+        hasDismissedRemoteMessageCalls += 1
+        return dismissedRemoteMessagesIDs.contains(id)
     }
 
-    public func dismissRemoteMessage(withId id: String) {}
+    public func dismissRemoteMessage(withId id: String) {
+        dismissRemoteMessageCalls += 1
+    }
 
     public func fetchDismissedRemoteMessageIds() -> [String] {
-        dismissedRemoteMessagesIDs
+        fetchDismissedRemoteMessageIdsCalls += 1
+        return dismissedRemoteMessagesIDs
     }
 
-    public func updateRemoteMessage(withId id: String, asShown shown: Bool) {}
+    public func updateRemoteMessage(withId id: String, asShown shown: Bool) {
+        updateRemoteMessageCalls += 1
+    }
 }

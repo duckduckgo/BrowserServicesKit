@@ -20,7 +20,7 @@
 import Foundation
 import RemoteMessaging
 
-public struct MockRemoteMessagingConfigMatcherProvider: RemoteMessagingConfigMatcherProviding {
+public class MockRemoteMessagingConfigMatcherProvider: RemoteMessagingConfigMatcherProviding {
 
     public init(refresh: @escaping (RemoteMessagingStoring) -> RemoteMessagingConfigMatcher) {
         self.refresh = refresh

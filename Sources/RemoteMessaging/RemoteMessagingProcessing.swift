@@ -31,10 +31,16 @@ public protocol RemoteMessagingProcessing {
     var configMatcherProvider: RemoteMessagingConfigMatcherProviding { get }
     var remoteMessagingAvailabilityProvider: RemoteMessagingAvailabilityProviding { get }
 
+    func configProcessor(for configMatcher: RemoteMessagingConfigMatcher) -> RemoteMessagingConfigProcessing
+
     func fetchAndProcess(using store: RemoteMessagingStoring) async throws
 }
 
 public extension RemoteMessagingProcessing {
+
+    func configProcessor(for configMatcher: RemoteMessagingConfigMatcher) -> RemoteMessagingConfigProcessing {
+        RemoteMessagingConfigProcessor(remoteMessagingConfigMatcher: configMatcher)
+    }
 
     func fetchAndProcess(using store: RemoteMessagingStoring) async throws {
         guard remoteMessagingAvailabilityProvider.isRemoteMessagingAvailable else {
@@ -48,7 +54,7 @@ public extension RemoteMessagingProcessing {
 
             let remoteMessagingConfigMatcher = await configMatcherProvider.refreshConfigMatcher(using: store)
 
-            let processor = RemoteMessagingConfigProcessor(remoteMessagingConfigMatcher: remoteMessagingConfigMatcher)
+            let processor = configProcessor(for: remoteMessagingConfigMatcher)
             let config = store.fetchRemoteMessagingConfig()
 
             if let processorResult = processor.process(jsonRemoteMessagingConfig: statusResponse, currentConfig: config) {
