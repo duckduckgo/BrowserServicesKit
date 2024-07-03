@@ -20,6 +20,13 @@ import Foundation
 import Combine
 import BrowserServicesKit
 
+public struct PrivacyConfigurationToggleReportsFeature {
+
+    let isEnabled: Bool
+    let settings: PrivacyConfigurationData.PrivacyFeature.FeatureSettings
+
+}
+
 public protocol ToggleReporting {
 
     var isEnabled: Bool { get }
@@ -44,7 +51,7 @@ public final class ToggleReportsFeature: ToggleReporting {
         static let promptIntervalKey = "promptInterval"
         static let maxPromptCountKey = "maxPromptCount"
 
-        static let defaultTimeInterval: TimeInterval = 48 * 60 * 60 // Two days
+        static let defaultTimeInterval: TimeInterval = 48 * 60 * 60 // 2 days
         static let defaultPromptCount = 3
 
     }
@@ -58,11 +65,12 @@ public final class ToggleReportsFeature: ToggleReporting {
     public private(set) var promptInterval: TimeInterval = 0
     public private(set) var maxPromptCount: Int = 0
 
-    public init(manager: PrivacyConfigurationManaging) {
-        let isCurrentLanguageEnglish = Locale.current.languageCode == "en"
-        isEnabled = manager.privacyConfig.isEnabled(featureKey: .toggleReports) && isCurrentLanguageEnglish
+    public init(privacyConfigurationToggleReportsFeature: PrivacyConfigurationToggleReportsFeature,
+                currentLocale: Locale = Locale.current) {
+        let isCurrentLanguageEnglish = currentLocale.languageCode == "en"
+        isEnabled = privacyConfigurationToggleReportsFeature.isEnabled && isCurrentLanguageEnglish
         guard isEnabled else { return }
-        let settings = manager.privacyConfig.settings(for: .toggleReports)
+        let settings = privacyConfigurationToggleReportsFeature.settings
         isDismissLogicEnabled = settings[Constants.dismissLogicEnabledKey] as? Bool ?? false
         dismissInterval = settings[Constants.dismissIntervalKey] as? TimeInterval ?? Constants.defaultTimeInterval
         isPromptLimitLogicEnabled = settings[Constants.promptLimitLogicEnabledKey] as? Bool ?? false

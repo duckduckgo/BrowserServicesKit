@@ -75,7 +75,7 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
     private let variant: PrivacyDashboardVariant
     private let eventMapping: EventMapping<PrivacyDashboardEvents>
 
-    private weak var webView: WKWebView?
+    weak var webView: WKWebView?
     private var cancellables = Set<AnyCancellable>()
 
     private var protectionStateToSubmitOnToggleReportDismiss: ProtectionState?
@@ -86,14 +86,14 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
     public init(privacyInfo: PrivacyInfo?,
                 entryPoint: PrivacyDashboardEntryPoint,
                 variant: PrivacyDashboardVariant,
-                privacyConfigurationManager: PrivacyConfigurationManaging,
+                toggleReportsFeature: ToggleReportsFeature,
                 eventMapping: EventMapping<PrivacyDashboardEvents>) {
         self.privacyInfo = privacyInfo
         self.entryPoint = entryPoint
         self.variant = variant
         self.eventMapping = eventMapping
-        privacyDashboardScript = PrivacyDashboardUserScript(privacyConfigurationManager: privacyConfigurationManager)
-        toggleReportsManager = ToggleReportsManager(feature: ToggleReportsFeature(manager: privacyConfigurationManager))
+        privacyDashboardScript = PrivacyDashboardUserScript()
+        toggleReportsManager = ToggleReportsManager(feature: toggleReportsFeature)
     }
 
     public func setup(for webView: WKWebView) {
@@ -102,6 +102,15 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
 
         setupPrivacyDashboardUserScript()
         loadStartScreen()
+    }
+
+    private func setupPrivacyDashboardUserScript() {
+        guard let webView else { return }
+        privacyDashboardScript.delegate = self
+        webView.configuration.userContentController.addUserScript(privacyDashboardScript.makeWKUserScriptSync())
+        privacyDashboardScript.messageNames.forEach { messageName in
+            webView.configuration.userContentController.add(privacyDashboardScript, name: messageName)
+        }
     }
 
     private func loadStartScreen() {
@@ -134,13 +143,9 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
         privacyDashboardScript.setIsPendingUpdates(false, webView: webView)
     }
 
-    private func setupPrivacyDashboardUserScript() {
-        guard let webView else { return }
-        privacyDashboardScript.delegate = self
-        webView.configuration.userContentController.addUserScript(privacyDashboardScript.makeWKUserScriptSync())
-        privacyDashboardScript.messageNames.forEach { messageName in
-            webView.configuration.userContentController.add(privacyDashboardScript, name: messageName)
-        }
+    public func handleViewWillDisappear() {
+        processToggleReportIfNeeded(didSendReport: false)
+        recordToggleDismissalIfNeeded()
     }
 
 }
@@ -309,6 +314,12 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
         }
     }
 
+    private func recordToggleDismissalIfNeeded() {
+        if isInToggleReportingFlow {
+            toggleReportsManager.recordDismissal()
+        }
+    }
+
     private var isInToggleReportingFlow: Bool {
         if case .toggleReport = entryPoint {
             return true
@@ -316,17 +327,6 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
             return true
         }
         return false
-    }
-
-    private func recordToggleDismissalIfNeeded() {
-        if isInToggleReportingFlow {
-            toggleReportsManager.recordDismissal()
-        }
-    }
-
-    public func handleViewWillDisappear() {
-        processToggleReportIfNeeded(didSendReport: false)
-        recordToggleDismissalIfNeeded()
     }
 
     func userScriptDidRequestShowReportBrokenSite(_ userScript: PrivacyDashboardUserScript) {
@@ -341,6 +341,7 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
         privacyDashboardDelegate?.privacyDashboardController(self, didSetHeight: height)
     }
 
+    // TODO: to be tested
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestSubmitBrokenSiteReportWithCategory category: String, description: String) {
         var parameters = [PrivacyDashboardEvents.Parameters.variant: variant.rawValue]
         if case let .afterTogglePrompt(_, didToggleProtectionsFixIssue) = entryPoint {
@@ -368,6 +369,7 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
         privacyDashboardScript.setToggleReportOptions(forSite: site, webView: webView)
     }
 
+    // TODO: to be tested
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectReportAction shouldSendReport: Bool) {
         if shouldSendReport {
             privacyDashboardDelegate?.privacyDashboardController(self, didRequestSubmitToggleReportWithSource: source)

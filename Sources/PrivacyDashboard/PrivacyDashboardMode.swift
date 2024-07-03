@@ -18,7 +18,6 @@
 
 /// Type of web page displayed
 public enum PrivacyDashboardEntryPoint: Equatable {
-
     // TODO: missing documentation, what is each option, etc.
     // what is NOT present on mac (toggleReport)
     case dashboard

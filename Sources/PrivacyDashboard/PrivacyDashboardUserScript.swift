@@ -54,7 +54,7 @@ public enum PrivacyDashboardTheme: String, Encodable {
 
 }
 
-public enum Screen: String, Decodable {
+public enum Screen: String, Decodable, CaseIterable {
 
     case primaryScreen
 
@@ -139,11 +139,6 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
     var messageNames: [String] { MessageNames.allCases.map(\.rawValue) }
 
     weak var delegate: PrivacyDashboardUserScriptDelegate?
-    private let privacyConfigurationManager: PrivacyConfigurationManaging
-
-    init(privacyConfigurationManager: PrivacyConfigurationManaging) {
-        self.privacyConfigurationManager = privacyConfigurationManager
-    }
 
     // swiftlint:disable:next cyclomatic_complexity
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
@@ -211,7 +206,7 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
     }
 
     private func handleClose() {
-        delegate?.userScriptDidRequestClosing(self)
+        delegate?.userScriptDidRequestClose(self)
     }
 
     private func handleShowReportBrokenSite() {
