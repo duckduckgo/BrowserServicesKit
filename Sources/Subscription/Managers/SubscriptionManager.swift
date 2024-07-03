@@ -19,39 +19,39 @@
 import Foundation
 import Common
 
-public protocol SubscriptionManaging {
+public protocol SubscriptionManager {
 
-    var accountManager: AccountManaging { get }
-    var subscriptionService: SubscriptionService { get }
-    var authService: AuthService { get }
+    var accountManager: AccountManager { get }
+    var subscriptionEndpointService: SubscriptionEndpointService { get }
+    var authEndpointService: AuthEndpointService { get }
     var currentEnvironment: SubscriptionEnvironment { get }
     var canPurchase: Bool { get }
-    @available(macOS 12.0, iOS 15.0, *) func storePurchaseManager() -> StorePurchaseManaging
+    @available(macOS 12.0, iOS 15.0, *) func storePurchaseManager() -> StorePurchaseManager
     func loadInitialData()
-    func updateSubscriptionStatus(completion: @escaping (_ isActive: Bool) -> Void)
+    func refreshCachedSubscriptionAndEntitlements(completion: @escaping (_ isSubscriptionActive: Bool) -> Void)
     func url(for type: SubscriptionURL) -> URL
 }
 
 /// Single entry point for everything related to Subscription. This manager is disposable, every time something related to the environment changes this need to be recreated.
-final public class SubscriptionManager: SubscriptionManaging {
+public final class DefaultSubscriptionManager: SubscriptionManager {
 
-    private let _storePurchaseManager: StorePurchaseManaging?
+    private let _storePurchaseManager: StorePurchaseManager?
 
-    public let accountManager: AccountManaging
-    public let subscriptionService: SubscriptionService
-    public let authService: AuthService
+    public let accountManager: AccountManager
+    public let subscriptionEndpointService: SubscriptionEndpointService
+    public let authEndpointService: AuthEndpointService
     public let currentEnvironment: SubscriptionEnvironment
     public private(set) var canPurchase: Bool = false
 
-    public init(storePurchaseManager: StorePurchaseManaging? = nil,
-                accountManager: AccountManaging,
-                subscriptionService: SubscriptionService,
-                authService: AuthService,
+    public init(storePurchaseManager: StorePurchaseManager? = nil,
+                accountManager: AccountManager,
+                subscriptionEndpointService: SubscriptionEndpointService,
+                authEndpointService: AuthEndpointService,
                 subscriptionEnvironment: SubscriptionEnvironment) {
         self._storePurchaseManager = storePurchaseManager
         self.accountManager = accountManager
-        self.subscriptionService = subscriptionService
-        self.authService = authService
+        self.subscriptionEndpointService = subscriptionEndpointService
+        self.authEndpointService = authEndpointService
         self.currentEnvironment = subscriptionEnvironment
         switch currentEnvironment.purchasePlatform {
         case .appStore:
@@ -66,7 +66,7 @@ final public class SubscriptionManager: SubscriptionManaging {
     }
 
     @available(macOS 12.0, iOS 15.0, *)
-    public func storePurchaseManager() -> StorePurchaseManaging {
+    public func storePurchaseManager() -> StorePurchaseManager {
         return _storePurchaseManager!
     }
 
@@ -101,7 +101,7 @@ final public class SubscriptionManager: SubscriptionManaging {
 
     private func setupForStripe() {
         Task {
-            if case let .success(products) = await subscriptionService.getProducts() {
+            if case let .success(products) = await subscriptionEndpointService.getProducts() {
                 canPurchase = !products.isEmpty
             }
         }
@@ -112,20 +112,37 @@ final public class SubscriptionManager: SubscriptionManaging {
     public func loadInitialData() {
         Task {
             if let token = accountManager.accessToken {
-                _ = await subscriptionService.getSubscription(accessToken: token, cachePolicy: .reloadIgnoringLocalCacheData)
+                _ = await subscriptionEndpointService.getSubscription(accessToken: token, cachePolicy: .reloadIgnoringLocalCacheData)
                 _ = await accountManager.fetchEntitlements(cachePolicy: .reloadIgnoringLocalCacheData)
             }
         }
     }
 
-    public func updateSubscriptionStatus(completion: @escaping (_ isActive: Bool) -> Void) {
+    public func refreshCachedSubscriptionAndEntitlements(completion: @escaping (_ isSubscriptionActive: Bool) -> Void) {
         Task {
-           guard let token = accountManager.accessToken else { return }
+            guard let token = accountManager.accessToken else { return }
 
-            if case .success(let subscription) = await subscriptionService.getSubscription(accessToken: token, cachePolicy: .reloadIgnoringLocalCacheData) {
-                completion(subscription.isActive)
+            var isSubscriptionActive = false
+
+            defer {
+                completion(isSubscriptionActive)
             }
 
+            // Refetch and cache subscription
+            switch await subscriptionEndpointService.getSubscription(accessToken: token, cachePolicy: .reloadIgnoringLocalCacheData) {
+            case .success(let subscription):
+                isSubscriptionActive = subscription.isActive
+            case .failure(let error):
+                if case let .apiError(serviceError) = error, case let .serverError(statusCode, error) = serviceError {
+                    if statusCode == 401 {
+                        // Token is no longer valid
+                        accountManager.signOut()
+                        return
+                    }
+                }
+            }
+
+            // Refetch and cache entitlements
             _ = await accountManager.fetchEntitlements(cachePolicy: .reloadIgnoringLocalCacheData)
         }
     }

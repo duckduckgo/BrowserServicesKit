@@ -1,7 +1,7 @@
 //
-//  ExtensionRequest.swift
+//  SubscriptionTokenKeychainStorageMock.swift
 //
-//  Copyright © 2023 DuckDuckGo. All rights reserved.
+//  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -17,18 +17,20 @@
 //
 
 import Foundation
+import Subscription
 
-public enum VPNCommand: Codable {
-    case expireRegistrationKey
-    case removeSystemExtension
-    case removeVPNConfiguration
-    case sendTestNotification
-    case uninstallVPN
-    case disableConnectOnDemandAndShutDown
-    case quitAgent
-}
+public class SubscriptionTokenKeychainStorageMock: SubscriptionTokenStoring {
+    public var accessToken: String?
 
-public enum ExtensionRequest: Codable {
-    case changeTunnelSetting(_ change: VPNSettings.Change)
-    case command(_ command: VPNCommand)
+    public func getAccessToken() throws -> String? {
+        accessToken
+    }
+
+    public func store(accessToken: String) throws {
+        self.accessToken = accessToken
+    }
+
+    public func removeAccessToken() throws {
+        accessToken = nil
+    }
 }
