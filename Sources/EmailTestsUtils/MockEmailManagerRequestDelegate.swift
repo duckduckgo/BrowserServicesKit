@@ -1,6 +1,5 @@
 //
 //  MockEmailManagerRequestDelegate.swift
-//  DuckDuckGo
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -44,8 +43,8 @@ public class MockEmailManagerRequestDelegate: EmailManagerRequestDelegate {
     public var keychainAccessError: EmailKeychainAccessError?
 
     public func emailManagerKeychainAccessFailed(_ emailManager: EmailManager,
-                                          accessType: EmailKeychainAccessType,
-                                          error: EmailKeychainAccessError) {
+                                                 accessType: EmailKeychainAccessType,
+                                                 error: EmailKeychainAccessError) {
         keychainAccessErrorAccessType = accessType
         keychainAccessError = error
     }

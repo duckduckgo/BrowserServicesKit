@@ -24,7 +24,7 @@ public class MockRemoteMessagePercentileStore: RemoteMessagingPercentileStoring 
     public var percentileStorage: [String: Float]
     public var defaultPercentage: Float
 
-    public init(percentileStorage: [String : Float] = [:], defaultPercentage: Float = 0) {
+    public init(percentileStorage: [String: Float] = [:], defaultPercentage: Float = 0) {
         self.percentileStorage = percentileStorage
         self.defaultPercentage = defaultPercentage
     }
