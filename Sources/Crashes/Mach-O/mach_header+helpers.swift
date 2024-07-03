@@ -17,6 +17,7 @@
 //
 
 import Foundation
+import MachO
 
 #if !(arch(x86_64) || arch(arm64))
     #error("This code is only compatible with 64-bit architecture. Adjust the Mach Header definitions (like segment_command_64, LC_SEGMENT_64 and others) for current platform")

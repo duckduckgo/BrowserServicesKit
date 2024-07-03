@@ -17,6 +17,7 @@
 //
 
 import Foundation
+import MachO
 
 extension UnsafePointer where Pointee == load_command {
 

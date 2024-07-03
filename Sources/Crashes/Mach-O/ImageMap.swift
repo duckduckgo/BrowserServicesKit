@@ -17,6 +17,7 @@
 //
 
 import Foundation
+import MachO
 
 struct ImageMap {
 
@@ -44,40 +45,36 @@ struct ImageMap {
         self.indirectSymtab = linkeditBase.advanced(by: Int(dysymtabCmd.indirectsymoff)).assumingMemoryBound(to: UInt32.self)
     }
 
-    // swiftlint:disable:next large_tuple
-    static func findCommandsAndSegments(in header: UnsafePointer<mach_header_64>) -> (symtabCmd: symtab_command?, dysymtabCmd: dysymtab_command?, linkeditSegment: segment_command_64?, dataSegment: UnsafePointer<segment_command_64>?, dataConstSegment: UnsafePointer<segment_command_64>?) {
+    private typealias CommandsAndSegments = (symtabCmd: symtab_command?, dysymtabCmd: dysymtab_command?, linkeditSegment: segment_command_64?, dataSegment: UnsafePointer<segment_command_64>?, dataConstSegment: UnsafePointer<segment_command_64>?) // swiftlint:disable:this large_tuple
 
-        var symtabCmd: symtab_command?
-        var dysymtabCmd: dysymtab_command?
-        var linkeditSegment: segment_command_64?
-        var dataSegment: UnsafePointer<segment_command_64>?
-        var dataConstSegment: UnsafePointer<segment_command_64>?
+    private static func findCommandsAndSegments(in header: UnsafePointer<mach_header_64>) -> CommandsAndSegments {
+        var result: CommandsAndSegments = (nil, nil, nil, nil, nil)
 
         for loadCommand in header.loadCommands {
             switch loadCommand.cmd {
-            case LC_SYMTAB where symtabCmd == nil:
-                symtabCmd = loadCommand.as(symtab_command.self).pointee
-            case LC_DYSYMTAB where dysymtabCmd == nil:
-                dysymtabCmd = loadCommand.as(dysymtab_command.self).pointee
+            case LC_SYMTAB where result.symtabCmd == nil:
+                result.symtabCmd = loadCommand.as(symtab_command.self).pointee
+            case LC_DYSYMTAB where result.dysymtabCmd == nil:
+                result.dysymtabCmd = loadCommand.as(dysymtab_command.self).pointee
             default:
                 guard let segment = loadCommand.as(segment_command_64.self) else { continue }
                 switch segment.segname {
                 case SEG_LINKEDIT:
-                    linkeditSegment = segment.pointee
+                    result.linkeditSegment = segment.pointee
                 case SEG_DATA:
-                    dataSegment = segment
+                    result.dataSegment = segment
                 case "__DATA_CONST":
-                    dataConstSegment = segment
+                    result.dataConstSegment = segment
                 default: continue
                 }
             }
 
-            if symtabCmd != nil, dysymtabCmd != nil, linkeditSegment != nil, dataSegment != nil, dataConstSegment != nil {
+            if result.symtabCmd != nil, result.dysymtabCmd != nil, result.linkeditSegment != nil, result.dataSegment != nil, result.dataConstSegment != nil {
                 break
             }
         }
 
-        return (symtabCmd, dysymtabCmd, linkeditSegment, dataSegment, dataConstSegment)
+        return result
     }
 
     func symbolName(at symtabIndex: Int) -> String {

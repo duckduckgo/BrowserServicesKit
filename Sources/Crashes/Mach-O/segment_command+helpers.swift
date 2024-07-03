@@ -18,6 +18,7 @@
 
 import Common
 import Foundation
+import MachO
 
 extension UnsafePointer where Pointee == segment_command_64 {
 

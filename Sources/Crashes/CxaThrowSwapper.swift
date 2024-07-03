@@ -68,6 +68,7 @@
 
 import Foundation
 import Common
+import MachO
 
 public typealias CxaThrowType = @convention(c) (UnsafeMutableRawPointer?, UnsafeMutableRawPointer?, (@convention(c) (UnsafeMutableRawPointer?) -> Void)?) -> Void
 
