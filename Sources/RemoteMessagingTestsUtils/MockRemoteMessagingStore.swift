@@ -33,7 +33,7 @@ public struct MockRemoteMessagingStore: RemoteMessagingStoring {
         scheduledRemoteMessage: RemoteMessageModel? = nil,
         remoteMessages: [String : RemoteMessageModel] = [:],
         shownRemoteMessagesIDs: [String] = [],
-        dismissedRemoteMessagesIDs: [String] = [],
+        dismissedRemoteMessagesIDs: [String] = []
     ) {
         self.remoteMessagingConfig = remoteMessagingConfig
         self.scheduledRemoteMessage = scheduledRemoteMessage

@@ -20,16 +20,15 @@ import CoreData
 import Foundation
 import Persistence
 import RemoteMessagingTestsUtils
+import TestUtils
 import XCTest
 @testable import RemoteMessaging
 
 class RemoteMessagingStoreTests: XCTestCase {
 
-    static let userDefaultsSuiteName = "remote-messaging-store-tests"
-
     private var store: RemoteMessagingStore!
     private let notificationCenter = NotificationCenter()
-    private var defaults: UserDefaults!
+    private var defaults: MockKeyValueStore!
     var remoteMessagingDatabase: CoreDataDatabase!
     var location: URL!
 
@@ -52,8 +51,7 @@ class RemoteMessagingStoreTests: XCTestCase {
             remoteMessagingAvailabilityProvider: MockRemoteMessagingAvailabilityProvider()
         )
 
-        defaults = UserDefaults(suiteName: Self.userDefaultsSuiteName)!
-        defaults.removePersistentDomain(forName: Self.userDefaultsSuiteName)
+        defaults = MockKeyValueStore()
     }
 
     override func tearDownWithError() throws {
@@ -172,7 +170,7 @@ class RemoteMessagingStoreTests: XCTestCase {
                     isPrivacyProSubscriptionExpired: false,
                     dismissedMessageIds: []
                 ),
-                percentileStore: RemoteMessagingPercentileUserDefaultsStore(userDefaults: self.defaults),
+                percentileStore: RemoteMessagingPercentileUserDefaultsStore(keyValueStore: self.defaults),
                 surveyActionMapper: MockRemoteMessagingSurveyActionMapper(),
                 dismissedMessageIds: []
         )

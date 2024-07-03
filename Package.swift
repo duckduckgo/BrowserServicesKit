@@ -499,6 +499,7 @@ let package = Package(
                 "EmailTestsUtils",
                 "RemoteMessaging",
                 "RemoteMessagingTestsUtils",
+                "TestUtils",
             ],
             resources: [
                 .copy("Resources/remote-messaging-config-example.json"),

@@ -16,21 +16,21 @@
 //  limitations under the License.
 //
 
+import TestUtils
 import XCTest
 @testable import RemoteMessaging
 
 class RemoteMessagingPercentileUserDefaultsStoreTests: XCTestCase {
 
-    private var userDefaults: UserDefaults!
+    private var keyValueStore: MockKeyValueStore!
 
     override func setUp() {
         super.setUp()
-        userDefaults = UserDefaults(suiteName: #file)
-        userDefaults.removePersistentDomain(forName: #file)
+        keyValueStore = MockKeyValueStore()
     }
 
     func testWhenFetchingPercentileForFirstTime_ThenPercentileIsCreatedAndStored() {
-        let store = RemoteMessagingPercentileUserDefaultsStore(userDefaults: userDefaults)
+        let store = RemoteMessagingPercentileUserDefaultsStore(keyValueStore: keyValueStore)
         let percentile = store.percentile(forMessageId: "message-1")
 
         XCTAssert(percentile >= 0.0)
@@ -38,7 +38,7 @@ class RemoteMessagingPercentileUserDefaultsStoreTests: XCTestCase {
     }
 
     func testWhenFetchingPercentileMultipleTimes_ThenAllPercentileFetchesReturnSameValue() {
-        let store = RemoteMessagingPercentileUserDefaultsStore(userDefaults: userDefaults)
+        let store = RemoteMessagingPercentileUserDefaultsStore(keyValueStore: keyValueStore)
         let percentile1 = store.percentile(forMessageId: "message-1")
         let percentile2 = store.percentile(forMessageId: "message-1")
         let percentile3 = store.percentile(forMessageId: "message-1")
@@ -48,14 +48,14 @@ class RemoteMessagingPercentileUserDefaultsStoreTests: XCTestCase {
     }
 
     func testWhenFetchingPercentileForMultipleMessages_ThenEachMessageHasIndependentPercentile() {
-        let store = RemoteMessagingPercentileUserDefaultsStore(userDefaults: userDefaults)
+        let store = RemoteMessagingPercentileUserDefaultsStore(keyValueStore: keyValueStore)
         _ = store.percentile(forMessageId: "message-1")
         _ = store.percentile(forMessageId: "message-2")
         _ = store.percentile(forMessageId: "message-3")
 
-        let percentileDictionary = userDefaults.dictionary(
-            forKey: RemoteMessagingPercentileUserDefaultsStore.Constants.remoteMessagingPercentileMapping
-        )
+        let key = RemoteMessagingPercentileUserDefaultsStore.Constants.remoteMessagingPercentileMapping
+
+        let percentileDictionary = keyValueStore.object(forKey: key) as? [String: Float]
 
         XCTAssertEqual(percentileDictionary?.count, 3)
     }
