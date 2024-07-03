@@ -39,7 +39,7 @@ extension UnsafeBufferPointer {
         }
         defer {
             // restore original memory protection
-            if protection | (PROT_WRITE | PROT_READ) != (PROT_WRITE | PROT_READ) {
+            if protection & (PROT_WRITE | PROT_READ) != (PROT_WRITE | PROT_READ) {
                 let result = mprotect(mutableBuffer.baseAddress!, mutableBuffer.count * MemoryLayout<Element>.size, protection)
                 os_log(.error, "failed to restore protection %d for %s with %d", protection, self.debugDescription, result)
             }
