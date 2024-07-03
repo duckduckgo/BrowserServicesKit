@@ -19,29 +19,72 @@
 import Foundation
 import Common
 
-public class AccountManager: AccountManaging {
+public protocol AccountManagerKeychainAccessDelegate: AnyObject {
+    func accountManagerKeychainAccessFailed(accessType: AccountKeychainAccessType, error: AccountKeychainAccessError)
+}
+
+public protocol AccountManager {
+
+    var delegate: AccountManagerKeychainAccessDelegate? { get set }
+    var accessToken: String? { get }
+    var authToken: String? { get }
+    var email: String? { get }
+    var externalID: String? { get }
+
+    func storeAuthToken(token: String)
+    func storeAccount(token: String, email: String?, externalID: String?)
+    func signOut(skipNotification: Bool)
+    func signOut()
+    func migrateAccessTokenToNewStore() throws
+
+    // Entitlements
+    func hasEntitlement(forProductName productName: Entitlement.ProductName, cachePolicy: APICachePolicy) async -> Result<Bool, Error>
+
+    func updateCache(with entitlements: [Entitlement])
+    @discardableResult func fetchEntitlements(cachePolicy: APICachePolicy) async -> Result<[Entitlement], Error>
+    func exchangeAuthTokenToAccessToken(_ authToken: String) async -> Result<String, Error>
+
+    typealias AccountDetails = (email: String?, externalID: String)
+    func fetchAccountDetails(with accessToken: String) async -> Result<AccountDetails, Error>
+
+    @discardableResult func checkForEntitlements(wait waitTime: Double, retry retryCount: Int) async -> Bool
+}
+
+extension AccountManager {
+
+    public func hasEntitlement(forProductName productName: Entitlement.ProductName) async -> Result<Bool, Error> {
+        await hasEntitlement(forProductName: productName, cachePolicy: .returnCacheDataElseLoad)
+    }
+
+    public func fetchEntitlements() async -> Result<[Entitlement], Error> {
+        await fetchEntitlements(cachePolicy: .returnCacheDataElseLoad)
+    }
+
+    public var isUserAuthenticated: Bool { accessToken != nil }
+}
+
+public final class DefaultAccountManager: AccountManager {
 
     private let storage: AccountStoring
     private let entitlementsCache: UserDefaultsCache<[Entitlement]>
     private let accessTokenStorage: SubscriptionTokenStoring
-    private let subscriptionService: SubscriptionService
-    private let authService: AuthService
+    private let subscriptionEndpointService: SubscriptionEndpointService
+    private let authEndpointService: AuthEndpointService
 
     public weak var delegate: AccountManagerKeychainAccessDelegate?
-    public var isUserAuthenticated: Bool { accessToken != nil }
 
     // MARK: - Initialisers
 
     public init(storage: AccountStoring = AccountKeychainStorage(),
                 accessTokenStorage: SubscriptionTokenStoring,
                 entitlementsCache: UserDefaultsCache<[Entitlement]>,
-                subscriptionService: SubscriptionService,
-                authService: AuthService) {
+                subscriptionEndpointService: SubscriptionEndpointService,
+                authEndpointService: AuthEndpointService) {
         self.storage = storage
         self.entitlementsCache = entitlementsCache
         self.accessTokenStorage = accessTokenStorage
-        self.subscriptionService = subscriptionService
-        self.authService = authService
+        self.subscriptionEndpointService = subscriptionEndpointService
+        self.authEndpointService = authEndpointService
     }
 
     // MARK: -
@@ -161,7 +204,7 @@ public class AccountManager: AccountManaging {
         do {
             try storage.clearAuthenticationState()
             try accessTokenStorage.removeAccessToken()
-            subscriptionService.signOut()
+            subscriptionEndpointService.signOut()
             entitlementsCache.reset()
         } catch {
             if let error = error as? AccountKeychainAccessError {
@@ -199,23 +242,13 @@ public class AccountManager: AccountManaging {
     }
 
     // MARK: -
-
-    public enum EntitlementsError: Error {
-        case noAccessToken
-        case noCachedData
-    }
-
-    public func hasEntitlement(for entitlement: Entitlement.ProductName, cachePolicy: CachePolicy = .returnCacheDataElseLoad) async -> Result<Bool, Error> {
+    public func hasEntitlement(forProductName productName: Entitlement.ProductName, cachePolicy: APICachePolicy) async -> Result<Bool, Error> {
         switch await fetchEntitlements(cachePolicy: cachePolicy) {
         case .success(let entitlements):
-            return .success(entitlements.compactMap { $0.product }.contains(entitlement))
+            return .success(entitlements.compactMap { $0.product }.contains(productName))
         case .failure(let error):
             return .failure(error)
         }
-    }
-
-    public func hasEntitlement(for entitlement: Entitlement.ProductName) async -> Result<Bool, Error> {
-        return await hasEntitlement(for: entitlement, cachePolicy: .returnCacheDataElseLoad)
     }
 
     private func fetchRemoteEntitlements() async -> Result<[Entitlement], Error> {
@@ -224,7 +257,7 @@ public class AccountManager: AccountManaging {
             return .failure(EntitlementsError.noAccessToken)
         }
 
-        switch await authService.validateToken(accessToken: accessToken) {
+        switch await authEndpointService.validateToken(accessToken: accessToken) {
         case .success(let response):
             let entitlements = response.account.entitlements
             updateCache(with: entitlements)
@@ -249,8 +282,13 @@ public class AccountManager: AccountManaging {
         }
     }
 
+    public enum EntitlementsError: Error {
+        case noAccessToken
+        case noCachedData
+    }
+
     @discardableResult
-    public func fetchEntitlements(cachePolicy: CachePolicy = .returnCacheDataElseLoad) async -> Result<[Entitlement], Error> {
+    public func fetchEntitlements(cachePolicy: APICachePolicy) async -> Result<[Entitlement], Error> {
 
         switch cachePolicy {
         case .reloadIgnoringLocalCacheData:
@@ -274,7 +312,7 @@ public class AccountManager: AccountManaging {
     }
 
     public func exchangeAuthTokenToAccessToken(_ authToken: String) async -> Result<String, Error> {
-        switch await authService.getAccessToken(token: authToken) {
+        switch await authEndpointService.getAccessToken(token: authToken) {
         case .success(let response):
             return .success(response.accessToken)
         case .failure(let error):
@@ -284,31 +322,13 @@ public class AccountManager: AccountManaging {
     }
 
     public func fetchAccountDetails(with accessToken: String) async -> Result<AccountDetails, Error> {
-        switch await authService.validateToken(accessToken: accessToken) {
+        switch await authEndpointService.validateToken(accessToken: accessToken) {
         case .success(let response):
             return .success(AccountDetails(email: response.account.email, externalID: response.account.externalID))
         case .failure(let error):
             os_log(.error, log: .subscription, "[AccountManager] fetchAccountDetails error: %{public}@", error.localizedDescription)
             return .failure(error)
         }
-    }
-
-    public func refreshSubscriptionAndEntitlements() async {
-        os_log(.info, log: .subscription, "[AccountManager] refreshSubscriptionAndEntitlements")
-
-        guard let token = accessToken else {
-            subscriptionService.signOut()
-            entitlementsCache.reset()
-            return
-        }
-
-        if case .success(let subscription) = await subscriptionService.getSubscription(accessToken: token, cachePolicy: .reloadIgnoringLocalCacheData) {
-            if !subscription.isActive {
-                signOut()
-            }
-        }
-
-        await fetchEntitlements(cachePolicy: .reloadIgnoringLocalCacheData)
     }
 
     @discardableResult

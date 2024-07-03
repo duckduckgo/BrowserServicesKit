@@ -61,6 +61,7 @@ final class FailureRecoveryHandlerTests: XCTestCase {
             to: server,
             includedRoutes: expectedIncludedRoutes,
             excludedRoutes: expectedExcludedRoutes,
+            dnsSettings: .default,
             isKillSwitchEnabled: expectedKillSwitchEnabledValue
         ) {_ in }
         guard let spyGenerateTunnelConfiguration = deviceManager.spyGenerateTunnelConfiguration else {
@@ -128,6 +129,7 @@ final class FailureRecoveryHandlerTests: XCTestCase {
             to: .mockRegisteredServer,
             includedRoutes: [],
             excludedRoutes: [],
+            dnsSettings: .default,
             isKillSwitchEnabled: false
         ) {_ in }
 
@@ -314,6 +316,7 @@ final class FailureRecoveryHandlerTests: XCTestCase {
             to: .mockRegisteredServer,
             includedRoutes: [],
             excludedRoutes: [],
+            dnsSettings: .default,
             isKillSwitchEnabled: false
         ) {_ in }
     }
@@ -331,6 +334,7 @@ final class FailureRecoveryHandlerTests: XCTestCase {
             to: .mockRegisteredServer,
             includedRoutes: [],
             excludedRoutes: [],
+            dnsSettings: .default,
             isKillSwitchEnabled: false
         ) { _ in
             throw WireGuardAdapterError.startWireGuardBackend(0)
@@ -349,7 +353,7 @@ final class FailureRecoveryHandlerTests: XCTestCase {
 
         var newConfigResult: NetworkProtectionDeviceManagement.GenerateTunnelConfigurationResult?
 
-        await failureRecoveryHandler.attemptRecovery(to: lastServer, includedRoutes: [], excludedRoutes: [], isKillSwitchEnabled: true) { configResult in
+        await failureRecoveryHandler.attemptRecovery(to: lastServer, includedRoutes: [], excludedRoutes: [], dnsSettings: .default, isKillSwitchEnabled: true) { configResult in
             newConfigResult = configResult
         }
         return newConfigResult

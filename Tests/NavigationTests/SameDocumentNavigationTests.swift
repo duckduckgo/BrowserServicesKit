@@ -442,9 +442,9 @@ class SameDocumentNavigationTests: DistributedNavigationDelegateTestsBase {
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.sessionStatePushClientRedirectData.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
 
-            .didSameDocumentNavigation(Nav(action: NavAction(req(urls.localHashed1, [:]), .sameDocumentNavigation(.sessionStatePush), from: history[1], src: main(urls.localHashed1)), .finished), 1),
+            .didSameDocumentNavigation(Nav(action: NavAction(req(urls.localHashed1, [:]), .sameDocumentNavigation(.sessionStatePush), from: history[1], src: main(urls.localHashed1)), .finished, isCurrent: false), 1),
 
-            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed, isCurrent: false)),
+            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed, isCurrent: true)),
         ])
     }
 

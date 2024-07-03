@@ -881,21 +881,21 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
             }
 
         } else {
-            // don‘t mark extra Session State Pop navigations as `current` when there‘s a `current` Anchor navigation stored in `startedNavigation`
-            let isCurrent = if let startedNavigation {
-                !(startedNavigation.navigationAction.navigationType.isSameDocumentNavigation && startedNavigation.isCurrent)
-            } else {
-                true
-            }
+            let shouldBecomeCurrent = {
+                guard let startedNavigation else { return true } // no current navigation, make the same-doc navigation current
+                guard startedNavigation.navigationAction.navigationType.isSameDocumentNavigation else { return false } // don‘t intrude into current non-same-doc navigation
+                // don‘t mark extra Session State Pop navigations as `current` when there‘s a `current` same-doc Anchor navigation stored in `startedNavigation`
+                return !startedNavigation.isCurrent
+            }()
 
-            navigation = Navigation(identity: NavigationIdentity(wkNavigation), responders: responders, state: .expected(nil), isCurrent: isCurrent)
+            navigation = Navigation(identity: NavigationIdentity(wkNavigation), responders: responders, state: .expected(nil), isCurrent: shouldBecomeCurrent)
             let request = wkNavigation?.request ?? URLRequest(url: webView.url ?? .empty)
             let navigationAction = NavigationAction(request: request, navigationType: .sameDocumentNavigation(navigationType), currentHistoryItemIdentity: currentHistoryItemIdentity, redirectHistory: nil, isUserInitiated: wkNavigation?.isUserInitiated ?? false, sourceFrame: .mainFrame(for: webView), targetFrame: .mainFrame(for: webView), shouldDownload: false, mainFrameNavigation: navigation)
             navigation.navigationActionReceived(navigationAction)
-            os_log("new same-doc navigation(.%d): %s (%s): %s, isCurrent: %d", log: log, type: .debug, wkNavigationType, wkNavigation.debugDescription, navigation.debugDescription, navigationAction.debugDescription, isCurrent ? 1 : 0)
+            os_log("new same-doc navigation(.%d): %s (%s): %s, isCurrent: %d", log: log, type: .debug, wkNavigationType, wkNavigation.debugDescription, navigation.debugDescription, navigationAction.debugDescription, shouldBecomeCurrent ? 1 : 0)
 
             // store `current` navigations in `startedNavigation` to get `currentNavigation` published
-            if isCurrent {
+            if shouldBecomeCurrent {
                 self.startedNavigation = navigation
             }
             // mark Navigation as finished as we‘re in __did__SameDocumentNavigation

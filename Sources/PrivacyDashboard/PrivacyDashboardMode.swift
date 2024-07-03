@@ -23,19 +23,30 @@ public enum PrivacyDashboardMode: Equatable {
     case report
     case prompt(String)
     case toggleReport(completionHandler: (Bool) -> Void)
+    case afterTogglePrompt(category: String, didToggleProtectionsFixIssue: Bool)
 
-    var screen: PrivacyDashboard.Screen {
-        switch self {
-        case .dashboard: return .primaryScreen
-        case .report: return .breakageForm
-        case .prompt: return .promptBreakageForm
-        case .toggleReport: return .toggleReport
+    func screen(for variant: PrivacyDashboardVariant) -> Screen {
+        switch (self, variant) {
+        case (.dashboard, _): return .primaryScreen
+
+        case (.report, .control): return .breakageForm
+        case (.report, .a): return .categorySelection
+        case (.report, .b): return .categoryTypeSelection
+        case (.afterTogglePrompt, _): return .choiceBreakageForm
+
+        case (.prompt, _): return .promptBreakageForm
+        case (.toggleReport, _): return .toggleReport
         }
     }
 
     public static func == (lhs: PrivacyDashboardMode, rhs: PrivacyDashboardMode) -> Bool {
         switch (lhs, rhs) {
-        case (.dashboard, .dashboard), (.report, .report), (.toggleReport, .toggleReport), (.prompt, .prompt):
+        case
+            (.dashboard, .dashboard),
+            (.report, .report),
+            (.toggleReport, .toggleReport),
+            (.prompt, .prompt),
+            (.afterTogglePrompt, .afterTogglePrompt):
             return true
         default:
             return false

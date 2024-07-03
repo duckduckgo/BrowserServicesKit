@@ -102,7 +102,7 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
 
     func testWhenValidJsonParsedThenRulesMappedIntoRemoteConfig() throws {
         let config = try decodeAndMapJson(fileName: "Resources/remote-messaging-config.json")
-        XCTAssertTrue(config.rules.count == 5)
+        XCTAssertTrue(config.rules.count == 6)
 
         let rule5 = config.rules.filter { $0.id == 5 }.first
         XCTAssertNotNil(rule5)
@@ -131,7 +131,7 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
         let rule8 = config.rules.filter { $0.id == 8 }.first
         XCTAssertNotNil(rule8)
         XCTAssertNil(rule8?.targetPercentile)
-        XCTAssertTrue(rule8?.attributes.count == 5)
+        XCTAssertTrue(rule8?.attributes.count == 7)
 
         attribs = rule8?.attributes.filter { $0 is DaysSinceNetPEnabledMatchingAttribute }
         XCTAssertEqual(attribs?.count, 1)
@@ -161,11 +161,30 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
             min: 25, max: 30, fallback: nil
         ))
 
+        attribs = rule8?.attributes.filter { $0 is PrivacyProPurchasePlatformMatchingAttribute }
+        XCTAssertEqual(attribs?.first as? PrivacyProPurchasePlatformMatchingAttribute, PrivacyProPurchasePlatformMatchingAttribute(
+            value: ["apple", "stripe"], fallback: nil
+        ))
+
+        attribs = rule8?.attributes.filter { $0 is PrivacyProSubscriptionStatusMatchingAttribute }
+        XCTAssertEqual(attribs?.first as? PrivacyProSubscriptionStatusMatchingAttribute, PrivacyProSubscriptionStatusMatchingAttribute(
+            value: "active", fallback: nil
+        ))
+
         let rule9 = config.rules.filter { $0.id == 9 }.first
         XCTAssertNotNil(rule9)
         XCTAssertNotNil(rule9?.targetPercentile)
         XCTAssertTrue(rule9?.attributes.count == 1)
         XCTAssertEqual(rule9?.targetPercentile?.before, 0.9)
+
+        let rule10 = config.rules.filter { $0.id == 10 }.first
+        XCTAssertNotNil(rule10)
+        XCTAssertNil(rule10?.targetPercentile)
+        XCTAssertTrue(rule10?.attributes.count == 1)
+
+        attribs = rule10?.attributes.filter { $0 is InteractedWithMessageMatchingAttribute }
+        XCTAssertEqual(attribs?.first as? InteractedWithMessageMatchingAttribute, InteractedWithMessageMatchingAttribute(value: ["One", "Two"], fallback: nil))
+
     }
 
     func testWhenJsonMessagesHaveUnknownTypesThenMessagesNotMappedIntoConfig() throws {

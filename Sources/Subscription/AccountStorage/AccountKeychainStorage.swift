@@ -48,7 +48,7 @@ public enum AccountKeychainAccessError: Error, Equatable {
     }
 }
 
-public class AccountKeychainStorage: AccountStoring {
+public final class AccountKeychainStorage: AccountStoring {
 
     public init() {}
 

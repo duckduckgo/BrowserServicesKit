@@ -28,7 +28,7 @@ public enum PrivacyFeature: String {
     case gpc
     case httpsUpgrade = "https"
     case autoconsent
-    case clickToPlay
+    case clickToLoad
     case autofill
     case ampLinks
     case trackingParameters
@@ -46,6 +46,8 @@ public enum PrivacyFeature: String {
     case performanceMetrics
     case privacyPro
     case sslCertificates
+    case brokenSiteReportExperiment
+    case toggleReports
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -90,14 +92,6 @@ public enum SyncSubfeature: String, PrivacySubfeature {
     case level3AllowCreateAccount
 }
 
-public enum PrivacyDashboardSubfeature: String, PrivacySubfeature {
-
-    public var parent: PrivacyFeature { .privacyDashboard }
-
-    case toggleReports
-
-}
-
 public enum AutoconsentSubfeature: String, PrivacySubfeature {
     public var parent: PrivacyFeature {
         .autoconsent
@@ -120,4 +114,10 @@ public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {
 public enum sslCertificatesSubfeature: String, PrivacySubfeature {
     public var parent: PrivacyFeature { .sslCertificates }
     case allowBypass
+}
+
+public enum DuckPlayerSubfeature: String, PrivacySubfeature {
+    public var parent: PrivacyFeature { .duckPlayer }
+    case pip
+    case autoplay
 }

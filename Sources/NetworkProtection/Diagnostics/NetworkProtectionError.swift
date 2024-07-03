@@ -35,6 +35,8 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
     case failedToParseServerListResponse(Error)
     case failedToFetchLocationList(Error)
     case failedToParseLocationListResponse(Error)
+    case failedToFetchServerStatus(Error)
+    case failedToParseServerStatusResponse(Error)
     case failedToEncodeRegisterKeyRequest
     case failedToFetchRegisteredServers(Error?)
     case failedToParseRegisteredServersResponse(Error)
@@ -94,6 +96,8 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
         case .failedToParseRedeemResponse: return 111
         case .invalidAuthToken: return 112
         case .serverListInconsistency: return 113
+        case .failedToFetchServerStatus: return 114
+        case .failedToParseServerStatusResponse: return 115
             // 200+ - Keychain errors
         case .failedToCastKeychainValueToData: return 300
         case .keychainReadError: return 201
@@ -156,7 +160,9 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
                 .failedToParseRegisteredServersResponse(let error),
                 .failedToParseRedeemResponse(let error),
                 .wireGuardSetNetworkSettings(let error),
-                .unhandledError(_, _, let error):
+                .unhandledError(_, _, let error),
+                .failedToFetchServerStatus(let error),
+                .failedToParseServerStatusResponse(let error):
             return [
                 NSUnderlyingErrorKey: error
             ]
