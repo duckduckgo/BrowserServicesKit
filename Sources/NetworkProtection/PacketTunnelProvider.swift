@@ -670,17 +670,17 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     private func startTunnel(onDemand: Bool) async throws {
         do {
-            os_log("Generating tunnel config", log: .networkProtection, type: .info)
-            os_log("Excluded ranges are: %{public}@", log: .networkProtection, type: .info, String(describing: settings.excludedRanges))
-            os_log("Server selection method: %{public}@", log: .networkProtection, type: .info, currentServerSelectionMethod.debugDescription)
-			os_log("DNS server: %{public}@", log: .networkProtection, type: .info, String(describing: settings.dnsSettings))
+            os_log("Generating tunnel config", log: .networkProtection)
+            os_log("Excluded ranges are: %{public}@", log: .networkProtection, String(describing: settings.excludedRanges))
+            os_log("Server selection method: %{public}@", log: .networkProtection, currentServerSelectionMethod.debugDescription)
+			os_log("DNS server: %{public}@", log: .networkProtection, String(describing: settings.dnsSettings))
             let tunnelConfiguration = try await generateTunnelConfiguration(serverSelectionMethod: currentServerSelectionMethod,
                                                                             includedRoutes: includedRoutes ?? [],
                                                                             excludedRoutes: settings.excludedRanges,
                                                                             dnsSettings: settings.dnsSettings,
                                                                             regenerateKey: true)
             try await startTunnel(with: tunnelConfiguration, onDemand: onDemand)
-            os_log("Done generating tunnel config", log: .networkProtection, type: .info)
+            os_log("Done generating tunnel config", log: .networkProtection)
         } catch {
             controllerErrorStore.lastErrorMessage = error.localizedDescription
             throw error
@@ -713,7 +713,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 #if os(iOS)
                         if #available(iOS 17.0, *), startReason == .manual {
                             try? await updateConnectOnDemand(enabled: true)
-                            os_log("Enabled Connect on Demand due to user-initiated startup", log: .networkProtection, type: .info)
+                            os_log("Enabled Connect on Demand due to user-initiated startup", log: .networkProtection)
                         }
 #endif
                     } catch {
@@ -731,7 +731,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     open override func stopTunnel(with reason: NEProviderStopReason) async {
         providerEvents.fire(.tunnelStopAttempt(.begin))
 
-        os_log("Stopping tunnel with reason %{public}@", log: .networkProtection, type: .info, String(describing: reason))
+        os_log("Stopping tunnel with reason %{public}@", log: .networkProtection, String(describing: reason))
 
         do {
             try await stopTunnel()
@@ -740,7 +740,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             // Disable Connect on Demand when disabling the tunnel from iOS settings on iOS 17.0+.
             if #available(iOS 17.0, *), case .userInitiated = reason {
                 try? await updateConnectOnDemand(enabled: false)
-                os_log("Disabled Connect on Demand due to user-initiated shutdown", log: .networkProtection, type: .info)
+                os_log("Disabled Connect on Demand due to user-initiated shutdown", log: .networkProtection)
             }
         } catch {
             providerEvents.fire(.tunnelStopAttempt(.failure(error)))
@@ -913,10 +913,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
         os_log("⚪️ Generated tunnel configuration for server at location: %{public}s (preferred server is %{public}s)",
                log: .networkProtection,
-               type: .info,
                newSelectedServer.serverInfo.serverLocation,
                newSelectedServer.serverInfo.name)
-        os_log("Excluded routes: %{public}@", log: .networkProtection, type: .info, String(describing: excludedRoutes))
+        os_log("Excluded routes: %{public}@", log: .networkProtection, String(describing: excludedRoutes))
 
         return configurationResult.tunnelConfiguration
     }
@@ -944,7 +943,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         /// We're skipping messages that are very frequent and not likely to affect anything in terms of functionality.
         /// We can opt to aggregate them somehow if we ever need them - for now I'm disabling.
         if message != .getDataVolume {
-            os_log("⚪️ Received app message: %{public}@", log: .networkProtectionIPCLog, type: .info, String(describing: message))
+            os_log("⚪️ Received app message: %{public}@", log: .networkProtectionIPCLog, String(describing: message))
         }
 
         switch message {
@@ -1214,7 +1213,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 return
             }
 
-            os_log("⚪️ Disabling Connect On Demand and shutting down the tunnel", log: .networkProtection, type: .info)
+            os_log("⚪️ Disabling Connect On Demand and shutting down the tunnel", log: .networkProtection)
 
             manager.isOnDemandEnabled = false
             try await manager.saveToPreferences()
@@ -1242,12 +1241,12 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     private func simulateTunnelFailure(completionHandler: ((Data?) -> Void)? = nil) {
         Task {
-            os_log("Simulating tunnel failure", log: .networkProtection, type: .info)
+            os_log("Simulating tunnel failure", log: .networkProtection)
 
             adapter.stop { [weak self] error in
                 if let error {
                     self?.debugEvents?.fire(error.networkProtectionError)
-                    os_log("🔴 Failed to stop WireGuard adapter: %{public}@", log: .networkProtection, type: .info, error.localizedDescription)
+                    os_log("🔴 Failed to stop WireGuard adapter: %{public}@", log: .networkProtection, error.localizedDescription)
                 }
 
                 completionHandler?(error.map { ExtensionMessageString($0.localizedDescription).rawValue })
@@ -1304,7 +1303,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             connectionStatus = .connected(connectedDate: Date())
         }
 
-        os_log("⚪️ Tunnel interface is %{public}@", log: .networkProtection, type: .info, adapter.interfaceName ?? "unknown")
+        os_log("⚪️ Tunnel interface is %{public}@", log: .networkProtection, adapter.interfaceName ?? "unknown")
 
         // These cases only make sense in the context of a connection that had trouble
         // and is being fixed, so we want to test the connection immediately.
@@ -1559,14 +1558,14 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     @MainActor
     public override func sleep() async {
-        os_log("Sleep", log: .networkProtectionSleepLog, type: .info)
+        os_log("Sleep", log: .networkProtectionSleepLog)
 
         await stopMonitors()
     }
 
     @MainActor
     public override func wake() {
-        os_log("Wake up", log: .networkProtectionSleepLog, type: .info)
+        os_log("Wake up", log: .networkProtectionSleepLog)
 
         // macOS can launch the extension due to calls to `sendProviderMessage`, so there's
         // a chance this is being called when the VPN isn't really meant to be connected or
@@ -1581,7 +1580,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
             do {
                 try await handleAdapterStarted(startReason: .wake)
-                os_log("🟢 Wake success", log: .networkProtectionConnectionTesterLog, type: .info)
+                os_log("🟢 Wake success", log: .networkProtectionConnectionTesterLog)
                 providerEvents.fire(.tunnelWakeAttempt(.success))
             } catch {
                 os_log("🔴 Wake error: ${public}@", log: .networkProtectionConnectionTesterLog, type: .error, error.localizedDescription)
