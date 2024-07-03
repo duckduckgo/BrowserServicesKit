@@ -60,7 +60,16 @@ public struct ToggleReportsStore: ToggleReportsStoring {
 
 }
 
-public struct ToggleReportsManager {
+public protocol ToggleReportsManaging {
+
+    mutating func recordDismissal(date: Date)
+    mutating func recordPrompt(date: Date)
+
+    var shouldShowToggleReport: Bool { get }
+
+}
+
+public struct ToggleReportsManager: ToggleReportsManaging {
 
     private let feature: ToggleReporting
     private var store: ToggleReportsStoring
