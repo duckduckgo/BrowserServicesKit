@@ -37,6 +37,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         case tunnelStopAttempt(_ step: TunnelStopAttemptStep)
         case tunnelUpdateAttempt(_ step: TunnelUpdateAttemptStep)
         case tunnelWakeAttempt(_ step: TunnelWakeAttemptStep)
+        case tunnelStartOnDemandWithoutAccessToken
         case reportTunnelFailure(result: NetworkProtectionTunnelFailureMonitor.Result)
         case reportLatency(result: NetworkProtectionLatencyMonitor.Result)
         case rekeyAttempt(_ step: RekeyAttemptStep)
@@ -600,6 +601,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         do {
             try load(options: startupOptions)
             try loadVendorOptions(from: tunnelProviderProtocol)
+
+            if (try? tokenStore.fetchToken()) == nil {
+                throw TunnelError.startingTunnelWithoutAuthToken
+            }
         } catch {
             if startupOptions.startupMethod == .automaticOnDemand {
                 // If the VPN was started by on-demand without the basic prerequisites for
@@ -607,9 +612,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 // manual start attempt that preceded failed, or if the subscription has
                 // expired.  In either case it should be enough to record the manual failures
                 // for these prerequisited to avoid flooding our metrics.
-                try? await Task.sleep(interval: .seconds(15))
+                providerEvents.fire(.tunnelStartOnDemandWithoutAccessToken)
+                try await Task.sleep(interval: .seconds(15))
             } else {
-                // If the VPN was started manually without the basic prerequisited we always
+                // If the VPN was started manually without the basic prerequisites we always
                 // want to know as this should not be possible.
                 providerEvents.fire(.tunnelStartAttempt(.begin))
                 providerEvents.fire(.tunnelStartAttempt(.failure(error)))
@@ -635,7 +641,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 // We add a delay when the VPN is started by
                 // on-demand and there's an error, to avoid frenetic ON/OFF
                 // cycling.
-                try? await Task.sleep(interval: .seconds(15))
+                try await Task.sleep(interval: .seconds(15))
             }
 
             let errorDescription = (error as? LocalizedError)?.localizedDescription ?? String(describing: error)
@@ -1050,6 +1056,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         case .uninstallVPN:
             // Since the VPN configuration is being removed we may as well reset all state
             handleResetAllState(completionHandler: completionHandler)
+        case .quitAgent:
+            // No-op since this is intended for the agent app
+            break
         }
     }
 
@@ -1249,13 +1258,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private func handleAdapterStarted(startReason: AdapterStartReason) async throws {
         if startReason != .reconnected && startReason != .wake {
             connectionStatus = .connected(connectedDate: Date())
-        }
-
-        if !settings.disableRekeying {
-            guard !isKeyExpired else {
-                try await rekey()
-                return
-            }
         }
 
         os_log("🔵 Tunnel interface is %{public}@", log: .networkProtection, type: .info, adapter.interfaceName ?? "unknown")
@@ -1505,18 +1507,24 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Computer sleeping
 
+    @MainActor
     public override func sleep() async {
         os_log("Sleep", log: .networkProtectionSleepLog, type: .info)
 
-        await connectionTester.stop()
-        await tunnelFailureMonitor.stop()
-        await latencyMonitor.stop()
-        await entitlementMonitor.stop()
-        await serverStatusMonitor.stop()
+        await stopMonitors()
     }
 
+    @MainActor
     public override func wake() {
         os_log("Wake up", log: .networkProtectionSleepLog, type: .info)
+
+        // macOS can launch the extension due to calls to `sendProviderMessage`, so there's
+        // a chance this is being called when the VPN isn't really meant to be connected or
+        // running.  We want to avoid firing pixels or handling adapter changes when this is
+        // the case.
+        guard connectionStatus != .disconnected else {
+            return
+        }
 
         Task {
             providerEvents.fire(.tunnelWakeAttempt(.begin))

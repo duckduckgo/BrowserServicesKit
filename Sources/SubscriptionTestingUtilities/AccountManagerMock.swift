@@ -83,10 +83,6 @@ public final class AccountManagerMock: AccountManager {
         }
     }
 
-    public func refreshSubscriptionAndEntitlements() async {
-
-    }
-
     public func checkForEntitlements(wait waitTime: Double, retry retryCount: Int) async -> Bool {
         return true
     }
