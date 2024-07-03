@@ -1,6 +1,5 @@
 //
 //  RemoteMessagingProcessingTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -114,7 +113,7 @@ class RemoteMessagingProcessingTests: XCTestCase {
     }
 
     func testWhenConfigProcessorReturnsNilThenResultIsNotSaved() async throws {
-        configProcessor.processConfig = { _,_ in nil }
+        configProcessor.processConfig = { _, _ in nil }
 
         do {
             try await processor.fetchAndProcess(using: store)
@@ -125,7 +124,7 @@ class RemoteMessagingProcessingTests: XCTestCase {
     }
 
     func testWhenConfigProcessorReturnsMessageThenResultIsSaved() async throws {
-        configProcessor.processConfig = { _,_ in .init(version: 0, message: nil) }
+        configProcessor.processConfig = { _, _ in .init(version: 0, message: nil) }
 
         do {
             try await processor.fetchAndProcess(using: store)

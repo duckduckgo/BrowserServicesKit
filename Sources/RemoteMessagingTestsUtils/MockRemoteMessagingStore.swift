@@ -1,6 +1,5 @@
 //
 //  MockRemoteMessagingStore.swift
-//  DuckDuckGo
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -41,7 +40,7 @@ public class MockRemoteMessagingStore: RemoteMessagingStoring {
     public init(
         remoteMessagingConfig: RemoteMessagingConfig? = nil,
         scheduledRemoteMessage: RemoteMessageModel? = nil,
-        remoteMessages: [String : RemoteMessageModel] = [:],
+        remoteMessages: [String: RemoteMessageModel] = [:],
         shownRemoteMessagesIDs: [String] = [],
         dismissedRemoteMessagesIDs: [String] = []
     ) {

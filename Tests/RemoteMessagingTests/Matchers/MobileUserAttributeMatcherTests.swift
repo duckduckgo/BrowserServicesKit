@@ -1,6 +1,5 @@
 //
 //  MobileUserAttributeMatcherTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -72,7 +71,6 @@ class MobileUserAttributeMatcherTests: XCTestCase {
         XCTAssertEqual(matcher.evaluate(matchingAttribute: WidgetAddedMatchingAttribute(value: false, fallback: nil)),
                        .fail)
     }
-
 
     private func setUpUserAttributeMatcher(dismissedMessageIds: [String] = []) {
         matcher = MobileUserAttributeMatcher(
