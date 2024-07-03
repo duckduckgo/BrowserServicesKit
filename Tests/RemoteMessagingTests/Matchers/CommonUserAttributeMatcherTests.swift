@@ -190,18 +190,6 @@ class CommonUserAttributeMatcherTests: XCTestCase {
                        .fail)
     }
 
-//    // MARK: - WidgetAdded
-//
-//    func testWhenWidgetAddedMatchesThenReturnMatch() throws {
-//        XCTAssertEqual(matcher.evaluate(matchingAttribute: WidgetAddedMatchingAttribute(value: true, fallback: nil)),
-//                       .match)
-//    }
-//
-//    func testWhenWidgetAddedDoesNotMatchThenReturnFail() throws {
-//        XCTAssertEqual(matcher.evaluate(matchingAttribute: WidgetAddedMatchingAttribute(value: false, fallback: nil)),
-//                       .fail)
-//    }
-//
     // MARK: - Privacy Pro
 
     func testWhenDaysSinceNetPEnabledMatchesThenReturnMatch() throws {
