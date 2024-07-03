@@ -144,7 +144,7 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
             isKillSwitchEnabled: isKillSwitchEnabled,
             regenerateKey: false
         )
-        os_log("🟢 Failure recovery fetched new config.", log: .networkProtectionServerFailureRecoveryLog, type: .info)
+        os_log("🟢 Failure recovery fetched new config.", log: .networkProtectionTunnelFailureMonitorLog, type: .info)
 
         let newServer = configurationResult.server
 
@@ -159,7 +159,7 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
         )
 
         guard lastConnectedServer.shouldReplace(with: newServer) else {
-            os_log("🟢 Server failure recovery not necessary.", log: .networkProtectionServerFailureRecoveryLog, type: .info)
+            os_log("🟢 Server failure recovery not necessary.", log: .networkProtectionTunnelFailureMonitorLog, type: .info)
             return .noRecoveryNecessary
         }
 
@@ -182,10 +182,10 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
                 }
                 do {
                     try await action()
-                    os_log("🟢 Failure recovery success!", log: .networkProtectionServerFailureRecoveryLog, type: .info)
+                    os_log("🟢 Failure recovery success!", log: .networkProtectionTunnelFailureMonitorLog, type: .info)
                     return
                 } catch {
-                    os_log("🟢 Failure recovery failed. Retrying...", log: .networkProtectionServerFailureRecoveryLog, type: .info)
+                    os_log("🟢 Failure recovery failed. Retrying...", log: .networkProtectionTunnelFailureMonitorLog, type: .info)
                 }
                 do {
                     try await Task.sleep(interval: currentDelay)

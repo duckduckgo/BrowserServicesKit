@@ -41,10 +41,6 @@ extension OSLog {
         Logging.networkProtectionTunnelFailureMonitorLoggingEnabled ? Logging.networkProtectionTunnelFailureMonitor : .disabled
     }
 
-    public static var networkProtectionServerFailureRecoveryLog: OSLog {
-        Logging.networkProtectionServerFailureRecoveryLoggingEnabled ? Logging.networkProtectionServerFailureRecovery : .disabled
-    }
-
     public static var networkProtectionConnectionTesterLog: OSLog {
         Logging.networkProtectionConnectionTesterLoggingEnabled ? Logging.networkProtectionConnectionTesterLog : .disabled
     }
