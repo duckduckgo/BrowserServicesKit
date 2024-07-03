@@ -19,10 +19,19 @@
 import BrowserServicesKit
 import Foundation
 
+/**
+ * This protocol provides abstraction for the RMF feature flag.
+ */
 public protocol RemoteMessagingAvailabilityProviding {
     var isRemoteMessagingAvailable: Bool { get }
 }
 
+/**
+ * This struct exposes RMF feature flag from Privacy Config.
+ *
+ * We're using a struct like this because PrivacyConfigurationManaging (a protocol from another Swift module)
+ * can't be extended with conformance to a protocol from this Swift module.
+ */
 public struct PrivacyConfigurationRemoteMessagingAvailabilityProvider: RemoteMessagingAvailabilityProviding {
     public init(privacyConfigurationManager: PrivacyConfigurationManaging) {
         self.privacyConfigurationManager = privacyConfigurationManager
