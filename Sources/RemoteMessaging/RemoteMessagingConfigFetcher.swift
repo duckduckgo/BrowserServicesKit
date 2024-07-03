@@ -20,6 +20,9 @@ import Configuration
 import Foundation
 import Networking
 
+/**
+ * This protocol defines API for fetching RMF config from the server
+ */
 public protocol RemoteMessagingConfigFetching {
     func fetchRemoteMessagingConfig() async throws -> RemoteMessageResponse.JsonRemoteMessagingConfig
 }

@@ -19,6 +19,10 @@
 import Common
 import Foundation
 
+/**
+ * This protocol defines API for processing RMF config file
+ * in order to find a message to be displayed.
+ */
 public protocol RemoteMessagingConfigProcessing {
     var remoteMessagingConfigMatcher: RemoteMessagingConfigMatcher { get }
 

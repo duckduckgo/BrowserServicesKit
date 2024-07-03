@@ -21,18 +21,50 @@ import Common
 import Configuration
 import Foundation
 
+/**
+ * This protocol defines API for providing RMF config matcher
+ * that contains values of matched attributes that the config
+ * file is evaluated against.
+ *
+ * Client apps should implement it and pass to a class implementing
+ * RemoteMessagingProcessing.
+ */
 public protocol RemoteMessagingConfigMatcherProviding {
     func refreshConfigMatcher(using store: RemoteMessagingStoring) async -> RemoteMessagingConfigMatcher
 }
 
+/**
+ * This protocol defines API for Remote Messaging client in the app.
+ */
 public protocol RemoteMessagingProcessing {
+    /// Defines endpoint URL where the config file is available.
     var endpoint: URL { get }
+
+    /// This holds the fetcher that downloads the config file from the server.
     var configurationFetcher: RemoteMessagingConfigFetching { get }
+
+    /// This holds the config matcher provider that updates the config matcher before the config is evaluated.
     var configMatcherProvider: RemoteMessagingConfigMatcherProviding { get }
+
+    /// Provides feature flag support for RMF.
     var remoteMessagingAvailabilityProvider: RemoteMessagingAvailabilityProviding { get }
 
+    /**
+     * This function returns a config processor.
+     *
+     * Config processor performs evaluation of the JSON config file against the matcher containing
+     * app-specific, device-specific and user-specific matched attributes. Default implementation is provided.
+     */
     func configProcessor(for configMatcher: RemoteMessagingConfigMatcher) -> RemoteMessagingConfigProcessing
 
+    /**
+     * This is the entry point to RMF from the client app.
+     *
+     * This function fetches the config, updates config matcher, evaluates the config against the matcher
+     * and stores the result as needed. Client apps should call this function in order to refresh remote messages.
+     * When messages are updated, `RemoteMessagingStore.Notifications.remoteMessagesDidChange` notification is posted.
+     * Default implementation is provided.
+     */
     func fetchAndProcess(using store: RemoteMessagingStoring) async throws
 }
 
