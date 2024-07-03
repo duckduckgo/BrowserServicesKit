@@ -32,9 +32,8 @@ typedef void (*terminate_handler)();
 /// - Returns:original unhandled `std::terminate` pointer
 terminate_handler SetCxxExceptionTerminateHandler(terminate_handler);
 
-/// Enable swapping of `__cxa_trow` symbol with lazy symbols table
-/// implementation taken from KSCrash framework
-void kscm_enableSwapCxaThrow(void);
+/// Collect call stack symbols and store to the thread dictionary when handling `std::__cxa_throw` hook
+void captureStackTrace(void* _Nullable exc, void* _Nullable tinfo, void (* _Nullable dest)(void*_Nullable)) __attribute__((disable_tail_calls));
 
 #ifdef __cplusplus
 }
@@ -52,6 +51,7 @@ void kscm_enableSwapCxaThrow(void);
 + (NSException * _Nullable)currentCxxException NS_SWIFT_NAME(currentCxxException());
 
 @end
+
 NS_ASSUME_NONNULL_END
 
 #endif // HDR_KSCrashMonitor_CPPException_h

@@ -151,7 +151,10 @@ let package = Package(
                 "Common",
                 "cxxCrashHandler",
             ]),
-        .target(name: "cxxCrashHandler"),
+        .target(
+            name: "cxxCrashHandler",
+            dependencies: ["Common"]
+        ),
         .target(
             name: "DDGSync",
             dependencies: [

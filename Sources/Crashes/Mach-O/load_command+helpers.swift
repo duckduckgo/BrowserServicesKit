@@ -1,5 +1,5 @@
 //
-//  KSLogger.h
+//  load_command+helpers.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -16,15 +16,17 @@
 //  limitations under the License.
 //
 
-#ifndef KSLogger_h
+import Foundation
 
-#include <stdio.h>
-#define KSLogger_h
+extension UnsafePointer where Pointee == load_command {
 
-#define KSLOG_DEBUG(X...)
-#define KSLOG_WARN(X...)
-#define KSLOG_TRACE(X...)
-#define KSLOG_ERROR(format, ...) \
-    fprintf(stderr, "[ERROR] " format "\n", ##__VA_ARGS__)
+    var cmd: Int32 {
+        Int32(bitPattern: pointee.cmd)
+    }
 
-#endif /* KSLogger_h */
+    func `as`(_: segment_command_64.Type) -> UnsafePointer<segment_command_64>? {
+        guard self.pointee.cmd == LC_SEGMENT_64 else { return nil }
+        return UnsafeRawPointer(self).assumingMemoryBound(to: segment_command_64.self)
+    }
+
+}
