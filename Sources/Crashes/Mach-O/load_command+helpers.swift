@@ -29,4 +29,12 @@ extension UnsafePointer where Pointee == load_command {
         return UnsafeRawPointer(self).assumingMemoryBound(to: segment_command_64.self)
     }
 
+    func `as`(_: symtab_command.Type) -> UnsafePointer<symtab_command> {
+        return UnsafeRawPointer(self).assumingMemoryBound(to: symtab_command.self)
+    }
+
+    func `as`(_: dysymtab_command.Type) -> UnsafePointer<dysymtab_command> {
+        return UnsafeRawPointer(self).assumingMemoryBound(to: dysymtab_command.self)
+    }
+
 }
