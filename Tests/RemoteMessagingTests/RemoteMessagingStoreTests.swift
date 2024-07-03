@@ -26,9 +26,10 @@ import XCTest
 
 class RemoteMessagingStoreTests: XCTestCase {
 
-    private var store: RemoteMessagingStore!
-    private let notificationCenter = NotificationCenter()
-    private var defaults: MockKeyValueStore!
+    var store: RemoteMessagingStore!
+    let notificationCenter = NotificationCenter()
+    var defaults: MockKeyValueStore!
+    var availabilityProvider: MockRemoteMessagingAvailabilityProvider!
     var remoteMessagingDatabase: CoreDataDatabase!
     var location: URL!
 
@@ -44,11 +45,13 @@ class RemoteMessagingStoreTests: XCTestCase {
         remoteMessagingDatabase = CoreDataDatabase(name: type(of: self).description(), containerLocation: location, model: model)
         remoteMessagingDatabase.loadStore()
 
+        availabilityProvider = MockRemoteMessagingAvailabilityProvider()
+
         store = RemoteMessagingStore(
             database: remoteMessagingDatabase,
             notificationCenter: notificationCenter,
             errorEvents: nil,
-            remoteMessagingAvailabilityProvider: MockRemoteMessagingAvailabilityProvider()
+            remoteMessagingAvailabilityProvider: availabilityProvider
         )
 
         defaults = MockKeyValueStore()
@@ -137,6 +140,80 @@ class RemoteMessagingStoreTests: XCTestCase {
         XCTAssertEqual(dismissedRemoteMessageIds.count, 1)
         XCTAssertEqual(dismissedRemoteMessageIds.first, remoteMessage.id)
     }
+
+    // MARK: - Feature Flag
+
+    func testWhenFeatureFlagIsDisabledThenProcessedResultIsNotSaved() throws {
+        availabilityProvider.isRemoteMessagingAvailable = false
+
+        let expectation = XCTNSNotificationExpectation(name: RemoteMessagingStore.Notifications.remoteMessagesDidChange,
+                                                       object: nil, notificationCenter: notificationCenter)
+        expectation.isInverted = true
+
+        let processorResult = try processorResult()
+        store.saveProcessedResult(processorResult)
+
+        wait(for: [expectation], timeout: 1)
+    }
+
+    func testWhenFeatureFlagIsDisabledThenFetchScheduledRemoteMessageReturnsNil() throws {
+        _ = try saveProcessedResultFetchRemoteMessage()
+        availabilityProvider.isRemoteMessagingAvailable = false
+
+        XCTAssertNil(store.fetchScheduledRemoteMessage())
+    }
+
+    func testWhenFeatureFlagIsDisabledThenFetchRemoteMessagingConfigReturnsNil() throws {
+        _ = try saveProcessedResultFetchRemoteMessage()
+        availabilityProvider.isRemoteMessagingAvailable = false
+
+        XCTAssertNil(store.fetchRemoteMessagingConfig())
+    }
+
+    func testWhenFeatureFlagIsDisabledThenFetchedMessageReturnsNil() throws {
+        let remoteMessage = try saveProcessedResultFetchRemoteMessage()
+
+        availabilityProvider.isRemoteMessagingAvailable = false
+
+        XCTAssertNil(store.fetchRemoteMessage(withId: remoteMessage.id))
+    }
+
+    func testWhenFeatureFlagIsDisabledThenUpdateShownFlagHasNoEffect() throws {
+        let remoteMessage = try saveProcessedResultFetchRemoteMessage()
+        availabilityProvider.isRemoteMessagingAvailable = false
+
+        store.updateRemoteMessage(withId: remoteMessage.id, asShown: true)
+
+        XCTAssertFalse(store.hasShownRemoteMessage(withId: remoteMessage.id))
+    }
+
+    func testWhenFeatureFlagIsDisabledThenHasShownMessageReturnFalse() throws {
+        let remoteMessage = try saveProcessedResultFetchRemoteMessage()
+        store.updateRemoteMessage(withId: remoteMessage.id, asShown: true)
+        availabilityProvider.isRemoteMessagingAvailable = false
+
+        XCTAssertFalse(store.hasShownRemoteMessage(withId: remoteMessage.id))
+    }
+
+    func testWhenFeatureFlagIsDisabledThenDismissingRemoteMessageHasNoEffect() throws {
+        let remoteMessage = try saveProcessedResultFetchRemoteMessage()
+
+        availabilityProvider.isRemoteMessagingAvailable = false
+        store.dismissRemoteMessage(withId: remoteMessage.id)
+
+        XCTAssertEqual(store.fetchDismissedRemoteMessageIds(), [])
+    }
+
+    func testWhenFeatureFlagIsDisabledThenHasDismissedRemoteMessageReturnsFalse() throws {
+        let remoteMessage = try saveProcessedResultFetchRemoteMessage()
+
+        store.dismissRemoteMessage(withId: remoteMessage.id)
+        availabilityProvider.isRemoteMessagingAvailable = false
+
+        XCTAssertEqual(store.hasDismissedRemoteMessage(withId: remoteMessage.id), false)
+    }
+
+    // MARK: -
 
     func decodeJson(fileName: String) throws -> RemoteMessageResponse.JsonRemoteMessagingConfig {
         let resourceURL = Bundle.module.resourceURL!.appendingPathComponent(fileName, conformingTo: .json)
