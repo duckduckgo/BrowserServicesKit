@@ -34,13 +34,13 @@ extension UnsafeBufferPointer {
         let protection = try vm_region_basic_info_data_64_t(self.baseAddress!).protection
         let mutableBuffer = UnsafeMutableBufferPointer(mutating: self)
         if protection & (PROT_WRITE | PROT_READ) != (PROT_WRITE | PROT_READ) {
-            let result = mprotect(mutableBuffer.baseAddress!, mutableBuffer.count, PROT_READ | PROT_WRITE)
+            let result = mprotect(mutableBuffer.baseAddress!, mutableBuffer.count * MemoryLayout<Element>.size, PROT_READ | PROT_WRITE)
             guard result == 0 else { throw MemoryProtectionFailure(bufferDescr: self.debugDescription, code: result) }
         }
         defer {
             // restore original memory protection
             if protection | (PROT_WRITE | PROT_READ) != (PROT_WRITE | PROT_READ) {
-                let result = mprotect(mutableBuffer.baseAddress!, mutableBuffer.count, protection)
+                let result = mprotect(mutableBuffer.baseAddress!, mutableBuffer.count * MemoryLayout<Element>.size, protection)
                 os_log(.error, "failed to restore protection %d for %s with %d", protection, self.debugDescription, result)
             }
         }
