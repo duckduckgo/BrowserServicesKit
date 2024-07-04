@@ -51,14 +51,12 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
     func privacyDashboardControllerDidRequestClose(_ privacyDashboardController: PrivacyDashboardController)
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didSetHeight height: Int)
 
-#if os(macOS)
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
-                                    didSetPermission permissionName: String, 
+                                    didSetPermission permissionName: String,
                                     to state: PermissionAuthorizationState)
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
-                                    setPermission permissionName: String, 
+                                    setPermission permissionName: String,
                                     paused: Bool)
-#endif
 
 }
 
@@ -177,6 +175,10 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
 
     func didRequestSubmitToggleReport(with source: BrokenSiteReport.Source) {
         delegate?.privacyDashboardController(self, didRequestSubmitToggleReportWithSource: source)
+    }
+
+    func didRequestClose() {
+        delegate?.privacyDashboardControllerDidRequestClose(self)
     }
 
 }
@@ -355,7 +357,6 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
         delegate?.privacyDashboardController(self, didRequestSubmitBrokenSiteReportWithCategory: category, description: description)
     }
 
-#if os(macOS)
     func userScript(_ userScript: PrivacyDashboardUserScript, didSetPermission permission: String, to state: PermissionAuthorizationState) {
         delegate?.privacyDashboardController(self, didSetPermission: permission, to: state)
     }
@@ -363,7 +364,6 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     func userScript(_ userScript: PrivacyDashboardUserScript, setPermission permission: String, paused: Bool) {
         delegate?.privacyDashboardController(self, setPermission: permission, paused: paused)
     }
-#endif
 
     func userScriptDidRequestToggleReportOptions(_ userScript: PrivacyDashboardUserScript) {
         guard let webView else { return }

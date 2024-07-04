@@ -59,7 +59,7 @@ final class ToggleReportingFlow {
     }
 
     func handleViewWillDisappear() {
-        handleDismissal()
+        handleDismissal(isUserAction: true)
     }
 
     func userScriptDidRequestClose() {
@@ -74,13 +74,16 @@ final class ToggleReportingFlow {
         }
     }
 
-    private func handleDismissal() {
+    private func handleDismissal(isUserAction: Bool = false) {
         toggleReportingManager.recordDismissal(date: Date())
         switch entryPoint {
         case .appMenuProtectionsOff(let completionHandler):
             completionHandler(false)
         case .dashboardProtectionsOff(let protectionStateToSubmitOnDismiss):
             privacyDashboardController?.didChangeProtectionState(to: protectionStateToSubmitOnDismiss, didSendReport: false)
+        }
+        if !isUserAction {
+            privacyDashboardController?.didRequestClose()
         }
     }
 
@@ -93,6 +96,7 @@ final class ToggleReportingFlow {
         case .dashboardProtectionsOff(let protectionStateToSubmitOnDismiss):
             if shouldHandlePendingProtectionStateChangeOnReportSent {
                 privacyDashboardController?.didChangeProtectionState(to: protectionStateToSubmitOnDismiss, didSendReport: true)
+                privacyDashboardController?.didRequestClose()
             }
         }
     }

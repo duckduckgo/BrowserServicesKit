@@ -232,6 +232,7 @@ final class PrivacyDashboardControllerTests: XCTestCase {
         }
         makePrivacyDashboardController(entryPoint: .toggleReport(completionHandler: completionHandler(didSendReport:)))
         privacyDashboardController.userScript(PrivacyDashboardUserScript(), didSelectReportAction: false)
+        XCTAssertTrue(delegateMock.didRequestCloseCalled)
     }
 
     func testUserScriptDidSelectReportActionDoNotSendIfThereIsProtectionStateToSubmitShouldCallDidChangeProtectionSwitch() {
@@ -240,6 +241,7 @@ final class PrivacyDashboardControllerTests: XCTestCase {
         privacyDashboardController.userScript(PrivacyDashboardUserScript(), didSelectReportAction: false)
         XCTAssertTrue(delegateMock.didChangeProtectionSwitchCalled)
         XCTAssertFalse(delegateMock.didSendReport)
+        XCTAssertTrue(delegateMock.didRequestCloseCalled)
     }
 
     // MARK: (send)
@@ -272,6 +274,7 @@ final class PrivacyDashboardControllerTests: XCTestCase {
         privacyDashboardController.userScript(PrivacyDashboardUserScript(), didSelectReportAction: true)
         XCTAssertTrue(delegateMock.didChangeProtectionSwitchCalled)
         XCTAssertTrue(delegateMock.didSendReport)
+        XCTAssertTrue(delegateMock.didRequestCloseCalled)
     }
 
     func testUserScriptDidSelectReportActionSendIfThereIsProtectionStateToSubmitShouldNotCallDidChangeProtectionSwitchOnMacOSApp() {
@@ -280,6 +283,7 @@ final class PrivacyDashboardControllerTests: XCTestCase {
         privacyDashboardController.toggleReportingFlow?.shouldHandlePendingProtectionStateChangeOnReportSent = false // simulate macOS app
         privacyDashboardController.userScript(PrivacyDashboardUserScript(), didSelectReportAction: true)
         XCTAssertFalse(delegateMock.didChangeProtectionSwitchCalled)
+        XCTAssertFalse(delegateMock.didRequestCloseCalled)
     }
 
     // MARK: - handleViewWillDisappear
