@@ -23,13 +23,13 @@ import Foundation
 public struct SubscriptionMockFactory {
 
     public static let email = "5p2d4sx1@duck.com" // Some sandbox account
-    public static let externalId = "someExternalID"
+    public static let externalId = UUID().uuidString
     public static let accountManager = AccountManagerMock(email: email,
                                                           externalID: externalId)
     /// No mock result or error configured, that must be done per-test basis
     public static let apiService = APIServiceMock(mockAuthHeaders: [:])
-    public static let subscription = Subscription(productId: "1",
-                                                  name: "product 1",
+    public static let subscription = Subscription(productId: UUID().uuidString,
+                                                  name: "Subscription test #1",
                                                   billingPeriod: .monthly,
                                                   startedAt: Date(),
                                                   expiresOrRenewsAt: Date().addingTimeInterval(TimeInterval.days(+30)),
@@ -38,8 +38,8 @@ public struct SubscriptionMockFactory {
     public static let productsItems: [GetProductsItem] = [GetProductsItem(productId: subscription.productId,
                                                                           productLabel: subscription.name,
                                                                           billingPeriod: subscription.billingPeriod.rawValue,
-                                                                          price: "1",
-                                                                          currency: "euro")]
+                                                                          price: "0.99",
+                                                                          currency: "USD")]
     public static let customerPortalURL = GetCustomerPortalURLResponse(customerPortalUrl: "https://duckduckgo.com")
     public static let entitlements = [Entitlement(product: .dataBrokerProtection),
                                       Entitlement(product: .identityTheftRestoration),
@@ -51,29 +51,30 @@ public struct SubscriptionMockFactory {
                                                                                     getProductsResult: .success(productsItems),
                                                                                     getCustomerPortalURLResult: .success(customerPortalURL),
                                                                                     confirmPurchaseResult: .success(confirmPurchase))
-    public static let authToken = "someToken"
+    public static let authToken = "someAuthToken"
 
     private static let validateTokenResponse = ValidateTokenResponse(account: ValidateTokenResponse.Account(email: email,
-                                                                                                            entitlements: entitlements, externalID: "?"))
-    public static let authEndpointService = AuthEndpointServiceMock(accessTokenResult: .success(AccessTokenResponse(accessToken: "some")),
+                                                                                                            entitlements: entitlements,
+                                                                                                            externalID: UUID().uuidString))
+    public static let authEndpointService = AuthEndpointServiceMock(accessTokenResult: .success(AccessTokenResponse(accessToken: "SomeAccessToken")),
                                                                     validateTokenResult: .success(validateTokenResponse),
                                                                     createAccountResult: .success(CreateAccountResponse(authToken: authToken,
                                                                                                                         externalID: "?",
                                                                                                                         status: "?")),
                                                                     storeLoginResult: .success(StoreLoginResponse(authToken: authToken,
                                                                                                                   email: email,
-                                                                                                                  externalID: "?",
+                                                                                                                  externalID: UUID().uuidString,
                                                                                                                   id: 1,
                                                                                                                   status: "?")))
 
-    public static let storePurchaseManager = StorePurchaseManagerMock(purchasedProductIDs: ["1"],
+    public static let storePurchaseManager = StorePurchaseManagerMock(purchasedProductIDs: [UUID().uuidString],
                                                                       purchaseQueue: ["?"],
                                                                       areProductsAvailable: true,
                                                                       subscriptionOptionsResult: SubscriptionOptions.empty,
                                                                       syncAppleIDAccountResultError: nil,
                                                                       mostRecentTransactionResult: nil,
                                                                       hasActiveSubscriptionResult: false,
-                                                                      purchaseSubscriptionResult: .success("transactionJWS?"))
+                                                                      purchaseSubscriptionResult: .success("someTransactionJWS"))
 
     public static let currentEnvironment = SubscriptionEnvironment(serviceEnvironment: .staging,
                                                                    purchasePlatform: .appStore)
