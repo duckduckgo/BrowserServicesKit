@@ -69,6 +69,7 @@ public enum AutofillSubfeature: String, PrivacySubfeature {
     case accessCredentialManagement
     case autofillPasswordGeneration
     case onByDefault
+    case deduplicateLoginsOnImport
 }
 
 public enum DBPSubfeature: String, Equatable, PrivacySubfeature {
