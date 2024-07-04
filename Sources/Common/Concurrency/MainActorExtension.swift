@@ -32,7 +32,7 @@ private struct OnMainActor: MainActorPerformer {
         try operation()
     }
 }
-extension MainActor {
+public extension MainActor {
     static func assumeIsolated<T>(_ operation: @MainActor () throws -> T) rethrows -> T {
         if #available(macOS 14.0, *) {
             return try assumeIsolated(operation, file: #fileID, line: #line)
