@@ -32,5 +32,5 @@ public struct CookieConsentInfo: Encodable {
         self.optoutFailed = optoutFailed
         self.selftestFailed = selftestFailed
     }
-    
+
 }

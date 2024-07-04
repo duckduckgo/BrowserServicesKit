@@ -43,5 +43,5 @@ public struct AllowedPermission: Codable {
         self.paused = paused
         self.options = options
     }
-    
+
 }
