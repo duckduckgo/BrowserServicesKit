@@ -845,7 +845,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                                                                             regenerateKey: regenerateKey)
             case .useConfiguration(let newTunnelConfiguration):
                 tunnelConfiguration = newTunnelConfiguration
-                break
             }
 
             try await updateAdapterConfiguration(tunnelConfiguration: tunnelConfiguration, reassert: reassert)
