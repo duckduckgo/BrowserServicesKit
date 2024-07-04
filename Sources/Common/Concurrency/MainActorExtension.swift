@@ -1,6 +1,5 @@
 //
 //  MainActorExtension.swift
-//  DuckDuckGo
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -34,7 +33,7 @@ private struct OnMainActor: MainActorPerformer {
 }
 public extension MainActor {
     static func assumeIsolated<T>(_ operation: @MainActor () throws -> T) rethrows -> T {
-        if #available(macOS 14.0, *) {
+        if #available(macOS 14.0, iOS 17.0, *) {
             return try assumeIsolated(operation, file: #fileID, line: #line)
         }
         dispatchPrecondition(condition: .onQueue(.main))
