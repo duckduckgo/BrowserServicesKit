@@ -94,6 +94,7 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
         defer {
             reassertingControl?.stopReasserting()
         }
+        let eventHandler = eventHandler
         await incrementalPeriodicChecks(retryConfig) { [weak self] in
             guard let self else { return }
             eventHandler(.started)

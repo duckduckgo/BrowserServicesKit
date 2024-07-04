@@ -226,19 +226,19 @@ public struct CommonUserAttributeMatcher: AttributeMatching {
         case let matchingAttribute as PrivacyProPurchasePlatformMatchingAttribute:
             return StringArrayMatchingAttribute(matchingAttribute.value).matches(value: privacyProPurchasePlatform ?? "")
         case let matchingAttribute as PrivacyProSubscriptionStatusMatchingAttribute:
-            guard let value = matchingAttribute.value else {
-                return .fail
+            let mappedStatuses = matchingAttribute.value.compactMap { status in
+                return PrivacyProSubscriptionStatus(rawValue: status)
             }
 
-            guard let status = PrivacyProSubscriptionStatus(rawValue: value) else {
-                return .fail
+            for status in mappedStatuses {
+                switch status {
+                case .active: if isPrivacyProSubscriptionActive { return .match }
+                case .expiring: if isPrivacyProSubscriptionExpiring { return .match }
+                case .expired: if isPrivacyProSubscriptionExpired { return .match }
+                }
             }
 
-            switch status {
-            case .active: return isPrivacyProSubscriptionActive ? .match : .fail
-            case .expiring: return isPrivacyProSubscriptionExpiring ? .match : .fail
-            case .expired: return isPrivacyProSubscriptionExpired ? .match : .fail
-            }
+            return .fail
         case let matchingAttribute as InteractedWithMessageMatchingAttribute:
             if dismissedMessageIds.contains(where: { messageId in
                 StringArrayMatchingAttribute(matchingAttribute.value).matches(value: messageId) == .match

@@ -240,35 +240,47 @@ class CommonUserAttributeMatcherTests: XCTestCase {
 
     func testWhenPrivacyProSubscriptionStatusMatchesThenReturnMatch() throws {
         XCTAssertEqual(matcher.evaluate(
-            matchingAttribute: PrivacyProSubscriptionStatusMatchingAttribute(value: "active", fallback: nil)
+            matchingAttribute: PrivacyProSubscriptionStatusMatchingAttribute(value: ["active"], fallback: nil)
+        ), .match)
+    }
+
+    func testWhenPrivacyProSubscriptionStatusHasMultipleAttributesAndOneMatchesThenReturnMatch() throws {
+        XCTAssertEqual(matcher.evaluate(
+            matchingAttribute: PrivacyProSubscriptionStatusMatchingAttribute(value: ["active", "expiring", "expired"], fallback: nil)
         ), .match)
     }
 
     func testWhenPrivacyProSubscriptionStatusDoesNotMatchThenReturnFail() throws {
         XCTAssertEqual(matcher.evaluate(
-            matchingAttribute: PrivacyProSubscriptionStatusMatchingAttribute(value: "expiring", fallback: nil)
+            matchingAttribute: PrivacyProSubscriptionStatusMatchingAttribute(value: ["expiring"], fallback: nil)
         ), .fail)
     }
 
     func testWhenPrivacyProSubscriptionStatusHasUnsupportedStatusThenReturnFail() throws {
         XCTAssertEqual(matcher.evaluate(
-            matchingAttribute: PrivacyProSubscriptionStatusMatchingAttribute(value: "unsupported_status", fallback: nil)
+            matchingAttribute: PrivacyProSubscriptionStatusMatchingAttribute(value: ["unsupported_status"], fallback: nil)
         ), .fail)
     }
 
     func testWhenOneDismissedMessageIdMatchesThenReturnMatch() throws {
         setUpUserAttributeMatcher(dismissedMessageIds: ["1"])
-        XCTAssertEqual(matcher.evaluate(matchingAttribute: InteractedWithMessageMatchingAttribute(value: ["1", "2", "3"], fallback: nil)), .match)
+        XCTAssertEqual(matcher.evaluate(
+            matchingAttribute: InteractedWithMessageMatchingAttribute(value: ["1", "2", "3"], fallback: nil)
+        ), .match)
     }
 
     func testWhenAllDismissedMessageIdsMatchThenReturnMatch() throws {
         setUpUserAttributeMatcher(dismissedMessageIds: ["1", "2", "3"])
-        XCTAssertEqual(matcher.evaluate(matchingAttribute: InteractedWithMessageMatchingAttribute(value: ["1", "2", "3"], fallback: nil)), .match)
+        XCTAssertEqual(matcher.evaluate(
+            matchingAttribute: InteractedWithMessageMatchingAttribute(value: ["1", "2", "3"], fallback: nil)
+        ), .match)
     }
 
     func testWhenNoDismissedMessageIdsMatchThenReturnFail() throws {
         setUpUserAttributeMatcher(dismissedMessageIds: ["1", "2", "3"])
-        XCTAssertEqual(matcher.evaluate(matchingAttribute: InteractedWithMessageMatchingAttribute(value: ["4", "5"], fallback: nil)), .fail)
+        XCTAssertEqual(matcher.evaluate(
+            matchingAttribute: InteractedWithMessageMatchingAttribute(value: ["4", "5"], fallback: nil)
+        ), .fail)
     }
 
     func testWhenHaveDismissedMessageIdsAndMatchAttributeIsEmptyThenReturnFail() throws {
@@ -278,7 +290,9 @@ class CommonUserAttributeMatcherTests: XCTestCase {
 
     func testWhenHaveNoDismissedMessageIdsAndMatchAttributeIsNotEmptyThenReturnFail() throws {
         setUpUserAttributeMatcher(dismissedMessageIds: [])
-        XCTAssertEqual(matcher.evaluate(matchingAttribute: InteractedWithMessageMatchingAttribute(value: ["1", "2"], fallback: nil)), .fail)
+        XCTAssertEqual(matcher.evaluate(
+            matchingAttribute: InteractedWithMessageMatchingAttribute(value: ["1", "2"], fallback: nil)
+        ), .fail)
     }
 
     private func setUpUserAttributeMatcher(dismissedMessageIds: [String] = []) {
