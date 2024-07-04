@@ -18,75 +18,12 @@
 //
 
 import XCTest
-import Combine
 import Common
 import WebKit
 @testable import PrivacyDashboard
 @testable import BrowserServicesKit
 
-final class PrivacyDashboardDelegateMock: PrivacyDashboardControllerDelegate {
-
-    var didChangeProtectionSwitchCalled = false
-    var protectionState: ProtectionState?
-    var didSendReport = false
-    var didRequestCloseCalled = false
-    var didRequestSubmitToggleReport = false
-
-    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
-                                    didChangeProtectionSwitch protectionState: ProtectionState,
-                                    didSendReport: Bool) {
-        didChangeProtectionSwitchCalled = true
-        self.protectionState = protectionState
-        self.didSendReport = didSendReport
-
-    }
-    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
-                                    didRequestSubmitToggleReportWithSource source: BrokenSiteReport.Source) {
-        didRequestSubmitToggleReport = true
-    }
-
-    func privacyDashboardControllerDidRequestClose(_ privacyDashboardController: PrivacyDashboardController) {
-        didRequestCloseCalled = true
-    }
-
-    // not under tests
-
-    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didRequestOpenUrlInNewTab url: URL) {}
-    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
-                                    didRequestOpenSettings target: PrivacyDashboardOpenSettingsTarget) {}
-    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didSelectBreakageCategory category: String) {}
-    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
-                                    didRequestSubmitBrokenSiteReportWithCategory category: String,
-                                    description: String) {}
-    func privacyDashboardControllerDidRequestShowAlertForMissingDescription(_ privacyDashboardController: PrivacyDashboardController) {}
-    func privacyDashboardControllerDidRequestShowGeneralFeedback(_ privacyDashboardController: PrivacyDashboardController) {}
-    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didSetHeight height: Int) {}
-    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
-                                    didSetPermission permissionName: String,
-                                    to state: PermissionAuthorizationState) {}
-    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, setPermission permissionName: String, paused: Bool) { }
-
-}
-
-final class ToggleReportingManagerMock: ToggleReportingManaging {
-
-    var recordDismissalCalled: Bool = false
-    var recordPromptCalled: Bool = false
-
-    func recordDismissal(date: Date) {
-        recordDismissalCalled = true
-    }
-
-    func recordPrompt(date: Date) {
-        recordPromptCalled = true
-    }
-
-    var shouldShowToggleReport: Bool { return true }
-
-}
-
-@MainActor
-final class PrivacyDashboardControllerTests: XCTestCase {
+@MainActor final class PrivacyDashboardControllerTests: XCTestCase {
 
     var privacyDashboardController: PrivacyDashboardController!
     var delegateMock: PrivacyDashboardDelegateMock!

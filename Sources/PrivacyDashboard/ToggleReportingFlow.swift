@@ -19,8 +19,7 @@
 
 import Foundation
 
-@MainActor
-final class ToggleReportingFlow {
+@MainActor final class ToggleReportingFlow {
 
     enum EntryPoint {
 
