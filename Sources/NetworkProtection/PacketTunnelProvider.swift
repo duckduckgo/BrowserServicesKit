@@ -356,6 +356,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private let tunnelHealth: NetworkProtectionTunnelHealthStore
     private let controllerErrorStore: NetworkProtectionTunnelErrorStore
     private let knownFailureStore: NetworkProtectionKnownFailureStore
+    private let snoozeTimingStore: NetworkProtectionSnoozeTimingStore
 
     // MARK: - Cancellables
 
@@ -374,6 +375,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 tunnelHealthStore: NetworkProtectionTunnelHealthStore,
                 controllerErrorStore: NetworkProtectionTunnelErrorStore,
                 knownFailureStore: NetworkProtectionKnownFailureStore = NetworkProtectionKnownFailureStore(),
+                snoozeTimingStore: NetworkProtectionSnoozeTimingStore,
                 keychainType: KeychainType,
                 tokenStore: NetworkProtectionTokenStore,
                 debugEvents: EventMapping<NetworkProtectionError>?,
@@ -392,6 +394,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         self.tunnelHealth = tunnelHealthStore
         self.controllerErrorStore = controllerErrorStore
         self.knownFailureStore = knownFailureStore
+        self.snoozeTimingStore = snoozeTimingStore
         self.settings = settings
         self.defaults = defaults
         self.isSubscriptionEnabled = isSubscriptionEnabled
@@ -558,6 +561,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     @MainActor
     open func handleConnectionStatusChange(old: ConnectionStatus, new: ConnectionStatus) {
         os_log("⚫️ Connection Status Change: %{public}s -> %{public}s", log: .networkProtectionPixel, type: .debug, old.description, new.description)
+
+        // TODO: Handle snooze
 
         switch (old, new) {
         case (_, .connecting), (_, .reasserting):
@@ -1601,10 +1606,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
         await stopMonitors()
         self.connectionStatus = .snoozing
+        self.snoozeTimingStore.activeTiming = .init(startDate: Date(), duration: duration)
         self.adapter.snooze { error in
             if error == nil {
-                self.notificationsPresenter.showSnoozeBeganNotification()
-
                 let timer = DispatchSource.makeTimerSource(queue: self.timerQueue)
                 timer.schedule(deadline: .now() + duration, repeating: .never)
                 timer.setEventHandler {
@@ -1616,13 +1620,22 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 }
 
                 timer.resume()
+            } else {
+                self.snoozeTimingStore.reset()
             }
         }
     }
 
     private func cancelSnooze() async {
         os_log("Ending snooze mode", log: .networkProtection)
-        self.notificationsPresenter.showSnoozeEndedNotification()
+
+        guard snoozeTimingStore.activeTiming != nil else {
+            assertionFailure("Tried to cancel snooze when it was not active")
+            return
+        }
+
+        notificationsPresenter.showSnoozeEndedNotification()
+        snoozeTimingStore.reset()
         try? await startTunnel(onDemand: false)
     }
 

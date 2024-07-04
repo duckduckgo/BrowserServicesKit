@@ -66,10 +66,6 @@ final public class NetworkProtectionNotificationsPresenterTogglableDecorator: Ne
         }
     }
 
-    public func showSnoozeBeganNotification() {
-        wrappeePresenter.showSnoozeBeganNotification()
-    }
-
     public func showSnoozeEndedNotification() {
         wrappeePresenter.showSnoozeEndedNotification()
     }
