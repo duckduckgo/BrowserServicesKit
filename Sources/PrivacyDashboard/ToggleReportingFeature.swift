@@ -57,10 +57,8 @@ public final class ToggleReportingFeature: ToggleReporting {
     public private(set) var promptInterval: TimeInterval = 0
     public private(set) var maxPromptCount: Int = 0
 
-    public init(toggleReportingConfiguration: ToggleReportingConfiguration,
-                currentLocale: Locale = Locale.current) {
-        let isCurrentLanguageEnglish = currentLocale.languageCode == "en"
-        isEnabled = toggleReportingConfiguration.isEnabled && isCurrentLanguageEnglish
+    public init(toggleReportingConfiguration: ToggleReportingConfiguration) {
+        isEnabled = toggleReportingConfiguration.isEnabled
         guard isEnabled else { return }
         let settings = toggleReportingConfiguration.settings
         isDismissLogicEnabled = settings[Constants.dismissLogicEnabledKey] as? Bool ?? false
