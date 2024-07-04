@@ -68,7 +68,7 @@ final class PrivacyDashboardDelegateMock: PrivacyDashboardControllerDelegate {
 
 }
 
-final class ToggleReportsManagerMock: ToggleReportsManaging {
+final class ToggleReportingManagerMock: ToggleReportingManaging {
 
     var recordDismissalCalled: Bool = false
     var recordPromptCalled: Bool = false
@@ -90,16 +90,16 @@ final class PrivacyDashboardControllerTests: XCTestCase {
 
     var privacyDashboardController: PrivacyDashboardController!
     var delegateMock: PrivacyDashboardDelegateMock!
-    var toggleReportsManagerMock: ToggleReportsManagerMock!
+    var toggleReportingManagerMock: ToggleReportingManagerMock!
     var webView: WKWebView!
 
     private func makePrivacyDashboardController(entryPoint: PrivacyDashboardEntryPoint) {
         delegateMock = PrivacyDashboardDelegateMock()
-        toggleReportsManagerMock = ToggleReportsManagerMock()
+        toggleReportingManagerMock = ToggleReportingManagerMock()
         privacyDashboardController = PrivacyDashboardController(privacyInfo: nil,
                                                                 entryPoint: entryPoint,
                                                                 variant: .control,
-                                                                toggleReportsManager: toggleReportsManagerMock,
+                                                                toggleReportingManager: toggleReportingManagerMock,
                                                                 eventMapping: EventMapping<PrivacyDashboardEvents> { _, _, _, _ in })
         webView = WKWebView()
         privacyDashboardController.setup(for: webView)
@@ -196,23 +196,23 @@ final class PrivacyDashboardControllerTests: XCTestCase {
     func testUserScriptDidRequestCloseIfNotInToggleReportFlowShouldNotRecordToggleDismissal() {
         makePrivacyDashboardController(entryPoint: .dashboard)
         privacyDashboardController.userScriptDidRequestClose(PrivacyDashboardUserScript())
-        XCTAssertFalse(toggleReportsManagerMock.recordDismissalCalled)
-        XCTAssertFalse(toggleReportsManagerMock.recordPromptCalled)
+        XCTAssertFalse(toggleReportingManagerMock.recordDismissalCalled)
+        XCTAssertFalse(toggleReportingManagerMock.recordPromptCalled)
     }
 
     func testUserScriptDidRequestCloseIfEntryPointIsToggleReportShouldRecordToggleDismissal() {
         makePrivacyDashboardController(entryPoint: .toggleReport(completionHandler: { _ in }))
         privacyDashboardController.userScriptDidRequestClose(PrivacyDashboardUserScript())
-        XCTAssertTrue(toggleReportsManagerMock.recordDismissalCalled)
-        XCTAssertFalse(toggleReportsManagerMock.recordPromptCalled)
+        XCTAssertTrue(toggleReportingManagerMock.recordDismissalCalled)
+        XCTAssertFalse(toggleReportingManagerMock.recordPromptCalled)
     }
 
     func testUserScriptDidRequestCloseIfInToggleReportFlowShouldRecordToggleDismissal() {
         makePrivacyDashboardController(entryPoint: .dashboard)
         simulateProtectionToggleSwitch(false)
         privacyDashboardController.userScriptDidRequestClose(PrivacyDashboardUserScript())
-        XCTAssertTrue(toggleReportsManagerMock.recordDismissalCalled)
-        XCTAssertFalse(toggleReportsManagerMock.recordPromptCalled)
+        XCTAssertTrue(toggleReportingManagerMock.recordDismissalCalled)
+        XCTAssertFalse(toggleReportingManagerMock.recordPromptCalled)
     }
 
     // MARK: - userScriptDidSelectReportAction
@@ -222,8 +222,8 @@ final class PrivacyDashboardControllerTests: XCTestCase {
     func testUserScriptDidSelectReportActionDoNotSendShouldRecordDismissal() {
         makePrivacyDashboardController(entryPoint: .toggleReport(completionHandler: { _ in }))
         privacyDashboardController.userScript(PrivacyDashboardUserScript(), didSelectReportAction: false)
-        XCTAssertTrue(toggleReportsManagerMock.recordDismissalCalled)
-        XCTAssertFalse(toggleReportsManagerMock.recordPromptCalled)
+        XCTAssertTrue(toggleReportingManagerMock.recordDismissalCalled)
+        XCTAssertFalse(toggleReportingManagerMock.recordPromptCalled)
     }
 
     func testUserScriptDidSelectReportActionDoNotSendIfEntryPointIsToggleReportShouldCallCompletionHandler() {
@@ -247,8 +247,8 @@ final class PrivacyDashboardControllerTests: XCTestCase {
     func testUserScriptDidSelectReportActionSendShouldRecordPrompt() {
         makePrivacyDashboardController(entryPoint: .toggleReport(completionHandler: { _ in }))
         privacyDashboardController.userScript(PrivacyDashboardUserScript(), didSelectReportAction: true)
-        XCTAssertTrue(toggleReportsManagerMock.recordPromptCalled)
-        XCTAssertFalse(toggleReportsManagerMock.recordDismissalCalled)
+        XCTAssertTrue(toggleReportingManagerMock.recordPromptCalled)
+        XCTAssertFalse(toggleReportingManagerMock.recordDismissalCalled)
     }
 
     func testUserScriptDidSelectReportActionSendShouldCallDidRequestSubmitToggleReport() {
@@ -267,8 +267,8 @@ final class PrivacyDashboardControllerTests: XCTestCase {
 
     func testUserScriptDidSelectReportActionSendIfThereIsProtectionStateToSubmitShouldCallDidChangeProtectionSwitchOnIOSApp() {
         makePrivacyDashboardController(entryPoint: .dashboard)
-        privacyDashboardController.shouldHandlePendingProtectionStateChangeOnReportSent = true // simulate iOS app
         simulateProtectionToggleSwitch(false)
+        privacyDashboardController.toggleReportingFlow?.shouldHandlePendingProtectionStateChangeOnReportSent = true // simulate iOS app
         privacyDashboardController.userScript(PrivacyDashboardUserScript(), didSelectReportAction: true)
         XCTAssertTrue(delegateMock.didChangeProtectionSwitchCalled)
         XCTAssertTrue(delegateMock.didSendReport)
@@ -276,8 +276,8 @@ final class PrivacyDashboardControllerTests: XCTestCase {
 
     func testUserScriptDidSelectReportActionSendIfThereIsProtectionStateToSubmitShouldNotCallDidChangeProtectionSwitchOnMacOSApp() {
         makePrivacyDashboardController(entryPoint: .dashboard)
-        privacyDashboardController.shouldHandlePendingProtectionStateChangeOnReportSent = false // simulate macOS app
         simulateProtectionToggleSwitch(false)
+        privacyDashboardController.toggleReportingFlow?.shouldHandlePendingProtectionStateChangeOnReportSent = false // simulate macOS app
         privacyDashboardController.userScript(PrivacyDashboardUserScript(), didSelectReportAction: true)
         XCTAssertFalse(delegateMock.didChangeProtectionSwitchCalled)
     }
@@ -287,16 +287,16 @@ final class PrivacyDashboardControllerTests: XCTestCase {
     func testHandleViewWillDisappearIfEntryPointIsToggleReportShouldRecordToggleDismissal() {
         makePrivacyDashboardController(entryPoint: .toggleReport(completionHandler: { _ in }))
         privacyDashboardController.handleViewWillDisappear()
-        XCTAssertFalse(toggleReportsManagerMock.recordPromptCalled)
-        XCTAssertTrue(toggleReportsManagerMock.recordDismissalCalled)
+        XCTAssertFalse(toggleReportingManagerMock.recordPromptCalled)
+        XCTAssertTrue(toggleReportingManagerMock.recordDismissalCalled)
     }
 
     func testHandleViewWillDisappearIfInToggleReportFlowShouldRecordToggleDismissal() {
         makePrivacyDashboardController(entryPoint: .dashboard)
         simulateProtectionToggleSwitch(false)
         privacyDashboardController.handleViewWillDisappear()
-        XCTAssertFalse(toggleReportsManagerMock.recordPromptCalled)
-        XCTAssertTrue(toggleReportsManagerMock.recordDismissalCalled)
+        XCTAssertFalse(toggleReportingManagerMock.recordPromptCalled)
+        XCTAssertTrue(toggleReportingManagerMock.recordDismissalCalled)
     }
 
     func testHandleViewWillDisappearIfEntryPointIsToggleReportShouldCallCompletionHandler() {

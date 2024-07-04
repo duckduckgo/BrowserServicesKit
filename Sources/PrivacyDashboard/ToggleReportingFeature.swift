@@ -1,5 +1,5 @@
 //
-//  ToggleReportsFeature.swift
+//  ToggleReportingFeature.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -20,7 +20,7 @@ import Foundation
 import Combine
 import BrowserServicesKit
 
-public struct PrivacyConfigurationToggleReportsFeature {
+public struct PrivacyConfigurationToggleReportingFeature {
 
     let isEnabled: Bool
     let settings: PrivacyConfigurationData.PrivacyFeature.FeatureSettings
@@ -32,8 +32,8 @@ public struct PrivacyConfigurationToggleReportsFeature {
 
     public init(privacyConfigurationManager: PrivacyConfigurationManaging) {
         let privacyConfig = privacyConfigurationManager.privacyConfig
-        self.isEnabled = privacyConfig.isEnabled(featureKey: .toggleReports)
-        self.settings = privacyConfig.settings(for: .toggleReports)
+        isEnabled = privacyConfig.isEnabled(featureKey: .toggleReports)
+        settings = privacyConfig.settings(for: .toggleReports)
     }
 
 }
@@ -51,7 +51,7 @@ public protocol ToggleReporting {
 
 }
 
-public final class ToggleReportsFeature: ToggleReporting {
+public final class ToggleReportingFeature: ToggleReporting {
 
     enum Constants {
 
@@ -76,12 +76,12 @@ public final class ToggleReportsFeature: ToggleReporting {
     public private(set) var promptInterval: TimeInterval = 0
     public private(set) var maxPromptCount: Int = 0
 
-    public init(privacyConfigurationToggleReportsFeature: PrivacyConfigurationToggleReportsFeature,
+    public init(privacyConfigurationToggleReportingFeature: PrivacyConfigurationToggleReportingFeature,
                 currentLocale: Locale = Locale.current) {
         let isCurrentLanguageEnglish = currentLocale.languageCode == "en"
-        isEnabled = privacyConfigurationToggleReportsFeature.isEnabled && isCurrentLanguageEnglish
+        isEnabled = privacyConfigurationToggleReportingFeature.isEnabled && isCurrentLanguageEnglish
         guard isEnabled else { return }
-        let settings = privacyConfigurationToggleReportsFeature.settings
+        let settings = privacyConfigurationToggleReportingFeature.settings
         isDismissLogicEnabled = settings[Constants.dismissLogicEnabledKey] as? Bool ?? false
         dismissInterval = settings[Constants.dismissIntervalKey] as? TimeInterval ?? Constants.defaultTimeInterval
         isPromptLimitLogicEnabled = settings[Constants.promptLimitLogicEnabledKey] as? Bool ?? false
