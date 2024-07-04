@@ -37,7 +37,7 @@ protocol PrivacyDashboardUserScriptDelegate: AnyObject {
     // Toggle reports
     func userScriptDidRequestToggleReportOptions(_ userScript: PrivacyDashboardUserScript)
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectReportAction shouldSendReport: Bool)
-    
+
     // Experiment flows
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectOverallCategory category: String)
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectBreakageCategory category: String)

@@ -44,7 +44,7 @@ public enum PrivacyDashboardEntryPoint: Equatable {
         case (.report, .control): return .breakageForm
         case (.report, .a): return .categorySelection
         case (.report, .b): return .categoryTypeSelection
-        
+
         case (.afterTogglePrompt, _): return .choiceBreakageForm
 
         case (.toggleReport, _): return .toggleReport

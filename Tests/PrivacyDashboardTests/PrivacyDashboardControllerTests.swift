@@ -27,7 +27,7 @@ import WebKit
 final class PrivacyDashboardDelegateMock: PrivacyDashboardControllerDelegate {
 
     var didChangeProtectionSwitchCalled = false
-    var protectionState: ProtectionState? = nil
+    var protectionState: ProtectionState?
     var didSendReport = false
     var didRequestCloseCalled = false
     var didRequestSubmitToggleReport = false
@@ -76,11 +76,11 @@ final class ToggleReportingManagerMock: ToggleReportingManaging {
     func recordDismissal(date: Date) {
         recordDismissalCalled = true
     }
-    
+
     func recordPrompt(date: Date) {
         recordPromptCalled = true
     }
-    
+
     var shouldShowToggleReport: Bool { return true }
 
 }
@@ -119,10 +119,10 @@ final class PrivacyDashboardControllerTests: XCTestCase {
             makePrivacyDashboardController(entryPoint: entryPoint)
             let currentURL = privacyDashboardController.webView!.url
             XCTAssertEqual(currentURL?.getParameter(named: "screen"), entryPoint.screen(for: .control).rawValue)
-            if case .afterTogglePrompt(_, _) = entryPoint {
+            if case .afterTogglePrompt = entryPoint {
                 XCTAssertEqual(currentURL?.getParameter(named: "category"), "apple")
             }
-            if case .toggleReport(_) = entryPoint {
+            if case .toggleReport = entryPoint {
                 XCTAssertEqual(currentURL?.getParameter(named: "opener"), "menu")
             }
         }
