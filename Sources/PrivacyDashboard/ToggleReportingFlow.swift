@@ -1,6 +1,5 @@
 //
 //  ToggleReportingFlow.swift
-//  DuckDuckGo
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -19,7 +18,8 @@
 
 import Foundation
 
-@MainActor final class ToggleReportingFlow {
+@MainActor
+final class ToggleReportingFlow {
 
     enum EntryPoint {
 

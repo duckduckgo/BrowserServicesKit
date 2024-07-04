@@ -22,7 +22,7 @@ import WebKit
 @testable import PrivacyDashboard
 @testable import BrowserServicesKit
 
-@MainActor 
+@MainActor
 final class PrivacyDashboardControllerTests: XCTestCase {
 
     var privacyDashboardController: PrivacyDashboardController!
