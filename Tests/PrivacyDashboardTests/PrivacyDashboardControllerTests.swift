@@ -1,6 +1,5 @@
 //
 //  PrivacyDashboardControllerTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -23,7 +22,8 @@ import WebKit
 @testable import PrivacyDashboard
 @testable import BrowserServicesKit
 
-@MainActor final class PrivacyDashboardControllerTests: XCTestCase {
+@MainActor 
+final class PrivacyDashboardControllerTests: XCTestCase {
 
     var privacyDashboardController: PrivacyDashboardController!
     var delegateMock: PrivacyDashboardDelegateMock!
