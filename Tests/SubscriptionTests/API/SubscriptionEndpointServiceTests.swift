@@ -35,8 +35,8 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
         let subscription = DDGSubscription(productId: "productID",
                                            name: "name",
                                            billingPeriod: .monthly,
-                                           startedAt: Date(timeIntervalSince1970: 1000),
-                                           expiresOrRenewsAt: Date(timeIntervalSince1970: 2000),
+                                           startedAt: Date.yearAgo,
+                                           expiresOrRenewsAt: Date.aYearFromNow,
                                            platform: .apple,
                                            status: .autoRenewable)
         let apiService = APIServiceMock(mockAuthHeaders: ["Authorization": "Bearer " + token],

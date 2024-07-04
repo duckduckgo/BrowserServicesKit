@@ -22,7 +22,7 @@ import Foundation
 /// Provides all mocks needed for testing subscription initialised with positive outcomes and basic configurations. All mocks can be partially reconfigured with failures or incorrect data
 public struct SubscriptionMockFactory {
 
-    public static let email = "5p2d4sx1@duck.com"
+    public static let email = "5p2d4sx1@duck.com" // Some sandbox account
     public static let externalId = "someExternalID"
     public static let accountManager = AccountManagerMock(email: email,
                                                           externalID: externalId)
