@@ -36,7 +36,7 @@ final class CrashLogMessageExtractorTests: XCTestCase {
         let r = extractor.crashDiagnostic(for: Date(), pid: 1)
         XCTAssertNil(r)
     }
-    
+
     func testWhenFileManagerThrows_noCrashDiagnosticReturned() {
         fileManager.error = CocoaError(CocoaError.Code.fileNoSuchFile)
         let r = extractor.crashDiagnostic(for: Date(), pid: 1)
