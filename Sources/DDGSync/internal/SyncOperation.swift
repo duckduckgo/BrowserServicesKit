@@ -21,7 +21,7 @@ import Combine
 import Common
 import Gzip
 
-final class SyncOperation: Operation {
+final class SyncOperation: Operation, @unchecked Sendable {
 
     let dataProviders: [DataProviding]
     let storage: SecureStoring
