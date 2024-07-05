@@ -35,6 +35,7 @@ protocol FailureRecoveryHandling {
         to lastConnectedServer: NetworkProtectionServer,
         includedRoutes: [IPAddressRange],
         excludedRoutes: [IPAddressRange],
+        dnsSettings: NetworkProtectionDNSSettings,
         isKillSwitchEnabled: Bool,
         updateConfig: @escaping (NetworkProtectionDeviceManagement.GenerateTunnelConfigurationResult) async throws -> Void
     ) async
@@ -85,6 +86,7 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
         to lastConnectedServer: NetworkProtectionServer,
         includedRoutes: [IPAddressRange],
         excludedRoutes: [IPAddressRange],
+        dnsSettings: NetworkProtectionDNSSettings,
         isKillSwitchEnabled: Bool,
         updateConfig: @escaping (NetworkProtectionDeviceManagement.GenerateTunnelConfigurationResult) async throws -> Void
     ) async {
@@ -92,6 +94,7 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
         defer {
             reassertingControl?.stopReasserting()
         }
+        let eventHandler = eventHandler
         await incrementalPeriodicChecks(retryConfig) { [weak self] in
             guard let self else { return }
             eventHandler(.started)
@@ -100,6 +103,7 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
                     to: lastConnectedServer,
                     includedRoutes: includedRoutes,
                     excludedRoutes: excludedRoutes,
+                    dnsSettings: dnsSettings,
                     isKillSwitchEnabled: isKillSwitchEnabled
                 )
                 switch result {
@@ -127,6 +131,7 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
         to lastConnectedServer: NetworkProtectionServer,
         includedRoutes: [IPAddressRange],
         excludedRoutes: [IPAddressRange],
+        dnsSettings: NetworkProtectionDNSSettings,
         isKillSwitchEnabled: Bool
     ) async throws -> FailureRecoveryResult {
         let serverSelectionMethod: NetworkProtectionServerSelectionMethod = .failureRecovery(serverName: lastConnectedServer.serverName)
@@ -136,17 +141,17 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
             selectionMethod: serverSelectionMethod,
             includedRoutes: includedRoutes,
             excludedRoutes: excludedRoutes,
+            dnsSettings: dnsSettings,
             isKillSwitchEnabled: isKillSwitchEnabled,
             regenerateKey: false
         )
-        os_log("🟢 Failure recovery fetched new config.", log: .networkProtectionServerFailureRecoveryLog, type: .info)
+        os_log("🟢 Failure recovery fetched new config.", log: .networkProtectionTunnelFailureMonitorLog)
 
         let newServer = configurationResult.server
 
         os_log(
             "🟢 Failure recovery - originalServerName: %{public}s, newServerName: %{public}s, originalAllowedIPs: %{public}s, newAllowedIPs: %{public}s",
             log: .networkProtection,
-            type: .info,
             lastConnectedServer.serverName,
             newServer.serverName,
             String(describing: lastConnectedServer.allowedIPs),
@@ -154,7 +159,7 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
         )
 
         guard lastConnectedServer.shouldReplace(with: newServer) else {
-            os_log("🟢 Server failure recovery not necessary.", log: .networkProtectionServerFailureRecoveryLog, type: .info)
+            os_log("🟢 Server failure recovery not necessary.", log: .networkProtectionTunnelFailureMonitorLog)
             return .noRecoveryNecessary
         }
 
@@ -177,10 +182,10 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
                 }
                 do {
                     try await action()
-                    os_log("🟢 Failure recovery success!", log: .networkProtectionServerFailureRecoveryLog, type: .info)
+                    os_log("🟢 Failure recovery success!", log: .networkProtectionTunnelFailureMonitorLog)
                     return
                 } catch {
-                    os_log("🟢 Failure recovery failed. Retrying...", log: .networkProtectionServerFailureRecoveryLog, type: .info)
+                    os_log("🟢 Failure recovery failed. Retrying...", log: .networkProtectionTunnelFailureMonitorLog)
                 }
                 do {
                     try await Task.sleep(interval: currentDelay)

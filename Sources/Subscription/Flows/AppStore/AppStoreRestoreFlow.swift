@@ -20,38 +20,48 @@ import Foundation
 import StoreKit
 import Common
 
+public typealias RestoredAccountDetails = (authToken: String, accessToken: String, externalID: String, email: String?)
+
+public enum AppStoreRestoreFlowError: Swift.Error {
+    case missingAccountOrTransactions
+    case pastTransactionAuthenticationError
+    case failedToObtainAccessToken
+    case failedToFetchAccountDetails
+    case failedToFetchSubscriptionDetails
+    case subscriptionExpired(accountDetails: RestoredAccountDetails)
+}
+
 @available(macOS 12.0, iOS 15.0, *)
-public final class AppStoreRestoreFlow {
+public protocol AppStoreRestoreFlow {
+    @discardableResult func restoreAccountFromPastPurchase() async -> Result<Void, AppStoreRestoreFlowError>
+}
 
-    public typealias RestoredAccountDetails = (authToken: String, accessToken: String, externalID: String, email: String?)
+@available(macOS 12.0, iOS 15.0, *)
+public final class DefaultAppStoreRestoreFlow: AppStoreRestoreFlow {
+    private let accountManager: AccountManager
+    private let storePurchaseManager: StorePurchaseManager
+    private let subscriptionEndpointService: SubscriptionEndpointService
+    private let authEndpointService: AuthEndpointService
 
-    public enum Error: Swift.Error {
-        case missingAccountOrTransactions
-        case pastTransactionAuthenticationError
-        case failedToObtainAccessToken
-        case failedToFetchAccountDetails
-        case failedToFetchSubscriptionDetails
-        case subscriptionExpired(accountDetails: RestoredAccountDetails)
-    }
-
-    private let subscriptionManager: SubscriptionManaging
-    var accountManager: AccountManaging {
-        subscriptionManager.accountManager
-    }
-
-    public init(subscriptionManager: SubscriptionManaging) {
-        self.subscriptionManager = subscriptionManager
+    public init(accountManager: any AccountManager,
+                storePurchaseManager: any StorePurchaseManager,
+                subscriptionEndpointService: any SubscriptionEndpointService,
+                authEndpointService: any AuthEndpointService) {
+        self.accountManager = accountManager
+        self.storePurchaseManager = storePurchaseManager
+        self.subscriptionEndpointService = subscriptionEndpointService
+        self.authEndpointService = authEndpointService
     }
 
     @discardableResult
-    public func restoreAccountFromPastPurchase() async -> Result<Void, AppStoreRestoreFlow.Error> {
+    public func restoreAccountFromPastPurchase() async -> Result<Void, AppStoreRestoreFlowError> {
 
         // Clear subscription Cache
-        subscriptionManager.subscriptionService.signOut()
+        subscriptionEndpointService.signOut()
 
         os_log(.info, log: .subscription, "[AppStoreRestoreFlow] restoreAccountFromPastPurchase")
 
-        guard let lastTransactionJWSRepresentation = await subscriptionManager.storePurchaseManager().mostRecentTransaction() else {
+        guard let lastTransactionJWSRepresentation = await storePurchaseManager.mostRecentTransaction() else {
             os_log(.error, log: .subscription, "[AppStoreRestoreFlow] Error: missingAccountOrTransactions")
             return .failure(.missingAccountOrTransactions)
         }
@@ -59,7 +69,7 @@ public final class AppStoreRestoreFlow {
         // Do the store login to get short-lived token
         let authToken: String
 
-        switch await subscriptionManager.authService.storeLogin(signature: lastTransactionJWSRepresentation) {
+        switch await authEndpointService.storeLogin(signature: lastTransactionJWSRepresentation) {
         case .success(let response):
             authToken = response.authToken
         case .failure:
@@ -90,7 +100,7 @@ public final class AppStoreRestoreFlow {
 
         var isSubscriptionActive = false
 
-        switch await subscriptionManager.subscriptionService.getSubscription(accessToken: accessToken, cachePolicy: .reloadIgnoringLocalCacheData) {
+        switch await subscriptionEndpointService.getSubscription(accessToken: accessToken, cachePolicy: .reloadIgnoringLocalCacheData) {
         case .success(let subscription):
             isSubscriptionActive = subscription.isActive
         case .failure:

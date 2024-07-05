@@ -18,7 +18,7 @@
 
 import Foundation
 
-public class SubscriptionTokenKeychainStorage: SubscriptionTokenStoring {
+public final class SubscriptionTokenKeychainStorage: SubscriptionTokenStoring {
 
     private let keychainType: KeychainType
 

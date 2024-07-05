@@ -22,7 +22,7 @@ import Common
 import CoreData
 import Persistence
 
-final class FaviconsFetchOperation: Operation {
+final class FaviconsFetchOperation: Operation, @unchecked Sendable {
 
     enum FaviconFetchError: Error {
         case connectionError

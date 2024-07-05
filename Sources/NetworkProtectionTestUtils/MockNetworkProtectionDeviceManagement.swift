@@ -46,6 +46,7 @@ public final class MockNetworkProtectionDeviceManagement: NetworkProtectionDevic
         selectionMethod: NetworkProtection.NetworkProtectionServerSelectionMethod,
         includedRoutes: [NetworkProtection.IPAddressRange],
         excludedRoutes: [NetworkProtection.IPAddressRange],
+        dnsSettings: NetworkProtectionDNSSettings,
         isKillSwitchEnabled: Bool,
         regenerateKey: Bool) async throws -> (tunnelConfiguration: NetworkProtection.TunnelConfiguration, server: NetworkProtection.NetworkProtectionServer) {
             spyGenerateTunnelConfiguration = (

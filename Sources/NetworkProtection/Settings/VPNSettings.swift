@@ -37,6 +37,7 @@ public final class VPNSettings {
         case setSelectedServer(_ selectedServer: SelectedServer)
         case setSelectedLocation(_ selectedLocation: SelectedLocation)
         case setSelectedEnvironment(_ selectedEnvironment: SelectedEnvironment)
+        case setDNSSettings(_ dnsSettings: NetworkProtectionDNSSettings)
         case setShowInMenuBar(_ showInMenuBar: Bool)
         case setDisableRekeying(_ disableRekeying: Bool)
     }
@@ -153,6 +154,13 @@ public final class VPNSettings {
                 Change.setSelectedEnvironment(environment)
             }.eraseToAnyPublisher()
 
+        let dnsSettingsChangePublisher = dnsSettingsPublisher
+            .dropFirst()
+            .removeDuplicates()
+            .map { settings in
+                Change.setDNSSettings(settings)
+            }.eraseToAnyPublisher()
+
         let showInMenuBarPublisher = showInMenuBarPublisher
             .dropFirst()
             .removeDuplicates()
@@ -176,6 +184,7 @@ public final class VPNSettings {
             serverChangePublisher,
             locationChangePublisher,
             environmentChangePublisher,
+            dnsSettingsChangePublisher,
             showInMenuBarPublisher,
             disableRekeyingPublisher).eraseToAnyPublisher()
     }()
@@ -194,6 +203,7 @@ public final class VPNSettings {
         defaults.resetNetworkProtectionSettingNotifyStatusChanges()
         defaults.resetNetworkProtectionSettingRegistrationKeyValidity()
         defaults.resetNetworkProtectionSettingSelectedServer()
+        defaults.resetDNSSettings()
         defaults.resetNetworkProtectionSettingShowInMenuBar()
     }
 
@@ -220,6 +230,8 @@ public final class VPNSettings {
             self.selectedLocation = selectedLocation
         case .setSelectedEnvironment(let selectedEnvironment):
             self.selectedEnvironment = selectedEnvironment
+        case .setDNSSettings(let dnsSettings):
+            self.dnsSettings = dnsSettings
         case .setShowInMenuBar(let showInMenuBar):
             self.showInMenuBar = showInMenuBar
         case .setDisableRekeying(let disableRekeying):
@@ -357,6 +369,22 @@ public final class VPNSettings {
 
         set {
             defaults.networkProtectionSettingSelectedEnvironment = newValue
+        }
+    }
+
+    // MARK: - DNS Settings
+
+    public var dnsSettingsPublisher: AnyPublisher<NetworkProtectionDNSSettings, Never> {
+        defaults.dnsSettingsPublisher
+    }
+
+    public var dnsSettings: NetworkProtectionDNSSettings {
+        get {
+            defaults.dnsSettings
+        }
+
+        set {
+            defaults.dnsSettings = newValue
         }
     }
 

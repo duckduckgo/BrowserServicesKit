@@ -80,6 +80,7 @@ public protocol AutofillSecureVault: SecureVault {
     func deleteNoteFor(noteId: Int64) throws
 
     func identities() throws -> [SecureVaultModels.Identity]
+    func identitiesCount() throws -> Int
     func identityFor(id: Int64) throws -> SecureVaultModels.Identity?
     func existingIdentityForAutofill(matching proposedIdentity: SecureVaultModels.Identity) throws -> SecureVaultModels.Identity?
     @discardableResult
@@ -477,6 +478,12 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
     public func identities() throws -> [SecureVaultModels.Identity] {
         return try executeThrowingDatabaseOperation {
             return try self.providers.database.identities()
+        }
+    }
+
+    public func identitiesCount() throws -> Int {
+        return try executeThrowingDatabaseOperation {
+            return try self.providers.database.identitiesCount()
         }
     }
 

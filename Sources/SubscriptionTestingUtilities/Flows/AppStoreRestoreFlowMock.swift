@@ -1,5 +1,5 @@
 //
-//  SubscriptionTests.swift
+//  AppStoreRestoreFlowMock.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -16,10 +16,17 @@
 //  limitations under the License.
 //
 
-import XCTest
-@testable import Subscription
-import SubscriptionTestingUtilities
+import Foundation
+import Subscription
 
-final class SubscriptionTests: XCTestCase {
+public class AppStoreRestoreFlowMock: AppStoreRestoreFlow {
+    public var restoreAccountFromPastPurchaseResult: Result<Void, AppStoreRestoreFlowError>
 
+    public init(restoreAccountFromPastPurchaseResult: Result<Void, AppStoreRestoreFlowError>) {
+        self.restoreAccountFromPastPurchaseResult = restoreAccountFromPastPurchaseResult
+    }
+
+    public func restoreAccountFromPastPurchase() async -> Result<Void, AppStoreRestoreFlowError> {
+        restoreAccountFromPastPurchaseResult
+    }
 }
