@@ -105,5 +105,5 @@ private extension URL {
         }
         return self
     }
-    
+
 }
