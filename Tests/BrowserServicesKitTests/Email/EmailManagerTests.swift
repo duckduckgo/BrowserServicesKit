@@ -16,7 +16,7 @@
 //  limitations under the License.
 //
 
-import EmailTestsUtils
+import BrowserServicesKitTestsUtils
 import XCTest
 @testable import BrowserServicesKit
 

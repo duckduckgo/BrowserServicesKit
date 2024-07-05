@@ -16,6 +16,7 @@ let package = Package(
         .library(name: "Common", targets: ["Common"]),
         .library(name: "TestUtils", targets: ["TestUtils"]),
         .library(name: "DDGSync", targets: ["DDGSync"]),
+        .library(name: "BrowserServicesKitTestsUtils", targets: ["BrowserServicesKitTestsUtils"]),
         .library(name: "Persistence", targets: ["Persistence"]),
         .library(name: "Bookmarks", targets: ["Bookmarks"]),
         .library(name: "BloomFilterWrapper", targets: ["BloomFilterWrapper"]),
@@ -26,6 +27,7 @@ let package = Package(
         .library(name: "Configuration", targets: ["Configuration"]),
         .library(name: "Networking", targets: ["Networking"]),
         .library(name: "RemoteMessaging", targets: ["RemoteMessaging"]),
+        .library(name: "RemoteMessagingTestsUtils", targets: ["RemoteMessagingTestsUtils"]),
         .library(name: "Navigation", targets: ["Navigation"]),
         .library(name: "SyncDataProviders", targets: ["SyncDataProviders"]),
         .library(name: "NetworkProtection", targets: ["NetworkProtection"]),
@@ -74,6 +76,12 @@ let package = Package(
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
+            ]
+        ),
+        .target(
+            name: "BrowserServicesKitTestsUtils",
+            dependencies: [
+                "BrowserServicesKit",
             ]
         ),
         .target(
@@ -164,12 +172,6 @@ let package = Package(
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
-            ]
-        ),
-        .target(
-            name: "EmailTestsUtils",
-            dependencies: [
-                "BrowserServicesKit",
             ]
         ),
         .executableTarget(
@@ -282,7 +284,6 @@ let package = Package(
         .target(
             name: "RemoteMessagingTestsUtils",
             dependencies: [
-                "BrowserServicesKit",
                 "RemoteMessaging",
             ]
         ),
@@ -414,7 +415,7 @@ let package = Package(
             name: "BrowserServicesKitTests",
             dependencies: [
                 "BrowserServicesKit",
-                "EmailTestsUtils",
+                "BrowserServicesKitTestsUtils",
                 "SecureStorageTestsUtils",
                 "TestUtils",
                 "Subscription"
@@ -496,7 +497,7 @@ let package = Package(
         .testTarget(
             name: "RemoteMessagingTests",
             dependencies: [
-                "EmailTestsUtils",
+                "BrowserServicesKitTestsUtils",
                 "RemoteMessaging",
                 "RemoteMessagingTestsUtils",
                 "TestUtils",

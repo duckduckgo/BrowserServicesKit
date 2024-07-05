@@ -18,7 +18,7 @@
 
 import BrowserServicesKit
 import Common
-import EmailTestsUtils
+import BrowserServicesKitTestsUtils
 import RemoteMessagingTestsUtils
 import XCTest
 @testable import RemoteMessaging

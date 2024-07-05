@@ -16,6 +16,7 @@
 //  limitations under the License.
 //
 
+import BrowserServicesKitTestsUtils
 import Common
 import Foundation
 import RemoteMessagingTestsUtils
