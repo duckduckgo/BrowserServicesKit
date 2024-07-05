@@ -66,10 +66,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     public enum ConnectionTesterStatus {
-        case failed(kind: Kind)
-        case recovered(kind: Kind, failureCount: Int)
+        case failed(duration: Duration)
+        case recovered(duration: Duration, failureCount: Int)
 
-        public enum Kind: String {
+        public enum Duration: String {
             case immediate
             case extended
         }
@@ -333,10 +333,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 self.updateBandwidthAnalyzerAndRekeyIfExpired()
 
             case .reconnected(let failureCount):
-                providerEvents.fire(.connectionTesterStatusChange(.recovered(kind: .immediate, failureCount: failureCount)))
+                providerEvents.fire(.connectionTesterStatusChange(.recovered(duration: .immediate, failureCount: failureCount)))
 
                 if failureCount >= 8 {
-                    providerEvents.fire(.connectionTesterStatusChange(.recovered(kind: .extended, failureCount: failureCount)))
+                    providerEvents.fire(.connectionTesterStatusChange(.recovered(duration: .extended, failureCount: failureCount)))
                 }
 
                 self.tunnelHealth.isHavingConnectivityIssues = false
@@ -344,9 +344,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
             case .disconnected(let failureCount):
                 if failureCount == 1 {
-                    providerEvents.fire(.connectionTesterStatusChange(.failed(kind: .immediate)))
+                    providerEvents.fire(.connectionTesterStatusChange(.failed(duration: .immediate)))
                 } else if failureCount == 8 {
-                    providerEvents.fire(.connectionTesterStatusChange(.failed(kind: .extended)))
+                    providerEvents.fire(.connectionTesterStatusChange(.failed(duration: .extended)))
                 }
 
                 self.tunnelHealth.isHavingConnectivityIssues = true
