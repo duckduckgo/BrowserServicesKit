@@ -48,14 +48,14 @@ import Foundation
 /// `applicationSupportDir/Diagnostics/2024-05-20T12:11:33Z-%pid%.log`
 public struct CrashLogMessageExtractor {
 
-    private struct CrashLog {
+    public struct CrashDiagnostic {
 
         // ""2024-05-22T08:17:23Z59070.log"
         static let fileNameRegex = regex(#"^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:[+-][0-2]\d:[0-5]\d|Z))-(\d+)\.log$"#)
 
-        let url: URL
-        let timestamp: Date
-        let pid: pid_t
+        public let url: URL
+        public let timestamp: Date
+        public let pid: pid_t
 
         init?(url: URL) {
             let fileName = url.lastPathComponent
@@ -75,6 +75,31 @@ public struct CrashLogMessageExtractor {
             self.url = url
             self.timestamp = timestamp
             self.pid = pid
+        }
+
+        public struct DiagnosticData: Codable {
+            public let message: String
+            public let stackTrace: [String]
+
+            public var isEmpty: Bool {
+                message.trimmingWhitespace().isEmpty && stackTrace.isEmpty
+            }
+
+            init(message: String, stackTrace: [String]) {
+                self.message = message
+                self.stackTrace = stackTrace
+            }
+        }
+
+        public func diagnosticData() throws -> DiagnosticData {
+            do {
+                let data = try Data(contentsOf: url)
+                let dianosticData = try JSONDecoder().decode(DiagnosticData.self, from: data)
+                return dianosticData
+            } catch {
+                os_log("😵 could not read contents of %{public}s: %s", url.lastPathComponent, error.localizedDescription)
+                throw error
+            }
         }
     }
 
@@ -105,7 +130,7 @@ public struct CrashLogMessageExtractor {
         let weekAgo = Date.weekAgo
         for fileName in (try? fm.contentsOfDirectory(atPath: diagnosticsUrl.path)) ?? [] {
             let fileUrl = diagnosticsUrl.appending(fileName)
-            let timestamp = CrashLog(url: fileUrl)?.timestamp ?? .distantPast
+            let timestamp = CrashDiagnostic(url: fileUrl)?.timestamp ?? .distantPast
 
             if timestamp <= weekAgo {
                 try? fm.removeItem(at: fileUrl)
@@ -113,41 +138,64 @@ public struct CrashLogMessageExtractor {
         }
     }
 
+    let fileManager: FileManager
+    let diagnosticsDirectory: URL
+
+    public init(fileManager: FileManager? = nil, diagnosticsDirectory: URL? = nil) {
+        self.fileManager = fileManager ?? .default
+        self.diagnosticsDirectory = diagnosticsDirectory ?? Self.diagnosticsDirectory ?? self.fileManager.diagnosticsDirectory
+    }
+
+    func writeDiagnostic(for exception: NSException) throws {
+        // collect exception diagnostics data
+        let message = (
+            [
+                "\(exception.name.rawValue): \(exception.reason?.sanitized() /* clean-up possible filenames and emails */ ?? "")"
+            ]
+            + (exception.userInfo ?? [:]).map { "\($0.key): " + "\($0.value)".sanitized() }
+        ).joined(separator: "\n")
+        let diagnosticData = CrashLogMessageExtractor.CrashDiagnostic.DiagnosticData(message: message, stackTrace: exception.callStackSymbols)
+        os_log("😵 crashing on: %{public}s", message)
+
+        // save crash log with `2024-05-20T12:11:33Z-%pid%.log` file name format
+        let timestamp = ISO8601DateFormatter().string(from: Date())
+        let fileName = "\(timestamp)-\(ProcessInfo().processIdentifier).log"
+        let fileURL = diagnosticsDirectory.appendingPathComponent(fileName)
+
+        try JSONEncoder().encode(diagnosticData).write(to: fileURL)
+    }
+
     /// Find saved crash diagnostics message for crash PID/timestamp
-    public static func crashLogMessage(for timestamp: Date?, pid: pid_t?) -> String? {
-        let fm = FileManager.default
-        let diagDir = fm.diagnosticsDirectory
+    public func crashDiagnostic(for timestamp: Date?, pid: pid_t?) -> CrashDiagnostic? {
         guard timestamp != nil || pid != nil,
-              var crashLogs = try? fm.contentsOfDirectory(atPath: diagDir.path).compactMap({ CrashLog(url: diagDir.appending($0)) }) else { return nil }
+              var crashLogs = try? fileManager.contentsOfDirectory(atPath: diagnosticsDirectory.path).compactMap({
+                  CrashDiagnostic(url: diagnosticsDirectory.appending($0))
+              }) else { return nil }
 
-        if let pid, pid > 0 {
-            // filter by Process Identifier if it‘s known
-            crashLogs = crashLogs.filter { $0.pid == pid }
+        let calendar = Calendar.current
+        let roundedTimestamp = calendar.roundedToMinutes(timestamp)
+
+        if let pid {
+            crashLogs = crashLogs.filter {
+                // filter by matching timestamp and Process Identifier if it‘s known
+                $0.pid == pid && (roundedTimestamp == nil || calendar.roundedToMinutes($0.timestamp) == roundedTimestamp)
+            }
+        } else {
+            crashLogs = crashLogs.filter {
+                // filter by matching timestamp
+                calendar.roundedToMinutes($0.timestamp) == roundedTimestamp
+            }
         }
-
-        // sort by distance from the crash timestamp, take the closest
-        let timestamp = timestamp ?? Date()
-        let crashLog = crashLogs.sorted { (lhs: CrashLog, rhs: CrashLog) in
-            Swift.abs(timestamp.timeIntervalSince(lhs.timestamp)) < Swift.abs(timestamp.timeIntervalSince(rhs.timestamp))
-        }.first
-
-        guard let crashLog else {
-            os_log("😵 no crash logs found for %{public}s/%d", ISO8601DateFormatter().string(from: timestamp), pid ?? 0)
+        crashLogs = crashLogs.sorted {
+            // sort by timestamp
+            $0.timestamp > $1.timestamp
+        }
+        // take latest
+        guard let crashLog = crashLogs.first else {
+            os_log("😵 no crash logs found for %{public}s/%d", timestamp.map { ISO8601DateFormatter().string(from: $0) } ?? "<nil>", pid ?? 0)
             return nil
         }
-        // allow max of 3s timestamp difference when no pid available
-        guard pid != nil || Swift.abs(timestamp.timeIntervalSince(crashLog.timestamp)) <= 3 else {
-            os_log("😵 closest crashlog %{public}s differs from %{public}s by %dms", crashLog.url.lastPathComponent, ISO8601DateFormatter().string(from: timestamp), Swift.abs(timestamp.timeIntervalSince(crashLog.timestamp)))
-            return nil
-        }
-
-        do {
-            let message = try String(contentsOf: crashLog.url)
-            return message
-        } catch {
-            os_log("😵 could not read contents of %{public}s: %s", crashLog.url.lastPathComponent, error.localizedDescription)
-            return nil
-        }
+        return crashLog
     }
 
 }
@@ -166,19 +214,7 @@ private func handleTerminateOnCxxException() {
 private func handleException(_ exception: NSException) {
     os_log(.error, "Trapped exception \(exception)")
 
-    // collect exception diagnostics data
-    let message = "\(exception.name.rawValue): " +
-    (exception.reason?.sanitized() /* clean-up possible filenames and emails */ ?? "") + "\n" +
-    (exception.userInfo ?? [:]).map { "\($0.key): " + "\($0.value)\n".sanitized() }.joined() +
-    exception.callStackSymbols.joined(separator: ",\n  ")
-    os_log("😵 crashing on: %{public}s", message)
-
-    // save crash log with `2024-05-20T12:11:33Z-%pid%.log` file name format
-    let timestamp = ISO8601DateFormatter().string(from: Date())
-    let fileName = "\(timestamp)-\(ProcessInfo().processIdentifier).log"
-    let fileURL = CrashLogMessageExtractor.diagnosticsDirectory.appendingPathComponent(fileName)
-
-    try? message.utf8data.write(to: fileURL)
+    try? CrashLogMessageExtractor().writeDiagnostic(for: exception)
 
     // default handler
     CrashLogMessageExtractor.nextUncaughtExceptionHandler?(exception)
@@ -189,8 +225,9 @@ public func throwTestCppExteption() {
     _throwTestCppException("This a test C++ exception")
 }
 
-private extension FileManager {
-    var diagnosticsDirectory: URL {
-        applicationSupportDirectoryForComponent(named: "Diagnostics")
+private extension Calendar {
+    func roundedToMinutes(_ date: Date?) -> Date? {
+        let components = date.map { self.dateComponents([.year, .month, .day, .hour, .minute], from: $0) }
+        return components.flatMap { self.date(from: $0) }
     }
 }

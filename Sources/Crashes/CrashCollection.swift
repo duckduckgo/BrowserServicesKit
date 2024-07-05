@@ -104,17 +104,20 @@ public final class CrashCollection {
                 var objCexceptionReason = diagnosticMetaDataDict["objectiveCexceptionReason"] as? [AnyHashable: Any] ?? [:]
 
                 var exceptionMessage = (objCexceptionReason["composedMessage"] as? String)?.sanitized()
+                var stackTrace: [String]?
 
                 // append crash log message if loaded
-                if let crashInfo = CrashLogMessageExtractor.crashLogMessage(for: payload.timeStampBegin, pid: pid), !crashInfo.isEmpty {
+                if let diagnostic = try? CrashLogMessageExtractor().crashDiagnostic(for: payload.timeStampBegin, pid: pid)?.diagnosticData(), !diagnostic.isEmpty {
                     if let existingMessage = exceptionMessage, !existingMessage.isEmpty {
-                        exceptionMessage = existingMessage + "\n\n---\n\n" + crashInfo
+                        exceptionMessage = existingMessage + "\n\n---\n\n" + diagnostic.message
                     } else {
-                        exceptionMessage = crashInfo
+                        exceptionMessage = diagnostic.message
                     }
+                    stackTrace = diagnostic.stackTrace
                 }
 
                 objCexceptionReason["composedMessage"] = exceptionMessage
+                objCexceptionReason["stackTrace"] = stackTrace
                 diagnosticMetaDataDict["objectiveCexceptionReason"] = objCexceptionReason
                 crashDiagnosticsDict["diagnosticMetaData"] = diagnosticMetaDataDict
                 crashDiagnostics[0] = crashDiagnosticsDict
