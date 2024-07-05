@@ -374,8 +374,8 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
     }
 
     public func encryptPassword(for credentials: SecureVaultModels.WebsiteCredentials,
-                                 key l2Key: Data? = nil,
-                                 salt: Data? = nil) throws -> SecureVaultModels.WebsiteCredentials {
+                                key l2Key: Data? = nil,
+                                salt: Data? = nil) throws -> SecureVaultModels.WebsiteCredentials {
         do {
             if let password = credentials.password, String(bytes: password, encoding: .utf8) == nil {
                 assertionFailure("Encrypted password passed to \(#function)")
