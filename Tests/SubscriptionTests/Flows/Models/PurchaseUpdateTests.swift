@@ -1,5 +1,5 @@
 //
-//  SubscriptionTokenKeychainStorageMock.swift
+//  PurchaseUpdateTests.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -16,25 +16,21 @@
 //  limitations under the License.
 //
 
-import Foundation
-import Subscription
+import XCTest
+@testable import Subscription
+import SubscriptionTestingUtilities
 
-public class SubscriptionTokenKeychainStorageMock: SubscriptionTokenStoring {
-    public var accessToken: String?
+final class PurchaseUpdateTests: XCTestCase {
 
-    public init(accessToken: String? = nil) {
-        self.accessToken = accessToken
+    override func setUpWithError() throws {
+        // Put setup code here. This method is called before the invocation of each test method in the class.
     }
 
-    public func getAccessToken() throws -> String? {
-        accessToken
+    override func tearDownWithError() throws {
+        // Put teardown code here. This method is called after the invocation of each test method in the class.
     }
 
-    public func store(accessToken: String) throws {
-        self.accessToken = accessToken
-    }
+    func testCodable() throws {
 
-    public func removeAccessToken() throws {
-        accessToken = nil
     }
 }
