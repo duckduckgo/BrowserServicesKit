@@ -33,7 +33,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     public enum Event {
         case userBecameActive
         case connectionTesterStatusChange(_ status: ConnectionTesterStatus)
-        case connectionTesterLongStatusChange(_ status: ConnectionTesterStatus)
+        case connectionTesterExtendedStatusChange(_ status: ConnectionTesterStatus)
         case reportConnectionAttempt(attempt: ConnectionAttempt)
         case tunnelStartAttempt(_ step: TunnelStartAttemptStep)
         case tunnelStopAttempt(_ step: TunnelStopAttemptStep)
@@ -332,7 +332,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 providerEvents.fire(.connectionTesterStatusChange(.recovered(failureCount: failureCount)))
 
                 if failureCount >= 8 {
-                    providerEvents.fire(.connectionTesterLongStatusChange(.recovered(failureCount: failureCount)))
+                    providerEvents.fire(.connectionTesterExtendedStatusChange(.recovered(failureCount: failureCount)))
                 }
 
                 self.tunnelHealth.isHavingConnectivityIssues = false
@@ -342,7 +342,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 if failureCount == 1 {
                     providerEvents.fire(.connectionTesterStatusChange(.failed))
                 } else if failureCount == 8 {
-                    providerEvents.fire(.connectionTesterLongStatusChange(.failed))
+                    providerEvents.fire(.connectionTesterExtendedStatusChange(.failed))
                 }
 
                 self.tunnelHealth.isHavingConnectivityIssues = true
