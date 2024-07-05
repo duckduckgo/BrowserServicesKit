@@ -1,5 +1,5 @@
 //
-//  Reasserting.swift
+//  PurchaseUpdateTests.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -16,21 +16,21 @@
 //  limitations under the License.
 //
 
-import Foundation
-import NetworkExtension
+import XCTest
+@testable import Subscription
+import SubscriptionTestingUtilities
 
-protocol Reasserting: AnyObject {
-    func startReasserting()
-    func stopReasserting()
-}
+final class PurchaseUpdateTests: XCTestCase {
 
-extension NEPacketTunnelProvider: Reasserting {
-
-    func startReasserting() {
-        reasserting = true
+    override func setUpWithError() throws {
+        // Put setup code here. This method is called before the invocation of each test method in the class.
     }
 
-    func stopReasserting() {
-        reasserting = false
+    override func tearDownWithError() throws {
+        // Put teardown code here. This method is called after the invocation of each test method in the class.
+    }
+
+    func testCodable() throws {
+
     }
 }

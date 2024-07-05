@@ -90,7 +90,6 @@ final class NetworkProtectionConnectionBandwidthAnalyzer {
 
         os_log("Bytes per second in last time-interval: (rx: %{public}@, tx: %{public}@)",
                log: .networkProtectionBandwidthAnalysis,
-               type: .info,
                String(describing: rx), String(describing: tx))
 
         idle = UInt64(rx) < Self.rxThreshold && UInt64(tx) < Self.txThreshold
@@ -103,7 +102,7 @@ final class NetworkProtectionConnectionBandwidthAnalyzer {
     /// Useful when servers are swapped
     ///
     func reset() {
-        os_log("Bandwidth analyzer reset", log: .networkProtectionBandwidthAnalysis, type: .info)
+        os_log("Bandwidth analyzer reset", log: .networkProtectionBandwidthAnalysis)
         entries.removeAll()
     }
 

@@ -23,6 +23,7 @@ import UserScript
 import Common
 import BrowserServicesKit
 
+@MainActor
 protocol PrivacyDashboardUserScriptDelegate: AnyObject {
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didChangeProtectionState protectionState: ProtectionState)

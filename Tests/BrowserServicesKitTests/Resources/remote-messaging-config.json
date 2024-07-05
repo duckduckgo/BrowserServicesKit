@@ -270,7 +270,7 @@
           "value": ["apple", "stripe"]
         },
         "pproSubscriptionStatus": {
-          "value": "active"
+          "value": ["active", "expiring"]
         },
         "pproDaysSinceSubscribed": {
             "min": 5,
