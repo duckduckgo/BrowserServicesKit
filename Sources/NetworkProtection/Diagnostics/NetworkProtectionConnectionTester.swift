@@ -222,7 +222,7 @@ final class NetworkProtectionConnectionTester {
         // After completing the connection tests we check if the tester is still supposed to be running
         // to avoid giving results when it should not be running.
         guard isRunning else {
-            os_log("Tester skipped returning results as it was stopped while running the tests", log: log, type: .info)
+            os_log("Tester skipped returning results as it was stopped while running the tests", log: log)
             return
         }
 
