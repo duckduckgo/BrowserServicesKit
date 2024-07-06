@@ -320,6 +320,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Connection tester
 
+    private static let connectionTesterExtendedFailuresCount = 8
     private var isConnectionTesterEnabled: Bool = true
 
     @MainActor
@@ -340,7 +341,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                         .recovered(duration: .immediate, failureCount: failureCount),
                         server: serverName))
 
-                if failureCount >= 8 {
+                if failureCount >= Self.connectionTesterExtendedFailuresCount {
                     providerEvents.fire(
                         .connectionTesterStatusChange(
                             .recovered(duration: .extended, failureCount: failureCount),
