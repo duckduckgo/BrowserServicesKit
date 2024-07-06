@@ -1,5 +1,5 @@
 //
-//  ToggleProtectionsCounterStore.swift
+//  ToggleReportingManagerMock.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -17,16 +17,21 @@
 //
 
 import Foundation
-import Persistence
+import PrivacyDashboard
 
-public struct ToggleProtectionsCounterStore: KeyValueStoring {
+final class ToggleReportingManagerMock: ToggleReportingManaging {
 
-    private var userDefaults: UserDefaults? { UserDefaults(suiteName: "com.duckduckgo.app.toggleProtectionsCounter") }
+    var recordDismissalCalled: Bool = false
+    var recordPromptCalled: Bool = false
 
-    public init() {}
+    func recordDismissal(date: Date) {
+        recordDismissalCalled = true
+    }
 
-    public func object(forKey defaultName: String) -> Any? { userDefaults?.object(forKey: defaultName) }
-    public func set(_ value: Any?, forKey defaultName: String) { userDefaults?.set(value, forKey: defaultName) }
-    public func removeObject(forKey defaultName: String) { userDefaults?.removeObject(forKey: defaultName) }
+    func recordPrompt(date: Date) {
+        recordPromptCalled = true
+    }
+
+    var shouldShowToggleReport: Bool { return true }
 
 }
