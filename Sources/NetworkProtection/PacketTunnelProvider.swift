@@ -32,7 +32,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     public enum Event {
         case userBecameActive
-        case connectionTesterStatusChange(_ status: ConnectionTesterStatus)
+        case connectionTesterStatusChange(_ status: ConnectionTesterStatus, server: String)
         case reportConnectionAttempt(attempt: ConnectionAttempt)
         case tunnelStartAttempt(_ step: TunnelStartAttemptStep)
         case tunnelStopAttempt(_ step: TunnelStopAttemptStep)
@@ -327,16 +327,24 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         NetworkProtectionConnectionTester(timerQueue: timerQueue, log: .networkProtectionConnectionTesterLog) { @MainActor [weak self] result in
             guard let self else { return }
 
+            let serverName = lastSelectedServerInfo?.name ?? "Unknown"
+
             switch result {
             case .connected:
                 self.tunnelHealth.isHavingConnectivityIssues = false
                 self.updateBandwidthAnalyzerAndRekeyIfExpired()
 
             case .reconnected(let failureCount):
-                providerEvents.fire(.connectionTesterStatusChange(.recovered(duration: .immediate, failureCount: failureCount)))
+                providerEvents.fire(
+                    .connectionTesterStatusChange(
+                        .recovered(duration: .immediate, failureCount: failureCount),
+                        server: serverName))
 
                 if failureCount >= 8 {
-                    providerEvents.fire(.connectionTesterStatusChange(.recovered(duration: .extended, failureCount: failureCount)))
+                    providerEvents.fire(
+                        .connectionTesterStatusChange(
+                            .recovered(duration: .extended, failureCount: failureCount),
+                            server: serverName))
                 }
 
                 self.tunnelHealth.isHavingConnectivityIssues = false
@@ -344,9 +352,15 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
             case .disconnected(let failureCount):
                 if failureCount == 1 {
-                    providerEvents.fire(.connectionTesterStatusChange(.failed(duration: .immediate)))
+                    providerEvents.fire(
+                        .connectionTesterStatusChange(
+                            .failed(duration: .immediate),
+                            server: serverName))
                 } else if failureCount == 8 {
-                    providerEvents.fire(.connectionTesterStatusChange(.failed(duration: .extended)))
+                    providerEvents.fire(
+                        .connectionTesterStatusChange(
+                            .failed(duration: .extended),
+                            server: serverName))
                 }
 
                 self.tunnelHealth.isHavingConnectivityIssues = true
