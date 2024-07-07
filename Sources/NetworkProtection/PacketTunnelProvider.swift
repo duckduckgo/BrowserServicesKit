@@ -789,6 +789,11 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             providerEvents.fire(.tunnelStopAttempt(.failure(error)))
         }
 
+        if case .userInitiated = reason {
+            // If the user shut down the VPN deliberately, end snooze mode early.
+            self.snoozeTimingStore.reset()
+        }
+
         if case .superceded = reason {
             self.notificationsPresenter.showSupersededNotification()
         }
@@ -1664,6 +1669,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 timer.schedule(deadline: .now() + duration, repeating: .never)
                 timer.setEventHandler {
                     Task {
+                        os_log("Snooze mode timer expired, canceling snooze now...", log: .networkProtection)
                         await self.cancelSnooze()
                     }
 
@@ -1678,12 +1684,12 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     private func cancelSnooze() async {
-        os_log("Ending snooze mode", log: .networkProtection)
-
         guard snoozeTimingStore.activeTiming != nil else {
             assertionFailure("Tried to cancel snooze when it was not active")
             return
         }
+
+        os_log("Canceling snooze mode", log: .networkProtection)
 
         notificationsPresenter.showSnoozeEndedNotification()
         snoozeTimingStore.reset()

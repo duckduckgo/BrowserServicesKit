@@ -71,6 +71,13 @@ private enum State {
     case temporaryShutdown(_ settingsGenerator: PacketTunnelSettingsGenerator)
 
     case snoozing
+
+    var canStartAdapter: Bool {
+        switch self {
+        case .stopped, .snoozing: return true
+        case .started, .temporaryShutdown: return false
+        }
+    }
 }
 
 // swiftlint:disable:next type_body_length
@@ -300,10 +307,10 @@ public class WireGuardAdapter {
     ///   - completionHandler: completion handler.
     public func start(tunnelConfiguration: TunnelConfiguration, completionHandler: @escaping (WireGuardAdapterError?) -> Void) {
         workQueue.async {
-//            guard case .stopped = self.state else {
-//                completionHandler(.invalidState(.alreadyStarted))
-//                return
-//            }
+            guard self.state.canStartAdapter else {
+                completionHandler(.invalidState(.alreadyStarted))
+                return
+            }
 
             let networkMonitor = NWPathMonitor()
             networkMonitor.pathUpdateHandler = { [weak self] path in
