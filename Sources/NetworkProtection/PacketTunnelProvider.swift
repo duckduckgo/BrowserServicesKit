@@ -1656,6 +1656,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
+    private var snoozeTimer: DispatchSourceTimer?
+
     @MainActor
     private func startSnooze(duration: TimeInterval) async {
         os_log("Starting snooze mode with duration: %{public}d", log: .networkProtection, duration)
@@ -1676,7 +1678,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                     timer.cancel()
                 }
 
-                timer.resume()
+                self.snoozeTimer = timer
+                self.snoozeTimer?.resume()
             } else {
                 self.snoozeTimingStore.reset()
             }
@@ -1690,6 +1693,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
 
         os_log("Canceling snooze mode", log: .networkProtection)
+
+        snoozeTimer?.cancel()
+        snoozeTimer = nil
 
         notificationsPresenter.showSnoozeEndedNotification()
         snoozeTimingStore.reset()

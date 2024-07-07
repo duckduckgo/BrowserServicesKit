@@ -88,9 +88,7 @@ public class ConnectionErrorObserverThroughSession: ConnectionErrorObserver {
 
     private func handleStatusChangeNotification(_ notification: Notification) {
         do {
-            guard let session = ConnectionSessionUtilities.session(from: notification),
-                session.status == .disconnected else {
-
+            guard let session = ConnectionSessionUtilities.session(from: notification) else {
                 return
             }
 
