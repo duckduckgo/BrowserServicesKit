@@ -168,7 +168,7 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
 
         attribs = rule8?.attributes.filter { $0 is PrivacyProSubscriptionStatusMatchingAttribute }
         XCTAssertEqual(attribs?.first as? PrivacyProSubscriptionStatusMatchingAttribute, PrivacyProSubscriptionStatusMatchingAttribute(
-            value: "active", fallback: nil
+            value: ["active", "expiring"], fallback: nil
         ))
 
         let rule9 = config.rules.filter { $0.id == 9 }.first

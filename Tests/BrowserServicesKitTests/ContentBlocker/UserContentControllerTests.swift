@@ -262,7 +262,6 @@ class PrivacyConfigurationManagerMock: PrivacyConfigurationManaging {
     let updatesPublisher: AnyPublisher<Void, Never>
     var privacyConfig: PrivacyConfiguration = PrivacyConfigurationMock()
     let internalUserDecider: InternalUserDecider = DefaultInternalUserDecider()
-    var toggleProtectionsCounter = ToggleProtectionsCounter(eventReporting: EventMapping<ToggleProtectionsCounterEvent> { _, _, _, _ in })
     func reload(etag: String?, data: Data?) -> PrivacyConfigurationManager.ReloadResult {
         .downloaded
     }

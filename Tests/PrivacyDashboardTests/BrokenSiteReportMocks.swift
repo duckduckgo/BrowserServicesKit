@@ -46,8 +46,6 @@ struct BrokenSiteReportMocks {
                          vpnOn: false,
                          jsPerformance: nil,
                          userRefreshCount: 0,
-                         didOpenReportInfo: true,
-                         toggleReportCounter: 0,
                          variant: "")
 #else
         BrokenSiteReport(siteUrl: URL(string: "https://duckduckgo.com")!,
@@ -69,9 +67,7 @@ struct BrokenSiteReportMocks {
                          openerContext: nil,
                          vpnOn: false,
                          jsPerformance: nil,
-                         userRefreshCount: 0,
-                         didOpenReportInfo: true,
-                         toggleReportCounter: 0)
+                         userRefreshCount: 0)
 #endif
     }
 
@@ -100,8 +96,6 @@ struct BrokenSiteReportMocks {
                          vpnOn: false,
                          jsPerformance: nil,
                          userRefreshCount: 0,
-                         didOpenReportInfo: true,
-                         toggleReportCounter: 0,
                          variant: "")
 #else
         BrokenSiteReport(siteUrl: URL(string: "https://somethingelse.zz")!,
@@ -123,9 +117,7 @@ struct BrokenSiteReportMocks {
                          openerContext: nil,
                          vpnOn: false,
                          jsPerformance: nil,
-                         userRefreshCount: 0,
-                         didOpenReportInfo: true,
-                         toggleReportCounter: 0)
+                         userRefreshCount: 0)
 #endif
     }
 
@@ -154,8 +146,6 @@ struct BrokenSiteReportMocks {
                          vpnOn: false,
                          jsPerformance: nil,
                          userRefreshCount: 0,
-                         didOpenReportInfo: true,
-                         toggleReportCounter: 0,
                          variant: "")
 #else
         BrokenSiteReport(siteUrl: URL(string: "https://www.subdomain.example.com/some/pathname?t=param#aaa")!,
@@ -177,9 +167,7 @@ struct BrokenSiteReportMocks {
                          openerContext: nil,
                          vpnOn: false,
                          jsPerformance: nil,
-                         userRefreshCount: 0,
-                         didOpenReportInfo: true,
-                         toggleReportCounter: 0)
+                         userRefreshCount: 0)
 #endif
     }
 }

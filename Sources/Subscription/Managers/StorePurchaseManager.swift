@@ -66,10 +66,7 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
     @Published public private(set) var purchaseQueue: [String] = []
     @Published private var subscriptionGroupStatus: RenewalState?
 
-    public var areProductsAvailable: Bool {
-        !availableProducts.isEmpty
-    }
-
+    public var areProductsAvailable: Bool { !availableProducts.isEmpty }
     private var transactionUpdates: Task<Void, Never>?
     private var storefrontChanges: Task<Void, Never>?
 

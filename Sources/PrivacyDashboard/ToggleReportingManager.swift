@@ -1,5 +1,5 @@
 //
-//  ToggleReportsManager.swift
+//  ToggleReportingManager.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -20,7 +20,7 @@ import Foundation
 import BrowserServicesKit
 import Persistence
 
-public protocol ToggleReportsStoring {
+public protocol ToggleReportingStoring {
 
     var dismissedAt: Date? { get set }
     var promptWindowStart: Date? { get set }
@@ -28,7 +28,7 @@ public protocol ToggleReportsStoring {
 
 }
 
-public struct ToggleReportsStore: ToggleReportsStoring {
+public struct ToggleReportingStore: ToggleReportingStoring {
 
     private enum Key {
 
@@ -60,12 +60,21 @@ public struct ToggleReportsStore: ToggleReportsStoring {
 
 }
 
-public struct ToggleReportsManager {
+public protocol ToggleReportingManaging {
+
+    mutating func recordDismissal(date: Date)
+    mutating func recordPrompt(date: Date)
+
+    var shouldShowToggleReport: Bool { get }
+
+}
+
+public struct ToggleReportingManager: ToggleReportingManaging {
 
     private let feature: ToggleReporting
-    private var store: ToggleReportsStoring
+    private var store: ToggleReportingStoring
 
-    public init(feature: ToggleReporting, store: ToggleReportsStoring = ToggleReportsStore()) {
+    public init(feature: ToggleReporting, store: ToggleReportingStoring = ToggleReportingStore()) {
         self.store = store
         self.feature = feature
     }

@@ -1,5 +1,5 @@
 //
-//  SubscriptionTests.swift
+//  ToggleReportingManagerMock.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -16,10 +16,22 @@
 //  limitations under the License.
 //
 
-import XCTest
-@testable import Subscription
-import SubscriptionTestingUtilities
+import Foundation
+import PrivacyDashboard
 
-final class SubscriptionTests: XCTestCase {
+final class ToggleReportingManagerMock: ToggleReportingManaging {
+
+    var recordDismissalCalled: Bool = false
+    var recordPromptCalled: Bool = false
+
+    func recordDismissal(date: Date) {
+        recordDismissalCalled = true
+    }
+
+    func recordPrompt(date: Date) {
+        recordPromptCalled = true
+    }
+
+    var shouldShowToggleReport: Bool { return true }
 
 }

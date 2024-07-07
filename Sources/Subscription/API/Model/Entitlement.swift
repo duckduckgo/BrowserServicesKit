@@ -19,7 +19,6 @@
 import Foundation
 
 public struct Entitlement: Codable, Equatable {
-    let name: String
     public let product: ProductName
 
     public enum ProductName: String, Codable {

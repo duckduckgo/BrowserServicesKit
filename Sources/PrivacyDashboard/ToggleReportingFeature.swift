@@ -1,5 +1,5 @@
 //
-//  ToggleReportsFeature.swift
+//  ToggleReportingFeature.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -17,7 +17,6 @@
 //
 
 import Foundation
-import Combine
 import BrowserServicesKit
 
 public protocol ToggleReporting {
@@ -33,7 +32,7 @@ public protocol ToggleReporting {
 
 }
 
-public final class ToggleReportsFeature: ToggleReporting {
+public final class ToggleReportingFeature: ToggleReporting {
 
     enum Constants {
 
@@ -44,7 +43,7 @@ public final class ToggleReportsFeature: ToggleReporting {
         static let promptIntervalKey = "promptInterval"
         static let maxPromptCountKey = "maxPromptCount"
 
-        static let defaultTimeInterval: TimeInterval = 48 * 60 * 60 // Two days
+        static let defaultTimeInterval: TimeInterval = 48 * 60 * 60 // 2 days
         static let defaultPromptCount = 3
 
     }
@@ -58,11 +57,10 @@ public final class ToggleReportsFeature: ToggleReporting {
     public private(set) var promptInterval: TimeInterval = 0
     public private(set) var maxPromptCount: Int = 0
 
-    public init(manager: PrivacyConfigurationManaging) {
-        let isCurrentLanguageEnglish = Locale.current.languageCode == "en"
-        isEnabled = manager.privacyConfig.isEnabled(featureKey: .toggleReports) && isCurrentLanguageEnglish
+    public init(toggleReportingConfiguration: ToggleReportingConfiguration) {
+        isEnabled = toggleReportingConfiguration.isEnabled
         guard isEnabled else { return }
-        let settings = manager.privacyConfig.settings(for: .toggleReports)
+        let settings = toggleReportingConfiguration.settings
         isDismissLogicEnabled = settings[Constants.dismissLogicEnabledKey] as? Bool ?? false
         dismissInterval = settings[Constants.dismissIntervalKey] as? TimeInterval ?? Constants.defaultTimeInterval
         isPromptLimitLogicEnabled = settings[Constants.promptLimitLogicEnabledKey] as? Bool ?? false
