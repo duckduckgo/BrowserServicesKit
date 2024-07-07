@@ -49,9 +49,8 @@ public struct PrivacyConfigurationRemoteMessagingAvailabilityProvider: RemoteMes
      */
     public var isRemoteMessagingAvailablePublisher: AnyPublisher<Bool, Never> {
         privacyConfigurationManager.updatesPublisher
-            .map { _ in
-                isRemoteMessagingAvailable == true
-            }
+            .dropFirst() // skip initial event emitted from PrivacyConfigurationManager initializer's `reload`
+            .map { _ in isRemoteMessagingAvailable }
             .removeDuplicates()
             .eraseToAnyPublisher()
     }
