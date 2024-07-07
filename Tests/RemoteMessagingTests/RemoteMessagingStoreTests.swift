@@ -144,6 +144,54 @@ class RemoteMessagingStoreTests: XCTestCase {
 
     // MARK: - Feature Flag
 
+    func testWhenFeatureFlagIsDisabledThenScheduledRemoteMessagesAreDeleted() throws {
+        _ = try saveProcessedResultFetchRemoteMessage()
+        XCTAssertNotNil(store.fetchScheduledRemoteMessage())
+
+        let expectation = XCTNSNotificationExpectation(name: RemoteMessagingStore.Notifications.remoteMessagesDidChange,
+                                                       object: nil, notificationCenter: notificationCenter)
+
+        availabilityProvider.isRemoteMessagingAvailable = false
+        XCTAssertNil(store.fetchScheduledRemoteMessage())
+
+        wait(for: [expectation], timeout: 1)
+
+        // Re-enabling remote messaging doesn't trigger a refetch on a Store level so no new scheduled messages should appear
+        availabilityProvider.isRemoteMessagingAvailable = true
+        XCTAssertNil(store.fetchScheduledRemoteMessage())
+    }
+
+    func testWhenFeatureFlagIsDisabledAndThereWereNoMessagesThenNotificationIsNotSent() throws {
+        XCTAssertNil(store.fetchScheduledRemoteMessage())
+
+        let expectation = XCTNSNotificationExpectation(name: RemoteMessagingStore.Notifications.remoteMessagesDidChange,
+                                                       object: nil, notificationCenter: notificationCenter)
+        expectation.isInverted = true
+
+        availabilityProvider.isRemoteMessagingAvailable = false
+        XCTAssertNil(store.fetchScheduledRemoteMessage())
+
+        wait(for: [expectation], timeout: 1)
+    }
+
+    func testWhenFeatureFlagIsDisabledAndThereWereNoScheduledMessagesThenNotificationIsNotSent() throws {
+        _ = try saveProcessedResultFetchRemoteMessage()
+
+        // Dismiss all available messages
+        while let remoteMessage = store.fetchScheduledRemoteMessage() {
+            store.dismissRemoteMessage(withId: remoteMessage.id)
+        }
+
+        let expectation = XCTNSNotificationExpectation(name: RemoteMessagingStore.Notifications.remoteMessagesDidChange,
+                                                       object: nil, notificationCenter: notificationCenter)
+        expectation.isInverted = true
+
+        availabilityProvider.isRemoteMessagingAvailable = false
+        XCTAssertNil(store.fetchScheduledRemoteMessage())
+
+        wait(for: [expectation], timeout: 1)
+    }
+
     func testWhenFeatureFlagIsDisabledThenProcessedResultIsNotSaved() throws {
         availabilityProvider.isRemoteMessagingAvailable = false
 

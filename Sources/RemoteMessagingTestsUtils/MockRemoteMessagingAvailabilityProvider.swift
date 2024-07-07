@@ -16,6 +16,7 @@
 //  limitations under the License.
 //
 
+import Combine
 import RemoteMessaging
 
 public class MockRemoteMessagingAvailabilityProvider: RemoteMessagingAvailabilityProviding {
@@ -24,5 +25,9 @@ public class MockRemoteMessagingAvailabilityProvider: RemoteMessagingAvailabilit
         self.isRemoteMessagingAvailable = isRemoteMessagingAvailable
     }
 
-    public var isRemoteMessagingAvailable: Bool
+    public var isRemoteMessagingAvailablePublisher: AnyPublisher<Bool, Never> {
+        $isRemoteMessagingAvailable.dropFirst().eraseToAnyPublisher()
+    }
+
+    @Published public var isRemoteMessagingAvailable: Bool
 }

@@ -17,6 +17,7 @@
 //
 
 import BrowserServicesKit
+import Combine
 import Foundation
 
 /**
@@ -24,6 +25,8 @@ import Foundation
  */
 public protocol RemoteMessagingAvailabilityProviding {
     var isRemoteMessagingAvailable: Bool { get }
+
+    var isRemoteMessagingAvailablePublisher: AnyPublisher<Bool, Never> { get }
 }
 
 /**
@@ -39,6 +42,15 @@ public struct PrivacyConfigurationRemoteMessagingAvailabilityProvider: RemoteMes
 
     public var isRemoteMessagingAvailable: Bool {
         privacyConfigurationManager.privacyConfig.isEnabled(featureKey: .remoteMessaging)
+    }
+
+    public var isRemoteMessagingAvailablePublisher: AnyPublisher<Bool, Never> {
+        privacyConfigurationManager.updatesPublisher
+            .map { _ in
+                isRemoteMessagingAvailable == true
+            }
+            .removeDuplicates()
+            .eraseToAnyPublisher()
     }
 
     private var privacyConfigurationManager: PrivacyConfigurationManaging

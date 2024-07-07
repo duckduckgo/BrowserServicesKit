@@ -17,6 +17,7 @@
 //
 
 import Foundation
+import Combine
 import Common
 import CoreData
 import BrowserServicesKit
@@ -63,6 +64,13 @@ public final class RemoteMessagingStore: RemoteMessagingStoring {
         self.errorEvents = errorEvents
         self.remoteMessagingAvailabilityProvider = remoteMessagingAvailabilityProvider
         self.getLog = log
+
+        featureFlagDisabledCancellable = remoteMessagingAvailabilityProvider.isRemoteMessagingAvailablePublisher
+            .map { !$0 }
+            .removeDuplicates()
+            .sink { [weak self] _ in
+                self?.deleteScheduledMessagesIfNeeded()
+            }
     }
 
     public func saveProcessedResult(_ processorResult: RemoteMessagingConfigProcessor.ProcessorResult) {
@@ -87,13 +95,23 @@ public final class RemoteMessagingStore: RemoteMessagingStoring {
         } else {
             deleteScheduledRemoteMessages(in: context)
         }
+        notificationCenter.post(name: Notifications.remoteMessagesDidChange, object: nil)
+    }
 
-        DispatchQueue.main.async {
-            self.notificationCenter.post(name: Notifications.remoteMessagesDidChange, object: nil)
+    private func deleteScheduledMessagesIfNeeded() {
+        guard fetchScheduledRemoteMessage() != nil else {
+            return
         }
+
+        let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType, name: Constants.privateContextName)
+
+        invalidateRemoteMessagingConfigs(in: context)
+        deleteScheduledRemoteMessages(in: context)
+        notificationCenter.post(name: Notifications.remoteMessagesDidChange, object: nil)
     }
 
     private let errorEvents: EventMapping<RemoteMessagingStoreError>?
+    private var featureFlagDisabledCancellable: AnyCancellable?
 
     private let getLog: () -> OSLog
     private var log: OSLog {
