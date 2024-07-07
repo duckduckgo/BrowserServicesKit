@@ -44,6 +44,9 @@ public struct PrivacyConfigurationRemoteMessagingAvailabilityProvider: RemoteMes
         privacyConfigurationManager.privacyConfig.isEnabled(featureKey: .remoteMessaging)
     }
 
+    /**
+     * This publisher is guaranteed to emit values without duplicates. Events are emitted on an arbitrary thread.
+     */
     public var isRemoteMessagingAvailablePublisher: AnyPublisher<Bool, Never> {
         privacyConfigurationManager.updatesPublisher
             .map { _ in
