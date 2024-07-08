@@ -103,41 +103,41 @@ class RemoteMessagingStoreTests: XCTestCase {
 
     func testWhenHasNotShownMessageThenReturnFalse() throws {
         let remoteMessage = try saveProcessedResultFetchRemoteMessage()
-        XCTAssertFalse(store.hasShownRemoteMessage(withId: remoteMessage.id))
+        XCTAssertFalse(store.hasShownRemoteMessage(withID: remoteMessage.id))
     }
 
     func testWhenUpdateRemoteMessageAsShownMessageThenHasShownIsTrue() throws {
         let remoteMessage = try saveProcessedResultFetchRemoteMessage()
-        store.updateRemoteMessage(withId: remoteMessage.id, asShown: true)
-        XCTAssertTrue(store.hasShownRemoteMessage(withId: remoteMessage.id))
+        store.updateRemoteMessage(withID: remoteMessage.id, asShown: true)
+        XCTAssertTrue(store.hasShownRemoteMessage(withID: remoteMessage.id))
     }
 
     func testWhenUpdateRemoteMessageAsShownFalseThenHasShownIsFalse() throws {
         let remoteMessage = try saveProcessedResultFetchRemoteMessage()
-        store.updateRemoteMessage(withId: remoteMessage.id, asShown: false)
-        XCTAssertFalse(store.hasShownRemoteMessage(withId: remoteMessage.id))
+        store.updateRemoteMessage(withID: remoteMessage.id, asShown: false)
+        XCTAssertFalse(store.hasShownRemoteMessage(withID: remoteMessage.id))
     }
 
     func testWhenDismissRemoteMessageThenFetchedMessageHasDismissedState() throws {
         let remoteMessage = try saveProcessedResultFetchRemoteMessage()
 
-        store.dismissRemoteMessage(withId: remoteMessage.id)
+        store.dismissRemoteMessage(withID: remoteMessage.id)
 
-        guard let fetchedRemoteMessage = store.fetchRemoteMessage(withId: remoteMessage.id) else {
+        guard let fetchedRemoteMessage = store.fetchRemoteMessage(withID: remoteMessage.id) else {
             XCTFail("No remote message found")
             return
         }
 
         XCTAssertEqual(fetchedRemoteMessage.id, remoteMessage.id)
-        XCTAssertTrue(store.hasDismissedRemoteMessage(withId: fetchedRemoteMessage.id))
+        XCTAssertTrue(store.hasDismissedRemoteMessage(withID: fetchedRemoteMessage.id))
     }
 
     func testFetchDismissedRemoteMessageIds() throws {
         let remoteMessage = try saveProcessedResultFetchRemoteMessage()
 
-        store.dismissRemoteMessage(withId: remoteMessage.id)
+        store.dismissRemoteMessage(withID: remoteMessage.id)
 
-        let dismissedRemoteMessageIds = store.fetchDismissedRemoteMessageIds()
+        let dismissedRemoteMessageIds = store.fetchDismissedRemoteMessageIDs()
         XCTAssertEqual(dismissedRemoteMessageIds.count, 1)
         XCTAssertEqual(dismissedRemoteMessageIds.first, remoteMessage.id)
     }
@@ -179,7 +179,7 @@ class RemoteMessagingStoreTests: XCTestCase {
 
         // Dismiss all available messages
         while let remoteMessage = store.fetchScheduledRemoteMessage() {
-            store.dismissRemoteMessage(withId: remoteMessage.id)
+            store.dismissRemoteMessage(withID: remoteMessage.id)
         }
 
         let expectation = XCTNSNotificationExpectation(name: RemoteMessagingStore.Notifications.remoteMessagesDidChange,
@@ -224,42 +224,42 @@ class RemoteMessagingStoreTests: XCTestCase {
 
         availabilityProvider.isRemoteMessagingAvailable = false
 
-        XCTAssertNil(store.fetchRemoteMessage(withId: remoteMessage.id))
+        XCTAssertNil(store.fetchRemoteMessage(withID: remoteMessage.id))
     }
 
     func testWhenFeatureFlagIsDisabledThenUpdateShownFlagHasNoEffect() throws {
         let remoteMessage = try saveProcessedResultFetchRemoteMessage()
         availabilityProvider.isRemoteMessagingAvailable = false
 
-        store.updateRemoteMessage(withId: remoteMessage.id, asShown: true)
+        store.updateRemoteMessage(withID: remoteMessage.id, asShown: true)
 
-        XCTAssertFalse(store.hasShownRemoteMessage(withId: remoteMessage.id))
+        XCTAssertFalse(store.hasShownRemoteMessage(withID: remoteMessage.id))
     }
 
     func testWhenFeatureFlagIsDisabledThenHasShownMessageReturnFalse() throws {
         let remoteMessage = try saveProcessedResultFetchRemoteMessage()
-        store.updateRemoteMessage(withId: remoteMessage.id, asShown: true)
+        store.updateRemoteMessage(withID: remoteMessage.id, asShown: true)
         availabilityProvider.isRemoteMessagingAvailable = false
 
-        XCTAssertFalse(store.hasShownRemoteMessage(withId: remoteMessage.id))
+        XCTAssertFalse(store.hasShownRemoteMessage(withID: remoteMessage.id))
     }
 
     func testWhenFeatureFlagIsDisabledThenDismissingRemoteMessageHasNoEffect() throws {
         let remoteMessage = try saveProcessedResultFetchRemoteMessage()
 
         availabilityProvider.isRemoteMessagingAvailable = false
-        store.dismissRemoteMessage(withId: remoteMessage.id)
+        store.dismissRemoteMessage(withID: remoteMessage.id)
 
-        XCTAssertEqual(store.fetchDismissedRemoteMessageIds(), [])
+        XCTAssertEqual(store.fetchDismissedRemoteMessageIDs(), [])
     }
 
     func testWhenFeatureFlagIsDisabledThenHasDismissedRemoteMessageReturnsFalse() throws {
         let remoteMessage = try saveProcessedResultFetchRemoteMessage()
 
-        store.dismissRemoteMessage(withId: remoteMessage.id)
+        store.dismissRemoteMessage(withID: remoteMessage.id)
         availabilityProvider.isRemoteMessagingAvailable = false
 
-        XCTAssertEqual(store.hasDismissedRemoteMessage(withId: remoteMessage.id), false)
+        XCTAssertEqual(store.hasDismissedRemoteMessage(withID: remoteMessage.id), false)
     }
 
     // MARK: -

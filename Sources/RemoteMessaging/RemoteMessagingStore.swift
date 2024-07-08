@@ -233,7 +233,7 @@ extension RemoteMessagingStore {
         return scheduledRemoteMessage
     }
 
-    public func fetchRemoteMessage(withId id: String) -> RemoteMessageModel? {
+    public func fetchRemoteMessage(withID id: String) -> RemoteMessageModel? {
         guard remoteMessagingAvailabilityProvider.isRemoteMessagingAvailable else {
             return nil
         }
@@ -262,7 +262,7 @@ extension RemoteMessagingStore {
         return remoteMessage
     }
 
-    public func hasShownRemoteMessage(withId id: String) -> Bool {
+    public func hasShownRemoteMessage(withID id: String) -> Bool {
         guard remoteMessagingAvailabilityProvider.isRemoteMessagingAvailable else {
             return false
         }
@@ -283,7 +283,7 @@ extension RemoteMessagingStore {
         return shown
     }
 
-    public func hasDismissedRemoteMessage(withId id: String) -> Bool {
+    public func hasDismissedRemoteMessage(withID id: String) -> Bool {
         guard remoteMessagingAvailabilityProvider.isRemoteMessagingAvailable else {
             return false
         }
@@ -304,19 +304,19 @@ extension RemoteMessagingStore {
         return dismissed
     }
 
-    public func dismissRemoteMessage(withId id: String) {
+    public func dismissRemoteMessage(withID id: String) {
         guard remoteMessagingAvailabilityProvider.isRemoteMessagingAvailable else {
             return
         }
 
         let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType, name: Constants.privateContextName)
         context.performAndWait {
-            updateRemoteMessage(withId: id, toStatus: .dismissed, in: context)
+            updateRemoteMessage(withID: id, toStatus: .dismissed, in: context)
             invalidateRemoteMessagingConfigs(in: context)
         }
     }
 
-    public func fetchDismissedRemoteMessageIds() -> [String] {
+    public func fetchDismissedRemoteMessageIDs() -> [String] {
         guard remoteMessagingAvailabilityProvider.isRemoteMessagingAvailable else {
             return []
         }
@@ -338,7 +338,7 @@ extension RemoteMessagingStore {
         return dismissedMessageIds
     }
 
-    public func updateRemoteMessage(withId id: String, asShown shown: Bool) {
+    public func updateRemoteMessage(withID id: String, asShown shown: Bool) {
         guard remoteMessagingAvailabilityProvider.isRemoteMessagingAvailable else {
             return
         }
@@ -384,7 +384,7 @@ extension RemoteMessagingStore {
         }
     }
 
-    private func updateRemoteMessage(withId id: String, toStatus status: RemoteMessageStatus, in context: NSManagedObjectContext) {
+    private func updateRemoteMessage(withID id: String, toStatus status: RemoteMessageStatus, in context: NSManagedObjectContext) {
         context.performAndWait {
             let fetchRequest: NSFetchRequest<RemoteMessageManagedObject> = RemoteMessageManagedObject.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "id == %@", id)
