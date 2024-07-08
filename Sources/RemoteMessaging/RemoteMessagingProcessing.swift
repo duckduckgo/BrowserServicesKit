@@ -41,7 +41,7 @@ public protocol RemoteMessagingProcessing {
     var endpoint: URL { get }
 
     /// This holds the fetcher that downloads the config file from the server.
-    var configurationFetcher: RemoteMessagingConfigFetching { get }
+    var configFetcher: RemoteMessagingConfigFetching { get }
 
     /// This holds the config matcher provider that updates the config matcher before the config is evaluated.
     var configMatcherProvider: RemoteMessagingConfigMatcherProviding { get }
@@ -80,16 +80,15 @@ public extension RemoteMessagingProcessing {
             return
         }
         do {
-            let statusResponse = try await configurationFetcher.fetchRemoteMessagingConfig()
-
+            let jsonConfig = try await configFetcher.fetchRemoteMessagingConfig()
             os_log("Successfully fetched remote messages", log: .remoteMessaging, type: .debug)
 
             let remoteMessagingConfigMatcher = await configMatcherProvider.refreshConfigMatcher(using: store)
 
             let processor = configProcessor(for: remoteMessagingConfigMatcher)
-            let config = store.fetchRemoteMessagingConfig()
+            let storedConfig = store.fetchRemoteMessagingConfig()
 
-            if let processorResult = processor.process(jsonRemoteMessagingConfig: statusResponse, currentConfig: config) {
+            if let processorResult = processor.process(jsonRemoteMessagingConfig: jsonConfig, currentConfig: storedConfig) {
                 store.saveProcessedResult(processorResult)
             }
 

@@ -24,20 +24,20 @@ import XCTest
 
 struct TestRemoteMessagingProcessor: RemoteMessagingProcessing {
     var endpoint: URL
-    var configurationFetcher: RemoteMessagingConfigFetching
+    var configFetcher: RemoteMessagingConfigFetching
     var configMatcherProvider: RemoteMessagingConfigMatcherProviding
     var remoteMessagingAvailabilityProvider: RemoteMessagingAvailabilityProviding
     var remoteMessagingConfigProcessor: RemoteMessagingConfigProcessing
 
     init(
         endpoint: URL = URL(string: "https://example.com/config.json")!,
-        configurationFetcher: RemoteMessagingConfigFetching,
+        configFetcher: RemoteMessagingConfigFetching,
         configMatcherProvider: RemoteMessagingConfigMatcherProviding,
         remoteMessagingAvailabilityProvider: RemoteMessagingAvailabilityProviding,
         remoteMessagingConfigProcessor: RemoteMessagingConfigProcessing
     ) {
         self.endpoint = endpoint
-        self.configurationFetcher = configurationFetcher
+        self.configFetcher = configFetcher
         self.configMatcherProvider = configMatcherProvider
         self.remoteMessagingAvailabilityProvider = remoteMessagingAvailabilityProvider
         self.remoteMessagingConfigProcessor = remoteMessagingConfigProcessor
@@ -94,7 +94,7 @@ class RemoteMessagingProcessingTests: XCTestCase {
         configProcessor = MockRemoteMessagingConfigProcessor(remoteMessagingConfigMatcher: matcher)
 
         processor = TestRemoteMessagingProcessor(
-            configurationFetcher: configFetcher,
+            configFetcher: configFetcher,
             configMatcherProvider: MockRemoteMessagingConfigMatcherProvider { _ in matcher },
             remoteMessagingAvailabilityProvider: availabilityProvider,
             remoteMessagingConfigProcessor: configProcessor
