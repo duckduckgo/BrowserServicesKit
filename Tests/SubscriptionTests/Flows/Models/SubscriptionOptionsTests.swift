@@ -1,5 +1,5 @@
 //
-//  ToggleProtectionsCounterStore.swift
+//  SubscriptionOptionsTests.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -16,17 +16,21 @@
 //  limitations under the License.
 //
 
-import Foundation
-import Persistence
+import XCTest
+@testable import Subscription
+import SubscriptionTestingUtilities
 
-public struct ToggleProtectionsCounterStore: KeyValueStoring {
+final class SubscriptionOptionsTests: XCTestCase {
 
-    private var userDefaults: UserDefaults? { UserDefaults(suiteName: "com.duckduckgo.app.toggleProtectionsCounter") }
+    override func setUpWithError() throws {
+        // Put setup code here. This method is called before the invocation of each test method in the class.
+    }
 
-    public init() {}
+    override func tearDownWithError() throws {
+        // Put teardown code here. This method is called after the invocation of each test method in the class.
+    }
 
-    public func object(forKey defaultName: String) -> Any? { userDefaults?.object(forKey: defaultName) }
-    public func set(_ value: Any?, forKey defaultName: String) { userDefaults?.set(value, forKey: defaultName) }
-    public func removeObject(forKey defaultName: String) { userDefaults?.removeObject(forKey: defaultName) }
+    func testCodable() throws {
 
+    }
 }

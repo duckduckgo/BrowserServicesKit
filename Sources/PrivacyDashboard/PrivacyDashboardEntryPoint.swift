@@ -1,5 +1,5 @@
 //
-//  PrivacyDashboardMode.swift
+//  PrivacyDashboardEntryPoint.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -16,13 +16,25 @@
 //  limitations under the License.
 //
 
-/// Type of web page displayed
-public enum PrivacyDashboardMode: Equatable {
-
+/// Represents the type of web page displayed within the privacy dashboard flow.
+public enum PrivacyDashboardEntryPoint: Equatable {
+    /// The standard dashboard page that appears when the user taps on the shield icon.
+    /// This page displays the toggle protection option and provides information on trackers.
     case dashboard
+
+    /// The report broken site screen, which is accessed from the app menu.
+    /// This only allows users to report issues with websites.
     case report
-    case prompt(String)
+
+    /// The toggle report screen, which is triggered whenever the user toggles off protection (from outside of Privacy Dashboard)
+    /// This is only available on iOS, as macOS does not have an option to disable protection outside of the dashboard.
     case toggleReport(completionHandler: (Bool) -> Void)
+
+    /// The experimental after toggle prompt screen, presented in variant B.
+    /// After the user toggles off protection, this prompt asks if the action helped and allows the user to report their experience.
+    /// - Parameters:
+    ///   - category: The category of the issue reported by the user.
+    ///   - didToggleProtectionsFixIssue: A Boolean indicating whether toggling protections resolved the issue.
     case afterTogglePrompt(category: String, didToggleProtectionsFixIssue: Bool)
 
     func screen(for variant: PrivacyDashboardVariant) -> Screen {
@@ -32,20 +44,19 @@ public enum PrivacyDashboardMode: Equatable {
         case (.report, .control): return .breakageForm
         case (.report, .a): return .categorySelection
         case (.report, .b): return .categoryTypeSelection
+
         case (.afterTogglePrompt, _): return .choiceBreakageForm
 
-        case (.prompt, _): return .promptBreakageForm
         case (.toggleReport, _): return .toggleReport
         }
     }
 
-    public static func == (lhs: PrivacyDashboardMode, rhs: PrivacyDashboardMode) -> Bool {
+    public static func == (lhs: PrivacyDashboardEntryPoint, rhs: PrivacyDashboardEntryPoint) -> Bool {
         switch (lhs, rhs) {
         case
             (.dashboard, .dashboard),
             (.report, .report),
             (.toggleReport, .toggleReport),
-            (.prompt, .prompt),
             (.afterTogglePrompt, .afterTogglePrompt):
             return true
         default:

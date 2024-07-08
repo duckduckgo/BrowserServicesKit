@@ -21,6 +21,7 @@ import Foundation
 public extension PixelKit {
 
     enum Parameters: Hashable {
+        public static let count = "count"
         public static let duration = "duration"
         public static let test = "test"
         public static let appVersion = "appVersion"
