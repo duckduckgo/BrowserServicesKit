@@ -38,8 +38,8 @@
 
 #include "NSException+cxxHandler.h"
 #include <typeinfo>
-
 #include <cxxabi.h>
+#include <exception>
 
 #define DESCRIPTION_BUFFER_LENGTH 1024
 
