@@ -41,42 +41,13 @@ struct LocaleMatchingAttribute: SingleValueMatchingAttribute {
     }
 }
 
-struct OSMatchingAttribute: MatchingAttribute, Equatable {
+struct OSMatchingAttribute: StringRangeMatchingAttribute {
+    static let defaultMaxValue: String = AppVersion.shared.osVersion
+
     var min: String = MatchingAttributeDefaults.stringDefaultValue
     var max: String = AppVersion.shared.osVersion
     var value: String = MatchingAttributeDefaults.stringDefaultValue
     var fallback: Bool?
-
-    init(jsonMatchingAttribute: AnyDecodable) {
-        guard let jsonMatchingAttribute = jsonMatchingAttribute.value as? [String: Any] else { return }
-
-        if let min = jsonMatchingAttribute[RuleAttributes.min] as? String {
-            self.min = min
-        }
-        if let max = jsonMatchingAttribute[RuleAttributes.max] as? String {
-            self.max = max
-        }
-        if let value = jsonMatchingAttribute[RuleAttributes.value] as? String {
-            self.value = value
-        }
-        if let fallback = jsonMatchingAttribute[RuleAttributes.fallback] as? Bool {
-            self.fallback = fallback
-        }
-    }
-
-    init(min: String = MatchingAttributeDefaults.stringDefaultValue,
-         max: String = AppVersion.shared.osVersion,
-         value: String = MatchingAttributeDefaults.stringDefaultValue,
-         fallback: Bool?) {
-        self.min = min
-        self.max = max
-        self.value = value
-        self.fallback = fallback
-    }
-
-    static func == (lhs: OSMatchingAttribute, rhs: OSMatchingAttribute) -> Bool {
-        return lhs.min == rhs.min && lhs.max == rhs.max && lhs.value == rhs.value && lhs.fallback == rhs.fallback
-    }
 }
 
 struct IsInternalUserMatchingAttribute: SingleValueMatchingAttribute {
@@ -89,42 +60,13 @@ struct AppIdMatchingAttribute: SingleValueMatchingAttribute {
     var fallback: Bool?
 }
 
-struct AppVersionMatchingAttribute: MatchingAttribute, Equatable {
+struct AppVersionMatchingAttribute: StringRangeMatchingAttribute {
+    static let defaultMaxValue: String = AppVersion.shared.versionAndBuildNumber
+
     var min: String = MatchingAttributeDefaults.stringDefaultValue
     var max: String = AppVersion.shared.versionAndBuildNumber
     var value: String = MatchingAttributeDefaults.stringDefaultValue
     var fallback: Bool?
-
-    init(jsonMatchingAttribute: AnyDecodable) {
-        guard let jsonMatchingAttribute = jsonMatchingAttribute.value as? [String: Any] else { return }
-
-        if let min = jsonMatchingAttribute[RuleAttributes.min] as? String {
-            self.min = min
-        }
-        if let max = jsonMatchingAttribute[RuleAttributes.max] as? String {
-            self.max = max
-        }
-        if let value = jsonMatchingAttribute[RuleAttributes.value] as? String {
-            self.value = value
-        }
-        if let fallback = jsonMatchingAttribute[RuleAttributes.fallback] as? Bool {
-            self.fallback = fallback
-        }
-    }
-
-    init(min: String = MatchingAttributeDefaults.stringDefaultValue,
-         max: String = AppVersion.shared.versionAndBuildNumber,
-         value: String = MatchingAttributeDefaults.stringDefaultValue,
-         fallback: Bool?) {
-        self.min = min
-        self.max = max
-        self.value = value
-        self.fallback = fallback
-    }
-
-    static func == (lhs: AppVersionMatchingAttribute, rhs: AppVersionMatchingAttribute) -> Bool {
-        return lhs.min == rhs.min && lhs.max == rhs.max && lhs.value == rhs.value && lhs.fallback == rhs.fallback
-    }
 }
 
 struct AtbMatchingAttribute: SingleValueMatchingAttribute {
@@ -248,10 +190,6 @@ struct UnknownMatchingAttribute: MatchingAttribute, Equatable {
     init(fallback: Bool?) {
         self.fallback = fallback
     }
-
-    static func == (lhs: UnknownMatchingAttribute, rhs: UnknownMatchingAttribute) -> Bool {
-        return lhs.fallback == rhs.fallback
-    }
 }
 
 enum MatchingAttributeDefaults {
@@ -272,10 +210,6 @@ struct BooleanMatchingAttribute: Equatable {
     func matches(value: Bool) -> EvaluationResult {
         return EvaluationResultModel.result(value: self.value == value)
     }
-
-    static func == (lhs: BooleanMatchingAttribute, rhs: BooleanMatchingAttribute) -> Bool {
-        return lhs.value == rhs.value
-    }
 }
 
 struct IntMatchingAttribute: Equatable {
@@ -288,10 +222,6 @@ struct IntMatchingAttribute: Equatable {
     func matches(value: Int) -> EvaluationResult {
         return EvaluationResultModel.result(value: self.value == value)
     }
-
-    static func == (lhs: IntMatchingAttribute, rhs: IntMatchingAttribute) -> Bool {
-        return lhs.value == rhs.value
-    }
 }
 
 struct RangeIntMatchingAttribute: Equatable {
@@ -300,10 +230,6 @@ struct RangeIntMatchingAttribute: Equatable {
 
     func matches(value: Int) -> EvaluationResult {
         return EvaluationResultModel.result(value: (value >= self.min) && (value <= self.max))
-    }
-
-    static func == (lhs: RangeIntMatchingAttribute, rhs: RangeIntMatchingAttribute) -> Bool {
-        return lhs.min == rhs.min && lhs.max == rhs.max
     }
 }
 
@@ -317,10 +243,6 @@ struct StringMatchingAttribute: Equatable {
     func matches(value: String) -> EvaluationResult {
         return EvaluationResultModel.result(value: self.value == value.lowercased())
     }
-
-    static func == (lhs: StringMatchingAttribute, rhs: StringMatchingAttribute) -> Bool {
-        return lhs.value == rhs.value
-    }
 }
 
 struct StringArrayMatchingAttribute: Equatable {
@@ -332,10 +254,6 @@ struct StringArrayMatchingAttribute: Equatable {
 
     func matches(value: String) -> EvaluationResult {
         return EvaluationResultModel.result(value: values.contains(value.lowercased()))
-    }
-
-    static func == (lhs: StringArrayMatchingAttribute, rhs: StringArrayMatchingAttribute) -> Bool {
-        return lhs.values == rhs.values
     }
 }
 
@@ -367,9 +285,5 @@ struct RangeStringNumericMatchingAttribute: Equatable {
         }
 
         return version + String(repeating: ".0", count: matchComponents.count - versionComponents.count)
-    }
-
-    static func == (lhs: RangeStringNumericMatchingAttribute, rhs: RangeStringNumericMatchingAttribute) -> Bool {
-        return lhs.min == rhs.min && lhs.max == rhs.max
     }
 }
