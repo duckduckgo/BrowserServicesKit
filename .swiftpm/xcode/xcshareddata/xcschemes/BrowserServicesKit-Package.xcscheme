@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
    LastUpgradeVersion = "1540"
-   version = "1.8">
+   version = "1.7">
    <BuildAction
       parallelizeBuildables = "YES"
       buildImplicitDependencies = "YES"
@@ -382,6 +382,34 @@
                BlueprintIdentifier = "SyncMetadataTestDBBuilder"
                BuildableName = "SyncMetadataTestDBBuilder"
                BlueprintName = "SyncMetadataTestDBBuilder"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "BrowserServicesKitTestsUtils"
+               BuildableName = "BrowserServicesKitTestsUtils"
+               BlueprintName = "BrowserServicesKitTestsUtils"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "RemoteMessagingTestsUtils"
+               BuildableName = "RemoteMessagingTestsUtils"
+               BlueprintName = "RemoteMessagingTestsUtils"
                ReferencedContainer = "container:">
             </BuildableReference>
          </BuildActionEntry>

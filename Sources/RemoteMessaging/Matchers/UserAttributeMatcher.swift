@@ -155,7 +155,7 @@ public struct CommonUserAttributeMatcher: AttributeMatching {
         self.dismissedMessageIds = dismissedMessageIds
     }
 
-    // swiftlint:disable:next cyclomatic_complexity function_body_length
+    // swiftlint:disable:next cyclomatic_complexity
     public func evaluate(matchingAttribute: MatchingAttribute) -> EvaluationResult? {
         switch matchingAttribute {
         case let matchingAttribute as AppThemeMatchingAttribute:

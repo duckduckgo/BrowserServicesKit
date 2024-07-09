@@ -47,7 +47,6 @@ public struct AppAttributeMatcher: AttributeMatching {
         self.variantManager = variantManager
     }
 
-    // swiftlint:disable cyclomatic_complexity
     public func evaluate(matchingAttribute: MatchingAttribute) -> EvaluationResult? {
         switch matchingAttribute {
         case let matchingAttribute as IsInternalUserMatchingAttribute:
@@ -95,5 +94,4 @@ public struct AppAttributeMatcher: AttributeMatching {
             return nil
         }
     }
-    // swiftlint:enable cyclomatic_complexity
 }
