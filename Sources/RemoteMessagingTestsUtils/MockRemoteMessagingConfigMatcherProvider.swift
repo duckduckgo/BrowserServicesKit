@@ -1,7 +1,7 @@
 //
-//  EvaluationResult.swift
+//  MockRemoteMessagingConfigMatcherProvider.swift
 //
-//  Copyright © 2022 DuckDuckGo. All rights reserved.
+//  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -17,22 +17,17 @@
 //
 
 import Foundation
+import RemoteMessaging
 
-public enum EvaluationResult {
-    case match
-    case fail
-    case nextMessage
-}
+public class MockRemoteMessagingConfigMatcherProvider: RemoteMessagingConfigMatcherProviding {
 
-struct EvaluationResultModel {
-    static func result(value: Bool?) -> EvaluationResult {
-        switch value {
-        case true:
-            return .match
-        case false:
-            return .fail
-        default:
-            return .nextMessage
-        }
+    public init(refresh: @escaping (RemoteMessagingStoring) -> RemoteMessagingConfigMatcher) {
+        self.refresh = refresh
     }
+
+    public func refreshConfigMatcher(using store: RemoteMessagingStoring) async -> RemoteMessagingConfigMatcher {
+        await refresh(store)
+    }
+
+    public var refresh: (RemoteMessagingStoring) async -> RemoteMessagingConfigMatcher
 }

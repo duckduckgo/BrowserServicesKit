@@ -16,36 +16,37 @@
 //  limitations under the License.
 //
 
+import BrowserServicesKitTestsUtils
+import RemoteMessagingTestsUtils
 import XCTest
-@testable import BrowserServicesKit
 @testable import RemoteMessaging
 
 class RemoteMessagingConfigProcessorTests: XCTestCase {
 
-    private var data = JsonTestDataLoader()
-
     func testWhenNewVersionThenShouldHaveBeenProcessedAndResultReturned() throws {
-        let jsonRemoteMessagingConfig = try decodeJson(fileName: "Resources/remote-messaging-config.json")
+        let jsonRemoteMessagingConfig = try decodeJson(fileName: "remote-messaging-config.json")
         XCTAssertNotNil(jsonRemoteMessagingConfig)
 
         let remoteMessagingConfigMatcher = RemoteMessagingConfigMatcher(
             appAttributeMatcher: AppAttributeMatcher(statisticsStore: MockStatisticsStore(), variantManager: MockVariantManager()),
-            userAttributeMatcher: UserAttributeMatcher(statisticsStore: MockStatisticsStore(),
-                                                       variantManager: MockVariantManager(),
-                                                       bookmarksCount: 0,
-                                                       favoritesCount: 0,
-                                                       appTheme: "light",
-                                                       isWidgetInstalled: false,
-                                                       daysSinceNetPEnabled: -1,
-                                                       isPrivacyProEligibleUser: false,
-                                                       isPrivacyProSubscriber: false,
-                                                       privacyProDaysSinceSubscribed: -1,
-                                                       privacyProDaysUntilExpiry: -1,
-                                                       privacyProPurchasePlatform: nil,
-                                                       isPrivacyProSubscriptionActive: false,
-                                                       isPrivacyProSubscriptionExpiring: false,
-                                                       isPrivacyProSubscriptionExpired: false,
-                                                       dismissedMessageIds: []),
+            userAttributeMatcher: MobileUserAttributeMatcher(
+                statisticsStore: MockStatisticsStore(),
+                variantManager: MockVariantManager(),
+                bookmarksCount: 0,
+                favoritesCount: 0,
+                appTheme: "light",
+                isWidgetInstalled: false,
+                daysSinceNetPEnabled: -1,
+                isPrivacyProEligibleUser: false,
+                isPrivacyProSubscriber: false,
+                privacyProDaysSinceSubscribed: -1,
+                privacyProDaysUntilExpiry: -1,
+                privacyProPurchasePlatform: nil,
+                isPrivacyProSubscriptionActive: false,
+                isPrivacyProSubscriptionExpiring: false,
+                isPrivacyProSubscriptionExpired: false,
+                dismissedMessageIds: []
+            ),
             percentileStore: MockRemoteMessagePercentileStore(),
             surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
             dismissedMessageIds: []
@@ -63,27 +64,29 @@ class RemoteMessagingConfigProcessorTests: XCTestCase {
     }
 
     func testWhenSameVersionThenNotProcessedAndResultNil() throws {
-        let jsonRemoteMessagingConfig = try decodeJson(fileName: "Resources/remote-messaging-config-malformed.json")
+        let jsonRemoteMessagingConfig = try decodeJson(fileName: "remote-messaging-config-malformed.json")
         XCTAssertNotNil(jsonRemoteMessagingConfig)
 
         let remoteMessagingConfigMatcher = RemoteMessagingConfigMatcher(
                 appAttributeMatcher: AppAttributeMatcher(statisticsStore: MockStatisticsStore(), variantManager: MockVariantManager()),
-                userAttributeMatcher: UserAttributeMatcher(statisticsStore: MockStatisticsStore(),
-                                                           variantManager: MockVariantManager(),
-                                                           bookmarksCount: 0,
-                                                           favoritesCount: 0,
-                                                           appTheme: "light",
-                                                           isWidgetInstalled: false,
-                                                           daysSinceNetPEnabled: -1,
-                                                           isPrivacyProEligibleUser: false,
-                                                           isPrivacyProSubscriber: false,
-                                                           privacyProDaysSinceSubscribed: -1,
-                                                           privacyProDaysUntilExpiry: -1,
-                                                           privacyProPurchasePlatform: nil,
-                                                           isPrivacyProSubscriptionActive: false,
-                                                           isPrivacyProSubscriptionExpiring: false,
-                                                           isPrivacyProSubscriptionExpired: false,
-                                                           dismissedMessageIds: []),
+                userAttributeMatcher: MobileUserAttributeMatcher(
+                    statisticsStore: MockStatisticsStore(),
+                    variantManager: MockVariantManager(),
+                    bookmarksCount: 0,
+                    favoritesCount: 0,
+                    appTheme: "light",
+                    isWidgetInstalled: false,
+                    daysSinceNetPEnabled: -1,
+                    isPrivacyProEligibleUser: false,
+                    isPrivacyProSubscriber: false,
+                    privacyProDaysSinceSubscribed: -1,
+                    privacyProDaysUntilExpiry: -1,
+                    privacyProPurchasePlatform: nil,
+                    isPrivacyProSubscriptionActive: false,
+                    isPrivacyProSubscriptionExpiring: false,
+                    isPrivacyProSubscriptionExpired: false,
+                    dismissedMessageIds: []
+                ),
                 percentileStore: MockRemoteMessagePercentileStore(),
                 surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
                 dismissedMessageIds: [])
@@ -98,7 +101,8 @@ class RemoteMessagingConfigProcessorTests: XCTestCase {
     }
 
     func decodeJson(fileName: String) throws -> RemoteMessageResponse.JsonRemoteMessagingConfig {
-        let validJson = data.fromJsonFile(fileName)
+        let resourceURL = Bundle.module.resourceURL!.appendingPathComponent(fileName, conformingTo: .json)
+        let validJson = try Data(contentsOf: resourceURL)
         let remoteMessagingConfig = try JSONDecoder().decode(RemoteMessageResponse.JsonRemoteMessagingConfig.self, from: validJson)
         XCTAssertNotNil(remoteMessagingConfig)
 

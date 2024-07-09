@@ -1,5 +1,5 @@
 //
-//  MockRemoteMessageSurveyActionMapper.swift
+//  MockRemoteMessagingAvailabilityProvider.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -16,13 +16,18 @@
 //  limitations under the License.
 //
 
-import Foundation
+import Combine
 import RemoteMessaging
 
-class MockRemoteMessageSurveyActionMapper: RemoteMessagingSurveyActionMapping {
+public class MockRemoteMessagingAvailabilityProvider: RemoteMessagingAvailabilityProviding {
 
-    func add(parameters: [RemoteMessaging.RemoteMessagingSurveyActionParameter], to url: URL) -> URL {
-        return url
+    public init(isRemoteMessagingAvailable: Bool = true) {
+        self.isRemoteMessagingAvailable = isRemoteMessagingAvailable
     }
 
+    public var isRemoteMessagingAvailablePublisher: AnyPublisher<Bool, Never> {
+        $isRemoteMessagingAvailable.dropFirst().eraseToAnyPublisher()
+    }
+
+    @Published public var isRemoteMessagingAvailable: Bool
 }

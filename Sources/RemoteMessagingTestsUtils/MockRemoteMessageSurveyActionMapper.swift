@@ -1,7 +1,7 @@
 //
-//  AttributeMatcher.swift
+//  MockRemoteMessageSurveyActionMapper.swift
 //
-//  Copyright © 2022 DuckDuckGo. All rights reserved.
+//  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -17,7 +17,14 @@
 //
 
 import Foundation
+import RemoteMessaging
 
-protocol AttributeMatcher {
-    func evaluate(matchingAttribute: MatchingAttribute) -> EvaluationResult?
+public class MockRemoteMessageSurveyActionMapper: RemoteMessagingSurveyActionMapping {
+
+    public init() {}
+
+    public func add(parameters: [RemoteMessaging.RemoteMessagingSurveyActionParameter], to url: URL) -> URL {
+        return url
+    }
+
 }

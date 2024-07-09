@@ -1,7 +1,7 @@
 //
-//  EvaluationResult.swift
+//  MockStatisticsStore.swift
 //
-//  Copyright © 2022 DuckDuckGo. All rights reserved.
+//  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -16,23 +16,21 @@
 //  limitations under the License.
 //
 
+import BrowserServicesKit
 import Foundation
 
-public enum EvaluationResult {
-    case match
-    case fail
-    case nextMessage
-}
+public class MockStatisticsStore: StatisticsStore {
 
-struct EvaluationResultModel {
-    static func result(value: Bool?) -> EvaluationResult {
-        switch value {
-        case true:
-            return .match
-        case false:
-            return .fail
-        default:
-            return .nextMessage
-        }
+    public init() {}
+
+    public var installDate: Date?
+    public var atb: String?
+    public var searchRetentionAtb: String?
+    public var appRetentionAtb: String?
+
+    public var hasInstallStatistics: Bool {
+        return atb != nil
     }
+
+    public var variant: String?
 }

@@ -16,14 +16,15 @@
 //  limitations under the License.
 //
 
+import BrowserServicesKit
+import Common
+import BrowserServicesKitTestsUtils
+import RemoteMessagingTestsUtils
 import XCTest
-@testable import Common
-@testable import BrowserServicesKit
 @testable import RemoteMessaging
 
 class RemoteMessagingConfigMatcherTests: XCTestCase {
 
-    private var data = JsonTestDataLoader()
     private var matcher: RemoteMessagingConfigMatcher!
 
     override func setUpWithError() throws {
@@ -36,23 +37,25 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
         let emailManager = EmailManager(storage: emailManagerStorage)
         matcher = RemoteMessagingConfigMatcher(
                 appAttributeMatcher: AppAttributeMatcher(statisticsStore: MockStatisticsStore(), variantManager: MockVariantManager()),
-                userAttributeMatcher: UserAttributeMatcher(statisticsStore: MockStatisticsStore(),
-                                                           variantManager: MockVariantManager(),
-                                                           emailManager: emailManager,
-                                                           bookmarksCount: 10,
-                                                           favoritesCount: 0,
-                                                           appTheme: "light",
-                                                           isWidgetInstalled: false,
-                                                           daysSinceNetPEnabled: -1,
-                                                           isPrivacyProEligibleUser: false,
-                                                           isPrivacyProSubscriber: false,
-                                                           privacyProDaysSinceSubscribed: -1,
-                                                           privacyProDaysUntilExpiry: -1,
-                                                           privacyProPurchasePlatform: nil,
-                                                           isPrivacyProSubscriptionActive: false,
-                                                           isPrivacyProSubscriptionExpiring: false,
-                                                           isPrivacyProSubscriptionExpired: false,
-                                                           dismissedMessageIds: []),
+                userAttributeMatcher: MobileUserAttributeMatcher(
+                    statisticsStore: MockStatisticsStore(),
+                    variantManager: MockVariantManager(),
+                    emailManager: emailManager,
+                    bookmarksCount: 10,
+                    favoritesCount: 0,
+                    appTheme: "light",
+                    isWidgetInstalled: false,
+                    daysSinceNetPEnabled: -1,
+                    isPrivacyProEligibleUser: false,
+                    isPrivacyProSubscriber: false,
+                    privacyProDaysSinceSubscribed: -1,
+                    privacyProDaysUntilExpiry: -1,
+                    privacyProPurchasePlatform: nil,
+                    isPrivacyProSubscriptionActive: false,
+                    isPrivacyProSubscriptionExpiring: false,
+                    isPrivacyProSubscriptionExpired: false,
+                    dismissedMessageIds: []
+                ),
                 percentileStore: MockRemoteMessagePercentileStore(),
                 surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
                 dismissedMessageIds: []
@@ -130,22 +133,24 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
         matcher = RemoteMessagingConfigMatcher(
                 appAttributeMatcher: AppAttributeMatcher(statisticsStore: MockStatisticsStore(), variantManager: MockVariantManager()),
                 deviceAttributeMatcher: DeviceAttributeMatcher(osVersion: AppVersion.shared.osVersion, locale: "en-US"),
-                userAttributeMatcher: UserAttributeMatcher(statisticsStore: MockStatisticsStore(),
-                                                           variantManager: MockVariantManager(),
-                                                           bookmarksCount: 0,
-                                                           favoritesCount: 0,
-                                                           appTheme: "light",
-                                                           isWidgetInstalled: false,
-                                                           daysSinceNetPEnabled: -1,
-                                                           isPrivacyProEligibleUser: false,
-                                                           isPrivacyProSubscriber: false,
-                                                           privacyProDaysSinceSubscribed: -1,
-                                                           privacyProDaysUntilExpiry: -1,
-                                                           privacyProPurchasePlatform: nil,
-                                                           isPrivacyProSubscriptionActive: false,
-                                                           isPrivacyProSubscriptionExpiring: false,
-                                                           isPrivacyProSubscriptionExpired: false,
-                                                           dismissedMessageIds: []),
+                userAttributeMatcher: MobileUserAttributeMatcher(
+                    statisticsStore: MockStatisticsStore(),
+                    variantManager: MockVariantManager(),
+                    bookmarksCount: 0,
+                    favoritesCount: 0,
+                    appTheme: "light",
+                    isWidgetInstalled: false,
+                    daysSinceNetPEnabled: -1,
+                    isPrivacyProEligibleUser: false,
+                    isPrivacyProSubscriber: false,
+                    privacyProDaysSinceSubscribed: -1,
+                    privacyProDaysUntilExpiry: -1,
+                    privacyProPurchasePlatform: nil,
+                    isPrivacyProSubscriptionActive: false,
+                    isPrivacyProSubscriptionExpiring: false,
+                    isPrivacyProSubscriptionExpired: false,
+                    dismissedMessageIds: []
+                ),
                 percentileStore: MockRemoteMessagePercentileStore(),
                 surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
                 dismissedMessageIds: [])
@@ -233,22 +238,24 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
     func testWhenUserDismissedMessagesAndDeviceMatchesMultipleMessagesThenReturnFirstMatchNotDismissed() {
         matcher = RemoteMessagingConfigMatcher(
                 appAttributeMatcher: AppAttributeMatcher(statisticsStore: MockStatisticsStore(), variantManager: MockVariantManager()),
-                userAttributeMatcher: UserAttributeMatcher(statisticsStore: MockStatisticsStore(),
-                                                           variantManager: MockVariantManager(),
-                                                           bookmarksCount: 10,
-                                                           favoritesCount: 0,
-                                                           appTheme: "light",
-                                                           isWidgetInstalled: false,
-                                                           daysSinceNetPEnabled: -1,
-                                                           isPrivacyProEligibleUser: false,
-                                                           isPrivacyProSubscriber: false,
-                                                           privacyProDaysSinceSubscribed: -1,
-                                                           privacyProDaysUntilExpiry: -1,
-                                                           privacyProPurchasePlatform: nil,
-                                                           isPrivacyProSubscriptionActive: false,
-                                                           isPrivacyProSubscriptionExpiring: false,
-                                                           isPrivacyProSubscriptionExpired: false,
-                                                           dismissedMessageIds: []),
+                userAttributeMatcher: MobileUserAttributeMatcher(
+                    statisticsStore: MockStatisticsStore(),
+                    variantManager: MockVariantManager(),
+                    bookmarksCount: 10,
+                    favoritesCount: 0,
+                    appTheme: "light",
+                    isWidgetInstalled: false,
+                    daysSinceNetPEnabled: -1,
+                    isPrivacyProEligibleUser: false,
+                    isPrivacyProSubscriber: false,
+                    privacyProDaysSinceSubscribed: -1,
+                    privacyProDaysUntilExpiry: -1,
+                    privacyProPurchasePlatform: nil,
+                    isPrivacyProSubscriptionActive: false,
+                    isPrivacyProSubscriptionExpiring: false,
+                    isPrivacyProSubscriptionExpired: false,
+                    dismissedMessageIds: []
+                ),
                 percentileStore: MockRemoteMessagePercentileStore(),
                 surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
                 dismissedMessageIds: ["1"])
@@ -279,22 +286,24 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
         matcher = RemoteMessagingConfigMatcher(
                 appAttributeMatcher: AppAttributeMatcher(statisticsStore: MockStatisticsStore(), variantManager: MockVariantManager()),
                 deviceAttributeMatcher: DeviceAttributeMatcher(osVersion: AppVersion.shared.osVersion, locale: "en-US"),
-                userAttributeMatcher: UserAttributeMatcher(statisticsStore: MockStatisticsStore(),
-                                                           variantManager: MockVariantManager(),
-                                                           bookmarksCount: 0,
-                                                           favoritesCount: 0,
-                                                           appTheme: "light",
-                                                           isWidgetInstalled: false,
-                                                           daysSinceNetPEnabled: -1,
-                                                           isPrivacyProEligibleUser: false,
-                                                           isPrivacyProSubscriber: false,
-                                                           privacyProDaysSinceSubscribed: -1,
-                                                           privacyProDaysUntilExpiry: -1,
-                                                           privacyProPurchasePlatform: nil,
-                                                           isPrivacyProSubscriptionActive: false,
-                                                           isPrivacyProSubscriptionExpiring: false,
-                                                           isPrivacyProSubscriptionExpired: false,
-                                                           dismissedMessageIds: []),
+                userAttributeMatcher: MobileUserAttributeMatcher(
+                    statisticsStore: MockStatisticsStore(),
+                    variantManager: MockVariantManager(),
+                    bookmarksCount: 0,
+                    favoritesCount: 0,
+                    appTheme: "light",
+                    isWidgetInstalled: false,
+                    daysSinceNetPEnabled: -1,
+                    isPrivacyProEligibleUser: false,
+                    isPrivacyProSubscriber: false,
+                    privacyProDaysSinceSubscribed: -1,
+                    privacyProDaysUntilExpiry: -1,
+                    privacyProPurchasePlatform: nil,
+                    isPrivacyProSubscriptionActive: false,
+                    isPrivacyProSubscriptionExpiring: false,
+                    isPrivacyProSubscriptionExpired: false,
+                    dismissedMessageIds: []
+                ),
                 percentileStore: MockRemoteMessagePercentileStore(),
                 surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
                 dismissedMessageIds: [])
@@ -321,22 +330,24 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
         matcher = RemoteMessagingConfigMatcher(
                 appAttributeMatcher: AppAttributeMatcher(statisticsStore: MockStatisticsStore(), variantManager: MockVariantManager()),
                 deviceAttributeMatcher: DeviceAttributeMatcher(osVersion: AppVersion.shared.osVersion, locale: "en-US"),
-                userAttributeMatcher: UserAttributeMatcher(statisticsStore: MockStatisticsStore(),
-                                                           variantManager: MockVariantManager(),
-                                                           bookmarksCount: 0,
-                                                           favoritesCount: 0,
-                                                           appTheme: "light",
-                                                           isWidgetInstalled: false,
-                                                           daysSinceNetPEnabled: -1,
-                                                           isPrivacyProEligibleUser: false,
-                                                           isPrivacyProSubscriber: false,
-                                                           privacyProDaysSinceSubscribed: -1,
-                                                           privacyProDaysUntilExpiry: -1,
-                                                           privacyProPurchasePlatform: nil,
-                                                           isPrivacyProSubscriptionActive: false,
-                                                           isPrivacyProSubscriptionExpiring: false,
-                                                           isPrivacyProSubscriptionExpired: false,
-                                                           dismissedMessageIds: []),
+                userAttributeMatcher: MobileUserAttributeMatcher(
+                    statisticsStore: MockStatisticsStore(),
+                    variantManager: MockVariantManager(),
+                    bookmarksCount: 0,
+                    favoritesCount: 0,
+                    appTheme: "light",
+                    isWidgetInstalled: false,
+                    daysSinceNetPEnabled: -1,
+                    isPrivacyProEligibleUser: false,
+                    isPrivacyProSubscriber: false,
+                    privacyProDaysSinceSubscribed: -1,
+                    privacyProDaysUntilExpiry: -1,
+                    privacyProPurchasePlatform: nil,
+                    isPrivacyProSubscriptionActive: false,
+                    isPrivacyProSubscriptionExpiring: false,
+                    isPrivacyProSubscriptionExpired: false,
+                    dismissedMessageIds: []
+                ),
                 percentileStore: percentileStore,
                 surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
                 dismissedMessageIds: [])
@@ -361,22 +372,24 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
         matcher = RemoteMessagingConfigMatcher(
                 appAttributeMatcher: AppAttributeMatcher(statisticsStore: MockStatisticsStore(), variantManager: MockVariantManager()),
                 deviceAttributeMatcher: DeviceAttributeMatcher(osVersion: AppVersion.shared.osVersion, locale: "en-US"),
-                userAttributeMatcher: UserAttributeMatcher(statisticsStore: MockStatisticsStore(),
-                                                           variantManager: MockVariantManager(),
-                                                           bookmarksCount: 0,
-                                                           favoritesCount: 0,
-                                                           appTheme: "light",
-                                                           isWidgetInstalled: false,
-                                                           daysSinceNetPEnabled: -1,
-                                                           isPrivacyProEligibleUser: false,
-                                                           isPrivacyProSubscriber: false,
-                                                           privacyProDaysSinceSubscribed: -1,
-                                                           privacyProDaysUntilExpiry: -1,
-                                                           privacyProPurchasePlatform: nil,
-                                                           isPrivacyProSubscriptionActive: false,
-                                                           isPrivacyProSubscriptionExpiring: false,
-                                                           isPrivacyProSubscriptionExpired: false,
-                                                           dismissedMessageIds: []),
+                userAttributeMatcher: MobileUserAttributeMatcher(
+                    statisticsStore: MockStatisticsStore(),
+                    variantManager: MockVariantManager(),
+                    bookmarksCount: 0,
+                    favoritesCount: 0,
+                    appTheme: "light",
+                    isWidgetInstalled: false,
+                    daysSinceNetPEnabled: -1,
+                    isPrivacyProEligibleUser: false,
+                    isPrivacyProSubscriber: false,
+                    privacyProDaysSinceSubscribed: -1,
+                    privacyProDaysUntilExpiry: -1,
+                    privacyProPurchasePlatform: nil,
+                    isPrivacyProSubscriptionActive: false,
+                    isPrivacyProSubscriptionExpiring: false,
+                    isPrivacyProSubscriptionExpired: false,
+                    dismissedMessageIds: []
+                ),
                 percentileStore: percentileStore,
                 surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
                 dismissedMessageIds: [])
@@ -401,22 +414,24 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
         matcher = RemoteMessagingConfigMatcher(
                 appAttributeMatcher: AppAttributeMatcher(statisticsStore: MockStatisticsStore(), variantManager: MockVariantManager()),
                 deviceAttributeMatcher: DeviceAttributeMatcher(osVersion: AppVersion.shared.osVersion, locale: "en-US"),
-                userAttributeMatcher: UserAttributeMatcher(statisticsStore: MockStatisticsStore(),
-                                                           variantManager: MockVariantManager(),
-                                                           bookmarksCount: 0,
-                                                           favoritesCount: 0,
-                                                           appTheme: "light",
-                                                           isWidgetInstalled: false,
-                                                           daysSinceNetPEnabled: -1,
-                                                           isPrivacyProEligibleUser: false,
-                                                           isPrivacyProSubscriber: false,
-                                                           privacyProDaysSinceSubscribed: -1,
-                                                           privacyProDaysUntilExpiry: -1,
-                                                           privacyProPurchasePlatform: nil,
-                                                           isPrivacyProSubscriptionActive: false,
-                                                           isPrivacyProSubscriptionExpiring: false,
-                                                           isPrivacyProSubscriptionExpired: false,
-                                                           dismissedMessageIds: []),
+                userAttributeMatcher: MobileUserAttributeMatcher(
+                    statisticsStore: MockStatisticsStore(),
+                    variantManager: MockVariantManager(),
+                    bookmarksCount: 0,
+                    favoritesCount: 0,
+                    appTheme: "light",
+                    isWidgetInstalled: false,
+                    daysSinceNetPEnabled: -1,
+                    isPrivacyProEligibleUser: false,
+                    isPrivacyProSubscriber: false,
+                    privacyProDaysSinceSubscribed: -1,
+                    privacyProDaysUntilExpiry: -1,
+                    privacyProPurchasePlatform: nil,
+                    isPrivacyProSubscriptionActive: false,
+                    isPrivacyProSubscriptionExpiring: false,
+                    isPrivacyProSubscriptionExpired: false,
+                    dismissedMessageIds: []
+                ),
                 percentileStore: percentileStore,
                 surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
                 dismissedMessageIds: [])
@@ -441,22 +456,24 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
         matcher = RemoteMessagingConfigMatcher(
                 appAttributeMatcher: AppAttributeMatcher(statisticsStore: MockStatisticsStore(), variantManager: MockVariantManager()),
                 deviceAttributeMatcher: DeviceAttributeMatcher(osVersion: AppVersion.shared.osVersion, locale: "en-US"),
-                userAttributeMatcher: UserAttributeMatcher(statisticsStore: MockStatisticsStore(),
-                                                           variantManager: MockVariantManager(),
-                                                           bookmarksCount: 0,
-                                                           favoritesCount: 0,
-                                                           appTheme: "light",
-                                                           isWidgetInstalled: false,
-                                                           daysSinceNetPEnabled: -1,
-                                                           isPrivacyProEligibleUser: false,
-                                                           isPrivacyProSubscriber: false,
-                                                           privacyProDaysSinceSubscribed: -1,
-                                                           privacyProDaysUntilExpiry: -1,
-                                                           privacyProPurchasePlatform: nil,
-                                                           isPrivacyProSubscriptionActive: false,
-                                                           isPrivacyProSubscriptionExpiring: false,
-                                                           isPrivacyProSubscriptionExpired: false,
-                                                           dismissedMessageIds: []),
+                userAttributeMatcher: MobileUserAttributeMatcher(
+                    statisticsStore: MockStatisticsStore(),
+                    variantManager: MockVariantManager(),
+                    bookmarksCount: 0,
+                    favoritesCount: 0,
+                    appTheme: "light",
+                    isWidgetInstalled: false,
+                    daysSinceNetPEnabled: -1,
+                    isPrivacyProEligibleUser: false,
+                    isPrivacyProSubscriber: false,
+                    privacyProDaysSinceSubscribed: -1,
+                    privacyProDaysUntilExpiry: -1,
+                    privacyProPurchasePlatform: nil,
+                    isPrivacyProSubscriptionActive: false,
+                    isPrivacyProSubscriptionExpiring: false,
+                    isPrivacyProSubscriptionExpired: false,
+                    dismissedMessageIds: []
+                ),
                 percentileStore: percentileStore,
                 surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
                 dismissedMessageIds: [])
@@ -502,16 +519,5 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                              matchingRules: matchingRules,
                              exclusionRules: exclusionRules
         )
-    }
-
-    func decodeAndMapJson(fileName: String) throws -> RemoteConfigModel {
-        let validJson = data.fromJsonFile(fileName)
-        let remoteMessagingConfig = try JSONDecoder().decode(RemoteMessageResponse.JsonRemoteMessagingConfig.self, from: validJson)
-        let surveyMapper = MockRemoteMessageSurveyActionMapper()
-        XCTAssertNotNil(remoteMessagingConfig)
-
-        let config = JsonToRemoteConfigModelMapper.mapJson(remoteMessagingConfig: remoteMessagingConfig, surveyActionMapper: surveyMapper)
-        XCTAssertNotNil(config)
-        return config
     }
 }

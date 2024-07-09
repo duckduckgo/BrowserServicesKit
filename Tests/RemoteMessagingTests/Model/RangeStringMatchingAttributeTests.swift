@@ -16,9 +16,8 @@
 //  limitations under the License.
 //
 
-import XCTest
 import Foundation
-@testable import BrowserServicesKit
+import XCTest
 @testable import RemoteMessaging
 
 class RangeStringMatchingAttributeTests: XCTestCase {

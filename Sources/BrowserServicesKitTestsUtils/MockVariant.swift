@@ -1,7 +1,7 @@
 //
-//  EvaluationResult.swift
+//  MockVariant.swift
 //
-//  Copyright © 2022 DuckDuckGo. All rights reserved.
+//  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -16,23 +16,19 @@
 //  limitations under the License.
 //
 
+import BrowserServicesKit
 import Foundation
 
-public enum EvaluationResult {
-    case match
-    case fail
-    case nextMessage
-}
+public class MockVariant: Variant {
+    public var name: String
+    public var weight: Int
+    public var isIncluded: () -> Bool
+    public var features: [FeatureName]
 
-struct EvaluationResultModel {
-    static func result(value: Bool?) -> EvaluationResult {
-        switch value {
-        case true:
-            return .match
-        case false:
-            return .fail
-        default:
-            return .nextMessage
-        }
+    public init(name: String, weight: Int, isIncluded: @escaping () -> Bool, features: [FeatureName]) {
+        self.name = name
+        self.weight = weight
+        self.isIncluded = isIncluded
+        self.features = features
     }
 }

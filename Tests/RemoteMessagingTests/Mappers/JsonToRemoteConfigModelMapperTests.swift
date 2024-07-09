@@ -17,15 +17,13 @@
 //
 
 import XCTest
-@testable import BrowserServicesKit
+import RemoteMessagingTestsUtils
 @testable import RemoteMessaging
 
 class JsonToRemoteConfigModelMapperTests: XCTestCase {
 
-    private var data = JsonTestDataLoader()
-
     func testWhenValidJsonParsedThenMessagesMappedIntoRemoteConfig() throws {
-        let config = try decodeAndMapJson(fileName: "Resources/remote-messaging-config.json")
+        let config = try decodeAndMapJson(fileName: "remote-messaging-config.json")
         XCTAssertEqual(config.messages.count, 8)
 
         XCTAssertEqual(config.messages[0], RemoteMessageModel(
@@ -101,7 +99,7 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
     }
 
     func testWhenValidJsonParsedThenRulesMappedIntoRemoteConfig() throws {
-        let config = try decodeAndMapJson(fileName: "Resources/remote-messaging-config.json")
+        let config = try decodeAndMapJson(fileName: "remote-messaging-config.json")
         XCTAssertTrue(config.rules.count == 6)
 
         let rule5 = config.rules.filter { $0.id == 5 }.first
@@ -188,13 +186,13 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
     }
 
     func testWhenJsonMessagesHaveUnknownTypesThenMessagesNotMappedIntoConfig() throws {
-        let config = try decodeAndMapJson(fileName: "Resources/remote-messaging-config-unsupported-items.json")
+        let config = try decodeAndMapJson(fileName: "remote-messaging-config-unsupported-items.json")
         let countValidContent = config.messages.filter { $0.content != nil }.count
         XCTAssertEqual(countValidContent, 1)
     }
 
     func testWhenJsonMessagesHaveUnknownTypesThenRulesMappedIntoConfig() throws {
-        let config = try decodeAndMapJson(fileName: "Resources/remote-messaging-config-unsupported-items.json")
+        let config = try decodeAndMapJson(fileName: "remote-messaging-config-unsupported-items.json")
         XCTAssertTrue(config.rules.count == 2)
 
         let rule6 = config.rules.filter { $0.id == 6 }.first
@@ -211,7 +209,9 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
     }
 
     func testWhenJsonAttributeMissingThenUnknownIntoConfig() throws {
-        let validJson = data.fromJsonFile("Resources/remote-messaging-config-malformed.json")
+        let resourceURL = Bundle.module.resourceURL!.appendingPathComponent("remote-messaging-config-malformed.json", conformingTo: .json)
+        let validJson = try Data(contentsOf: resourceURL)
+
         let remoteMessagingConfig = try JSONDecoder().decode(RemoteMessageResponse.JsonRemoteMessagingConfig.self, from: validJson)
         let surveyMapper = MockRemoteMessageSurveyActionMapper()
         XCTAssertNotNil(remoteMessagingConfig)
@@ -226,7 +226,8 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
     }
 
     func decodeAndMapJson(fileName: String) throws -> RemoteConfigModel {
-        let validJson = data.fromJsonFile(fileName)
+        let resourceURL = Bundle.module.resourceURL!.appendingPathComponent(fileName, conformingTo: .json)
+        let validJson = try Data(contentsOf: resourceURL)
         let remoteMessagingConfig = try JSONDecoder().decode(RemoteMessageResponse.JsonRemoteMessagingConfig.self, from: validJson)
         let surveyMapper = MockRemoteMessageSurveyActionMapper()
         XCTAssertNotNil(remoteMessagingConfig)

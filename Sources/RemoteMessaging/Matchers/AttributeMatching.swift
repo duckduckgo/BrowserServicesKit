@@ -1,5 +1,5 @@
 //
-//  EvaluationResult.swift
+//  AttributeMatching.swift
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -18,21 +18,6 @@
 
 import Foundation
 
-public enum EvaluationResult {
-    case match
-    case fail
-    case nextMessage
-}
-
-struct EvaluationResultModel {
-    static func result(value: Bool?) -> EvaluationResult {
-        switch value {
-        case true:
-            return .match
-        case false:
-            return .fail
-        default:
-            return .nextMessage
-        }
-    }
+public protocol AttributeMatching {
+    func evaluate(matchingAttribute: MatchingAttribute) -> EvaluationResult?
 }

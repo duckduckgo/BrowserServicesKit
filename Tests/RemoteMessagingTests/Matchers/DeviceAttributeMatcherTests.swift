@@ -18,8 +18,8 @@
 
 import XCTest
 import Foundation
-@testable import Common
-@testable import BrowserServicesKit
+import RemoteMessagingTestsUtils
+import Common
 @testable import RemoteMessaging
 
 class DeviceAttributeMatcherTests: XCTestCase {

@@ -16,6 +16,7 @@ let package = Package(
         .library(name: "Common", targets: ["Common"]),
         .library(name: "TestUtils", targets: ["TestUtils"]),
         .library(name: "DDGSync", targets: ["DDGSync"]),
+        .library(name: "BrowserServicesKitTestsUtils", targets: ["BrowserServicesKitTestsUtils"]),
         .library(name: "Persistence", targets: ["Persistence"]),
         .library(name: "Bookmarks", targets: ["Bookmarks"]),
         .library(name: "BloomFilterWrapper", targets: ["BloomFilterWrapper"]),
@@ -26,6 +27,7 @@ let package = Package(
         .library(name: "Configuration", targets: ["Configuration"]),
         .library(name: "Networking", targets: ["Networking"]),
         .library(name: "RemoteMessaging", targets: ["RemoteMessaging"]),
+        .library(name: "RemoteMessagingTestsUtils", targets: ["RemoteMessagingTestsUtils"]),
         .library(name: "Navigation", targets: ["Navigation"]),
         .library(name: "SyncDataProviders", targets: ["SyncDataProviders"]),
         .library(name: "NetworkProtection", targets: ["NetworkProtection"]),
@@ -74,6 +76,12 @@ let package = Package(
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
+            ]
+        ),
+        .target(
+            name: "BrowserServicesKitTestsUtils",
+            dependencies: [
+                "BrowserServicesKit",
             ]
         ),
         .target(
@@ -261,15 +269,23 @@ let package = Package(
             name: "RemoteMessaging",
             dependencies: [
                 "Common",
+                "Configuration",
                 "BrowserServicesKit",
                 "Networking",
                 "Persistence",
+                "Subscription"
             ],
             resources: [
                 .process("CoreData/RemoteMessaging.xcdatamodeld")
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
+            ]
+        ),
+        .target(
+            name: "RemoteMessagingTestsUtils",
+            dependencies: [
+                "RemoteMessaging",
             ]
         ),
         .target(
@@ -400,7 +416,7 @@ let package = Package(
             name: "BrowserServicesKitTests",
             dependencies: [
                 "BrowserServicesKit",
-                "RemoteMessaging", // Move tests later (lots of test dependencies in BSK)
+                "BrowserServicesKitTestsUtils",
                 "SecureStorageTestsUtils",
                 "TestUtils",
                 "Subscription"
@@ -482,10 +498,16 @@ let package = Package(
         .testTarget(
             name: "RemoteMessagingTests",
             dependencies: [
+                "BrowserServicesKitTestsUtils",
                 "RemoteMessaging",
+                "RemoteMessagingTestsUtils",
+                "TestUtils",
             ],
             resources: [
                 .copy("Resources/remote-messaging-config-example.json"),
+                .copy("Resources/remote-messaging-config-malformed.json"),
+                .copy("Resources/remote-messaging-config-unsupported-items.json"),
+                .copy("Resources/remote-messaging-config.json"),
             ]
         ),
         .testTarget(

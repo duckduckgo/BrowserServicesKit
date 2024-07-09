@@ -16,10 +16,11 @@
 //  limitations under the License.
 //
 
-import XCTest
+import BrowserServicesKitTestsUtils
+import Common
 import Foundation
-@testable import Common
-@testable import BrowserServicesKit
+import RemoteMessagingTestsUtils
+import XCTest
 @testable import RemoteMessaging
 
 class AppAttributeMatcherTests: XCTestCase {
@@ -97,23 +98,20 @@ class AppAttributeMatcherTests: XCTestCase {
 
     func testWhenAppVersionLowerThanMinThenReturnFail() throws {
         let appVersionComponents = AppVersion.shared.versionAndBuildNumber.components(separatedBy: ".").map { $0 }
-        let appMajorVersion = appVersionComponents[0]
-        let greaterThanMax = String(Int(appMajorVersion)! + 1)
-        let greaterThanMinorVersion = Float(appVersionComponents.suffix(from: 1).joined(separator: "."))! + 0.1
-
-        let minBumped = "\(appMajorVersion).\(greaterThanMinorVersion)"
-        XCTAssertEqual(matcher.evaluate(matchingAttribute: AppVersionMatchingAttribute(min: minBumped, max: greaterThanMax, fallback: nil)),
+        let (major, minor, patch) = (appVersionComponents[0], appVersionComponents[1], appVersionComponents[2])
+        let majorBumped = String(Int(major)! + 1)
+        let patchBumped = [major, minor, String(Int(patch)! + 1)].joined(separator: ".")
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: AppVersionMatchingAttribute(min: patchBumped, max: majorBumped, fallback: nil)),
                        .fail)
     }
 
     func testWhenAppVersionInRangeThenReturnMatch() throws {
         let appVersionComponents = AppVersion.shared.versionAndBuildNumber.components(separatedBy: ".").map { $0 }
-        let appMajorVersion = appVersionComponents[0]
-        let greaterThanMax = String(Int(appMajorVersion)! + 1)
-        let lessThanMinorVersion = Float(appVersionComponents.suffix(from: 1).joined(separator: "."))! - 0.1
-        let minBumped = "\(appMajorVersion).\(lessThanMinorVersion)"
+        let (major, minor, patch) = (appVersionComponents[0], appVersionComponents[1], appVersionComponents[2])
+        let majorBumped = String(Int(major)! + 1)
+        let patchDecremented = [major, minor, String(Int(patch)! - 1)].joined(separator: ".")
 
-        XCTAssertEqual(matcher.evaluate(matchingAttribute: AppVersionMatchingAttribute(min: minBumped, max: greaterThanMax, fallback: nil)),
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: AppVersionMatchingAttribute(min: patchDecremented, max: majorBumped, fallback: nil)),
                        .match)
     }
 
@@ -133,11 +131,10 @@ class AppAttributeMatcherTests: XCTestCase {
 
     func testWhenAppVersionDifferentToDeviceThenReturnFail() throws {
         let appVersionComponents = AppVersion.shared.versionAndBuildNumber.components(separatedBy: ".").map { $0 }
-        let appMajorVersion = appVersionComponents[0]
-        let lessThanMinorVersion = Float(appVersionComponents.suffix(from: 1).joined(separator: "."))! - 0.1
-        let minBumped = "\(appMajorVersion).\(lessThanMinorVersion)"
+        let (major, minor, patch) = (appVersionComponents[0], appVersionComponents[1], appVersionComponents[2])
+        let patchDecremented = [major, minor, String(Int(patch)! - 1)].joined(separator: ".")
 
-        XCTAssertEqual(matcher.evaluate(matchingAttribute: AppVersionMatchingAttribute(value: minBumped, fallback: nil)),
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: AppVersionMatchingAttribute(value: patchDecremented, fallback: nil)),
                        .fail)
     }
 
@@ -181,21 +178,4 @@ class AppAttributeMatcherTests: XCTestCase {
                        .fail)
     }
 
-}
-
-class MockVariant: Variant {
-    var name: String
-
-    var weight: Int
-
-    var isIncluded: () -> Bool
-
-    var features: [FeatureName]
-
-    init(name: String, weight: Int, isIncluded: @escaping () -> Bool, features: [FeatureName]) {
-        self.name = name
-        self.weight = weight
-        self.isIncluded = isIncluded
-        self.features = features
-    }
 }
