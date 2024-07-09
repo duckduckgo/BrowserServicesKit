@@ -24,7 +24,7 @@ enum VPNServerSelectionResolverError: Error {
 }
 
 protocol VPNServerSelectionResolving {
-    func resolvedServerSelectionMethod() async -> NetworkProtectionServerSelectionMethod
+    func resolvedServerSelectionMethod(_ method: NetworkProtectionServerSelectionMethod) async -> NetworkProtectionServerSelectionMethod
 }
 
 final class VPNServerSelectionResolver: VPNServerSelectionResolving {
@@ -36,10 +36,10 @@ final class VPNServerSelectionResolver: VPNServerSelectionResolving {
         self.vpnSettings = vpnSettings
     }
 
-    public func resolvedServerSelectionMethod() async -> NetworkProtectionServerSelectionMethod {
-        switch currentServerSelectionMethod {
+    public func resolvedServerSelectionMethod(_ method: NetworkProtectionServerSelectionMethod) async -> NetworkProtectionServerSelectionMethod {
+        switch method {
         case .automatic, .preferredServer, .avoidServer, .failureRecovery:
-            return currentServerSelectionMethod
+            return method
         case .preferredLocation(let networkProtectionSelectedLocation):
             do {
                 let location = try await resolveSelectionAgainstAvailableLocations(networkProtectionSelectedLocation)
@@ -49,10 +49,10 @@ final class VPNServerSelectionResolver: VPNServerSelectionResolving {
                 case .countryNotFound:
                     return .automatic
                 case .fetchingLocationsFailed:
-                    return currentServerSelectionMethod
+                    return method
                 }
             } catch {
-                return currentServerSelectionMethod
+                return method
             }
         }
     }

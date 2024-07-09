@@ -95,8 +95,6 @@ public struct BrokenSiteReport {
     let vpnOn: Bool
     let jsPerformance: [Double]?
     let userRefreshCount: Int
-    let didOpenReportInfo: Bool
-    let toggleReportCounter: Int?
 #if os(iOS)
     let siteType: SiteType
     let atb: String
@@ -125,9 +123,7 @@ public struct BrokenSiteReport {
         openerContext: OpenerContext?,
         vpnOn: Bool,
         jsPerformance: [Double]?,
-        userRefreshCount: Int,
-        didOpenReportInfo: Bool,
-        toggleReportCounter: Int?
+        userRefreshCount: Int
     ) {
         self.siteUrl = siteUrl
         self.category = category
@@ -149,8 +145,6 @@ public struct BrokenSiteReport {
         self.vpnOn = vpnOn
         self.jsPerformance = jsPerformance
         self.userRefreshCount = userRefreshCount
-        self.didOpenReportInfo = didOpenReportInfo
-        self.toggleReportCounter = toggleReportCounter
     }
 #endif
 
@@ -179,8 +173,6 @@ public struct BrokenSiteReport {
         vpnOn: Bool,
         jsPerformance: [Double]?,
         userRefreshCount: Int,
-        didOpenReportInfo: Bool,
-        toggleReportCounter: Int?,
         variant: String
     ) {
         self.siteUrl = siteUrl
@@ -206,8 +198,6 @@ public struct BrokenSiteReport {
         self.vpnOn = vpnOn
         self.jsPerformance = jsPerformance
         self.userRefreshCount = userRefreshCount
-        self.didOpenReportInfo = didOpenReportInfo
-        self.toggleReportCounter = toggleReportCounter
         self.variant = variant
     }
 #endif
@@ -237,11 +227,6 @@ public struct BrokenSiteReport {
             result["category"] = category
             result["description"] = description ?? ""
             result["protectionsState"] = protectionsState.description
-        } else {
-            result["didOpenReportInfo"] = didOpenReportInfo.description
-            if let toggleReportCounter {
-                result["toggleReportCounter"] = String(toggleReportCounter)
-            }
         }
 
         if let lastSentDay = lastSentDay {

@@ -23,11 +23,12 @@ import UserScript
 import Common
 import BrowserServicesKit
 
+@MainActor
 protocol PrivacyDashboardUserScriptDelegate: AnyObject {
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didChangeProtectionState protectionState: ProtectionState)
     func userScript(_ userScript: PrivacyDashboardUserScript, setHeight height: Int)
-    func userScriptDidRequestClosing(_ userScript: PrivacyDashboardUserScript)
+    func userScriptDidRequestClose(_ userScript: PrivacyDashboardUserScript)
     func userScriptDidRequestShowReportBrokenSite(_ userScript: PrivacyDashboardUserScript)
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestSubmitBrokenSiteReportWithCategory category: String, description: String)
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestOpenUrlInNewTab: URL)
@@ -37,7 +38,7 @@ protocol PrivacyDashboardUserScriptDelegate: AnyObject {
     // Toggle reports
     func userScriptDidRequestToggleReportOptions(_ userScript: PrivacyDashboardUserScript)
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectReportAction shouldSendReport: Bool)
-    func userScriptDidOpenReportInfo(_ userScript: PrivacyDashboardUserScript)
+
     // Experiment flows
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectOverallCategory category: String)
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectBreakageCategory category: String)
@@ -54,7 +55,7 @@ public enum PrivacyDashboardTheme: String, Encodable {
 
 }
 
-public enum Screen: String, Decodable {
+public enum Screen: String, Decodable, CaseIterable {
 
     case primaryScreen
 
@@ -126,7 +127,6 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         case privacyDashboardGetToggleReportOptions
         case privacyDashboardSendToggleReport
         case privacyDashboardRejectToggleReport
-        case privacyDashboardSeeWhatIsSent
         case privacyDashboardShowAlertForMissingDescription
         case privacyDashboardShowNativeFeedback
 
@@ -140,13 +140,7 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
     var messageNames: [String] { MessageNames.allCases.map(\.rawValue) }
 
     weak var delegate: PrivacyDashboardUserScriptDelegate?
-    private let privacyConfigurationManager: PrivacyConfigurationManaging
 
-    init(privacyConfigurationManager: PrivacyConfigurationManaging) {
-        self.privacyConfigurationManager = privacyConfigurationManager
-    }
-
-    // swiftlint:disable:next cyclomatic_complexity
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         guard let messageType = MessageNames(rawValue: message.name) else {
             assertionFailure("PrivacyDashboardUserScript: unexpected message name \(message.name)")
@@ -178,8 +172,6 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             handleSendToggleReport()
         case .privacyDashboardRejectToggleReport:
             handleDoNotSendToggleReport()
-        case .privacyDashboardSeeWhatIsSent:
-            handleDidOpenReportInfo()
         case .privacyDashboardShowAlertForMissingDescription:
             handleShowAlertForMissingDescription()
         case .privacyDashboardShowNativeFeedback:
@@ -210,12 +202,11 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             assertionFailure("privacyDashboardSetHeight: expected height to be an Int")
             return
         }
-
         delegate?.userScript(self, setHeight: height)
     }
 
     private func handleClose() {
-        delegate?.userScriptDidRequestClosing(self)
+        delegate?.userScriptDidRequestClose(self)
     }
 
     private func handleShowReportBrokenSite() {
@@ -294,10 +285,6 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         delegate?.userScript(self, didSelectReportAction: false)
     }
 
-    private func handleDidOpenReportInfo() {
-        delegate?.userScriptDidOpenReportInfo(self)
-    }
-
     private func handleSelectOverallCategory(message: WKScriptMessage) {
         guard let dict = message.body as? [String: Any],
               let category = dict["category"] as? String
@@ -372,8 +359,6 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
                              {"id": "httpErrorCodes"},
                              {"id": "reportFlow"},
                              {"id": "lastSentDay"},
-                             {"id": "didOpenReportInfo"},
-                             {"id": "toggleReportCounter"},
                              {"id": "jsPerformance"},
                              {"id": "openerContext"},
                              {"id": "userRefreshCount"},
@@ -429,7 +414,6 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             assertionFailure("Can't encode themeName into JSON")
             return
         }
-
         evaluate(js: "window.onChangeTheme(\(themeJson))", in: webView)
     }
 
@@ -438,7 +422,6 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             assertionFailure("Can't encode serverTrustViewModel into JSON")
             return
         }
-
         evaluate(js: "window.onChangeCertificateData(\(certificateDataJson))", in: webView)
     }
 
@@ -471,8 +454,7 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             assertionFailure("PrivacyDashboardUserScript: could not serialize permissions object")
             return
         }
-
-        self.evaluate(js: "window.onChangeAllowedPermissions(\(allowedPermissionsJson))", in: webView)
+        evaluate(js: "window.onChangeAllowedPermissions(\(allowedPermissionsJson))", in: webView)
     }
 
     private func evaluate(js: String, in webView: WKWebView) {
@@ -484,7 +466,7 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
 extension Data {
 
     func utf8String() -> String? {
-        return String(data: self, encoding: .utf8)
+        String(data: self, encoding: .utf8)
     }
 
 }

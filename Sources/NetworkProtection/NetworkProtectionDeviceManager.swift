@@ -316,7 +316,6 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
         return peerConfiguration
     }
 
-    // swiftlint:disable function_parameter_count
     func interfaceConfiguration(privateKey: PrivateKey,
                                 addressRange: IPAddressRange,
                                 includedRoutes: [IPAddressRange],
@@ -336,7 +335,6 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
                                       listenPort: 51821,
                                       dns: dns)
     }
-    // swiftlint:enable function_parameter_count
 
     private func handle(clientError: NetworkProtectionClientError) {
 #if os(macOS)

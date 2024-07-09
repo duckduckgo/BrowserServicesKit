@@ -91,6 +91,7 @@ public final class Navigation {
 }
 
 public protocol NavigationProtocol: AnyObject {
+    @MainActor
     var navigationResponders: ResponderChain { get set }
 }
 
@@ -386,8 +387,14 @@ extension Navigation {
 }
 
 extension Navigation: CustomDebugStringConvertible {
-    public var debugDescription: String {
-        "<\(identity) #\(navigationAction.identifier): url:\(url.absoluteString) state:\(state)\(isCommitted ? "(committed)" : "") type:\(navigationActions.last?.navigationType.debugDescription ?? "<nil>")\(isCurrent ? "" : " non-current")>"
+    public nonisolated var debugDescription: String {
+        guard Thread.isMainThread else {
+            assertionFailure("Accessing Navigation from background thread")
+            return "<ExpectedNavigation ?>"
+        }
+        return MainActor.assumeIsolated {
+            "<\(identity) #\(navigationAction.identifier): url:\(url.absoluteString) state:\(state)\(isCommitted ? "(committed)" : "") type:\(navigationActions.last?.navigationType.debugDescription ?? "<nil>")\(isCurrent ? "" : " non-current")>"
+        }
     }
 }
 

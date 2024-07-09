@@ -97,7 +97,6 @@ protocol HTTPRequesting {
 }
 
 protocol RemoteAPIRequestCreating {
-    // swiftlint:disable:next function_parameter_count
     func createRequest(url: URL,
                        method: HTTPRequestMethod,
                        headers: [String: String],

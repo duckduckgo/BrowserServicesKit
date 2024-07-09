@@ -21,8 +21,6 @@ import Foundation
 import GRDB
 import SecureStorage
 
-// swiftlint:disable file_length
-
 public protocol AutofillDatabaseProvider: SecureStorageDatabaseProvider {
 
     func accounts() throws -> [SecureVaultModels.WebsiteAccount]
@@ -825,7 +823,6 @@ extension DefaultAutofillDatabaseProvider {
 
     }
 
-    // swiftlint:disable:next function_body_length
     static func migrateV6(database: Database) throws {
 
         try database.alter(table: SecureVaultModels.Identity.databaseTableName) {
@@ -1366,5 +1363,3 @@ extension SecureVaultModels.Identity: PersistableRecord, FetchableRecord {
     public static var databaseTableName: String = "identities"
 
 }
-
-// swiftlint:enable file_length

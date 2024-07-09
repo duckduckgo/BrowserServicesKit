@@ -22,6 +22,10 @@ import Subscription
 public class SubscriptionTokenKeychainStorageMock: SubscriptionTokenStoring {
     public var accessToken: String?
 
+    public init(accessToken: String? = nil) {
+        self.accessToken = accessToken
+    }
+
     public func getAccessToken() throws -> String? {
         accessToken
     }

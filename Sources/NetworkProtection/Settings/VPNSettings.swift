@@ -209,7 +209,6 @@ public final class VPNSettings {
 
     // MARK: - Applying Changes
 
-    // swiftlint:disable cyclomatic_complexity
     public func apply(change: Change) {
         switch change {
         case .setConnectOnLogin(let connectOnLogin):
@@ -238,7 +237,6 @@ public final class VPNSettings {
             self.disableRekeying = disableRekeying
         }
     }
-    // swiftlint:enable cyclomatic_complexity
 
     // MARK: - Connect on Login
 
