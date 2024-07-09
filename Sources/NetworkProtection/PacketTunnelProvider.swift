@@ -1697,15 +1697,15 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     private func cancelSnooze() async {
-        guard snoozeTimingStore.activeTiming != nil else {
-            assertionFailure("Tried to cancel snooze when it was not active")
+        snoozeTimer?.cancel()
+        snoozeTimer = nil
+
+        guard await connectionStatus == .snoozing, snoozeTimingStore.activeTiming != nil else {
+            os_log("Failed to cancel snooze mode as it was not active", log: .networkProtection, type: .error)
             return
         }
 
         os_log("Canceling snooze mode", log: .networkProtection)
-
-        snoozeTimer?.cancel()
-        snoozeTimer = nil
 
         snoozeJustEnded = true
         snoozeTimingStore.reset()

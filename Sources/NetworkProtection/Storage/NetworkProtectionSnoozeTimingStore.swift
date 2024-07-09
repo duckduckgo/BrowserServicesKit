@@ -25,7 +25,7 @@ final public class NetworkProtectionSnoozeTimingStore {
         let startDate: Date
         let duration: TimeInterval
 
-        var endDate: Date {
+        public var endDate: Date {
             return startDate.addingTimeInterval(duration)
         }
     }
@@ -35,7 +35,7 @@ final public class NetworkProtectionSnoozeTimingStore {
     private let userDefaults: UserDefaults
     private let notificationCenter: NotificationCenter
 
-    public init(userDefaults: UserDefaults = .standard, notificationCenter: NotificationCenter = .default) {
+    public init(userDefaults: UserDefaults, notificationCenter: NotificationCenter = .default) {
         self.userDefaults = userDefaults
         self.notificationCenter = notificationCenter
     }
