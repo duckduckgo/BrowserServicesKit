@@ -19,19 +19,7 @@
 import Foundation
 import Common
 
-enum RuleAttributes {
-    static let min = "min"
-    static let max = "max"
-    static let value = "value"
-    static let fallback = "fallback"
-    static let since = "since"
-}
-
-public protocol MatchingAttribute {
-    var fallback: Bool? { get }
-}
-
-struct LocaleMatchingAttribute: SingleValueMatchingAttribute {
+struct LocaleMatchingAttribute: SingleValueMatching {
     var value: [String]? = []
     var fallback: Bool?
 
@@ -41,7 +29,7 @@ struct LocaleMatchingAttribute: SingleValueMatchingAttribute {
     }
 }
 
-struct OSMatchingAttribute: StringRangeMatchingAttribute {
+struct OSMatchingAttribute: StringRangeMatching {
     static let defaultMaxValue: String = AppVersion.shared.osVersion
 
     var min: String = MatchingAttributeDefaults.stringDefaultValue
@@ -50,17 +38,17 @@ struct OSMatchingAttribute: StringRangeMatchingAttribute {
     var fallback: Bool?
 }
 
-struct IsInternalUserMatchingAttribute: SingleValueMatchingAttribute {
+struct IsInternalUserMatchingAttribute: SingleValueMatching {
     var value: Bool?
     var fallback: Bool?
 }
 
-struct AppIdMatchingAttribute: SingleValueMatchingAttribute {
+struct AppIdMatchingAttribute: SingleValueMatching {
     var value: String?
     var fallback: Bool?
 }
 
-struct AppVersionMatchingAttribute: StringRangeMatchingAttribute {
+struct AppVersionMatchingAttribute: StringRangeMatching {
     static let defaultMaxValue: String = AppVersion.shared.versionAndBuildNumber
 
     var min: String = MatchingAttributeDefaults.stringDefaultValue
@@ -69,109 +57,109 @@ struct AppVersionMatchingAttribute: StringRangeMatchingAttribute {
     var fallback: Bool?
 }
 
-struct AtbMatchingAttribute: SingleValueMatchingAttribute {
+struct AtbMatchingAttribute: SingleValueMatching {
     var value: String?
     var fallback: Bool?
 }
 
-struct AppAtbMatchingAttribute: SingleValueMatchingAttribute {
+struct AppAtbMatchingAttribute: SingleValueMatching {
     var value: String?
     var fallback: Bool?
 }
 
-struct SearchAtbMatchingAttribute: SingleValueMatchingAttribute {
+struct SearchAtbMatchingAttribute: SingleValueMatching {
     var value: String?
     var fallback: Bool?
 }
 
-struct ExpVariantMatchingAttribute: SingleValueMatchingAttribute {
+struct ExpVariantMatchingAttribute: SingleValueMatching {
     var value: String?
     var fallback: Bool?
 }
 
-struct EmailEnabledMatchingAttribute: SingleValueMatchingAttribute {
+struct EmailEnabledMatchingAttribute: SingleValueMatching {
     var value: Bool?
     var fallback: Bool?
 }
 
-struct WidgetAddedMatchingAttribute: SingleValueMatchingAttribute {
+struct WidgetAddedMatchingAttribute: SingleValueMatching {
     var value: Bool?
     var fallback: Bool?
 }
 
-struct BookmarksMatchingAttribute: NumericRangeMatchingAttribute {
+struct BookmarksMatchingAttribute: NumericRangeMatching {
     var min: Int = MatchingAttributeDefaults.intDefaultValue
     var max: Int = MatchingAttributeDefaults.intDefaultMaxValue
     var value: Int = MatchingAttributeDefaults.intDefaultValue
     var fallback: Bool?
 }
 
-struct FavoritesMatchingAttribute: NumericRangeMatchingAttribute {
+struct FavoritesMatchingAttribute: NumericRangeMatching {
     var min: Int = MatchingAttributeDefaults.intDefaultValue
     var max: Int = MatchingAttributeDefaults.intDefaultMaxValue
     var value: Int = MatchingAttributeDefaults.intDefaultValue
     var fallback: Bool?
 }
 
-struct AppThemeMatchingAttribute: SingleValueMatchingAttribute {
+struct AppThemeMatchingAttribute: SingleValueMatching {
     var value: String?
     var fallback: Bool?
 }
 
-struct DaysSinceInstalledMatchingAttribute: NumericRangeMatchingAttribute {
+struct DaysSinceInstalledMatchingAttribute: NumericRangeMatching {
     var min: Int = MatchingAttributeDefaults.intDefaultValue
     var max: Int = MatchingAttributeDefaults.intDefaultMaxValue
     var value: Int = MatchingAttributeDefaults.intDefaultValue
     var fallback: Bool?
 }
 
-struct DaysSinceNetPEnabledMatchingAttribute: NumericRangeMatchingAttribute {
+struct DaysSinceNetPEnabledMatchingAttribute: NumericRangeMatching {
     var min: Int = MatchingAttributeDefaults.intDefaultValue
     var max: Int = MatchingAttributeDefaults.intDefaultMaxValue
     var value: Int = MatchingAttributeDefaults.intDefaultValue
     var fallback: Bool?
 }
 
-struct IsPrivacyProEligibleUserMatchingAttribute: SingleValueMatchingAttribute {
+struct IsPrivacyProEligibleUserMatchingAttribute: SingleValueMatching {
     var value: Bool?
     var fallback: Bool?
 }
 
-struct IsPrivacyProSubscriberUserMatchingAttribute: SingleValueMatchingAttribute {
+struct IsPrivacyProSubscriberUserMatchingAttribute: SingleValueMatching {
     var value: Bool?
     var fallback: Bool?
 }
 
-struct PrivacyProDaysSinceSubscribedMatchingAttribute: NumericRangeMatchingAttribute {
+struct PrivacyProDaysSinceSubscribedMatchingAttribute: NumericRangeMatching {
     var min: Int = MatchingAttributeDefaults.intDefaultValue
     var max: Int = MatchingAttributeDefaults.intDefaultMaxValue
     var value: Int = MatchingAttributeDefaults.intDefaultValue
     var fallback: Bool?
 }
 
-struct PrivacyProDaysUntilExpiryMatchingAttribute: NumericRangeMatchingAttribute {
+struct PrivacyProDaysUntilExpiryMatchingAttribute: NumericRangeMatching {
     var min: Int = MatchingAttributeDefaults.intDefaultValue
     var max: Int = MatchingAttributeDefaults.intDefaultMaxValue
     var value: Int = MatchingAttributeDefaults.intDefaultValue
     var fallback: Bool?
 }
 
-struct PrivacyProPurchasePlatformMatchingAttribute: SingleValueMatchingAttribute {
+struct PrivacyProPurchasePlatformMatchingAttribute: SingleValueMatching {
     var value: [String]? = []
     var fallback: Bool?
 }
 
-struct PrivacyProSubscriptionStatusMatchingAttribute: SingleValueMatchingAttribute {
+struct PrivacyProSubscriptionStatusMatchingAttribute: SingleValueMatching {
     var value: [String]? = []
     var fallback: Bool?
 }
 
-struct InteractedWithMessageMatchingAttribute: SingleValueMatchingAttribute {
+struct InteractedWithMessageMatchingAttribute: SingleValueMatching {
     var value: [String]? = []
     var fallback: Bool?
 }
 
-struct IsInstalledMacAppStoreMatchingAttribute: SingleValueMatchingAttribute {
+struct IsInstalledMacAppStoreMatchingAttribute: SingleValueMatching {
     var value: Bool?
     var fallback: Bool?
 }
@@ -190,12 +178,6 @@ struct UnknownMatchingAttribute: MatchingAttribute, Equatable {
     init(fallback: Bool?) {
         self.fallback = fallback
     }
-}
-
-enum MatchingAttributeDefaults {
-    static let intDefaultValue = -1
-    static let intDefaultMaxValue = Int.max
-    static let stringDefaultValue = ""
 }
 
 // MARK: -

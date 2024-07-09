@@ -1,6 +1,5 @@
 //
-//  StringRangeMatchingAttribute.swift
-//  DuckDuckGo
+//  StringRangeMatching.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -19,7 +18,7 @@
 
 import Foundation
 
-protocol StringRangeMatchingAttribute: MatchingAttribute, Equatable {
+protocol StringRangeMatching: MatchingAttribute, Equatable {
     var min: String { get set }
     var max: String { get set }
     var value: String { get set }
@@ -30,7 +29,7 @@ protocol StringRangeMatchingAttribute: MatchingAttribute, Equatable {
     init(min: String, max: String, value: String, fallback: Bool?)
 }
 
-extension StringRangeMatchingAttribute {
+extension StringRangeMatching {
 
     init(jsonMatchingAttribute: AnyDecodable) {
         guard let jsonMatchingAttribute = jsonMatchingAttribute.value as? [String: Any] else {

@@ -1,5 +1,5 @@
 //
-//  NumericRangeMatchingAttribute.swift
+//  NumericRangeMatching.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -18,7 +18,7 @@
 
 import Foundation
 
-public protocol NumericRangeMatchingAttribute: MatchingAttribute, Equatable {
+public protocol NumericRangeMatching: MatchingAttribute, Equatable {
     var min: Int { get set }
     var max: Int { get set }
     var value: Int { get set }
@@ -27,7 +27,7 @@ public protocol NumericRangeMatchingAttribute: MatchingAttribute, Equatable {
     init(min: Int, max: Int, value: Int, fallback: Bool?)
 }
 
-public extension NumericRangeMatchingAttribute {
+public extension NumericRangeMatching {
 
     init(jsonMatchingAttribute: AnyDecodable) {
         guard let jsonMatchingAttribute = jsonMatchingAttribute.value as? [String: Any] else {

@@ -1,5 +1,5 @@
 //
-//  SingleValueMatchingAttribute.swift
+//  SingleValueMatching.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -18,7 +18,7 @@
 
 import Foundation
 
-public protocol SingleValueMatchingAttribute: MatchingAttribute, Equatable {
+public protocol SingleValueMatching: MatchingAttribute, Equatable {
     associatedtype Value: Equatable
 
     var value: Value? { get set }
@@ -27,7 +27,7 @@ public protocol SingleValueMatchingAttribute: MatchingAttribute, Equatable {
     init(value: Value?, fallback: Bool?)
 }
 
-public extension SingleValueMatchingAttribute {
+public extension SingleValueMatching {
 
     init(jsonMatchingAttribute: AnyDecodable) {
         guard let jsonMatchingAttribute = jsonMatchingAttribute.value as? [String: Any] else {
