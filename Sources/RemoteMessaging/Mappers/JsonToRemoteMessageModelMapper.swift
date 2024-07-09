@@ -99,7 +99,7 @@ struct JsonToRemoteMessageModelMapper {
         return remoteMessages
     }
 
-    // swiftlint:disable cyclomatic_complexity function_body_length
+    // swiftlint:disable:next cyclomatic_complexity
     static func mapToContent(content: RemoteMessageResponse.JsonContent,
                              surveyActionMapper: RemoteMessagingSurveyActionMapping) -> RemoteMessageModelType? {
         switch RemoteMessageResponse.JsonMessageType(rawValue: content.messageType) {
@@ -167,7 +167,6 @@ struct JsonToRemoteMessageModelMapper {
             return nil
         }
     }
-    // swiftlint:enable cyclomatic_complexity function_body_length
 
     static func mapToAction(_ jsonAction: RemoteMessageResponse.JsonMessageAction?,
                             surveyActionMapper: RemoteMessagingSurveyActionMapping) -> RemoteAction? {

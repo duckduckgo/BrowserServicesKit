@@ -22,7 +22,6 @@ import Persistence
 import Bookmarks
 
 // swiftlint:disable force_try
-// swiftlint:disable function_body_length
 
 @main
 struct BookmarksTestDBBuilder {
@@ -319,4 +318,3 @@ public extension BookmarkEntity {
 }
 
 // swiftlint:enable force_try
-// swiftlint:enable function_body_length

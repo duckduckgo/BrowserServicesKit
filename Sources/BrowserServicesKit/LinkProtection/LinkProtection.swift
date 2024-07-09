@@ -91,7 +91,6 @@ public struct LinkProtection {
         }
     }
 
-    // swiftlint:disable function_parameter_count
     public func requestTrackingLinkRewrite(initiatingURL: URL?,
                                            destinationRequest: URLRequest,
                                            onStartExtracting: () -> Void,
@@ -147,7 +146,6 @@ public struct LinkProtection {
                                    onLinkRewrite: { onLinkRewrite($0, navigationAction) },
                                    policyDecisionHandler: { policyDecisionHandler($0 ? .allow : .cancel) })
     }
-    // swiftlint:enable function_parameter_count
 
     @MainActor
     public func requestTrackingLinkRewrite(initiatingURL: URL?,

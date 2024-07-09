@@ -30,14 +30,12 @@ public class MockEmailManagerRequestDelegate: EmailManagerRequestDelegate {
     public var waitlistTimestamp: Int = 1
     public var didSendMockAliasRequest: () -> Void
 
-    // swiftlint:disable function_parameter_count
     public func emailManager(_ emailManager: EmailManager, requested url: URL, method: String, headers: [String: String], parameters: [String: String]?, httpBody: Data?, timeoutInterval: TimeInterval) async throws -> Data {
         switch url.absoluteString {
         case EmailUrls.Url.emailAlias: return try processMockAliasRequest().get()
         default: fatalError("\(#file): Unsupported URL passed to mock request delegate: \(url)")
         }
     }
-    // swiftlint:enable function_parameter_count
 
     public var keychainAccessErrorAccessType: EmailKeychainAccessType?
     public var keychainAccessError: EmailKeychainAccessError?

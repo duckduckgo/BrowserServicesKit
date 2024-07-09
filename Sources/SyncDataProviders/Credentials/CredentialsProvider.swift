@@ -138,7 +138,6 @@ public final class CredentialsProvider: DataProvider {
 
     // MARK: - Internal
 
-    // swiftlint:disable:next function_body_length function_parameter_count
     func handleSyncResponse(isInitial: Bool,
                             sent: [Syncable],
                             received: [Syncable],

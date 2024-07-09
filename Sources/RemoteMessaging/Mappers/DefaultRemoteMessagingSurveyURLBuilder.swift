@@ -38,7 +38,7 @@ public struct DefaultRemoteMessagingSurveyURLBuilder: RemoteMessagingSurveyActio
         self.subscription = subscription
     }
 
-    // swiftlint:disable:next cyclomatic_complexity function_body_length
+    // swiftlint:disable:next cyclomatic_complexity
     public func add(parameters: [RemoteMessagingSurveyActionParameter], to surveyURL: URL) -> URL {
         guard var components = URLComponents(string: surveyURL.absoluteString) else {
             assertionFailure("Could not build URL components from survey URL")

@@ -19,15 +19,12 @@
 // SPDX-License-Identifier: MIT
 // Copyright © 2018-2021 WireGuard LLC. All Rights Reserved.
 
-// swiftlint:disable file_length
-
 import Combine
 import Common
 import Foundation
 import NetworkExtension
 import UserNotifications
 
-// swiftlint:disable:next type_body_length
 open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     public enum Event {
@@ -1040,7 +1037,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         settings.apply(change: change)
     }
 
-    // swiftlint:disable:next cyclomatic_complexity function_body_length
+    // swiftlint:disable:next cyclomatic_complexity
     private func handleSettingsChange(_ change: VPNSettings.Change, completionHandler: ((Data?) -> Void)? = nil) {
         switch change {
         case .setExcludeLocalNetworks:
@@ -1654,5 +1651,3 @@ extension WireGuardAdapterError: LocalizedError, CustomDebugStringConvertible {
         errorDescription!
     }
 }
-
-// swiftlint:enable file_length
