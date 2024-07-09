@@ -637,6 +637,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         let startupOptions = StartupOptions(options: options ?? [:])
         os_log("Starting tunnel with options: %{public}s", log: .networkProtection, startupOptions.description)
 
+        // Reset snooze if the VPN is restarting.
+        // TODO: Only reset if the user initiated the startup - if the VPN crashed and was restarted by Connect on Demand, then restore snooze mode.
+        self.snoozeTimingStore.reset()
+
         do {
             try load(options: startupOptions)
             try loadVendorOptions(from: tunnelProviderProtocol)
