@@ -43,6 +43,8 @@ analyzer_rules: # Rules run by `swiftlint analyze`
   - explicit_self
 
 # Rule Config
+cyclomatic_complexity:
+  ignores_case_statements: true
 identifier_name:
   min_length: 1
   max_length: 1000
