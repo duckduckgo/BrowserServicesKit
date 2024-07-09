@@ -174,7 +174,12 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             }
 
             if case .connected = connectionStatus {
-                self.notificationsPresenter.showConnectedNotification(serverLocation: lastSelectedServerInfo?.serverLocation)
+                self.notificationsPresenter.showConnectedNotification(
+                    serverLocation: lastSelectedServerInfo?.serverLocation,
+                    snoozeEnded: snoozeJustEnded
+                )
+
+                snoozeJustEnded = false
             }
 
             handleConnectionStatusChange(old: oldValue, new: connectionStatus)
@@ -1657,6 +1662,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     private var snoozeTimer: DispatchSourceTimer?
+    private var snoozeJustEnded: Bool = false
 
     @MainActor
     private func startSnooze(duration: TimeInterval) async {
@@ -1697,7 +1703,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         snoozeTimer?.cancel()
         snoozeTimer = nil
 
-        notificationsPresenter.showSnoozeEndedNotification()
+        snoozeJustEnded = true
         snoozeTimingStore.reset()
         try? await startTunnel(onDemand: false)
     }

@@ -23,7 +23,7 @@ import Foundation
 public protocol NetworkProtectionNotificationsPresenter {
 
     /// Present a "connected" notification to the user.
-    func showConnectedNotification(serverLocation: String?)
+    func showConnectedNotification(serverLocation: String?, snoozeEnded: Bool)
 
     /// Present a "reconnecting" notification to the user.
     func showReconnectingNotification()
@@ -40,7 +40,5 @@ public protocol NetworkProtectionNotificationsPresenter {
 
     /// Present a "expired subscription" notification to the user.
     func showEntitlementNotification()
-
-    func showSnoozeEndedNotification()
 
 }
