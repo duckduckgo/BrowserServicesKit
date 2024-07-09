@@ -95,6 +95,7 @@ public struct MobileUserAttributeMatcher: AttributeMatching {
 
 public struct DesktopUserAttributeMatcher: AttributeMatching {
     private let pinnedTabsCount: Int
+    private let hasCustomHomePage: Bool
 
     private let commonUserAttributeMatcher: CommonUserAttributeMatcher
 
@@ -114,9 +115,11 @@ public struct DesktopUserAttributeMatcher: AttributeMatching {
                 isPrivacyProSubscriptionExpiring: Bool,
                 isPrivacyProSubscriptionExpired: Bool,
                 dismissedMessageIds: [String],
-                pinnedTabsCount: Int
+                pinnedTabsCount: Int,
+                hasCustomHomePage: Bool
     ) {
         self.pinnedTabsCount = pinnedTabsCount
+        self.hasCustomHomePage = hasCustomHomePage
 
         commonUserAttributeMatcher = .init(
             statisticsStore: statisticsStore,
@@ -146,6 +149,11 @@ public struct DesktopUserAttributeMatcher: AttributeMatching {
             } else {
                 return RangeIntMatchingAttribute(min: matchingAttribute.min, max: matchingAttribute.max).matches(value: pinnedTabsCount)
             }
+        case let matchingAttribute as CustomHomePageMatchingAttribute:
+            guard let value = matchingAttribute.value else {
+                return .fail
+            }
+            return BooleanMatchingAttribute(value).matches(value: hasCustomHomePage)
         default:
             return commonUserAttributeMatcher.evaluate(matchingAttribute: matchingAttribute)
         }

@@ -171,6 +171,11 @@ struct PinnedTabsMatchingAttribute: NumericRangeMatching {
     var fallback: Bool?
 }
 
+struct CustomHomePageMatchingAttribute: SingleValueMatching {
+    var value: Bool?
+    var fallback: Bool?
+}
+
 struct UnknownMatchingAttribute: MatchingAttribute, Equatable {
     var fallback: Bool?
 

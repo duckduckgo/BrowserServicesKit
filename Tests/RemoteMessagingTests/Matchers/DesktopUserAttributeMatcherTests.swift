@@ -98,6 +98,18 @@ class DesktopUserAttributeMatcherTests: XCTestCase {
                        .fail)
     }
 
+    // MARK: - CustomHomePage
+
+    func testWhenCustomHomePageMatchesThenReturnMatch() throws {
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: CustomHomePageMatchingAttribute(value: true, fallback: nil)),
+                       .match)
+    }
+
+    func testWhenCustomHomePageDoesNotMatchThenReturnFail() throws {
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: CustomHomePageMatchingAttribute(value: false, fallback: nil)),
+                       .fail)
+    }
+
     // MARK: -
 
     private func setUpUserAttributeMatcher(dismissedMessageIds: [String] = []) {
@@ -118,7 +130,8 @@ class DesktopUserAttributeMatcherTests: XCTestCase {
             isPrivacyProSubscriptionExpiring: false,
             isPrivacyProSubscriptionExpired: false,
             dismissedMessageIds: dismissedMessageIds,
-            pinnedTabsCount: 3
+            pinnedTabsCount: 3,
+            hasCustomHomePage: true
         )
     }
 }
