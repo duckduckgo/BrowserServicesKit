@@ -141,7 +141,6 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
 
     weak var delegate: PrivacyDashboardUserScriptDelegate?
 
-    // swiftlint:disable:next cyclomatic_complexity
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         guard let messageType = MessageNames(rawValue: message.name) else {
             assertionFailure("PrivacyDashboardUserScript: unexpected message name \(message.name)")

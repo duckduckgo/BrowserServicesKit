@@ -19,7 +19,6 @@
 import Common
 import Foundation
 
-// swiftlint:disable cyclomatic_complexity
 private enum AttributesKey: String, CaseIterable {
     case locale
     case osApi
@@ -73,7 +72,6 @@ private enum AttributesKey: String, CaseIterable {
         }
     }
 }
-// swiftlint:enable cyclomatic_complexity
 
 struct JsonToRemoteMessageModelMapper {
 
@@ -99,7 +97,6 @@ struct JsonToRemoteMessageModelMapper {
         return remoteMessages
     }
 
-    // swiftlint:disable:next cyclomatic_complexity
     static func mapToContent(content: RemoteMessageResponse.JsonContent,
                              surveyActionMapper: RemoteMessagingSurveyActionMapping) -> RemoteMessageModelType? {
         switch RemoteMessageResponse.JsonMessageType(rawValue: content.messageType) {

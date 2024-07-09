@@ -254,7 +254,6 @@ public extension BookmarkEntity {
         makeWithModifiedAtConstraints(with: treeNode, rootFolder: rootFolder, favoritesFolders: favoritesFolders, in: context)
     }
 
-    // swiftlint:disable:next cyclomatic_complexity
     @discardableResult static func makeWithModifiedAtConstraints(with treeNode: BookmarkTreeNode, rootFolder: BookmarkEntity, favoritesFolders: [BookmarkEntity], in context: NSManagedObjectContext) -> BookmarkEntity {
         var entity: BookmarkEntity!
 

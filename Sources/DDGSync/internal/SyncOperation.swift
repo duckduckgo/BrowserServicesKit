@@ -125,7 +125,6 @@ final class SyncOperation: Operation, @unchecked Sendable {
         try await sync(fetchOnly: fetchOnly, dataProviders: dataProviders)
     }
 
-    // swiftlint:disable:next cyclomatic_complexity
     func sync(fetchOnly: Bool, dataProviders: [DataProviding] = []) async throws {
         os_log(.debug, log: log, "Sync Operation Started. Fetch-only: %{public}s", String(fetchOnly))
         defer {

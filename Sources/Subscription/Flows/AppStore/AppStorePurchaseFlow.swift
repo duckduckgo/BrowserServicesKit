@@ -59,7 +59,6 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
         self.authEndpointService = authEndpointService
     }
 
-    // swiftlint:disable cyclomatic_complexity
     public func purchaseSubscription(with subscriptionIdentifier: String, emailAccessToken: String?) async -> Result<TransactionJWS, AppStorePurchaseFlowError> {
         os_log(.info, log: .subscription, "[AppStorePurchaseFlow] purchaseSubscription")
         let externalID: String
@@ -116,7 +115,6 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
         }
     }
 
-    // swiftlint:enable cyclomatic_complexity
     @discardableResult
     public func completeSubscriptionPurchase(with transactionJWS: TransactionJWS) async -> Result<PurchaseUpdate, AppStorePurchaseFlowError> {
 
