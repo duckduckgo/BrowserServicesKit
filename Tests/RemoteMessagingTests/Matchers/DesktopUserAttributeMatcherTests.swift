@@ -61,15 +61,40 @@ class DesktopUserAttributeMatcherTests: XCTestCase {
         matcher = nil
     }
 
-    // MARK: - InstalledMacAppStore
+    // MARK: - PinnedTabs
 
-    func testWhenInstalledMacAppStoreMatchesThenReturnMatch() throws {
-        XCTAssertEqual(matcher.evaluate(matchingAttribute: IsInstalledMacAppStoreMatchingAttribute(value: false, fallback: nil)),
+    func testWhenPinnedTabsMatchesThenReturnMatch() throws {
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: PinnedTabsMatchingAttribute(value: 3, fallback: nil)),
                        .match)
     }
 
-    func testWhenWidgetAddedDoesNotMatchThenReturnFail() throws {
-        XCTAssertEqual(matcher.evaluate(matchingAttribute: IsInstalledMacAppStoreMatchingAttribute(value: true, fallback: nil)),
+    func testWhenPinnedTabsDoesNotMatchThenReturnFail() throws {
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: PinnedTabsMatchingAttribute(value: 2, fallback: nil)),
+                       .fail)
+    }
+
+    func testWhenPinnedTabsEqualOrLowerThanMaxThenReturnMatch() throws {
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: PinnedTabsMatchingAttribute(max: 4, fallback: nil)),
+                       .match)
+    }
+
+    func testWhenPinnedTabsGreaterThanMaxThenReturnFail() throws {
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: PinnedTabsMatchingAttribute(max: 0, fallback: nil)),
+                       .fail)
+    }
+
+    func testWhenPinnedTabsLowerThanMinThenReturnFail() throws {
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: PinnedTabsMatchingAttribute(min: 6, fallback: nil)),
+                       .fail)
+    }
+
+    func testWhenPinnedTabsInRangeThenReturnMatch() throws {
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: PinnedTabsMatchingAttribute(min: 2, max: 18, fallback: nil)),
+                       .match)
+    }
+
+    func testWhenPinnedTabsNotInRangeThenReturnFail() throws {
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: PinnedTabsMatchingAttribute(min: 9, max: 11, fallback: nil)),
                        .fail)
     }
 
@@ -93,7 +118,7 @@ class DesktopUserAttributeMatcherTests: XCTestCase {
             isPrivacyProSubscriptionExpiring: false,
             isPrivacyProSubscriptionExpired: false,
             dismissedMessageIds: dismissedMessageIds,
-            isInstalledMacAppStore: false
+            pinnedTabsCount: 3
         )
     }
 }

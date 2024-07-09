@@ -20,7 +20,59 @@ import Foundation
 import Common
 import BrowserServicesKit
 
-public struct AppAttributeMatcher: AttributeMatching {
+#if os(iOS)
+public typealias AppAttributeMatcher = MobileAppAttributeMatcher
+#elseif os(macOS)
+public typealias AppAttributeMatcher = DesktopAppAttributeMatcher
+#endif
+
+public typealias MobileAppAttributeMatcher = CommonAppAttributeMatcher
+
+public struct DesktopAppAttributeMatcher: AttributeMatching {
+    private let isInstalledMacAppStore: Bool
+
+    private let commonAppAttributeMatcher: CommonAppAttributeMatcher
+
+    public init(statisticsStore: StatisticsStore, variantManager: VariantManager, isInternalUser: Bool = true, isInstalledMacAppStore: Bool) {
+        self.isInstalledMacAppStore = isInstalledMacAppStore
+
+        commonAppAttributeMatcher = .init(statisticsStore: statisticsStore, variantManager: variantManager, isInternalUser: isInternalUser)
+    }
+
+    public init(
+        bundleId: String,
+        appVersion: String,
+        isInternalUser: Bool,
+        statisticsStore: StatisticsStore,
+        variantManager: VariantManager,
+        isInstalledMacAppStore: Bool
+    ) {
+        self.isInstalledMacAppStore = isInternalUser
+
+        commonAppAttributeMatcher = .init(
+            bundleId: bundleId,
+            appVersion: appVersion,
+            isInternalUser: isInternalUser,
+            statisticsStore: statisticsStore,
+            variantManager: variantManager
+        )
+    }
+
+    public func evaluate(matchingAttribute: MatchingAttribute) -> EvaluationResult? {
+        switch matchingAttribute {
+        case let matchingAttribute as IsInstalledMacAppStoreMatchingAttribute:
+            guard let value = matchingAttribute.value else {
+                return .fail
+            }
+
+            return BooleanMatchingAttribute(value).matches(value: isInstalledMacAppStore)
+        default:
+            return commonAppAttributeMatcher.evaluate(matchingAttribute: matchingAttribute)
+        }
+    }
+}
+
+public struct CommonAppAttributeMatcher: AttributeMatching {
 
     private let bundleId: String
     private let appVersion: String

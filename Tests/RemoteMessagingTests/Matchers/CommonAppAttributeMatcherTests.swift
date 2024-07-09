@@ -1,5 +1,5 @@
 //
-//  AppAttributeMatcherTests.swift
+//  CommonAppAttributeMatcherTests.swift
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -23,9 +23,9 @@ import RemoteMessagingTestsUtils
 import XCTest
 @testable import RemoteMessaging
 
-class AppAttributeMatcherTests: XCTestCase {
+class CommonAppAttributeMatcherTests: XCTestCase {
 
-    private var matcher: AppAttributeMatcher!
+    private var matcher: CommonAppAttributeMatcher!
 
     override func setUpWithError() throws {
         try super.setUpWithError()
@@ -36,8 +36,7 @@ class AppAttributeMatcherTests: XCTestCase {
         mockStatisticsStore.searchRetentionAtb = "v105-88"
 
         let manager = MockVariantManager(isSupportedReturns: true, currentVariant: MockVariant(name: "zo", weight: 44, isIncluded: { return true }, features: [.dummy]))
-        matcher = AppAttributeMatcher(statisticsStore: mockStatisticsStore,
-                                      variantManager: manager)
+        matcher = CommonAppAttributeMatcher(statisticsStore: mockStatisticsStore, variantManager: manager)
     }
 
     override func tearDownWithError() throws {

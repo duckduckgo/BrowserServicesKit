@@ -94,7 +94,7 @@ public struct MobileUserAttributeMatcher: AttributeMatching {
 }
 
 public struct DesktopUserAttributeMatcher: AttributeMatching {
-    private let isInstalledMacAppStore: Bool
+    private let pinnedTabsCount: Int
 
     private let commonUserAttributeMatcher: CommonUserAttributeMatcher
 
@@ -114,9 +114,9 @@ public struct DesktopUserAttributeMatcher: AttributeMatching {
                 isPrivacyProSubscriptionExpiring: Bool,
                 isPrivacyProSubscriptionExpired: Bool,
                 dismissedMessageIds: [String],
-                isInstalledMacAppStore: Bool
+                pinnedTabsCount: Int
     ) {
-        self.isInstalledMacAppStore = isInstalledMacAppStore
+        self.pinnedTabsCount = pinnedTabsCount
 
         commonUserAttributeMatcher = .init(
             statisticsStore: statisticsStore,
@@ -140,18 +140,17 @@ public struct DesktopUserAttributeMatcher: AttributeMatching {
 
     public func evaluate(matchingAttribute: MatchingAttribute) -> EvaluationResult? {
         switch matchingAttribute {
-        case let matchingAttribute as IsInstalledMacAppStoreMatchingAttribute:
-            guard let value = matchingAttribute.value else {
-                return .fail
+        case let matchingAttribute as PinnedTabsMatchingAttribute:
+            if matchingAttribute.value != MatchingAttributeDefaults.intDefaultValue {
+                return IntMatchingAttribute(matchingAttribute.value).matches(value: pinnedTabsCount)
+            } else {
+                return RangeIntMatchingAttribute(min: matchingAttribute.min, max: matchingAttribute.max).matches(value: pinnedTabsCount)
             }
-
-            return BooleanMatchingAttribute(value).matches(value: isInstalledMacAppStore)
         default:
             return commonUserAttributeMatcher.evaluate(matchingAttribute: matchingAttribute)
         }
     }
 }
-
 
 public struct CommonUserAttributeMatcher: AttributeMatching {
 
