@@ -43,6 +43,7 @@ private enum AttributesKey: String, CaseIterable {
     case pproPurchasePlatform
     case pproSubscriptionStatus
     case interactedWithMessage
+    case isInstalledMacAppStore
 
     func matchingAttribute(jsonMatchingAttribute: AnyDecodable) -> MatchingAttribute {
         switch self {
@@ -69,6 +70,7 @@ private enum AttributesKey: String, CaseIterable {
         case .pproPurchasePlatform: return PrivacyProPurchasePlatformMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         case .pproSubscriptionStatus: return PrivacyProSubscriptionStatusMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         case .interactedWithMessage: return InteractedWithMessageMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .isInstalledMacAppStore: return IsInstalledMacAppStoreMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         }
     }
 }

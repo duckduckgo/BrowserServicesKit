@@ -26,8 +26,6 @@ public typealias UserAttributeMatcher = MobileUserAttributeMatcher
 public typealias UserAttributeMatcher = DesktopUserAttributeMatcher
 #endif
 
-public typealias DesktopUserAttributeMatcher = CommonUserAttributeMatcher
-
 public struct MobileUserAttributeMatcher: AttributeMatching {
 
     private enum PrivacyProSubscriptionStatus: String {
@@ -94,6 +92,66 @@ public struct MobileUserAttributeMatcher: AttributeMatching {
     }
 
 }
+
+public struct DesktopUserAttributeMatcher: AttributeMatching {
+    private let isInstalledMacAppStore: Bool
+
+    private let commonUserAttributeMatcher: CommonUserAttributeMatcher
+
+    public init(statisticsStore: StatisticsStore,
+                variantManager: VariantManager,
+                emailManager: EmailManager = EmailManager(),
+                bookmarksCount: Int,
+                favoritesCount: Int,
+                appTheme: String,
+                daysSinceNetPEnabled: Int,
+                isPrivacyProEligibleUser: Bool,
+                isPrivacyProSubscriber: Bool,
+                privacyProDaysSinceSubscribed: Int,
+                privacyProDaysUntilExpiry: Int,
+                privacyProPurchasePlatform: String?,
+                isPrivacyProSubscriptionActive: Bool,
+                isPrivacyProSubscriptionExpiring: Bool,
+                isPrivacyProSubscriptionExpired: Bool,
+                dismissedMessageIds: [String],
+                isInstalledMacAppStore: Bool
+    ) {
+        self.isInstalledMacAppStore = isInstalledMacAppStore
+
+        commonUserAttributeMatcher = .init(
+            statisticsStore: statisticsStore,
+            variantManager: variantManager,
+            emailManager: emailManager,
+            bookmarksCount: bookmarksCount,
+            favoritesCount: favoritesCount,
+            appTheme: appTheme,
+            daysSinceNetPEnabled: daysSinceNetPEnabled,
+            isPrivacyProEligibleUser: isPrivacyProEligibleUser,
+            isPrivacyProSubscriber: isPrivacyProSubscriber,
+            privacyProDaysSinceSubscribed: privacyProDaysSinceSubscribed,
+            privacyProDaysUntilExpiry: privacyProDaysUntilExpiry,
+            privacyProPurchasePlatform: privacyProPurchasePlatform,
+            isPrivacyProSubscriptionActive: isPrivacyProSubscriptionActive,
+            isPrivacyProSubscriptionExpiring: isPrivacyProSubscriptionExpiring,
+            isPrivacyProSubscriptionExpired: isPrivacyProSubscriptionExpired,
+            dismissedMessageIds: dismissedMessageIds
+        )
+    }
+
+    public func evaluate(matchingAttribute: MatchingAttribute) -> EvaluationResult? {
+        switch matchingAttribute {
+        case let matchingAttribute as IsInstalledMacAppStoreMatchingAttribute:
+            guard let value = matchingAttribute.value else {
+                return .fail
+            }
+
+            return BooleanMatchingAttribute(value).matches(value: isInstalledMacAppStore)
+        default:
+            return commonUserAttributeMatcher.evaluate(matchingAttribute: matchingAttribute)
+        }
+    }
+}
+
 
 public struct CommonUserAttributeMatcher: AttributeMatching {
 
@@ -226,7 +284,7 @@ public struct CommonUserAttributeMatcher: AttributeMatching {
         case let matchingAttribute as PrivacyProPurchasePlatformMatchingAttribute:
             return StringArrayMatchingAttribute(matchingAttribute.value).matches(value: privacyProPurchasePlatform ?? "")
         case let matchingAttribute as PrivacyProSubscriptionStatusMatchingAttribute:
-            let mappedStatuses = matchingAttribute.value.compactMap { status in
+            let mappedStatuses = (matchingAttribute.value ?? []).compactMap { status in
                 return PrivacyProSubscriptionStatus(rawValue: status)
             }
 
