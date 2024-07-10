@@ -118,6 +118,10 @@ public protocol AutofillSecureVault: SecureVault {
         hashedUsing salt: Data?
     ) throws
 
+    func encryptPassword(for credentials: SecureVaultModels.WebsiteCredentials,
+                         key l2Key: Data?,
+                         salt: Data?) throws -> SecureVaultModels.WebsiteCredentials
+
     func syncableCredentialsForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.SyncableCredentials]
     func syncableCredentialsForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.SyncableCredentials?
 }
@@ -369,9 +373,9 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
         try providers.database.storeSyncableCredentials(syncableCredentialsToStore, in: database)
     }
 
-    private func encryptPassword(for credentials: SecureVaultModels.WebsiteCredentials,
-                                 key l2Key: Data? = nil,
-                                 salt: Data? = nil) throws -> SecureVaultModels.WebsiteCredentials {
+    public func encryptPassword(for credentials: SecureVaultModels.WebsiteCredentials,
+                                key l2Key: Data? = nil,
+                                salt: Data? = nil) throws -> SecureVaultModels.WebsiteCredentials {
         do {
             if let password = credentials.password, String(bytes: password, encoding: .utf8) == nil {
                 assertionFailure("Encrypted password passed to \(#function)")
