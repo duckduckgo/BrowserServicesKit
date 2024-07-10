@@ -41,7 +41,7 @@
 //
 
 import Common
-import cxxCrashHandler
+import CxxCrashHandler
 import Foundation
 
 /// Collects crash diagnostic messages (NSException/C++ exception name, description and stack trace) and saves to file:
