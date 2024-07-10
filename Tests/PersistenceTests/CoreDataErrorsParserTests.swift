@@ -20,20 +20,6 @@ import XCTest
 import CoreData
 import Persistence
 
-@objc(TestEntity)
-class TestEntity: NSManagedObject {
-
-    static let name = "TestEntity"
-
-    public class func entity(in context: NSManagedObjectContext) -> NSEntityDescription {
-        return NSEntityDescription.entity(forEntityName: "TestEntity", in: context)!
-    }
-
-    @NSManaged public var attribute: String?
-    @NSManaged public var relationTo: TestEntity?
-    @NSManaged public var relationFrom: TestEntity?
-}
-
 class CoreDataErrorsParserTests: XCTestCase {
 
     func tempDBDir() -> URL {
@@ -42,54 +28,12 @@ class CoreDataErrorsParserTests: XCTestCase {
 
     var db: CoreDataDatabase!
 
-    func testModel() -> NSManagedObjectModel {
-        let model = NSManagedObjectModel()
-
-        let entity = NSEntityDescription()
-        entity.name = "TestEntity"
-        entity.managedObjectClassName = TestEntity.name
-
-        var properties = [NSPropertyDescription]()
-
-        let attribute = NSAttributeDescription()
-        attribute.name = "attribute"
-        attribute.attributeType = .stringAttributeType
-        attribute.isOptional = false
-        properties.append(attribute)
-
-        let relationTo = NSRelationshipDescription()
-        let relationFrom = NSRelationshipDescription()
-
-        relationTo.name = "relationTo"
-        relationFrom.isOptional = false
-        relationTo.destinationEntity = entity
-        relationTo.minCount = 0
-        relationTo.maxCount = 1
-        relationTo.deleteRule = .nullifyDeleteRule
-        relationTo.inverseRelationship = relationFrom
-
-        relationFrom.name = "relationFrom"
-        relationFrom.isOptional = false
-        relationFrom.destinationEntity = entity
-        relationFrom.minCount = 0
-        relationFrom.maxCount = 1
-        relationFrom.deleteRule = .nullifyDeleteRule
-        relationFrom.inverseRelationship = relationTo
-
-        properties.append(relationTo)
-        properties.append(relationFrom)
-
-        entity.properties = properties
-        model.entities = [entity]
-        return model
-    }
-
     override func setUp() {
         super.setUp()
 
         db = CoreDataDatabase(name: "Test",
                               containerLocation: tempDBDir(),
-                              model: testModel())
+                              model: TestModel.makeModel())
         db.loadStore()
     }
 
@@ -166,7 +110,7 @@ class CoreDataErrorsParserTests: XCTestCase {
         }
         let ro = CoreDataDatabase(name: "Test",
                                   containerLocation: url.deletingLastPathComponent(),
-                                  model: testModel(),
+                                  model: TestModel.makeModel(),
                                   readOnly: true)
         ro.loadStore { _, error in
             XCTAssertNil(error)

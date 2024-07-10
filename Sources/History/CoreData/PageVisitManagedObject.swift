@@ -30,8 +30,17 @@ extension PageVisitManagedObject {
         return NSFetchRequest<PageVisitManagedObject>(entityName: "PageVisitManagedObject")
     }
 
+    public class func entity(in context: NSManagedObjectContext) -> NSEntityDescription {
+        return NSEntityDescription.entity(forEntityName: "PageVisitManagedObject", in: context)!
+    }
+
     @NSManaged public var date: Date?
     @NSManaged public var historyEntry: BrowsingHistoryEntryManagedObject?
+
+    public convenience init(context moc: NSManagedObjectContext) {
+        self.init(entity: PageVisitManagedObject.entity(in: moc),
+                  insertInto: moc)
+    }
 
 }
 

@@ -20,6 +20,7 @@ import Common
 import Foundation
 import CoreData
 import Combine
+import Persistence
 
 final public class HistoryStore: HistoryStoring {
 
@@ -56,13 +57,16 @@ final public class HistoryStore: HistoryStoring {
                     return
                 }
 
-                let identifiers = entries.map { $0.identifier }
-                switch self.remove(identifiers, context: self.context) {
-                case .failure(let error):
-                    self.context.reset()
-                    promise(.failure(error))
-                case .success:
+                do {
+                    let identifiers = entries.map { $0.identifier }
+
+                    try self.context.applyChangesAndSave { context in
+                        try self.markForDeletion(identifiers, in: context)
+                    }
                     promise(.success(()))
+                } catch {
+                    self.eventMapper.fire(.removeFailed, error: error)
+                    promise(.failure(error))
                 }
             }
         }
@@ -76,19 +80,45 @@ final public class HistoryStore: HistoryStoring {
                     return
                 }
 
-                switch self.clean(self.context, until: date) {
-                case .failure(let error):
-                    self.context.reset()
+                do {
+                    try self.context.applyChangesAndSave { context in
+                        let deleteRequest = BrowsingHistoryEntryManagedObject.fetchRequest()
+                        deleteRequest.predicate = NSPredicate(format: "lastVisit < %@", date as NSDate)
+
+                        let itemsToBeDeleted = try context.fetch(deleteRequest)
+                        for item in itemsToBeDeleted {
+                            context.delete(item)
+                        }
+                    }
+                } catch {
+                    self.eventMapper.fire(.cleanEntriesFailed, error: error)
                     promise(.failure(error))
-                case .success:
-                    let reloadResult = self.reload(self.context)
-                    promise(reloadResult)
+                    return
                 }
+
+                do {
+                    try self.context.applyChangesAndSave { context in
+                        let visitDeleteRequest = PageVisitManagedObject.fetchRequest()
+                        visitDeleteRequest.predicate = NSPredicate(format: "date < %@", date as NSDate)
+
+                        let itemsToBeDeleted = try context.fetch(visitDeleteRequest)
+                        for item in itemsToBeDeleted {
+                            context.delete(item)
+                        }
+                    }
+                } catch {
+                    self.eventMapper.fire(.cleanVisitsFailed, error: error)
+                    promise(.failure(error))
+                    return
+                }
+
+                let reloadResult = self.reload(self.context)
+                promise(reloadResult)
             }
         }
     }
 
-    private func remove(_ identifiers: [UUID], context: NSManagedObjectContext) -> Result<Void, Error> {
+    private func markForDeletion(_ identifiers: [UUID], in context: NSManagedObjectContext) throws {
         // To avoid long predicate, execute multiple times
         let chunkedIdentifiers = identifiers.chunked(into: 100)
 
@@ -97,28 +127,12 @@ final public class HistoryStore: HistoryStoring {
             let predicates = identifiers.map({ NSPredicate(format: "identifier == %@", argumentArray: [$0]) })
             deleteRequest.predicate = NSCompoundPredicate(type: .or, subpredicates: predicates)
 
-            do {
-                let entriesToDelete = try context.fetch(deleteRequest)
-                for entry in entriesToDelete {
-                    context.delete(entry)
-                }
-                os_log("%d items cleaned from history", log: .history, entriesToDelete.count)
-            } catch {
-                eventMapper.fire(.removeFailed, error: error)
-                self.context.reset()
-                return .failure(error)
+            let entriesToDelete = try context.fetch(deleteRequest)
+            for entry in entriesToDelete {
+                context.delete(entry)
             }
+            os_log("%d items cleaned from history", log: .history, entriesToDelete.count)
         }
-
-        do {
-            try context.save()
-        } catch {
-            eventMapper.fire(.removeFailed, error: error)
-            context.reset()
-            return .failure(error)
-        }
-
-        return .success(())
     }
 
     private func reload(_ context: NSManagedObjectContext) -> Result<BrowsingHistory, Error> {
@@ -131,39 +145,6 @@ final public class HistoryStore: HistoryStoring {
             return .success(history)
         } catch {
             eventMapper.fire(.reloadFailed, error: error)
-            return .failure(error)
-        }
-    }
-
-    private func clean(_ context: NSManagedObjectContext, until date: Date) -> Result<Void, Error> {
-        // Clean using batch delete requests
-        let deleteRequest = BrowsingHistoryEntryManagedObject.fetchRequest()
-        deleteRequest.predicate = NSPredicate(format: "lastVisit < %@", date as NSDate)
-        do {
-            let itemsToBeDeleted = try context.fetch(deleteRequest)
-            for item in itemsToBeDeleted {
-                context.delete(item)
-            }
-            try context.save()
-        } catch {
-            eventMapper.fire(.cleanEntriesFailed, error: error)
-            context.reset()
-            return .failure(error)
-        }
-
-        let visitDeleteRequest = PageVisitManagedObject.fetchRequest()
-        visitDeleteRequest.predicate = NSPredicate(format: "date < %@", date as NSDate)
-
-        do {
-            let itemsToBeDeleted = try context.fetch(visitDeleteRequest)
-            for item in itemsToBeDeleted {
-                context.delete(item)
-            }
-            try context.save()
-            return .success(())
-        } catch {
-            eventMapper.fire(.cleanVisitsFailed, error: error)
-            context.reset()
             return .failure(error)
         }
     }
@@ -192,38 +173,31 @@ final public class HistoryStore: HistoryStoring {
 
                 assert(fetchedObjects.count <= 1, "More than 1 history entry with the same identifier")
 
-                let historyEntryManagedObject: BrowsingHistoryEntryManagedObject
-                if let fetchedObject = fetchedObjects.first {
-                    // Update existing
-                    fetchedObject.update(with: entry)
-                    historyEntryManagedObject = fetchedObject
-                } else {
-                    // Add new
-                    let insertedObject = NSEntityDescription.insertNewObject(forEntityName: BrowsingHistoryEntryManagedObject.entityName, into: self.context)
-                    guard let historyEntryMO = insertedObject as? BrowsingHistoryEntryManagedObject else {
-                        promise(.failure(HistoryStoreError.savingFailed))
-                        return
-                    }
-                    historyEntryMO.update(with: entry, afterInsertion: true)
-                    historyEntryManagedObject = historyEntryMO
-                }
+                // Apply changes
 
-                let insertionResult = self.insertNewVisits(of: entry,
-                                                           into: historyEntryManagedObject,
-                                                           context: self.context)
-                switch insertionResult {
-                case .failure(let error):
-                    eventMapper.fire(.saveFailed, error: error)
-                    context.reset()
-                    promise(.failure(error))
-                case .success(let visitMOs):
-                    do {
-                        try self.context.save()
-                    } catch {
-                        eventMapper.fire(.saveFailed, error: error)
-                        context.reset()
-                        promise(.failure(HistoryStoreError.savingFailed))
-                        return
+                do {
+                    var visitMOs = [PageVisitManagedObject]()
+
+                    try self.context.applyChangesAndSave { context in
+                        let historyEntryManagedObject: BrowsingHistoryEntryManagedObject
+                        if let fetchedObject = fetchedObjects.first {
+                            // Update existing
+                            fetchedObject.update(with: entry)
+                            historyEntryManagedObject = fetchedObject
+                        } else {
+                            // Add new
+                            let insertedObject = NSEntityDescription.insertNewObject(forEntityName: BrowsingHistoryEntryManagedObject.entityName, into: self.context)
+                            guard let historyEntryMO = insertedObject as? BrowsingHistoryEntryManagedObject else {
+                                promise(.failure(HistoryStoreError.savingFailed))
+                                return
+                            }
+                            historyEntryMO.update(with: entry, afterInsertion: true)
+                            historyEntryManagedObject = historyEntryMO
+                        }
+
+                        visitMOs = self.insertNewVisits(of: entry,
+                                                        into: historyEntryManagedObject,
+                                                        context: self.context)
                     }
 
                     let result = visitMOs.compactMap {
@@ -234,6 +208,10 @@ final public class HistoryStore: HistoryStoring {
                         }
                     }
                     promise(.success(result))
+
+                } catch {
+                    eventMapper.fire(.saveFailed, error: error)
+                    promise(.failure(HistoryStoreError.savingFailed))
                 }
             }
         }
@@ -241,41 +219,17 @@ final public class HistoryStore: HistoryStoring {
 
     private func insertNewVisits(of historyEntry: HistoryEntry,
                                  into historyEntryManagedObject: BrowsingHistoryEntryManagedObject,
-                                 context: NSManagedObjectContext) -> Result<[PageVisitManagedObject], Error> {
-        var result: [PageVisitManagedObject]? = Array()
+                                 context: NSManagedObjectContext) -> [PageVisitManagedObject] {
         historyEntry.visits
             .filter {
                 $0.savingState == .initialized
             }
-            .forEach {
+            .map {
                 $0.savingState = .saved
-                let insertionResult = self.insert(visit: $0,
-                                                  into: historyEntryManagedObject,
-                                                  context: context)
-                switch insertionResult {
-                case .success(let visitMO): result?.append(visitMO)
-                case .failure: result = nil
-                }
+                let visitMO = PageVisitManagedObject(context: context)
+                visitMO.update(with: $0, historyEntryManagedObject: historyEntryManagedObject)
+                return visitMO
             }
-        if let result {
-            return .success(result)
-        } else {
-            context.reset()
-            return .failure(HistoryStoreError.savingFailed)
-        }
-    }
-
-    private func insert(visit: Visit,
-                        into historyEntryManagedObject: BrowsingHistoryEntryManagedObject,
-                        context: NSManagedObjectContext) -> Result<PageVisitManagedObject, Error> {
-        let insertedObject = NSEntityDescription.insertNewObject(forEntityName: PageVisitManagedObject.entityName, into: context)
-        guard let visitMO = insertedObject as? PageVisitManagedObject else {
-            eventMapper.fire(.insertVisitFailed)
-            context.reset()
-            return .failure(HistoryStoreError.savingFailed)
-        }
-        visitMO.update(with: visit, historyEntryManagedObject: historyEntryManagedObject)
-        return .success(visitMO)
     }
 
     public func removeVisits(_ visits: [Visit]) -> Future<Void, Error> {
@@ -286,18 +240,21 @@ final public class HistoryStore: HistoryStoring {
                     return
                 }
 
-                switch self.remove(visits, context: self.context) {
-                case .failure(let error):
-                    self.context.reset()
-                    promise(.failure(error))
-                case .success:
+                do {
+                    try self.context.applyChangesAndSave { context in
+                        try self.markForDeletion(visits, context: context)
+                    }
+
                     promise(.success(()))
+                } catch {
+                    self.eventMapper.fire(.removeVisitsFailed, error: error)
+                    promise(.failure(error))
                 }
             }
         }
     }
 
-    private func remove(_ visits: [Visit], context: NSManagedObjectContext) -> Result<Void, Error> {
+    private func markForDeletion(_ visits: [Visit], context: NSManagedObjectContext) throws {
         // To avoid long predicate, execute multiple times
         let chunkedVisits = visits.chunked(into: 100)
 
@@ -312,26 +269,13 @@ final public class HistoryStore: HistoryStoring {
                 return NSPredicate(format: "historyEntry.identifier == %@ && date == %@", argumentArray: [historyEntry.identifier, visit.date])
             })
             deleteRequest.predicate = NSCompoundPredicate(type: .or, subpredicates: predicates)
-            do {
-                let visitsToDelete = try self.context.fetch(deleteRequest)
-                for visit in visitsToDelete {
-                    context.delete(visit)
-                }
-            } catch {
-                eventMapper.fire(.removeVisitsFailed, error: error)
-                return .failure(error)
+
+            let visitsToDelete = try self.context.fetch(deleteRequest)
+
+            for visit in visitsToDelete {
+                context.delete(visit)
             }
         }
-
-        do {
-            try context.save()
-        } catch {
-            eventMapper.fire(.removeVisitsFailed, error: error)
-            context.reset()
-            return .failure(error)
-        }
-
-        return .success(())
     }
 
 }
