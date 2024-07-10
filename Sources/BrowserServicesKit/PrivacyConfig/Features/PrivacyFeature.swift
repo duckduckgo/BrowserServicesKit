@@ -122,4 +122,5 @@ public enum DuckPlayerSubfeature: String, PrivacySubfeature {
     public var parent: PrivacyFeature { .duckPlayer }
     case pip
     case autoplay
+    case openInNewTab
 }
