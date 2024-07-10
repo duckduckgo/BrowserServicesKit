@@ -403,10 +403,9 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
                     let navigator = webView.navigator(distributedNavigationDelegate: self, redirectedNavigation: mainFrameNavigation, expectedNavigations: expectedNavigationsPtr)
                     redirect(navigator)
                 }
-                // ignore already started Navigations (they will receive didFail)
-                if mainFrameNavigation?.isCurrent != true {
-                    didCancelNavigationAction(navigationAction, withRedirectNavigations: expectedNavigations)
-                }
+                // Already started Navigations will also receive didFail
+                // In case navigation has not started yet, use the below callback to handle it.
+                didCancelNavigationAction(navigationAction, withRedirectNavigations: expectedNavigations)
 
             case .download:
                 self.willStartDownload(with: navigationAction, in: webView)
