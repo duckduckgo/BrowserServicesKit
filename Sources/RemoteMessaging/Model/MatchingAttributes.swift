@@ -27,7 +27,7 @@ private enum RuleAttributes {
     static let since = "since"
 }
 
-public protocol MatchingAttribute {
+protocol MatchingAttribute {
     var fallback: Bool? { get }
 }
 
@@ -799,14 +799,13 @@ struct PrivacyProPurchasePlatformMatchingAttribute: MatchingAttribute, Equatable
 }
 
 struct PrivacyProSubscriptionStatusMatchingAttribute: MatchingAttribute, Equatable {
-    var value: [String] = []
+    var value: String?
     var fallback: Bool?
 
     init(jsonMatchingAttribute: AnyDecodable) {
-        guard let jsonMatchingAttribute = jsonMatchingAttribute.value as? [String: Any] else {
-            return
-        }
-        if let value = jsonMatchingAttribute[RuleAttributes.value] as? [String] {
+        guard let jsonMatchingAttribute = jsonMatchingAttribute.value as? [String: Any] else { return }
+
+        if let value = jsonMatchingAttribute[RuleAttributes.value] as? String {
             self.value = value
         }
         if let fallback = jsonMatchingAttribute[RuleAttributes.fallback] as? Bool {
@@ -814,7 +813,7 @@ struct PrivacyProSubscriptionStatusMatchingAttribute: MatchingAttribute, Equatab
         }
     }
 
-    init(value: [String], fallback: Bool?) {
+    init(value: String?, fallback: Bool?) {
         self.value = value
         self.fallback = fallback
     }

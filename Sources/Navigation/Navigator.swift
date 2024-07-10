@@ -16,7 +16,6 @@
 //  limitations under the License.
 //
 
-import Common
 import Foundation
 import WebKit
 
@@ -150,14 +149,8 @@ public final class ExpectedNavigation {
 }
 extension ExpectedNavigation: NavigationProtocol {}
 extension ExpectedNavigation: CustomDebugStringConvertible {
-    public nonisolated var debugDescription: String {
-        guard Thread.isMainThread else {
-            assertionFailure("Accessing ExpectedNavigation from background thread")
-            return "<ExpectedNavigation ?>"
-        }
-        return MainActor.assumeIsolated {
-            "<ExpectedNavigation \(navigation.identity) \(navigation.navigationActions.last != nil ? "from_redirected: #\(navigation.navigationActions.last!.identifier)" : "")>"
-        }
+    public var debugDescription: String {
+        "<ExpectedNavigation \(navigation.identity) \(navigation.navigationActions.last != nil ? "from_redirected: #\(navigation.navigationActions.last!.identifier)" : "")>"
     }
 }
 

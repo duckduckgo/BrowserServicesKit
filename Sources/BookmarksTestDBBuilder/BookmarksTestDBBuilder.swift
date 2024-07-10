@@ -22,6 +22,7 @@ import Persistence
 import Bookmarks
 
 // swiftlint:disable force_try
+// swiftlint:disable function_body_length
 
 @main
 struct BookmarksTestDBBuilder {
@@ -254,6 +255,7 @@ public extension BookmarkEntity {
         makeWithModifiedAtConstraints(with: treeNode, rootFolder: rootFolder, favoritesFolders: favoritesFolders, in: context)
     }
 
+    // swiftlint:disable:next cyclomatic_complexity
     @discardableResult static func makeWithModifiedAtConstraints(with treeNode: BookmarkTreeNode, rootFolder: BookmarkEntity, favoritesFolders: [BookmarkEntity], in context: NSManagedObjectContext) -> BookmarkEntity {
         var entity: BookmarkEntity!
 
@@ -317,3 +319,4 @@ public extension BookmarkEntity {
 }
 
 // swiftlint:enable force_try
+// swiftlint:enable function_body_length

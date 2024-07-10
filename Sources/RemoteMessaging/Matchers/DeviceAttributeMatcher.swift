@@ -19,7 +19,7 @@
 import Foundation
 import Common
 
-public struct DeviceAttributeMatcher: AttributeMatching {
+public struct DeviceAttributeMatcher: AttributeMatcher {
 
     let osVersion: String
     let localeIdentifier: String
@@ -33,7 +33,7 @@ public struct DeviceAttributeMatcher: AttributeMatching {
         self.localeIdentifier = locale
     }
 
-    public func evaluate(matchingAttribute: MatchingAttribute) -> EvaluationResult? {
+    func evaluate(matchingAttribute: MatchingAttribute) -> EvaluationResult? {
         switch matchingAttribute {
         case let matchingAttribute as LocaleMatchingAttribute:
 			return StringArrayMatchingAttribute(matchingAttribute.value).matches(value: LocaleMatchingAttribute.localeIdentifierAsJsonFormat(localeIdentifier))

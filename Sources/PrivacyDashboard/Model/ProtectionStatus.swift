@@ -31,5 +31,4 @@ public struct ProtectionStatus: Encodable {
         self.allowlisted = allowlisted
         self.denylisted = denylisted
     }
-
 }

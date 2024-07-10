@@ -33,12 +33,12 @@ public enum HTTPSUpgradeError: Error {
 public actor HTTPSUpgrade {
 
     private var dataReloadTask: Task<BloomFilter?, Never>?
-    private nonisolated let store: HTTPSUpgradeStore
-    private nonisolated let privacyManager: PrivacyConfigurationManaging
+    private let store: HTTPSUpgradeStore
+    private let privacyManager: PrivacyConfigurationManaging
 
     private var bloomFilter: BloomFilter?
 
-    private nonisolated let getLog: () -> OSLog
+    private let getLog: () -> OSLog
     nonisolated private var log: OSLog {
         getLog()
     }

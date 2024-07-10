@@ -70,6 +70,7 @@ public enum ExtensionMessage: RawRepresentable {
     case simulateConnectionInterruption
     case getDataVolume
 
+    // swiftlint:disable:next cyclomatic_complexity function_body_length
     public init?(rawValue data: Data) {
         let name = data.first.flatMap(Name.init(rawValue:))
         switch name {

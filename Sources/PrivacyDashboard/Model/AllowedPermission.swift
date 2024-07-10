@@ -19,7 +19,6 @@
 import Foundation
 
 public struct AllowedPermission: Codable {
-
     var key: String
     var icon: String
     var title: String
@@ -43,5 +42,4 @@ public struct AllowedPermission: Codable {
         self.paused = paused
         self.options = options
     }
-
 }

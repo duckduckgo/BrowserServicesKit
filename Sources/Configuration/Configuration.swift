@@ -33,7 +33,6 @@ public enum Configuration: String, CaseIterable, Sendable {
     case surrogates
     case trackerDataSet
     case FBConfig
-    case remoteMessagingConfig
 
     private static var urlProvider: ConfigurationURLProviding?
     public static func setURLProvider(_ urlProvider: ConfigurationURLProviding) {

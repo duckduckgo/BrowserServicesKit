@@ -19,29 +19,18 @@
 import Common
 import Foundation
 
-/**
- * This protocol defines API for processing RMF config file
- * in order to find a message to be displayed.
- */
-public protocol RemoteMessagingConfigProcessing {
-    var remoteMessagingConfigMatcher: RemoteMessagingConfigMatcher { get }
-
-    func shouldProcessConfig(_ currentConfig: RemoteMessagingConfig?) -> Bool
-
-    func process(
-        jsonRemoteMessagingConfig: RemoteMessageResponse.JsonRemoteMessagingConfig,
-        currentConfig: RemoteMessagingConfig?
-    ) -> RemoteMessagingConfigProcessor.ProcessorResult?
-}
-
-public struct RemoteMessagingConfigProcessor: RemoteMessagingConfigProcessing {
+public struct RemoteMessagingConfigProcessor {
 
     public struct ProcessorResult {
         public let version: Int64
         public let message: RemoteMessageModel?
     }
 
-    public let remoteMessagingConfigMatcher: RemoteMessagingConfigMatcher
+    let remoteMessagingConfigMatcher: RemoteMessagingConfigMatcher
+
+    public init(remoteMessagingConfigMatcher: RemoteMessagingConfigMatcher) {
+        self.remoteMessagingConfigMatcher = remoteMessagingConfigMatcher
+    }
 
     public func process(jsonRemoteMessagingConfig: RemoteMessageResponse.JsonRemoteMessagingConfig,
                         currentConfig: RemoteMessagingConfig?) -> ProcessorResult? {
@@ -66,7 +55,7 @@ public struct RemoteMessagingConfigProcessor: RemoteMessagingConfigProcessing {
         return nil
     }
 
-    public func shouldProcessConfig(_ currentConfig: RemoteMessagingConfig?) -> Bool {
+    func shouldProcessConfig(_ currentConfig: RemoteMessagingConfig?) -> Bool {
         guard let currentConfig = currentConfig else {
             return true
         }

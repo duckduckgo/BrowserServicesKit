@@ -21,6 +21,7 @@ import CoreData
 import Foundation
 import XCTest
 
+// swiftlint:disable cyclomatic_complexity function_body_length
 public struct ModifiedAtConstraint {
     var check: (Date?) -> Void
 
@@ -260,19 +261,12 @@ public struct BookmarkTree {
 
 public extension BookmarkEntity {
     @discardableResult
-    static func make(with treeNode: BookmarkTreeNode,
-                     rootFolder: BookmarkEntity,
-                     favoritesFolders: [BookmarkEntity],
-                     in context: NSManagedObjectContext) -> BookmarkEntity {
+    static func make(with treeNode: BookmarkTreeNode, rootFolder: BookmarkEntity, favoritesFolders: [BookmarkEntity], in context: NSManagedObjectContext) -> BookmarkEntity {
         makeWithModifiedAtConstraints(with: treeNode, rootFolder: rootFolder, favoritesFolders: favoritesFolders, in: context).0
     }
 
     @discardableResult
-    // swiftlint:disable:next cyclomatic_complexity
-    static func makeWithModifiedAtConstraints(with treeNode: BookmarkTreeNode,
-                                              rootFolder: BookmarkEntity,
-                                              favoritesFolders: [BookmarkEntity],
-                                              in context: NSManagedObjectContext) -> (BookmarkEntity, [String: ModifiedAtConstraint]) {
+    static func makeWithModifiedAtConstraints(with treeNode: BookmarkTreeNode, rootFolder: BookmarkEntity, favoritesFolders: [BookmarkEntity], in context: NSManagedObjectContext) -> (BookmarkEntity, [String: ModifiedAtConstraint]) {
         var entity: BookmarkEntity!
 
         var queues: [[BookmarkTreeNode]] = [[treeNode]]
@@ -411,3 +405,4 @@ public extension XCTestCase {
         }
     }
 }
+// swiftlint:enable cyclomatic_complexity function_body_length

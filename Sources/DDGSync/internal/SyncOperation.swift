@@ -21,7 +21,7 @@ import Combine
 import Common
 import Gzip
 
-final class SyncOperation: Operation, @unchecked Sendable {
+final class SyncOperation: Operation {
 
     let dataProviders: [DataProviding]
     let storage: SecureStoring
@@ -125,6 +125,7 @@ final class SyncOperation: Operation, @unchecked Sendable {
         try await sync(fetchOnly: fetchOnly, dataProviders: dataProviders)
     }
 
+    // swiftlint:disable:next cyclomatic_complexity function_body_length
     func sync(fetchOnly: Bool, dataProviders: [DataProviding] = []) async throws {
         os_log(.debug, log: log, "Sync Operation Started. Fetch-only: %{public}s", String(fetchOnly))
         defer {

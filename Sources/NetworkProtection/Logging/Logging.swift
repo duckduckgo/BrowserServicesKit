@@ -41,6 +41,10 @@ extension OSLog {
         Logging.networkProtectionTunnelFailureMonitorLoggingEnabled ? Logging.networkProtectionTunnelFailureMonitor : .disabled
     }
 
+    public static var networkProtectionServerFailureRecoveryLog: OSLog {
+        Logging.networkProtectionServerFailureRecoveryLoggingEnabled ? Logging.networkProtectionServerFailureRecovery : .disabled
+    }
+
     public static var networkProtectionConnectionTesterLog: OSLog {
         Logging.networkProtectionConnectionTesterLoggingEnabled ? Logging.networkProtectionConnectionTesterLog : .disabled
     }
@@ -80,7 +84,7 @@ extension OSLog {
 
 struct Logging {
 
-    static let subsystem = Bundle.main.bundleIdentifier!
+    static let subsystem = "com.duckduckgo.macos.browser.network-protection"
 
     fileprivate static let networkProtectionLoggingEnabled = true
     fileprivate static let networkProtection: OSLog = OSLog(subsystem: subsystem, category: "Network Protection")

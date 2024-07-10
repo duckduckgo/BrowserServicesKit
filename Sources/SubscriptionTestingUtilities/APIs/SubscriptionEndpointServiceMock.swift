@@ -20,20 +20,12 @@ import Foundation
 import Subscription
 
 public struct SubscriptionEndpointServiceMock: SubscriptionEndpointService {
-    public var getSubscriptionResult: Result<Subscription, SubscriptionServiceError>?
-    public var getProductsResult: Result<[GetProductsItem], APIServiceError>?
-    public var getCustomerPortalURLResult: Result<GetCustomerPortalURLResponse, APIServiceError>?
-    public var confirmPurchaseResult: Result<ConfirmPurchaseResponse, APIServiceError>?
+    var getSubscriptionResult: Result<Subscription, SubscriptionServiceError>?
+    var getProductsResult: Result<[GetProductsItem], APIServiceError>?
+    var getCustomerPortalURLResult: Result<GetCustomerPortalURLResponse, APIServiceError>?
+    var confirmPurchaseResult: Result<ConfirmPurchaseResponse, APIServiceError>?
 
-    public init(getSubscriptionResult: Result<Subscription, SubscriptionServiceError>? = nil,
-                getProductsResult: Result<[GetProductsItem], APIServiceError>? = nil,
-                getCustomerPortalURLResult: Result<GetCustomerPortalURLResponse, APIServiceError>? = nil,
-                confirmPurchaseResult: Result<ConfirmPurchaseResponse, APIServiceError>? = nil) {
-        self.getSubscriptionResult = getSubscriptionResult
-        self.getProductsResult = getProductsResult
-        self.getCustomerPortalURLResult = getCustomerPortalURLResult
-        self.confirmPurchaseResult = confirmPurchaseResult
-    }
+    public init() {}
 
     public func updateCache(with subscription: Subscription) {
 

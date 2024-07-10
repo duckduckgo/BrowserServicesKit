@@ -124,6 +124,7 @@ class TrackerDataManagerTests: XCTestCase {
         XCTAssertEqual("Not Real", entity?.displayName)
     }
 
+    // swiftlint:disable function_body_length
     func testWhenDownloadedDataAvailableThenReloadUsesIt() {
 
         let exampleData = Self.exampleTDS.data(using: .utf8)!
@@ -143,4 +144,5 @@ class TrackerDataManagerTests: XCTestCase {
         XCTAssertNotNil(trackerDataManager.fetchedData?.tds.findEntity(byName: "Not Real"))
 
     }
+    // swiftlint:enable function_body_length
 }

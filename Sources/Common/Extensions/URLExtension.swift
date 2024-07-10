@@ -79,7 +79,7 @@ extension URL {
         return host == domain || host.hasSuffix(".\(domain)")
     }
 
-    public struct NavigationalScheme: RawRepresentable, Hashable, Sendable {
+    public struct NavigationalScheme: RawRepresentable, Hashable {
         public let rawValue: String
 
         public static let separator = "://"

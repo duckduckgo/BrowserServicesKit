@@ -231,6 +231,7 @@ public extension Pinger {
             case decrypt_failed    = 3  // decrypt failed
         }
 
+        // swiftlint:disable:next cyclomatic_complexity
         public init?(type: u_char, code: u_char) {
             switch type {
             case  0:

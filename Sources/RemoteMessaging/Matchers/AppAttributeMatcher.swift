@@ -20,7 +20,7 @@ import Foundation
 import Common
 import BrowserServicesKit
 
-public struct AppAttributeMatcher: AttributeMatching {
+public struct AppAttributeMatcher: AttributeMatcher {
 
     private let bundleId: String
     private let appVersion: String
@@ -47,7 +47,8 @@ public struct AppAttributeMatcher: AttributeMatching {
         self.variantManager = variantManager
     }
 
-    public func evaluate(matchingAttribute: MatchingAttribute) -> EvaluationResult? {
+    // swiftlint:disable cyclomatic_complexity
+    func evaluate(matchingAttribute: MatchingAttribute) -> EvaluationResult? {
         switch matchingAttribute {
         case let matchingAttribute as IsInternalUserMatchingAttribute:
             guard let value = matchingAttribute.value else {
@@ -94,4 +95,5 @@ public struct AppAttributeMatcher: AttributeMatching {
             return nil
         }
     }
+    // swiftlint:enable cyclomatic_complexity
 }

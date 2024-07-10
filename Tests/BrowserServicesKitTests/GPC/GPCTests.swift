@@ -42,7 +42,8 @@ final class GPCTests: XCTestCase {
         appConfig = AppPrivacyConfiguration(data: privacyData,
                                             identifier: "",
                                             localProtection: localProtection,
-                                            internalUserDecider: DefaultInternalUserDecider())
+                                            internalUserDecider: DefaultInternalUserDecider(),
+                                            toggleProtectionsCounter: ToggleProtectionsCounter(eventReporting: nil))
     }
 
     func testWhenGPCEnableDomainIsHttpThenISGPCEnabledTrue() {

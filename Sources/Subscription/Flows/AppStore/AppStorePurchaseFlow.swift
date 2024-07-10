@@ -41,24 +41,17 @@ public protocol AppStorePurchaseFlow {
 
 @available(macOS 12.0, iOS 15.0, *)
 public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
-    private let subscriptionEndpointService: SubscriptionEndpointService
-    private let storePurchaseManager: StorePurchaseManager
-    private let accountManager: AccountManager
-    private let appStoreRestoreFlow: AppStoreRestoreFlow
-    private let authEndpointService: AuthEndpointService
 
-    public init(subscriptionEndpointService: any SubscriptionEndpointService,
-                storePurchaseManager: any StorePurchaseManager,
-                accountManager: any AccountManager,
-                appStoreRestoreFlow: any AppStoreRestoreFlow,
-                authEndpointService: any AuthEndpointService) {
-        self.subscriptionEndpointService = subscriptionEndpointService
-        self.storePurchaseManager = storePurchaseManager
-        self.accountManager = accountManager
+    private let subscriptionManager: SubscriptionManager
+    private var accountManager: AccountManager { subscriptionManager.accountManager }
+    private let appStoreRestoreFlow: AppStoreRestoreFlow
+
+    public init(subscriptionManager: SubscriptionManager, appStoreRestoreFlow: AppStoreRestoreFlow) {
+        self.subscriptionManager = subscriptionManager
         self.appStoreRestoreFlow = appStoreRestoreFlow
-        self.authEndpointService = authEndpointService
     }
 
+    // swiftlint:disable cyclomatic_complexity
     public func purchaseSubscription(with subscriptionIdentifier: String, emailAccessToken: String?) async -> Result<TransactionJWS, AppStorePurchaseFlowError> {
         os_log(.info, log: .subscription, "[AppStorePurchaseFlow] purchaseSubscription")
         let externalID: String
@@ -82,7 +75,7 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
                     accountManager.storeAuthToken(token: expiredAccountDetails.authToken)
                     accountManager.storeAccount(token: expiredAccountDetails.accessToken, email: expiredAccountDetails.email, externalID: expiredAccountDetails.externalID)
                 default:
-                    switch await authEndpointService.createAccount(emailAccessToken: emailAccessToken) {
+                    switch await subscriptionManager.authEndpointService.createAccount(emailAccessToken: emailAccessToken) {
                     case .success(let response):
                         externalID = response.externalID
 
@@ -100,7 +93,7 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
         }
 
         // Make the purchase
-        switch await storePurchaseManager.purchaseSubscription(with: subscriptionIdentifier, externalID: externalID) {
+        switch await subscriptionManager.storePurchaseManager().purchaseSubscription(with: subscriptionIdentifier, externalID: externalID) {
         case .success(let transactionJWS):
             return .success(transactionJWS)
         case .failure(let error):
@@ -115,20 +108,21 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
         }
     }
 
+    // swiftlint:enable cyclomatic_complexity
     @discardableResult
     public func completeSubscriptionPurchase(with transactionJWS: TransactionJWS) async -> Result<PurchaseUpdate, AppStorePurchaseFlowError> {
 
         // Clear subscription Cache
-        subscriptionEndpointService.signOut()
+        subscriptionManager.subscriptionEndpointService.signOut()
 
         os_log(.info, log: .subscription, "[AppStorePurchaseFlow] completeSubscriptionPurchase")
 
         guard let accessToken = accountManager.accessToken else { return .failure(.missingEntitlements) }
 
         let result = await callWithRetries(retry: 5, wait: 2.0) {
-            switch await subscriptionEndpointService.confirmPurchase(accessToken: accessToken, signature: transactionJWS) {
+            switch await subscriptionManager.subscriptionEndpointService.confirmPurchase(accessToken: accessToken, signature: transactionJWS) {
             case .success(let confirmation):
-                subscriptionEndpointService.updateCache(with: confirmation.subscription)
+                subscriptionManager.subscriptionEndpointService.updateCache(with: confirmation.subscription)
                 accountManager.updateCache(with: confirmation.entitlements)
                 return true
             case .failure:
@@ -163,7 +157,7 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
               let token = accountManager.accessToken
         else { return nil }
 
-        let subscriptionInfo = await subscriptionEndpointService.getSubscription(accessToken: token, cachePolicy: .reloadIgnoringLocalCacheData)
+        let subscriptionInfo = await subscriptionManager.subscriptionEndpointService.getSubscription(accessToken: token, cachePolicy: .reloadIgnoringLocalCacheData)
 
         // Only return an externalID if the subscription is expired
         // To prevent creating multiple subscriptions in the same account

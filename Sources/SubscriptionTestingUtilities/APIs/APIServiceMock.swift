@@ -21,23 +21,16 @@ import Subscription
 
 public struct APIServiceMock: APIService {
     public var mockAuthHeaders: [String: String]
-    public var mockAPICallSuccessResult: Any?
-    public var mockAPICallError: APIServiceError?
+    public var mockAPICallResults: Result<Any, APIServiceError>
 
-    public init(mockAuthHeaders: [String: String], mockAPICallSuccessResult: Any? = nil, mockAPICallError: APIServiceError? = nil) {
+    public init(mockAuthHeaders: [String: String], mockAPICallResults: Result<Any, APIServiceError>) {
         self.mockAuthHeaders = mockAuthHeaders
-        self.mockAPICallSuccessResult = mockAPICallSuccessResult
-        self.mockAPICallError = mockAPICallError
+        self.mockAPICallResults = mockAPICallResults
     }
 
     // swiftlint:disable force_cast
     public func executeAPICall<T>(method: String, endpoint: String, headers: [String: String]?, body: Data?) async -> Result<T, APIServiceError> where T: Decodable {
-        if let success = mockAPICallSuccessResult {
-            return .success(success as! T)
-        } else if let error = mockAPICallError {
-            return .failure(error)
-        }
-        return .failure(.unknownServerError)
+        return mockAPICallResults as! Result<T, APIServiceError>
     }
     // swiftlint:enable force_cast
 

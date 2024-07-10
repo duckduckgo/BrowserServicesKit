@@ -72,7 +72,7 @@ final class NetworkProtectionKeychainStore {
         case errSecItemNotFound:
             return nil
         default:
-            os_log("🔴 SecItemCopyMatching status %{public}@", type: .error, String(describing: status))
+            os_log("🔵 SecItemCopyMatching status %{public}@", type: .error, String(describing: status))
             throw NetworkProtectionKeychainStoreError.keychainReadError(field: name, status: status)
         }
     }

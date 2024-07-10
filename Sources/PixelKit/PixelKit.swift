@@ -163,6 +163,7 @@ public final class PixelKit {
         logger.debug("👾 PixelKit initialised: dryRun: \(self.dryRun, privacy: .public) appVersion: \(self.appVersion, privacy: .public) source: \(self.source ?? "-", privacy: .public) defaultHeaders: \(self.defaultHeaders, privacy: .public) pixelCalendar: \(self.pixelCalendar, privacy: .public)")
     }
 
+    // swiftlint:disable:next function_body_length cyclomatic_complexity
     private func fire(pixelNamed pixelName: String,
                       frequency: Frequency,
                       withHeaders headers: [String: String]?,

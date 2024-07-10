@@ -80,7 +80,7 @@ extension Syncable {
         static let maxEncryptedBookmarkURLLength = 3000
     }
 
-    // swiftlint:disable:next cyclomatic_complexity
+    // swiftlint:disable:next cyclomatic_complexity function_body_length
     init(bookmark: BookmarkEntity, encryptedUsing encrypt: (String) throws -> String) throws {
         var payload: [String: Any] = [:]
         guard let uuid = bookmark.uuid else {

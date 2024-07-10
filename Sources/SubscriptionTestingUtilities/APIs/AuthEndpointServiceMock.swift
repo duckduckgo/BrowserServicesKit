@@ -25,15 +25,7 @@ public struct AuthEndpointServiceMock: AuthEndpointService {
     public var createAccountResult: Result<CreateAccountResponse, APIServiceError>?
     public var storeLoginResult: Result<StoreLoginResponse, APIServiceError>?
 
-    public init(accessTokenResult: Result<AccessTokenResponse, APIServiceError>?,
-                validateTokenResult: Result<ValidateTokenResponse, APIServiceError>?,
-                createAccountResult: Result<CreateAccountResponse, APIServiceError>?,
-                storeLoginResult: Result<StoreLoginResponse, APIServiceError>?) {
-        self.accessTokenResult = accessTokenResult
-        self.validateTokenResult = validateTokenResult
-        self.createAccountResult = createAccountResult
-        self.storeLoginResult = storeLoginResult
-    }
+    public init() {}
 
     public func getAccessToken(token: String) async -> Result<AccessTokenResponse, APIServiceError> {
         accessTokenResult!

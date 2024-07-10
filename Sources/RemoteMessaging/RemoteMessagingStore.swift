@@ -17,7 +17,6 @@
 //
 
 import Foundation
-import Combine
 import Common
 import CoreData
 import BrowserServicesKit
@@ -48,70 +47,53 @@ public final class RemoteMessagingStore: RemoteMessagingStoring {
         public static let privateContextName = "RemoteMessaging"
     }
 
-    let database: CoreDataDatabase
+    let context: NSManagedObjectContext
     let notificationCenter: NotificationCenter
-    let remoteMessagingAvailabilityProvider: RemoteMessagingAvailabilityProviding
 
-    public init(
+    public convenience init(
         database: CoreDataDatabase,
         notificationCenter: NotificationCenter = .default,
         errorEvents: EventMapping<RemoteMessagingStoreError>?,
-        remoteMessagingAvailabilityProvider: RemoteMessagingAvailabilityProviding,
         log: @escaping @autoclosure () -> OSLog = .disabled
     ) {
-        self.database = database
+        self.init(
+            context: database.makeContext(concurrencyType: .privateQueueConcurrencyType, name: Constants.privateContextName),
+            notificationCenter: notificationCenter,
+            errorEvents: errorEvents,
+            log: log()
+        )
+    }
+
+    public init(
+        context: NSManagedObjectContext,
+        notificationCenter: NotificationCenter = .default,
+        errorEvents: EventMapping<RemoteMessagingStoreError>?,
+        log: @escaping @autoclosure () -> OSLog = .disabled
+    ) {
+        self.context = context
         self.notificationCenter = notificationCenter
         self.errorEvents = errorEvents
-        self.remoteMessagingAvailabilityProvider = remoteMessagingAvailabilityProvider
         self.getLog = log
-
-        featureFlagDisabledCancellable = remoteMessagingAvailabilityProvider.isRemoteMessagingAvailablePublisher
-            .map { !$0 }
-            .removeDuplicates()
-            .sink { [weak self] _ in
-                self?.deleteScheduledMessagesIfNeeded()
-            }
     }
 
     public func saveProcessedResult(_ processorResult: RemoteMessagingConfigProcessor.ProcessorResult) {
-        guard remoteMessagingAvailabilityProvider.isRemoteMessagingAvailable else {
-            os_log(
-                "Remote messaging feature flag is disabled, skipping saving processed version: %d",
-                log: log,
-                type: .debug,
-                processorResult.version
-            )
-            return
-        }
         os_log("Remote messaging config - save processed version: %d", log: log, type: .debug, processorResult.version)
-
-        let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType, name: Constants.privateContextName)
-        saveRemoteMessagingConfig(withVersion: processorResult.version, in: context)
+        saveRemoteMessagingConfig(withVersion: processorResult.version)
 
         if let remoteMessage = processorResult.message {
-            deleteScheduledRemoteMessages(in: context)
-            save(remoteMessage: remoteMessage, in: context)
+            deleteScheduledRemoteMessages()
+            save(remoteMessage: remoteMessage)
 
         } else {
-            deleteScheduledRemoteMessages(in: context)
-        }
-        notificationCenter.post(name: Notifications.remoteMessagesDidChange, object: nil)
-    }
-
-    private func deleteScheduledMessagesIfNeeded() {
-        guard fetchScheduledRemoteMessage() != nil else {
-            return
+            deleteScheduledRemoteMessages()
         }
 
-        let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType, name: Constants.privateContextName)
-
-        invalidateRemoteMessagingConfigs(in: context)
-        deleteScheduledRemoteMessages(in: context)
-        notificationCenter.post(name: Notifications.remoteMessagesDidChange, object: nil)
+        DispatchQueue.main.async {
+            self.notificationCenter.post(name: Notifications.remoteMessagesDidChange, object: nil)
+        }
     }
 
     private let errorEvents: EventMapping<RemoteMessagingStoreError>?
-    private var featureFlagDisabledCancellable: AnyCancellable?
 
     private let getLog: () -> OSLog
     private var log: OSLog {
@@ -124,12 +106,7 @@ public final class RemoteMessagingStore: RemoteMessagingStoring {
 extension RemoteMessagingStore {
 
     public func fetchRemoteMessagingConfig() -> RemoteMessagingConfig? {
-        guard remoteMessagingAvailabilityProvider.isRemoteMessagingAvailable else {
-            return nil
-        }
-
         var config: RemoteMessagingConfig?
-        let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType, name: Constants.privateContextName)
         context.performAndWait {
             let fetchRequest = RemoteMessagingConfigManagedObject.fetchRequest()
             fetchRequest.fetchLimit = 1
@@ -152,7 +129,7 @@ extension RemoteMessagingStore {
 
 extension RemoteMessagingStore {
 
-    private func saveRemoteMessagingConfig(withVersion version: Int64, in context: NSManagedObjectContext) {
+    private func saveRemoteMessagingConfig(withVersion version: Int64) {
         context.performAndWait {
             let fetchRequest: NSFetchRequest<RemoteMessagingConfigManagedObject> = RemoteMessagingConfigManagedObject.fetchRequest()
             fetchRequest.fetchLimit = 1
@@ -179,7 +156,7 @@ extension RemoteMessagingStore {
         }
     }
 
-    private func invalidateRemoteMessagingConfigs(in context: NSManagedObjectContext) {
+    private func invalidateRemoteMessagingConfigs() {
         context.performAndWait {
             let fetchRequest: NSFetchRequest<RemoteMessagingConfigManagedObject> = RemoteMessagingConfigManagedObject.fetchRequest()
             fetchRequest.returnsObjectsAsFaults = false
@@ -205,12 +182,7 @@ extension RemoteMessagingStore {
 extension RemoteMessagingStore {
 
     public func fetchScheduledRemoteMessage() -> RemoteMessageModel? {
-        guard remoteMessagingAvailabilityProvider.isRemoteMessagingAvailable else {
-            return nil
-        }
-
         var scheduledRemoteMessage: RemoteMessageModel?
-        let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType, name: Constants.privateContextName)
         context.performAndWait {
             let fetchRequest: NSFetchRequest<RemoteMessageManagedObject> = RemoteMessageManagedObject.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "status == %i", RemoteMessageStatus.scheduled.rawValue)
@@ -233,13 +205,8 @@ extension RemoteMessagingStore {
         return scheduledRemoteMessage
     }
 
-    public func fetchRemoteMessage(withID id: String) -> RemoteMessageModel? {
-        guard remoteMessagingAvailabilityProvider.isRemoteMessagingAvailable else {
-            return nil
-        }
-
+    public func fetchRemoteMessage(withId id: String) -> RemoteMessageModel? {
         var remoteMessage: RemoteMessageModel?
-        let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType, name: Constants.privateContextName)
         context.performAndWait {
             let fetchRequest: NSFetchRequest<RemoteMessageManagedObject> = RemoteMessageManagedObject.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "id == %@", id)
@@ -262,13 +229,8 @@ extension RemoteMessagingStore {
         return remoteMessage
     }
 
-    public func hasShownRemoteMessage(withID id: String) -> Bool {
-        guard remoteMessagingAvailabilityProvider.isRemoteMessagingAvailable else {
-            return false
-        }
-
+    public func hasShownRemoteMessage(withId id: String) -> Bool {
         var shown: Bool = true
-        let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType, name: Constants.privateContextName)
         context.performAndWait {
             let fetchRequest: NSFetchRequest<RemoteMessageManagedObject> = RemoteMessageManagedObject.fetchRequest()
             fetchRequest.fetchLimit = 1
@@ -283,13 +245,8 @@ extension RemoteMessagingStore {
         return shown
     }
 
-    public func hasDismissedRemoteMessage(withID id: String) -> Bool {
-        guard remoteMessagingAvailabilityProvider.isRemoteMessagingAvailable else {
-            return false
-        }
-
+    public func hasDismissedRemoteMessage(withId id: String) -> Bool {
         var dismissed: Bool = true
-        let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType, name: Constants.privateContextName)
         context.performAndWait {
             let fetchRequest: NSFetchRequest<RemoteMessageManagedObject> = RemoteMessageManagedObject.fetchRequest()
             fetchRequest.fetchLimit = 1
@@ -304,25 +261,15 @@ extension RemoteMessagingStore {
         return dismissed
     }
 
-    public func dismissRemoteMessage(withID id: String) {
-        guard remoteMessagingAvailabilityProvider.isRemoteMessagingAvailable else {
-            return
-        }
-
-        let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType, name: Constants.privateContextName)
+    public func dismissRemoteMessage(withId id: String) {
         context.performAndWait {
-            updateRemoteMessage(withID: id, toStatus: .dismissed, in: context)
-            invalidateRemoteMessagingConfigs(in: context)
+            updateRemoteMessage(withId: id, toStatus: .dismissed)
+            invalidateRemoteMessagingConfigs()
         }
     }
 
-    public func fetchDismissedRemoteMessageIDs() -> [String] {
-        guard remoteMessagingAvailabilityProvider.isRemoteMessagingAvailable else {
-            return []
-        }
-
+    public func fetchDismissedRemoteMessageIds() -> [String] {
         var dismissedMessageIds: [String] = []
-        let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType, name: Constants.privateContextName)
         context.performAndWait {
             let fetchRequest: NSFetchRequest<RemoteMessageManagedObject> = RemoteMessageManagedObject.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "status == %i", RemoteMessageStatus.dismissed.rawValue)
@@ -338,12 +285,7 @@ extension RemoteMessagingStore {
         return dismissedMessageIds
     }
 
-    public func updateRemoteMessage(withID id: String, asShown shown: Bool) {
-        guard remoteMessagingAvailabilityProvider.isRemoteMessagingAvailable else {
-            return
-        }
-
-        let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType, name: Constants.privateContextName)
+    public func updateRemoteMessage(withId id: String, asShown shown: Bool) {
         context.performAndWait {
             let fetchRequest: NSFetchRequest<RemoteMessageManagedObject> = RemoteMessageManagedObject.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "id == %@", id)
@@ -366,7 +308,7 @@ extension RemoteMessagingStore {
 
 extension RemoteMessagingStore {
 
-    private func save(remoteMessage: RemoteMessageModel, in context: NSManagedObjectContext) {
+    private func save(remoteMessage: RemoteMessageModel) {
         context.performAndWait {
             let remoteMessageManagedObject = RemoteMessageManagedObject(context: context)
 
@@ -384,7 +326,7 @@ extension RemoteMessagingStore {
         }
     }
 
-    private func updateRemoteMessage(withID id: String, toStatus status: RemoteMessageStatus, in context: NSManagedObjectContext) {
+    private func updateRemoteMessage(withId id: String, toStatus status: RemoteMessageStatus) {
         context.performAndWait {
             let fetchRequest: NSFetchRequest<RemoteMessageManagedObject> = RemoteMessageManagedObject.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "id == %@", id)
@@ -403,7 +345,7 @@ extension RemoteMessagingStore {
         }
     }
 
-    private func deleteScheduledRemoteMessages(in context: NSManagedObjectContext) {
+    private func deleteScheduledRemoteMessages() {
         context.performAndWait {
             let fetchRequest: NSFetchRequest<RemoteMessageManagedObject> = RemoteMessageManagedObject.fetchRequest()
             fetchRequest.returnsObjectsAsFaults = false

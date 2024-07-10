@@ -17,7 +17,6 @@
 //
 
 import Foundation
-import Persistence
 
 public protocol RemoteMessagingPercentileStoring {
     func percentile(forMessageId: String) -> Float
@@ -29,21 +28,21 @@ public class RemoteMessagingPercentileUserDefaultsStore: RemoteMessagingPercenti
         static let remoteMessagingPercentileMapping = "com.duckduckgo.app.remoteMessagingPercentileMapping"
     }
 
-    private let keyValueStore: KeyValueStoring
+    private let userDefaults: UserDefaults
 
-    public init(keyValueStore: KeyValueStoring) {
-        self.keyValueStore = keyValueStore
+    public init(userDefaults: UserDefaults) {
+        self.userDefaults = userDefaults
     }
 
     public func percentile(forMessageId messageID: String) -> Float {
-        var percentileMapping = (keyValueStore.object(forKey: Constants.remoteMessagingPercentileMapping) as? [String: Float]) ?? [:]
+        var percentileMapping = (userDefaults.dictionary(forKey: Constants.remoteMessagingPercentileMapping) as? [String: Float]) ?? [:]
 
         if let percentile = percentileMapping[messageID] {
             return percentile
         } else {
             let newPercentile = Float.random(in: 0...1)
             percentileMapping[messageID] = newPercentile
-            keyValueStore.set(percentileMapping, forKey: Constants.remoteMessagingPercentileMapping)
+            userDefaults.set(percentileMapping, forKey: Constants.remoteMessagingPercentileMapping)
 
             return newPercentile
         }

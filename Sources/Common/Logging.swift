@@ -111,6 +111,8 @@ extension ProcessInfo {
     }
 }
 
+// swiftlint:disable function_parameter_count
+
 // MARK: - message first
 
 @inlinable
@@ -324,3 +326,5 @@ public func os_log(_ type: OSLogType, _ message: @autoclosure () -> String, _ vi
 public func os_log(_ message: @autoclosure () -> String, _ visibility: LogVisibility = .private) {
     os_log(.default, log: .default, message(), visibility)
 }
+
+// swiftlint:enable function_parameter_count

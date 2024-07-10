@@ -32,7 +32,7 @@ import Common
 final class NetworkProtectionConnectionTester {
     enum Result {
         case connected
-        case reconnected(failureCount: Int)
+        case reconnected
         case disconnected(failureCount: Int)
     }
 
@@ -79,7 +79,7 @@ final class NetworkProtectionConnectionTester {
 
     // MARK: - Logging
 
-    private nonisolated let log: OSLog
+    private let log: OSLog
 
     // MARK: - Test result handling
 
@@ -222,7 +222,7 @@ final class NetworkProtectionConnectionTester {
         // After completing the connection tests we check if the tester is still supposed to be running
         // to avoid giving results when it should not be running.
         guard isRunning else {
-            os_log("Tester skipped returning results as it was stopped while running the tests", log: log)
+            os_log("Tester skipped returning results as it was stopped while running the tests", log: log, type: .info)
             return
         }
 
@@ -267,8 +267,9 @@ final class NetworkProtectionConnectionTester {
         if failureCount == 0 {
             resultHandler(.connected)
         } else if failureCount > 0 {
-            resultHandler(.reconnected(failureCount: failureCount))
             failureCount = 0
+
+            resultHandler(.reconnected)
         }
     }
 

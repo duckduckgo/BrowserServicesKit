@@ -21,18 +21,18 @@ import Foundation
 
 public struct RemoteMessagingConfigMatcher {
 
-    private let appAttributeMatcher: AttributeMatching
-    private let deviceAttributeMatcher: AttributeMatching
-    private let userAttributeMatcher: AttributeMatching
+    private let appAttributeMatcher: AppAttributeMatcher
+    private let deviceAttributeMatcher: DeviceAttributeMatcher
+    private let userAttributeMatcher: UserAttributeMatcher
     private let percentileStore: RemoteMessagingPercentileStoring
     private let dismissedMessageIds: [String]
     let surveyActionMapper: RemoteMessagingSurveyActionMapping
 
-    private let matchers: [AttributeMatching]
+    private let matchers: [AttributeMatcher]
 
-    public init(appAttributeMatcher: AttributeMatching,
-                deviceAttributeMatcher: AttributeMatching = DeviceAttributeMatcher(),
-                userAttributeMatcher: AttributeMatching,
+    public init(appAttributeMatcher: AppAttributeMatcher,
+                deviceAttributeMatcher: DeviceAttributeMatcher = DeviceAttributeMatcher(),
+                userAttributeMatcher: UserAttributeMatcher,
                 percentileStore: RemoteMessagingPercentileStoring,
                 surveyActionMapper: RemoteMessagingSurveyActionMapping,
                 dismissedMessageIds: [String]) {

@@ -113,6 +113,7 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
         return jsonString
     }()
 
+    // swiftlint:disable:next cyclomatic_complexity
     public func messageHandlerFor(_ messageName: String) -> MessageHandler? {
         guard let message = MessageName(rawValue: messageName) else {
             os_log("Failed to parse Autofill User Script message: '%{public}s'", log: .userScripts, type: .debug, messageName)
