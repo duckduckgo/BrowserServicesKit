@@ -1,5 +1,5 @@
 //
-//  cxxCrashHandler.h
+//  CxxCrashHandler.h
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
