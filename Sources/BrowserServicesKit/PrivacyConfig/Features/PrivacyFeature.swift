@@ -48,6 +48,7 @@ public enum PrivacyFeature: String {
     case sslCertificates
     case brokenSiteReportExperiment
     case toggleReports
+    case remoteMessaging
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -70,6 +71,7 @@ public enum AutofillSubfeature: String, PrivacySubfeature {
     case accessCredentialManagement
     case autofillPasswordGeneration
     case onByDefault
+    case deduplicateLoginsOnImport
 }
 
 public enum DBPSubfeature: String, Equatable, PrivacySubfeature {
@@ -120,4 +122,5 @@ public enum DuckPlayerSubfeature: String, PrivacySubfeature {
     public var parent: PrivacyFeature { .duckPlayer }
     case pip
     case autoplay
+    case openInNewTab
 }

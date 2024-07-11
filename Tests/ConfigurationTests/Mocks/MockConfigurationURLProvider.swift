@@ -37,6 +37,8 @@ struct MockConfigurationURLProvider: ConfigurationURLProviding {
             return URL(string: "f")!
         case .FBConfig:
             return URL(string: "g")!
+        case .remoteMessagingConfig:
+            return URL(string: "h")!
         }
     }
 

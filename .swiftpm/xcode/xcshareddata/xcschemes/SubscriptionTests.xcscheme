@@ -36,13 +36,6 @@
       debugDocumentVersioning = "YES"
       debugServiceExtension = "internal"
       allowLocationSimulation = "YES">
-      <AdditionalOptions>
-         <AdditionalOption
-            key = "APP_DISTRIBUTOR_ID_OVERRIDE"
-            value = "com.apple.AppStore"
-            isEnabled = "YES">
-         </AdditionalOption>
-      </AdditionalOptions>
       <StoreKitConfigurationFileReference
          identifier = "../../../Tests/SubscriptionTests/Resources/TestingConfiguration.storekit">
       </StoreKitConfigurationFileReference>

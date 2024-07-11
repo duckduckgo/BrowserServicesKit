@@ -32,7 +32,7 @@ import Common
 final class NetworkProtectionConnectionTester {
     enum Result {
         case connected
-        case reconnected
+        case reconnected(failureCount: Int)
         case disconnected(failureCount: Int)
     }
 
@@ -267,9 +267,8 @@ final class NetworkProtectionConnectionTester {
         if failureCount == 0 {
             resultHandler(.connected)
         } else if failureCount > 0 {
+            resultHandler(.reconnected(failureCount: failureCount))
             failureCount = 0
-
-            resultHandler(.reconnected)
         }
     }
 
