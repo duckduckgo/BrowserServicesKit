@@ -29,6 +29,7 @@ public protocol AutofillDatabaseProvider: SecureStorageDatabaseProvider {
 
     @discardableResult
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64
+    func websiteCredentialsForDomain(_ domain: String) throws -> [SecureVaultModels.WebsiteCredentials]
     func websiteCredentialsForAccountId(_ accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials?
     func websiteAccountsForDomain(_ domain: String) throws -> [SecureVaultModels.WebsiteAccount]
     func websiteAccountsForTopLevelDomain(_ eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount]
@@ -384,6 +385,34 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
             )
         }
         return nil
+    }
+
+    public func websiteCredentialsForDomain(_ domain: String) throws -> [SecureVaultModels.WebsiteCredentials] {
+        try db.read {
+            try websiteCredentialsForDomain(domain, in: $0)
+        }
+    }
+
+    func websiteCredentialsForDomain(_ domain: String, in database: Database) throws -> [SecureVaultModels.WebsiteCredentials] {
+        let accounts = try SecureVaultModels.WebsiteAccount
+            .filter(SecureVaultModels.WebsiteAccount.Columns.domain.like(domain))
+            .fetchAll(database)
+
+        let accountIDs = accounts.compactMap(\.id)
+
+        var result = [SecureVaultModels.WebsiteCredentials]()
+
+        for accountID in accountIDs {
+            guard let accountIDInt = Int64(accountID) else {
+                continue
+            }
+            guard let credentials = try websiteCredentialsForAccountId(accountIDInt, in: database) else {
+                continue
+            }
+            result.append(credentials)
+        }
+
+        return result
     }
 
     public func websiteCredentialsForAccountId(_ accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials? {
