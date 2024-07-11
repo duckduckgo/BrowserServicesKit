@@ -65,6 +65,7 @@ final public class HistoryStore: HistoryStoring {
                     }
                     promise(.success(()))
                 } catch {
+                    self.context.reset()
                     self.eventMapper.fire(.removeFailed, error: error)
                     promise(.failure(error))
                 }
@@ -91,6 +92,7 @@ final public class HistoryStore: HistoryStoring {
                         }
                     }
                 } catch {
+                    self.context.reset()
                     self.eventMapper.fire(.cleanEntriesFailed, error: error)
                     promise(.failure(error))
                     return
@@ -107,6 +109,7 @@ final public class HistoryStore: HistoryStoring {
                         }
                     }
                 } catch {
+                    self.context.reset()
                     self.eventMapper.fire(.cleanVisitsFailed, error: error)
                     promise(.failure(error))
                     return
@@ -210,6 +213,7 @@ final public class HistoryStore: HistoryStoring {
                     promise(.success(result))
 
                 } catch {
+                    self.context.reset()
                     eventMapper.fire(.saveFailed, error: error)
                     promise(.failure(HistoryStoreError.savingFailed))
                 }
@@ -247,6 +251,7 @@ final public class HistoryStore: HistoryStoring {
 
                     promise(.success(()))
                 } catch {
+                    self.context.reset()
                     self.eventMapper.fire(.removeVisitsFailed, error: error)
                     promise(.failure(error))
                 }
