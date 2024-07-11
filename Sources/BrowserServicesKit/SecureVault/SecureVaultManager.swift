@@ -144,7 +144,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
 
     public func autofillUserScript(_: AutofillUserScript,
                                    didRequestAutoFillInitDataForDomain domain: String,
-                                   completionHandler: @escaping ([SecureVaultModels.WebsiteAccount],
+                                   completionHandler: @escaping ([SecureVaultModels.WebsiteCredentials],
                                                                  [SecureVaultModels.Identity],
                                                                  [SecureVaultModels.CreditCard],
                                                                  SecureVaultModels.CredentialsProvider) -> Void) {
@@ -167,16 +167,13 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
             }
 
             if delegate.secureVaultManagerIsEnabledStatus(self, forType: .password) {
-                getAccounts(for: domain,
-                            from: vault,
-                            or: passwordManager,
-                            withPartialMatches: includePartialAccountMatches) { [weak self] accounts, error in
+                getCredentials(forDomain: domain, from: vault, or: passwordManager) { [weak self] credentials, error in
                     guard let self = self else { return }
                     if let error = error {
                         os_log(.error, "Error requesting autofill init data: %{public}@", error.localizedDescription)
                         completionHandler([], [], [], self.credentialsProvider)
                     } else {
-                        completionHandler(accounts, identities, cards, self.credentialsProvider)
+                        completionHandler(credentials, identities, cards, self.credentialsProvider)
                     }
                 }
             } else {
@@ -786,6 +783,23 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                 completion(credentials, nil)
             } catch {
                 completion(nil, error)
+            }
+        }
+    }
+
+    private func getCredentials(forDomain domain: String,
+                                from vault: any AutofillSecureVault,
+                                or passwordManager: PasswordManager?,
+                                completion: @escaping ([SecureVaultModels.WebsiteCredentials], Error?) -> Void) {
+        if let passwordManager = passwordManager,
+           passwordManager.isEnabled {
+            passwordManager.websiteCredentialsFor(domain: domain, completion: completion)
+        } else {
+            do {
+                let credentials = try vault.websiteCredentialsFor(domain: domain)
+                completion(credentials, nil)
+            } catch {
+                completion([], error)
             }
         }
     }
