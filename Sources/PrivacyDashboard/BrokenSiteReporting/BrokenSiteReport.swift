@@ -220,7 +220,8 @@ public struct BrokenSiteReport {
             "reportFlow": reportFlow.rawValue,
             "openerContext": openerContext?.rawValue ?? "",
             "vpnOn": vpnOn.description,
-            "userRefreshCount": String(userRefreshCount)
+            "userRefreshCount": String(userRefreshCount),
+            "locale": Locale.autoupdatingCurrent.identifier
         ]
 
         if mode == .regular {
