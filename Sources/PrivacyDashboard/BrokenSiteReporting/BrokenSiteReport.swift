@@ -125,7 +125,7 @@ public struct BrokenSiteReport {
         vpnOn: Bool,
         jsPerformance: [Double]?,
         userRefreshCount: Int,
-        localeIdentifier: String = Locale.autoupdatingCurrent.identifier
+        localeIdentifier: String = Locale.current.identifier
     ) {
         self.siteUrl = siteUrl
         self.category = category
@@ -177,7 +177,7 @@ public struct BrokenSiteReport {
         jsPerformance: [Double]?,
         userRefreshCount: Int,
         variant: String,
-        localeIdentifier: String = Locale.autoupdatingCurrent.identifier
+        localeIdentifier: String = Locale.current.identifier
     ) {
         self.siteUrl = siteUrl
         self.category = category
