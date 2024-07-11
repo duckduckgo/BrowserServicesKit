@@ -59,7 +59,8 @@ class NSManagedObjectContextExtensionTests: XCTestCase {
         return (try? context.count(for: fr)) ?? 0
     }
 
-    func createValidEntities(in context: NSManagedObjectContext) {
+    @discardableResult
+    func createValidEntities(in context: NSManagedObjectContext) -> (TestEntity, TestEntity) {
         let e1 = TestEntity(entity: TestEntity.entity(in: context), insertInto: context)
         let e2 = TestEntity(entity: TestEntity.entity(in: context), insertInto: context)
 
@@ -67,6 +68,8 @@ class NSManagedObjectContextExtensionTests: XCTestCase {
         e2.attribute = "e2"
         e1.relationTo = e2
         e2.relationTo = e1
+
+        return (e1, e2)
     }
 
     // Tests
@@ -76,7 +79,7 @@ class NSManagedObjectContextExtensionTests: XCTestCase {
             XCTAssertEqual(countEntities(in: context), 0)
 
             do {
-                try context.applyChangesAndSave { context in
+                try context.applyChangesAndSave {
                     createValidEntities(in: context)
                 }
             } catch {
@@ -90,10 +93,10 @@ class NSManagedObjectContextExtensionTests: XCTestCase {
     func testWhenThereIsNoErrorThenDataIsSaved_Closures() {
         context.performAndWait {
             XCTAssertEqual(countEntities(in: context), 0)
-            
+
             let expectation = expectation(description: "Did save")
 
-            context.applyChangesAndSave { context in
+            context.applyChangesAndSave {
                 self.createValidEntities(in: context)
             } onError: { _ in
                 XCTFail("Error not expected")
@@ -111,7 +114,7 @@ class NSManagedObjectContextExtensionTests: XCTestCase {
             XCTAssertEqual(countEntities(in: context), 0)
 
             do {
-                try context.applyChangesAndSave { context in
+                try context.applyChangesAndSave {
                     createValidEntities(in: context)
 
                     throw LocalError.example
@@ -121,7 +124,9 @@ class NSManagedObjectContextExtensionTests: XCTestCase {
                 XCTAssertEqual(error as? LocalError, .example)
             }
 
-            XCTAssertEqual(countEntities(in: context), 0)
+            // There are still changes as save has failed
+            XCTAssertEqual(countEntities(in: context), 2)
+            XCTAssertEqual(context.insertedObjects.count, 2)
         }
     }
 
@@ -131,7 +136,7 @@ class NSManagedObjectContextExtensionTests: XCTestCase {
 
             let expectation = expectation(description: "OnError")
 
-            context.applyChangesAndSave { context in
+            context.applyChangesAndSave {
                 self.createValidEntities(in: context)
 
                 throw LocalError.example
@@ -144,7 +149,9 @@ class NSManagedObjectContextExtensionTests: XCTestCase {
 
             wait(for: [expectation], timeout: 5)
 
-            XCTAssertEqual(countEntities(in: context), 0)
+            // There are still changes as save has failed
+            XCTAssertEqual(countEntities(in: context), 2)
+            XCTAssertEqual(context.insertedObjects.count, 2)
         }
     }
 
@@ -153,15 +160,17 @@ class NSManagedObjectContextExtensionTests: XCTestCase {
             XCTAssertEqual(countEntities(in: context), 0)
 
             do {
-                try context.applyChangesAndSave { context in
+                try context.applyChangesAndSave {
                     _ = TestEntity(entity: TestEntity.entity(in: context), insertInto: context)
                 }
                 XCTFail("Exception should be thrown")
             } catch {
-                XCTAssertEqual(error as? LocalError, LocalError.example)
+                XCTAssertEqual((error as NSError).code, NSValidationMultipleErrorsError)
             }
 
-            XCTAssertEqual(countEntities(in: context), 0)
+            // There are still changes as save has failed
+            XCTAssertEqual(countEntities(in: context), 1)
+            XCTAssertEqual(context.insertedObjects.count, 1)
         }
     }
 
@@ -171,177 +180,211 @@ class NSManagedObjectContextExtensionTests: XCTestCase {
 
             let expectation = expectation(description: "OnError")
 
-            context.applyChangesAndSave { context in
+            context.applyChangesAndSave {
                 _ = TestEntity(entity: TestEntity.entity(in: context), insertInto: context)
             } onError: { error in
                 expectation.fulfill()
-//                XCTAssertEqual(error as? BookmarkEntity.Error, BookmarkEntity.Error.folderHasURL)
+                XCTAssertEqual((error as NSError).code, NSValidationMultipleErrorsError)
             } onDidSave: {
                 XCTFail("Should not save")
             }
 
             wait(for: [expectation], timeout: 5)
 
-            XCTAssertEqual(countEntities(in: context), 0)
+            // There are still changes as save has failed
+            XCTAssertEqual(countEntities(in: context), 1)
+            XCTAssertEqual(context.insertedObjects.count, 1)
         }
     }
 
-//    func testWhenThereIsMergeErrorThenSaveRetries() {
-//
-//        let otherContext = container.newBackgroundContext()
-//
-//        do {
-//            try store.applyChangesAndSave { context in
-//                let root = BookmarkUtils.fetchRootFolder(context)
-//                _ = BookmarkEntity.makeBookmark(title: "T", url: "h", parent: root!, context: context)
-//
-//                otherContext.performAndWait {
-//                    let root = BookmarkUtils.fetchRootFolder(otherContext)
-//
-//                    // Only store on first pass
-//                    guard root?.childrenArray.isEmpty ?? false else { return }
-//
-//                    _ = BookmarkEntity.makeBookmark(title: "Inner", url: "i", parent: root!, context: otherContext)
-//                    do {
-//                        try otherContext.save()
-//                    } catch {
-//                        XCTFail("Could not save inner object")
-//                    }
-//                }
-//            }
-//        } catch {
-//            XCTFail("Exception should not be thrown")
-//        }
-//
-//        otherContext.performAndWait {
-//            otherContext.reset()
-//            let root = BookmarkUtils.fetchRootFolder(otherContext)
-//            let children = root?.childrenArray ?? []
-//
-//            XCTAssertEqual(children.count, 2)
-//            XCTAssertEqual(Set(children.map { $0.title }), ["T", "Inner"])
-//        }
-//    }
-//
-//    func testWhenThereIsMergeErrorThenSaveRetries_Closures() {
-//
-//        let otherContext = container.newBackgroundContext()
-//
-//        let expectation = expectation(description: "On DidSave")
-//
-//        store.applyChangesAndSave { context in
-//            let root = BookmarkUtils.fetchRootFolder(context)
-//            _ = BookmarkEntity.makeBookmark(title: "T", url: "h", parent: root!, context: context)
-//
-//            otherContext.performAndWait {
-//                let root = BookmarkUtils.fetchRootFolder(otherContext)
-//
-//                // Only store on first pass
-//                guard root?.childrenArray.isEmpty ?? false else { return }
-//
-//                _ = BookmarkEntity.makeBookmark(title: "Inner", url: "i", parent: root!, context: otherContext)
-//                do {
-//                    try otherContext.save()
-//                } catch {
-//                    XCTFail("Could not save inner object")
-//                }
-//            }
-//        } onError: { _ in
-//            XCTFail("No error expected")
-//        } onDidSave: {
-//            expectation.fulfill()
-//        }
-//
-//        wait(for: [expectation], timeout: 5)
-//
-//        otherContext.performAndWait {
-//            otherContext.reset()
-//            let root = BookmarkUtils.fetchRootFolder(otherContext)
-//            let children = root?.childrenArray ?? []
-//
-//            XCTAssertEqual(children.count, 2)
-//            XCTAssertEqual(Set(children.map { $0.title }), ["T", "Inner"])
-//        }
-//    }
-//
-//    func testWhenThereIsRecurringMergeErrorThenOnErrorIsCalled() {
-//        let otherContext = container.newBackgroundContext()
-//
-//        do {
-//            try store.applyChangesAndSave { context in
-//                let root = BookmarkUtils.fetchRootFolder(context)
-//                _ = BookmarkEntity.makeBookmark(title: "T", url: "h", parent: root!, context: context)
-//
-//                otherContext.performAndWait {
-//                    let root = BookmarkUtils.fetchRootFolder(otherContext)
-//                    _ = BookmarkEntity.makeBookmark(title: "Inner", url: "i", parent: root!, context: otherContext)
-//                    do {
-//                        try otherContext.save()
-//                    } catch {
-//                        XCTFail("Could not save inner object")
-//                    }
-//                }
-//            }
-//            XCTFail("Should trow an error")
-//        } catch {
-//            if case LocalBookmarkStore.BookmarkStoreError.saveLoopError(let wrappedError) = error, let wrappedError {
-//                XCTAssertEqual((wrappedError as NSError).code, NSManagedObjectMergeError)
-//            } else {
-//                XCTFail("Loop Error expected")
-//            }
-//        }
-//
-//        otherContext.performAndWait {
-//            otherContext.reset()
-//            let root = BookmarkUtils.fetchRootFolder(otherContext)
-//            let children = root?.childrenArray ?? []
-//
-//            XCTAssertEqual(children.count, 4)
-//            XCTAssertEqual(Set(children.map { $0.title }), ["Inner"])
-//        }
-//    }
-//
-//    func testWhenThereIsRecurringMergeErrorThenOnErrorIsCalled_Closures() {
-//        let otherContext = container.newBackgroundContext()
-//
-//        let expectation = expectation(description: "OnError")
-//
-//        store.applyChangesAndSave { context in
-//            let root = BookmarkUtils.fetchRootFolder(context)
-//            _ = BookmarkEntity.makeBookmark(title: "T", url: "h", parent: root!, context: context)
-//
-//            otherContext.performAndWait {
-//                let root = BookmarkUtils.fetchRootFolder(otherContext)
-//                _ = BookmarkEntity.makeBookmark(title: "Inner", url: "i", parent: root!, context: otherContext)
-//                do {
-//                    try otherContext.save()
-//                } catch {
-//                    XCTFail("Could not save inner object")
-//                }
-//            }
-//        } onError: { error in
-//            expectation.fulfill()
-//
-//            if case LocalBookmarkStore.BookmarkStoreError.saveLoopError(let wrappedError) = error, let wrappedError {
-//                XCTAssertEqual((wrappedError as NSError).code, NSManagedObjectMergeError)
-//            } else {
-//                XCTFail("Loop Error expected")
-//            }
-//        } onDidSave: {
-//            XCTFail("Did save should not be called")
-//        }
-//
-//        wait(for: [expectation], timeout: 5)
-//
-//        otherContext.performAndWait {
-//            otherContext.reset()
-//            let root = BookmarkUtils.fetchRootFolder(otherContext)
-//            let children = root?.childrenArray ?? []
-//
-//            XCTAssertEqual(children.count, 4)
-//            XCTAssertEqual(Set(children.map { $0.title }), ["Inner"])
-//        }
-//    }
-//
+    func testWhenThereIsMergeErrorThenSaveRetries() {
+
+        let otherContext = db.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        context.performAndWait {
+            XCTAssertEqual(countEntities(in: context), 0)
+
+            let (e1, _) = createValidEntities(in: context)
+            try! context.save()
+
+            let e1ObjectID = e1.objectID
+
+            do {
+                try context.applyChangesAndSave {
+
+                    // Try to modify e1
+                    let localE1 = try! context.existingObject(with: e1ObjectID) as! TestEntity
+                    localE1.attribute = "Local name"
+
+                    // Trigger merge error by making changes in other context to the same entity
+                    otherContext.performAndWait {
+                        let innerE1 = try! otherContext.existingObject(with: e1ObjectID) as! TestEntity
+
+                        // Trigger the error only once
+                        guard innerE1.attribute != "Inner name" else { return }
+
+                        innerE1.attribute = "Inner name"
+
+                        do {
+                            try otherContext.save()
+                        } catch {
+                            XCTFail("Could not save inner object: \(error)")
+                        }
+                    }
+                }
+            } catch {
+                XCTFail("Exception should not be thrown")
+            }
+
+            context.reset()
+            let storedE1 = try! context.existingObject(with: e1ObjectID) as! TestEntity
+            XCTAssertEqual(storedE1.attribute, "Local name")
+        }
+    }
+
+    func testWhenThereIsMergeErrorThenSaveRetries_Closures() {
+
+        let otherContext = db.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        let expectation = expectation(description: "On DidSave")
+
+        context.performAndWait {
+            XCTAssertEqual(countEntities(in: context), 0)
+
+            let (e1, _) = createValidEntities(in: context)
+            try! context.save()
+
+            let e1ObjectID = e1.objectID
+
+            context.applyChangesAndSave {
+
+                // Try to modify e1
+                let localE1 = try! context.existingObject(with: e1ObjectID) as! TestEntity
+                localE1.attribute = "Local name"
+
+                // Trigger merge error by making changes in other context to the same entity
+                otherContext.performAndWait {
+                    let innerE1 = try! otherContext.existingObject(with: e1ObjectID) as! TestEntity
+
+                    // Trigger the error only once
+                    guard innerE1.attribute != "Inner name" else { return }
+
+                    innerE1.attribute = "Inner name"
+
+                    do {
+                        try otherContext.save()
+                    } catch {
+                        XCTFail("Could not save inner object: \(error)")
+                    }
+                }
+
+            } onError: { _ in
+                XCTFail("No error expected")
+            } onDidSave: {
+                expectation.fulfill()
+            }
+
+            context.reset()
+            let storedE1 = try! context.existingObject(with: e1ObjectID) as! TestEntity
+            XCTAssertEqual(storedE1.attribute, "Local name")
+        }
+
+        wait(for: [expectation], timeout: 5)
+    }
+
+    func testWhenThereIsRecurringMergeErrorThenOnErrorIsCalled() {
+
+        let otherContext = db.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        context.performAndWait {
+            XCTAssertEqual(countEntities(in: context), 0)
+
+            let (e1, _) = createValidEntities(in: context)
+            try! context.save()
+
+            let e1ObjectID = e1.objectID
+
+            do {
+                try context.applyChangesAndSave {
+
+                    // Try to modify e1
+                    let localE1 = try! context.existingObject(with: e1ObjectID) as! TestEntity
+                    localE1.attribute = "Local name"
+
+                    // Trigger merge error by making changes in other context to the same entity
+                    otherContext.performAndWait {
+                        let innerE1 = try! otherContext.existingObject(with: e1ObjectID) as! TestEntity
+                        innerE1.attribute = "Inner name"
+
+                        do {
+                            try otherContext.save()
+                        } catch {
+                            XCTFail("Could not save inner object: \(error)")
+                        }
+                    }
+                }
+                XCTFail("Should trow an error")
+            } catch {
+                if case NSManagedObjectContext.PersistenceError.saveLoopError(let wrappedError) = error, let wrappedError {
+                    XCTAssertEqual((wrappedError as NSError).code, NSManagedObjectMergeError)
+                } else {
+                    XCTFail("Loop Error expected")
+                }
+            }
+
+            context.reset()
+            let storedE1 = try! context.existingObject(with: e1ObjectID) as! TestEntity
+            XCTAssertEqual(storedE1.attribute, "Inner name")
+        }
+    }
+
+    func testWhenThereIsRecurringMergeErrorThenOnErrorIsCalled_Closures() {
+        let otherContext = db.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        let expectation = expectation(description: "On Error")
+
+        context.performAndWait {
+            XCTAssertEqual(countEntities(in: context), 0)
+
+            let (e1, _) = createValidEntities(in: context)
+            try! context.save()
+
+            let e1ObjectID = e1.objectID
+
+            context.applyChangesAndSave {
+
+                // Try to modify e1
+                let localE1 = try! context.existingObject(with: e1ObjectID) as! TestEntity
+                localE1.attribute = "Local name"
+
+                // Trigger merge error by making changes in other context to the same entity
+                otherContext.performAndWait {
+                    let innerE1 = try! otherContext.existingObject(with: e1ObjectID) as! TestEntity
+                    innerE1.attribute = "Inner name"
+
+                    do {
+                        try otherContext.save()
+                    } catch {
+                        XCTFail("Could not save inner object: \(error)")
+                    }
+                }
+
+            } onError: { error in
+                if case NSManagedObjectContext.PersistenceError.saveLoopError(let wrappedError) = error, let wrappedError {
+                    XCTAssertEqual((wrappedError as NSError).code, NSManagedObjectMergeError)
+                } else {
+                    XCTFail("Loop Error expected")
+                }
+                expectation.fulfill()
+            } onDidSave: {
+                XCTFail("Save not expected")
+            }
+
+            context.reset()
+            let storedE1 = try! context.existingObject(with: e1ObjectID) as! TestEntity
+            XCTAssertEqual(storedE1.attribute, "Inner name")
+        }
+
+        wait(for: [expectation], timeout: 5)
+    }
+
 
 }

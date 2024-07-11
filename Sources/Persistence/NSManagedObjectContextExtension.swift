@@ -27,24 +27,28 @@ public extension NSManagedObjectContext {
     /*
      Utility function to help with saving changes to the database.
 
-     If there is a timing issue (e.g. another context making changes), we may encounter merge error on save, in such case:
+     If there is a timing issue (e.g. another context making changes), we may encounter merge error on save, in such case what this function does is to:
        - reset context
        - reapply changes
        - retry save
 
      You can expect either `onError` or `onDidSave` to be called once.
      Error thrown from within `changes` block triggers `onError` call and prevents saving.
+
+     IMPORTANT: Due to the nature of the reset(), any reference to an actual object should be considered invalid after calling this method.
      */
-    func applyChangesAndSave(changes: @escaping (NSManagedObjectContext) throws -> Void,
-                             onError: @escaping (Error) -> Void,
-                             onDidSave: @escaping () -> Void) {
+    func applyChangesAndSave(changes: () throws -> Void,
+                             onError: (Error) -> Void,
+                             onDidSave: () -> Void) {
+        assert(!hasChanges, "Context should have no changes prior to `applyChangesAndSave` call")
+        
         let maxRetries = 4
         var iteration = 0
 
         var lastError: Error?
         while iteration < maxRetries {
             do {
-                try changes(self)
+                try changes()
 
                 try save()
                 onDidSave()
@@ -68,14 +72,17 @@ public extension NSManagedObjectContext {
     /*
      Utility function to help with saving changes to the database.
 
-     If there is a timing issue (e.g. another context making changes), we may encounter merge error on save, in such case:
+     If there is a timing issue (e.g. another context making changes), we may encounter merge error on save, in such case what this function does is to:
        - reset context
        - reapply changes
        - retry save
 
      Error thrown from within `changes` block prevent saving and is rethrown.
+
+     IMPORTANT: Due to the nature of the reset(), any reference to an actual object should be considered invalid after calling this method.
      */
-    func applyChangesAndSave(changes: (NSManagedObjectContext) throws -> Void) throws {
+    func applyChangesAndSave(changes: () throws -> Void) throws {
+        assert(!hasChanges, "Context should have no changes prior to `applyChangesAndSave` call")
 
         let maxRetries = 4
         var iteration = 0
@@ -83,7 +90,7 @@ public extension NSManagedObjectContext {
         var lastMergeError: NSError?
         while iteration < maxRetries {
             do {
-                try changes(self)
+                try changes()
                 try save()
                 return
             } catch {

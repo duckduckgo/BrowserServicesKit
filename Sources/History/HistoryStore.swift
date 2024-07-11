@@ -60,8 +60,8 @@ final public class HistoryStore: HistoryStoring {
                 do {
                     let identifiers = entries.map { $0.identifier }
 
-                    try self.context.applyChangesAndSave { context in
-                        try self.markForDeletion(identifiers, in: context)
+                    try self.context.applyChangesAndSave {
+                        try self.markForDeletion(identifiers, in: self.context)
                     }
                     promise(.success(()))
                 } catch {
@@ -81,13 +81,13 @@ final public class HistoryStore: HistoryStoring {
                 }
 
                 do {
-                    try self.context.applyChangesAndSave { context in
+                    try self.context.applyChangesAndSave {
                         let deleteRequest = BrowsingHistoryEntryManagedObject.fetchRequest()
                         deleteRequest.predicate = NSPredicate(format: "lastVisit < %@", date as NSDate)
 
-                        let itemsToBeDeleted = try context.fetch(deleteRequest)
+                        let itemsToBeDeleted = try self.context.fetch(deleteRequest)
                         for item in itemsToBeDeleted {
-                            context.delete(item)
+                            self.context.delete(item)
                         }
                     }
                 } catch {
@@ -97,13 +97,13 @@ final public class HistoryStore: HistoryStoring {
                 }
 
                 do {
-                    try self.context.applyChangesAndSave { context in
+                    try self.context.applyChangesAndSave {
                         let visitDeleteRequest = PageVisitManagedObject.fetchRequest()
                         visitDeleteRequest.predicate = NSPredicate(format: "date < %@", date as NSDate)
 
-                        let itemsToBeDeleted = try context.fetch(visitDeleteRequest)
+                        let itemsToBeDeleted = try self.context.fetch(visitDeleteRequest)
                         for item in itemsToBeDeleted {
-                            context.delete(item)
+                            self.context.delete(item)
                         }
                     }
                 } catch {
@@ -178,7 +178,7 @@ final public class HistoryStore: HistoryStoring {
                 do {
                     var visitMOs = [PageVisitManagedObject]()
 
-                    try self.context.applyChangesAndSave { context in
+                    try self.context.applyChangesAndSave {
                         let historyEntryManagedObject: BrowsingHistoryEntryManagedObject
                         if let fetchedObject = fetchedObjects.first {
                             // Update existing
@@ -241,8 +241,8 @@ final public class HistoryStore: HistoryStoring {
                 }
 
                 do {
-                    try self.context.applyChangesAndSave { context in
-                        try self.markForDeletion(visits, context: context)
+                    try self.context.applyChangesAndSave {
+                        try self.markForDeletion(visits, context: self.context)
                     }
 
                     promise(.success(()))
