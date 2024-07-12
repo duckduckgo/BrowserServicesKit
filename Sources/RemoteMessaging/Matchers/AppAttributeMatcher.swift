@@ -102,46 +102,22 @@ public struct CommonAppAttributeMatcher: AttributeMatching {
     public func evaluate(matchingAttribute: MatchingAttribute) -> EvaluationResult? {
         switch matchingAttribute {
         case let matchingAttribute as IsInternalUserMatchingAttribute:
-            guard let value = matchingAttribute.value else {
-                return .fail
-            }
-
-            return BooleanMatchingAttribute(value).matches(value: isInternalUser)
+            return matchingAttribute.evaluate(for: isInternalUser)
         case let matchingAttribute as AppIdMatchingAttribute:
-            guard let value = matchingAttribute.value, !value.isEmpty else {
+            guard matchingAttribute.value?.isEmpty == false else {
                 return .fail
             }
-
-            return StringMatchingAttribute(value).matches(value: bundleId)
+            return matchingAttribute.evaluate(for: bundleId)
         case let matchingAttribute as AppVersionMatchingAttribute:
-            if matchingAttribute.value != MatchingAttributeDefaults.stringDefaultValue {
-                return StringMatchingAttribute(matchingAttribute.value).matches(value: appVersion)
-            } else {
-                return RangeStringNumericMatchingAttribute(min: matchingAttribute.min, max: matchingAttribute.max).matches(value: appVersion)
-            }
+            return matchingAttribute.evaluate(for: appVersion)
         case let matchingAttribute as AtbMatchingAttribute:
-            guard let atb = statisticsStore.atb, let value = matchingAttribute.value else {
-                return .fail
-            }
-
-            return StringMatchingAttribute(value).matches(value: atb)
+            return matchingAttribute.evaluate(for: statisticsStore.atb)
         case let matchingAttribute as AppAtbMatchingAttribute:
-            guard let atb = statisticsStore.appRetentionAtb, let value = matchingAttribute.value else {
-                return .fail
-            }
-
-            return StringMatchingAttribute(value).matches(value: atb)
+            return matchingAttribute.evaluate(for: statisticsStore.appRetentionAtb)
         case let matchingAttribute as SearchAtbMatchingAttribute:
-            guard let atb = statisticsStore.searchRetentionAtb, let value = matchingAttribute.value else {
-                return .fail
-            }
-            return StringMatchingAttribute(value).matches(value: atb)
+            return matchingAttribute.evaluate(for: statisticsStore.searchRetentionAtb)
         case let matchingAttribute as ExpVariantMatchingAttribute:
-            guard let variant = variantManager.currentVariant?.name, let value = matchingAttribute.value else {
-                return .fail
-            }
-
-            return StringMatchingAttribute(value).matches(value: variant)
+            return matchingAttribute.evaluate(for: variantManager.currentVariant?.name)
         default:
             return nil
         }

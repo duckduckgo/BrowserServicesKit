@@ -176,6 +176,16 @@ struct CustomHomePageMatchingAttribute: SingleValueMatching {
     var fallback: Bool?
 }
 
+struct DuckPlayerOnboardedMatchingAttribute: SingleValueMatching {
+    var value: Bool?
+    var fallback: Bool?
+}
+
+struct DuckPlayerEnabledMatchingAttribute: SingleValueMatching {
+    var value: Bool?
+    var fallback: Bool?
+}
+
 struct UnknownMatchingAttribute: MatchingAttribute, Equatable {
     var fallback: Bool?
 

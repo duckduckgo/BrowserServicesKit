@@ -53,4 +53,11 @@ extension StringRangeMatching {
             fallback: fallback
         )
     }
+
+    func evaluate(for value: String) -> EvaluationResult {
+        guard self.value == MatchingAttributeDefaults.stringDefaultValue else {
+            return StringMatchingAttribute(self.value).matches(value: value)
+        }
+        return RangeStringNumericMatchingAttribute(min: min, max: max).matches(value: value)
+    }
 }

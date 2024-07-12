@@ -109,6 +109,30 @@ class DesktopUserAttributeMatcherTests: XCTestCase {
                        .fail)
     }
 
+    // MARK: - DuckPlayerOnboarded
+
+    func testWhenDuckPlayerOnboardedMatchesThenReturnMatch() throws {
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: DuckPlayerOnboardedMatchingAttribute(value: true, fallback: nil)),
+                       .match)
+    }
+
+    func testWhenDuckPlayerOnboardedDoesNotMatchThenReturnFail() throws {
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: DuckPlayerOnboardedMatchingAttribute(value: false, fallback: nil)),
+                       .fail)
+    }
+
+    // MARK: - DuckPlayerEnabled
+
+    func testWhenDuckPlayerEnabledMatchesThenReturnMatch() throws {
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: DuckPlayerEnabledMatchingAttribute(value: false, fallback: nil)),
+                       .match)
+    }
+
+    func testWhenDuckPlayerEnabledDoesNotMatchThenReturnFail() throws {
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: DuckPlayerEnabledMatchingAttribute(value: true, fallback: nil)),
+                       .fail)
+    }
+
     // MARK: -
 
     private func setUpUserAttributeMatcher(dismissedMessageIds: [String] = []) {
@@ -130,7 +154,9 @@ class DesktopUserAttributeMatcherTests: XCTestCase {
             isPrivacyProSubscriptionExpired: false,
             dismissedMessageIds: dismissedMessageIds,
             pinnedTabsCount: 3,
-            hasCustomHomePage: true
+            hasCustomHomePage: true,
+            isDuckPlayerOnboarded: true,
+            isDuckPlayerEnabled: false
         )
     }
 }

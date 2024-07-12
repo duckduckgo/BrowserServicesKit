@@ -40,3 +40,37 @@ public extension SingleValueMatching {
         self.init(value: value, fallback: fallback)
     }
 }
+
+public extension SingleValueMatching where Value == Bool {
+    func evaluate(for value: Bool) -> EvaluationResult {
+        guard let expectedValue = self.value else {
+            return .fail
+        }
+        return BooleanMatchingAttribute(expectedValue).matches(value: value)
+    }
+}
+
+public extension SingleValueMatching where Value == String {
+    func evaluate(for value: String) -> EvaluationResult {
+        guard let expectedValue = self.value else {
+            return .fail
+        }
+        return StringMatchingAttribute(expectedValue).matches(value: value)
+    }
+
+    func evaluate(for value: String?) -> EvaluationResult {
+        guard let value, let expectedValue = self.value else {
+            return .fail
+        }
+        return StringMatchingAttribute(expectedValue).matches(value: value)
+    }
+}
+
+public extension SingleValueMatching where Value == [String] {
+    func evaluate(for value: String) -> EvaluationResult {
+        guard let expectedValue = self.value else {
+            return .fail
+        }
+        return StringArrayMatchingAttribute(expectedValue).matches(value: value)
+    }
+}

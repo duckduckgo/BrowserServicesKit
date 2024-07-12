@@ -51,4 +51,11 @@ public extension NumericRangeMatching {
             fallback: fallback
         )
     }
+
+    func evaluate(for value: Int) -> EvaluationResult {
+        guard self.value == MatchingAttributeDefaults.intDefaultValue else {
+            return IntMatchingAttribute(self.value).matches(value: value)
+        }
+        return RangeIntMatchingAttribute(min: min, max: max).matches(value: value)
+    }
 }
