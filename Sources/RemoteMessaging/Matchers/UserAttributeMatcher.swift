@@ -81,11 +81,7 @@ public struct MobileUserAttributeMatcher: AttributeMatching {
     public func evaluate(matchingAttribute: MatchingAttribute) -> EvaluationResult? {
         switch matchingAttribute {
         case let matchingAttribute as WidgetAddedMatchingAttribute:
-            guard let value = matchingAttribute.value else {
-                return .fail
-            }
-
-            return BooleanMatchingAttribute(value).matches(value: isWidgetInstalled)
+            return matchingAttribute.evaluate(for: isWidgetInstalled)
         default:
             return commonUserAttributeMatcher.evaluate(matchingAttribute: matchingAttribute)
         }
@@ -150,11 +146,7 @@ public struct DesktopUserAttributeMatcher: AttributeMatching {
     public func evaluate(matchingAttribute: MatchingAttribute) -> EvaluationResult? {
         switch matchingAttribute {
         case let matchingAttribute as PinnedTabsMatchingAttribute:
-            if matchingAttribute.value != MatchingAttributeDefaults.intDefaultValue {
-                return IntMatchingAttribute(matchingAttribute.value).matches(value: pinnedTabsCount)
-            } else {
-                return RangeIntMatchingAttribute(min: matchingAttribute.min, max: matchingAttribute.max).matches(value: pinnedTabsCount)
-            }
+            return matchingAttribute.evaluate(for: pinnedTabsCount)
         case let matchingAttribute as CustomHomePageMatchingAttribute:
             return matchingAttribute.evaluate(for: hasCustomHomePage)
         case let matchingAttribute as DuckPlayerOnboardedMatchingAttribute:
