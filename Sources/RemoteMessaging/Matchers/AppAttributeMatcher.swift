@@ -61,11 +61,7 @@ public struct DesktopAppAttributeMatcher: AttributeMatching {
     public func evaluate(matchingAttribute: MatchingAttribute) -> EvaluationResult? {
         switch matchingAttribute {
         case let matchingAttribute as IsInstalledMacAppStoreMatchingAttribute:
-            guard let value = matchingAttribute.value else {
-                return .fail
-            }
-
-            return BooleanMatchingAttribute(value).matches(value: isInstalledMacAppStore)
+            return matchingAttribute.evaluate(for: isInstalledMacAppStore)
         default:
             return commonAppAttributeMatcher.evaluate(matchingAttribute: matchingAttribute)
         }
