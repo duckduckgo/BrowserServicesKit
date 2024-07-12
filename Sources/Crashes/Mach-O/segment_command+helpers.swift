@@ -1,7 +1,7 @@
 //
-//  CrashHandler.swift
+//  segment_command+helpers.swift
 //
-//  Copyright © 2023 DuckDuckGo. All rights reserved.
+//  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -16,17 +16,19 @@
 //  limitations under the License.
 //
 
+import Common
 import Foundation
-import MetricKit
+import MachO
 
-@available(iOSApplicationExtension, unavailable)
-@available(iOS 13, macOS 12, *)
-final class CrashHandler: NSObject, MXMetricManagerSubscriber {
+extension UnsafePointer where Pointee == segment_command_64 {
 
-    var crashDiagnosticsPayloadHandler: ([MXDiagnosticPayload]) -> Void = { _ in }
+    var segname: String {
+        String(cString: UnsafeRawPointer(pointer(to: \.segname))!.assumingMemoryBound(to: CChar.self))
+    }
 
-    func didReceive(_ payloads: [MXDiagnosticPayload]) {
-        crashDiagnosticsPayloadHandler(payloads)
+    var sections: UnsafeBufferPointer<section_64> {
+        UnsafeBufferPointer(start: UnsafeRawPointer(self).advanced(by: MemoryLayout<segment_command_64>.size).assumingMemoryBound(to: section_64.self),
+                            count: Int(self.pointee.nsects))
     }
 
 }
