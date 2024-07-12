@@ -16,8 +16,8 @@
 //  limitations under the License.
 //
 
-#ifndef HDR_KSCrashMonitor_CPPException_h
-#define HDR_KSCrashMonitor_CPPException_h
+#ifndef NSException_cxxHandler_h
+#define NSException_cxxHandler_h
 
 #import <Foundation/Foundation.h>
 
@@ -26,6 +26,7 @@ NS_ASSUME_NONNULL_BEGIN
 #ifdef __cplusplus
 extern "C" {
 #endif
+
 typedef void (*terminate_handler)();
 
 /// Set unhandled C++ exception handler (`std::terminate`)
@@ -54,4 +55,4 @@ void captureStackTrace(void* _Nullable exc, void* _Nullable tinfo, void (* _Null
 
 NS_ASSUME_NONNULL_END
 
-#endif // HDR_KSCrashMonitor_CPPException_h
+#endif // NSException_cxxHandler_h
