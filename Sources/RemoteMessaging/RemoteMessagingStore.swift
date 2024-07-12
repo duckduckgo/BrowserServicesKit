@@ -379,6 +379,7 @@ extension RemoteMessagingStore {
                 os_log("Failed to reset remote messages", log: log, type: .error)
             }
         }
+        notificationCenter.post(name: Notifications.remoteMessagesDidChange, object: nil)
     }
 }
 
