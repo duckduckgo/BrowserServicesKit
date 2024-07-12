@@ -19,461 +19,171 @@
 import Foundation
 import Common
 
-private enum RuleAttributes {
-    static let min = "min"
-    static let max = "max"
-    static let value = "value"
-    static let fallback = "fallback"
-    static let since = "since"
-}
-
-public protocol MatchingAttribute {
-    var fallback: Bool? { get }
-}
-
-struct LocaleMatchingAttribute: MatchingAttribute, Equatable {
-    var value: [String] = []
+struct LocaleMatchingAttribute: SingleValueMatching {
+    var value: [String]? = []
     var fallback: Bool?
 
-    init(jsonMatchingAttribute: AnyDecodable) {
-        guard let jsonMatchingAttribute = jsonMatchingAttribute.value as? [String: Any] else {
-            return
-        }
-        if let value = jsonMatchingAttribute[RuleAttributes.value] as? [String] {
-            self.value = value
-        }
-        if let fallback = jsonMatchingAttribute[RuleAttributes.fallback] as? Bool {
-            self.fallback = fallback
-        }
-    }
-
-    init(value: [String], fallback: Bool?) {
-        self.value = value
-        self.fallback = fallback
-    }
-
-    static func == (lhs: LocaleMatchingAttribute, rhs: LocaleMatchingAttribute) -> Bool {
-        return lhs.value == rhs.value && lhs.fallback == rhs.fallback
-    }
-
     static func localeIdentifierAsJsonFormat(_ localeIdentifier: String) -> String {
-        return localeIdentifier.replacingOccurrences(of: "_", with: "-")
+        let baseIdentifier = localeIdentifier.components(separatedBy: "@").first ?? localeIdentifier
+        return baseIdentifier.replacingOccurrences(of: "_", with: "-")
     }
 }
 
-struct OSMatchingAttribute: MatchingAttribute, Equatable {
+struct OSMatchingAttribute: StringRangeMatching {
+    static let defaultMaxValue: String = AppVersion.shared.osVersion
+
     var min: String = MatchingAttributeDefaults.stringDefaultValue
     var max: String = AppVersion.shared.osVersion
     var value: String = MatchingAttributeDefaults.stringDefaultValue
     var fallback: Bool?
-
-    init(jsonMatchingAttribute: AnyDecodable) {
-        guard let jsonMatchingAttribute = jsonMatchingAttribute.value as? [String: Any] else { return }
-
-        if let min = jsonMatchingAttribute[RuleAttributes.min] as? String {
-            self.min = min
-        }
-        if let max = jsonMatchingAttribute[RuleAttributes.max] as? String {
-            self.max = max
-        }
-        if let value = jsonMatchingAttribute[RuleAttributes.value] as? String {
-            self.value = value
-        }
-        if let fallback = jsonMatchingAttribute[RuleAttributes.fallback] as? Bool {
-            self.fallback = fallback
-        }
-    }
-
-    init(min: String = MatchingAttributeDefaults.stringDefaultValue,
-         max: String = AppVersion.shared.osVersion,
-         value: String = MatchingAttributeDefaults.stringDefaultValue,
-         fallback: Bool?) {
-        self.min = min
-        self.max = max
-        self.value = value
-        self.fallback = fallback
-    }
-
-    static func == (lhs: OSMatchingAttribute, rhs: OSMatchingAttribute) -> Bool {
-        return lhs.min == rhs.min && lhs.max == rhs.max && lhs.value == rhs.value && lhs.fallback == rhs.fallback
-    }
 }
 
-struct IsInternalUserMatchingAttribute: MatchingAttribute, Equatable {
+struct IsInternalUserMatchingAttribute: SingleValueMatching {
     var value: Bool?
     var fallback: Bool?
-
-    init(jsonMatchingAttribute: AnyDecodable) {
-        guard let jsonMatchingAttribute = jsonMatchingAttribute.value as? [String: Any] else { return }
-
-        if let value = jsonMatchingAttribute[RuleAttributes.value] as? Bool {
-            self.value = value
-        }
-        if let fallback = jsonMatchingAttribute[RuleAttributes.fallback] as? Bool {
-            self.fallback = fallback
-        }
-    }
-
-    init(value: Bool?, fallback: Bool?) {
-        self.value = value
-        self.fallback = fallback
-    }
-
-    static func == (lhs: IsInternalUserMatchingAttribute, rhs: IsInternalUserMatchingAttribute) -> Bool {
-        return lhs.value == rhs.value && lhs.fallback == rhs.fallback
-    }
 }
 
-struct AppIdMatchingAttribute: MatchingAttribute, Equatable {
+struct AppIdMatchingAttribute: SingleValueMatching {
     var value: String?
     var fallback: Bool?
-
-    init(jsonMatchingAttribute: AnyDecodable) {
-        guard let jsonMatchingAttribute = jsonMatchingAttribute.value as? [String: Any] else { return }
-
-        if let value = jsonMatchingAttribute[RuleAttributes.value] as? String {
-            self.value = value
-        }
-        if let fallback = jsonMatchingAttribute[RuleAttributes.fallback] as? Bool {
-            self.fallback = fallback
-        }
-    }
-
-    init(value: String?, fallback: Bool?) {
-        self.value = value
-        self.fallback = fallback
-    }
-
-    static func == (lhs: AppIdMatchingAttribute, rhs: AppIdMatchingAttribute) -> Bool {
-        return lhs.value == rhs.value && lhs.fallback == rhs.fallback
-    }
 }
 
-struct AppVersionMatchingAttribute: MatchingAttribute, Equatable {
+struct AppVersionMatchingAttribute: StringRangeMatching {
+    static let defaultMaxValue: String = AppVersion.shared.versionAndBuildNumber
+
     var min: String = MatchingAttributeDefaults.stringDefaultValue
     var max: String = AppVersion.shared.versionAndBuildNumber
     var value: String = MatchingAttributeDefaults.stringDefaultValue
     var fallback: Bool?
-
-    init(jsonMatchingAttribute: AnyDecodable) {
-        guard let jsonMatchingAttribute = jsonMatchingAttribute.value as? [String: Any] else { return }
-
-        if let min = jsonMatchingAttribute[RuleAttributes.min] as? String {
-            self.min = min
-        }
-        if let max = jsonMatchingAttribute[RuleAttributes.max] as? String {
-            self.max = max
-        }
-        if let value = jsonMatchingAttribute[RuleAttributes.value] as? String {
-            self.value = value
-        }
-        if let fallback = jsonMatchingAttribute[RuleAttributes.fallback] as? Bool {
-            self.fallback = fallback
-        }
-    }
-
-    init(min: String = MatchingAttributeDefaults.stringDefaultValue,
-         max: String = AppVersion.shared.versionAndBuildNumber,
-         value: String = MatchingAttributeDefaults.stringDefaultValue,
-         fallback: Bool?) {
-        self.min = min
-        self.max = max
-        self.value = value
-        self.fallback = fallback
-    }
-
-    static func == (lhs: AppVersionMatchingAttribute, rhs: AppVersionMatchingAttribute) -> Bool {
-        return lhs.min == rhs.min && lhs.max == rhs.max && lhs.value == rhs.value && lhs.fallback == rhs.fallback
-    }
 }
 
-struct AtbMatchingAttribute: MatchingAttribute, Equatable {
+struct AtbMatchingAttribute: SingleValueMatching {
     var value: String?
     var fallback: Bool?
-
-    init(jsonMatchingAttribute: AnyDecodable) {
-        guard let jsonMatchingAttribute = jsonMatchingAttribute.value as? [String: Any] else { return }
-
-        if let value = jsonMatchingAttribute[RuleAttributes.value] as? String {
-            self.value = value
-        }
-        if let fallback = jsonMatchingAttribute[RuleAttributes.fallback] as? Bool {
-            self.fallback = fallback
-        }
-    }
-
-    init(value: String?, fallback: Bool?) {
-        self.value = value
-        self.fallback = fallback
-    }
-
-    static func == (lhs: AtbMatchingAttribute, rhs: AtbMatchingAttribute) -> Bool {
-        return lhs.value == rhs.value && lhs.fallback == rhs.fallback
-    }
 }
 
-struct AppAtbMatchingAttribute: MatchingAttribute, Equatable {
+struct AppAtbMatchingAttribute: SingleValueMatching {
     var value: String?
     var fallback: Bool?
-
-    init(jsonMatchingAttribute: AnyDecodable) {
-        guard let jsonMatchingAttribute = jsonMatchingAttribute.value as? [String: Any] else { return }
-
-        if let value = jsonMatchingAttribute[RuleAttributes.value] as? String {
-            self.value = value
-        }
-        if let fallback = jsonMatchingAttribute[RuleAttributes.fallback] as? Bool {
-            self.fallback = fallback
-        }
-    }
-
-    init(value: String?, fallback: Bool?) {
-        self.value = value
-        self.fallback = fallback
-    }
-
-    static func == (lhs: AppAtbMatchingAttribute, rhs: AppAtbMatchingAttribute) -> Bool {
-        return lhs.value == rhs.value && lhs.fallback == rhs.fallback
-    }
 }
 
-struct SearchAtbMatchingAttribute: MatchingAttribute, Equatable {
+struct SearchAtbMatchingAttribute: SingleValueMatching {
     var value: String?
     var fallback: Bool?
-
-    init(jsonMatchingAttribute: AnyDecodable) {
-        guard let jsonMatchingAttribute = jsonMatchingAttribute.value as? [String: Any] else { return }
-
-        if let value = jsonMatchingAttribute[RuleAttributes.value] as? String {
-            self.value = value
-        }
-        if let fallback = jsonMatchingAttribute[RuleAttributes.fallback] as? Bool {
-            self.fallback = fallback
-        }
-    }
-
-    init(value: String?, fallback: Bool?) {
-        self.value = value
-        self.fallback = fallback
-    }
-
-    static func == (lhs: SearchAtbMatchingAttribute, rhs: SearchAtbMatchingAttribute) -> Bool {
-        return lhs.value == rhs.value && lhs.fallback == rhs.fallback
-    }
 }
 
-struct ExpVariantMatchingAttribute: MatchingAttribute, Equatable {
+struct ExpVariantMatchingAttribute: SingleValueMatching {
     var value: String?
     var fallback: Bool?
-
-    init(jsonMatchingAttribute: AnyDecodable) {
-        guard let jsonMatchingAttribute = jsonMatchingAttribute.value as? [String: Any] else { return }
-
-        if let value = jsonMatchingAttribute[RuleAttributes.value] as? String {
-            self.value = value
-        }
-        if let fallback = jsonMatchingAttribute[RuleAttributes.fallback] as? Bool {
-            self.fallback = fallback
-        }
-    }
-
-    init(value: String?, fallback: Bool?) {
-        self.value = value
-        self.fallback = fallback
-    }
-
-    static func == (lhs: ExpVariantMatchingAttribute, rhs: ExpVariantMatchingAttribute) -> Bool {
-        return lhs.value == rhs.value && lhs.fallback == rhs.fallback
-    }
 }
 
-struct EmailEnabledMatchingAttribute: MatchingAttribute, Equatable {
+struct EmailEnabledMatchingAttribute: SingleValueMatching {
     var value: Bool?
     var fallback: Bool?
-
-    init(jsonMatchingAttribute: AnyDecodable) {
-        guard let jsonMatchingAttribute = jsonMatchingAttribute.value as? [String: Any] else { return }
-
-        if let value = jsonMatchingAttribute[RuleAttributes.value] as? Bool {
-            self.value = value
-        }
-        if let fallback = jsonMatchingAttribute[RuleAttributes.fallback] as? Bool {
-            self.fallback = fallback
-        }
-    }
-
-    init(value: Bool?, fallback: Bool?) {
-        self.value = value
-        self.fallback = fallback
-    }
-
-    static func == (lhs: EmailEnabledMatchingAttribute, rhs: EmailEnabledMatchingAttribute) -> Bool {
-        return lhs.value == rhs.value && lhs.fallback == rhs.fallback
-    }
 }
 
-struct WidgetAddedMatchingAttribute: MatchingAttribute, Equatable {
+struct WidgetAddedMatchingAttribute: SingleValueMatching {
     var value: Bool?
     var fallback: Bool?
-
-    init(jsonMatchingAttribute: AnyDecodable) {
-        guard let jsonMatchingAttribute = jsonMatchingAttribute.value as? [String: Any] else { return }
-
-        if let value = jsonMatchingAttribute[RuleAttributes.value] as? Bool {
-            self.value = value
-        }
-        if let fallback = jsonMatchingAttribute[RuleAttributes.fallback] as? Bool {
-            self.fallback = fallback
-        }
-    }
-
-    init(value: Bool?, fallback: Bool?) {
-        self.value = value
-        self.fallback = fallback
-    }
-
-    static func == (lhs: WidgetAddedMatchingAttribute, rhs: WidgetAddedMatchingAttribute) -> Bool {
-        return lhs.value == rhs.value && lhs.fallback == rhs.fallback
-    }
 }
 
-struct BookmarksMatchingAttribute: MatchingAttribute, Equatable {
+struct BookmarksMatchingAttribute: NumericRangeMatching {
     var min: Int = MatchingAttributeDefaults.intDefaultValue
     var max: Int = MatchingAttributeDefaults.intDefaultMaxValue
     var value: Int = MatchingAttributeDefaults.intDefaultValue
     var fallback: Bool?
-
-    init(jsonMatchingAttribute: AnyDecodable) {
-        guard let jsonMatchingAttribute = jsonMatchingAttribute.value as? [String: Any] else { return }
-
-        if let min = jsonMatchingAttribute[RuleAttributes.min] as? Int {
-            self.min = min
-        }
-        if let max = jsonMatchingAttribute[RuleAttributes.max] as? Int {
-            self.max = max
-        }
-        if let value = jsonMatchingAttribute[RuleAttributes.value] as? Int {
-            self.value = value
-        }
-        if let fallback = jsonMatchingAttribute[RuleAttributes.fallback] as? Bool {
-            self.fallback = fallback
-        }
-    }
-
-    init(min: Int = MatchingAttributeDefaults.intDefaultValue,
-         max: Int = MatchingAttributeDefaults.intDefaultMaxValue,
-         value: Int = MatchingAttributeDefaults.intDefaultValue,
-         fallback: Bool?) {
-        self.min = min
-        self.max = max
-        self.value = value
-        self.fallback = fallback
-    }
-
-    static func == (lhs: BookmarksMatchingAttribute, rhs: BookmarksMatchingAttribute) -> Bool {
-        return lhs.min == rhs.min && lhs.max == rhs.max && lhs.value == rhs.value && lhs.fallback == rhs.fallback
-    }
 }
 
-struct FavoritesMatchingAttribute: MatchingAttribute, Equatable {
+struct FavoritesMatchingAttribute: NumericRangeMatching {
     var min: Int = MatchingAttributeDefaults.intDefaultValue
     var max: Int = MatchingAttributeDefaults.intDefaultMaxValue
     var value: Int = MatchingAttributeDefaults.intDefaultValue
     var fallback: Bool?
-
-    init(jsonMatchingAttribute: AnyDecodable) {
-        guard let jsonMatchingAttribute = jsonMatchingAttribute.value as? [String: Any] else { return }
-
-        if let min = jsonMatchingAttribute[RuleAttributes.min] as? Int {
-            self.min = min
-        }
-        if let max = jsonMatchingAttribute[RuleAttributes.max] as? Int {
-            self.max = max
-        }
-        if let value = jsonMatchingAttribute[RuleAttributes.value] as? Int {
-            self.value = value
-        }
-        if let fallback = jsonMatchingAttribute[RuleAttributes.fallback] as? Bool {
-            self.fallback = fallback
-        }
-    }
-
-    init(min: Int = MatchingAttributeDefaults.intDefaultValue,
-         max: Int = MatchingAttributeDefaults.intDefaultMaxValue,
-         value: Int = MatchingAttributeDefaults.intDefaultValue,
-         fallback: Bool?) {
-        self.min = min
-        self.max = max
-        self.value = value
-        self.fallback = fallback
-    }
-
-    static func == (lhs: FavoritesMatchingAttribute, rhs: FavoritesMatchingAttribute) -> Bool {
-        return lhs.min == rhs.min && lhs.max == rhs.max && lhs.value == rhs.value && lhs.fallback == rhs.fallback
-    }
 }
 
-struct AppThemeMatchingAttribute: MatchingAttribute, Equatable {
+struct AppThemeMatchingAttribute: SingleValueMatching {
     var value: String?
     var fallback: Bool?
-
-    init(jsonMatchingAttribute: AnyDecodable) {
-        guard let jsonMatchingAttribute = jsonMatchingAttribute.value as? [String: Any] else { return }
-
-        if let value = jsonMatchingAttribute[RuleAttributes.value] as? String {
-            self.value = value
-        }
-        if let fallback = jsonMatchingAttribute[RuleAttributes.fallback] as? Bool {
-            self.fallback = fallback
-        }
-    }
-
-    init(value: String?, fallback: Bool?) {
-        self.value = value
-        self.fallback = fallback
-    }
-
-    static func == (lhs: AppThemeMatchingAttribute, rhs: AppThemeMatchingAttribute) -> Bool {
-        return lhs.value == rhs.value && lhs.fallback == rhs.fallback
-    }
 }
 
-struct DaysSinceInstalledMatchingAttribute: MatchingAttribute, Equatable {
+struct DaysSinceInstalledMatchingAttribute: NumericRangeMatching {
     var min: Int = MatchingAttributeDefaults.intDefaultValue
     var max: Int = MatchingAttributeDefaults.intDefaultMaxValue
     var value: Int = MatchingAttributeDefaults.intDefaultValue
     var fallback: Bool?
+}
 
-    init(jsonMatchingAttribute: AnyDecodable) {
-        guard let jsonMatchingAttribute = jsonMatchingAttribute.value as? [String: Any] else { return }
+struct DaysSinceNetPEnabledMatchingAttribute: NumericRangeMatching {
+    var min: Int = MatchingAttributeDefaults.intDefaultValue
+    var max: Int = MatchingAttributeDefaults.intDefaultMaxValue
+    var value: Int = MatchingAttributeDefaults.intDefaultValue
+    var fallback: Bool?
+}
 
-        if let min = jsonMatchingAttribute[RuleAttributes.min] as? Int {
-            self.min = min
-        }
-        if let max = jsonMatchingAttribute[RuleAttributes.max] as? Int {
-            self.max = max
-        }
-        if let value = jsonMatchingAttribute[RuleAttributes.value] as? Int {
-            self.value = value
-        }
-        if let fallback = jsonMatchingAttribute[RuleAttributes.fallback] as? Bool {
-            self.fallback = fallback
-        }
-    }
+struct IsPrivacyProEligibleUserMatchingAttribute: SingleValueMatching {
+    var value: Bool?
+    var fallback: Bool?
+}
 
-    init(min: Int = MatchingAttributeDefaults.intDefaultValue,
-         max: Int = MatchingAttributeDefaults.intDefaultMaxValue,
-         value: Int = MatchingAttributeDefaults.intDefaultValue,
-         fallback: Bool?) {
-        self.min = min
-        self.max = max
-        self.value = value
-        self.fallback = fallback
-    }
+struct IsPrivacyProSubscriberUserMatchingAttribute: SingleValueMatching {
+    var value: Bool?
+    var fallback: Bool?
+}
 
-    static func == (lhs: DaysSinceInstalledMatchingAttribute, rhs: DaysSinceInstalledMatchingAttribute) -> Bool {
-        return lhs.min == rhs.min && lhs.max == rhs.max && lhs.value == rhs.value && lhs.fallback == rhs.fallback
-    }
+struct PrivacyProDaysSinceSubscribedMatchingAttribute: NumericRangeMatching {
+    var min: Int = MatchingAttributeDefaults.intDefaultValue
+    var max: Int = MatchingAttributeDefaults.intDefaultMaxValue
+    var value: Int = MatchingAttributeDefaults.intDefaultValue
+    var fallback: Bool?
+}
+
+struct PrivacyProDaysUntilExpiryMatchingAttribute: NumericRangeMatching {
+    var min: Int = MatchingAttributeDefaults.intDefaultValue
+    var max: Int = MatchingAttributeDefaults.intDefaultMaxValue
+    var value: Int = MatchingAttributeDefaults.intDefaultValue
+    var fallback: Bool?
+}
+
+struct PrivacyProPurchasePlatformMatchingAttribute: SingleValueMatching {
+    var value: [String]? = []
+    var fallback: Bool?
+}
+
+struct PrivacyProSubscriptionStatusMatchingAttribute: SingleValueMatching {
+    var value: [String]? = []
+    var fallback: Bool?
+}
+
+struct InteractedWithMessageMatchingAttribute: SingleValueMatching {
+    var value: [String]? = []
+    var fallback: Bool?
+}
+
+struct IsInstalledMacAppStoreMatchingAttribute: SingleValueMatching {
+    var value: Bool?
+    var fallback: Bool?
+}
+
+struct PinnedTabsMatchingAttribute: NumericRangeMatching {
+    var min: Int = MatchingAttributeDefaults.intDefaultValue
+    var max: Int = MatchingAttributeDefaults.intDefaultMaxValue
+    var value: Int = MatchingAttributeDefaults.intDefaultValue
+    var fallback: Bool?
+}
+
+struct CustomHomePageMatchingAttribute: SingleValueMatching {
+    var value: Bool?
+    var fallback: Bool?
+}
+
+struct DuckPlayerOnboardedMatchingAttribute: SingleValueMatching {
+    var value: Bool?
+    var fallback: Bool?
+}
+
+struct DuckPlayerEnabledMatchingAttribute: SingleValueMatching {
+    var value: Bool?
+    var fallback: Bool?
 }
 
 struct UnknownMatchingAttribute: MatchingAttribute, Equatable {
@@ -490,11 +200,9 @@ struct UnknownMatchingAttribute: MatchingAttribute, Equatable {
     init(fallback: Bool?) {
         self.fallback = fallback
     }
-
-    static func == (lhs: UnknownMatchingAttribute, rhs: UnknownMatchingAttribute) -> Bool {
-        return lhs.fallback == rhs.fallback
-    }
 }
+
+// MARK: -
 
 struct BooleanMatchingAttribute: Equatable {
     var value: Bool
@@ -505,10 +213,6 @@ struct BooleanMatchingAttribute: Equatable {
 
     func matches(value: Bool) -> EvaluationResult {
         return EvaluationResultModel.result(value: self.value == value)
-    }
-
-    static func == (lhs: BooleanMatchingAttribute, rhs: BooleanMatchingAttribute) -> Bool {
-        return lhs.value == rhs.value
     }
 }
 
@@ -522,10 +226,6 @@ struct IntMatchingAttribute: Equatable {
     func matches(value: Int) -> EvaluationResult {
         return EvaluationResultModel.result(value: self.value == value)
     }
-
-    static func == (lhs: IntMatchingAttribute, rhs: IntMatchingAttribute) -> Bool {
-        return lhs.value == rhs.value
-    }
 }
 
 struct RangeIntMatchingAttribute: Equatable {
@@ -534,10 +234,6 @@ struct RangeIntMatchingAttribute: Equatable {
 
     func matches(value: Int) -> EvaluationResult {
         return EvaluationResultModel.result(value: (value >= self.min) && (value <= self.max))
-    }
-
-    static func == (lhs: RangeIntMatchingAttribute, rhs: RangeIntMatchingAttribute) -> Bool {
-        return lhs.min == rhs.min && lhs.max == rhs.max
     }
 }
 
@@ -551,25 +247,17 @@ struct StringMatchingAttribute: Equatable {
     func matches(value: String) -> EvaluationResult {
         return EvaluationResultModel.result(value: self.value == value.lowercased())
     }
-
-    static func == (lhs: StringMatchingAttribute, rhs: StringMatchingAttribute) -> Bool {
-        return lhs.value == rhs.value
-    }
 }
 
 struct StringArrayMatchingAttribute: Equatable {
     var values: [String]
 
-    init(_ values: [String]) {
-        self.values = values.map { $0.lowercased() }
+    init(_ values: [String]?) {
+        self.values = (values ?? []).map { $0.lowercased() }
     }
 
     func matches(value: String) -> EvaluationResult {
         return EvaluationResultModel.result(value: values.contains(value.lowercased()))
-    }
-
-    static func == (lhs: StringArrayMatchingAttribute, rhs: StringArrayMatchingAttribute) -> Bool {
-        return lhs.values == rhs.values
     }
 }
 
@@ -602,256 +290,4 @@ struct RangeStringNumericMatchingAttribute: Equatable {
 
         return version + String(repeating: ".0", count: matchComponents.count - versionComponents.count)
     }
-
-    static func == (lhs: RangeStringNumericMatchingAttribute, rhs: RangeStringNumericMatchingAttribute) -> Bool {
-        return lhs.min == rhs.min && lhs.max == rhs.max
-    }
-}
-
-struct DaysSinceNetPEnabledMatchingAttribute: MatchingAttribute, Equatable {
-    var min: Int = MatchingAttributeDefaults.intDefaultValue
-    var max: Int = MatchingAttributeDefaults.intDefaultMaxValue
-    var value: Int = MatchingAttributeDefaults.intDefaultValue
-    var fallback: Bool?
-
-    init(jsonMatchingAttribute: AnyDecodable) {
-        guard let jsonMatchingAttribute = jsonMatchingAttribute.value as? [String: Any] else { return }
-
-        if let min = jsonMatchingAttribute[RuleAttributes.min] as? Int {
-            self.min = min
-        }
-        if let max = jsonMatchingAttribute[RuleAttributes.max] as? Int {
-            self.max = max
-        }
-        if let value = jsonMatchingAttribute[RuleAttributes.value] as? Int {
-            self.value = value
-        }
-        if let fallback = jsonMatchingAttribute[RuleAttributes.fallback] as? Bool {
-            self.fallback = fallback
-        }
-    }
-
-    init(min: Int = MatchingAttributeDefaults.intDefaultValue,
-         max: Int = MatchingAttributeDefaults.intDefaultMaxValue,
-         value: Int = MatchingAttributeDefaults.intDefaultValue,
-         fallback: Bool?) {
-        self.min = min
-        self.max = max
-        self.value = value
-        self.fallback = fallback
-    }
-
-    static func == (lhs: DaysSinceNetPEnabledMatchingAttribute, rhs: DaysSinceNetPEnabledMatchingAttribute) -> Bool {
-        return lhs.min == rhs.min && lhs.max == rhs.max && lhs.value == rhs.value && lhs.fallback == rhs.fallback
-    }
-}
-
-struct IsPrivacyProEligibleUserMatchingAttribute: MatchingAttribute, Equatable {
-    var value: Bool?
-    var fallback: Bool?
-
-    init(jsonMatchingAttribute: AnyDecodable) {
-        guard let jsonMatchingAttribute = jsonMatchingAttribute.value as? [String: Any] else { return }
-
-        if let value = jsonMatchingAttribute[RuleAttributes.value] as? Bool {
-            self.value = value
-        }
-        if let fallback = jsonMatchingAttribute[RuleAttributes.fallback] as? Bool {
-            self.fallback = fallback
-        }
-    }
-
-    init(value: Bool?, fallback: Bool?) {
-        self.value = value
-        self.fallback = fallback
-    }
-
-    static func == (lhs: IsPrivacyProEligibleUserMatchingAttribute, rhs: IsPrivacyProEligibleUserMatchingAttribute) -> Bool {
-        return lhs.value == rhs.value && lhs.fallback == rhs.fallback
-    }
-}
-
-struct IsPrivacyProSubscriberUserMatchingAttribute: MatchingAttribute, Equatable {
-    var value: Bool?
-    var fallback: Bool?
-
-    init(jsonMatchingAttribute: AnyDecodable) {
-        guard let jsonMatchingAttribute = jsonMatchingAttribute.value as? [String: Any] else { return }
-
-        if let value = jsonMatchingAttribute[RuleAttributes.value] as? Bool {
-            self.value = value
-        }
-        if let fallback = jsonMatchingAttribute[RuleAttributes.fallback] as? Bool {
-            self.fallback = fallback
-        }
-    }
-
-    init(value: Bool?, fallback: Bool?) {
-        self.value = value
-        self.fallback = fallback
-    }
-
-    static func == (lhs: IsPrivacyProSubscriberUserMatchingAttribute, rhs: IsPrivacyProSubscriberUserMatchingAttribute) -> Bool {
-        return lhs.value == rhs.value && lhs.fallback == rhs.fallback
-    }
-}
-
-struct PrivacyProDaysSinceSubscribedMatchingAttribute: MatchingAttribute, Equatable {
-    var min: Int = MatchingAttributeDefaults.intDefaultValue
-    var max: Int = MatchingAttributeDefaults.intDefaultMaxValue
-    var value: Int = MatchingAttributeDefaults.intDefaultValue
-    var fallback: Bool?
-
-    init(jsonMatchingAttribute: AnyDecodable) {
-        guard let jsonMatchingAttribute = jsonMatchingAttribute.value as? [String: Any] else { return }
-
-        if let min = jsonMatchingAttribute[RuleAttributes.min] as? Int {
-            self.min = min
-        }
-        if let max = jsonMatchingAttribute[RuleAttributes.max] as? Int {
-            self.max = max
-        }
-        if let value = jsonMatchingAttribute[RuleAttributes.value] as? Int {
-            self.value = value
-        }
-        if let fallback = jsonMatchingAttribute[RuleAttributes.fallback] as? Bool {
-            self.fallback = fallback
-        }
-    }
-
-    init(min: Int = MatchingAttributeDefaults.intDefaultValue,
-         max: Int = MatchingAttributeDefaults.intDefaultMaxValue,
-         value: Int = MatchingAttributeDefaults.intDefaultValue,
-         fallback: Bool?) {
-        self.min = min
-        self.max = max
-        self.value = value
-        self.fallback = fallback
-    }
-
-    static func == (lhs: PrivacyProDaysSinceSubscribedMatchingAttribute, rhs: PrivacyProDaysSinceSubscribedMatchingAttribute) -> Bool {
-        return lhs.min == rhs.min && lhs.max == rhs.max && lhs.value == rhs.value && lhs.fallback == rhs.fallback
-    }
-}
-
-struct PrivacyProDaysUntilExpiryMatchingAttribute: MatchingAttribute, Equatable {
-    var min: Int = MatchingAttributeDefaults.intDefaultValue
-    var max: Int = MatchingAttributeDefaults.intDefaultMaxValue
-    var value: Int = MatchingAttributeDefaults.intDefaultValue
-    var fallback: Bool?
-
-    init(jsonMatchingAttribute: AnyDecodable) {
-        guard let jsonMatchingAttribute = jsonMatchingAttribute.value as? [String: Any] else { return }
-
-        if let min = jsonMatchingAttribute[RuleAttributes.min] as? Int {
-            self.min = min
-        }
-        if let max = jsonMatchingAttribute[RuleAttributes.max] as? Int {
-            self.max = max
-        }
-        if let value = jsonMatchingAttribute[RuleAttributes.value] as? Int {
-            self.value = value
-        }
-        if let fallback = jsonMatchingAttribute[RuleAttributes.fallback] as? Bool {
-            self.fallback = fallback
-        }
-    }
-
-    init(min: Int = MatchingAttributeDefaults.intDefaultValue,
-         max: Int = MatchingAttributeDefaults.intDefaultMaxValue,
-         value: Int = MatchingAttributeDefaults.intDefaultValue,
-         fallback: Bool?) {
-        self.min = min
-        self.max = max
-        self.value = value
-        self.fallback = fallback
-    }
-
-    static func == (lhs: PrivacyProDaysUntilExpiryMatchingAttribute, rhs: PrivacyProDaysUntilExpiryMatchingAttribute) -> Bool {
-        return lhs.min == rhs.min && lhs.max == rhs.max && lhs.value == rhs.value && lhs.fallback == rhs.fallback
-    }
-}
-
-struct PrivacyProPurchasePlatformMatchingAttribute: MatchingAttribute, Equatable {
-    var value: [String] = []
-    var fallback: Bool?
-
-    init(jsonMatchingAttribute: AnyDecodable) {
-        guard let jsonMatchingAttribute = jsonMatchingAttribute.value as? [String: Any] else {
-            return
-        }
-        if let value = jsonMatchingAttribute[RuleAttributes.value] as? [String] {
-            self.value = value
-        }
-        if let fallback = jsonMatchingAttribute[RuleAttributes.fallback] as? Bool {
-            self.fallback = fallback
-        }
-    }
-
-    init(value: [String], fallback: Bool?) {
-        self.value = value
-        self.fallback = fallback
-    }
-
-    static func == (lhs: PrivacyProPurchasePlatformMatchingAttribute, rhs: PrivacyProPurchasePlatformMatchingAttribute) -> Bool {
-        return lhs.value == rhs.value && lhs.fallback == rhs.fallback
-    }
-}
-
-struct PrivacyProSubscriptionStatusMatchingAttribute: MatchingAttribute, Equatable {
-    var value: [String] = []
-    var fallback: Bool?
-
-    init(jsonMatchingAttribute: AnyDecodable) {
-        guard let jsonMatchingAttribute = jsonMatchingAttribute.value as? [String: Any] else {
-            return
-        }
-        if let value = jsonMatchingAttribute[RuleAttributes.value] as? [String] {
-            self.value = value
-        }
-        if let fallback = jsonMatchingAttribute[RuleAttributes.fallback] as? Bool {
-            self.fallback = fallback
-        }
-    }
-
-    init(value: [String], fallback: Bool?) {
-        self.value = value
-        self.fallback = fallback
-    }
-
-    static func == (lhs: PrivacyProSubscriptionStatusMatchingAttribute, rhs: PrivacyProSubscriptionStatusMatchingAttribute) -> Bool {
-        return lhs.value == rhs.value && lhs.fallback == rhs.fallback
-    }
-}
-
-struct InteractedWithMessageMatchingAttribute: MatchingAttribute, Equatable {
-    var value: [String] = []
-    var fallback: Bool?
-
-    init(jsonMatchingAttribute: AnyDecodable) {
-        guard let jsonMatchingAttribute = jsonMatchingAttribute.value as? [String: Any] else {
-            return
-        }
-        if let value = jsonMatchingAttribute[RuleAttributes.value] as? [String] {
-            self.value = value
-        }
-        if let fallback = jsonMatchingAttribute[RuleAttributes.fallback] as? Bool {
-            self.fallback = fallback
-        }
-    }
-
-    init(value: [String], fallback: Bool?) {
-        self.value = value
-        self.fallback = fallback
-    }
-
-    static func == (lhs: InteractedWithMessageMatchingAttribute, rhs: InteractedWithMessageMatchingAttribute) -> Bool {
-        return lhs.value == rhs.value && lhs.fallback == rhs.fallback
-    }
-}
-
-enum MatchingAttributeDefaults {
-    static let intDefaultValue = -1
-    static let intDefaultMaxValue = Int.max
-    static let stringDefaultValue = ""
 }

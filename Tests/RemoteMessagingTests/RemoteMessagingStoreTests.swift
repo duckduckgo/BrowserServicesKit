@@ -277,7 +277,7 @@ class RemoteMessagingStoreTests: XCTestCase {
     func processorResult() throws -> RemoteMessagingConfigProcessor.ProcessorResult {
         let jsonRemoteMessagingConfig = try decodeJson(fileName: "remote-messaging-config-example.json")
         let remoteMessagingConfigMatcher = RemoteMessagingConfigMatcher(
-                appAttributeMatcher: AppAttributeMatcher(statisticsStore: MockStatisticsStore(), variantManager: MockVariantManager()),
+                appAttributeMatcher: MobileAppAttributeMatcher(statisticsStore: MockStatisticsStore(), variantManager: MockVariantManager()),
                 userAttributeMatcher: MobileUserAttributeMatcher(
                     statisticsStore: MockStatisticsStore(),
                     variantManager: MockVariantManager(),
