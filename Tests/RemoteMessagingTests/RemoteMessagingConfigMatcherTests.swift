@@ -30,7 +30,7 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
     override func setUpWithError() throws {
         let emailManagerStorage = MockEmailManagerStorage()
 
-        // EmailEnabledMatchingAttribute isSignedIn = true
+        // Set non-empty username and token so that emailManager's isSignedIn returns true
         emailManagerStorage.mockUsername = "username"
         emailManagerStorage.mockToken = "token"
 

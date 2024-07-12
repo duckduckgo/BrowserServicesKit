@@ -46,7 +46,7 @@ class CommonUserAttributeMatcherTests: XCTestCase {
                                          currentVariant: MockVariant(name: "zo", weight: 44, isIncluded: { return true }, features: [.dummy]))
         let emailManagerStorage = MockEmailManagerStorage()
 
-        // EmailEnabledMatchingAttribute isSignedIn = true
+        // Set non-empty username and token so that emailManager's isSignedIn returns true
         emailManagerStorage.mockUsername = "username"
         emailManagerStorage.mockToken = "token"
 

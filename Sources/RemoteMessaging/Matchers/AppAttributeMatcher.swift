@@ -47,7 +47,7 @@ public struct DesktopAppAttributeMatcher: AttributeMatching {
         variantManager: VariantManager,
         isInstalledMacAppStore: Bool
     ) {
-        self.isInstalledMacAppStore = isInternalUser
+        self.isInstalledMacAppStore = isInstalledMacAppStore
 
         commonAppAttributeMatcher = .init(
             bundleId: bundleId,
