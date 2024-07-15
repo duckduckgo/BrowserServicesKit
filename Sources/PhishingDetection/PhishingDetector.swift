@@ -33,18 +33,17 @@ public enum PhishingDetectionError: CustomNSError {
         }
     }
 
-    public var errorUserInfo: [String : Any] {
+    public var errorUserInfo: [String: Any] {
         switch self {
         case .detected:
             return [NSLocalizedDescriptionKey: "Phishing detected"]
         }
     }
-    
+
     public var rawValue: Int {
         return self.errorCode
     }
 }
-
 
 public struct Filter: Decodable, Encodable, Hashable {
 	public var hashValue: String

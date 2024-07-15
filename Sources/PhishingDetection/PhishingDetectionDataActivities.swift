@@ -42,12 +42,10 @@ final class BackgroundActivityScheduler: BackgroundActivityScheduling {
                 let now = Date()
                 let formatter = DateFormatter()
                 formatter.timeStyle = .medium
-                print("[+] Calling \(identifier) at \(formatter.string(from: now)) in task \(taskId)")
                 await activity()
                 do {
                     try await Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
                 } catch {
-                    print("[+] Task cancelled: \(error)")
                     os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error \(identifier) task was cancelled before it could finish sleeping.")
                     break
                 }
@@ -86,6 +84,7 @@ public protocol PhishingDetectionDataActivityHandling {
 
 public class PhishingDetectionDataActivities: PhishingDetectionDataActivityHandling {
     private var activities: [DataActivity]
+    private var running: Bool = false
 
     var dataProvider: PhishingDetectionDataProviding
 
@@ -103,10 +102,16 @@ public class PhishingDetectionDataActivities: PhishingDetectionDataActivityHandl
     }
 
     public func start() {
-        activities.forEach { $0.start() }
+        if !running {
+            activities.forEach { $0.start() }
+        }
+        running = true
     }
 
     public func stop() {
-        activities.forEach { $0.stop() }
+        if running {
+            activities.forEach { $0.stop() }
+        }
+        running = false
     }
 }
