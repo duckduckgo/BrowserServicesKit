@@ -63,7 +63,7 @@ class RemoteMessagingProcessingTests: XCTestCase {
         availabilityProvider = MockRemoteMessagingAvailabilityProvider()
 
         let matcher = RemoteMessagingConfigMatcher(
-                appAttributeMatcher: AppAttributeMatcher(statisticsStore: MockStatisticsStore(), variantManager: MockVariantManager()),
+                appAttributeMatcher: MobileAppAttributeMatcher(statisticsStore: MockStatisticsStore(), variantManager: MockVariantManager()),
                 userAttributeMatcher: MobileUserAttributeMatcher(
                     statisticsStore: MockStatisticsStore(),
                     variantManager: MockVariantManager(),

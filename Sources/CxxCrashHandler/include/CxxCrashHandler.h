@@ -1,7 +1,7 @@
 //
-//  CrashHandler.swift
+//  CxxCrashHandler.h
 //
-//  Copyright © 2023 DuckDuckGo. All rights reserved.
+//  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -16,17 +16,7 @@
 //  limitations under the License.
 //
 
-import Foundation
-import MetricKit
+#pragma once
 
-@available(iOSApplicationExtension, unavailable)
-@available(iOS 13, macOS 12, *)
-final class CrashHandler: NSObject, MXMetricManagerSubscriber {
-
-    var crashDiagnosticsPayloadHandler: ([MXDiagnosticPayload]) -> Void = { _ in }
-
-    func didReceive(_ payloads: [MXDiagnosticPayload]) {
-        crashDiagnosticsPayloadHandler(payloads)
-    }
-
-}
+#include <NSException+cxxHandler.h>
+#include <TestException.h>

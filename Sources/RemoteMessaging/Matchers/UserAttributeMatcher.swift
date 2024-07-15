@@ -26,8 +26,6 @@ public typealias UserAttributeMatcher = MobileUserAttributeMatcher
 public typealias UserAttributeMatcher = DesktopUserAttributeMatcher
 #endif
 
-public typealias DesktopUserAttributeMatcher = CommonUserAttributeMatcher
-
 public struct MobileUserAttributeMatcher: AttributeMatching {
 
     private enum PrivacyProSubscriptionStatus: String {
@@ -83,16 +81,82 @@ public struct MobileUserAttributeMatcher: AttributeMatching {
     public func evaluate(matchingAttribute: MatchingAttribute) -> EvaluationResult? {
         switch matchingAttribute {
         case let matchingAttribute as WidgetAddedMatchingAttribute:
-            guard let value = matchingAttribute.value else {
-                return .fail
-            }
-
-            return BooleanMatchingAttribute(value).matches(value: isWidgetInstalled)
+            return matchingAttribute.evaluate(for: isWidgetInstalled)
         default:
             return commonUserAttributeMatcher.evaluate(matchingAttribute: matchingAttribute)
         }
     }
 
+}
+
+public struct DesktopUserAttributeMatcher: AttributeMatching {
+    private let pinnedTabsCount: Int
+    private let hasCustomHomePage: Bool
+    private let isDuckPlayerOnboarded: Bool
+    private let isDuckPlayerEnabled: Bool
+
+    private let commonUserAttributeMatcher: CommonUserAttributeMatcher
+
+    public init(statisticsStore: StatisticsStore,
+                variantManager: VariantManager,
+                emailManager: EmailManager = EmailManager(),
+                bookmarksCount: Int,
+                favoritesCount: Int,
+                appTheme: String,
+                daysSinceNetPEnabled: Int,
+                isPrivacyProEligibleUser: Bool,
+                isPrivacyProSubscriber: Bool,
+                privacyProDaysSinceSubscribed: Int,
+                privacyProDaysUntilExpiry: Int,
+                privacyProPurchasePlatform: String?,
+                isPrivacyProSubscriptionActive: Bool,
+                isPrivacyProSubscriptionExpiring: Bool,
+                isPrivacyProSubscriptionExpired: Bool,
+                dismissedMessageIds: [String],
+                pinnedTabsCount: Int,
+                hasCustomHomePage: Bool,
+                isDuckPlayerOnboarded: Bool,
+                isDuckPlayerEnabled: Bool
+    ) {
+        self.pinnedTabsCount = pinnedTabsCount
+        self.hasCustomHomePage = hasCustomHomePage
+        self.isDuckPlayerOnboarded = isDuckPlayerOnboarded
+        self.isDuckPlayerEnabled = isDuckPlayerEnabled
+
+        commonUserAttributeMatcher = .init(
+            statisticsStore: statisticsStore,
+            variantManager: variantManager,
+            emailManager: emailManager,
+            bookmarksCount: bookmarksCount,
+            favoritesCount: favoritesCount,
+            appTheme: appTheme,
+            daysSinceNetPEnabled: daysSinceNetPEnabled,
+            isPrivacyProEligibleUser: isPrivacyProEligibleUser,
+            isPrivacyProSubscriber: isPrivacyProSubscriber,
+            privacyProDaysSinceSubscribed: privacyProDaysSinceSubscribed,
+            privacyProDaysUntilExpiry: privacyProDaysUntilExpiry,
+            privacyProPurchasePlatform: privacyProPurchasePlatform,
+            isPrivacyProSubscriptionActive: isPrivacyProSubscriptionActive,
+            isPrivacyProSubscriptionExpiring: isPrivacyProSubscriptionExpiring,
+            isPrivacyProSubscriptionExpired: isPrivacyProSubscriptionExpired,
+            dismissedMessageIds: dismissedMessageIds
+        )
+    }
+
+    public func evaluate(matchingAttribute: MatchingAttribute) -> EvaluationResult? {
+        switch matchingAttribute {
+        case let matchingAttribute as PinnedTabsMatchingAttribute:
+            return matchingAttribute.evaluate(for: pinnedTabsCount)
+        case let matchingAttribute as CustomHomePageMatchingAttribute:
+            return matchingAttribute.evaluate(for: hasCustomHomePage)
+        case let matchingAttribute as DuckPlayerOnboardedMatchingAttribute:
+            return matchingAttribute.evaluate(for: isDuckPlayerOnboarded)
+        case let matchingAttribute as DuckPlayerEnabledMatchingAttribute:
+            return matchingAttribute.evaluate(for: isDuckPlayerEnabled)
+        default:
+            return commonUserAttributeMatcher.evaluate(matchingAttribute: matchingAttribute)
+        }
+    }
 }
 
 public struct CommonUserAttributeMatcher: AttributeMatching {
@@ -136,10 +200,10 @@ public struct CommonUserAttributeMatcher: AttributeMatching {
                 isPrivacyProSubscriptionExpiring: Bool,
                 isPrivacyProSubscriptionExpired: Bool,
                 dismissedMessageIds: [String]
-	) {
+    ) {
         self.statisticsStore = statisticsStore
         self.variantManager = variantManager
-		self.emailManager = emailManager
+        self.emailManager = emailManager
         self.appTheme = appTheme
         self.bookmarksCount = bookmarksCount
         self.favoritesCount = favoritesCount
@@ -155,78 +219,36 @@ public struct CommonUserAttributeMatcher: AttributeMatching {
         self.dismissedMessageIds = dismissedMessageIds
     }
 
-    // swiftlint:disable:next cyclomatic_complexity
     public func evaluate(matchingAttribute: MatchingAttribute) -> EvaluationResult? {
         switch matchingAttribute {
         case let matchingAttribute as AppThemeMatchingAttribute:
-            guard let value = matchingAttribute.value else {
-                return .fail
-            }
-
-            return StringMatchingAttribute(value).matches(value: appTheme)
+            return matchingAttribute.evaluate(for: appTheme)
         case let matchingAttribute as BookmarksMatchingAttribute:
-            if matchingAttribute.value != MatchingAttributeDefaults.intDefaultValue {
-                return IntMatchingAttribute(matchingAttribute.value).matches(value: bookmarksCount)
-            } else {
-                return RangeIntMatchingAttribute(min: matchingAttribute.min, max: matchingAttribute.max).matches(value: bookmarksCount)
-            }
+            return matchingAttribute.evaluate(for: bookmarksCount)
         case let matchingAttribute as DaysSinceInstalledMatchingAttribute:
             guard let installDate = statisticsStore.installDate,
                   let daysSinceInstall = Calendar.current.numberOfDaysBetween(installDate, and: Date()) else {
                 return .fail
             }
-
-            if matchingAttribute.value != MatchingAttributeDefaults.intDefaultValue {
-                return IntMatchingAttribute(matchingAttribute.value).matches(value: daysSinceInstall)
-            } else {
-                return RangeIntMatchingAttribute(min: matchingAttribute.min, max: matchingAttribute.max).matches(value: daysSinceInstall)
-            }
+            return matchingAttribute.evaluate(for: daysSinceInstall)
         case let matchingAttribute as EmailEnabledMatchingAttribute:
-            guard let value = matchingAttribute.value else {
-                return .fail
-            }
-
-            return BooleanMatchingAttribute(value).matches(value: emailManager.isSignedIn)
+            return matchingAttribute.evaluate(for: emailManager.isSignedIn)
         case let matchingAttribute as FavoritesMatchingAttribute:
-            if matchingAttribute.value != MatchingAttributeDefaults.intDefaultValue {
-                return IntMatchingAttribute(matchingAttribute.value).matches(value: favoritesCount)
-            } else {
-                return RangeIntMatchingAttribute(min: matchingAttribute.min, max: matchingAttribute.max).matches(value: favoritesCount)
-            }
+            return matchingAttribute.evaluate(for: favoritesCount)
         case let matchingAttribute as DaysSinceNetPEnabledMatchingAttribute:
-            if matchingAttribute.value != MatchingAttributeDefaults.intDefaultValue {
-                return IntMatchingAttribute(matchingAttribute.value).matches(value: daysSinceNetPEnabled)
-            } else {
-                return RangeIntMatchingAttribute(min: matchingAttribute.min, max: matchingAttribute.max).matches(value: daysSinceNetPEnabled)
-            }
+            return matchingAttribute.evaluate(for: daysSinceNetPEnabled)
         case let matchingAttribute as IsPrivacyProEligibleUserMatchingAttribute:
-            guard let value = matchingAttribute.value else {
-                return .fail
-            }
-
-            return BooleanMatchingAttribute(value).matches(value: isPrivacyProEligibleUser)
+            return matchingAttribute.evaluate(for: isPrivacyProEligibleUser)
         case let matchingAttribute as IsPrivacyProSubscriberUserMatchingAttribute:
-            guard let value = matchingAttribute.value else {
-                return .fail
-            }
-
-            return BooleanMatchingAttribute(value).matches(value: isPrivacyProSubscriber)
+            return matchingAttribute.evaluate(for: isPrivacyProSubscriber)
         case let matchingAttribute as PrivacyProDaysSinceSubscribedMatchingAttribute:
-            if matchingAttribute.value != MatchingAttributeDefaults.intDefaultValue {
-                return IntMatchingAttribute(matchingAttribute.value).matches(value: privacyProDaysSinceSubscribed)
-            } else {
-                return RangeIntMatchingAttribute(min: matchingAttribute.min, max: matchingAttribute.max).matches(value: privacyProDaysSinceSubscribed)
-            }
+            return matchingAttribute.evaluate(for: privacyProDaysSinceSubscribed)
         case let matchingAttribute as PrivacyProDaysUntilExpiryMatchingAttribute:
-            if matchingAttribute.value != MatchingAttributeDefaults.intDefaultValue {
-                return IntMatchingAttribute(matchingAttribute.value).matches(value: privacyProDaysUntilExpiry)
-            } else {
-                return RangeIntMatchingAttribute(min: matchingAttribute.min, max: matchingAttribute.max).matches(value: privacyProDaysUntilExpiry)
-            }
+            return matchingAttribute.evaluate(for: privacyProDaysUntilExpiry)
         case let matchingAttribute as PrivacyProPurchasePlatformMatchingAttribute:
-            return StringArrayMatchingAttribute(matchingAttribute.value).matches(value: privacyProPurchasePlatform ?? "")
+            return matchingAttribute.evaluate(for: privacyProPurchasePlatform ?? "")
         case let matchingAttribute as PrivacyProSubscriptionStatusMatchingAttribute:
-            let mappedStatuses = matchingAttribute.value.compactMap { status in
+            let mappedStatuses = (matchingAttribute.value ?? []).compactMap { status in
                 return PrivacyProSubscriptionStatus(rawValue: status)
             }
 

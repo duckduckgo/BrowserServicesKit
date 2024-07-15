@@ -1,7 +1,7 @@
 //
-//  CrashHandler.swift
+//  MatchingAttribute.swift
 //
-//  Copyright © 2023 DuckDuckGo. All rights reserved.
+//  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -17,16 +17,21 @@
 //
 
 import Foundation
-import MetricKit
 
-@available(iOSApplicationExtension, unavailable)
-@available(iOS 13, macOS 12, *)
-final class CrashHandler: NSObject, MXMetricManagerSubscriber {
+enum RuleAttributes {
+    static let min = "min"
+    static let max = "max"
+    static let value = "value"
+    static let fallback = "fallback"
+    static let since = "since"
+}
 
-    var crashDiagnosticsPayloadHandler: ([MXDiagnosticPayload]) -> Void = { _ in }
+enum MatchingAttributeDefaults {
+    static let intDefaultValue = -1
+    static let intDefaultMaxValue = Int.max
+    static let stringDefaultValue = ""
+}
 
-    func didReceive(_ payloads: [MXDiagnosticPayload]) {
-        crashDiagnosticsPayloadHandler(payloads)
-    }
-
+public protocol MatchingAttribute {
+    var fallback: Bool? { get }
 }

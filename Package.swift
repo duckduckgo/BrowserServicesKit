@@ -22,6 +22,7 @@ let package = Package(
         .library(name: "BloomFilterWrapper", targets: ["BloomFilterWrapper"]),
         .library(name: "UserScript", targets: ["UserScript"]),
         .library(name: "Crashes", targets: ["Crashes"]),
+        .library(name: "CxxCrashHandler", targets: ["CxxCrashHandler"]),
         .library(name: "ContentBlocking", targets: ["ContentBlocking"]),
         .library(name: "PrivacyDashboard", targets: ["PrivacyDashboard"]),
         .library(name: "Configuration", targets: ["Configuration"]),
@@ -156,7 +157,12 @@ let package = Package(
             name: "Crashes",
             dependencies: [
                 "Common",
+                "CxxCrashHandler",
             ]),
+        .target(
+            name: "CxxCrashHandler",
+            dependencies: ["Common"]
+        ),
         .target(
             name: "DDGSync",
             dependencies: [

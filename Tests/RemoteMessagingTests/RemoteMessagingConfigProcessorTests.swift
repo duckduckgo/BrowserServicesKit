@@ -28,7 +28,7 @@ class RemoteMessagingConfigProcessorTests: XCTestCase {
         XCTAssertNotNil(jsonRemoteMessagingConfig)
 
         let remoteMessagingConfigMatcher = RemoteMessagingConfigMatcher(
-            appAttributeMatcher: AppAttributeMatcher(statisticsStore: MockStatisticsStore(), variantManager: MockVariantManager()),
+            appAttributeMatcher: MobileAppAttributeMatcher(statisticsStore: MockStatisticsStore(), variantManager: MockVariantManager()),
             userAttributeMatcher: MobileUserAttributeMatcher(
                 statisticsStore: MockStatisticsStore(),
                 variantManager: MockVariantManager(),
@@ -68,7 +68,7 @@ class RemoteMessagingConfigProcessorTests: XCTestCase {
         XCTAssertNotNil(jsonRemoteMessagingConfig)
 
         let remoteMessagingConfigMatcher = RemoteMessagingConfigMatcher(
-                appAttributeMatcher: AppAttributeMatcher(statisticsStore: MockStatisticsStore(), variantManager: MockVariantManager()),
+                appAttributeMatcher: MobileAppAttributeMatcher(statisticsStore: MockStatisticsStore(), variantManager: MockVariantManager()),
                 userAttributeMatcher: MobileUserAttributeMatcher(
                     statisticsStore: MockStatisticsStore(),
                     variantManager: MockVariantManager(),
