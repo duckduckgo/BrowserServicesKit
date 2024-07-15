@@ -109,7 +109,6 @@ private extension DistributedNavigationDelegate {
     static var sigIntRaisedForResponders = Set<String>()
 #endif
 
-    // swiftlint:disable function_parameter_count
     /// continues until first non-nil Navigation Responder decision and returned to the `completion` callback
     func makeAsyncDecision<T>(for actionDebugInfo: some CustomDebugStringConvertible,
                               boundToLifetimeOf webView: WKWebView,
@@ -170,7 +169,6 @@ private extension DistributedNavigationDelegate {
 
         return task
     }
-    // swiftlint:enable function_parameter_count
 
     func makeAsyncDecision<T>(for actionDebugInfo: some CustomDebugStringConvertible,
                               boundToLifetimeOf webView: WKWebView,
@@ -310,8 +308,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
     // MARK: Policy making
 
     @MainActor
-    // swiftlint:disable function_body_length
-    // swiftlint:disable cyclomatic_complexity
+    // swiftlint:disable:next cyclomatic_complexity
     public func webView(_ webView: WKWebView, decidePolicyFor wkNavigationAction: WKNavigationAction, preferences wkPreferences: WKWebpagePreferences, decisionHandler: @escaping (WKNavigationActionPolicy, WKWebpagePreferences) -> Void) {
 
         // new navigation or an ongoing navigation (for a server-redirect)?
@@ -431,8 +428,6 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
             self.navigationActionDecisionTask = task
         }
     }
-    // swiftlint:enable function_body_length
-    // swiftlint:enable cyclomatic_complexity
 
     @MainActor
     private func willStart(_ navigation: Navigation) {
@@ -642,10 +637,9 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
 
 #if WILLPERFORMCLIENTREDIRECT_ENABLED
 
-    // swiftlint:disable function_body_length
-    // swiftlint:disable cyclomatic_complexity
     @MainActor
     @objc(_webView:willPerformClientRedirectToURL:delay:)
+    // swiftlint:disable:next cyclomatic_complexity
     public func webView(_ webView: WKWebView, willPerformClientRedirectTo url: URL, delay: TimeInterval) {
         for responder in responders {
             responder.webViewWillPerformClientRedirect(to: url, withDelay: delay)
@@ -741,8 +735,6 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
         // set Navigation state to .redirected and expect the redirect NavigationAction
         redirectedNavigation.willPerformClientRedirect(to: url, delay: delay)
     }
-    // swiftlint:enable function_body_length
-    // swiftlint:enable cyclomatic_complexity
 
     @MainActor
     @objc(_webViewDidCancelClientRedirect:)

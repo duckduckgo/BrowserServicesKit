@@ -19,19 +19,17 @@
 // SPDX-License-Identifier: MIT
 // Copyright © 2018-2021 WireGuard LLC. All Rights Reserved.
 
-// swiftlint:disable file_length
-
 import Combine
 import Common
 import Foundation
 import NetworkExtension
 import UserNotifications
 
-// swiftlint:disable:next type_body_length
 open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     public enum Event {
         case userBecameActive
+        case connectionTesterStatusChange(_ status: ConnectionTesterStatus, server: String)
         case reportConnectionAttempt(attempt: ConnectionAttempt)
         case tunnelStartAttempt(_ step: TunnelStartAttemptStep)
         case tunnelStopAttempt(_ step: TunnelStopAttemptStep)
@@ -62,6 +60,16 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         case connecting
         case success
         case failure
+    }
+
+    public enum ConnectionTesterStatus {
+        case failed(duration: Duration)
+        case recovered(duration: Duration, failureCount: Int)
+
+        public enum Duration: String {
+            case immediate
+            case extended
+        }
     }
 
     // MARK: - Error Handling
@@ -309,6 +317,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Connection tester
 
+    private static let connectionTesterExtendedFailuresCount = 8
     private var isConnectionTesterEnabled: Bool = true
 
     @MainActor
@@ -316,16 +325,42 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         NetworkProtectionConnectionTester(timerQueue: timerQueue, log: .networkProtectionConnectionTesterLog) { @MainActor [weak self] result in
             guard let self else { return }
 
+            let serverName = lastSelectedServerInfo?.name ?? "Unknown"
+
             switch result {
             case .connected:
                 self.tunnelHealth.isHavingConnectivityIssues = false
                 self.updateBandwidthAnalyzerAndRekeyIfExpired()
 
-            case .reconnected:
+            case .reconnected(let failureCount):
+                providerEvents.fire(
+                    .connectionTesterStatusChange(
+                        .recovered(duration: .immediate, failureCount: failureCount),
+                        server: serverName))
+
+                if failureCount >= Self.connectionTesterExtendedFailuresCount {
+                    providerEvents.fire(
+                        .connectionTesterStatusChange(
+                            .recovered(duration: .extended, failureCount: failureCount),
+                            server: serverName))
+                }
+
                 self.tunnelHealth.isHavingConnectivityIssues = false
                 self.updateBandwidthAnalyzerAndRekeyIfExpired()
 
             case .disconnected(let failureCount):
+                if failureCount == 1 {
+                    providerEvents.fire(
+                        .connectionTesterStatusChange(
+                            .failed(duration: .immediate),
+                            server: serverName))
+                } else if failureCount == 8 {
+                    providerEvents.fire(
+                        .connectionTesterStatusChange(
+                            .failed(duration: .extended),
+                            server: serverName))
+                }
+
                 self.tunnelHealth.isHavingConnectivityIssues = true
                 self.bandwidthAnalyzer.reset()
             }
@@ -930,7 +965,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - App Messages
 
-    // swiftlint:disable:next cyclomatic_complexity
     @MainActor public override func handleAppMessage(_ messageData: Data, completionHandler: ((Data?) -> Void)? = nil) {
 
         guard let message = ExtensionMessage(rawValue: messageData) else {
@@ -1002,7 +1036,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         settings.apply(change: change)
     }
 
-    // swiftlint:disable:next cyclomatic_complexity function_body_length
     private func handleSettingsChange(_ change: VPNSettings.Change, completionHandler: ((Data?) -> Void)? = nil) {
         switch change {
         case .setExcludeLocalNetworks:
@@ -1616,5 +1649,3 @@ extension WireGuardAdapterError: LocalizedError, CustomDebugStringConvertible {
         errorDescription!
     }
 }
-
-// swiftlint:enable file_length

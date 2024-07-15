@@ -19,7 +19,6 @@
 import Common
 import Foundation
 
-// swiftlint:disable cyclomatic_complexity
 private enum AttributesKey: String, CaseIterable {
     case locale
     case osApi
@@ -44,6 +43,11 @@ private enum AttributesKey: String, CaseIterable {
     case pproPurchasePlatform
     case pproSubscriptionStatus
     case interactedWithMessage
+    case installedMacAppStore
+    case pinnedTabs
+    case customHomePage
+    case duckPlayerOnboarded
+    case duckPlayerEnabled
 
     func matchingAttribute(jsonMatchingAttribute: AnyDecodable) -> MatchingAttribute {
         switch self {
@@ -70,10 +74,14 @@ private enum AttributesKey: String, CaseIterable {
         case .pproPurchasePlatform: return PrivacyProPurchasePlatformMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         case .pproSubscriptionStatus: return PrivacyProSubscriptionStatusMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         case .interactedWithMessage: return InteractedWithMessageMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .installedMacAppStore: return IsInstalledMacAppStoreMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .pinnedTabs: return PinnedTabsMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .customHomePage: return CustomHomePageMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .duckPlayerOnboarded: return DuckPlayerOnboardedMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .duckPlayerEnabled: return DuckPlayerEnabledMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         }
     }
 }
-// swiftlint:enable cyclomatic_complexity
 
 struct JsonToRemoteMessageModelMapper {
 
@@ -99,7 +107,6 @@ struct JsonToRemoteMessageModelMapper {
         return remoteMessages
     }
 
-    // swiftlint:disable cyclomatic_complexity function_body_length
     static func mapToContent(content: RemoteMessageResponse.JsonContent,
                              surveyActionMapper: RemoteMessagingSurveyActionMapping) -> RemoteMessageModelType? {
         switch RemoteMessageResponse.JsonMessageType(rawValue: content.messageType) {
@@ -167,7 +174,6 @@ struct JsonToRemoteMessageModelMapper {
             return nil
         }
     }
-    // swiftlint:enable cyclomatic_complexity function_body_length
 
     static func mapToAction(_ jsonAction: RemoteMessageResponse.JsonMessageAction?,
                             surveyActionMapper: RemoteMessagingSurveyActionMapping) -> RemoteAction? {
