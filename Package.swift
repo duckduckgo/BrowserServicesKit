@@ -22,6 +22,7 @@ let package = Package(
         .library(name: "BloomFilterWrapper", targets: ["BloomFilterWrapper"]),
         .library(name: "UserScript", targets: ["UserScript"]),
         .library(name: "Crashes", targets: ["Crashes"]),
+        .library(name: "CxxCrashHandler", targets: ["CxxCrashHandler"]),
         .library(name: "ContentBlocking", targets: ["ContentBlocking"]),
         .library(name: "PrivacyDashboard", targets: ["PrivacyDashboard"]),
         .library(name: "Configuration", targets: ["Configuration"]),
@@ -46,7 +47,7 @@ let package = Package(
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "2.1.2"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.2.0"),
         .package(url: "https://github.com/gumob/PunycodeSwift.git", exact: "2.1.0"),
-        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "6.0.0"),
+        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "6.1.0"),
         .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "4.2.0"),
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
         .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
@@ -156,7 +157,12 @@ let package = Package(
             name: "Crashes",
             dependencies: [
                 "Common",
+                "CxxCrashHandler",
             ]),
+        .target(
+            name: "CxxCrashHandler",
+            dependencies: ["Common"]
+        ),
         .target(
             name: "DDGSync",
             dependencies: [

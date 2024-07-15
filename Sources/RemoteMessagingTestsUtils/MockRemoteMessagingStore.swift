@@ -92,4 +92,6 @@ public class MockRemoteMessagingStore: RemoteMessagingStoring {
     public func updateRemoteMessage(withID id: String, asShown shown: Bool) {
         updateRemoteMessageCalls += 1
     }
+
+    public func resetRemoteMessages() {}
 }

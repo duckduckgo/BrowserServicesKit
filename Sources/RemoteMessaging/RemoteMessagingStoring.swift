@@ -18,7 +18,11 @@
 
 import Foundation
 
-public protocol RemoteMessagingStoring {
+public protocol RemoteMessagingStoringDebuggingSupport {
+    func resetRemoteMessages()
+}
+
+public protocol RemoteMessagingStoring: RemoteMessagingStoringDebuggingSupport {
 
     func saveProcessedResult(_ processorResult: RemoteMessagingConfigProcessor.ProcessorResult)
     func fetchRemoteMessagingConfig() -> RemoteMessagingConfig?

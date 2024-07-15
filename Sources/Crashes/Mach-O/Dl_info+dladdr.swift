@@ -1,7 +1,7 @@
 //
-//  CrashHandler.swift
+//  Dl_info+dladdr.swift
 //
-//  Copyright © 2023 DuckDuckGo. All rights reserved.
+//  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -17,16 +17,19 @@
 //
 
 import Foundation
-import MetricKit
 
-@available(iOSApplicationExtension, unavailable)
-@available(iOS 13, macOS 12, *)
-final class CrashHandler: NSObject, MXMetricManagerSubscriber {
+extension Dl_info {
 
-    var crashDiagnosticsPayloadHandler: ([MXDiagnosticPayload]) -> Void = { _ in }
+    struct Error: LocalizedError {
+        public let errorDescription: String?
+    }
 
-    func didReceive(_ payloads: [MXDiagnosticPayload]) {
-        crashDiagnosticsPayloadHandler(payloads)
+    init(_ ptr: UnsafeRawPointer) throws {
+        var info = Dl_info()
+        guard dladdr(ptr, &info) != 0 else {
+            throw Error(errorDescription: dlerror().map { String(cString: $0) })
+        }
+        self = info
     }
 
 }

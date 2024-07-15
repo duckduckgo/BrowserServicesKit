@@ -36,12 +36,9 @@ public struct DeviceAttributeMatcher: AttributeMatching {
     public func evaluate(matchingAttribute: MatchingAttribute) -> EvaluationResult? {
         switch matchingAttribute {
         case let matchingAttribute as LocaleMatchingAttribute:
-			return StringArrayMatchingAttribute(matchingAttribute.value).matches(value: LocaleMatchingAttribute.localeIdentifierAsJsonFormat(localeIdentifier))
+            return matchingAttribute.evaluate(for: LocaleMatchingAttribute.localeIdentifierAsJsonFormat(localeIdentifier))
         case let matchingAttribute as OSMatchingAttribute:
-            if matchingAttribute.value != MatchingAttributeDefaults.stringDefaultValue {
-				return StringMatchingAttribute(matchingAttribute.value).matches(value: osVersion)
-            }
-            return RangeStringNumericMatchingAttribute(min: matchingAttribute.min, max: matchingAttribute.max).matches(value: osVersion)
+            return matchingAttribute.evaluate(for: osVersion)
         default:
             return nil
         }
