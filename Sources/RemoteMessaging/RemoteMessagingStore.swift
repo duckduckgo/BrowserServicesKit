@@ -360,6 +360,27 @@ extension RemoteMessagingStore {
             }
         }
     }
+
+    public func resetRemoteMessages() {
+        guard remoteMessagingAvailabilityProvider.isRemoteMessagingAvailable else {
+            return
+        }
+
+        let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType, name: Constants.privateContextName)
+        context.performAndWait {
+            context.deleteAll(entityDescriptions: [
+                RemoteMessageManagedObject.entity(in: context),
+                RemoteMessagingConfigManagedObject.entity(in: context)
+            ])
+
+            do {
+                try context.save()
+            } catch {
+                os_log("Failed to reset remote messages", log: log, type: .error)
+            }
+        }
+        notificationCenter.post(name: Notifications.remoteMessagesDidChange, object: nil)
+    }
 }
 
 // MARK: - RemoteMessageManagedObject Private Interface
