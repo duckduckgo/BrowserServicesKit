@@ -308,7 +308,6 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
     // MARK: Policy making
 
     @MainActor
-    // swiftlint:disable:next cyclomatic_complexity
     public func webView(_ webView: WKWebView, decidePolicyFor wkNavigationAction: WKNavigationAction, preferences wkPreferences: WKWebpagePreferences, decisionHandler: @escaping (WKNavigationActionPolicy, WKWebpagePreferences) -> Void) {
 
         // new navigation or an ongoing navigation (for a server-redirect)?
