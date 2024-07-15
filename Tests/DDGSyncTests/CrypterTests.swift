@@ -21,6 +21,7 @@ import CryptoKit
 import XCTest
 import DDGSyncCrypto
 @testable import DDGSync
+@testable import DDGSyncTestingUtilities
 
 class CrypterTests: XCTestCase {
 

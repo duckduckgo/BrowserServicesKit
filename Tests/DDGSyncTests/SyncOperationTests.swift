@@ -20,6 +20,7 @@ import XCTest
 
 @testable import Gzip
 @testable import DDGSync
+@testable import DDGSyncTestingUtilities
 
 class SyncOperationTests: XCTestCase {
     var apiMock: RemoteAPIRequestCreatingMock!

@@ -19,6 +19,7 @@
 import XCTest
 import TestUtils
 @testable import DDGSync
+@testable import DDGSyncTestingUtilities
 
 class SyncDailyStatsTests: XCTestCase {
 

@@ -19,6 +19,7 @@
 import XCTest
 
 @testable import DDGSync
+@testable import DDGSyncTestingUtilities
 
 class SyncQueueTests: XCTestCase {
     var apiMock: RemoteAPIRequestCreatingMock!

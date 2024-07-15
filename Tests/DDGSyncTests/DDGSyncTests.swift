@@ -21,6 +21,7 @@ import Common
 import XCTest
 
 @testable import DDGSync
+@testable import DDGSyncTestingUtilities
 
 enum SyncOperationEvent: Equatable {
     case started(_ taskID: Int)

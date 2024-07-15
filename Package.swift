@@ -40,6 +40,7 @@ let package = Package(
         .library(name: "Suggestions", targets: ["Suggestions"]),
         .library(name: "PixelKit", targets: ["PixelKit"]),
         .library(name: "PixelKitTestingUtilities", targets: ["PixelKitTestingUtilities"]),
+        .library(name: "DDGSyncTestingUtilities", targets: ["DDGSyncTestingUtilities"]),
     ],
     dependencies: [
         .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "12.0.1"),
@@ -380,6 +381,12 @@ let package = Package(
                 "PixelKit"
             ]
         ),
+        .target(
+            name: "DDGSyncTestingUtilities",
+            dependencies: [
+                "DDGSync",
+            ]
+        ),
 
         // MARK: - Test Targets
         .testTarget(
@@ -442,6 +449,7 @@ let package = Package(
             dependencies: [
                 "BookmarksTestsUtils",
                 "DDGSync",
+                "DDGSyncTestingUtilities",
                 "TestUtils",
             ],
             resources: [

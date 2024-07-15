@@ -20,6 +20,7 @@ import BookmarksTestsUtils
 import XCTest
 import Persistence
 @testable import DDGSync
+@testable import DDGSyncTestingUtilities
 import Foundation
 
 class SyncMetadataMigrationTests: XCTestCase {
