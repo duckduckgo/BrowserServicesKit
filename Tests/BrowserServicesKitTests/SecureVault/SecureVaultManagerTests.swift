@@ -308,10 +308,8 @@ class SecureVaultManagerTests: XCTestCase {
         let domain = "domain.com:1234"
         let username = "dax"
         let account = SecureVaultModels.WebsiteAccount(id: "1", title: nil, username: username, domain: domain, created: Date(), lastUpdated: Date())
-        self.mockDatabaseProvider._accounts = [account]
-
         let storedCredentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8)!)
-        try self.testVault.storeWebsiteCredentials(storedCredentials)
+        self.mockDatabaseProvider._credentialsForDomainDict[domain] = [storedCredentials]
 
         let expect = expectation(description: #function)
 
@@ -319,7 +317,7 @@ class SecureVaultManagerTests: XCTestCase {
         manager.autofillUserScript(mockAutofillUserScript, didRequestAutoFillInitDataForDomain: domain) { credentials, _, _, _ in
 
             // Then
-            XCTAssertTrue(credentials.count == 1)
+            XCTAssertEqual(credentials.count, 1)
             XCTAssertEqual(credentials.first?.account.id, storedCredentials.account.id)
             XCTAssertEqual(credentials.first?.password, storedCredentials.password)
             expect.fulfill()
