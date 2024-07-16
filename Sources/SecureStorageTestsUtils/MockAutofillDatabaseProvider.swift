@@ -26,6 +26,7 @@ private extension URL {
     static let duckduckgo = URL(string: "https://duckduckgo.com/")!
 }
 
+// swiftlint:disable force_cast force_try identifier_name
 internal class MockAutofillDatabaseProvider: AutofillDatabaseProvider {
 
     var _accounts = [SecureVaultModels.WebsiteAccount]()
@@ -242,3 +243,4 @@ internal class MockAutofillDatabaseProvider: AutofillDatabaseProvider {
     }
 
 }
+// swiftlint:enable force_cast force_try identifier_name
