@@ -71,6 +71,10 @@ internal class MockAutofillDatabaseProvider: AutofillDatabaseProvider {
         return _credentialsForDomainDict[domain] ?? []
     }
 
+    func websiteCredentialsForTopLevelDomain(_ eTLDplus1: String) throws -> [BrowserServicesKit.SecureVaultModels.WebsiteCredentials] {
+        return _credentialsForDomainDict[eTLDplus1] ?? []
+    }
+
     func websiteAccountsForDomain(_ domain: String) throws -> [SecureVaultModels.WebsiteAccount] {
         self._forDomain.append(domain)
         return _accounts

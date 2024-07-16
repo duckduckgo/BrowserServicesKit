@@ -30,6 +30,7 @@ public protocol AutofillDatabaseProvider: SecureStorageDatabaseProvider {
     @discardableResult
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64
     func websiteCredentialsForDomain(_ domain: String) throws -> [SecureVaultModels.WebsiteCredentials]
+    func websiteCredentialsForTopLevelDomain(_ domain: String) throws -> [SecureVaultModels.WebsiteCredentials]
     func websiteCredentialsForAccountId(_ accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials?
     func websiteAccountsForDomain(_ domain: String) throws -> [SecureVaultModels.WebsiteAccount]
     func websiteAccountsForTopLevelDomain(_ eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount]
@@ -393,11 +394,15 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
         }
     }
 
-    func websiteCredentialsForDomain(_ domain: String, in database: Database) throws -> [SecureVaultModels.WebsiteCredentials] {
+    private func websiteCredentialsForDomain(_ domain: String, in database: Database) throws -> [SecureVaultModels.WebsiteCredentials] {
         let accounts = try SecureVaultModels.WebsiteAccount
             .filter(SecureVaultModels.WebsiteAccount.Columns.domain.like(domain))
             .fetchAll(database)
 
+        return try websiteCredentialsForAccounts(accounts, in: database)
+    }
+
+    private func websiteCredentialsForAccounts(_ accounts: [SecureVaultModels.WebsiteAccount], in database: Database) throws -> [SecureVaultModels.WebsiteCredentials] {
         let accountIDs = accounts.compactMap(\.id)
 
         var result = [SecureVaultModels.WebsiteCredentials]()
@@ -413,6 +418,21 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
         }
 
         return result
+    }
+
+    public func websiteCredentialsForTopLevelDomain(_ eTLDplus1: String) throws -> [SecureVaultModels.WebsiteCredentials] {
+        try db.read {
+            return try websiteCredentialsForTopLevelDomain(eTLDplus1, in: $0)
+        }
+    }
+
+    private func websiteCredentialsForTopLevelDomain(_ eTLDplus1: String, in database: Database) throws -> [SecureVaultModels.WebsiteCredentials] {
+        let query = SecureVaultModels.WebsiteAccount
+            .filter(Column(SecureVaultModels.WebsiteAccount.Columns.domain.name) == eTLDplus1 ||
+                    Column(SecureVaultModels.WebsiteAccount.Columns.domain.name).like("%." + eTLDplus1))
+        let accounts = try query.fetchAll(database)
+
+        return try websiteCredentialsForAccounts(accounts, in: database)
     }
 
     public func websiteCredentialsForAccountId(_ accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials? {

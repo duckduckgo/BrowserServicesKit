@@ -62,6 +62,7 @@ public protocol AutofillSecureVault: SecureVault {
     func updateLastUsedFor(accountId: Int64) throws
 
     func websiteCredentialsFor(domain: String) throws -> [SecureVaultModels.WebsiteCredentials]
+    func websiteCredentialsWithPartialMatchesFor(eTLDplus1: String) throws -> [SecureVaultModels.WebsiteCredentials]
     func websiteCredentialsFor(accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials?
     @discardableResult
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64
@@ -325,13 +326,15 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
         }
     }
 
-    private func decryptCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> SecureVaultModels.WebsiteCredentials {
-        if let password = credentials.password {
-            let decryptedPassword = try self.l2Decrypt(data: password)
-            return .init(account: credentials.account,
-                         password: decryptedPassword)
-        } else {
-            return credentials
+    public func websiteCredentialsWithPartialMatchesFor(eTLDplus1: String) throws -> [SecureVaultModels.WebsiteCredentials] {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+        do {
+            return try self.providers.database.websiteCredentialsForTopLevelDomain(eTLDplus1)
+        } catch {
+            throw SecureStorageError.databaseError(cause: error)
         }
     }
 
@@ -651,6 +654,16 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
     }
 
     // MARK: - Private
+
+    private func decryptCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> SecureVaultModels.WebsiteCredentials {
+        if let password = credentials.password {
+            let decryptedPassword = try self.l2Decrypt(data: password)
+            return .init(account: credentials.account,
+                         password: decryptedPassword)
+        } else {
+            return credentials
+        }
+    }
 
     private func executeThrowingDatabaseOperation<DatabaseResult>(_ operation: () throws -> DatabaseResult) throws -> DatabaseResult {
         lock.lock()
