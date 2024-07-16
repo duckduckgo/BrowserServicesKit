@@ -20,7 +20,7 @@ import Common
 import XCTest
 import UserScript
 import SecureStorage
-import SecureStorageTestsUtils
+@testable import SecureStorageTestsUtils
 @testable import BrowserServicesKit
 
 class SecureVaultManagerTests: XCTestCase {

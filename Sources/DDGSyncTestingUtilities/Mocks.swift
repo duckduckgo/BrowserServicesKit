@@ -26,6 +26,7 @@ import TestUtils
 
 @testable import DDGSync
 
+// swiftlint:disable explicit_non_final_class force_cast identifier_name
 extension SyncAccount {
     static var mock: SyncAccount {
         SyncAccount(
@@ -448,3 +449,4 @@ class DataProvidingMock: DataProvider {
         _handleSyncError(error)
     }
 }
+// swiftlint:enable explicit_non_final_class force_cast identifier_name

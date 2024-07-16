@@ -20,7 +20,7 @@ import XCTest
 import TestUtils
 import Common
 import SecureStorage
-import SecureStorageTestsUtils
+@testable import SecureStorageTestsUtils
 @testable import BrowserServicesKit
 
 final class AutofillPixelReporterTests: XCTestCase {

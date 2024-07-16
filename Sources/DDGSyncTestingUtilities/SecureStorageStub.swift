@@ -19,6 +19,7 @@
 import Foundation
 @testable import DDGSync
 
+// swiftlint:disable explicit_non_final_class
 class SecureStorageStub: SecureStoring {
 
     var theAccount: SyncAccount?
@@ -46,3 +47,4 @@ class SecureStorageStub: SecureStoring {
     }
 
 }
+// swiftlint:enable explicit_non_final_class
