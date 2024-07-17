@@ -42,7 +42,7 @@ public struct RemoteMessagingConfigFetcher: RemoteMessagingConfigFetching {
 #if DEBUG
             true
 #else
-            false
+            true
 #endif
         }()
         do {
