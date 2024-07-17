@@ -1504,7 +1504,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     @MainActor
     private func attemptShutdown() async {
         let cancelTunnel = {
+#if os(macOS)
             try? self.tokenStore.deleteToken()
+#endif
             self.cancelTunnelWithError(TunnelError.vpnAccessRevoked)
         }
 
