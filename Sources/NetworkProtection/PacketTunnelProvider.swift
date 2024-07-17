@@ -263,6 +263,14 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             providerEvents.fire(.rekeyAttempt(.success))
         } catch {
             providerEvents.fire(.rekeyAttempt(.failure(error)))
+
+            switch error {
+            case TunnelError.vpnAccessRevoked:
+                await handleAccessRevoked(attemptsShutdown: true)
+            default:
+                break
+            }
+
             throw error
         }
     }
@@ -935,7 +943,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             )
         } catch {
             if isSubscriptionEnabled, let error = error as? NetworkProtectionError, case .vpnAccessRevoked = error {
-                await handleInvalidEntitlement(attemptsShutdown: true)
                 throw TunnelError.vpnAccessRevoked
             }
 
@@ -1236,26 +1243,21 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     @available(iOS 17, *)
-    public func handleShutDown(completionHandler: ((Data?) -> Void)? = nil) {
-        Task { @MainActor in
-            let managers = try await NETunnelProviderManager.loadAllFromPreferences()
+    @MainActor
+    public func handleShutDown() async throws {
+        os_log("🔴 Disabling Connect On Demand and shutting down the tunnel", log: .networkProtection)
+        let managers = try await NETunnelProviderManager.loadAllFromPreferences()
 
-            guard let manager = managers.first else {
-                completionHandler?(nil)
-                return
-            }
-
-            os_log("⚪️ Disabling Connect On Demand and shutting down the tunnel", log: .networkProtection)
-
-            manager.isOnDemandEnabled = false
-            try await manager.saveToPreferences()
-            try await manager.loadFromPreferences()
-
-            let error = NSError(domain: "com.duckduckgo.vpn", code: 0)
-            await cancelTunnel(with: error)
-
-            completionHandler?(nil)
+        guard let manager = managers.first else {
+            os_log("Could not find a viable manager, bailing out of shutdown", log: .networkProtection)
+            return
         }
+
+        manager.isOnDemandEnabled = false
+        try await manager.loadFromPreferences()
+        try await manager.saveToPreferences()
+
+        await cancelTunnel(with: TunnelError.vpnAccessRevoked)
     }
 
     private func setIncludedRoutes(_ includedRoutes: [IPAddressRange], completionHandler: ((Data?) -> Void)? = nil) {
@@ -1442,9 +1444,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             /// Ignore otherwise
             switch result {
             case .invalidEntitlement:
-                Task { [weak self] in
-                    await self?.handleInvalidEntitlement(attemptsShutdown: true)
-                }
+                await self?.handleAccessRevoked(attemptsShutdown: true)
             case .validEntitlement, .error:
                 break
             }
@@ -1483,7 +1483,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     @MainActor
-    private func handleInvalidEntitlement(attemptsShutdown: Bool) async {
+    private func handleAccessRevoked(attemptsShutdown: Bool) async {
         defaults.enableEntitlementMessaging()
         notificationsPresenter.showEntitlementNotification()
 
@@ -1501,10 +1501,20 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     // On iOS 16 and below, as a workaround, we rekey to force a 403 error so that the tunnel fails to restart
     @MainActor
     private func attemptShutdown() async {
+        let cancelTunnel = {
+            // Cancelling the tunnel may make it restart but will cause a 403
+            // on the next attempt to start the VPN, which has specific handling of its own.
+            self.cancelTunnelWithError(TunnelError.vpnAccessRevoked)
+        }
+
         if #available(iOS 17, *) {
-            handleShutDown()
+            do {
+                try await handleShutDown()
+            } catch {
+                cancelTunnel()
+            }
         } else {
-            try? await rekey()
+            cancelTunnel()
         }
     }
 
