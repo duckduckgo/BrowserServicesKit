@@ -24,28 +24,40 @@ public struct RemoteMessageModel: Equatable, Codable {
     public var content: RemoteMessageModelType?
     public let matchingRules: [Int]
     public let exclusionRules: [Int]
+    public let sendPixels: Bool
 
-    public init(id: String, content: RemoteMessageModelType?, matchingRules: [Int], exclusionRules: [Int]) {
+    public init(id: String, content: RemoteMessageModelType?, matchingRules: [Int], exclusionRules: [Int], sendPixels: Bool) {
         self.id = id
         self.content = content
         self.matchingRules = matchingRules
         self.exclusionRules = exclusionRules
+        self.sendPixels = sendPixels
     }
 
-    public static func == (lhs: RemoteMessageModel, rhs: RemoteMessageModel) -> Bool {
-        if lhs.id != rhs.id {
-            return false
-        }
-        if lhs.content != rhs.content {
-            return false
-        }
-        if lhs.matchingRules != rhs.matchingRules {
-            return false
-        }
-        if lhs.exclusionRules != rhs.exclusionRules {
-            return false
-        }
-        return true
+    enum CodingKeys: CodingKey {
+        case id
+        case content
+        case matchingRules
+        case exclusionRules
+        case sendPixels
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try container.decode(String.self, forKey: .id)
+        self.content = try container.decodeIfPresent(RemoteMessageModelType.self, forKey: .content)
+        self.matchingRules = try container.decode([Int].self, forKey: .matchingRules)
+        self.exclusionRules = try container.decode([Int].self, forKey: .exclusionRules)
+        self.sendPixels = try container.decodeIfPresent(Bool.self, forKey: .sendPixels) ?? true
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(self.id, forKey: .id)
+        try container.encodeIfPresent(self.content, forKey: .content)
+        try container.encode(self.matchingRules, forKey: .matchingRules)
+        try container.encode(self.exclusionRules, forKey: .exclusionRules)
+        try container.encode(self.sendPixels, forKey: .sendPixels)
     }
 
     mutating func localizeContent(translation: RemoteMessageResponse.JsonContentTranslation) {

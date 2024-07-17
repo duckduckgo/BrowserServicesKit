@@ -93,10 +93,13 @@ struct JsonToRemoteMessageModelMapper {
                 return
             }
 
-            var remoteMessage = RemoteMessageModel(id: message.id,
-                                              content: content,
-                                              matchingRules: message.matchingRules ?? [],
-                                              exclusionRules: message.exclusionRules ?? [])
+            var remoteMessage = RemoteMessageModel(
+                id: message.id,
+                content: content,
+                matchingRules: message.matchingRules ?? [],
+                exclusionRules: message.exclusionRules ?? [],
+                sendPixels: message.sendPixels ?? true
+            )
 
             if let translation = getTranslation(from: message.translations, for: Locale.current) {
                 remoteMessage.localizeContent(translation: translation)
