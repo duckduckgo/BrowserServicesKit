@@ -20,6 +20,7 @@ import Foundation
 import CryptoKit
 import Common
 import WebKit
+import PixelKit
 
 public enum PhishingDetectionError: CustomNSError {
     case detected
@@ -114,11 +115,13 @@ public class PhishingDetector: PhishingDetecting {
 			// Check local filterSet first
 			let filterHit = inFilterSet(hash: hostnameHash)
             for filter in filterHit where matchesUrl(hash: filter.hashValue, regexPattern: filter.regex, url: url, hostnameHash: hostnameHash) {
+                PixelKit.fire(PhishingDetectionPixels.errorPageShown(clientSideHit: true))
                 return true
             }
 			// If nothing found, hit the API to get matches
 			let matches = await apiClient.getMatches(hashPrefix: hashPrefix)
 			for match in matches where matchesUrl(hash: match.hash, regexPattern: match.regex, url: url, hostnameHash: hostnameHash) {
+                PixelKit.fire(PhishingDetectionPixels.errorPageShown(clientSideHit: false))
 				return true
 			}
 		}
