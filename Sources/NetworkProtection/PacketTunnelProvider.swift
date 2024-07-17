@@ -1501,9 +1501,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     // On iOS 16 and below, as a workaround, we rekey to force a 403 error so that the tunnel fails to restart
     @MainActor
     private func attemptShutdown() async {
-        if #available(iOS 17, *) {
-            handleShutDown()
+        if false { //#available(iOS 17, *) {
+            //handleShutDown()
         } else {
+            
             try? await rekey()
         }
     }
