@@ -263,15 +263,17 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             providerEvents.fire(.rekeyAttempt(.success))
         } catch {
             providerEvents.fire(.rekeyAttempt(.failure(error)))
-
-            switch error {
-            case TunnelError.vpnAccessRevoked:
-                await handleAccessRevoked(attemptsShutdown: true)
-            default:
-                break
-            }
-
+            await subscriptionAccessErrorHandler(error)
             throw error
+        }
+    }
+
+    private func subscriptionAccessErrorHandler(_ error: Error) async {
+        switch error {
+        case TunnelError.vpnAccessRevoked:
+            await handleAccessRevoked(attemptsShutdown: true)
+        default:
+            break
         }
     }
 
@@ -595,7 +597,18 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         settings.changePublisher
             .receive(on: DispatchQueue.main)
             .sink { [weak self] change in
-                self?.handleSettingsChange(change)
+                guard let self else { return }
+                let handleSettingsChange = handleSettingsChange
+                let subscriptionAccessErrorHandler = subscriptionAccessErrorHandler
+
+                Task { @MainActor in
+                    do {
+                        try await handleSettingsChange(change)
+                    } catch {
+                        await subscriptionAccessErrorHandler(error)
+                        throw error
+                    }
+                }
             }.store(in: &cancellables)
     }
 
@@ -1043,16 +1056,14 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         settings.apply(change: change)
     }
 
-    private func handleSettingsChange(_ change: VPNSettings.Change, completionHandler: ((Data?) -> Void)? = nil) {
+    @MainActor
+    private func handleSettingsChange(_ change: VPNSettings.Change) async throws {
         switch change {
         case .setExcludeLocalNetworks:
-            Task { @MainActor in
-                if case .connected = connectionStatus {
-                    try? await updateTunnelConfiguration(
-                        updateMethod: .selectServer(currentServerSelectionMethod),
-                        reassert: false)
-                }
-                completionHandler?(nil)
+            if case .connected = connectionStatus {
+                try await updateTunnelConfiguration(
+                    updateMethod: .selectServer(currentServerSelectionMethod),
+                    reassert: false)
             }
         case .setSelectedServer(let selectedServer):
             let serverSelectionMethod: NetworkProtectionServerSelectionMethod
@@ -1064,13 +1075,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 serverSelectionMethod = .preferredServer(serverName: serverName)
             }
 
-            Task { @MainActor in
-                if case .connected = connectionStatus {
-                    try? await updateTunnelConfiguration(
-                        updateMethod: .selectServer(serverSelectionMethod),
-                        reassert: true)
-                }
-                completionHandler?(nil)
+            if case .connected = connectionStatus {
+                try? await updateTunnelConfiguration(
+                    updateMethod: .selectServer(serverSelectionMethod),
+                    reassert: true)
             }
         case .setSelectedLocation(let selectedLocation):
             let serverSelectionMethod: NetworkProtectionServerSelectionMethod
@@ -1082,22 +1090,16 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 serverSelectionMethod = .preferredLocation(location)
             }
 
-            Task { @MainActor in
-                if case .connected = connectionStatus {
-                    try? await updateTunnelConfiguration(
-                        updateMethod: .selectServer(serverSelectionMethod),
-                        reassert: true)
-                }
-                completionHandler?(nil)
+            if case .connected = connectionStatus {
+                try? await updateTunnelConfiguration(
+                    updateMethod: .selectServer(serverSelectionMethod),
+                    reassert: true)
             }
         case .setDNSSettings:
-            Task { @MainActor in
-                if case .connected = connectionStatus {
-                    try? await updateTunnelConfiguration(
-                        updateMethod: .selectServer(currentServerSelectionMethod),
-                        reassert: true)
-                }
-                completionHandler?(nil)
+            if case .connected = connectionStatus {
+                try? await updateTunnelConfiguration(
+                    updateMethod: .selectServer(currentServerSelectionMethod),
+                    reassert: true)
             }
         case .setConnectOnLogin,
                 .setIncludeAllNetworks,
@@ -1108,7 +1110,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 .setShowInMenuBar,
                 .setDisableRekeying:
             // Intentional no-op, as some setting changes don't require any further operation
-            completionHandler?(nil)
+            break
         }
     }
 
@@ -1250,7 +1252,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
         guard let manager = managers.first else {
             os_log("Could not find a viable manager, bailing out of shutdown", log: .networkProtection)
-            return
+            // Doesn't matter a lot what error we throw here, since we'll try cancelling the
+            // tunnel.
+            throw TunnelError.vpnAccessRevoked
         }
 
         manager.isOnDemandEnabled = false
@@ -1497,13 +1501,11 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
-    // Attempt to shut down the tunnel
-    // On iOS 16 and below, as a workaround, we rekey to force a 403 error so that the tunnel fails to restart
     @MainActor
     private func attemptShutdown() async {
         let cancelTunnel = {
-            // Cancelling the tunnel may make it restart but will cause a 403
-            // on the next attempt to start the VPN, which has specific handling of its own.
+            // This will break the tunnel
+            try? self.tokenStore.deleteToken()
             self.cancelTunnelWithError(TunnelError.vpnAccessRevoked)
         }
 
