@@ -48,6 +48,7 @@ public enum PrivacyFeature: String {
     case sslCertificates
     case brokenSiteReportExperiment
     case toggleReports
+    case phishingDetection
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -120,4 +121,10 @@ public enum DuckPlayerSubfeature: String, PrivacySubfeature {
     public var parent: PrivacyFeature { .duckPlayer }
     case pip
     case autoplay
+}
+
+public enum phishingDetectionSubfeature: String, PrivacySubfeature {
+    public var parent: PrivacyFeature { .phishingDetection }
+    case allowErrorPage
+    case allowPreferencesToggle
 }
