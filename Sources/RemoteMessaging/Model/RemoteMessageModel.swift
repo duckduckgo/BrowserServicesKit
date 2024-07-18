@@ -51,15 +51,6 @@ public struct RemoteMessageModel: Equatable, Codable {
         self.isMetricsEnabled = try container.decodeIfPresent(Bool.self, forKey: .isMetricsEnabled) ?? true
     }
 
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(self.id, forKey: .id)
-        try container.encodeIfPresent(self.content, forKey: .content)
-        try container.encode(self.matchingRules, forKey: .matchingRules)
-        try container.encode(self.exclusionRules, forKey: .exclusionRules)
-        try container.encode(self.isMetricsEnabled, forKey: .isMetricsEnabled)
-    }
-
     mutating func localizeContent(translation: RemoteMessageResponse.JsonContentTranslation) {
         guard let content = content else {
             return
