@@ -24,14 +24,14 @@ public struct RemoteMessageModel: Equatable, Codable {
     public var content: RemoteMessageModelType?
     public let matchingRules: [Int]
     public let exclusionRules: [Int]
-    public let sendPixels: Bool
+    public let isMetricsEnabled: Bool
 
-    public init(id: String, content: RemoteMessageModelType?, matchingRules: [Int], exclusionRules: [Int], sendPixels: Bool) {
+    public init(id: String, content: RemoteMessageModelType?, matchingRules: [Int], exclusionRules: [Int], isMetricsEnabled: Bool) {
         self.id = id
         self.content = content
         self.matchingRules = matchingRules
         self.exclusionRules = exclusionRules
-        self.sendPixels = sendPixels
+        self.isMetricsEnabled = isMetricsEnabled
     }
 
     enum CodingKeys: CodingKey {
@@ -39,7 +39,7 @@ public struct RemoteMessageModel: Equatable, Codable {
         case content
         case matchingRules
         case exclusionRules
-        case sendPixels
+        case isMetricsEnabled
     }
 
     public init(from decoder: Decoder) throws {
@@ -48,7 +48,7 @@ public struct RemoteMessageModel: Equatable, Codable {
         self.content = try container.decodeIfPresent(RemoteMessageModelType.self, forKey: .content)
         self.matchingRules = try container.decode([Int].self, forKey: .matchingRules)
         self.exclusionRules = try container.decode([Int].self, forKey: .exclusionRules)
-        self.sendPixels = try container.decodeIfPresent(Bool.self, forKey: .sendPixels) ?? true
+        self.isMetricsEnabled = try container.decodeIfPresent(Bool.self, forKey: .isMetricsEnabled) ?? true
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -57,7 +57,7 @@ public struct RemoteMessageModel: Equatable, Codable {
         try container.encodeIfPresent(self.content, forKey: .content)
         try container.encode(self.matchingRules, forKey: .matchingRules)
         try container.encode(self.exclusionRules, forKey: .exclusionRules)
-        try container.encode(self.sendPixels, forKey: .sendPixels)
+        try container.encode(self.isMetricsEnabled, forKey: .isMetricsEnabled)
     }
 
     mutating func localizeContent(translation: RemoteMessageResponse.JsonContentTranslation) {

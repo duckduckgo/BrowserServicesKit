@@ -231,7 +231,7 @@ extension RemoteMessagingStore {
                     content: remoteMessage.content,
                     matchingRules: [],
                     exclusionRules: [],
-                    sendPixels: remoteMessage.sendPixels
+                    isMetricsEnabled: remoteMessage.isMetricsEnabled
                 )
                 break
             }
@@ -266,7 +266,7 @@ extension RemoteMessagingStore {
                     content: remoteMessageMapped.content,
                     matchingRules: [],
                     exclusionRules: [],
-                    sendPixels: remoteMessageMapped.sendPixels
+                    isMetricsEnabled: remoteMessageMapped.isMetricsEnabled
                 )
                 break
             }

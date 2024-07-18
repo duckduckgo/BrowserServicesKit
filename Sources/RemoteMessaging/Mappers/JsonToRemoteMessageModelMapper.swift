@@ -98,7 +98,7 @@ struct JsonToRemoteMessageModelMapper {
                 content: content,
                 matchingRules: message.matchingRules ?? [],
                 exclusionRules: message.exclusionRules ?? [],
-                sendPixels: message.sendPixels ?? true
+                isMetricsEnabled: message.isMetricsEnabled
             )
 
             if let translation = getTranslation(from: message.translations, for: Locale.current) {
