@@ -83,6 +83,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         // Subscription Errors - 100+
         case vpnAccessRevoked
 
+        // State Reset - 200+
+        case appRequestedCancellation
+
         public var errorDescription: String? {
             switch self {
             case .startingTunnelWithoutAuthToken:
@@ -93,6 +96,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 return "Failed to generate a tunnel configuration: \(internalError.localizedDescription)"
             case .simulateTunnelFailureError:
                 return "Simulated a tunnel error as requested"
+            case .appRequestedCancellation:
+                return nil
             }
         }
 
@@ -104,6 +109,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             case .simulateTunnelFailureError: return 2
                 // Subscription Errors - 100+
             case .vpnAccessRevoked: return 100
+                // State Reset - 200+
+            case .appRequestedCancellation: return 200
             }
         }
 
@@ -111,7 +118,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             switch self {
             case .startingTunnelWithoutAuthToken,
                     .simulateTunnelFailureError,
-                    .vpnAccessRevoked:
+                    .vpnAccessRevoked,
+                    .appRequestedCancellation:
                 return [:]
             case .couldNotGenerateTunnelConfiguration(let underlyingError):
                 return [NSUnderlyingErrorKey: underlyingError]
@@ -1147,9 +1155,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         try? tokenStore.deleteToken()
 #endif
 
-        // This is not really an error, we received a command to reset the connection
-        cancelTunnelWithError(nil)
-        completionHandler?(nil)
+        Task {
+            completionHandler?(nil)
+            await cancelTunnel(with: TunnelError.appRequestedCancellation)
+        }
     }
 
     private func handleGetLastErrorMessage(completionHandler: ((Data?) -> Void)? = nil) {
