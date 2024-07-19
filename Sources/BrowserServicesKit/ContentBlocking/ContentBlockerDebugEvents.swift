@@ -1,6 +1,5 @@
 //
 //  ContentBlockerDebugEvents.swift
-//  DuckDuckGo
 //
 //  Copyright © 2019 DuckDuckGo. All rights reserved.
 //
@@ -25,17 +24,17 @@ public enum ContentBlockerDebugEvents {
         static let etag = "etag"
         static let errorDescription = "error_desc"
     }
-    
+
     public enum Component: String, CustomStringConvertible, CaseIterable {
-    
+
         public var description: String { rawValue }
-        
+
         case tds
         case allowlist
         case tempUnprotected
         case localUnprotected
         case fallbackTds
-        
+
     }
 
     case trackerDataParseFailed
@@ -44,8 +43,9 @@ public enum ContentBlockerDebugEvents {
     case privacyConfigurationReloadFailed
     case privacyConfigurationParseFailed
     case privacyConfigurationCouldNotBeLoaded
-    
+
     case contentBlockingCompilationFailed(listName: String, component: Component)
 
     case contentBlockingCompilationTime
+
 }

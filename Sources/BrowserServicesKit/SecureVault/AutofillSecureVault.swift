@@ -21,16 +21,14 @@ import Common
 import GRDB
 import SecureStorage
 
-// swiftlint:disable file_length type_body_length
-
 public typealias AutofillVaultFactory = SecureVaultFactory<DefaultAutofillSecureVault<DefaultAutofillDatabaseProvider>>
 
 // swiftlint:disable:next identifier_name
 public let AutofillSecureVaultFactory: AutofillVaultFactory = SecureVaultFactory<DefaultAutofillSecureVault>(
     makeCryptoProvider: {
         return AutofillCryptoProvider()
-    }, makeKeyStoreProvider: {
-        return AutofillKeyStoreProvider()
+    }, makeKeyStoreProvider: { reporter in
+        return AutofillKeyStoreProvider(reporter: reporter)
     }, makeDatabaseProvider: { key in
         return try DefaultAutofillDatabaseProvider(key: key)
     }
@@ -54,16 +52,26 @@ public protocol AutofillSecureVault: SecureVault {
 
     func authWith(password: Data) throws -> any AutofillSecureVault
     func resetL2Password(oldPassword: Data?, newPassword: Data) throws
-    
+
     func accounts() throws -> [SecureVaultModels.WebsiteAccount]
+    func accountsCount() throws -> Int
+    func accountsCountBucket() throws -> String
     func accountsFor(domain: String) throws -> [SecureVaultModels.WebsiteAccount]
     func accountsWithPartialMatchesFor(eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount]
     func hasAccountFor(username: String?, domain: String?) throws -> Bool
+    func updateLastUsedFor(accountId: Int64) throws
 
     func websiteCredentialsFor(accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials?
     @discardableResult
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64
     func deleteWebsiteCredentialsFor(accountId: Int64) throws
+    func deleteAllWebsiteCredentials() throws
+
+    func neverPromptWebsites() throws -> [SecureVaultModels.NeverPromptWebsites]
+    func hasNeverPromptWebsitesFor(domain: String) throws -> Bool
+    @discardableResult
+    func storeNeverPromptWebsites(_ neverPromptWebsite: SecureVaultModels.NeverPromptWebsites) throws -> Int64
+    func deleteAllNeverPromptWebsites() throws
 
     func notes() throws -> [SecureVaultModels.Note]
     func noteFor(id: Int64) throws -> SecureVaultModels.Note?
@@ -72,6 +80,7 @@ public protocol AutofillSecureVault: SecureVault {
     func deleteNoteFor(noteId: Int64) throws
 
     func identities() throws -> [SecureVaultModels.Identity]
+    func identitiesCount() throws -> Int
     func identityFor(id: Int64) throws -> SecureVaultModels.Identity?
     func existingIdentityForAutofill(matching proposedIdentity: SecureVaultModels.Identity) throws -> SecureVaultModels.Identity?
     @discardableResult
@@ -79,6 +88,7 @@ public protocol AutofillSecureVault: SecureVault {
     func deleteIdentityFor(identityId: Int64) throws
 
     func creditCards() throws -> [SecureVaultModels.CreditCard]
+    func creditCardsCount() throws -> Int
     func creditCardFor(id: Int64) throws -> SecureVaultModels.CreditCard?
     func existingCardForAutofill(matching proposedCard: SecureVaultModels.CreditCard) throws -> SecureVaultModels.CreditCard?
     @discardableResult
@@ -99,6 +109,7 @@ public protocol AutofillSecureVault: SecureVault {
 
     func inDatabaseTransaction(_ block: @escaping (Database) throws -> Void) throws
     func modifiedSyncableCredentials() throws -> [SecureVaultModels.SyncableCredentials]
+    func accountTitlesForSyncableCredentials(modifiedBefore date: Date) throws -> [String]
     func deleteSyncableCredentials(_ syncableCredentials: SecureVaultModels.SyncableCredentials, in database: Database) throws
     func storeSyncableCredentials(
         _ syncableCredentials: SecureVaultModels.SyncableCredentials,
@@ -106,6 +117,10 @@ public protocol AutofillSecureVault: SecureVault {
         encryptedUsing l2Key: Data,
         hashedUsing salt: Data?
     ) throws
+
+    func encryptPassword(for credentials: SecureVaultModels.WebsiteCredentials,
+                         key l2Key: Data?,
+                         salt: Data?) throws -> SecureVaultModels.WebsiteCredentials
 
     func syncableCredentialsForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.SyncableCredentials]
     func syncableCredentialsForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.SyncableCredentials?
@@ -221,6 +236,26 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
         }
     }
 
+    public func accountsCount() throws -> Int {
+        return try executeThrowingDatabaseOperation {
+            return try self.providers.database.accountsCount()
+        }
+    }
+
+    public func accountsCountBucket() throws -> String {
+        let accountsCount = try accountsCount()
+
+        if accountsCount < 3 {
+            return "none"
+        } else if accountsCount < 11 {
+            return "some"
+        } else if accountsCount < 50 {
+            return "many"
+        } else {
+            return "lots"
+        }
+    }
+
     public func accountsFor(domain: String) throws -> [SecureVaultModels.WebsiteAccount] {
         lock.lock()
         defer {
@@ -263,6 +298,12 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
             return try self.providers.database.hasAccountFor(username: username, domain: domain)
         } catch {
             throw SecureStorageError.databaseError(cause: error)
+        }
+    }
+
+    public func updateLastUsedFor(accountId: Int64) throws {
+        try executeThrowingDatabaseOperation {
+            try self.providers.database.updateLastUsedForAccountId(accountId)
         }
     }
 
@@ -332,9 +373,9 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
         try providers.database.storeSyncableCredentials(syncableCredentialsToStore, in: database)
     }
 
-    private func encryptPassword(for credentials: SecureVaultModels.WebsiteCredentials,
-                                 key l2Key: Data? = nil,
-                                 salt: Data? = nil) throws -> SecureVaultModels.WebsiteCredentials {
+    public func encryptPassword(for credentials: SecureVaultModels.WebsiteCredentials,
+                                key l2Key: Data? = nil,
+                                salt: Data? = nil) throws -> SecureVaultModels.WebsiteCredentials {
         do {
             if let password = credentials.password, String(bytes: password, encoding: .utf8) == nil {
                 assertionFailure("Encrypted password passed to \(#function)")
@@ -358,6 +399,51 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
     public func deleteWebsiteCredentialsFor(accountId: Int64) throws {
         try executeThrowingDatabaseOperation {
             try self.providers.database.deleteWebsiteCredentialsForAccountId(accountId)
+        }
+    }
+
+    public func deleteAllWebsiteCredentials() throws {
+        try executeThrowingDatabaseOperation {
+            try self.providers.database.deleteAllWebsiteCredentials()
+        }
+    }
+
+    // MARK: NeverPromptWebsites
+
+    public func neverPromptWebsites() throws -> [SecureVaultModels.NeverPromptWebsites] {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+
+        do {
+            return try self.providers.database.neverPromptWebsites()
+        } catch {
+            throw SecureStorageError.databaseError(cause: error)
+        }
+    }
+
+    public func hasNeverPromptWebsitesFor(domain: String) throws -> Bool {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+        do {
+            return try self.providers.database.hasNeverPromptWebsitesFor(domain: domain)
+        } catch {
+            throw SecureStorageError.databaseError(cause: error)
+        }
+    }
+
+    public func storeNeverPromptWebsites(_ neverPromptWebsite: SecureVaultModels.NeverPromptWebsites) throws -> Int64 {
+        return try executeThrowingDatabaseOperation {
+            return try self.providers.database.storeNeverPromptWebsite(neverPromptWebsite)
+        }
+    }
+
+    public func deleteAllNeverPromptWebsites() throws {
+        try executeThrowingDatabaseOperation {
+            try self.providers.database.deleteAllNeverPromptWebsites()
         }
     }
 
@@ -395,6 +481,12 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
         }
     }
 
+    public func identitiesCount() throws -> Int {
+        return try executeThrowingDatabaseOperation {
+            return try self.providers.database.identitiesCount()
+        }
+    }
+
     public func identityFor(id: Int64) throws -> SecureVaultModels.Identity? {
         return try executeThrowingDatabaseOperation {
             return try self.providers.database.identityForIdentityId(id)
@@ -413,10 +505,10 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
             try self.providers.database.deleteIdentityForIdentityId(identityId)
         }
     }
-    
+
     public func existingIdentityForAutofill(matching proposedIdentity: SecureVaultModels.Identity) throws -> SecureVaultModels.Identity? {
         let identities = try self.identities()
-        
+
         return identities.first { existingIdentity in
             existingIdentity.hasAutofillEquality(comparedTo: proposedIdentity)
         }
@@ -427,15 +519,21 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
     public func creditCards() throws -> [SecureVaultModels.CreditCard] {
         return try executeThrowingDatabaseOperation {
             let cards =  try self.providers.database.creditCards()
-            
+
             let decryptedCards: [SecureVaultModels.CreditCard] = try cards.map { card in
                 var mutableCard = card
                 mutableCard.cardNumberData = try self.l2Decrypt(data: mutableCard.cardNumberData)
-                
+
                 return mutableCard
             }
-            
+
             return decryptedCards
+        }
+    }
+
+    public func creditCardsCount() throws -> Int {
+        return try executeThrowingDatabaseOperation {
+            return try self.providers.database.creditCardsCount()
         }
     }
 
@@ -450,10 +548,10 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
             return card
         }
     }
-    
+
     public func existingCardForAutofill(matching proposedCard: SecureVaultModels.CreditCard) throws -> SecureVaultModels.CreditCard? {
         let cards = try self.creditCards()
-        
+
         return cards.first { existingCard in
             existingCard.hasAutofillEquality(comparedTo: proposedCard)
         }
@@ -463,10 +561,10 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
     public func storeCreditCard(_ card: SecureVaultModels.CreditCard) throws -> Int64 {
         return try executeThrowingDatabaseOperation {
             var mutableCard = card
-            
+
             mutableCard.cardSuffix = SecureVaultModels.CreditCard.suffix(from: mutableCard.cardNumber)
             mutableCard.cardNumberData = try self.l2Encrypt(data: mutableCard.cardNumberData)
-            
+
             return try self.providers.database.storeCreditCard(mutableCard)
         }
     }
@@ -502,6 +600,21 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
             }
 
             return syncableCredentials
+        } catch {
+            let error = error as? SecureStorageError ?? SecureStorageError.databaseError(cause: error)
+            throw error
+        }
+    }
+
+    public func accountTitlesForSyncableCredentials(modifiedBefore date: Date) throws -> [String] {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+
+        do {
+            let syncableCredentials = try providers.database.modifiedSyncableCredentials(before: date)
+            return syncableCredentials.map { $0.account?.title ?? "" }
         } catch {
             let error = error as? SecureStorageError ?? SecureStorageError.databaseError(cause: error)
             throw error
@@ -551,7 +664,7 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
         }
         return try providers.crypto.decrypt(encryptedL2Key, withKey: decryptionKey)
     }
-    
+
     private func l2Encrypt(data: Data, using l2Key: Data? = nil) throws -> Data {
         let key: Data = try {
             if let l2Key {
@@ -574,5 +687,3 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
         return try providers.crypto.decrypt(data, withKey: key)
     }
 }
-
-// swiftlint:enable file_length type_body_length

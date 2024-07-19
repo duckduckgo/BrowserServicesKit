@@ -1,6 +1,6 @@
 //
 //  BookmarkListViewModel.swift
-//  
+//
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
@@ -25,14 +25,14 @@ import Persistence
 public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
 
     public let currentFolder: BookmarkEntity?
-    
+
     let context: NSManagedObjectContext
     public var favoritesDisplayMode: FavoritesDisplayMode {
         didSet {
             reloadData()
         }
     }
-    
+
     public var bookmarks = [BookmarkEntity]()
 
     private var observer: NSObjectProtocol?
@@ -42,7 +42,7 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
     public var localUpdates: AnyPublisher<Void, Never>
 
     private let errorEvents: EventMapping<BookmarksModelError>?
-    
+
     public init(bookmarksDatabase: CoreDataDatabase,
                 parentID: NSManagedObjectID?,
                 favoritesDisplayMode: FavoritesDisplayMode,
@@ -71,7 +71,7 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
         }
 
         self.bookmarks = fetchBookmarksInFolder(currentFolder)
-        
+
         registerForChanges()
     }
 
@@ -98,7 +98,7 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
         }
         save()
     }
-    
+
     private func registerForChanges() {
         observer = NotificationCenter.default.addObserver(forName: NSManagedObjectContext.didSaveObjectsNotification,
                                                           object: nil,
@@ -232,7 +232,7 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
             errorEvents?.fire(.saveFailed(.bookmarks), error: error)
         }
     }
-    
+
     // MARK: - Read
 
     public func countBookmarksForDomain(_ domain: String) -> Int {
@@ -255,11 +255,12 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
     public var totalBookmarksCount: Int {
         let countRequest = BookmarkEntity.fetchRequest()
         countRequest.predicate = NSPredicate(
-            format: "%K == false && %K == NO",
+            format: "%K == false && %K == NO && (%K == NO OR %K == nil)",
             #keyPath(BookmarkEntity.isFolder),
-            #keyPath(BookmarkEntity.isPendingDeletion)
+            #keyPath(BookmarkEntity.isPendingDeletion),
+            #keyPath(BookmarkEntity.isStub), #keyPath(BookmarkEntity.isStub)
         )
-        
+
         return (try? context.count(for: countRequest)) ?? 0
     }
 
@@ -287,11 +288,7 @@ public class BookmarkListViewModel: BookmarkListInteracting, ObservableObject {
         }()
 
         if shouldFetchRootFolder {
-            let orphanedBookmarks = BookmarkUtils.fetchOrphanedEntities(context)
-            if !orphanedBookmarks.isEmpty {
-                errorEvents?.fire(.orphanedBookmarksPresent)
-            }
-            folderBookmarks += orphanedBookmarks
+            folderBookmarks += BookmarkUtils.fetchOrphanedEntities(context)
         }
         return folderBookmarks
     }

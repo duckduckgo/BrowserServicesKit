@@ -1,6 +1,5 @@
 //
 //  Configuration.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -20,13 +19,13 @@
 import Foundation
 
 public protocol ConfigurationURLProviding {
-    
+
     func url(for configuration: Configuration) -> URL
-    
+
 }
 
 public enum Configuration: String, CaseIterable, Sendable {
-    
+
     case bloomFilterBinary
     case bloomFilterSpec
     case bloomFilterExcludedDomains
@@ -34,15 +33,16 @@ public enum Configuration: String, CaseIterable, Sendable {
     case surrogates
     case trackerDataSet
     case FBConfig
-    
+    case remoteMessagingConfig
+
     private static var urlProvider: ConfigurationURLProviding?
     public static func setURLProvider(_ urlProvider: ConfigurationURLProviding) {
         self.urlProvider = urlProvider
     }
-    
+
     var url: URL {
         guard let urlProvider = Self.urlProvider else { fatalError("Please set the urlProvider before accessing url.") }
         return urlProvider.url(for: self)
     }
-    
+
 }

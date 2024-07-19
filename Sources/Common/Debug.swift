@@ -1,6 +1,5 @@
 //
 //  Debug.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -18,7 +17,6 @@
 //
 
 import Foundation
-import os.log
 
 #if DEBUG
 
@@ -53,7 +51,7 @@ public func callingSymbol() -> String {
     repeat {
         // caller for the procedure
         callingSymbolIdx += 1
-        let line = stackTrace[callingSymbolIdx].replacingOccurrences(of: Bundle.main.name!, with: "DDG")
+        let line = stackTrace[callingSymbolIdx].replacingOccurrences(of: Bundle.main.executableURL!.lastPathComponent, with: "DDG")
         symbolName = String(line.split(separator: " ", maxSplits: 3)[3]).components(separatedBy: " + ")[0]
     } while stackTrace[callingSymbolIdx - 1].contains(symbolName.dropping(suffix: "To")) // skip objc wrappers
 

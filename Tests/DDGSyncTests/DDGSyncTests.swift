@@ -1,6 +1,5 @@
 //
 //  DDGSyncTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -20,6 +19,7 @@
 import Combine
 import Common
 import XCTest
+
 @testable import DDGSync
 
 enum SyncOperationEvent: Equatable {
@@ -56,6 +56,7 @@ final class DDGSyncTests: XCTestCase {
         ]
 
         (dependencies.secureStore as! SecureStorageStub).theAccount = .mock
+        dependencies.keyValueStore.set(true, forKey: DDGSync.Constants.syncEnabledKey)
     }
 
     override func tearDownWithError() throws {
@@ -120,7 +121,7 @@ final class DDGSyncTests: XCTestCase {
 
     func testThatRegularSyncOperationsAreSerialized() {
         let dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
-        dataProvider.lastSyncTimestamp = "1234"
+        dataProvider.updateSyncTimestamps(server: "1234", local: nil)
         setUpDataProviderCallbacks(for: dataProvider)
         setUpExpectations(started: 3, fetch: 3, handleResponse: 3, finished: 3)
 
@@ -278,7 +279,7 @@ final class DDGSyncTests: XCTestCase {
         (dependencies.secureStore as! SecureStorageStub).theAccount = .mock.updatingState(.active)
         let bookmarksDataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
         try bookmarksDataProvider.registerFeature(withState: .readyToSync)
-        bookmarksDataProvider.lastSyncTimestamp = "1234"
+        bookmarksDataProvider.updateSyncTimestamps(server: "1234", local: nil)
         bookmarksDataProvider._fetchChangedObjects = { _ in
             [.init(jsonObject: ["id": UUID().uuidString])]
         }
@@ -319,7 +320,7 @@ final class DDGSyncTests: XCTestCase {
 
     func testWhenSyncOperationIsCancelledThenCurrentOperationReturnsEarlyAndOtherScheduledOperationsDoNotEmitSyncStarted() {
         let dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
-        dataProvider.lastSyncTimestamp = "1234"
+        dataProvider.updateSyncTimestamps(server: "1234", local: nil)
         setUpDataProviderCallbacks(for: dataProvider)
         setUpExpectations(started: 2, fetch: 1, handleResponse: 1, finished: 2)
 
@@ -392,7 +393,7 @@ final class DDGSyncTests: XCTestCase {
 
     func testWhenSyncQueueIsResumedThenScheduledOperationStarts() {
         let dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
-        dataProvider.lastSyncTimestamp = "1234"
+        dataProvider.updateSyncTimestamps(server: "1234", local: nil)
         setUpDataProviderCallbacks(for: dataProvider)
 
         setUpExpectations(started: 1, fetch: 1, handleResponse: 1, finished: 1)
@@ -449,7 +450,7 @@ final class DDGSyncTests: XCTestCase {
 
     func testThatSyncOperationRequestReturningHTTP401CausesLoggingOutOfSync() {
         let dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
-        dataProvider.lastSyncTimestamp = "1234"
+        dataProvider.updateSyncTimestamps(server: "1234", local: nil)
         setUpDataProviderCallbacks(for: dataProvider)
         setUpExpectations(started: 1, fetch: 1, handleResponse: 0, finished: 1)
 
@@ -479,7 +480,7 @@ final class DDGSyncTests: XCTestCase {
 
     func testThatSyncOperationRequestThrowingHTTP401CausesLoggingOutOfSync() {
         let dataProvider = DataProvidingMock(feature: .init(name: "bookmarks"))
-        dataProvider.lastSyncTimestamp = "1234"
+        dataProvider.updateSyncTimestamps(server: "1234", local: nil)
         setUpDataProviderCallbacks(for: dataProvider)
         setUpExpectations(started: 1, fetch: 1, handleResponse: 0, finished: 1)
 

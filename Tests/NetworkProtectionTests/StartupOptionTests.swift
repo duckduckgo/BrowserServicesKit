@@ -1,5 +1,5 @@
 //
-//  StartupOptionsTests.swift
+//  StartupOptionTests.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -30,7 +30,7 @@ final class StartupOptionsTests: XCTestCase {
     ///
     func testStartupOptionsHaveCorrectDefaultValuesWhenStartedByTheSystem() {
         let rawOptions = [String: Any]()
-        let options = StartupOptions(options: rawOptions, log: .disabled)
+        let options = StartupOptions(options: rawOptions)
 
         XCTAssertEqual(options.authToken, .useExisting)
         XCTAssertEqual(options.enableTester, .useExisting)
@@ -52,7 +52,7 @@ final class StartupOptionsTests: XCTestCase {
             NetworkProtectionOptionKey.activationAttemptId: UUID().uuidString,
             NetworkProtectionOptionKey.isOnDemand: NSNumber(value: false)
         ]
-        let options = StartupOptions(options: rawOptions, log: .disabled)
+        let options = StartupOptions(options: rawOptions)
 
         XCTAssertEqual(options.authToken, .reset)
         XCTAssertEqual(options.enableTester, .reset)
@@ -73,7 +73,7 @@ final class StartupOptionsTests: XCTestCase {
         let rawOptions: [String: Any] = [
             NetworkProtectionOptionKey.isOnDemand: NSNumber(value: true)
         ]
-        let options = StartupOptions(options: rawOptions, log: .disabled)
+        let options = StartupOptions(options: rawOptions)
 
         XCTAssertEqual(options.authToken, .useExisting)
         XCTAssertEqual(options.enableTester, .useExisting)

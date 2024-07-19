@@ -1,6 +1,5 @@
 //
 //  GPCTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -18,6 +17,7 @@
 //
 
 import XCTest
+
 @testable import BrowserServicesKit
 
 final class GPCTests: XCTestCase {
@@ -25,7 +25,7 @@ final class GPCTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        
+
         let gpcFeature = PrivacyConfigurationData.PrivacyFeature(state: "enabled",
                                                                  exceptions: [],
                                                                  settings: [
@@ -39,34 +39,37 @@ final class GPCTests: XCTestCase {
                                                    unprotectedTemporary: [],
                                                    trackerAllowlist: [:])
         let localProtection = MockDomainsProtectionStore()
-        appConfig = AppPrivacyConfiguration(data: privacyData, identifier: "", localProtection: localProtection, internalUserDecider: DefaultInternalUserDecider())
+        appConfig = AppPrivacyConfiguration(data: privacyData,
+                                            identifier: "",
+                                            localProtection: localProtection,
+                                            internalUserDecider: DefaultInternalUserDecider())
     }
-    
+
     func testWhenGPCEnableDomainIsHttpThenISGPCEnabledTrue() {
         let result = GPCRequestFactory().isGPCEnabled(url: URL(string: "https://www.washingtonpost.com")!, config: appConfig)
         XCTAssertTrue(result)
     }
-    
+
     func testWhenGPCEnableDomainIsHttpsThenISGPCEnabledTrue() {
         let result = GPCRequestFactory().isGPCEnabled(url: URL(string: "http://www.washingtonpost.com")!, config: appConfig)
         XCTAssertTrue(result)
     }
-    
+
     func testWhenGPCEnableDomainHasNoSubDomainThenISGPCEnabledTrue() {
         let result = GPCRequestFactory().isGPCEnabled(url: URL(string: "http://washingtonpost.com")!, config: appConfig)
         XCTAssertTrue(result)
     }
-    
+
     func testWhenGPCEnableDomainHasPathThenISGPCEnabledTrue() {
         let result = GPCRequestFactory().isGPCEnabled(url: URL(string: "http://www.washingtonpost.com/test/somearticle.html")!, config: appConfig)
         XCTAssertTrue(result)
     }
-    
+
     func testWhenGPCEnableDomainHasCorrectSubdomainThenISGPCEnabledTrue() {
         let result = GPCRequestFactory().isGPCEnabled(url: URL(string: "http://global-privacy-control.glitch.me")!, config: appConfig)
         XCTAssertTrue(result)
     }
-    
+
     func testWhenGPCEnableDomainHasWrongSubdomainThenISGPCEnabledFalse() {
         let result = GPCRequestFactory().isGPCEnabled(url: URL(string: "http://glitch.me")!, config: appConfig)
         XCTAssertFalse(result)

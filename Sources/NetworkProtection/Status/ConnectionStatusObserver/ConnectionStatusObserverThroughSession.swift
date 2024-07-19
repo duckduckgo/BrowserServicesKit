@@ -33,6 +33,8 @@ public class ConnectionStatusObserverThroughSession: ConnectionStatusObserver {
 
     private let subject = CurrentValueSubject<ConnectionStatus, Never>(.disconnected)
 
+    private let tunnelSessionProvider: TunnelSessionProvider
+
     // MARK: - Notifications
     private let notificationCenter: NotificationCenter
     private let platformNotificationCenter: NotificationCenter
@@ -45,7 +47,8 @@ public class ConnectionStatusObserverThroughSession: ConnectionStatusObserver {
 
     // MARK: - Initialization
 
-    public init(notificationCenter: NotificationCenter = .default,
+    public init(tunnelSessionProvider: TunnelSessionProvider,
+                notificationCenter: NotificationCenter = .default,
                 platformNotificationCenter: NotificationCenter,
                 platformDidWakeNotification: Notification.Name,
                 log: OSLog = .networkProtection) {
@@ -53,6 +56,7 @@ public class ConnectionStatusObserverThroughSession: ConnectionStatusObserver {
         self.notificationCenter = notificationCenter
         self.platformNotificationCenter = platformNotificationCenter
         self.platformDidWakeNotification = platformDidWakeNotification
+        self.tunnelSessionProvider = tunnelSessionProvider
         self.log = log
 
         start()
@@ -66,20 +70,6 @@ public class ConnectionStatusObserverThroughSession: ConnectionStatusObserver {
     }
 
     private func startObservers() {
-        notificationCenter.publisher(for: .NEVPNConfigurationChange).sink { _ in
-            Task {
-                // As crazy as it seems, this calls fixes an issue with tunnel session
-                // having a nil manager, when in theory it should never be `nil`.  I don't know
-                // why this happens, but I believe it may be because we run multiple instances
-                // of our App controlling the session, and if any modification is made to the
-                // session, other instances should reload it from preferences.
-                //
-                // For better or worse, this line ensures the session's manager is not nil.
-                //
-                try? await NETunnelProviderManager.loadAllFromPreferences()
-            }
-        }.store(in: &cancellables)
-
         notificationCenter.publisher(for: .NEVPNStatusDidChange).sink { [weak self] notification in
             self?.handleStatusChangeNotification(notification)
         }.store(in: &cancellables)
@@ -90,7 +80,7 @@ public class ConnectionStatusObserverThroughSession: ConnectionStatusObserver {
     }
 
     private func loadInitialStatus() async {
-        guard let session = try? await ConnectionSessionUtilities.activeSession() else {
+        guard let session = await tunnelSessionProvider.activeSession() else {
             return
         }
 
@@ -101,15 +91,11 @@ public class ConnectionStatusObserverThroughSession: ConnectionStatusObserver {
 
     private func handleDidWake(_ notification: Notification) {
         Task {
-            do {
-                guard let session = try await ConnectionSessionUtilities.activeSession() else {
-                    return
-                }
-
-                handleStatusChange(in: session)
-            } catch {
-                os_log("%{public}@: failed to handle wake %{public}@", log: log, type: .error, String(describing: self), error.localizedDescription)
+            guard let session = await tunnelSessionProvider.activeSession() else {
+                return
             }
+
+            handleStatusChange(in: session)
         }
     }
 
@@ -162,6 +148,8 @@ public class ConnectionStatusObserverThroughSession: ConnectionStatusObserver {
     // MARK: - Logging
 
     private func logStatusChanged(status: ConnectionStatus) {
-        os_log("%{public}@: connection status is now %{public}@", log: log, type: .debug, String(describing: self), String(describing: status))
+        let unmanagedObject = Unmanaged.passUnretained(self)
+        let address = unmanagedObject.toOpaque()
+        os_log("%{public}@<%{public}@>: connection status is now %{public}@", log: log, type: .debug, String(describing: self), String(describing: address), String(describing: status))
     }
 }

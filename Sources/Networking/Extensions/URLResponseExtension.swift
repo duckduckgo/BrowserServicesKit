@@ -1,6 +1,5 @@
 //
 //  URLResponseExtension.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -20,12 +19,12 @@
 import Foundation
 
 extension URLResponse {
-        
+
     func asHTTPURLResponse() throws -> HTTPURLResponse {
         guard let httpResponse = self as? HTTPURLResponse else {
             throw APIRequest.Error.invalidResponse
         }
         return httpResponse
     }
-    
+
 }

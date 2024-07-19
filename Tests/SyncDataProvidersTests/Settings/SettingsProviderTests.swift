@@ -1,6 +1,5 @@
 //
 //  SettingsProviderTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -29,12 +28,15 @@ final class SettingsProviderTests: SettingsProviderTestsBase {
 
     func testThatLastSyncTimestampIsNilByDefault() {
         XCTAssertNil(provider.lastSyncTimestamp)
+        XCTAssertNil(provider.lastSyncLocalTimestamp)
     }
 
     func testThatLastSyncTimestampIsPersisted() throws {
         try provider.registerFeature(withState: .readyToSync)
-        provider.lastSyncTimestamp = "12345"
+        let date = Date()
+        provider.updateSyncTimestamps(server: "12345", local: date)
         XCTAssertEqual(provider.lastSyncTimestamp, "12345")
+        XCTAssertEqual(provider.lastSyncLocalTimestamp, date)
     }
 
     func testThatPrepareForFirstSyncClearsLastSyncTimestampAndSetsModifiedAtForAllSettings() throws {

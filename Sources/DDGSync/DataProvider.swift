@@ -1,6 +1,5 @@
 //
 //  DataProvider.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -17,8 +16,9 @@
 //  limitations under the License.
 //
 
-import Foundation
 import Combine
+import Common
+import Foundation
 
 /**
  * Defines sync feature, i.e. type of synced data.
@@ -129,11 +129,39 @@ public protocol DataProviding: AnyObject {
     var lastSyncTimestamp: String? { get }
 
     /**
+     * Local timestamp of the last successful sync of a given feature.
+     *
+     * This timestamp should only be used to identify objects that failed to sync
+     * (see `fetchDescriptionsForObjectsThatFailedValidation`) as it is not immune to
+     * changing date/time on client devices.
+     */
+    var lastSyncLocalTimestamp: Date? { get set }
+
+    /**
+     * Update server and local timestamps of the last successful sync of a given feature.
+     */
+    func updateSyncTimestamps(server: String?, local: Date?)
+
+    /**
+     * Handle to the logger instance for the data provider.
+     */
+    var log: OSLog { get }
+
+    /**
      * Prepare data models for first sync.
      *
      * This function is called before the initial sync is performed.
      */
     func prepareForFirstSync() throws
+
+    /**
+     * Find objects that failed local validation and weren't synced with the server.
+     *
+     * Instead of returning entire syncable objects, this function is supposed to return
+     * a property of the object that would hint the user which object it is. The strings
+     * returned by this function should be safe to be displayed verbatim in the app UI.
+     */
+    func fetchDescriptionsForObjectsThatFailedValidation() throws -> [String]
 
     /**
      * Return objects that have changed since last sync, or all objects in case of the initial sync.
@@ -177,8 +205,38 @@ public protocol DataProviding: AnyObject {
  */
 open class DataProvider: DataProviding {
 
+    public enum SyncResult: Equatable {
+        case noData
+        case someNewData
+        case newData(modifiedIds: Set<String>, deletedIds: Set<String>)
+
+        public var hasNewData: Bool {
+            switch self {
+            case .noData:
+                return false
+            case .someNewData, .newData:
+                return true
+            }
+        }
+
+        public var modifiedIds: Set<String> {
+            guard case .newData(let modifiedIds, _) = self else {
+                return []
+            }
+            return modifiedIds
+        }
+
+        public var deletedIds: Set<String> {
+            guard case .newData(_, let deletedIds) = self else {
+                return []
+            }
+            return deletedIds
+        }
+    }
+
     public let feature: Feature
-    public let syncDidUpdateData: () -> Void
+    public var syncDidUpdateData: () -> Void
+    public var syncDidFinish: () -> Void
     public let syncErrorPublisher: AnyPublisher<Error, Never>
 
     public var isFeatureRegistered: Bool {
@@ -198,27 +256,49 @@ open class DataProvider: DataProviding {
     }
 
     public var lastSyncTimestamp: String? {
+        metadataStore.timestamp(forFeatureNamed: feature.name)
+    }
+
+    public var lastSyncLocalTimestamp: Date? {
         get {
-            metadataStore.timestamp(forFeatureNamed: feature.name)
+            metadataStore.localTimestamp(forFeatureNamed: feature.name)
         }
         set {
-            if newValue == nil {
-                metadataStore.updateTimestamp(nil, forFeatureNamed: feature.name)
-            } else {
-                metadataStore.update(newValue, .readyToSync, forFeatureNamed: feature.name)
-            }
+            metadataStore.updateLocalTimestamp(newValue, forFeatureNamed: feature.name)
         }
     }
 
-    public init(feature: Feature, metadataStore: SyncMetadataStore, syncDidUpdateData: @escaping () -> Void) {
+    public func updateSyncTimestamps(server: String?, local: Date?) {
+        metadataStore.update(server, local, .readyToSync, forFeatureNamed: feature.name)
+    }
+
+    public var log: OSLog {
+        getLog()
+    }
+    private let getLog: () -> OSLog
+
+    public init(
+        feature: Feature,
+        metadataStore: SyncMetadataStore,
+        log: @escaping @autoclosure () -> OSLog = .disabled,
+        syncDidUpdateData: @escaping () -> Void = {},
+        syncDidFinish: @escaping () -> Void = {}
+    ) {
         self.feature = feature
         self.metadataStore = metadataStore
+        self.getLog = log
         self.syncDidUpdateData = syncDidUpdateData
+        self.syncDidFinish = syncDidFinish
         self.syncErrorPublisher = syncErrorSubject.eraseToAnyPublisher()
     }
 
     open func prepareForFirstSync() throws {
         assertionFailure("\(#function) is not implemented")
+    }
+
+    open func fetchDescriptionsForObjectsThatFailedValidation() throws -> [String] {
+        assertionFailure("\(#function) is not implemented")
+        return []
     }
 
     open func fetchChangedObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable] {

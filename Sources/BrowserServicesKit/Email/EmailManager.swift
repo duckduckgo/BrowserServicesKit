@@ -1,6 +1,5 @@
 //
 //  EmailManager.swift
-//  DuckDuckGo
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -19,8 +18,6 @@
 
 import Foundation
 import Common
-
-// swiftlint:disable file_length
 
 public enum EmailKeychainAccessType: String {
     case getUsername
@@ -43,7 +40,7 @@ public enum EmailKeychainAccessError: Error, Equatable {
     case keychainDeleteFailure(OSStatus)
     case keychainLookupFailure(OSStatus)
     case keychainFailedToSaveUsernameAfterSavingToken(OSStatus)
-    
+
     public var errorDescription: String {
         switch self {
         case .failedToDecodeKeychainValueAsData: return "failedToDecodeKeychainValueAsData"
@@ -91,7 +88,6 @@ public enum EmailManagerRequestDelegateError: Error {
     case decodingError
 }
 
-// swiftlint:disable function_parameter_count
 public protocol EmailManagerRequestDelegate: AnyObject {
 
     var activeTask: URLSessionTask? { get set }
@@ -105,11 +101,10 @@ public protocol EmailManagerRequestDelegate: AnyObject {
                       timeoutInterval: TimeInterval) async throws -> Data
 
     func emailManagerKeychainAccessFailed(_ emailManager: EmailManager,
-                                          accessType: EmailKeychainAccessType, 
+                                          accessType: EmailKeychainAccessType,
                                           error: EmailKeychainAccessError)
 
 }
-// swiftlint:enable function_parameter_count
 
 public extension Notification.Name {
     static let emailDidSignIn = Notification.Name("com.duckduckgo.browserServicesKit.EmailDidSignIn")
@@ -137,7 +132,7 @@ public struct EmailUrls {
     var emailAliasAPI: URL {
         return URL(string: Url.emailAlias)!
     }
-    
+
     public init() { }
 }
 
@@ -156,19 +151,19 @@ public enum EmailAliasStatus {
 }
 
 public class EmailManager {
-    
+
     public static let emailDomain = "duck.com"
     private static let inContextEmailSignupPromptDismissedPermanentlyAtKey = "Autofill.InContextEmailSignup.dismissed.permanently.at"
 
     private let storage: EmailManagerStorage
     public weak var aliasPermissionDelegate: EmailManagerAliasPermissionDelegate?
     public weak var requestDelegate: EmailManagerRequestDelegate?
-    
+
     public enum NotificationParameter {
         public static let cohort = "cohort"
         public static let isForcedSignOut = "isForcedSignOut"
     }
-    
+
     private lazy var emailUrls = EmailUrls()
     private lazy var aliasAPIURL = emailUrls.emailAliasAPI
 
@@ -191,7 +186,7 @@ public class EmailManager {
             } else {
                 assertionFailure("Expected EmailKeychainAccessFailure")
             }
-            
+
             return nil
         }
     }
@@ -210,7 +205,7 @@ public class EmailManager {
             } else {
                 assertionFailure("Expected EmailKeychainAccessFailure")
             }
-            
+
             return nil
         }
     }
@@ -229,7 +224,7 @@ public class EmailManager {
             } else {
                 assertionFailure("Expected EmailKeychainAccessFailure")
             }
-            
+
             return nil
         }
     }
@@ -248,7 +243,7 @@ public class EmailManager {
             } else {
                 assertionFailure("Expected EmailKeychainAccessFailure")
             }
-            
+
             return nil
         }
     }
@@ -267,7 +262,7 @@ public class EmailManager {
             } else {
                 assertionFailure("Expected EmailKeychainAccessFailure")
             }
-            
+
             return ""
         }
     }
@@ -279,7 +274,7 @@ public class EmailManager {
         }
 
         let dateString = dateFormatter.string(from: Date())
-        
+
         do {
             try storage.store(lastUseDate: dateString)
         } catch {
@@ -294,7 +289,7 @@ public class EmailManager {
     public var isSignedIn: Bool {
         return token != nil && username != nil
     }
-    
+
     public var userEmail: String? {
         guard let username = username else { return nil }
         return username + "@" + EmailManager.emailDomain
@@ -309,14 +304,14 @@ public class EmailManager {
             UserDefaults().set(newValue, forKey: Self.inContextEmailSignupPromptDismissedPermanentlyAtKey)
         }
     }
-    
+
     public init(storage: EmailManagerStorage = EmailKeychainManager()) {
         self.storage = storage
 
         dateFormatter.formatOptions = [.withFullDate, .withDashSeparatorInDate]
         dateFormatter.timeZone = TimeZone(identifier: "America/New_York") // Use ET time zone
     }
-    
+
     public func signOut(isForced: Bool = false) throws {
         Self.lock.lock()
         defer {
@@ -427,25 +422,25 @@ extension EmailManager: AutofillEmailDelegate {
     public func autofillUserScriptDidRequestSignOut(_: AutofillUserScript) {
         try? self.signOut()
     }
-    
+
     public func autofillUserScript(_: AutofillUserScript,
                                    didRequestAliasAndRequiresUserPermission requiresUserPermission: Bool,
                                    shouldConsumeAliasIfProvided: Bool,
                                    completionHandler: @escaping AliasAutosaveCompletion) {
-            
+
         getAliasIfNeeded { [weak self] newAlias, error in
             guard let newAlias = newAlias, error == nil, let self = self else {
                 completionHandler(nil, false, error)
                 return
             }
-            
+
             if requiresUserPermission {
                 guard let delegate = self.aliasPermissionDelegate else {
                     assertionFailure("EmailUserScript requires permission to provide Alias")
                     completionHandler(nil, false, .permissionDelegateNil)
                     return
                 }
-                
+
                 delegate.emailManager(self, didRequestPermissionToProvideAliasWithCompletion: { [weak self] permissionType, autosave in
                     switch permissionType {
                     case .user:
@@ -472,11 +467,11 @@ extension EmailManager: AutofillEmailDelegate {
             }
         }
     }
-    
+
     public func autofillUserScriptDidRequestRefreshAlias(_: AutofillUserScript) {
         self.consumeAliasAndReplace()
     }
-    
+
     public func autofillUserScript(_: AutofillUserScript, didRequestStoreToken token: String, username: String, cohort: String?) {
         try? storeToken(token, username: username, cohort: cohort)
     }
@@ -587,14 +582,14 @@ private extension EmailManager {
     }
 
     typealias HTTPHeaders = [String: String]
-    
+
     var emailHeaders: HTTPHeaders {
         guard let token = token else {
             return [:]
         }
         return ["Authorization": "Bearer " + token]
     }
-    
+
     func consumeAliasAndReplace() {
         Self.lock.lock()
         defer {
@@ -613,7 +608,7 @@ private extension EmailManager {
 
         fetchAndStoreAlias()
     }
-    
+
     func getAliasIfNeeded(timeoutInterval: TimeInterval = 4.0, completionHandler: @escaping AliasCompletion) {
         if let alias = alias {
             completionHandler(alias, nil)
@@ -666,7 +661,7 @@ private extension EmailManager {
             completionHandler?(nil, .signedOut)
             return
         }
-        
+
         Task.detached { [aliasAPIURL, emailHeaders] in
             let result: Result<String, AliasRequestError>
             do {
@@ -768,5 +763,3 @@ private extension EmailManager {
     }
 
 }
-
-// swiftlint:enable file_length

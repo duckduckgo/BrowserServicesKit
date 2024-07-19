@@ -1,6 +1,5 @@
 //
 //  ContentBlockingRulesHelper.swift
-//  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -24,9 +23,9 @@ import WebKit
 
 @MainActor
 final class ContentBlockingRulesHelper {
-    
+
     func makeFakeTDS() -> TrackerData {
-        
+
         let tracker = KnownTracker(domain: "tracker.com",
                                    defaultAction: .block,
                                    owner: KnownTracker.Owner(name: "Tracker", displayName: "Tracker"),
@@ -34,38 +33,38 @@ final class ContentBlockingRulesHelper {
                                    subdomains: nil,
                                    categories: nil,
                                    rules: nil)
-        
+
         let entity = Entity(displayName: "Tracker", domains: ["tracker.com"], prevalence: 0.1)
-        
+
         let tds = TrackerData(trackers: ["tracker.com": tracker],
                               entities: ["Tracker": entity],
                               domains: ["tracker.com": "Tracker"],
                               cnames: nil)
-        
+
         return tds
     }
-    
+
     func makeFakeRules(name: String) async -> ContentBlockerRulesManager.Rules? {
         return await makeFakeRules(name: name,
                                    tdsEtag: UUID().uuidString)
     }
-    
+
     func makeFakeRules(name: String,
                        tdsEtag: String,
                        tempListId: String? = nil,
                        allowListId: String? = nil,
                        unprotectedSitesHash: String? = nil) async -> ContentBlockerRulesManager.Rules? {
-        
+
         let identifier = ContentBlockerRulesIdentifier(name: name,
                                                        tdsEtag: tdsEtag,
                                                        tempListId: tempListId,
                                                        allowListId: allowListId,
                                                        unprotectedSitesHash: unprotectedSitesHash)
         let tds = makeFakeTDS()
-        
+
         let builder = ContentBlockerRulesBuilder(trackerData: tds)
         let rules = builder.buildRules()
-        
+
         let data: Data
         do {
             data = try JSONEncoder().encode(rules)
@@ -74,12 +73,12 @@ final class ContentBlockingRulesHelper {
         }
 
         let ruleList = String(data: data, encoding: .utf8)!
-        
+
         guard let compiledRules = try? await WKContentRuleListStore.default().compileContentRuleList(forIdentifier: identifier.stringValue,
                                                                                                encodedContentRuleList: ruleList) else {
             return nil
         }
-        
+
         return .init(name: name,
                      rulesList: compiledRules,
                      trackerData: tds,

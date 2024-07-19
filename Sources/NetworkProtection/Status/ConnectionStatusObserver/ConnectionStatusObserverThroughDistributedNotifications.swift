@@ -36,7 +36,6 @@ public class ConnectionStatusObserverThroughDistributedNotifications: Connection
 
     // MARK: - Network Path Monitoring
 
-    // swiftlint:disable:next line_length
     private static let monitorDispatchQueue = DispatchQueue(label: "com.duckduckgo.NetworkProtection.ConnectionStatusObserverThroughDistributedNotifications.monitorDispatchQueue", qos: .background)
     private let monitor = NWPathMonitor()
     private static let timeoutOnNetworkChanges: TimeInterval = .seconds(3)

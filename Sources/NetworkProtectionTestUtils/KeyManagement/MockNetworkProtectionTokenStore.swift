@@ -1,6 +1,5 @@
 //
-//  MockNetworkProtectionTokenStorage.swift
-//  DuckDuckGo
+//  MockNetworkProtectionTokenStore.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -23,7 +22,7 @@ import NetworkProtection
 public final class MockNetworkProtectionTokenStorage: NetworkProtectionTokenStore {
 
     public init() {
-        
+
     }
 
     var spyToken: String?
@@ -47,4 +46,9 @@ public final class MockNetworkProtectionTokenStorage: NetworkProtectionTokenStor
     public func deleteToken() throws {
         didCallDeleteToken = true
     }
+
+    public func fetchSubscriptionToken() throws -> String? {
+        try fetchToken()
+    }
+
 }

@@ -16,16 +16,14 @@
 //  limitations under the License.
 //
 
+#if os(macOS)
+
 import Combine
 import Common
 import Swifter
 import WebKit
 import XCTest
 @testable import Navigation
-
-// swiftlint:disable unused_closure_parameter
-// swiftlint:disable opening_brace
-// swiftlint:disable trailing_comma
 
 @available(macOS 12.0, iOS 15.0, *)
 class NavigationAuthChallengeTests: DistributedNavigationDelegateTestsBase {
@@ -143,7 +141,7 @@ class NavigationAuthChallengeTests: DistributedNavigationDelegateTestsBase {
             .didReceiveAuthenticationChallenge(.init("localhost", 8084, "http", realm: "localhost", method: "NSURLAuthenticationMethodHTTPBasic"), Nav(action: navAct(1), .started, nil, .gotAuth)),
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.htmlWithIframe3.count), nil, .gotAuth)),
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed, .gotAuth)),
-            .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameID, .empty, secOrigin: urls.local.securityOrigin)),
+            .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(main(responderIdx: 0).handle.frameID, urls.local), targ: frame(frameID, .empty, secOrigin: urls.local.securityOrigin)),
             .didReceiveAuthenticationChallenge(.init("localhost", 8084, "http", realm: "localhost", method: "NSURLAuthenticationMethodHTTPBasic"), Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed, .gotAuth)),
             .response(.resp(urls.local3, data.html.count, nil, .nonMain), Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed, .gotAuth)),
 
@@ -156,7 +154,7 @@ class NavigationAuthChallengeTests: DistributedNavigationDelegateTestsBase {
             .didStart(Nav(action: navAct(1), .started)),
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.htmlWithIframe3.count), nil, .gotAuth)),
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed, .gotAuth)),
-            .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameID, .empty, secOrigin: urls.local.securityOrigin)),
+            .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(main(responderIdx: 0).handle.frameID, urls.local), targ: frame(frameID, .empty, secOrigin: urls.local.securityOrigin)),
             .response(.resp(urls.local3, data.html.count, nil, .nonMain), Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed, .gotAuth)),
             .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed, .gotAuth)),
         ])
@@ -295,6 +293,4 @@ class NavigationAuthChallengeTests: DistributedNavigationDelegateTestsBase {
 
 }
 
-// swiftlint:enable unused_closure_parameter
-// swiftlint:enable opening_brace
-// swiftlint:enable trailing_comma
+#endif

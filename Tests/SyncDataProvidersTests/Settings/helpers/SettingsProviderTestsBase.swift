@@ -1,6 +1,5 @@
 //
 //  SettingsProviderTestsBase.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -17,11 +16,13 @@
 //  limitations under the License.
 //
 
-import XCTest
 import BrowserServicesKit
 import Common
+import CoreData
 import DDGSync
+import Foundation
 import Persistence
+import XCTest
 @testable import SyncDataProviders
 
 class MockEmailManagerStorage: EmailManagerStorage {
@@ -121,7 +122,7 @@ internal class SettingsProviderTestsBase: XCTestCase {
             XCTFail("Failed to load model")
             return
         }
-        metadataDatabase = CoreDataDatabase(name: className, containerLocation: metadataDatabaseLocation, model: model)
+        metadataDatabase = CoreDataDatabase(name: type(of: self).description(), containerLocation: metadataDatabaseLocation, model: model)
         metadataDatabase.loadStore()
     }
 

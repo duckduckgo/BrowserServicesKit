@@ -22,7 +22,6 @@ import Combine
 import ContentScopeScripts
 import UserScript
 import Common
-import os.log
 
 public final class SpecialPagesUserScript: NSObject, UserScript, UserScriptMessaging {
     public var source: String = ""
@@ -30,7 +29,7 @@ public final class SpecialPagesUserScript: NSObject, UserScript, UserScriptMessa
     public static let context = "specialPages"
 
     // special pages messaging cannot be isolated as we'll want regular page-scripts to be able to communicate
-    public let broker = UserScriptMessageBroker(context: SpecialPagesUserScript.context, requiresRunInPageContentWorld: true )
+    public let broker = UserScriptMessageBroker(context: SpecialPagesUserScript.context, requiresRunInPageContentWorld: true)
 
     public let messageNames: [String] = [
         SpecialPagesUserScript.context

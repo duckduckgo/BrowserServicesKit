@@ -1,6 +1,5 @@
 //
 //  APIHeaders.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -22,15 +21,15 @@ import Foundation
 public typealias HTTPHeaders = [String: String]
 
 public extension APIRequest {
-    
+
     struct Headers {
-        
+
         public typealias UserAgent = String
         private static var userAgent: UserAgent?
         public static func setUserAgent(_ userAgent: UserAgent) {
             self.userAgent = userAgent
         }
-        
+
         let userAgent: UserAgent
         let acceptEncoding: String = "gzip;q=1.0, compress;q=0.5"
         let acceptLanguage: String = {
@@ -48,7 +47,7 @@ public extension APIRequest {
             self.etag = etag
             self.additionalHeaders = additionalHeaders
         }
-        
+
         public var httpHeaders: HTTPHeaders {
             var headers = [
                 HTTPHeaderField.acceptEncoding: acceptEncoding,
@@ -63,7 +62,7 @@ public extension APIRequest {
             }
             return headers
         }
-        
+
     }
-    
+
 }

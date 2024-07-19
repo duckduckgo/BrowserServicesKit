@@ -1,6 +1,5 @@
 //
-//  FeatureFlaggerTests.swift
-//  DuckDuckGo
+//  DefaultFeatureFlaggerTests.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -56,7 +55,7 @@ final class DefaultFeatureFlaggerTests: XCTestCase {
     func testWhenRemoteDevelopment_isInternalUser_whenFeature_returnsPrivacyConfigValue() {
         internalUserDeciderStore.isInternalUser = true
         let sourceProvider = FeatureFlagSource.remoteDevelopment(.feature(.autofill))
-        
+
         var embeddedData = Self.embeddedConfig(autofillState: "enabled")
         assertFeatureFlagger(with: embeddedData, willReturn: true, for: sourceProvider)
 
@@ -118,7 +117,7 @@ final class DefaultFeatureFlaggerTests: XCTestCase {
                                                   localProtection: MockDomainsProtectionStore(),
                                                  internalUserDecider: DefaultInternalUserDecider())
         let internalUserDecider = DefaultInternalUserDecider(store: internalUserDeciderStore)
-        return DefaultFeatureFlagger(internalUserDecider: internalUserDecider, privacyConfig: manager.privacyConfig)
+        return DefaultFeatureFlagger(internalUserDecider: internalUserDecider, privacyConfigManager: manager)
     }
 
     private static func embeddedConfig(autofillState: String = "enabled",

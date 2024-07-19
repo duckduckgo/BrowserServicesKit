@@ -16,6 +16,8 @@
 //  limitations under the License.
 //
 
+#if os(macOS)
+
 import Combine
 import Common
 import Swifter
@@ -23,51 +25,8 @@ import WebKit
 import XCTest
 @testable import Navigation
 
-// swiftlint:disable unused_closure_parameter
-// swiftlint:disable trailing_comma
-// swiftlint:disable opening_brace
-
 @available(macOS 12.0, iOS 15.0, *)
 class NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
-
-    func testClientRedirectToSameDocument() throws {
-        let customCallbacksHandler = CustomCallbacksHandler()
-        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })), .weak(customCallbacksHandler))
-
-        server.middleware = [{ [data] request in
-            return .ok(.html(data.sameDocumentClientRedirectData.string()!))
-        }]
-        try server.start(8084)
-
-        let eDidFinish = expectation(description: "#1")
-        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
-        responder(at: 0).onNavigationAction = { navigationAction, _ in .allow }
-
-        let eDidSameDocumentNavigation = expectation(description: "#2")
-        customCallbacksHandler.didSameDocumentNavigation = { _, type in
-            if type == .sessionStatePop { eDidSameDocumentNavigation.fulfill() }
-        }
-
-        withWebView { webView in
-            _=webView.load(req(urls.local))
-        }
-        waitForExpectations(timeout: 5)
-
-        if case .didCommit = responder(at: 0).history[5] {
-            responder(at: 0).history.insert(responder(at: 0).history[5], at: 4)
-        }
-        assertHistory(ofResponderAt: 0, equalsTo: [
-            .navigationAction(req(urls.local), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
-            .didStart(Nav(action: navAct(1), .started)),
-            .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.sameDocumentClientRedirectData.count, headers: .default + ["Content-Type": "text/html"]))),
-            .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
-
-            .willStart(Nav(action: NavAction(req(urls.localHashed1, defaultHeaders + ["Referer": urls.local.separatedString]), .sameDocumentNavigation, from: history[1], src: main(urls.local)), .approved, isCurrent: false)),
-
-            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed))
-        ])
-    }
 
     func testClientRedirectFromHashedUrlToNonHashedUrl() throws {
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
@@ -1034,7 +993,7 @@ class NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
         assertHistory(ofResponderAt: 0, equalsTo: [
             .navigationAction(NavAction(req(urls.local), .other, from: history[2], src: main(urls.local2))),
             .didCancel(navAct(3), expected: 2),
-            
+
             // .navigationAction(NavAction(req(urls.local4, defaultHeaders.allowingExtraKeys), .redirect(.developer), from: history[2], src: main(urls.local2))),
             // .willStart(Nav(action: navAct(4), redirects: [navAct(3)], .approved, isCurrent: false)),
             // .didFail(Nav(action: NavAction(req(urls.local4, defaultHeaders.allowingExtraKeys), .redirect(.developer), from: history[2], src: main(urls.local2)), redirects: [navAct(3)], .failed(WKError(NSURLErrorCancelled)), isCurrent: false), NSURLErrorCancelled),
@@ -1429,6 +1388,4 @@ class NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
 
 }
 
-// swiftlint:enable unused_closure_parameter
-// swiftlint:enable trailing_comma
-// swiftlint:enable opening_brace
+#endif

@@ -1,6 +1,5 @@
 //
-//  ContentBlockerDebugEvents.swift
-//  DuckDuckGo
+//  HTTPSUpgrade.swift
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -34,12 +33,12 @@ public enum HTTPSUpgradeError: Error {
 public actor HTTPSUpgrade {
 
     private var dataReloadTask: Task<BloomFilter?, Never>?
-    private let store: HTTPSUpgradeStore
-    private let privacyManager: PrivacyConfigurationManaging
+    private nonisolated let store: HTTPSUpgradeStore
+    private nonisolated let privacyManager: PrivacyConfigurationManaging
 
     private var bloomFilter: BloomFilter?
 
-    private let getLog: () -> OSLog
+    private nonisolated let getLog: () -> OSLog
     nonisolated private var log: OSLog {
         getLog()
     }

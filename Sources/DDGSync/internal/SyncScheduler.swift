@@ -1,6 +1,5 @@
 //
 //  SyncScheduler.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -34,7 +33,7 @@ protocol SchedulingInternal: AnyObject, Scheduling {
     var resumeSyncPublisher: AnyPublisher<Void, Never> { get }
 }
 
-class SyncScheduler: SchedulingInternal {
+final class SyncScheduler: SchedulingInternal {
     func notifyDataChanged() {
         if isEnabled {
             syncTriggerSubject.send()

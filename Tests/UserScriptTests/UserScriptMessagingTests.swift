@@ -1,6 +1,5 @@
 //
-//  ContentScopeMessagingTests.swift
-//  DuckDuckGo
+//  UserScriptMessagingTests.swift
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -60,7 +59,7 @@ class UserScriptMessagingTests: XCTestCase {
             }
         } catch {}
 
-        wait(for: [expectation], timeout: 2.0)
+        await fulfillment(of: [expectation], timeout: 2.0)
     }
 
     /// This test verifies that the replyHandler is called for notifications,
@@ -90,7 +89,7 @@ class UserScriptMessagingTests: XCTestCase {
             expectation.fulfill()
         } catch {}
 
-        wait(for: [expectation], timeout: 2.0)
+        await fulfillment(of: [expectation], timeout: 2.0)
     }
 
     /// This test verifies that errors from handlers are reflected back to the JS side.
@@ -128,7 +127,7 @@ class UserScriptMessagingTests: XCTestCase {
             }
         } catch {}
 
-        wait(for: [expectation], timeout: 2.0)
+        await fulfillment(of: [expectation], timeout: 2.0)
     }
 
     /// Ensure that an error is thrown if the feature was not registered
@@ -187,8 +186,6 @@ class UserScriptMessagingTests: XCTestCase {
         }
     }
 }
-
-// swiftlint:disable large_tuple
 
 /// A helper for registering a test delegate and creating a MockMsg based on the
 /// incoming dictionary (which represents a message coming from a webview)

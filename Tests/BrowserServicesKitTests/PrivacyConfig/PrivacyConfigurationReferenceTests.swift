@@ -1,6 +1,5 @@
 //
 //  PrivacyConfigurationReferenceTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -27,7 +26,7 @@ final class PrivacyConfigurationReferenceTests: XCTestCase {
         static let configRootPath = "Resources/privacy-reference-tests/privacy-configuration"
         static let tests = "Resources/privacy-reference-tests/privacy-configuration/tests.json"
     }
-    
+
     func testPrivacyConfiguration() throws {
         let dataLoader = JsonTestDataLoader()
         let testsData = dataLoader.fromJsonFile(Resource.tests)
@@ -36,10 +35,10 @@ final class PrivacyConfigurationReferenceTests: XCTestCase {
 
         for testConfig in referenceTests.testConfigs {
             let path = "\(Resource.configRootPath)/\(testConfig.referenceConfig)"
-            
+
             let configData = dataLoader.fromJsonFile(path)
             let privacyConfigurationData = try PrivacyConfigurationData(data: configData)
-            
+
             let privacyConfiguration = AppPrivacyConfiguration(data: privacyConfigurationData,
                                                                identifier: UUID().uuidString,
                                                                localProtection: MockDomainsProtectionStore(),
@@ -49,23 +48,23 @@ final class PrivacyConfigurationReferenceTests: XCTestCase {
                     os_log("Skipping test %@", test.name)
                     continue
                 }
-                
+
                 let testInfo = "\nName: \(test.name)\nFeature: \(test.featureName)\nsiteURL: \(test.siteURL)\nConfig: \(testConfig.referenceConfig)"
-  
+
                 guard let url = URL(string: test.siteURL),
                       let siteDomain = url.host else {
                     XCTFail("Can't get domain \(testInfo)")
                     continue
                 }
-                
+
                 if let feature = PrivacyFeature(rawValue: test.featureName) {
                     let isEnabled = privacyConfiguration.isFeature(feature, enabledForDomain: siteDomain)
                     XCTAssertEqual(isEnabled, test.expectFeatureEnabled, testInfo)
-                    
+
                 } else if test.featureName == "trackerAllowlist" {
                     let isEnabled = privacyConfigurationData.trackerAllowlist.state == "enabled"
                     XCTAssertEqual(isEnabled, test.expectFeatureEnabled, testInfo)
-                    
+
                 } else {
                     XCTFail("Can't create feature \(testInfo)")
                     continue
@@ -78,7 +77,7 @@ final class PrivacyConfigurationReferenceTests: XCTestCase {
 // MARK: - TestData
 private struct TestData: Codable {
     let testConfigs: [TestConfig]
-    
+
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         let dict = try container.decode([String: TestConfig].self)
@@ -90,7 +89,7 @@ private struct TestData: Codable {
 private struct TestConfig: Codable {
     let name, desc, referenceConfig: String
     let tests: [Test]
-    
+
 }
 
 // MARK: - Test

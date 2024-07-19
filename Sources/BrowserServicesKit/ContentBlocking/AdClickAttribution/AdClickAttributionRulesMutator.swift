@@ -1,6 +1,5 @@
 //
 //  AdClickAttributionRulesMutator.swift
-//  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -21,29 +20,29 @@ import TrackerRadarKit
 import Foundation
 
 public class AdClickAttributionRulesMutator {
-    
+
     var trackerData: TrackerData
     var config: AdClickAttributing
-    
+
     public init(trackerData: TrackerData, config: AdClickAttributing) {
         self.trackerData = trackerData
         self.config = config
     }
-    
+
     public func addException(vendorDomain: String) -> TrackerData {
         guard config.isEnabled else { return trackerData }
-        
+
         let attributedMatching = KnownTracker.Rule.Matching(domains: [vendorDomain.droppingWwwPrefix()], types: nil)
-        
+
         var attributedTrackers = [TrackerData.TrackerDomain: KnownTracker]()
-        
+
         for (entity, tracker) in trackerData.trackers {
             let allowlistEntries = config.allowlist.filter { $0.entity == entity }
             guard !allowlistEntries.isEmpty else {
                 attributedTrackers[entity] = tracker
                 continue
             }
-            
+
             var updatedRules = tracker.rules ?? []
             for allowlistEntry in allowlistEntries {
                 updatedRules.insert(KnownTracker.Rule(rule: normalizeRule(allowlistEntry.host),
@@ -53,7 +52,7 @@ public class AdClickAttributionRulesMutator {
                                                       exceptions: attributedMatching),
                                     at: 0)
             }
-            
+
             attributedTrackers[entity] = KnownTracker(domain: tracker.domain,
                                                       defaultAction: tracker.defaultAction,
                                                       owner: tracker.owner,
@@ -62,13 +61,13 @@ public class AdClickAttributionRulesMutator {
                                                       categories: tracker.categories,
                                                       rules: updatedRules)
         }
-        
+
         return TrackerData(trackers: attributedTrackers,
                            entities: trackerData.entities,
                            domains: trackerData.domains,
                            cnames: trackerData.cnames)
     }
-    
+
     private func normalizeRule(_ rule: String) -> String {
         var rule = rule.hasSuffix("/") ? rule : rule + "/"
         let index = rule.firstIndex(of: "/")

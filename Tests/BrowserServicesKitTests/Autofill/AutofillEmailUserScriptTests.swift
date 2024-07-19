@@ -1,6 +1,5 @@
 //
 //  AutofillEmailUserScriptTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -39,8 +38,10 @@ class AutofillEmailUserScriptTests: XCTestCase {
         """.data(using: .utf8)!
         let privacyConfig = AutofillTestHelper.preparePrivacyConfig(embeddedConfig: embeddedConfig)
         let properties = ContentScopeProperties(gpcEnabled: false, sessionKey: "1234", featureToggles: ContentScopeFeatureToggles.allTogglesOn)
-        let sourceProvider = DefaultAutofillSourceProvider(privacyConfigurationManager: privacyConfig,
-                                                           properties: properties)
+        let sourceProvider = DefaultAutofillSourceProvider.Builder(privacyConfigurationManager: privacyConfig,
+                                                                           properties: properties)
+            .withJSLoading()
+            .build()
         return AutofillUserScript(scriptSourceProvider: sourceProvider, encrypter: MockEncrypter(), hostProvider: SecurityOriginHostProvider())
     }()
     let userContentController = WKUserContentController()
@@ -83,11 +84,11 @@ class AutofillEmailUserScriptTests: XCTestCase {
     func testWhenReceivesStoreTokenMessageThenCallsDelegateMethodWithCorrectTokenAndUsername() {
         let mock = MockAutofillEmailDelegate()
         userScript.emailDelegate = mock
-        
+
         let token = "testToken"
         let username = "testUsername"
         let cohort = "testCohort"
-                
+
         let expect = expectation(description: "testWhenReceivesStoreTokenMessageThenCallsDelegateMethod")
         mock.requestStoreTokenCallback = { callbackToken, callbackUsername, callbackCohort in
             XCTAssertEqual(token, callbackToken)
@@ -123,11 +124,11 @@ class AutofillEmailUserScriptTests: XCTestCase {
 
         waitForExpectations(timeout: 1.0, handler: nil)
     }
-   
+
     func testWhenReceivesGetAliasMessageThenCallsDelegateMethod() {
         let mock = MockAutofillEmailDelegate()
         userScript.emailDelegate = mock
-        
+
         let expect = expectation(description: "testWhenReceivesGetAliasMessageThenCallsDelegateMethod")
         mock.requestAliasCallback = {
             expect.fulfill()
@@ -145,11 +146,11 @@ class AutofillEmailUserScriptTests: XCTestCase {
 
         XCTAssertNotNil(mockWebView.javaScriptString)
     }
-    
+
     func testWhenReceivesRefreshAliasMessageThenCallsDelegateMethod() {
         let mock = MockAutofillEmailDelegate()
         userScript.emailDelegate = mock
-        
+
         let expect = expectation(description: "testWhenReceivesRefreshAliasMessageThenCallsDelegateMethod")
         mock.refreshAliasCallback = {
             expect.fulfill()
@@ -205,15 +206,15 @@ class AutofillEmailUserScriptTests: XCTestCase {
 }
 
 class MockWKScriptMessage: WKScriptMessage {
-    
+
     let mockedName: String
     let mockedBody: Any
     let mockedWebView: WKWebView?
-    
+
     override var name: String {
         return mockedName
     }
-    
+
     override var body: Any {
         return mockedBody
     }
@@ -221,7 +222,7 @@ class MockWKScriptMessage: WKScriptMessage {
     override var webView: WKWebView? {
         return mockedWebView
     }
-    
+
     init(name: String, body: Any, webView: WKWebView? = nil) {
         self.mockedName = name
         self.mockedBody = body
@@ -231,7 +232,7 @@ class MockWKScriptMessage: WKScriptMessage {
 }
 
 class MockUserScriptMessage: UserScriptMessage {
-    
+
     let mockedName: String
     let mockedBody: Any
     let mockedHost: String
@@ -241,11 +242,11 @@ class MockUserScriptMessage: UserScriptMessage {
     var isMainFrame: Bool {
         return mockedMainFrame
     }
-    
+
     var messageName: String {
         return mockedName
     }
-    
+
     var messageBody: Any {
         return mockedBody
     }
@@ -253,11 +254,11 @@ class MockUserScriptMessage: UserScriptMessage {
     var messageWebView: WKWebView? {
         return mockedWebView
     }
-    
+
     var messageHost: String {
         return mockedHost
     }
-    
+
     init(name: String, body: Any, host: String, webView: WKWebView? = nil) {
         self.mockedName = name
         self.mockedBody = body
@@ -296,7 +297,7 @@ class MockAutofillEmailDelegate: AutofillEmailDelegate {
         signedInCallback?()
         return false
     }
-    
+
     func autofillUserScript(_: AutofillUserScript,
                             didRequestAliasAndRequiresUserPermission requiresUserPermission: Bool,
                             shouldConsumeAliasIfProvided: Bool,
@@ -304,11 +305,11 @@ class MockAutofillEmailDelegate: AutofillEmailDelegate {
         requestAliasCallback?()
         completionHandler("alias", true, nil)
     }
-    
+
     func autofillUserScriptDidRequestRefreshAlias(_: AutofillUserScript) {
         refreshAliasCallback?()
     }
-    
+
     func autofillUserScript(_: AutofillUserScript, didRequestStoreToken token: String, username: String, cohort: String?) {
         requestStoreTokenCallback!(token, username, cohort)
     }

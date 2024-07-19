@@ -14,6 +14,7 @@
 //  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
+//
 
 import Foundation
 import XCTest
@@ -155,7 +156,6 @@ class SecureVaultModelTests: XCTestCase {
 
     // MARK: - Test Utilities
 
-    // swiftlint:disable:next large_tuple
     private func identity(named name: (String, String, String), addressStreet: String?) -> SecureVaultModels.Identity {
         return SecureVaultModels.Identity(id: nil,
                                           title: nil,
@@ -197,13 +197,18 @@ class SecureVaultModelTests: XCTestCase {
     private var tld = TLD()
     private var days = 86400.0
 
-    private func testAccount(_ username: String, _ domain: String, _ signature: String, _ lastUpdated: Double) -> SecureVaultModels.WebsiteAccount {
+    private func testAccount(_ username: String, _ domain: String, _ signature: String, _ lastUpdated: Double, _ lastUsed: Double? = nil) -> SecureVaultModels.WebsiteAccount {
+        var lastUsedDate: Date?
+        if let lastUsed = lastUsed {
+            lastUsedDate = Date(timeIntervalSince1970: lastUsed)
+        }
         return SecureVaultModels.WebsiteAccount(id: "1234567890",
                                                 username: username,
                                                 domain: domain,
                                                 signature: signature,
                                                 created: Date(timeIntervalSince1970: 0),
-                                                lastUpdated: Date(timeIntervalSince1970: lastUpdated))
+                                                lastUpdated: Date(timeIntervalSince1970: lastUpdated),
+                                                lastUsed: lastUsedDate)
 
     }
 
@@ -229,16 +234,59 @@ class SecureVaultModelTests: XCTestCase {
         testAccount("chris", "baby.amazon.com", "3456", 0),
         testAccount("anna", "amazon.com", "1234", 50 * days),
         testAccount("paul", "amazon.com", "3456", 0),
-        testAccount("john", "www.amazon.com", "4567", 0)
+        testAccount("john", "www.amazon.com", "4567", 0),
+        testAccount("ringo", "www.amazon.com", "1233", 0, 1 * days),
+        testAccount("george", "www.amazon.com", "4488", 0, 0 * days),
+        testAccount("pheobe", "amazon.com", "4488", 10 * days, 2 * days)
+    ]
+
+    lazy var sortTestAccountsWithPorts = [
+        testAccount("", "appliances.amazon.com:1234", "5678", 0),
+        testAccount("mary", "garden.amazon.com:1234", "12345", 50 * days),
+        testAccount("daniel", "www.amazon.com:1234", "23456", 0),
+        testAccount("lisa", "books.amazon.com:1234", "5678", 50  * days),
+        testAccount("peter", "primevideo.amazon.com:1234", "4567", 85 * days),
+        testAccount("jane", "amazon.com:1234", "7890", 0),
+        testAccount("", "", "7890", 0),
+        testAccount("", "amazon.com:1234", "3456", 0),
+        testAccount("william", "fashion.amazon.com:1234", "1234", 50 * days),
+        testAccount("olivia", "toys.amazon.com:1234", "4567", 50 * days),
+        testAccount("", "movies.amazon.com:1234", "2345", 0),
+        testAccount("jacob", "office.amazon.com:1234", "12345", 0),
+        testAccount("rachel", "amazon.com:1234", "7890", 0),
+        testAccount("james", "", "7890", 0),
+        testAccount("", "grocery.amazon.com:1234", "4567", 0),
+        testAccount("frank", "sports.amazon.com:1234", "23456", 0),
+        testAccount("quinn", "www.amazon.com:1234", "2345", 0),
+        testAccount("oscar", "amazon.com:1234", "7890", 0),
+        testAccount("chris", "baby.amazon.com:1234", "3456", 0),
+        testAccount("anna", "amazon.com:1234", "1234", 50 * days),
+        testAccount("paul", "amazon.com:1234", "3456", 0),
+        testAccount("john", "www.amazon.com:1234", "4567", 0),
+        testAccount("ringo", "www.amazon.com:1234", "1233", 0, 1 * days),
+        testAccount("george", "www.amazon.com:1234", "4488", 0, 0 * days),
+        testAccount("pheobe", "amazon.com:1234", "4488", 10 * days, 2 * days)
+    ]
+
+    lazy var localHostWithPorts = [
+        testAccount("ringo", "subdomain.localhost:1234", "5678", 0),
+        testAccount("mary", "localhost:1234", "5678", 0),
+        testAccount("daniel", "localhost:1234", "23456", 0),
+        testAccount("lisa", "localhost:1234", "5678", 50  * days),
+        testAccount("", "subdomain.localhost:1234", "4567", 85 * days),
+        testAccount("jane", "subdomain.localhost:1234", "7890", 0),
     ]
 
     func testExactMatchAccountsAreShownFirst() {
         let sortedAccounts = sortTestAccounts.sortedForDomain("www.amazon.com", tld: tld)
 
         let controlAccounts = [
+            testAccount("ringo", "www.amazon.com", "1233", 0, 1 * days),
+            testAccount("george", "www.amazon.com", "4488", 0, 0 * days),
             testAccount("daniel", "www.amazon.com", "23456", 0),
             testAccount("john", "www.amazon.com", "4567", 0),
             testAccount("quinn", "www.amazon.com", "2345", 0),
+            testAccount("pheobe", "amazon.com", "4488", 10 * days, 2 * days),
             testAccount("anna", "amazon.com", "1234", 50 * days),
             testAccount("jane", "amazon.com", "7890", 0),
             testAccount("oscar", "amazon.com", "7890", 0),
@@ -257,7 +305,40 @@ class SecureVaultModelTests: XCTestCase {
             testAccount("", "grocery.amazon.com", "4567", 0),
             testAccount("", "movies.amazon.com", "2345", 0)
         ]
-        for i in 0...18 {
+        for i in 0...controlAccounts.count - 1 {
+            XCTAssertEqual(sortedAccounts[i], controlAccounts[i])
+        }
+    }
+
+    func testExactMatchAccountsWithPortAreShownFirst() {
+        let sortedAccounts = sortTestAccountsWithPorts.sortedForDomain("www.amazon.com:1234", tld: tld)
+
+        let controlAccounts = [
+            testAccount("ringo", "www.amazon.com:1234", "1233", 0, 1 * days),
+            testAccount("george", "www.amazon.com:1234", "4488", 0, 0 * days),
+            testAccount("daniel", "www.amazon.com:1234", "23456", 0),
+            testAccount("john", "www.amazon.com:1234", "4567", 0),
+            testAccount("quinn", "www.amazon.com:1234", "2345", 0),
+            testAccount("pheobe", "amazon.com:1234", "4488", 10 * days, 2 * days),
+            testAccount("anna", "amazon.com:1234", "1234", 50 * days),
+            testAccount("jane", "amazon.com:1234", "7890", 0),
+            testAccount("oscar", "amazon.com:1234", "7890", 0),
+            testAccount("paul", "amazon.com:1234", "3456", 0),
+            testAccount("rachel", "amazon.com:1234", "7890", 0),
+            testAccount("", "amazon.com:1234", "3456", 0),
+            testAccount("peter", "primevideo.amazon.com:1234", "4567", 85 * days),
+            testAccount("lisa", "books.amazon.com:1234", "5678", 50 * days),
+            testAccount("william", "fashion.amazon.com:1234", "1234", 50 * days),
+            testAccount("mary", "garden.amazon.com:1234", "12345", 50 * days),
+            testAccount("olivia", "toys.amazon.com:1234", "4567", 50 * days),
+            testAccount("chris", "baby.amazon.com:1234", "3456", 0),
+            testAccount("jacob", "office.amazon.com:1234", "12345", 0),
+            testAccount("frank", "sports.amazon.com:1234", "23456", 0),
+            testAccount("", "appliances.amazon.com:1234", "5678", 0),
+            testAccount("", "grocery.amazon.com:1234", "4567", 0),
+            testAccount("", "movies.amazon.com:1234", "2345", 0)
+        ]
+        for i in 0...controlAccounts.count - 1 {
             XCTAssertEqual(sortedAccounts[i], controlAccounts[i])
         }
     }
@@ -266,17 +347,42 @@ class SecureVaultModelTests: XCTestCase {
 
         let sortedAccounts = sortTestAccounts.sortedForDomain("amazon.com", tld: tld)
         let controlAccounts = [
+            testAccount("pheobe", "amazon.com", "4488", 10 * days, 2 * days),
             testAccount("anna", "amazon.com", "1234", 50 * days),
             testAccount("jane", "amazon.com", "7890", 0),
             testAccount("oscar", "amazon.com", "7890", 0),
             testAccount("paul", "amazon.com", "3456", 0),
             testAccount("rachel", "amazon.com", "7890", 0),
             testAccount("", "amazon.com", "3456", 0),
+            testAccount("ringo", "www.amazon.com", "1233", 0, 1 * days),
+            testAccount("george", "www.amazon.com", "4488", 0, 0 * days),
             testAccount("daniel", "www.amazon.com", "23456", 0),
             testAccount("john", "www.amazon.com", "4567", 0),
             testAccount("quinn", "www.amazon.com", "2345", 0),
         ]
-        for i in 0...8 {
+        for i in 0...controlAccounts.count - 1 {
+            XCTAssertEqual(sortedAccounts[i], controlAccounts[i])
+        }
+    }
+
+    func testWWWAccountsWithPortAreConsideredTopLevel() {
+
+        let sortedAccounts = sortTestAccountsWithPorts.sortedForDomain("amazon.com:1234", tld: tld)
+        let controlAccounts = [
+            testAccount("pheobe", "amazon.com:1234", "4488", 10 * days, 2 * days),
+            testAccount("anna", "amazon.com:1234", "1234", 50 * days),
+            testAccount("jane", "amazon.com:1234", "7890", 0),
+            testAccount("oscar", "amazon.com:1234", "7890", 0),
+            testAccount("paul", "amazon.com:1234", "3456", 0),
+            testAccount("rachel", "amazon.com:1234", "7890", 0),
+            testAccount("", "amazon.com:1234", "3456", 0),
+            testAccount("ringo", "www.amazon.com:1234", "1233", 0, 1 * days),
+            testAccount("george", "www.amazon.com:1234", "4488", 0, 0 * days),
+            testAccount("daniel", "www.amazon.com:1234", "23456", 0),
+            testAccount("john", "www.amazon.com:1234", "4567", 0),
+            testAccount("quinn", "www.amazon.com:1234", "2345", 0),
+        ]
+        for i in 0...controlAccounts.count - 1 {
             XCTAssertEqual(sortedAccounts[i], controlAccounts[i])
         }
     }
@@ -286,6 +392,9 @@ class SecureVaultModelTests: XCTestCase {
         let sortedAccounts  = sortTestAccounts.sortedForDomain("toys.amazon.com", tld: tld)
         let controlAccounts  = [
             testAccount("olivia", "toys.amazon.com", "4567", 50 * days),
+            testAccount("pheobe", "amazon.com", "4488", 10 * days, 2 * days),
+            testAccount("ringo", "www.amazon.com", "1233", 0, 1 * days),
+            testAccount("george", "www.amazon.com", "4488", 0, 0 * days),
             testAccount("anna", "amazon.com", "1234", 50 * days),
             testAccount("jane", "amazon.com", "7890", 0),
             testAccount("oscar", "amazon.com", "7890", 0),
@@ -307,7 +416,41 @@ class SecureVaultModelTests: XCTestCase {
             testAccount("", "movies.amazon.com", "2345", 0)
         ]
         XCTAssertTrue(sortedAccounts.count == controlAccounts.count)
-        for i in 0...19 {
+        for i in 0...controlAccounts.count - 1 {
+            XCTAssertEqual(sortedAccounts[i], controlAccounts[i])
+        }
+    }
+
+    func testExactSubdomainMatchWithPortIsFirstFollowedByTLDAndWWW() {
+
+        let sortedAccounts  = sortTestAccountsWithPorts.sortedForDomain("toys.amazon.com:1234", tld: tld)
+        let controlAccounts  = [
+            testAccount("olivia", "toys.amazon.com:1234", "4567", 50 * days),
+            testAccount("pheobe", "amazon.com:1234", "4488", 10 * days, 2 * days),
+            testAccount("ringo", "www.amazon.com:1234", "1233", 0, 1 * days),
+            testAccount("george", "www.amazon.com:1234", "4488", 0, 0 * days),
+            testAccount("anna", "amazon.com:1234", "1234", 50 * days),
+            testAccount("jane", "amazon.com:1234", "7890", 0),
+            testAccount("oscar", "amazon.com:1234", "7890", 0),
+            testAccount("paul", "amazon.com:1234", "3456", 0),
+            testAccount("rachel", "amazon.com:1234", "7890", 0),
+            testAccount("daniel", "www.amazon.com:1234", "23456", 0),
+            testAccount("john", "www.amazon.com:1234", "4567", 0),
+            testAccount("quinn", "www.amazon.com:1234", "2345", 0),
+            testAccount("", "amazon.com:1234", "3456", 0),
+            testAccount("peter", "primevideo.amazon.com:1234", "4567", 85 * days),
+            testAccount("lisa", "books.amazon.com:1234", "5678", 50 * days),
+            testAccount("william", "fashion.amazon.com:1234", "1234", 50 * days),
+            testAccount("mary", "garden.amazon.com:1234", "12345", 50 * days),
+            testAccount("chris", "baby.amazon.com:1234", "3456", 0),
+            testAccount("jacob", "office.amazon.com:1234", "12345", 0),
+            testAccount("frank", "sports.amazon.com:1234", "23456", 0),
+            testAccount("", "appliances.amazon.com:1234", "5678", 0),
+            testAccount("", "grocery.amazon.com:1234", "4567", 0),
+            testAccount("", "movies.amazon.com:1234", "2345", 0)
+        ]
+        XCTAssertTrue(sortedAccounts.count == controlAccounts.count)
+        for i in 0...controlAccounts.count - 1 {
             XCTAssertEqual(sortedAccounts[i], controlAccounts[i])
         }
     }
@@ -317,6 +460,8 @@ class SecureVaultModelTests: XCTestCase {
         let sortedAccounts  = sortTestAccounts.sortedForDomain("toys.amazon.com", tld: tld, removeDuplicates: true)
         let controlAccounts  = [
             testAccount("olivia", "toys.amazon.com", "4567", 50 * days),
+            testAccount("pheobe", "amazon.com", "4488", 10 * days, 2 * days),
+            testAccount("ringo", "www.amazon.com", "1233", 0, 1 * days),
             testAccount("anna", "amazon.com", "1234", 50 * days),
             testAccount("jane", "amazon.com", "7890", 0),
             testAccount("paul", "amazon.com", "3456", 0),
@@ -325,13 +470,65 @@ class SecureVaultModelTests: XCTestCase {
             testAccount("lisa", "books.amazon.com", "5678", 50 * days),
             testAccount("mary", "garden.amazon.com", "12345", 50 * days),
         ]
-        for i in 0...7 {
+
+        for i in 0...controlAccounts.count - 1 {
+            XCTAssertEqual(sortedAccounts[i], controlAccounts[i])
+        }
+    }
+
+    func testDomainWithPortIsSorted() {
+        // (Note Duplicates are removed exclusively based on signature -- Ignoring usernames/domains)
+        let sortedAccounts  = sortTestAccountsWithPorts.sortedForDomain("toys.amazon.com:1234", tld: tld, removeDuplicates: true)
+        let controlAccounts  = [
+            testAccount("olivia", "toys.amazon.com:1234", "4567", 50 * days),
+            testAccount("pheobe", "amazon.com:1234", "4488", 10 * days, 2 * days),
+            testAccount("ringo", "www.amazon.com:1234", "1233", 0, 1 * days),
+            testAccount("anna", "amazon.com:1234", "1234", 50 * days),
+            testAccount("jane", "amazon.com:1234", "7890", 0),
+            testAccount("paul", "amazon.com:1234", "3456", 0),
+            testAccount("daniel", "www.amazon.com:1234", "23456", 0),
+            testAccount("quinn", "www.amazon.com:1234", "2345", 0),
+            testAccount("lisa", "books.amazon.com:1234", "5678", 50 * days),
+            testAccount("mary", "garden.amazon.com:1234", "12345", 50 * days),
+        ]
+
+        for i in 0...controlAccounts.count - 1 {
+            XCTAssertEqual(sortedAccounts[i], controlAccounts[i])
+        }
+    }
+
+    func testReturnsLocalhostWithPortSorted() {
+        let sortedAccounts  = localHostWithPorts.sortedForDomain("localhost:1234", tld: tld, removeDuplicates: false)
+        let controlAccounts  = [
+            testAccount("lisa", "localhost:1234", "5678", 50  * days),
+            testAccount("daniel", "localhost:1234", "23456", 0),
+            testAccount("mary", "localhost:1234", "5678", 0),
+            testAccount("jane", "subdomain.localhost:1234", "7890", 0),
+            testAccount("ringo", "subdomain.localhost:1234", "5678", 0),
+            testAccount("", "subdomain.localhost:1234", "4567", 85 * days)
+        ]
+
+        for i in 0...controlAccounts.count - 1 {
+            XCTAssertEqual(sortedAccounts[i], controlAccounts[i])
+        }
+    }
+
+    func testReturnsLocalhostWithPortSortedAndDuplicatedRemoved() {
+        let sortedAccounts  = localHostWithPorts.sortedForDomain("localhost:1234", tld: tld, removeDuplicates: true)
+        let controlAccounts  = [
+            testAccount("lisa", "localhost:1234", "5678", 50  * days),
+            testAccount("daniel", "localhost:1234", "23456", 0),
+            testAccount("jane", "subdomain.localhost:1234", "7890", 0),
+            testAccount("", "subdomain.localhost:1234", "4567", 85 * days)
+        ]
+
+        for i in 0...controlAccounts.count - 1 {
             XCTAssertEqual(sortedAccounts[i], controlAccounts[i])
         }
     }
 
     func testPatternMatchedTitle() {
-        
+
         let domainTitles: [String] = [
             "duck.com",
             "duck.com (test@duck.com)",
@@ -347,7 +544,7 @@ class SecureVaultModelTests: XCTestCase {
             "https://www.duck.com/section/page.php?test=variable1&b=variable2",
             "https://WwW.dUck.com/section/page"
         ]
-        
+
         let subdomainTitles: [String] = [
             "signin.duck.com",
             "signin.duck.com (test@duck.com.co)",
@@ -357,7 +554,7 @@ class SecureVaultModelTests: XCTestCase {
             "https://signin.duck.com/section/page.php?test=variable1&b=variable2",
             "https://SiGnIn.dUck.com/section/page"
         ]
-        
+
         let tldPlusOneTitles: [String] = [
             "signin.duck.com.co",
             "signin.duck.com.co (test@duck.com.co)",
@@ -367,7 +564,7 @@ class SecureVaultModelTests: XCTestCase {
             "https://signin.duck.com.co/section/page.php?test=variable1&b=variable2",
             "https://SiGnIn.dUck.com.CO/section/page"
         ]
-        
+
         let randomTitles: [String] = [
             "John's Work Gmail",
             "Chase Bank - Main Account",
@@ -422,36 +619,36 @@ class SecureVaultModelTests: XCTestCase {
             "twitter.com my account",
             "fill.dev  personal email"
         ]
-                        
+
         for title in domainTitles {
             let account = SecureVaultModels.WebsiteAccount(id: "", title: title, username: "", domain: "sometestdomain.com", created: Date(), lastUpdated: Date())
             XCTAssertEqual("duck.com", account.patternMatchedTitle(), "Failed for title: \(title)")
-            
+
             let equalDomain = SecureVaultModels.WebsiteAccount(id: "", title: title, username: "", domain: "duck.com", created: Date(), lastUpdated: Date())
             XCTAssertEqual("", equalDomain.patternMatchedTitle(), "Failed for title: \(title)")
         }
-        
+
         for title in subdomainTitles {
             let account = SecureVaultModels.WebsiteAccount(id: "", title: title, username: "", domain: "sometestdomain.com", created: Date(), lastUpdated: Date())
             XCTAssertEqual("signin.duck.com", account.patternMatchedTitle(), "Failed for title: \(title)")
-            
+
             let equalDomain = SecureVaultModels.WebsiteAccount(id: "", title: title, username: "", domain: "signin.duck.com", created: Date(), lastUpdated: Date())
             XCTAssertEqual("", equalDomain.patternMatchedTitle(), "Failed for title: \(title)")
         }
-        
+
         for title in tldPlusOneTitles {
             let account = SecureVaultModels.WebsiteAccount(id: "", title: title, username: "", domain: "sometestdomain.com", created: Date(), lastUpdated: Date())
             XCTAssertEqual("signin.duck.com.co", account.patternMatchedTitle(), "Failed for title: \(title)")
-            
+
             let equalDomain = SecureVaultModels.WebsiteAccount(id: "", title: title, username: "", domain: "signin.duck.com.co", created: Date(), lastUpdated: Date())
             XCTAssertEqual("", equalDomain.patternMatchedTitle(), "Failed for title: \(title)")
         }
-        
+
         for title in randomTitles {
             let account = SecureVaultModels.WebsiteAccount(id: "", title: title, username: "", domain: "sometestdomain.com", created: Date(), lastUpdated: Date())
             XCTAssertEqual(title, account.patternMatchedTitle(), "Failed for title: \(title)")
         }
-        
+
     }
-    
+
 }

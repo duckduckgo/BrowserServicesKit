@@ -21,11 +21,10 @@ import Foundation
 import GRDB
 import SecureStorage
 
-// swiftlint:disable file_length
-
 public protocol AutofillDatabaseProvider: SecureStorageDatabaseProvider {
 
     func accounts() throws -> [SecureVaultModels.WebsiteAccount]
+    func accountsCount() throws -> Int
     func hasAccountFor(username: String?, domain: String?) throws -> Bool
 
     @discardableResult
@@ -33,7 +32,15 @@ public protocol AutofillDatabaseProvider: SecureStorageDatabaseProvider {
     func websiteCredentialsForAccountId(_ accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials?
     func websiteAccountsForDomain(_ domain: String) throws -> [SecureVaultModels.WebsiteAccount]
     func websiteAccountsForTopLevelDomain(_ eTLDplus1: String) throws -> [SecureVaultModels.WebsiteAccount]
+    func updateLastUsedForAccountId(_ accountId: Int64) throws
     func deleteWebsiteCredentialsForAccountId(_ accountId: Int64) throws
+    func deleteAllWebsiteCredentials() throws
+
+    func neverPromptWebsites() throws -> [SecureVaultModels.NeverPromptWebsites]
+    func hasNeverPromptWebsitesFor(domain: String) throws -> Bool
+    @discardableResult
+    func storeNeverPromptWebsite(_ neverPromptWebsite: SecureVaultModels.NeverPromptWebsites) throws -> Int64
+    func deleteAllNeverPromptWebsites() throws
 
     func notes() throws -> [SecureVaultModels.Note]
     func noteForNoteId(_ noteId: Int64) throws -> SecureVaultModels.Note?
@@ -42,12 +49,14 @@ public protocol AutofillDatabaseProvider: SecureStorageDatabaseProvider {
     func deleteNoteForNoteId(_ noteId: Int64) throws
 
     func identities() throws -> [SecureVaultModels.Identity]
+    func identitiesCount() throws -> Int
     func identityForIdentityId(_ identityId: Int64) throws -> SecureVaultModels.Identity?
     @discardableResult
     func storeIdentity(_ identity: SecureVaultModels.Identity) throws -> Int64
     func deleteIdentityForIdentityId(_ identityId: Int64) throws
 
     func creditCards() throws -> [SecureVaultModels.CreditCard]
+    func creditCardsCount() throws -> Int
     func creditCardForCardId(_ cardId: Int64) throws -> SecureVaultModels.CreditCard?
     @discardableResult
     func storeCreditCard(_ creditCard: SecureVaultModels.CreditCard) throws -> Int64
@@ -60,6 +69,7 @@ public protocol AutofillDatabaseProvider: SecureStorageDatabaseProvider {
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials, in database: Database) throws -> Int64
 
     func modifiedSyncableCredentials() throws -> [SecureVaultModels.SyncableCredentials]
+    func modifiedSyncableCredentials(before date: Date) throws -> [SecureVaultModels.SyncableCredentials]
     func syncableCredentialsForSyncIds(_ syncIds: any Sequence<String>, in database: Database) throws -> [SecureVaultModels.SyncableCredentials]
     func websiteCredentialsForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.WebsiteCredentials?
     func syncableCredentialsForAccountId(_ accountId: Int64, in database: Database) throws -> SecureVaultModels.SyncableCredentials?
@@ -68,7 +78,6 @@ public protocol AutofillDatabaseProvider: SecureStorageDatabaseProvider {
     func updateSyncTimestamp(in database: Database, tableName: String, objectId: Int64, timestamp: Date?) throws
 }
 
-// swiftlint:disable:next type_body_length
 public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabaseProvider, AutofillDatabaseProvider {
 
     public static func defaultDatabaseURL() -> URL {
@@ -93,6 +102,8 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
                 migrator.registerMigration("v9", migrate: Self.migrateV9(database:))
                 migrator.registerMigration("v10", migrate: Self.migrateV10(database:))
                 migrator.registerMigration("v11", migrate: Self.migrateV11(database:))
+                migrator.registerMigration("v12", migrate: Self.migrateV12(database:))
+                migrator.registerMigration("v13", migrate: Self.migrateV13(database:))
             }
         }
     }
@@ -107,6 +118,13 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
         try db.read {
             try SecureVaultModels.WebsiteAccount.fetchAll($0)
         }
+    }
+
+    public func accountsCount() throws -> Int {
+        let count = try db.read {
+            try SecureVaultModels.WebsiteAccount.fetchCount($0)
+        }
+        return count
     }
 
     public func hasAccountFor(username: String?, domain: String?) throws -> Bool {
@@ -183,6 +201,26 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
         }
     }
 
+    public func updateLastUsedForAccountId(_ accountId: Int64) throws {
+        try db.write {
+            try updateLastUsed(in: $0, usingId: accountId)
+        }
+    }
+
+    private func updateLastUsed(in database: Database,
+                                usingId id: Int64) throws {
+        assert(database.isInsideTransaction)
+
+        try database.execute(sql: """
+            UPDATE
+                \(SecureVaultModels.WebsiteAccount.databaseTableName)
+            SET
+                \(SecureVaultModels.WebsiteAccount.Columns.lastUsed.name) = ?
+            WHERE
+                \(SecureVaultModels.WebsiteAccount.Columns.id.name) = ?
+        """, arguments: [Date(), id])
+    }
+
     public func deleteSyncableCredentials(_ syncableCredentials: SecureVaultModels.SyncableCredentials, in database: Database) throws {
         assert(database.isInsideTransaction)
 
@@ -210,6 +248,16 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
             """, arguments: [accountId])
     }
 
+    public func deleteAllWebsiteCredentials() throws {
+        try db.write {
+            try updateSyncTimestampForAllObjects(in: $0, tableName: SecureVaultModels.SyncableCredentialsRecord.databaseTableName)
+            try $0.execute(sql: """
+                DELETE FROM
+                    \(SecureVaultModels.WebsiteAccount.databaseTableName)
+                """)
+        }
+    }
+
     func updateWebsiteCredentials(in database: Database,
                                   _ credentials: SecureVaultModels.WebsiteCredentials,
                                   usingId id: Int64,
@@ -219,7 +267,7 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
         do {
             var account = credentials.account
             account.title = account.patternMatchedTitle()
-            
+
             try account.update(database)
             try database.execute(sql: """
                 UPDATE
@@ -251,7 +299,8 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
         do {
             var account = credentials.account
             account.title = account.patternMatchedTitle()
-            
+            account.lastUsed = Date()
+
             try account.insert(database)
             let id = database.lastInsertedRowID
             try database.execute(sql: """
@@ -283,6 +332,14 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
         try db.read { database in
             try SecureVaultModels.SyncableCredentials.query
                 .filter(SecureVaultModels.SyncableCredentialsRecord.Columns.lastModified != nil)
+                .fetchAll(database)
+        }
+    }
+
+    public func modifiedSyncableCredentials(before date: Date) throws -> [SecureVaultModels.SyncableCredentials] {
+        try db.read { database in
+            try SecureVaultModels.SyncableCredentials.query
+                .filter(SecureVaultModels.SyncableCredentialsRecord.Columns.lastModified < date)
                 .fetchAll(database)
         }
     }
@@ -332,6 +389,54 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
     public func websiteCredentialsForAccountId(_ accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials? {
         try db.read {
             try websiteCredentialsForAccountId(accountId, in: $0)
+        }
+    }
+
+    // MARK: NeverPromptWebsites
+
+    public func neverPromptWebsites() throws -> [SecureVaultModels.NeverPromptWebsites] {
+        try db.read {
+            try SecureVaultModels.NeverPromptWebsites.fetchAll($0)
+        }
+    }
+
+    public func hasNeverPromptWebsitesFor(domain: String) throws -> Bool {
+        let neverPromptWebsite = try db.read {
+            try SecureVaultModels.NeverPromptWebsites
+                .filter(SecureVaultModels.NeverPromptWebsites.Columns.domain.like(domain))
+                .fetchOne($0)
+        }
+        return neverPromptWebsite != nil
+    }
+
+    public func storeNeverPromptWebsite(_ neverPromptWebsite: SecureVaultModels.NeverPromptWebsites) throws -> Int64 {
+        if let id = neverPromptWebsite.id {
+            try updateNeverPromptWebsite(neverPromptWebsite, usingId: id)
+            return id
+        } else {
+            return try insertNeverPromptWebsite(neverPromptWebsite)
+        }
+    }
+
+    public func deleteAllNeverPromptWebsites() throws {
+        try db.write {
+            try $0.execute(sql: """
+                DELETE FROM
+                    \(SecureVaultModels.NeverPromptWebsites.databaseTableName)
+                """)
+        }
+    }
+
+    func updateNeverPromptWebsite(_ neverPromptWebsite: SecureVaultModels.NeverPromptWebsites, usingId id: Int64) throws {
+        try db.write {
+            try neverPromptWebsite.update($0)
+        }
+    }
+
+    func insertNeverPromptWebsite(_ neverPromptWebsite: SecureVaultModels.NeverPromptWebsites) throws -> Int64 {
+        try db.write {
+            try neverPromptWebsite.insert($0)
+            return $0.lastInsertedRowID
         }
     }
 
@@ -397,6 +502,13 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
         }
     }
 
+    public func identitiesCount() throws -> Int {
+        let count = try db.read {
+            try SecureVaultModels.Identity.fetchCount($0)
+        }
+        return count
+    }
+
     public func identityForIdentityId(_ identityId: Int64) throws -> SecureVaultModels.Identity? {
         try db.read {
             return try SecureVaultModels.Identity.fetchOne($0, sql: """
@@ -450,6 +562,13 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
         return try db.read {
             return try SecureVaultModels.CreditCard.fetchAll($0)
         }
+    }
+
+    public func creditCardsCount() throws -> Int {
+        let count = try db.read {
+            try SecureVaultModels.CreditCard.fetchCount($0)
+        }
+        return count
     }
 
     public func creditCardForCardId(_ cardId: Int64) throws -> SecureVaultModels.CreditCard? {
@@ -513,6 +632,18 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
                 \(SecureVaultSyncableColumns.objectId.name) = ?
 
         """, arguments: [timestamp?.withMillisecondPrecision, objectId])
+    }
+
+    public func updateSyncTimestampForAllObjects(in database: Database, tableName: String, timestamp: Date? = Date()) throws {
+        assert(database.isInsideTransaction)
+
+        try database.execute(sql: """
+            UPDATE
+                \(tableName)
+            SET
+                \(SecureVaultSyncableColumns.lastModified.name) = ?
+
+        """, arguments: [timestamp?.withMillisecondPrecision])
     }
 
 }
@@ -692,7 +823,6 @@ extension DefaultAutofillDatabaseProvider {
 
     }
 
-    // swiftlint:disable:next function_body_length
     static func migrateV6(database: Database) throws {
 
         try database.alter(table: SecureVaultModels.Identity.databaseTableName) {
@@ -700,7 +830,7 @@ extension DefaultAutofillDatabaseProvider {
         }
 
         let cryptoProvider: SecureStorageCryptoProvider = AutofillSecureVaultFactory.makeCryptoProvider()
-        let keyStoreProvider: SecureStorageKeyStoreProvider = AutofillSecureVaultFactory.makeKeyStoreProvider()
+        let keyStoreProvider: SecureStorageKeyStoreProvider = AutofillSecureVaultFactory.makeKeyStoreProvider(nil)
 
         // The initial version of the credit card model stored the credit card number as L1 data. This migration
         // updates it to store the full number as L2 data, and the suffix as L1 data for use with the Autofill
@@ -710,9 +840,9 @@ extension DefaultAutofillDatabaseProvider {
 
         let oldTableName = SecureVaultModels.CreditCard.databaseTableName + "Old"
         try database.rename(table: SecureVaultModels.CreditCard.databaseTableName, to: oldTableName)
-        
+
         // 2. Create the new table with suffix and card data values:
-        
+
         try database.create(table: SecureVaultModels.CreditCard.databaseTableName) {
             $0.autoIncrementedPrimaryKey(SecureVaultModels.CreditCard.Columns.id.name)
 
@@ -727,13 +857,13 @@ extension DefaultAutofillDatabaseProvider {
             $0.column(SecureVaultModels.CreditCard.Columns.expirationMonth.name, .integer)
             $0.column(SecureVaultModels.CreditCard.Columns.expirationYear.name, .integer)
         }
-        
+
         // 3. Iterate over existing records - read their numbers, store the suffixes, and then update the new table:
-        
+
         let rows = try Row.fetchCursor(database, sql: "SELECT * FROM \(oldTableName)")
 
         while let row = try rows.next() {
-            
+
             // Generate the encrypted card number and plaintext suffix:
 
             let number: String = row[SecureVaultModels.CreditCard.DeprecatedColumns.cardNumber.name]
@@ -741,9 +871,9 @@ extension DefaultAutofillDatabaseProvider {
             let encryptedCardNumber = try MigrationUtility.l2encrypt(data: number.data(using: .utf8)!,
                                                                      cryptoProvider: cryptoProvider,
                                                                      keyStoreProvider: keyStoreProvider)
-            
+
             // Insert data from the old table into the new one:
-            
+
             try database.execute(sql: """
                 INSERT INTO
                     \(SecureVaultModels.CreditCard.databaseTableName)
@@ -776,19 +906,19 @@ extension DefaultAutofillDatabaseProvider {
                              row[SecureVaultModels.CreditCard.Columns.expirationYear.name]
                             ])
         }
-        
+
         // 4. Drop the old database:
 
         try database.drop(table: oldTableName)
 
     }
-    
+
     static func migrateV7(database: Database) throws {
         try database.alter(table: SecureVaultModels.WebsiteAccount.databaseTableName) {
             $0.add(column: SecureVaultModels.WebsiteAccount.Columns.notes.name, .text)
         }
     }
-    
+
     static func migrateV8(database: Database) throws {
         try database.alter(table: SecureVaultModels.WebsiteAccount.databaseTableName) {
             $0.add(column: SecureVaultModels.WebsiteAccount.Columns.signature.name, .text)
@@ -858,9 +988,9 @@ extension DefaultAutofillDatabaseProvider {
             ifNotExists: false
         )
     }
-        
+
     static func migrateV11(database: Database) throws {
-        
+
         // Remove WWW from titles and ignore titles containing known export format
         let accountRows = try Row.fetchCursor(database, sql: "SELECT * FROM \(SecureVaultModels.WebsiteAccount.databaseTableName)")
         while let accountRow = try accountRows.next() {
@@ -870,9 +1000,9 @@ extension DefaultAutofillDatabaseProvider {
                                                            domain: accountRow[SecureVaultModels.WebsiteAccount.Columns.domain.name],
                                                            created: accountRow[SecureVaultModels.WebsiteAccount.Columns.created.name],
                                                            lastUpdated: accountRow[SecureVaultModels.WebsiteAccount.Columns.lastUpdated.name])
-            
+
             let cleanTitle = account.patternMatchedTitle()
-            
+
             // Update the accounts table with the new hash value
             try database.execute(sql: """
                 UPDATE
@@ -882,7 +1012,22 @@ extension DefaultAutofillDatabaseProvider {
                 WHERE
                     \(SecureVaultModels.WebsiteAccount.Columns.id.name) = ?
             """, arguments: [cleanTitle, account.id])
-            
+
+        }
+    }
+
+    static func migrateV12(database: Database) throws {
+
+        try database.create(table: SecureVaultModels.NeverPromptWebsites.databaseTableName) {
+            $0.autoIncrementedPrimaryKey(SecureVaultModels.NeverPromptWebsites.Columns.id.name)
+
+            $0.column(SecureVaultModels.NeverPromptWebsites.Columns.domain.name, .text)
+        }
+    }
+
+    static func migrateV13(database: Database) throws {
+        try database.alter(table: SecureVaultModels.WebsiteAccount.databaseTableName) {
+            $0.add(column: SecureVaultModels.WebsiteAccount.Columns.lastUsed.name, .date)
         }
     }
 
@@ -890,7 +1035,7 @@ extension DefaultAutofillDatabaseProvider {
     static private func updatePasswordHashes(database: Database) throws {
         let accountRows = try Row.fetchCursor(database, sql: "SELECT * FROM \(SecureVaultModels.WebsiteAccount.databaseTableName)")
         let cryptoProvider: SecureStorageCryptoProvider = AutofillSecureVaultFactory.makeCryptoProvider()
-        let keyStoreProvider: SecureStorageKeyStoreProvider = AutofillSecureVaultFactory.makeKeyStoreProvider()
+        let keyStoreProvider: SecureStorageKeyStoreProvider = AutofillSecureVaultFactory.makeKeyStoreProvider(nil)
         let salt = cryptoProvider.hashingSalt
 
         while let accountRow = try accountRows.next() {
@@ -945,10 +1090,10 @@ extension DefaultAutofillDatabaseProvider {
 // MARK: - Utility functions
 
 struct MigrationUtility {
-    
+
     static func l2encrypt(data: Data, cryptoProvider: SecureStorageCryptoProvider, keyStoreProvider: SecureStorageKeyStoreProvider) throws -> Data {
         let (crypto, keyStore) = try AutofillSecureVaultFactory.createAndInitializeEncryptionProviders()
-        
+
         guard let generatedPassword = try keyStore.generatedPassword() else {
             throw SecureStorageError.noL2Key
         }
@@ -960,13 +1105,13 @@ struct MigrationUtility {
         }
 
         let decryptedL2Key = try crypto.decrypt(encryptedL2Key, withKey: decryptionKey)
-        
+
         return try crypto.encrypt(data, withKey: decryptedL2Key)
     }
-    
+
     static func l2decrypt(data: Data, cryptoProvider: SecureStorageCryptoProvider, keyStoreProvider: SecureStorageKeyStoreProvider) throws -> Data {
         let (crypto, keyStore) = (cryptoProvider, keyStoreProvider)
-        
+
         guard let generatedPassword = try keyStore.generatedPassword() else {
             throw SecureStorageError.noL2Key
         }
@@ -988,7 +1133,7 @@ struct MigrationUtility {
 extension SecureVaultModels.WebsiteAccount: PersistableRecord, FetchableRecord {
 
     public enum Columns: String, ColumnExpression {
-        case id, title, username, domain, signature, notes, created, lastUpdated
+        case id, title, username, domain, signature, notes, created, lastUpdated, lastUsed
     }
 
     public init(row: Row) {
@@ -1000,6 +1145,7 @@ extension SecureVaultModels.WebsiteAccount: PersistableRecord, FetchableRecord {
         notes = row[Columns.notes]
         created = row[Columns.created]
         lastUpdated = row[Columns.lastUpdated]
+        lastUsed = row[Columns.lastUsed]
     }
 
     public func encode(to container: inout PersistenceContainer) {
@@ -1007,10 +1153,11 @@ extension SecureVaultModels.WebsiteAccount: PersistableRecord, FetchableRecord {
         container[Columns.title] = title
         container[Columns.username] = username
         container[Columns.domain] = domain
-        container[Columns.signature] = signature        
+        container[Columns.signature] = signature
         container[Columns.notes] = notes
         container[Columns.created] = created
         container[Columns.lastUpdated] = Date()
+        container[Columns.lastUsed] = lastUsed
     }
 
     public static var databaseTableName: String = "website_accounts"
@@ -1027,6 +1174,26 @@ extension SecureVaultModels.WebsiteCredentials {
 
 }
 
+extension SecureVaultModels.NeverPromptWebsites: PersistableRecord, FetchableRecord {
+
+    public enum Columns: String, ColumnExpression {
+        case id, domain
+    }
+
+    public init(row: Row) {
+        id = row[Columns.id]
+        domain = row[Columns.domain]
+    }
+
+    public func encode(to container: inout PersistenceContainer) {
+        container[Columns.id] = id
+        container[Columns.domain] = domain
+    }
+
+    public static var databaseTableName: String = "never_prompt_websites"
+
+}
+
 extension SecureVaultModels.CreditCard: PersistableRecord, FetchableRecord {
 
     enum Columns: String, ColumnExpression {
@@ -1034,7 +1201,7 @@ extension SecureVaultModels.CreditCard: PersistableRecord, FetchableRecord {
         case title
         case created
         case lastUpdated
-        
+
         case cardNumberData
         case cardSuffix
         case cardholderName
@@ -1043,7 +1210,7 @@ extension SecureVaultModels.CreditCard: PersistableRecord, FetchableRecord {
         case expirationMonth
         case expirationYear
     }
-    
+
     enum DeprecatedColumns: String, ColumnExpression {
         case cardNumber
     }
@@ -1092,7 +1259,7 @@ extension SecureVaultModels.Note: PersistableRecord, FetchableRecord {
         lastUpdated = row[Columns.lastUpdated]
         associatedDomain = row[Columns.associatedDomain]
         text = row[Columns.text]
-        
+
         displayTitle = generateDisplayTitle()
         displaySubtitle = generateDisplaySubtitle()
     }
@@ -1162,7 +1329,7 @@ extension SecureVaultModels.Identity: PersistableRecord, FetchableRecord {
         homePhone = row[Columns.homePhone]
         mobilePhone = row[Columns.mobilePhone]
         emailAddress = row[Columns.emailAddress]
-        
+
         autofillEqualityName = normalizedAutofillName()
         autofillEqualityAddressStreet = addressStreet?.autofillNormalized()
     }
@@ -1196,5 +1363,3 @@ extension SecureVaultModels.Identity: PersistableRecord, FetchableRecord {
     public static var databaseTableName: String = "identities"
 
 }
-
-// swiftlint:enable file_length

@@ -1,6 +1,5 @@
 //
 //  ContentBlockerRulesUserScript.swift
-//  DuckDuckGo
 //
 //  Copyright © 2020 DuckDuckGo. All rights reserved.
 //
@@ -56,7 +55,7 @@ public class DefaultContentBlockerUserScriptConfig: ContentBlockerUserScriptConf
                 ctlTrackerData: TrackerData?,
                 tld: TLD,
                 trackerDataManager: TrackerDataManager? = nil) {
-        
+
         if trackerData == nil {
             // Fallback to embedded
             self.trackerData = trackerDataManager?.trackerData
@@ -74,7 +73,7 @@ public class DefaultContentBlockerUserScriptConfig: ContentBlockerUserScriptConf
 }
 
 open class ContentBlockerRulesUserScript: NSObject, UserScript {
-    
+
     struct ContentBlockerKey {
         static let url = "url"
         static let resourceType = "resourceType"
@@ -89,64 +88,71 @@ open class ContentBlockerRulesUserScript: NSObject, UserScript {
 
         super.init()
     }
-    
+
     public var source: String {
         return configuration.source
     }
 
     public var injectionTime: WKUserScriptInjectionTime = .atDocumentStart
-    
+
     public var forMainFrameOnly: Bool = false
-    
+
     public var messageNames: [String] = [ "processRule" ]
-    
+
     public var supplementaryTrackerData = [TrackerData]()
     public var currentAdClickAttributionVendor: String?
-    
+
     public weak var delegate: ContentBlockerRulesUserScriptDelegate?
 
+    private var _temporaryUnprotectedDomainsCache = [String: [String]]()
+
     var temporaryUnprotectedDomains: [String] {
+        if let domains = _temporaryUnprotectedDomainsCache[configuration.privacyConfiguration.identifier] {
+            return domains
+        }
+
         let privacyConfiguration = configuration.privacyConfiguration
         var temporaryUnprotectedDomains = privacyConfiguration.tempUnprotectedDomains.filter { !$0.trimmingWhitespace().isEmpty }
         temporaryUnprotectedDomains.append(contentsOf: privacyConfiguration.exceptionsList(forFeature: .contentBlocking))
+        _temporaryUnprotectedDomainsCache = [configuration.privacyConfiguration.identifier: temporaryUnprotectedDomains]
         return temporaryUnprotectedDomains
     }
 
-    // swiftlint:disable:next cyclomatic_complexity function_body_length
+    // swiftlint:disable:next cyclomatic_complexity
     public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         guard let delegate = delegate else { return }
         guard delegate.contentBlockerRulesUserScriptShouldProcessTrackers(self) else { return }
         let ctlEnabled = delegate.contentBlockerRulesUserScriptShouldProcessCTLTrackers(self)
-        
+
         guard let dict = message.body as? [String: Any] else { return }
-        
+
         // False if domain is in unprotected list
         guard let blocked = dict[ContentBlockerKey.blocked] as? Bool else { return }
         guard let trackerUrlString = dict[ContentBlockerKey.url] as? String else { return }
         let resourceType = (dict[ContentBlockerKey.resourceType] as? String) ?? "unknown"
         guard let pageUrlStr = dict[ContentBlockerKey.pageUrl] as? String else { return }
-        
+
         guard let currentTrackerData = configuration.trackerData else {
             return
         }
 
         let privacyConfiguration = configuration.privacyConfiguration
-        
+
         var additionalTDSSets = supplementaryTrackerData
-        
+
         if ctlEnabled, let ctlTrackerData = configuration.ctlTrackerData {
             additionalTDSSets.append(ctlTrackerData)
         }
-        
+
         var detectedTracker: DetectedRequest?
-        
+
         for trackerData in additionalTDSSets {
             let resolver = TrackerResolver(tds: trackerData,
                                            unprotectedSites: privacyConfiguration.userUnprotectedDomains,
                                            tempList: temporaryUnprotectedDomains,
                                            tld: configuration.tld,
                                            adClickAttributionVendor: currentAdClickAttributionVendor)
-            
+
             if let tracker = resolver.trackerFromUrl(trackerUrlString,
                                                      pageUrlString: pageUrlStr,
                                                      resourceType: resourceType,
@@ -165,21 +171,21 @@ open class ContentBlockerRulesUserScript: NSObject, UserScript {
                                        unprotectedSites: privacyConfiguration.userUnprotectedDomains,
                                        tempList: temporaryUnprotectedDomains,
                                        tld: configuration.tld)
-        
+
         if let tracker = resolver.trackerFromUrl(trackerUrlString,
                                                  pageUrlString: pageUrlStr,
                                                  resourceType: resourceType,
                                                  potentiallyBlocked: blocked && privacyConfiguration.isEnabled(featureKey: .contentBlocking)) {
             detectedTracker = tracker
         }
-        
+
         if let tracker = detectedTracker {
             guard !isFirstParty(requestURL: tracker.url, websiteURL: pageUrlStr) else { return }
             delegate.contentBlockerRulesUserScript(self, detectedTracker: tracker)
         } else {
             guard let requestETLDp1 = configuration.tld.eTLDplus1(forStringURL: trackerUrlString),
                   !isFirstParty(requestURL: trackerUrlString, websiteURL: pageUrlStr) else { return }
-            
+
             let entity = currentTrackerData.findEntity(forHost: requestETLDp1) ?? Entity(displayName: requestETLDp1, domains: nil, prevalence: nil)
             let thirdPartyRequest = DetectedRequest(url: trackerUrlString,
                                                     eTLDplus1: requestETLDp1,
@@ -190,12 +196,12 @@ open class ContentBlockerRulesUserScript: NSObject, UserScript {
             delegate.contentBlockerRulesUserScript(self, detectedThirdPartyRequest: thirdPartyRequest)
         }
     }
-    
+
     private func isFirstParty(requestURL: String, websiteURL: String) -> Bool {
         guard let requestDomain = configuration.tld.eTLDplus1(forStringURL: requestURL),
               let websiteDomain = configuration.tld.eTLDplus1(forStringURL: websiteURL)
         else { return false }
-        
+
         return requestDomain == websiteDomain
     }
 

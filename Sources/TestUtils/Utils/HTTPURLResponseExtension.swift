@@ -1,6 +1,5 @@
 //
-//  Configuration.swift
-//  DuckDuckGo
+//  HTTPURLResponseExtension.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -18,31 +17,31 @@
 //
 
 import Foundation
-@testable import Networking
+import Networking
 
 extension HTTPURLResponse {
-    
+
     static let testEtag = "test-etag"
-    static let testUrl = URL(string: "www.example.com")!
-    
+    static let testUrl = URL(string: "http://www.example.com")!
+
     static let ok = HTTPURLResponse(url: testUrl,
                                     statusCode: 200,
                                     httpVersion: nil,
                                     headerFields: [APIRequest.HTTPHeaderField.etag: testEtag])!
-    
+
     static let okNoEtag = HTTPURLResponse(url: testUrl,
                                           statusCode: 200,
                                           httpVersion: nil,
                                           headerFields: [:])!
-    
+
     static let notModified = HTTPURLResponse(url: testUrl,
                                              statusCode: 304,
                                              httpVersion: nil,
                                              headerFields: [APIRequest.HTTPHeaderField.etag: testEtag])!
-    
+
     static let internalServerError = HTTPURLResponse(url: testUrl,
                                                      statusCode: 500,
                                                      httpVersion: nil,
                                                      headerFields: [:])!
-    
+
 }

@@ -1,6 +1,5 @@
 //
 //  ContentBlockerRulesManagerMultipleRulesTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -23,9 +22,8 @@ import BrowserServicesKit
 import WebKit
 import Common
 
-// swiftlint:disable unused_closure_parameter
 class ContentBlockerRulesManagerMultipleRulesTests: ContentBlockerRulesManagerTests {
-    
+
     let firstRules = """
 {
   "trackers": {
@@ -72,7 +70,7 @@ class ContentBlockerRulesManagerMultipleRulesTests: ContentBlockerRulesManagerTe
   }
 }
 """
-    
+
     let secondRules = """
 {
   "trackers": {
@@ -119,10 +117,10 @@ class ContentBlockerRulesManagerMultipleRulesTests: ContentBlockerRulesManagerTe
   }
 }
 """
-    
+
     class MockContentBlockerRulesListsSource: ContentBlockerRulesListsSource {
         let contentBlockerRulesLists: [ContentBlockerRulesList]
-        
+
         init(firstName: String, firstTD: TrackerDataManager.DataSet?, firstFallbackTD: TrackerDataManager.DataSet,
              secondName: String, secondTD: TrackerDataManager.DataSet?, secondFallbackTD: TrackerDataManager.DataSet) {
             contentBlockerRulesLists = [ContentBlockerRulesList(name: firstName,
@@ -133,9 +131,9 @@ class ContentBlockerRulesManagerMultipleRulesTests: ContentBlockerRulesManagerTe
                                                                 fallbackTrackerData: secondFallbackTD)]
         }
     }
-    
+
     private let rulesUpdateListener = RulesUpdateListener()
-    
+
     let schemeHandler = TestSchemeHandler()
     let navigationDelegateMock = MockNavigationDelegate()
 
@@ -145,22 +143,22 @@ class ContentBlockerRulesManagerMultipleRulesTests: ContentBlockerRulesManagerTe
                                        schemeHandler: TestSchemeHandler) -> WKWebView {
 
         XCTAssertFalse(currentRules.isEmpty)
-        
+
         let configuration = WKWebViewConfiguration()
         configuration.setURLSchemeHandler(schemeHandler, forURLScheme: schemeHandler.scheme)
-        
+
         let webView = WKWebView(frame: .init(origin: .zero, size: .init(width: 500, height: 1000)),
                                 configuration: configuration)
         webView.navigationDelegate = self.navigationDelegateMock
-        
+
         for rule in currentRules {
             configuration.userContentController.add(rule.rulesList)
         }
         return webView
     }
-    
+
     func testCompilationOfMultipleRulesListsWithSameETag() {
-        
+
         let sharedETag = Self.makeEtag()
         let mockRulesSource = MockContentBlockerRulesListsSource(firstName: "first",
                                                                  firstTD: Self.makeDataSet(tds: firstRules, etag: sharedETag),
@@ -181,9 +179,9 @@ class ContentBlockerRulesManagerMultipleRulesTests: ContentBlockerRulesManagerTe
                                               updateListener: rulesUpdateListener)
 
         wait(for: [exp], timeout: 15.0)
-        
+
         XCTAssertFalse(cbrm.currentRules.isEmpty)
-        
+
         for rules in cbrm.currentRules {
             if let source = mockRulesSource.contentBlockerRulesLists.first(where: { $0.name == rules.name }) {
                 XCTAssertEqual(source.trackerData?.etag, rules.etag)
@@ -191,12 +189,12 @@ class ContentBlockerRulesManagerMultipleRulesTests: ContentBlockerRulesManagerTe
                 XCTFail("Missing rules")
             }
         }
-        
+
         XCTAssertNotEqual(cbrm.currentRules[0].identifier.stringValue, cbrm.currentRules[1].identifier.stringValue)
     }
-    
+
     func testBrokenTDSRecompilationAndFallback() {
-        
+
         let invalidRulesETag = Self.makeEtag()
         let mockRulesSource = MockContentBlockerRulesListsSource(firstName: "first",
                                                                  firstTD: Self.makeDataSet(tds: Self.invalidRules, etag: invalidRulesETag),
@@ -211,12 +209,12 @@ class ContentBlockerRulesManagerMultipleRulesTests: ContentBlockerRulesManagerTe
         rulesUpdateListener.onRulesUpdated = { _ in
             exp.fulfill()
         }
-        
+
         let errorExp = expectation(description: "No error reported")
         errorExp.expectedFulfillmentCount = 2
         var brokenLists = Set<String>()
         var errorComponents = Set<ContentBlockerDebugEvents.Component>()
-        let errorHandler = EventMapping<ContentBlockerDebugEvents>.init { event, error, params, onComplete in
+        let errorHandler = EventMapping<ContentBlockerDebugEvents> { event, error, params, onComplete in
             if case .contentBlockingCompilationFailed(let listName, let component) = event {
                 brokenLists.insert(listName)
                 errorComponents.insert(component)
@@ -230,12 +228,12 @@ class ContentBlockerRulesManagerMultipleRulesTests: ContentBlockerRulesManagerTe
                                               errorReporting: errorHandler)
 
         wait(for: [exp, errorExp], timeout: 15.0)
-        
+
         XCTAssertEqual(brokenLists, Set(["first", "second"]))
         XCTAssertEqual(errorComponents, Set([.tds]))
-        
+
         XCTAssertFalse(cbrm.currentRules.isEmpty)
-        
+
         for rules in cbrm.currentRules {
             if let source = mockRulesSource.contentBlockerRulesLists.first(where: { $0.name == rules.name }) {
                 XCTAssertEqual(source.fallbackTrackerData.etag, rules.etag)
@@ -244,9 +242,9 @@ class ContentBlockerRulesManagerMultipleRulesTests: ContentBlockerRulesManagerTe
             }
         }
     }
-    
+
     func testCompilationOfMultipleRulesLists() {
-        
+
         let mockRulesSource = MockContentBlockerRulesListsSource(firstName: "first",
                                                                  firstTD: Self.makeDataSet(tds: firstRules),
                                                                  firstFallbackTD: Self.makeDataSet(tds: firstRules),
@@ -266,9 +264,9 @@ class ContentBlockerRulesManagerMultipleRulesTests: ContentBlockerRulesManagerTe
                                               updateListener: rulesUpdateListener)
 
         wait(for: [exp], timeout: 15.0)
-        
+
         XCTAssertFalse(cbrm.currentRules.isEmpty)
-        
+
         for rules in cbrm.currentRules {
             if let source = mockRulesSource.contentBlockerRulesLists.first(where: { $0.name == rules.name }) {
                 XCTAssertEqual(source.trackerData?.etag, rules.etag)
@@ -277,9 +275,9 @@ class ContentBlockerRulesManagerMultipleRulesTests: ContentBlockerRulesManagerTe
             }
         }
     }
-    
+
     func testCompilationOfMultipleFallbackRulesLists() {
-        
+
         let mockRulesSource = MockContentBlockerRulesListsSource(firstName: "first",
                                                                  firstTD: nil,
                                                                  firstFallbackTD: Self.makeDataSet(tds: firstRules),
@@ -299,9 +297,9 @@ class ContentBlockerRulesManagerMultipleRulesTests: ContentBlockerRulesManagerTe
                                               updateListener: rulesUpdateListener)
 
         wait(for: [exp], timeout: 15.0)
-        
+
         XCTAssertFalse(cbrm.currentRules.isEmpty)
-        
+
         for rules in cbrm.currentRules {
             if let source = mockRulesSource.contentBlockerRulesLists.first(where: { $0.name == rules.name }) {
                 XCTAssertEqual(source.fallbackTrackerData.etag, rules.etag)
@@ -310,9 +308,9 @@ class ContentBlockerRulesManagerMultipleRulesTests: ContentBlockerRulesManagerTe
             }
         }
     }
-    
+
     func testBrokenFallbackTDSFailure() {
-        
+
         let mockRulesSource = MockContentBlockerRulesListsSource(firstName: "first",
                                                                  firstTD: Self.makeDataSet(tds: Self.invalidRules),
                                                                  firstFallbackTD: Self.makeDataSet(tds: Self.invalidRules),
@@ -326,12 +324,12 @@ class ContentBlockerRulesManagerMultipleRulesTests: ContentBlockerRulesManagerTe
         rulesUpdateListener.onRulesUpdated = { _ in
             exp.fulfill()
         }
-        
+
         let errorExp = expectation(description: "No error reported")
         errorExp.expectedFulfillmentCount = 2
         var brokenLists = Set<String>()
         var errorComponents = Set<ContentBlockerDebugEvents.Component>()
-        let errorHandler = EventMapping<ContentBlockerDebugEvents>.init { event, error, params, onComplete in
+        let errorHandler = EventMapping<ContentBlockerDebugEvents> { event, error, params, onComplete in
             if case .contentBlockingCompilationFailed(let listName, let component) = event {
                 brokenLists.insert(listName)
                 errorComponents.insert(component)
@@ -345,13 +343,12 @@ class ContentBlockerRulesManagerMultipleRulesTests: ContentBlockerRulesManagerTe
                                               errorReporting: errorHandler)
 
         wait(for: [exp, errorExp], timeout: 15.0)
-        
+
         XCTAssertEqual(brokenLists, Set(["first"]))
         XCTAssertEqual(errorComponents, Set([.tds, .fallbackTds]))
-        
+
         XCTAssertEqual(cbrm.currentRules.count, 1)
         XCTAssertEqual(cbrm.currentRules.first?.name, "second")
     }
-    
+
 }
-// swiftlint:enable unused_closure_parameter

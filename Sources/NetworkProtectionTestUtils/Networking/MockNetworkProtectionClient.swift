@@ -1,6 +1,5 @@
 //
 //  MockNetworkProtectionClient.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -20,7 +19,6 @@
 import Foundation
 @testable import NetworkProtection
 
-// swiftlint:disable line_length
 public final class MockNetworkProtectionClient: NetworkProtectionClient {
     public init() {
     }
@@ -35,14 +33,35 @@ public final class MockNetworkProtectionClient: NetworkProtectionClient {
         spyGetLocationsAuthToken = authToken
         return stubGetLocations
     }
-    
+
+    public var spyGetServerStatusAuthToken: String?
+    public var spyGetServerStatusServerName: String?
+    public var stubServerStatus: Result<NetworkProtection.NetworkProtectionServerStatus, NetworkProtection.NetworkProtectionClientError> = .success(
+        .init(shouldMigrate: true)
+    )
+    public func getServerStatus(authToken: String, serverName: String) async -> Result<NetworkProtection.NetworkProtectionServerStatus, NetworkProtection.NetworkProtectionClientError> {
+        spyGetServerStatusAuthToken = authToken
+        spyGetServerStatusServerName = serverName
+        return stubServerStatus
+    }
     public var spyRedeemInviteCode: String?
+    public var spyRedeemAccessToken: String?
     public var stubRedeem: Result<String, NetworkProtection.NetworkProtectionClientError> = .success("")
     public var redeemCalled: Bool {
         spyRedeemInviteCode != nil
     }
 
-    public func redeem(inviteCode: String) async -> Result<String, NetworkProtection.NetworkProtectionClientError> {
+    public init(stubRedeem: Result<String, NetworkProtectionClientError> = .success(""),
+                stubGetServers: Result<[NetworkProtectionServer], NetworkProtectionClientError> = .success([]),
+                stubRegister: Result<[NetworkProtectionServer], NetworkProtectionClientError> = .success([])) {
+        self.stubRedeem = stubRedeem
+        self.stubGetServers = stubGetServers
+        self.stubRegister = stubRegister
+    }
+
+    public func redeem(
+        inviteCode: String
+    ) async -> Result<String, NetworkProtection.NetworkProtectionClientError> {
         spyRedeemInviteCode = inviteCode
         return stubRedeem
     }
@@ -69,4 +88,3 @@ public final class MockNetworkProtectionClient: NetworkProtectionClient {
         return stubRegister
     }
 }
-// swiftlint:enable line_length

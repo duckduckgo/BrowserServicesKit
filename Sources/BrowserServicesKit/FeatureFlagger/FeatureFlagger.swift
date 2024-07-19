@@ -1,6 +1,5 @@
 //
 //  FeatureFlagger.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -30,11 +29,11 @@ public protocol FeatureFlagger {
 
 public class DefaultFeatureFlagger: FeatureFlagger {
     private let internalUserDecider: InternalUserDecider
-    private let privacyConfig: PrivacyConfiguration
+    private let privacyConfigManager: PrivacyConfigurationManaging
 
-    public init(internalUserDecider: InternalUserDecider, privacyConfig: PrivacyConfiguration) {
+    public init(internalUserDecider: InternalUserDecider, privacyConfigManager: PrivacyConfigurationManaging) {
         self.internalUserDecider = internalUserDecider
-        self.privacyConfig = privacyConfig
+        self.privacyConfigManager = privacyConfigManager
     }
 
     public func isFeatureOn<F: FeatureFlagSourceProviding>(forProvider provider: F) -> Bool {
@@ -56,9 +55,9 @@ public class DefaultFeatureFlagger: FeatureFlagger {
     private func isEnabled(_ featureType: PrivacyConfigFeatureLevel) -> Bool {
         switch featureType {
         case .feature(let feature):
-            return privacyConfig.isEnabled(featureKey: feature)
+            return privacyConfigManager.privacyConfig.isEnabled(featureKey: feature)
         case .subfeature(let subfeature):
-            return privacyConfig.isSubfeatureEnabled(subfeature)
+            return privacyConfigManager.privacyConfig.isSubfeatureEnabled(subfeature)
         }
     }
 }

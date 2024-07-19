@@ -17,6 +17,7 @@
 //
 
 import Foundation
+import Common
 
 public protocol NetworkProtectionLocationListRepository {
     func fetchLocationList() async throws -> [NetworkProtectionLocation]
@@ -24,24 +25,39 @@ public protocol NetworkProtectionLocationListRepository {
 
 final public class NetworkProtectionLocationListCompositeRepository: NetworkProtectionLocationListRepository {
     @MainActor private static var locationList: [NetworkProtectionLocation] = []
+    @MainActor private static var cacheTimestamp = Date()
+    private static let cacheValidity = TimeInterval(60) // Refreshes at most once per minute
     private let client: NetworkProtectionClient
     private let tokenStore: NetworkProtectionTokenStore
+    private let errorEvents: EventMapping<NetworkProtectionError>
+    private let isSubscriptionEnabled: Bool
 
-    convenience public init(environment: TunnelSettings.SelectedEnvironment, tokenStore: NetworkProtectionTokenStore) {
+    convenience public init(environment: VPNSettings.SelectedEnvironment,
+                            tokenStore: NetworkProtectionTokenStore,
+                            errorEvents: EventMapping<NetworkProtectionError>,
+                            isSubscriptionEnabled: Bool) {
         self.init(
-            client: NetworkProtectionBackendClient(environment: environment),
-            tokenStore: tokenStore
+            client: NetworkProtectionBackendClient(environment: environment, isSubscriptionEnabled: isSubscriptionEnabled),
+            tokenStore: tokenStore,
+            errorEvents: errorEvents,
+            isSubscriptionEnabled: isSubscriptionEnabled
         )
     }
 
-    init(client: NetworkProtectionClient, tokenStore: NetworkProtectionTokenStore) {
+    init(client: NetworkProtectionClient,
+         tokenStore: NetworkProtectionTokenStore,
+         errorEvents: EventMapping<NetworkProtectionError>,
+         isSubscriptionEnabled: Bool) {
         self.client = client
         self.tokenStore = tokenStore
+        self.errorEvents = errorEvents
+        self.isSubscriptionEnabled = isSubscriptionEnabled
     }
 
     @MainActor
+    @discardableResult
     public func fetchLocationList() async throws -> [NetworkProtectionLocation] {
-        guard Self.locationList.isEmpty else {
+        guard !canUseCache else {
             return Self.locationList
         }
         do {
@@ -49,18 +65,28 @@ final public class NetworkProtectionLocationListCompositeRepository: NetworkProt
                 throw NetworkProtectionError.noAuthTokenFound
             }
             Self.locationList = try await client.getLocations(authToken: authToken).get()
+            Self.cacheTimestamp = Date()
         } catch let error as NetworkProtectionErrorConvertible {
+            errorEvents.fire(error.networkProtectionError)
             throw error.networkProtectionError
         } catch let error as NetworkProtectionError {
+            errorEvents.fire(error)
             throw error
         } catch {
-            throw NetworkProtectionError.unhandledError(function: #function, line: #line, error: error)
+            let unhandledError = NetworkProtectionError.unhandledError(function: #function, line: #line, error: error)
+            errorEvents.fire(unhandledError)
+            throw unhandledError
         }
         return Self.locationList
     }
 
     @MainActor
-    static func clearCache() {
+    private var canUseCache: Bool {
+        !Self.locationList.isEmpty && Date().timeIntervalSince(Self.cacheTimestamp) < Self.cacheValidity
+    }
+
+    @MainActor
+    public static func clearCache() {
         locationList = []
     }
 }

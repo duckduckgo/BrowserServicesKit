@@ -1,6 +1,5 @@
 //
 //  HTTPURLResponseExtension.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -21,23 +20,23 @@ import Foundation
 import Common
 
 public extension HTTPURLResponse {
-    
+
     enum Constants {
-        
+
         static let weakEtagPrefix = "W/"
         static let successfulStatusCodes = 200..<300
         static let notModifiedStatusCode = 304
-        
+
     }
-    
+
     func assertStatusCode<S: Sequence>(_ acceptedStatusCodes: S) throws where S.Iterator.Element == Int {
         guard acceptedStatusCodes.contains(statusCode) else { throw APIRequest.Error.invalidStatusCode(statusCode) }
     }
-    
+
     func assertSuccessfulStatusCode() throws {
         try assertStatusCode(Constants.successfulStatusCodes)
     }
-    
+
     var isSuccessfulResponse: Bool {
         do {
             try assertSuccessfulStatusCode()
@@ -46,7 +45,7 @@ public extension HTTPURLResponse {
             return false
         }
     }
-    
+
     func etag(droppingWeakPrefix: Bool) -> String? {
         let etag = value(forHTTPHeaderField: APIRequest.HTTPHeaderField.etag)
         if droppingWeakPrefix {
@@ -54,7 +53,7 @@ public extension HTTPURLResponse {
         }
         return etag
     }
-    
+
     var etag: String? { etag(droppingWeakPrefix: true) }
-    
+
 }

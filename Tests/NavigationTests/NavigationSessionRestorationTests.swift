@@ -16,16 +16,14 @@
 //  limitations under the License.
 //
 
+#if os(macOS)
+
 import Combine
 import Common
 import Swifter
 import WebKit
 import XCTest
 @testable import Navigation
-
-// swiftlint:disable unused_closure_parameter
-// swiftlint:disable trailing_comma
-// swiftlint:disable opening_brace
 
 @available(macOS 12.0, iOS 15.0, *)
 class NavigationSessionRestorationTests: DistributedNavigationDelegateTestsBase {
@@ -63,7 +61,7 @@ class NavigationSessionRestorationTests: DistributedNavigationDelegateTestsBase 
         waitForExpectations(timeout: 5)
 
         assertHistory(ofResponderAt: 0, equalsTo: [
-            .willStart(Nav(action: .init(req(urls.aboutPrefs, [:], cachePolicy: .returnCacheDataElseLoad), .restore, src: main()), .approved, isCurrent: false)),
+            .willStart(Nav(action: .init(req(urls.aboutBlank, [:], cachePolicy: .returnCacheDataElseLoad), .restore, src: main()), .approved, isCurrent: false)),
             .didStart(Nav(action: navAct(1), .started)),
             .didCommit(Nav(action: navAct(1), .started, .committed)),
             .didFinish(Nav(action: navAct(1), .finished, .committed)),
@@ -252,14 +250,14 @@ class NavigationSessionRestorationTests: DistributedNavigationDelegateTestsBase 
         ])
     }
 
-    func testWhenAboutPrefsSessionIsRestored_navigationTypeIsSessionRestoration() {
+    func testWhenAboutBlankSessionIsRestored_navigationTypeIsSessionRestoration() {
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
 
         let eDidFinish = expectation(description: "onDidFinish")
         responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
 
         withWebView { webView in
-            webView.interactionState = data.aboutPrefsAfterRegularNavigationInteractionStateData
+            webView.interactionState = data.aboutBlankAfterRegularNavigationInteractionStateData
         }
         waitForExpectations(timeout: 5)
 
@@ -273,6 +271,4 @@ class NavigationSessionRestorationTests: DistributedNavigationDelegateTestsBase 
 
 }
 
-// swiftlint:enable unused_closure_parameter
-// swiftlint:enable trailing_comma
-// swiftlint:enable opening_brace
+#endif

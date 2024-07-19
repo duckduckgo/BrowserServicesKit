@@ -19,50 +19,32 @@
 import Foundation
 import Common
 
-public protocol NetworkProtectionCodeRedeeming {
-
-    /// Redeems an invite code with the Network Protection backend and stores the resulting auth token
-    func redeem(_ code: String) async throws
-}
-
 /// Coordinates calls to the backend and oAuth token storage
-public final class NetworkProtectionCodeRedemptionCoordinator: NetworkProtectionCodeRedeeming {
+public final class NetworkProtectionCodeRedemptionCoordinator {
     private let networkClient: NetworkProtectionClient
     private let tokenStore: NetworkProtectionTokenStore
-    private let versionStore: NetworkProtectionLastVersionRunStore
+    private let isManualCodeRedemptionFlow: Bool
     private let errorEvents: EventMapping<NetworkProtectionError>
 
-    convenience public init(environment: TunnelSettings.SelectedEnvironment,
+    convenience public init(environment: VPNSettings.SelectedEnvironment,
                             tokenStore: NetworkProtectionTokenStore,
-                            versionStore: NetworkProtectionLastVersionRunStore = .init(),
-                            errorEvents: EventMapping<NetworkProtectionError>) {
-        self.init(networkClient: NetworkProtectionBackendClient(environment: environment),
+                            isManualCodeRedemptionFlow: Bool = false,
+                            errorEvents: EventMapping<NetworkProtectionError>,
+                            isSubscriptionEnabled: Bool) {
+        self.init(networkClient: NetworkProtectionBackendClient(environment: environment, isSubscriptionEnabled: isSubscriptionEnabled),
                   tokenStore: tokenStore,
-                  versionStore: versionStore,
+                  isManualCodeRedemptionFlow: isManualCodeRedemptionFlow,
                   errorEvents: errorEvents)
     }
 
     init(networkClient: NetworkProtectionClient,
          tokenStore: NetworkProtectionTokenStore,
-         versionStore: NetworkProtectionLastVersionRunStore = .init(),
+         isManualCodeRedemptionFlow: Bool = false,
          errorEvents: EventMapping<NetworkProtectionError>) {
         self.networkClient = networkClient
         self.tokenStore = tokenStore
-        self.versionStore = versionStore
+        self.isManualCodeRedemptionFlow = isManualCodeRedemptionFlow
         self.errorEvents = errorEvents
     }
 
-    public func redeem(_ code: String) async throws {
-        let result = await networkClient.redeem(inviteCode: code)
-        switch result {
-        case .success(let token):
-            try tokenStore.store(token)
-            // enable version checker on next run
-            versionStore.lastVersionRun = AppVersion.shared.versionNumber
-
-        case .failure(let error):
-            errorEvents.fire(error.networkProtectionError)
-            throw error
-        }
-    }
 }

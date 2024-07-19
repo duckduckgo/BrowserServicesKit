@@ -1,6 +1,5 @@
 //
 //  TrackerResolver.swift
-//  DuckDuckGo
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -23,13 +22,13 @@ import Common
 import ContentBlocking
 
 public class TrackerResolver {
-    
+
     let tds: TrackerData
     let unprotectedSites: [String]
     let tempList: [String]
     let tld: TLD
     let adClickAttributionVendor: String?
-    
+
     public init(tds: TrackerData,
                 unprotectedSites: [String],
                 tempList: [String],
@@ -41,7 +40,7 @@ public class TrackerResolver {
         self.tld = tld
         self.adClickAttributionVendor = adClickAttributionVendor
     }
-    
+
     public func trackerFromUrl(_ trackerUrlString: String,
                                pageUrlString: String,
                                resourceType: String,
@@ -58,11 +57,11 @@ public class TrackerResolver {
         } else {
             return nil
         }
-        
+
         guard let entity = tds.findEntity(byName: tracker.owner?.name ?? "") else {
             return nil
         }
-        
+
         if isPageAffiliatedWithTrackerEntity(pageUrlString: pageUrlString, trackerEntity: entity) {
             return DetectedRequest(url: trackerUrlString,
                                    eTLDplus1: tld.eTLDplus1(forStringURL: trackerUrlString),
@@ -71,7 +70,7 @@ public class TrackerResolver {
                                    state: .allowed(reason: .ownedByFirstParty),
                                    pageUrl: pageUrlString)
         }
-        
+
         let blockingState = calculateBlockingState(tracker: tracker,
                                                    trackerUrlString: trackerUrlString,
                                                    resourceType: resourceType,
@@ -85,15 +84,15 @@ public class TrackerResolver {
                                state: blockingState,
                                pageUrl: pageUrlString)
     }
-    
+
     private func isPageAffiliatedWithTrackerEntity(pageUrlString: String, trackerEntity: Entity) -> Bool {
         guard let pageHost = URL(string: pageUrlString)?.host,
               let pageEntity = tds.findEntity(forHost: pageHost)
         else { return false }
-           
+
         return pageEntity.displayName == trackerEntity.displayName
     }
-    
+
     private func calculateBlockingState(tracker: KnownTracker,
                                         trackerUrlString: String,
                                         resourceType: String,
@@ -101,7 +100,7 @@ public class TrackerResolver {
                                         pageUrlString: String) -> BlockingState {
 
         let blockingState: BlockingState
-        
+
         if isPageOnUnprotectedSitesOrTempList(pageUrlString) {
             blockingState = .allowed(reason: .protectionDisabled) // maybe we should not differentiate
         } else {
@@ -130,7 +129,7 @@ public class TrackerResolver {
                 blockingState = potentiallyBlocked ? .blocked : .allowed(reason: .ruleException)
             }
         }
-        
+
         return blockingState
     }
 
@@ -150,20 +149,20 @@ public class TrackerResolver {
         }
         return nil
     }
-    
+
     private func isPageOnUnprotectedSitesOrTempList(_ pageUrlString: String) -> Bool {
         guard let pageHost = URL(string: pageUrlString)?.host else { return false }
-        
+
         return unprotectedSites.contains(pageHost) || tempList.contains(pageHost)
     }
-    
+
     private func isVendorMatchingCurrentPage(vendor: String, pageUrlString: String) -> Bool {
         vendor == URL(string: pageUrlString)?.host?.droppingWwwPrefix()
     }
-    
+
     private func isVendorOnExceptionsList(vendor: String, exceptions: KnownTracker.Rule.Matching?) -> Bool {
         guard let domains = exceptions?.domains else { return false }
-        
+
         return domains.contains(vendor)
     }
 
@@ -203,11 +202,11 @@ fileprivate extension KnownTracker.Rule {
         guard let pattern = rule, let regex = try? NSRegularExpression(pattern: pattern, options: []) else { return false }
         return regex.firstMatch(in: urlString, options: [], range: urlString.fullRange) != nil
     }
-    
+
     func action(type: String, host: String) -> TrackerResolver.RuleAction? {
         // If there is a rule its default action is always block
         var resultAction: KnownTracker.ActionType? = action ?? .block
-        if resultAction == .block {
+        if resultAction == .block || resultAction == .blockCTLFB {
             if let options = options, !TrackerResolver.isMatching(options, host: host, resourceType: type) {
                 resultAction = nil
             } else if let exceptions = exceptions, TrackerResolver.isMatching(exceptions, host: host, resourceType: type) {
@@ -220,9 +219,9 @@ fileprivate extension KnownTracker.Rule {
 }
 
 private extension KnownTracker.ActionType {
-    
+
     func toTrackerResolverRuleAction() -> TrackerResolver.RuleAction {
-        self == .block ? .blockRequest : .allowRequest
+        self == .block || self == .blockCTLFB ? .blockRequest : .allowRequest
     }
 
 }

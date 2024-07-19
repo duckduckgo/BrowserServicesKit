@@ -1,6 +1,5 @@
 //
 //  UserScriptMessage.swift
-//  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -31,11 +30,11 @@ extension WKScriptMessage: UserScriptMessage {
     public var messageName: String {
         return name
     }
-    
+
     public var messageBody: Any {
         return body
     }
-    
+
     public var messageHost: String {
         return "\(frameInfo.securityOrigin.host)\(messagePort)"
     }
@@ -47,7 +46,7 @@ extension WKScriptMessage: UserScriptMessage {
     public var isMainFrame: Bool {
         return frameInfo.isMainFrame
     }
-    
+
     public var messageWebView: WKWebView? {
         return webView
     }

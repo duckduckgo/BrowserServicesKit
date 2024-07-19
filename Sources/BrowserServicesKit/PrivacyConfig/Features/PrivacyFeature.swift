@@ -1,6 +1,5 @@
 //
 //  PrivacyFeature.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -29,7 +28,7 @@ public enum PrivacyFeature: String {
     case gpc
     case httpsUpgrade = "https"
     case autoconsent
-    case clickToPlay
+    case clickToLoad
     case autofill
     case ampLinks
     case trackingParameters
@@ -40,8 +39,16 @@ public enum PrivacyFeature: String {
     case windowsDownloadLink
     case incontextSignup
     case newTabContinueSetUp
-    case networkProtection
     case dbp
+    case sync
+    case privacyDashboard
+    case history
+    case performanceMetrics
+    case privacyPro
+    case sslCertificates
+    case brokenSiteReportExperiment
+    case toggleReports
+    case remoteMessaging
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -64,15 +71,7 @@ public enum AutofillSubfeature: String, PrivacySubfeature {
     case accessCredentialManagement
     case autofillPasswordGeneration
     case onByDefault
-}
-
-public enum NetworkProtectionSubfeature: String, Equatable, PrivacySubfeature {
-    public var parent: PrivacyFeature {
-        .networkProtection
-    }
-
-    case waitlist
-    case waitlistBetaActive
+    case deduplicateLoginsOnImport
 }
 
 public enum DBPSubfeature: String, Equatable, PrivacySubfeature {
@@ -82,4 +81,46 @@ public enum DBPSubfeature: String, Equatable, PrivacySubfeature {
 
     case waitlist
     case waitlistBetaActive
+}
+
+public enum SyncSubfeature: String, PrivacySubfeature {
+    public var parent: PrivacyFeature {
+        .sync
+    }
+
+    case level0ShowSync
+    case level1AllowDataSyncing
+    case level2AllowSetupFlows
+    case level3AllowCreateAccount
+}
+
+public enum AutoconsentSubfeature: String, PrivacySubfeature {
+    public var parent: PrivacyFeature {
+        .autoconsent
+    }
+
+    case onByDefault
+}
+
+public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {
+    public var parent: PrivacyFeature { .privacyPro }
+
+    case isLaunched
+    case isLaunchedStripe
+    case allowPurchase
+    case allowPurchaseStripe
+    case isLaunchedOverride
+    case isLaunchedOverrideStripe
+}
+
+public enum sslCertificatesSubfeature: String, PrivacySubfeature {
+    public var parent: PrivacyFeature { .sslCertificates }
+    case allowBypass
+}
+
+public enum DuckPlayerSubfeature: String, PrivacySubfeature {
+    public var parent: PrivacyFeature { .duckPlayer }
+    case pip
+    case autoplay
+    case openInNewTab
 }

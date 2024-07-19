@@ -1,6 +1,5 @@
 //
 //  MockValidator.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -29,5 +28,5 @@ final class MockValidator: ConfigurationValidating {
             throw ConfigurationFetcher.Error.invalidPayload
         }
     }
-    
+
 }

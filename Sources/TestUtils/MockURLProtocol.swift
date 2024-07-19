@@ -1,6 +1,5 @@
 //
 //  MockURLProtocol.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -21,20 +20,20 @@ import Foundation
 
 /// A catch-all URL protocol that returns successful response and records all requests.
 final class MockURLProtocol: URLProtocol {
-    
+
     static var lastRequest: URLRequest?
     static var requestHandler: ((URLRequest) throws -> (HTTPURLResponse, Data?))?
-    
+
     override class func canInit(with request: URLRequest) -> Bool { true }
-    
+
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
-    
+
     override func startLoading() {
         guard let handler = MockURLProtocol.requestHandler else {
             fatalError("Handler is unavailable.")
         }
         MockURLProtocol.lastRequest = request
-        
+
         do {
             let (response, data) = try handler(request)
             client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
@@ -46,7 +45,7 @@ final class MockURLProtocol: URLProtocol {
             client?.urlProtocol(self, didFailWithError: error)
         }
     }
-    
+
     override func stopLoading() { }
-    
+
 }

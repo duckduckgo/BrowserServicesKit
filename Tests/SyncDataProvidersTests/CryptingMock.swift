@@ -1,6 +1,5 @@
 //
 //  CryptingMock.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -23,15 +22,28 @@ import Foundation
 
 struct CryptingMock: Crypting {
 
+    var exceptionStr: String?
+
+    mutating func throwsException(exceptionString: String?) {
+        self.exceptionStr = exceptionString
+    }
+
     static let reservedFolderIDs = Set(FavoritesFolderID.allCases.map(\.rawValue)).union([BookmarkEntity.Constants.rootFolderID])
 
-    var _encryptAndBase64Encode: (String) throws -> String = { value in
+    func _encryptAndBase64Encode(_ value: String) throws -> String {
+        if self.exceptionStr != nil {
+            throw SyncError.failedToEncryptValue(exceptionStr!)
+        }
         if Self.reservedFolderIDs.contains(value) {
             return value
         }
         return "encrypted_\(value)"
     }
-    var _base64DecodeAndDecrypt: (String) throws -> String = { value in
+
+    func _base64DecodeAndDecrypt(_ value: String) throws -> String {
+        if self.exceptionStr != nil {
+            throw SyncError.failedToDecryptValue(exceptionStr!)
+        }
         if Self.reservedFolderIDs.contains(value) {
             return value
         }

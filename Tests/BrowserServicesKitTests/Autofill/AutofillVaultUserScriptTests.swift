@@ -1,6 +1,5 @@
 //
 //  AutofillVaultUserScriptTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -45,7 +44,8 @@ class AutofillVaultUserScriptTests: XCTestCase {
         let privacyConfig = AutofillTestHelper.preparePrivacyConfig(embeddedConfig: embeddedConfig)
         let properties = ContentScopeProperties(gpcEnabled: false, sessionKey: "1234", featureToggles: ContentScopeFeatureToggles.allTogglesOn)
         let sourceProvider = DefaultAutofillSourceProvider(privacyConfigurationManager: privacyConfig,
-                                                           properties: properties)
+                                                           properties: properties,
+                                                           isDebug: false)
         return AutofillUserScript(scriptSourceProvider: sourceProvider, hostProvider: hostProvider)
     }()
 
@@ -215,7 +215,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
         let randomAccountId = Int.random(in: 0 ..< Int.max) // JS will come through as a Int rather than Int64
 
         hostProvider = MockHostProvider(host: "www.domain1.com")
-        
+
         let delegate = GetCredentialsDelegate()
         delegate.tld = tld
         userScript.vaultDelegate = delegate
@@ -447,7 +447,20 @@ class AutofillVaultUserScriptTests: XCTestCase {
 
         XCTAssertEqual(delegate.lastDomain, "example.com")
     }
-    
+
+    func testWhenGetRuntimeConfigurationIsCalled_ThenDelegateIsCalled() {
+        let delegate = MockSecureVaultDelegate()
+        userScript.vaultDelegate = delegate
+
+        let mockWebView = MockWebView()
+        let message = MockUserScriptMessage(name: "getRuntimeConfiguration", body: encryptedMessagingParams,
+                                            host: "example.com", webView: mockWebView)
+
+        userScript.processEncryptedMessage(message, from: userContentController)
+
+        XCTAssertEqual(delegate.lastDomain, "example.com")
+    }
+
     func testWhenInitializingAutofillData_WhenCredentialsAreProvidedWithoutAUsername_ThenAutofillDataIsStillInitialized() {
         let password = "password"
         let detectedAutofillData = [
@@ -455,34 +468,34 @@ class AutofillVaultUserScriptTests: XCTestCase {
                 "password": password
             ]
         ]
-        
+
         let autofillData = AutofillUserScript.DetectedAutofillData(dictionary: detectedAutofillData)
-        
+
         XCTAssertNil(autofillData.creditCard)
         XCTAssertNil(autofillData.identity)
         XCTAssertNotNil(autofillData.credentials)
-        
+
         XCTAssertEqual(autofillData.credentials?.username, nil)
         XCTAssertEqual(autofillData.credentials?.password, password)
     }
-    
+
     func testWhenInitializingAutofillData_WhenCredentialsAreProvidedWithAUsername_ThenAutofillDataIsStillInitialized() {
         let username = "username"
         let password = "password"
-        
+
         let detectedAutofillData = [
             "credentials": [
                 "username": username,
                 "password": password
             ]
         ]
-        
+
         let autofillData = AutofillUserScript.DetectedAutofillData(dictionary: detectedAutofillData)
-        
+
         XCTAssertNil(autofillData.creditCard)
         XCTAssertNil(autofillData.identity)
         XCTAssertNotNil(autofillData.credentials)
-        
+
         XCTAssertEqual(autofillData.credentials?.username, username)
         XCTAssertEqual(autofillData.credentials?.password, password)
     }
@@ -505,11 +518,11 @@ class AutofillVaultUserScriptTests: XCTestCase {
         let predicate = NSPredicate(block: { _, _ -> Bool in
             return !delegate.receivedCallbacks.isEmpty
         })
-        
+
         let expectation = XCTNSPredicateExpectation(predicate: predicate, object: delegate.receivedCallbacks)
-        
+
         wait(for: [expectation], timeout: 5)
-        
+
         XCTAssertEqual(delegate.lastSubtype, AutofillUserScript.GetAutofillDataSubType.username)
     }
 
@@ -557,10 +570,11 @@ class MockSecureVaultDelegate: AutofillSecureVaultDelegate {
         case didRequestStoreDataForDomain
         case didRequestAccountsForDomain
         case didRequestCredentialsForDomain
+        case didRequestRuntimeConfigurationForDomain
     }
 
     var receivedCallbacks: [CallbackType] = []
-    
+
     var lastDomain: String?
     var lastUsername: String?
     var lastPassword: String?
@@ -630,7 +644,7 @@ class MockSecureVaultDelegate: AutofillSecureVaultDelegate {
         lastSubtype = subType
         receivedCallbacks.append(.didRequestCredentialsForDomain)
         let provider = SecureVaultModels.CredentialsProvider(name: .duckduckgo, locked: false)
-        
+
         completionHandler(nil, provider, .none)
     }
 
@@ -638,9 +652,14 @@ class MockSecureVaultDelegate: AutofillSecureVaultDelegate {
 
     }
 
+    func autofillUserScript(_: BrowserServicesKit.AutofillUserScript, didRequestRuntimeConfigurationForDomain domain: String, completionHandler: @escaping (String?) -> Void) {
+        lastDomain = domain
+        receivedCallbacks.append(.didRequestRuntimeConfigurationForDomain)
+    }
+
     func autofillUserScriptDidOfferGeneratedPassword(_: BrowserServicesKit.AutofillUserScript, password: String, completionHandler: @escaping (Bool) -> Void) {
     }
-    
+
     func autofillUserScript(_: AutofillUserScript, didSendPixel pixel: AutofillUserScript.JSPixel) {
     }
 }

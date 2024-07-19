@@ -1,5 +1,5 @@
 //
-//  FavoritesListViewModel.swift
+//  FavoriteListViewModel.swift
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -23,7 +23,7 @@ import Persistence
 import Common
 
 public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject {
-    
+
     let context: NSManagedObjectContext
 
     public var favorites = [BookmarkEntity]()
@@ -75,7 +75,7 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
             self.observer = nil
         }
     }
-    
+
     private func registerForChanges() {
         observer = NotificationCenter.default.addObserver(forName: NSManagedObjectContext.didSaveObjectsNotification,
                                                           object: nil,
@@ -105,7 +105,7 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
             favorites = []
             return
         }
-        
+
         readFavorites(with: favoriteFolder)
     }
 
@@ -114,7 +114,7 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
             errorEvents?.fire(.indexOutOfRange(.favorites))
             return nil
         }
-        
+
         return favorites[index]
     }
 
@@ -127,10 +127,10 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
         favorite.removeFromFavorites(with: favoritesDisplayMode)
 
         save()
-        
+
         readFavorites(with: favoriteFolder)
     }
-    
+
     public func moveFavorite(_ favorite: BookmarkEntity,
                              fromIndex: Int,
                              toIndex: Int) {
@@ -138,7 +138,7 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
             errorEvents?.fire(.fetchingRootItemFailed(.favorites))
             return
         }
-        
+
         let visibleChildren = favoriteFolder.favoritesArray
 
         guard fromIndex < visibleChildren.count,
@@ -146,12 +146,12 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
             errorEvents?.fire(.indexOutOfRange(.favorites))
             return
         }
-        
+
         guard visibleChildren[fromIndex] == favorite else {
             errorEvents?.fire(.favoritesListIndexNotMatchingBookmark)
             return
         }
-        
+
         // Take into account bookmarks that are pending deletion
         let mutableChildrenSet = favoriteFolder.mutableOrderedSetValue(forKeyPath: #keyPath(BookmarkEntity.favorites))
 
@@ -165,12 +165,12 @@ public class FavoritesListViewModel: FavoritesListInteracting, ObservableObject 
         }
 
         mutableChildrenSet.moveObjects(at: IndexSet(integer: actualFromIndex), to: actualToIndex)
-        
+
         save()
-        
+
         readFavorites(with: favoriteFolder)
     }
-    
+
     private func save() {
         do {
             try context.save()

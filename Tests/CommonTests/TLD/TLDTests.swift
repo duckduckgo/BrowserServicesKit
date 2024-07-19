@@ -1,6 +1,5 @@
 //
 //  TLDTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2017 DuckDuckGo. All rights reserved.
 //
@@ -46,11 +45,11 @@ final class TLDTests: XCTestCase {
     func testWhenHostIsTopLevelDotComThenDomainIsSame() {
         XCTAssertEqual("example.com", tld.domain("example.com"))
     }
-    
+
     func testWhenHostIsMalformedThenDomainIsFixed() {
         XCTAssertEqual("example.com", tld.domain(".example.com"))
     }
-    
+
     func testWhenHostMultiPartTopLevelWithSubdomainThenETLDp1Correct() {
         XCTAssertEqual("bbc.co.uk", tld.eTLDplus1("www.bbc.co.uk"))
         XCTAssertEqual("bbc.co.uk", tld.eTLDplus1("other.bbc.co.uk"))
@@ -67,31 +66,36 @@ final class TLDTests: XCTestCase {
         XCTAssertEqual(nil, tld.eTLDplus1("com"))
         XCTAssertEqual(nil, tld.eTLDplus1("co.uk"))
     }
-    
+
     func testWhenHostIsIncorrectThenETLDp1IsNotFound() {
         XCTAssertEqual(nil, tld.eTLDplus1("abcderfg"))
     }
-    
+
     func testWhenHostIsNilDomainIsNil() {
         XCTAssertNil(tld.domain(nil))
     }
-    
+
     func testWhenHostIsTLDThenDomainIsFound() {
         XCTAssertEqual("com", tld.domain("com"))
         XCTAssertEqual("co.uk", tld.domain("co.uk"))
     }
-    
+
     func testWhenHostIsMultiPartTLDThenDomainIsFound() {
         XCTAssertEqual(nil, tld.domain("za"))
         XCTAssertEqual("co.za", tld.domain("co.za"))
     }
-    
+
     func testWhenHostIsIncorrectThenDomainIsNil() {
         XCTAssertNil(tld.domain("abcdefgh"))
     }
 
     func testWhenTLDInstantiatedThenLoadsTLDData() {
         XCTAssertFalse(tld.tlds.isEmpty)
+    }
+
+    func testWhenTLDIsExampleThenItIsMatched() {
+        XCTAssertEqual("something.example", tld.domain("something.example"))
+        XCTAssertEqual("example", tld.domain("example"))
     }
 
 }

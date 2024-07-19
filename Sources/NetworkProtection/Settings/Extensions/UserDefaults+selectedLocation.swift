@@ -52,16 +52,20 @@ extension UserDefaults {
         }
     }
 
-    private static func selectedLocationFromStorageValue(_ storageValue: StorableLocation?) -> TunnelSettings.SelectedLocation {
+    private static func selectedLocationFromStorageValue(_ storageValue: StorableLocation?) -> VPNSettings.SelectedLocation {
         guard let storageValue else {
             return .nearest
         }
-        let selectedLocation = NetworkProtectionSelectedLocation(country: storageValue.country, city: storageValue.city)
+
+        // To handle a bug where a UI element's title was set for nearest cities rather than nil
+        let city = storageValue.city == "Nearest" ? nil : storageValue.city
+
+        let selectedLocation = NetworkProtectionSelectedLocation(country: storageValue.country, city: city)
 
         return .location(selectedLocation)
     }
 
-    var networkProtectionSettingSelectedLocation: TunnelSettings.SelectedLocation {
+    var networkProtectionSettingSelectedLocation: VPNSettings.SelectedLocation {
         get {
             Self.selectedLocationFromStorageValue(networkProtectionSettingSelectedLocationStorageValue)
         }
@@ -76,7 +80,7 @@ extension UserDefaults {
         }
     }
 
-    var networkProtectionSettingSelectedLocationPublisher: AnyPublisher<TunnelSettings.SelectedLocation, Never> {
+    var networkProtectionSettingSelectedLocationPublisher: AnyPublisher<VPNSettings.SelectedLocation, Never> {
         return publisher(for: \.networkProtectionSettingSelectedLocationStorageValue)
             .map(Self.selectedLocationFromStorageValue(_:))
             .eraseToAnyPublisher()

@@ -1,6 +1,5 @@
 //
-//  AdClickAttributionRulesSource.swift
-//  DuckDuckGo
+//  AdClickAttributionRulesProvider.swift
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -22,40 +21,40 @@ import TrackerRadarKit
 import Common
 
 public protocol AdClickAttributionRulesProviding {
-    
+
     var globalAttributionRules: ContentBlockerRulesManager.Rules? { get }
     func requestAttribution(forVendor vendor: String,
                             completion: @escaping (ContentBlockerRulesManager.Rules?) -> Void)
 }
 
 public class AdClickAttributionRulesProvider: AdClickAttributionRulesProviding {
-    
+
     public enum Constants {
         public static let attributedTempRuleListName = "TemporaryAttributed"
     }
-    
+
     struct AttributionTask: Equatable {
-        
+
         let sourceRulesIdentifier: String
         let vendor: String
         let completion: (ContentBlockerRulesManager.Rules?) -> Void
-        
+
         static func == (lhs: AdClickAttributionRulesProvider.AttributionTask,
                         rhs: AdClickAttributionRulesProvider.AttributionTask) -> Bool {
             return lhs.vendor == rhs.vendor && lhs.sourceRulesIdentifier == rhs.sourceRulesIdentifier
         }
     }
-    
+
     private let attributionConfig: AdClickAttributing
     private let compiledRulesSource: CompiledRuleListsSource
     private let exceptionsSource: ContentBlockerRulesExceptionsSource
     private let errorReporting: EventMapping<AdClickAttributionDebugEvents>?
     private let compilationErrorReporting: EventMapping<ContentBlockerDebugEvents>?
-    
+
     private let lock = NSLock()
     private var tasks = [AttributionTask]()
     private var isProcessingTask = false
-    
+
     private let workQueue = DispatchQueue(label: "AdAttribution compilation queue",
                                           qos: .userInitiated)
     private let getLog: () -> OSLog
@@ -76,46 +75,46 @@ public class AdClickAttributionRulesProvider: AdClickAttributionRulesProviding {
         self.compilationErrorReporting = compilationErrorReporting
         self.getLog = log
     }
-    
+
     public var globalAttributionRules: ContentBlockerRulesManager.Rules? {
         return compiledRulesSource.currentAttributionRules
     }
-    
+
     public func requestAttribution(forVendor vendor: String,
                                    completion: @escaping (ContentBlockerRulesManager.Rules?) -> Void) {
         lock.lock()
         defer { lock.unlock() }
-        
+
         os_log(.debug, log: log, "Preparing attribution rules for vendor  %{private}s", vendor)
-        
+
         guard let globalAttributionRules = compiledRulesSource.currentAttributionRules else {
             errorReporting?.fire(.adAttributionGlobalAttributedRulesDoNotExist)
             os_log(.error, log: log, "Global attribution list does not exist")
             completion(nil)
             return
         }
-        
+
         let task = AttributionTask(sourceRulesIdentifier: globalAttributionRules.identifier.stringValue,
                                    vendor: vendor,
                                    completion: completion)
         tasks.append(task)
-        
+
         workQueue.async {
             self.popTaskAndExecute()
         }
     }
-    
+
     private func popTaskAndExecute() {
         lock.lock()
         defer { lock.unlock() }
-        
+
         guard !isProcessingTask, !tasks.isEmpty else { return }
-        
+
         let task = tasks.removeFirst()
         isProcessingTask = true
         prepareRules(for: task)
     }
-    
+
     private func prepareRules(for task: AttributionTask) {
         guard let sourceRules = compiledRulesSource.currentAttributionRules else {
             isProcessingTask = false
@@ -124,13 +123,13 @@ public class AdClickAttributionRulesProvider: AdClickAttributionRulesProviding {
             }
             return
         }
-        
+
         os_log(.debug, log: log, "Compiling attribution rules for vendor  %{private}s", task.vendor)
-        
+
         let mutator = AdClickAttributionRulesMutator(trackerData: sourceRules.trackerData,
                                                      config: attributionConfig)
         let attributedRules = mutator.addException(vendorDomain: task.vendor)
-        
+
         let attributedDataSet = TrackerDataManager.DataSet(tds: attributedRules,
                                                            etag: sourceRules.etag)
         let attributedRulesList = ContentBlockerRulesList(name: Constants.attributedTempRuleListName,
@@ -142,48 +141,48 @@ public class AdClickAttributionRulesProvider: AdClickAttributionRulesProviding {
                                                              exceptionsSource: exceptionsSource,
                                                              errorReporting: compilationErrorReporting,
                                                              log: log)
-        
+
         let compilationTask = ContentBlockerRulesManager.CompilationTask(workQueue: workQueue,
                                                                          rulesList: attributedRulesList,
                                                                          sourceManager: sourceManager)
-        
+
         compilationTask.start(ignoreCache: true) { compilationTask, _ in
             self.onTaskCompleted(attributionTask: task, compilationTask: compilationTask)
         }
     }
-    
+
     private func onTaskCompleted(attributionTask: AttributionTask,
                                  compilationTask: ContentBlockerRulesManager.CompilationTask) {
         lock.lock()
         defer { lock.unlock() }
-        
+
         isProcessingTask = false
-        
+
         // Take all tasks with same parameters (rules & vendor) and report completion
         // This is optimization: in case multiple tabs request same attribution at the same time, we will respond quickly.
         var matchingTasks = tasks.filter { $0 == attributionTask }
         tasks.removeAll(where: { $0 == attributionTask })
         matchingTasks.append(attributionTask)
-        
+
         os_log(.debug, log: log,
                "Returning attribution rules for vendor  %{private}s to %{public}d caller(s)",
                attributionTask.vendor, matchingTasks.count)
-        
+
         var rules: ContentBlockerRulesManager.Rules?
         if let result = compilationTask.result {
             rules = .init(compilationResult: result)
         }
-        
+
         DispatchQueue.main.async {
             for task in matchingTasks {
                 task.completion(rules)
             }
         }
-        
+
         if rules == nil {
             errorReporting?.fire(.adAttributionCompilationFailedForAttributedRulesList)
         }
-        
+
         workQueue.async {
             self.popTaskAndExecute()
         }

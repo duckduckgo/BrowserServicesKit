@@ -1,6 +1,5 @@
 //
 //  SyncOperation.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -20,8 +19,9 @@
 import Foundation
 import Combine
 import Common
+import Gzip
 
-class SyncOperation: Operation {
+final class SyncOperation: Operation, @unchecked Sendable {
 
     let dataProviders: [DataProviding]
     let storage: SecureStoring
@@ -125,7 +125,6 @@ class SyncOperation: Operation {
         try await sync(fetchOnly: fetchOnly, dataProviders: dataProviders)
     }
 
-    // swiftlint:disable:next cyclomatic_complexity function_body_length
     func sync(fetchOnly: Bool, dataProviders: [DataProviding] = []) async throws {
         os_log(.debug, log: log, "Sync Operation Started. Fetch-only: %{public}s", String(fetchOnly))
         defer {
@@ -144,7 +143,7 @@ class SyncOperation: Operation {
                         try checkCancellation()
                         let syncRequest = try await self.makeSyncRequest(for: dataProvider, fetchOnly: fetchOnly)
                         let clientTimestamp = Date()
-                        let httpRequest = try self.makeHTTPRequest(with: syncRequest, timestamp: clientTimestamp)
+                        let httpRequest = try self.makeHTTPRequest(for: dataProvider, with: syncRequest, timestamp: clientTimestamp)
 
                         try checkCancellation()
                         let httpResult: HTTPResult = try await httpRequest.execute()
@@ -167,9 +166,7 @@ class SyncOperation: Operation {
                                                           fetchOnly: fetchOnly,
                                                           timestamp: clientTimestamp)
                         default:
-                            let error = SyncError.unexpectedStatusCode(httpResult.response.statusCode)
-                            didReceiveHTTPRequestError?(error)
-                            throw FeatureError(feature: dataProvider.feature, underlyingError: error)
+                            throw SyncError.unexpectedStatusCode(httpResult.response.statusCode)
                         }
                     } catch is CancellationError {
                         os_log(.debug, log: self.log, "Syncing %{public}s cancelled", dataProvider.feature.name)
@@ -214,10 +211,15 @@ class SyncOperation: Operation {
         return SyncRequest(feature: dataProvider.feature, previousSyncTimestamp: dataProvider.lastSyncTimestamp, sent: localChanges)
     }
 
-    private func makeHTTPRequest(with syncRequest: SyncRequest, timestamp: Date) throws -> HTTPRequesting {
+    private func makeHTTPRequest(for dataProvider: DataProviding, with syncRequest: SyncRequest, timestamp: Date) throws -> HTTPRequesting {
         let hasLocalChanges = !syncRequest.sent.isEmpty
         if hasLocalChanges {
-            return try requestMaker.makePatchRequest(with: syncRequest, clientTimestamp: timestamp)
+            do {
+                return try requestMaker.makePatchRequest(with: syncRequest, clientTimestamp: timestamp, isCompressed: true)
+            } catch let error as GzipError {
+                dataProvider.handleSyncError(SyncError.patchPayloadCompressionFailed(error.errorCode))
+                return try requestMaker.makePatchRequest(with: syncRequest, clientTimestamp: timestamp, isCompressed: false)
+            }
         }
         return try requestMaker.makeGetRequest(with: syncRequest)
     }

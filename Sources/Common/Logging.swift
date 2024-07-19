@@ -1,6 +1,5 @@
 //
 //  Logging.swift
-//  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -18,7 +17,7 @@
 //
 
 import Foundation
-import os
+import os // swiftlint:disable:this enforce_os_log_wrapper
 
 public typealias OSLog = os.OSLog
 
@@ -37,20 +36,30 @@ extension OSLog {
     }()
 
     public enum Categories: String, CaseIterable {
+        case contentBlocking = "Content Blocking"
         case userScripts = "User Scripts"
         case passwordManager = "Password Manager"
         case remoteMessaging = "Remote Messaging"
+        case subscription = "Subscription"
+        case history = "History"
+        case general = "General"
+        case autofill = "Autofill"
     }
 
 #if DEBUG
     // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     // To activate Logging Categories for DEBUG add categories here:
-    static var debugCategories: Set<Categories> = [ /* .userScripts, */ ]
+    static var debugCategories: Set<Categories> = [ /*.autofill*/ ]
 #endif
 
+    @OSLogWrapper(.contentBlocking) public static var contentBlocking
     @OSLogWrapper(.userScripts)     public static var userScripts
     @OSLogWrapper(.passwordManager) public static var passwordManager
     @OSLogWrapper(.remoteMessaging) public static var remoteMessaging
+    @OSLogWrapper(.subscription)    public static var subscription
+    @OSLogWrapper(.history)         public static var history
+    @OSLogWrapper(.general)         public static var general
+    @OSLogWrapper(.autofill)        public static var autofill
 
     public static var enabledLoggingCategories = Set<String>()
 
@@ -101,9 +110,6 @@ extension ProcessInfo {
         static let yes = "YES"
     }
 }
-
-// swiftlint:disable line_length
-// swiftlint:disable function_parameter_count
 
 // MARK: - message first
 
@@ -318,6 +324,3 @@ public func os_log(_ type: OSLogType, _ message: @autoclosure () -> String, _ vi
 public func os_log(_ message: @autoclosure () -> String, _ visibility: LogVisibility = .private) {
     os_log(.default, log: .default, message(), visibility)
 }
-
-// swiftlint:enable line_length
-// swiftlint:enable function_parameter_count

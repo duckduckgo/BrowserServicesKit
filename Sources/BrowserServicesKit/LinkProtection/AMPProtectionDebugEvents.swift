@@ -1,6 +1,5 @@
 //
-//  ContentBlockerDebugEvents.swift
-//  DuckDuckGo
+//  AMPProtectionDebugEvents.swift
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -22,5 +21,5 @@ import Foundation
 public enum AMPProtectionDebugEvents {
 
     case ampBlockingRulesCompilationFailed
-    
+
 }

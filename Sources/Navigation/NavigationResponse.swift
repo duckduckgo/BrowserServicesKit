@@ -19,7 +19,6 @@
 import Foundation
 import WebKit
 
-// swiftlint:disable line_length
 public struct NavigationResponse {
 
     public let response: URLResponse
@@ -51,7 +50,7 @@ public struct NavigationResponse {
 public extension NavigationResponse {
 
     var url: URL {
-        response.url!
+        response.url ?? .empty
     }
 
     var httpResponse: HTTPURLResponse? {
@@ -70,7 +69,7 @@ public extension NavigationResponse {
 
 extension NavigationResponse: CustomDebugStringConvertible {
     public var debugDescription: String {
-        let statusCode = self.httpStatusCode.map { String.init($0) } ?? "-"
+        let statusCode = self.httpStatusCode.map { String($0) } ?? "-"
         return "<Response: \((response.url ?? .empty).absoluteString) status:\(statusCode)\(self.isForMainFrame ? "" : " non-main-frame")\(shouldDownload ? " shouldDownload" : "")>"
     }
 }
@@ -85,5 +84,3 @@ extension NavigationResponsePolicy? {
     /// Pass decision making to next responder
     public static let next = NavigationResponsePolicy?.none
 }
-
-// swiftlint:enable line_length

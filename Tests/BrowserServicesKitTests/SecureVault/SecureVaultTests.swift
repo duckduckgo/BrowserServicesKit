@@ -80,7 +80,7 @@ class SecureVaultTests: XCTestCase {
         mockCryptoProvider._derivedKey = "derived".data(using: .utf8)!
         mockKeystoreProvider._encryptedL2Key = "encryptedL2Key".data(using: .utf8)!
         mockCryptoProvider._decryptedData = "decrypted".data(using: .utf8)!
-        
+
         let account = SecureVaultModels.WebsiteAccount(id: "1",
                                                        title: "Title",
                                                        username: "test@duck.com",
@@ -88,7 +88,7 @@ class SecureVaultTests: XCTestCase {
                                                        created: Date(),
                                                        lastUpdated: Date())
         let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8)!)
-        
+
         try testVault.storeWebsiteCredentials(credentials)
         mockDatabaseProvider._accounts = [account]
 
@@ -166,12 +166,12 @@ class SecureVaultTests: XCTestCase {
         let account = SecureVaultModels.WebsiteAccount(id: "1", username: "test@duck.com", domain: "example.com", created: Date(), lastUpdated: Date())
         let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: password)
         self.mockDatabaseProvider._accounts = [account]
-        
+
         mockCryptoProvider._decryptedData = "decrypted".data(using: .utf8)
         mockKeystoreProvider._generatedPassword = "generated".data(using: .utf8)
         mockCryptoProvider._derivedKey = "derived".data(using: .utf8)
         mockKeystoreProvider._encryptedL2Key = "encryptedL2Key".data(using: .utf8)
-        
+
         try testVault.storeWebsiteCredentials(credentials)
 
         let fetchedCredentials = try testVault.websiteCredentialsFor(accountId: 1)
@@ -188,11 +188,11 @@ class SecureVaultTests: XCTestCase {
         let account = SecureVaultModels.WebsiteAccount(id: "1", username: "test@duck.com", domain: "example.com", created: Date(), lastUpdated: Date())
         let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: password)
         self.mockDatabaseProvider._accounts = [account]
-        
+
         mockCryptoProvider._decryptedData = "decrypted".data(using: .utf8)
         mockCryptoProvider._derivedKey = "derived".data(using: .utf8)
         mockKeystoreProvider._encryptedL2Key = "encryptedL2Key".data(using: .utf8)
-        
+
         _ = try testVault.authWith(password: userPassword)
         try testVault.storeWebsiteCredentials(credentials)
 
@@ -209,7 +209,7 @@ class SecureVaultTests: XCTestCase {
         mockCryptoProvider._decryptedData = "decrypted".data(using: .utf8)
         mockCryptoProvider._derivedKey = "derived".data(using: .utf8)
         mockKeystoreProvider._encryptedL2Key = "encryptedL2Key".data(using: .utf8)
-        
+
         _ = try testVault.authWith(password: userPassword)
 
         sleep(2) // allow vault to expire password
@@ -225,4 +225,81 @@ class SecureVaultTests: XCTestCase {
         }
     }
 
+    func testWhenDeletingAllCredentialsFromAnEmptyVault_ThenOperationCompletesWithoutError() throws {
+        // Ensure the vault is empty
+        XCTAssertNil(try testVault.websiteCredentialsFor(accountId: 1))
+
+        XCTAssertNoThrow(try testVault.deleteAllWebsiteCredentials())
+    }
+
+    func testWhenDeletingAllCredentialsWithSingleAccount_ThenAllCredentialsAreRemoved() throws {
+        mockCryptoProvider._decryptedData = "decrypted".data(using: .utf8)
+        mockKeystoreProvider._generatedPassword = "generated".data(using: .utf8)
+        mockCryptoProvider._derivedKey = "derived".data(using: .utf8)
+        mockKeystoreProvider._encryptedL2Key = "encryptedL2Key".data(using: .utf8)
+
+        let password = "password".data(using: .utf8)!
+        let account = SecureVaultModels.WebsiteAccount(id: "1", username: "test@duck.com", domain: "example.com", created: Date(), lastUpdated: Date())
+        let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: password)
+        self.mockDatabaseProvider._accounts = [account]
+
+        try testVault.storeWebsiteCredentials(credentials)
+        var fetchedCredentials = try testVault.websiteCredentialsFor(accountId: 1)
+        XCTAssertNotNil(fetchedCredentials)
+        XCTAssertEqual(try testVault.accounts().count, 1)
+
+        try testVault.deleteAllWebsiteCredentials()
+        fetchedCredentials = try testVault.websiteCredentialsFor(accountId: 1)
+        XCTAssertNil(fetchedCredentials)
+        XCTAssert(try testVault.accounts().isEmpty)
+    }
+
+    func testWhenDeletingAllCredentialsWithMultipleAccounts_ThenAllCredentialsAreRemoved() throws {
+        mockCryptoProvider._decryptedData = "decrypted".data(using: .utf8)
+        mockKeystoreProvider._generatedPassword = "generated".data(using: .utf8)
+        mockCryptoProvider._derivedKey = "derived".data(using: .utf8)
+        mockKeystoreProvider._encryptedL2Key = "encryptedL2Key".data(using: .utf8)
+
+        // Insert multiple accounts and credentials
+        for accountId in 1...3 {
+            let account = SecureVaultModels.WebsiteAccount(id: "\(accountId)", username: "user\(accountId)@example.com", domain: "example.com", created: Date(), lastUpdated: Date())
+            let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password\(accountId)".data(using: .utf8)!)
+            try testVault.storeWebsiteCredentials(credentials)
+            self.mockDatabaseProvider._accounts.append(account)
+        }
+
+        // Ensure they are stored
+        for accountId: Int64 in 1...3 {
+            XCTAssertNotNil(try testVault.websiteCredentialsFor(accountId: accountId))
+        }
+        XCTAssertEqual(try testVault.accounts().count, 3)
+
+        // Delete all and verify they are all removed
+        try testVault.deleteAllWebsiteCredentials()
+        for accountId: Int64 in 1...3 {
+            XCTAssertNil(try testVault.websiteCredentialsFor(accountId: accountId))
+        }
+        XCTAssert(try testVault.accounts().isEmpty)
+    }
+
+    func testWhenRetrievingNeverPromptWebsites_ThenDatabaseIsCalled() throws {
+        mockDatabaseProvider._neverPromptWebsites = [
+            .init(domain: "example.com")
+        ]
+
+        let neverPromptWebsites = try testVault.neverPromptWebsites()
+        XCTAssertEqual(neverPromptWebsites.count, 1)
+        XCTAssertEqual(neverPromptWebsites.first?.domain, "example.com")
+    }
+
+    func testWhenDeletingAllNeverPromptWebsites_ThenDatabaseIsCalled() throws {
+        mockDatabaseProvider._neverPromptWebsites = [
+            .init(domain: "example.com")
+        ]
+
+        try testVault.deleteAllNeverPromptWebsites()
+
+        let neverPromptWebsites = try testVault.neverPromptWebsites()
+        XCTAssertEqual(neverPromptWebsites.count, 0)
+    }
 }

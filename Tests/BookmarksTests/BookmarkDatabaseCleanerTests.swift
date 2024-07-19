@@ -1,6 +1,5 @@
 //
 //  BookmarkDatabaseCleanerTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -17,9 +16,11 @@
 //  limitations under the License.
 //
 
-import XCTest
 import Common
+import CoreData
+import Foundation
 import Persistence
+import XCTest
 @testable import Bookmarks
 
 final class MockEventMapper: EventMapping<BookmarksCleanupError> {
@@ -52,7 +53,7 @@ final class BookmarkDatabaseCleanerTests: XCTestCase {
             XCTFail("Failed to load model")
             return
         }
-        bookmarksDatabase = CoreDataDatabase(name: className, containerLocation: location, model: model)
+        bookmarksDatabase = CoreDataDatabase(name: type(of: self).description(), containerLocation: location, model: model)
         bookmarksDatabase.loadStore()
 
         eventMapper = MockEventMapper()

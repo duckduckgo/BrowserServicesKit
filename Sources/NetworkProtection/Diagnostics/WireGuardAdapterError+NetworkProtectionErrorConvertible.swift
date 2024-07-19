@@ -1,6 +1,5 @@
 //
-//  WireguardAdapterError+NetworkProtectionErrorConvertible.swift
-//  DuckDuckGo
+//  WireGuardAdapterError+NetworkProtectionErrorConvertible.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -24,8 +23,8 @@ extension WireGuardAdapterError: NetworkProtectionErrorConvertible {
         switch self {
         case .cannotLocateTunnelFileDescriptor:
             return .wireGuardCannotLocateTunnelFileDescriptor
-        case .invalidState:
-            return .wireGuardInvalidState
+        case .invalidState(let reason):
+            return .wireGuardInvalidState(reason: reason.rawValue)
         case .dnsResolution:
             return .wireGuardDnsResolution
         case .setNetworkSettings(let error):

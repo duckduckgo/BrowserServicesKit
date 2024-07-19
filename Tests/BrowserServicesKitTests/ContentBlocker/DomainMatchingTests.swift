@@ -1,6 +1,5 @@
 //
 //  DomainMatchingTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -23,26 +22,26 @@ import Foundation
 import os.log
 
 struct RefTests: Decodable {
-    
+
     struct Test: Decodable {
-        
+
         let name: String
         let siteURL: String
         let requestURL: String
         let requestType: String
         let expectAction, expectExpression: String?
         let exceptPlatforms: [String]?
-        
+
     }
-    
+
     struct DomainTests: Decodable {
-        
+
         let name: String
         let desc: String
         let tests: [Test]
-        
+
     }
-    
+
     let domainTests, surrogateTests: DomainTests
 }
 
@@ -54,7 +53,7 @@ class DomainMatchingTests: XCTestCase {
         let testJSON = data.fromJsonFile("Resources/privacy-reference-tests/tracker-radar-tests/TR-domain-matching/domain_matching_tests.json")
 
         let trackerData = try JSONDecoder().decode(TrackerData.self, from: trackerJSON)
-        
+
         let refTests = try JSONDecoder().decode(RefTests.self, from: testJSON)
         let tests = refTests.domainTests.tests
 
@@ -88,7 +87,7 @@ extension Array where Element == ContentBlockerRule {
         for rule in self where rule.matches(resourceUrl: url, onPageWithUrl: topLevel, ofType: resourceType) {
             result = rule
         }
-        
+
         return result
     }
 }

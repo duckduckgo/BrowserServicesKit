@@ -1,6 +1,5 @@
 //
 //  GPCRequestFactory.swift
-//  DuckDuckGo
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -20,9 +19,9 @@
 import Foundation
 
 public struct GPCRequestFactory {
-    
+
     public init() { }
-    
+
     public struct Constants {
         public static let secGPCHeader = "Sec-GPC"
     }
@@ -50,21 +49,21 @@ public struct GPCRequestFactory {
 
         return false
     }
-    
+
     public func requestForGPC(basedOn incomingRequest: URLRequest,
                               config: PrivacyConfiguration,
                               gpcEnabled: Bool) -> URLRequest? {
-        
+
         func removingHeader(fromRequest incomingRequest: URLRequest) -> URLRequest? {
             var request = incomingRequest
             if let headers = request.allHTTPHeaderFields, headers.firstIndex(where: { $0.key == Constants.secGPCHeader }) != nil {
                 request.setValue(nil, forHTTPHeaderField: Constants.secGPCHeader)
                 return request
             }
-            
+
             return nil
         }
-        
+
         /*
          For now, the GPC header is only applied to sites known to be honoring GPC (nytimes.com, washingtonpost.com),
          while the DOM signal is available to all websites.
@@ -74,7 +73,7 @@ public struct GPCRequestFactory {
             // Remove GPC header if its still there (or nil)
             return removingHeader(fromRequest: incomingRequest)
         }
-        
+
         // Add GPC header if needed
         if config.isEnabled(featureKey: .gpc) && gpcEnabled {
             var request = incomingRequest
@@ -87,7 +86,7 @@ public struct GPCRequestFactory {
             // Check if GPC header is still there and remove it
             return removingHeader(fromRequest: incomingRequest)
         }
-        
+
         return nil
     }
 }

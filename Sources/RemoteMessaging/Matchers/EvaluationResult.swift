@@ -1,6 +1,5 @@
 //
 //  EvaluationResult.swift
-//  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -19,7 +18,7 @@
 
 import Foundation
 
-enum EvaluationResult {
+public enum EvaluationResult {
     case match
     case fail
     case nextMessage

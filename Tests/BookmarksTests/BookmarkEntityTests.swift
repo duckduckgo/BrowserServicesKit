@@ -1,6 +1,5 @@
 //
 //  BookmarkEntityTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2017 DuckDuckGo. All rights reserved.
 //
@@ -17,6 +16,8 @@
 //  limitations under the License.
 //
 
+import CoreData
+import Foundation
 import XCTest
 import Persistence
 @testable import Bookmarks
@@ -35,7 +36,7 @@ final class BookmarkEntityTests: XCTestCase {
             XCTFail("Failed to load model")
             return
         }
-        bookmarksDatabase = CoreDataDatabase(name: className, containerLocation: location, model: model)
+        bookmarksDatabase = CoreDataDatabase(name: type(of: self).description(), containerLocation: location, model: model)
         bookmarksDatabase.loadStore()
     }
 

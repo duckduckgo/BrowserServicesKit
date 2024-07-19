@@ -1,6 +1,5 @@
 //
 //  ContentBlockerRulesSource.swift
-//  DuckDuckGo
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -56,7 +55,7 @@ public class ContentBlockerRulesList {
     }()
 
     public let name: String
-    
+
     public init(name: String,
                 trackerData: @escaping @autoclosure () -> TrackerDataManager.DataSet?,
                 fallbackTrackerData: @escaping @autoclosure () -> TrackerDataManager.DataSet) {
@@ -67,9 +66,10 @@ public class ContentBlockerRulesList {
 }
 
 open class DefaultContentBlockerRulesListsSource: ContentBlockerRulesListsSource {
-    
+
     public struct Constants {
         public static let trackerDataSetRulesListName = "TrackerDataSet"
+        public static let clickToLoadRulesListName = "ClickToLoad"
     }
 
     private let trackerDataManager: TrackerDataManager
@@ -77,7 +77,7 @@ open class DefaultContentBlockerRulesListsSource: ContentBlockerRulesListsSource
     public init(trackerDataManager: TrackerDataManager) {
         self.trackerDataManager = trackerDataManager
     }
-    
+
     open var contentBlockerRulesLists: [ContentBlockerRulesList] {
         return [ContentBlockerRulesList(name: Constants.trackerDataSetRulesListName,
                                         trackerData: self.trackerDataManager.fetchedData,

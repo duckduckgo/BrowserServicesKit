@@ -101,7 +101,7 @@ public struct RecoveryPDFGenerator {
 
     func qrcode(_ text: String, size: Int) -> CGImage {
         let data = Data(text.utf8)
-        let qrCodeFilter: CIFilter = CIFilter.init(name: "CIQRCodeGenerator")!
+        let qrCodeFilter: CIFilter = CIFilter(name: "CIQRCodeGenerator")!
         qrCodeFilter.setValue(data, forKey: "inputMessage")
         qrCodeFilter.setValue("H", forKey: "inputCorrectionLevel")
 

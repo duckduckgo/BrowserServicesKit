@@ -1,6 +1,5 @@
 //
 //  URLSessionExtension.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -20,7 +19,7 @@
 import Foundation
 
 extension URLSession {
-    
+
     private static var defaultCallbackQueue: OperationQueue = {
         let queue = OperationQueue()
         queue.name = "APIRequest default callback queue"
@@ -28,7 +27,7 @@ extension URLSession {
         queue.maxConcurrentOperationCount = 1
         return queue
     }()
-    
+
     private static let defaultCallback = URLSession(configuration: .default, delegate: nil, delegateQueue: defaultCallbackQueue)
     private static let defaultCallbackEphemeral = URLSession(configuration: .ephemeral, delegate: nil, delegateQueue: defaultCallbackQueue)
 
@@ -42,5 +41,5 @@ extension URLSession {
             return ephemeral ? defaultCallbackEphemeral : defaultCallback
         }
     }
-    
+
 }

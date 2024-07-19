@@ -1,6 +1,5 @@
 //
 //  WebViewTestHelper.swift
-//  DuckDuckGo
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -41,6 +40,7 @@ final class MockNavigationDelegate: NSObject, WKNavigationDelegate {
 final class MockRulesUserScriptDelegate: NSObject, ContentBlockerRulesUserScriptDelegate {
 
     var shouldProcessTrackers = true
+    var shouldProcessCTLTrackers = true
     var onTrackerDetected: ((DetectedRequest) -> Void)?
     var detectedTrackers = Set<DetectedRequest>()
     var onThirdPartyRequestDetected: ((DetectedRequest) -> Void)?
@@ -55,7 +55,7 @@ final class MockRulesUserScriptDelegate: NSObject, ContentBlockerRulesUserScript
     }
 
     func contentBlockerRulesUserScriptShouldProcessCTLTrackers(_ script: ContentBlockerRulesUserScript) -> Bool {
-        return true
+        return shouldProcessCTLTrackers
     }
 
     func contentBlockerRulesUserScript(_ script: ContentBlockerRulesUserScript,
@@ -63,7 +63,7 @@ final class MockRulesUserScriptDelegate: NSObject, ContentBlockerRulesUserScript
         detectedTrackers.insert(tracker)
         onTrackerDetected?(tracker)
     }
-    
+
     func contentBlockerRulesUserScript(_ script: ContentBlockerRulesUserScript,
                                        detectedThirdPartyRequest request: DetectedRequest) {
         detectedThirdPartyRequests.insert(request)
@@ -74,6 +74,7 @@ final class MockRulesUserScriptDelegate: NSObject, ContentBlockerRulesUserScript
 final class MockSurrogatesUserScriptDelegate: NSObject, SurrogatesUserScriptDelegate {
 
     var shouldProcessTrackers = true
+    var shouldProcessCTLTrackers = false
 
     var onSurrogateDetected: ((DetectedRequest, String) -> Void)?
     var detectedSurrogates = Set<DetectedRequest>()
@@ -84,6 +85,10 @@ final class MockSurrogatesUserScriptDelegate: NSObject, SurrogatesUserScriptDele
 
     func surrogatesUserScriptShouldProcessTrackers(_ script: SurrogatesUserScript) -> Bool {
         return shouldProcessTrackers
+    }
+
+    func surrogatesUserScriptShouldProcessCTLTrackers(_ script: SurrogatesUserScript) -> Bool {
+        shouldProcessCTLTrackers
     }
 
     func surrogatesUserScript(_ script: SurrogatesUserScript,
@@ -170,13 +175,17 @@ final class WebKitTestHelper {
                                      trackerAllowlist: [String: [PrivacyConfigurationData.TrackerAllowlist.Entry]],
                                      contentBlockingEnabled: Bool,
                                      exceptions: [String],
-                                     httpsUpgradesEnabled: Bool = false) -> PrivacyConfiguration {
+                                     httpsUpgradesEnabled: Bool = false,
+                                     clickToLoadEnabled: Bool = true) -> PrivacyConfiguration {
         let contentBlockingExceptions = exceptions.map { PrivacyConfigurationData.ExceptionEntry(domain: $0, reason: nil) }
         let contentBlockingStatus = contentBlockingEnabled ? "enabled" : "disabled"
         let httpsStatus = httpsUpgradesEnabled ? "enabled" : "disabled"
+        let clickToLoadStatus = clickToLoadEnabled ? "enabled" : "disabled"
         let features = [PrivacyFeature.contentBlocking.rawValue: PrivacyConfigurationData.PrivacyFeature(state: contentBlockingStatus,
                                                                                                          exceptions: contentBlockingExceptions),
-                        PrivacyFeature.httpsUpgrade.rawValue: PrivacyConfigurationData.PrivacyFeature(state: httpsStatus, exceptions: [])]
+                        PrivacyFeature.httpsUpgrade.rawValue: PrivacyConfigurationData.PrivacyFeature(state: httpsStatus, exceptions: []),
+                        PrivacyFeature.clickToLoad.rawValue: PrivacyConfigurationData.PrivacyFeature(state: clickToLoadStatus,
+                                                                                                         exceptions: contentBlockingExceptions)]
         let unprotectedTemporary = tempUnprotected.map { PrivacyConfigurationData.ExceptionEntry(domain: $0, reason: nil) }
         let privacyData = PrivacyConfigurationData(features: features,
                                                    unprotectedTemporary: unprotectedTemporary,
@@ -195,6 +204,7 @@ final class WebKitTestHelper {
                                             exceptions: [String],
                                             tempUnprotected: [String],
                                             trackerExceptions: [TrackerException],
+                                            identifier: String = "test",
                                             completion: @escaping (WKContentRuleList?) -> Void) {
 
         let rules = ContentBlockerRulesBuilder(trackerData: trackerData).buildRules(withExceptions: exceptions,
@@ -207,7 +217,7 @@ final class WebKitTestHelper {
         // Replace https scheme regexp with test
         ruleList = ruleList.replacingOccurrences(of: "https", with: "test", options: [], range: nil)
 
-        WKContentRuleListStore.default().compileContentRuleList(forIdentifier: "test", encodedContentRuleList: ruleList) { list, _ in
+        WKContentRuleListStore.default().compileContentRuleList(forIdentifier: identifier, encodedContentRuleList: ruleList) { list, _ in
 
             DispatchQueue.main.async {
                 completion(list)

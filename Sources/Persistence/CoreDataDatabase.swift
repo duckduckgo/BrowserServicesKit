@@ -21,12 +21,12 @@ import CoreData
 import Common
 
 public protocol ManagedObjectContextFactory {
-    
+
     func makeContext(concurrencyType: NSManagedObjectContextConcurrencyType, name: String?) -> NSManagedObjectContext
 }
 
 public class CoreDataDatabase: ManagedObjectContextFactory {
-    
+
     public enum Error: Swift.Error {
         case containerLocationCouldNotBePrepared(underlyingError: Swift.Error)
     }
@@ -40,15 +40,15 @@ public class CoreDataDatabase: ManagedObjectContextFactory {
 
         return FileManager.default.fileExists(atPath: containerURL.path)
     }
-    
+
     public var model: NSManagedObjectModel {
         return container.managedObjectModel
     }
-    
+
     public var coordinator: NSPersistentStoreCoordinator {
         return container.persistentStoreCoordinator
     }
-    
+
     public static func loadModel(from bundle: Bundle, named name: String) -> NSManagedObjectModel? {
         let momdUrl = bundle.url(forResource: name, withExtension: "momd") ??
             bundle.resourceURL!.appendingPathComponent(name + ".momd")
@@ -69,19 +69,19 @@ public class CoreDataDatabase: ManagedObjectContextFactory {
         }
 #endif
         guard FileManager.default.fileExists(atPath: momdUrl.path) else { return nil }
-        
+
         return NSManagedObjectModel(contentsOf: momdUrl)
     }
-    
+
     public init(name: String,
                 containerLocation: URL,
                 model: NSManagedObjectModel,
                 readOnly: Bool = false,
                 options: [String: NSObject] = [:]) {
-        
+
         self.container = NSPersistentContainer(name: name, managedObjectModel: model)
         self.containerLocation = containerLocation
-        
+
         let description = NSPersistentStoreDescription(url: containerLocation.appendingPathComponent("\(name).sqlite"))
         description.type = NSSQLiteStoreType
         description.isReadOnly = readOnly
@@ -89,25 +89,25 @@ public class CoreDataDatabase: ManagedObjectContextFactory {
         for (key, value) in options {
             description.setOption(value, forKey: key)
         }
-        
+
         self.container.persistentStoreDescriptions = [description]
     }
-    
+
     public func loadStore(completion: @escaping (NSManagedObjectContext?, Swift.Error?) -> Void = { _, _ in }) {
-        
+
         do {
             try FileManager.default.createDirectory(at: containerLocation, withIntermediateDirectories: true)
         } catch {
             completion(nil, Error.containerLocationCouldNotBePrepared(underlyingError: error))
             return
         }
-            
+
         container.loadPersistentStores { _, error in
             if let error = error {
                 completion(nil, error)
                 return
             }
-            
+
             let context = NSManagedObjectContext(concurrencyType: .privateQueueConcurrencyType)
             context.persistentStoreCoordinator = self.container.persistentStoreCoordinator
             context.name = "Migration"
@@ -117,7 +117,7 @@ public class CoreDataDatabase: ManagedObjectContextFactory {
             }
         }
     }
-    
+
     public func tearDown(deleteStores: Bool) throws {
         typealias StoreInfo = (url: URL?, type: String)
         var storesToDelete = [StoreInfo]()
@@ -125,7 +125,7 @@ public class CoreDataDatabase: ManagedObjectContextFactory {
             storesToDelete.append((url: store.url, type: store.type))
             try container.persistentStoreCoordinator.remove(store)
         }
-        
+
         if deleteStores {
             for (url, type) in storesToDelete {
                 if let url = url {
@@ -134,14 +134,14 @@ public class CoreDataDatabase: ManagedObjectContextFactory {
             }
         }
     }
-    
+
     public func makeContext(concurrencyType: NSManagedObjectContextConcurrencyType, name: String? = nil) -> NSManagedObjectContext {
         RunLoop.current.run(until: storeLoadedCondition)
 
         let context = NSManagedObjectContext(concurrencyType: concurrencyType)
         context.persistentStoreCoordinator = container.persistentStoreCoordinator
         context.name = name
-        
+
         return context
     }
 }
@@ -164,7 +164,7 @@ extension NSManagedObjectContext {
         for entityDescription in entityDescriptions {
             let request = NSFetchRequest<NSManagedObject>()
             request.entity = entityDescription
-            
+
             deleteAll(matching: request)
         }
     }

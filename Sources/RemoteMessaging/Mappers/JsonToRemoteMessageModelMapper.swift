@@ -1,6 +1,5 @@
 //
 //  JsonToRemoteMessageModelMapper.swift
-//  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -20,7 +19,6 @@
 import Common
 import Foundation
 
-// swiftlint:disable cyclomatic_complexity
 private enum AttributesKey: String, CaseIterable {
     case locale
     case osApi
@@ -37,6 +35,19 @@ private enum AttributesKey: String, CaseIterable {
     case favorites
     case appTheme
     case daysSinceInstalled
+    case daysSinceNetPEnabled
+    case pproEligible
+    case pproSubscriber
+    case pproDaysSinceSubscribed
+    case pproDaysUntilExpiryOrRenewal
+    case pproPurchasePlatform
+    case pproSubscriptionStatus
+    case interactedWithMessage
+    case installedMacAppStore
+    case pinnedTabs
+    case customHomePage
+    case duckPlayerOnboarded
+    case duckPlayerEnabled
 
     func matchingAttribute(jsonMatchingAttribute: AnyDecodable) -> MatchingAttribute {
         switch self {
@@ -55,20 +66,40 @@ private enum AttributesKey: String, CaseIterable {
         case .favorites: return FavoritesMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         case .appTheme: return AppThemeMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         case .daysSinceInstalled: return DaysSinceInstalledMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .daysSinceNetPEnabled: return DaysSinceNetPEnabledMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .pproEligible: return IsPrivacyProEligibleUserMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .pproSubscriber: return IsPrivacyProSubscriberUserMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .pproDaysSinceSubscribed: return PrivacyProDaysSinceSubscribedMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .pproDaysUntilExpiryOrRenewal: return PrivacyProDaysUntilExpiryMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .pproPurchasePlatform: return PrivacyProPurchasePlatformMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .pproSubscriptionStatus: return PrivacyProSubscriptionStatusMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .interactedWithMessage: return InteractedWithMessageMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .installedMacAppStore: return IsInstalledMacAppStoreMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .pinnedTabs: return PinnedTabsMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .customHomePage: return CustomHomePageMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .duckPlayerOnboarded: return DuckPlayerOnboardedMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .duckPlayerEnabled: return DuckPlayerEnabledMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         }
     }
 }
-// swiftlint:enable cyclomatic_complexity
 
 struct JsonToRemoteMessageModelMapper {
 
-    static func maps(jsonRemoteMessages: [RemoteMessageResponse.JsonRemoteMessage]) -> [RemoteMessageModel] {
+    static func maps(jsonRemoteMessages: [RemoteMessageResponse.JsonRemoteMessage],
+                     surveyActionMapper: RemoteMessagingSurveyActionMapping) -> [RemoteMessageModel] {
         var remoteMessages: [RemoteMessageModel] = []
         jsonRemoteMessages.forEach { message in
-            var remoteMessage = RemoteMessageModel(id: message.id,
-                                              content: mapToContent(content: message.content),
-                                              matchingRules: message.matchingRules ?? [],
-                                              exclusionRules: message.exclusionRules ?? [])
+            guard let content = mapToContent( content: message.content, surveyActionMapper: surveyActionMapper) else {
+                return
+            }
+
+            var remoteMessage = RemoteMessageModel(
+                id: message.id,
+                content: content,
+                matchingRules: message.matchingRules ?? [],
+                exclusionRules: message.exclusionRules ?? [],
+                isMetricsEnabled: message.isMetricsEnabled
+            )
 
             if let translation = getTranslation(from: message.translations, for: Locale.current) {
                 remoteMessage.localizeContent(translation: translation)
@@ -79,8 +110,8 @@ struct JsonToRemoteMessageModelMapper {
         return remoteMessages
     }
 
-    // swiftlint:disable cyclomatic_complexity function_body_length
-    static func mapToContent(content: RemoteMessageResponse.JsonContent) -> RemoteMessageModelType? {
+    static func mapToContent(content: RemoteMessageResponse.JsonContent,
+                             surveyActionMapper: RemoteMessagingSurveyActionMapping) -> RemoteMessageModelType? {
         switch RemoteMessageResponse.JsonMessageType(rawValue: content.messageType) {
         case .small:
             guard !content.titleText.isEmpty, !content.descriptionText.isEmpty else {
@@ -100,7 +131,7 @@ struct JsonToRemoteMessageModelMapper {
         case .bigSingleAction:
             guard let primaryActionText = content.primaryActionText,
                   !primaryActionText.isEmpty,
-                  let action = mapToAction(content.primaryAction)
+                  let action = mapToAction(content.primaryAction, surveyActionMapper: surveyActionMapper)
             else {
                 return nil
             }
@@ -113,10 +144,10 @@ struct JsonToRemoteMessageModelMapper {
         case .bigTwoAction:
             guard let primaryActionText = content.primaryActionText,
                   !primaryActionText.isEmpty,
-                  let primaryAction = mapToAction(content.primaryAction),
+                  let primaryAction = mapToAction(content.primaryAction, surveyActionMapper: surveyActionMapper),
                   let secondaryActionText = content.secondaryActionText,
                   !secondaryActionText.isEmpty,
-                  let secondaryAction = mapToAction(content.secondaryAction)
+                  let secondaryAction = mapToAction(content.secondaryAction, surveyActionMapper: surveyActionMapper)
             else {
                 return nil
             }
@@ -131,7 +162,7 @@ struct JsonToRemoteMessageModelMapper {
         case .promoSingleAction:
             guard let actionText = content.actionText,
                   !actionText.isEmpty,
-                  let action = mapToAction(content.action)
+                  let action = mapToAction(content.action, surveyActionMapper: surveyActionMapper)
             else {
                 return nil
             }
@@ -146,9 +177,9 @@ struct JsonToRemoteMessageModelMapper {
             return nil
         }
     }
-    // swiftlint:enable cyclomatic_complexity function_body_length
 
-    static func mapToAction(_ jsonAction: RemoteMessageResponse.JsonMessageAction?) -> RemoteAction? {
+    static func mapToAction(_ jsonAction: RemoteMessageResponse.JsonMessageAction?,
+                            surveyActionMapper: RemoteMessagingSurveyActionMapping) -> RemoteAction? {
         guard let jsonAction = jsonAction else {
             return nil
         }
@@ -158,6 +189,23 @@ struct JsonToRemoteMessageModelMapper {
             return .share(value: jsonAction.value, title: jsonAction.additionalParameters?["title"])
         case .url:
             return .url(value: jsonAction.value)
+        case .survey:
+            if let queryParamsString = jsonAction.additionalParameters?["queryParams"] as? String {
+                let queryParams = queryParamsString.components(separatedBy: ";")
+                let mappedQueryParams = queryParams.compactMap { param in
+                    return RemoteMessagingSurveyActionParameter(rawValue: param)
+                }
+
+                if mappedQueryParams.count == queryParams.count, let surveyURL = URL(string: jsonAction.value) {
+                    let updatedURL = surveyActionMapper.add(parameters: mappedQueryParams, to: surveyURL)
+                    return .survey(value: updatedURL.absoluteString)
+                } else {
+                    // The message requires a parameter that isn't supported
+                    return nil
+                }
+            } else {
+                return .survey(value: jsonAction.value)
+            }
         case .appStore:
             return .appStore
         case .dismiss:
@@ -185,26 +233,36 @@ struct JsonToRemoteMessageModelMapper {
             return .macComputer
         case .newForMacAndWindows:
             return .newForMacAndWindows
+        case .privacyShield:
+            return .privacyShield
         case .none:
             return .announce
         }
     }
 
-    static func maps(jsonRemoteRules: [RemoteMessageResponse.JsonMatchingRule]) -> [Int: [MatchingAttribute]] {
-        var rules: [Int: [MatchingAttribute]] = [:]
-        jsonRemoteRules.forEach { rule in
-            var matchingAttributes: [MatchingAttribute] = []
-            rule.attributes.forEach { attribute in
+    static func maps(jsonRemoteRules: [RemoteMessageResponse.JsonMatchingRule]) -> [RemoteConfigRule] {
+        return jsonRemoteRules.map { jsonRule in
+            let mappedAttributes = jsonRule.attributes.map { attribute in
                 if let key = AttributesKey(rawValue: attribute.key) {
-                    matchingAttributes.append(key.matchingAttribute(jsonMatchingAttribute: attribute.value))
+                    return key.matchingAttribute(jsonMatchingAttribute: attribute.value)
                 } else {
                     os_log("Unknown attribute key %s", log: .remoteMessaging, type: .debug, attribute.key)
-                    matchingAttributes.append(UnknownMatchingAttribute(jsonMatchingAttribute: attribute.value))
+                    return UnknownMatchingAttribute(jsonMatchingAttribute: attribute.value)
                 }
             }
-            rules[rule.id] = matchingAttributes
+
+            var mappedTargetPercentile: RemoteConfigTargetPercentile?
+
+            if let jsonTargetPercentile = jsonRule.targetPercentile {
+                mappedTargetPercentile = .init(before: jsonTargetPercentile.before)
+            }
+
+            return RemoteConfigRule(
+                id: jsonRule.id,
+                targetPercentile: mappedTargetPercentile,
+                attributes: mappedAttributes
+            )
         }
-        return rules
     }
 
     static func getTranslation(from translations: [String: RemoteMessageResponse.JsonContentTranslation]?,

@@ -21,25 +21,25 @@ import TrackerRadarKit
 import ContentBlocking
 
 public struct TrackerInfo: Encodable {
-    
+
     enum CodingKeys: String, CodingKey {
         case requests
         case installedSurrogates
     }
 
-    public private (set) var trackers = Set<DetectedRequest>()
+    public private(set) var trackers = Set<DetectedRequest>()
     private(set) var thirdPartyRequests = Set<DetectedRequest>()
     public private(set) var installedSurrogates = Set<String>()
 
     public init() { }
-    
+
     // MARK: - Collecting detected elements
-    
+
     public mutating func addDetectedTracker(_ tracker: DetectedRequest, onPageWithURL url: URL) {
         guard tracker.pageUrl == url.absoluteString else { return }
         trackers.insert(tracker)
     }
-    
+
     public mutating func add(detectedThirdPartyRequest request: DetectedRequest) {
         thirdPartyRequests.insert(request)
     }
@@ -50,20 +50,20 @@ public struct TrackerInfo: Encodable {
     }
 
     // MARK: - Helper accessors
-    
+
     public var trackersBlocked: [DetectedRequest] {
         trackers.filter { $0.state == .blocked }
     }
-    
+
     public var trackersDetected: [DetectedRequest] {
         trackers.filter { $0.state != .blocked }
     }
-    
+
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
-        
+
         let allRequests = [] + trackers + thirdPartyRequests
-        
+
         try container.encode(allRequests, forKey: .requests)
         try container.encode(installedSurrogates, forKey: .installedSurrogates)
     }

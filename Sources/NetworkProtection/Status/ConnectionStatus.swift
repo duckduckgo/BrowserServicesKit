@@ -25,6 +25,25 @@ public enum ConnectionStatus: Codable, Equatable {
     case connected(connectedDate: Date)
     case connecting
     case reasserting
+
+    public static var `default`: ConnectionStatus = .disconnected
+
+    public var description: String {
+        switch self {
+        case .connected:
+            return "connected"
+        case .disconnected:
+            return "disconnected"
+        case .notConfigured:
+            return "not configured"
+        case .disconnecting:
+            return "disconnecting"
+        case .connecting:
+            return "connecting"
+        case .reasserting:
+            return "reasserting"
+        }
+    }
 }
 
 /// This struct represents a status change and holds the new status and a timestamp registering when

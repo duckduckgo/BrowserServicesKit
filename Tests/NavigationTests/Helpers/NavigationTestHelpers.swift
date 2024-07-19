@@ -36,7 +36,7 @@ extension TestsNavigationEvent {
     static func navigationAction(_ request: URLRequest, _ navigationType: NavigationType, from currentHistoryItemIdentity: HistoryItemIdentity? = nil, redirects: [NavAction]? = nil, _ isUserInitiated: NavigationAction.UserInitiated? = nil, src: FrameInfo, _ shouldDownload: NavigationAction.ShouldDownload? = nil, line: UInt = #line) -> TestsNavigationEvent {
         .navigationAction(.init(request, navigationType, from: currentHistoryItemIdentity, redirects: redirects, isUserInitiated, src: src, targ: src, shouldDownload), line: line)
     }
-    
+
     static func response(_ nav: Nav, line: UInt = #line) -> TestsNavigationEvent {
         .navigationResponse(.navigation(nav), line: line)
     }
@@ -75,6 +75,8 @@ extension TestsNavigationEvent {
                 return ".navResponseBecameDownload(\(arg), \(urlConst(for: arg2, in: context.urls)!))"
             case .didCommit(let arg, line: _):
                 return ".didCommit(\(arg.encoded(context)))"
+            case .didSameDocumentNavigation(let arg, let arg2, line: _):
+                return ".didSameDocumentNavigation(\(arg?.encoded(context) ?? "nil"), \(arg2))"
             case .didReceiveRedirect(let navAct, let nav, line: _) where nav.navigationAction == navAct:
                 return ".didReceiveRedirect(\(nav.encoded(context)))"
             case .didReceiveRedirect(let navAct, let nav, line: _):
@@ -554,7 +556,7 @@ extension FrameInfo: TestComparable {
     }
 }
 
-extension NavigationPreferences {
+extension NavigationPreferences: TestComparable {
     enum JSDisabled {
         case jsDisabled
     }
@@ -566,6 +568,19 @@ extension NavigationPreferences {
             return nil
         }
         return ".init(\(userAgent ?? "")\(contentMode == .recommended ? "" : ((userAgent == nil ? "" : ",") + (contentMode == .mobile ? ":mobile" : "desktop")))\(javaScriptEnabled == false ? ((userAgent != nil || contentMode != .recommended ? "," : "") + ".jsDisabled") : ""))"
+    }
+
+    static func difference(between lhs: NavigationPreferences, and rhs: NavigationPreferences) -> String? {
+        if let diff = compare("userAgent", lhs.userAgent, rhs.userAgent)
+            ?? compare("contentMode", lhs.contentMode, rhs.contentMode)
+            ?? compare("javaScriptEnabled", lhs.javaScriptEnabled, rhs.javaScriptEnabled) {
+            return diff
+        }
+#if _WEBPAGE_PREFS_CUSTOM_HEADERS_ENABLED
+        return compare("customHeaders", lhs.customHeaders ?? [], rhs.customHeaders ?? [])
+#else
+        return nil
+#endif
     }
 }
 
@@ -669,7 +684,7 @@ extension FrameInfo {
     func encoded(_ context: EncodingContext) -> String {
         let secOrigin = (securityOrigin == url.securityOrigin ? "" : "secOrigin: " + securityOrigin.encoded(context))
         if self.isMainFrame {
-            return "main(" + (url.isEmpty ? "" : urlConst(for: url, in: context.urls)! + (secOrigin.isEmpty ? "" : ", "))  + secOrigin + ")"
+            return "main(" + (url.isEmpty ? "" : (urlConst(for: url, in: context.urls) ?? "!URL(\"\(url.absoluteString)\" not found in constants)") + (secOrigin.isEmpty ? "" : ", "))  + secOrigin + ")"
         } else {
 #if _FRAME_HANDLE_ENABLED
             let frameID = handle.frameID
@@ -748,12 +763,19 @@ extension NavigationType {
             return ".redirect(.developer)"
         case .sessionRestoration:
             return ".restore"
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
+        case .sameDocumentNavigation(let navigationType):
+            return ".sameDocumentNavigation(.\(navigationType.debugDescription))"
+#else
         case .sameDocumentNavigation:
             return ".sameDocumentNavigation"
+#endif
         case .other:
             return ".other"
         case .custom(let name):
             return "<##custom: \(name.rawValue)>"
+        case .alternateHtmlLoad:
+            return ".alternateHtmlLoad"
         }
     }
 }
@@ -776,7 +798,7 @@ extension RedirectType {
 }
 extension HistoryItemIdentity {
     func encoded(_ context: EncodingContext) -> String {
-        let navigationActionIdx = context.history.first(where: { $0.value == self })!.key
+        let navigationActionIdx = context.history.keys.sorted().first(where: { context.history[$0]! == self })!
         return "history[\(navigationActionIdx)]"
     }
 }
@@ -1052,8 +1074,8 @@ final class CustomCallbacksHandler: NSObject, NavigationResponder {
         self.didFailProvisionalLoadInFrame?(request, frame, error)
     }
 
-    var didSameDocumentNavigation: ((Navigation?, WKSameDocumentNavigationType?) -> Void)?
-    func navigation(_ navigation: Navigation?, didSameDocumentNavigationOf navigationType: WKSameDocumentNavigationType?) {
+    var didSameDocumentNavigation: (@MainActor (Navigation, WKSameDocumentNavigationType) -> Void)?
+    func navigation(_ navigation: Navigation, didSameDocumentNavigationOf navigationType: WKSameDocumentNavigationType) {
         self.didSameDocumentNavigation?(navigation, navigationType)
     }
 

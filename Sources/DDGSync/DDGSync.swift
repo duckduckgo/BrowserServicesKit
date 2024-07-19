@@ -16,14 +16,20 @@
 //  limitations under the License.
 //
 
-import Foundation
+import BrowserServicesKit
 import Combine
-import DDGSyncCrypto
 import Common
+import DDGSyncCrypto
+import Foundation
 
 public class DDGSync: DDGSyncing {
 
     public static let bundle = Bundle.module
+
+    @Published public private(set) var featureFlags: SyncFeatureFlags = .all
+    public var featureFlagsPublisher: AnyPublisher<SyncFeatureFlags, Never> {
+        $featureFlags.eraseToAnyPublisher()
+    }
 
     enum Constants {
         public static let syncEnabledKey = "com.duckduckgo.sync.enabled"
@@ -42,6 +48,8 @@ public class DDGSync: DDGSyncing {
         dependencies.scheduler
     }
 
+    public let syncDailyStats = SyncDailyStats()
+
     @Published public var isSyncInProgress: Bool = false
 
     public var isSyncInProgressPublisher: AnyPublisher<Bool, Never> {
@@ -53,9 +61,15 @@ public class DDGSync: DDGSyncing {
     /// This is the constructor intended for use by app clients.
     public convenience init(dataProvidersSource: DataProvidersSource,
                             errorEvents: EventMapping<SyncError>,
+                            privacyConfigurationManager: PrivacyConfigurationManaging,
                             log: @escaping @autoclosure () -> OSLog = .disabled,
                             environment: ServerEnvironment = .production) {
-        let dependencies = ProductionDependencies(serverEnvironment: environment, errorEvents: errorEvents, log: log())
+        let dependencies = ProductionDependencies(
+            serverEnvironment: environment,
+            privacyConfigurationManager: privacyConfigurationManager,
+            errorEvents: errorEvents,
+            log: log()
+        )
         self.init(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
     }
 
@@ -187,6 +201,18 @@ public class DDGSync: DDGSyncing {
     init(dataProvidersSource: DataProvidersSource, dependencies: SyncDependencies) {
         self.dataProvidersSource = dataProvidersSource
         self.dependencies = dependencies
+
+        featureFlagsCancellable = Publishers.Merge(
+            self.dependencies.privacyConfigurationManager.updatesPublisher,
+            self.dependencies.privacyConfigurationManager.internalUserDecider.isInternalUserPublisher.map { _ in () })
+            .compactMap { [weak self] in
+                self?.dependencies.privacyConfigurationManager.privacyConfig
+            }
+            .prepend(dependencies.privacyConfigurationManager.privacyConfig)
+            .map(SyncFeatureFlags.init)
+            .removeDuplicates()
+            .receive(on: DispatchQueue.main)
+            .assign(to: \.featureFlags, onWeaklyHeld: self)
     }
 
     public func initializeIfNeeded() {
@@ -216,7 +242,6 @@ public class DDGSync: DDGSyncing {
         }
     }
 
-    // swiftlint:disable:next function_body_length
     private func updateAccount(_ account: SyncAccount? = nil) throws {
         guard account?.state != .initializing else {
             assertionFailure("Sync has not been initialized properly")
@@ -227,6 +252,7 @@ public class DDGSync: DDGSyncing {
             dependencies.scheduler.isEnabled = false
             startSyncCancellable?.cancel()
             syncQueueCancellable?.cancel()
+            isDataSyncingFeatureFlagEnabledCancellable?.cancel()
             try syncQueue?.dataProviders.forEach { try $0.deregisterFeature() }
             syncQueue = nil
             authState = .inactive
@@ -258,6 +284,15 @@ public class DDGSync: DDGSyncing {
                 self?.isSyncInProgress = isInProgress
             })
 
+        syncDidFinishCancellable = syncQueue.syncDidFinishPublisher
+            .sink(receiveValue: { [weak self] result in
+                var syncError: SyncOperationError?
+                if case let .failure(error) = result {
+                    syncError = error as? SyncOperationError
+                }
+                self?.syncDailyStats.onSyncFinished(with: syncError)
+            })
+
         startSyncCancellable = dependencies.scheduler.startSyncPublisher
             .sink { [weak self] in
                 self?.syncQueue?.startSync()
@@ -280,6 +315,9 @@ public class DDGSync: DDGSyncing {
                 self?.syncQueue?.resumeQueue()
             }
 
+        isDataSyncingFeatureFlagEnabledCancellable = featureFlagsPublisher.prepend(featureFlags).map { $0.contains(.dataSyncing) }
+            .assign(to: \.isDataSyncingFeatureFlagEnabled, onWeaklyHeld: syncQueue)
+
         dependencies.scheduler.isEnabled = true
         self.syncQueue = syncQueue
     }
@@ -293,12 +331,11 @@ public class DDGSync: DDGSyncing {
 
         do {
             try updateAccount(nil)
-            dependencies.errorEvents.fire(syncError)
+            throw SyncError.unauthenticatedWhileLoggedIn
         } catch {
-            // swiftlint:disable:next line_length
             os_log(.error, log: dependencies.log, "Failed to delete account upon unauthenticated server response: %{public}s", error.localizedDescription)
-            if let syncError = error as? SyncError {
-                dependencies.errorEvents.fire(syncError)
+            if error is SyncError {
+                throw error
             }
         }
     }
@@ -306,8 +343,11 @@ public class DDGSync: DDGSyncing {
     private var startSyncCancellable: AnyCancellable?
     private var cancelSyncCancellable: AnyCancellable?
     private var resumeSyncCancellable: AnyCancellable?
+    private var featureFlagsCancellable: AnyCancellable?
+    private var isDataSyncingFeatureFlagEnabledCancellable: AnyCancellable?
 
     private var syncQueue: SyncQueue?
     private var syncQueueCancellable: AnyCancellable?
+    private var syncDidFinishCancellable: AnyCancellable?
     private var syncQueueRequestErrorCancellable: AnyCancellable?
 }

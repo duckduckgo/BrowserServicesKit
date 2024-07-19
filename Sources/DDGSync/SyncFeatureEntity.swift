@@ -1,6 +1,5 @@
 //
 //  SyncFeatureEntity.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -32,8 +31,9 @@ public class SyncFeatureEntity: NSManagedObject {
     }
 
     @NSManaged public var name: String
-    @NSManaged public internal(set) var lastModified: String?
     @NSManaged private var state: String
+    @NSManaged public internal(set) var lastModified: String?
+    @NSManaged public internal(set) var lastSyncLocalTimestamp: Date?
 
     public var featureState: FeatureSetupState {
         get {

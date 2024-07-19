@@ -1,6 +1,5 @@
 //
 //  AdClickAttributionCounterTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -19,25 +18,8 @@
 
 import XCTest
 import Persistence
+import TestUtils
 @testable import BrowserServicesKit
-
-class MockKeyValueStore: KeyValueStoring {
-    
-    var store = [String: Any?]()
-    
-    func object(forKey defaultName: String) -> Any? {
-        return store[defaultName] as Any?
-    }
-
-    func set(_ value: Any?, forKey defaultName: String) {
-        store[defaultName] = value
-    }
-
-    func removeObject(forKey defaultName: String) {
-        store[defaultName] = nil
-    }
-    
-}
 
 class AdClickAttributionCounterTests: XCTestCase {
 
@@ -46,62 +28,62 @@ class AdClickAttributionCounterTests: XCTestCase {
         let counter = AdClickAttributionCounter(store: mockStore, onSendRequest: { _ in
             XCTFail("Should not send anything")
         })
-        
+
         let date = Date()
         // First use saves date if not present in store
         counter.onAttributionActive(currentTime: date)
-        
+
         // Second use, later, but before sync interval
         counter.onAttributionActive(currentTime: date + 1)
-        
+
         let count = mockStore.object(forKey: AdClickAttributionCounter.Constant.pageLoadsCountKey) as? Int
         XCTAssertEqual(count, 2)
-        
+
         let storedDate = mockStore.object(forKey: AdClickAttributionCounter.Constant.lastSendAtKey) as? Date
         XCTAssertEqual(date, storedDate)
     }
-    
+
     var onSend: (Int) -> Void = { _ in }
-    
+
     func testWhenTimeIntervalHasPassedThenDataIsSent() {
         let interval: Double = 60 * 60
-        
+
         let expectation = expectation(description: "Data sent")
         expectation.expectedFulfillmentCount = 2
-        
+
         let mockStore = MockKeyValueStore()
         let counter = AdClickAttributionCounter(store: mockStore, sendInterval: interval) { count in
             self.onSend(count)
         }
-        
+
         onSend = { _ in XCTFail("Send not expected") }
-        
+
         counter.onAttributionActive()
         counter.onAttributionActive()
         counter.onAttributionActive(currentTime: Date() + interval - 1)
-        
+
         counter.sendEventsIfNeeded()
-        
+
         onSend = { count in
             expectation.fulfill()
             XCTAssertEqual(count, 3)
         }
-        
+
         // timestamp in counter will become now + interval
         counter.sendEventsIfNeeded(currentTime: Date() + interval + 1)
-        
+
         onSend = { _ in XCTFail("Send not expected") }
-        
+
         counter.onAttributionActive(currentTime: Date() + interval + 1)
-        
+
         onSend = { count in
             expectation.fulfill()
             XCTAssertEqual(count, 2)
         }
-        
+
         // Add another interval to trigger sync
         counter.onAttributionActive(currentTime: Date() + 2*interval + 1)
-        
+
         waitForExpectations(timeout: 1, handler: nil)
     }
 

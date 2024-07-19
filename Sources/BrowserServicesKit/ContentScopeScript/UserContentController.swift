@@ -16,11 +16,11 @@
 //  limitations under the License.
 //
 
-import WebKit
 import Combine
+import Common
 import UserScript
-
-// swiftlint:disable line_length
+import WebKit
+import QuartzCore
 
 public protocol UserContentControllerDelegate: AnyObject {
     @MainActor
@@ -39,12 +39,13 @@ public protocol UserContentControllerNewContent {
     var makeUserScripts: @MainActor (SourceProvider) -> UserScripts { get }
 }
 
-@MainActor
+@objc(UserContentController)
 final public class UserContentController: WKUserContentController {
     public let privacyConfigurationManager: PrivacyConfigurationManaging
+    @MainActor
     public weak var delegate: UserContentControllerDelegate?
 
-    public struct ContentBlockingAssets {
+    public struct ContentBlockingAssets: CustomDebugStringConvertible {
         public let globalRuleLists: [String: WKContentRuleList]
         public let userScripts: UserScriptsProvider
         public let wkUserScripts: [WKUserScript]
@@ -60,22 +61,40 @@ final public class UserContentController: WKUserContentController {
 
             self.wkUserScripts = await userScripts.loadWKUserScripts()
         }
+
+        public var debugDescription: String {
+            """
+            <ContentBlockingAssets
+            globalRuleLists: \(globalRuleLists)
+            wkUserScripts: \(wkUserScripts)
+            updateEvent: (
+            \(updateEvent.debugDescription)
+            )>
+            """
+        }
     }
 
-    @Published public private(set) var contentBlockingAssets: ContentBlockingAssets? {
+    @Published @MainActor public private(set) var contentBlockingAssets: ContentBlockingAssets? {
         willSet {
             self.removeAllContentRuleLists()
             self.removeAllUserScripts()
+
+            if let contentBlockingAssets = newValue {
+                os_log(.debug, log: .contentBlocking, "\(self): 📚 installing \(contentBlockingAssets)")
+                self.installGlobalContentRuleLists(contentBlockingAssets.globalRuleLists)
+                os_log(.debug, log: .userScripts, "\(self): 📜 installing user scripts")
+                self.installUserScripts(contentBlockingAssets.wkUserScripts, handlers: contentBlockingAssets.userScripts.userScripts)
+                os_log(.debug, log: .contentBlocking, "\(self): ✅ installing content blocking assets done")
+            }
         }
     }
+    @MainActor
     private func installContentBlockingAssets(_ contentBlockingAssets: ContentBlockingAssets) {
         // don‘t install ContentBlockingAssets (especially Message Handlers retaining `self`) after cleanUpBeforeClosing was called
         guard assetsPublisherCancellable != nil else { return }
-
+        // installation should happen in `contentBlockingAssets.willSet`
+        // so the $contentBlockingAssets subscribers receive an update only after everything is set
         self.contentBlockingAssets = contentBlockingAssets
-
-        self.installGlobalContentRuleLists(contentBlockingAssets.globalRuleLists)
-        self.installUserScripts(contentBlockingAssets.wkUserScripts, handlers: contentBlockingAssets.userScripts.userScripts)
 
         delegate?.userContentController(self,
                                         didInstallContentRuleLists: contentBlockingAssets.globalRuleLists,
@@ -83,18 +102,25 @@ final public class UserContentController: WKUserContentController {
                                         updateEvent: contentBlockingAssets.updateEvent)
     }
 
-    private var localRuleLists = [String: WKContentRuleList]()
-
+    enum ContentRuleListIdentifier: Hashable {
+        case global(String), local(String)
+    }
+    @MainActor
+    private var contentRuleLists = [ContentRuleListIdentifier: WKContentRuleList]()
+    @MainActor
     private var assetsPublisherCancellable: AnyCancellable?
+    @MainActor
     private let scriptMessageHandler = PermanentScriptMessageHandler()
 
+    @MainActor
     public init<Pub, Content>(assetsPublisher: Pub, privacyConfigurationManager: PrivacyConfigurationManaging)
     where Pub: Publisher, Content: UserContentControllerNewContent, Pub.Output == Content, Pub.Failure == Never {
 
         self.privacyConfigurationManager = privacyConfigurationManager
         super.init()
 
-        assetsPublisherCancellable = assetsPublisher.sink { [weak self] content in
+        assetsPublisherCancellable = assetsPublisher.sink { [weak self, selfDescr=self.debugDescription] content in
+            os_log(.debug, log: .contentBlocking, "\(selfDescr): 📚 received content blocking assets")
             Task.detached { [weak self] in
                 let contentBlockingAssets = await ContentBlockingAssets(content: content)
                 await self?.installContentBlockingAssets(contentBlockingAssets)
@@ -113,54 +139,87 @@ final public class UserContentController: WKUserContentController {
         fatalError("init(coder:) has not been implemented")
     }
 
-    private func installGlobalContentRuleLists(_ contentRuleLists: [String: WKContentRuleList]) {
+    @MainActor
+    private func installGlobalContentRuleLists(_ globalContentRuleLists: [String: WKContentRuleList]) {
+        assert(contentRuleLists.isEmpty, "installGlobalContentRuleLists should be called after removing all Content Rule Lists")
         guard self.privacyConfigurationManager.privacyConfig.isEnabled(featureKey: .contentBlocking) else {
+            os_log(.debug, log: .contentBlocking, "\(self): ❗️ content blocking disabled, removing all content rule lists")
             removeAllContentRuleLists()
             return
         }
 
-        contentRuleLists.values.forEach(self.add)
+        os_log(.debug, log: .contentBlocking, "\(self): ❇️ installing global rule lists: \(globalContentRuleLists))")
+        contentRuleLists = globalContentRuleLists.reduce(into: [:]) {
+            $0[.global($1.key)] = $1.value
+        }
+        globalContentRuleLists.values.forEach(self.add)
     }
 
     public struct ContentRulesNotFoundError: Error {}
+    @MainActor
     public func enableGlobalContentRuleList(withIdentifier identifier: String) throws {
-        guard let ruleList = self.contentBlockingAssets?.globalRuleLists[identifier] else {
+        guard let ruleList = contentBlockingAssets?.globalRuleLists[identifier]
+                // when enabling from a $contentBlockingAssets subscription, the ruleList gets
+                // to contentRuleLists before contentBlockingAssets value is set
+                ?? contentRuleLists[.global(identifier)] else {
+            os_log(.debug, log: .contentBlocking, "\(self): ❗️ can‘t enable rule list `\(identifier)` as it‘s not available")
             throw ContentRulesNotFoundError()
         }
-        self.add(ruleList)
+        guard contentRuleLists[.global(identifier)] == nil else { return /* already enabled */ }
+
+        os_log(.debug, log: .contentBlocking, "\(self): 🟩 enabling rule list `\(identifier)`")
+        contentRuleLists[.global(identifier)] = ruleList
+        add(ruleList)
     }
 
     public struct ContentRulesNotEnabledError: Error {}
+    @MainActor
     public func disableGlobalContentRuleList(withIdentifier identifier: String) throws {
-        guard let ruleList = self.contentBlockingAssets?.globalRuleLists[identifier] else {
+        guard let ruleList = contentRuleLists[.global(identifier)] else {
+            os_log(.debug, log: .contentBlocking, "\(self): ❗️ can‘t disable rule list `\(identifier)` as it‘s not enabled")
             throw ContentRulesNotEnabledError()
         }
-        self.remove(ruleList)
+
+        os_log(.debug, log: .contentBlocking, "\(self): 🔻 disabling rule list `\(identifier)`")
+        contentRuleLists[.global(identifier)] = nil
+        remove(ruleList)
     }
 
+    @MainActor
     public func installLocalContentRuleList(_ ruleList: WKContentRuleList, identifier: String) {
-        localRuleLists[identifier] = ruleList
-        self.add(ruleList)
+        // replace if already installed
+        removeLocalContentRuleList(withIdentifier: identifier)
+
+        os_log(.debug, log: .contentBlocking, "\(self): 🔸 installing local rule list `\(identifier)`")
+        contentRuleLists[.local(identifier)] = ruleList
+        add(ruleList)
     }
 
+    @MainActor
     public func removeLocalContentRuleList(withIdentifier identifier: String) {
-        guard let ruleList = localRuleLists.removeValue(forKey: identifier) else {
-            return
-        }
-        self.remove(ruleList)
+        guard let ruleList = contentRuleLists.removeValue(forKey: .local(identifier)) else { return }
+
+        os_log(.debug, log: .contentBlocking, "\(self): 🔻 removing local rule list `\(identifier)`")
+        remove(ruleList)
     }
 
+    @MainActor
     public override func removeAllContentRuleLists() {
-        localRuleLists = [:]
+        os_log(.debug, log: .contentBlocking, "\(self): 🧹 removing all content rule lists")
+        contentRuleLists.removeAll(keepingCapacity: true)
         super.removeAllContentRuleLists()
     }
 
+    @MainActor
     private func installUserScripts(_ wkUserScripts: [WKUserScript], handlers: [UserScript]) {
         handlers.forEach { self.addHandler($0) }
         wkUserScripts.forEach(self.addUserScript)
     }
 
+    @MainActor
     public func cleanUpBeforeClosing() {
+        os_log(.debug, log: .contentBlocking, "\(self): 💀 cleanUpBeforeClosing")
+
         self.removeAllUserScripts()
 
         if #available(macOS 11.0, *) {
@@ -176,6 +235,7 @@ final public class UserContentController: WKUserContentController {
     }
 
 //#if WEBKIT_EXTENSIONS
+    @MainActor
     public override func removeAllUserScripts() {
         let removeUserScriptSelector = NSSelectorFromString("_removeUserScript:")
         if responds(to: removeUserScriptSelector) {
@@ -190,6 +250,7 @@ final public class UserContentController: WKUserContentController {
     }
 //#endif
 
+    @MainActor
     func addHandler(_ userScript: UserScript) {
         for messageName in userScript.messageNames {
             assert(scriptMessageHandler.messageHandler(for: messageName) == nil || type(of: scriptMessageHandler.messageHandler(for: messageName)!) == type(of: userScript),
@@ -217,14 +278,18 @@ final public class UserContentController: WKUserContentController {
 
 public extension UserContentController {
 
+    @MainActor
     var contentBlockingAssetsInstalled: Bool {
         contentBlockingAssets != nil
     }
 
     // func awaitContentBlockingAssetsInstalled() async non-retaining `self`
+    @MainActor
     var awaitContentBlockingAssetsInstalled: () async -> Void {
         guard !contentBlockingAssetsInstalled else { return {} }
-        return { [weak self] in
+        os_log(.debug, log: .contentBlocking, "\(self): 🛑 will wait for content blocking assets installed")
+        let startTime = CACurrentMediaTime()
+        return { [weak self, selfDescr=self.description] in
             // merge $contentBlockingAssets with Task cancellation completion event publisher
             let taskCancellationSubject = PassthroughSubject<ContentBlockingAssets?, Error>()
             guard let assetsPublisher = self?.$contentBlockingAssets else { return }
@@ -239,14 +304,21 @@ public extension UserContentController {
             try? await withTaskCancellationHandler {
                 try await withCheckedThrowingContinuation { c in
                     var cancellable: AnyCancellable!
+                    var elapsedTime: String {
+                        String(format: "%.2fs.", CACurrentMediaTime() - startTime)
+                    }
                     cancellable = throwingPublisher.sink /* completion: */ { _ in
                         withExtendedLifetime(cancellable) {
+                            os_log(.debug, log: .contentBlocking, "\(selfDescr): ❌ wait cancelled after \(elapsedTime)")
+
                             c.resume(with: .failure(CancellationError()))
                             cancellable.cancel()
                         }
                     } receiveValue: { assets in
                         guard assets != nil else { return }
                         withExtendedLifetime(cancellable) {
+                            os_log(.debug, log: .contentBlocking, "\(selfDescr): 🏁 content blocking assets installed (\(elapsedTime))")
+
                             c.resume(with: .success( () ))
                             cancellable.cancel()
                         }
@@ -316,5 +388,3 @@ private class PermanentScriptMessageHandler: NSObject, WKScriptMessageHandler, W
     }
 
 }
-
-// swiftlint:enable line_length

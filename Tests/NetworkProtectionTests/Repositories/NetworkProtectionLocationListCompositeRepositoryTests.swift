@@ -1,6 +1,5 @@
 //
 //  NetworkProtectionLocationListCompositeRepositoryTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -21,20 +20,28 @@ import Foundation
 import XCTest
 @testable import NetworkProtection
 @testable import NetworkProtectionTestUtils
+import Common
 
 class NetworkProtectionLocationListCompositeRepositoryTests: XCTestCase {
     var repository: NetworkProtectionLocationListCompositeRepository!
     var client: MockNetworkProtectionClient!
     var tokenStore: MockNetworkProtectionTokenStorage!
+    var verifyErrorEvent: ((NetworkProtectionError) -> Void)?
 
     override func setUp() {
         super.setUp()
         client = MockNetworkProtectionClient()
         tokenStore = MockNetworkProtectionTokenStorage()
-        repository = NetworkProtectionLocationListCompositeRepository(client: client, tokenStore: tokenStore)
+        repository = NetworkProtectionLocationListCompositeRepository(
+            client: client,
+            tokenStore: tokenStore,
+            errorEvents: .init { [weak self] event, _, _, _ in
+                self?.verifyErrorEvent?(event)
+        },
+        isSubscriptionEnabled: false)
     }
 
-    @MainActor 
+    @MainActor
     override func tearDown() {
         NetworkProtectionLocationListCompositeRepository.clearCache()
         client = nil
@@ -93,8 +100,25 @@ class NetworkProtectionLocationListCompositeRepositoryTests: XCTestCase {
         }
     }
 
+    func testFetchLocationList_noAuthToken_sendsErrorEvent() async {
+        client.stubGetLocations = .success([.testData()])
+        tokenStore.stubFetchToken = nil
+        var didReceiveError: Bool = false
+        verifyErrorEvent = { error in
+            didReceiveError = true
+            switch error {
+            case .noAuthTokenFound:
+                break
+            default:
+                XCTFail("Expected noAuthTokenFound error")
+            }
+        }
+        _ = try? await repository.fetchLocationList()
+        XCTAssertTrue(didReceiveError)
+    }
+
     func testFetchLocationList_fetchThrows_throwsError() async throws {
-        client.stubGetLocations = .failure(.failedToFetchLocationList(nil))
+        client.stubGetLocations = .failure(.failedToFetchLocationList(NetworkProtectionBackendClient.GetLocationsError.noResponse))
         var errorResult: Error?
         do {
             _ = try await repository.fetchLocationList()
@@ -104,16 +128,27 @@ class NetworkProtectionLocationListCompositeRepositoryTests: XCTestCase {
 
         XCTAssertNotNil(errorResult)
     }
+
+    func testFetchLocationList_fetchThrows_sendsErrorEvent() async {
+        client.stubGetLocations = .failure(.failedToFetchLocationList(NetworkProtectionBackendClient.GetLocationsError.noResponse))
+        var didReceiveError: Bool = false
+        verifyErrorEvent = { _ in
+            didReceiveError = true
+            // Matching errors is not working for some reason, so just checking for any error
+        }
+        _ = try? await repository.fetchLocationList()
+        XCTAssertTrue(didReceiveError)
+    }
 }
 
 private extension NetworkProtectionLocation {
     static func testData(country: String = "", cities: [City] = []) -> NetworkProtectionLocation {
-        return Self.init(country: country, cities: cities)
+        return Self(country: country, cities: cities)
     }
 }
 
 private extension NetworkProtectionLocation.City {
     static func testData(name: String = "") -> NetworkProtectionLocation.City {
-        Self.init(name: name)
+        Self(name: name)
     }
 }

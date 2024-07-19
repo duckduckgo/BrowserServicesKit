@@ -19,61 +19,134 @@
 import Foundation
 import MetricKit
 
+public enum CrashCollectionPlatform {
+    case iOS, macOS, macOSAppStore
+
+    var userAgent: String {
+        switch self {
+        case .iOS:
+            return "ddg_ios"
+        case .macOS:
+            return "ddg_mac"
+        case .macOSAppStore:
+            return "ddg_mac_appstore"
+        }
+    }
+}
+
 @available(iOSApplicationExtension, unavailable)
 @available(iOS 13, macOS 12, *)
-public struct CrashCollection {
+public final class CrashCollection {
 
-    // Need a strong reference
-    static let collector = CrashCollector()
+    public var log: OSLog {
+        getLog()
+    }
+    private let getLog: () -> OSLog
 
-    public static func collectCrashesAsync(completion: @escaping ([String: String]) -> Void) {
-        collector.completion = completion
-        MXMetricManager.shared.add(collector)
+    public init(platform: CrashCollectionPlatform, log: @escaping @autoclosure () -> OSLog = .disabled) {
+        self.getLog = log
+        crashHandler = CrashHandler()
+        crashSender = CrashReportSender(platform: platform, log: log())
     }
 
-    class CrashCollector: NSObject, MXMetricManagerSubscriber {
+    public func start(didFindCrashReports: @escaping (_ pixelParameters: [[String: String]], _ payloads: [Data], _ uploadReports: @escaping () -> Void) -> Void) {
+        start(process: { payloads in
+            payloads.map { $0.jsonRepresentation() }
+        }, didFindCrashReports: didFindCrashReports)
+    }
 
-        var completion: ([String: String]) -> Void = { _ in }
+    public func start(process: @escaping ([MXDiagnosticPayload]) -> [Data], didFindCrashReports: @escaping (_ pixelParameters: [[String: String]], _ payloads: [Data], _ uploadReports: @escaping () -> Void) -> Void) {
+        let first = isFirstCrash
+        isFirstCrash = false
 
-        func didReceive(_ payloads: [MXDiagnosticPayload]) {
-            payloads
-                .compactMap { $0.crashDiagnostics }
+        crashHandler.crashDiagnosticsPayloadHandler = { [log] payloads in
+            os_log("😵 loaded %{public}d diagnostic payloads", log: log, payloads.count)
+            let pixelParameters = payloads
+                .compactMap(\.crashDiagnostics)
                 .flatMap { $0 }
-                .forEach {
-                    completion([
-                        "appVersion": "\($0.applicationVersion).\($0.metaData.applicationBuildVersion)",
-                        "code": "\($0.exceptionCode ?? -1)",
-                        "type": "\($0.exceptionType ?? -1)",
-                        "signal": "\($0.signal ?? -1)"
-                    ])
+                .map { diagnostic in
+                    var params = [
+                        "appVersion": "\(diagnostic.applicationVersion).\(diagnostic.metaData.applicationBuildVersion)",
+                        "code": "\(diagnostic.exceptionCode ?? -1)",
+                        "type": "\(diagnostic.exceptionType ?? -1)",
+                        "signal": "\(diagnostic.signal ?? -1)",
+                    ]
+                    if first {
+                        params["first"] = "1"
+                    }
+                    return params
                 }
+            let processedData = process(payloads)
+            didFindCrashReports(pixelParameters, processedData) {
+                Task {
+                    for payload in processedData {
+                        await self.crashSender.send(payload)
+                    }
+                }
+            }
         }
 
+        MXMetricManager.shared.add(crashHandler)
     }
 
-    static let firstCrashKey = "CrashCollection.first"
+    public func startAttachingCrashLogMessages(didFindCrashReports: @escaping (_ pixelParameters: [[String: String]], _ payloads: [Data], _ uploadReports: @escaping () -> Void) -> Void) {
+        start(process: { payloads in
+            payloads.compactMap { payload in
+                var dict = payload.dictionaryRepresentation()
 
-    static var firstCrash: Bool {
+                var pid: pid_t?
+                if #available(macOS 14.0, iOS 17.0, *) {
+                    pid = payload.crashDiagnostics?.first?.metaData.pid
+                }
+                var crashDiagnostics = dict["crashDiagnostics"] as? [[AnyHashable: Any]] ?? []
+                var crashDiagnosticsDict = crashDiagnostics.first ?? [:]
+                var diagnosticMetaDataDict = crashDiagnosticsDict["diagnosticMetaData"] as? [AnyHashable: Any] ?? [:]
+                var objCexceptionReason = diagnosticMetaDataDict["objectiveCexceptionReason"] as? [AnyHashable: Any] ?? [:]
+
+                var exceptionMessage = (objCexceptionReason["composedMessage"] as? String)?.sanitized()
+                var stackTrace: [String]?
+
+                // append crash log message if loaded
+                if let diagnostic = try? CrashLogMessageExtractor().crashDiagnostic(for: payload.timeStampBegin, pid: pid)?.diagnosticData(), !diagnostic.isEmpty {
+                    if let existingMessage = exceptionMessage, !existingMessage.isEmpty {
+                        exceptionMessage = existingMessage + "\n\n---\n\n" + diagnostic.message
+                    } else {
+                        exceptionMessage = diagnostic.message
+                    }
+                    stackTrace = diagnostic.stackTrace
+                }
+
+                objCexceptionReason["composedMessage"] = exceptionMessage
+                objCexceptionReason["stackTrace"] = stackTrace
+                diagnosticMetaDataDict["objectiveCexceptionReason"] = objCexceptionReason
+                crashDiagnosticsDict["diagnosticMetaData"] = diagnosticMetaDataDict
+                crashDiagnostics[0] = crashDiagnosticsDict
+                dict["crashDiagnostics"] = crashDiagnostics
+
+                guard JSONSerialization.isValidJSONObject(dict) else {
+                    assertionFailure("Invalid JSON object: \(dict)")
+                    return nil
+                }
+                return try? JSONSerialization.data(withJSONObject: dict, options: [.prettyPrinted, .sortedKeys])
+            }
+
+        }, didFindCrashReports: didFindCrashReports)
+    }
+
+    var isFirstCrash: Bool {
         get {
-            UserDefaults().object(forKey: Self.firstCrashKey) as? Bool ?? true
+            UserDefaults().object(forKey: Const.firstCrashKey) as? Bool ?? true
         }
 
         set {
-            UserDefaults().set(newValue, forKey: Self.firstCrashKey)
+            UserDefaults().set(newValue, forKey: Const.firstCrashKey)
         }
     }
 
-    public static func start(firePixel: @escaping ([String: String]) -> Void) {
-        let first = Self.firstCrash
-        CrashCollection.collectCrashesAsync { params in
-            var params = params
-            if first {
-                params["first"] = "1"
-            }
-            firePixel(params)
-        }
-        // Turn the flag off for next time
-        Self.firstCrash = false
-    }
+    let crashHandler: CrashHandler
+    let crashSender: CrashReportSender
 
+    enum Const {
+        static let firstCrashKey = "CrashCollection.first"
+    }
 }

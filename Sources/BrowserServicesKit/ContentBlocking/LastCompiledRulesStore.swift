@@ -1,6 +1,5 @@
 //
 //  LastCompiledRulesStore.swift
-//  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -21,17 +20,17 @@ import Foundation
 import TrackerRadarKit
 
 public protocol LastCompiledRules {
-    
+
     var name: String { get }
     var trackerData: TrackerData { get }
     var etag: String { get }
     var identifier: ContentBlockerRulesIdentifier { get }
-    
+
 }
 
 public protocol LastCompiledRulesStore {
-    
+
     var rules: [LastCompiledRules] { get }
     func update(with contentBlockerRules: [ContentBlockerRulesManager.Rules])
-    
+
 }

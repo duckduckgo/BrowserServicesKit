@@ -14,13 +14,13 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - name: SwiftLint
-        uses: docker://norionomura/swiftlint:0.53.0
+        uses: docker://norionomura/swiftlint:0.54.0_swift-5.9.0
         with:
           args: swiftlint --reporter github-actions-logging --strict
 
   unit-tests:
 
-      name: Run unit tests
+      name: Run unit tests (macOS)
 
       runs-on: macos-13-xlarge
       timeout-minutes: 30
@@ -48,13 +48,17 @@ jobs:
         if: env.cache_key_hash
         uses: actions/cache@v3
         with:
-          path: .build
+          path: |
+            .build/artifacts
+            .build/checkouts
+            .build/repositories
+            .build/workspace-state.json
           key: ${{ runner.os }}-spm-${{ env.cache_key_hash }}
           restore-keys: |
             ${{ runner.os }}-spm-
 
       - name: Select Xcode
-        run: sudo xcode-select -s /Applications/Xcode_15.0.app/Contents/Developer
+        run: sudo xcode-select -s /Applications/Xcode_$(<.xcode-version).app/Contents/Developer
 
       - name: Install xcbeautify
         continue-on-error: true
@@ -67,7 +71,7 @@ jobs:
         uses: mikepenz/action-junit-report@v3
         if: always()
         with:
-          check_name: Test Report
+          check_name: Test Report (macOS)
           report_paths: tests.xml
           require_tests: true
 
@@ -101,9 +105,97 @@ jobs:
           author=$(gh api https://api.github.com/repos/${{ github.repository }}/commits/${head_commit} --jq .author.login)
           echo "commit_author=${author}" >> $GITHUB_OUTPUT
 
+  unit-tests-ios:
+
+      name: Run unit tests (iOS)
+
+      runs-on: macos-13-xlarge
+      timeout-minutes: 30
+
+      steps:
+
+      - name: Check out the code
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - name: Set cache key hash
+        run: |
+          has_only_tags=$(jq '[ .pins[].state | has("version") ] | all' Package.resolved)
+          if [[ "$has_only_tags" == "true" ]]; then
+            echo "cache_key_hash=${{ hashFiles('Package.resolved') }}" >> $GITHUB_ENV
+          else
+            echo "Package.resolved contains dependencies specified by branch or commit, skipping cache."
+          fi
+
+      - name: Cache SPM
+        if: env.cache_key_hash
+        uses: actions/cache@v3
+        with:
+          path: DerivedData/SourcePackages
+          key: ${{ runner.os }}-spm-ios-${{ env.cache_key_hash }}
+          restore-keys: |
+            ${{ runner.os }}-spm-ios-
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_$(<.xcode-version).app/Contents/Developer
+
+      - name: Resolve package dependencies
+        run: |
+          while xcodebuild -resolvePackageDependencies \
+            -scheme BrowserServicesKit-Package \
+            -destination 'platform=iOS Simulator,name=iPhone 15' \
+            -derivedDataPath DerivedData \
+            2>&1 | grep Error; do :; done
+
+          # you just can't have good things
+          # set -o pipefail && swift package resolve | tee ios-build-log.txt | xcbeautify
+          # mkdir -p DerivedData/SourcePackages
+          # mv .build/* DerivedData/SourcePackages
+
+      - name: Run tests
+        run: |
+          set -o pipefail && xcodebuild test \
+            -scheme BrowserServicesKit \
+            -destination 'platform=iOS Simulator,name=iPhone 15' \
+            -derivedDataPath DerivedData \
+            -skipPackagePluginValidation \
+            -skipMacroValidation \
+            CODE_SIGNING_ALLOWED=NO \
+            | tee -a ios-build-log.txt \
+            | xcbeautify --report junit --report-path . --junit-report-filename ios-unittests.xml 
+
+      - name: Publish Unit Tests Report
+        uses: mikepenz/action-junit-report@v3
+        if: always()
+        with:
+          check_name: Test Report (iOS)
+          report_paths: ios-unittests.xml
+          require_tests: true
+
+      - name: Update Asana with failed unit tests
+        if: always() # always run even if the previous step fails
+        env:
+          ASANA_ACCESS_TOKEN: ${{ secrets.ASANA_ACCESS_TOKEN }}
+          WORKFLOW_URL: https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/attempts/${{ github.run_attempt }}
+        run: |
+          # Extract failed tests from the junit report
+          # Only keep failures unique by classname and name (column 1 and 2 of the yq output)
+          yq < ios-unittests.xml -p xml -o json -r \
+            $'[.testsuites.testsuite[].testcase] | flatten | map(select(.failure) | .+@classname + " " + .+@name + " \'" + .failure.+@message + "\' ${{ env.WORKFLOW_URL }}") | .[]' \
+            | sort -u -k 1,2 \
+            | xargs -L 1 ./scripts/report-failed-unit-test.sh -s ${{ vars.APPLE_CI_FAILING_TESTS_FAILED_TESTS_SECTION_ID }}
+
+      - name: Upload logs
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: ios-build-log.txt
+          path: ios-build-log.txt
+
   create-asana-task:
     name: Create Asana Task
-    needs: [swiftlint, unit-tests]
+    needs: [swiftlint, unit-tests, unit-tests-ios]
 
     if: failure() && github.ref_name == 'main' && github.run_attempt == 1
 
@@ -122,7 +214,7 @@ jobs:
 
   close-asana-task:
     name: Close Asana Task
-    needs: [swiftlint, unit-tests]
+    needs: [swiftlint, unit-tests, unit-tests-ios]
 
     if: success() && github.ref_name == 'main' && github.run_attempt > 1
 

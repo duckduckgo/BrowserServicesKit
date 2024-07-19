@@ -1,5 +1,5 @@
 //
-//  NavigationValuesTests.swift
+//  ClosureNavigationResponderTests.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -16,15 +16,14 @@
 //  limitations under the License.
 //
 
+#if os(macOS)
+
 import Combine
 import Common
 import Swifter
 import WebKit
 import XCTest
 @testable import Navigation
-
-// swiftlint:disable unused_closure_parameter
-// swiftlint:disable opening_brace
 
 @available(macOS 12.0, iOS 15.0, *)
 class ClosureNavigationResponderTests: DistributedNavigationDelegateTestsBase {
@@ -432,5 +431,4 @@ class ClosureNavigationResponderTests: DistributedNavigationDelegateTestsBase {
 
 }
 
-// swiftlint:enable unused_closure_parameter
-// swiftlint:enable opening_brace
+#endif

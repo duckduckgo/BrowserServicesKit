@@ -21,19 +21,31 @@ import Foundation
 public final class NetworkProtectionLastVersionRunStore {
     private let userDefaults: UserDefaults
 
-    static let lastVersionRunKey = "com.duckduckgo.network-protection.NetworkProtectionVersionStore.lastVersionRunKey"
+    private static let lastAgentVersionRunKey = "com.duckduckgo.network-protection.NetworkProtectionVersionStore.lastAgentVersionRunKey"
+    private static let lastExtensionVersionRunKey = "com.duckduckgo.network-protection.NetworkProtectionVersionStore.lastExtensionVersionRunKey"
 
-    public init(userDefaults: UserDefaults = .standard) {
+    public init(userDefaults: UserDefaults) {
         self.userDefaults = userDefaults
     }
 
-    public var lastVersionRun: String? {
+    @available(macOS 11.0, *)
+    public var lastAgentVersionRun: String? {
         get {
-            userDefaults.string(forKey: Self.lastVersionRunKey)
+            userDefaults.string(forKey: Self.lastAgentVersionRunKey)
         }
 
         set {
-            userDefaults.set(newValue, forKey: Self.lastVersionRunKey)
+            userDefaults.set(newValue, forKey: Self.lastAgentVersionRunKey)
+        }
+    }
+
+    public var lastExtensionVersionRun: String? {
+        get {
+            userDefaults.string(forKey: Self.lastExtensionVersionRunKey)
+        }
+
+        set {
+            userDefaults.set(newValue, forKey: Self.lastExtensionVersionRunKey)
         }
     }
 }

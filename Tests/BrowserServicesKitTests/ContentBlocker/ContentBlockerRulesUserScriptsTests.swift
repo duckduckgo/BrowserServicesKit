@@ -1,6 +1,5 @@
 //
 //  ContentBlockerRulesUserScriptsTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -17,11 +16,11 @@
 //  limitations under the License.
 //
 
-import XCTest
-import WebKit
 import BrowserServicesKit
-import TrackerRadarKit
 import Common
+import TrackerRadarKit
+import WebKit
+import XCTest
 
 class ContentBlockerRulesUserScriptsTests: XCTestCase {
 
@@ -76,7 +75,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
     let userScriptDelegateMock = MockRulesUserScriptDelegate()
     let navigationDelegateMock = MockNavigationDelegate()
     let tld = TLD()
-    
+
     var webView: WKWebView?
 
     let nonTrackerURL = URL(string: "test://nontracker.com/1.png")!
@@ -92,7 +91,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
                                           .init(type: .image, url: trackerURL),
                                           .init(type: .image, url: subTrackerURL)])
     }
-    
+
     private func setupWebViewForUserScripTests(trackerData: TrackerData,
                                                privacyConfig: PrivacyConfiguration,
                                                userScriptDelegate: ContentBlockerRulesUserScriptDelegate,
@@ -212,11 +211,11 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
 
             let blockedTrackers = Set(self.userScriptDelegateMock.detectedTrackers.filter { $0.isBlocked }.map { $0.domain })
             XCTAssertTrue(blockedTrackers.isEmpty)
-            
+
             // We don't report first party trackers
             let detectedTrackers = Set(self.userScriptDelegateMock.detectedTrackers.map { $0.domain })
             XCTAssert(detectedTrackers.isEmpty)
-            
+
             let expected3rdParty: Set<String> = ["nontracker.com"]
             let detected3rdParty = Set(self.userScriptDelegateMock.detectedThirdPartyRequests.map { $0.domain })
             XCTAssertEqual(detected3rdParty, expected3rdParty)
@@ -229,7 +228,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
 
         self.wait(for: [websiteLoaded], timeout: 30)
     }
-    
+
     func testWhenThereIsFirstPartyRequestThenItIsNotBlocked() {
 
         let privacyConfig = WebKitTestHelper.preparePrivacyConfig(locallyUnprotected: [],
@@ -247,7 +246,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
             let expectedTrackers: Set<String> = ["sub.tracker.com", "tracker.com"]
             let blockedTrackers = Set(self.userScriptDelegateMock.detectedTrackers.filter { $0.isBlocked }.map { $0.domain })
             XCTAssertEqual(blockedTrackers, expectedTrackers)
-            
+
             let detected3rdParty = Set(self.userScriptDelegateMock.detectedThirdPartyRequests.map { $0.domain })
             XCTAssert(detected3rdParty.isEmpty)
 

@@ -16,10 +16,10 @@
 //  limitations under the License.
 //
 
+import Common
 import Foundation
 import WebKit
 
-// swiftlint:disable line_length
 @MainActor
 public struct Navigator {
 
@@ -150,8 +150,14 @@ public final class ExpectedNavigation {
 }
 extension ExpectedNavigation: NavigationProtocol {}
 extension ExpectedNavigation: CustomDebugStringConvertible {
-    public var debugDescription: String {
-        "<ExpectedNavigation \(navigation.identity) \(navigation.navigationActions.last != nil ? "from_redirected: #\(navigation.navigationActions.last!.identifier)" : "")>"
+    public nonisolated var debugDescription: String {
+        guard Thread.isMainThread else {
+            assertionFailure("Accessing ExpectedNavigation from background thread")
+            return "<ExpectedNavigation ?>"
+        }
+        return MainActor.assumeIsolated {
+            "<ExpectedNavigation \(navigation.identity) \(navigation.navigationActions.last != nil ? "from_redirected: #\(navigation.navigationActions.last!.identifier)" : "")>"
+        }
     }
 }
 
@@ -181,4 +187,3 @@ extension WKWebView {
     }
 
 }
-// swiftlint:enable line_length

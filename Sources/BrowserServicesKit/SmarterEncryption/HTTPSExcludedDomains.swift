@@ -1,6 +1,5 @@
 //
 //  HTTPSExcludedDomains.swift
-//  Core
 //
 //  Copyright © 2020 DuckDuckGo. All rights reserved.
 //
@@ -20,7 +19,7 @@
 import Foundation
 
 public struct HTTPSExcludedDomains: Decodable {
-    
+
     public let data: [String]
-    
+
 }

@@ -18,7 +18,7 @@
 
 import Foundation
 
-/// Abstracts the notification presentation.  This was mainly designed for appex vs sysex usage.
+/// Abstracts the notification presentation.
 ///
 public protocol NetworkProtectionNotificationsPresenter {
 
@@ -38,4 +38,6 @@ public protocol NetworkProtectionNotificationsPresenter {
     /// This is never visible to end users.
     func showTestNotification()
 
+    /// Present a "expired subscription" notification to the user.
+    func showEntitlementNotification()
 }

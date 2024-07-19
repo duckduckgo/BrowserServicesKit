@@ -20,19 +20,55 @@ import Foundation
 import Common
 import NetworkExtension
 
-public enum NetworkProtectionServerSelectionMethod {
+public enum NetworkProtectionServerSelectionMethod: CustomDebugStringConvertible {
+    public var debugDescription: String {
+        switch self {
+        case .automatic:
+            "automatic"
+        case .preferredServer(let serverName):
+            "preferredServer: \(serverName)"
+        case .avoidServer(let serverName):
+            "avoidServer: \(serverName)"
+        case .preferredLocation(let location):
+            "preferredLocation: \(location)"
+        case .failureRecovery(serverName: let serverName):
+            "failureRecovery: \(serverName)"
+        }
+    }
+
     case automatic
     case preferredServer(serverName: String)
     case avoidServer(serverName: String)
     case preferredLocation(NetworkProtectionSelectedLocation)
+    case failureRecovery(serverName: String)
+}
+
+public enum NetworkProtectionDNSSettings: Codable, Equatable, CustomStringConvertible {
+    case `default`
+    case custom([String])
+
+    public var usesCustomDNS: Bool {
+        guard case .custom(let servers) = self, !servers.isEmpty else { return false }
+        return true
+    }
+
+    public var description: String {
+        switch self {
+        case .default: return "DuckDuckGo"
+        case .custom(let servers): return servers.joined(separator: ", ")
+        }
+    }
 }
 
 public protocol NetworkProtectionDeviceManagement {
+    typealias GenerateTunnelConfigurationResult = (tunnelConfiguration: TunnelConfiguration, server: NetworkProtectionServer)
 
     func generateTunnelConfiguration(selectionMethod: NetworkProtectionServerSelectionMethod,
                                      includedRoutes: [IPAddressRange],
                                      excludedRoutes: [IPAddressRange],
-                                     isKillSwitchEnabled: Bool) async throws -> (TunnelConfiguration, NetworkProtectionServerInfo)
+                                     dnsSettings: NetworkProtectionDNSSettings,
+                                     isKillSwitchEnabled: Bool,
+                                     regenerateKey: Bool) async throws -> GenerateTunnelConfigurationResult
 
 }
 
@@ -40,32 +76,33 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     private let networkClient: NetworkProtectionClient
     private let tokenStore: NetworkProtectionTokenStore
     private let keyStore: NetworkProtectionKeyStore
-    private let serverListStore: NetworkProtectionServerListStore
 
     private let errorEvents: EventMapping<NetworkProtectionError>?
 
-    public init(environment: TunnelSettings.SelectedEnvironment,
+    private let isSubscriptionEnabled: Bool
+
+    public init(environment: VPNSettings.SelectedEnvironment,
                 tokenStore: NetworkProtectionTokenStore,
                 keyStore: NetworkProtectionKeyStore,
-                serverListStore: NetworkProtectionServerListStore? = nil,
-                errorEvents: EventMapping<NetworkProtectionError>?) {
-        self.init(networkClient: NetworkProtectionBackendClient(environment: environment),
+                errorEvents: EventMapping<NetworkProtectionError>?,
+                isSubscriptionEnabled: Bool) {
+        self.init(networkClient: NetworkProtectionBackendClient(environment: environment, isSubscriptionEnabled: isSubscriptionEnabled),
                   tokenStore: tokenStore,
                   keyStore: keyStore,
-                  serverListStore: serverListStore,
-                  errorEvents: errorEvents)
+                  errorEvents: errorEvents,
+                  isSubscriptionEnabled: isSubscriptionEnabled)
     }
 
     init(networkClient: NetworkProtectionClient,
          tokenStore: NetworkProtectionTokenStore,
          keyStore: NetworkProtectionKeyStore,
-         serverListStore: NetworkProtectionServerListStore? = nil,
-         errorEvents: EventMapping<NetworkProtectionError>?) {
+         errorEvents: EventMapping<NetworkProtectionError>?,
+         isSubscriptionEnabled: Bool) {
         self.networkClient = networkClient
         self.tokenStore = tokenStore
         self.keyStore = keyStore
-        self.serverListStore = serverListStore ?? NetworkProtectionServerListFileSystemStore(errorEvents: errorEvents)
         self.errorEvents = errorEvents
+        self.isSubscriptionEnabled = isSubscriptionEnabled
     }
 
     /// Requests a new server list from the backend and updates it locally.
@@ -75,27 +112,15 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
         guard let token = try? tokenStore.fetchToken() else {
             throw NetworkProtectionError.noAuthTokenFound
         }
-        let servers = await networkClient.getServers(authToken: token)
+        let result = await networkClient.getServers(authToken: token)
         let completeServerList: [NetworkProtectionServer]
 
-        switch servers {
+        switch result {
         case .success(let serverList):
             completeServerList = serverList
         case .failure(let failure):
             handle(clientError: failure)
-            return try serverListStore.storedNetworkProtectionServerList()
-        }
-
-        do {
-            try serverListStore.store(serverList: completeServerList)
-        } catch let error as NetworkProtectionServerListStoreError {
-            errorEvents?.fire(error.networkProtectionError)
-            // Intentionally not rethrowing as the failing call is not critical to provide
-            // a working UX.
-        } catch {
-            errorEvents?.fire(.unhandledError(function: #function, line: #line, error: error))
-            // Intentionally not rethrowing as the failing call is not critical to provide
-            // a working UX.
+            throw failure
         }
 
         return completeServerList
@@ -111,17 +136,48 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     public func generateTunnelConfiguration(selectionMethod: NetworkProtectionServerSelectionMethod,
                                             includedRoutes: [IPAddressRange],
                                             excludedRoutes: [IPAddressRange],
-                                            isKillSwitchEnabled: Bool) async throws -> (TunnelConfiguration, NetworkProtectionServerInfo) {
+                                            dnsSettings: NetworkProtectionDNSSettings,
+                                            isKillSwitchEnabled: Bool,
+                                            regenerateKey: Bool) async throws -> GenerateTunnelConfigurationResult {
+        var keyPair: KeyPair
 
-        let (selectedServer, keyPair) = try await register(selectionMethod: selectionMethod)
+        if regenerateKey {
+            keyPair = keyStore.newKeyPair()
+        } else {
+            // Temporary code added on 2024-03-12 to fix a previous issue where users had a really long
+            // key expiration date.  We should remove this after a month or so.
+            if let existingKeyPair = keyStore.currentKeyPair(),
+               existingKeyPair.expirationDate > Date().addingTimeInterval(TimeInterval.day) {
+
+                keyPair = keyStore.newKeyPair()
+            } else {
+                // This is the regular code to restore when the above code is removed.
+                keyPair = keyStore.currentKeyPair() ?? keyStore.newKeyPair()
+            }
+        }
+
+        let (selectedServer, newExpiration) = try await register(keyPair: keyPair, selectionMethod: selectionMethod)
+        os_log("Server registration successul", log: .networkProtection)
+
+        keyStore.updateKeyPair(keyPair)
+
+        // We only update the expiration date if it happens before our client-set expiration date.
+        // This way we respect the client-set expiration date, unless the server has set an earlier
+        // expiration for whatever reason (like if the subscription is known to expire).
+        //
+        if let newExpiration, newExpiration < keyPair.expirationDate {
+            keyPair = KeyPair(privateKey: keyPair.privateKey, expirationDate: newExpiration)
+            keyStore.updateKeyPair(keyPair)
+        }
 
         do {
             let configuration = try tunnelConfiguration(interfacePrivateKey: keyPair.privateKey,
                                                         server: selectedServer,
                                                         includedRoutes: includedRoutes,
                                                         excludedRoutes: excludedRoutes,
+                                                        dnsSettings: dnsSettings,
                                                         isKillSwitchEnabled: isKillSwitchEnabled)
-            return (configuration, selectedServer.serverInfo)
+            return (configuration, selectedServer)
         } catch let error as NetworkProtectionError {
             errorEvents?.fire(error)
             throw error
@@ -139,13 +195,12 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     //     - keyPair: the key pair that was used to register with the server, and that should be used to configure the tunnel
     //
     // - Throws:`NetworkProtectionError`
-    // This cannot be a doc comment because of the swiftlint command below
-    // swiftlint:disable cyclomatic_complexity
-    private func register(selectionMethod: NetworkProtectionServerSelectionMethod) async throws -> (server: NetworkProtectionServer,
-                                                                                                    keyPair: KeyPair) {
+    //
+    private func register(keyPair: KeyPair,
+                          selectionMethod: NetworkProtectionServerSelectionMethod) async throws -> (server: NetworkProtectionServer,
+                                                                                                    newExpiration: Date?) {
 
         guard let token = try? tokenStore.fetchToken() else { throw NetworkProtectionError.noAuthTokenFound }
-        var keyPair = keyStore.currentKeyPair()
 
         let serverSelection: RegisterServerSelection
         let excludedServerName: String?
@@ -163,6 +218,9 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
         case .preferredLocation(let location):
             serverSelection = .location(country: location.country, city: location.city)
             excludedServerName = nil
+        case .failureRecovery(serverName: let serverName):
+            serverSelection = .recovery(server: serverName)
+            excludedServerName = nil
         }
 
         let requestBody = RegisterKeyRequestBody(publicKey: keyPair.publicKey,
@@ -174,64 +232,19 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
 
         switch registeredServersResult {
         case .success(let registeredServers):
-            do {
-                try serverListStore.store(serverList: registeredServers)
-            } catch let error as NetworkProtectionServerListStoreError {
-                errorEvents?.fire(error.networkProtectionError)
-                // Intentionally not rethrowing, as this failure is not critical for this method
-            } catch {
-                errorEvents?.fire(.unhandledError(function: #function, line: #line, error: error))
-                // Intentionally not rethrowing, as this failure is not critical for this method
-            }
-
             guard let registeredServer = registeredServers.first(where: { $0.serverName != excludedServerName }) else {
                 // If we're looking to exclude a server we should have a few other options available.  If we can't find any
                 // then it means theres an inconsistency in the server list that was returned.
                 errorEvents?.fire(NetworkProtectionError.serverListInconsistency)
-
-                let cachedServer = try cachedServer(registeredWith: keyPair)
-                return (cachedServer, keyPair)
+                throw NetworkProtectionError.serverListInconsistency
             }
 
             selectedServer = registeredServer
-
-            // We should not need this IF condition here, because we know registered servers will give us an expiration date,
-            // but since the structure we're currently using makes the expiration date optional we need to have it.
-            // We should consider changing our server structure to not allow a missing expiration date here.
-            if let serverExpirationDate = selectedServer.expirationDate,
-               keyPair.expirationDate > serverExpirationDate {
-
-                keyPair = keyStore.updateCurrentKeyPair(newExpirationDate: serverExpirationDate)
-            }
-
-            return (selectedServer, keyPair)
+            return (selectedServer, selectedServer.expirationDate)
         case .failure(let error):
             handle(clientError: error)
-
-            let cachedServer = try cachedServer(registeredWith: keyPair)
-            return (cachedServer, keyPair)
-        }
-    }
-    // swiftlint:enable cyclomatic_complexity
-
-    /// Retrieves the first cached server that's registered with the specified key pair.
-    ///
-    private func cachedServer(registeredWith keyPair: KeyPair) throws -> NetworkProtectionServer {
-        do {
-            guard let server = try serverListStore.storedNetworkProtectionServerList().first(where: {
-                $0.isRegistered(with: keyPair.publicKey)
-            }) else {
-                errorEvents?.fire(NetworkProtectionError.noServerListFound)
-                throw NetworkProtectionError.noServerListFound
-            }
-
-            return server
-        } catch let error as NetworkProtectionError {
-            errorEvents?.fire(error)
+            try handleAccessRevoked(error)
             throw error
-        } catch {
-            errorEvents?.fire(NetworkProtectionError.unhandledError(function: #function, line: #line, error: error))
-            throw NetworkProtectionError.unhandledError(function: #function, line: #line, error: error)
         }
     }
 
@@ -253,6 +266,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
                              server: NetworkProtectionServer,
                              includedRoutes: [IPAddressRange],
                              excludedRoutes: [IPAddressRange],
+                             dnsSettings: NetworkProtectionDNSSettings,
                              isKillSwitchEnabled: Bool) throws -> TunnelConfiguration {
 
         guard let allowedIPs = server.allowedIPs else {
@@ -273,13 +287,24 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
             throw NetworkProtectionError.couldNotGetInterfaceAddressRange
         }
 
+        let dns: [DNSServer]
+        switch dnsSettings {
+        case .default:
+            dns = [DNSServer(address: server.serverInfo.internalIP)]
+        case .custom(let servers):
+            dns = servers
+                .compactMap { IPv4Address($0) }
+                .map { DNSServer(address: $0) }
+        }
+
         let interface = interfaceConfiguration(privateKey: interfacePrivateKey,
                                                addressRange: interfaceAddressRange,
                                                includedRoutes: includedRoutes,
                                                excludedRoutes: excludedRoutes,
+                                               dns: dns,
                                                isKillSwitchEnabled: isKillSwitchEnabled)
 
-        return TunnelConfiguration(name: "Network Protection", interface: interface, peers: [peerConfiguration])
+        return TunnelConfiguration(name: "DuckDuckGo VPN", interface: interface, peers: [peerConfiguration])
     }
 
     func peerConfiguration(serverPublicKey: PublicKey, serverEndpoint: Endpoint) -> PeerConfiguration {
@@ -295,11 +320,8 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
                                 addressRange: IPAddressRange,
                                 includedRoutes: [IPAddressRange],
                                 excludedRoutes: [IPAddressRange],
+                                dns: [DNSServer],
                                 isKillSwitchEnabled: Bool) -> InterfaceConfiguration {
-        // TO BE moved out to config
-        let dns = [
-            DNSServer(from: "10.11.12.1")!
-        ]
         var includedRoutes = includedRoutes
         // Tunnel doesn‘t work with ‘enforceRoutes‘ option when DNS IP/addressRange is in includedRoutes
         if !isKillSwitchEnabled {
@@ -310,14 +332,27 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
                                       addresses: [addressRange],
                                       includedRoutes: includedRoutes,
                                       excludedRoutes: excludedRoutes,
-                                      listenPort: 51821,
                                       dns: dns)
     }
 
     private func handle(clientError: NetworkProtectionClientError) {
+#if os(macOS)
         if case .invalidAuthToken = clientError {
             try? tokenStore.deleteToken()
         }
+#endif
         errorEvents?.fire(clientError.networkProtectionError)
+    }
+
+    private func handleAccessRevoked(_ error: NetworkProtectionClientError) throws {
+        switch error {
+        case .accessDenied, .invalidAuthToken:
+            if isSubscriptionEnabled {
+                errorEvents?.fire(.vpnAccessRevoked)
+                throw NetworkProtectionError.vpnAccessRevoked
+            }
+        default:
+            break
+        }
     }
 }

@@ -19,15 +19,13 @@
 import Foundation
 import Common
 
-// swiftlint:disable file_length type_body_length
-
 /// The models used by the secure vault.
-/// 
+///
 /// Future models include:
 ///  * Generated Password - a password generated for a site, but not used yet
 ///  * Duck Address - a duck address used on a partcular site
 public struct SecureVaultModels {
-    
+
     /// A username and password was saved for a given site.  Password is stored seperately so that
     ///  it can be queried independently.
     public struct WebsiteCredentials {
@@ -52,7 +50,8 @@ public struct SecureVaultModels {
         public var notes: String?
         public let created: Date
         public let lastUpdated: Date
-        
+        public var lastUsed: Date?
+
         public enum CommonTitlePatterns: String, CaseIterable {
             /*
              Matches the following title patterns
@@ -66,7 +65,7 @@ public struct SecureVaultModels {
             case hostFromTitle = #"^(?:https?:\/\/?)?(?:www\.)?([^\s\/\?]+?\.[^\s\/\?]+)(?=\s*\(|\s*\/|\s*\?|$)"#
         }
 
-        public init(title: String? = nil, username: String?, domain: String?, signature: String? = nil, notes: String? = nil) {
+        public init(title: String? = nil, username: String?, domain: String?, signature: String? = nil, notes: String? = nil, lastUsed: Date? = nil) {
             self.id = nil
             self.title = title
             self.username = username
@@ -75,6 +74,7 @@ public struct SecureVaultModels {
             self.notes = notes
             self.created = Date()
             self.lastUpdated = self.created
+            self.lastUsed = lastUsed
         }
 
         public init(id: String,
@@ -84,7 +84,8 @@ public struct SecureVaultModels {
                     signature: String? = nil,
                     notes: String? = nil,
                     created: Date,
-                    lastUpdated: Date) {
+                    lastUpdated: Date,
+                    lastUsed: Date? = nil) {
             self.id = id
             self.title = title
             self.username = username
@@ -93,6 +94,7 @@ public struct SecureVaultModels {
             self.notes = notes
             self.created = created
             self.lastUpdated = lastUpdated
+            self.lastUsed = lastUsed
         }
 
         private var tld: String {
@@ -120,7 +122,7 @@ public struct SecureVaultModels {
             }
             return hash
         }
-        
+
         public func name(tld: TLD, autofillDomainNameUrlMatcher: AutofillDomainNameUrlMatcher) -> String {
             if let title = self.title, !title.isEmpty {
                 return title
@@ -128,11 +130,11 @@ public struct SecureVaultModels {
                 return autofillDomainNameUrlMatcher.normalizeUrlForWeb(domain ?? "")
             }
         }
-        
+
         public func firstTLDLetter(tld: TLD, autofillDomainNameUrlSort: AutofillDomainNameUrlSort) -> String? {
             return autofillDomainNameUrlSort.firstCharacterForGrouping(self, tld: tld)?.uppercased()
         }
-        
+
         public func patternMatchedTitle() -> String {
             guard let title = title, !title.isEmpty else {
                 return ""
@@ -155,9 +157,21 @@ public struct SecureVaultModels {
                     }
                 }
             }
-            
+
             // If no pattern matched, return the original title
             return title
+        }
+
+    }
+
+    public struct NeverPromptWebsites {
+        public var id: Int64?
+        public var domain: String
+
+        public init(id: Int64? = nil,
+                    domain: String) {
+            self.id = id
+            self.domain = domain
         }
 
     }
@@ -529,9 +543,9 @@ extension SecureVaultModels.CreditCard: SecureVaultAutofillEquatable {
 // MARK: - WebsiteAccount Array extensions
 extension Array where Element == SecureVaultModels.WebsiteAccount {
 
-    public func sortedForDomain(_ targetDomain: String, tld: TLD, removeDuplicates: Bool = false) -> [SecureVaultModels.WebsiteAccount] {
+    public func sortedForDomain(_ targetDomain: String, tld: TLD, removeDuplicates: Bool = false, urlMatcher: AutofillDomainNameUrlMatcher = AutofillDomainNameUrlMatcher()) -> [SecureVaultModels.WebsiteAccount] {
 
-        guard let targetTLD = extractTLD(domain: targetDomain, tld: tld) else {
+        guard let targetTLD = extractTLD(domain: targetDomain, tld: tld, urlMatcher: urlMatcher) else {
             return []
         }
 
@@ -555,13 +569,14 @@ extension Array where Element == SecureVaultModels.WebsiteAccount {
         return (removeDuplicates ? result.removeDuplicates() : result).filter { $0.domain?.isEmpty == false }
     }
 
-    private func extractTLD(domain: String, tld: TLD) -> String? {
-        var urlComponents = URLComponents()
-        urlComponents.host = domain
-        return urlComponents.eTLDplus1(tld: tld)
+    private func extractTLD(domain: String, tld: TLD, urlMatcher: AutofillDomainNameUrlMatcher) -> String? {
+        guard var urlComponents = urlMatcher.normalizeSchemeForAutofill(domain) else { return nil }
+        guard urlComponents.host != .localhost else { return domain }
+        return urlComponents.eTLDplus1WithPort(tld: tld)
+
     }
 
-    // Last Updated > Alphabetical Domain > Alphabetical Username > Empty Usernames
+    // Last Used > Last Updated > Alphabetical Domain > Alphabetical Username > Empty Usernames
     private func compareAccount(_ account1: SecureVaultModels.WebsiteAccount, _ account2: SecureVaultModels.WebsiteAccount) -> Bool {
         let username1 = account1.username ?? ""
         let username2 = account2.username ?? ""
@@ -574,13 +589,40 @@ extension Array where Element == SecureVaultModels.WebsiteAccount {
             return false
         }
 
+        if let lastUsedComparisonResult = compareByLastUsed(account1: account1, account2: account2) {
+            return lastUsedComparisonResult
+        }
+
         if account1.lastUpdated.withoutTime != account2.lastUpdated.withoutTime {
             return account1.lastUpdated.withoutTime > account2.lastUpdated.withoutTime
         }
 
-        let domain1 = account1.domain ?? ""
-        let domain2 = account2.domain ?? ""
+        if let domainComparisonResult = compareByDomain(domain1: account1.domain ?? "", domain2: account2.domain ?? "") {
+            return domainComparisonResult
+        }
 
+        if !username1.isEmpty && !username2.isEmpty {
+            return username1 < username2
+        }
+
+        return false
+    }
+
+    private func compareByLastUsed(account1: SecureVaultModels.WebsiteAccount, account2: SecureVaultModels.WebsiteAccount) -> Bool? {
+        if account1.lastUsed != nil && account2.lastUsed == nil {
+            return true
+        } else if account1.lastUsed == nil && account2.lastUsed != nil {
+            return false
+        } else if let lastUsed1 = account1.lastUsed, let lastUsed2 = account2.lastUsed {
+            if lastUsed1 != lastUsed2 {
+                return lastUsed1 > lastUsed2
+            }
+        }
+
+        return nil
+    }
+
+    private func compareByDomain(domain1: String, domain2: String) -> Bool? {
         if !domain1.isEmpty && domain2.isEmpty {
             return true
         }
@@ -593,11 +635,7 @@ extension Array where Element == SecureVaultModels.WebsiteAccount {
             return domain1 < domain2
         }
 
-        if !username1.isEmpty && !username2.isEmpty {
-            return username1 < username2
-        }
-
-        return false
+        return nil
     }
 
     // Receives a sorted Array, and removes duplicate based signatures
@@ -620,5 +658,3 @@ private extension Date {
         return calendar.date(from: dateComponents) ?? self
     }
 }
-
-// swiftlint:enable file_length type_body_length

@@ -1,6 +1,5 @@
 //
 //  PrivacyConfiguration.swift
-//  DuckDuckGo
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -18,6 +17,20 @@
 //
 
 import Foundation
+
+public enum PrivacyConfigurationFeatureState: Equatable {
+    case enabled
+    case disabled(PrivacyConfigurationFeatureDisabledReason)
+}
+
+public enum PrivacyConfigurationFeatureDisabledReason: Equatable {
+    case featureMissing
+    case disabledInConfig
+    case appVersionNotSupported
+    case tooOldInstallation
+    case limitedToInternalUsers
+    case stillInRollout
+}
 
 public protocol PrivacyConfiguration {
 
@@ -38,8 +51,10 @@ public protocol PrivacyConfiguration {
     var trackerAllowlist: PrivacyConfigurationData.TrackerAllowlist { get }
 
     func isEnabled(featureKey: PrivacyFeature, versionProvider: AppVersionProvider) -> Bool
+    func stateFor(featureKey: PrivacyFeature, versionProvider: AppVersionProvider) -> PrivacyConfigurationFeatureState
 
     func isSubfeatureEnabled(_ subfeature: any PrivacySubfeature, versionProvider: AppVersionProvider, randomizer: (Range<Double>) -> Double) -> Bool
+    func stateFor(_ subfeature: any PrivacySubfeature, versionProvider: AppVersionProvider, randomizer: (Range<Double>) -> Double) -> PrivacyConfigurationFeatureState
 
     /// Domains for which given PrivacyFeature is disabled.
     ///
@@ -91,7 +106,15 @@ public extension PrivacyConfiguration {
         return isEnabled(featureKey: featureKey, versionProvider: AppVersionProvider())
     }
 
+    func stateFor(featureKey: PrivacyFeature) -> PrivacyConfigurationFeatureState {
+        return stateFor(featureKey: featureKey, versionProvider: AppVersionProvider())
+    }
+
     func isSubfeatureEnabled(_ subfeature: any PrivacySubfeature, randomizer: (Range<Double>) -> Double = Double.random(in:)) -> Bool {
         return isSubfeatureEnabled(subfeature, versionProvider: AppVersionProvider(), randomizer: randomizer)
+    }
+
+    func stateFor(_ subfeature: any PrivacySubfeature, randomizer: (Range<Double>) -> Double = Double.random(in:)) -> PrivacyConfigurationFeatureState {
+        return stateFor(subfeature, versionProvider: AppVersionProvider(), randomizer: randomizer)
     }
 }

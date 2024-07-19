@@ -1,6 +1,5 @@
 //
 //  KeyValueStoring.swift
-//  DuckDuckGo
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -21,9 +20,11 @@ import Foundation
 
 /// Key-value store compatible with base UserDefaults API
 public protocol KeyValueStoring {
-    
+
     func object(forKey defaultName: String) -> Any?
     func set(_ value: Any?, forKey defaultName: String)
     func removeObject(forKey defaultName: String)
 
 }
+
+extension UserDefaults: KeyValueStoring { }

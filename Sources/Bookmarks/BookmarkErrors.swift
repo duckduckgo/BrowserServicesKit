@@ -1,6 +1,6 @@
 //
 //  BookmarkErrors.swift
-//  
+//
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
@@ -23,30 +23,29 @@ public enum BookmarksCoreDataError: Error {
 }
 
 public enum BookmarksModelError: Error, Equatable {
-    
+
     public enum ObjectType: String {
         case favorite
         case bookmark
     }
-    
+
     public enum ModelType: String {
         case favorites
         case bookmarks
         case menu
         case edit
     }
-    
+
     case fetchingRootItemFailed(ModelType)
     case saveFailed(ModelType)
     case indexOutOfRange(ModelType)
-    
+
     case missingParent(ObjectType)
-    
+
     case bookmarkFolderExpected
     case bookmarksListMissingFolder
     case bookmarksListIndexNotMatchingBookmark
     case favoritesListIndexNotMatchingBookmark
-    case orphanedBookmarksPresent
-    
+
     case editorNewParentMissing
 }

@@ -35,23 +35,9 @@ extension WKError {
 
 }
 
-private protocol WKErrorProtocol {
-    static var _WebKitErrorDomain: String { get }
-}
+extension WKError {
 
-extension WKError: WKErrorProtocol {
-
-    // suppress WebKit.WebKitErrorDomain deprecation warning
-    @available(macOS, introduced: 10.3, deprecated: 10.14)
-    fileprivate static var _WebKitErrorDomain: String {
-#if os(macOS)
-        assert(WebKit.WebKitErrorDomain == "WebKitErrorDomain")
-        return WebKit.WebKitErrorDomain
-#else
-        return "WebKitErrorDomain"
-#endif
-    }
-    static var WebKitErrorDomain: String { (self as WKErrorProtocol.Type)._WebKitErrorDomain }
+    static let WebKitErrorDomain = "WebKitErrorDomain"
 
 }
 

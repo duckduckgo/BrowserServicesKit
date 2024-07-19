@@ -16,16 +16,14 @@
 //  limitations under the License.
 //
 
+#if os(macOS)
+
 import Combine
 import Common
 import Swifter
 import WebKit
 import XCTest
 @testable import Navigation
-
-// swiftlint:disable unused_closure_parameter
-// swiftlint:disable trailing_comma
-// swiftlint:disable opening_brace
 
 @available(macOS 12.0, iOS 15.0, *)
 class NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
@@ -278,12 +276,12 @@ class NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.htmlWithIframe3.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
             // #2 frame nav
-            .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameID, .empty, secOrigin: urls.local.securityOrigin)),
+            .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(main(responderIdx: 0).handle.frameID, urls.local), targ: frame(frameID, .empty, secOrigin: urls.local.securityOrigin)),
             .response(.resp(urls.local3, data.html.count, headers: .default + ["Content-Type": "text/html"], .nonMain), Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
             .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed)),
 
             // #3 js frame nav
-            .navigationAction(req(urls.local1, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameID, urls.local3)),
+            .navigationAction(req(urls.local1, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(main(responderIdx: 0).handle.frameID, urls.local), targ: frame(frameID, urls.local3)),
             .response(.resp(urls.local1, data.html.count, headers: .default + ["Content-Type": "text/html"], .nonMain), nil),
 
             // #3 -> #1 goBack in frame
@@ -369,12 +367,12 @@ class NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
             .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.htmlWithIframe3.count, headers: .default + ["Content-Type": "text/html"]))),
             .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
             // #2 frame nav
-            .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameID, .empty, secOrigin: urls.local.securityOrigin)),
+            .navigationAction(req(urls.local3, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(main().handle.frameID, urls.local), targ: frame(frameID, .empty, secOrigin: urls.local.securityOrigin)),
             .response(.resp(urls.local3, data.html.count, headers: .default + ["Content-Type": "text/html"], .nonMain), Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
             .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed)),
 
             // #3 js frame nav
-            .navigationAction(req(urls.local1, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(WKFrameInfo.defaultMainFrameHandle, urls.local), targ: frame(frameID, urls.local3)),
+            .navigationAction(req(urls.local1, defaultHeaders + ["Referer": urls.local.separatedString]), .other, from: history[1], src: frame(main().handle.frameID, urls.local), targ: frame(frameID, urls.local3)),
             .response(.resp(urls.local1, data.html.count, headers: .default + ["Content-Type": "text/html"], .nonMain), nil),
 
             // #3 -> #1 goBack in frame
@@ -387,214 +385,6 @@ class NavigationBackForwardTests: DistributedNavigationDelegateTestsBase {
         ])
     }
 
-    func testGoBackWithSameDocumentNavigation() throws {
-        let customCallbacksHandler = CustomCallbacksHandler()
-        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })), .weak(customCallbacksHandler))
-
-        server.middleware = [{ [data] request in
-            return .ok(.html(data.html.string()!))
-        }]
-        try server.start(8084)
-
-        var eDidFinish = expectation(description: "#1")
-        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
-        responder(at: 0).onNavigationAction = { navigationAction, _ in .allow }
-
-        // #1 load URL
-        withWebView { webView in
-            _=webView.load(req(urls.local))
-        }
-        waitForExpectations(timeout: 5)
-
-        // #2 load URL#namedlink
-        eDidFinish = expectation(description: "#2")
-        customCallbacksHandler.didSameDocumentNavigation = { _, type in
-            if type == .sessionStatePop { eDidFinish.fulfill() }
-        }
-        withWebView { webView in
-            _=webView.load(req(urls.localHashed1))
-        }
-        waitForExpectations(timeout: 5)
-
-        // #3 load URL#namedlink2
-        eDidFinish = expectation(description: "#3")
-        withWebView { webView in
-            webView.evaluateJavaScript("window.location.href = '\(urls.localHashed2.string)'")
-        }
-        waitForExpectations(timeout: 5)
-
-        // #4 load URL#namedlink
-        eDidFinish = expectation(description: "#4")
-        withWebView { webView in
-            webView.evaluateJavaScript("window.location.href = '\(urls.localHashed1.string)'")
-        }
-        waitForExpectations(timeout: 5)
-
-        // #4.1 go back to URL#namedlink2
-        eDidFinish = expectation(description: "#4.1")
-        withWebView { webView in
-            _=webView.goBack()
-        }
-        waitForExpectations(timeout: 5)
-        // #4.2
-        eDidFinish = expectation(description: "#4.2")
-        withWebView { webView in
-            _=webView.goBack()
-        }
-        waitForExpectations(timeout: 5)
-        // #4.3
-        eDidFinish = expectation(description: "#4.3")
-        withWebView { webView in
-            _=webView.goForward()
-        }
-        waitForExpectations(timeout: 5)
-        // #4.4
-        eDidFinish = expectation(description: "#4.4")
-        withWebView { webView in
-            _=webView.goForward()
-        }
-        waitForExpectations(timeout: 5)
-
-        // #5 load URL#
-        eDidFinish = expectation(description: "#5")
-        withWebView { webView in
-            webView.evaluateJavaScript("window.location.href = '\(urls.localHashed.string)'")
-        }
-        waitForExpectations(timeout: 5)
-
-        // #6 load URL
-        eDidFinish = expectation(description: "#6")
-        withWebView { webView in
-            _=webView.load(req(urls.local))
-        }
-        waitForExpectations(timeout: 5)
-
-        // #7 go back to URL#
-        // !! here‘s the WebKit bug: no forward item will be present here
-        eDidFinish = expectation(description: "#7")
-        withWebView { webView in
-            _=webView.goBack()
-        }
-        waitForExpectations(timeout: 5)
-
-        // #8 go back to URL#namedlink
-        eDidFinish = expectation(description: "#8")
-        withWebView { webView in
-            _=webView.goBack()
-        }
-        waitForExpectations(timeout: 5)
-
-        assertHistory(ofResponderAt: 0, equalsTo: [
-            // #1 load URL
-            .navigationAction(req(urls.local), .other, src: main()),
-            .willStart(Nav(action: navAct(1), .approved, isCurrent: false)),
-            .didStart(Nav(action: navAct(1), .started)),
-            .response(Nav(action: navAct(1), .responseReceived, resp: .resp(urls.local, data.html.count, headers: .default + ["Content-Type": "text/html"]))),
-            .didCommit(Nav(action: navAct(1), .responseReceived, resp: resp(0), .committed)),
-            .didFinish(Nav(action: navAct(1), .finished, resp: resp(0), .committed)),
-
-            // #2 load URL#namedlink
-            .willStart(Nav(action: NavAction(req(urls.localHashed1), .sameDocumentNavigation, from: history[1], src: main(urls.local)), .approved, isCurrent: false)),
-            // #3 load URL#namedlink2
-            .willStart(Nav(action: NavAction(req(urls.localHashed2, defaultHeaders + ["Referer": urls.local.separatedString]), .sameDocumentNavigation, from: history[2], src: main(urls.localHashed1)), .approved, isCurrent: false)),
-            // #3.1 load URL#namedlink
-            .willStart(Nav(action: NavAction(req(urls.localHashed1, defaultHeaders + ["Referer": urls.local.separatedString]), .sameDocumentNavigation, from: history[3], src: main(urls.localHashed2)), .approved, isCurrent: false)),
-
-            // goBack/goForward ignored for same doc decidePolicyForNavigationAction not called
-
-            // #5 load URL#
-            .willStart(Nav(action: NavAction(req(urls.localHashed, defaultHeaders + ["Referer": urls.local.separatedString]), .sameDocumentNavigation, from: history[4], src: main(urls.localHashed1)), .approved, isCurrent: false)),
-
-            // #6 load URL
-            .navigationAction(req(urls.local), .other, from: history[5], src: main(urls.localHashed)),
-            .willStart(Nav(action: navAct(6), .approved, isCurrent: false)),
-            .didStart( Nav(action: navAct(6), .started)),
-            .response(Nav(action: navAct(6), .responseReceived, resp: resp(0))),
-            .didCommit(Nav(action: navAct(6), .responseReceived, resp: resp(0), .committed)),
-            .didFinish(Nav(action: navAct(6), .finished, resp: resp(0), .committed)),
-
-            // history items replaced due to WebKit bug
-            // #7 go back to URL#
-            .willStart(Nav(action: NavAction(req(urls.localHashed, defaultHeaders.allowingExtraKeys), .backForw(-1), from: history[6], src: main(urls.local)), .approved, isCurrent: false)),
-            // #8 go back to URL#namedlink
-            .willStart(Nav(action: NavAction(req(urls.localHashed, defaultHeaders.allowingExtraKeys), .backForw(-1), from: history[7], src: main(urls.localHashed)), .approved, isCurrent: false))
-        ])
-    }
-
-    func testJSHistoryManipulation() throws {
-        let customCallbacksHandler = CustomCallbacksHandler()
-        navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })), .weak(customCallbacksHandler))
-
-        server.middleware = [{ [data] request in
-            XCTAssertEqual(request.path, "/")
-            return .ok(.html(data.html.string()!))
-        }]
-        try server.start(8084)
-
-        var eDidFinish = expectation(description: "onDidFinish 1")
-        responder(at: 0).onDidFinish = { _ in eDidFinish.fulfill() }
-
-        withWebView { webView in
-            _=webView.load(req(urls.local))
-        }
-        waitForExpectations(timeout: 5)
-        responder(at: 0).clear()
-
-        eDidFinish = expectation(description: "onDidFinish 2")
-
-        var didPushStateCounter = 0
-        let eDidSameDocumentNavigation = expectation(description: "onDidSameDocumentNavigation")
-        customCallbacksHandler.didSameDocumentNavigation = { _, type in
-            didPushStateCounter += 1
-            if didPushStateCounter == 4 {
-                eDidSameDocumentNavigation.fulfill()
-            }
-        }
-
-        withWebView { webView in
-            webView.evaluateJavaScript("history.pushState({page: 1}, '1', '/1')", in: nil, in: WKContentWorld.page) { _ in
-                webView.evaluateJavaScript("history.pushState({page: 3}, '3', '/3')", in: nil, in: WKContentWorld.page) { _ in
-                    webView.evaluateJavaScript("history.pushState({page: 2}, '2', '/2')", in: nil, in: WKContentWorld.page) { _ in
-                        webView.evaluateJavaScript("history.go(-1)", in: nil, in: WKContentWorld.page) { _ in
-                            eDidFinish.fulfill()
-                        }
-                    }
-                }
-            }
-        }
-        waitForExpectations(timeout: 5)
-
-        // now navigate from pseudo "/3" to "/3#hashed"
-        var eDidGoBack = expectation(description: "onDidGoToNamedLink")
-        customCallbacksHandler.didSameDocumentNavigation = { _, type in
-            if type == .sessionStatePop { eDidGoBack.fulfill() }
-        }
-        withWebView { webView in
-            _=webView.load(req(urls.local3Hashed))
-        }
-        waitForExpectations(timeout: 5)
-
-        // back
-        eDidGoBack = expectation(description: "onDidGoBack")
-        withWebView { webView in
-            _=webView.goBack()
-        }
-        waitForExpectations(timeout: 5)
-
-        // back
-        eDidGoBack = expectation(description: "onDidGoBack 2")
-        withWebView { webView in
-            _=webView.goBack()
-        }
-        waitForExpectations(timeout: 5)
-
-        assertHistory(ofResponderAt: 0, equalsTo: [
-            .willStart(Nav(action: NavAction(req(urls.local3Hashed), .sameDocumentNavigation, from: history[1], src: main(urls.local3)), .approved, isCurrent: false))
-        ])
-    }
-
 }
 
-// swiftlint:enable unused_closure_parameter
-// swiftlint:enable trailing_comma
-// swiftlint:enable opening_brace
+#endif

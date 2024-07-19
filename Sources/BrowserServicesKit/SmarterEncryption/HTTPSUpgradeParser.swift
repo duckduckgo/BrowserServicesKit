@@ -1,6 +1,5 @@
 //
 //  HTTPSUpgradeParser.swift
-//  DuckDuckGo
 //
 //  Copyright © 2018 DuckDuckGo. All rights reserved.
 //
@@ -21,7 +20,7 @@ import Foundation
 import Common
 
 public final class HTTPSUpgradeParser {
-    
+
     public static func convertExcludedDomainsData(_ data: Data) throws -> [String] {
         do {
             let decoder = JSONDecoder()
@@ -32,7 +31,7 @@ public final class HTTPSUpgradeParser {
             throw JsonError.typeMismatch
         }
     }
-    
+
     public static func convertBloomFilterSpecification(fromJSONData data: Data) throws -> HTTPSBloomFilterSpecification {
         do {
             let decoder = JSONDecoder()

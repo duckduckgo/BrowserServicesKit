@@ -7,14 +7,18 @@ import NetworkExtension
 import WireGuard
 import Common
 
-// swiftlint:disable file_length
+public enum WireGuardAdapterErrorInvalidStateReason: String {
+    case alreadyStarted
+    case alreadyStopped
+    case updatedTunnelWhileStopped
+}
 
-public enum WireGuardAdapterError: Error {
+public enum WireGuardAdapterError: CustomNSError {
     /// Failure to locate tunnel file descriptor.
     case cannotLocateTunnelFileDescriptor
 
-    /// Failure to perform an operation in such state.
-    case invalidState
+    /// Failure to perform an operation in such state. Includes a reason why the error was returned.
+    case invalidState(WireGuardAdapterErrorInvalidStateReason)
 
     /// Failure to resolve endpoints.
     case dnsResolution([DNSResolutionError])
@@ -24,6 +28,35 @@ public enum WireGuardAdapterError: Error {
 
     /// Failure to start WireGuard backend.
     case startWireGuardBackend(Int32)
+
+    public var errorCode: Int {
+        switch self {
+        case .cannotLocateTunnelFileDescriptor: return 100
+        case .invalidState: return 101
+        case .dnsResolution: return 102
+        case .setNetworkSettings: return 103
+        case .startWireGuardBackend: return 104
+        }
+    }
+
+    public var errorUserInfo: [String: Any] {
+        switch self {
+        case .cannotLocateTunnelFileDescriptor,
+                .invalidState:
+            return [:]
+        case .dnsResolution(let errors):
+            guard let firstError = errors.first else {
+                return [:]
+            }
+
+            return [NSUnderlyingErrorKey: firstError as NSError]
+        case .setNetworkSettings(let error):
+            return [NSUnderlyingErrorKey: error as NSError]
+        case .startWireGuardBackend(let code):
+            let error = NSError(domain: "startWireGuardBackend", code: Int(code))
+            return [NSUnderlyingErrorKey: error as NSError]
+        }
+    }
 }
 
 /// Enum representing internal state of the `WireGuardAdapter`
@@ -38,7 +71,6 @@ private enum State {
     case temporaryShutdown(_ settingsGenerator: PacketTunnelSettingsGenerator)
 }
 
-// swiftlint:disable:next type_body_length
 public class WireGuardAdapter {
     public typealias LogHandler = (WireGuardLogLevel, String) -> Void
 
@@ -47,12 +79,15 @@ public class WireGuardAdapter {
     private enum ConfigurationFields: String {
         case rxBytes = "rx_bytes"
         case txBytes = "tx_bytes"
+        case mostRecentHandshake = "last_handshake_time_sec"
 
         var configLinePrefix: String {
             switch self {
             case .rxBytes:
                 return "\(rawValue)="
             case .txBytes:
+                return "\(rawValue)="
+            case .mostRecentHandshake:
                 return "\(rawValue)="
             }
         }
@@ -213,6 +248,31 @@ public class WireGuardAdapter {
         }
     }
 
+    /// Retrieves the number of seconds of the most recent handshake for the previously added peer entry, expressed relative to the Unix epoch.
+    ///
+    /// - Throws: ConfigReadingError
+    /// - Returns: Interval between the most recent handshake and the Unix epoch.
+    ///
+    public func getMostRecentHandshake() async throws -> TimeInterval {
+        try await withCheckedThrowingContinuation { continuation in
+            getRuntimeConfiguration { configuration in
+                guard let configuration = configuration else {
+                    continuation.resume(throwing: GetBytesTransmittedError.couldNotObtainAdapterConfiguration)
+                    return
+                }
+
+                var numberOfSeconds = UInt64(0)
+                let lines = configuration.components(separatedBy: .newlines)
+                for line in lines where line.hasPrefix(ConfigurationFields.mostRecentHandshake.configLinePrefix) {
+                    numberOfSeconds = UInt64(line.dropFirst(ConfigurationFields.mostRecentHandshake.configLinePrefix.count)) ?? 0
+                    break
+                }
+
+                continuation.resume(returning: TimeInterval(numberOfSeconds))
+            }
+        }
+    }
+
     /// Returns a runtime configuration from WireGuard.
     /// - Parameter completionHandler: completion handler.
     public func getRuntimeConfiguration(completionHandler: @escaping (String?) -> Void) {
@@ -238,7 +298,7 @@ public class WireGuardAdapter {
     public func start(tunnelConfiguration: TunnelConfiguration, completionHandler: @escaping (WireGuardAdapterError?) -> Void) {
         workQueue.async {
             guard case .stopped = self.state else {
-                completionHandler(.invalidState)
+                completionHandler(.invalidState(.alreadyStarted))
                 return
             }
 
@@ -282,7 +342,7 @@ public class WireGuardAdapter {
                 break
 
             case .stopped:
-                completionHandler(.invalidState)
+                completionHandler(.invalidState(.alreadyStopped))
                 return
             }
 
@@ -298,14 +358,14 @@ public class WireGuardAdapter {
     /// Update runtime configuration.
     /// - Parameters:
     ///   - tunnelConfiguration: tunnel configuration.
-    ///   - reassert: wether the connection should reassert or not.
+    ///   - reassert: whether the connection should reassert or not.
     ///   - completionHandler: completion handler.
     public func update(tunnelConfiguration: TunnelConfiguration,
                        reassert: Bool = true,
                        completionHandler: @escaping (WireGuardAdapterError?) -> Void) {
         workQueue.async {
             if case .stopped = self.state {
-                completionHandler(.invalidState)
+                completionHandler(.invalidState(.updatedTunnelWhileStopped))
                 return
             }
 
@@ -554,5 +614,3 @@ private extension Network.NWPath.Status {
         }
     }
 }
-
-// swiftlint:enable file_length

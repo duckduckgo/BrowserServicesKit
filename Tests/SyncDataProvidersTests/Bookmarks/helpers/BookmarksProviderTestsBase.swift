@@ -1,6 +1,5 @@
 //
 //  BookmarksProviderTestsBase.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -20,6 +19,7 @@
 import XCTest
 import Bookmarks
 import Common
+import Foundation
 import DDGSync
 import Persistence
 @testable import SyncDataProviders
@@ -32,6 +32,8 @@ internal class BookmarksProviderTestsBase: XCTestCase {
     var crypter = CryptingMock()
     var provider: BookmarksProvider!
 
+    var expectedSyncResult: BookmarksProvider.SyncResult?
+
     func setUpBookmarksDatabase() {
         bookmarksDatabaseLocation = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
 
@@ -40,7 +42,7 @@ internal class BookmarksProviderTestsBase: XCTestCase {
             XCTFail("Failed to load model")
             return
         }
-        bookmarksDatabase = CoreDataDatabase(name: className, containerLocation: bookmarksDatabaseLocation, model: model)
+        bookmarksDatabase = CoreDataDatabase(name: type(of: self).description(), containerLocation: bookmarksDatabaseLocation, model: model)
         bookmarksDatabase.loadStore()
     }
 
@@ -52,7 +54,7 @@ internal class BookmarksProviderTestsBase: XCTestCase {
             XCTFail("Failed to load model")
             return
         }
-        metadataDatabase = CoreDataDatabase(name: className, containerLocation: metadataDatabaseLocation, model: model)
+        metadataDatabase = CoreDataDatabase(name: type(of: self).description(), containerLocation: metadataDatabaseLocation, model: model)
         metadataDatabase.loadStore()
     }
 
@@ -62,7 +64,12 @@ internal class BookmarksProviderTestsBase: XCTestCase {
         setUpBookmarksDatabase()
         setUpSyncMetadataDatabase()
 
-        provider = BookmarksProvider(database: bookmarksDatabase, metadataStore: LocalSyncMetadataStore(database: metadataDatabase), syncDidUpdateData: {})
+        provider = BookmarksProvider(
+            database: bookmarksDatabase,
+            metadataStore: LocalSyncMetadataStore(database: metadataDatabase),
+            syncDidUpdateData: {},
+            syncDidFinish: { _ in }
+        )
     }
 
     override func tearDown() {

@@ -16,11 +16,11 @@
 //  limitations under the License.
 //
 
+import Combine
 import Common
 import Foundation
 import WebKit
 
-// swiftlint:disable line_length
 @MainActor
 public final class Navigation {
 
@@ -32,7 +32,7 @@ public final class Navigation {
     /// Is the navigation currently loaded in the WebView
     private(set) public var isCurrent: Bool
 
-    public fileprivate(set) var state: NavigationState
+    @Published public fileprivate(set) var state: NavigationState
     public private(set) var isCommitted: Bool = false
     public private(set) var didReceiveAuthenticationChallenge: Bool = false
 
@@ -81,12 +81,17 @@ public final class Navigation {
 
     /// is Finished or Failed
     public var isCompleted: Bool {
-        return state.isFinished || state.isFailed
+        return state.isCompleted
+    }
+
+    internal var hasReceivedNavigationAction: Bool {
+        navigationActions.isEmpty == false
     }
 
 }
 
 public protocol NavigationProtocol: AnyObject {
+    @MainActor
     var navigationResponders: ResponderChain { get set }
 }
 
@@ -291,6 +296,8 @@ extension Navigation {
         case .responseReceived:
             // regular flow
             self.state = .finished
+        case .navigationActionReceived where navigationAction.navigationType.isSameDocumentNavigation:
+            self.state = .finished
         case .expected, .navigationActionReceived, .approved, .finished, .failed:
             assertionFailure("unexpected state \(self.state)")
         }
@@ -380,8 +387,14 @@ extension Navigation {
 }
 
 extension Navigation: CustomDebugStringConvertible {
-    public var debugDescription: String {
-        "<\(identity) #\(navigationAction.identifier): url:\(url.absoluteString) state:\(state)\(isCommitted ? "(committed)" : "") type:\(navigationActions.last?.navigationType.debugDescription ?? "<nil>")>"
+    public nonisolated var debugDescription: String {
+        guard Thread.isMainThread else {
+            assertionFailure("Accessing Navigation from background thread")
+            return "<ExpectedNavigation ?>"
+        }
+        return MainActor.assumeIsolated {
+            "<\(identity) #\(navigationAction.identifier): url:\(url.absoluteString) state:\(state)\(isCommitted ? "(committed)" : "") type:\(navigationActions.last?.navigationType.debugDescription ?? "<nil>")\(isCurrent ? "" : " non-current")>"
+        }
     }
 }
 
@@ -390,4 +403,3 @@ extension NavigationIdentity: CustomStringConvertible {
         "WKNavigation: " + (value?.hexValue ?? "nil")
     }
 }
-// swiftlint:enable line_length

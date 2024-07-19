@@ -1,6 +1,5 @@
 //
-//  FeatureFlaggingTests.swift
-//  DuckDuckGo
+//  DefaultInternalUserDeciderTests.swift
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -18,13 +17,14 @@
 //
 
 import XCTest
+
 @testable import BrowserServicesKit
 
 class DefaultInternalUserDeciderTests: XCTestCase {
-    
+
     let correctURL = URL(string: "http://use-login.duckduckgo.com")!
     let correctStatusCode = 200
-    
+
     func testShouldMarkUserAsInternalWhenURLAndStatusCodeCorrectThenReturnsTrue() {
         let featureFlagger = DefaultInternalUserDecider()
         let result = featureFlagger.shouldMarkUserAsInternal(forUrl: correctURL, statusCode: correctStatusCode)
@@ -39,14 +39,14 @@ class DefaultInternalUserDeciderTests: XCTestCase {
 
     func testShouldMarkUserAsInternalWhenURLIsIncorrectButSubdomainIsCorrectAndStatusCodeIsCorrectThenReturnsFalse() {
         let featureFlagger = DefaultInternalUserDecider()
-        let url = URL(string: "login.fishtown.com")!
+        let url = URL(string: "http://login.fishtown.com")!
         let result = featureFlagger.shouldMarkUserAsInternal(forUrl: url, statusCode: correctStatusCode)
         XCTAssertFalse(result)
     }
 
     func testShouldMarkUserAsInternalWhenURLIsIncorrectButdomainIsCorrectAndStatusCodeIsCorrectThenReturnsFalse() {
         let featureFlagger = DefaultInternalUserDecider()
-        let url = URL(string: "sso.duckduckgo.com")!
+        let url = URL(string: "http://sso.duckduckgo.com")!
         let result = featureFlagger.shouldMarkUserAsInternal(forUrl: url, statusCode: correctStatusCode)
         XCTAssertFalse(result)
     }

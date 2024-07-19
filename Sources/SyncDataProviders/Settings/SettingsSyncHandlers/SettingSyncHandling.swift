@@ -1,6 +1,5 @@
 //
 //  SettingSyncHandling.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -54,7 +53,7 @@ protocol SettingSyncHandling: AnyObject {
      *
      * Note: If "delete" was received from Sync, `value` is `nil`.
      */
-    func setValue(_ value: String?) throws
+    func setValue(_ value: String?, shouldDetectOverride: Bool) throws
 
     /**
      * Delegate that must be notified about updating setting's value.

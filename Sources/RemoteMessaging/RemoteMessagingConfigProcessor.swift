@@ -1,6 +1,5 @@
 //
 //  RemoteMessagingConfigProcessor.swift
-//  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -20,18 +19,29 @@
 import Common
 import Foundation
 
-public struct RemoteMessagingConfigProcessor {
+/**
+ * This protocol defines API for processing RMF config file
+ * in order to find a message to be displayed.
+ */
+public protocol RemoteMessagingConfigProcessing {
+    var remoteMessagingConfigMatcher: RemoteMessagingConfigMatcher { get }
+
+    func shouldProcessConfig(_ currentConfig: RemoteMessagingConfig?) -> Bool
+
+    func process(
+        jsonRemoteMessagingConfig: RemoteMessageResponse.JsonRemoteMessagingConfig,
+        currentConfig: RemoteMessagingConfig?
+    ) -> RemoteMessagingConfigProcessor.ProcessorResult?
+}
+
+public struct RemoteMessagingConfigProcessor: RemoteMessagingConfigProcessing {
 
     public struct ProcessorResult {
         public let version: Int64
         public let message: RemoteMessageModel?
     }
 
-    let remoteMessagingConfigMatcher: RemoteMessagingConfigMatcher
-
-    public init(remoteMessagingConfigMatcher: RemoteMessagingConfigMatcher) {
-        self.remoteMessagingConfigMatcher = remoteMessagingConfigMatcher
-    }
+    public let remoteMessagingConfigMatcher: RemoteMessagingConfigMatcher
 
     public func process(jsonRemoteMessagingConfig: RemoteMessageResponse.JsonRemoteMessagingConfig,
                         currentConfig: RemoteMessagingConfig?) -> ProcessorResult? {
@@ -43,7 +53,10 @@ public struct RemoteMessagingConfigProcessor {
         let isNewVersion = newVersion != currentVersion
 
         if isNewVersion || shouldProcessConfig(currentConfig) {
-            let config = JsonToRemoteConfigModelMapper.mapJson(remoteMessagingConfig: jsonRemoteMessagingConfig)
+            let config = JsonToRemoteConfigModelMapper.mapJson(
+                remoteMessagingConfig: jsonRemoteMessagingConfig,
+                surveyActionMapper: remoteMessagingConfigMatcher.surveyActionMapper
+            )
             let message = remoteMessagingConfigMatcher.evaluate(remoteConfig: config)
             os_log("Message to present next: %s", log: .remoteMessaging, type: .debug, message.debugDescription)
 
@@ -53,7 +66,7 @@ public struct RemoteMessagingConfigProcessor {
         return nil
     }
 
-    func shouldProcessConfig(_ currentConfig: RemoteMessagingConfig?) -> Bool {
+    public func shouldProcessConfig(_ currentConfig: RemoteMessagingConfig?) -> Bool {
         guard let currentConfig = currentConfig else {
             return true
         }

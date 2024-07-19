@@ -1,6 +1,5 @@
 //
 //  SyncQueue.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -30,9 +29,9 @@ struct SyncOperationError: Error {
     let perFeatureErrors: [Feature: Error]
 
     init(featureErrors: [FeatureError]) {
-        perFeatureErrors = featureErrors.reduce(into: .init(), { partialResult, featureError in
+        perFeatureErrors = featureErrors.reduce(into: .init()) { partialResult, featureError in
             partialResult[featureError.feature] = featureError.underlyingError
-        })
+        }
     }
 }
 
@@ -53,7 +52,7 @@ struct SyncResult {
     }
 }
 
-class SyncQueue {
+final class SyncQueue {
 
     let dataProviders: [DataProviding]
     let storage: SecureStoring
@@ -70,6 +69,7 @@ class SyncQueue {
             crypter: dependencies.crypter,
             api: dependencies.api,
             endpoints: dependencies.endpoints,
+            payloadCompressor: dependencies.payloadCompressor,
             log: dependencies.log
         )
     }
@@ -80,13 +80,14 @@ class SyncQueue {
         crypter: Crypting,
         api: RemoteAPIRequestCreating,
         endpoints: Endpoints,
+        payloadCompressor: SyncPayloadCompressing,
         log: @escaping @autoclosure () -> OSLog = .disabled
     ) {
         self.dataProviders = dataProviders
         self.storage = storage
         self.crypter = crypter
         self.getLog = log
-        requestMaker = SyncRequestMaker(storage: storage, api: api, endpoints: endpoints)
+        requestMaker = SyncRequestMaker(storage: storage, api: api, endpoints: endpoints, payloadCompressor: payloadCompressor)
         syncDidFinishPublisher = syncDidFinishSubject.eraseToAnyPublisher()
         syncHTTPRequestErrorPublisher = syncHTTPRequestErrorSubject.eraseToAnyPublisher()
         isSyncInProgressPublisher = Publishers
@@ -110,7 +111,6 @@ class SyncQueue {
                 try dataProvider.prepareForFirstSync()
                 try dataProvider.registerFeature(withState: setupState)
             } catch {
-                // swiftlint:disable:next line_length
                 os_log(.debug, log: self.log, "Error when preparing %{public}s for first sync: %{public}s", dataProvider.feature.name, error.localizedDescription)
                 dataProvider.handleSyncError(error)
                 throw error
@@ -118,7 +118,22 @@ class SyncQueue {
         }
     }
 
+    var isDataSyncingFeatureFlagEnabled: Bool = true {
+        didSet {
+            if isDataSyncingFeatureFlagEnabled {
+                os_log(.debug, log: self.log, "Sync Feature has been enabled")
+            } else {
+                os_log(.debug, log: self.log, "Sync Feature has been disabled, cancelling all operations")
+                operationQueue.cancelAllOperations()
+            }
+        }
+    }
+
     func startSync() {
+        guard isDataSyncingFeatureFlagEnabled else {
+            os_log(.debug, log: self.log, "Sync Feature is temporarily disabled, not starting sync")
+            return
+        }
         let operation = makeSyncOperation()
         operationQueue.addOperation(operation)
     }

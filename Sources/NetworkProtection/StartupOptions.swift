@@ -72,6 +72,17 @@ struct StartupOptions {
             self = .set(value)
         }
 
+        var description: String {
+            switch self {
+            case .set(let value):
+                return String(describing: value)
+            case .reset:
+                return "reset"
+            case .useExisting:
+                return "useExisting"
+            }
+        }
+
         // MARK: - Equatable
 
         static func == (lhs: StartupOptions.StoredOption<T>, rhs: StartupOptions.StoredOption<T>) -> Bool {
@@ -88,20 +99,21 @@ struct StartupOptions {
         }
     }
 
-    private let log: OSLog
     let startupMethod: StartupMethod
     let simulateError: Bool
     let simulateCrash: Bool
     let simulateMemoryCrash: Bool
     let keyValidity: StoredOption<TimeInterval>
-    let selectedEnvironment: StoredOption<TunnelSettings.SelectedEnvironment>
-    let selectedServer: StoredOption<TunnelSettings.SelectedServer>
+    let selectedEnvironment: StoredOption<VPNSettings.SelectedEnvironment>
+    let selectedServer: StoredOption<VPNSettings.SelectedServer>
+    let selectedLocation: StoredOption<VPNSettings.SelectedLocation>
+    let dnsSettings: StoredOption<NetworkProtectionDNSSettings>
+#if os(macOS)
     let authToken: StoredOption<String>
+#endif
     let enableTester: StoredOption<Bool>
 
-    init(options: [String: Any], log: OSLog) {
-        self.log = log
-
+    init(options: [String: Any]) {
         let startupMethod: StartupMethod = {
             if options[NetworkProtectionOptionKey.isOnDemand] as? Bool == true {
                 return .automaticOnDemand
@@ -119,17 +131,38 @@ struct StartupOptions {
         simulateMemoryCrash = options[NetworkProtectionOptionKey.tunnelMemoryCrashSimulation] as? Bool ?? false
 
         let resetStoredOptionsIfNil = startupMethod == .manualByMainApp
+#if os(macOS)
         authToken = Self.readAuthToken(from: options, resetIfNil: resetStoredOptionsIfNil)
+#endif
         enableTester = Self.readEnableTester(from: options, resetIfNil: resetStoredOptionsIfNil)
         keyValidity = Self.readKeyValidity(from: options, resetIfNil: resetStoredOptionsIfNil)
         selectedEnvironment = Self.readSelectedEnvironment(from: options, resetIfNil: resetStoredOptionsIfNil)
         selectedServer = Self.readSelectedServer(from: options, resetIfNil: resetStoredOptionsIfNil)
+        selectedLocation = Self.readSelectedLocation(from: options, resetIfNil: resetStoredOptionsIfNil)
+        dnsSettings = Self.readDNSSettings(from: options, resetIfNil: resetStoredOptionsIfNil)
+    }
+
+    var description: String {
+        return """
+        StartupOptions(
+            startupMethod: \(self.startupMethod.debugDescription),
+            simulateError: \(self.simulateError.description),
+            simulateCrash: \(self.simulateCrash.description),
+            simulateMemoryCrash: \(self.simulateMemoryCrash.description),
+            keyValidity: \(self.keyValidity.description),
+            selectedEnvironment: \(self.selectedEnvironment.description),
+            selectedServer: \(self.selectedServer.description),
+            selectedLocation: \(self.selectedLocation.description),
+            dnsSettings: \(self.dnsSettings.description),
+            enableTester: \(self.enableTester)
+        )
+        """
     }
 
     // MARK: - Helpers for reading stored options
 
+#if os(macOS)
     private static func readAuthToken(from options: [String: Any], resetIfNil: Bool) -> StoredOption<String> {
-
         StoredOption(resetIfNil: resetIfNil) {
             guard let authToken = options[NetworkProtectionOptionKey.authToken] as? String,
                   !authToken.isEmpty else {
@@ -139,6 +172,7 @@ struct StartupOptions {
             return authToken
         }
     }
+#endif
 
     private static func readKeyValidity(from options: [String: Any], resetIfNil: Bool) -> StoredOption<TimeInterval> {
         StoredOption(resetIfNil: resetIfNil) {
@@ -152,19 +186,17 @@ struct StartupOptions {
         }
     }
 
-    private static func readSelectedEnvironment(from options: [String: Any], resetIfNil: Bool) -> StoredOption<TunnelSettings.SelectedEnvironment> {
-
+    private static func readSelectedEnvironment(from options: [String: Any], resetIfNil: Bool) -> StoredOption<VPNSettings.SelectedEnvironment> {
         StoredOption(resetIfNil: resetIfNil) {
             guard let environment = options[NetworkProtectionOptionKey.selectedEnvironment] as? String else {
                 return nil
             }
 
-            return TunnelSettings.SelectedEnvironment(rawValue: environment) ?? .default
+            return VPNSettings.SelectedEnvironment(rawValue: environment) ?? .default
         }
     }
 
-    private static func readSelectedServer(from options: [String: Any], resetIfNil: Bool) -> StoredOption<TunnelSettings.SelectedServer> {
-
+    private static func readSelectedServer(from options: [String: Any], resetIfNil: Bool) -> StoredOption<VPNSettings.SelectedServer> {
         StoredOption(resetIfNil: resetIfNil) {
             guard let serverName = options[NetworkProtectionOptionKey.selectedServer] as? String else {
                 return nil
@@ -174,8 +206,31 @@ struct StartupOptions {
         }
     }
 
-    private static func readEnableTester(from options: [String: Any], resetIfNil: Bool) -> StoredOption<Bool> {
+    private static func readSelectedLocation(from options: [String: Any], resetIfNil: Bool) -> StoredOption<VPNSettings.SelectedLocation> {
+        StoredOption(resetIfNil: resetIfNil) {
+            guard
+                let data = options[NetworkProtectionOptionKey.selectedLocation] as? Data,
+                let selectedLocation = try? JSONDecoder().decode(VPNSettings.SelectedLocation.self, from: data)
+            else {
+                return nil
+            }
 
+            return selectedLocation
+        }
+    }
+
+    private static func readDNSSettings(from options: [String: Any], resetIfNil: Bool) -> StoredOption<NetworkProtectionDNSSettings> {
+        StoredOption(resetIfNil: resetIfNil) {
+            guard let data = options[NetworkProtectionOptionKey.dnsSettings] as? Data,
+                  let dnsSettings = try? JSONDecoder().decode(NetworkProtectionDNSSettings.self, from: data) else {
+                return nil
+            }
+
+            return dnsSettings
+        }
+    }
+
+    private static func readEnableTester(from options: [String: Any], resetIfNil: Bool) -> StoredOption<Bool> {
         StoredOption(resetIfNil: resetIfNil) {
             guard let value = options[NetworkProtectionOptionKey.connectionTesterEnabled] as? Bool else {
                 return nil

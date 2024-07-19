@@ -16,6 +16,7 @@
 //  limitations under the License.
 //
 
+import Foundation
 import XCTest
 @testable import BrowserServicesKit
 import class Persistence.CoreDataDatabase
@@ -38,7 +39,7 @@ final class AppHTTPSUpgradeStoreTests: XCTestCase {
 
         location = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         bloomFilterUrl = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        database = CoreDataDatabase(name: className, containerLocation: location, model: HTTPSUpgrade.managedObjectModel)
+        database = CoreDataDatabase(name: type(of: self).description(), containerLocation: location, model: HTTPSUpgrade.managedObjectModel)
         database.loadStore { _, error in
             if let e = error {
                 XCTFail("Could not load store: \(e.localizedDescription)")

@@ -1,6 +1,5 @@
 //
 //  SyncRequestMaker.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -18,16 +17,18 @@
 //
 
 import Foundation
+import Gzip
 
 protocol SyncRequestMaking {
     func makeGetRequest(with result: SyncRequest) throws -> HTTPRequesting
-    func makePatchRequest(with result: SyncRequest, clientTimestamp: Date) throws -> HTTPRequesting
+    func makePatchRequest(with result: SyncRequest, clientTimestamp: Date, isCompressed: Bool) throws -> HTTPRequesting
 }
 
 struct SyncRequestMaker: SyncRequestMaking {
     let storage: SecureStoring
-    let api: RemoteAPIRequestCreating 
+    let api: RemoteAPIRequestCreating
     let endpoints: Endpoints
+    let payloadCompressor: SyncPayloadCompressing
     let dateFormatter = ISO8601DateFormatter()
 
     func makeGetRequest(with result: SyncRequest) throws -> HTTPRequesting {
@@ -42,7 +43,7 @@ struct SyncRequestMaker: SyncRequestMaking {
         return api.createAuthenticatedGetRequest(url: url, authToken: try getToken(), parameters: parameters)
     }
 
-    func makePatchRequest(with result: SyncRequest, clientTimestamp: Date) throws -> HTTPRequesting {
+    func makePatchRequest(with result: SyncRequest, clientTimestamp: Date, isCompressed: Bool) throws -> HTTPRequesting {
         var json = [String: Any]()
         let modelPayload: [String: Any?] = [
             "updates": result.sent.map(\.payload),
@@ -56,7 +57,23 @@ struct SyncRequestMaker: SyncRequestMaking {
         }
 
         let body = try JSONSerialization.data(withJSONObject: json, options: [])
-        return api.createAuthenticatedJSONRequest(url: endpoints.syncPatch, method: .PATCH, authToken: try getToken(), json: body)
+
+        guard isCompressed else {
+            return api.createAuthenticatedJSONRequest(
+                url: endpoints.syncPatch,
+                method: .PATCH,
+                authToken: try getToken(),
+                json: body
+            )
+        }
+
+        let compressedBody = try payloadCompressor.compress(body)
+        return api.createAuthenticatedJSONRequest(
+            url: endpoints.syncPatch,
+            method: .PATCH,
+            authToken: try getToken(),
+            json: compressedBody,
+            headers: ["Content-Encoding": "gzip"])
     }
 
     private func getToken() throws -> String {

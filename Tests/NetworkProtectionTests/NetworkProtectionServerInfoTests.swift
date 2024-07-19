@@ -27,10 +27,11 @@ final class NetworkProtectionServerInfoTests: XCTestCase {
                                                      publicKey: "",
                                                      hostNames: [],
                                                      ips: [],
+                                                     internalIP: "10.11.12.1",
                                                      port: 42,
-                                                     attributes: .init(city: "Amsterdam", country: "nl", state: "na", timezoneOffset: 3600))
+                                                     attributes: .init(city: "Amsterdam", country: "nl", state: "na"))
 
-        XCTAssertEqual(serverInfo.serverLocation, "Amsterdam, NL")
+        XCTAssertEqual(serverInfo.serverLocation, "Amsterdam, Netherlands")
     }
 
     func testWhenGettingServerLocation_AndAttributesExist_isUS_ThenServerLocationIsCityState() {
@@ -38,10 +39,11 @@ final class NetworkProtectionServerInfoTests: XCTestCase {
                                                      publicKey: "",
                                                      hostNames: [],
                                                      ips: [],
+                                                     internalIP: "10.11.12.1",
                                                      port: 42,
-                                                     attributes: .init(city: "New York", country: "us", state: "ny", timezoneOffset: 3600))
+                                                     attributes: .init(city: "New York", country: "us", state: "ny"))
 
-        XCTAssertEqual(serverInfo.serverLocation, "New York, NY")
+        XCTAssertEqual(serverInfo.serverLocation, "New York, United States")
     }
 
 }

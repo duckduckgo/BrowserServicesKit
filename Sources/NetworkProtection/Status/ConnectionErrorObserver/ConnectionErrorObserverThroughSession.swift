@@ -1,5 +1,5 @@
 //
-//  ConnectionErrorObserver.swift
+//  ConnectionErrorObserverThroughSession.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -33,6 +33,7 @@ public class ConnectionErrorObserverThroughSession: ConnectionErrorObserver {
 
     // MARK: - Notifications
 
+    private let tunnelSessionProvider: TunnelSessionProvider
     private let notificationCenter: NotificationCenter
     private let platformNotificationCenter: NotificationCenter
     private let platformDidWakeNotification: Notification.Name
@@ -44,7 +45,8 @@ public class ConnectionErrorObserverThroughSession: ConnectionErrorObserver {
 
     // MARK: - Initialization
 
-    public init(notificationCenter: NotificationCenter = .default,
+    public init(tunnelSessionProvider: TunnelSessionProvider,
+                notificationCenter: NotificationCenter = .default,
                 platformNotificationCenter: NotificationCenter,
                 platformDidWakeNotification: Notification.Name,
                 log: OSLog = .networkProtection) {
@@ -52,6 +54,7 @@ public class ConnectionErrorObserverThroughSession: ConnectionErrorObserver {
         self.notificationCenter = notificationCenter
         self.platformNotificationCenter = platformNotificationCenter
         self.platformDidWakeNotification = platformDidWakeNotification
+        self.tunnelSessionProvider = tunnelSessionProvider
         self.log = log
 
         start()
@@ -72,7 +75,7 @@ public class ConnectionErrorObserverThroughSession: ConnectionErrorObserver {
     private func handleDidWake(_ notification: Notification) {
         Task {
             do {
-                guard let session = try await ConnectionSessionUtilities.activeSession() else {
+                guard let session = await tunnelSessionProvider.activeSession() else {
                     return
                 }
 
@@ -85,7 +88,9 @@ public class ConnectionErrorObserverThroughSession: ConnectionErrorObserver {
 
     private func handleStatusChangeNotification(_ notification: Notification) {
         do {
-            guard let session = ConnectionSessionUtilities.session(from: notification) else {
+            guard let session = ConnectionSessionUtilities.session(from: notification),
+                session.status == .disconnected else {
+
                 return
             }
 

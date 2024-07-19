@@ -1,5 +1,5 @@
 //
-//  RemoteAPIRequestCreating.swift
+//  RemoteAPIRequestCreator.swift
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -26,7 +26,6 @@ struct RemoteAPIRequestCreator: RemoteAPIRequestCreating {
         self.getLog = log
     }
 
-    // swiftlint:disable:next function_parameter_count
     public func createRequest(
         url: URL,
         method: HTTPRequestMethod,

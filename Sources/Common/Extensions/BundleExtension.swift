@@ -1,6 +1,5 @@
 //
 //  BundleExtension.swift
-//  DuckDuckGo
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -22,7 +21,7 @@ import Foundation
 extension Bundle {
 
     enum Key {
-        
+
         static let name = kCFBundleNameKey as String
         static let identifier = kCFBundleIdentifierKey as String
         static let buildNumber = kCFBundleVersionKey as String

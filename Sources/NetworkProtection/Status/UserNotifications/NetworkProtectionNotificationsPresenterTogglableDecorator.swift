@@ -1,6 +1,5 @@
 //
 //  NetworkProtectionNotificationsPresenterTogglableDecorator.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -20,46 +19,50 @@
 import Foundation
 
 final public class NetworkProtectionNotificationsPresenterTogglableDecorator: NetworkProtectionNotificationsPresenter {
-    private let notificationSettingsStore: NetworkProtectionNotificationsSettingsStore
+    private let settings: VPNSettings
+    private let defaults: UserDefaults
     private let wrappeePresenter: NetworkProtectionNotificationsPresenter
 
-    public init(notificationSettingsStore: NetworkProtectionNotificationsSettingsStore, wrappee: NetworkProtectionNotificationsPresenter) {
-        self.notificationSettingsStore = notificationSettingsStore
+    public init(settings: VPNSettings, defaults: UserDefaults, wrappee: NetworkProtectionNotificationsPresenter) {
+        self.settings = settings
+        self.defaults = defaults
         self.wrappeePresenter = wrappee
     }
 
     public func showConnectedNotification(serverLocation: String?) {
-        guard notificationSettingsStore.alertsEnabled else {
-            return
+        if settings.notifyStatusChanges {
+            wrappeePresenter.showConnectedNotification(serverLocation: serverLocation)
         }
-        wrappeePresenter.showConnectedNotification(serverLocation: serverLocation)
     }
-    
+
     public func showReconnectingNotification() {
-        guard notificationSettingsStore.alertsEnabled else {
-            return
+        if settings.notifyStatusChanges {
+            wrappeePresenter.showReconnectingNotification()
         }
-        wrappeePresenter.showReconnectingNotification()
     }
-    
+
     public func showConnectionFailureNotification() {
-        guard notificationSettingsStore.alertsEnabled else {
-            return
+        if settings.notifyStatusChanges {
+            wrappeePresenter.showConnectionFailureNotification()
         }
-        wrappeePresenter.showConnectionFailureNotification()
     }
-    
+
     public func showSupersededNotification() {
-        guard notificationSettingsStore.alertsEnabled else {
-            return
+        if settings.notifyStatusChanges {
+            wrappeePresenter.showSupersededNotification()
         }
-        wrappeePresenter.showSupersededNotification()
     }
-    
+
     public func showTestNotification() {
-        guard notificationSettingsStore.alertsEnabled else {
-            return
+        if settings.notifyStatusChanges {
+            wrappeePresenter.showTestNotification()
         }
-        wrappeePresenter.showTestNotification()
+    }
+
+    public func showEntitlementNotification() {
+        if defaults.showEntitlementNotification {
+            defaults.showEntitlementNotification = false
+            wrappeePresenter.showEntitlementNotification()
+        }
     }
 }

@@ -32,15 +32,15 @@ import Foundation
 
 // swiftlint:disable type_name
 @usableFromInline
-protocol _AnyDecodable {
+protocol AnyDecodableProtocol {
     var value: Any { get }
     init<T>(_ value: T?)
 }
 // swiftlint:enable type_name
 
-extension AnyDecodable: _AnyDecodable {}
+extension AnyDecodable: AnyDecodableProtocol {}
 
-extension _AnyDecodable {
+extension AnyDecodableProtocol {
     public init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
 

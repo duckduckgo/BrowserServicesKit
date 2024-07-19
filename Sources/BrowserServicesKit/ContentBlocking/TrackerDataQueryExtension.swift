@@ -1,6 +1,5 @@
 //
 //  TrackerDataQueryExtension.swift
-//  DuckDuckGo
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -21,11 +20,11 @@ import Foundation
 import TrackerRadarKit
 
 extension TrackerData {
-    
+
     public func findEntity(byName name: String) -> Entity? {
         return entities[name]
     }
-    
+
     public func findEntity(forHost host: String) -> Entity? {
         for host in variations(of: host) {
             if let entityName = domains[host] {
@@ -45,23 +44,23 @@ extension TrackerData {
         }
         return domains
     }
-    
+
     public func findTracker(forUrl url: String) -> KnownTracker? {
         guard let host = URL(string: url)?.host else { return nil }
-        
+
         let variations = variations(of: host)
         for host in variations {
             if let tracker = trackers[host] {
                 return tracker
             }
         }
-        
+
         return nil
     }
-    
+
     public func findTrackerByCname(forUrl url: String) -> KnownTracker? {
         guard let host = URL(string: url)?.host else { return nil }
-        
+
         let variations = variations(of: host)
         for host in variations {
             if let cname = cnames?[host] {
@@ -70,7 +69,7 @@ extension TrackerData {
                 return tracker
             }
         }
-        
+
         return nil
     }
 }

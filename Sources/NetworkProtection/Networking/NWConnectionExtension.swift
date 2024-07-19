@@ -24,7 +24,7 @@ extension NWConnection {
     var stateUpdateStream: AsyncStream<State> {
         let (stream, continuation) = AsyncStream.makeStream(of: State.self)
 
-        class ConnectionLifeTimeTracker {
+        final class ConnectionLifeTimeTracker {
             let continuation: AsyncStream<State>.Continuation
             init(continuation: AsyncStream<State>.Continuation) {
                 self.continuation = continuation

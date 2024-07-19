@@ -18,12 +18,50 @@
 
 import Foundation
 
+/// Conforming types provide methods which interact with the system Keychain. Mainly used to enable testing.
+public protocol KeychainService {
+    func itemMatching(_ query: [String: Any], _ result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus
+    func add(_ attributes: [String: Any], _ result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus
+    func delete(_ query: [String: Any]) -> OSStatus
+    func update(_ query: [String: Any], _ attributesToUpdate: [String: Any]) -> OSStatus
+}
+
+public extension KeychainService {
+    func itemMatching(_ query: [String: Any], _ result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus {
+        SecItemCopyMatching(query as CFDictionary, result)
+    }
+
+    func add(_ query: [String: Any], _ result: UnsafeMutablePointer<CFTypeRef?>?) -> OSStatus {
+        SecItemAdd(query as CFDictionary, nil)
+    }
+
+    func delete(_ query: [String: Any]) -> OSStatus {
+        SecItemDelete(query as CFDictionary)
+    }
+
+    func update(_ query: [String: Any], _ attributesToUpdate: [String: Any]) -> OSStatus {
+        SecItemUpdate(query as CFDictionary, attributesToUpdate as CFDictionary)
+    }
+}
+
+public struct DefaultKeychainService: KeychainService {
+    public init() {}
+}
+
+public enum SecureStorageKeyStoreEvent {
+    case l1KeyMigration
+    case l2KeyMigration
+    case l2KeyPasswordMigration
+}
+
 public protocol SecureStorageKeyStoreProvider {
 
+    var keychainService: KeychainService { get }
     var generatedPasswordEntryName: String { get }
     var l1KeyEntryName: String { get }
     var l2KeyEntryName: String { get }
     var keychainServiceName: String { get }
+    var keychainAccessibilityValue: String { get }
 
     func storeGeneratedPassword(_ password: Data) throws
     func generatedPassword() throws -> Data?
@@ -42,6 +80,14 @@ public protocol SecureStorageKeyStoreProvider {
 }
 
 public extension SecureStorageKeyStoreProvider {
+
+    var keychainService: KeychainService {
+        DefaultKeychainService()
+    }
+
+    var keychainAccessibilityValue: String {
+        kSecAttrAccessibleWhenUnlocked as String
+    }
 
     func generatedPassword() throws -> Data? {
         return try readData(named: generatedPasswordEntryName, serviceName: keychainServiceName)
@@ -81,7 +127,7 @@ public extension SecureStorageKeyStoreProvider {
 
         var item: CFTypeRef?
 
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
+        let status = keychainService.itemMatching(query, &item)
         switch status {
         case errSecSuccess:
             guard let itemData = item as? Data,
@@ -108,10 +154,10 @@ public extension SecureStorageKeyStoreProvider {
 
         var query = attributesForEntry(named: name, serviceName: serviceName)
         query[kSecAttrService as String] = serviceName
-        query[kSecAttrAccessible as String] = kSecAttrAccessibleWhenUnlocked
+        query[kSecAttrAccessible as String] = keychainAccessibilityValue
         query[kSecValueData as String] = base64Data
 
-        let status = SecItemAdd(query as CFDictionary, nil)
+        let status = keychainService.add(query, nil)
 
         guard status == errSecSuccess else {
             throw SecureStorageError.keystoreError(status: status)
@@ -123,7 +169,7 @@ public extension SecureStorageKeyStoreProvider {
     private func deleteEntry(named name: String) throws {
         let query = attributesForEntry(named: name, serviceName: keychainServiceName)
 
-        let status = SecItemDelete(query as CFDictionary)
+        let status = keychainService.delete(query)
         switch status {
         case errSecItemNotFound, errSecSuccess: break
         default:

@@ -1,6 +1,5 @@
 //
 //  PrivacyConfigurationData.swift
-//  DuckDuckGo
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -19,7 +18,6 @@
 
 import Foundation
 
-// swiftlint:disable nesting
 public struct PrivacyConfigurationData {
 
     public typealias FeatureName = String
@@ -140,12 +138,12 @@ public struct PrivacyConfigurationData {
                 }
 
                 public let percent: Double
-                
+
                 public init(json: [String: Any]) {
                     self.percent = json[CodingKeys.percent.rawValue] as? Double ?? 0
                 }
             }
-            
+
             public let state: FeatureState
             public let minSupportedVersion: FeatureSupportedVersion?
             public let rollout: Rollout?
@@ -281,4 +279,3 @@ public struct PrivacyConfigurationData {
         }
     }
 }
-// swiftlint:enable nesting

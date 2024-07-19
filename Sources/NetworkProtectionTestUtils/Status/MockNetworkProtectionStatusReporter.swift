@@ -1,5 +1,5 @@
 //
-//  NetworkProtectionStatusReporter.swift
+//  MockNetworkProtectionStatusReporter.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -34,6 +34,8 @@ public final class MockNetworkProtectionStatusReporter: NetworkProtectionStatusR
     public let connectionErrorObserver: ConnectionErrorObserver
     public let connectivityIssuesObserver: ConnectivityIssueObserver
     public let controllerErrorMessageObserver: ControllerErrorMesssageObserver
+    public let dataVolumeObserver: DataVolumeObserver
+    public let knownFailureObserver: KnownFailureObserver
 
     // MARK: - Init & deinit
 
@@ -42,19 +44,23 @@ public final class MockNetworkProtectionStatusReporter: NetworkProtectionStatusR
                 connectionErrorObserver: ConnectionErrorObserver = MockConnectionErrorObserver(),
                 connectivityIssuesObserver: ConnectivityIssueObserver = MockConnectivityIssueObserver(),
                 controllerErrorMessageObserver: ControllerErrorMesssageObserver = MockControllerErrorMesssageObserver(),
+                dataVolumeObserver: DataVolumeObserver = MockDataVolumeObserver(),
+                knownFailureObserver: KnownFailureObserver = MockKnownFailureObserver(),
                 distributedNotificationCenter: DistributedNotificationCenter = .default()) {
 
         self.statusObserver = statusObserver
         self.serverInfoObserver = serverInfoObserver
         self.connectionErrorObserver = connectionErrorObserver
         self.connectivityIssuesObserver = connectivityIssuesObserver
+        self.dataVolumeObserver = dataVolumeObserver
+        self.knownFailureObserver = knownFailureObserver
         self.controllerErrorMessageObserver = controllerErrorMessageObserver
     }
 
     // MARK: - Forcing Refreshes
 
     public func forceRefresh() {
-        
+
     }
 }
 

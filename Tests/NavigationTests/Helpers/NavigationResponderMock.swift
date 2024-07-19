@@ -57,6 +57,7 @@ enum TestsNavigationEvent: TestComparable {
     case navResponseWillBecomeDownload(Int, line: UInt = #line)
     case navResponseBecameDownload(Int, URL, line: UInt = #line)
     case didCommit(Nav, line: UInt = #line)
+    case didSameDocumentNavigation(Nav?, Int, line: UInt = #line)
     case didReceiveRedirect(NavAction, Nav, line: UInt = #line)
     case didFinish(Nav, line: UInt = #line)
     case didFail(Nav, /*code:*/ Int, line: UInt = #line)
@@ -83,6 +84,15 @@ enum TestsNavigationEvent: TestComparable {
 
     var line: UInt {
         Mirror(reflecting: Mirror(reflecting: self).children.first!.value).children.first(where: { $0.label == "line" })?.value as! UInt
+    }
+
+    var type: String {
+        let descr = String(describing: self)
+        if let idx = descr.range(of: ".")?.lowerBound {
+            return String(descr[..<idx])
+        } else {
+            return descr
+        }
     }
 
     static func difference(between lhs: TestsNavigationEvent, and rhs: TestsNavigationEvent) -> String? {
@@ -175,13 +185,25 @@ class NavigationResponderMock: NavigationResponder {
     }
     var defaultHandler: ((TestsNavigationEvent) -> Void)
 
+    var mainFrame: FrameInfo? {
+        for event in history {
+            if case .navigationAction(let navAction, _, _) = event,
+               // sometimes main frame id is 2
+               [4, 2].contains(navAction.navigationAction.sourceFrame.handle.frameID) {
+
+                return navAction.navigationAction.sourceFrame
+            }
+        }
+        return nil
+    }
+
     init(defaultHandler: @escaping ((TestsNavigationEvent) -> Void) = NavigationResponderMock.defaultHandler) {
         self.defaultHandler = defaultHandler
     }
 
     func reset() {
         clear()
-        
+
         onNavigationAction = nil
         onWillStart = nil
         onDidStart = nil
@@ -199,7 +221,7 @@ class NavigationResponderMock: NavigationResponder {
         onNavResponseWillBecomeDownload = nil
         onNavResponseBecameDownload = nil
 
-        defaultHandler = { 
+        defaultHandler = {
             fatalError("event received after test completed: \($0)")
         }
     }
@@ -325,6 +347,17 @@ class NavigationResponderMock: NavigationResponder {
     func didCommit(_ navigation: Navigation) {
         let event = append(.didCommit(Nav(navigation)))
         onDidCommit?(navigation) ?? defaultHandler(event)
+    }
+
+    var onSameDocumentNavigation: (@MainActor (Navigation?, WKSameDocumentNavigationType?) -> Void)?
+    func navigation(_ navigation: Navigation, didSameDocumentNavigationOf navigationType: WKSameDocumentNavigationType) {
+        if navigationActionsCache.dict[navigation.navigationAction.identifier] == nil {
+            navigationActionsCache.dict[navigation.navigationAction.identifier] = .init(navigation.navigationAction)
+            navigationActionsCache.max = max(navigationActionsCache.max, navigation.navigationAction.identifier)
+        }
+
+        let event = append(.didSameDocumentNavigation(Nav(navigation), navigationType.rawValue))
+        onSameDocumentNavigation?(navigation, navigationType) ?? defaultHandler(event)
     }
 
     var onDidFinish: (@MainActor (Navigation) -> Void)?

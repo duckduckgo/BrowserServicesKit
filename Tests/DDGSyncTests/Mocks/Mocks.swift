@@ -1,6 +1,5 @@
 //
 //  Mocks.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -17,9 +16,14 @@
 //  limitations under the License.
 //
 
+import BrowserServicesKit
 import Combine
 import Common
 import Foundation
+import Gzip
+import Persistence
+import TestUtils
+
 @testable import DDGSync
 
 extension SyncAccount {
@@ -131,30 +135,76 @@ class MockErrorHandler: EventMapping<SyncError> {
     }
 }
 
-class MockKeyValueStore: KeyValueStoring {
-    var isSyncEnabled: Bool? = true
+final class MockInternalUserStoring: InternalUserStoring {
+    var isInternalUser: Bool = false
+}
 
-    func object(forKey: String) -> Any? {
-        if forKey == DDGSync.Constants.syncEnabledKey {
-            return isSyncEnabled
-        }
-        return nil
+extension DefaultInternalUserDecider {
+    convenience init(mockedStore: MockInternalUserStoring = MockInternalUserStoring()) {
+        self.init(store: mockedStore)
     }
-    func set(_ value: Any?, forKey: String) {
-        if forKey == DDGSync.Constants.syncEnabledKey, let boolValue = value as? Bool {
-            isSyncEnabled = boolValue
-        }
+}
+
+class MockPrivacyConfigurationManager: PrivacyConfigurationManaging {
+    var currentConfig: Data = .init()
+    var updatesSubject = PassthroughSubject<Void, Never>()
+    let updatesPublisher: AnyPublisher<Void, Never>
+    var privacyConfig: PrivacyConfiguration = MockPrivacyConfiguration()
+    let internalUserDecider: InternalUserDecider = DefaultInternalUserDecider()
+    func reload(etag: String?, data: Data?) -> PrivacyConfigurationManager.ReloadResult {
+        .downloaded
     }
+
+    init() {
+        updatesPublisher = updatesSubject.eraseToAnyPublisher()
+    }
+}
+
+class MockPrivacyConfiguration: PrivacyConfiguration {
+
+    func isEnabled(featureKey: PrivacyFeature, versionProvider: AppVersionProvider) -> Bool { true }
+
+    func stateFor(featureKey: BrowserServicesKit.PrivacyFeature, versionProvider: BrowserServicesKit.AppVersionProvider) -> BrowserServicesKit.PrivacyConfigurationFeatureState {
+        return .enabled
+    }
+
+    func isSubfeatureEnabled(
+        _ subfeature: any PrivacySubfeature,
+        versionProvider: AppVersionProvider,
+        randomizer: (Range<Double>) -> Double
+    ) -> Bool {
+        true
+    }
+
+    func stateFor(_ subfeature: any PrivacySubfeature, versionProvider: AppVersionProvider, randomizer: (Range<Double>) -> Double) -> PrivacyConfigurationFeatureState {
+        return .enabled
+    }
+
+    var identifier: String = "abcd"
+    var userUnprotectedDomains: [String] = []
+    var tempUnprotectedDomains: [String] = []
+    var trackerAllowlist: PrivacyConfigurationData.TrackerAllowlist = .init(json: ["state": "disabled"])!
+    func exceptionsList(forFeature featureKey: PrivacyFeature) -> [String] { [] }
+    func isFeature(_ feature: PrivacyFeature, enabledForDomain: String?) -> Bool { true }
+    func isProtected(domain: String?) -> Bool { false }
+    func isUserUnprotected(domain: String?) -> Bool { false }
+    func isTempUnprotected(domain: String?) -> Bool { false }
+    func isInExceptionList(domain: String?, forFeature featureKey: PrivacyFeature) -> Bool { false }
+    func settings(for feature: PrivacyFeature) -> PrivacyConfigurationData.PrivacyFeature.FeatureSettings { .init() }
+    func userEnabledProtection(forDomain: String) {}
+    func userDisabledProtection(forDomain: String) {}
 }
 
 struct MockSyncDependencies: SyncDependencies, SyncDependenciesDebuggingSupport {
     var endpoints: Endpoints = Endpoints(baseURL: URL(string: "https://dev.null")!)
     var account: AccountManaging = AccountManagingMock()
     var api: RemoteAPIRequestCreating = RemoteAPIRequestCreatingMock()
+    var payloadCompressor: SyncPayloadCompressing = SyncGzipPayloadCompressorMock()
     var secureStore: SecureStoring = SecureStorageStub()
     var crypter: CryptingInternal = CryptingMock()
     var scheduler: SchedulingInternal = SchedulerMock()
     var log: OSLog = .default
+    var privacyConfigurationManager: PrivacyConfigurationManaging = MockPrivacyConfigurationManager()
     var errorEvents: EventMapping<SyncError> = MockErrorHandler()
     var keyValueStore: KeyValueStoring = MockKeyValueStore()
 
@@ -227,6 +277,45 @@ class RemoteAPIRequestCreatingMock: RemoteAPIRequestCreating {
     }
 }
 
+class InspectableSyncRequestMaker: SyncRequestMaking {
+
+    struct MakePatchRequestCallArgs {
+        let result: SyncRequest
+        let clientTimestamp: Date
+        let isCompressed: Bool
+    }
+
+    func makeGetRequest(with result: SyncRequest) throws -> HTTPRequesting {
+        try requestMaker.makeGetRequest(with: result)
+    }
+
+    func makePatchRequest(with result: SyncRequest, clientTimestamp: Date, isCompressed: Bool) throws -> HTTPRequesting {
+        makePatchRequestCallCount += 1
+        makePatchRequestCallArgs.append(.init(result: result, clientTimestamp: clientTimestamp, isCompressed: isCompressed))
+        return try requestMaker.makePatchRequest(with: result, clientTimestamp: clientTimestamp, isCompressed: isCompressed)
+    }
+
+    let requestMaker: SyncRequestMaker
+
+    init(requestMaker: SyncRequestMaker) {
+        self.requestMaker = requestMaker
+    }
+
+    var makePatchRequestCallCount = 0
+    var makePatchRequestCallArgs: [MakePatchRequestCallArgs] = []
+}
+
+class SyncGzipPayloadCompressorMock: SyncPayloadCompressing {
+    var error: Error?
+
+    func compress(_ payload: Data) throws -> Data {
+        if let error {
+            throw error
+        }
+        return try payload.gzipped()
+    }
+}
+
 struct CryptingMock: CryptingInternal {
     var _encryptAndBase64Encode: (String) throws -> String = { "encrypted_\($0)" }
     var _base64DecodeAndDecrypt: (String) throws -> String = { $0.dropping(prefix: "encrypted_") }
@@ -280,6 +369,7 @@ struct CryptingMock: CryptingInternal {
 class SyncMetadataStoreMock: SyncMetadataStore {
     struct FeatureInfo: Equatable {
         var timestamp: String?
+        var localTimestamp: Date?
         var state: FeatureSetupState
     }
 
@@ -305,13 +395,22 @@ class SyncMetadataStoreMock: SyncMetadataStore {
         features[name]?.timestamp = timestamp
     }
 
+    func localTimestamp(forFeatureNamed name: String) -> Date? {
+        features[name]?.localTimestamp
+    }
+
     func state(forFeatureNamed name: String) -> FeatureSetupState {
         features[name]?.state ?? .readyToSync
     }
 
-    func update(_ timestamp: String?, _ state: FeatureSetupState, forFeatureNamed name: String) {
+    func updateLocalTimestamp(_ localTimestamp: Date?, forFeatureNamed name: String) {
+        features[name]?.localTimestamp = localTimestamp
+    }
+
+    func update(_ serverTimestamp: String?, _ localTimestamp: Date?, _ state: FeatureSetupState, forFeatureNamed name: String) {
         features[name]?.state = state
-        features[name]?.timestamp = timestamp
+        features[name]?.timestamp = serverTimestamp
+        features[name]?.localTimestamp = localTimestamp
     }
 }
 
@@ -337,12 +436,12 @@ class DataProvidingMock: DataProvider {
 
     override func handleInitialSyncResponse(received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
         try await handleInitialSyncResponse(received, clientTimestamp, serverTimestamp, crypter)
-        lastSyncTimestamp = serverTimestamp
+        updateSyncTimestamps(server: serverTimestamp, local: clientTimestamp)
     }
 
     override func handleSyncResponse(sent: [Syncable], received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
         try await handleSyncResponse(sent, received, clientTimestamp, serverTimestamp, crypter)
-        lastSyncTimestamp = serverTimestamp
+        updateSyncTimestamps(server: serverTimestamp, local: clientTimestamp)
     }
 
     override func handleSyncError(_ error: Error) {

@@ -1,6 +1,5 @@
 //
 //  CredentialsRegularSyncResponseHandlerTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -98,5 +97,25 @@ final class CredentialsRegularSyncResponseHandlerTests: CredentialsProviderTests
         XCTAssertEqual(syncableCredentials.map(\.metadata.uuid), ["2", "3"])
         XCTAssertEqual(syncableCredentials.map(\.account?.username), ["2", "4"])
         XCTAssertTrue(syncableCredentials.map(\.metadata.lastModified).allSatisfy { $0 == nil })
+    }
+
+    func testThatDecryptionFailureDoesntAffectCredentialsOrCrash() async throws {
+        try secureVault.inDatabaseTransaction { database in
+            try self.secureVault.storeSyncableCredentials("1", in: database)
+        }
+
+        let received: [Syncable] = [
+            .credentials(id: "2")
+        ]
+
+        crypter.throwsException(exceptionString: "ddgSyncDecrypt failed: invalid ciphertext length: X")
+
+        try await handleSyncResponse(received: received)
+
+        let syncableCredentials = try fetchAllSyncableCredentials()
+        XCTAssertEqual(syncableCredentials.count, 1)
+        XCTAssertEqual(syncableCredentials.map(\.account?.id), ["1"])
+        XCTAssertTrue(syncableCredentials.map(\.metadata.lastModified).allSatisfy { $0 == nil })
+        crypter.throwsException(exceptionString: nil)
     }
 }

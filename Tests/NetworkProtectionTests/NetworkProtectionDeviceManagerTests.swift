@@ -26,7 +26,6 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
     var keyStore: NetworkProtectionKeyStoreMock!
     var networkClient: MockNetworkProtectionClient!
     var temporaryURL: URL!
-    var serverListStore: NetworkProtectionServerListFileSystemStore!
     var manager: NetworkProtectionDeviceManager!
 
     override func setUp() {
@@ -36,13 +35,13 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
         keyStore = NetworkProtectionKeyStoreMock()
         networkClient = MockNetworkProtectionClient()
         temporaryURL = temporaryFileURL()
-        serverListStore = NetworkProtectionServerListFileSystemStore(fileURL: temporaryURL, errorEvents: nil)
+
         manager = NetworkProtectionDeviceManager(
             networkClient: networkClient,
             tokenStore: tokenStore,
             keyStore: keyStore,
-            serverListStore: serverListStore,
-            errorEvents: nil
+            errorEvents: nil,
+            isSubscriptionEnabled: false
         )
     }
 
@@ -50,7 +49,6 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
         tokenStore = nil
         keyStore = nil
         temporaryURL = nil
-        serverListStore = nil
         manager = nil
         networkClient = nil
         super.tearDown()
@@ -60,10 +58,10 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
         let server = NetworkProtectionServer.mockRegisteredServer
         networkClient.stubRegister = .success([server])
 
-        let configuration: (TunnelConfiguration, NetworkProtectionServerInfo)
+        let configuration: NetworkProtectionDeviceManager.GenerateTunnelConfigurationResult
 
         do {
-            configuration = try await manager.generateTunnelConfiguration(selectionMethod: .automatic)
+            configuration = try await manager.generateTunnelConfiguration(selectionMethod: .automatic, regenerateKey: false)
         } catch {
             XCTFail("Unexpected error \(error.localizedDescription)")
             return
@@ -71,9 +69,6 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
 
         // Check that the device manager created a private key
         XCTAssertTrue((try? keyStore.storedPrivateKey()) != nil)
-
-        // Check that the server list store was given a server list
-        XCTAssertEqual((try? serverListStore.storedNetworkProtectionServerList()), [.mockRegisteredServer])
 
         XCTAssertEqual(configuration.0.interface.privateKey, try? keyStore.storedPrivateKey())
     }
@@ -86,14 +81,12 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
         networkClient.stubRegister = .success([registeredServer])
 
         XCTAssertNil(try? keyStore.storedPrivateKey())
-        XCTAssertEqual(try? serverListStore.storedNetworkProtectionServerList(), [])
-        XCTAssertFalse(networkClient.registerCalled)
+        XCTAssertNil(networkClient.spyRegister)
 
-        _ = try? await manager.generateTunnelConfiguration(selectionMethod: .automatic)
+        _ = try? await manager.generateTunnelConfiguration(selectionMethod: .automatic, regenerateKey: false)
 
         XCTAssertNotNil(try? keyStore.storedPrivateKey())
-        XCTAssertEqual(try? serverListStore.storedNetworkProtectionServerList(), [registeredServer])
-        XCTAssertTrue(networkClient.registerCalled)
+        XCTAssertNotNil(networkClient.spyRegister)
     }
 
     func testWhenGeneratingTunnelConfig_AndServerSelectionIsUsingLocation_MakesRequestWithCountryAndCity() async {
@@ -101,7 +94,7 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
         networkClient.stubRegister = .success([server])
 
         let preferredLocation = NetworkProtectionSelectedLocation(country: "Some country", city: "Some city")
-        _ = try? await manager.generateTunnelConfiguration(selectionMethod: .preferredLocation(preferredLocation))
+        _ = try? await manager.generateTunnelConfiguration(selectionMethod: .preferredLocation(preferredLocation), regenerateKey: false)
 
         XCTAssertEqual(networkClient.spyRegister?.requestBody.city, preferredLocation.city)
         XCTAssertEqual(networkClient.spyRegister?.requestBody.country, preferredLocation.country)
@@ -111,19 +104,18 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
         let server = NetworkProtectionServer.mockBaseServer
         networkClient.stubRegister = .success([server])
 
-        _ = try? await manager.generateTunnelConfiguration(selectionMethod: .preferredServer(serverName: server.serverName))
+        _ = try? await manager.generateTunnelConfiguration(selectionMethod: .preferredServer(serverName: server.serverName), regenerateKey: false)
 
         XCTAssertEqual(networkClient.spyRegister?.requestBody.server, server.serverName)
     }
 
     func testWhenGeneratingTunnelConfig_storedAuthTokenIsInvalidOnGettingServers_deletesToken() async {
         _ = NetworkProtectionServer.mockRegisteredServer
-
         networkClient.stubRegister = .failure(.invalidAuthToken)
 
         XCTAssertNotNil(tokenStore.token)
 
-        _ = try? await manager.generateTunnelConfiguration(selectionMethod: .automatic)
+        _ = try? await manager.generateTunnelConfiguration(selectionMethod: .automatic, regenerateKey: false)
 
         XCTAssertNil(tokenStore.token)
     }
@@ -133,7 +125,7 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
 
         XCTAssertNotNil(tokenStore.token)
 
-        _ = try? await manager.generateTunnelConfiguration(selectionMethod: .automatic)
+        _ = try? await manager.generateTunnelConfiguration(selectionMethod: .automatic, regenerateKey: false)
 
         XCTAssertNil(tokenStore.token)
     }
@@ -146,12 +138,87 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
         XCTAssertEqual(servers2.count, 6)
     }
 
+    func testWhenGeneratingTunnelConfiguration_AndKeyIsStillValid_AndKeyIsNotRegenerated_ThenKeyDoesNotChange() async {
+        let server = NetworkProtectionServer.mockBaseServer
+        let registeredServer = NetworkProtectionServer.mockRegisteredServer
+
+        networkClient.stubGetServers = .success([server])
+        networkClient.stubRegister = .success([registeredServer])
+
+        XCTAssertNil(try? keyStore.storedPrivateKey())
+        XCTAssertNil(networkClient.spyRegister)
+        _ = try? await manager.generateTunnelConfiguration(selectionMethod: .automatic, regenerateKey: false)
+
+        let firstKey = try? keyStore.storedPrivateKey()
+        XCTAssertNotNil(firstKey)
+        XCTAssertNotNil(networkClient.spyRegister)
+        _ = try? await manager.generateTunnelConfiguration(selectionMethod: .automatic, regenerateKey: false)
+
+        let secondKey = try? keyStore.storedPrivateKey()
+        XCTAssertNotNil(secondKey)
+        XCTAssertEqual(firstKey, secondKey) // Check that the key did NOT change
+        XCTAssertNotNil(networkClient.spyRegister)
+    }
+
+    func testWhenGeneratingTunnelConfiguration_AndKeyIsStillValid_AndKeyIsRegenerated_ThenKeyChanges() async {
+        let server = NetworkProtectionServer.mockBaseServer
+        let registeredServer = NetworkProtectionServer.mockRegisteredServer
+
+        networkClient.stubGetServers = .success([server])
+        networkClient.stubRegister = .success([registeredServer])
+
+        XCTAssertNil(try? keyStore.storedPrivateKey())
+        XCTAssertNil(networkClient.spyRegister)
+        _ = try? await manager.generateTunnelConfiguration(selectionMethod: .automatic, regenerateKey: false)
+
+        let firstKey = try? keyStore.storedPrivateKey()
+        XCTAssertNotNil(firstKey)
+        XCTAssertNotNil(networkClient.spyRegister)
+        _ = try? await manager.generateTunnelConfiguration(selectionMethod: .automatic, regenerateKey: true)
+
+        let secondKey = try? keyStore.storedPrivateKey()
+        XCTAssertNotNil(secondKey)
+        XCTAssertNotEqual(firstKey, secondKey) // Check that the key changed
+        XCTAssertNotNil(networkClient.spyRegister)
+    }
+
+    func testWhenGeneratingTunnelConfiguration_AndKeyIsStillValid_AndKeyIsRegenerated_AndRegistrationFails_ThenKeyDoesNotChange() async {
+        let server = NetworkProtectionServer.mockBaseServer
+        let registeredServer = NetworkProtectionServer.mockRegisteredServer
+
+        networkClient.stubGetServers = .success([server])
+        networkClient.stubRegister = .success([registeredServer])
+
+        XCTAssertNil(try? keyStore.storedPrivateKey())
+        XCTAssertNil(networkClient.spyRegister)
+        _ = try? await manager.generateTunnelConfiguration(selectionMethod: .automatic, regenerateKey: false)
+
+        let firstKey = try? keyStore.storedPrivateKey()
+        XCTAssertNotNil(firstKey)
+        XCTAssertNotNil(networkClient.spyRegister)
+
+        networkClient.stubRegister = .failure(.failedToEncodeRegisterKeyRequest)
+        _ = try? await manager.generateTunnelConfiguration(selectionMethod: .automatic, regenerateKey: true)
+
+        let secondKey = try? keyStore.storedPrivateKey()
+        XCTAssertNotNil(secondKey)
+        XCTAssertEqual(firstKey, secondKey) // Check that the key did NOT change, even though we tried to regenerate it
+        XCTAssertNotNil(networkClient.spyRegister)
+    }
 }
 
 extension NetworkProtectionDeviceManager {
 
-    func generateTunnelConfiguration(selectionMethod: NetworkProtectionServerSelectionMethod) async throws -> (TunnelConfiguration, NetworkProtectionServerInfo) {
-        try await generateTunnelConfiguration(selectionMethod: selectionMethod, includedRoutes: [], excludedRoutes: [], isKillSwitchEnabled: false)
+    func generateTunnelConfiguration(selectionMethod: NetworkProtectionServerSelectionMethod,
+                                     regenerateKey: Bool) async throws -> NetworkProtectionDeviceManager.GenerateTunnelConfigurationResult {
+        try await generateTunnelConfiguration(
+            selectionMethod: selectionMethod,
+            includedRoutes: [],
+            excludedRoutes: [],
+            dnsSettings: .default,
+            isKillSwitchEnabled: false,
+            regenerateKey: regenerateKey
+        )
     }
 
 }

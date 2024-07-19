@@ -1,6 +1,5 @@
 //
-//  ContentBlockerRulesManagerTests.swift
-//  DuckDuckGo
+//  ContentBlockerRulesManagerInitialCompilationTests.swift
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -33,18 +32,18 @@ final class CountedFulfillmentTestExpectation: XCTestExpectation {
 }
 
 final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
-    
+
     private static let fakeEmbeddedDataSet = ContentBlockerRulesManagerTests.makeDataSet(tds: ContentBlockerRulesManagerTests.validRules, etag: "\"\(UUID().uuidString)\"")
     private let rulesUpdateListener = RulesUpdateListener()
-    
+
     func testSuccessfulCompilationStoresLastCompiledRules() {
-        
+
         let mockRulesSource = MockSimpleContentBlockerRulesListsSource(trackerData: ContentBlockerRulesManagerTests.makeDataSet(tds: ContentBlockerRulesManagerTests.validRules,
                                                                                                                                 etag: ContentBlockerRulesManagerTests.makeEtag()),
                                                                        embeddedTrackerData: Self.fakeEmbeddedDataSet)
         let mockExceptionsSource = MockContentBlockerRulesExceptionsSource()
         let mockLastCompiledRulesStore = MockLastCompiledRulesStore()
-        
+
         let exp = expectation(description: "Rules Compiled")
         rulesUpdateListener.onRulesUpdated = { _ in
             exp.fulfill()
@@ -54,23 +53,23 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
         mockLastCompiledRulesStore.onRulesSet = {
             expStore.fulfill()
         }
-        
+
         let cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
                                               exceptionsSource: mockExceptionsSource,
                                               lastCompiledRulesStore: mockLastCompiledRulesStore,
                                               updateListener: rulesUpdateListener)
-        
+
         wait(for: [exp, expStore], timeout: 15.0)
-        
+
         XCTAssertNotNil(mockLastCompiledRulesStore.rules)
         XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.etag, mockRulesSource.trackerData?.etag)
         XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.name, mockRulesSource.ruleListName)
         XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.trackerData, mockRulesSource.trackerData?.tds)
         XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.identifier, cbrm.currentRules.first?.identifier)
     }
-        
+
     func testInitialCompilation_WhenNoChangesToTDS_ShouldNotFetchLastCompiled() {
-        
+
         let mockRulesSource = MockSimpleContentBlockerRulesListsSource(trackerData: ContentBlockerRulesManagerTests.makeDataSet(tds: ContentBlockerRulesManagerTests.validRules,
                                                                                                                                 etag: ContentBlockerRulesManagerTests.makeEtag()),
                                                                        embeddedTrackerData: Self.fakeEmbeddedDataSet)
@@ -90,7 +89,7 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
         mockLastCompiledRulesStore.onRulesGet = {
             XCTFail("Should use rules cached by WebKit")
         }
-        
+
         // simulate the rules have been compiled in the past so the WKContentRuleListStore contains it
         _ = ContentBlockerRulesManager(rulesSource: mockRulesSource,
                                        exceptionsSource: mockExceptionsSource,
@@ -110,7 +109,7 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
         }
 
         wait(for: [exp], timeout: 15.0)
-        
+
         func assertRules(_ rules: [ContentBlockerRulesManager.Rules]) {
             guard let rules = rules.first else { XCTFail("Couldn't get rules"); return }
             XCTAssertEqual(cachedRules.etag, rules.etag)
@@ -183,10 +182,9 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
 
         wait(for: [expCacheLookup, expNext], timeout: 15.0)
     }
-    
-    // swiftlint:disable:next function_body_length
+
     func testInitialCompilation_WhenThereAreChangesToTDS_ShouldBuildRulesUsingLastCompiledRulesAndScheduleRecompilationWithNewSource() {
-        
+
         let oldEtag = ContentBlockerRulesManagerTests.makeEtag()
         let mockRulesSource = MockSimpleContentBlockerRulesListsSource(trackerData: ContentBlockerRulesManagerTests.makeDataSet(tds: ContentBlockerRulesManagerTests.validRules,
                                                                                                                                 etag: oldEtag),
@@ -211,9 +209,9 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
                                                 trackerData: mockRulesSource.trackerData!.tds,
                                                 etag: mockRulesSource.trackerData!.etag,
                                                 identifier: oldIdentifier)
-        
+
         mockLastCompiledRulesStore.rules = [cachedRules]
-        
+
         // simulate the rules have been compiled in the past so the WKContentRuleListStore contains it
         _ = ContentBlockerRulesManager(rulesSource: mockRulesSource,
                                        exceptionsSource: mockExceptionsSource,
@@ -257,16 +255,16 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
 
         wait(for: [expLastCompiledFetched, expRecompiled], timeout: 15.0)
     }
-    
+
     struct MockLastCompiledRules: LastCompiledRules {
-        
+
         var name: String
         var trackerData: TrackerData
         var etag: String
         var identifier: ContentBlockerRulesIdentifier
-    
+
     }
-    
+
     final class MockLastCompiledRulesStore: LastCompiledRulesStore {
 
         var onRulesGet: () -> Void = { }
@@ -283,7 +281,7 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
                 _rules = newValue
             }
         }
-        
+
         func update(with contentBlockerRules: [ContentBlockerRulesManager.Rules]) {
             rules = contentBlockerRules.map { rules in
                 MockLastCompiledRules(name: rules.name,
@@ -292,7 +290,7 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
                                       identifier: rules.identifier)
             }
         }
-        
+
     }
-    
+
 }

@@ -28,6 +28,8 @@ public protocol NetworkProtectionStatusReporter {
     var connectionErrorObserver: ConnectionErrorObserver { get }
     var connectivityIssuesObserver: ConnectivityIssueObserver { get }
     var controllerErrorMessageObserver: ControllerErrorMesssageObserver { get }
+    var dataVolumeObserver: DataVolumeObserver { get }
+    var knownFailureObserver: KnownFailureObserver { get }
 
     func forceRefresh()
 }
@@ -39,13 +41,13 @@ public struct NetworkProtectionStatusServerInfo: Codable, Equatable {
 
     /// The server location.  A `nil` location means unknown
     ///
-    public let serverLocation: String?
+    public let serverLocation: NetworkProtectionServerInfo.ServerAttributes?
 
     /// The server address.  A `nil` address means unknown.
     ///
     public let serverAddress: String?
 
-    public init(serverLocation: String?, serverAddress: String?) {
+    public init(serverLocation: NetworkProtectionServerInfo.ServerAttributes?, serverAddress: String?) {
         self.serverLocation = serverLocation
         self.serverAddress = serverAddress
     }
@@ -68,6 +70,8 @@ public final class DefaultNetworkProtectionStatusReporter: NetworkProtectionStat
     public let connectionErrorObserver: ConnectionErrorObserver
     public let connectivityIssuesObserver: ConnectivityIssueObserver
     public let controllerErrorMessageObserver: ControllerErrorMesssageObserver
+    public let dataVolumeObserver: DataVolumeObserver
+    public let knownFailureObserver: KnownFailureObserver
 
     // MARK: - Init & deinit
 
@@ -76,6 +80,8 @@ public final class DefaultNetworkProtectionStatusReporter: NetworkProtectionStat
                 connectionErrorObserver: ConnectionErrorObserver,
                 connectivityIssuesObserver: ConnectivityIssueObserver,
                 controllerErrorMessageObserver: ControllerErrorMesssageObserver,
+                dataVolumeObserver: DataVolumeObserver,
+                knownFailureObserver: KnownFailureObserver,
                 distributedNotificationCenter: DistributedNotificationCenter = .default()) {
 
         self.statusObserver = statusObserver
@@ -83,6 +89,8 @@ public final class DefaultNetworkProtectionStatusReporter: NetworkProtectionStat
         self.connectionErrorObserver = connectionErrorObserver
         self.connectivityIssuesObserver = connectivityIssuesObserver
         self.controllerErrorMessageObserver = controllerErrorMessageObserver
+        self.dataVolumeObserver = dataVolumeObserver
+        self.knownFailureObserver = knownFailureObserver
         self.distributedNotificationCenter = distributedNotificationCenter
 
         start()

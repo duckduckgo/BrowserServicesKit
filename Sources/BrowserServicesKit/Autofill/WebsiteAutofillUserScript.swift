@@ -1,6 +1,5 @@
 //
 //  WebsiteAutofillUserScript.swift
-//  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -56,7 +55,7 @@ public class WebsiteAutofillUserScript: AutofillUserScript {
         case closeAutofillParent
         case getSelectedCredentials
         case showAutofillParent
-    }    
+    }
 
     public override func messageHandlerFor(_ messageName: String) -> MessageHandler? {
         guard let websiteAutofillMessageName = WebsiteAutofillMessageName(rawValue: messageName) else {
@@ -92,7 +91,7 @@ public class WebsiteAutofillUserScript: AutofillUserScript {
         }
         // Sets the last message host, so we can check when it messages back
         lastOpenHost = hostProvider.hostForMessage(message)
-        
+
         currentOverlayTab.websiteAutofillUserScript(self,
                                                     willDisplayOverlayAtClick: clickPoint,
                                                     serializedInputContext: serializedInputContext,

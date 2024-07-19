@@ -1,6 +1,5 @@
 //
 //  RemoteMessagingConfigMatcher.swift
-//  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -22,20 +21,26 @@ import Foundation
 
 public struct RemoteMessagingConfigMatcher {
 
-    private let appAttributeMatcher: AppAttributeMatcher
-    private let deviceAttributeMatcher: DeviceAttributeMatcher
-    private let userAttributeMatcher: UserAttributeMatcher
+    private let appAttributeMatcher: AttributeMatching
+    private let deviceAttributeMatcher: AttributeMatching
+    private let userAttributeMatcher: AttributeMatching
+    private let percentileStore: RemoteMessagingPercentileStoring
     private let dismissedMessageIds: [String]
+    let surveyActionMapper: RemoteMessagingSurveyActionMapping
 
-    private let matchers: [AttributeMatcher]
+    private let matchers: [AttributeMatching]
 
-    public init(appAttributeMatcher: AppAttributeMatcher,
-                deviceAttributeMatcher: DeviceAttributeMatcher = DeviceAttributeMatcher(),
-                userAttributeMatcher: UserAttributeMatcher,
+    public init(appAttributeMatcher: AttributeMatching,
+                deviceAttributeMatcher: AttributeMatching = DeviceAttributeMatcher(),
+                userAttributeMatcher: AttributeMatching,
+                percentileStore: RemoteMessagingPercentileStoring,
+                surveyActionMapper: RemoteMessagingSurveyActionMapping,
                 dismissedMessageIds: [String]) {
         self.appAttributeMatcher = appAttributeMatcher
         self.deviceAttributeMatcher = deviceAttributeMatcher
         self.userAttributeMatcher = userAttributeMatcher
+        self.percentileStore = percentileStore
+        self.surveyActionMapper = surveyActionMapper
         self.dismissedMessageIds = dismissedMessageIds
 
         matchers = [appAttributeMatcher, deviceAttributeMatcher, userAttributeMatcher]
@@ -50,8 +55,8 @@ public struct RemoteMessagingConfigMatcher {
                 return message
             }
 
-            let matchingResult = evaluateMatchingRules(message.matchingRules, fromRules: rules)
-            let exclusionResult = evaluateExclusionRules(message.exclusionRules, fromRules: rules)
+            let matchingResult = evaluateMatchingRules(message.matchingRules, messageID: message.id, fromRules: rules)
+            let exclusionResult = evaluateExclusionRules(message.exclusionRules, messageID: message.id, fromRules: rules)
 
             if matchingResult == .match && exclusionResult == .fail {
                 return message
@@ -61,16 +66,26 @@ public struct RemoteMessagingConfigMatcher {
         return nil
     }
 
-    func evaluateMatchingRules(_ matchingRules: [Int], fromRules rules: [Int: [MatchingAttribute]]) -> EvaluationResult {
+    func evaluateMatchingRules(_ matchingRules: [Int], messageID: String, fromRules rules: [RemoteConfigRule]) -> EvaluationResult {
         var result: EvaluationResult = .match
 
         for rule in matchingRules {
-            guard let matchingAttributes = rules[rule] else {
+            guard let matchingRule = rules.first(where: { $0.id == rule }) else {
                 return .nextMessage
             }
+
+            if let percentile = matchingRule.targetPercentile, let messagePercentile = percentile.before {
+                let userPercentile = percentileStore.percentile(forMessageId: messageID)
+
+                if userPercentile > messagePercentile {
+                    os_log("Matching rule percentile check failed for message with ID %s", log: .remoteMessaging, type: .debug, messageID)
+                    return .fail
+                }
+            }
+
             result = .match
 
-            for attribute in matchingAttributes {
+            for attribute in matchingRule.attributes {
                 result = evaluateAttribute(matchingAttribute: attribute)
                 if result == .fail || result == .nextMessage {
                     os_log("First failing matching attribute %s", log: .remoteMessaging, type: .debug, String(describing: attribute))
@@ -85,16 +100,26 @@ public struct RemoteMessagingConfigMatcher {
         return result
     }
 
-    func evaluateExclusionRules(_ exclusionRules: [Int], fromRules rules: [Int: [MatchingAttribute]]) -> EvaluationResult {
+    func evaluateExclusionRules(_ exclusionRules: [Int], messageID: String, fromRules rules: [RemoteConfigRule]) -> EvaluationResult {
         var result: EvaluationResult = .fail
 
         for rule in exclusionRules {
-            guard let attributes = rules[rule] else {
+            guard let matchingRule = rules.first(where: { $0.id == rule }) else {
                 return .nextMessage
             }
+
+            if let percentile = matchingRule.targetPercentile, let messagePercentile = percentile.before {
+                let userPercentile = percentileStore.percentile(forMessageId: messageID)
+
+                if userPercentile > messagePercentile {
+                    os_log("Exclusion rule percentile check failed for message with ID %s", log: .remoteMessaging, type: .debug, messageID)
+                    return .fail
+                }
+            }
+
             result = .fail
 
-            for attribute in attributes {
+            for attribute in matchingRule.attributes {
                 result = evaluateAttribute(matchingAttribute: attribute)
                 if result == .fail || result == .nextMessage {
                     os_log("First failing exclusion attribute %s", log: .remoteMessaging, type: .debug, String(describing: attribute))

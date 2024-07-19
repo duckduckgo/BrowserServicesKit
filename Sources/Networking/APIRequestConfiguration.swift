@@ -1,6 +1,5 @@
 //
 //  APIRequestConfiguration.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -21,9 +20,9 @@ import Foundation
 import Common
 
 extension APIRequest {
-    
+
     public struct Configuration<QueryParams: Collection> where QueryParams.Element == (key: String, value: String) {
-        
+
         let url: URL
         let method: HTTPMethod
         let queryParameters: QueryParams
@@ -33,7 +32,7 @@ extension APIRequest {
         let timeoutInterval: TimeInterval
         let attribution: URLRequestAttribution?
         let cachePolicy: URLRequest.CachePolicy?
-        
+
         public init(url: URL,
                     method: HTTPMethod = .get,
                     queryParameters: QueryParams = [],
@@ -53,7 +52,7 @@ extension APIRequest {
             self.attribution = attribution
             self.cachePolicy = cachePolicy
         }
-        
+
         var request: URLRequest {
             let url = url.appendingParameters(queryParameters, allowedReservedCharacters: allowedQueryReservedCharacters)
             var request = URLRequest(url: url, timeoutInterval: timeoutInterval)
@@ -70,7 +69,7 @@ extension APIRequest {
             }
             return request
         }
-        
+
     }
-    
+
 }

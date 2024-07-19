@@ -122,11 +122,20 @@ struct AccountManager: AccountManaging {
             throw SyncError.unableToDecodeResponse("Failed to decode devices")
         }
 
-        return try result.devices?.entries.map {
-            RegisteredDevice(id: $0.id,
-                             name: try crypter.base64DecodeAndDecrypt($0.name, using: account.primaryKey),
-                             type: try crypter.base64DecodeAndDecrypt($0.type, using: account.primaryKey))
-        } ?? []
+        var devices = [RegisteredDevice]()
+        if let entries = result.devices?.entries {
+            for device in entries {
+                do {
+                    let name = try crypter.base64DecodeAndDecrypt(device.name, using: account.primaryKey)
+                    let type = try crypter.base64DecodeAndDecrypt(device.type, using: account.primaryKey)
+                    devices.append(RegisteredDevice(id: device.id, name: name, type: type))
+                } catch {
+                    // Invalid devices should be automatically logged out
+                    try await logout(deviceId: device.id, token: token)
+                }
+            }
+        }
+        return devices
     }
 
     func refreshToken(_ account: SyncAccount, deviceName: String) async throws -> LoginResult {
@@ -143,17 +152,12 @@ struct AccountManager: AccountManaging {
             throw SyncError.noToken
         }
 
-        let devices = try await fetchDevicesForAccount(account)
+        let request = api.createAuthenticatedJSONRequest(url: endpoints.deleteAccount, method: .POST, authToken: token)
+        let result = try await request.execute()
+        let statusCode = result.response.statusCode
 
-        // Logout other devices first or the call will fail
-        for device in devices.filter({ $0.id != account.deviceId }) {
-            try await logout(deviceId: device.id, token: token)
-        }
-
-        // This is the last device, the backend will perge the data after this
-        //  An explicit delete account endpoint might be better though
-        if let thisDevice = devices.first(where: { $0.id == account.deviceId }) {
-            try await logout(deviceId: thisDevice.id, token: token)
+        guard statusCode == 204 else {
+            throw SyncError.unexpectedStatusCode(statusCode)
         }
     }
 

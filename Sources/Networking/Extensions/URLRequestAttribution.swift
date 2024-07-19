@@ -1,6 +1,5 @@
 //
 //  URLRequestAttribution.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -21,11 +20,11 @@ import Foundation
 import Common
 
 public enum URLRequestAttribution {
-    
+
     case unattributed
     case developer
     case user
-    
+
     @available(iOS 15.0, macOS 12.0, *)
     public var urlRequestAttribution: URLRequest.Attribution? {
         switch self {
@@ -37,5 +36,5 @@ public enum URLRequestAttribution {
             return nil
         }
     }
-    
+
 }

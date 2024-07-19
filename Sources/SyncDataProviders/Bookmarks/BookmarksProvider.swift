@@ -19,16 +19,49 @@
 import Foundation
 import Bookmarks
 import Combine
+import Common
 import CoreData
 import DDGSync
 import Persistence
 
-// swiftlint:disable line_length
+public struct FaviconsFetcherInput {
+    public var modifiedBookmarksUUIDs: Set<String>
+    public var deletedBookmarksUUIDs: Set<String>
+}
+
 public final class BookmarksProvider: DataProvider {
 
-    public init(database: CoreDataDatabase, metadataStore: SyncMetadataStore, syncDidUpdateData: @escaping () -> Void) {
+    public private(set) var faviconsFetcherInput: FaviconsFetcherInput = .init(modifiedBookmarksUUIDs: [], deletedBookmarksUUIDs: [])
+
+    public init(
+        database: CoreDataDatabase,
+        metadataStore: SyncMetadataStore,
+        metricsEvents: EventMapping<MetricsEvent>? = nil,
+        log: @escaping @autoclosure () -> OSLog = .disabled,
+        syncDidUpdateData: @escaping () -> Void,
+        syncDidFinish: @escaping (FaviconsFetcherInput?) -> Void
+    ) {
         self.database = database
-        super.init(feature: .init(name: "bookmarks"), metadataStore: metadataStore, syncDidUpdateData: syncDidUpdateData)
+        self.metricsEvents = metricsEvents
+        super.init(feature: .init(name: "bookmarks"), metadataStore: metadataStore, log: log(), syncDidUpdateData: syncDidUpdateData)
+        self.syncDidFinish = { [weak self] in
+            syncDidFinish(self?.faviconsFetcherInput)
+        }
+    }
+
+    public override func fetchDescriptionsForObjectsThatFailedValidation() -> [String] {
+        guard let lastSyncLocalTimestamp else {
+            return []
+        }
+
+        let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        var titles: [String] = []
+
+        context.performAndWait {
+            titles = BookmarkUtils.fetchTitlesForBookmarks(modifiedBefore: lastSyncLocalTimestamp, in: context)
+        }
+        return titles
     }
 
     // MARK: - DataProviding
@@ -43,6 +76,7 @@ public final class BookmarksProvider: DataProvider {
             let bookmarks = (try? context.fetch(fetchRequest)) ?? []
             for bookmark in bookmarks {
                 bookmark.modifiedAt = Date()
+                bookmark.lastChildrenArrayReceivedFromSync = nil
             }
 
             do {
@@ -64,7 +98,22 @@ public final class BookmarksProvider: DataProvider {
         let encryptionKey = try crypter.fetchSecretKey()
         context.performAndWait {
             let bookmarks = BookmarkUtils.fetchModifiedBookmarks(context)
-            syncableBookmarks = bookmarks.compactMap { try? Syncable(bookmark: $0, encryptedUsing: { try crypter.encryptAndBase64Encode($0, using: encryptionKey)}) }
+            syncableBookmarks = bookmarks.compactMap { bookmarkEntity in
+                do {
+                    return try Syncable(bookmark: bookmarkEntity, encryptedUsing: { try crypter.encryptAndBase64Encode($0, using: encryptionKey)})
+                } catch {
+                    if case Syncable.SyncableBookmarkError.validationFailed = error {
+                        os_log(
+                            .error,
+                            log: log,
+                            "Validation failed for bookmark %{private}s with title: %{private}s",
+                            bookmarkEntity.uuid ?? "",
+                            bookmarkEntity.title.flatMap { String($0.prefix(100)) } ?? ""
+                        )
+                    }
+                    return nil
+                }
+            }
         }
         return syncableBookmarks
     }
@@ -79,7 +128,6 @@ public final class BookmarksProvider: DataProvider {
 
     // MARK: - Internal
 
-    // swiftlint:disable:next function_parameter_count
     func handleSyncResponse(isInitial: Bool, sent: [Syncable], received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
         var saveError: Error?
 
@@ -95,10 +143,13 @@ public final class BookmarksProvider: DataProvider {
                         clientTimestamp: clientTimestamp,
                         context: context,
                         crypter: crypter,
-                        deduplicateEntities: isInitial
+                        deduplicateEntities: isInitial,
+                        metricsEvents: metricsEvents
                     )
                     let idsOfItemsToClearModifiedAt = cleanUpSentItems(sent, receivedUUIDs: Set(responseHandler.receivedByUUID.keys), clientTimestamp: clientTimestamp, in: context)
                     try responseHandler.processReceivedBookmarks()
+                    faviconsFetcherInput.modifiedBookmarksUUIDs = responseHandler.idsOfBookmarksWithModifiedURLs
+                    faviconsFetcherInput.deletedBookmarksUUIDs = responseHandler.idsOfDeletedBookmarks
 
 #if DEBUG
                     willSaveContextAfterApplyingSyncResponse()
@@ -127,9 +178,12 @@ public final class BookmarksProvider: DataProvider {
         }
 
         if let serverTimestamp {
-            lastSyncTimestamp = serverTimestamp
+            updateSyncTimestamps(server: serverTimestamp, local: clientTimestamp)
             syncDidUpdateData()
+        } else {
+            lastSyncLocalTimestamp = clientTimestamp
         }
+        syncDidFinish()
     }
 
     func cleanUpSentItems(_ sent: [Syncable], receivedUUIDs: Set<String>, clientTimestamp: Date, in context: NSManagedObjectContext) -> Set<String> {
@@ -145,10 +199,17 @@ public final class BookmarksProvider: DataProvider {
             if let modifiedAt = bookmark.modifiedAt, modifiedAt > clientTimestamp {
                 continue
             }
-            let isLocalChangeRejectedBySync: Bool = bookmark.uuid.flatMap { receivedUUIDs.contains($0) } == true
-            if bookmark.isPendingDeletion, !isLocalChangeRejectedBySync {
+            let hasNewerVersionOnServer: Bool = bookmark.uuid.flatMap { receivedUUIDs.contains($0) } == true
+            if bookmark.isPendingDeletion, !hasNewerVersionOnServer {
                 context.delete(bookmark)
             } else {
+                if !hasNewerVersionOnServer, bookmark.isFolder {
+                    if bookmark.uuid.flatMap(BookmarkEntity.isValidFavoritesFolderID) == true {
+                        bookmark.updateLastChildrenSyncPayload(with: bookmark.favoritesArray.compactMap(\.uuid))
+                    } else {
+                        bookmark.updateLastChildrenSyncPayload(with: bookmark.childrenArray.compactMap(\.uuid))
+                    }
+                }
                 bookmark.modifiedAt = nil
                 if let uuid = bookmark.uuid {
                     idsOfItemsToClearModifiedAt.insert(uuid)
@@ -182,8 +243,9 @@ public final class BookmarksProvider: DataProvider {
     private func clearModifiedAtAndSaveContext(uuids: Set<String>, clientTimestamp: Date, in context: NSManagedObjectContext) throws {
         let insertedObjects = Array(context.insertedObjects).compactMap { $0 as? BookmarkEntity }
         let updatedObjects = Array(context.updatedObjects.subtracting(context.deletedObjects)).compactMap { $0 as? BookmarkEntity }
+        let modifiedObjects = insertedObjects + updatedObjects
 
-        (insertedObjects + updatedObjects).forEach { bookmarkEntity in
+        modifiedObjects.forEach { bookmarkEntity in
             if let uuid = bookmarkEntity.uuid, uuids.contains(uuid) {
                 bookmarkEntity.shouldManageModifiedAt = false
                 if let modifiedAt = bookmarkEntity.modifiedAt, modifiedAt < clientTimestamp {
@@ -192,9 +254,10 @@ public final class BookmarksProvider: DataProvider {
             }
         }
         try context.save()
-    }
+     }
 
     private let database: CoreDataDatabase
+    private let metricsEvents: EventMapping<MetricsEvent>?
 
     enum Const {
         static let maxContextSaveRetries = 5
@@ -207,4 +270,3 @@ public final class BookmarksProvider: DataProvider {
 #endif
 
 }
-// swiftlint:enable line_length

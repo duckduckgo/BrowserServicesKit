@@ -1,6 +1,5 @@
 //
 //  CredentialsProvider.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -20,6 +19,7 @@
 import Foundation
 import BrowserServicesKit
 import Combine
+import Common
 import DDGSync
 import GRDB
 import SecureStorage
@@ -28,19 +28,22 @@ public final class CredentialsProvider: DataProvider {
 
     public init(
         secureVaultFactory: AutofillVaultFactory = AutofillSecureVaultFactory,
-        secureVaultErrorReporter: SecureVaultErrorReporting,
+        secureVaultErrorReporter: SecureVaultReporting,
         metadataStore: SyncMetadataStore,
+        metricsEvents: EventMapping<MetricsEvent>? = nil,
+        log: @escaping @autoclosure () -> OSLog = .disabled,
         syncDidUpdateData: @escaping () -> Void
     ) throws {
         self.secureVaultFactory = secureVaultFactory
         self.secureVaultErrorReporter = secureVaultErrorReporter
-        super.init(feature: .init(name: "credentials"), metadataStore: metadataStore, syncDidUpdateData: syncDidUpdateData)
+        self.metricsEvents = metricsEvents
+        super.init(feature: .init(name: "credentials"), metadataStore: metadataStore, log: log(), syncDidUpdateData: syncDidUpdateData)
     }
 
     // MARK: - DataProviding
 
     public override func prepareForFirstSync() throws {
-        let secureVault = try secureVaultFactory.makeVault(errorReporter: secureVaultErrorReporter)
+        let secureVault = try secureVaultFactory.makeVault(reporter: secureVaultErrorReporter)
         try secureVault.inDatabaseTransaction { database in
 
             let accountIds = try Row.fetchAll(
@@ -76,15 +79,35 @@ public final class CredentialsProvider: DataProvider {
         }
     }
 
+    public override func fetchDescriptionsForObjectsThatFailedValidation() throws -> [String] {
+        guard let lastSyncLocalTimestamp else {
+            return []
+        }
+
+        let secureVault = try secureVaultFactory.makeVault(reporter: secureVaultErrorReporter)
+        return try secureVault.accountTitlesForSyncableCredentials(modifiedBefore: lastSyncLocalTimestamp)
+    }
+
     public override func fetchChangedObjects(encryptedUsing crypter: Crypting) async throws -> [Syncable] {
-        let secureVault = try secureVaultFactory.makeVault(errorReporter: secureVaultErrorReporter)
+        let secureVault = try secureVaultFactory.makeVault(reporter: secureVaultErrorReporter)
         let syncableCredentials = try secureVault.modifiedSyncableCredentials()
         let encryptionKey = try crypter.fetchSecretKey()
-        return try syncableCredentials.map { credentials in
-            try Syncable.init(
-                syncableCredentials: credentials,
-                encryptedUsing: { try crypter.encryptAndBase64Encode($0, using: encryptionKey) }
-            )
+        return try syncableCredentials.compactMap { credentials in
+            do {
+                return try Syncable(
+                    syncableCredentials: credentials,
+                    encryptedUsing: { try crypter.encryptAndBase64Encode($0, using: encryptionKey) }
+                )
+            } catch Syncable.SyncableCredentialError.validationFailed {
+                os_log(
+                    .error,
+                    log: log,
+                    "Validation failed for credential %{private}s with title: %{private}s",
+                    credentials.metadata.uuid,
+                    credentials.account?.title.flatMap { String($0.prefix(100)) } ?? ""
+                )
+                return nil
+            }
         }
     }
 
@@ -115,7 +138,6 @@ public final class CredentialsProvider: DataProvider {
 
     // MARK: - Internal
 
-    // swiftlint:disable:next function_body_length function_parameter_count
     func handleSyncResponse(isInitial: Bool,
                             sent: [Syncable],
                             received: [Syncable],
@@ -124,7 +146,7 @@ public final class CredentialsProvider: DataProvider {
                             crypter: Crypting) async throws {
         var saveError: Error?
 
-        let secureVault = try secureVaultFactory.makeVault(errorReporter: secureVaultErrorReporter)
+        let secureVault = try secureVaultFactory.makeVault(reporter: secureVaultErrorReporter)
         let clientTimestampMilliseconds = clientTimestamp.withMillisecondPrecision
         var saveAttemptsLeft = Const.maxContextSaveRetries
 
@@ -138,7 +160,9 @@ public final class CredentialsProvider: DataProvider {
                         secureVault: secureVault,
                         database: database,
                         crypter: crypter,
-                        deduplicateEntities: isInitial)
+                        deduplicateEntities: isInitial,
+                        metricsEvents: self.metricsEvents
+                    )
 
                     let idsOfItemsToClearModifiedAt = try self.cleanUpSentItems(
                         sent,
@@ -179,9 +203,17 @@ public final class CredentialsProvider: DataProvider {
         }
 
         if let serverTimestamp {
-            lastSyncTimestamp = serverTimestamp
+            updateSyncTimestamps(server: serverTimestamp, local: clientTimestamp)
             syncDidUpdateData()
+        } else {
+            lastSyncLocalTimestamp = clientTimestamp
         }
+
+        if !received.isEmpty {
+            NotificationCenter.default.post(name: .autofillSaveEvent, object: nil, userInfo: nil)
+        }
+
+        syncDidFinish()
     }
 
     func cleanUpSentItems(_ sent: [Syncable], receivedUUIDs: Set<String>, clientTimestamp: Date, in database: Database) throws -> Set<String> {
@@ -200,8 +232,8 @@ public final class CredentialsProvider: DataProvider {
             if let modifiedAt = metadataRecord.lastModified, modifiedAt.compareWithMillisecondPrecision(to: clientTimestamp) == .orderedDescending {
                 continue
             }
-            let isLocalChangeRejectedBySync: Bool = receivedUUIDs.contains(metadataRecord.uuid)
-            if metadataRecord.objectId == nil, !isLocalChangeRejectedBySync {
+            let hasNewerVersionOnServer: Bool = receivedUUIDs.contains(metadataRecord.uuid)
+            if metadataRecord.objectId == nil, !hasNewerVersionOnServer {
                 try metadataRecord.delete(database)
             } else {
                 idsOfItemsToClearModifiedAt.insert(metadataRecord.uuid)
@@ -229,7 +261,8 @@ public final class CredentialsProvider: DataProvider {
     // MARK: - Private
 
     private let secureVaultFactory: AutofillVaultFactory
-    private let secureVaultErrorReporter: SecureVaultErrorReporting
+    private let secureVaultErrorReporter: SecureVaultReporting
+    private let metricsEvents: EventMapping<MetricsEvent>?
 
     enum Const {
         static let maxContextSaveRetries = 5

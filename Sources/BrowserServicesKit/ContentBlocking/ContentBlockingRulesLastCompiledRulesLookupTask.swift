@@ -1,6 +1,5 @@
 //
 //  ContentBlockingRulesLastCompiledRulesLookupTask.swift
-//  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -22,16 +21,16 @@ import WebKit
 import TrackerRadarKit
 
 extension ContentBlockerRulesManager {
-    
+
     final class LastCompiledRulesLookupTask {
-        
+
         struct CachedRulesList {
             let name: String
             let rulesList: WKContentRuleList
             let tds: TrackerData
             let rulesIdentifier: ContentBlockerRulesIdentifier
         }
-        
+
         private let sourceRules: [ContentBlockerRulesList]
         private let lastCompiledRules: [LastCompiledRules]
 

@@ -28,10 +28,11 @@ import Common
 /// the HTTPs port (443) both with and without using the tunnel.  The tunnel connection will be considered to be disconnected
 /// whenever the regular connection works fine but the tunnel connection doesn't.
 ///
+@MainActor
 final class NetworkProtectionConnectionTester {
     enum Result {
         case connected
-        case reconnected
+        case reconnected(failureCount: Int)
         case disconnected(failureCount: Int)
     }
 
@@ -44,24 +45,13 @@ final class NetworkProtectionConnectionTester {
     /// The reason why this is necessary is that the tester may be stopped while the connection tests are already executing, in a bit
     /// of a race condition which could result in the tester returning results when it's already stopped.
     ///
-    private actor TimerRunCoordinator {
-        private(set) var isRunning = false
-
-        func start() {
-            isRunning = true
-        }
-
-        func stop() {
-            isRunning = false
-        }
-    }
+    private(set) var isRunning = false
 
     static let connectionTestQueue = DispatchQueue(label: "com.duckduckgo.NetworkProtectionConnectionTester.connectionTestQueue")
     static let monitorQueue = DispatchQueue(label: "com.duckduckgo.NetworkProtectionConnectionTester.monitorQueue")
     static let endpoint = NWEndpoint.hostPort(host: .name("www.duckduckgo.com", nil), port: .https)
 
-    private var timer: DispatchSourceTimer?
-    private let timerRunCoordinator = TimerRunCoordinator()
+    private var task: Task<Never, Error>?
 
     // MARK: - Dispatch Queue
 
@@ -89,18 +79,18 @@ final class NetworkProtectionConnectionTester {
 
     // MARK: - Logging
 
-    private let log: OSLog
+    private nonisolated let log: OSLog
 
     // MARK: - Test result handling
 
     private var failureCount = 0
-    private let resultHandler: @MainActor (Result, Bool) -> Void
+    private let resultHandler: @MainActor (Result) -> Void
 
     private var simulateFailure = false
 
     // MARK: - Init & deinit
 
-    init(timerQueue: DispatchQueue, log: OSLog, resultHandler: @escaping @MainActor (Result, Bool) -> Void) {
+    init(timerQueue: DispatchQueue, log: OSLog, resultHandler: @escaping @MainActor (Result) -> Void) {
         self.timerQueue = timerQueue
         self.log = log
         self.resultHandler = resultHandler
@@ -110,8 +100,7 @@ final class NetworkProtectionConnectionTester {
 
     deinit {
         os_log("[-] %{public}@", log: .networkProtectionMemoryLog, type: .debug, String(describing: self))
-
-        cancelTimerImmediately()
+        task?.cancel()
     }
 
     // MARK: - Testing
@@ -123,10 +112,12 @@ final class NetworkProtectionConnectionTester {
     // MARK: - Starting & Stopping the tester
 
     func start(tunnelIfName: String, testImmediately: Bool) async throws {
-        guard await !timerRunCoordinator.isRunning else {
+        guard !isRunning else {
             os_log("Will not start the connection tester as it's already running", log: log)
             return
         }
+
+        isRunning = true
 
         os_log("🟢 Starting connection tester (testImmediately: %{public}@)", log: log, String(reflecting: testImmediately))
         let tunnelInterface = try await networkInterface(forInterfaceNamed: tunnelIfName)
@@ -140,9 +131,10 @@ final class NetworkProtectionConnectionTester {
         }
     }
 
-    func stop() async {
+    func stop() {
         os_log("🔴 Stopping connection tester", log: log)
-        await stopScheduledTimer()
+        stopScheduledTimer()
+        isRunning = false
     }
 
     // MARK: - Obtaining the interface
@@ -176,66 +168,35 @@ final class NetworkProtectionConnectionTester {
     // MARK: - Timer scheduling
 
     private func scheduleTimer(testImmediately: Bool) async throws {
-        await stopScheduledTimer()
-
-        await timerRunCoordinator.start()
+        stopScheduledTimer()
 
         if testImmediately {
             do {
-                try await testConnection(isStartupTest: true)
+                try await testConnection()
             } catch {
                 os_log("Rethrowing exception", log: log)
                 throw error
             }
         }
 
-        let timer = DispatchSource.makeTimerSource(queue: timerQueue)
-        self.timer = timer
-
-        timer.schedule(deadline: .now() + self.intervalBetweenTests, repeating: self.intervalBetweenTests)
-        timer.setEventHandler { [weak self] in
-            guard let testConnection = self?.testConnection(isStartupTest:) else {
-                return
-            }
-
-            Task {
-                // During regular connection tests we don't care about the error thrown
-                // by this method, as it'll be handled through the result handler callback.
-                // The error we're ignoring here is only used when this class is initialized
-                // with an immediate test, to know whether the connection is up while the user
-                // still sees "Connecting..."
-                try? await testConnection(false)
-            }
+        task = Task.periodic(interval: intervalBetweenTests) { [weak self] in
+            // During regular connection tests we don't care about the error thrown
+            // by this method, as it'll be handled through the result handler callback.
+            // The error we're ignoring here is only used when this class is initialized
+            // with an immediate test, to know whether the connection is up while the user
+            // still sees "Connecting..."
+            try? await self?.testConnection()
         }
-
-        timer.setCancelHandler { [weak self] in
-            self?.timer = nil
-        }
-
-        timer.resume()
     }
 
-    private func stopScheduledTimer() async {
-        await timerRunCoordinator.stop()
-
-        cancelTimerImmediately()
-    }
-
-    private func cancelTimerImmediately() {
-        guard let timer = timer else {
-            return
-        }
-
-        if !timer.isCancelled {
-            timer.cancel()
-        }
-
-        self.timer = nil
+    private func stopScheduledTimer() {
+        task?.cancel()
+        task = nil
     }
 
     // MARK: - Testing the connection
 
-    func testConnection(isStartupTest: Bool) async throws {
+    func testConnection() async throws {
         guard let tunnelInterface = tunnelInterface else {
             os_log("No interface to test!", log: log, type: .error)
             return
@@ -258,20 +219,19 @@ final class NetworkProtectionConnectionTester {
         let onlyVPNIsDown = simulateFailure || (!vpnIsConnected && localIsConnected)
         simulateFailure = false
 
-        // After completing the conection tests we check if the tester is still supposed to be running
+        // After completing the connection tests we check if the tester is still supposed to be running
         // to avoid giving results when it should not be running.
-        guard await timerRunCoordinator.isRunning else {
-            os_log("Tester skipped returning results as it was stopped while running the tests", log: log, type: .info)
+        guard isRunning else {
+            os_log("Tester skipped returning results as it was stopped while running the tests", log: log)
             return
         }
 
         if onlyVPNIsDown {
             os_log("👎 VPN is DOWN", log: log)
-            await handleDisconnected(isStartupTest: isStartupTest)
+            handleDisconnected()
         } else {
             os_log("👍 VPN: \(vpnIsConnected ? "UP" : "DOWN") local: \(localIsConnected ? "UP" : "DOWN")", log: log)
-
-            await handleConnected(isStartupTest: isStartupTest)
+            handleConnected()
         }
     }
 
@@ -303,19 +263,18 @@ final class NetworkProtectionConnectionTester {
     // MARK: - Result handling
 
     @MainActor
-    private func handleConnected(isStartupTest: Bool) {
+    private func handleConnected() {
         if failureCount == 0 {
-            resultHandler(.connected, isStartupTest)
+            resultHandler(.connected)
         } else if failureCount > 0 {
+            resultHandler(.reconnected(failureCount: failureCount))
             failureCount = 0
-
-            resultHandler(.reconnected, isStartupTest)
         }
     }
 
     @MainActor
-    private func handleDisconnected(isStartupTest: Bool) {
+    private func handleDisconnected() {
         failureCount += 1
-        resultHandler(.disconnected(failureCount: failureCount), isStartupTest)
+        resultHandler(.disconnected(failureCount: failureCount))
     }
 }

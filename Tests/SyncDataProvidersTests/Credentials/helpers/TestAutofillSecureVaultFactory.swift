@@ -1,6 +1,5 @@
 //
-//  TestSecureVaultFactory.swift
-//  DuckDuckGo
+//  TestAutofillSecureVaultFactory.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -26,7 +25,7 @@ extension AutofillVaultFactory {
     static func testFactory(databaseProvider: DefaultAutofillDatabaseProvider) -> AutofillVaultFactory {
         AutofillVaultFactory(makeCryptoProvider: {
             NoOpCryptoProvider()
-        }, makeKeyStoreProvider: {
+        }, makeKeyStoreProvider: { _ in
             let provider = MockKeystoreProvider()
             provider._l1Key = "l1".data(using: .utf8)
             provider._encryptedL2Key = "encrypted".data(using: .utf8)

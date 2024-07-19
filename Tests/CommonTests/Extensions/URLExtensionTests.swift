@@ -17,6 +17,7 @@
 //
 
 import XCTest
+
 @testable import Common
 
 final class URLExtensionTests: XCTestCase {
@@ -27,7 +28,11 @@ final class URLExtensionTests: XCTestCase {
         XCTAssertTrue("ftp://example.com".url!.isValid)
     }
 
-    func test_navigational_urls_are_valid() {
+    func test_navigational_urls_are_valid() throws {
+        if #available(macOS 14, *) {
+            throw XCTSkip("This test can't run on macOS 14 or higher")
+        }
+
         struct TestItem {
             let rawValue: String
             let line: UInt
@@ -68,11 +73,16 @@ final class URLExtensionTests: XCTestCase {
             .init("http://[::]:8080")
         ]
         for item in urls {
+            XCTAssertNotNil(item.url, "URL is nil: \(item.rawValue)")
             XCTAssertTrue(item.url!.isValid, item.rawValue, line: item.line)
         }
     }
 
-    func test_non_valid_urls() {
+    func test_non_valid_urls() throws {
+        if #available(macOS 14, *) {
+            throw XCTSkip("This test can't run on macOS 14 or higher")
+        }
+
         let urls = [
             "about:user:pass@blank",
             "data:user:pass@text/vnd-example+xyz;foo=bar;base64,R0lGODdh",
@@ -87,6 +97,16 @@ final class URLExtensionTests: XCTestCase {
         XCTAssertEqual("example.com".url!.absoluteString, "http://example.com")
         XCTAssertEqual("localhost".url!.absoluteString, "http://localhost")
         XCTAssertNil("localdomain".url)
+    }
+
+    func testThatIPv4AddressMustContainFourOctets() {
+        XCTAssertNil("1.4".url)
+        XCTAssertNil("1.4/3.4".url)
+        XCTAssertNil("1.0.4".url)
+        XCTAssertNil("127.0.1".url)
+
+        XCTAssertEqual("127.0.0.1".url?.absoluteString, "http://127.0.0.1")
+        XCTAssertEqual("1.0.0.4/3.4".url?.absoluteString, "http://1.0.0.4/3.4")
     }
 
     func testWhenNakedIsCalled_ThenURLWithNoSchemeWWWPrefixAndLastSlashIsReturned() {
@@ -104,7 +124,11 @@ final class URLExtensionTests: XCTestCase {
         XCTAssert(rootUrl.isRoot)
     }
 
-    func testBasicAuthCredential() {
+    func testBasicAuthCredential() throws {
+        if #available(macOS 14, *) {
+            throw XCTSkip("This test can't run on macOS 14 or higher")
+        }
+
         struct TestItem {
             let url: String
             let user: String?
@@ -141,7 +165,11 @@ final class URLExtensionTests: XCTestCase {
         }
     }
 
-    func testURLRemovingBasicAuthCredential() {
+    func testURLRemovingBasicAuthCredential() throws {
+        if #available(macOS 14, *) {
+            throw XCTSkip("This test can't run on macOS 14 or higher")
+        }
+
         struct TestItem {
             let url: String
             let removingCredential: String
@@ -349,61 +377,61 @@ final class URLExtensionTests: XCTestCase {
     }
 
     func testWhenParamExistsThengetParameterReturnsCorrectValue() throws {
-        let url = URL(string: "http://test.com?firstParam=firstValue&secondParam=secondValue")
+        let url = URL(string: "http://test.com?firstParam=firstValue&secondParam=secondValue")!
         let expected = "secondValue"
-        let actual = url?.getParameter(named: "secondParam")
+        let actual = url.getParameter(named: "secondParam")
         XCTAssertEqual(actual, expected)
     }
 
     func testWhenParamDoesNotExistThengetParameterIsNil() throws {
-        let url = URL(string: "http://test.com?firstParam=firstValue&secondParam=secondValue")
-        let result = url?.getParameter(named: "someOtherParam")
+        let url = URL(string: "http://test.com?firstParam=firstValue&secondParam=secondValue")!
+        let result = url.getParameter(named: "someOtherParam")
         XCTAssertNil(result)
     }
 
     func testWhenParamExistsThenRemovingReturnUrlWithoutParam() {
-        let url = URL(string: "http://test.com?firstParam=firstValue&secondParam=secondValue")
-        let expected = URL(string: "http://test.com?secondParam=secondValue")
-        let actual = url?.removeParameter(name: "firstParam")
+        let url = URL(string: "http://test.com?firstParam=firstValue&secondParam=secondValue")!
+        let expected = URL(string: "http://test.com?secondParam=secondValue")!
+        let actual = url.removeParameter(name: "firstParam")
         XCTAssertEqual(actual, expected)
     }
 
     func testWhenParamDoesNotExistThenRemovingReturnsSameUrl() {
-        let url = URL(string: "http://test.com?firstParam=firstValue&secondParam=secondValue")
-        let actual = url?.removeParameter(name: "someOtherParam")
+        let url = URL(string: "http://test.com?firstParam=firstValue&secondParam=secondValue")!
+        let actual = url.removeParameter(name: "someOtherParam")
         XCTAssertEqual(actual, url)
     }
 
     func testWhenRemovingAParamThenRemainingUrlWebPlusesAreEncodedToEnsureTheyAreMaintainedAsSpaces() {
-        let url = URL(string: "http://test.com?firstParam=firstValue&secondParam=45+%2B+5")
-        let expected = URL(string: "http://test.com?secondParam=45+%2B+5")
-        let actual = url?.removeParameter(name: "firstParam")
+        let url = URL(string: "http://test.com?firstParam=firstValue&secondParam=45+%2B+5")!
+        let expected = URL(string: "http://test.com?secondParam=45+%2B+5")!
+        let actual = url.removeParameter(name: "firstParam")
         XCTAssertEqual(actual, expected)
     }
 
     func testWhenRemovingParamsThenRemovingReturnsUrlWithoutParams() {
-        let url = URL(string: "http://test.com?firstParam=firstValue&secondParam=secondValue&thirdParam=thirdValue")
-        let expected = URL(string: "http://test.com?secondParam=secondValue")
-        let actual = url?.removingParameters(named: ["firstParam", "thirdParam"])
+        let url = URL(string: "http://test.com?firstParam=firstValue&secondParam=secondValue&thirdParam=thirdValue")!
+        let expected = URL(string: "http://test.com?secondParam=secondValue")!
+        let actual = url.removingParameters(named: ["firstParam", "thirdParam"])
         XCTAssertEqual(actual, expected)
     }
 
     func testWhenParamsDoNotExistThenRemovingReturnsSameUrl() {
-        let url = URL(string: "http://test.com?firstParam=firstValue&secondParam=secondValue")
-        let actual = url?.removingParameters(named: ["someParam", "someOtherParam"])
+        let url = URL(string: "http://test.com?firstParam=firstValue&secondParam=secondValue")!
+        let actual = url.removingParameters(named: ["someParam", "someOtherParam"])
         XCTAssertEqual(actual, url)
     }
 
     func testWhenEmptyParamArrayIsUsedThenRemovingReturnsSameUrl() {
-        let url = URL(string: "http://test.com?firstParam=firstValue&secondParam=secondValue")
-        let actual = url?.removingParameters(named: [])
+        let url = URL(string: "http://test.com?firstParam=firstValue&secondParam=secondValue")!
+        let actual = url.removingParameters(named: [])
         XCTAssertEqual(actual, url)
     }
 
     func testWhenRemovingParamsThenRemainingUrlWebPlusesAreEncodedToEnsureTheyAreMaintainedAsSpaces() {
-        let url = URL(string: "http://test.com?firstParam=firstValue&secondParam=45+%2B+5")
-        let expected = URL(string: "http://test.com?secondParam=45+%2B+5")
-        let actual = url?.removingParameters(named: ["firstParam"])
+        let url = URL(string: "http://test.com?firstParam=firstValue&secondParam=45+%2B+5")!
+        let expected = URL(string: "http://test.com?secondParam=45+%2B+5")!
+        let actual = url.removingParameters(named: ["firstParam"])
         XCTAssertEqual(actual, expected)
     }
 
@@ -462,6 +490,65 @@ final class URLExtensionTests: XCTestCase {
         XCTAssertFalse("https://youtube.com:123".url!.matches(URLProtectionSpace(host: "youtube.com", port: 1234, protocol: "https", realm: "realm", authenticationMethod: "basic")))
         XCTAssertFalse("https://youtube.com:123".url!.matches(URLProtectionSpace(host: "youtube.com", port: 123, protocol: "http", realm: "realm", authenticationMethod: "basic")))
         XCTAssertFalse("https://www.youtube.com:123".url!.matches(URLProtectionSpace(host: "youtube.com", port: 123, protocol: "https", realm: "realm", authenticationMethod: "basic")))
+    }
+
+    func testWhenCallQueryItemWithNameAndURLHasQueryItemThenReturnQueryItem() throws {
+        // GIVEN
+        let url = try XCTUnwrap(URL(string: "www.duckduckgo.com?origin=test"))
+
+        // WHEN
+        let result = url.getQueryItem(named: "origin")
+
+        // THEN
+        let queryItem = try XCTUnwrap(result)
+        XCTAssertEqual(queryItem.name, "origin")
+        XCTAssertEqual(queryItem.value, "test")
+    }
+
+    func testWhenCallQueryItemWithNameAndURLDoesNotHaveQueryItemThenReturnNil() throws {
+        // GIVEN
+        let url = try XCTUnwrap(URL(string: "www.duckduckgo.com"))
+
+        // WHEN
+        let result = url.getQueryItem(named: "test")
+
+        // THEN
+        XCTAssertNil(result)
+    }
+
+    func testWhenCallAppendingQueryItemThenReturnURLWithQueryItem() throws {
+        // GIVEN
+        let url = try XCTUnwrap(URL(string: "www.duckduckgo.com"))
+
+        // WHEN
+        let result = url.appending(percentEncodedQueryItem: .init(name: "origin", value: "test"))
+
+        // THEN
+        XCTAssertEqual(result.absoluteString, "www.duckduckgo.com?origin=test")
+    }
+
+    func testWhenCallAppendingQueryItemsThenReturnURLWithQueryItems() throws {
+        // GIVEN
+        let queryItems = [URLQueryItem(name: "origin", value: "test"), URLQueryItem(name: "another_item", value: "test_2")]
+        let url = try XCTUnwrap(URL(string: "www.duckduckgo.com"))
+
+        // WHEN
+        let result = url.appending(percentEncodedQueryItems: queryItems)
+
+        // THEN
+        XCTAssertEqual(result.absoluteString, "www.duckduckgo.com?origin=test&another_item=test_2")
+    }
+
+    func testWhenCallGetQueryItemsThenReturnQueryItemsForURL() throws {
+        // GIVEN
+        let url = try XCTUnwrap(URL(string: "www.duckduckgo.com?origin=test&another_item=test_2"))
+
+        // WHEN
+        let result = try XCTUnwrap(url.getQueryItems())
+
+        // THEN
+        XCTAssertEqual(result.first, .init(name: "origin", value: "test"))
+        XCTAssertEqual(result.last, .init(name: "another_item", value: "test_2"))
     }
 
 }

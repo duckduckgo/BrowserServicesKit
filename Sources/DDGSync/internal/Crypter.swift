@@ -42,7 +42,8 @@ struct Crypter: CryptingInternal {
         var encryptionKey: [UInt8] = secretKey.safeBytes
         var rawBytes = Array(value.utf8)
         var encryptedBytes = [UInt8](repeating: 0, count: rawBytes.count + Int(DDGSYNCCRYPTO_ENCRYPTED_EXTRA_BYTES_SIZE.rawValue))
-
+        assert(encryptionKey.count == Int(DDGSYNCCRYPTO_SECRET_KEY_SIZE.rawValue) ||
+               encryptionKey.count == Int(DDGSYNCCRYPTO_PRIMARY_KEY_SIZE.rawValue))
         let result = ddgSyncEncrypt(&encryptedBytes, &rawBytes, UInt64(rawBytes.count), &encryptionKey)
         guard DDGSYNCCRYPTO_OK == result else {
             throw SyncError.failedToEncryptValue("ddgSyncEncrypt failed: \(result)")
@@ -57,7 +58,11 @@ struct Crypter: CryptingInternal {
         guard let data = Data(base64Encoded: value) else {
             throw SyncError.failedToDecryptValue("Unable to decode base64 value")
         }
-
+        assert(decryptionKey.count == Int(DDGSYNCCRYPTO_SECRET_KEY_SIZE.rawValue) ||
+               decryptionKey.count == Int(DDGSYNCCRYPTO_PRIMARY_KEY_SIZE.rawValue))
+        guard data.count >= Int(DDGSYNCCRYPTO_ENCRYPTED_EXTRA_BYTES_SIZE.rawValue) else {
+            throw SyncError.failedToDecryptValue("ddgSyncDecrypt failed: invalid ciphertext length: \(data.count)")
+        }
         var encryptedBytes = data.safeBytes
         var rawBytes = [UInt8](repeating: 0, count: encryptedBytes.count - Int(DDGSYNCCRYPTO_ENCRYPTED_EXTRA_BYTES_SIZE.rawValue))
 
@@ -95,10 +100,12 @@ struct Crypter: CryptingInternal {
 
     func extractLoginInfo(recoveryKey: SyncCode.RecoveryKey) throws -> ExtractedLoginInfo {
         let primaryKeySize = Int(DDGSYNCCRYPTO_PRIMARY_KEY_SIZE.rawValue)
-        
+
         var primaryKeyBytes = [UInt8](repeating: 0, count: primaryKeySize)
         var passwordHashBytes = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_HASH_SIZE.rawValue))
         var strechedPrimaryKeyBytes = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_STRETCHED_PRIMARY_KEY_SIZE.rawValue))
+
+        assert(recoveryKey.primaryKey.count == primaryKeySize)
 
         primaryKeyBytes = recoveryKey.primaryKey.safeBytes
 
@@ -106,7 +113,7 @@ struct Crypter: CryptingInternal {
         guard DDGSYNCCRYPTO_OK == result else {
             throw SyncError.failedToCreateAccountKeys("ddgSyncPrepareForLogin failed: \(result)")
         }
-        
+
         return ExtractedLoginInfo(
             userId: recoveryKey.userId,
             primaryKey: Data(primaryKeyBytes),
@@ -119,10 +126,10 @@ struct Crypter: CryptingInternal {
     func extractSecretKey(protectedSecretKey: Data, stretchedPrimaryKey: Data) throws -> Data {
         var secretKeyBytes = [UInt8](repeating: 0, count: Int(DDGSYNCCRYPTO_SECRET_KEY_SIZE.rawValue))
         var protectedSecretKeyBytes = protectedSecretKey.safeBytes
-        assert(protectedSecretKey.count == DDGSYNCCRYPTO_PROTECTED_SECRET_KEY_SIZE.rawValue)
+        assert(protectedSecretKey.count == Int(DDGSYNCCRYPTO_PROTECTED_SECRET_KEY_SIZE.rawValue))
 
         var stretchedPrimaryKeyBytes = stretchedPrimaryKey.safeBytes
-        assert(stretchedPrimaryKeyBytes.count == DDGSYNCCRYPTO_STRETCHED_PRIMARY_KEY_SIZE.rawValue)
+        assert(stretchedPrimaryKeyBytes.count == Int(DDGSYNCCRYPTO_STRETCHED_PRIMARY_KEY_SIZE.rawValue))
 
         let result = ddgSyncDecrypt(&secretKeyBytes, &protectedSecretKeyBytes, UInt64(protectedSecretKeyBytes.count), &stretchedPrimaryKeyBytes)
         guard DDGSYNCCRYPTO_OK == result else {
@@ -148,6 +155,7 @@ struct Crypter: CryptingInternal {
         var rawBytes = data.safeBytes
         var secretKeyBytes = secretKey.safeBytes
         var encryptedBytes = [UInt8](repeating: 0, count: rawBytes.count + Int(DDGSYNCCRYPTO_SEAL_EXTRA_BYTES_SIZE.rawValue))
+        assert(secretKey.count == Int(DDGSYNCCRYPTO_SECRET_KEY_SIZE.rawValue))
         let result = ddgSyncSeal(&encryptedBytes, &secretKeyBytes, &rawBytes, UInt64(rawBytes.count))
         guard DDGSYNCCRYPTO_OK == result else {
             throw SyncError.failedToSealData("ddgSyncSeal failed: \(result)")
@@ -158,7 +166,8 @@ struct Crypter: CryptingInternal {
     func unseal(encryptedData: Data, publicKey: Data, secretKey: Data) throws -> Data {
         var encryptedBytes = encryptedData.safeBytes
         var rawBytes = [UInt8](repeating: 0, count: encryptedBytes.count - Int(DDGSYNCCRYPTO_SEAL_EXTRA_BYTES_SIZE.rawValue))
-
+        assert(publicKey.count == Int(DDGSYNCCRYPTO_PUBLIC_KEY_SIZE.rawValue))
+        assert(secretKey.count == Int(DDGSYNCCRYPTO_PRIVATE_KEY_SIZE.rawValue))
         var publicKeyBytes = publicKey.safeBytes
         var secretKeyBytes = secretKey.safeBytes
 

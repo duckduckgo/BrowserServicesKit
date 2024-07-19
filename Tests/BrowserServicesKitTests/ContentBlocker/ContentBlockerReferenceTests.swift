@@ -1,6 +1,5 @@
 //
 //  ContentBlockerReferenceTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -108,7 +107,6 @@ class ContentBlockerReferenceTests: XCTestCase {
         waitForExpectations(timeout: 30, handler: nil)
     }
 
-    // swiftlint:disable function_body_length
     private func popTestAndExecute(onTestExecuted: XCTestExpectation) {
 
         guard let test = tests.popLast() else {
@@ -204,6 +202,4 @@ class ContentBlockerReferenceTests: XCTestCase {
             }
         }
     }
-    // swiftlint:enable function_body_length
-    
 }

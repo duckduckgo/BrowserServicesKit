@@ -17,8 +17,8 @@
 //
 
 import Foundation
+import Network
 
-// swiftlint:disable file_length
 extension URL {
 
     public static let empty = (NSURL(string: "") ?? NSURL()) as URL
@@ -34,8 +34,8 @@ extension URL {
             == string2.droppingHashedSuffix().dropping(suffix: "/").appending(string2.hashedSuffix ?? "")
     }
 
-    // URL without the scheme and the '/' suffix of the path
-    // For finding duplicate URLs
+    /// URL without the scheme and the '/' suffix of the path.  
+    /// Useful for finding duplicate URLs
     public var naked: URL? {
         guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else { return self }
         components.scheme = nil
@@ -59,7 +59,7 @@ extension URL {
         components.password = nil
         return components.url
     }
-    
+
     public var isRoot: Bool {
         (path.isEmpty || path == "/") &&
         query == nil &&
@@ -73,13 +73,13 @@ extension URL {
                        host: self.host ?? "",
                        port: self.port ?? 0)
     }
-    
+
     public func isPart(ofDomain domain: String) -> Bool {
         guard let host = host else { return false }
         return host == domain || host.hasSuffix(".\(domain)")
     }
 
-    public struct NavigationalScheme: RawRepresentable, Hashable {
+    public struct NavigationalScheme: RawRepresentable, Hashable, Sendable {
         public let rawValue: String
 
         public static let separator = "://"
@@ -112,7 +112,7 @@ extension URL {
         public static var schemesWithRemovableBasicAuth: [NavigationalScheme] {
             return [.http, .https, .ftp, .file]
         }
-        
+
         public static var hypertextSchemes: [NavigationalScheme] {
             return [.http, .https]
         }
@@ -158,10 +158,9 @@ extension URL {
             s = scheme.separated() + s.dropFirst(scheme.separated().count - 1)
         }
 
-#if os(macOS)
         let url: URL?
         let urlWithScheme: URL?
-        if #available(macOS 14.0, *) {
+        if #available(macOS 14.0, iOS 17.0, *) {
             // Making sure string is strictly valid according to the RFC
             url = URL(string: s, encodingInvalidCharacters: false)
             urlWithScheme = URL(string: NavigationalScheme.http.separated() + s, encodingInvalidCharacters: false)
@@ -169,10 +168,6 @@ extension URL {
             url = URL(string: s)
             urlWithScheme = URL(string: NavigationalScheme.http.separated() + s)
         }
-#else
-        let url = URL(string: s)
-        let urlWithScheme = URL(string: NavigationalScheme.http.separated() + s)
-#endif
 
         if let url {
             // if URL has domain:port or user:password@domain mistakengly interpreted as a scheme
@@ -193,6 +188,12 @@ extension URL {
                 guard hostname.contains(".") || String(hostname) == .localhost else {
                     // could be a local domain but user needs to use the protocol to specify that
                     return nil
+                }
+                if IPv4Address(String(hostname)) != nil {
+                    // Require 4 octets specified explicitly for an IPv4 address (avoid 1.4 -> 1.0.0.4 expansion)
+                    guard hostname.split(separator: ".").count == 4 else {
+                        return nil
+                    }
                 }
             } else {
                 return nil
@@ -240,7 +241,6 @@ extension URL {
         self.init(string: url)
     }
 
-    // swiftlint:disable:next large_tuple
     private static func fixupAndSplitURLString(_ s: String) -> (authData: String.SubSequence?, domainAndPath: String.SubSequence, query: String)? {
         let urlAndFragment = s.split(separator: "#", maxSplits: 1)
         guard !urlAndFragment.isEmpty else { return nil }
@@ -284,15 +284,28 @@ extension URL {
                 domainAndPath: urlAndQuery[0],
                 query: query)
     }
-    
+
     public func replacing(host: String?) -> URL? {
         guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else { return self }
         components.host = host
         return components.url
     }
-    
+
+    public func appending(_ path: String) -> URL {
+        if #available(macOS 13.0, iOS 16.0, *) {
+            return appending(path: path)
+        } else {
+            return appendingPathComponent(path)
+        }
+    }
+
+    /// returns true if URLs are equal except the #fragment part
+    public func isSameDocument(_ other: URL) -> Bool {
+        self.absoluteString.droppingHashedSuffix() == other.absoluteString.droppingHashedSuffix()
+    }
+
     // MARK: - HTTP/HTTPS
-    
+
     public enum URLProtocol: String {
         case http
         case https
@@ -308,20 +321,20 @@ extension URL {
         components.scheme = URLProtocol.https.rawValue
         return components.url
     }
-    
+
     public var isHttp: Bool {
         scheme == "http"
     }
-    
+
     public var isHttps: Bool {
         scheme == "https"
     }
 
     // MARK: - Parameters
-    
+
     public func appendingParameters<QueryParams: Collection>(_ parameters: QueryParams, allowedReservedCharacters: CharacterSet? = nil) -> URL
     where QueryParams.Element == (key: String, value: String) {
-        
+
         return parameters.reduce(self) { partialResult, parameter in
             partialResult.appendingParameter(
                 name: parameter.key,
@@ -339,26 +352,37 @@ extension URL {
     }
 
     public func appending(percentEncodedQueryItem: URLQueryItem) -> URL {
+        appending(percentEncodedQueryItems: [percentEncodedQueryItem])
+    }
+
+    public func appending(percentEncodedQueryItems: [URLQueryItem]) -> URL {
         guard var components = URLComponents(url: self, resolvingAgainstBaseURL: true) else { return self }
 
-        var percentEncodedQueryItems = components.percentEncodedQueryItems ?? [URLQueryItem]()
-        percentEncodedQueryItems.append(percentEncodedQueryItem)
-        components.percentEncodedQueryItems = percentEncodedQueryItems
+        var existingPercentEncodedQueryItems = components.percentEncodedQueryItems ?? [URLQueryItem]()
+        existingPercentEncodedQueryItems.append(contentsOf: percentEncodedQueryItems)
+        components.percentEncodedQueryItems = existingPercentEncodedQueryItems
 
         return components.url ?? self
     }
 
-    public func getParameter(named name: String) -> String? {
+    public func getQueryItems() -> [URLQueryItem]? {
         guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false),
               let encodedQuery = components.percentEncodedQuery
         else { return nil }
         components.percentEncodedQuery = encodedQuery.encodingPlusesAsSpaces()
-        let queryItem = components.queryItems?.first(where: { queryItem -> Bool in
+        return components.queryItems ?? nil
+    }
+
+    public func getQueryItem(named name: String) -> URLQueryItem? {
+        getQueryItems()?.first(where: { queryItem -> Bool in
             queryItem.name == name
         })
-        return queryItem?.value
     }
-    
+
+    public func getParameter(named name: String) -> String? {
+        getQueryItem(named: name)?.value
+    }
+
     public func isThirdParty(to otherUrl: URL, tld: TLD) -> Bool {
         guard let thisHost = host else {
             return false
@@ -368,7 +392,7 @@ extension URL {
         }
         let thisRoot = tld.eTLDplus1(thisHost)
         let otherRoot = tld.eTLDplus1(otherHost)
-        
+
         return thisRoot != otherRoot
     }
 
@@ -420,7 +444,7 @@ extension URL {
 
 }
 
-fileprivate extension CharacterSet {
+public extension CharacterSet {
 
     /**
      * As per [RFC 3986](https://www.rfc-editor.org/rfc/rfc3986#section-2.2).
@@ -452,4 +476,3 @@ extension URLQueryItem {
     }
 
 }
-// swiftlint:enable file_length

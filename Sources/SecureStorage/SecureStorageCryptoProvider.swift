@@ -42,7 +42,7 @@ public protocol SecureStorageCryptoProvider {
 
     var keychainServiceName: String { get }
 
-    var keychainAccountName: String { get } 
+    var keychainAccountName: String { get }
 
 }
 

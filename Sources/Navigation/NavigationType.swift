@@ -39,7 +39,13 @@ public enum NavigationType: Equatable {
 
     case redirect(RedirectType)
     case sessionRestoration
+    case alternateHtmlLoad
+
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
+    case sameDocumentNavigation(WKSameDocumentNavigationType)
+#else
     case sameDocumentNavigation
+#endif
 
     case other
 
@@ -50,7 +56,11 @@ public enum NavigationType: Equatable {
         switch navigationAction.navigationType {
         case .linkActivated where navigationAction.isSameDocumentNavigation,
              .other where navigationAction.isSameDocumentNavigation:
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
+            self = .sameDocumentNavigation(.anchorNavigation)
+#else
             self = .sameDocumentNavigation
+#endif
 
         case .linkActivated:
 #if os(macOS)
@@ -105,7 +115,7 @@ public extension NavigationType {
         if case .redirect = self { return true }
         return false
     }
-    
+
     var redirect: RedirectType? {
         if case .redirect(let redirect) = self { return redirect }
         return nil
@@ -136,6 +146,11 @@ public extension NavigationType {
         return false
     }
 
+    var isSameDocumentNavigation: Bool {
+        if case .sameDocumentNavigation = self { return true }
+        return false
+    }
+
 }
 
 public protocol WebViewNavigationAction {
@@ -152,24 +167,28 @@ public protocol WebViewNavigationAction {
 }
 
 public struct HistoryItemIdentity: Hashable {
-    let object: any AnyObject & Hashable
+    let identifier: ObjectIdentifier
+    let title: String?
+    let url: URL?
 
-    public init(_ object: any AnyObject & Hashable) {
-        self.object = object
+    public init(backForwardListItem: WKBackForwardListItem) {
+        self.identifier = ObjectIdentifier(backForwardListItem)
+        self.title = backForwardListItem.title
+        self.url = backForwardListItem.url
     }
 
     public static func == (lhs: HistoryItemIdentity, rhs: HistoryItemIdentity) -> Bool {
-        lhs.object === rhs.object
+        lhs.identifier == rhs.identifier
     }
 
     public func hash(into hasher: inout Hasher) {
-        hasher.combine(object)
+        hasher.combine(identifier)
     }
 }
 
 extension WKBackForwardListItem {
 
-    public var identity: HistoryItemIdentity { HistoryItemIdentity(self) }
+    public var identity: HistoryItemIdentity { HistoryItemIdentity(backForwardListItem: self) }
 
 }
 
@@ -186,13 +205,30 @@ extension NavigationType: CustomDebugStringConvertible {
         case .reload: return "reload"
         case .formResubmitted: return "formResubmitted"
         case .sessionRestoration: return "sessionRestoration"
+        case .alternateHtmlLoad: return "alternateHtmlLoad"
         case .other: return "other"
         case .redirect(let redirect):
             return "redirect(\(redirect))"
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
+        case .sameDocumentNavigation(let navigationType):
+            return "sameDocumentNavigation(\(navigationType.debugDescription))"
+#else
         case .sameDocumentNavigation:
             return "sameDocumentNavigation"
+#endif
         case .custom(let name):
             return "custom(\(name.rawValue))"
+        }
+    }
+}
+
+extension WKSameDocumentNavigationType: CustomDebugStringConvertible {
+    public var debugDescription: String {
+        switch self {
+        case .anchorNavigation: "anchorNavigation"
+        case .sessionStatePush: "sessionStatePush"
+        case .sessionStateReplace: "sessionStateReplace"
+        case .sessionStatePop: "sessionStatePop"
         }
     }
 }

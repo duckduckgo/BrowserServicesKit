@@ -1,6 +1,5 @@
 //
 //  MockConfigurationURLProvider.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -21,7 +20,7 @@ import Foundation
 import Configuration
 
 struct MockConfigurationURLProvider: ConfigurationURLProviding {
-    
+
     func url(for configuration: Configuration) -> URL {
         switch configuration {
         case .bloomFilterBinary:
@@ -38,7 +37,9 @@ struct MockConfigurationURLProvider: ConfigurationURLProviding {
             return URL(string: "f")!
         case .FBConfig:
             return URL(string: "g")!
+        case .remoteMessagingConfig:
+            return URL(string: "h")!
         }
     }
-    
+
 }

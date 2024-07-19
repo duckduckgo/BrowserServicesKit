@@ -1,6 +1,5 @@
 //
 //  AMPCanonicalExtractor.swift
-//  DuckDuckGo
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -21,9 +20,9 @@ import Foundation
 import WebKit
 import Common
 
-public class AMPCanonicalExtractor: NSObject {
+public final class AMPCanonicalExtractor: NSObject {
 
-    class CompletionHandler {
+    final class CompletionHandler {
 
         private var completion: ((URL?) -> Void)?
 
@@ -49,17 +48,20 @@ public class AMPCanonicalExtractor: NSObject {
     }
 
     private let completionHandler = CompletionHandler()
-    
+
     private var webView: WKWebView?
     private var imageBlockingRules: WKContentRuleList?
-    
+
     private let linkCleaner: LinkCleaner
     private let privacyManager: PrivacyConfigurationManaging
     private let contentBlockingManager: CompiledRuleListsSource
     private let errorReporting: EventMapping<AMPProtectionDebugEvents>?
-    
+
     private var privacyConfig: PrivacyConfiguration { privacyManager.privacyConfig }
-    
+
+    private var currentUrl: URL?
+    private var lastPositiveAMPUrl: URL?
+
     public init(linkCleaner: LinkCleaner,
                 privacyManager: PrivacyConfigurationManaging,
                 contentBlockingManager: CompiledRuleListsSource,
@@ -68,12 +70,12 @@ public class AMPCanonicalExtractor: NSObject {
         self.privacyManager = privacyManager
         self.contentBlockingManager = contentBlockingManager
         self.errorReporting = errorReporting
-        
+
         super.init()
-        
+
         loadImageBlockingRules()
     }
-    
+
     private func loadImageBlockingRules() {
         WKContentRuleListStore.default().lookUpContentRuleList(forIdentifier: Constants.ruleListIdentifier) { [weak self] ruleList, _ in
             if let ruleList = ruleList {
@@ -83,7 +85,7 @@ public class AMPCanonicalExtractor: NSObject {
             }
         }
     }
-    
+
     private func compileImageRules() {
         let ruleSource = """
 [
@@ -98,7 +100,7 @@ public class AMPCanonicalExtractor: NSObject {
     }
 ]
 """
-        
+
         WKContentRuleListStore.default().compileContentRuleList(forIdentifier: Constants.ruleListIdentifier,
                                                                 encodedContentRuleList: ruleSource) { [weak self] ruleList, error  in
             if let error = error {
@@ -106,39 +108,59 @@ public class AMPCanonicalExtractor: NSObject {
                 self?.errorReporting?.fire(.ampBlockingRulesCompilationFailed)
                 return
             }
-            
+
             self?.imageBlockingRules = ruleList
         }
     }
-    
+
     public func urlContainsAMPKeyword(_ url: URL?) -> Bool {
+        guard url != lastPositiveAMPUrl else { return false }
         linkCleaner.lastAMPURLString = nil
+
+        let settings = TrackingLinkSettings(fromConfig: privacyConfig)
+
         guard privacyConfig.isEnabled(featureKey: .ampLinks) else { return false }
+        guard settings.deepExtractionEnabled else { return false }
         guard let url = url, !linkCleaner.isURLExcluded(url: url) else { return false }
         let urlStr = url.absoluteString
-        
-        let ampKeywords = TrackingLinkSettings(fromConfig: privacyConfig).ampKeywords
+
+        let ampKeywords = settings.ampKeywords
 
         return ampKeywords.contains { keyword in
             return urlStr.contains(keyword)
         }
     }
-    
+
     private func buildUserScript() -> WKUserScript {
         let source = """
 (function() {
     document.addEventListener('DOMContentLoaded', (event) => {
         const canonicalLinks = document.querySelectorAll('[rel="canonical"]')
+
+        let result = undefined
+        if (canonicalLinks.length > 0) {
+            result = canonicalLinks[0].href
+        }
+
+        // Loop prevention
+        if (window.location.href === result) {
+            result = undefined
+        }
+
+        if (!document.documentElement.hasAttribute('amp') && !document.documentElement.hasAttribute('⚡')) {
+            result = undefined
+        }
+
         window.webkit.messageHandlers.\(Constants.sendCanonical).postMessage({
-            \(Constants.canonicalKey): canonicalLinks.length > 0 ? canonicalLinks[0].href : undefined
+            \(Constants.canonicalKey): result
         })
     })
 })()
 """
-        
+
         return WKUserScript(source: source, injectionTime: .atDocumentStart, forMainFrameOnly: true)
     }
-    
+
     public func cancelOngoingExtraction() {
         webView?.stopLoading()
         webView = nil
@@ -153,6 +175,10 @@ public class AMPCanonicalExtractor: NSObject {
             completion(nil)
             return
         }
+        guard TrackingLinkSettings(fromConfig: privacyConfig).deepExtractionEnabled else {
+            completion(nil)
+            return
+        }
         guard let url = url, !linkCleaner.isURLExcluded(url: url) else {
             completion(nil)
             return
@@ -162,15 +188,17 @@ public class AMPCanonicalExtractor: NSObject {
             completion(nil)
             return
         }
-        
+
         completionHandler.setCompletionHandler(completion: completion)
+
+        currentUrl = url
 
         assert(Thread.isMainThread)
         webView = WKWebView(frame: .zero, configuration: makeConfiguration())
         webView?.navigationDelegate = self
         webView?.load(URLRequest(url: url))
     }
-    
+
     public func getCanonicalUrl(initiator: URL?,
                                 url: URL?) async -> URL? {
         await withCheckedContinuation { continuation in
@@ -179,7 +207,7 @@ public class AMPCanonicalExtractor: NSObject {
             }
         }
     }
-    
+
     private func makeConfiguration() -> WKWebViewConfiguration {
         let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = .nonPersistent()
@@ -205,14 +233,19 @@ public class AMPCanonicalExtractor: NSObject {
 
 extension AMPCanonicalExtractor: WKScriptMessageHandler {
     public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        defer {
+            currentUrl = nil
+        }
+
         guard message.name == Constants.sendCanonical else { return }
-        
+
         webView = nil
-        
+
         if let dict = message.body as? [String: AnyObject],
            let canonical = dict[Constants.canonicalKey] as? String {
             if let canonicalUrl = URL(string: canonical), !linkCleaner.isURLExcluded(url: canonicalUrl) {
-                linkCleaner.lastAMPURLString = canonicalUrl.absoluteString
+                linkCleaner.lastAMPURLString = currentUrl?.absoluteString
+                lastPositiveAMPUrl = currentUrl
                 completionHandler.completeWithURL(canonicalUrl)
             } else {
                 completionHandler.completeWithURL(nil)
@@ -227,7 +260,7 @@ extension AMPCanonicalExtractor: WKNavigationDelegate {
     public func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
         completionHandler.completeWithURL(nil)
     }
-    
+
     public func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
         completionHandler.completeWithURL(nil)
     }

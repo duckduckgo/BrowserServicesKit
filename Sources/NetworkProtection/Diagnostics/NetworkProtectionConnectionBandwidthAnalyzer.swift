@@ -24,7 +24,7 @@ import Common
 /// This class was designed to be easy to modify to eventually handle more than two snapshots over time.
 ///
 final class NetworkProtectionConnectionBandwidthAnalyzer {
-    private struct Snapshot {
+    struct Snapshot {
         let rxBytes: UInt64
         let txBytes: UInt64
         let date: Date
@@ -86,11 +86,10 @@ final class NetworkProtectionConnectionBandwidthAnalyzer {
             return
         }
 
-        let (rx, tx) = bytesPerSecond(newer: newer, older: older)
+        let (rx, tx) = Self.bytesPerSecond(newer: newer, older: older)
 
         os_log("Bytes per second in last time-interval: (rx: %{public}@, tx: %{public}@)",
                log: .networkProtectionBandwidthAnalysis,
-               type: .info,
                String(describing: rx), String(describing: tx))
 
         idle = UInt64(rx) < Self.rxThreshold && UInt64(tx) < Self.txThreshold
@@ -103,16 +102,24 @@ final class NetworkProtectionConnectionBandwidthAnalyzer {
     /// Useful when servers are swapped
     ///
     func reset() {
-        os_log("Bandwidth analyzer reset", log: .networkProtectionBandwidthAnalysis, type: .info)
+        os_log("Bandwidth analyzer reset", log: .networkProtectionBandwidthAnalysis)
         entries.removeAll()
     }
 
     // MARK: - Delta Calculation
 
-    private func bytesPerSecond(newer: Snapshot, older: Snapshot) -> (rx: Double, tx: Double) {
-        let deltaSeconds = newer.date.timeIntervalSince1970 - older.date.timeIntervalSince1970
-        let rx = Double(newer.rxBytes - older.rxBytes) / deltaSeconds
-        let tx = Double(newer.txBytes - older.txBytes) / deltaSeconds
+    static func bytesPerSecond(newer: Snapshot, older: Snapshot) -> (rx: Double, tx: Double) {
+        let deltaSeconds = newer.date.timeIntervalSince(older.date)
+        let rx: Double
+        let tx: Double
+
+        if deltaSeconds > 0 {
+            rx = Double(newer.rxBytes - older.rxBytes) / deltaSeconds
+            tx = Double(newer.txBytes - older.txBytes) / deltaSeconds
+        } else {
+            rx = 0
+            tx = 0
+        }
 
         return (rx, tx)
     }

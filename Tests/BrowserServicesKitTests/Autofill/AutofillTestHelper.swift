@@ -1,6 +1,5 @@
 //
 //  AutofillTestHelper.swift
-//  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -24,7 +23,7 @@ import BrowserServicesKit
 import TrackerRadarKit
 
 struct AutofillTestHelper {
-    
+
     static func preparePrivacyConfig(embeddedConfig: Data) -> PrivacyConfigurationManager {
         let mockEmbeddedData = MockEmbeddedDataProvider(data: embeddedConfig, etag: "embedded")
 

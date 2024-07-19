@@ -1,6 +1,5 @@
 //
 //  JsonRemoteMessagingConfig.swift
-//  DuckDuckGo
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -15,6 +14,7 @@
 //  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
+//
 
 import Foundation
 
@@ -31,9 +31,23 @@ public enum RemoteMessageResponse {
         let content: JsonContent
         let translations: [String: JsonContentTranslation]?
         let matchingRules, exclusionRules: [Int]?
+        let metrics: JsonMetrics?
 
         static func == (lhs: JsonRemoteMessage, rhs: JsonRemoteMessage) -> Bool {
             return lhs.id == rhs.id
+        }
+
+        var isMetricsEnabled: Bool {
+            metrics?.state.flatMap(JsonMetrics.MetricsState.init) != .disabled
+        }
+    }
+
+    struct JsonMetrics: Decodable {
+        let state: String?
+
+        enum MetricsState: String, Decodable {
+            case disabled
+            case enabled
         }
     }
 
@@ -64,8 +78,13 @@ public enum RemoteMessageResponse {
         let secondaryActionText: String?
     }
 
+    struct JsonTargetPercentile: Decodable {
+        let before: Float?
+    }
+
     struct JsonMatchingRule: Decodable {
         let id: Int
+        let targetPercentile: JsonTargetPercentile?
         let attributes: [String: AnyDecodable]
     }
 
@@ -82,6 +101,7 @@ public enum RemoteMessageResponse {
         case url
         case appStore = "appstore"
         case dismiss
+        case survey = "survey"
     }
 
     enum JsonPlaceholder: String, CaseIterable {
@@ -91,6 +111,7 @@ public enum RemoteMessageResponse {
         case appUpdate = "AppUpdate"
         case macComputer = "MacComputer"
         case newForMacAndWindows = "NewForMacAndWindows"
+        case privacyShield = "PrivacyShield"
     }
 
     public enum StatusError: Error {

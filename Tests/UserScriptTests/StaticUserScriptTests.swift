@@ -1,6 +1,5 @@
 //
 //  StaticUserScriptTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -24,10 +23,13 @@ import WebKit
 
 class StaticUserScriptTests: XCTestCase {
     class TestStaticUserScript: NSObject, StaticUserScript {
+        @MainActor
         static var source: String = {
             TestStaticUserScript.loadJS("testUserScript", from: .module, withReplacements: ["${val}": "Test"])
         }()
+        @MainActor
         static var injectionTime: WKUserScriptInjectionTime = .atDocumentEnd
+        @MainActor
         static var forMainFrameOnly: Bool = false
         static var script: WKUserScript = TestStaticUserScript.makeWKUserScript()
 

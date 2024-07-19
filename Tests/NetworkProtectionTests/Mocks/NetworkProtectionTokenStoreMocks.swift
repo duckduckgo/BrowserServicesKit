@@ -32,6 +32,10 @@ final class NetworkProtectionTokenStoreMock: NetworkProtectionTokenStore {
     }
 
     func deleteToken() {
-        token = nil
+        self.token = nil
+    }
+
+    func fetchSubscriptionToken() throws -> String? {
+        "ddg:accessToken"
     }
 }

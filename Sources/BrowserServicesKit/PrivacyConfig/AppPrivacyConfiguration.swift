@@ -1,6 +1,5 @@
 //
 //  AppPrivacyConfiguration.swift
-//  DuckDuckGo
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -21,7 +20,7 @@ import Foundation
 import Common
 
 public struct AppPrivacyConfiguration: PrivacyConfiguration {
-    
+
     private enum Constants {
         static let enabledKey = "enabled"
         static let lastRolloutCountKey = "lastRolloutCount"
@@ -29,7 +28,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     }
 
     private(set) public var identifier: String
-    
+
     private let data: PrivacyConfigurationData
     private let locallyUnprotected: DomainsProtectionStore
     private let internalUserDecider: InternalUserDecider
@@ -53,7 +52,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     public var userUnprotectedDomains: [String] {
         return Array(locallyUnprotected.unprotectedDomains).normalizedDomainsForContentBlocking().sorted()
     }
-    
+
     public var tempUnprotectedDomains: [String] {
         return data.unprotectedTemporary.map { $0.domain }.normalizedDomainsForContentBlocking()
     }
@@ -61,22 +60,22 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     public var trackerAllowlist: PrivacyConfigurationData.TrackerAllowlist {
         return data.trackerAllowlist
     }
-    
+
     func parse(versionString: String) -> [Int] {
         return versionString.split(separator: ".").map { Int($0) ?? 0 }
     }
-    
+
     func satisfiesMinVersion(_ version: String?,
                              versionProvider: AppVersionProvider) -> Bool {
         if let minSupportedVersion = version,
            let appVersion = versionProvider.appVersion() {
             let minVersion = parse(versionString: minSupportedVersion)
             let currentVersion = parse(versionString: appVersion)
-            
+
             for i in 0..<max(minVersion.count, currentVersion.count) {
                 let minSegment = i < minVersion.count ? minVersion[i] : 0
                 let currSegment = i < currentVersion.count ? currentVersion[i] : 0
-                
+
                 if currSegment > minSegment {
                     return true
                 }
@@ -85,7 +84,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
                 }
             }
         }
-        
+
         return true
     }
 
@@ -104,36 +103,54 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
 
     public func isEnabled(featureKey: PrivacyFeature,
                           versionProvider: AppVersionProvider = AppVersionProvider()) -> Bool {
-        guard let feature = data.features[featureKey.rawValue] else { return false }
+        switch stateFor(featureKey: featureKey, versionProvider: versionProvider) {
+        case .enabled:
+            return true
+        case .disabled:
+            return false
+        }
+    }
+
+    public func stateFor(featureKey: PrivacyFeature, versionProvider: AppVersionProvider) -> PrivacyConfigurationFeatureState {
+        guard let feature = data.features[featureKey.rawValue] else { return .disabled(.featureMissing) }
 
         let satisfiesMinVersion = satisfiesMinVersion(feature.minSupportedVersion, versionProvider: versionProvider)
         let satisfiesInstalledDays = satisfiesInstalledDays(featureKey, installDate: installDate)
 
         switch feature.state {
-        case PrivacyConfigurationData.State.enabled: return satisfiesMinVersion && satisfiesInstalledDays
-        case PrivacyConfigurationData.State.internal: return internalUserDecider.isInternalUser && satisfiesMinVersion && satisfiesInstalledDays
-        default: return false
+        case PrivacyConfigurationData.State.enabled:
+            guard satisfiesMinVersion else { return .disabled(.appVersionNotSupported) }
+            guard satisfiesInstalledDays else { return .disabled(.tooOldInstallation) }
+
+            return .enabled
+        case PrivacyConfigurationData.State.internal:
+            guard internalUserDecider.isInternalUser else { return .disabled(.limitedToInternalUsers) }
+            guard satisfiesMinVersion else { return .disabled(.appVersionNotSupported) }
+            guard satisfiesInstalledDays else { return .disabled(.tooOldInstallation) }
+
+            return .enabled
+        default: return .disabled(.disabledInConfig)
         }
     }
-    
+
     private func isRolloutEnabled(subfeature: any PrivacySubfeature,
                                   rolloutSteps: [PrivacyConfigurationData.PrivacyFeature.Feature.RolloutStep],
                                   randomizer: (Range<Double>) -> Double) -> Bool {
         // Empty rollouts should be default enabled
         guard !rolloutSteps.isEmpty else { return true }
-        
+
         let defsPrefix = "config.\(subfeature.parent.rawValue).\(subfeature.rawValue)"
         if userDefaults.bool(forKey: "\(defsPrefix).\(Constants.enabledKey)") {
             return true
         }
-        
+
         var willEnable = false
         let rollouts = Array(Set(rolloutSteps.filter({ $0.percent >= 0.0 && $0.percent <= 100.0 }))).sorted(by: { $0.percent < $1.percent })
         if let rolloutSize = userDefaults.value(forKey: "\(defsPrefix).\(Constants.lastRolloutCountKey)") as? Int {
             guard rolloutSize < rollouts.count else { return false }
             // Sanity check as we need at least two values to compute the new probability
             guard rollouts.count > 1 else { return false }
-            
+
             // If the user has seen the rollout before, and the rollout count has changed
             // Try again with the new probability
             let y = rollouts[rollouts.count - 1].percent
@@ -153,7 +170,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
             userDefaults.set(rollouts.count, forKey: "\(defsPrefix).\(Constants.lastRolloutCountKey)")
             return false
         }
-        
+
         userDefaults.set(true, forKey: "\(defsPrefix).\(Constants.enabledKey)")
         return true
     }
@@ -162,34 +179,49 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
                                     versionProvider: AppVersionProvider,
                                     randomizer: (Range<Double>) -> Double) -> Bool {
 
-        guard isEnabled(featureKey: subfeature.parent, versionProvider: versionProvider) else {
+        switch stateFor(subfeature, versionProvider: versionProvider, randomizer: randomizer) {
+        case .enabled:
+            return true
+        case .disabled:
             return false
         }
+    }
+
+    public func stateFor(_ subfeature: any PrivacySubfeature, versionProvider: AppVersionProvider, randomizer: (Range<Double>) -> Double) -> PrivacyConfigurationFeatureState {
+
+        let parentState = stateFor(featureKey: subfeature.parent, versionProvider: versionProvider)
+        guard case .enabled = parentState else { return parentState }
+
         let subfeatures = subfeatures(for: subfeature.parent)
         let subfeatureData = subfeatures[subfeature.rawValue]
+
         let satisfiesMinVersion = satisfiesMinVersion(subfeatureData?.minSupportedVersion, versionProvider: versionProvider)
-        
-        // Handle Rollouts
-        if let rollout = subfeatureData?.rollout {
-            if !isRolloutEnabled(subfeature: subfeature, rolloutSteps: rollout.steps, randomizer: randomizer) {
-                return false
-            }
-        }
-        
+
         switch subfeatureData?.state {
-        case PrivacyConfigurationData.State.enabled: return satisfiesMinVersion
-        case PrivacyConfigurationData.State.internal: return internalUserDecider.isInternalUser && satisfiesMinVersion
-        default: return false
+        case PrivacyConfigurationData.State.enabled:
+            guard satisfiesMinVersion else { return .disabled(.appVersionNotSupported) }
+        case PrivacyConfigurationData.State.internal:
+            guard internalUserDecider.isInternalUser else { return .disabled(.limitedToInternalUsers) }
+            guard satisfiesMinVersion else { return .disabled(.appVersionNotSupported) }
+        default: return .disabled(.disabledInConfig)
         }
+
+        // Handle Rollouts
+        if let rollout = subfeatureData?.rollout,
+           !isRolloutEnabled(subfeature: subfeature, rolloutSteps: rollout.steps, randomizer: randomizer) {
+            return .disabled(.stillInRollout)
+        }
+
+        return .enabled
     }
 
     private func subfeatures(for feature: PrivacyFeature) -> PrivacyConfigurationData.PrivacyFeature.Features {
         return data.features[feature.rawValue]?.features ?? [:]
     }
-    
+
     public func exceptionsList(forFeature featureKey: PrivacyFeature) -> [String] {
         guard let feature = data.features[featureKey.rawValue] else { return [] }
-        
+
         return feature.exceptions.map { $0.domain }.normalizedDomainsForContentBlocking()
     }
 
@@ -261,11 +293,11 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     public func userDisabledProtection(forDomain domain: String) {
         locallyUnprotected.disableProtection(forDomain: domain.punycodeEncodedHostname.lowercased())
     }
-    
+
 }
 
 extension Array where Element == String {
-    
+
     func normalizedDomainsForContentBlocking() -> [String] {
         map { domain in
             domain.punycodeEncodedHostname.lowercased()

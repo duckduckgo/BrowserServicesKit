@@ -98,7 +98,7 @@ public protocol NavigationResponder {
     // MARK: - Private
 #if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
     @MainActor
-    func navigation(_ navigation: Navigation?, didSameDocumentNavigationOf navigationType: WKSameDocumentNavigationType?)
+    func navigation(_ navigation: Navigation, didSameDocumentNavigationOf navigationType: WKSameDocumentNavigationType)
 
     @MainActor
     func webViewWillPerformClientRedirect(to url: URL, withDelay delay: TimeInterval)
@@ -158,7 +158,7 @@ public extension NavigationResponder {
 
 #if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
     @MainActor
-    func navigation(_ navigation: Navigation?, didSameDocumentNavigationOf navigationType: WKSameDocumentNavigationType?) {}
+    func navigation(_ navigation: Navigation, didSameDocumentNavigationOf navigationType: WKSameDocumentNavigationType) {}
 
     @MainActor
     func didFinishLoad(with request: URLRequest, in frame: WKFrameInfo) {}

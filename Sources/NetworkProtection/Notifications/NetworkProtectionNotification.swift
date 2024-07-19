@@ -1,5 +1,5 @@
 //
-//  DistributedNotification.swift
+//  NetworkProtectionNotification.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -107,6 +107,7 @@ public enum NetworkProtectionNotification: String {
     case showConnectedNotification
     case showIssuesNotResolvedNotification
     case showVPNSupersededNotification
+    case showExpiredEntitlementNotification
     case showTestNotification
 
     // Server Selection
@@ -115,6 +116,7 @@ public enum NetworkProtectionNotification: String {
     // Error Events
     case tunnelErrorChanged
     case controllerErrorChanged
+    case knownFailureUpdated
 
     // New Status Observer
     case requestStatusUpdate

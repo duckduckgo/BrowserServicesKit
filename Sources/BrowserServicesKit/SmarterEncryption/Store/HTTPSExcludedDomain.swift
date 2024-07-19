@@ -1,6 +1,5 @@
 //
 //  HTTPSExcludedDomain.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -22,7 +21,7 @@ import CoreData
 
 @objc(HTTPSExcludedDomain)
 public class HTTPSExcludedDomain: NSManagedObject {
-    
+
     @nonobjc public class func fetchRequest() -> NSFetchRequest<HTTPSExcludedDomain> {
         return NSFetchRequest<HTTPSExcludedDomain>(entityName: "HTTPSExcludedDomain")
     }

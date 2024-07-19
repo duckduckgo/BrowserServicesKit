@@ -16,8 +16,10 @@
 //  limitations under the License.
 //
 
-import Foundation
+import BrowserServicesKit
 import Common
+import Foundation
+import Persistence
 
 struct ProductionDependencies: SyncDependencies {
 
@@ -25,10 +27,12 @@ struct ProductionDependencies: SyncDependencies {
     let endpoints: Endpoints
     let account: AccountManaging
     let api: RemoteAPIRequestCreating
+    let payloadCompressor: SyncPayloadCompressing
     var keyValueStore: KeyValueStoring
     let secureStore: SecureStoring
     let crypter: CryptingInternal
     let scheduler: SchedulingInternal
+    let privacyConfigurationManager: PrivacyConfigurationManaging
     let errorEvents: EventMapping<SyncError>
 
     var log: OSLog {
@@ -36,21 +40,27 @@ struct ProductionDependencies: SyncDependencies {
     }
     private let getLog: () -> OSLog
 
-    init(serverEnvironment: ServerEnvironment, errorEvents: EventMapping<SyncError>, log: @escaping @autoclosure () -> OSLog = .disabled) {
-        
+    init(
+        serverEnvironment: ServerEnvironment,
+        privacyConfigurationManager: PrivacyConfigurationManaging,
+        errorEvents: EventMapping<SyncError>,
+        log: @escaping @autoclosure () -> OSLog = .disabled
+    ) {
         self.init(fileStorageUrl: FileManager.default.applicationSupportDirectoryForComponent(named: "Sync"),
                   serverEnvironment: serverEnvironment,
-                  keyValueStore: KeyValueStore(),
+                  keyValueStore: UserDefaults(),
                   secureStore: SecureStorage(),
+                  privacyConfigurationManager: privacyConfigurationManager,
                   errorEvents: errorEvents,
                   log: log())
     }
-    
+
     init(
         fileStorageUrl: URL,
         serverEnvironment: ServerEnvironment,
         keyValueStore: KeyValueStoring,
         secureStore: SecureStoring,
+        privacyConfigurationManager: PrivacyConfigurationManaging,
         errorEvents: EventMapping<SyncError>,
         log: @escaping @autoclosure () -> OSLog = .disabled
     ) {
@@ -58,10 +68,12 @@ struct ProductionDependencies: SyncDependencies {
         self.endpoints = Endpoints(serverEnvironment: serverEnvironment)
         self.keyValueStore = keyValueStore
         self.secureStore = secureStore
+        self.privacyConfigurationManager = privacyConfigurationManager
         self.errorEvents = errorEvents
         self.getLog = log
 
         api = RemoteAPIRequestCreator(log: log())
+        payloadCompressor = SyncGzipPayloadCompressor()
 
         crypter = Crypter(secureStore: secureStore)
         account = AccountManager(endpoints: endpoints, api: api, crypter: crypter)

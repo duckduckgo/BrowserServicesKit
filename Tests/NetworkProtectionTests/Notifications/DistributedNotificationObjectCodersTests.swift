@@ -1,5 +1,5 @@
 //
-//  DistributedNotificationObjectCoders.swift
+//  DistributedNotificationObjectCodersTests.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -15,6 +15,8 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
+
+#if os(macOS)
 
 import XCTest
 @testable import NetworkProtection
@@ -39,3 +41,5 @@ final class DistributedNotificationObjectCoders: XCTestCase {
         XCTAssertEqual(inputObject, outputObject)
     }
 }
+
+#endif

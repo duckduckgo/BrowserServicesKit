@@ -1,6 +1,5 @@
 //
 //  TLD.swift
-//  DuckDuckGo
 //
 //  Copyright © 2018 DuckDuckGo. All rights reserved.
 //
@@ -32,13 +31,13 @@ public class TLD {
     public init() {
         guard let url = Bundle.module.url(forResource: "tlds", withExtension: "json") else { return }
         guard let data = try? Data(contentsOf: url) else { return }
-        
+
         let asString = String(decoding: data, as: UTF8.self)
         let asStringWithoutComments = asString.replacingOccurrences(of: "(?m)^//.*",
                                                                     with: "",
                                                                     options: .regularExpression)
         guard let cleanedData: Data = asStringWithoutComments.data(using: .utf8) else { return }
-        
+
         guard let tlds = try? JSONDecoder().decode([String].self, from: cleanedData) else { return }
         self.tlds = Set(tlds)
     }
@@ -52,20 +51,20 @@ public class TLD {
         guard let host = host else { return nil }
 
         let parts = [String](host.components(separatedBy: ".").reversed())
-                
+
         var stack = ""
 
         var knownTLDFound = false
         for part in parts {
             stack = !stack.isEmpty ? part + "." + stack : part
-            
+
             if tlds.contains(stack) {
                 knownTLDFound = true
             } else if knownTLDFound {
                 break
             }
         }
-        
+
         // If host does not contain tld treat it as invalid
         if knownTLDFound {
             return stack
@@ -83,7 +82,7 @@ public class TLD {
         guard let domain = domain(host), !tlds.contains(domain) else { return nil }
         return domain
     }
-    
+
     public func eTLDplus1(forStringURL stringURL: String) -> String? {
         guard let escapedStringURL = stringURL.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) else { return nil }
         guard let host = URL(string: escapedStringURL)?.host else { return nil }

@@ -1,6 +1,5 @@
 //
 //  TrackerDataManagerTests.swift
-//  Core
 //
 //  Copyright © 2019 DuckDuckGo. All rights reserved.
 //
@@ -24,7 +23,7 @@ import TrackerRadarKit
 import WebKit
 
 class TrackerDataManagerTests: XCTestCase {
-    
+
     static let exampleTDS = """
         {
           "trackers": {
@@ -71,9 +70,9 @@ class TrackerDataManagerTests: XCTestCase {
           }
         }
         """
-    
+
     func testWhenReloadCalledInitiallyThenDataSetIsEmbedded() {
-        
+
         let exampleData = Self.exampleTDS.data(using: .utf8)!
         let embeddedDataProvider = MockEmbeddedDataProvider(data: exampleData,
                                                             etag: "embedded")
@@ -89,7 +88,7 @@ class TrackerDataManagerTests: XCTestCase {
         let exampleData = Self.exampleTDS.data(using: .utf8)!
         let embeddedDataProvider = MockEmbeddedDataProvider(data: exampleData,
                                                             etag: "embedded")
-        
+
         let trackerDataManager = TrackerDataManager(etag: nil,
                                                     data: nil,
                                                     embeddedDataProvider: embeddedDataProvider)
@@ -97,12 +96,12 @@ class TrackerDataManagerTests: XCTestCase {
         XCTAssertNotNil(tracker)
         XCTAssertEqual("Not Real", tracker?.owner?.displayName)
     }
-    
+
     func testFindEntityByName() {
         let exampleData = Self.exampleTDS.data(using: .utf8)!
         let embeddedDataProvider = MockEmbeddedDataProvider(data: exampleData,
                                                             etag: "embedded")
-        
+
         let trackerDataManager = TrackerDataManager(etag: nil,
                                                     data: nil,
                                                     embeddedDataProvider: embeddedDataProvider)
@@ -110,22 +109,21 @@ class TrackerDataManagerTests: XCTestCase {
         XCTAssertNotNil(entity)
         XCTAssertEqual("Not Real", entity?.displayName)
     }
-    
+
     func testFindEntityForHost() {
         let exampleData = Self.exampleTDS.data(using: .utf8)!
         let embeddedDataProvider = MockEmbeddedDataProvider(data: exampleData,
                                                             etag: "embedded")
-        
+
         let trackerDataManager = TrackerDataManager(etag: nil,
                                                     data: nil,
                                                     embeddedDataProvider: embeddedDataProvider)
-        
+
         let entity = trackerDataManager.embeddedData.tds.findEntity(forHost: "www.notreal.io")
         XCTAssertNotNil(entity)
         XCTAssertEqual("Not Real", entity?.displayName)
     }
-    
-    // swiftlint:disable function_body_length
+
     func testWhenDownloadedDataAvailableThenReloadUsesIt() {
 
         let exampleData = Self.exampleTDS.data(using: .utf8)!
@@ -135,15 +133,14 @@ class TrackerDataManagerTests: XCTestCase {
         let trackerDataManager = TrackerDataManager(etag: nil,
                                                     data: nil,
                                                     embeddedDataProvider: embeddedDataProvider)
-        
+
         XCTAssertEqual(trackerDataManager.embeddedData.etag, "embedded")
         XCTAssertEqual(trackerDataManager.reload(etag: "new etag", data: exampleData),
                        TrackerDataManager.ReloadResult.downloaded)
-        
+
         XCTAssertEqual(trackerDataManager.fetchedData?.etag, "new etag")
         XCTAssertNil(trackerDataManager.fetchedData?.tds.findEntity(byName: "Google LLC"))
         XCTAssertNotNil(trackerDataManager.fetchedData?.tds.findEntity(byName: "Not Real"))
 
     }
-    // swiftlint:enable function_body_length
 }

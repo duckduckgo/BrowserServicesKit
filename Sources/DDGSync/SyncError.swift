@@ -55,4 +55,139 @@ public enum SyncError: Error, Equatable {
 
     case emailProtectionUsernamePresentButTokenMissing
     case settingsMetadataNotPresent
+
+    case unauthenticatedWhileLoggedIn
+    case patchPayloadCompressionFailed(_ errorCode: Int)
+
+    public var isServerError: Bool {
+        switch self {
+        case .noResponseBody,
+                .unexpectedStatusCode,
+                .unexpectedResponseBody,
+                .invalidDataInResponse:
+            return true
+        default:
+            return false
+        }
+    }
+
+    var syncErrorString: String {
+        return "syncError"
+    }
+    var syncErrorMessage: String {
+        return "syncErrorMessage"
+    }
+
+    public var errorParameters: [String: String] {
+        switch self {
+        case .noToken:
+            return [syncErrorString: "noToken"]
+        case .failedToMigrate:
+            return [syncErrorString: "failedToMigrate"]
+        case .failedToLoadAccount:
+            return [syncErrorString: "failedToLoadAccount"]
+        case .failedToSetupEngine:
+            return [syncErrorString: "failedToSetupEngine"]
+        case .failedToCreateAccountKeys:
+            return [syncErrorString: "failedToCreateAccountKeys"]
+        case .accountNotFound:
+            return [syncErrorString: "accountNotFound"]
+        case .accountAlreadyExists:
+            return [syncErrorString: "accountAlreadyExists"]
+        case .invalidRecoveryKey:
+            return [syncErrorString: "invalidRecoveryKey"]
+        case .noFeaturesSpecified:
+            return [syncErrorString: "noFeaturesSpecified"]
+        case .noResponseBody:
+            return [syncErrorString: "noResponseBody"]
+        case .unexpectedStatusCode:
+            return [syncErrorString: "unexpectedStatusCode"]
+        case .unexpectedResponseBody:
+            return [syncErrorString: "unexpectedResponseBody"]
+        case .unableToEncodeRequestBody:
+            return [syncErrorString: "unableToEncodeRequestBody"]
+        case .unableToDecodeResponse:
+            return [syncErrorString: "unableToDecodeResponse"]
+        case .invalidDataInResponse:
+            return [syncErrorString: "invalidDataInResponse"]
+        case .accountRemoved:
+            return [syncErrorString: "accountRemoved"]
+        case .failedToEncryptValue:
+            return [syncErrorString: "failedToEncryptValue"]
+        case .failedToDecryptValue:
+            return [syncErrorString: "failedToDecryptValue"]
+        case .failedToPrepareForConnect:
+            return [syncErrorString: "failedToPrepareForConnect"]
+        case .failedToOpenSealedBox:
+            return [syncErrorString: "failedToOpenSealedBox"]
+        case .failedToSealData:
+            return [syncErrorString: "failedToSealData"]
+        case .failedToWriteSecureStore:
+            return [syncErrorString: "failedToWriteSecureStore"]
+        case .failedToReadSecureStore:
+            return [syncErrorString: "failedToReadSecureStore"]
+        case .failedToRemoveSecureStore:
+            return [syncErrorString: "failedToRemoveSecureStore"]
+        case .credentialsMetadataMissingBeforeFirstSync:
+            return [syncErrorString: "credentialsMetadataMissingBeforeFirstSync"]
+        case .receivedCredentialsWithoutUUID:
+            return [syncErrorString: "receivedCredentialsWithoutUUID"]
+        case .emailProtectionUsernamePresentButTokenMissing:
+            return [syncErrorString: "emailProtectionUsernamePresentButTokenMissing"]
+        case .settingsMetadataNotPresent:
+            return [syncErrorString: "settingsMetadataNotPresent"]
+        case .unauthenticatedWhileLoggedIn:
+            return [syncErrorString: "unauthenticatedWhileLoggedIn"]
+        case .patchPayloadCompressionFailed:
+            return [syncErrorString: "patchPayloadCompressionFailed"]
+        }
+    }
+}
+
+extension SyncError: CustomNSError {
+
+    /**
+     * The mapping here can't be changed, or it will skew usage metrics.
+     */
+    public var errorCode: Int {
+        switch self {
+        case .noToken: return 13
+
+        case .failedToMigrate: return 14
+        case .failedToLoadAccount: return 15
+        case .failedToSetupEngine: return 16
+
+        case .failedToCreateAccountKeys: return 0
+        case .accountNotFound: return 17
+        case .accountAlreadyExists: return 18
+        case .invalidRecoveryKey: return 19
+
+        case .noFeaturesSpecified: return 20
+        case .noResponseBody: return 21
+        case .unexpectedStatusCode: return 1
+        case .unexpectedResponseBody: return 22
+        case .unableToEncodeRequestBody: return 2
+        case .unableToDecodeResponse: return 3
+        case .invalidDataInResponse: return 4
+        case .accountRemoved: return 23
+
+        case .failedToEncryptValue: return 5
+        case .failedToDecryptValue: return 6
+        case .failedToPrepareForConnect: return 7
+        case .failedToOpenSealedBox: return 8
+        case .failedToSealData: return 9
+
+        case .failedToWriteSecureStore: return 10
+        case .failedToReadSecureStore: return 11
+        case .failedToRemoveSecureStore: return 12
+
+        case .credentialsMetadataMissingBeforeFirstSync: return 24
+        case .receivedCredentialsWithoutUUID: return 25
+        case .emailProtectionUsernamePresentButTokenMissing: return 26
+        case .settingsMetadataNotPresent: return 27
+        case .unauthenticatedWhileLoggedIn: return 28
+        case .patchPayloadCompressionFailed: return 29
+        }
+    }
+
 }

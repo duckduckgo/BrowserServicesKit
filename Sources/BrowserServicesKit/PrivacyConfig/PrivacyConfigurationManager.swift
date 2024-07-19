@@ -1,6 +1,5 @@
 //
 //  PrivacyConfigurationManager.swift
-//  DuckDuckGo
 //
 //  Copyright © 2021 DuckDuckGo. All rights reserved.
 //
@@ -32,12 +31,13 @@ public protocol PrivacyConfigurationManaging: AnyObject {
     var currentConfig: Data { get }
     var updatesPublisher: AnyPublisher<Void, Never> { get }
     var privacyConfig: PrivacyConfiguration { get }
+    var internalUserDecider: InternalUserDecider { get }
 
     @discardableResult func reload(etag: String?, data: Data?) -> PrivacyConfigurationManager.ReloadResult
 }
 
 public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
-    
+
     public enum ReloadResult: Equatable {
         case embedded
         case embeddedFallback
@@ -48,21 +48,21 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
         case dataMismatch
     }
 
-    // swiftlint:disable:next large_tuple
     public typealias ConfigurationData = (rawData: Data, data: PrivacyConfigurationData, etag: String)
-    
+
     private let lock = NSLock()
     private let embeddedDataProvider: EmbeddedDataProvider
     private let localProtection: DomainsProtectionStore
     private let errorReporting: EventMapping<ContentBlockerDebugEvents>?
-    private let internalUserDecider: InternalUserDecider
     private let installDate: Date?
+
+    public let internalUserDecider: InternalUserDecider
 
     private let updatesSubject = PassthroughSubject<Void, Never>()
     public var updatesPublisher: AnyPublisher<Void, Never> {
         updatesSubject.eraseToAnyPublisher()
     }
-    
+
     private var _fetchedConfigData: ConfigurationData?
     private(set) public var fetchedConfigData: ConfigurationData? {
         get {
@@ -77,7 +77,7 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
             lock.unlock()
         }
     }
-    
+
     private var _embeddedConfigData: ConfigurationData!
     private(set) public var embeddedConfigData: ConfigurationData {
         get {
@@ -120,7 +120,7 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
 
         reload(etag: fetchedETag, data: fetchedData)
     }
-    
+
     public var privacyConfig: PrivacyConfiguration {
         if let fetchedData = fetchedConfigData {
             return AppPrivacyConfiguration(data: fetchedData.data,
@@ -136,7 +136,7 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
                                        internalUserDecider: internalUserDecider,
                                        installDate: installDate)
     }
-    
+
     public var currentConfig: Data {
         if let fetchedData = fetchedConfigData {
             return fetchedData.rawData
@@ -146,14 +146,14 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
 
     @discardableResult
     public func reload(etag: String?, data: Data?) -> ReloadResult {
-        
+
         defer { self.updatesSubject.send() }
-        
+
         let result: ReloadResult
-        
+
         if let etag = etag, let data = data {
             result = .downloaded
-            
+
             do {
                 // This might fail if the downloaded data is corrupt or format has changed unexpectedly
                 let configData = try PrivacyConfigurationData(data: data)
@@ -167,7 +167,7 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
             fetchedConfigData = nil
             result = .embedded
         }
-        
+
         return result
     }
 }

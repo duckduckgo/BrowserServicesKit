@@ -22,9 +22,9 @@ import TrackerRadarKit
 import Common
 
 protocol ConfigurationValidating {
-    
+
     func validate(_ data: Data, for configuration: Configuration) throws
-    
+
 }
 
 public struct ConfigurationValidator: ConfigurationValidating {
@@ -58,5 +58,5 @@ public struct ConfigurationValidator: ConfigurationValidating {
     private func validateTrackerDataSet(with data: Data) throws {
         _ = try JSONDecoder().decode(TrackerData.self, from: data)
     }
-    
+
 }

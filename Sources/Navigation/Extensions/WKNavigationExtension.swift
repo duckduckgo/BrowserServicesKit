@@ -31,4 +31,29 @@ extension WKNavigation {
         }
     }
 
+    open override func value(forUndefinedKey key: String) -> Any? {
+        assertionFailure("valueForUndefinedKey: \(key)")
+        return nil
+    }
+
+#if _IS_USER_INITIATED_ENABLED
+    @nonobjc public var isUserInitiated: Bool? {
+        return self.value(forKey: "isUserInitiated") as? Bool
+    }
+#else
+    public var isUserInitiated: Bool? {
+        return nil
+    }
+#endif
+
+#if _NAVIGATION_REQUEST_ENABLED
+    internal var request: URLRequest? {
+        self.value(forKey: "request") as? URLRequest
+    }
+#else
+    internal var request: URLRequest? {
+        return nil
+    }
+#endif
+
 }

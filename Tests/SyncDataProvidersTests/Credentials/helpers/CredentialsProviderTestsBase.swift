@@ -1,6 +1,5 @@
 //
 //  CredentialsProviderTestsBase.swift
-//  DuckDuckGo
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -20,15 +19,16 @@
 import XCTest
 import Common
 import DDGSync
+import Foundation
 import GRDB
 import Persistence
 import SecureStorage
 @testable import BrowserServicesKit
 @testable import SyncDataProviders
 
-final class MockSecureVaultErrorReporter: SecureVaultErrorReporting {
+final class MockSecureVaultErrorReporter: SecureVaultReporting {
     var _secureVaultInitFailed: (SecureStorageError) -> Void = { _ in }
-    func secureVaultInitFailed(_ error: SecureStorageError) {
+    func secureVaultError(_ error: SecureStorageError) {
         _secureVaultInitFailed(error)
     }
 }
@@ -56,7 +56,7 @@ internal class CredentialsProviderTestsBase: XCTestCase {
             XCTFail("Failed to load model")
             return
         }
-        metadataDatabase = CoreDataDatabase(name: className, containerLocation: metadataDatabaseLocation, model: model)
+        metadataDatabase = CoreDataDatabase(name: type(of: self).description(), containerLocation: metadataDatabaseLocation, model: model)
         metadataDatabase.loadStore()
     }
 
@@ -107,7 +107,7 @@ internal class CredentialsProviderTestsBase: XCTestCase {
     // MARK: - Helpers
 
     func makeSecureVault() throws {
-        secureVault = try secureVaultFactory.makeVault(errorReporter: nil)
+        secureVault = try secureVaultFactory.makeVault(reporter: nil)
         _ = try secureVault.authWith(password: "abcd".data(using: .utf8)!)
     }
 

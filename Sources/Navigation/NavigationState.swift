@@ -19,7 +19,7 @@
 import Foundation
 import WebKit
 
-public enum NavigationState: Equatable {
+public enum NavigationState: Equatable, Comparable {
 
     case expected(NavigationType?)
     case navigationActionReceived
@@ -58,7 +58,10 @@ public enum NavigationState: Equatable {
         return false
     }
 
-    // swiftlint:disable:next cyclomatic_complexity
+    public var isCompleted: Bool {
+        isFinished || isFailed
+    }
+
     public static func == (lhs: NavigationState, rhs: NavigationState) -> Bool {
         switch lhs {
         case .expected(let navigationType): if case .expected(navigationType) = rhs { return true }
@@ -72,6 +75,24 @@ public enum NavigationState: Equatable {
         case .failed(let error1): if case .failed(let error2) = rhs { return error1.code == error2.code }
         }
         return false
+    }
+
+    private var rawValue: UInt {
+        switch self {
+        case .expected: 0
+        case .navigationActionReceived: 1
+        case .approved: 2
+        case .started: 3
+        case .willPerformClientRedirect: 4
+        case .redirected: 5
+        case .responseReceived: 6
+        case .finished: 7
+        case .failed: 8
+        }
+    }
+
+    public static func < (lhs: NavigationState, rhs: NavigationState) -> Bool {
+        lhs.rawValue < rhs.rawValue
     }
 
 }

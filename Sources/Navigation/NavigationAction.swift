@@ -20,9 +20,7 @@ import Common
 import Foundation
 import WebKit
 
-// swiftlint:disable line_length
-
-public struct MainFrame {
+public struct MainFrame: Sendable {
     fileprivate init() {}
 }
 
@@ -154,6 +152,10 @@ public struct NavigationAction {
         return self.init(request: URLRequest(url: webView.url ?? .empty), navigationType: .sessionRestoration, currentHistoryItemIdentity: nil, redirectHistory: nil, isUserInitiated: false, sourceFrame: .mainFrame(for: webView), targetFrame: .mainFrame(for: webView), shouldDownload: false, mainFrameNavigation: mainFrameNavigation)
     }
 
+    internal static func alternateHtmlLoadNavigation(webView: WKWebView, mainFrameNavigation: Navigation?) -> Self {
+        return self.init(request: URLRequest(url: webView.url ?? .empty), navigationType: .alternateHtmlLoad, currentHistoryItemIdentity: nil, redirectHistory: nil, isUserInitiated: false, sourceFrame: .mainFrame(for: webView), targetFrame: .mainFrame(for: webView), shouldDownload: false, mainFrameNavigation: mainFrameNavigation)
+    }
+
 }
 
 public extension NavigationAction {
@@ -192,6 +194,16 @@ public struct NavigationPreferences: Equatable {
 
     public static let `default` = NavigationPreferences(userAgent: nil, contentMode: .recommended, javaScriptEnabled: true)
 
+#if _WEBPAGE_PREFS_CUSTOM_HEADERS_ENABLED
+    public static var customHeadersSupported: Bool {
+        WKWebpagePreferences.customHeaderFieldsSupported
+    }
+
+    public var customHeaders: [CustomHeaderFields]?
+#else
+    public static var customHeadersSupported: Bool { false }
+#endif
+
     public init(userAgent: String?, contentMode: WKWebpagePreferences.ContentMode, javaScriptEnabled: Bool) {
         self.userAgent = userAgent
         self.contentMode = contentMode
@@ -205,6 +217,11 @@ public struct NavigationPreferences: Equatable {
         } else {
             self.javaScriptEnabledValue = true
         }
+#if _WEBPAGE_PREFS_CUSTOM_HEADERS_ENABLED
+        if Self.customHeadersSupported {
+            self.customHeaders = preferences.customHeaderFields
+        }
+#endif
     }
 
     internal func applying(to preferences: WKWebpagePreferences) -> WKWebpagePreferences {
@@ -212,16 +229,21 @@ public struct NavigationPreferences: Equatable {
         if #available(macOS 11.0, iOS 14.0, *) {
             preferences.allowsContentJavaScript = javaScriptEnabled
         }
+#if _WEBPAGE_PREFS_CUSTOM_HEADERS_ENABLED
+        if Self.customHeadersSupported, let customHeaders = customHeaders {
+            preferences.customHeaderFields = customHeaders
+        }
+#endif
         return preferences
     }
 
 }
 
-public enum NavigationActionPolicy {
+public enum NavigationActionPolicy: Sendable {
     case allow
     case cancel
     case download
-    case redirect(MainFrame, (Navigator) -> Void)
+    case redirect(MainFrame, @Sendable @MainActor (Navigator) -> Void)
 }
 
 extension NavigationActionPolicy? {
@@ -250,7 +272,12 @@ extension NavigationAction: CustomDebugStringConvertible {
 #else
         let sourceFrame = sourceFrame.debugDescription + " -> "
 #endif
-        return "<NavigationAction #\(identifier)\(isUserInitiatedStr): url: \"\(url.absoluteString)\" type: \(navigationType.debugDescription)\(shouldDownload ? " Download" : "") frame: \(sourceFrame)\(targetFrame.debugDescription)>"
+#if PRIVATE_NAVIGATION_DID_FINISH_CALLBACKS_ENABLED
+        let fromHistoryItem = fromHistoryItemIdentity != nil ? " from: " + fromHistoryItemIdentity!.debugDescription : ""
+#else
+        let fromHistoryItem = ""
+#endif
+        return "<NavigationAction #\(identifier)\(isUserInitiatedStr): url: \"\(url.absoluteString)\" type: \(navigationType.debugDescription)\(shouldDownload ? " Download" : "") frame: \(sourceFrame)\(targetFrame.debugDescription)\(fromHistoryItem)>"
     }
 }
 
@@ -271,4 +298,8 @@ extension NavigationPreferences: CustomDebugStringConvertible {
     }
 }
 
-// swiftlint:enable line_length
+extension HistoryItemIdentity: CustomDebugStringConvertible {
+    public var debugDescription: String {
+        "<\(identifier) url: \(url?.absoluteString ?? "") title: \(title ?? "<nil>")>"
+    }
+}
