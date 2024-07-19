@@ -32,7 +32,6 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     private let data: PrivacyConfigurationData
     private let locallyUnprotected: DomainsProtectionStore
     private let internalUserDecider: InternalUserDecider
-    private let toggleProtectionsCounter: ToggleProtectionsCounter
     private let userDefaults: UserDefaults
     private let installDate: Date?
 
@@ -41,14 +40,12 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
                 localProtection: DomainsProtectionStore,
                 internalUserDecider: InternalUserDecider,
                 userDefaults: UserDefaults = UserDefaults(),
-                toggleProtectionsCounter: ToggleProtectionsCounter,
                 installDate: Date? = nil) {
         self.data = data
         self.identifier = identifier
         self.locallyUnprotected = localProtection
         self.internalUserDecider = internalUserDecider
         self.userDefaults = userDefaults
-        self.toggleProtectionsCounter = toggleProtectionsCounter
         self.installDate = installDate
     }
 
@@ -291,12 +288,10 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
             unprotectedDomain.punycodeEncodedHostname.lowercased() == domain
         }
         locallyUnprotected.enableProtection(forDomain: domainToRemove ?? domain)
-        toggleProtectionsCounter.onToggleOn()
     }
 
     public func userDisabledProtection(forDomain domain: String) {
         locallyUnprotected.disableProtection(forDomain: domain.punycodeEncodedHostname.lowercased())
-        toggleProtectionsCounter.onToggleOff()
     }
 
 }

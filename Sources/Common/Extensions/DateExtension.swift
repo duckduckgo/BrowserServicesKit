@@ -37,6 +37,14 @@ public extension Date {
         return Calendar.current.date(byAdding: .month, value: -1, to: Date())!
     }
 
+    static var yearAgo: Date! {
+        return Calendar.current.date(byAdding: .year, value: -1, to: Date())!
+    }
+
+    static var aYearFromNow: Date! {
+        return Calendar.current.date(byAdding: .year, value: 1, to: Date())!
+    }
+
     static func daysAgo(_ days: Int) -> Date! {
         return Calendar.current.date(byAdding: .day, value: -days, to: Date())!
     }

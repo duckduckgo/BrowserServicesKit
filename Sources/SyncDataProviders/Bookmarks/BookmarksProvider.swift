@@ -128,7 +128,6 @@ public final class BookmarksProvider: DataProvider {
 
     // MARK: - Internal
 
-    // swiftlint:disable:next function_parameter_count
     func handleSyncResponse(isInitial: Bool, sent: [Syncable], received: [Syncable], clientTimestamp: Date, serverTimestamp: String?, crypter: Crypting) async throws {
         var saveError: Error?
 

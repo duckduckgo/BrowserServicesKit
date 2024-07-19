@@ -26,12 +26,10 @@ protocol Reasserting: AnyObject {
 
 extension NEPacketTunnelProvider: Reasserting {
 
-    @MainActor
     func startReasserting() {
         reasserting = true
     }
 
-    @MainActor
     func stopReasserting() {
         reasserting = false
     }

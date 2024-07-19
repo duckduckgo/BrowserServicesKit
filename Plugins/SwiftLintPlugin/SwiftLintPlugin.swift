@@ -49,7 +49,6 @@ struct SwiftLintPlugin: BuildToolPlugin {
         )
     }
 
-    // swiftlint:disable function_body_length
     private func createBuildCommands(
         target: String,
         inputFiles: [Path],
@@ -184,8 +183,6 @@ struct SwiftLintPlugin: BuildToolPlugin {
 
         return result
     }
-    // swiftlint:enable function_body_length
-
 }
 
 #if canImport(XcodeProjectPlugin)

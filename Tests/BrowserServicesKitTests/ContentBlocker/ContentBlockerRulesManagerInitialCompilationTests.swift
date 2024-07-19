@@ -183,7 +183,6 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
         wait(for: [expCacheLookup, expNext], timeout: 15.0)
     }
 
-    // swiftlint:disable:next function_body_length
     func testInitialCompilation_WhenThereAreChangesToTDS_ShouldBuildRulesUsingLastCompiledRulesAndScheduleRecompilationWithNewSource() {
 
         let oldEtag = ContentBlockerRulesManagerTests.makeEtag()

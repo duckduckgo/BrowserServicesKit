@@ -33,11 +33,14 @@ public protocol AppStoreAccountManagementFlow {
 @available(macOS 12.0, iOS 15.0, *)
 public final class DefaultAppStoreAccountManagementFlow: AppStoreAccountManagementFlow {
 
-    private let subscriptionManager: SubscriptionManager
-    private var accountManager: AccountManager { subscriptionManager.accountManager }
+    private let authEndpointService: AuthEndpointService
+    private let storePurchaseManager: StorePurchaseManager
+    private let accountManager: AccountManager
 
-    public init(subscriptionManager: SubscriptionManager) {
-        self.subscriptionManager = subscriptionManager
+    public init(authEndpointService: any AuthEndpointService, storePurchaseManager: any StorePurchaseManager, accountManager: any AccountManager) {
+        self.authEndpointService = authEndpointService
+        self.storePurchaseManager = storePurchaseManager
+        self.accountManager = accountManager
     }
 
     @discardableResult
@@ -46,13 +49,13 @@ public final class DefaultAppStoreAccountManagementFlow: AppStoreAccountManageme
         var authToken = accountManager.authToken ?? ""
 
         // Check if auth token if still valid
-        if case let .failure(validateTokenError) = await subscriptionManager.authEndpointService.validateToken(accessToken: authToken) {
+        if case let .failure(validateTokenError) = await authEndpointService.validateToken(accessToken: authToken) {
             os_log(.error, log: .subscription, "[AppStoreAccountManagementFlow] validateToken error: %{public}s", String(reflecting: validateTokenError))
 
             // In case of invalid token attempt store based authentication to obtain a new one
-            guard let lastTransactionJWSRepresentation = await subscriptionManager.storePurchaseManager().mostRecentTransaction() else { return .failure(.noPastTransaction) }
+            guard let lastTransactionJWSRepresentation = await storePurchaseManager.mostRecentTransaction() else { return .failure(.noPastTransaction) }
 
-            switch await subscriptionManager.authEndpointService.storeLogin(signature: lastTransactionJWSRepresentation) {
+            switch await authEndpointService.storeLogin(signature: lastTransactionJWSRepresentation) {
             case .success(let response):
                 if response.externalID == accountManager.externalID {
                     authToken = response.authToken

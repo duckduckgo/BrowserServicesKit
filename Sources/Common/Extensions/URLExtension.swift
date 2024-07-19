@@ -79,7 +79,7 @@ extension URL {
         return host == domain || host.hasSuffix(".\(domain)")
     }
 
-    public struct NavigationalScheme: RawRepresentable, Hashable {
+    public struct NavigationalScheme: RawRepresentable, Hashable, Sendable {
         public let rawValue: String
 
         public static let separator = "://"
@@ -289,6 +289,14 @@ extension URL {
         guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else { return self }
         components.host = host
         return components.url
+    }
+
+    public func appending(_ path: String) -> URL {
+        if #available(macOS 13.0, iOS 16.0, *) {
+            return appending(path: path)
+        } else {
+            return appendingPathComponent(path)
+        }
     }
 
     /// returns true if URLs are equal except the #fragment part
