@@ -31,9 +31,23 @@ public enum RemoteMessageResponse {
         let content: JsonContent
         let translations: [String: JsonContentTranslation]?
         let matchingRules, exclusionRules: [Int]?
+        let metrics: JsonMetrics?
 
         static func == (lhs: JsonRemoteMessage, rhs: JsonRemoteMessage) -> Bool {
             return lhs.id == rhs.id
+        }
+
+        var isMetricsEnabled: Bool {
+            metrics?.state.flatMap(JsonMetrics.MetricsState.init) != .disabled
+        }
+    }
+
+    struct JsonMetrics: Decodable {
+        let state: String?
+
+        enum MetricsState: String, Decodable {
+            case disabled
+            case enabled
         }
     }
 
