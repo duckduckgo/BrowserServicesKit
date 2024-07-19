@@ -60,10 +60,6 @@ public class ConnectionServerInfoObserverThroughDistributedNotifications: Connec
         }
     }
 
-    public func refreshServerInfo() {
-        // no-op
-    }
-
     private func handleServerSelected(_ notification: Notification) {
 
         let serverInfo: NetworkProtectionStatusServerInfo

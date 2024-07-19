@@ -27,5 +27,4 @@ public final class MockConnectionServerInfoObserver: ConnectionServerInfoObserve
     public var recentValue: NetworkProtectionStatusServerInfo {
         subject.value
     }
-    public func refreshServerInfo() {}
 }

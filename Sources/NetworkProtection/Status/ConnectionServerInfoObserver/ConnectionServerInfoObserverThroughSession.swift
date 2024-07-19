@@ -73,7 +73,9 @@ public class ConnectionServerInfoObserverThroughSession: ConnectionServerInfoObs
         }.store(in: &cancellables)
     }
 
-    public func refreshServerInfo() {
+    // MARK: - Handling Notifications
+
+    private func handleDidWake(_ notification: Notification) {
         Task {
             guard let session = await tunnelSessionProvider.activeSession() else {
                 return
@@ -81,12 +83,6 @@ public class ConnectionServerInfoObserverThroughSession: ConnectionServerInfoObs
 
             await updateServerInfo(session: session)
         }
-    }
-
-    // MARK: - Handling Notifications
-
-    private func handleDidWake(_ notification: Notification) {
-        refreshServerInfo()
     }
 
     private func handleStatusChangeNotification(_ notification: Notification) {
