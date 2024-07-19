@@ -23,4 +23,6 @@ import NetworkExtension
 public protocol ConnectionServerInfoObserver {
     var publisher: AnyPublisher<NetworkProtectionStatusServerInfo, Never> { get }
     var recentValue: NetworkProtectionStatusServerInfo { get }
+
+    func refreshServerInfo()
 }
