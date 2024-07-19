@@ -53,7 +53,7 @@ final public class NetworkProtectionSnoozeTimingStore {
                 userDefaults.removeObject(forKey: Self.activeSnoozeTimingKey)
             }
 
-            notificationCenter.post(name: .snoozeDidChange, object: nil)
+            notificationCenter.post(name: .VPNSnoozeRefreshed, object: nil)
         }
     }
 
@@ -65,6 +65,6 @@ final public class NetworkProtectionSnoozeTimingStore {
 
 extension NSNotification.Name {
 
-    static let snoozeDidChange: NSNotification.Name = Notification.Name(rawValue: "com.duckduckgo.browserServicesKit.vpn.snoozeDidChange")
+    public static let VPNSnoozeRefreshed: NSNotification.Name = Notification.Name(rawValue: "com.duckduckgo.browserServicesKit.vpn.snoozeDidChange")
 
 }

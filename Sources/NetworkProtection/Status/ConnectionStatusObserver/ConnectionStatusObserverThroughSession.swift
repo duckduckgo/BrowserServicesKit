@@ -77,7 +77,7 @@ public class ConnectionStatusObserverThroughSession: ConnectionStatusObserver {
             self?.handleStatusChangeNotification(notification)
         }.store(in: &cancellables)
 
-        notificationCenter.publisher(for: .snoozeDidChange).sink { [weak self] notification in
+        notificationCenter.publisher(for: .VPNSnoozeRefreshed).sink { [weak self] notification in
             self?.handleStatusRefreshNotification(notification)
         }.store(in: &cancellables)
 
@@ -125,7 +125,7 @@ public class ConnectionStatusObserverThroughSession: ConnectionStatusObserver {
     private func connectedDate(from session: NETunnelProviderSession) -> Date {
         // In theory when the connection has been established, the date should be set.  But in a worst-case
         // scenario where for some reason the date is missing, we're going to just use Date() as the connection
-        // has just started and it's a decent aproximation.
+        // has just started and it's a decent approximation.
         session.connectedDate ?? Date()
     }
 
