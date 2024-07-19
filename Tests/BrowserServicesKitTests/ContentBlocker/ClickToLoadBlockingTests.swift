@@ -281,7 +281,6 @@ class ClickToLoadBlockingTests: XCTestCase {
         waitForExpectations(timeout: 30, handler: nil)
     }
 
-    // swiftlint:disable function_body_length
     private func popTestAndExecute(onTestExecuted: XCTestExpectation) {
 
         guard let test = tests.popLast() else {
@@ -368,6 +367,4 @@ class ClickToLoadBlockingTests: XCTestCase {
             }
         }
     }
-    // swiftlint:enable function_body_length
-
 }

@@ -148,7 +148,6 @@ final class SuggestionProcessing {
 
     // The point of this method is to prioritise duplicates that
     // provide a higher value or replace history suggestions with bookmark suggestions
-    // swiftlint:disable:next function_body_length
     private func merge(_ suggestions: [Suggestion], maximum: Int? = nil) -> [Suggestion] {
 
         // Finds a duplicate with the same URL and available title

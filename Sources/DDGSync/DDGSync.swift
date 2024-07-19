@@ -242,7 +242,6 @@ public class DDGSync: DDGSyncing {
         }
     }
 
-    // swiftlint:disable:next function_body_length
     private func updateAccount(_ account: SyncAccount? = nil) throws {
         guard account?.state != .initializing else {
             assertionFailure("Sync has not been initialized properly")

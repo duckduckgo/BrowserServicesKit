@@ -74,7 +74,6 @@ public enum ExtensionMessage: RawRepresentable {
     case startSnooze(TimeInterval)
     case cancelSnooze
 
-    // swiftlint:disable:next cyclomatic_complexity function_body_length
     public init?(rawValue data: Data) {
         let name = data.first.flatMap(Name.init(rawValue:))
         switch name {

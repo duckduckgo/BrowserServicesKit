@@ -19,15 +19,12 @@
 // SPDX-License-Identifier: MIT
 // Copyright © 2018-2021 WireGuard LLC. All Rights Reserved.
 
-// swiftlint:disable file_length
-
 import Combine
 import Common
 import Foundation
 import NetworkExtension
 import UserNotifications
 
-// swiftlint:disable:next type_body_length
 open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     public enum Event {
@@ -86,6 +83,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         // Subscription Errors - 100+
         case vpnAccessRevoked
 
+        // State Reset - 200+
+        case appRequestedCancellation
+
         public var errorDescription: String? {
             switch self {
             case .startingTunnelWithoutAuthToken:
@@ -96,6 +96,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 return "Failed to generate a tunnel configuration: \(internalError.localizedDescription)"
             case .simulateTunnelFailureError:
                 return "Simulated a tunnel error as requested"
+            case .appRequestedCancellation:
+                return nil
             }
         }
 
@@ -107,6 +109,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             case .simulateTunnelFailureError: return 2
                 // Subscription Errors - 100+
             case .vpnAccessRevoked: return 100
+                // State Reset - 200+
+            case .appRequestedCancellation: return 200
             }
         }
 
@@ -114,7 +118,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             switch self {
             case .startingTunnelWithoutAuthToken,
                     .simulateTunnelFailureError,
-                    .vpnAccessRevoked:
+                    .vpnAccessRevoked,
+                    .appRequestedCancellation:
                 return [:]
             case .couldNotGenerateTunnelConfiguration(let underlyingError):
                 return [NSUnderlyingErrorKey: underlyingError]
@@ -987,7 +992,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - App Messages
 
-    // swiftlint:disable:next cyclomatic_complexity
     @MainActor public override func handleAppMessage(_ messageData: Data, completionHandler: ((Data?) -> Void)? = nil) {
 
         guard let message = ExtensionMessage(rawValue: messageData) else {
@@ -1063,7 +1067,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         settings.apply(change: change)
     }
 
-    // swiftlint:disable:next cyclomatic_complexity function_body_length
     private func handleSettingsChange(_ change: VPNSettings.Change, completionHandler: ((Data?) -> Void)? = nil) {
         switch change {
         case .setExcludeLocalNetworks:
@@ -1175,9 +1178,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         try? tokenStore.deleteToken()
 #endif
 
-        // This is not really an error, we received a command to reset the connection
-        cancelTunnelWithError(nil)
-        completionHandler?(nil)
+        Task {
+            completionHandler?(nil)
+            await cancelTunnel(with: TunnelError.appRequestedCancellation)
+        }
     }
 
     private func handleGetLastErrorMessage(completionHandler: ((Data?) -> Void)? = nil) {
@@ -1741,5 +1745,3 @@ extension WireGuardAdapterError: LocalizedError, CustomDebugStringConvertible {
         errorDescription!
     }
 }
-
-// swiftlint:enable file_length

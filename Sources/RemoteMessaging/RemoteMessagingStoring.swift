@@ -18,16 +18,20 @@
 
 import Foundation
 
-public protocol RemoteMessagingStoring {
+public protocol RemoteMessagingStoringDebuggingSupport {
+    func resetRemoteMessages()
+}
+
+public protocol RemoteMessagingStoring: RemoteMessagingStoringDebuggingSupport {
 
     func saveProcessedResult(_ processorResult: RemoteMessagingConfigProcessor.ProcessorResult)
     func fetchRemoteMessagingConfig() -> RemoteMessagingConfig?
     func fetchScheduledRemoteMessage() -> RemoteMessageModel?
-    func fetchRemoteMessage(withId id: String) -> RemoteMessageModel?
-    func hasShownRemoteMessage(withId id: String) -> Bool
-    func hasDismissedRemoteMessage(withId id: String) -> Bool
-    func dismissRemoteMessage(withId id: String)
-    func fetchDismissedRemoteMessageIds() -> [String]
-    func updateRemoteMessage(withId id: String, asShown shown: Bool)
+    func fetchRemoteMessage(withID id: String) -> RemoteMessageModel?
+    func hasShownRemoteMessage(withID id: String) -> Bool
+    func hasDismissedRemoteMessage(withID id: String) -> Bool
+    func dismissRemoteMessage(withID id: String)
+    func fetchDismissedRemoteMessageIDs() -> [String]
+    func updateRemoteMessage(withID id: String, asShown shown: Bool)
 
 }
