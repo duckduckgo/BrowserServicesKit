@@ -187,10 +187,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 snoozeJustEnded = false
             }
 
-            if case .snoozing = connectionStatus, let duration = snoozeTimingStore.activeTiming?.duration {
-                self.notificationsPresenter.showSnoozingNotification(duration: duration)
-            }
-
             handleConnectionStatusChange(old: oldValue, new: connectionStatus)
         }
     }
@@ -1683,6 +1679,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         await stopMonitors()
         self.connectionStatus = .snoozing
         self.snoozeTimingStore.activeTiming = .init(startDate: Date(), duration: duration)
+        self.notificationsPresenter.showSnoozingNotification(duration: duration)
+
         self.adapter.snooze { error in
             if error == nil {
                 let timer = DispatchSource.makeTimerSource(queue: self.timerQueue)
