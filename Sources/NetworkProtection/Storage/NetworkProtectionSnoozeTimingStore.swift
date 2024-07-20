@@ -18,6 +18,13 @@
 
 import Foundation
 import Common
+import Combine
+
+public extension UserDefaults {
+    @objc dynamic var networkProtectionSnoozeTiming: Data? {
+        return data(forKey: NetworkProtectionSnoozeTimingStore.snoozeTimingKey)
+    }
+}
 
 final public class NetworkProtectionSnoozeTimingStore {
 
@@ -30,27 +37,33 @@ final public class NetworkProtectionSnoozeTimingStore {
         }
     }
 
-    private static let activeSnoozeTimingKey = "com.duckduckgo.NetworkProtectionSnoozeTimingStore.activeTiming"
+    static let snoozeTimingKey = "networkProtectionSnoozeTiming"
 
     private let userDefaults: UserDefaults
     private let notificationCenter: NotificationCenter
+    public let snoozeTimingChangedSubject: PassthroughSubject<Void, Never> = .init()
+    private var userDefaultsCancellable: AnyCancellable?
 
     public init(userDefaults: UserDefaults, notificationCenter: NotificationCenter = .default) {
         self.userDefaults = userDefaults
         self.notificationCenter = notificationCenter
+
+        self.userDefaultsCancellable = userDefaults.publisher(for: \.networkProtectionSnoozeTiming).removeDuplicates().sink { [weak self] _ in
+            self?.snoozeTimingChangedSubject.send()
+        }
     }
 
     public var activeTiming: SnoozeTiming? {
         get {
-            guard let data = userDefaults.data(forKey: Self.activeSnoozeTimingKey) else { return nil }
+            guard let data = userDefaults.data(forKey: Self.snoozeTimingKey) else { return nil }
             return try? JSONDecoder().decode(SnoozeTiming.self, from: data)
         }
 
         set {
             if let newValue, let data = try? JSONEncoder().encode(newValue) {
-                userDefaults.set(data, forKey: Self.activeSnoozeTimingKey)
+                userDefaults.set(data, forKey: Self.snoozeTimingKey)
             } else {
-                userDefaults.removeObject(forKey: Self.activeSnoozeTimingKey)
+                userDefaults.removeObject(forKey: Self.snoozeTimingKey)
             }
 
             notificationCenter.post(name: .VPNSnoozeRefreshed, object: nil)
