@@ -47,6 +47,12 @@ final public class NetworkProtectionNotificationsPresenterTogglableDecorator: Ne
         }
     }
 
+    public func showSnoozingNotification(duration: TimeInterval) {
+        if settings.notifyStatusChanges {
+            wrappeePresenter.showSnoozingNotification(duration: duration)
+        }
+    }
+
     public func showSupersededNotification() {
         if settings.notifyStatusChanges {
             wrappeePresenter.showSupersededNotification()

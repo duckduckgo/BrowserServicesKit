@@ -31,6 +31,9 @@ public protocol NetworkProtectionNotificationsPresenter {
     /// Present a "connection failure" notification to the user.
     func showConnectionFailureNotification()
 
+    /// Present a "snoozing" notification to the user.
+    func showSnoozingNotification(duration: TimeInterval)
+
     /// Present a "Superseded by another App" notification to the user.
     func showSupersededNotification()
 

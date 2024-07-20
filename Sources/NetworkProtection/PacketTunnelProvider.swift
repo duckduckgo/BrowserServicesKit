@@ -187,6 +187,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 snoozeJustEnded = false
             }
 
+            if case .snoozing = connectionStatus, let duration = snoozeTimingStore.activeTiming?.duration {
+                self.notificationsPresenter.showSnoozingNotification(duration: duration)
+            }
+
             handleConnectionStatusChange(old: oldValue, new: connectionStatus)
         }
     }
