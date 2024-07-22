@@ -332,7 +332,8 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
             lock.unlock()
         }
         do {
-            return try self.providers.database.websiteCredentialsForTopLevelDomain(eTLDplus1)
+            let credentials = try self.providers.database.websiteCredentialsForTopLevelDomain(eTLDplus1)
+            return try credentials.map(decryptCredentials(_:))
         } catch {
             throw SecureStorageError.databaseError(cause: error)
         }
