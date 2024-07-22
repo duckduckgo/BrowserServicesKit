@@ -40,6 +40,7 @@ let package = Package(
         .library(name: "Suggestions", targets: ["Suggestions"]),
         .library(name: "PixelKit", targets: ["PixelKit"]),
         .library(name: "PixelKitTestingUtilities", targets: ["PixelKitTestingUtilities"]),
+        .library(name: "SSLErrors", targets: ["SSLErrors"]),
     ],
     dependencies: [
         .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "12.0.1"),
@@ -378,6 +379,15 @@ let package = Package(
             name: "PixelKitTestingUtilities",
             dependencies: [
                 "PixelKit"
+            ]
+        ),
+        .target(
+            name: "SSLErrors",
+            dependencies: [
+                "Common"
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
             ]
         ),
 
