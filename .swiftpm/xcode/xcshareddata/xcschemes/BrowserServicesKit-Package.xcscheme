@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Scheme
    LastUpgradeVersion = "1540"
-   version = "1.7">
+   version = "1.8">
    <BuildAction
       parallelizeBuildables = "YES"
       buildImplicitDependencies = "YES"
@@ -410,6 +410,20 @@
                BlueprintIdentifier = "RemoteMessagingTestsUtils"
                BuildableName = "RemoteMessagingTestsUtils"
                BlueprintName = "RemoteMessagingTestsUtils"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "CxxCrashHandler"
+               BuildableName = "CxxCrashHandler"
+               BlueprintName = "CxxCrashHandler"
                ReferencedContainer = "container:">
             </BuildableReference>
          </BuildActionEntry>

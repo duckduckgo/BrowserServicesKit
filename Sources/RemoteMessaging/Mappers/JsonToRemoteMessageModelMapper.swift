@@ -43,6 +43,7 @@ private enum AttributesKey: String, CaseIterable {
     case pproPurchasePlatform
     case pproSubscriptionStatus
     case interactedWithMessage
+    case interactedWithDeprecatedMacRemoteMessage
     case installedMacAppStore
     case pinnedTabs
     case customHomePage
@@ -74,6 +75,9 @@ private enum AttributesKey: String, CaseIterable {
         case .pproPurchasePlatform: return PrivacyProPurchasePlatformMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         case .pproSubscriptionStatus: return PrivacyProSubscriptionStatusMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         case .interactedWithMessage: return InteractedWithMessageMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .interactedWithDeprecatedMacRemoteMessage: return InteractedWithDeprecatedMacRemoteMessageMatchingAttribute(
+            jsonMatchingAttribute: jsonMatchingAttribute
+        )
         case .installedMacAppStore: return IsInstalledMacAppStoreMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         case .pinnedTabs: return PinnedTabsMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         case .customHomePage: return CustomHomePageMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
@@ -93,10 +97,13 @@ struct JsonToRemoteMessageModelMapper {
                 return
             }
 
-            var remoteMessage = RemoteMessageModel(id: message.id,
-                                              content: content,
-                                              matchingRules: message.matchingRules ?? [],
-                                              exclusionRules: message.exclusionRules ?? [])
+            var remoteMessage = RemoteMessageModel(
+                id: message.id,
+                content: content,
+                matchingRules: message.matchingRules ?? [],
+                exclusionRules: message.exclusionRules ?? [],
+                isMetricsEnabled: message.isMetricsEnabled
+            )
 
             if let translation = getTranslation(from: message.translations, for: Locale.current) {
                 remoteMessage.localizeContent(translation: translation)
