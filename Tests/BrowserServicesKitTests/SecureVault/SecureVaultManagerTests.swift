@@ -286,9 +286,17 @@ class SecureVaultManagerTests: XCTestCase {
         waitForExpectations(timeout: 0.1)
     }
 
-    func testWhenRequestingAutofillInitDataWithDomainAndPort_ThenDataIsReturned() throws {
+    func testWhenRequestingAutofillInitDataWithDomainAndPort_withPartialMatches_ThenDataIsReturned() throws {
+        self.manager = SecureVaultManager(vault: self.testVault, includePartialAccountMatches: true, tld: TLD())
+        try assertWhenRequestingAutofillInitDataWithDomainAndPort_ThenDataIsReturned()
+    }
 
-        // Given
+    func testWhenRequestingAutofillInitDataWithDomainAndPort_withoutPartialMatches_ThenDataIsReturned() throws {
+        self.manager = SecureVaultManager(vault: self.testVault, includePartialAccountMatches: false, tld: TLD())
+        try assertWhenRequestingAutofillInitDataWithDomainAndPort_ThenDataIsReturned()
+    }
+
+    func assertWhenRequestingAutofillInitDataWithDomainAndPort_ThenDataIsReturned(file: StaticString = #file, line: UInt = #line) throws {
         class SecureVaultDelegate: MockSecureVaultManagerDelegate {
             override func secureVaultManager(_ manager: SecureVaultManager,
                                              promptUserToAutofillCredentialsForDomain domain: String,
@@ -301,7 +309,6 @@ class SecureVaultManagerTests: XCTestCase {
             }
         }
 
-        self.manager = SecureVaultManager(vault: self.testVault, includePartialAccountMatches: true, tld: TLD())
         self.secureVaultManagerDelegate = SecureVaultDelegate()
         self.manager.delegate = self.secureVaultManagerDelegate
 
@@ -317,9 +324,9 @@ class SecureVaultManagerTests: XCTestCase {
         manager.autofillUserScript(mockAutofillUserScript, didRequestAutoFillInitDataForDomain: domain) { credentials, _, _, _ in
 
             // Then
-            XCTAssertEqual(credentials.count, 1)
-            XCTAssertEqual(credentials.first?.account.id, storedCredentials.account.id)
-            XCTAssertEqual(credentials.first?.password, storedCredentials.password)
+            XCTAssertEqual(credentials.count, 1, file: file, line: line)
+            XCTAssertEqual(credentials.first?.account.id, storedCredentials.account.id, file: file, line: line)
+            XCTAssertEqual(credentials.first?.password, storedCredentials.password, file: file, line: line)
             expect.fulfill()
         }
         waitForExpectations(timeout: 0.1)
