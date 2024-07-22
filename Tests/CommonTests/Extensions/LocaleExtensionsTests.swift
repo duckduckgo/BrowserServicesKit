@@ -21,7 +21,7 @@ import XCTest
 @testable import Common
 
 final class LocaleExtensionsTests: XCTest {
-    
+
     func testThatJSONLocaleFormatIsReturned() {
         let locale = Locale(identifier: "en_US")
 
