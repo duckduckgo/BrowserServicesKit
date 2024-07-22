@@ -53,6 +53,10 @@ final public class NetworkProtectionSnoozeTimingStore {
         }
     }
 
+    public var isSnoozing: Bool {
+        return activeTiming != nil
+    }
+
     public var activeTiming: SnoozeTiming? {
         get {
             guard let data = userDefaults.data(forKey: Self.snoozeTimingKey) else { return nil }
