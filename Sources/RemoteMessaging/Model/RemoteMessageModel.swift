@@ -24,28 +24,31 @@ public struct RemoteMessageModel: Equatable, Codable {
     public var content: RemoteMessageModelType?
     public let matchingRules: [Int]
     public let exclusionRules: [Int]
+    public let isMetricsEnabled: Bool
 
-    public init(id: String, content: RemoteMessageModelType?, matchingRules: [Int], exclusionRules: [Int]) {
+    public init(id: String, content: RemoteMessageModelType?, matchingRules: [Int], exclusionRules: [Int], isMetricsEnabled: Bool) {
         self.id = id
         self.content = content
         self.matchingRules = matchingRules
         self.exclusionRules = exclusionRules
+        self.isMetricsEnabled = isMetricsEnabled
     }
 
-    public static func == (lhs: RemoteMessageModel, rhs: RemoteMessageModel) -> Bool {
-        if lhs.id != rhs.id {
-            return false
-        }
-        if lhs.content != rhs.content {
-            return false
-        }
-        if lhs.matchingRules != rhs.matchingRules {
-            return false
-        }
-        if lhs.exclusionRules != rhs.exclusionRules {
-            return false
-        }
-        return true
+    enum CodingKeys: CodingKey {
+        case id
+        case content
+        case matchingRules
+        case exclusionRules
+        case isMetricsEnabled
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try container.decode(String.self, forKey: .id)
+        self.content = try container.decodeIfPresent(RemoteMessageModelType.self, forKey: .content)
+        self.matchingRules = try container.decode([Int].self, forKey: .matchingRules)
+        self.exclusionRules = try container.decode([Int].self, forKey: .exclusionRules)
+        self.isMetricsEnabled = try container.decodeIfPresent(Bool.self, forKey: .isMetricsEnabled) ?? true
     }
 
     mutating func localizeContent(translation: RemoteMessageResponse.JsonContentTranslation) {

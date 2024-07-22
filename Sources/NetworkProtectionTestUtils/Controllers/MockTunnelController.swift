@@ -17,9 +17,11 @@
 //
 
 import Foundation
+import NetworkExtension
 import NetworkProtection
 
-public final class MockTunnelController: TunnelController {
+public final class MockTunnelController: TunnelController, TunnelSessionProvider {
+
     public init() {}
 
     public var didCallStart = false
@@ -35,4 +37,9 @@ public final class MockTunnelController: TunnelController {
     public var isConnected: Bool {
         true
     }
+
+    public func activeSession() async -> NETunnelProviderSession? {
+        return nil
+    }
+
 }

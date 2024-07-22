@@ -332,7 +332,6 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
                                       addresses: [addressRange],
                                       includedRoutes: includedRoutes,
                                       excludedRoutes: excludedRoutes,
-                                      listenPort: 51821,
                                       dns: dns)
     }
 

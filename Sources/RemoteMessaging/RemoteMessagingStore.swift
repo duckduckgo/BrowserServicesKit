@@ -226,7 +226,13 @@ extension RemoteMessagingStore {
                     continue
                 }
 
-                scheduledRemoteMessage = RemoteMessageModel(id: id, content: remoteMessage.content, matchingRules: [], exclusionRules: [])
+                scheduledRemoteMessage = RemoteMessageModel(
+                    id: id,
+                    content: remoteMessage.content,
+                    matchingRules: [],
+                    exclusionRules: [],
+                    isMetricsEnabled: remoteMessage.isMetricsEnabled
+                )
                 break
             }
         }
@@ -255,7 +261,13 @@ extension RemoteMessagingStore {
                     continue
                 }
 
-                remoteMessage = RemoteMessageModel(id: id, content: remoteMessageMapped.content, matchingRules: [], exclusionRules: [])
+                remoteMessage = RemoteMessageModel(
+                    id: id,
+                    content: remoteMessageMapped.content,
+                    matchingRules: [],
+                    exclusionRules: [],
+                    isMetricsEnabled: remoteMessageMapped.isMetricsEnabled
+                )
                 break
             }
         }
