@@ -94,6 +94,7 @@ public struct DesktopUserAttributeMatcher: AttributeMatching {
     private let hasCustomHomePage: Bool
     private let isDuckPlayerOnboarded: Bool
     private let isDuckPlayerEnabled: Bool
+    private let dismissedDeprecatedMacRemoteMessageIds: [String]
 
     private let commonUserAttributeMatcher: CommonUserAttributeMatcher
 
@@ -116,12 +117,14 @@ public struct DesktopUserAttributeMatcher: AttributeMatching {
                 pinnedTabsCount: Int,
                 hasCustomHomePage: Bool,
                 isDuckPlayerOnboarded: Bool,
-                isDuckPlayerEnabled: Bool
+                isDuckPlayerEnabled: Bool,
+                dismissedDeprecatedMacRemoteMessageIds: [String]
     ) {
         self.pinnedTabsCount = pinnedTabsCount
         self.hasCustomHomePage = hasCustomHomePage
         self.isDuckPlayerOnboarded = isDuckPlayerOnboarded
         self.isDuckPlayerEnabled = isDuckPlayerEnabled
+        self.dismissedDeprecatedMacRemoteMessageIds = dismissedDeprecatedMacRemoteMessageIds
 
         commonUserAttributeMatcher = .init(
             statisticsStore: statisticsStore,
@@ -153,6 +156,14 @@ public struct DesktopUserAttributeMatcher: AttributeMatching {
             return matchingAttribute.evaluate(for: isDuckPlayerOnboarded)
         case let matchingAttribute as DuckPlayerEnabledMatchingAttribute:
             return matchingAttribute.evaluate(for: isDuckPlayerEnabled)
+        case let matchingAttribute as InteractedWithDeprecatedMacRemoteMessageMatchingAttribute:
+            if dismissedDeprecatedMacRemoteMessageIds.contains(where: { messageId in
+                StringArrayMatchingAttribute(matchingAttribute.value).matches(value: messageId) == .match
+            }) {
+                return .match
+            } else {
+                return .fail
+            }
         default:
             return commonUserAttributeMatcher.evaluate(matchingAttribute: matchingAttribute)
         }
