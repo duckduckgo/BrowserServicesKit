@@ -1,5 +1,5 @@
 //
-//  LocaleExtensions.swift
+//  LocaleExtensionsTests.swift
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -17,10 +17,15 @@
 //
 
 import Foundation
+import XCTest
+@testable import Common
 
-public extension Locale {
-    var localeIdentifierAsJsonFormat: String {
-        let baseIdentifier = self.identifier.components(separatedBy: "@").first ?? self.identifier
-        return baseIdentifier.replacingOccurrences(of: "_", with: "-")
+final class LocaleExtensionsTests: XCTest {
+    
+    func testThatJSONLocaleFormatIsReturned() {
+        let locale = Locale(identifier: "en_US")
+
+        XCTAssert(locale.localeIdentifierAsJsonFormat == "en-US", "The returned identifier should be in JSON format")
     }
+
 }
