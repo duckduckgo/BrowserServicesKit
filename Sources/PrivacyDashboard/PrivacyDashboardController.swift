@@ -259,7 +259,7 @@ extension PrivacyDashboardController: WKNavigationDelegate {
             .receive(on: DispatchQueue.main )
             .sink(receiveValue: { [weak self] isPhishing in
                 guard let self = self, let webView = self.webView else { return }
-                self.privacyDashboardScript.setIsPhishing(isPhishing, webView: webView)
+                script.setIsPhishing(isPhishing, webView: webView)
             })
             .store(in: &cancellables)
     }
