@@ -23,7 +23,6 @@ import Persistence
 import Common
 @testable import History
 
-@MainActor
 class HistoryCoordinatorTests: XCTestCase {
 
     var location: URL!

@@ -20,7 +20,55 @@ import Foundation
 import Common
 import BrowserServicesKit
 
-public struct AppAttributeMatcher: AttributeMatcher {
+#if os(iOS)
+public typealias AppAttributeMatcher = MobileAppAttributeMatcher
+#elseif os(macOS)
+public typealias AppAttributeMatcher = DesktopAppAttributeMatcher
+#endif
+
+public typealias MobileAppAttributeMatcher = CommonAppAttributeMatcher
+
+public struct DesktopAppAttributeMatcher: AttributeMatching {
+    private let isInstalledMacAppStore: Bool
+
+    private let commonAppAttributeMatcher: CommonAppAttributeMatcher
+
+    public init(statisticsStore: StatisticsStore, variantManager: VariantManager, isInternalUser: Bool = true, isInstalledMacAppStore: Bool) {
+        self.isInstalledMacAppStore = isInstalledMacAppStore
+
+        commonAppAttributeMatcher = .init(statisticsStore: statisticsStore, variantManager: variantManager, isInternalUser: isInternalUser)
+    }
+
+    public init(
+        bundleId: String,
+        appVersion: String,
+        isInternalUser: Bool,
+        statisticsStore: StatisticsStore,
+        variantManager: VariantManager,
+        isInstalledMacAppStore: Bool
+    ) {
+        self.isInstalledMacAppStore = isInstalledMacAppStore
+
+        commonAppAttributeMatcher = .init(
+            bundleId: bundleId,
+            appVersion: appVersion,
+            isInternalUser: isInternalUser,
+            statisticsStore: statisticsStore,
+            variantManager: variantManager
+        )
+    }
+
+    public func evaluate(matchingAttribute: MatchingAttribute) -> EvaluationResult? {
+        switch matchingAttribute {
+        case let matchingAttribute as IsInstalledMacAppStoreMatchingAttribute:
+            return matchingAttribute.evaluate(for: isInstalledMacAppStore)
+        default:
+            return commonAppAttributeMatcher.evaluate(matchingAttribute: matchingAttribute)
+        }
+    }
+}
+
+public struct CommonAppAttributeMatcher: AttributeMatching {
 
     private let bundleId: String
     private let appVersion: String
@@ -47,53 +95,27 @@ public struct AppAttributeMatcher: AttributeMatcher {
         self.variantManager = variantManager
     }
 
-    // swiftlint:disable cyclomatic_complexity
-    func evaluate(matchingAttribute: MatchingAttribute) -> EvaluationResult? {
+    public func evaluate(matchingAttribute: MatchingAttribute) -> EvaluationResult? {
         switch matchingAttribute {
         case let matchingAttribute as IsInternalUserMatchingAttribute:
-            guard let value = matchingAttribute.value else {
-                return .fail
-            }
-
-            return BooleanMatchingAttribute(value).matches(value: isInternalUser)
+            return matchingAttribute.evaluate(for: isInternalUser)
         case let matchingAttribute as AppIdMatchingAttribute:
-            guard let value = matchingAttribute.value, !value.isEmpty else {
+            guard matchingAttribute.value?.isEmpty == false else {
                 return .fail
             }
-
-            return StringMatchingAttribute(value).matches(value: bundleId)
+            return matchingAttribute.evaluate(for: bundleId)
         case let matchingAttribute as AppVersionMatchingAttribute:
-            if matchingAttribute.value != MatchingAttributeDefaults.stringDefaultValue {
-                return StringMatchingAttribute(matchingAttribute.value).matches(value: appVersion)
-            } else {
-                return RangeStringNumericMatchingAttribute(min: matchingAttribute.min, max: matchingAttribute.max).matches(value: appVersion)
-            }
+            return matchingAttribute.evaluate(for: appVersion)
         case let matchingAttribute as AtbMatchingAttribute:
-            guard let atb = statisticsStore.atb, let value = matchingAttribute.value else {
-                return .fail
-            }
-
-            return StringMatchingAttribute(value).matches(value: atb)
+            return matchingAttribute.evaluate(for: statisticsStore.atb)
         case let matchingAttribute as AppAtbMatchingAttribute:
-            guard let atb = statisticsStore.appRetentionAtb, let value = matchingAttribute.value else {
-                return .fail
-            }
-
-            return StringMatchingAttribute(value).matches(value: atb)
+            return matchingAttribute.evaluate(for: statisticsStore.appRetentionAtb)
         case let matchingAttribute as SearchAtbMatchingAttribute:
-            guard let atb = statisticsStore.searchRetentionAtb, let value = matchingAttribute.value else {
-                return .fail
-            }
-            return StringMatchingAttribute(value).matches(value: atb)
+            return matchingAttribute.evaluate(for: statisticsStore.searchRetentionAtb)
         case let matchingAttribute as ExpVariantMatchingAttribute:
-            guard let variant = variantManager.currentVariant?.name, let value = matchingAttribute.value else {
-                return .fail
-            }
-
-            return StringMatchingAttribute(value).matches(value: variant)
+            return matchingAttribute.evaluate(for: variantManager.currentVariant?.name)
         default:
             return nil
         }
     }
-    // swiftlint:enable cyclomatic_complexity
 }

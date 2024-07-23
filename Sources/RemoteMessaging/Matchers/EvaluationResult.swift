@@ -18,7 +18,7 @@
 
 import Foundation
 
-enum EvaluationResult {
+public enum EvaluationResult {
     case match
     case fail
     case nextMessage

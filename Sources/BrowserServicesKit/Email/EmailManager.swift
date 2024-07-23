@@ -88,7 +88,6 @@ public enum EmailManagerRequestDelegateError: Error {
     case decodingError
 }
 
-// swiftlint:disable function_parameter_count
 public protocol EmailManagerRequestDelegate: AnyObject {
 
     var activeTask: URLSessionTask? { get set }
@@ -106,7 +105,6 @@ public protocol EmailManagerRequestDelegate: AnyObject {
                                           error: EmailKeychainAccessError)
 
 }
-// swiftlint:enable function_parameter_count
 
 public extension Notification.Name {
     static let emailDidSignIn = Notification.Name("com.duckduckgo.browserServicesKit.EmailDidSignIn")

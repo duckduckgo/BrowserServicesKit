@@ -95,8 +95,7 @@ public struct BrokenSiteReport {
     let vpnOn: Bool
     let jsPerformance: [Double]?
     let userRefreshCount: Int
-    let didOpenReportInfo: Bool
-    let toggleReportCounter: Int?
+    let localeIdentifier: String
 #if os(iOS)
     let siteType: SiteType
     let atb: String
@@ -126,8 +125,7 @@ public struct BrokenSiteReport {
         vpnOn: Bool,
         jsPerformance: [Double]?,
         userRefreshCount: Int,
-        didOpenReportInfo: Bool,
-        toggleReportCounter: Int?
+        localeIdentifier: String = Locale.current.identifier
     ) {
         self.siteUrl = siteUrl
         self.category = category
@@ -149,8 +147,7 @@ public struct BrokenSiteReport {
         self.vpnOn = vpnOn
         self.jsPerformance = jsPerformance
         self.userRefreshCount = userRefreshCount
-        self.didOpenReportInfo = didOpenReportInfo
-        self.toggleReportCounter = toggleReportCounter
+        self.localeIdentifier = localeIdentifier
     }
 #endif
 
@@ -179,9 +176,8 @@ public struct BrokenSiteReport {
         vpnOn: Bool,
         jsPerformance: [Double]?,
         userRefreshCount: Int,
-        didOpenReportInfo: Bool,
-        toggleReportCounter: Int?,
-        variant: String
+        variant: String,
+        localeIdentifier: String = Locale.current.identifier
     ) {
         self.siteUrl = siteUrl
         self.category = category
@@ -206,9 +202,8 @@ public struct BrokenSiteReport {
         self.vpnOn = vpnOn
         self.jsPerformance = jsPerformance
         self.userRefreshCount = userRefreshCount
-        self.didOpenReportInfo = didOpenReportInfo
-        self.toggleReportCounter = toggleReportCounter
         self.variant = variant
+        self.localeIdentifier = localeIdentifier
     }
 #endif
 
@@ -230,18 +225,14 @@ public struct BrokenSiteReport {
             "reportFlow": reportFlow.rawValue,
             "openerContext": openerContext?.rawValue ?? "",
             "vpnOn": vpnOn.description,
-            "userRefreshCount": String(userRefreshCount)
+            "userRefreshCount": String(userRefreshCount),
+            "locale": localeIdentifier
         ]
 
         if mode == .regular {
             result["category"] = category
             result["description"] = description ?? ""
             result["protectionsState"] = protectionsState.description
-        } else {
-            result["didOpenReportInfo"] = didOpenReportInfo.description
-            if let toggleReportCounter {
-                result["toggleReportCounter"] = String(toggleReportCounter)
-            }
         }
 
         if let lastSentDay = lastSentDay {

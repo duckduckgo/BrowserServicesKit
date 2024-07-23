@@ -1,0 +1,309 @@
+{
+  "version": 1,
+  "messages": [
+    {
+      "id": "8274589c-8aeb-4322-a737-3852911569e3",
+      "content": {
+        "messageType": "big_single_action",
+        "titleText": "title",
+        "descriptionText": "description",
+        "placeholder": "Announce",
+        "primaryActionText": "Ok",
+        "primaryAction": {
+          "type": "url",
+          "value": "https://duckduckgo.com"
+        }
+      },
+      "translations": {
+        "es": {
+          "titleText": "Titulo",
+          "descriptionText": "Descripción."
+        },
+        "ru": {
+          "titleText": "Добавить закладку",
+          "descriptionText": "Введите поисковый запрос или адрес сайта"
+        },
+        "en-US": {
+          "titleText": "title",
+          "descriptionText": "description"
+        }
+      }
+    },
+    {
+      "id": "8274589c-8aeb-4322-a737-3852911569e3",
+      "content": {
+        "messageType": "big_single_action",
+        "titleText": "Kedvenc hozzáadása",
+        "descriptionText": "Kedvenc eltávolítása",
+        "placeholder": "DDGAnnounce",
+        "primaryActionText": "Ok",
+        "primaryAction": {
+          "type": "url",
+          "value": "https://duckduckgo.com"
+        }
+      },
+      "translations": {
+        "es": {
+          "titleText": "Titulo",
+          "descriptionText": "Descripción."
+        },
+        "ru": {
+          "titleText": "Here goes a title",
+          "descriptionText": "description"
+        }
+      }
+    },
+    {
+      "id": "26780792-49fe-4e25-ae27-aa6a2e6f013b",
+      "content": {
+        "messageType": "small",
+        "titleText": "Here goes a title",
+        "descriptionText": "description"
+      },
+      "matchingRules": [
+        5,
+        6
+      ],
+      "exclusionRules": [
+        7,
+        8,
+        9
+      ]
+    },
+    {
+      "id": "c3549d64-b388-41d8-9649-33e6e2674e8e",
+      "content": {
+        "messageType": "medium",
+        "titleText": "Here goes a title",
+        "descriptionText": "description",
+        "placeholder": "CriticalUpdate"
+      }
+    },
+    {
+      "id": "c2d0a1f1-6157-434f-8145-38416037d339",
+      "content": {
+        "messageType": "big_two_action",
+        "titleText": "Here goes a title",
+        "descriptionText": "description",
+        "placeholder": "AppUpdate",
+        "primaryActionText": "Ok",
+        "primaryAction": {
+          "type": "appstore",
+          "value": "com.duckduckgo.mobile.ios"
+        },
+        "secondaryActionText": "Cancel",
+        "secondaryAction": {
+          "type": "dismiss",
+          "value": ""
+        }
+      }
+    },
+    {
+        "id": "96EEA91B-030D-41E5-95A7-F11C1952A5FF",
+        "content": {
+            "messageType": "big_two_action",
+            "titleText": "Here goes a title",
+            "descriptionText": "description",
+            "placeholder": "NewForMacAndWindows",
+            "primaryActionText": "Ok",
+            "primaryAction": {
+                "type": "share",
+                "value": "https://duckduckgo.com/app",
+                "additionalParameters": {
+                    "title": "Share Title"
+                }
+            },
+            "secondaryActionText": "Cancel",
+            "secondaryAction": {
+                "type": "dismiss",
+                "value": ""
+            }
+        }
+    },
+    {
+        "id": "6E58D3DA-AB9D-47A4-87B7-B8AF830BFB5E",
+        "content": {
+            "messageType": "promo_single_action",
+            "titleText": "Promo Title",
+            "descriptionText": "Promo Description",
+            "placeholder": "NewForMacAndWindows",
+            "actionText": "Promo Action",
+            "action": {
+                "type": "dismiss",
+                "value": ""
+            }
+        }
+    },
+    {
+        "id": "9848E904-4345-09C8-FEAA-3B2C75DC285B",
+        "content": {
+            "messageType": "promo_single_action",
+            "titleText": "Survey Title",
+            "descriptionText": "Survey Description",
+            "placeholder": "PrivacyShield",
+            "actionText": "Survey Action",
+            "action": {
+                "type": "survey",
+                "value": "https://duckduckgo.com/survey",
+                "additionalParameters": {
+                    "queryParams": "atb;var;delta;osv;ddgv;unknown_param_which_is_not_supported"
+                }
+            }
+        }
+    },
+    {
+        "id": "8E909844-C809-4543-AAFE-2C75DC285B3B",
+        "content": {
+            "messageType": "promo_single_action",
+            "titleText": "Survey Title",
+            "descriptionText": "Survey Description",
+            "placeholder": "PrivacyShield",
+            "actionText": "Survey Action",
+            "action": {
+                "type": "survey",
+                "value": "https://duckduckgo.com/survey",
+                "additionalParameters": {
+                    "queryParams": "atb;var;delta;osv;ddgv"
+                }
+            }
+        },
+        "matchingRules": [
+            8
+        ]
+    }
+  ],
+  "rules": [
+    {
+      "id": 5,
+      "attributes": {
+        "locale": {
+          "value": [
+            "en-US",
+            "en-GB"
+          ],
+          "fallback": true
+        },
+        "osApi": {
+          "min": "14.0.0",
+          "max": "15.4.0",
+          "fallback": true
+        },
+        "appVersion": {
+          "min": "7.67.1.0",
+          "max": "7.68.0.0"
+        },
+        "atb": {
+          "value": "v298-7"
+        },
+        "appAtb": {
+          "value": "v298-7"
+        },
+        "searchAtb": {
+          "value": "v298-7"
+        },
+        "expVariant": {
+          "value": "zo"
+        },
+        "isInternalUser": {
+          "value": false
+        },
+        "appId": {
+          "value": "com.duckduckgo.mobile.ios"
+        },
+        "emailEnabled": {
+          "value": false
+        },
+        "widgetAdded": {
+          "value": false
+        },
+        "daysSinceInstalled": {
+          "value": 3
+        },
+        "bookmarks": {
+          "min": 10,
+          "max": 10
+        },
+        "favorites": {
+          "min": 2,
+          "max": 10
+        },
+        "appTheme": {
+          "value": "light"
+        },
+        "unknown": {
+          "value": "random value",
+          "fallback": true
+        }
+      }
+    },
+    {
+      "id": 6,
+      "attributes": {
+        "locale": {
+          "value": [
+            "en-GB"
+          ]
+        }
+      }
+    },
+    {
+      "id": 7,
+      "attributes": {
+        "widgetAdded": {
+          "value": false
+        }
+      }
+    },
+    {
+      "id": 8,
+      "attributes": {
+        "daysSinceNetPEnabled": {
+          "min": 5
+        },
+        "pproEligible": {
+          "value": true
+        },
+        "pproSubscriber": {
+          "value": true
+        },
+        "pproPurchasePlatform": {
+          "value": ["apple", "stripe"]
+        },
+        "pproSubscriptionStatus": {
+          "value": ["active", "expiring"]
+        },
+        "pproDaysSinceSubscribed": {
+            "min": 5,
+            "max": 8
+        },
+        "pproDaysUntilExpiryOrRenewal": {
+            "min": 25,
+            "max": 30
+        }
+      }
+    },
+    {
+      "id": 9,
+      "targetPercentile": {
+        "before": 0.9
+      },
+      "attributes": {
+        "daysSinceInstalled": {
+          "min": 5,
+          "max": 8
+        },
+      }
+    },
+    {
+      "id": 10,
+      "attributes": {
+          "interactedWithMessage": {
+              "value": [
+                  "One",
+                  "Two"
+              ]
+          },
+      }
+    }
+  ]
+}

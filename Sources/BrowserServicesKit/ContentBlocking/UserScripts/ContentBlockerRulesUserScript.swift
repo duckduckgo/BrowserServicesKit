@@ -118,7 +118,7 @@ open class ContentBlockerRulesUserScript: NSObject, UserScript {
         return temporaryUnprotectedDomains
     }
 
-    // swiftlint:disable:next cyclomatic_complexity function_body_length
+    // swiftlint:disable:next cyclomatic_complexity
     public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         guard let delegate = delegate else { return }
         guard delegate.contentBlockerRulesUserScriptShouldProcessTrackers(self) else { return }

@@ -184,6 +184,31 @@ public struct BookmarkUtils {
         return result.compactMap { $0[#keyPath(BookmarkEntity.title)] as? String }
     }
 
+    public static func numberOfBookmarks(in context: NSManagedObjectContext) -> Int {
+        let request = BookmarkEntity.fetchRequest()
+        request.predicate = NSPredicate(
+            format: "%K == false AND %K == false AND (%K == NO OR %K == nil)",
+            #keyPath(BookmarkEntity.isFolder),
+            #keyPath(BookmarkEntity.isPendingDeletion),
+            #keyPath(BookmarkEntity.isStub), #keyPath(BookmarkEntity.isStub))
+        return (try? context.count(for: request)) ?? 0
+    }
+
+    public static func numberOfFavorites(for displayMode: FavoritesDisplayMode, in context: NSManagedObjectContext) -> Int {
+        guard let displayedFavoritesFolder = BookmarkUtils.fetchFavoritesFolder(withUUID: displayMode.displayedFolder.rawValue, in: context) else {
+            return 0
+        }
+
+        let request = BookmarkEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "%K CONTAINS %@ AND %K == false AND %K == false AND (%K == NO OR %K == nil)",
+                                        #keyPath(BookmarkEntity.favoriteFolders),
+                                        displayedFavoritesFolder,
+                                        #keyPath(BookmarkEntity.isFolder),
+                                        #keyPath(BookmarkEntity.isPendingDeletion),
+                                        #keyPath(BookmarkEntity.isStub), #keyPath(BookmarkEntity.isStub))
+        return (try? context.count(for: request)) ?? 0
+    }
+
     // MARK: Internal
 
     @discardableResult

@@ -16,6 +16,7 @@
 //  limitations under the License.
 //
 
+import BrowserServicesKitTestsUtils
 import XCTest
 @testable import BrowserServicesKit
 
@@ -116,7 +117,9 @@ class EmailManagerTests: XCTestCase {
         let expect = expectation(description: "test")
         let storage = storageForGetAliasTest(signedIn: true, storedAlias: true, fulfillOnFirstStorageEvent: true, expectationToFulfill: expect)
         let emailManager = EmailManager(storage: storage)
-        let requestDelegate = MockEmailManagerRequestDelegate()
+        let requestDelegate = MockEmailManagerRequestDelegate {
+            events.append(.aliasRequestMade)
+        }
         requestDelegate.mockAliases = ["testAlias2", "testAlias3"]
         emailManager.requestDelegate = requestDelegate
 
@@ -149,7 +152,7 @@ class EmailManagerTests: XCTestCase {
         let expect = expectation(description: "test")
         let storage = storageForGetAliasTest(signedIn: true, storedAlias: false, fulfillOnFirstStorageEvent: false, expectationToFulfill: expect)
         let emailManager = EmailManager(storage: storage)
-        let requestDelegate = MockEmailManagerRequestDelegate()
+        let requestDelegate = makeMockRequestDelegate()
         requestDelegate.mockAliases = ["testAlias2", "testAlias3"]
         emailManager.requestDelegate = requestDelegate
 
@@ -184,7 +187,7 @@ class EmailManagerTests: XCTestCase {
         let expect = expectation(description: "test")
         let storage = storageForGetAliasTest(signedIn: false, storedAlias: false, fulfillOnFirstStorageEvent: false, expectationToFulfill: expect)
         let emailManager = EmailManager(storage: storage)
-        let requestDelegate = MockEmailManagerRequestDelegate()
+        let requestDelegate = makeMockRequestDelegate()
         requestDelegate.mockAliases = ["testAlias2", "testAlias3"]
         emailManager.requestDelegate = requestDelegate
 
@@ -210,7 +213,7 @@ class EmailManagerTests: XCTestCase {
         let expect = expectation(description: "test")
         let storage = storageForGetAliasTest(signedIn: true, storedAlias: false, fulfillOnFirstStorageEvent: true, expectationToFulfill: expect)
         let emailManager = EmailManager(storage: storage)
-        let requestDelegate = MockEmailManagerRequestDelegate()
+        let requestDelegate = makeMockRequestDelegate()
         requestDelegate.mockAliases = ["testAlias2", "testAlias3"]
         emailManager.requestDelegate = requestDelegate
 
@@ -235,7 +238,7 @@ class EmailManagerTests: XCTestCase {
         let expect = expectation(description: "test")
         let storage = storageForGetAliasTest(signedIn: true, storedAlias: false, fulfillOnFirstStorageEvent: true, expectationToFulfill: expect)
         let emailManager = EmailManager(storage: storage)
-        let requestDelegate = MockEmailManagerRequestDelegate()
+        let requestDelegate = makeMockRequestDelegate()
         requestDelegate.mockAliases = ["testAlias2", "testAlias3"]
         emailManager.requestDelegate = requestDelegate
 
@@ -264,7 +267,7 @@ class EmailManagerTests: XCTestCase {
         let storage = storageForGetAliasTest(signedIn: true, storedAlias: false, fulfillOnFirstStorageEvent: true, expectationToFulfill: expect)
         storage.mockToken = "token"
         let emailManager = EmailManager(storage: storage)
-        let requestDelegate = MockEmailManagerRequestDelegate()
+        let requestDelegate = makeMockRequestDelegate()
         requestDelegate.mockAliases = ["testAlias2", "testAlias3"]
         emailManager.requestDelegate = requestDelegate
 
@@ -364,7 +367,7 @@ class EmailManagerTests: XCTestCase {
         storage.mockUsername = username
         let emailManager = EmailManager(storage: storage)
 
-        let requestDelegate = MockEmailManagerRequestDelegate()
+        let requestDelegate = makeMockRequestDelegate()
         emailManager.requestDelegate = requestDelegate
 
         XCTAssertNil(emailManager.userEmail)
@@ -372,111 +375,9 @@ class EmailManagerTests: XCTestCase {
         XCTAssertEqual(requestDelegate.keychainAccessError, .keychainLookupFailure(errSecInternalError))
     }
 
-}
-
-class MockEmailManagerRequestDelegate: EmailManagerRequestDelegate {
-    var activeTask: URLSessionTask?
-    var mockAliases: [String] = []
-    var waitlistTimestamp: Int = 1
-
-    // swiftlint:disable function_parameter_count
-    func emailManager(_ emailManager: EmailManager, requested url: URL, method: String, headers: [String: String], parameters: [String: String]?, httpBody: Data?, timeoutInterval: TimeInterval) async throws -> Data {
-        switch url.absoluteString {
-        case EmailUrls.Url.emailAlias: return try processMockAliasRequest().get()
-        default: fatalError("\(#file): Unsupported URL passed to mock request delegate: \(url)")
+    private func makeMockRequestDelegate() -> MockEmailManagerRequestDelegate {
+        .init {
+            events.append(.aliasRequestMade)
         }
     }
-    // swiftlint:enable function_parameter_count
-
-    var keychainAccessErrorAccessType: EmailKeychainAccessType?
-    var keychainAccessError: EmailKeychainAccessError?
-
-    func emailManagerKeychainAccessFailed(_ emailManager: EmailManager,
-                                          accessType: EmailKeychainAccessType,
-                                          error: EmailKeychainAccessError) {
-        keychainAccessErrorAccessType = accessType
-        keychainAccessError = error
-    }
-
-    private func processMockAliasRequest() -> Result<Data, Error> {
-        events.append(.aliasRequestMade)
-
-        if mockAliases.first != nil {
-            let alias = mockAliases.removeFirst()
-            let jsonString = "{\"address\":\"\(alias)\"}"
-            let data = jsonString.data(using: .utf8)!
-            return .success(data)
-        } else {
-            return .failure(AliasRequestError.noDataError)
-        }
-    }
-
-}
-
-class MockEmailManagerStorage: EmailManagerStorage {
-
-    var mockError: EmailKeychainAccessError?
-
-    var mockUsername: String?
-    var mockToken: String?
-    var mockAlias: String?
-    var mockCohort: String?
-    var mockLastUseDate: String?
-
-    var storeTokenCallback: ((String, String, String?) -> Void)?
-    var storeAliasCallback: ((String) -> Void)?
-    var storeLastUseDateCallback: ((String) -> Void)?
-    var deleteAliasCallback: (() -> Void)?
-    var deleteAuthenticationStateCallback: (() -> Void)?
-    var deleteWaitlistStateCallback: (() -> Void)?
-
-    func getUsername() throws -> String? {
-        if let mockError = mockError { throw mockError }
-        return mockUsername
-    }
-
-    func getToken() throws -> String? {
-        if let mockError = mockError { throw mockError }
-        return mockToken
-    }
-
-    func getAlias() throws -> String? {
-        if let mockError = mockError { throw mockError }
-        return mockAlias
-    }
-
-    func getCohort() throws -> String? {
-        if let mockError = mockError { throw mockError }
-        return mockCohort
-    }
-
-    func getLastUseDate() throws -> String? {
-        if let mockError = mockError { throw mockError }
-        return mockLastUseDate
-    }
-
-    func store(token: String, username: String, cohort: String?) throws {
-        storeTokenCallback?(token, username, cohort)
-    }
-
-    func store(alias: String) throws {
-        storeAliasCallback?(alias)
-    }
-
-    func store(lastUseDate: String) throws {
-        storeLastUseDateCallback?(lastUseDate)
-    }
-
-    func deleteAlias() {
-        deleteAliasCallback?()
-    }
-
-    func deleteAuthenticationState() {
-        deleteAuthenticationStateCallback?()
-    }
-
-    func deleteWaitlistState() {
-        deleteWaitlistStateCallback?()
-    }
-
 }
