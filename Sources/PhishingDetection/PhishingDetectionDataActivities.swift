@@ -39,9 +39,6 @@ final class BackgroundActivityScheduler: BackgroundActivityScheduling {
         task = Task {
             let taskId = UUID().uuidString
             while true {
-                let now = Date()
-                let formatter = DateFormatter()
-                formatter.timeStyle = .medium
                 await activity()
                 do {
                     try await Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))

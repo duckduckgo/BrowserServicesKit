@@ -66,7 +66,7 @@ public class PhishingDetectionAPIClient: PhishingDetectionClientProtocol {
 
     enum Constants {
         static let productionEndpoint = URL(string: "https://tbd.unknown.duckduckgo.com")!
-        static let stagingEndpoint = URL(string: "http://localhost:3000")!
+        static let stagingEndpoint = URL(string: "https://web-use-1.duckduckgo.com/api/protection/")!
     }
 
     private let endpointURL: URL
