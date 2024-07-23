@@ -1,7 +1,7 @@
 //
-//  MockTunnelController.swift
+//  LocaleExtensionsTests.swift
 //
-//  Copyright © 2023 DuckDuckGo. All rights reserved.
+//  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -17,29 +17,15 @@
 //
 
 import Foundation
-import NetworkExtension
-import NetworkProtection
+import XCTest
+@testable import Common
 
-public final class MockTunnelController: TunnelController, TunnelSessionProvider {
+final class LocaleExtensionsTests: XCTest {
 
-    public init() {}
+    func testThatJSONLocaleFormatIsReturned() {
+        let locale = Locale(identifier: "en_US")
 
-    public var didCallStart = false
-    public func start() async {
-        didCallStart = true
-    }
-
-    public var didCallStop = false
-    public func stop() async {
-        didCallStop = true
-    }
-
-    public var isConnected: Bool {
-        true
-    }
-
-    public func activeSession() async -> NETunnelProviderSession? {
-        return nil
+        XCTAssert(locale.localeIdentifierAsJsonFormat == "en-US", "The returned identifier should be in JSON format")
     }
 
 }

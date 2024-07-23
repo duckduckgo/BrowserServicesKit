@@ -31,7 +31,8 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
                 content: .bigSingleAction(titleText: "title", descriptionText: "description", placeholder: .announce,
                                           primaryActionText: "Ok", primaryAction: .url(value: "https://duckduckgo.com")),
                 matchingRules: [],
-                exclusionRules: [])
+                exclusionRules: [],
+                isMetricsEnabled: true)
         )
 
         XCTAssertEqual(config.messages[1], RemoteMessageModel(
@@ -39,21 +40,24 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
                 content: .bigSingleAction(titleText: "Kedvenc hozzáadása", descriptionText: "Kedvenc eltávolítása", placeholder: .ddgAnnounce,
                                           primaryActionText: "Ok", primaryAction: .url(value: "https://duckduckgo.com")),
                 matchingRules: [],
-                exclusionRules: [])
+                exclusionRules: [],
+                isMetricsEnabled: true)
         )
 
         XCTAssertEqual(config.messages[2], RemoteMessageModel(
                 id: "26780792-49fe-4e25-ae27-aa6a2e6f013b",
                 content: .small(titleText: "Here goes a title", descriptionText: "description"),
                 matchingRules: [5, 6],
-                exclusionRules: [7, 8, 9])
+                exclusionRules: [7, 8, 9],
+                isMetricsEnabled: true)
         )
 
         XCTAssertEqual(config.messages[3], RemoteMessageModel(
                 id: "c3549d64-b388-41d8-9649-33e6e2674e8e",
                 content: .medium(titleText: "Here goes a title", descriptionText: "description", placeholder: .criticalUpdate),
                 matchingRules: [],
-                exclusionRules: [])
+                exclusionRules: [],
+                isMetricsEnabled: true)
         )
 
         XCTAssertEqual(config.messages[4], RemoteMessageModel(
@@ -62,7 +66,8 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
                                        primaryActionText: "Ok", primaryAction: .appStore,
                                        secondaryActionText: "Cancel", secondaryAction: .dismiss),
                 matchingRules: [],
-                exclusionRules: [])
+                exclusionRules: [],
+                isMetricsEnabled: true)
         )
 
         XCTAssertEqual(config.messages[5], RemoteMessageModel(
@@ -72,7 +77,8 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
                                                                                   title: "Share Title"),
                                    secondaryActionText: "Cancel", secondaryAction: .dismiss),
             matchingRules: [],
-            exclusionRules: [])
+            exclusionRules: [],
+            isMetricsEnabled: true)
         )
 
         XCTAssertEqual(config.messages[6], RemoteMessageModel(
@@ -80,7 +86,8 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
             content: .promoSingleAction(titleText: "Promo Title", descriptionText: "Promo Description", placeholder: .newForMacAndWindows,
                                         actionText: "Promo Action", action: .dismiss),
             matchingRules: [],
-            exclusionRules: [])
+            exclusionRules: [],
+            isMetricsEnabled: true)
         )
 
         XCTAssertEqual(config.messages[7], RemoteMessageModel(
@@ -93,7 +100,8 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
                 action: .survey(value: "https://duckduckgo.com/survey")
             ),
             matchingRules: [8],
-            exclusionRules: [])
+            exclusionRules: [],
+            isMetricsEnabled: true)
         )
 
     }
@@ -223,6 +231,43 @@ class JsonToRemoteConfigModelMapperTests: XCTestCase {
         XCTAssertEqual(rule6?.attributes.filter { $0 is LocaleMatchingAttribute }.count, 1)
         XCTAssertEqual(rule6?.attributes.filter { $0 is OSMatchingAttribute }.count, 1)
         XCTAssertEqual(rule6?.attributes.filter { $0 is UnknownMatchingAttribute }.count, 1)
+    }
+
+    func testThatMetricsAreEnabledWhenStatedInJSONOrMissing() throws {
+        let config = try decodeAndMapJson(fileName: "remote-messaging-config-metrics.json")
+        XCTAssertEqual(config.messages.count, 4)
+
+        XCTAssertEqual(config.messages[0], RemoteMessageModel(
+                id: "1",
+                content: .small(titleText: "title", descriptionText: "description"),
+                matchingRules: [],
+                exclusionRules: [],
+                isMetricsEnabled: true)
+        )
+
+        XCTAssertEqual(config.messages[1], RemoteMessageModel(
+                id: "2",
+                content: .small(titleText: "title", descriptionText: "description"),
+                matchingRules: [],
+                exclusionRules: [],
+                isMetricsEnabled: true)
+        )
+
+        XCTAssertEqual(config.messages[2], RemoteMessageModel(
+                id: "3",
+                content: .small(titleText: "title", descriptionText: "description"),
+                matchingRules: [],
+                exclusionRules: [],
+                isMetricsEnabled: false)
+        )
+
+        XCTAssertEqual(config.messages[3], RemoteMessageModel(
+                id: "4",
+                content: .small(titleText: "title", descriptionText: "description"),
+                matchingRules: [],
+                exclusionRules: [],
+                isMetricsEnabled: true)
+        )
     }
 
     func decodeAndMapJson(fileName: String) throws -> RemoteConfigModel {
