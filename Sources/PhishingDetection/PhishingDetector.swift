@@ -80,6 +80,8 @@ public protocol PhishingDetecting {
 }
 
 public class PhishingDetector: PhishingDetecting {
+    let hashPrefixStoreLength: Int = 8
+    let hashPrefixParamLength: Int = 4
 	var apiClient: PhishingDetectionClientProtocol
 	var dataStore: PhishingDetectionDataStoring
 
@@ -110,7 +112,7 @@ public class PhishingDetector: PhishingDetecting {
 	public func isMalicious(url: URL) async -> Bool {
 		guard let canonicalHost = url.canonicalHost() else { return false }
 		let hostnameHash = SHA256.hash(data: Data(canonicalHost.utf8)).map { String(format: "%02hhx", $0) }.joined()
-		let hashPrefix = String(hostnameHash.prefix(4))
+		let hashPrefix = String(hostnameHash.prefix(hashPrefixStoreLength))
 		if dataStore.hashPrefixes.contains(hashPrefix) {
 			// Check local filterSet first
 			let filterHit = inFilterSet(hash: hostnameHash)
@@ -119,7 +121,8 @@ public class PhishingDetector: PhishingDetecting {
                 return true
             }
 			// If nothing found, hit the API to get matches
-			let matches = await apiClient.getMatches(hashPrefix: hashPrefix)
+            let hashPrefixParam = String(hostnameHash.prefix(hashPrefixParamLength))
+			let matches = await apiClient.getMatches(hashPrefix: hashPrefixParam)
 			for match in matches where matchesUrl(hash: match.hash, regexPattern: match.regex, url: url, hostnameHash: hostnameHash) {
                 PixelKit.fire(PhishingDetectionPixels.errorPageShown(clientSideHit: false))
 				return true
