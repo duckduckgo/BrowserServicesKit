@@ -1,7 +1,7 @@
 //
-//  MockTunnelController.swift
+//  LocaleExtensions.swift
 //
-//  Copyright © 2023 DuckDuckGo. All rights reserved.
+//  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -17,29 +17,10 @@
 //
 
 import Foundation
-import NetworkExtension
-import NetworkProtection
 
-public final class MockTunnelController: TunnelController, TunnelSessionProvider {
-
-    public init() {}
-
-    public var didCallStart = false
-    public func start() async {
-        didCallStart = true
+public extension Locale {
+    var localeIdentifierAsJsonFormat: String {
+        let baseIdentifier = self.identifier.components(separatedBy: "@").first ?? self.identifier
+        return baseIdentifier.replacingOccurrences(of: "_", with: "-")
     }
-
-    public var didCallStop = false
-    public func stop() async {
-        didCallStop = true
-    }
-
-    public var isConnected: Bool {
-        true
-    }
-
-    public func activeSession() async -> NETunnelProviderSession? {
-        return nil
-    }
-
 }
