@@ -110,7 +110,7 @@ public class PhishingDetector: PhishingDetecting {
 	public func isMalicious(url: URL) async -> Bool {
 		guard let canonicalHost = url.canonicalHost() else { return false }
 		let hostnameHash = SHA256.hash(data: Data(canonicalHost.utf8)).map { String(format: "%02hhx", $0) }.joined()
-		let hashPrefix = String(hostnameHash.prefix(8))
+		let hashPrefix = String(hostnameHash.prefix(4))
 		if dataStore.hashPrefixes.contains(hashPrefix) {
 			// Check local filterSet first
 			let filterHit = inFilterSet(hash: hostnameHash)
