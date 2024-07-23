@@ -120,7 +120,11 @@ public final class CrashCollection {
                 objCexceptionReason["stackTrace"] = stackTrace
                 diagnosticMetaDataDict["objectiveCexceptionReason"] = objCexceptionReason
                 crashDiagnosticsDict["diagnosticMetaData"] = diagnosticMetaDataDict
-                crashDiagnostics[0] = crashDiagnosticsDict
+                if crashDiagnostics.isEmpty {
+                    crashDiagnostics = [crashDiagnosticsDict]
+                } else {
+                    crashDiagnostics[0] = crashDiagnosticsDict
+                }
                 dict["crashDiagnostics"] = crashDiagnostics
 
                 guard JSONSerialization.isValidJSONObject(dict) else {
