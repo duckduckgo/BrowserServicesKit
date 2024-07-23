@@ -35,6 +35,7 @@ internal class MockAutofillDatabaseProvider: AutofillDatabaseProvider {
     var _creditCards = [Int64: SecureVaultModels.CreditCard]()
     var _forDomain = [String]()
     var _credentialsDict = [Int64: SecureVaultModels.WebsiteCredentials]()
+    var _credentialsForDomainDict = [String: [SecureVaultModels.WebsiteCredentials]]()
     var _note: SecureVaultModels.Note?
 
     var db: DatabaseWriter
@@ -64,6 +65,14 @@ internal class MockAutofillDatabaseProvider: AutofillDatabaseProvider {
 
     func websiteCredentialsForAccountId(_ accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials? {
         return _credentialsDict[accountId]
+    }
+
+    func websiteCredentialsForDomain(_ domain: String) throws -> [BrowserServicesKit.SecureVaultModels.WebsiteCredentials] {
+        return _credentialsForDomainDict[domain] ?? []
+    }
+
+    func websiteCredentialsForTopLevelDomain(_ eTLDplus1: String) throws -> [BrowserServicesKit.SecureVaultModels.WebsiteCredentials] {
+        return _credentialsForDomainDict[eTLDplus1] ?? []
     }
 
     func websiteAccountsForDomain(_ domain: String) throws -> [SecureVaultModels.WebsiteAccount] {
