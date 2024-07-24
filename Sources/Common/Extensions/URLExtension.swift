@@ -480,7 +480,39 @@ extension URL {
             canonicalHost = components.joined(separator: ".")
 
             return canonicalHost
+    }
+    
+    public func canonicalURL() -> URL? {
+        // Step 1: Remove tab (0x09), CR (0x0d), and LF (0x0a) characters
+        var urlString = self.absoluteString.filter { $0 != "\t" && $0 != "\r" && $0 != "\n" }
+        
+        // Step 2: Remove the fragment
+        if let fragmentRange = urlString.range(of: "#") {
+            urlString.removeSubrange(fragmentRange.lowerBound..<urlString.endIndex)
         }
+        
+        // Step 3: Repeatedly percent-unescape the URL until it has no more percent-escapes
+        var previousURLString: String
+        repeat {
+            previousURLString = urlString
+            if let unescapedURLString = urlString.removingPercentEncoding {
+                urlString = unescapedURLString
+            }
+        } while urlString != previousURLString
+        
+        // Step 4: Remove the trailing slash if present
+        if urlString.hasSuffix("/") {
+            urlString.removeLast()
+        }
+        
+        // Validate the URL according to RFC 2396
+        guard let validURL = URL(string: urlString), validURL.path.count > 0 else {
+            return nil
+        }
+        
+        return validURL
+    }
+    
 }
 
 public extension CharacterSet {
