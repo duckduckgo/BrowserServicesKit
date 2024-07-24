@@ -30,7 +30,7 @@ public enum PhishingDetectionError: CustomNSError {
     public var errorCode: Int {
         switch self {
         case .detected:
-            return 1
+            return 1331 
         }
     }
 
