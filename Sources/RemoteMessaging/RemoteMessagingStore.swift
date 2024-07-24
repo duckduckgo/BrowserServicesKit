@@ -89,8 +89,9 @@ public final class RemoteMessagingStore: RemoteMessagingStoring {
             if let remoteMessage = processorResult.message {
                 addOrUpdate(remoteMessage: remoteMessage, in: context)
             } else {
-                markScheduledMessagesAsDoneAndDeleteNeverShownMessages(in: context)
+                markScheduledMessagesAsDone(in: context)
             }
+            deleteNotShownDoneMessages(in: context)
 
             do {
                 try context.save()
@@ -111,7 +112,8 @@ public final class RemoteMessagingStore: RemoteMessagingStoring {
 
         context.performAndWait {
             invalidateRemoteMessagingConfigs(in: context)
-            markScheduledMessagesAsDoneAndDeleteNeverShownMessages(in: context)
+            markScheduledMessagesAsDone(in: context)
+            deleteNotShownDoneMessages(in: context)
 
             do {
                 try context.save()
@@ -417,12 +419,6 @@ extension RemoteMessagingStore {
                 remoteMessageManagedObject.shown = false
             }
         }
-        deleteNotShownDoneMessages(in: context)
-    }
-
-    private func markScheduledMessagesAsDoneAndDeleteNeverShownMessages(in context: NSManagedObjectContext) {
-        markScheduledMessagesAsDone(in: context)
-        deleteNotShownDoneMessages(in: context)
     }
 
     private func updateRemoteMessage(withID id: String, toStatus status: RemoteMessageStatus, in context: NSManagedObjectContext) {
