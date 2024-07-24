@@ -107,7 +107,7 @@ public struct CrashLogMessageExtractor {
     fileprivate static var nextCppTerminateHandler: (() -> Void)!
     fileprivate static var diagnosticsDirectory: URL!
 
-    public static func setUp() {
+    public static func setUp(swapCxaThrow: Bool = true) {
         prepareDiagnosticsDirectory()
 
         // Set unhandled NSException handler
@@ -116,7 +116,9 @@ public struct CrashLogMessageExtractor {
         // Set unhandled C++ exception handler
         nextCppTerminateHandler = SetCxxExceptionTerminateHandler(handleTerminateOnCxxException)
         // Swap C++ `throw` to collect stack trace when throw happens
-        CxaThrowSwapper.swapCxaThrow(with: captureStackTrace)
+        if swapCxaThrow {
+            CxaThrowSwapper.swapCxaThrow(with: captureStackTrace)
+        }
     }
 
     /// create App Support/Diagnostics folder

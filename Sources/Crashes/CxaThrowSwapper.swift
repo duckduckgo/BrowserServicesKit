@@ -112,7 +112,7 @@ private func processMachHeader(_ header: UnsafePointer<mach_header>?, slide: Int
 }
 
 private var cxxOriginalThrowFunctions = [UnsafeRawPointer: UnsafeRawPointer]()
-private let indicesToSkip = [UInt32(bitPattern: INDIRECT_SYMBOL_ABS), INDIRECT_SYMBOL_LOCAL, UInt32(Int64(INDIRECT_SYMBOL_LOCAL) | Int64(INDIRECT_SYMBOL_ABS))]
+private let indicesToSkip = [UInt32(INDIRECT_SYMBOL_ABS), INDIRECT_SYMBOL_LOCAL, INDIRECT_SYMBOL_LOCAL | UInt32(INDIRECT_SYMBOL_ABS)]
 
 private func _processMachHeader(_ header: UnsafePointer<mach_header_64>?, slide: Int) throws {
     guard let header, slide != 0 else { throw ProcessingError.zeroSlide }
@@ -121,23 +121,32 @@ private func _processMachHeader(_ header: UnsafePointer<mach_header_64>?, slide:
 
     guard let imageMap = ImageMap(header: header, slide: slide) else { throw ProcessingError.imageMap }
 
-    for case .some(let segment) in [imageMap.dataSegment, imageMap.dataConstSegment] {
-        for (sectionIdx, section) in segment.sections.enumerated() where [S_LAZY_SYMBOL_POINTERS, S_NON_LAZY_SYMBOL_POINTERS].contains(section.type) {
-            let symtabIndices = section.indirectSymbolIndices(indirectSymtab: imageMap.indirectSymtab)
-            for i in 0..<section.count {
-                let symtabIndex = symtabIndices[i]
-                guard !indicesToSkip.contains(symtabIndex) else { continue }
-                let symbolName = imageMap.symbolName(at: Int(symtabIndex))
-                guard symbolName == "___cxa_throw" else { continue }
+    try processSegment(imageMap.dataSegment)
+    try processSegment(imageMap.dataConstSegment)
 
-                let sectionInfo = try Dl_info(segment.sections.baseAddress!.advanced(by: sectionIdx))
-                try section.indirectSymbolBindings(slide: slide).withTemporaryUnprotectedMemory { indirectSymbolBindings in
-                    os_log(.debug, log: CxaThrowSwapper.log, "found %s: %s", symbolName, indirectSymbolBindings[i].debugDescription)
+    func processSegment(_ segment: UnsafePointer<segment_command_64>?) throws {
+        guard let segment else { return }
+        let sections = segment.sections
+        for section in sections.baseAddress!..<sections.baseAddress!.advanced(by: sections.count)
+        where [S_LAZY_SYMBOL_POINTERS, S_NON_LAZY_SYMBOL_POINTERS].contains(section.pointee.type) {
+
+            try section.pointee.indirectSymbolBindings(slide: slide)?.withTemporaryUnprotectedMemory { indirectSymbolBindings in
+                guard let indirectSymbolIndices = section.pointee.indirectSymbolIndices(indirectSymtab: imageMap.indirectSymtab) else { return }
+                for i in 0..<section.pointee.count where indirectSymbolIndices.indices.contains(i) && indirectSymbolBindings.indices.contains(i) {
+                    let symtabIndex = indirectSymbolIndices[i]
+                    guard !indicesToSkip.contains(symtabIndex),
+                          let symbolName = imageMap.symbolName(at: Int(symtabIndex)),
+                          symbolName[0] != 0, symbolName[1] != 0,
+                          strcmp(symbolName.advanced(by: 1), "__cxa_throw") == 0 else { continue }
+
+                    let sectionInfo = try Dl_info(section)
+                    os_log(.debug, log: CxaThrowSwapper.log, "found %s: %s", String(cString: symbolName), indirectSymbolBindings[i].debugDescription)
 
                     cxxOriginalThrowFunctions[UnsafeRawPointer(sectionInfo.dli_fbase)] = indirectSymbolBindings[i]
                     indirectSymbolBindings[i] = unsafeBitCast(cxaThrowHandler as CxaThrowType, to: UnsafeRawPointer.self)
+
+                    break
                 }
-                break
             }
         }
     }

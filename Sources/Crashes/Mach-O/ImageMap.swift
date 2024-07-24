@@ -27,10 +27,10 @@ struct ImageMap {
     let dataSegment: UnsafePointer<segment_command_64>?
     let dataConstSegment: UnsafePointer<segment_command_64>?
 
-    let symtab: UnsafePointer<nlist_64>
-    let strtab: UnsafePointer<Int8>
+    let symtab: UnsafeBufferPointer<nlist_64>
+    let strtab: UnsafeBufferPointer<Int8>
     // indirect symbol table (array of uint32_t indices into symbol table)
-    let indirectSymtab: UnsafePointer<UInt32>
+    let indirectSymtab: UnsafeBufferPointer<UInt32>
 
     init?(header: UnsafePointer<mach_header_64>, slide: Int) {
         guard case let (symtabCmd?, dysymtabCmd?, linkeditSegment?, dataSegment, dataConstSegment) = Self.findCommandsAndSegments(in: header) else { return nil }
@@ -40,9 +40,12 @@ struct ImageMap {
         self.dataConstSegment = dataConstSegment
 
         let linkeditBase = UnsafeRawPointer(bitPattern: UInt(linkeditSegment.vmaddr))!.advanced(by: slide - Int(linkeditSegment.fileoff))
-        self.symtab = linkeditBase.advanced(by: Int(symtabCmd.symoff)).assumingMemoryBound(to: nlist_64.self)
-        self.strtab = linkeditBase.advanced(by: Int(symtabCmd.stroff)).assumingMemoryBound(to: Int8.self)
-        self.indirectSymtab = linkeditBase.advanced(by: Int(dysymtabCmd.indirectsymoff)).assumingMemoryBound(to: UInt32.self)
+        self.symtab = UnsafeBufferPointer(start: linkeditBase.advanced(by: Int(symtabCmd.symoff)).assumingMemoryBound(to: nlist_64.self),
+                                          count: Int(symtabCmd.nsyms))
+        self.strtab = UnsafeBufferPointer(start: linkeditBase.advanced(by: Int(symtabCmd.stroff)).assumingMemoryBound(to: Int8.self),
+                                          count: Int(symtabCmd.strsize))
+        self.indirectSymtab = UnsafeBufferPointer(start: linkeditBase.advanced(by: Int(dysymtabCmd.indirectsymoff)).assumingMemoryBound(to: UInt32.self),
+                                                  count: Int(dysymtabCmd.nindirectsyms))
     }
 
     private typealias CommandsAndSegments = (symtabCmd: symtab_command?, dysymtabCmd: dysymtab_command?, linkeditSegment: segment_command_64?, dataSegment: UnsafePointer<segment_command_64>?, dataConstSegment: UnsafePointer<segment_command_64>?) // swiftlint:disable:this large_tuple
@@ -77,12 +80,13 @@ struct ImageMap {
         return result
     }
 
-    func symbolName(at symtabIndex: Int) -> String {
-        let strtabOffset = symtab[symtabIndex].n_un.n_strx
-        let symbolName = strtab.advanced(by: Int(strtabOffset))
-        let symbolNameStr = String(cString: symbolName)
-
-        return symbolNameStr
+    func symbolName(at symtabIndex: Int) -> UnsafePointer<CChar>? {
+        guard symtab.indices.contains(symtabIndex) else { return nil }
+        let strtabOffset = Int(symtab[symtabIndex].n_un.n_strx)
+        guard strtab.indices.contains(strtabOffset),
+              strtab.indices.contains(strtabOffset + 1) else { return nil }
+        let symbolName = strtab.baseAddress!.advanced(by: Int(strtabOffset))
+        return symbolName
     }
 
 }
