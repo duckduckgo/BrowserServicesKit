@@ -26,13 +26,15 @@ public enum Suggestion: Equatable {
     case historyEntry(title: String?, url: URL, allowedInTopHits: Bool)
     case internalPage(title: String, url: URL)
     case unknown(value: String)
+    case weatherIA(icon: String, currentTemperature: Int, description: String, highTemperature: Int, lowTemperature: Int, location: String, url: URL)
 
     var url: URL? {
         switch self {
         case .website(url: let url),
              .historyEntry(title: _, url: let url, allowedInTopHits: _),
              .bookmark(title: _, url: let url, isFavorite: _, allowedInTopHits: _),
-             .internalPage(title: _, url: let url):
+             .internalPage(title: _, url: let url),
+             .weatherIA(icon: _, currentTemperature: _, description: _, highTemperature: _, lowTemperature: _, location: _, url: let url):
             return url
         case .phrase, .unknown:
             return nil
@@ -46,7 +48,7 @@ public enum Suggestion: Equatable {
         case .bookmark(title: let title, url: _, isFavorite: _, allowedInTopHits: _),
              .internalPage(title: let title, url: _):
             return title
-        case .phrase, .website, .unknown:
+        case .phrase, .website, .unknown, .weatherIA:
             return nil
         }
     }
@@ -59,9 +61,14 @@ public enum Suggestion: Equatable {
             return allowedInTopHits
         case .bookmark(title: _, url: _, isFavorite: _, allowedInTopHits: let allowedInTopHits):
             return allowedInTopHits
-        case .internalPage, .phrase, .unknown:
+        case .internalPage, .phrase, .unknown, .weatherIA:
             return false
         }
+    }
+
+    public var isWeatherInstantAnswer: Bool {
+        if case .weatherIA = self { return true }
+        return false
     }
 
 }

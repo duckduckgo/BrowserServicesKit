@@ -235,7 +235,7 @@ final class SuggestionProcessing {
                 newSuggestion = findBookmarkDuplicate(to: suggestion, nakedUrl: suggestionNakedUrl, from: suggestions)
             case .bookmark:
                 newSuggestion = findAndMergeHistoryDuplicate(with: suggestion, nakedUrl: suggestionNakedUrl, from: suggestions)
-            case .phrase, .website, .internalPage, .unknown:
+            case .phrase, .website, .internalPage, .unknown, .weatherIA:
                 break
             }
 
@@ -244,7 +244,7 @@ final class SuggestionProcessing {
                 switch suggestion {
                 case .historyEntry:
                     newSuggestion = findDuplicateContainingTitle(suggestion, nakedUrl: suggestionNakedUrl, from: suggestions)
-                case .bookmark, .phrase, .website, .internalPage, .unknown:
+                case .bookmark, .phrase, .website, .internalPage, .unknown, .weatherIA:
                     break
                 }
             }
@@ -300,7 +300,15 @@ final class SuggestionProcessing {
         let prefixForDuckDuckGoSuggestions = Self.maximumNumberOfSuggestions - total
         let duckduckgoSuggestions = Array(duckduckgoSuggestions.prefix(prefixForDuckDuckGoSuggestions))
 
-        return SuggestionResult(topHits: topHits,
+        //TODO: - Provide a correct instant answer
+        return SuggestionResult(instantAnswer: Suggestion.weatherIA(icon: "sun",
+                                                                    currentTemperature: 67,
+                                                                    description: "Sunny",
+                                                                    highTemperature: 73,
+                                                                    lowTemperature: 63,
+                                                                    location: "Appleton, WI",
+                                                                    url: URL(string:"http://duckduckgo.com")!),
+                                topHits: topHits,
                                 duckduckgoSuggestions: duckduckgoSuggestions,
                                 localSuggestions: localSuggestions)
     }

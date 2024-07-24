@@ -21,35 +21,38 @@ import Foundation
 public struct SuggestionResult: Equatable {
 
     static var empty: SuggestionResult {
-        SuggestionResult(topHits: [], duckduckgoSuggestions: [], localSuggestions: [])
+        SuggestionResult(instantAnswer: nil, topHits: [], duckduckgoSuggestions: [], localSuggestions: [])
     }
 
+    private(set) public var instantAnswer: Suggestion?
     private(set) public var topHits: [Suggestion]
     private(set) public var duckduckgoSuggestions: [Suggestion]
     private(set) public var localSuggestions: [Suggestion]
 
-    public init(topHits: [Suggestion],
+    public init(instantAnswer: Suggestion?,
+                topHits: [Suggestion],
                 duckduckgoSuggestions: [Suggestion],
                 localSuggestions: [Suggestion]) {
+        self.instantAnswer = instantAnswer
         self.topHits = topHits
         self.duckduckgoSuggestions = duckduckgoSuggestions
         self.localSuggestions = localSuggestions
     }
 
     public var isEmpty: Bool {
-        topHits.isEmpty && duckduckgoSuggestions.isEmpty && localSuggestions.isEmpty
+        instantAnswer == nil && topHits.isEmpty && duckduckgoSuggestions.isEmpty && localSuggestions.isEmpty
     }
 
     public var all: [Suggestion] {
-        topHits + duckduckgoSuggestions + localSuggestions
+        [instantAnswer].compactMap { $0 } + topHits + duckduckgoSuggestions + localSuggestions
     }
 
     public var count: Int {
-        topHits.count + duckduckgoSuggestions.count + localSuggestions.count
+        (instantAnswer != nil ? 1 : 0) + topHits.count + duckduckgoSuggestions.count + localSuggestions.count
     }
 
     public var canBeAutocompleted: Bool {
-        !topHits.isEmpty
+        !topHits.isEmpty && instantAnswer == nil
     }
 
 }
