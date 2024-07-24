@@ -25,11 +25,8 @@ import Persistence
 
 public enum RemoteMessagingStoreError: Error {
     case saveConfigFailed
-    case invalidateConfigFailed
     case updateMessageShownFailed
-    case saveMessageFailed
     case updateMessageStatusFailed
-    case deleteScheduledMessageFailed
 }
 
 public final class RemoteMessagingStore: RemoteMessagingStoring {
@@ -86,14 +83,23 @@ public final class RemoteMessagingStore: RemoteMessagingStoring {
         os_log("Remote messaging config - save processed version: %d", log: log, type: .debug, processorResult.version)
 
         let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType, name: Constants.privateContextName)
-        saveRemoteMessagingConfig(withVersion: processorResult.version, in: context)
+        context.performAndWait {
+            storeRemoteMessagingConfig(with: processorResult.version, in: context)
 
-        if let remoteMessage = processorResult.message {
-            addOrUpdate(remoteMessage: remoteMessage, in: context)
-        } else {
-            markScheduledMessagesAsDoneAndDeleteNeverShownMessages(in: context)
+            if let remoteMessage = processorResult.message {
+                addOrUpdate(remoteMessage: remoteMessage, in: context)
+            } else {
+                markScheduledMessagesAsDoneAndDeleteNeverShownMessages(in: context)
+            }
+
+            do {
+                try context.save()
+                notificationCenter.post(name: Notifications.remoteMessagesDidChange, object: nil)
+            } catch {
+                errorEvents?.fire(.saveConfigFailed, error: error)
+                os_log("Failed to updare remote messages: %@", log: log, type: .error, error.localizedDescription)
+            }
         }
-        notificationCenter.post(name: Notifications.remoteMessagesDidChange, object: nil)
     }
 
     private func deleteScheduledMessagesIfNeeded() {
@@ -103,9 +109,18 @@ public final class RemoteMessagingStore: RemoteMessagingStoring {
 
         let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType, name: Constants.privateContextName)
 
-        invalidateRemoteMessagingConfigs(in: context)
-        markScheduledMessagesAsDoneAndDeleteNeverShownMessages(in: context)
-        notificationCenter.post(name: Notifications.remoteMessagesDidChange, object: nil)
+        context.performAndWait {
+            invalidateRemoteMessagingConfigs(in: context)
+            markScheduledMessagesAsDoneAndDeleteNeverShownMessages(in: context)
+
+            do {
+                try context.save()
+                notificationCenter.post(name: Notifications.remoteMessagesDidChange, object: nil)
+            } catch {
+                errorEvents?.fire(.saveConfigFailed, error: error)
+                os_log("Failed to updare remote messages: %@", log: log, type: .error, error.localizedDescription)
+            }
+        }
     }
 
     private let errorEvents: EventMapping<RemoteMessagingStoreError>?
@@ -150,51 +165,28 @@ extension RemoteMessagingStore {
 
 extension RemoteMessagingStore {
 
-    private func saveRemoteMessagingConfig(withVersion version: Int64, in context: NSManagedObjectContext) {
-        context.performAndWait {
-            let fetchRequest: NSFetchRequest<RemoteMessagingConfigManagedObject> = RemoteMessagingConfigManagedObject.fetchRequest()
-            fetchRequest.fetchLimit = 1
-            fetchRequest.predicate = NSPredicate(format: "version == %lld", version)
+    private func storeRemoteMessagingConfig(with version: Int64, in context: NSManagedObjectContext) {
+        let fetchRequest: NSFetchRequest<RemoteMessagingConfigManagedObject> = RemoteMessagingConfigManagedObject.fetchRequest()
+        fetchRequest.fetchLimit = 1
+        fetchRequest.predicate = NSPredicate(format: "%K == %lld", #keyPath(RemoteMessagingConfigManagedObject.version), version)
 
-            if let results = try? context.fetch(fetchRequest), let result = results.first {
-                result.evaluationTimestamp = Date()
-                result.invalidate = false
-            } else {
-                let remoteMessagingConfigManagedObject = RemoteMessagingConfigManagedObject(context: context)
-                remoteMessagingConfigManagedObject.version = NSNumber(value: version)
-                remoteMessagingConfigManagedObject.evaluationTimestamp = Date()
-                remoteMessagingConfigManagedObject.invalidate = false
-            }
-
-            do {
-                try context.save()
-            } catch {
-                errorEvents?.fire(.saveConfigFailed, error: error)
-                os_log("Failed to save remote messaging config: %@",
-                       log: log,
-                       type: .error, error.localizedDescription)
-            }
+        if let results = try? context.fetch(fetchRequest), let result = results.first {
+            result.evaluationTimestamp = Date()
+            result.invalidate = false
+        } else {
+            let remoteMessagingConfigManagedObject = RemoteMessagingConfigManagedObject(context: context)
+            remoteMessagingConfigManagedObject.version = NSNumber(value: version)
+            remoteMessagingConfigManagedObject.evaluationTimestamp = Date()
+            remoteMessagingConfigManagedObject.invalidate = false
         }
     }
 
     private func invalidateRemoteMessagingConfigs(in context: NSManagedObjectContext) {
-        context.performAndWait {
-            let fetchRequest: NSFetchRequest<RemoteMessagingConfigManagedObject> = RemoteMessagingConfigManagedObject.fetchRequest()
-            fetchRequest.returnsObjectsAsFaults = false
+        let fetchRequest: NSFetchRequest<RemoteMessagingConfigManagedObject> = RemoteMessagingConfigManagedObject.fetchRequest()
+        fetchRequest.returnsObjectsAsFaults = false
 
-            guard let results = try? context.fetch(fetchRequest) else { return }
-
-            results.forEach { $0.invalidate = true }
-
-            do {
-                try context.save()
-            } catch {
-                errorEvents?.fire(.invalidateConfigFailed, error: error)
-                os_log("Failed to save remote messaging config entity invalidate: %@",
-                       log: log,
-                       type: .error, error.localizedDescription)
-            }
-        }
+        guard let results = try? context.fetch(fetchRequest) else { return }
+        results.forEach { $0.invalidate = true }
     }
 }
 
@@ -323,6 +315,13 @@ extension RemoteMessagingStore {
         context.performAndWait {
             updateRemoteMessage(withID: id, toStatus: .dismissed, in: context)
             invalidateRemoteMessagingConfigs(in: context)
+
+            do {
+                try context.save()
+            } catch {
+                errorEvents?.fire(.updateMessageStatusFailed, error: error)
+                os_log("Error saving updateMessageStatus", log: log, type: .error)
+            }
         }
     }
 
@@ -362,11 +361,11 @@ extension RemoteMessagingStore {
                 #keyPath(RemoteMessageManagedObject.shown), !shown
             )
 
-            guard let message = try? context.fetch(fetchRequest).first else { return }
-
-            message.shown = shown
-
             do {
+                guard let message = try context.fetch(fetchRequest).first else {
+                    return
+                }
+                message.shown = shown
                 try context.save()
             } catch {
                 errorEvents?.fire(.updateMessageShownFailed, error: error)
@@ -399,90 +398,41 @@ extension RemoteMessagingStore {
 
 // MARK: - RemoteMessageManagedObject Private Interface
 
-struct RemoteMessageUtils {
-    static func fetchRemoteMessage(with id: String, in context: NSManagedObjectContext) -> RemoteMessageManagedObject? {
-        let fetchRequest: NSFetchRequest<RemoteMessageManagedObject> = RemoteMessageManagedObject.fetchRequest()
-        fetchRequest.predicate = NSPredicate(format: "%K == %@", #keyPath(RemoteMessageManagedObject.id), id)
-        fetchRequest.fetchLimit = 1
-
-        return try? context.fetch(fetchRequest).first
-    }
-
-    static func fetchScheduledRemoteMessage(in context: NSManagedObjectContext) -> RemoteMessageManagedObject? {
-        let fetchRequest: NSFetchRequest<RemoteMessageManagedObject> = RemoteMessageManagedObject.fetchRequest()
-        fetchRequest.predicate = NSPredicate(
-            format: "%K == %i",
-            #keyPath(RemoteMessageManagedObject.status),
-            RemoteMessagingStore.RemoteMessageStatus.scheduled.rawValue
-        )
-        fetchRequest.fetchLimit = 1
-
-        return try? context.fetch(fetchRequest).first
-    }
-}
-
 extension RemoteMessagingStore {
 
     private func addOrUpdate(remoteMessage: RemoteMessageModel, in context: NSManagedObjectContext) {
-        context.performAndWait {
-            if let scheduledRemoteMessage = RemoteMessageUtils.fetchScheduledRemoteMessage(in: context), scheduledRemoteMessage.id == remoteMessage.id {
-                scheduledRemoteMessage.message = RemoteMessageMapper.toString(remoteMessage) ?? ""
-            } else {
-                markScheduledMessagesAsDone(in: context)
+        if let scheduledRemoteMessage = RemoteMessageUtils.fetchScheduledRemoteMessage(in: context), scheduledRemoteMessage.id == remoteMessage.id {
+            scheduledRemoteMessage.message = RemoteMessageMapper.toString(remoteMessage) ?? ""
+        } else {
+            markScheduledMessagesAsDone(in: context)
 
-                let remoteMessageManagedObject = RemoteMessageUtils.fetchRemoteMessage(with: remoteMessage.id, in: context)
-                ?? RemoteMessageManagedObject(context: context)
+            let remoteMessageManagedObject = RemoteMessageUtils.fetchRemoteMessage(with: remoteMessage.id, in: context)
+            ?? RemoteMessageManagedObject(context: context)
 
-                remoteMessageManagedObject.message = RemoteMessageMapper.toString(remoteMessage) ?? ""
-                remoteMessageManagedObject.status = NSNumber(value: RemoteMessageStatus.scheduled.rawValue)
+            remoteMessageManagedObject.message = RemoteMessageMapper.toString(remoteMessage) ?? ""
+            remoteMessageManagedObject.status = NSNumber(value: RemoteMessageStatus.scheduled.rawValue)
 
-                if remoteMessageManagedObject.isInserted {
-                    remoteMessageManagedObject.id = remoteMessage.id
-                    remoteMessageManagedObject.shown = false
-                }
-            }
-            deleteDoneMessagesThatAreNotShown(in: context)
-
-            do {
-                try context.save()
-            } catch {
-                errorEvents?.fire(.saveMessageFailed, error: error)
-                os_log("Failed to save remote message entity: %@", log: log, type: .error, error.localizedDescription)
+            if remoteMessageManagedObject.isInserted {
+                remoteMessageManagedObject.id = remoteMessage.id
+                remoteMessageManagedObject.shown = false
             }
         }
+        deleteNotShownDoneMessages(in: context)
     }
 
     private func markScheduledMessagesAsDoneAndDeleteNeverShownMessages(in context: NSManagedObjectContext) {
-        context.performAndWait {
-            markScheduledMessagesAsDone(in: context)
-            deleteDoneMessagesThatAreNotShown(in: context)
-
-            do {
-                try context.save()
-            } catch {
-                errorEvents?.fire(.saveMessageFailed, error: error)
-                os_log("Failed to save remote message entity: %@", log: log, type: .error, error.localizedDescription)
-            }
-        }
+        markScheduledMessagesAsDone(in: context)
+        deleteNotShownDoneMessages(in: context)
     }
 
     private func updateRemoteMessage(withID id: String, toStatus status: RemoteMessageStatus, in context: NSManagedObjectContext) {
-        context.performAndWait {
-            let fetchRequest: NSFetchRequest<RemoteMessageManagedObject> = RemoteMessageManagedObject.fetchRequest()
-            fetchRequest.predicate = NSPredicate(format: "id == %@", id)
-            fetchRequest.returnsObjectsAsFaults = false
+        let fetchRequest: NSFetchRequest<RemoteMessageManagedObject> = RemoteMessageManagedObject.fetchRequest()
+        fetchRequest.predicate = NSPredicate(format: "id == %@", id)
+        fetchRequest.returnsObjectsAsFaults = false
 
-            guard let results = try? context.fetch(fetchRequest) else { return }
+        guard let results = try? context.fetch(fetchRequest) else { return }
 
-            results.forEach { $0.status = NSNumber(value: status.rawValue) }
-
-            do {
-                try context.save()
-            } catch {
-                errorEvents?.fire(.updateMessageStatusFailed, error: error)
-                os_log("Error saving updateMessageStatus", log: log, type: .error)
-            }
-        }
+        results.forEach { $0.status = NSNumber(value: status.rawValue) }
     }
 
     private func markScheduledMessagesAsDone(in context: NSManagedObjectContext) {
@@ -499,7 +449,7 @@ extension RemoteMessagingStore {
         }
     }
 
-    private func deleteDoneMessagesThatAreNotShown(in context: NSManagedObjectContext) {
+    private func deleteNotShownDoneMessages(in context: NSManagedObjectContext) {
         let fetchRequest: NSFetchRequest<RemoteMessageManagedObject> = RemoteMessageManagedObject.fetchRequest()
         fetchRequest.predicate = NSPredicate(
             format: "%K == %i AND %K == NO",
