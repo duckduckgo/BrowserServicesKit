@@ -248,12 +248,7 @@ class ClickToLoadBlockingTests: XCTestCase {
     }
 
     func testDomainAllowlist() throws {
-#if os(iOS)
-        print(ProcessInfo().environment)
-        if ProcessInfo().environment["CI"] != nil {
-            throw XCTSkip("Flaky")
-        }
-#endif
+
         let fullTDS = CTLTests.exampleRules.data(using: .utf8)!
         let fullTrackerData = (try? JSONDecoder().decode(TrackerData.self, from: fullTDS))!
         self.tds = fullTrackerData
