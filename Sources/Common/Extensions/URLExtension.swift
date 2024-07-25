@@ -500,10 +500,29 @@ extension URL {
             }
         } while urlString != previousURLString
         
-        // Step 4: Remove the trailing slash if present
-        if urlString.hasSuffix("/") {
+        // Step 4: Remove all trailing slashes
+        while urlString.last == "/" {
             urlString.removeLast()
         }
+
+        // Step 5: Remove all occurrences of more than one "/"
+        urlString = urlString.replacingOccurrences(of: "(?<!:)/+", with: "/", options: .regularExpression)
+
+        // Step 6: Remove all occurrences of "/./" in the path
+        urlString = urlString.replacingOccurrences(of: "/./", with: "/")
+
+        // Step 7: Remove all occurrences of "/../" in the path
+        while let range = urlString.range(of: "/../") {
+            let previousComponentRange = urlString.range(of: "/", options: .backwards, range: urlString.startIndex..<range.lowerBound)
+            if let previousComponentRange = previousComponentRange {
+                urlString.removeSubrange(previousComponentRange.upperBound..<range.upperBound)
+            } else {
+                break
+            }
+        }
+
+        // Step 8: Lowercase everything
+        urlString = urlString.lowercased()
         
         // Validate the URL according to RFC 2396
         guard let validURL = URL(string: urlString), validURL.path.count > 0 else {
@@ -512,7 +531,7 @@ extension URL {
         
         return validURL
     }
-    
+
 }
 
 public extension CharacterSet {
