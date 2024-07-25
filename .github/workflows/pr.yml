@@ -31,7 +31,7 @@ jobs:
       steps:
 
       - name: Check out the code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -46,7 +46,7 @@ jobs:
 
       - name: Cache SPM
         if: env.cache_key_hash
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             .build/artifacts
@@ -89,7 +89,7 @@ jobs:
             | xargs -L 1 ./scripts/report-failed-unit-test.sh -s ${{ vars.APPLE_CI_FAILING_TESTS_FAILED_TESTS_SECTION_ID }}
 
       - name: Upload logs
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: build-log.txt
@@ -115,7 +115,7 @@ jobs:
       steps:
 
       - name: Check out the code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -130,7 +130,7 @@ jobs:
 
       - name: Cache SPM
         if: env.cache_key_hash
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: DerivedData/SourcePackages
           key: ${{ runner.os }}-spm-ios-${{ env.cache_key_hash }}
@@ -187,7 +187,7 @@ jobs:
             | xargs -L 1 ./scripts/report-failed-unit-test.sh -s ${{ vars.APPLE_CI_FAILING_TESTS_FAILED_TESTS_SECTION_ID }}
 
       - name: Upload logs
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: ios-build-log.txt
@@ -203,7 +203,7 @@ jobs:
 
     steps:
       - name: Check out the code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Create Asana Task
         uses: ./.github/actions/asana-failed-pr-checks
         with:
@@ -222,7 +222,7 @@ jobs:
 
     steps:
       - name: Check out the code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Close Asana Task
         uses: ./.github/actions/asana-failed-pr-checks
         with:
