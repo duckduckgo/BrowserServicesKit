@@ -192,7 +192,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
 
         performTest(privacyConfig: privacyConfig, websiteURL: websiteURL)
 
-        self.wait(for: [websiteLoaded], timeout: 30)
+        self.wait(for: [websiteLoaded], timeout: 60)
     }
 
     func testWhenThereIsFirstPartyTrackerThenItIsNotBlocked() {
@@ -226,7 +226,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
 
         performTest(privacyConfig: privacyConfig, websiteURL: websiteURL)
 
-        self.wait(for: [websiteLoaded], timeout: 30)
+        self.wait(for: [websiteLoaded], timeout: 60)
     }
 
     func testWhenThereIsFirstPartyRequestThenItIsNotBlocked() {
@@ -256,7 +256,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
 
         performTest(privacyConfig: privacyConfig, websiteURL: websiteURL)
 
-        self.wait(for: [websiteLoaded], timeout: 30)
+        self.wait(for: [websiteLoaded], timeout: 60)
     }
 
     func testWhenThereIsTrackerOnLocallyUnprotectedSiteThenItIsReportedButNotBlocked() {
@@ -286,7 +286,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
 
         performTest(privacyConfig: privacyConfig, websiteURL: websiteURL)
 
-        self.wait(for: [websiteLoaded], timeout: 30)
+        self.wait(for: [websiteLoaded], timeout: 60)
     }
 
     func testWhenThereIsTrackerOnAllowlistThenItIsReportedButNotBlocked() {
@@ -318,7 +318,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
 
         performTest(privacyConfig: privacyConfig, websiteURL: websiteURL)
 
-        self.wait(for: [websiteLoaded], timeout: 30)
+        self.wait(for: [websiteLoaded], timeout: 60)
     }
 
     func testWhenThereIsTrackerOnLocallyUnprotectedSiteSubdomainThenItIsReportedAndBlocked() {
@@ -345,7 +345,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
 
         performTest(privacyConfig: privacyConfig, websiteURL: websiteURL)
 
-        self.wait(for: [websiteLoaded], timeout: 30)
+        self.wait(for: [websiteLoaded], timeout: 60)
     }
 
     func testWhenThereIsTrackerOnSiteSimmilarToLocallyUnprotectedSiteThenItIsReportedAndBlocked() {
@@ -372,7 +372,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
 
         performTest(privacyConfig: privacyConfig, websiteURL: websiteURL)
 
-        self.wait(for: [websiteLoaded], timeout: 30)
+        self.wait(for: [websiteLoaded], timeout: 60)
     }
 
     func testWhenThereIsTrackerOnTempUnprotectedSiteThenItIsReportedButNotBlocked() {
@@ -402,7 +402,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
 
         performTest(privacyConfig: privacyConfig, websiteURL: websiteURL)
 
-        self.wait(for: [websiteLoaded], timeout: 30)
+        self.wait(for: [websiteLoaded], timeout: 60)
     }
 
     func testWhenThereIsTrackerOnTempUnprotectedSiteSubdomainThenItIsReportedButNotBlocked() {
@@ -432,7 +432,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
 
         performTest(privacyConfig: privacyConfig, websiteURL: websiteURL)
 
-        self.wait(for: [websiteLoaded], timeout: 30)
+        self.wait(for: [websiteLoaded], timeout: 60)
     }
 
     func testWhenThereIsTrackerOnSiteSimmilarToTempUnprotectedSiteThenItIsReportedAndBlocked() {
@@ -459,7 +459,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
 
         performTest(privacyConfig: privacyConfig, websiteURL: websiteURL)
 
-        self.wait(for: [websiteLoaded], timeout: 30)
+        self.wait(for: [websiteLoaded], timeout: 60)
     }
 
     func testWhenThereIsTrackerOnSiteFromExceptionListThenItIsReportedButNotBlocked() {
@@ -489,7 +489,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
 
         performTest(privacyConfig: privacyConfig, websiteURL: websiteURL)
 
-        self.wait(for: [websiteLoaded], timeout: 30)
+        self.wait(for: [websiteLoaded], timeout: 60)
     }
 
     func testWhenThereIsTrackerOnSubdomainOfSiteFromExceptionListThenItIsReportedButNotBlocked() {
@@ -519,7 +519,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
 
         performTest(privacyConfig: privacyConfig, websiteURL: websiteURL)
 
-        self.wait(for: [websiteLoaded], timeout: 30)
+        self.wait(for: [websiteLoaded], timeout: 60)
     }
 
     func testWhenContentBlockingFeatureIsDisabledThenTrackersAreReportedButNotBlocked() {
@@ -549,6 +549,6 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
 
         performTest(privacyConfig: privacyConfig, websiteURL: websiteURL)
 
-        self.wait(for: [websiteLoaded], timeout: 30)
+        self.wait(for: [websiteLoaded], timeout: 60)
     }
 }

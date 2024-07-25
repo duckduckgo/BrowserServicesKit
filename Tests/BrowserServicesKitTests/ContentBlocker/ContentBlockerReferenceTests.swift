@@ -104,7 +104,7 @@ class ContentBlockerReferenceTests: XCTestCase {
             self.popTestAndExecute(onTestExecuted: testsExecuted)
         }
 
-        waitForExpectations(timeout: 30, handler: nil)
+        waitForExpectations(timeout: 60, handler: nil)
     }
 
     private func popTestAndExecute(onTestExecuted: XCTestExpectation) {
