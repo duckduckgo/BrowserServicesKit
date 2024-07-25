@@ -82,8 +82,8 @@ class RemoteMessagingStoreTests: XCTestCase {
         wait(for: [expectation], timeout: 10)
     }
 
-    func saveProcessedResultFetchRemoteMessage() throws -> RemoteMessageModel {
-        let processorResult = try processorResult()
+    func saveProcessedResultFetchRemoteMessage(for configJSON: String? = nil) throws -> RemoteMessageModel {
+        let processorResult = try processorResult(for: configJSON)
         // 1. saveProcessedResult()
         store.saveProcessedResult(processorResult)
 
@@ -140,6 +140,124 @@ class RemoteMessagingStoreTests: XCTestCase {
         let dismissedRemoteMessageIds = store.fetchDismissedRemoteMessageIDs()
         XCTAssertEqual(dismissedRemoteMessageIds.count, 1)
         XCTAssertEqual(dismissedRemoteMessageIds.first, remoteMessage.id)
+    }
+
+    func testConfigUpdateWhenMessageWasShownAndNotInteractedWithThenItIsNotRemovedFromDatabase() throws {
+        let remoteMessage = try saveProcessedResultFetchRemoteMessage(for: minimalConfig(version: 1, messageID: 1))
+        store.updateRemoteMessage(withID: remoteMessage.id, asShown: true)
+
+        let context = remoteMessagingDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        context.performAndWait {
+            let messages = RemoteMessageUtils.fetchAllRemoteMessages(in: context)
+            XCTAssertEqual(messages.count, 1)
+            let firstMessage = messages.first!
+            XCTAssertTrue(firstMessage.shown)
+            XCTAssertEqual(firstMessage.status?.int16Value, RemoteMessagingStore.RemoteMessageStatus.scheduled.rawValue)
+        }
+
+        _ = try saveProcessedResultFetchRemoteMessage(for: minimalConfig(version: 2, messageID: 2))
+
+        context.performAndWait {
+            context.refreshAllObjects()
+            let messages = RemoteMessageUtils.fetchAllRemoteMessages(in: context)
+            XCTAssertEqual(messages.count, 2)
+
+            let firstMessage = messages.first(where: { $0.id == "1" })!
+            XCTAssertTrue(firstMessage.shown)
+            XCTAssertEqual(firstMessage.status?.int16Value, RemoteMessagingStore.RemoteMessageStatus.done.rawValue)
+
+            let secondMessage = messages.first(where: { $0.id == "2" })!
+            XCTAssertFalse(secondMessage.shown)
+            XCTAssertEqual(secondMessage.status?.int16Value, RemoteMessagingStore.RemoteMessageStatus.scheduled.rawValue)
+        }
+    }
+
+    func testConfigUpdateWhenMessageWasInteractedWithThenItIsNotRemovedFromDatabase() throws {
+        let remoteMessage = try saveProcessedResultFetchRemoteMessage(for: minimalConfig(version: 1, messageID: 1))
+        store.updateRemoteMessage(withID: remoteMessage.id, asShown: true)
+        store.dismissRemoteMessage(withID: remoteMessage.id)
+
+        let context = remoteMessagingDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        context.performAndWait {
+            let messages = RemoteMessageUtils.fetchAllRemoteMessages(in: context)
+            XCTAssertEqual(messages.count, 1)
+
+            let firstMessage = messages.first!
+            XCTAssertTrue(firstMessage.shown)
+            XCTAssertEqual(firstMessage.status?.int16Value, RemoteMessagingStore.RemoteMessageStatus.dismissed.rawValue)
+        }
+
+        _ = try saveProcessedResultFetchRemoteMessage(for: minimalConfig(version: 2, messageID: 2))
+
+        context.performAndWait {
+            context.refreshAllObjects()
+            let messages = RemoteMessageUtils.fetchAllRemoteMessages(in: context)
+            XCTAssertEqual(messages.count, 2)
+
+            let firstMessage = messages.first(where: { $0.id == "1" })!
+            XCTAssertTrue(firstMessage.shown)
+            XCTAssertEqual(firstMessage.status?.int16Value, RemoteMessagingStore.RemoteMessageStatus.dismissed.rawValue)
+
+            let secondMessage = messages.first(where: { $0.id == "2" })!
+            XCTAssertFalse(secondMessage.shown)
+            XCTAssertEqual(secondMessage.status?.int16Value, RemoteMessagingStore.RemoteMessageStatus.scheduled.rawValue)
+        }
+    }
+
+    func testConfigUpdateWhenMessageWasNotShownThenItIsRemovedFromDatabase() throws {
+        let remoteMessage = try saveProcessedResultFetchRemoteMessage(for: minimalConfig(version: 1, messageID: 1))
+
+        let context = remoteMessagingDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        context.performAndWait {
+            let messages = RemoteMessageUtils.fetchAllRemoteMessages(in: context)
+            XCTAssertEqual(messages.count, 1)
+
+            let firstMessage = messages.first!
+            XCTAssertFalse(firstMessage.shown)
+            XCTAssertEqual(firstMessage.status?.int16Value, RemoteMessagingStore.RemoteMessageStatus.scheduled.rawValue)
+        }
+
+        _ = try saveProcessedResultFetchRemoteMessage(for: minimalConfig(version: 2, messageID: 2))
+
+        context.performAndWait {
+            context.refreshAllObjects()
+            let messages = RemoteMessageUtils.fetchAllRemoteMessages(in: context)
+            XCTAssertEqual(messages.count, 1)
+
+            let secondMessage = messages.first!
+            XCTAssertEqual(secondMessage.id, "2")
+            XCTAssertFalse(secondMessage.shown)
+            XCTAssertEqual(secondMessage.status?.int16Value, RemoteMessagingStore.RemoteMessageStatus.scheduled.rawValue)
+        }
+    }
+
+    func testConfigUpdateWhenShownAndNotInteractedWithMessageIsReintroducedInNewConfigThenItIsMarkedAsScheduled() throws {
+        let remoteMessage = try saveProcessedResultFetchRemoteMessage(for: minimalConfig(version: 1, messageID: 1))
+        store.updateRemoteMessage(withID: remoteMessage.id, asShown: true)
+
+        let context = remoteMessagingDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        context.performAndWait {
+            let messages = RemoteMessageUtils.fetchAllRemoteMessages(in: context)
+            XCTAssertEqual(messages.count, 1)
+
+            let firstMessage = messages.first!
+            XCTAssertTrue(firstMessage.shown)
+            XCTAssertEqual(firstMessage.status?.int16Value, RemoteMessagingStore.RemoteMessageStatus.scheduled.rawValue)
+        }
+
+        _ = try saveProcessedResultFetchRemoteMessage(for: minimalConfig(version: 2, messageID: 2))
+        _ = try saveProcessedResultFetchRemoteMessage(for: minimalConfig(version: 3, messageID: 1))
+
+        context.performAndWait {
+            context.refreshAllObjects()
+            let messages = RemoteMessageUtils.fetchAllRemoteMessages(in: context)
+            XCTAssertEqual(messages.count, 1)
+
+            let firstMessage = messages.first!
+            XCTAssertEqual(firstMessage.id, "1")
+            XCTAssertTrue(firstMessage.shown) // shown status is preserved
+            XCTAssertEqual(firstMessage.status?.int16Value, RemoteMessagingStore.RemoteMessageStatus.scheduled.rawValue)
+        }
     }
 
     // MARK: - Feature Flag
@@ -274,8 +392,25 @@ class RemoteMessagingStoreTests: XCTestCase {
         return remoteMessagingConfig
     }
 
-    func processorResult() throws -> RemoteMessagingConfigProcessor.ProcessorResult {
-        let jsonRemoteMessagingConfig = try decodeJson(fileName: "remote-messaging-config-example.json")
+    func decodeJson(from jsonString: String) throws -> RemoteMessageResponse.JsonRemoteMessagingConfig {
+        let validJson = jsonString.data(using: .utf8)!
+        let remoteMessagingConfig = try JSONDecoder().decode(RemoteMessageResponse.JsonRemoteMessagingConfig.self, from: validJson)
+        XCTAssertNotNil(remoteMessagingConfig)
+
+        return remoteMessagingConfig
+    }
+
+    func processorResult(for configJSON: String? = nil) throws -> RemoteMessagingConfigProcessor.ProcessorResult {
+        let jsonRemoteMessagingConfig = try {
+            guard let configJSON else {
+                return try decodeJson(fileName: "remote-messaging-config-example.json")
+            }
+            return try decodeJson(from: configJSON)
+        }()
+        return try processorResult(for: jsonRemoteMessagingConfig)
+    }
+
+    func processorResult(for jsonRemoteMessagingConfig: RemoteMessageResponse.JsonRemoteMessagingConfig) throws -> RemoteMessagingConfigProcessor.ProcessorResult {
         let remoteMessagingConfigMatcher = RemoteMessagingConfigMatcher(
                 appAttributeMatcher: MobileAppAttributeMatcher(statisticsStore: MockStatisticsStore(), variantManager: MockVariantManager()),
                 userAttributeMatcher: MobileUserAttributeMatcher(
@@ -312,6 +447,22 @@ class RemoteMessagingStoreTests: XCTestCase {
             XCTFail("Processor result message is nil")
             return RemoteMessagingConfigProcessor.ProcessorResult(version: 0, message: nil)
         }
+    }
+
+    func minimalConfig(version: Int, messageID: Int) -> String {
+        """
+        {
+          "version": \(version),
+          "messages": [
+            {
+              "id": "\(messageID)",
+              "content": { "messageType": "small", "titleText": "title", "descriptionText": "description" },
+              "matchingRules": [], "exclusionRules": []
+            }
+          ],
+          "rules": []
+        }
+        """
     }
 }
 
