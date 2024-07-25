@@ -286,9 +286,17 @@ class SecureVaultManagerTests: XCTestCase {
         waitForExpectations(timeout: 0.1)
     }
 
-    func testWhenRequestingAutofillInitDataWithDomainAndPort_ThenDataIsReturned() throws {
+    func testWhenRequestingAutofillInitDataWithDomainAndPort_withPartialMatches_ThenDataIsReturned() throws {
+        self.manager = SecureVaultManager(vault: self.testVault, includePartialAccountMatches: true, tld: TLD())
+        try assertWhenRequestingAutofillInitDataWithDomainAndPort_ThenDataIsReturned()
+    }
 
-        // Given
+    func testWhenRequestingAutofillInitDataWithDomainAndPort_withoutPartialMatches_ThenDataIsReturned() throws {
+        self.manager = SecureVaultManager(vault: self.testVault, includePartialAccountMatches: false, tld: TLD())
+        try assertWhenRequestingAutofillInitDataWithDomainAndPort_ThenDataIsReturned()
+    }
+
+    func assertWhenRequestingAutofillInitDataWithDomainAndPort_ThenDataIsReturned(file: StaticString = #file, line: UInt = #line) throws {
         class SecureVaultDelegate: MockSecureVaultManagerDelegate {
             override func secureVaultManager(_ manager: SecureVaultManager,
                                              promptUserToAutofillCredentialsForDomain domain: String,
@@ -301,26 +309,24 @@ class SecureVaultManagerTests: XCTestCase {
             }
         }
 
-        self.manager = SecureVaultManager(vault: self.testVault, includePartialAccountMatches: true, tld: TLD())
         self.secureVaultManagerDelegate = SecureVaultDelegate()
         self.manager.delegate = self.secureVaultManagerDelegate
 
         let domain = "domain.com:1234"
         let username = "dax"
         let account = SecureVaultModels.WebsiteAccount(id: "1", title: nil, username: username, domain: domain, created: Date(), lastUpdated: Date())
-        self.mockDatabaseProvider._accounts = [account]
-
-        let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8)!)
-        try self.testVault.storeWebsiteCredentials(credentials)
+        let storedCredentials = SecureVaultModels.WebsiteCredentials(account: account, password: "password".data(using: .utf8)!)
+        self.mockDatabaseProvider._credentialsForDomainDict[domain] = [storedCredentials]
 
         let expect = expectation(description: #function)
 
         // When
-        manager.autofillUserScript(mockAutofillUserScript, didRequestAutoFillInitDataForDomain: domain) { accounts, _, _, _ in
+        manager.autofillUserScript(mockAutofillUserScript, didRequestAutoFillInitDataForDomain: domain) { credentials, _, _, _ in
 
             // Then
-            XCTAssertTrue(accounts.count == 1)
-            XCTAssertEqual(accounts.first!, account)
+            XCTAssertEqual(credentials.count, 1, file: file, line: line)
+            XCTAssertEqual(credentials.first?.account.id, storedCredentials.account.id, file: file, line: line)
+            XCTAssertEqual(credentials.first?.password, storedCredentials.password, file: file, line: line)
             expect.fulfill()
         }
         waitForExpectations(timeout: 0.1)
