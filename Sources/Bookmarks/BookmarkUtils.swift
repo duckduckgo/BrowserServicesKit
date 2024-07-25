@@ -229,13 +229,24 @@ extension BookmarkUtils {
 
     public static func prepareLegacyFoldersStructure(in context: NSManagedObjectContext) {
 
-        if fetchRootFolder(context) == nil {
-            insertRootFolder(uuid: BookmarkEntity.Constants.rootFolderID, into: context)
+        func prepareRootFolder(uuid: String) {
+            let request = BookmarkEntity.fetchRequest()
+            request.predicate = NSPredicate(format: "%K == %@", #keyPath(BookmarkEntity.uuid), uuid)
+            request.returnsObjectsAsFaults = false
+            request.fetchLimit = 1
+
+            do {
+                let root = try context.fetch(request).first
+                if root == nil {
+                    insertRootFolder(uuid: uuid, into: context)
+                }
+            } catch {
+                print(error)
+            }
         }
 
-        if fetchLegacyFavoritesFolder(context) == nil {
-            insertRootFolder(uuid: legacyFavoritesFolderID, into: context)
-        }
+        prepareRootFolder(uuid: BookmarkEntity.Constants.rootFolderID)
+        prepareRootFolder(uuid: legacyFavoritesFolderID)
     }
 
     public static func fetchLegacyFavoritesFolder(_ context: NSManagedObjectContext) -> BookmarkEntity? {
