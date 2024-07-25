@@ -583,6 +583,7 @@ let package = Package(
             name: "PhishingDetectionTests",
             dependencies: [
                 "PhishingDetection",
+                "PixelKit"
             ],
             resources: [
                 .copy("hashPrefixes.json"),
