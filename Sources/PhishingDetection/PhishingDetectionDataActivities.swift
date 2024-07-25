@@ -41,6 +41,7 @@ final class BackgroundActivityScheduler: BackgroundActivityScheduling {
             while true {
                 await activity()
                 do {
+                    os_log(.debug, log: .phishingDetection, "\(self): 🟢 \(identifier) task was executed in instance \(taskId)")
                     try await Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
                 } catch {
                     os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error \(identifier) task was cancelled before it could finish sleeping.")
