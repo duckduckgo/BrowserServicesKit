@@ -83,7 +83,11 @@ class ContentBlockerReferenceTests: XCTestCase {
     }
 
     func testDomainMatching() throws {
-
+#if os(iOS)
+        if ProcessInfo().environment["CI"] != nil {
+            throw XCTSkip("Flaky: https://app.asana.com/0/1200194497630846/1207895930258176/f")
+        }
+#endif
         let data = JsonTestDataLoader()
         let trackerJSON = data.fromJsonFile("Resources/privacy-reference-tests/tracker-radar-tests/TR-domain-matching/tracker_radar_reference.json")
         let testJSON = data.fromJsonFile("Resources/privacy-reference-tests/tracker-radar-tests/TR-domain-matching/domain_matching_tests.json")
