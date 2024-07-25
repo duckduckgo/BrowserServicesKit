@@ -17,6 +17,7 @@
 //
 
 import Foundation
+import Common
 
 public protocol PhishingDetectionUpdateManaging {
     func updateFilterSet() async
@@ -42,6 +43,7 @@ public class PhishingDetectionUpdateManager: PhishingDetectionUpdateManaging {
         }
         dataStore.currentRevision = response.revision
         dataStore.writeData()
+        os_log(.debug, log: .phishingDetection, "\(self): 🟢 filterSet updated to revision \(dataStore.currentRevision)")
     }
 
     public func updateHashPrefixes() async {
@@ -54,5 +56,6 @@ public class PhishingDetectionUpdateManager: PhishingDetectionUpdateManaging {
         }
         dataStore.currentRevision = response.revision
         dataStore.writeData()
+        os_log(.debug, log: .phishingDetection, "\(self): 🟢 hashPrefixes updated to revision \(dataStore.currentRevision)")
     }
 }
