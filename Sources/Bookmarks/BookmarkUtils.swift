@@ -227,26 +227,22 @@ public struct BookmarkUtils {
 
 extension BookmarkUtils {
 
-    public static func prepareLegacyFoldersStructure(in context: NSManagedObjectContext) {
+    public static func prepareLegacyFoldersStructure(in context: NSManagedObjectContext) throws {
 
-        func prepareRootFolder(uuid: String) {
+        func prepareRootFolder(uuid: String) throws {
             let request = BookmarkEntity.fetchRequest()
             request.predicate = NSPredicate(format: "%K == %@", #keyPath(BookmarkEntity.uuid), uuid)
             request.returnsObjectsAsFaults = false
             request.fetchLimit = 1
 
-            do {
-                let root = try context.fetch(request).first
-                if root == nil {
-                    insertRootFolder(uuid: uuid, into: context)
-                }
-            } catch {
-                print(error)
+            let root = try context.fetch(request).first
+            if root == nil {
+                insertRootFolder(uuid: uuid, into: context)
             }
         }
 
-        prepareRootFolder(uuid: BookmarkEntity.Constants.rootFolderID)
-        prepareRootFolder(uuid: legacyFavoritesFolderID)
+        try prepareRootFolder(uuid: BookmarkEntity.Constants.rootFolderID)
+        try prepareRootFolder(uuid: legacyFavoritesFolderID)
     }
 
     public static func fetchLegacyFavoritesFolder(_ context: NSManagedObjectContext) -> BookmarkEntity? {
