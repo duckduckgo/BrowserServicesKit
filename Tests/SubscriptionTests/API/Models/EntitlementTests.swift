@@ -36,6 +36,20 @@ final class EntitlementTests: XCTestCase {
     }
 
     func testDecoding() throws {
-        // Decode Entitlement
+        let rawNetPEntitlement = "{\"id\":24,\"name\":\"subscriber\",\"product\":\"Network Protection\"}"
+        let netPEntitlement = try JSONDecoder().decode(Entitlement.self, from: Data(rawNetPEntitlement.utf8))
+        XCTAssertEqual(netPEntitlement, Entitlement(product: .networkProtection))
+
+        let rawDBPEntitlement = "{\"id\":25,\"name\":\"subscriber\",\"product\":\"Data Broker Protection\"}"
+        let dbpEntitlement = try JSONDecoder().decode(Entitlement.self, from: Data(rawDBPEntitlement.utf8))
+        XCTAssertEqual(dbpEntitlement, Entitlement(product: .dataBrokerProtection))
+
+        let rawITREntitlement = "{\"id\":26,\"name\":\"subscriber\",\"product\":\"Identity Theft Restoration\"}"
+        let itrEntitlement = try JSONDecoder().decode(Entitlement.self, from: Data(rawITREntitlement.utf8))
+        XCTAssertEqual(itrEntitlement, Entitlement(product: .identityTheftRestoration))
+
+        let rawUnexpectedEntitlement = "{\"id\":27,\"name\":\"subscriber\",\"product\":\"something unexpected\"}"
+        let unexpectedEntitlement = try JSONDecoder().decode(Entitlement.self, from: Data(rawUnexpectedEntitlement.utf8))
+        XCTAssertEqual(unexpectedEntitlement, Entitlement(product: .unknown))
     }
 }
