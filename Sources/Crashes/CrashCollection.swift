@@ -98,34 +98,31 @@ public final class CrashCollection {
                 if #available(macOS 14.0, iOS 17.0, *) {
                     pid = payload.crashDiagnostics?.first?.metaData.pid
                 }
-                var crashDiagnostics = dict["crashDiagnostics"] as? [[AnyHashable: Any]] ?? []
-                var crashDiagnosticsDict = crashDiagnostics.first ?? [:]
-                var diagnosticMetaDataDict = crashDiagnosticsDict["diagnosticMetaData"] as? [AnyHashable: Any] ?? [:]
-                var objCexceptionReason = diagnosticMetaDataDict["objectiveCexceptionReason"] as? [AnyHashable: Any] ?? [:]
+                if var crashDiagnostics = dict["crashDiagnostics"] as? [[AnyHashable: Any]], !crashDiagnostics.isEmpty {
+                    var crashDiagnosticsDict = crashDiagnostics[0]
+                    var diagnosticMetaDataDict = crashDiagnosticsDict["diagnosticMetaData"] as? [AnyHashable: Any] ?? [:]
+                    var objCexceptionReason = diagnosticMetaDataDict["objectiveCexceptionReason"] as? [AnyHashable: Any] ?? [:]
 
-                var exceptionMessage = (objCexceptionReason["composedMessage"] as? String)?.sanitized()
-                var stackTrace: [String]?
+                    var exceptionMessage = (objCexceptionReason["composedMessage"] as? String)?.sanitized()
+                    var stackTrace: [String]?
 
-                // append crash log message if loaded
-                if let diagnostic = try? CrashLogMessageExtractor().crashDiagnostic(for: payload.timeStampBegin, pid: pid)?.diagnosticData(), !diagnostic.isEmpty {
-                    if let existingMessage = exceptionMessage, !existingMessage.isEmpty {
-                        exceptionMessage = existingMessage + "\n\n---\n\n" + diagnostic.message
-                    } else {
-                        exceptionMessage = diagnostic.message
+                    // append crash log message if loaded
+                    if let diagnostic = try? CrashLogMessageExtractor().crashDiagnostic(for: payload.timeStampBegin, pid: pid)?.diagnosticData(), !diagnostic.isEmpty {
+                        if let existingMessage = exceptionMessage, !existingMessage.isEmpty {
+                            exceptionMessage = existingMessage + "\n\n---\n\n" + diagnostic.message
+                        } else {
+                            exceptionMessage = diagnostic.message
+                        }
+                        stackTrace = diagnostic.stackTrace
                     }
-                    stackTrace = diagnostic.stackTrace
-                }
 
-                objCexceptionReason["composedMessage"] = exceptionMessage
-                objCexceptionReason["stackTrace"] = stackTrace
-                diagnosticMetaDataDict["objectiveCexceptionReason"] = objCexceptionReason
-                crashDiagnosticsDict["diagnosticMetaData"] = diagnosticMetaDataDict
-                if crashDiagnostics.isEmpty {
-                    crashDiagnostics = [crashDiagnosticsDict]
-                } else {
+                    objCexceptionReason["composedMessage"] = exceptionMessage
+                    objCexceptionReason["stackTrace"] = stackTrace
+                    diagnosticMetaDataDict["objectiveCexceptionReason"] = objCexceptionReason
+                    crashDiagnosticsDict["diagnosticMetaData"] = diagnosticMetaDataDict
                     crashDiagnostics[0] = crashDiagnosticsDict
+                    dict["crashDiagnostics"] = crashDiagnostics
                 }
-                dict["crashDiagnostics"] = crashDiagnostics
 
                 guard JSONSerialization.isValidJSONObject(dict) else {
                     assertionFailure("Invalid JSON object: \(dict)")
