@@ -48,20 +48,10 @@ public protocol HistoryCoordinating: AnyObject {
 /// Coordinates access to History. Uses its own queue with high qos for all operations.
 final public class HistoryCoordinator: HistoryCoordinating {
 
-    public enum Errors {
-        case cleanFailed
-        case saveFailed
-        case removeEntryFailed
-        case removeVisitFailed
-    }
-
     let historyStoringProvider: () -> HistoryStoring
-    let errorHandling: EventMapping<Errors>?
 
-    public init(historyStoring: @autoclosure @escaping () -> HistoryStoring,
-                errorHandling: EventMapping<Errors>? = nil) {
+    public init(historyStoring: @autoclosure @escaping () -> HistoryStoring) {
         self.historyStoringProvider = historyStoring
-        self.errorHandling = errorHandling
     }
 
     public func loadHistory(onCleanFinished: @escaping () -> Void) {
@@ -212,12 +202,12 @@ final public class HistoryCoordinator: HistoryCoordinating {
     private func clean(until date: Date, onCleanFinished: (() -> Void)? = nil) {
         historyStoring.cleanOld(until: date)
             .receive(on: DispatchQueue.main)
-            .sink(receiveCompletion: { [weak self] completion in
+            .sink(receiveCompletion: { completion in
                 switch completion {
                 case .finished:
                     os_log("History cleaned successfully", log: .history)
                 case .failure(let error):
-                    self?.errorHandling?.fire(.cleanFailed, error: error)
+                    // This should really be a pixel
                     os_log("Cleaning of history failed: %s", log: .history, type: .error, error.localizedDescription)
                 }
                 onCleanFinished?()
@@ -237,14 +227,13 @@ final public class HistoryCoordinator: HistoryCoordinating {
         // Remove from the storage
         historyStoring.removeEntries(entries)
             .receive(on: DispatchQueue.main)
-            .sink(receiveCompletion: { [weak self] completion in
+            .sink(receiveCompletion: { completion in
                 switch completion {
                 case .finished:
                     os_log("Entries removed successfully", log: .history)
                     completionHandler?(nil)
                 case .failure(let error):
                     assertionFailure("Removal failed")
-                    self?.errorHandling?.fire(.removeEntryFailed, error: error)
                     os_log("Removal failed: %s", log: .history, type: .error, error.localizedDescription)
                     completionHandler?(error)
                 }
@@ -287,7 +276,6 @@ final public class HistoryCoordinator: HistoryCoordinating {
                     self?.removeEntries(entriesToRemove, completionHandler: completionHandler)
                 case .failure(let error):
                     assertionFailure("Removal failed")
-                    self?.errorHandling?.fire(.removeVisitFailed, error: error)
                     os_log("Removal failed: %s", log: .history, type: .error, error.localizedDescription)
                     completionHandler?(error)
                 }
@@ -328,7 +316,7 @@ final public class HistoryCoordinator: HistoryCoordinating {
 
         historyStoring.save(entry: entryCopy)
             .receive(on: DispatchQueue.main)
-            .sink(receiveCompletion: { [weak self] completion in
+            .sink(receiveCompletion: { completion in
                 switch completion {
                 case .finished:
                     os_log("Visit entry updated successfully. URL: %s, Title: %s, Number of visits: %d, failed to load: %s",
@@ -338,7 +326,6 @@ final public class HistoryCoordinator: HistoryCoordinating {
                            entry.numberOfTotalVisits,
                            entry.failedToLoad ? "yes" : "no")
                 case .failure(let error):
-                    self?.errorHandling?.fire(.saveFailed, error: error)
                     os_log("Saving of history entry failed: %s", log: .history, type: .error, error.localizedDescription)
                 }
             }, receiveValue: { result in
