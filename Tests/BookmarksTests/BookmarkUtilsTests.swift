@@ -72,7 +72,7 @@ final class BookmarkUtilsTests: XCTestCase {
             _ = BookmarkEntity.makeBookmark(title: "c", url: "c", parent: root1, context: context)
 
             try! context.save()
-            
+
             let root = BookmarkUtils.fetchRootFolder(context)
             XCTAssertEqual(root, root2)
         }

@@ -58,7 +58,7 @@ public struct BookmarkUtils {
 
         var objects = (try? context.fetch(request)) ?? []
         objects.sort(by: { ($0.favorites?.count ?? 0) > ($1.favorites?.count ?? 0) })
-        
+
         var result = [BookmarkEntity]()
         for uuid in uuids {
             if let entity = objects.first(where: { $0.uuid == uuid }) {
