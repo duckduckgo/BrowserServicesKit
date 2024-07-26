@@ -25,9 +25,11 @@ public struct BookmarkUtils {
         let request = BookmarkEntity.fetchRequest()
         request.predicate = NSPredicate(format: "%K == %@", #keyPath(BookmarkEntity.uuid), BookmarkEntity.Constants.rootFolderID)
         request.returnsObjectsAsFaults = false
-        request.fetchLimit = 1
 
-        return try? context.fetch(request).first
+        let result = (try? context.fetch(request)) ?? []
+
+        // We cannot use simply sort descriptor as this is to-many on both sides of a relationship.
+        return result.sorted(by: { ($0.children?.count ?? 0) > ($1.children?.count ?? 0) }).first
     }
 
     public static func fetchFavoritesFolders(for displayMode: FavoritesDisplayMode, in context: NSManagedObjectContext) -> [BookmarkEntity] {
@@ -40,9 +42,11 @@ public struct BookmarkUtils {
         let request = BookmarkEntity.fetchRequest()
         request.predicate = NSPredicate(format: "%K == %@", #keyPath(BookmarkEntity.uuid), uuid)
         request.returnsObjectsAsFaults = false
-        request.fetchLimit = 1
 
-        return try? context.fetch(request).first
+        let result = (try? context.fetch(request)) ?? []
+
+        // We cannot use simply sort descriptor as this is to-many on both sides of a relationship.
+        return result.sorted(by: { ($0.favorites?.count ?? 0) > ($1.favorites?.count ?? 0) }).first
     }
 
     public static func fetchFavoritesFolders(withUUIDs uuids: Set<String>, in context: NSManagedObjectContext) -> [BookmarkEntity] {
@@ -51,9 +55,18 @@ public struct BookmarkUtils {
         let request = BookmarkEntity.fetchRequest()
         request.predicate = NSPredicate(format: "%K in %@", #keyPath(BookmarkEntity.uuid), uuids)
         request.returnsObjectsAsFaults = false
-        request.fetchLimit = uuids.count
 
-        return (try? context.fetch(request)) ?? []
+        var objects = (try? context.fetch(request)) ?? []
+        objects.sort(by: { ($0.favorites?.count ?? 0) > ($1.favorites?.count ?? 0) })
+        
+        var result = [BookmarkEntity]()
+        for uuid in uuids {
+            if let entity = objects.first(where: { $0.uuid == uuid }) {
+                result.append(entity)
+            }
+        }
+
+        return result
     }
 
     public static func fetchOrphanedEntities(_ context: NSManagedObjectContext) -> [BookmarkEntity] {

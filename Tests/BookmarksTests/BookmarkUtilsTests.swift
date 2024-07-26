@@ -48,6 +48,77 @@ final class BookmarkUtilsTests: XCTestCase {
         try? FileManager.default.removeItem(at: location)
     }
 
+    func testThatFetchingRootFolderPicksTheOneWithMostChildren() {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            try! context.save()
+
+            guard let root1 = BookmarkUtils.fetchRootFolder(context) else {
+                XCTFail("root required")
+                return
+            }
+
+            let root2 = BookmarkEntity.makeFolder(title: root1.title!, parent: root1, context: context)
+            root2.uuid = root1.uuid
+            root2.parent = nil
+
+            let root3 = BookmarkEntity.makeFolder(title: root1.title!, parent: root1, context: context)
+            root3.uuid = root1.uuid
+            root3.parent = nil
+
+            _ = BookmarkEntity.makeBookmark(title: "a", url: "a", parent: root2, context: context)
+            _ = BookmarkEntity.makeBookmark(title: "b", url: "b", parent: root2, context: context)
+            _ = BookmarkEntity.makeBookmark(title: "c", url: "c", parent: root1, context: context)
+
+            try! context.save()
+            
+            let root = BookmarkUtils.fetchRootFolder(context)
+            XCTAssertEqual(root, root2)
+        }
+    }
+
+    func testThatFetchingRootFavoritesFolderPicksTheOneWithMostFavorites() {
+        let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        context.performAndWait {
+            BookmarkUtils.prepareFoldersStructure(in: context)
+            try! context.save()
+
+            guard let root = BookmarkUtils.fetchRootFolder(context),
+                let mobileFav1 = BookmarkUtils.fetchFavoritesFolder(withUUID: FavoritesFolderID.mobile.rawValue, in: context),
+                  let unifiedFav1 = BookmarkUtils.fetchFavoritesFolder(withUUID: FavoritesFolderID.unified.rawValue, in: context) else {
+                XCTFail("root required")
+                return
+            }
+
+            let mobileFav2 = BookmarkEntity.makeFolder(title: mobileFav1.title!, parent: root, context: context)
+            mobileFav2.uuid = mobileFav1.uuid
+            mobileFav2.parent = nil
+
+            let unifiedFav2 = BookmarkEntity.makeFolder(title: unifiedFav1.title!, parent: root, context: context)
+            unifiedFav2.uuid = unifiedFav1.uuid
+            unifiedFav2.parent = nil
+
+            let bA = BookmarkEntity.makeBookmark(title: "a", url: "a", parent: root, context: context)
+            let bB = BookmarkEntity.makeBookmark(title: "b", url: "b", parent: root, context: context)
+
+            bA.addToFavorites(favoritesRoot: mobileFav2)
+            bA.addToFavorites(favoritesRoot: unifiedFav1)
+            bB.addToFavorites(folders: [mobileFav2, unifiedFav1])
+
+            try! context.save()
+
+            let roots = BookmarkUtils.fetchFavoritesFolders(for: .displayUnified(native: .mobile), in: context)
+            XCTAssertEqual(Set(roots.map { $0.uuid }), [mobileFav2.uuid, unifiedFav1.uuid])
+
+            let mobileFav = BookmarkUtils.fetchFavoritesFolder(withUUID: FavoritesFolderID.mobile.rawValue, in: context)
+            XCTAssertEqual(mobileFav, mobileFav2)
+
+            let unifiedFav = BookmarkUtils.fetchFavoritesFolder(withUUID: FavoritesFolderID.unified.rawValue, in: context)
+            XCTAssertEqual(unifiedFav, unifiedFav1)
+        }
+    }
+
     func testCopyFavoritesWhenDisablingSyncInDisplayNativeMode() async throws {
 
         let context = bookmarksDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
