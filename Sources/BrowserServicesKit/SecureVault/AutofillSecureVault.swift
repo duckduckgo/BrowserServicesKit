@@ -61,6 +61,8 @@ public protocol AutofillSecureVault: SecureVault {
     func hasAccountFor(username: String?, domain: String?) throws -> Bool
     func updateLastUsedFor(accountId: Int64) throws
 
+    func websiteCredentialsFor(domain: String) throws -> [SecureVaultModels.WebsiteCredentials]
+    func websiteCredentialsWithPartialMatchesFor(eTLDplus1: String) throws -> [SecureVaultModels.WebsiteCredentials]
     func websiteCredentialsFor(accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials?
     @discardableResult
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64
@@ -309,6 +311,34 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
 
     // MARK: - Credentials
 
+    public func websiteCredentialsFor(domain: String) throws -> [SecureVaultModels.WebsiteCredentials] {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+
+        do {
+            let credentials = try self.providers.database.websiteCredentialsForDomain(domain)
+            return try credentials.map(decryptCredentials(_:))
+        } catch {
+            let error = error as? SecureStorageError ?? SecureStorageError.databaseError(cause: error)
+            throw error
+        }
+    }
+
+    public func websiteCredentialsWithPartialMatchesFor(eTLDplus1: String) throws -> [SecureVaultModels.WebsiteCredentials] {
+        lock.lock()
+        defer {
+            lock.unlock()
+        }
+        do {
+            let credentials = try self.providers.database.websiteCredentialsForTopLevelDomain(eTLDplus1)
+            return try credentials.map(decryptCredentials(_:))
+        } catch {
+            throw SecureStorageError.databaseError(cause: error)
+        }
+    }
+
     public func websiteCredentialsFor(accountId: Int64) throws -> SecureVaultModels.WebsiteCredentials? {
         lock.lock()
         defer {
@@ -318,14 +348,8 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
         do {
             var decryptedCredentials: SecureVaultModels.WebsiteCredentials?
             if let credentials = try self.providers.database.websiteCredentialsForAccountId(accountId) {
-                if let password = credentials.password {
-                    decryptedCredentials = .init(account: credentials.account,
-                                                 password: try self.l2Decrypt(data: password))
-                } else {
-                    decryptedCredentials = credentials
-                }
+                decryptedCredentials = try decryptCredentials(credentials)
             }
-
             return decryptedCredentials
         } catch {
             let error = error as? SecureStorageError ?? SecureStorageError.databaseError(cause: error)
@@ -631,6 +655,16 @@ public class DefaultAutofillSecureVault<T: AutofillDatabaseProvider>: AutofillSe
     }
 
     // MARK: - Private
+
+    private func decryptCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> SecureVaultModels.WebsiteCredentials {
+        if let password = credentials.password {
+            let decryptedPassword = try self.l2Decrypt(data: password)
+            return .init(account: credentials.account,
+                         password: decryptedPassword)
+        } else {
+            return credentials
+        }
+    }
 
     private func executeThrowingDatabaseOperation<DatabaseResult>(_ operation: () throws -> DatabaseResult) throws -> DatabaseResult {
         lock.lock()

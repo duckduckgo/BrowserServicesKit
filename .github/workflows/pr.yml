@@ -12,7 +12,7 @@ jobs:
 
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: SwiftLint
         uses: docker://norionomura/swiftlint:0.54.0_swift-5.9.0
         with:
@@ -22,7 +22,7 @@ jobs:
 
       name: Run unit tests (macOS)
 
-      runs-on: macos-13-xlarge
+      runs-on: macos-14-xlarge
       timeout-minutes: 30
 
       outputs:
@@ -31,7 +31,7 @@ jobs:
       steps:
 
       - name: Check out the code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -46,7 +46,7 @@ jobs:
 
       - name: Cache SPM
         if: env.cache_key_hash
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             .build/artifacts
@@ -89,7 +89,7 @@ jobs:
             | xargs -L 1 ./scripts/report-failed-unit-test.sh -s ${{ vars.APPLE_CI_FAILING_TESTS_FAILED_TESTS_SECTION_ID }}
 
       - name: Upload logs
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: build-log.txt
@@ -109,13 +109,13 @@ jobs:
 
       name: Run unit tests (iOS)
 
-      runs-on: macos-13-xlarge
+      runs-on: macos-14-xlarge
       timeout-minutes: 30
 
       steps:
 
       - name: Check out the code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -130,7 +130,7 @@ jobs:
 
       - name: Cache SPM
         if: env.cache_key_hash
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: DerivedData/SourcePackages
           key: ${{ runner.os }}-spm-ios-${{ env.cache_key_hash }}
@@ -144,7 +144,7 @@ jobs:
         run: |
           while xcodebuild -resolvePackageDependencies \
             -scheme BrowserServicesKit-Package \
-            -destination 'platform=iOS Simulator,name=iPhone 15' \
+            -destination 'platform=iOS Simulator,name=iPhone 15,OS=17' \
             -derivedDataPath DerivedData \
             2>&1 | grep Error; do :; done
 
@@ -157,7 +157,7 @@ jobs:
         run: |
           set -o pipefail && xcodebuild test \
             -scheme BrowserServicesKit \
-            -destination 'platform=iOS Simulator,name=iPhone 15' \
+            -destination 'platform=iOS Simulator,name=iPhone 15,OS=17' \
             -derivedDataPath DerivedData \
             -skipPackagePluginValidation \
             -skipMacroValidation \
@@ -187,7 +187,7 @@ jobs:
             | xargs -L 1 ./scripts/report-failed-unit-test.sh -s ${{ vars.APPLE_CI_FAILING_TESTS_FAILED_TESTS_SECTION_ID }}
 
       - name: Upload logs
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: ios-build-log.txt
@@ -203,7 +203,7 @@ jobs:
 
     steps:
       - name: Check out the code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Create Asana Task
         uses: ./.github/actions/asana-failed-pr-checks
         with:
@@ -222,7 +222,7 @@ jobs:
 
     steps:
       - name: Check out the code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Close Asana Task
         uses: ./.github/actions/asana-failed-pr-checks
         with:

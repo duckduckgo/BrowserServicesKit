@@ -61,4 +61,49 @@ class AutofillUserScriptTests: XCTestCase {
         XCTAssertEqual(responseFromAccounts.success.credentials.username, true)
     }
 
+    func testWhenPasswordsAreNil_ThenAvailableInputTypesPasswordIsFalse() {
+        let credentialsList = createListOfCredentials(withPassword: nil)
+        let credentialsProvider = SecureVaultModels.CredentialsProvider(name: SecureVaultModels.CredentialsProvider.Name.duckduckgo, locked: false)
+        let responseFromCredentials = AutofillUserScript.RequestAvailableInputTypesResponse(credentials: credentialsList,
+                                                                                            identities: [],
+                                                                                            cards: [],
+                                                                                            email: false,
+                                                                                            credentialsProvider: credentialsProvider)
+        XCTAssertEqual(responseFromCredentials.success.credentials.password, false)
+    }
+
+    func testWhenAllPasswordsAreEmpty_ThenAvailableInputTypesPasswordIsFalse() {
+        let credentialsList = createListOfCredentials(withPassword: "".data(using: .utf8)!)
+        let credentialsProvider = SecureVaultModels.CredentialsProvider(name: SecureVaultModels.CredentialsProvider.Name.duckduckgo, locked: false)
+        let responseFromCredentials = AutofillUserScript.RequestAvailableInputTypesResponse(credentials: credentialsList,
+                                                                                            identities: [],
+                                                                                            cards: [],
+                                                                                            email: false,
+                                                                                            credentialsProvider: credentialsProvider)
+        XCTAssertEqual(responseFromCredentials.success.credentials.password, false)
+    }
+
+    func testWhenAtLeastOnePasswordIsNonNilOrEmpty_ThenAvailableInputTypesPasswordIsTrue() {
+        var credentialsList = createListOfCredentials(withPassword: nil)
+        let account = credentialsList.first?.account
+        let credentialsWithPassword = SecureVaultModels.WebsiteCredentials(account: account!, password: "password".data(using: .utf8)!)
+        credentialsList.append(credentialsWithPassword)
+        let credentialsProvider = SecureVaultModels.CredentialsProvider(name: SecureVaultModels.CredentialsProvider.Name.duckduckgo, locked: false)
+        let responseFromCredentials = AutofillUserScript.RequestAvailableInputTypesResponse(credentials: credentialsList,
+                                                                                            identities: [],
+                                                                                            cards: [],
+                                                                                            email: false,
+                                                                                            credentialsProvider: credentialsProvider)
+        XCTAssertEqual(responseFromCredentials.success.credentials.password, true)
+    }
+
+    private func createListOfCredentials(withPassword password: Data?) -> [SecureVaultModels.WebsiteCredentials] {
+        var credentialsList = [SecureVaultModels.WebsiteCredentials]()
+        for i in 0...10 {
+            let account = SecureVaultModels.WebsiteAccount(id: "id\(i)", username: "username\(i)", domain: "domain.com", created: Date(), lastUpdated: Date())
+            let credentials = SecureVaultModels.WebsiteCredentials(account: account, password: password)
+            credentialsList.append(credentials)
+        }
+        return credentialsList
+    }
 }
