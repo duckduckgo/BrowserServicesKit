@@ -31,9 +31,9 @@ public struct APIServiceMock: APIService {
     public typealias ExecuteAPICallParameters = (method: String, endpoint: String, headers: [String: String]?)
 
     public init(mockAuthHeaders: [String: String],
-                mockResponseJSONData: Data?,
-                mockAPICallSuccessResult: Any?,
-                mockAPICallError: APIServiceError?,
+                mockResponseJSONData: Data? = nil,
+                mockAPICallSuccessResult: Any? = nil,
+                mockAPICallError: APIServiceError? = nil,
                 onExecuteAPICall: ((ExecuteAPICallParameters) -> Void)? = nil) {
         self.mockAuthHeaders = mockAuthHeaders
         self.mockResponseJSONData = mockResponseJSONData
