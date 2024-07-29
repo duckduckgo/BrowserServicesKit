@@ -21,22 +21,48 @@ import Subscription
 
 public struct APIServiceMock: APIService {
     public var mockAuthHeaders: [String: String]
+
+    public var mockResponseJSONData: Data?
     public var mockAPICallSuccessResult: Any?
     public var mockAPICallError: APIServiceError?
 
-    public init(mockAuthHeaders: [String: String], mockAPICallSuccessResult: Any? = nil, mockAPICallError: APIServiceError? = nil) {
+    public var onExecuteAPICall: ((ExecuteAPICallParameters) -> Void)?
+
+    public typealias ExecuteAPICallParameters = (method: String, endpoint: String, headers: [String: String]?)
+
+    public init(mockAuthHeaders: [String: String],
+                mockResponseJSONData: Data?,
+                mockAPICallSuccessResult: Any?,
+                mockAPICallError: APIServiceError?,
+                onExecuteAPICall: ((ExecuteAPICallParameters) -> Void)? = nil) {
         self.mockAuthHeaders = mockAuthHeaders
+        self.mockResponseJSONData = mockResponseJSONData
         self.mockAPICallSuccessResult = mockAPICallSuccessResult
         self.mockAPICallError = mockAPICallError
+        self.onExecuteAPICall = onExecuteAPICall
     }
 
     // swiftlint:disable force_cast
     public func executeAPICall<T>(method: String, endpoint: String, headers: [String: String]?, body: Data?) async -> Result<T, APIServiceError> where T: Decodable {
-        if let success = mockAPICallSuccessResult {
+        
+        onExecuteAPICall?(ExecuteAPICallParameters(method, endpoint, headers))
+
+        if let data = mockResponseJSONData {
+            let decoder = JSONDecoder()
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
+            decoder.dateDecodingStrategy = .millisecondsSince1970
+
+            if let decodedResponse = try? decoder.decode(T.self, from: data) {
+                return .success(decodedResponse)
+            } else {
+                return .failure(.decodingError)
+            }
+        } else if let success = mockAPICallSuccessResult {
             return .success(success as! T)
         } else if let error = mockAPICallError {
             return .failure(error)
         }
+
         return .failure(.unknownServerError)
     }
     // swiftlint:enable force_cast
