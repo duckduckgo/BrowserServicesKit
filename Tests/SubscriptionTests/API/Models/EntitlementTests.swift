@@ -22,14 +22,6 @@ import SubscriptionTestingUtilities
 
 final class EntitlementTests: XCTestCase {
 
-    override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
-    }
-
-    override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
-    }
-
     func testEquality() throws {
         XCTAssertEqual(Entitlement(product: .dataBrokerProtection), Entitlement(product: .dataBrokerProtection))
         XCTAssertNotEqual(Entitlement(product: .dataBrokerProtection), Entitlement(product: .networkProtection))
