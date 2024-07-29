@@ -50,6 +50,7 @@ public enum PrivacyFeature: String {
     case brokenSiteReportExperiment
     case toggleReports
     case remoteMessaging
+    case additionalCampaignPixelParams
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.

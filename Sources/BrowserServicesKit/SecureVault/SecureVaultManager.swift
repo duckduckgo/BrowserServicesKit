@@ -144,7 +144,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
 
     public func autofillUserScript(_: AutofillUserScript,
                                    didRequestAutoFillInitDataForDomain domain: String,
-                                   completionHandler: @escaping ([SecureVaultModels.WebsiteAccount],
+                                   completionHandler: @escaping ([SecureVaultModels.WebsiteCredentials],
                                                                  [SecureVaultModels.Identity],
                                                                  [SecureVaultModels.CreditCard],
                                                                  SecureVaultModels.CredentialsProvider) -> Void) {
@@ -167,16 +167,13 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
             }
 
             if delegate.secureVaultManagerIsEnabledStatus(self, forType: .password) {
-                getAccounts(for: domain,
-                            from: vault,
-                            or: passwordManager,
-                            withPartialMatches: includePartialAccountMatches) { [weak self] accounts, error in
+                getCredentials(forDomain: domain, from: vault, or: passwordManager, withPartialMatches: includePartialAccountMatches) { [weak self] credentials, error in
                     guard let self = self else { return }
                     if let error = error {
                         os_log(.error, "Error requesting autofill init data: %{public}@", error.localizedDescription)
                         completionHandler([], [], [], self.credentialsProvider)
                     } else {
-                        completionHandler(accounts, identities, cards, self.credentialsProvider)
+                        completionHandler(credentials, identities, cards, self.credentialsProvider)
                     }
                 }
             } else {
@@ -746,23 +743,12 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
         } else {
             do {
                 if withPartialMatches {
-                    guard var currentUrlComponents = AutofillDomainNameUrlMatcher().normalizeSchemeForAutofill(domain) else {
+                    guard let eTLDplus1 = eTLDplus1(for: domain) else {
                         completion([], nil)
                         return
                     }
-
-                    if currentUrlComponents.host == .localhost {
-                        let accounts = try vault.accountsWithPartialMatchesFor(eTLDplus1: domain)
-                        completion(accounts, nil)
-                    } else {
-                        guard let tld = tld, let eTLDplus1 = currentUrlComponents.eTLDplus1WithPort(tld: tld) else {
-                            completion([], nil)
-                            return
-                        }
-
-                        let accounts = try vault.accountsWithPartialMatchesFor(eTLDplus1: eTLDplus1)
-                        completion(accounts, nil)
-                    }
+                    let accounts = try vault.accountsWithPartialMatchesFor(eTLDplus1: eTLDplus1)
+                    completion(accounts, nil)
                 } else {
                     let accounts = try vault.accountsFor(domain: domain)
                     completion(accounts, nil)
@@ -787,6 +773,49 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
             } catch {
                 completion(nil, error)
             }
+        }
+    }
+
+    private func getCredentials(forDomain domain: String,
+                                from vault: any AutofillSecureVault,
+                                or passwordManager: PasswordManager?,
+                                withPartialMatches: Bool,
+                                completion: @escaping ([SecureVaultModels.WebsiteCredentials], Error?) -> Void) {
+        if let passwordManager = passwordManager,
+           passwordManager.isEnabled {
+            passwordManager.websiteCredentialsFor(domain: domain, completion: completion)
+        } else {
+            do {
+                if withPartialMatches {
+                    guard let eTLDplus1 = eTLDplus1(for: domain) else {
+                        completion([], nil)
+                        return
+                    }
+                    let accounts = try vault.websiteCredentialsWithPartialMatchesFor(eTLDplus1: eTLDplus1)
+                    completion(accounts, nil)
+                } else {
+                    let credentials = try vault.websiteCredentialsFor(domain: domain)
+                    completion(credentials, nil)
+                }
+            } catch {
+                completion([], error)
+            }
+        }
+    }
+
+    private func eTLDplus1(for domain: String) -> String? {
+        guard var currentUrlComponents = AutofillDomainNameUrlMatcher().normalizeSchemeForAutofill(domain) else {
+            return nil
+        }
+
+        if currentUrlComponents.host == .localhost {
+            return domain
+        } else {
+            guard let tld = tld, let eTLDplus1 = currentUrlComponents.eTLDplus1WithPort(tld: tld) else {
+                return nil
+            }
+
+            return eTLDplus1
         }
     }
 
