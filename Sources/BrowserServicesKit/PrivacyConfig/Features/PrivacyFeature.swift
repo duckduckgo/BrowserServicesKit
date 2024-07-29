@@ -30,6 +30,7 @@ public enum PrivacyFeature: String {
     case autoconsent
     case clickToLoad
     case autofill
+    case autofillBreakageReporter
     case ampLinks
     case trackingParameters
     case customUserAgent
