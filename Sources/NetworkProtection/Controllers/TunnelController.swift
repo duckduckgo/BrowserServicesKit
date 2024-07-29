@@ -33,6 +33,10 @@ public protocol TunnelController {
     ///
     func stop() async
 
+    /// Restarts the tunnel
+    /// 
+    func restart() async
+
     /// Whether the tunnel is connected
     ///
     var isConnected: Bool { get async }

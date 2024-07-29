@@ -540,6 +540,12 @@ public class WireGuardAdapter {
         }
     }
 
+    func restart() {
+        if case .started(let handle, _) = self.state {
+            wgBumpSockets(handle)
+        }
+    }
+
     /// Helper method used by network path monitor.
     /// - Parameter path: new network path
     private func didReceivePathUpdate(path: Network.NWPath) {

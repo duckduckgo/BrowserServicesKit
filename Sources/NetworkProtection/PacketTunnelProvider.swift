@@ -1130,6 +1130,25 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         case .removeVPNConfiguration:
             // Since the VPN configuration is being removed we may as well reset all state
             handleResetAllState(completionHandler: completionHandler)
+        case .restartAdapter:
+            Task {
+                do {
+                    let tunnelConfiguration = try await generateTunnelConfiguration(serverSelectionMethod: currentServerSelectionMethod,
+                                                                                    includedRoutes: includedRoutes ?? [],
+                                                                                    excludedRoutes: settings.excludedRanges,
+                                                                                    dnsSettings: settings.dnsSettings,
+                                                                                    regenerateKey: true)
+
+                    adapter.stop { error in
+                        self.adapter.start(tunnelConfiguration: tunnelConfiguration) { error in
+                            // tbd
+                        }
+                    }
+                    completionHandler?(nil)
+                } catch {
+                    completionHandler?(nil)
+                }
+            }
         case .uninstallVPN:
             // Since the VPN configuration is being removed we may as well reset all state
             handleResetAllState(completionHandler: completionHandler)
