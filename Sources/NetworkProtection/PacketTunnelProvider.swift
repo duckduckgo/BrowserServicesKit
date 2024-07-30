@@ -1140,24 +1140,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             // Since the VPN configuration is being removed we may as well reset all state
             handleResetAllState(completionHandler: completionHandler)
         case .restartAdapter:
-            Task {
-                do {
-                    let tunnelConfiguration = try await generateTunnelConfiguration(serverSelectionMethod: currentServerSelectionMethod,
-                                                                                    includedRoutes: includedRoutes ?? [],
-                                                                                    excludedRoutes: settings.excludedRanges,
-                                                                                    dnsSettings: settings.dnsSettings,
-                                                                                    regenerateKey: true)
-
-                    adapter.stop { error in
-                        self.adapter.start(tunnelConfiguration: tunnelConfiguration) { error in
-                            // tbd
-                        }
-                    }
-                    completionHandler?(nil)
-                } catch {
-                    completionHandler?(nil)
-                }
-            }
+            handleRestartAdapter(completionHandler: completionHandler)
         case .uninstallVPN:
             // Since the VPN configuration is being removed we may as well reset all state
             handleResetAllState(completionHandler: completionHandler)
@@ -1186,6 +1169,27 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         Task {
             completionHandler?(nil)
             await cancelTunnel(with: TunnelError.appRequestedCancellation)
+        }
+    }
+
+    private func handleRestartAdapter(completionHandler: ((Data?) -> Void)? = nil) {
+        Task {
+            do {
+                let tunnelConfiguration = try await generateTunnelConfiguration(serverSelectionMethod: currentServerSelectionMethod,
+                                                                                includedRoutes: includedRoutes ?? [],
+                                                                                excludedRoutes: settings.excludedRanges,
+                                                                                dnsSettings: settings.dnsSettings,
+                                                                                regenerateKey: true)
+
+
+                try await updateAdapterConfiguration(
+                    tunnelConfiguration: tunnelConfiguration,
+                    reassert: false)
+
+                completionHandler?(nil)
+            } catch {
+                completionHandler?(nil)
+            }
         }
     }
 
