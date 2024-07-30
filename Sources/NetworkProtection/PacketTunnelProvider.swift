@@ -677,7 +677,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             }
 
             os_log("🔴 Stopping VPN due to no auth token: %{public}s", log: .networkProtection)
-            await attemptShutdown()
+            await attemptShutdownDueToRevokedAccess()
 
             throw error
         }
@@ -1133,7 +1133,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             handleSendTestNotification(completionHandler: completionHandler)
         case .disableConnectOnDemandAndShutDown:
             Task { [weak self] in
-                await self?.attemptShutdown()
+                await self?.attemptShutdownDueToRevokedAccess()
                 completionHandler?(nil)
             }
         case .removeVPNConfiguration:
