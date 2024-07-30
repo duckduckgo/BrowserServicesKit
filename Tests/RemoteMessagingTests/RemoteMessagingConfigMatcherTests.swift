@@ -54,6 +54,8 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                     isPrivacyProSubscriptionActive: false,
                     isPrivacyProSubscriptionExpiring: false,
                     isPrivacyProSubscriptionExpired: false,
+                    isDuckPlayerOnboarded: false,
+                    isDuckPlayerEnabled: false,
                     dismissedMessageIds: []
                 ),
                 percentileStore: MockRemoteMessagePercentileStore(),
@@ -149,6 +151,8 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                     isPrivacyProSubscriptionActive: false,
                     isPrivacyProSubscriptionExpiring: false,
                     isPrivacyProSubscriptionExpired: false,
+                    isDuckPlayerOnboarded: false,
+                    isDuckPlayerEnabled: false,
                     dismissedMessageIds: []
                 ),
                 percentileStore: MockRemoteMessagePercentileStore(),
@@ -254,6 +258,8 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                     isPrivacyProSubscriptionActive: false,
                     isPrivacyProSubscriptionExpiring: false,
                     isPrivacyProSubscriptionExpired: false,
+                    isDuckPlayerOnboarded: false,
+                    isDuckPlayerEnabled: false,
                     dismissedMessageIds: []
                 ),
                 percentileStore: MockRemoteMessagePercentileStore(),
@@ -302,6 +308,8 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                     isPrivacyProSubscriptionActive: false,
                     isPrivacyProSubscriptionExpiring: false,
                     isPrivacyProSubscriptionExpired: false,
+                    isDuckPlayerOnboarded: false,
+                    isDuckPlayerEnabled: false,
                     dismissedMessageIds: []
                 ),
                 percentileStore: MockRemoteMessagePercentileStore(),
@@ -346,6 +354,8 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                     isPrivacyProSubscriptionActive: false,
                     isPrivacyProSubscriptionExpiring: false,
                     isPrivacyProSubscriptionExpired: false,
+                    isDuckPlayerOnboarded: false,
+                    isDuckPlayerEnabled: false,
                     dismissedMessageIds: []
                 ),
                 percentileStore: percentileStore,
@@ -388,6 +398,8 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                     isPrivacyProSubscriptionActive: false,
                     isPrivacyProSubscriptionExpiring: false,
                     isPrivacyProSubscriptionExpired: false,
+                    isDuckPlayerOnboarded: false,
+                    isDuckPlayerEnabled: false,
                     dismissedMessageIds: []
                 ),
                 percentileStore: percentileStore,
@@ -430,6 +442,8 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                     isPrivacyProSubscriptionActive: false,
                     isPrivacyProSubscriptionExpiring: false,
                     isPrivacyProSubscriptionExpired: false,
+                    isDuckPlayerOnboarded: false,
+                    isDuckPlayerEnabled: false,
                     dismissedMessageIds: []
                 ),
                 percentileStore: percentileStore,
@@ -472,6 +486,8 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                     isPrivacyProSubscriptionActive: false,
                     isPrivacyProSubscriptionExpiring: false,
                     isPrivacyProSubscriptionExpired: false,
+                    isDuckPlayerOnboarded: false,
+                    isDuckPlayerEnabled: false,
                     dismissedMessageIds: []
                 ),
                 percentileStore: percentileStore,
@@ -515,9 +531,10 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
 
     func mediumMessage(id: String = "1", matchingRules: [Int], exclusionRules: [Int]) -> RemoteMessageModel {
         return RemoteMessageModel(id: id,
-                             content: .medium(titleText: "title", descriptionText: "description", placeholder: .announce),
-                             matchingRules: matchingRules,
-                             exclusionRules: exclusionRules
+                                  content: .medium(titleText: "title", descriptionText: "description", placeholder: .announce),
+                                  matchingRules: matchingRules,
+                                  exclusionRules: exclusionRules,
+                                  isMetricsEnabled: true
         )
     }
 }

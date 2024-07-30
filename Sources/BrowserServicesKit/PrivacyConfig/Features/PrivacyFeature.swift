@@ -30,6 +30,7 @@ public enum PrivacyFeature: String {
     case autoconsent
     case clickToLoad
     case autofill
+    case autofillBreakageReporter
     case ampLinks
     case trackingParameters
     case customUserAgent
@@ -49,6 +50,7 @@ public enum PrivacyFeature: String {
     case brokenSiteReportExperiment
     case toggleReports
     case remoteMessaging
+    case additionalCampaignPixelParams
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.

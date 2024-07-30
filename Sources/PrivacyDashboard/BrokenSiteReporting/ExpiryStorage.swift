@@ -21,22 +21,37 @@ import Persistence
 
 public typealias KeyValueStoringDictionaryRepresentable = KeyValueStoring & DictionaryRepresentable
 
+public struct ExpiryStorageConfiguration {
+
+    var expiryDatesStorageKey: String
+    var valueExpiryDateKey: String
+    var valueDataKey: String
+
+    public static let defaultConfig = ExpiryStorageConfiguration(
+        expiryDatesStorageKey: "com.duckduckgo.UserDefaultExpiryStorage",
+        valueExpiryDateKey: "com.duckduckgo.UserDefaultExpiryStorage.valueExpiryDate",
+        valueDataKey: "com.duckduckgo.UserDefaultExpiryStorage.valueData"
+    )
+
+    public static let autofillConfig = ExpiryStorageConfiguration(
+        expiryDatesStorageKey: "com.duckduckgo.AutofillUserDefaultExpiryStorage",
+        valueExpiryDateKey: "com.duckduckgo.AutofillUserDefaultExpiryStorage.valueExpiryDate",
+        valueDataKey: "com.duckduckgo.AutofillUserDefaultExpiryStorage.valueData"
+    )
+}
+
 /// A storage solution were each entry has an expiry date and a function for removing all expired entries is provided.
 /// Any persistency solution implementing `KeyValueStoringDictionaryRepresentable` can be used.
 public class ExpiryStorage {
 
-    enum Keys: String {
-        case expiryDatesStorage = "com.duckduckgo.UserDefaultExpiryStorage"
-        case valueExpiryDate = "com.duckduckgo.UserDefaultExpiryStorage.valueExpiryDate"
-        case valueData = "com.duckduckgo.UserDefaultExpiryStorage.valueData"
-    }
-
     let localStorage: KeyValueStoringDictionaryRepresentable
+    let config: ExpiryStorageConfiguration
 
     /// Default initialiser
     /// - Parameter keyValueStoring: An object managing the persistency of the key-value pairs that implements `KeyValueStoringDictionaryRepresentable`
-    public init(keyValueStoring: KeyValueStoringDictionaryRepresentable) {
+    public init(keyValueStoring: KeyValueStoringDictionaryRepresentable, configuration: ExpiryStorageConfiguration = .defaultConfig) {
         self.localStorage = keyValueStoring
+        self.config = configuration
     }
 
     /// Store a value and the desired expiry date (or removes the value if nil is passed as the value) for the provided key
@@ -46,11 +61,11 @@ public class ExpiryStorage {
     ///   - expiryDate: A date stored alongside the value, used by `removeExpiredItems(...)` for removing expired values.
     public func set(value: Any?, forKey key: String, expiryDate: Date) {
 
-        let valueDic = [Keys.valueExpiryDate.rawValue: expiryDate, Keys.valueData.rawValue: value]
+        let valueDic = [config.valueExpiryDateKey: expiryDate, config.valueDataKey: value]
         localStorage.set(valueDic, forKey: key)
     }
 
-    /// - Returns: The stored value assiciated to the key, nil if not existent
+    /// - Returns: The stored value associated to the key, nil if not existent
     public func value(forKey key: String) -> Any? {
 
         return entry(forKey: key)?.value
@@ -59,8 +74,8 @@ public class ExpiryStorage {
     /// - Returns: The tuple expiryDate+value associated to the key, nil if they don't exist
     public func entry(forKey key: String) -> (expiryDate: Date, value: Any)? {
         guard let valueDic = localStorage.object(forKey: key) as? [String: Any],
-              let expiryDate = valueDic[Keys.valueExpiryDate.rawValue] as? Date,
-              let value = valueDic[Keys.valueData.rawValue]
+              let expiryDate = valueDic[config.valueExpiryDateKey] as? Date,
+              let value = valueDic[config.valueDataKey]
         else {
             return nil
         }
