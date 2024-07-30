@@ -1510,6 +1510,11 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
+    /// Tries to shut down the tunnel after access has been revoked.
+    ///
+    /// iOS 17+ supports disabling on-demand, but macOS does not... so we resort to removing the subscription token
+    /// which should prevent the VPN from even trying to start.
+    ///
     @MainActor
     private func attemptShutdownDueToRevokedAccess() async {
         let cancelTunnel = {
