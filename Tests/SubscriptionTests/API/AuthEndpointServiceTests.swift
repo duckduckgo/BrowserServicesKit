@@ -36,7 +36,7 @@ final class AuthEndpointServiceTests: XCTestCase {
         let apiServiceCalledExpectation = expectation(description: "apiService")
 
         let onExecute: (APIServiceMock.ExecuteAPICallParameters) -> Void = { parameters in
-            let (method, endpoint, headers) = parameters;
+            let (method, endpoint, headers, _) = parameters;
 
             apiServiceCalledExpectation.fulfill()
             XCTAssertEqual(method, "GET")
@@ -87,7 +87,7 @@ final class AuthEndpointServiceTests: XCTestCase {
         let apiServiceCalledExpectation = expectation(description: "apiService")
 
         let onExecute: (APIServiceMock.ExecuteAPICallParameters) -> Void = { parameters in
-            let (method, endpoint, headers) = parameters;
+            let (method, endpoint, headers, _) = parameters;
 
             apiServiceCalledExpectation.fulfill()
             XCTAssertEqual(method, "GET")
@@ -149,7 +149,7 @@ final class AuthEndpointServiceTests: XCTestCase {
         let apiServiceCalledExpectation = expectation(description: "apiService")
 
         let onExecute: (APIServiceMock.ExecuteAPICallParameters) -> Void = { parameters in
-            let (method, endpoint, headers) = parameters;
+            let (method, endpoint, _, _) = parameters;
 
             apiServiceCalledExpectation.fulfill()
             XCTAssertEqual(method, "POST")
