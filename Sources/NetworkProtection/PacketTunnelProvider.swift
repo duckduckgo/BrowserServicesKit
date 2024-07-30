@@ -1506,12 +1506,12 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         try? await Task.sleep(interval: .seconds(5))
 
         if attemptsShutdown {
-            await attemptShutdown()
+            await attemptShutdownDueToRevokedAccess()
         }
     }
 
     @MainActor
-    private func attemptShutdown() async {
+    private func attemptShutdownDueToRevokedAccess() async {
         let cancelTunnel = {
 #if os(macOS)
             try? self.tokenStore.deleteToken()
