@@ -42,15 +42,17 @@ public class BrokenSiteReporter {
     public typealias PixelHandler = (_ parameters: [String: String]) -> Void
     /// Pixels are sent by the main apps not by BSK, this is the closure called by the class when a pixel need to be sent
     let pixelHandler: PixelHandler
-    let persistencyManager: ExpiryStorage
+    public let persistencyManager: ExpiryStorage
 
-    public init(pixelHandler: @escaping PixelHandler, keyValueStoring: KeyValueStoringDictionaryRepresentable) {
+    public init(pixelHandler: @escaping PixelHandler,
+                keyValueStoring: KeyValueStoringDictionaryRepresentable,
+                storageConfiguration: ExpiryStorageConfiguration = .defaultConfig) {
         self.pixelHandler = pixelHandler
-        self.persistencyManager = ExpiryStorage(keyValueStoring: keyValueStoring)
+        self.persistencyManager = ExpiryStorage(keyValueStoring: keyValueStoring, configuration: storageConfiguration)
     }
 
     /// Report the site breakage
-    public func report(_ report: BrokenSiteReport, reportMode: BrokenSiteReport.Mode) throws {
+    public func report(_ report: BrokenSiteReport, reportMode: BrokenSiteReport.Mode, daysToExpiry: Int = 30) throws {
 
         let now = Date()
         let removedCount = persistencyManager.removeExpiredItems(currentDate: now)
@@ -61,7 +63,7 @@ public class BrokenSiteReporter {
         var report = report
 
         // Create history entry
-        guard let entry = BrokenSiteReportEntry(report: report, currentDate: now) else {
+        guard let entry = BrokenSiteReportEntry(report: report, currentDate: now, daysToExpiry: daysToExpiry) else {
             os_log(.error, "Failed to create a history entry for broken site report")
             throw BrokenSiteReporterError.failedToGenerateHistoryEntry
         }
