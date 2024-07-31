@@ -1181,7 +1181,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                                                                                 dnsSettings: settings.dnsSettings,
                                                                                 regenerateKey: true)
 
-
                 try await updateAdapterConfiguration(
                     tunnelConfiguration: tunnelConfiguration,
                     reassert: false)
