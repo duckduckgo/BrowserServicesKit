@@ -21,15 +21,34 @@ import Foundation
 import Common
 
 extension String {
-    
+
     public var url: URL? {
         return URL(trimmedAddressBarString: self)
     }
 }
 
 extension URL {
-    
+
     public static let duckPlayerHost: String = "player"
+
+    /**
+     * Returns the actual URL of the Private Player page.
+     *
+     * Depending on the use of simulated requests, it's either the custom scheme URL
+     * (without simulated requests, macOS <12), or youtube-nocookie.com URL (macOS 12 and newer).
+     * iOS 15+ supports simulated requests, so no need to check
+     */
+    static func effectiveDuckPlayer(_ videoID: String, timestamp: String? = nil) -> URL {
+        #if os(iOS)
+            return youtubeNoCookie(videoID, timestamp: timestamp)
+        #else
+        if #available(macOS 12.0, *) {
+            return youtubeNoCookie(videoID, timestamp: timestamp)
+        } else {
+            return duckPlayer(videoID, timestamp: timestamp)
+        }
+        #endif
+    }
 
     public static func duckPlayer(_ videoID: String, timestamp: String? = nil) -> URL {
         let url = "\(NavigationalScheme.duck.rawValue)://player/\(videoID)".url!
@@ -52,9 +71,14 @@ extension URL {
         return url.addingTimestamp(timestamp)
     }
 
-    public var isDuckURLScheme: Bool {
+    
+    // NOTE:
+    // On macOS, this has been moved to DuckURLSchemeHandler.swift
+    // Which is yet to be implemented on iOS
+    var isDuckURLScheme: Bool {
         navigationalScheme == .duck
     }
+    
 
     public var isYoutubeWatch: Bool {
         guard let host else { return false }
@@ -112,9 +136,25 @@ extension URL {
     }
     
     
+    /**
+     * Returns true if a URL represents a Private Player URL.
+     *
+     * It primarily checks for `duck://player/` URL, but on macOS 12 and above (when using simulated requests),
+     * the Duck Scheme URL is eventually replaced by `www.youtube-nocookie.com/embed/VIDEOID` URL so this
+     * is checked too and this function returns `true` if any of the two is true on macOS 12.
+     */
     public var isDuckPlayer: Bool {
         let isPrivatePlayer = isDuckURLScheme && host == Self.duckPlayerHost
-        return isPrivatePlayer || isYoutubeNoCookie
+        #if os(iOS)
+            return isPrivatePlayer || isYoutubeNoCookie
+        #else
+        if #available(macOS 12.0, *) {
+            return isPrivatePlayer || isYoutubeNoCookie
+        } else {
+            return isPrivatePlayer
+        }
+        #endif
+        
     }
     
     public var isYoutube: Bool {
@@ -145,6 +185,28 @@ extension URL {
         }
         
         return false
+    }
+    
+    /**
+     * Returns true if the URL represents a YouTube video recommendation.
+     *
+     * Recommendations are shown at the end of the embedded video or while it's paused.
+     */
+    public var isYoutubeVideoRecommendation: Bool {
+        guard isYoutubeVideo,
+              let components = URLComponents(url: self, resolvingAgainstBaseURL: false),
+              let featureQueryParameter = components.queryItems?.first(where: { $0.name == "feature" })?.value
+        else {
+            return false
+        }
+
+        let recommendationFeatures = [ "emb_rel_end", "emb_rel_pause" ]
+
+        return recommendationFeatures.contains(featureQueryParameter)
+    }
+    
+    public var youtubeVideoID: String? {
+        youtubeVideoParams?.videoID
     }
     
     func addingTimestamp(_ timestamp: String?) -> URL {
