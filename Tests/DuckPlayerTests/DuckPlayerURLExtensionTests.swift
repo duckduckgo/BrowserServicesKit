@@ -22,7 +22,7 @@ import os.log
 import DuckPlayer
 
 final class DuckPlayerURLExtensionTests: XCTestCase {
-    
+
         #if os(iOS)
         let baseUrl = "https://m.youtube.com"
         #else

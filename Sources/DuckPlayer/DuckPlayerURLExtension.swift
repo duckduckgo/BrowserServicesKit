@@ -71,14 +71,12 @@ extension URL {
         return url.addingTimestamp(timestamp)
     }
 
-    
     // NOTE:
     // On macOS, this has been moved to DuckURLSchemeHandler.swift
     // Which is yet to be implemented on iOS
     var isDuckURLScheme: Bool {
         navigationalScheme == .duck
     }
-    
 
     public var isYoutubeWatch: Bool {
         guard let host else { return false }
@@ -88,7 +86,7 @@ extension URL {
     private var isYoutubeNoCookie: Bool {
         host == "www.youtube-nocookie.com" && pathComponents.count == 3 && pathComponents[safe: 1] == "embed"
     }
-    
+
     /// Returns true only if the URL represents a playlist itself, i.e. doesn't have `index` query parameter
     public var isYoutubePlaylist: Bool {
         guard isYoutubeWatch, let components = URLComponents(url: self, resolvingAgainstBaseURL: false) else {
@@ -101,12 +99,12 @@ extension URL {
 
         return isPlaylistURL
     }
-    
+
     /// Returns true if the URL represents a YouTube video, but not the playlist (playlists are not supported by Private Player)
     public var isYoutubeVideo: Bool {
         isYoutubeWatch && !isYoutubePlaylist
     }
-    
+
     /// Attempts extracting video ID and timestamp from the URL. Works with all types of YouTube URLs.
     public var youtubeVideoParams: (videoID: String, timestamp: String?)? {
         if isDuckURLScheme {
@@ -134,8 +132,7 @@ extension URL {
         let timestamp = components.queryItems?.first(where: { $0.name == "t" })?.value
         return (unsafeVideoID.removingCharacters(in: .youtubeVideoIDNotAllowed), timestamp)
     }
-    
-    
+
     /**
      * Returns true if a URL represents a Private Player URL.
      *
@@ -154,39 +151,39 @@ extension URL {
             return isPrivatePlayer
         }
         #endif
-        
+
     }
-    
+
     public var isYoutube: Bool {
         guard let host else { return false }
         return host == "m.youtube.com" || host == "youtube.com"
     }
-    
+
     public func addingWatchInYoutubeQueryParameter() -> URL? {
         guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else {
             return nil
         }
-        
+
         var queryItems = components.queryItems ?? []
         queryItems.append(URLQueryItem(name: "embeds_referring_euri", value: "some_value"))
         components.queryItems = queryItems
-        
+
         return components.url
     }
-    
+
     public var hasWatchInYoutubeQueryParameter: Bool {
         guard let components = URLComponents(url: self, resolvingAgainstBaseURL: false),
               let queryItems = components.queryItems else {
             return false
         }
-        
+
         for queryItem in queryItems where queryItem.name == "embeds_referring_euri" {
             return true
         }
-        
+
         return false
     }
-    
+
     /**
      * Returns true if the URL represents a YouTube video recommendation.
      *
@@ -204,11 +201,11 @@ extension URL {
 
         return recommendationFeatures.contains(featureQueryParameter)
     }
-    
+
     public var youtubeVideoID: String? {
         youtubeVideoParams?.videoID
     }
-    
+
     func addingTimestamp(_ timestamp: String?) -> URL {
         guard let timestamp = timestamp,
               let regex = try? NSRegularExpression(pattern: "^(\\d+[smh]?)+$"),
