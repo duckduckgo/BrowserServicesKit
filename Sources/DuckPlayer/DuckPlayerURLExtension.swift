@@ -18,45 +18,45 @@
 //
 
 import Foundation
-import Core
+import Common
 
 extension String {
     
-    var url: URL? {
+    public var url: URL? {
         return URL(trimmedAddressBarString: self)
     }
 }
 
 extension URL {
     
-    static let duckPlayerHost: String = "player"
+    public static let duckPlayerHost: String = "player"
 
-    static func duckPlayer(_ videoID: String, timestamp: String? = nil) -> URL {
+    public static func duckPlayer(_ videoID: String, timestamp: String? = nil) -> URL {
         let url = "\(NavigationalScheme.duck.rawValue)://player/\(videoID)".url!
         return url.addingTimestamp(timestamp)
     }
 
-    static func youtubeNoCookie(_ videoID: String, timestamp: String? = nil) -> URL {
+    public static func youtubeNoCookie(_ videoID: String, timestamp: String? = nil) -> URL {
         let url = "https://www.youtube-nocookie.com/embed/\(videoID)".url!
         return url.addingTimestamp(timestamp)
     }
 
-    static func youtube(_ videoID: String, timestamp: String? = nil) -> URL {
-            #if os(iOS)
-            let baseUrl = "https://m.youtube.com/watch?v=\(videoID)"
-            #else
-            let baseUrl = "https://www.youtube.com/watch?v=\(videoID)"
-            #endif
+    public static func youtube(_ videoID: String, timestamp: String? = nil) -> URL {
+        #if os(iOS)
+        let baseUrl = "https://m.youtube.com/watch?v=\(videoID)"
+        #else
+        let baseUrl = "https://www.youtube.com/watch?v=\(videoID)"
+        #endif
 
-            let url = URL(string: baseUrl)!
-            return url.addingTimestamp(timestamp)
+        let url = URL(string: baseUrl)!
+        return url.addingTimestamp(timestamp)
     }
 
-    var isDuckURLScheme: Bool {
+    public var isDuckURLScheme: Bool {
         navigationalScheme == .duck
     }
 
-    private var isYoutubeWatch: Bool {
+    public var isYoutubeWatch: Bool {
         guard let host else { return false }
         return host.contains("youtube.com") && path == "/watch"
     }
@@ -66,7 +66,7 @@ extension URL {
     }
     
     /// Returns true only if the URL represents a playlist itself, i.e. doesn't have `index` query parameter
-    var isYoutubePlaylist: Bool {
+    public var isYoutubePlaylist: Bool {
         guard isYoutubeWatch, let components = URLComponents(url: self, resolvingAgainstBaseURL: false) else {
             return false
         }
@@ -79,12 +79,12 @@ extension URL {
     }
     
     /// Returns true if the URL represents a YouTube video, but not the playlist (playlists are not supported by Private Player)
-    var isYoutubeVideo: Bool {
+    public var isYoutubeVideo: Bool {
         isYoutubeWatch && !isYoutubePlaylist
     }
     
     /// Attempts extracting video ID and timestamp from the URL. Works with all types of YouTube URLs.
-    var youtubeVideoParams: (videoID: String, timestamp: String?)? {
+    public var youtubeVideoParams: (videoID: String, timestamp: String?)? {
         if isDuckURLScheme {
             guard let components = URLComponents(string: absoluteString) else {
                 return nil
@@ -112,19 +112,17 @@ extension URL {
     }
     
     
-    var isDuckPlayer: Bool {
+    public var isDuckPlayer: Bool {
         let isPrivatePlayer = isDuckURLScheme && host == Self.duckPlayerHost
         return isPrivatePlayer || isYoutubeNoCookie
-        
     }
     
-    var isYoutube: Bool {
+    public var isYoutube: Bool {
         guard let host else { return false }
         return host == "m.youtube.com" || host == "youtube.com"
-        
     }
     
-    func addingWatchInYoutubeQueryParameter() -> URL? {
+    public func addingWatchInYoutubeQueryParameter() -> URL? {
         guard var components = URLComponents(url: self, resolvingAgainstBaseURL: false) else {
             return nil
         }
@@ -136,7 +134,7 @@ extension URL {
         return components.url
     }
     
-    var hasWatchInYoutubeQueryParameter: Bool {
+    public var hasWatchInYoutubeQueryParameter: Bool {
         guard let components = URLComponents(url: self, resolvingAgainstBaseURL: false),
               let queryItems = components.queryItems else {
             return false
@@ -149,7 +147,7 @@ extension URL {
         return false
     }
     
-    private func addingTimestamp(_ timestamp: String?) -> URL {
+    func addingTimestamp(_ timestamp: String?) -> URL {
         guard let timestamp = timestamp,
               let regex = try? NSRegularExpression(pattern: "^(\\d+[smh]?)+$"),
               timestamp.matches(regex)
@@ -161,5 +159,5 @@ extension URL {
 }
 
 extension CharacterSet {
-    static let youtubeVideoIDNotAllowed = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_").inverted
+    public static let youtubeVideoIDNotAllowed = CharacterSet(charactersIn: "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_").inverted
 }
