@@ -74,7 +74,7 @@ extension URL {
     // NOTE:
     // On macOS, this has been moved to DuckURLSchemeHandler.swift
     // Which is yet to be implemented on iOS
-    var isDuckURLScheme: Bool {
+    public var isDuckURLScheme: Bool {
         navigationalScheme == .duck
     }
 
