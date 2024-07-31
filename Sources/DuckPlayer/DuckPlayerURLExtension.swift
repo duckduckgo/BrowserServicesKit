@@ -37,7 +37,7 @@ extension URL {
      * (without simulated requests, macOS <12), or youtube-nocookie.com URL (macOS 12 and newer).
      * iOS 15+ supports simulated requests, so no need to check
      */
-    static func effectiveDuckPlayer(_ videoID: String, timestamp: String? = nil) -> URL {
+    public static func effectiveDuckPlayer(_ videoID: String, timestamp: String? = nil) -> URL {
         #if os(iOS)
             return youtubeNoCookie(videoID, timestamp: timestamp)
         #else
