@@ -69,6 +69,14 @@ public extension PixelKit {
         public static let reason = "reason"
 
         public static let vpnCohort = "cohort"
+
+        // Unified Feedback Form
+        public static let pproIssueDescription = "description"
+        public static let pproIssueSource = "source"
+        public static let pproIssueReportType = "reportType"
+        public static let pproIssueCategory = "category"
+        public static let pproIssueSubcategory = "subcategory"
+        public static let pproIssueMetadata = "customMetadata"
     }
 
     enum Values {
