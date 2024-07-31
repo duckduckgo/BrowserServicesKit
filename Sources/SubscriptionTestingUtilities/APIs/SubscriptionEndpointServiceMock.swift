@@ -25,6 +25,8 @@ public struct SubscriptionEndpointServiceMock: SubscriptionEndpointService {
     public var getCustomerPortalURLResult: Result<GetCustomerPortalURLResponse, APIServiceError>?
     public var confirmPurchaseResult: Result<ConfirmPurchaseResponse, APIServiceError>?
 
+    public var onSignOut: (() -> Void)?
+
     public init(getSubscriptionResult: Result<Subscription, SubscriptionServiceError>? = nil,
                 getProductsResult: Result<[GetProductsItem], APIServiceError>? = nil,
                 getCustomerPortalURLResult: Result<GetCustomerPortalURLResponse, APIServiceError>? = nil,
@@ -44,7 +46,7 @@ public struct SubscriptionEndpointServiceMock: SubscriptionEndpointService {
     }
 
     public func signOut() {
-
+        onSignOut?()
     }
 
     public func getProducts() async -> Result<[GetProductsItem], APIServiceError> {

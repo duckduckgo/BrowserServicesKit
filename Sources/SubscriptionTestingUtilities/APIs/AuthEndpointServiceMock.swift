@@ -25,10 +25,10 @@ public struct AuthEndpointServiceMock: AuthEndpointService {
     public var createAccountResult: Result<CreateAccountResponse, APIServiceError>?
     public var storeLoginResult: Result<StoreLoginResponse, APIServiceError>?
 
-    public init(accessTokenResult: Result<AccessTokenResponse, APIServiceError>?,
-                validateTokenResult: Result<ValidateTokenResponse, APIServiceError>?,
-                createAccountResult: Result<CreateAccountResponse, APIServiceError>?,
-                storeLoginResult: Result<StoreLoginResponse, APIServiceError>?) {
+    public init(accessTokenResult: Result<AccessTokenResponse, APIServiceError>? = nil,
+                validateTokenResult: Result<ValidateTokenResponse, APIServiceError>? = nil,
+                createAccountResult: Result<CreateAccountResponse, APIServiceError>? = nil,
+                storeLoginResult: Result<StoreLoginResponse, APIServiceError>? = nil) {
         self.accessTokenResult = accessTokenResult
         self.validateTokenResult = validateTokenResult
         self.createAccountResult = createAccountResult

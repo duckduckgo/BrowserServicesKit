@@ -26,6 +26,12 @@ public final class AccountManagerMock: AccountManager {
     public var email: String?
     public var externalID: String?
 
+    public var onStoreAuthToken: ((String) -> Void)?
+    public var onStoreAccount: ((String, String?, String?) -> Void)?
+    public var onExchangeAuthTokenToAccessToken: ((String) -> Result<String, Error>)?
+    public var onFetchAccountDetails: ((String) -> Result<AccountDetails, Error>)?
+    public var onCheckForEntitlements: ((Double, Int) -> Bool)?
+
     public init(delegate: AccountManagerKeychainAccessDelegate? = nil,
                 accessToken: String? = nil,
                 authToken: String? = nil,
@@ -39,11 +45,15 @@ public final class AccountManagerMock: AccountManager {
     }
 
     public func storeAuthToken(token: String) {
+        onStoreAuthToken?(token)
         authToken = token
     }
 
     public func storeAccount(token: String, email: String?, externalID: String?) {
-        accessToken = token
+        onStoreAccount?(token, email, externalID)
+        self.accessToken = token
+        self.email = email
+        self.externalID = externalID
     }
 
     public func signOut(skipNotification: Bool) {
@@ -71,19 +81,14 @@ public final class AccountManagerMock: AccountManager {
     }
 
     public func exchangeAuthTokenToAccessToken(_ authToken: String) async -> Result<String, Error> {
-        return .success("")
+        onExchangeAuthTokenToAccessToken!(authToken)
     }
 
     public func fetchAccountDetails(with accessToken: String) async -> Result<AccountDetails, Error> {
-        if let email, let externalID {
-            let details: AccountDetails = (email: email, externalID: externalID)
-            return .success(details)
-        } else {
-            return .failure(APIServiceError.unknownServerError)
-        }
+        onFetchAccountDetails!(accessToken)
     }
 
     public func checkForEntitlements(wait waitTime: Double, retry retryCount: Int) async -> Bool {
-        return true
+        onCheckForEntitlements!(waitTime, retryCount)
     }
 }

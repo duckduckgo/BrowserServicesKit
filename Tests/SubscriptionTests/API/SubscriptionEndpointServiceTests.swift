@@ -39,7 +39,7 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
 
         static let customerPortalURL = "https://billing.stripe.com/p/session/test_ABC"
         
-        static let unknownEndpointError = APIServiceError.serverError(statusCode: 401, error: "unknown_error")
+        static let unknownServerError = APIServiceError.serverError(statusCode: 401, error: "unknown_error")
     }
 
     func testGetSubscriptionCall() async throws {
@@ -93,7 +93,7 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
     }
 
     func testGetSubscriptionError() async throws {
-        let apiService = APIServiceMock(mockAuthHeaders: Constants.authorizationHeader, mockAPICallError: Constants.unknownEndpointError)
+        let apiService = APIServiceMock(mockAuthHeaders: Constants.authorizationHeader, mockAPICallError: Constants.unknownServerError)
         let subscriptionService = DefaultSubscriptionEndpointService(currentServiceEnvironment: .staging, apiService: apiService)
 
         let result = await subscriptionService.getSubscription(accessToken: Constants.accessToken, cachePolicy: .reloadIgnoringLocalCacheData)
@@ -157,7 +157,7 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
     }
 
     func testGetProductsError() async throws {
-        let apiService = APIServiceMock(mockAPICallError: Constants.unknownEndpointError)
+        let apiService = APIServiceMock(mockAPICallError: Constants.unknownServerError)
         let subscriptionService = DefaultSubscriptionEndpointService(currentServiceEnvironment: .staging, apiService: apiService)
 
         let result = await subscriptionService.getProducts()
@@ -213,7 +213,7 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
     }
 
     func testGetCustomerPortalURLError() async throws {
-        let apiService = APIServiceMock(mockAuthHeaders: Constants.authorizationHeader, mockAPICallError: Constants.unknownEndpointError)
+        let apiService = APIServiceMock(mockAuthHeaders: Constants.authorizationHeader, mockAPICallError: Constants.unknownServerError)
         let subscriptionService = DefaultSubscriptionEndpointService(currentServiceEnvironment: .staging, apiService: apiService)
 
         let result = await subscriptionService.getCustomerPortalURL(accessToken: Constants.accessToken, externalID: Constants.externalID)
@@ -294,7 +294,7 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
     }
 
     func testConfirmPurchaseError() async throws {
-        let apiService = APIServiceMock(mockAuthHeaders: Constants.authorizationHeader, mockAPICallError: Constants.unknownEndpointError)
+        let apiService = APIServiceMock(mockAuthHeaders: Constants.authorizationHeader, mockAPICallError: Constants.unknownServerError)
         let subscriptionService = DefaultSubscriptionEndpointService(currentServiceEnvironment: .staging, apiService: apiService)
 
         let result = await subscriptionService.confirmPurchase(accessToken: Constants.accessToken, signature: Constants.transactionSignature)
