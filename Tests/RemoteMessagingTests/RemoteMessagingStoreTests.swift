@@ -429,6 +429,8 @@ class RemoteMessagingStoreTests: XCTestCase {
                     isPrivacyProSubscriptionActive: false,
                     isPrivacyProSubscriptionExpiring: false,
                     isPrivacyProSubscriptionExpired: false,
+                    isDuckPlayerOnboarded: false,
+                    isDuckPlayerEnabled: false,
                     dismissedMessageIds: []
                 ),
                 percentileStore: RemoteMessagingPercentileUserDefaultsStore(keyValueStore: self.defaults),

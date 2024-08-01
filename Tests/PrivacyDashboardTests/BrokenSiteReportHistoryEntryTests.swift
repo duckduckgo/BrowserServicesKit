@@ -21,9 +21,11 @@ import XCTest
 
 final class BrokenSiteReportHistoryEntryTests: XCTestCase {
 
+    private let daysToExpiry: Int = 30
+
     func testDates() throws {
         let testDate = Date(timeIntervalSince1970: 1704795829)
-        let entry = BrokenSiteReportEntry(report: BrokenSiteReportMocks.report, currentDate: testDate)
+        let entry = BrokenSiteReportEntry(report: BrokenSiteReportMocks.report, currentDate: testDate, daysToExpiry: daysToExpiry)
 
         XCTAssertNotNil(entry)
         XCTAssertEqual("2024-01-09", entry?.lastSentDayString)
@@ -32,11 +34,11 @@ final class BrokenSiteReportHistoryEntryTests: XCTestCase {
 
     func testUniqueIdentifier() throws {
         let testDate = Date(timeIntervalSince1970: 1704795829)
-        let entry = BrokenSiteReportEntry(report: BrokenSiteReportMocks.report, currentDate: testDate)
-        let entry2 = BrokenSiteReportEntry(report: BrokenSiteReportMocks.report2, currentDate: testDate)
+        let entry = BrokenSiteReportEntry(report: BrokenSiteReportMocks.report, currentDate: testDate, daysToExpiry: daysToExpiry)
+        let entry2 = BrokenSiteReportEntry(report: BrokenSiteReportMocks.report2, currentDate: testDate, daysToExpiry: daysToExpiry)
         XCTAssertNotEqual(entry?.identifier, entry2?.identifier)
 
-        let entry3 = BrokenSiteReportEntry(report: BrokenSiteReportMocks.report, currentDate: testDate)
+        let entry3 = BrokenSiteReportEntry(report: BrokenSiteReportMocks.report, currentDate: testDate, daysToExpiry: daysToExpiry)
         XCTAssertEqual(entry?.identifier, entry3?.identifier)
     }
 
