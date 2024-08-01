@@ -143,6 +143,10 @@ final class StringExtensionTests: XCTestCase {
         Solution: please the file something.h has to be alone without others include, it has to be present in release letter,
         in order to be included in /var/log/xyz/test. automatically parse /the/file/name
         Other Note: send me an email at admin@duckduckgo.com!
+        Also u can use these addresses: test-one@example.com
+        test_two@example.com, test+three@example.com
+        ,test@example-one.com
+        test@example_one.com.
         The file something. must contain the somethinge.h and not the ecpfmbsd.h because it doesn't contain C operative c in /var/filename.c.
         """.sanitized(), """
         In file included from <removed>,
@@ -150,7 +154,11 @@ final class StringExtensionTests: XCTestCase {
         from test.c: 29:
         Solution: please the file <removed> has to be alone without others include, it has to be present in release letter,
         in order to be included in <removed>. automatically parse <removed>
-        Other Note: send me an email at <removed>!
+        Other Note: send me an email at <removed>
+        Also u can use these addresses: <removed>
+        <removed> <removed>
+        <removed>
+        <removed>
         The file something. must contain the <removed> and not the <removed> because it doesn't contain C operative c in filename.c.
         """)
 

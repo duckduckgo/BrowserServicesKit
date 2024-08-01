@@ -30,7 +30,7 @@ extension RegEx {
     // from https://stackoverflow.com/a/25717506/73479
     static let hostName = regex("^(((?!-)[A-Za-z0-9-]{1,63}(?<!-)\\.)*[A-Za-z0-9-]{2,63})$", .caseInsensitive)
 
-    static let email = regex(#"[a-zA-Z0-9]+(?:\.[a-zA-Z0-9]+)*@[a-zA-Z0-9]+(?:\.[a-zA-Z0-9]+)+"#)
+    static let email = regex(#"[^\s]+@[^\s]+\.[^\s]+"#)
 }
 
 // Use this instead of NSLocalizedString for strings that are not supposed to be translated
@@ -99,7 +99,8 @@ public extension String {
 
     // clean-up file paths and email addresses
     func sanitized() -> String {
-        var message = self
+        // clean-up emails
+        var message = self.replacing(RegEx.email, with: "<removed>")
 
         // find all the substring ranges looking like a file path
         let pathRanges = message.rangesOfFilePaths()
@@ -131,9 +132,6 @@ public extension String {
                 }
             }
         }
-
-        // clean-up emails
-        message = message.replacing(RegEx.email, with: "<removed>")
 
         return message
     }
