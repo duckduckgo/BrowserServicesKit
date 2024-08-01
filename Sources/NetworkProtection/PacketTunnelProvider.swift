@@ -632,8 +632,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     open func handleConnectionStatusChange(old: ConnectionStatus, new: ConnectionStatus) {
         os_log("⚫️ Connection Status Change: %{public}s -> %{public}s", log: .networkProtectionPixel, type: .debug, old.description, new.description)
 
-        // TODO: Handle snooze
-
         switch (old, new) {
         case (_, .connecting), (_, .reasserting):
             providerEvents.fire(.reportConnectionAttempt(attempt: .connecting))
@@ -664,7 +662,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         os_log("Starting tunnel with options: %{public}s", log: .networkProtection, startupOptions.description)
 
         // Reset snooze if the VPN is restarting.
-        // TODO: Only reset if the user initiated the startup - if the VPN crashed and was restarted by Connect on Demand, then restore snooze mode.
         self.snoozeTimingStore.reset()
 
         do {

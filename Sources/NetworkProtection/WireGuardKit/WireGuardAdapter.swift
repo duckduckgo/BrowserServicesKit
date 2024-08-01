@@ -437,7 +437,8 @@ public class WireGuardAdapter {
                     self.state = .temporaryShutdown(settingsGenerator)
 
                 case .snoozing:
-                    break // TODO: Handle this
+                    assertionFailure("Attempted to update WireGuard adapter while snoozing")
+                    break
 
                 case .stopped:
                     fatalError()
