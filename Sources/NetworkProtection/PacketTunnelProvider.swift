@@ -907,6 +907,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                                                                             excludedRoutes: settings.excludedRanges,
                                                                             dnsSettings: settings.dnsSettings,
                                                                             regenerateKey: regenerateKey)
+
             case .useConfiguration(let newTunnelConfiguration):
                 tunnelConfiguration = newTunnelConfiguration
             }
@@ -1179,11 +1180,11 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                                                                                 includedRoutes: includedRoutes ?? [],
                                                                                 excludedRoutes: settings.excludedRanges,
                                                                                 dnsSettings: settings.dnsSettings,
-                                                                                regenerateKey: true)
+                                                                                regenerateKey: false)
 
-                try await updateAdapterConfiguration(
-                    tunnelConfiguration: tunnelConfiguration,
-                    reassert: false)
+                try await updateTunnelConfiguration(updateMethod: .useConfiguration(tunnelConfiguration),
+                                                    reassert: false,
+                                                    regenerateKey: false)
 
                 completionHandler?(nil)
             } catch {

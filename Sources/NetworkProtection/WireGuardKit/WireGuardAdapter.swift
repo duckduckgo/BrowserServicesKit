@@ -369,12 +369,14 @@ public class WireGuardAdapter {
                 return
             }
 
-            // Tell the system that the tunnel is going to reconnect using new WireGuard
-            // configuration.
-            // This will broadcast the `NEVPNStatusDidChange` notification to the GUI process.
-            self.packetTunnelProvider?.reasserting = true
+            if reassert {
+                self.packetTunnelProvider?.reasserting = true
+            }
+
             defer {
-                self.packetTunnelProvider?.reasserting = false
+                if reassert {
+                    self.packetTunnelProvider?.reasserting = false
+                }
             }
 
             do {
