@@ -138,7 +138,12 @@ public extension String {
 
     private enum FileRegex {
         //                           "(matching url/file/path/at/in..-like prefix)(not an end of expr)(=|:)  (open quote/brace)
-        static let varStart = regex(#"(?:url\b|\bfile\b|path\b|\bin\b|\bfrom\b|\bat)[^.,;?!"'`\])}>]\s*[:= ]?\s*["'“`\[({<]?"#, .caseInsensitive)
+        static let varStart = regex(#"(?:"# +
+                                    #"ur[il]\b|"# +
+                                    #"\b(?:config|input|output|temp|log|backup|resource)?file(?:ur[il]|name)?\b|"# +
+                                    #"\b(?:absolute|relative|network|temp|url|uri|config|input|output|log|backup|resource)?(?:file|directory|dir)?path(?:ur[il])?\b|"# +
+                                    #"\bin\b|\bfrom\b|\bat"# +
+                                    #")[^.,;?!"'`\])}>]\s*[:= ]?\s*["'“`\[({<]?"#, .caseInsensitive)
         static let closingQuotes = [
             "\"": regex(#""[,.;:]?(?:\s|$)|$"#),
             "'": regex(#"'[,.;:]?(?:\s|$)|$"#),
@@ -161,6 +166,9 @@ public extension String {
 
         static let lineNumber = regex(#":\d+$"#)
         static let trailingSpecialCharacters = regex(#"[\s\.,;:\])}>"”'`]+$"#)
+
+        static let moduleTypeName = regex(#"^\.*[A-Za-z_]*(?:DuckDuckGo|DataBroker|NetworkProtection|VPNProxy)[A-Za-z_]*\.(?:(?:[A-Z_]+[a-z_]+)+)$"#)
+        static let swiftTypeName = regex(#"^\.*[A-Za-z_]+\.Type$"#)
     }
 
     // MARK: File Paths
@@ -289,6 +297,10 @@ public extension String {
             dropLineNumberAndTrimSpaces(&resultRange)
 
             guard let pathRange = Range(NSRange(resultRange, in: self)), pathRange.count > 2 else { continue }
+            // don‘t remove type names like _NSViewAnimator_DuckDuckGo_Privacy_Browser.MouseOverButton or Any.Type
+            let fileName = String(self[resultRange])
+            guard FileRegex.moduleTypeName.matches(in: fileName, range: fileName.fullRange).isEmpty,
+                  FileRegex.swiftTypeName.matches(in: fileName, range: fileName.fullRange).isEmpty else { continue }
             // collect the result
             result.insert(integersIn: pathRange)
         }
