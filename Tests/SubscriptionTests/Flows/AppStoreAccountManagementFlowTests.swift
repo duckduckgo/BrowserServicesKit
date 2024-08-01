@@ -22,27 +22,164 @@ import SubscriptionTestingUtilities
 
 final class AppStoreAccountManagementFlowTests: XCTestCase {
 
+    private struct Constants {
+        static let oldAuthToken = UUID().uuidString
+        static let newAuthToken = UUID().uuidString
+        static let externalID = UUID ().uuidString
+        static let otherExternalID = UUID ().uuidString
+
+        static let mostRecentTransactionJWS = "this-should-be-transaction-jws"
+
+        static let invalidTokenError = APIServiceError.serverError(statusCode: 401, error: "invalid_token")
+
+        static let account = ValidateTokenResponse.Account(email: nil,
+                                                           entitlements: [],
+                                                           externalID: externalID)
+    }
+
+    var accountManager: AccountManagerMock!
+    var authEndpointService: AuthEndpointServiceMock!
+    var storePurchaseManager: StorePurchaseManagerMock!
+
+    var appStoreAccountManagementFlow: AppStoreAccountManagementFlow!
+
     override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
+        accountManager = AccountManagerMock()
+        authEndpointService = AuthEndpointServiceMock()
+        storePurchaseManager = StorePurchaseManagerMock()
     }
 
     override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
+        accountManager = nil
+        authEndpointService = nil
+        storePurchaseManager = nil
+
+        appStoreAccountManagementFlow = nil
     }
 
+    // MARK: - Tests for refreshAuthTokenIfNeeded
+
     func testRefreshAuthTokenIfNeededSuccess() async throws {
-        let authEndpointService = SubscriptionMockFactory.authEndpointService
-        let storePurchaseManager = SubscriptionMockFactory.storePurchaseManager
-        let accountManager = SubscriptionMockFactory.accountManager
+        accountManager.authToken = Constants.oldAuthToken
+        accountManager.externalID = Constants.externalID
+
+        authEndpointService.validateTokenResult = .failure(Constants.invalidTokenError)
+        
+        let mostRecentTransactionExpectation = expectation(description: "mostRecentTransaction")
+        storePurchaseManager.onMostRecentTransaction = {
+            mostRecentTransactionExpectation.fulfill()
+            return Constants.mostRecentTransactionJWS
+        }
+
+        authEndpointService.storeLoginResult = .success(StoreLoginResponse(authToken: Constants.newAuthToken,
+                                                                           email: "",
+                                                                           externalID: Constants.externalID,
+                                                                           id: 1,
+                                                                           status: "ok"))
+
+        let flow = DefaultAppStoreAccountManagementFlow(authEndpointService: authEndpointService,
+                                                        storePurchaseManager: storePurchaseManager,
+                                                        accountManager: accountManager)
+        switch await flow.refreshAuthTokenIfNeeded() {
+        case .success(let success):
+            await fulfillment(of: [mostRecentTransactionExpectation], timeout: 0.1)
+            XCTAssertEqual(success, Constants.newAuthToken)
+        case .failure(let error):
+            XCTFail("Unexpected failure: \(String(reflecting: error))")
+        }
+    }
+
+    func testRefreshAuthTokenIfNeededSuccessButNotRefreshedIfStillValid() async throws {
+        accountManager.authToken = Constants.oldAuthToken
+
+        authEndpointService.validateTokenResult = .success(ValidateTokenResponse(account: Constants.account))
+
+        let flow = DefaultAppStoreAccountManagementFlow(authEndpointService: authEndpointService,
+                                                        storePurchaseManager: storePurchaseManager,
+                                                        accountManager: accountManager)
+        switch await flow.refreshAuthTokenIfNeeded() {
+        case .success(let success):
+            XCTAssertEqual(success, Constants.oldAuthToken)
+        case .failure(let error):
+            XCTFail("Unexpected failure: \(String(reflecting: error))")
+        }
+    }
+
+    func testRefreshAuthTokenIfNeededSuccessButNotRefreshedIfStoreLoginRetrievedDifferentAccount() async throws {
+        accountManager.authToken = Constants.oldAuthToken
+        accountManager.externalID = Constants.externalID
+
+        authEndpointService.validateTokenResult = .failure(Constants.invalidTokenError)
+
+        let mostRecentTransactionExpectation = expectation(description: "mostRecentTransaction")
+        storePurchaseManager.onMostRecentTransaction = {
+            mostRecentTransactionExpectation.fulfill()
+            return Constants.mostRecentTransactionJWS
+        }
+
+        authEndpointService.storeLoginResult = .success(StoreLoginResponse(authToken: Constants.newAuthToken,
+                                                                           email: "",
+                                                                           externalID: Constants.otherExternalID,
+                                                                           id: 1,
+                                                                           status: "ok"))
+
+        let flow = DefaultAppStoreAccountManagementFlow(authEndpointService: authEndpointService,
+                                                        storePurchaseManager: storePurchaseManager,
+                                                        accountManager: accountManager)
+        switch await flow.refreshAuthTokenIfNeeded() {
+        case .success(let success):
+            await fulfillment(of: [mostRecentTransactionExpectation], timeout: 0.1)
+            XCTAssertEqual(success, Constants.oldAuthToken)
+        case .failure(let error):
+            XCTFail("Unexpected failure: \(String(reflecting: error))")
+        }
+    }
+
+    func testRefreshAuthTokenIfNeededErrorDueToNoPastTransactions() async throws {
+        accountManager.authToken = Constants.oldAuthToken
+
+        authEndpointService.validateTokenResult = .failure(Constants.invalidTokenError)
+
+        let mostRecentTransactionExpectation = expectation(description: "mostRecentTransaction")
+        storePurchaseManager.onMostRecentTransaction = {
+            mostRecentTransactionExpectation.fulfill()
+            return nil
+        }
 
         let flow = DefaultAppStoreAccountManagementFlow(authEndpointService: authEndpointService,
                                                         storePurchaseManager: storePurchaseManager,
                                                         accountManager: accountManager)
         switch await flow.refreshAuthTokenIfNeeded() {
         case .success:
-            break
+            XCTFail("Unexpected success")
         case .failure(let error):
-            XCTFail("Unexpected failure: \(error.localizedDescription)")
+            await fulfillment(of: [mostRecentTransactionExpectation], timeout: 0.1)
+            XCTAssertEqual(error, .noPastTransaction)
+        }
+    }
+
+    func testRefreshAuthTokenIfNeededErrorDueToStoreLoginFailure() async throws {
+        accountManager.authToken = Constants.oldAuthToken
+
+        authEndpointService.validateTokenResult = .failure(Constants.invalidTokenError)
+
+        let mostRecentTransactionExpectation = expectation(description: "mostRecentTransaction")
+        storePurchaseManager.onMostRecentTransaction = {
+            mostRecentTransactionExpectation.fulfill()
+            return Constants.mostRecentTransactionJWS
+        }
+
+        authEndpointService.storeLoginResult = .failure(.unknownServerError)
+
+        let flow = DefaultAppStoreAccountManagementFlow(authEndpointService: authEndpointService,
+                                                        storePurchaseManager: storePurchaseManager,
+                                                        accountManager: accountManager)
+        switch await flow.refreshAuthTokenIfNeeded() {
+        case .success:
+            XCTFail("Unexpected success")
+        case .failure(let error):
+            await fulfillment(of: [mostRecentTransactionExpectation], timeout: 0.1)
+            XCTAssertEqual(error, .authenticatingWithTransactionFailed)
         }
     }
 }

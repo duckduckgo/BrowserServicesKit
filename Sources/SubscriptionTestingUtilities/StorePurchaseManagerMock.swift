@@ -25,26 +25,21 @@ public struct StorePurchaseManagerMock: StorePurchaseManager {
     public var areProductsAvailable: Bool
     public var subscriptionOptionsResult: SubscriptionOptions?
     public var syncAppleIDAccountResultError: Error?
-    public var mostRecentTransactionResult: String?
-    public var hasActiveSubscriptionResult: Bool
-    public var purchaseSubscriptionResult: Result<TransactionJWS, StorePurchaseManagerError>
 
-    public init(purchasedProductIDs: [String],
-                purchaseQueue: [String],
-                areProductsAvailable: Bool,
+    public var onMostRecentTransaction: (() -> String?)?
+    public var onHasActiveSubscription: (() -> Bool)?
+    public var onPurchaseSubscription: ((String, String) -> Result<TransactionJWS, StorePurchaseManagerError>)?
+
+    public init(purchasedProductIDs: [String] = [],
+                purchaseQueue: [String] = [],
+                areProductsAvailable: Bool = false,
                 subscriptionOptionsResult: SubscriptionOptions? = nil,
-                syncAppleIDAccountResultError: Error? = nil,
-                mostRecentTransactionResult: String? = nil,
-                hasActiveSubscriptionResult: Bool,
-                purchaseSubscriptionResult: Result<StorePurchaseManager.TransactionJWS, StorePurchaseManagerError>) {
+                syncAppleIDAccountResultError: Error? = nil) {
         self.purchasedProductIDs = purchasedProductIDs
         self.purchaseQueue = purchaseQueue
         self.areProductsAvailable = areProductsAvailable
         self.subscriptionOptionsResult = subscriptionOptionsResult
         self.syncAppleIDAccountResultError = syncAppleIDAccountResultError
-        self.mostRecentTransactionResult = mostRecentTransactionResult
-        self.hasActiveSubscriptionResult = hasActiveSubscriptionResult
-        self.purchaseSubscriptionResult = purchaseSubscriptionResult
     }
 
     public func subscriptionOptions() async -> SubscriptionOptions? {
@@ -62,14 +57,14 @@ public struct StorePurchaseManagerMock: StorePurchaseManager {
     public func updatePurchasedProducts() async { }
 
     public func mostRecentTransaction() async -> String? {
-        mostRecentTransactionResult
+        onMostRecentTransaction!()
     }
 
     public func hasActiveSubscription() async -> Bool {
-        hasActiveSubscriptionResult
+        onHasActiveSubscription!()
     }
 
     public func purchaseSubscription(with identifier: String, externalID: String) async -> Result<TransactionJWS, StorePurchaseManagerError> {
-        purchaseSubscriptionResult
+        onPurchaseSubscription!(identifier, externalID)
     }
 }

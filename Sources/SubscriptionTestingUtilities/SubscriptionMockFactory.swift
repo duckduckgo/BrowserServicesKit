@@ -79,10 +79,7 @@ public struct SubscriptionMockFactory {
                                                                       purchaseQueue: ["?"],
                                                                       areProductsAvailable: true,
                                                                       subscriptionOptionsResult: SubscriptionOptions.empty,
-                                                                      syncAppleIDAccountResultError: nil,
-                                                                      mostRecentTransactionResult: nil,
-                                                                      hasActiveSubscriptionResult: false,
-                                                                      purchaseSubscriptionResult: .success("someTransactionJWS"))
+                                                                      syncAppleIDAccountResultError: nil)
 
     public static let currentEnvironment = SubscriptionEnvironment(serviceEnvironment: .staging,
                                                                    purchasePlatform: .appStore)
