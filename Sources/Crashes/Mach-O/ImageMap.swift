@@ -19,6 +19,7 @@
 import Foundation
 import MachO
 
+/// Pointer collection used to iterate through Mach-O symbols and rewrite their pointers.
 struct ImageMap {
 
     let symtabCmd: symtab_command
@@ -50,6 +51,7 @@ struct ImageMap {
 
     private typealias CommandsAndSegments = (symtabCmd: symtab_command?, dysymtabCmd: dysymtab_command?, linkeditSegment: segment_command_64?, dataSegment: UnsafePointer<segment_command_64>?, dataConstSegment: UnsafePointer<segment_command_64>?) // swiftlint:disable:this large_tuple
 
+    /// Find Mach-O loader commands and segments needed for symbol lookup.
     private static func findCommandsAndSegments(in header: UnsafePointer<mach_header_64>) -> CommandsAndSegments {
         var result: CommandsAndSegments = (nil, nil, nil, nil, nil)
 
@@ -80,6 +82,10 @@ struct ImageMap {
         return result
     }
 
+    /// Lookup for a symbol name by `symtab` index.
+    /// - Returns: C String pointer to the symbol name or `nil` if the provided symbol index is out of bounds or if the symbol `strtab` offset is out of the `strtab` bounds.
+    /// - Note: The method returns a pointer to avoid string copying involving `0` terminator character lookup, which may cause out-of-bounds exceptions and has previously caused some crashes.
+    /// - Note: `strcmp` should be used for bytewise string comparison.
     func symbolName(at symtabIndex: Int) -> UnsafePointer<CChar>? {
         guard symtab.indices.contains(symtabIndex) else { return nil }
         let strtabOffset = Int(symtab[symtabIndex].n_un.n_strx)

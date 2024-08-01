@@ -77,12 +77,14 @@ public struct CxaThrowSwapper {
     public static var log: OSLog = .disabled
 
     fileprivate static var cxaThrowHandler: CxaThrowType?
-    /// Swap C++ `throw` to collect stack trace when throw happens
+    /// Swap `__cxa_throw` (the method called when C++ `throw MyCppException();` is executed) to collect the stack trace when the throw occurs.
+    /// The original exception stack trace is stored in the current NSThread dictionary and used later in the `std::terminate` handler if the exception
+    /// is not caught.
     public static func swapCxaThrow(with handler: CxaThrowType) {
         dispatchPrecondition(condition: .onQueue(.main))
         if cxaThrowHandler == nil {
             // iterate through mach headers loaded in memory and hook `__cxa_throw` method by overwriting its address.
-            // when this function is first registered it is called for once for each image that is currently part of the process.
+            // When this function is first registered, it is called once for each image that is currently part of the process.
             _dyld_register_func_for_add_image(processMachHeader)
         }
         cxaThrowHandler = handler
@@ -119,6 +121,7 @@ private func _processMachHeader(_ header: UnsafePointer<mach_header_64>?, slide:
     let headerInfo = try Dl_info(header)
     os_log(.debug, log: CxaThrowSwapper.log, "processing image %s (%s), slide: %02X", String(cString: headerInfo.dli_fname), header.debugDescription, slide)
 
+    // Lookup for the needed Mach-O loader commands and segments.
     guard let imageMap = ImageMap(header: header, slide: slide) else { throw ProcessingError.imageMap }
 
     try processSegment(imageMap.dataSegment)
@@ -132,17 +135,33 @@ private func _processMachHeader(_ header: UnsafePointer<mach_header_64>?, slide:
 
             try section.pointee.indirectSymbolBindings(slide: slide)?.withTemporaryUnprotectedMemory { indirectSymbolBindings in
                 guard let indirectSymbolIndices = section.pointee.indirectSymbolIndices(indirectSymtab: imageMap.indirectSymtab) else { return }
+                // Iterate symbols in the section of the __DATA or __DATA_CONST segments.
                 for i in 0..<section.pointee.count where indirectSymbolIndices.indices.contains(i) && indirectSymbolBindings.indices.contains(i) {
                     let symtabIndex = indirectSymbolIndices[i]
                     guard !indicesToSkip.contains(symtabIndex),
                           let symbolName = imageMap.symbolName(at: Int(symtabIndex)),
+                          // There were crashes when the String(cString:) constructor was used for some C string pointers,
+                          // which was probably caused by the `0`-terminating character lookup getting out of the `strtab` buffer bounds.
+                          // This implementation matches the original KSCrash code using strcmp (bytewise compare); it doesn’t copy
+                          // the original C String buffer and stops at the first non-matching byte.
+                          // - First, we make sure the string is not empty and is longer than 1 byte.
                           symbolName[0] != 0, symbolName[1] != 0,
+                          // Then we skip the first "_" character and compare.
                           strcmp(symbolName.advanced(by: 1), "__cxa_throw") == 0 else { continue }
 
                     let sectionInfo = try Dl_info(section)
                     os_log(.debug, log: CxaThrowSwapper.log, "found %s: %s", String(cString: symbolName), indirectSymbolBindings[i].debugDescription)
 
+                    // Now that the `__cxa_throw` symbol index is found, the magique begins:
+                    // - We store the original function pointer from the section’s indirect symbol bindings table in the
+                    //   `cxxOriginalThrowFunctions` dictionary by the base address of the section.
+                    // - Since the `__cxa_throw` method is compiler-generated, it is present in each Mach-O binary loaded by the app.
+                    //   That’s why we may need to hook it several times.
                     cxxOriginalThrowFunctions[UnsafeRawPointer(sectionInfo.dli_fbase)] = indirectSymbolBindings[i]
+                    // - Now we overwrite the function pointer directly in the section memory with our custom handler,
+                    //   so the next time `throw Exception();` is called, it will call our handler first. Then
+                    //   we will find the original `__cxa_throw` method using the base address of the section that is
+                    //   passed as the `tinfo` parameter into our custom handler.
                     indirectSymbolBindings[i] = unsafeBitCast(cxaThrowHandler as CxaThrowType, to: UnsafeRawPointer.self)
 
                     break
