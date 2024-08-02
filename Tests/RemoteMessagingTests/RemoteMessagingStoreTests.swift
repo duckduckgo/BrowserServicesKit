@@ -213,7 +213,7 @@ class RemoteMessagingStoreTests: XCTestCase {
     }
 
     func testConfigUpdateWhenMessageWasNotShownThenItIsRemovedFromDatabase() throws {
-        let _ = try saveProcessedResultFetchRemoteMessage(for: minimalConfig(version: 1, messageID: 1))
+        _ = try saveProcessedResultFetchRemoteMessage(for: minimalConfig(version: 1, messageID: 1))
 
         let context = remoteMessagingDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
         context.performAndWait {
