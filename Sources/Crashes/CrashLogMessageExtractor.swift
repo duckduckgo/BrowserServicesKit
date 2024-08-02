@@ -48,6 +48,7 @@ import Foundation
 /// `applicationSupportDir/Diagnostics/2024-05-20T12:11:33Z-%pid%.log`
 public struct CrashLogMessageExtractor {
 
+    /// Structure representing an NSException/C++ diagnostic data file stored in the `Application Support/Diagnostics` directory.
     public struct CrashDiagnostic {
 
         // ""2024-05-22T08:17:23Z59070.log"
@@ -57,6 +58,8 @@ public struct CrashLogMessageExtractor {
         public let timestamp: Date
         public let pid: pid_t
 
+        /// Failable constructor parsing the provided file name to extract crash timestamp and pid from the provided NSException/C++ diagnostic data file URL.
+        /// - Returns: `nil` if the provided file name doesn’t match the `2024-05-20T12:11:33Z-%pid%.log` format.
         init?(url: URL) {
             let fileName = url.lastPathComponent
 
@@ -77,6 +80,7 @@ public struct CrashLogMessageExtractor {
             self.pid = pid
         }
 
+        /// JSON-codable NSException/C++ diagnostic data container.
         public struct DiagnosticData: Codable {
             public let message: String
             public let stackTrace: [String]
@@ -91,6 +95,7 @@ public struct CrashLogMessageExtractor {
             }
         }
 
+        /// Try reading diagnostic data from the diagnostics file URL.
         public func diagnosticData() throws -> DiagnosticData {
             do {
                 let data = try Data(contentsOf: url)
@@ -107,7 +112,24 @@ public struct CrashLogMessageExtractor {
     fileprivate static var nextCppTerminateHandler: (() -> Void)!
     fileprivate static var diagnosticsDirectory: URL!
 
-    public static func setUp() {
+    /// Install uncaught NSException and C++ exception handlers.
+    /// - Parameters:
+    ///   - swapCxaThrow: whether the `__cxa_throw` hook should be installed.
+    /// - Note:
+    ///   `__cxa_throw` is a method called under the hood when `throw MyCppException();` is executed.
+    ///   It unwinds the stack to look for a `catch` handler to handle the thrown exception. If the handler can’t
+    ///   be found, `std::terminate` is called, which crashes the app.
+    ///
+    ///   We use the `__cxa_throw` hook (or call it _swizzle_) to record the stack trace of the original place
+    ///   where the exception was thrown and write it to the current NSThread dictionary.
+    ///
+    ///   If the exception causes app termination, we check the NSThread dictionary for the recorded stack trace
+    ///   in our custom `std::terminate` handler that we install using `std::set_terminate` and save
+    ///   the exception message and the stack trace to the _Diagnostics_ directory.
+    ///
+    ///   After the custom `std::terminate` or `NSUncaughtExceptionHandler` is done, we call the
+    ///   original exception handler, which causes the app termination.
+    public static func setUp(swapCxaThrow: Bool = true) {
         prepareDiagnosticsDirectory()
 
         // Set unhandled NSException handler
@@ -116,7 +138,9 @@ public struct CrashLogMessageExtractor {
         // Set unhandled C++ exception handler
         nextCppTerminateHandler = SetCxxExceptionTerminateHandler(handleTerminateOnCxxException)
         // Swap C++ `throw` to collect stack trace when throw happens
-        CxaThrowSwapper.swapCxaThrow(with: captureStackTrace)
+        if swapCxaThrow {
+            CxaThrowSwapper.swapCxaThrow(with: captureStackTrace)
+        }
     }
 
     /// create App Support/Diagnostics folder
@@ -146,6 +170,9 @@ public struct CrashLogMessageExtractor {
         self.diagnosticsDirectory = diagnosticsDirectory ?? Self.diagnosticsDirectory ?? self.fileManager.diagnosticsDirectory
     }
 
+    /// Write exception diagnostics as JSON data, including the exception name, reason, and `userInfo` dictionary,
+    /// to `applicationSupportDir/Diagnostics/2024-05-20T12:11:33Z-%pid%.log`.
+    /// - Note: Data sanitization is applied to clean up any potential filename or email occurrences.
     func writeDiagnostic(for exception: NSException) throws {
         // collect exception diagnostics data
         let message = (

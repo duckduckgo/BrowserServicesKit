@@ -30,6 +30,10 @@ extension UnsafeBufferPointer {
         }
     }
 
+    /// Temporarily removes memory protection from the buffer (if needed) and calls the callback with the readable/writable memory buffer.
+    /// Memory protection is restored to the original state afterwards.
+    /// - Returns: Generic callback result.
+    /// - Throws: `MemoryProtectionFailure` error if the memory protection change fails.
     func withTemporaryUnprotectedMemory<Result>(_ body: (_ pointer: UnsafeMutableBufferPointer<Self.Element>) throws -> Result) throws -> Result {
         let protection = try vm_region_basic_info_data_64_t(self.baseAddress!).protection
         let mutableBuffer = UnsafeMutableBufferPointer(mutating: self)
