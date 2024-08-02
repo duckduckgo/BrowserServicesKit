@@ -22,31 +22,277 @@ import SubscriptionTestingUtilities
 
 final class AppStoreRestoreFlowTests: XCTestCase {
 
+    private struct Constants {
+        static let authToken = UUID().uuidString
+        static let accessToken = UUID().uuidString
+        static let externalID = UUID ().uuidString
+
+        static let mostRecentTransactionJWS = "dGhpcyBpcyBub3QgYSByZWFsIEFw(...)cCBTdG9yZSB0cmFuc2FjdGlvbiBKV1M="
+        static let storeLoginResponse = StoreLoginResponse(authToken: Constants.authToken,
+                                                           email: "",
+                                                           externalID: Constants.externalID,
+                                                           id: 1,
+                                                           status: "ok")
+
+        static let unknownServerError = APIServiceError.serverError(statusCode: 401, error: "unknown_error")
+    }
+
+    var accountManager: AccountManagerMock!
+    var subscriptionService: SubscriptionEndpointServiceMock!
+    var authService: AuthEndpointServiceMock!
+    var storePurchaseManager: StorePurchaseManagerMock!
+
+    var appStoreRestoreFlow: AppStoreRestoreFlow!
+
     override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
+        accountManager = AccountManagerMock()
+        subscriptionService = SubscriptionEndpointServiceMock()
+        authService = AuthEndpointServiceMock()
+        storePurchaseManager = StorePurchaseManagerMock()
     }
 
     override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
+        accountManager = nil
+        subscriptionService = nil
+        authService = nil
+        storePurchaseManager = nil
+
+        appStoreRestoreFlow = nil
     }
 
-    func testRestoreAccountFromPastPurchaseSuccess() async throws {
+    // MARK: - Tests for restoreAccountFromPastPurchase
 
-        var storePurchaseManager = SubscriptionMockFactory.storePurchaseManager
+    func testRestoreAccountFromPastPurchaseSuccess() async throws {
         storePurchaseManager.onMostRecentTransaction = {
-            "eyJhbGciOiJFUzI1NiIsIng1YyI6WyJNSUlFTURDQ0E3YWdBd0lCQWdJUWZUbGZkMGZOdkZXdnpDMVlJQU5zWGpBS0JnZ3Foa2pPUFFRREF6QjFNVVF3UWdZRFZRUURERHRCY0hCc1pTQlhiM0pzWkhkcFpHVWdSR1YyWld4dmNHVnlJRkpsYkdGMGFXOXVjeUJEWlhKMGFXWnBZMkYwYVc5dUlFRjFkR2h2Y21sMGVURUxNQWtHQTFVRUN3d0NSell4RXpBUkJnTlZCQW9NQ2tGd2NHeGxJRWx1WXk0eEN6QUpCZ05WQkFZVEFsVlRNQjRYRFRJek1Ea3hNakU1TlRFMU0xb1hEVEkxTVRBeE1URTVOVEUxTWxvd2daSXhRREErQmdOVkJBTU1OMUJ5YjJRZ1JVTkRJRTFoWXlCQmNIQWdVM1J2Y21VZ1lXNWtJR2xVZFc1bGN5QlRkRzl5WlNCU1pXTmxhWEIwSUZOcFoyNXBibWN4TERBcUJnTlZCQXNNSTBGd2NHeGxJRmR2Y214a2QybGtaU0JFWlhabGJHOXdaWElnVW1Wc1lYUnBiMjV6TVJNd0VRWURWUVFLREFwQmNIQnNaU0JKYm1NdU1Rc3dDUVlEVlFRR0V3SlZVekJaTUJNR0J5cUdTTTQ5QWdFR0NDcUdTTTQ5QXdFSEEwSUFCRUZFWWUvSnFUcXlRdi9kdFhrYXVESENTY1YxMjlGWVJWLzB4aUIyNG5DUWt6UWYzYXNISk9OUjVyMFJBMGFMdko0MzJoeTFTWk1vdXZ5ZnBtMjZqWFNqZ2dJSU1JSUNCREFNQmdOVkhSTUJBZjhFQWpBQU1COEdBMVVkSXdRWU1CYUFGRDh2bENOUjAxREptaWc5N2JCODVjK2xrR0taTUhBR0NDc0dBUVVGQndFQkJHUXdZakF0QmdnckJnRUZCUWN3QW9ZaGFIUjBjRG92TDJObGNuUnpMbUZ3Y0d4bExtTnZiUzkzZDJSeVp6WXVaR1Z5TURFR0NDc0dBUVVGQnpBQmhpVm9kSFJ3T2k4dmIyTnpjQzVoY0hCc1pTNWpiMjB2YjJOemNEQXpMWGQzWkhKbk5qQXlNSUlCSGdZRFZSMGdCSUlCRlRDQ0FSRXdnZ0VOQmdvcWhraUc5Mk5rQlFZQk1JSCtNSUhEQmdnckJnRUZCUWNDQWpDQnRneUJzMUpsYkdsaGJtTmxJRzl1SUhSb2FYTWdZMlZ5ZEdsbWFXTmhkR1VnWW5rZ1lXNTVJSEJoY25SNUlHRnpjM1Z0WlhNZ1lXTmpaWEIwWVc1alpTQnZaaUIwYUdVZ2RHaGxiaUJoY0hCc2FXTmhZbXhsSUhOMFlXNWtZWEprSUhSbGNtMXpJR0Z1WkNCamIyNWthWFJwYjI1eklHOW1JSFZ6WlN3Z1kyVnlkR2xtYVdOaGRHVWdjRzlzYVdONUlHRnVaQ0JqWlhKMGFXWnBZMkYwYVc5dUlIQnlZV04wYVdObElITjBZWFJsYldWdWRITXVNRFlHQ0NzR0FRVUZCd0lCRmlwb2RIUndPaTh2ZDNkM0xtRndjR3hsTG1OdmJTOWpaWEowYVdacFkyRjBaV0YxZEdodmNtbDBlUzh3SFFZRFZSME9CQllFRkFNczhQanM2VmhXR1FsekUyWk9FK0dYNE9vL01BNEdBMVVkRHdFQi93UUVBd0lIZ0RBUUJnb3Foa2lHOTJOa0Jnc0JCQUlGQURBS0JnZ3Foa2pPUFFRREF3Tm9BREJsQWpFQTh5Uk5kc2twNTA2REZkUExnaExMSndBdjVKOGhCR0xhSThERXhkY1BYK2FCS2pqTzhlVW85S3BmcGNOWVVZNVlBakFQWG1NWEVaTCtRMDJhZHJtbXNoTnh6M05uS20rb3VRd1U3dkJUbjBMdmxNN3ZwczJZc2xWVGFtUllMNGFTczVrPSIsIk1JSURGakNDQXB5Z0F3SUJBZ0lVSXNHaFJ3cDBjMm52VTRZU3ljYWZQVGp6Yk5jd0NnWUlLb1pJemowRUF3TXdaekViTUJrR0ExVUVBd3dTUVhCd2JHVWdVbTl2ZENCRFFTQXRJRWN6TVNZd0pBWURWUVFMREIxQmNIQnNaU0JEWlhKMGFXWnBZMkYwYVc5dUlFRjFkR2h2Y21sMGVURVRNQkVHQTFVRUNnd0tRWEJ3YkdVZ1NXNWpMakVMTUFrR0ExVUVCaE1DVlZNd0hoY05NakV3TXpFM01qQXpOekV3V2hjTk16WXdNekU1TURBd01EQXdXakIxTVVRd1FnWURWUVFERER0QmNIQnNaU0JYYjNKc1pIZHBaR1VnUkdWMlpXeHZjR1Z5SUZKbGJHRjBhVzl1Y3lCRFpYSjBhV1pwWTJGMGFXOXVJRUYxZEdodmNtbDBlVEVMTUFrR0ExVUVDd3dDUnpZeEV6QVJCZ05WQkFvTUNrRndjR3hsSUVsdVl5NHhDekFKQmdOVkJBWVRBbFZUTUhZd0VBWUhLb1pJemowQ0FRWUZLNEVFQUNJRFlnQUVic1FLQzk0UHJsV21aWG5YZ3R4emRWSkw4VDBTR1luZ0RSR3BuZ24zTjZQVDhKTUViN0ZEaTRiQm1QaENuWjMvc3E2UEYvY0djS1hXc0w1dk90ZVJoeUo0NXgzQVNQN2NPQithYW85MGZjcHhTdi9FWkZibmlBYk5nWkdoSWhwSW80SDZNSUgzTUJJR0ExVWRFd0VCL3dRSU1BWUJBZjhDQVFBd0h3WURWUjBqQkJnd0ZvQVV1N0Rlb1ZnemlKcWtpcG5ldnIzcnI5ckxKS3N3UmdZSUt3WUJCUVVIQVFFRU9qQTRNRFlHQ0NzR0FRVUZCekFCaGlwb2RIUndPaTh2YjJOemNDNWhjSEJzWlM1amIyMHZiMk56Y0RBekxXRndjR3hsY205dmRHTmhaek13TndZRFZSMGZCREF3TGpBc29DcWdLSVltYUhSMGNEb3ZMMk55YkM1aGNIQnNaUzVqYjIwdllYQndiR1Z5YjI5MFkyRm5NeTVqY213d0hRWURWUjBPQkJZRUZEOHZsQ05SMDFESm1pZzk3YkI4NWMrbGtHS1pNQTRHQTFVZER3RUIvd1FFQXdJQkJqQVFCZ29xaGtpRzkyTmtCZ0lCQkFJRkFEQUtCZ2dxaGtqT1BRUURBd05vQURCbEFqQkFYaFNxNUl5S29nTUNQdHc0OTBCYUI2NzdDYUVHSlh1ZlFCL0VxWkdkNkNTamlDdE9udU1UYlhWWG14eGN4ZmtDTVFEVFNQeGFyWlh2TnJreFUzVGtVTUkzM3l6dkZWVlJUNHd4V0pDOTk0T3NkY1o0K1JHTnNZRHlSNWdtZHIwbkRHZz0iLCJNSUlDUXpDQ0FjbWdBd0lCQWdJSUxjWDhpTkxGUzVVd0NnWUlLb1pJemowRUF3TXdaekViTUJrR0ExVUVBd3dTUVhCd2JHVWdVbTl2ZENCRFFTQXRJRWN6TVNZd0pBWURWUVFMREIxQmNIQnNaU0JEWlhKMGFXWnBZMkYwYVc5dUlFRjFkR2h2Y21sMGVURVRNQkVHQTFVRUNnd0tRWEJ3YkdVZ1NXNWpMakVMTUFrR0ExVUVCaE1DVlZNd0hoY05NVFF3TkRNd01UZ3hPVEEyV2hjTk16a3dORE13TVRneE9UQTJXakJuTVJzd0dRWURWUVFEREJKQmNIQnNaU0JTYjI5MElFTkJJQzBnUnpNeEpqQWtCZ05WQkFzTUhVRndjR3hsSUVObGNuUnBabWxqWVhScGIyNGdRWFYwYUc5eWFYUjVNUk13RVFZRFZRUUtEQXBCY0hCc1pTQkpibU11TVFzd0NRWURWUVFHRXdKVlV6QjJNQkFHQnlxR1NNNDlBZ0VHQlN1QkJBQWlBMklBQkpqcEx6MUFjcVR0a3lKeWdSTWMzUkNWOGNXalRuSGNGQmJaRHVXbUJTcDNaSHRmVGpqVHV4eEV0WC8xSDdZeVlsM0o2WVJiVHpCUEVWb0EvVmhZREtYMUR5eE5CMGNUZGRxWGw1ZHZNVnp0SzUxN0lEdll1VlRaWHBta09sRUtNYU5DTUVBd0hRWURWUjBPQkJZRUZMdXczcUZZTTRpYXBJcVozcjY5NjYvYXl5U3JNQThHQTFVZEV3RUIvd1FGTUFNQkFmOHdEZ1lEVlIwUEFRSC9CQVFEQWdFR01Bb0dDQ3FHU000OUJBTURBMmdBTUdVQ01RQ0Q2Y0hFRmw0YVhUUVkyZTN2OUd3T0FFWkx1Tit5UmhIRkQvM21lb3locG12T3dnUFVuUFdUeG5TNGF0K3FJeFVDTUcxbWloREsxQTNVVDgyTlF6NjBpbU9sTTI3amJkb1h0MlFmeUZNbStZaGlkRGtMRjF2TFVhZ002QmdENTZLeUtBPT0iXX0.eyJ0cmFuc2FjdGlvbklkIjoiMjAwMDAwMDYzNzEzMjQ2MSIsIm9yaWdpbmFsVHJhbnNhY3Rpb25JZCI6IjIwMDAwMDA1NDU3MzkzODQiLCJ3ZWJPcmRlckxpbmVJdGVtSWQiOiIyMDAwMDAwMDY1MzMwMjg5IiwiYnVuZGxlSWQiOiJjb20uZHVja2R1Y2tnby5tYWNvcy5icm93c2VyLmRlYnVnIiwicHJvZHVjdElkIjoic3Vic2NyaXB0aW9uLjFtb250aCIsInN1YnNjcmlwdGlvbkdyb3VwSWRlbnRpZmllciI6IjIxMzQxODQ2IiwicHVyY2hhc2VEYXRlIjoxNzE5MjM2MDQ1MDAwLCJvcmlnaW5hbFB1cmNoYXNlRGF0ZSI6MTcxMDE3OTQwNTAwMCwiZXhwaXJlc0RhdGUiOjE3MTkyMzYzNDUwMDAsInF1YW50aXR5IjoxLCJ0eXBlIjoiQXV0by1SZW5ld2FibGUgU3Vic2NyaXB0aW9uIiwiZGV2aWNlVmVyaWZpY2F0aW9uIjoiMzhyMkpPVFpHV3lMMnZiNDBKQktsYmpzUzVqOG15a01Dc3VFV3c2MEd5NWl1RlVLeW0rTHpJeGM3VUpjVXRkKyIsImRldmljZVZlcmlmaWNhdGlvbk5vbmNlIjoiZTUwOTUwNzctYmQ4My00MWJjLWIxNDItZGJkMzUxODBhYTE1IiwiYXBwQWNjb3VudFRva2VuIjoiNzIyMzYzMmMtNWI2ZC00Njk0LTg0OTUtMDA2N2IxMzBiOWQyIiwiaW5BcHBPd25lcnNoaXBUeXBlIjoiUFVSQ0hBU0VEIiwic2lnbmVkRGF0ZSI6MTcxOTQxMjU1MDkzNywiZW52aXJvbm1lbnQiOiJTYW5kYm94IiwidHJhbnNhY3Rpb25SZWFzb24iOiJSRU5FV0FMIiwic3RvcmVmcm9udCI6IlVTQSIsInN0b3JlZnJvbnRJZCI6IjE0MzQ0MSIsInByaWNlIjo5OTkwLCJjdXJyZW5jeSI6IlVTRCJ9.XMCzyP0gvSCXmOci3x9PMW3vP_A1F9ekZ_8M9j7cFR0klBGondmZjiCTw0t-gRtaCWN9jSvvoIWx2LPkHATAlA"
+            return Constants.mostRecentTransactionJWS
         }
 
-        let accountManager = AccountManagerMock(email: "5p2d4sx1@duck.com", externalID: "something")
+        authService.storeLoginResult = .success(Constants.storeLoginResponse)
+
+        accountManager.onExchangeAuthTokenToAccessToken = { _ in
+            return .success(Constants.accessToken)
+        }
+
+        accountManager.onFetchAccountDetails = { accessToken in
+            XCTAssertEqual(accessToken, Constants.accessToken)
+            return .success(AccountManager.AccountDetails(email: nil, externalID: Constants.externalID))
+        }
+
+        let subscription = SubscriptionMockFactory.subscription
+        subscriptionService.getSubscriptionResult = .success(subscription)
+
+        XCTAssertTrue(subscription.isActive)
+
+        accountManager.onStoreAuthToken = { authToken in
+            XCTAssertEqual(authToken, Constants.authToken)
+        }
+
+        accountManager.onStoreAccount = { accessToken, email, externalID in
+            XCTAssertEqual(accessToken, Constants.accessToken)
+            XCTAssertEqual(externalID, Constants.externalID)
+        }
+
         let appStoreRestoreFlow = DefaultAppStoreRestoreFlow(accountManager: accountManager,
                                               storePurchaseManager: storePurchaseManager,
-                                              subscriptionEndpointService: SubscriptionMockFactory.subscriptionEndpointService,
-                                              authEndpointService: SubscriptionMockFactory.authEndpointService)
+                                              subscriptionEndpointService: subscriptionService,
+                                              authEndpointService: authService)
         switch await appStoreRestoreFlow.restoreAccountFromPastPurchase() {
         case .success:
-            break
+            XCTAssertTrue(accountManager.exchangeAuthTokenToAccessTokenCalled)
+            XCTAssertTrue(accountManager.fetchAccountDetailsCalled)
+            XCTAssertTrue(accountManager.storeAuthTokenCalled)
+            XCTAssertTrue(accountManager.storeAccountCalled)
         case .failure(let error):
             XCTFail("Unexpected failure: \(error)")
+        }
+    }
+
+    func testRestoreAccountFromPastPurchaseErrorDueToSubscriptionBeingExpired() async throws {
+        storePurchaseManager.onMostRecentTransaction = {
+            return Constants.mostRecentTransactionJWS
+        }
+
+        authService.storeLoginResult = .success(Constants.storeLoginResponse)
+
+        accountManager.onExchangeAuthTokenToAccessToken = { _ in
+            return .success(Constants.accessToken)
+        }
+
+        accountManager.onFetchAccountDetails = { accessToken in
+            XCTAssertEqual(accessToken, Constants.accessToken)
+            return .success(AccountManager.AccountDetails(email: nil, externalID: Constants.externalID))
+        }
+
+        let subscription = SubscriptionMockFactory.expiredSubscription
+        subscriptionService.getSubscriptionResult = .success(subscription)
+
+        XCTAssertFalse(subscription.isActive)
+
+        accountManager.onStoreAuthToken = { authToken in
+            XCTAssertEqual(authToken, Constants.authToken)
+        }
+
+        accountManager.onStoreAccount = { accessToken, email, externalID in
+            XCTAssertEqual(accessToken, Constants.accessToken)
+            XCTAssertEqual(externalID, Constants.externalID)
+        }
+
+        let appStoreRestoreFlow = DefaultAppStoreRestoreFlow(accountManager: accountManager,
+                                              storePurchaseManager: storePurchaseManager,
+                                              subscriptionEndpointService: subscriptionService,
+                                              authEndpointService: authService)
+        switch await appStoreRestoreFlow.restoreAccountFromPastPurchase() {
+        case .success:
+            XCTFail("Unexpected success")
+        case .failure(let error):
+            XCTAssertTrue(accountManager.exchangeAuthTokenToAccessTokenCalled)
+            XCTAssertTrue(accountManager.fetchAccountDetailsCalled)
+            XCTAssertFalse(accountManager.storeAuthTokenCalled)
+            XCTAssertFalse(accountManager.storeAccountCalled)
+
+            guard case .subscriptionExpired(let accountDetails) = error else {
+                XCTFail("Expected .subscriptionExpired error")
+                return
+            }
+
+            XCTAssertEqual(accountDetails.authToken, Constants.authToken)
+            XCTAssertEqual(accountDetails.accessToken, Constants.accessToken)
+            XCTAssertEqual(accountDetails.externalID, Constants.externalID)
+        }
+    }
+
+    func testRestoreAccountFromPastPurchaseErrorWhenNoRecentTransaction() async throws {
+        storePurchaseManager.onMostRecentTransaction = { return nil }
+
+        let appStoreRestoreFlow = DefaultAppStoreRestoreFlow(accountManager: accountManager,
+                                              storePurchaseManager: storePurchaseManager,
+                                              subscriptionEndpointService: subscriptionService,
+                                              authEndpointService: authService)
+        switch await appStoreRestoreFlow.restoreAccountFromPastPurchase() {
+        case .success:
+            XCTFail("Unexpected success")
+        case .failure(let error):
+            XCTAssertFalse(accountManager.exchangeAuthTokenToAccessTokenCalled)
+            XCTAssertFalse(accountManager.fetchAccountDetailsCalled)
+            XCTAssertFalse(accountManager.storeAuthTokenCalled)
+            XCTAssertFalse(accountManager.storeAccountCalled)
+            XCTAssertEqual(error, .missingAccountOrTransactions)
+        }
+    }
+
+    func testRestoreAccountFromPastPurchaseErrorDueToStoreLoginFailure() async throws {
+        storePurchaseManager.onMostRecentTransaction = {
+            return Constants.mostRecentTransactionJWS
+        }
+
+        authService.storeLoginResult = .failure(Constants.unknownServerError)
+
+        let appStoreRestoreFlow = DefaultAppStoreRestoreFlow(accountManager: accountManager,
+                                              storePurchaseManager: storePurchaseManager,
+                                              subscriptionEndpointService: subscriptionService,
+                                              authEndpointService: authService)
+        switch await appStoreRestoreFlow.restoreAccountFromPastPurchase() {
+        case .success:
+            XCTFail("Unexpected success")
+        case .failure(let error):
+            XCTAssertFalse(accountManager.exchangeAuthTokenToAccessTokenCalled)
+            XCTAssertFalse(accountManager.fetchAccountDetailsCalled)
+            XCTAssertFalse(accountManager.storeAuthTokenCalled)
+            XCTAssertFalse(accountManager.storeAccountCalled)
+            XCTAssertEqual(error, .pastTransactionAuthenticationError)
+        }
+    }
+
+    func testRestoreAccountFromPastPurchaseErrorDueToStoreAuthTokenExchangeFailure() async throws {
+        storePurchaseManager.onMostRecentTransaction = {
+            return Constants.mostRecentTransactionJWS
+        }
+
+        authService.storeLoginResult = .success(Constants.storeLoginResponse)
+
+        accountManager.onExchangeAuthTokenToAccessToken = { _ in
+            return .failure(Constants.unknownServerError)
+        }
+
+        let appStoreRestoreFlow = DefaultAppStoreRestoreFlow(accountManager: accountManager,
+                                              storePurchaseManager: storePurchaseManager,
+                                              subscriptionEndpointService: subscriptionService,
+                                              authEndpointService: authService)
+        switch await appStoreRestoreFlow.restoreAccountFromPastPurchase() {
+        case .success:
+            XCTFail("Unexpected success")
+        case .failure(let error):
+            XCTAssertTrue(accountManager.exchangeAuthTokenToAccessTokenCalled)
+            XCTAssertFalse(accountManager.fetchAccountDetailsCalled)
+            XCTAssertFalse(accountManager.storeAuthTokenCalled)
+            XCTAssertFalse(accountManager.storeAccountCalled)
+            XCTAssertEqual(error, .failedToObtainAccessToken)
+        }
+    }
+
+    func testRestoreAccountFromPastPurchaseErrorDueToAccountDetailsFetchFailure() async throws {
+        storePurchaseManager.onMostRecentTransaction = {
+            return Constants.mostRecentTransactionJWS
+        }
+
+        authService.storeLoginResult = .success(Constants.storeLoginResponse)
+
+        accountManager.onExchangeAuthTokenToAccessToken = { _ in
+            return .success(Constants.accessToken)
+        }
+
+        accountManager.onFetchAccountDetails = { accessToken in
+            XCTAssertEqual(accessToken, Constants.accessToken)
+            return .failure(Constants.unknownServerError)
+        }
+
+        let appStoreRestoreFlow = DefaultAppStoreRestoreFlow(accountManager: accountManager,
+                                              storePurchaseManager: storePurchaseManager,
+                                              subscriptionEndpointService: subscriptionService,
+                                              authEndpointService: authService)
+        switch await appStoreRestoreFlow.restoreAccountFromPastPurchase() {
+        case .success:
+            XCTFail("Unexpected success")
+        case .failure(let error):
+            XCTAssertTrue(accountManager.exchangeAuthTokenToAccessTokenCalled)
+            XCTAssertTrue(accountManager.fetchAccountDetailsCalled)
+            XCTAssertFalse(accountManager.storeAuthTokenCalled)
+            XCTAssertFalse(accountManager.storeAccountCalled)
+            XCTAssertEqual(error, .failedToFetchAccountDetails)
+        }
+    }
+
+    func testRestoreAccountFromPastPurchaseErrorDueToSubscriptionFetchFailure() async throws {
+        storePurchaseManager.onMostRecentTransaction = {
+            return Constants.mostRecentTransactionJWS
+        }
+
+        authService.storeLoginResult = .success(Constants.storeLoginResponse)
+
+        accountManager.onExchangeAuthTokenToAccessToken = { _ in
+            return .success(Constants.accessToken)
+        }
+
+        accountManager.onFetchAccountDetails = { accessToken in
+            XCTAssertEqual(accessToken, Constants.accessToken)
+            return .success(AccountManager.AccountDetails(email: nil, externalID: Constants.externalID))
+        }
+        
+        subscriptionService.getSubscriptionResult = .failure(.apiError(Constants.unknownServerError))
+
+        let appStoreRestoreFlow = DefaultAppStoreRestoreFlow(accountManager: accountManager,
+                                              storePurchaseManager: storePurchaseManager,
+                                              subscriptionEndpointService: subscriptionService,
+                                              authEndpointService: authService)
+        switch await appStoreRestoreFlow.restoreAccountFromPastPurchase() {
+        case .success:
+            XCTFail("Unexpected success")
+        case .failure(let error):
+            XCTAssertTrue(accountManager.exchangeAuthTokenToAccessTokenCalled)
+            XCTAssertTrue(accountManager.fetchAccountDetailsCalled)
+            XCTAssertFalse(accountManager.storeAuthTokenCalled)
+            XCTAssertFalse(accountManager.storeAccountCalled)
+            XCTAssertEqual(error, .failedToFetchSubscriptionDetails)
         }
     }
 }

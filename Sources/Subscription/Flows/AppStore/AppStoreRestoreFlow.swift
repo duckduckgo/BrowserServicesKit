@@ -20,15 +20,20 @@ import Foundation
 import StoreKit
 import Common
 
-public typealias RestoredAccountDetails = (authToken: String, accessToken: String, externalID: String, email: String?)
-
-public enum AppStoreRestoreFlowError: Swift.Error {
+public enum AppStoreRestoreFlowError: Swift.Error, Equatable {
     case missingAccountOrTransactions
     case pastTransactionAuthenticationError
     case failedToObtainAccessToken
     case failedToFetchAccountDetails
     case failedToFetchSubscriptionDetails
     case subscriptionExpired(accountDetails: RestoredAccountDetails)
+}
+
+public struct RestoredAccountDetails: Equatable {
+    let authToken: String
+    let accessToken: String
+    let externalID: String
+    let email: String?
 }
 
 @available(macOS 12.0, iOS 15.0, *)

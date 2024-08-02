@@ -32,6 +32,12 @@ public final class AccountManagerMock: AccountManager {
     public var onFetchAccountDetails: ((String) -> Result<AccountDetails, Error>)?
     public var onCheckForEntitlements: ((Double, Int) -> Bool)?
 
+    public var storeAuthTokenCalled: Bool = false
+    public var storeAccountCalled: Bool = false
+    public var exchangeAuthTokenToAccessTokenCalled: Bool = false
+    public var fetchAccountDetailsCalled: Bool = false
+    public var checkForEntitlementsCalled: Bool = false
+
     public init(delegate: AccountManagerKeychainAccessDelegate? = nil,
                 accessToken: String? = nil,
                 authToken: String? = nil,
@@ -45,11 +51,13 @@ public final class AccountManagerMock: AccountManager {
     }
 
     public func storeAuthToken(token: String) {
+        storeAuthTokenCalled = true
         onStoreAuthToken?(token)
         authToken = token
     }
 
     public func storeAccount(token: String, email: String?, externalID: String?) {
+        storeAccountCalled = true
         onStoreAccount?(token, email, externalID)
         self.accessToken = token
         self.email = email
@@ -81,14 +89,17 @@ public final class AccountManagerMock: AccountManager {
     }
 
     public func exchangeAuthTokenToAccessToken(_ authToken: String) async -> Result<String, Error> {
-        onExchangeAuthTokenToAccessToken!(authToken)
+        exchangeAuthTokenToAccessTokenCalled = true
+        return onExchangeAuthTokenToAccessToken!(authToken)
     }
 
     public func fetchAccountDetails(with accessToken: String) async -> Result<AccountDetails, Error> {
-        onFetchAccountDetails!(accessToken)
+        fetchAccountDetailsCalled = true
+        return onFetchAccountDetails!(accessToken)
     }
 
     public func checkForEntitlements(wait waitTime: Double, retry retryCount: Int) async -> Bool {
-        onCheckForEntitlements!(waitTime, retryCount)
+        checkForEntitlementsCalled = true
+        return onCheckForEntitlements!(waitTime, retryCount)
     }
 }
