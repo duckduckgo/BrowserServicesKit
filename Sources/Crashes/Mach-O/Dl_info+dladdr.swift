@@ -18,6 +18,8 @@
 
 import Foundation
 
+/// Extension for `Dl_info` to initialize the structure from a pointer using `dladdr`.
+/// - Throws: `Error`: If `dladdr` fails to retrieve information, an error is thrown with a description from `dlerror()`.
 extension Dl_info {
 
     struct Error: LocalizedError {
