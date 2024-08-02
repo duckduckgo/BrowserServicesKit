@@ -295,7 +295,42 @@ class CommonUserAttributeMatcherTests: XCTestCase {
         ), .fail)
     }
 
-    private func setUpUserAttributeMatcher(dismissedMessageIds: [String] = []) {
+    func testWhenOneShownMessageIdMatchesThenReturnMatch() throws {
+        setUpUserAttributeMatcher(shownMessageIds: ["1"])
+        XCTAssertEqual(matcher.evaluate(
+            matchingAttribute: MessageShownMatchingAttribute(value: ["1", "2", "3"], fallback: nil)
+        ), .match)
+    }
+
+    func testWhenAllShownMessageIdsMatchThenReturnMatch() throws {
+        setUpUserAttributeMatcher(shownMessageIds: ["1", "2", "3"])
+        XCTAssertEqual(matcher.evaluate(
+            matchingAttribute: MessageShownMatchingAttribute(value: ["1", "2", "3"], fallback: nil)
+        ), .match)
+    }
+
+    func testWhenNoShownMessageIdsMatchThenReturnFail() throws {
+        setUpUserAttributeMatcher(shownMessageIds: ["1", "2", "3"])
+        XCTAssertEqual(matcher.evaluate(
+            matchingAttribute: MessageShownMatchingAttribute(value: ["4", "5"], fallback: nil)
+        ), .fail)
+    }
+
+    func testWhenHaveShownMessageIdsAndMatchAttributeIsEmptyThenReturnFail() throws {
+        setUpUserAttributeMatcher(shownMessageIds: ["1", "2", "3"])
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: MessageShownMatchingAttribute(value: [], fallback: nil)), .fail)
+    }
+
+    func testWhenHaveNoShownMessageIdsAndMatchAttributeIsNotEmptyThenReturnFail() throws {
+        setUpUserAttributeMatcher(shownMessageIds: [])
+        XCTAssertEqual(matcher.evaluate(
+            matchingAttribute: MessageShownMatchingAttribute(value: ["1", "2"], fallback: nil)
+        ), .fail)
+    }
+
+    // TODO
+
+    private func setUpUserAttributeMatcher(dismissedMessageIds: [String] = [], shownMessageIds: [String] = []) {
         matcher = CommonUserAttributeMatcher(
             statisticsStore: mockStatisticsStore,
             variantManager: manager,
@@ -314,7 +349,8 @@ class CommonUserAttributeMatcherTests: XCTestCase {
             isPrivacyProSubscriptionExpired: false,
             isDuckPlayerOnboarded: false,
             isDuckPlayerEnabled: false,
-            dismissedMessageIds: dismissedMessageIds
+            dismissedMessageIds: dismissedMessageIds,
+            shownMessageIds: shownMessageIds
         )
     }
 }

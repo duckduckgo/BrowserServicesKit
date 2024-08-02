@@ -118,6 +118,14 @@ class RemoteMessagingStoreTests: XCTestCase {
         XCTAssertFalse(store.hasShownRemoteMessage(withID: remoteMessage.id))
     }
 
+    func testFetchShownRemoteMessageIds() throws {
+        let remoteMessage = try saveProcessedResultFetchRemoteMessage()
+        XCTAssertEqual(store.fetchShownRemoteMessageIDs(), [])
+
+        store.updateRemoteMessage(withID: remoteMessage.id, asShown: true)
+        XCTAssertEqual(store.fetchShownRemoteMessageIDs(), [remoteMessage.id])
+    }
+
     func testWhenDismissRemoteMessageThenFetchedMessageHasDismissedState() throws {
         let remoteMessage = try saveProcessedResultFetchRemoteMessage()
 
@@ -205,7 +213,7 @@ class RemoteMessagingStoreTests: XCTestCase {
     }
 
     func testConfigUpdateWhenMessageWasNotShownThenItIsRemovedFromDatabase() throws {
-        let remoteMessage = try saveProcessedResultFetchRemoteMessage(for: minimalConfig(version: 1, messageID: 1))
+        let _ = try saveProcessedResultFetchRemoteMessage(for: minimalConfig(version: 1, messageID: 1))
 
         let context = remoteMessagingDatabase.makeContext(concurrencyType: .privateQueueConcurrencyType)
         context.performAndWait {
@@ -431,7 +439,8 @@ class RemoteMessagingStoreTests: XCTestCase {
                     isPrivacyProSubscriptionExpired: false,
                     isDuckPlayerOnboarded: false,
                     isDuckPlayerEnabled: false,
-                    dismissedMessageIds: []
+                    dismissedMessageIds: [],
+                    shownMessageIds: []
                 ),
                 percentileStore: RemoteMessagingPercentileUserDefaultsStore(keyValueStore: self.defaults),
                 surveyActionMapper: MockRemoteMessagingSurveyActionMapper(),

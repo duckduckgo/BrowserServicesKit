@@ -56,7 +56,8 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                     isPrivacyProSubscriptionExpired: false,
                     isDuckPlayerOnboarded: false,
                     isDuckPlayerEnabled: false,
-                    dismissedMessageIds: []
+                    dismissedMessageIds: [],
+                    shownMessageIds: []
                 ),
                 percentileStore: MockRemoteMessagePercentileStore(),
                 surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
@@ -153,7 +154,8 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                     isPrivacyProSubscriptionExpired: false,
                     isDuckPlayerOnboarded: false,
                     isDuckPlayerEnabled: false,
-                    dismissedMessageIds: []
+                    dismissedMessageIds: [],
+                    shownMessageIds: []
                 ),
                 percentileStore: MockRemoteMessagePercentileStore(),
                 surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
@@ -260,7 +262,8 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                     isPrivacyProSubscriptionExpired: false,
                     isDuckPlayerOnboarded: false,
                     isDuckPlayerEnabled: false,
-                    dismissedMessageIds: []
+                    dismissedMessageIds: [],
+                    shownMessageIds: []
                 ),
                 percentileStore: MockRemoteMessagePercentileStore(),
                 surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
@@ -310,7 +313,8 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                     isPrivacyProSubscriptionExpired: false,
                     isDuckPlayerOnboarded: false,
                     isDuckPlayerEnabled: false,
-                    dismissedMessageIds: []
+                    dismissedMessageIds: [],
+                    shownMessageIds: []
                 ),
                 percentileStore: MockRemoteMessagePercentileStore(),
                 surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
@@ -356,7 +360,8 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                     isPrivacyProSubscriptionExpired: false,
                     isDuckPlayerOnboarded: false,
                     isDuckPlayerEnabled: false,
-                    dismissedMessageIds: []
+                    dismissedMessageIds: [],
+                    shownMessageIds: []
                 ),
                 percentileStore: percentileStore,
                 surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
@@ -400,7 +405,8 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                     isPrivacyProSubscriptionExpired: false,
                     isDuckPlayerOnboarded: false,
                     isDuckPlayerEnabled: false,
-                    dismissedMessageIds: []
+                    dismissedMessageIds: [],
+                    shownMessageIds: []
                 ),
                 percentileStore: percentileStore,
                 surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
@@ -444,7 +450,8 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                     isPrivacyProSubscriptionExpired: false,
                     isDuckPlayerOnboarded: false,
                     isDuckPlayerEnabled: false,
-                    dismissedMessageIds: []
+                    dismissedMessageIds: [],
+                    shownMessageIds: []
                 ),
                 percentileStore: percentileStore,
                 surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
@@ -488,7 +495,8 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                     isPrivacyProSubscriptionExpired: false,
                     isDuckPlayerOnboarded: false,
                     isDuckPlayerEnabled: false,
-                    dismissedMessageIds: []
+                    dismissedMessageIds: [],
+                    shownMessageIds: []
                 ),
                 percentileStore: percentileStore,
                 surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
