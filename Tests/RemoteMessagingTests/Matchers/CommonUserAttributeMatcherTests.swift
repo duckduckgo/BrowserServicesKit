@@ -328,8 +328,6 @@ class CommonUserAttributeMatcherTests: XCTestCase {
         ), .fail)
     }
 
-    // TODO
-
     private func setUpUserAttributeMatcher(dismissedMessageIds: [String] = [], shownMessageIds: [String] = []) {
         matcher = CommonUserAttributeMatcher(
             statisticsStore: mockStatisticsStore,
