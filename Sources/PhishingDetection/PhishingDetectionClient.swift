@@ -65,7 +65,7 @@ public class PhishingDetectionAPIClient: PhishingDetectionClientProtocol {
     }
 
     enum Constants {
-        static let productionEndpoint = URL(string: "https://tbd.unknown.duckduckgo.com")!
+        static let productionEndpoint = URL(string: "https://duckduckgo.com/api/protection/")!
         static let stagingEndpoint = URL(string: "https://web-use-1.duckduckgo.com/api/protection/")!
     }
 
@@ -85,7 +85,7 @@ public class PhishingDetectionAPIClient: PhishingDetectionClientProtocol {
         endpointURL.appendingPathComponent("matches")
     }
 
-    public init(environment: Environment = .staging) {
+    public init(environment: Environment = .production) {
         switch environment {
         case .production:
             endpointURL = Constants.productionEndpoint
