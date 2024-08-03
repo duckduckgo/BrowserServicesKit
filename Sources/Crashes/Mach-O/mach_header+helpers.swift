@@ -23,6 +23,7 @@ import MachO
     #error("This code is only compatible with 64-bit architecture. Adjust the Mach Header definitions (like segment_command_64, LC_SEGMENT_64 and others) for current platform")
 #endif
 
+/// Helper to iterate through Mach-O loader commands.
 extension UnsafePointer where Pointee == mach_header_64 {
 
     struct LoadCommands: Sequence {
