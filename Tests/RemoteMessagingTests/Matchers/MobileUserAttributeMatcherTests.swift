@@ -92,7 +92,8 @@ class MobileUserAttributeMatcherTests: XCTestCase {
             isPrivacyProSubscriptionExpired: false,
             isDuckPlayerOnboarded: false,
             isDuckPlayerEnabled: false,
-            dismissedMessageIds: dismissedMessageIds
+            dismissedMessageIds: dismissedMessageIds,
+            shownMessageIds: []
         )
     }
 }

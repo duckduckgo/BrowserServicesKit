@@ -29,6 +29,7 @@ public protocol RemoteMessagingStoring: RemoteMessagingStoringDebuggingSupport {
     func fetchScheduledRemoteMessage() -> RemoteMessageModel?
     func fetchRemoteMessage(withID id: String) -> RemoteMessageModel?
     func hasShownRemoteMessage(withID id: String) -> Bool
+    func fetchShownRemoteMessageIDs() -> [String]
     func hasDismissedRemoteMessage(withID id: String) -> Bool
     func dismissRemoteMessage(withID id: String)
     func fetchDismissedRemoteMessageIDs() -> [String]
