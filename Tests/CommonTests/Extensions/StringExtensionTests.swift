@@ -97,6 +97,24 @@ final class StringExtensionTests: XCTestCase {
     // MARK: - File paths detection
 
     func testSanitize() {
+        // ObjC class or Swift Type names looking like a file name shouldn‘t be removed
+        XCTAssertEqual("NSInvalidArgumentException: -[_NSViewAnimator_DuckDuckGo_Privacy_Browser.MouseOverButton copy:]: unrecognized selector sent to instance 0x104335890".sanitized(),
+                       "NSInvalidArgumentException: -[_NSViewAnimator_DuckDuckGo_Privacy_Browser.MouseOverButton copy:]: unrecognized selector sent to instance 0x104335890")
+        XCTAssertEqual("NSInvalidArgumentException: -[..__NSXPCInterfaceProxy_DataBrokerProtection.XPCServerInterface copy:]: unrecognized selector sent to instance 0x104335890".sanitized(),
+                       "NSInvalidArgumentException: -[..__NSXPCInterfaceProxy_DataBrokerProtection.XPCServerInterface copy:]: unrecognized selector sent to instance 0x104335890")
+        XCTAssertEqual("NSInvalidArgumentException: -[_ContiguousArrayStorage<AlignmentID.Type> copy:]: unrecognized selector sent to instance 0x104335890".sanitized(),
+                       "NSInvalidArgumentException: -[_ContiguousArrayStorage<AlignmentID.Type> copy:]: unrecognized selector sent to instance 0x104335890")
+        XCTAssertEqual("NSInvalidArgumentException: -[WritableKeyPath<DistributedNavigationDelegate, Published<Optional<Navigation>>> copy:]: unrecognized selector sent to instance 0x104335890".sanitized(),
+                       "NSInvalidArgumentException: -[WritableKeyPath<DistributedNavigationDelegate, Published<Optional<Navigation>>> copy:]: unrecognized selector sent to instance 0x104335890")
+        XCTAssertEqual("NSInvalidArgumentException: -[AudioFile<DistributedNavigationDelegate> copy:]: unrecognized selector sent to instance 0x104335890".sanitized(),
+                       "NSInvalidArgumentException: -[AudioFile<DistributedNavigationDelegate> copy:]: unrecognized selector sent to instance 0x104335890")
+        XCTAssertEqual("NSInvalidArgumentException: -[_SetStorage<ConduitBase<(domain: String, permissionType: PermissionType, decision: PersistedPermissionDecision), Never>> copy:]: unrecognized selector sent to instance 0x104335890".sanitized(),
+                       "NSInvalidArgumentException: -[_SetStorage<ConduitBase<(domain: String, permissionType: PermissionType, decision: PersistedPermissionDecision), Never>> copy:]: unrecognized selector sent to instance 0x104335890")
+        XCTAssertEqual("NSInvalidArgumentException: -[_ContiguousArrayStorage<(key: Key, data: AnimatablePair<AnimatableData, AnimatablePair<Float, AnimatableArray<AnimatableData>>>)> copy:]: unrecognized selector sent to instance 0x104335890".sanitized(),
+                       "NSInvalidArgumentException: -[_ContiguousArrayStorage<(key: Key, data: AnimatablePair<AnimatableData, AnimatablePair<Float, AnimatableArray<AnimatableData>>>)> copy:]: unrecognized selector sent to instance 0x104335890")
+        XCTAssertEqual("NSInvalidArgumentException: -[_ContiguousArrayStorage<(inout UnsafeMutablePointer<UInt8>, inout Optional<UnsafeMutablePointer<Optional<NSObject>>>, inout Optional<UnsafeMutablePointer<Any>>) -> ()> copy:]: unrecognized selector sent to instance 0x104335890".sanitized(),
+                       "NSInvalidArgumentException: -[_ContiguousArrayStorage<(inout UnsafeMutablePointer<UInt8>, inout Optional<UnsafeMutablePointer<Optional<NSObject>>>, inout Optional<UnsafeMutablePointer<Any>>) -> ()> copy:]: unrecognized selector sent to instance 0x104335890")
+
         // both user file paths should be removed
         XCTAssertEqual("Error in /var/filename.txt In file included from /Volumes/data/framework dir".sanitized(), "Error in <removed> In file included from <removed>")
 
@@ -143,6 +161,10 @@ final class StringExtensionTests: XCTestCase {
         Solution: please the file something.h has to be alone without others include, it has to be present in release letter,
         in order to be included in /var/log/xyz/test. automatically parse /the/file/name
         Other Note: send me an email at admin@duckduckgo.com!
+        Also u can use these addresses: test-one@example.com
+        test_two@example.com, test+three@example.com
+        ,test@example-one.com
+        test@example_one.com.
         The file something. must contain the somethinge.h and not the ecpfmbsd.h because it doesn't contain C operative c in /var/filename.c.
         """.sanitized(), """
         In file included from <removed>,
@@ -150,7 +172,11 @@ final class StringExtensionTests: XCTestCase {
         from test.c: 29:
         Solution: please the file <removed> has to be alone without others include, it has to be present in release letter,
         in order to be included in <removed>. automatically parse <removed>
-        Other Note: send me an email at <removed>!
+        Other Note: send me an email at <removed>
+        Also u can use these addresses: <removed>
+        <removed> <removed>
+        <removed>
+        <removed>
         The file something. must contain the <removed> and not the <removed> because it doesn't contain C operative c in filename.c.
         """)
 
@@ -160,6 +186,11 @@ final class StringExtensionTests: XCTestCase {
         """.sanitized(), """
         Error Domain=OSLogErrorDomain Code=-1 "issue with predicate: no such field: level" UserInfo={NSLocalizedDescription=issue with predicate: no such field: level}
         """)
+
+        // separate file name looking like a module name detection
+        XCTAssertEqual("Could not read myFile.xcodeProj".sanitized(), "Could not read <removed>")
+        XCTAssertEqual("ImFile.MyFile not found".sanitized(), "<removed> not found")
+        XCTAssertEqual("Error: Any.TypeDocEx not found".sanitized(), "Error: <removed> not found")
 
         // no sensitive data hera
         XCTAssertEqual("The application has crashed".sanitized(), "The application has crashed")
@@ -201,11 +232,25 @@ final class StringExtensionTests: XCTestCase {
         what():  failed to open file: <removed>
         """)
 
+        XCTAssertEqual("""
+        terminate called after throwing an instance of 'std::runtime_error'
+        what():  failed to open configfile<conf>
+        """.sanitized(), """
+        terminate called after throwing an instance of 'std::runtime_error'
+        what():  failed to open configfile<<removed>>
+        """)
+
         // user file path should be <removed>
         XCTAssertEqual("""
         std::filesystem::filesystem_error: cannot copy file: Permission denied [/home/user/secret/config.json]
         """.sanitized(), """
         std::filesystem::filesystem_error: cannot copy file: Permission denied [<removed>]
+        """)
+
+        XCTAssertEqual("""
+        std::filesystem::filesystem_error: cannot copy filepathuri[home]
+        """.sanitized(), """
+        std::filesystem::filesystem_error: cannot copy filepathuri[<removed>]
         """)
 
         // no sensitive data hera
