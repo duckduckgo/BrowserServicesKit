@@ -83,7 +83,8 @@ class RemoteMessagingProcessingTests: XCTestCase {
                     isPrivacyProSubscriptionExpired: false,
                     isDuckPlayerOnboarded: false,
                     isDuckPlayerEnabled: false,
-                    dismissedMessageIds: []
+                    dismissedMessageIds: [],
+                    shownMessageIds: []
                 ),
                 percentileStore: MockRemoteMessagePercentileStore(),
                 surveyActionMapper: MockRemoteMessageSurveyActionMapper(),

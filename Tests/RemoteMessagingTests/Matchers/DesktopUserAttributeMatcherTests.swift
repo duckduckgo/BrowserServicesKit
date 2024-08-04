@@ -181,6 +181,7 @@ class DesktopUserAttributeMatcherTests: XCTestCase {
             isPrivacyProSubscriptionExpiring: false,
             isPrivacyProSubscriptionExpired: false,
             dismissedMessageIds: dismissedMessageIds,
+            shownMessageIds: [],
             pinnedTabsCount: 3,
             hasCustomHomePage: true,
             isDuckPlayerOnboarded: true,
