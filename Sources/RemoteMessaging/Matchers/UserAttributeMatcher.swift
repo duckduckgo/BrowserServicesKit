@@ -56,7 +56,8 @@ public struct MobileUserAttributeMatcher: AttributeMatching {
                 isPrivacyProSubscriptionExpired: Bool,
                 isDuckPlayerOnboarded: Bool,
                 isDuckPlayerEnabled: Bool,
-                dismissedMessageIds: [String]
+                dismissedMessageIds: [String],
+                shownMessageIds: [String]
     ) {
         self.isWidgetInstalled = isWidgetInstalled
 
@@ -78,7 +79,8 @@ public struct MobileUserAttributeMatcher: AttributeMatching {
             isPrivacyProSubscriptionExpired: isPrivacyProSubscriptionExpired,
             isDuckPlayerOnboarded: isDuckPlayerOnboarded,
             isDuckPlayerEnabled: isDuckPlayerEnabled,
-            dismissedMessageIds: dismissedMessageIds
+            dismissedMessageIds: dismissedMessageIds,
+            shownMessageIds: shownMessageIds
         )
     }
 
@@ -116,6 +118,7 @@ public struct DesktopUserAttributeMatcher: AttributeMatching {
                 isPrivacyProSubscriptionExpiring: Bool,
                 isPrivacyProSubscriptionExpired: Bool,
                 dismissedMessageIds: [String],
+                shownMessageIds: [String],
                 pinnedTabsCount: Int,
                 hasCustomHomePage: Bool,
                 isDuckPlayerOnboarded: Bool,
@@ -144,7 +147,8 @@ public struct DesktopUserAttributeMatcher: AttributeMatching {
             isPrivacyProSubscriptionExpired: isPrivacyProSubscriptionExpired,
             isDuckPlayerOnboarded: isDuckPlayerOnboarded,
             isDuckPlayerEnabled: isDuckPlayerEnabled,
-            dismissedMessageIds: dismissedMessageIds
+            dismissedMessageIds: dismissedMessageIds,
+            shownMessageIds: shownMessageIds
         )
     }
 
@@ -194,6 +198,7 @@ public struct CommonUserAttributeMatcher: AttributeMatching {
     private let isDuckPlayerOnboarded: Bool
     private let isDuckPlayerEnabled: Bool
     private let dismissedMessageIds: [String]
+    private let shownMessageIds: [String]
 
     public init(statisticsStore: StatisticsStore,
                 variantManager: VariantManager,
@@ -212,7 +217,8 @@ public struct CommonUserAttributeMatcher: AttributeMatching {
                 isPrivacyProSubscriptionExpired: Bool,
                 isDuckPlayerOnboarded: Bool,
                 isDuckPlayerEnabled: Bool,
-                dismissedMessageIds: [String]
+                dismissedMessageIds: [String],
+                shownMessageIds: [String]
     ) {
         self.statisticsStore = statisticsStore
         self.variantManager = variantManager
@@ -232,6 +238,7 @@ public struct CommonUserAttributeMatcher: AttributeMatching {
         self.isDuckPlayerOnboarded = isDuckPlayerOnboarded
         self.isDuckPlayerEnabled = isDuckPlayerEnabled
         self.dismissedMessageIds = dismissedMessageIds
+        self.shownMessageIds = shownMessageIds
     }
 
     public func evaluate(matchingAttribute: MatchingAttribute) -> EvaluationResult? {
@@ -282,6 +289,14 @@ public struct CommonUserAttributeMatcher: AttributeMatching {
             return matchingAttribute.evaluate(for: isDuckPlayerEnabled)
         case let matchingAttribute as InteractedWithMessageMatchingAttribute:
             if dismissedMessageIds.contains(where: { messageId in
+                StringArrayMatchingAttribute(matchingAttribute.value).matches(value: messageId) == .match
+            }) {
+                return .match
+            } else {
+                return .fail
+            }
+        case let matchingAttribute as MessageShownMatchingAttribute:
+            if shownMessageIds.contains(where: { messageId in
                 StringArrayMatchingAttribute(matchingAttribute.value).matches(value: messageId) == .match
             }) {
                 return .match
