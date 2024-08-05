@@ -21,15 +21,18 @@ import CoreData
 import Persistence
 import Common
 
-public class BookmarkFormFactorFavoritesMigration {
+public protocol BookmarkFormFactorFavoritesMigrating {
 
-    public enum MigrationErrors {
-        case couldNotLoadDatabase
-    }
+    func getFavoritesOrderFromPreV4Model(dbContainerLocation: URL,
+                                         dbFileURL: URL) throws -> [String]?
+}
 
-    public static func getFavoritesOrderFromPreV4Model(dbContainerLocation: URL,
-                                                       dbFileURL: URL,
-                                                       errorEvents: EventMapping<MigrationErrors>? = nil) -> [String]? {
+public class BookmarkFormFactorFavoritesMigration: BookmarkFormFactorFavoritesMigrating {
+
+    public init() {}
+
+    public func getFavoritesOrderFromPreV4Model(dbContainerLocation: URL,
+                                                dbFileURL: URL) throws -> [String]? {
 
         guard let metadata = try? NSPersistentStoreCoordinator.metadataForPersistentStore(ofType: NSSQLiteStoreType, at: dbFileURL),
               let latestModel = CoreDataDatabase.loadModel(from: bundle, named: "BookmarksModel"),
@@ -61,9 +64,10 @@ public class BookmarkFormFactorFavoritesMigration {
 
         var oldFavoritesOrder: [String]?
 
+        var loadError: Error?
         oldDB.loadStore { context, error in
             guard let context = context else {
-                errorEvents?.fire(.couldNotLoadDatabase, error: error)
+                loadError = error
                 return
             }
 
@@ -71,6 +75,11 @@ public class BookmarkFormFactorFavoritesMigration {
             let orderedFavorites = favs?.favorites?.array as? [BookmarkEntity] ?? []
             oldFavoritesOrder = orderedFavorites.compactMap { $0.uuid }
         }
+
+        if let loadError {
+            throw loadError
+        }
+
         return oldFavoritesOrder
     }
 

@@ -98,7 +98,7 @@ class BookmarkMigrationTests: XCTestCase {
     func commonMigrationTestForDatabase(name: String) throws {
 
         try copyDatabase(name: name, formDirectory: resourceURLDir, toDirectory: location)
-        let legacyFavoritesInOrder = BookmarkFormFactorFavoritesMigration.getFavoritesOrderFromPreV4Model(dbContainerLocation: location,
+        let legacyFavoritesInOrder = try? BookmarkFormFactorFavoritesMigration().getFavoritesOrderFromPreV4Model(dbContainerLocation: location,
                                                                                                           dbFileURL: location.appendingPathComponent("\(name).sqlite", conformingTo: .database))
 
         // Now perform migration and test it
