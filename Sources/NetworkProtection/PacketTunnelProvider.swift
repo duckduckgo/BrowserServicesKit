@@ -907,6 +907,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                                                                             excludedRoutes: settings.excludedRanges,
                                                                             dnsSettings: settings.dnsSettings,
                                                                             regenerateKey: regenerateKey)
+
             case .useConfiguration(let newTunnelConfiguration):
                 tunnelConfiguration = newTunnelConfiguration
             }
@@ -1139,6 +1140,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         case .removeVPNConfiguration:
             // Since the VPN configuration is being removed we may as well reset all state
             handleResetAllState(completionHandler: completionHandler)
+        case .restartAdapter:
+            handleRestartAdapter(completionHandler: completionHandler)
         case .uninstallVPN:
             // Since the VPN configuration is being removed we may as well reset all state
             handleResetAllState(completionHandler: completionHandler)
@@ -1167,6 +1170,26 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         Task {
             completionHandler?(nil)
             await cancelTunnel(with: TunnelError.appRequestedCancellation)
+        }
+    }
+
+    private func handleRestartAdapter(completionHandler: ((Data?) -> Void)? = nil) {
+        Task {
+            do {
+                let tunnelConfiguration = try await generateTunnelConfiguration(serverSelectionMethod: currentServerSelectionMethod,
+                                                                                includedRoutes: includedRoutes ?? [],
+                                                                                excludedRoutes: settings.excludedRanges,
+                                                                                dnsSettings: settings.dnsSettings,
+                                                                                regenerateKey: false)
+
+                try await updateTunnelConfiguration(updateMethod: .useConfiguration(tunnelConfiguration),
+                                                    reassert: false,
+                                                    regenerateKey: false)
+
+                completionHandler?(nil)
+            } catch {
+                completionHandler?(nil)
+            }
         }
     }
 
