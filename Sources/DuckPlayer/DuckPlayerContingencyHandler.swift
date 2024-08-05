@@ -21,14 +21,22 @@ import Foundation
 import Common
 import BrowserServicesKit
 
+/// A protocol that defines the requirements for handling DuckPlayer contingency scenarios.
+/// >Tech Design: https://app.asana.com/0/481882893211075/1207926753747908/f
 public protocol DuckPlayerContingencyHandler {
+    /// A Boolean value indicating whether a contingency message should be displayed.
     var shouldDisplayContingencyMessage: Bool { get }
+
+    /// A URL pointing to a "Learn More" page for additional information.
     var learnMoreURL: URL? { get }
 }
 
+/// A default implementation of the `DuckPlayerContingencyHandler` protocol.
 public struct DefaultDuckPlayerContingencyHandler: DuckPlayerContingencyHandler {
     private let privacyConfigurationManager: PrivacyConfigurationManaging
 
+    /// A Boolean value indicating whether a contingency message should be displayed.
+    /// The message should be displayed if the `learnMoreURL` is not nil and the DuckPlayer feature is not enabled.
     public var shouldDisplayContingencyMessage: Bool {
         learnMoreURL != nil && !isDuckPlayerFeatureEnabled
     }
@@ -37,10 +45,12 @@ public struct DefaultDuckPlayerContingencyHandler: DuckPlayerContingencyHandler 
         privacyConfigurationManager.privacyConfig.isEnabled(featureKey: .duckPlayer)
     }
 
+    /// A URL pointing to a "Learn More" page for additional information.
+    /// The URL is derived from the privacy configuration settings.
     public var learnMoreURL: URL? {
         let settings = privacyConfigurationManager.privacyConfig.settings(for: .duckPlayer)
         guard let link = settings[.duckPlayerDisabledHelpPageLink] as? String,
-        let pageLink = URL(string: link) else { return nil }
+              let pageLink = URL(string: link) else { return nil }
         return pageLink
     }
 
