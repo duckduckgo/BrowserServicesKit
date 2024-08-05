@@ -21,7 +21,7 @@ import Foundation
 import Common
 import BrowserServicesKit
 
-protocol DuckPlayerContingencyHandler {
+public protocol DuckPlayerContingencyHandler {
     var shouldDisplayContingencyMessage: Bool { get }
     var learnMoreURL: URL? { get }
 }
