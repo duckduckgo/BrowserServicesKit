@@ -106,7 +106,6 @@ final class DuckPlayerContingencyHandlerTests: XCTestCase {
     }
 }
 
-
 private struct MockConfig {
     static let learnMoreURL = "https://duckduckgo.com/duckduckgo-help-pages/duck-player/"
     static let featureEnabledAndLinkAbsent =
