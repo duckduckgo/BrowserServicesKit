@@ -384,7 +384,8 @@ let package = Package(
         .target(
             name: "DuckPlayer",
             dependencies: [
-                "Common"
+                "Common",
+                "BrowserServicesKit"
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
