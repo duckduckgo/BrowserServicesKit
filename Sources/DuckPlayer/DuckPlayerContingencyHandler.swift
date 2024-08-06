@@ -30,7 +30,7 @@ public protocol DuckPlayerContingencyHandler {
     var learnMoreURL: URL? { get }
 }
 
-/// A default implementation of the `DuckPlayerContingencyHandler` protocol.
+/// A default implementation of the `DuckPlayerContingencyHandler` protocol uses `PrivacyConfigurationManaging` to define its values.
 public struct DefaultDuckPlayerContingencyHandler: DuckPlayerContingencyHandler {
     private let privacyConfigurationManager: PrivacyConfigurationManaging
 
