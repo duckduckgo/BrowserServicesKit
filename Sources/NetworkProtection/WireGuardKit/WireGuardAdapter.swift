@@ -29,6 +29,11 @@ public enum WireGuardAdapterError: CustomNSError {
     /// Failure to start WireGuard backend.
     case startWireGuardBackend(Int32)
 
+    /// Failure to set the configuration for the WireGuard adapter
+    case setWireguardConfig(errorCode: Int64)
+
+    static let wireguardAdapterDomain = "WireGuardAdapter"
+
     public var errorCode: Int {
         switch self {
         case .cannotLocateTunnelFileDescriptor: return 100
@@ -36,6 +41,7 @@ public enum WireGuardAdapterError: CustomNSError {
         case .dnsResolution: return 102
         case .setNetworkSettings: return 103
         case .startWireGuardBackend: return 104
+        case .setWireguardConfig: return 105
         }
     }
 
@@ -53,7 +59,10 @@ public enum WireGuardAdapterError: CustomNSError {
         case .setNetworkSettings(let error):
             return [NSUnderlyingErrorKey: error as NSError]
         case .startWireGuardBackend(let code):
-            let error = NSError(domain: "startWireGuardBackend", code: Int(code))
+            let error = NSError(domain: Self.wireguardAdapterDomain, code: Int(code))
+            return [NSUnderlyingErrorKey: error as NSError]
+        case .setWireguardConfig(let code):
+            let error = NSError(domain: Self.wireguardAdapterDomain, code: Int(code))
             return [NSUnderlyingErrorKey: error as NSError]
         }
     }
@@ -388,7 +397,12 @@ public class WireGuardAdapter {
                     let (wgConfig, resolutionResults) = settingsGenerator.uapiConfiguration()
                     self.logEndpointResolutionResults(resolutionResults)
 
-                    wgSetConfig(handle, wgConfig)
+                    let result = wgSetConfig(handle, wgConfig)
+
+                    if result < 0 {
+                        throw WireGuardAdapterError.setWireguardConfig(errorCode: result)
+                    }
+
                     #if os(iOS)
                     wgDisableSomeRoamingForBrokenMobileSemantics(handle)
                     #endif
