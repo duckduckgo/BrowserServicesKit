@@ -74,7 +74,7 @@ final class UserContentControllerTests: XCTestCase {
     func testWhenUserContentControllerInitialisedWithEarlyAccessScriptsThenHandlersAreRegistered() async throws {
         let script1 = MockUserScript(messageNames: ["message1"])
         let script2 = MockUserScript(messageNames: ["message2"])
-        ucc = UserContentController(assetsPublisher: assetsSubject, privacyConfigurationManager: PrivacyConfigurationManagerMock(), earlyAccessScripts: [script1, script2])
+        ucc = UserContentController(assetsPublisher: assetsSubject, privacyConfigurationManager: PrivacyConfigurationManagerMock(), earlyAccessHandlers: [script1, script2])
         ucc.delegate = self
 
         XCTAssertTrue(ucc.registeredScriptHandlerNames.contains("message1"))
