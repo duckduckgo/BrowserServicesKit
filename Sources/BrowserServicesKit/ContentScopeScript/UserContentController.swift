@@ -113,11 +113,13 @@ final public class UserContentController: WKUserContentController {
     private let scriptMessageHandler = PermanentScriptMessageHandler()
 
     @MainActor
-    public init<Pub, Content>(assetsPublisher: Pub, privacyConfigurationManager: PrivacyConfigurationManaging)
+    public init<Pub, Content>(assetsPublisher: Pub, privacyConfigurationManager: PrivacyConfigurationManaging, earlyAccessScripts: [UserScript] = [])
     where Pub: Publisher, Content: UserContentControllerNewContent, Pub.Output == Content, Pub.Failure == Never {
 
         self.privacyConfigurationManager = privacyConfigurationManager
         super.init()
+
+        installUserScripts([], handlers: earlyAccessScripts)
 
         assetsPublisherCancellable = assetsPublisher.sink { [weak self, selfDescr=self.debugDescription] content in
             os_log(.debug, log: .contentBlocking, "\(selfDescr): 📚 received content blocking assets")
