@@ -31,6 +31,8 @@ extension WireGuardAdapterError: NetworkProtectionErrorConvertible {
             return .wireGuardSetNetworkSettings(error)
         case .startWireGuardBackend(let code):
             return .startWireGuardBackend(code)
+        case .setWireguardConfig(let errorCode):
+            return .setWireguardConfig(errorCode: errorCode)
         }
     }
 }

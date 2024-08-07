@@ -61,6 +61,7 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
     case wireGuardDnsResolution
     case wireGuardSetNetworkSettings(Error)
     case startWireGuardBackend(Int32)
+    case setWireguardConfig(errorCode: Int64)
 
     // Auth errors
     case noAuthTokenFound
@@ -110,6 +111,7 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
         case .wireGuardDnsResolution: return 302
         case .wireGuardSetNetworkSettings: return 303
         case .startWireGuardBackend: return 304
+        case .setWireguardConfig: return 305
             // 400+ Auth errors
         case .noAuthTokenFound: return 400
             // 500+ Subscription errors
@@ -140,7 +142,6 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
                 .wireGuardCannotLocateTunnelFileDescriptor,
                 .wireGuardInvalidState,
                 .wireGuardDnsResolution,
-                .startWireGuardBackend,
                 .noAuthTokenFound,
                 .vpnAccessRevoked:
             return [:]
@@ -166,6 +167,10 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
             return [
                 NSUnderlyingErrorKey: error
             ]
+        case .startWireGuardBackend(let code):
+            return [NSUnderlyingErrorKey: NSError(domain: "WireGuardAdapter", code: Int(code))]
+        case .setWireguardConfig(let code):
+            return [NSUnderlyingErrorKey: NSError(domain: "WireGuardAdapter", code: Int(code))]
         }
     }
 

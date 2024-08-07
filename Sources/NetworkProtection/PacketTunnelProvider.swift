@@ -139,7 +139,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - WireGuard
 
-    private lazy var adapter: WireGuardAdapter = {
+    func makeAdapter(with packetTunnelProvider: PacketTunnelProvider) -> WireGuardAdapter {
         WireGuardAdapter(with: self) { logLevel, message in
             if logLevel == .error {
                 os_log("🔴 Received error from adapter: %{public}@", log: .networkProtection, type: .error, message)
@@ -147,7 +147,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 os_log("Received message from adapter: %{public}@", log: .networkProtection, message)
             }
         }
-    }()
+    }
+
+    private lazy var adapter = makeAdapter(with: self)
 
     // MARK: - Timers Support
 
@@ -897,9 +899,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             await stopMonitors()
         }
 
-        do {
-            let tunnelConfiguration: TunnelConfiguration
+        var tunnelConfiguration: TunnelConfiguration?
 
+        do {
             switch updateMethod {
             case .selectServer(let serverSelectionMethod):
                 tunnelConfiguration = try await generateTunnelConfiguration(serverSelectionMethod: serverSelectionMethod,
@@ -912,7 +914,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 tunnelConfiguration = newTunnelConfiguration
             }
 
-            try await updateAdapterConfiguration(tunnelConfiguration: tunnelConfiguration, reassert: reassert)
+            try await updateAdapterConfiguration(tunnelConfiguration: tunnelConfiguration!, reassert: reassert)
 
             if reassert {
                 try await handleAdapterStarted(startReason: .reconnected)
@@ -921,12 +923,21 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             providerEvents.fire(.tunnelUpdateAttempt(.success))
         } catch {
             providerEvents.fire(.tunnelUpdateAttempt(.failure(error)))
+
+            switch error {
+            case WireGuardAdapterError.setWireguardConfig:
+                await cancelTunnel(with: error)
+            default:
+                break
+            }
+
             throw error
         }
     }
 
     @MainActor
     private func updateAdapterConfiguration(tunnelConfiguration: TunnelConfiguration, reassert: Bool) async throws {
+
         try await withCheckedThrowingContinuation { [weak self] (continuation: CheckedContinuation<Void, Error>) in
             guard let self = self else {
                 continuation.resume()
@@ -934,8 +945,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             }
 
             self.adapter.update(tunnelConfiguration: tunnelConfiguration, reassert: reassert) { [weak self] error in
+
                 if let error = error {
                     self?.debugEvents?.fire(error.networkProtectionError)
+
                     continuation.resume(throwing: error)
                     return
                 }
@@ -1689,6 +1702,9 @@ extension WireGuardAdapterError: LocalizedError, CustomDebugStringConvertible {
 
         case .startWireGuardBackend(let errorCode):
             return "Starting tunnel failed with wgTurnOn returning: \(errorCode)"
+
+        case .setWireguardConfig(let errorCode):
+            return "Update tunnel failed with wgSetConfig returning: \(errorCode)"
 
         case .invalidState:
             return "Starting tunnel failed with invalid error"
