@@ -259,7 +259,6 @@ extension WKUserContentController {
         installedContentRuleLists.removeAll()
         self.swizzled_removeAllContentRuleLists() // call the original
     }
-    
 }
 
 extension WKUserContentController {
