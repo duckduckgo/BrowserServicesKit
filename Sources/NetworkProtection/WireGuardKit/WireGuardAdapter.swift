@@ -435,7 +435,6 @@ public class WireGuardAdapter {
 
                 case .snoozing:
                     assertionFailure("Attempted to update WireGuard adapter while snoozing")
-                    break
 
                 case .stopped:
                     fatalError()
