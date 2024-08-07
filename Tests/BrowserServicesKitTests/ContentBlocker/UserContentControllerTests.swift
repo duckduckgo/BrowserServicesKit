@@ -55,6 +55,7 @@ final class UserContentControllerTests: XCTestCase {
     @MainActor
     override func setUp() async throws {
         _=WKUserContentController.swizzleContentRuleListsMethodsOnce
+        _=WKUserContentController.swizzleScriptMessageHandlerMethodsOnce
         ucc = UserContentController(assetsPublisher: assetsSubject, privacyConfigurationManager: PrivacyConfigurationManagerMock())
         ucc.delegate = self
     }
@@ -69,6 +70,16 @@ final class UserContentControllerTests: XCTestCase {
     }
 
     // MARK: - Tests
+    @MainActor
+    func testWhenUserContentControllerInitialisedWithEarlyAccessScriptsThenHandlersAreRegistered() async throws {
+        let script1 = MockUserScript(messageNames: ["message1"])
+        let script2 = MockUserScript(messageNames: ["message2"])
+        ucc = UserContentController(assetsPublisher: assetsSubject, privacyConfigurationManager: PrivacyConfigurationManagerMock(), earlyAccessHandlers: [script1, script2])
+        ucc.delegate = self
+
+        XCTAssertTrue(ucc.registeredScriptHandlerNames.contains("message1"))
+        XCTAssertTrue(ucc.registeredScriptHandlerNames.contains("message2"))
+    }
 
     @MainActor
     func testWhenContentBlockingAssetsPublished_contentRuleListsAreInstalled() async throws {
@@ -250,6 +261,34 @@ extension WKUserContentController {
     }
 }
 
+extension WKUserContentController {
+    private static let scriptHandlersKey = UnsafeRawPointer(bitPattern: "scriptHandlersKey".hashValue)!
+
+    private static var installedScriptHandlers: [(WKScriptMessageHandler, WKContentWorld, String)] {
+        get {
+            objc_getAssociatedObject(self, scriptHandlersKey) as? [(WKScriptMessageHandler, WKContentWorld, String)] ?? []
+        }
+        set {
+            objc_setAssociatedObject(self, scriptHandlersKey, newValue, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+        }
+    }
+
+    static let swizzleScriptMessageHandlerMethodsOnce: Void = {
+        let originalAddMethod = class_getInstanceMethod(WKUserContentController.self, #selector(WKUserContentController.add(_:contentWorld:name:)))!
+        let swizzledAddMethod = class_getInstanceMethod(WKUserContentController.self, #selector(swizzled_add(_:contentWorld:name:)))!
+        method_exchangeImplementations(originalAddMethod, swizzledAddMethod)
+    }()
+
+    @objc dynamic private func swizzled_add(_ scriptMessageHandler: WKScriptMessageHandler, contentWorld: WKContentWorld, name: String) {
+        Self.installedScriptHandlers.append((scriptMessageHandler, contentWorld, name))
+        swizzled_add(scriptMessageHandler, contentWorld: contentWorld, name: name) // calling the original method
+    }
+
+    var registeredScriptHandlerNames: [String] {
+        return Self.installedScriptHandlers.map { $0.2 }
+    }
+}
+
 extension UserContentControllerTests: UserContentControllerDelegate {
     func userContentController(_ userContentController: UserContentController, didInstallContentRuleLists contentRuleLists: [String: WKContentRuleList], userScripts: any UserScriptsProvider, updateEvent: ContentBlockerRulesManager.UpdateEvent) {
         onAssetsInstalled?((contentRuleLists, userScripts, updateEvent))
@@ -304,4 +343,18 @@ class PrivacyConfigurationMock: PrivacyConfiguration {
     func settings(for feature: PrivacyFeature) -> PrivacyConfigurationData.PrivacyFeature.FeatureSettings { .init() }
     func userEnabledProtection(forDomain: String) {}
     func userDisabledProtection(forDomain: String) {}
+}
+
+class MockUserScript: NSObject, UserScript {
+    var source: String = "MockUserScript"
+    var injectionTime: WKUserScriptInjectionTime = .atDocumentEnd
+    var forMainFrameOnly: Bool = false
+    var messageNames: [String]
+
+    init(messageNames: [String]) {
+        self.messageNames = messageNames
+    }
+
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+    }
 }
