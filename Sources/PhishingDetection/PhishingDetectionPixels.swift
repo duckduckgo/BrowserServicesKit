@@ -28,16 +28,19 @@ public extension PixelKit {
 public enum PhishingDetectionPixels: PixelKitEventV2 {
     case errorPageShown(clientSideHit: Bool)
     case visitSite
+    case iframeLoaded
     case updateTaskFailed48h(error: Error?)
     
     public var name: String {
         switch self {
         case .errorPageShown:
-            return "error-page-shown"
+            return "phishing_detection.error-page-shown"
         case .visitSite:
-            return "visit-site"
+            return "phishing_detection.visit-site"
+        case .iframeLoaded:
+            return "phishing_detection.iframe-loaded"
         case .updateTaskFailed48h:
-            return "update-task-failed-48h"
+            return "phishing_detection.update-task-failed-48h"
         }
     }
     
@@ -46,6 +49,8 @@ public enum PhishingDetectionPixels: PixelKitEventV2 {
         case .errorPageShown(let clientSideHit):
             return [PixelKit.Parameters.clientSideHit: String(clientSideHit)]
         case .visitSite:
+            return [:]
+        case .iframeLoaded:
             return [:]
         case .updateTaskFailed48h(let error):
             return error?.pixelParameters
@@ -59,6 +64,8 @@ public enum PhishingDetectionPixels: PixelKitEventV2 {
         case .errorPageShown:
             return nil
         case .visitSite:
+            return nil
+        case .iframeLoaded:
             return nil
         }
     }
