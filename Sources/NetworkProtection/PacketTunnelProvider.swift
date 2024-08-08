@@ -1708,19 +1708,32 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     private var snoozeTimer: DispatchSourceTimer?
+    private var snoozeRequestProcessing: Bool = false
     private var snoozeJustEnded: Bool = false
 
     @MainActor
     private func startSnooze(duration: TimeInterval) async {
+        if snoozeRequestProcessing {
+            os_log("Rejecting start snooze request due to existing request processing", log: .networkProtection)
+            return
+        }
+
+        snoozeRequestProcessing = true
         os_log("Starting snooze mode with duration: %{public}d", log: .networkProtection, duration)
 
         await stopMonitors()
-        self.connectionStatus = .snoozing
-        self.snoozeTimingStore.activeTiming = .init(startDate: Date(), duration: duration)
-        self.notificationsPresenter.showSnoozingNotification(duration: duration)
 
-        self.adapter.snooze { error in
+        self.adapter.snooze { [weak self] error in
+            guard let self else {
+                assertionFailure("Failed to get strong self")
+                return
+            }
+
             if error == nil {
+                self.connectionStatus = .snoozing
+                self.snoozeTimingStore.activeTiming = .init(startDate: Date(), duration: duration)
+                self.notificationsPresenter.showSnoozingNotification(duration: duration)
+
                 let timer = DispatchSource.makeTimerSource(queue: self.timerQueue)
                 timer.schedule(deadline: .now() + duration, repeating: .never)
                 timer.setEventHandler {
@@ -1737,10 +1750,22 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             } else {
                 self.snoozeTimingStore.reset()
             }
+
+            self.snoozeRequestProcessing = false
         }
     }
 
     private func cancelSnooze() async {
+        if snoozeRequestProcessing {
+            os_log("Rejecting cancel snooze request due to existing request processing", log: .networkProtection)
+            return
+        }
+
+        snoozeRequestProcessing = true
+        defer {
+            snoozeRequestProcessing = false
+        }
+
         snoozeTimer?.cancel()
         snoozeTimer = nil
 
@@ -1752,8 +1777,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         os_log("Canceling snooze mode", log: .networkProtection)
 
         snoozeJustEnded = true
-        snoozeTimingStore.reset()
         try? await startTunnel(onDemand: false)
+        snoozeTimingStore.reset()
     }
 
 }
