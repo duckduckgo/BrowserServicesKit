@@ -212,11 +212,19 @@ public class AdClickAttributionLogic {
         }
     }
 
-    public func onRequestDetected(request: DetectedRequest) {
+    public func onRequestDetected(request: DetectedRequest, cpmExperimentOn: Bool?) {
         guard registerFirstActivity,
             BlockingState.allowed(reason: .adClickAttribution) == request.state else { return }
 
-        eventReporting?.fire(.adAttributionActive)
+        var parameters: [String: String] = [:]
+        if (cpmExperimentOn != nil) {
+            if (cpmExperimentOn == true) {
+                parameters[AdClickAttributionEvents.Parameters.cpmExperiment] = "1"
+            } else {
+                parameters[AdClickAttributionEvents.Parameters.cpmExperiment] = "0"
+            }
+        }
+        eventReporting?.fire(.adAttributionActive, parameters: parameters)
         registerFirstActivity = false
     }
 

@@ -45,6 +45,7 @@ public class AdClickAttributionDetection {
     }
     private let eventReporting: EventMapping<AdClickAttributionEvents>?
     private let errorReporting: EventMapping<AdClickAttributionDebugEvents>?
+    private let cpmExperimentOn: Bool?
 
     public weak var delegate: AdClickAttributionDetectionDelegate?
 
@@ -52,12 +53,14 @@ public class AdClickAttributionDetection {
                 tld: TLD,
                 eventReporting: EventMapping<AdClickAttributionEvents>? = nil,
                 errorReporting: EventMapping<AdClickAttributionDebugEvents>? = nil,
-                log: @escaping @autoclosure () -> OSLog = .disabled) {
+                log: @escaping @autoclosure () -> OSLog = .disabled,
+                cpmExperimentOn: Bool? = nil) {
         self.attributionFeature = feature
         self.tld = tld
         self.eventReporting = eventReporting
         self.errorReporting = errorReporting
         self.getLog = log
+        self.cpmExperimentOn = cpmExperimentOn
     }
 
     // MARK: - Public API
@@ -148,9 +151,16 @@ public class AdClickAttributionDetection {
             domainDetection = "none"
         }
 
-        let parameters = [AdClickAttributionEvents.Parameters.domainDetection: domainDetection,
+        var parameters = [AdClickAttributionEvents.Parameters.domainDetection: domainDetection,
                           AdClickAttributionEvents.Parameters.domainDetectionEnabled: attributionFeature.isDomainDetectionEnabled ? "1" : "0",
                           AdClickAttributionEvents.Parameters.heuristicDetectionEnabled: attributionFeature.isHeuristicDetectionEnabled ? "1" : "0"]
+        if (cpmExperimentOn != nil) {
+            if (cpmExperimentOn == true) {
+                parameters[AdClickAttributionEvents.Parameters.cpmExperiment] = "1"
+            } else {
+                parameters[AdClickAttributionEvents.Parameters.cpmExperiment] = "0"
+            }
+        }
         eventReporting?.fire(.adAttributionDetected, parameters: parameters)
     }
 }
