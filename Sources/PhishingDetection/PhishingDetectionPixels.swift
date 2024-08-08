@@ -30,7 +30,7 @@ public enum PhishingDetectionPixels: PixelKitEventV2 {
     case visitSite
     case iframeLoaded
     case updateTaskFailed48h(error: Error?)
-    
+
     public var name: String {
         switch self {
         case .errorPageShown:
@@ -43,8 +43,8 @@ public enum PhishingDetectionPixels: PixelKitEventV2 {
             return "phishing_detection_update-task-failed-48h"
         }
     }
-    
-    public var parameters: [String : String]? {
+
+    public var parameters: [String: String]? {
         switch self {
         case .errorPageShown(let clientSideHit):
             return [PixelKit.Parameters.clientSideHit: String(clientSideHit)]
@@ -69,5 +69,5 @@ public enum PhishingDetectionPixels: PixelKitEventV2 {
             return nil
         }
     }
-    
+
 }
