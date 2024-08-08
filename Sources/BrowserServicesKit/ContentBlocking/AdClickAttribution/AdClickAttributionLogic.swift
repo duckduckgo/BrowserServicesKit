@@ -217,8 +217,8 @@ public class AdClickAttributionLogic {
             BlockingState.allowed(reason: .adClickAttribution) == request.state else { return }
 
         var parameters: [String: String] = [:]
-        if (cpmExperimentOn != nil) {
-            if (cpmExperimentOn == true) {
+        if cpmExperimentOn != nil {
+            if cpmExperimentOn == true {
                 parameters[AdClickAttributionEvents.Parameters.cpmExperiment] = "1"
             } else {
                 parameters[AdClickAttributionEvents.Parameters.cpmExperiment] = "0"
