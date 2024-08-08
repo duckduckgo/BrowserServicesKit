@@ -23,13 +23,16 @@ import Foundation
 public protocol NetworkProtectionNotificationsPresenter {
 
     /// Present a "connected" notification to the user.
-    func showConnectedNotification(serverLocation: String?)
+    func showConnectedNotification(serverLocation: String?, snoozeEnded: Bool)
 
     /// Present a "reconnecting" notification to the user.
     func showReconnectingNotification()
 
     /// Present a "connection failure" notification to the user.
     func showConnectionFailureNotification()
+
+    /// Present a "snoozing" notification to the user.
+    func showSnoozingNotification(duration: TimeInterval)
 
     /// Present a "Superseded by another App" notification to the user.
     func showSupersededNotification()
@@ -40,4 +43,5 @@ public protocol NetworkProtectionNotificationsPresenter {
 
     /// Present a "expired subscription" notification to the user.
     func showEntitlementNotification()
+
 }

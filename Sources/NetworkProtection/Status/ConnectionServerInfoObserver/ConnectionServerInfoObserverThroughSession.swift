@@ -99,6 +99,7 @@ public class ConnectionServerInfoObserverThroughSession: ConnectionServerInfoObs
 
     private func updateServerInfo(session: NETunnelProviderSession) async {
         guard session.status == .connected else {
+            subject.send(NetworkProtectionStatusServerInfo.unknown)
             return
         }
 

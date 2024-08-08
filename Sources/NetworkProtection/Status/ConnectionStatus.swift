@@ -25,6 +25,7 @@ public enum ConnectionStatus: Codable, Equatable {
     case connected(connectedDate: Date)
     case connecting
     case reasserting
+    case snoozing
 
     public static var `default`: ConnectionStatus = .disconnected
 
@@ -42,6 +43,8 @@ public enum ConnectionStatus: Codable, Equatable {
             return "connecting"
         case .reasserting:
             return "reasserting"
+        case .snoozing:
+            return "snoozing"
         }
     }
 }
