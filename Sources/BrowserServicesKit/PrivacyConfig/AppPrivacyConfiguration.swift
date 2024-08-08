@@ -183,10 +183,10 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         case .enabled:
             return true
         case .disabled(let reason):
-             if reason == .limitedToInternalUsers {
-                 return internalUserDecider.isInternalUser
-             }
-             return false
+            if reason == .limitedToInternalUsers {
+                return internalUserDecider.isInternalUser
+            }
+            return false
 	}
     }
 
