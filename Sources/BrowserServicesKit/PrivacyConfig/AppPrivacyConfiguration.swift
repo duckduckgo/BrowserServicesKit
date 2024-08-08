@@ -182,9 +182,12 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         switch stateFor(subfeature, versionProvider: versionProvider, randomizer: randomizer) {
         case .enabled:
             return true
-        case .disabled:
-            return false
-        }
+        case .disabled(let reason):
+             if reason == .limitedToInternalUsers {
+                 return internalUserDecider.isInternalUser
+             }
+             return false
+	}
     }
 
     public func stateFor(_ subfeature: any PrivacySubfeature, versionProvider: AppVersionProvider, randomizer: (Range<Double>) -> Double) -> PrivacyConfigurationFeatureState {
