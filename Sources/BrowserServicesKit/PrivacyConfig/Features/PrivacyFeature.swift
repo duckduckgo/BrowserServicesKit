@@ -49,6 +49,7 @@ public enum PrivacyFeature: String {
     case sslCertificates
     case brokenSiteReportExperiment
     case toggleReports
+    case phishingDetection
     case remoteMessaging
     case additionalCampaignPixelParams
 }
@@ -125,4 +126,10 @@ public enum DuckPlayerSubfeature: String, PrivacySubfeature {
     case pip
     case autoplay
     case openInNewTab
+}
+
+public enum phishingDetectionSubfeature: String, PrivacySubfeature {
+    public var parent: PrivacyFeature { .phishingDetection }
+    case allowErrorPage
+    case allowPreferencesToggle
 }
