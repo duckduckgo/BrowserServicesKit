@@ -187,7 +187,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
                 return internalUserDecider.isInternalUser
             }
             return false
-	}
+        }
     }
 
     public func stateFor(_ subfeature: any PrivacySubfeature, versionProvider: AppVersionProvider, randomizer: (Range<Double>) -> Double) -> PrivacyConfigurationFeatureState {
