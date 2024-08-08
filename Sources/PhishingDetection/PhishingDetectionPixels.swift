@@ -34,13 +34,13 @@ public enum PhishingDetectionPixels: PixelKitEventV2 {
     public var name: String {
         switch self {
         case .errorPageShown:
-            return "phishing_detection.error-page-shown"
+            return "phishing_detection_error-page-shown"
         case .visitSite:
-            return "phishing_detection.visit-site"
+            return "phishing_detection_visit-site"
         case .iframeLoaded:
-            return "phishing_detection.iframe-loaded"
+            return "phishing_detection_iframe-loaded"
         case .updateTaskFailed48h:
-            return "phishing_detection.update-task-failed-48h"
+            return "phishing_detection_update-task-failed-48h"
         }
     }
     
