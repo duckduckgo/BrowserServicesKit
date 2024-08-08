@@ -113,6 +113,7 @@ public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {
     case allowPurchaseStripe
     case isLaunchedOverride
     case isLaunchedOverrideStripe
+    case useUnifiedFeedback
 }
 
 public enum sslCertificatesSubfeature: String, PrivacySubfeature {
