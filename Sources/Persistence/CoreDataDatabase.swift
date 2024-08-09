@@ -20,12 +20,25 @@ import Foundation
 import CoreData
 import Common
 
-public protocol ManagedObjectContextFactory {
+public protocol CoreDataStoring {
+
+    var isDatabaseFileInitialized: Bool { get }
+    var model: NSManagedObjectModel { get }
+    var coordinator: NSPersistentStoreCoordinator { get }
+
+    func loadStore(completion: @escaping (NSManagedObjectContext?, Swift.Error?) -> Void)
 
     func makeContext(concurrencyType: NSManagedObjectContextConcurrencyType, name: String?) -> NSManagedObjectContext
 }
 
-public class CoreDataDatabase: ManagedObjectContextFactory {
+public extension CoreDataStoring {
+
+    func makeContext(concurrencyType: NSManagedObjectContextConcurrencyType) -> NSManagedObjectContext {
+        makeContext(concurrencyType: concurrencyType, name: nil)
+    }
+}
+
+public class CoreDataDatabase: CoreDataStoring {
 
     public enum Error: Swift.Error {
         case containerLocationCouldNotBePrepared(underlyingError: Swift.Error)
@@ -135,7 +148,7 @@ public class CoreDataDatabase: ManagedObjectContextFactory {
         }
     }
 
-    public func makeContext(concurrencyType: NSManagedObjectContextConcurrencyType, name: String? = nil) -> NSManagedObjectContext {
+    public func makeContext(concurrencyType: NSManagedObjectContextConcurrencyType, name: String?) -> NSManagedObjectContext {
         RunLoop.current.run(until: storeLoadedCondition)
 
         let context = NSManagedObjectContext(concurrencyType: concurrencyType)

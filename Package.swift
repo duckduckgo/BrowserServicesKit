@@ -40,6 +40,7 @@ let package = Package(
         .library(name: "Suggestions", targets: ["Suggestions"]),
         .library(name: "PixelKit", targets: ["PixelKit"]),
         .library(name: "PixelKitTestingUtilities", targets: ["PixelKitTestingUtilities"]),
+        .library(name: "DuckPlayer", targets: ["DuckPlayer"]),
     ],
     dependencies: [
         .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "12.1.0"),
@@ -47,8 +48,8 @@ let package = Package(
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "2.1.2"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.2.0"),
         .package(url: "https://github.com/gumob/PunycodeSwift.git", exact: "2.1.0"),
-        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "6.4.0"),
-        .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "4.2.0"),
+        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "6.7.0"),
+        .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "5.0.0"),
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
         .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
         .package(url: "https://github.com/duckduckgo/wireguard-apple", exact: "1.1.3"),
@@ -380,6 +381,16 @@ let package = Package(
                 "PixelKit"
             ]
         ),
+        .target(
+            name: "DuckPlayer",
+            dependencies: [
+                "Common",
+                "BrowserServicesKit"
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
+            ]
+        ),
 
         // MARK: - Test Targets
         .testTarget(
@@ -570,6 +581,13 @@ let package = Package(
             dependencies: [
                 "PixelKit",
                 "PixelKitTestingUtilities",
+            ]
+        ),
+
+        .testTarget(
+            name: "DuckPlayerTests",
+            dependencies: [
+                "DuckPlayer"
             ]
         ),
     ],

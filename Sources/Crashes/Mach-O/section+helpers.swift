@@ -29,13 +29,15 @@ extension section_64 {
         Int(self.size / UInt64(MemoryLayout<UnsafeMutableRawPointer?>.size))
     }
 
-    func indirectSymbolIndices(indirectSymtab: UnsafePointer<UInt32>) -> UnsafeBufferPointer<UInt32> {
-        UnsafeBufferPointer(start: indirectSymtab.advanced(by: Int(self.reserved1)), count: self.count)
+    func indirectSymbolIndices(indirectSymtab: UnsafeBufferPointer<UInt32>) -> UnsafeBufferPointer<UInt32>? {
+        let count = min(self.count, indirectSymtab.count - Int(self.reserved1))
+        guard count > 0 else { return nil }
+        return UnsafeBufferPointer(start: indirectSymtab.baseAddress!.advanced(by: Int(self.reserved1)), count: count)
     }
 
-    func indirectSymbolBindings(slide: Int) -> UnsafeBufferPointer<UnsafeRawPointer> {
-        UnsafeRawBufferPointer(start: UnsafeRawPointer(bitPattern: UInt(self.addr))!.advanced(by: slide),
-                               count: Int(self.size)).assumingMemoryBound(to: UnsafeRawPointer.self)
+    func indirectSymbolBindings(slide: Int) -> UnsafeBufferPointer<UnsafeRawPointer>? {
+        guard let ptr = UnsafeRawPointer(bitPattern: UInt(self.addr) + UInt(slide)) else { return nil }
+        return UnsafeRawBufferPointer(start: ptr, count: Int(self.size)).assumingMemoryBound(to: UnsafeRawPointer.self)
     }
 
 }

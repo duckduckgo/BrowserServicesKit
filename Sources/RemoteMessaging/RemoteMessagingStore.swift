@@ -287,6 +287,28 @@ extension RemoteMessagingStore {
         return shown
     }
 
+    public func fetchShownRemoteMessageIDs() -> [String] {
+        guard remoteMessagingAvailabilityProvider.isRemoteMessagingAvailable else {
+            return []
+        }
+
+        var dismissedMessageIds: [String] = []
+        let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType, name: Constants.privateContextName)
+        context.performAndWait {
+            let fetchRequest: NSFetchRequest<RemoteMessageManagedObject> = RemoteMessageManagedObject.fetchRequest()
+            fetchRequest.predicate = NSPredicate(format: "%K == YES", #keyPath(RemoteMessageManagedObject.shown))
+            fetchRequest.returnsObjectsAsFaults = false
+
+            do {
+                let results = try context.fetch(fetchRequest)
+                dismissedMessageIds = results.compactMap { $0.id }
+            } catch {
+                os_log("Failed to fetch shown remote messages: %@", log: log, type: .error, error.localizedDescription)
+            }
+        }
+        return dismissedMessageIds
+    }
+
     public func hasDismissedRemoteMessage(withID id: String) -> Bool {
         guard remoteMessagingAvailabilityProvider.isRemoteMessagingAvailable else {
             return false
