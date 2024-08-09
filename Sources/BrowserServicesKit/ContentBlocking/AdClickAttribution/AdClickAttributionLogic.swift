@@ -212,7 +212,7 @@ public class AdClickAttributionLogic {
         }
     }
 
-    public func onRequestDetected(request: DetectedRequest, cpmExperimentOn: Bool?) {
+    public func onRequestDetected(request: DetectedRequest, cpmExperimentOn: Bool? = nil) {
         guard registerFirstActivity,
             BlockingState.allowed(reason: .adClickAttribution) == request.state else { return }
 
