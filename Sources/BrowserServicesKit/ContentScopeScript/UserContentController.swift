@@ -112,12 +112,16 @@ final public class UserContentController: WKUserContentController {
     @MainActor
     private let scriptMessageHandler = PermanentScriptMessageHandler()
 
+    /// if earlyAccessHandlers (WKScriptMessageHandlers) are provided they are installed without waiting for contentBlockingAssets to be loaded if.
     @MainActor
-    public init<Pub, Content>(assetsPublisher: Pub, privacyConfigurationManager: PrivacyConfigurationManaging)
+    public init<Pub, Content>(assetsPublisher: Pub, privacyConfigurationManager: PrivacyConfigurationManaging, earlyAccessHandlers: [UserScript] = [])
     where Pub: Publisher, Content: UserContentControllerNewContent, Pub.Output == Content, Pub.Failure == Never {
 
         self.privacyConfigurationManager = privacyConfigurationManager
         super.init()
+
+        // Install initial WKScriptMessageHandlers if any. Currently, no WKUserScript are provided at initialization.
+        installUserScripts([], handlers: earlyAccessHandlers)
 
         assetsPublisherCancellable = assetsPublisher.sink { [weak self, selfDescr=self.debugDescription] content in
             os_log(.debug, log: .contentBlocking, "\(selfDescr): 📚 received content blocking assets")

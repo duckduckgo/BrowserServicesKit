@@ -49,6 +49,7 @@ private enum AttributesKey: String, CaseIterable {
     case customHomePage
     case duckPlayerOnboarded
     case duckPlayerEnabled
+    case messageShown
 
     func matchingAttribute(jsonMatchingAttribute: AnyDecodable) -> MatchingAttribute {
         switch self {
@@ -83,6 +84,7 @@ private enum AttributesKey: String, CaseIterable {
         case .customHomePage: return CustomHomePageMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         case .duckPlayerOnboarded: return DuckPlayerOnboardedMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         case .duckPlayerEnabled: return DuckPlayerEnabledMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .messageShown: return MessageShownMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         }
     }
 }
