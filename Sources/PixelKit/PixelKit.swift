@@ -17,7 +17,7 @@
 //
 
 import Foundation
-import os.log // swiftlint:disable:this enforce_os_log_wrapper
+import os.log
 
 public final class PixelKit {
     /// `true` if a request is fired, `false` otherwise

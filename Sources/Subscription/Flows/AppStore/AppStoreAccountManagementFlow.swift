@@ -18,7 +18,7 @@
 
 import Foundation
 import StoreKit
-import Common
+import os.log
 
 public enum AppStoreAccountManagementFlowError: Swift.Error {
     case noPastTransaction
@@ -45,12 +45,12 @@ public final class DefaultAppStoreAccountManagementFlow: AppStoreAccountManageme
 
     @discardableResult
     public func refreshAuthTokenIfNeeded() async -> Result<String, AppStoreAccountManagementFlowError> {
-        os_log(.info, log: .subscription, "[AppStoreAccountManagementFlow] refreshAuthTokenIfNeeded")
+        Logger.subscription.info("[AppStoreAccountManagementFlow] refreshAuthTokenIfNeeded")
         var authToken = accountManager.authToken ?? ""
 
         // Check if auth token if still valid
         if case let .failure(validateTokenError) = await authEndpointService.validateToken(accessToken: authToken) {
-            os_log(.error, log: .subscription, "[AppStoreAccountManagementFlow] validateToken error: %{public}s", String(reflecting: validateTokenError))
+            Logger.subscription.error("[AppStoreAccountManagementFlow] validateToken error: \(String(reflecting: validateTokenError), privacy: .public)")
 
             // In case of invalid token attempt store based authentication to obtain a new one
             guard let lastTransactionJWSRepresentation = await storePurchaseManager.mostRecentTransaction() else { return .failure(.noPastTransaction) }
@@ -62,7 +62,7 @@ public final class DefaultAppStoreAccountManagementFlow: AppStoreAccountManageme
                     accountManager.storeAuthToken(token: authToken)
                 }
             case .failure(let storeLoginError):
-                os_log(.error, log: .subscription, "[AppStoreAccountManagementFlow] storeLogin error: %{public}s", String(reflecting: storeLoginError))
+                Logger.subscription.error("[AppStoreAccountManagementFlow] storeLogin error: \(String(reflecting: storeLoginError), privacy: .public)")
                 return .failure(.authenticatingWithTransactionFailed)
             }
         }

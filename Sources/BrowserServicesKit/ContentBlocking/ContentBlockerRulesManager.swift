@@ -21,6 +21,7 @@ import WebKit
 import TrackerRadarKit
 import Combine
 import Common
+import os.log
 
 public protocol CompiledRuleListsSource {
 
@@ -124,10 +125,6 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
     public var onCriticalError: (() -> Void)?
 
     private let errorReporting: EventMapping<ContentBlockerDebugEvents>?
-    private let getLog: () -> OSLog
-    private var log: OSLog {
-        getLog()
-    }
 
     // Public only for tests
     public var sourceManagers = [String: ContentBlockerRulesSourceManager]()
@@ -143,14 +140,12 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
                 exceptionsSource: ContentBlockerRulesExceptionsSource,
                 lastCompiledRulesStore: LastCompiledRulesStore? = nil,
                 cache: ContentBlockerRulesCaching? = nil,
-                errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil,
-                log: @escaping @autoclosure () -> OSLog = .disabled) {
+                errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil) {
         self.rulesSource = rulesSource
         self.exceptionsSource = exceptionsSource
         self.lastCompiledRulesStore = lastCompiledRulesStore
         self.cache = cache
         self.errorReporting = errorReporting
-        self.getLog = log
 
         workQueue.async {
             _ = self.updateCompilationState(token: "")
@@ -201,7 +196,7 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
     @discardableResult
     public func scheduleCompilation() -> CompletionToken {
         let token = UUID().uuidString
-        os_log("Scheduling compilation with %{public}s", log: log, type: .default, token)
+        Logger.contentBlocking.log("Scheduling compilation with \(token, privacy: .public)")
         workQueue.async {
             let shouldStartCompilation = self.updateCompilationState(token: token)
             if shouldStartCompilation {
@@ -213,7 +208,7 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
 
     /// Returns true if the compilation should be executed immediately
     private func updateCompilationState(token: CompletionToken) -> Bool {
-        os_log("Requesting compilation...", log: log, type: .default)
+        Logger.contentBlocking.log("Requesting compilation...")
         lock.lock()
         guard case .idle = state else {
             if case .recompiling(let tokens) = state {
@@ -237,16 +232,16 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
      Returns true if rules were found, false otherwise.
      */
     private func lookupCompiledRules() -> Bool {
-        os_log("Lookup compiled rules", log: log, type: .debug)
+        Logger.contentBlocking.debug("Lookup compiled rules")
         prepareSourceManagers()
         let initialCompilationTask = LookupRulesTask(sourceManagers: Array(sourceManagers.values))
         let mutex = DispatchSemaphore(value: 0)
 
-        Task { [log] in
+        Task {
             do {
                 try await initialCompilationTask.lookupCachedRulesLists()
             } catch {
-                os_log("❌ Lookup failed: %{public}s", log: log, type: .debug, error.localizedDescription)
+                Logger.contentBlocking.debug("❌ Lookup failed: \(error.localizedDescription, privacy: .public)")
             }
             mutex.signal()
         }
@@ -255,7 +250,7 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
 
         if let result = initialCompilationTask.result {
             let rules = result.map(Rules.init(compilationResult:))
-            os_log("🟩 Found %{public}d rules", log: log, type: .debug, rules.count)
+            Logger.contentBlocking.debug("🟩 Found \(rules.count, privacy: .public) rules")
             applyRules(rules)
             return true
         }
@@ -267,7 +262,7 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
      Returns true if rules were found, false otherwise.
      */
     private func fetchLastCompiledRules(with lastCompiledRules: [LastCompiledRules]) {
-        os_log("Fetch last compiled rules: %{public}d", log: log, type: .debug, lastCompiledRules.count)
+        Logger.contentBlocking.debug("Fetch last compiled rules: \(lastCompiledRules.count, privacy: .public)")
 
         let initialCompilationTask = LastCompiledRulesLookupTask(sourceRules: rulesSource.contentBlockerRulesLists,
                                                                  lastCompiledRules: lastCompiledRules)
@@ -299,19 +294,17 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
                 manager.rulesList = rulesList
                 sourceManager = manager
             } else {
-                let log = self.log
                 sourceManager = ContentBlockerRulesSourceManager(rulesList: rulesList,
                                                                  exceptionsSource: self.exceptionsSource,
                                                                  errorReporting: self.errorReporting,
-                                                                 onCriticalError: self.onCriticalError,
-                                                                 log: log)
+                                                                 onCriticalError: self.onCriticalError)
                 self.sourceManagers[rulesList.name] = sourceManager
             }
         }
     }
 
     private func startCompilationProcess() {
-        os_log("Starting compilataion process", log: log, type: .debug)
+        Logger.contentBlocking.debug("Starting compilataion process")
         prepareSourceManagers()
 
         // Prepare compilation tasks based on the sources
@@ -368,7 +361,7 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
 
         let newRules: [Rules] = currentTasks.compactMap { task in
             guard let result = task.result else {
-                os_log("Failed to complete task %{public}s ", log: self.log, type: .error, task.rulesList.name)
+                Logger.contentBlocking.debug("Failed to complete task \(task.rulesList.name, privacy: .public)")
                 return nil
             }
             let rules = Rules(compilationResult: result)
