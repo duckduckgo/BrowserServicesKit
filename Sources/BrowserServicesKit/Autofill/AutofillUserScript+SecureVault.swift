@@ -31,7 +31,7 @@ public protocol AutofillSecureVaultDelegate: AnyObject {
     var tld: TLD? { get }
 
     func autofillUserScript(_: AutofillUserScript, didRequestAutoFillInitDataForDomain domain: String, completionHandler: @escaping (
-        [SecureVaultModels.WebsiteAccount],
+        [SecureVaultModels.WebsiteCredentials],
         [SecureVaultModels.Identity],
         [SecureVaultModels.CreditCard],
         SecureVaultModels.CredentialsProvider
@@ -434,8 +434,8 @@ extension AutofillUserScript {
     func getAvailableInputTypes(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         let domain = hostForMessage(message)
         let email = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
-        vaultDelegate?.autofillUserScript(self, didRequestAutoFillInitDataForDomain: domain) { accounts, identities, cards, credentialsProvider  in
-            let response = RequestAvailableInputTypesResponse(accounts: accounts,
+        vaultDelegate?.autofillUserScript(self, didRequestAutoFillInitDataForDomain: domain) { credentials, identities, cards, credentialsProvider  in
+            let response = RequestAvailableInputTypesResponse(credentials: credentials,
                                                               identities: identities,
                                                               cards: cards,
                                                               email: email,
@@ -515,28 +515,31 @@ extension AutofillUserScript {
 
     func pmGetAutoFillInitData(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         let domain = hostForMessage(message)
-        vaultDelegate?.autofillUserScript(self, didRequestAutoFillInitDataForDomain: domain) { accounts, identities, cards, credentialsProvider in
-            let credentials: [CredentialObject]
+        vaultDelegate?.autofillUserScript(self, didRequestAutoFillInitDataForDomain: domain) { credentials, identities, cards, credentialsProvider in
+            let credentialObjects: [CredentialObject]
             if credentialsProvider.locked {
-                credentials = [CredentialObject(id: "provider_locked", username: "", credentialsProvider: credentialsProvider.name.rawValue)]
+                credentialObjects = [CredentialObject(id: "provider_locked", username: "", credentialsProvider: credentialsProvider.name.rawValue)]
             } else {
                 guard let autofillWebsiteAccountMatcher = self.vaultDelegate?.autofillWebsiteAccountMatcher else {
-                    credentials = accounts.compactMap {
-                        guard let id = $0.id else { return nil }
-                        return CredentialObject(id: id, username: $0.username ?? "", credentialsProvider: credentialsProvider.name.rawValue)
+                    credentialObjects = credentials.compactMap {
+                        if let id = $0.account.id {
+                            return CredentialObject(id: id, username: $0.account.username ?? "", credentialsProvider: credentialsProvider.name.rawValue)
+                        } else {
+                            return nil
+                        }
                     }
                     return
                 }
 
-                let accountMatches = autofillWebsiteAccountMatcher.findMatches(accounts: accounts, for: domain)
-                credentials = self.buildCredentialObjects(accountMatches, credentialsProvider: credentialsProvider)
+                let accountMatches = autofillWebsiteAccountMatcher.findMatches(accounts: credentials.map(\.account), for: domain)
+                credentialObjects = self.buildCredentialObjects(accountMatches, credentialsProvider: credentialsProvider)
             }
 
             let identities: [IdentityObject] = identities.compactMap(IdentityObject.from(identity:))
             let cards: [CreditCardObject] = cards.compactMap(CreditCardObject.autofillInitializationValueFrom(card:))
 
             let success = RequestAutoFillInitDataResponse.AutofillInitSuccess(serializedInputContext: self.serializedInputContext,
-                                                                              credentials: credentials,
+                                                                              credentials: credentialObjects,
                                                                               creditCards: cards,
                                                                               identities: identities)
 
@@ -810,8 +813,8 @@ extension AutofillUserScript.RequestAvailableInputTypesResponse {
          cards: [SecureVaultModels.CreditCard],
          email: Bool,
          credentialsProvider: SecureVaultModels.CredentialsProvider) {
-        let username = credentialsProvider.locked || credentials.filter({ $0.account.username?.isEmpty == false }).count > 0
-        let password = credentialsProvider.locked || credentials.count > 0
+        let username = credentialsProvider.locked || credentials.hasAtLeastOneUsername
+        let password = credentialsProvider.locked || credentials.hasAtLeastOnePassword
         let credentials = AutofillUserScript.AvailableInputTypesSuccess.AvailableInputTypesCredentials(username: username, password: password)
         let success = AutofillUserScript.AvailableInputTypesSuccess(
             credentials: credentials,
@@ -823,6 +826,22 @@ extension AutofillUserScript.RequestAvailableInputTypesResponse {
         self.init(success: success, error: nil)
     }
 
+}
+
+private extension Array where Element == SecureVaultModels.WebsiteCredentials {
+    var hasAtLeastOneUsername: Bool {
+        let elementsWithUsername = filter {
+            $0.account.username?.isEmpty == false
+        }
+        return !elementsWithUsername.isEmpty
+    }
+
+    var hasAtLeastOnePassword: Bool {
+        let elementsWithPassword = filter {
+            $0.password?.isEmpty == false
+        }
+        return !elementsWithPassword.isEmpty
+    }
 }
 
 extension AutofillUserScript.AvailableInputTypesSuccess.AvailableInputTypesIdentities {

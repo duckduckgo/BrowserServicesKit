@@ -29,10 +29,10 @@ public struct BrokenSiteReportEntry {
     /// Object Creation + 30 days
     let expiryDate: Date?
 
-    public init?(report: BrokenSiteReport, currentDate: Date) {
+    public init?(report: BrokenSiteReport, currentDate: Date, daysToExpiry: Int) {
 
         guard let domainIdentifier = report.siteUrl.privacySafeDomainIdentifier,
-              let expiryDate = Calendar.current.date(byAdding: .day, value: 30, to: currentDate) else {
+              let expiryDate = Calendar.current.date(byAdding: .day, value: daysToExpiry, to: currentDate) else {
             return nil
         }
         self.identifier = domainIdentifier
@@ -50,7 +50,7 @@ public struct BrokenSiteReportEntry {
 
 }
 
-fileprivate extension URL {
+public extension URL {
 
     /// A string containing the first 6 chars of the sha256 hash of the URL's domain part
     var privacySafeDomainIdentifier: String? {

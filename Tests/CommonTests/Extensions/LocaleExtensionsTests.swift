@@ -1,7 +1,7 @@
 //
-//  ExtensionRequest.swift
+//  LocaleExtensionsTests.swift
 //
-//  Copyright © 2023 DuckDuckGo. All rights reserved.
+//  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -17,19 +17,15 @@
 //
 
 import Foundation
+import XCTest
+@testable import Common
 
-public enum VPNCommand: Codable {
-    case expireRegistrationKey
-    case removeSystemExtension
-    case removeVPNConfiguration
-    case sendTestNotification
-    case restartAdapter
-    case uninstallVPN
-    case disableConnectOnDemandAndShutDown
-    case quitAgent
-}
+final class LocaleExtensionsTests: XCTest {
 
-public enum ExtensionRequest: Codable {
-    case changeTunnelSetting(_ change: VPNSettings.Change)
-    case command(_ command: VPNCommand)
+    func testThatJSONLocaleFormatIsReturned() {
+        let locale = Locale(identifier: "en_US")
+
+        XCTAssert(locale.localeIdentifierAsJsonFormat == "en-US", "The returned identifier should be in JSON format")
+    }
+
 }

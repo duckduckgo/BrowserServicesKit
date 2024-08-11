@@ -54,7 +54,10 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                     isPrivacyProSubscriptionActive: false,
                     isPrivacyProSubscriptionExpiring: false,
                     isPrivacyProSubscriptionExpired: false,
-                    dismissedMessageIds: []
+                    isDuckPlayerOnboarded: false,
+                    isDuckPlayerEnabled: false,
+                    dismissedMessageIds: [],
+                    shownMessageIds: []
                 ),
                 percentileStore: MockRemoteMessagePercentileStore(),
                 surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
@@ -149,7 +152,10 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                     isPrivacyProSubscriptionActive: false,
                     isPrivacyProSubscriptionExpiring: false,
                     isPrivacyProSubscriptionExpired: false,
-                    dismissedMessageIds: []
+                    isDuckPlayerOnboarded: false,
+                    isDuckPlayerEnabled: false,
+                    dismissedMessageIds: [],
+                    shownMessageIds: []
                 ),
                 percentileStore: MockRemoteMessagePercentileStore(),
                 surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
@@ -254,7 +260,10 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                     isPrivacyProSubscriptionActive: false,
                     isPrivacyProSubscriptionExpiring: false,
                     isPrivacyProSubscriptionExpired: false,
-                    dismissedMessageIds: []
+                    isDuckPlayerOnboarded: false,
+                    isDuckPlayerEnabled: false,
+                    dismissedMessageIds: [],
+                    shownMessageIds: []
                 ),
                 percentileStore: MockRemoteMessagePercentileStore(),
                 surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
@@ -302,7 +311,10 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                     isPrivacyProSubscriptionActive: false,
                     isPrivacyProSubscriptionExpiring: false,
                     isPrivacyProSubscriptionExpired: false,
-                    dismissedMessageIds: []
+                    isDuckPlayerOnboarded: false,
+                    isDuckPlayerEnabled: false,
+                    dismissedMessageIds: [],
+                    shownMessageIds: []
                 ),
                 percentileStore: MockRemoteMessagePercentileStore(),
                 surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
@@ -346,7 +358,10 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                     isPrivacyProSubscriptionActive: false,
                     isPrivacyProSubscriptionExpiring: false,
                     isPrivacyProSubscriptionExpired: false,
-                    dismissedMessageIds: []
+                    isDuckPlayerOnboarded: false,
+                    isDuckPlayerEnabled: false,
+                    dismissedMessageIds: [],
+                    shownMessageIds: []
                 ),
                 percentileStore: percentileStore,
                 surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
@@ -388,7 +403,10 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                     isPrivacyProSubscriptionActive: false,
                     isPrivacyProSubscriptionExpiring: false,
                     isPrivacyProSubscriptionExpired: false,
-                    dismissedMessageIds: []
+                    isDuckPlayerOnboarded: false,
+                    isDuckPlayerEnabled: false,
+                    dismissedMessageIds: [],
+                    shownMessageIds: []
                 ),
                 percentileStore: percentileStore,
                 surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
@@ -430,7 +448,10 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                     isPrivacyProSubscriptionActive: false,
                     isPrivacyProSubscriptionExpiring: false,
                     isPrivacyProSubscriptionExpired: false,
-                    dismissedMessageIds: []
+                    isDuckPlayerOnboarded: false,
+                    isDuckPlayerEnabled: false,
+                    dismissedMessageIds: [],
+                    shownMessageIds: []
                 ),
                 percentileStore: percentileStore,
                 surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
@@ -472,7 +493,10 @@ class RemoteMessagingConfigMatcherTests: XCTestCase {
                     isPrivacyProSubscriptionActive: false,
                     isPrivacyProSubscriptionExpiring: false,
                     isPrivacyProSubscriptionExpired: false,
-                    dismissedMessageIds: []
+                    isDuckPlayerOnboarded: false,
+                    isDuckPlayerEnabled: false,
+                    dismissedMessageIds: [],
+                    shownMessageIds: []
                 ),
                 percentileStore: percentileStore,
                 surveyActionMapper: MockRemoteMessageSurveyActionMapper(),

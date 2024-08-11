@@ -1,7 +1,7 @@
 //
-//  ExtensionRequest.swift
+//  LocaleExtensions.swift
 //
-//  Copyright © 2023 DuckDuckGo. All rights reserved.
+//  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -18,18 +18,9 @@
 
 import Foundation
 
-public enum VPNCommand: Codable {
-    case expireRegistrationKey
-    case removeSystemExtension
-    case removeVPNConfiguration
-    case sendTestNotification
-    case restartAdapter
-    case uninstallVPN
-    case disableConnectOnDemandAndShutDown
-    case quitAgent
-}
-
-public enum ExtensionRequest: Codable {
-    case changeTunnelSetting(_ change: VPNSettings.Change)
-    case command(_ command: VPNCommand)
+public extension Locale {
+    var localeIdentifierAsJsonFormat: String {
+        let baseIdentifier = self.identifier.components(separatedBy: "@").first ?? self.identifier
+        return baseIdentifier.replacingOccurrences(of: "_", with: "-")
+    }
 }

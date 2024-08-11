@@ -52,7 +52,7 @@ public actor NetworkProtectionEntitlementMonitor {
 
     // MARK: - Start/Stop monitoring
 
-    public func start(entitlementCheck: @escaping () async -> Swift.Result<Bool, Error>, callback: @escaping (Result) -> Void) {
+    public func start(entitlementCheck: @escaping () async -> Swift.Result<Bool, Error>, callback: @escaping (Result) async -> Void) {
         os_log("⚫️ Starting entitlement monitor", log: .networkProtectionEntitlementMonitorLog)
 
         task = Task.periodic(interval: Self.monitoringInterval) {
@@ -61,14 +61,14 @@ public actor NetworkProtectionEntitlementMonitor {
             case .success(let hasEntitlement):
                 if hasEntitlement {
                     os_log("⚫️ Valid entitlement", log: .networkProtectionEntitlementMonitorLog)
-                    callback(.validEntitlement)
+                    await callback(.validEntitlement)
                 } else {
                     os_log("⚫️ Invalid entitlement", log: .networkProtectionEntitlementMonitorLog)
-                    callback(.invalidEntitlement)
+                    await callback(.invalidEntitlement)
                 }
             case .failure(let error):
                 os_log("⚫️ Error retrieving entitlement: %{public}@", log: .networkProtectionEntitlementMonitorLog, error.localizedDescription)
-                callback(.error(error))
+                await callback(.error(error))
             }
         }
     }
