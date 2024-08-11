@@ -26,7 +26,7 @@ public enum Suggestion: Equatable {
     case historyEntry(title: String?, url: URL, allowedInTopHits: Bool)
     case internalPage(title: String, url: URL)
     case unknown(value: String)
-    case weatherIA(icon: String, currentTemperature: Int, description: String, highTemperature: Int, lowTemperature: Int, location: String, url: URL)
+    case weatherIA(conditionCode: String, currentTemperature: Int, highTemperature: Int, lowTemperature: Int, location: String, url: URL)
 
     var url: URL? {
         switch self {
@@ -34,7 +34,7 @@ public enum Suggestion: Equatable {
              .historyEntry(title: _, url: let url, allowedInTopHits: _),
              .bookmark(title: _, url: let url, isFavorite: _, allowedInTopHits: _),
              .internalPage(title: _, url: let url),
-             .weatherIA(icon: _, currentTemperature: _, description: _, highTemperature: _, lowTemperature: _, location: _, url: let url):
+             .weatherIA(conditionCode: _, currentTemperature: _, highTemperature: _, lowTemperature: _, location: _, url: let url):
             return url
         case .phrase, .unknown:
             return nil
@@ -113,6 +113,30 @@ extension Suggestion {
         } else {
             self = .phrase(phrase: phrase)
         }
+    }
+
+    init?(instantAnswer: InstantAnswer) {
+        guard let conditionCode = instantAnswer.answer?.currentWeather?.conditionCode,
+              let currentTemperature = instantAnswer.answer?.currentWeather?.temperature,
+              let highTemperature = instantAnswer.answer?.forecastDaily?.days?.first?.temperatureMax,
+              let lowTemperature = instantAnswer.answer?.forecastDaily?.days?.first?.temperatureMin,
+              let location = instantAnswer.answer?.location,
+              let urlString = instantAnswer.seeMore,
+              let url = URL(string: urlString) else {
+            return nil
+        }
+        let currentTemperatureInt = Int(currentTemperature)
+        let highTemperatureInt = Int(highTemperature)
+        let lowTemperatureInt = Int(lowTemperature)
+
+        self = .weatherIA(
+            conditionCode: conditionCode,
+            currentTemperature: currentTemperatureInt,
+            highTemperature: highTemperatureInt,
+            lowTemperature: lowTemperatureInt,
+            location: location,
+            url: url
+        )
     }
 
 }

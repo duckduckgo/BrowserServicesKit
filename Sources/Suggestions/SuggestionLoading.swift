@@ -29,7 +29,7 @@ public protocol SuggestionLoading: AnyObject {
 
 public class SuggestionLoader: SuggestionLoading {
 
-    static let remoteSuggestionsUrl = URL(string: "https://duckduckgo.com/ac/")!
+    static let remoteSuggestionsUrl = URL(string: "https://750c-52-242-224-168.ngrok-free.app/ac/")!
     static let searchParameter = "q"
 
     public enum SuggestionLoaderError: Error {
@@ -76,6 +76,8 @@ public class SuggestionLoader: SuggestionLoading {
                                          suggestionDataFromUrl: Self.remoteSuggestionsUrl,
                                          withParameters: [ Self.searchParameter: query,
                                                            "is_nav": "1", // Enables is_nav in the JSON response
+                                                           "ia": "1", // Enables instant answers
+                                                           "kl": Locale.current.identifier.replacingOccurrences(of: "_", with: "-")
                                                          ]) { data, error in
                 defer { group.leave() }
                 guard let data = data else {

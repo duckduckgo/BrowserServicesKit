@@ -18,25 +18,67 @@
 
 import Foundation
 
-/// A structure representing suggestions fetched from duckduckgo.com/ac
-public struct APIResult: Codable {
+/// A protocol representing a suggestion result
+public protocol SuggestionResultProtocol: Codable {}
 
-    public struct SuggestionResult: Codable {
+/// A structure representing a phrase suggestion
+public struct Phrase: SuggestionResultProtocol {
+    let phrase: String
+    let isNav: Bool?
+}
 
-        let phrase: String?
-        let isNav: Bool?
-
+/// A structure representing an instant answer suggestion
+public struct InstantAnswer: SuggestionResultProtocol {
+    struct CurrentWeather: Codable {
+        let conditionCode: String?
+        let temperature: Double?
     }
 
-    var items = [SuggestionResult]()
+    struct DayForecast: Codable {
+        let temperatureMax: Double?
+        let temperatureMin: Double?
+    }
+
+    struct ForecastDaily: Codable {
+        let days: [DayForecast]?
+    }
+
+    struct IAAnswer: Codable {
+        let currentWeather: CurrentWeather?
+        let forecastDaily: ForecastDaily?
+        let location: String?
+    }
+
+    let ia: String
+    let answer: IAAnswer?
+    let seeMore: String?
+}
+
+/// A structure representing the API result
+public struct APIResult: Codable {
+    var items = [SuggestionResultProtocol]()
 
     init() {}
 
     public init(from decoder: Decoder) throws {
         var container = try decoder.unkeyedContainer()
         while !container.isAtEnd {
-            let item = try container.decode(SuggestionResult.self)
-            items.append(item)
+            if let iaResult = try? container.decode(InstantAnswer.self) {
+                items.append(iaResult)
+            } else if let suggestion = try? container.decode(Phrase.self) {
+                items.append(suggestion)
+            }
+        }
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.unkeyedContainer()
+        for item in items {
+            if let iaResult = item as? InstantAnswer {
+                try container.encode(iaResult)
+            } else if let suggestion = item as? Phrase {
+                try container.encode(suggestion)
+            }
         }
     }
 }

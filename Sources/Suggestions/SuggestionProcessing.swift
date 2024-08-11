@@ -37,7 +37,8 @@ final class SuggestionProcessing {
                 apiResult: APIResult?) -> SuggestionResult? {
         let query = query.lowercased()
 
-        let duckDuckGoSuggestions = (try? self.duckDuckGoSuggestions(from: apiResult)) ?? []
+        let duckDuckGoSuggestions = self.duckDuckGoSuggestions(from: apiResult) ?? []
+        let instantAnswer = self.instantAnswer(from: apiResult)
 
         // Get domain suggestions from the DuckDuckGo Suggestions section (for the Top Hits section)
         let duckDuckGoDomainSuggestions = duckDuckGoSuggestions.compactMap { suggestion -> Suggestion? in
@@ -72,7 +73,8 @@ final class SuggestionProcessing {
 
         let dedupedDuckDuckGoSuggestions = removeDuplicateWebsiteSuggestions(in: topHits, from: duckDuckGoSuggestions)
 
-        return makeResult(topHits: topHits,
+        return makeResult(instantAnswer: instantAnswer,
+                          topHits: topHits,
                           duckduckgoSuggestions: dedupedDuckDuckGoSuggestions,
                           localSuggestions: localSuggestions)
     }
@@ -90,14 +92,24 @@ final class SuggestionProcessing {
 
     // MARK: - DuckDuckGo Suggestions
 
-    private func duckDuckGoSuggestions(from result: APIResult?) throws -> [Suggestion]? {
-        return result?.items
-            .compactMap {
-                guard let phrase = $0.phrase else {
-                    return nil
-                }
-                return Suggestion(phrase: phrase, isNav: $0.isNav ?? false)
+    private func duckDuckGoSuggestions(from result: APIResult?) -> [Suggestion]? {
+        return result?.items.compactMap { item in
+            if let phraseItem = item as? Phrase {
+                let phrase = phraseItem.phrase
+                return Suggestion(phrase: phrase, isNav: phraseItem.isNav ?? false)
             }
+            return nil
+        }
+    }
+
+    private func instantAnswer(from result: APIResult?) -> Suggestion? {
+        guard let items = result?.items else { return nil }
+        for item in items {
+            if let instantAnswerItem = item as? InstantAnswer {
+                return Suggestion(instantAnswer: instantAnswerItem)
+            }
+        }
+        return nil
     }
 
     // MARK: - History and Bookmarks
@@ -284,7 +296,8 @@ final class SuggestionProcessing {
     static let maximumNumberOfTopHits = 2
     static let minimumNumberInSuggestionGroup = 5
 
-    private func makeResult(topHits: [Suggestion],
+    private func makeResult(instantAnswer: Suggestion?,
+                            topHits: [Suggestion],
                             duckduckgoSuggestions: [Suggestion],
                             localSuggestions: [Suggestion]) -> SuggestionResult {
         // Top Hits
@@ -300,14 +313,7 @@ final class SuggestionProcessing {
         let prefixForDuckDuckGoSuggestions = Self.maximumNumberOfSuggestions - total
         let duckduckgoSuggestions = Array(duckduckgoSuggestions.prefix(prefixForDuckDuckGoSuggestions))
 
-        //TODO: - Provide a correct instant answer
-        return SuggestionResult(instantAnswer: Suggestion.weatherIA(icon: "sun",
-                                                                    currentTemperature: 67,
-                                                                    description: "Sunny",
-                                                                    highTemperature: 73,
-                                                                    lowTemperature: 63,
-                                                                    location: "Appleton, WI",
-                                                                    url: URL(string:"http://duckduckgo.com")!),
+        return SuggestionResult(instantAnswer: instantAnswer,
                                 topHits: topHits,
                                 duckduckgoSuggestions: duckduckgoSuggestions,
                                 localSuggestions: localSuggestions)
