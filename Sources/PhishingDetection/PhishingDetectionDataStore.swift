@@ -23,7 +23,7 @@ enum PhishingDetectionDataError: Error {
     case empty
 }
 
-public struct Filter: Decodable, Encodable, Hashable {
+public struct Filter: Codable, Hashable {
 	public var hashValue: String
 	public var regex: String
 
@@ -38,7 +38,7 @@ public struct Filter: Decodable, Encodable, Hashable {
 	}
 }
 
-public struct Match: Decodable, Encodable, Hashable {
+public struct Match: Codable, Hashable {
 	var hostname: String
 	var url: String
 	var regex: String
