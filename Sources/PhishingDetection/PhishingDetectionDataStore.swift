@@ -76,7 +76,7 @@ public class PhishingDetectionDataStore: PhishingDetectionDataStoring {
         createFileDataStore()
     }
 
-    func createFileDataStore() {
+    private func createFileDataStore() {
         do {
             let fileManager = FileManager.default
             let appSupportDirectory = try fileManager.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
