@@ -154,12 +154,8 @@ public class AdClickAttributionDetection {
         var parameters = [AdClickAttributionEvents.Parameters.domainDetection: domainDetection,
                           AdClickAttributionEvents.Parameters.domainDetectionEnabled: attributionFeature.isDomainDetectionEnabled ? "1" : "0",
                           AdClickAttributionEvents.Parameters.heuristicDetectionEnabled: attributionFeature.isHeuristicDetectionEnabled ? "1" : "0"]
-        if cpmExperimentOn != nil {
-            if cpmExperimentOn == true {
-                parameters[AdClickAttributionEvents.Parameters.cpmExperiment] = "1"
-            } else {
-                parameters[AdClickAttributionEvents.Parameters.cpmExperiment] = "0"
-            }
+        if let cpmExperimentOn {
+            parameters[AdClickAttributionEvents.Parameters.cpmExperiment] = cpmExperimentOn ? "1" : "0"
         }
         eventReporting?.fire(.adAttributionDetected, parameters: parameters)
     }
