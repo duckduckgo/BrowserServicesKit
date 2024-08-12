@@ -27,7 +27,7 @@ public protocol PhishingDetectionDataProviding {
 }
 
 public class PhishingDetectionDataProvider: PhishingDetectionDataProviding {
-    public var embeddedRevision: Int
+    public private(set) var embeddedRevision: Int
     var embeddedFilterSetURL: URL
     var embeddedFilterSetDataSHA: String
     var embeddedHashPrefixURL: URL
