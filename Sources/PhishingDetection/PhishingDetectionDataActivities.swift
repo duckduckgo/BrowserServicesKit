@@ -26,6 +26,7 @@ public protocol BackgroundActivityScheduling {
 
 final class BackgroundActivityScheduler: BackgroundActivityScheduling {
     private var task: Task<Void, Never>?
+    private var timer: Timer?
     private let interval: TimeInterval
     private let identifier: String
 
@@ -34,24 +35,25 @@ final class BackgroundActivityScheduler: BackgroundActivityScheduling {
         self.identifier = identifier
     }
 
-    func start(activity: @escaping () async -> Void) {
+    func start(activity: @escaping () async throws -> Void) {
         stop()
-        task = Task {
-            let taskId = UUID().uuidString
-            while true {
-                await activity()
+        timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
+            guard let self = self else { return }
+            self.task = Task {
+                let taskId = UUID().uuidString
                 do {
-                    os_log(.debug, log: .phishingDetection, "\(self): 🟢 \(identifier) task was executed in instance \(taskId)")
-                    try await Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
+                    try await activity()
+                    os_log(.debug, log: .phishingDetection, "\(self): 🟢 \(self.identifier) task was executed in instance \(taskId)")
                 } catch {
-                    os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error \(identifier) task was cancelled before it could finish sleeping.")
-                    break
+                    os_log(.error, log: .phishingDetection, "\(self): 🔴 \(self.identifier) task failed in instance \(taskId) with error: \(error)")
                 }
             }
         }
     }
 
     func stop() {
+        timer?.invalidate()
+        timer = nil
         task?.cancel()
         task = nil
     }
