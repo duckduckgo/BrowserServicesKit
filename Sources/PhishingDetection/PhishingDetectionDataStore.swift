@@ -67,13 +67,18 @@ public class PhishingDetectionDataStore: PhishingDetectionDataStoring {
 
     var dataProvider: PhishingDetectionDataProviding
     var dataStore: URL?
-    var hashPrefixFilename: String = "hashPrefixes.json"
-    var filterSetFilename: String = "filterSet.json"
-    var revisionFilename: String = "revision.txt"
+    var hashPrefixesFileURL: URL
+    var filterSetFileURL: URL
+    var revisionFileURL: URL
 
     public init(dataProvider: PhishingDetectionDataProviding) {
         self.dataProvider = dataProvider
         createFileDataStore()
+        if let dataStore = dataStore {
+            hashPrefixesFileURL = dataStore.appendingPathComponent("hashPrefixes.json")
+            filterSetFileURL = dataStore.appendingPathComponent("filterSet.json")
+            revisionFileURL = dataStore.appendingPathComponent("revision.txt")
+        }
     }
 
     private func createFileDataStore() {
@@ -94,10 +99,6 @@ public class PhishingDetectionDataStore: PhishingDetectionDataStoring {
             let filterSetData = try encoder.encode(Array(filterSet))
             let revision = try encoder.encode(self.currentRevision)
 
-            let hashPrefixesFileURL = dataStore!.appendingPathComponent(hashPrefixFilename)
-            let filterSetFileURL = dataStore!.appendingPathComponent(filterSetFilename)
-            let revisionFileURL = dataStore!.appendingPathComponent(revisionFilename)
-
             try hashPrefixesData.write(to: hashPrefixesFileURL)
             try filterSetData.write(to: filterSetFileURL)
             try revision.write(to: revisionFileURL)
@@ -109,10 +110,6 @@ public class PhishingDetectionDataStore: PhishingDetectionDataStoring {
     public func loadData() async {
         let decoder = JSONDecoder()
         do {
-            let hashPrefixesFileURL = dataStore!.appendingPathComponent("hashPrefixes.json")
-            let filterSetFileURL = dataStore!.appendingPathComponent("filterSet.json")
-            let revisionFileURL = dataStore!.appendingPathComponent("revision.txt")
-
             let hashPrefixesData = try Data(contentsOf: hashPrefixesFileURL)
             let filterSetData = try Data(contentsOf: filterSetFileURL)
             let revisionData = try Data(contentsOf: revisionFileURL)
