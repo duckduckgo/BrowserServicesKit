@@ -41,40 +41,32 @@ public class PhishingDetectionDataProvider: PhishingDetectionDataProviding {
         embeddedRevision = revision
     }
 
-    public func loadEmbeddedFilterSet() -> Set<Filter> {
-        do {
-            let filterSetData = try Data(contentsOf: embeddedFilterSetURL)
-            let sha256 = SHA256.hash(data: filterSetData)
-            let hashString = sha256.compactMap { String(format: "%02x", $0) }.joined()
+    private func loadData(from url: URL, expectedSHA: String) throws -> Data {
+        let data = try Data(contentsOf: url)
+        let sha256 = SHA256.hash(data: data)
+        let hashString = sha256.compactMap { String(format: "%02x", $0) }.joined()
 
-            guard hashString == embeddedFilterSetDataSHA else {
-                os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error: SHA mismatch for filterSet JSON file. Expected \(embeddedFilterSetDataSHA), got \(hashString)")
-                return Set()
-            }
-
-            let filterSet = try JSONDecoder().decode(Set<Filter>.self, from: filterSetData)
-
-            return filterSet
-        } catch {
-            fatalError("Error loading filterSet data: \(error)")
+        guard hashString == expectedSHA else {
+            throw NSError(domain: "PhishingDetectionDataProvider", code: 1001, userInfo: [NSLocalizedDescriptionKey: "SHA mismatch"])
         }
+        return data
     }
+
+    public func loadEmbeddedFilterSet() -> Set<Filter> {
+         do {
+             let filterSetData = try loadData(from: embeddedFilterSetURL, expectedSHA: embeddedFilterSetDataSHA)
+             return try JSONDecoder().decode(Set<Filter>.self, from: filterSetData)
+         } catch {
+             os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error: SHA mismatch for filterSet JSON file. Expected \(embeddedFilterSetDataSHA), got \(hashString)")
+         }
+     }
 
     public func loadEmbeddedHashPrefixes() -> Set<String> {
         do {
-            let hashPrefixData = try Data(contentsOf: embeddedHashPrefixURL)
-            let sha256 = SHA256.hash(data: hashPrefixData)
-            let hashString = sha256.compactMap { String(format: "%02x", $0) }.joined()
-
-            guard hashString == embeddedHashPrefixDataSHA else {
-                os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error: SHA mismatch for hashPrefixes JSON file. Expected \(embeddedHashPrefixDataSHA) got \(hashString)")
-                return Set()
-            }
-
-            let hashPrefixes = try JSONDecoder().decode(Set<String>.self, from: hashPrefixData)
-            return hashPrefixes
+            let hashPrefixData = try loadData(from: embeddedHashPrefixURL, expectedSHA: embeddedHashPrefixDataSHA)
+            return try JSONDecoder().decode(Set<String>.self, from: hashPrefixData)
         } catch {
-            fatalError("Error loading hashPrefixes data: \(error)")
+            os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error: SHA mismatch for hashPrefixes JSON file. Expected \(embeddedHashPrefixDataSHA) got \(hashString)")
         }
     }
 }
