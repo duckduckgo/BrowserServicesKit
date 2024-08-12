@@ -74,6 +74,14 @@ final public class NetworkProtectionSnoozeTimingStore {
         }
     }
 
+    public var hasExpired: Bool {
+        guard let activeTiming else {
+            return true
+        }
+
+        return Date() > activeTiming.endDate
+    }
+
     public func reset() {
         activeTiming = nil
     }

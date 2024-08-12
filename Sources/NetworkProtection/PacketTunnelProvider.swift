@@ -1707,7 +1707,12 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
-    private var snoozeTimer: DispatchSourceTimer?
+    private var snoozeTimerTask: Task<Never, Error>? {
+        willSet {
+            snoozeTimerTask?.cancel()
+        }
+    }
+
     private var snoozeRequestProcessing: Bool = false
     private var snoozeJustEnded: Bool = false
 
@@ -1734,19 +1739,16 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 self.snoozeTimingStore.activeTiming = .init(startDate: Date(), duration: duration)
                 self.notificationsPresenter.showSnoozingNotification(duration: duration)
 
-                let timer = DispatchSource.makeTimerSource(queue: self.timerQueue)
-                timer.schedule(deadline: .now() + duration, repeating: .never)
-                timer.setEventHandler {
-                    Task {
-                        os_log("Snooze mode timer expired, canceling snooze now...", log: .networkProtection)
-                        await self.cancelSnooze()
+                snoozeTimerTask = Task.periodic(interval: .seconds(1)) { [weak self] in
+                    guard let self else { return }
+
+                    if self.snoozeTimingStore.hasExpired {
+                        Task.detached {
+                            os_log("Snooze mode timer expired, canceling snooze now...", log: .networkProtection)
+                            await self.cancelSnooze()
+                        }
                     }
-
-                    timer.cancel()
                 }
-
-                self.snoozeTimer = timer
-                self.snoozeTimer?.resume()
             } else {
                 self.snoozeTimingStore.reset()
             }
@@ -1766,8 +1768,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             snoozeRequestProcessing = false
         }
 
-        snoozeTimer?.cancel()
-        snoozeTimer = nil
+        snoozeTimerTask?.cancel()
+        snoozeTimerTask = nil
 
         guard await connectionStatus == .snoozing, snoozeTimingStore.activeTiming != nil else {
             os_log("Failed to cancel snooze mode as it was not active", log: .networkProtection, type: .error)
