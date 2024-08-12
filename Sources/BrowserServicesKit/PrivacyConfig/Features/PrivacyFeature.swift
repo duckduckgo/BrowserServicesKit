@@ -74,6 +74,7 @@ public enum AutofillSubfeature: String, PrivacySubfeature {
     case autofillPasswordGeneration
     case onByDefault
     case deduplicateLoginsOnImport
+    case onForExistingUsers
 }
 
 public enum DBPSubfeature: String, Equatable, PrivacySubfeature {
