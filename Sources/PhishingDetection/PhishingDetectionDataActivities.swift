@@ -24,7 +24,7 @@ public protocol BackgroundActivityScheduling {
     func stop()
 }
 
-final class BackgroundActivityScheduler: BackgroundActivityScheduling {
+actor final class BackgroundActivityScheduler: BackgroundActivityScheduling {
     private var task: Task<Void, Never>?
     private var timer: Timer?
     private let interval: TimeInterval
