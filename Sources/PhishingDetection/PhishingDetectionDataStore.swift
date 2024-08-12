@@ -52,15 +52,22 @@ public struct Match: Codable, Hashable {
 	}
 }
 
-public protocol PhishingDetectionDataStoring {
-    var filterSet: Set<Filter> { get set }
-    var hashPrefixes: Set<String> { get set }
-    var currentRevision: Int { get set }
+public protocol PhishingDetectionDataStateStoring {
+    var filterSet: Set<Filter> { get }
+    var hashPrefixes: Set<String> { get }
+    var currentRevision: Int { get }
+    func replaceFilterSet(filterSet: Set<Filter>)
+    func replaceHashPrefixes(hashPrefixes: Set<String>)
+    func updateFilterSet(insertions: [Filter], deletions: [Filter])
+    func updateHashPrefixes(insertions: [String], deletions: [String])
+}
+
+public protocol PhishingDetectionDataFileStoring {
     func writeData()
     func loadData() async
 }
 
-public class PhishingDetectionDataStore: PhishingDetectionDataStoring {
+public class PhishingDetectionDataStore: PhishingDetectionDataStateStoring, PhishingDetectionDataFileStoring {
     public var filterSet: Set<Filter> = []
     public var hashPrefixes = Set<String>()
     public var currentRevision = 0
@@ -80,6 +87,28 @@ public class PhishingDetectionDataStore: PhishingDetectionDataStoring {
         }
         let dataStoreURL = dataStoreDirectory.appendingPathComponent(Bundle.main.bundleIdentifier!, isDirectory: true)
         self.fileStorageManager = FileStorageManager(dataStoreURL: dataStoreURL)
+    }
+
+    public func replaceFilterSet(filterSet: Set<Filter>) {
+        self.filterSet = filterSet
+    }
+
+    public func replaceHashPrefixes(hashPrefixes: Set<String>) {
+        self.hashPrefixes = hashPrefixes
+    }
+
+    public func updateFilterSet(insertions: [Filter], deletions: [Filter]) {
+        insertions.forEach { filterSet.insert($0) }
+        deletions.forEach { filterSet.remove($0) }
+    }
+
+    public func updateHashPrefixes(insertions: [String], deletions: [String]) {
+        insertions.forEach { hashPrefixes.insert($0) }
+        deletions.forEach { hashPrefixes.remove($0) }
+    }
+
+    public func updateRevision(revision: Int) {
+        self.currentRevision = revision
     }
 
     public func writeData() {

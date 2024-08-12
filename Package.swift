@@ -392,6 +392,12 @@ let package = Package(
                 .define("DEBUG", .when(configuration: .debug))
             ]
         ),
+        .target(
+             name: "PhishingDetection",
+             dependencies: [
+                 "Common"
+             ]
+         ),
 
         // MARK: - Test Targets
         .testTarget(
