@@ -52,14 +52,16 @@ public struct Match: Codable, Hashable {
 	}
 }
 
-public protocol PhishingDetectionDataStateStoring {
+public protocol PhishingDetectionDataSets {
     var filterSet: Set<Filter> { get }
     var hashPrefixes: Set<String> { get }
     var currentRevision: Int { get }
-    func replaceFilterSet(filterSet: Set<Filter>)
-    func replaceHashPrefixes(hashPrefixes: Set<String>)
-    func updateFilterSet(insertions: [Filter], deletions: [Filter])
-    func updateHashPrefixes(insertions: [String], deletions: [String])
+}
+
+public protocol PhishingDetectionDataSaving {
+    func saveFilterSet(set: Set<Filter>)
+    func saveHashPrefixes(set: Set<String>)
+    func saveRevision(_ revision: Int)
 }
 
 public protocol PhishingDetectionDataFileStoring {
@@ -67,7 +69,7 @@ public protocol PhishingDetectionDataFileStoring {
     func loadData() async
 }
 
-public class PhishingDetectionDataStore: PhishingDetectionDataStateStoring, PhishingDetectionDataFileStoring {
+public class PhishingDetectionDataStore: PhishingDetectionDataSets, PhishingDetectionDataSaving, PhishingDetectionDataFileStoring {
     public var filterSet: Set<Filter> = []
     public var hashPrefixes = Set<String>()
     public var currentRevision = 0
@@ -89,25 +91,15 @@ public class PhishingDetectionDataStore: PhishingDetectionDataStateStoring, Phis
         self.fileStorageManager = FileStorageManager(dataStoreURL: dataStoreURL)
     }
 
-    public func replaceFilterSet(filterSet: Set<Filter>) {
-        self.filterSet = filterSet
+    public func saveFilterSet(set: Set<Filter>) {
+        self.filterSet = set
     }
 
-    public func replaceHashPrefixes(hashPrefixes: Set<String>) {
-        self.hashPrefixes = hashPrefixes
+    public func saveHashPrefixes(set: Set<String>) {
+        self.hashPrefixes = set
     }
 
-    public func updateFilterSet(insertions: [Filter], deletions: [Filter]) {
-        insertions.forEach { filterSet.insert($0) }
-        deletions.forEach { filterSet.remove($0) }
-    }
-
-    public func updateHashPrefixes(insertions: [String], deletions: [String]) {
-        insertions.forEach { hashPrefixes.insert($0) }
-        deletions.forEach { hashPrefixes.remove($0) }
-    }
-
-    public func updateRevision(revision: Int) {
+    public func saveRevision(_ revision: Int) {
         self.currentRevision = revision
     }
 
