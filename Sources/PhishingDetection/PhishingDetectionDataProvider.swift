@@ -48,8 +48,7 @@ public class PhishingDetectionDataProvider: PhishingDetectionDataProviding {
             let hashString = sha256.compactMap { String(format: "%02x", $0) }.joined()
 
             guard hashString == embeddedFilterSetDataSHA else {
-                os_log(.debug, log: .phishingDetection, "\(self): 🔴 Fatal Error: SHA mismatch for filterSet JSON file. Expected \(embeddedFilterSetDataSHA), got \(hashString)")
-//                assertionFailure("SHA mismatch for filterSet JSON file. Expected \(embeddedFilterSetDataSHA), got \(hashString)")
+                os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error: SHA mismatch for filterSet JSON file. Expected \(embeddedFilterSetDataSHA), got \(hashString)")
                 return Set()
             }
 
@@ -68,8 +67,7 @@ public class PhishingDetectionDataProvider: PhishingDetectionDataProviding {
             let hashString = sha256.compactMap { String(format: "%02x", $0) }.joined()
 
             guard hashString == embeddedHashPrefixDataSHA else {
-                os_log(.debug, log: .phishingDetection, "\(self): 🔴 Fatal Error: SHA mismatch for hashPrefixes JSON file. Expected \(embeddedHashPrefixDataSHA) got \(hashString)")
-//                assertionFailure("SHA mismatch for hashPrefixes JSON file. Expected \(embeddedHashPrefixDataSHA) got \(hashString)")
+                os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error: SHA mismatch for hashPrefixes JSON file. Expected \(embeddedHashPrefixDataSHA) got \(hashString)")
                 return Set()
             }
 
