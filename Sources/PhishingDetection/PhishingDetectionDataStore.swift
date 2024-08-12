@@ -66,30 +66,20 @@ public class PhishingDetectionDataStore: PhishingDetectionDataStoring {
     public var currentRevision = 0
 
     var dataProvider: PhishingDetectionDataProviding
-    var dataStore: URL?
-    var hashPrefixesFileURL: URL
-    var filterSetFileURL: URL
-    var revisionFileURL: URL
+    var fileStorageManager: FileStorageManager
 
     public init(dataProvider: PhishingDetectionDataProviding) {
         self.dataProvider = dataProvider
-        createFileDataStore()
-        if let dataStore = dataStore {
-            hashPrefixesFileURL = dataStore.appendingPathComponent("hashPrefixes.json")
-            filterSetFileURL = dataStore.appendingPathComponent("filterSet.json")
-            revisionFileURL = dataStore.appendingPathComponent("revision.txt")
-        }
-    }
 
-    private func createFileDataStore() {
+        let dataStoreDirectory: URL
         do {
-            let fileManager = FileManager.default
-            let appSupportDirectory = try fileManager.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
-            dataStore = appSupportDirectory.appendingPathComponent(Bundle.main.bundleIdentifier!, isDirectory: true)
-            try fileManager.createDirectory(at: dataStore!, withIntermediateDirectories: true, attributes: nil)
+            dataStoreDirectory = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
         } catch {
-            os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error creating phishing protection data directory: \(error)")
+            os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error accessing application support directory: \(error)")
+            dataStoreDirectory = FileManager.default.temporaryDirectory
         }
+        let dataStoreURL = dataStoreDirectory.appendingPathComponent(Bundle.main.bundleIdentifier!, isDirectory: true)
+        self.fileStorageManager = FileStorageManager(dataStoreURL: dataStoreURL)
     }
 
     public func writeData() {
@@ -97,11 +87,11 @@ public class PhishingDetectionDataStore: PhishingDetectionDataStoring {
         do {
             let hashPrefixesData = try encoder.encode(Array(hashPrefixes))
             let filterSetData = try encoder.encode(Array(filterSet))
-            let revision = try encoder.encode(self.currentRevision)
+            let revisionData = try encoder.encode(self.currentRevision)
 
-            try hashPrefixesData.write(to: hashPrefixesFileURL)
-            try filterSetData.write(to: filterSetFileURL)
-            try revision.write(to: revisionFileURL)
+            fileStorageManager.write(data: hashPrefixesData, to: "hashPrefixes.json")
+            fileStorageManager.write(data: filterSetData, to: "filterSet.json")
+            fileStorageManager.write(data: revisionData, to: "revision.txt")
         } catch {
             os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error saving phishing protection data: \(error)")
         }
@@ -110,9 +100,11 @@ public class PhishingDetectionDataStore: PhishingDetectionDataStoring {
     public func loadData() async {
         let decoder = JSONDecoder()
         do {
-            let hashPrefixesData = try Data(contentsOf: hashPrefixesFileURL)
-            let filterSetData = try Data(contentsOf: filterSetFileURL)
-            let revisionData = try Data(contentsOf: revisionFileURL)
+            guard let hashPrefixesData = fileStorageManager.read(from: "hashPrefixes.json"),
+                  let filterSetData = fileStorageManager.read(from: "filterSet.json"),
+                  let revisionData = fileStorageManager.read(from: "revision.txt") else {
+                throw PhishingDetectionDataError.empty
+            }
 
             hashPrefixes = Set(try decoder.decode([String].self, from: hashPrefixesData))
             filterSet = Set(try decoder.decode([Filter].self, from: filterSetData))
@@ -126,6 +118,42 @@ public class PhishingDetectionDataStore: PhishingDetectionDataStoring {
             self.currentRevision = dataProvider.embeddedRevision
             self.hashPrefixes = dataProvider.loadEmbeddedHashPrefixes()
             self.filterSet = dataProvider.loadEmbeddedFilterSet()
+        }
+    }
+}
+
+class FileStorageManager {
+    let dataStoreURL: URL
+
+    init(dataStoreURL: URL) {
+        self.dataStoreURL = dataStoreURL
+        createDirectoryIfNeeded()
+    }
+
+    private func createDirectoryIfNeeded() {
+        do {
+            try FileManager.default.createDirectory(at: dataStoreURL, withIntermediateDirectories: true, attributes: nil)
+        } catch {
+            os_log(.error, log: .default, "Failed to create directory: %{public}@", error.localizedDescription)
+        }
+    }
+
+    func write(data: Data, to filename: String) {
+        let fileURL = dataStoreURL.appendingPathComponent(filename)
+        do {
+            try data.write(to: fileURL)
+        } catch {
+            os_log(.error, log: .default, "Error writing to %{public}@: %{public}@", filename, error.localizedDescription)
+        }
+    }
+
+    func read(from filename: String) -> Data? {
+        let fileURL = dataStoreURL.appendingPathComponent(filename)
+        do {
+            return try Data(contentsOf: fileURL)
+        } catch {
+            os_log(.error, log: .default, "Error reading from %{public}@: %{public}@", filename, error.localizedDescription)
+            return nil
         }
     }
 }
