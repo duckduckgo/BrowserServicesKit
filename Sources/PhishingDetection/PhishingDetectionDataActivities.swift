@@ -59,58 +59,44 @@ actor final class BackgroundActivityScheduler: BackgroundActivityScheduling {
     }
 }
 
-final class DataActivity {
-    private let scheduler: BackgroundActivityScheduling
-    private let updateAction: () async -> Void
-
-    init(scheduler: BackgroundActivityScheduling, updateAction: @escaping () async -> Void) {
-        self.scheduler = scheduler
-        self.updateAction = updateAction
-    }
-
-    func start() {
-        scheduler.start(activity: updateAction)
-    }
-
-    func stop() {
-        scheduler.stop()
-    }
-}
-
 public protocol PhishingDetectionDataActivityHandling {
     func start()
     func stop()
 }
 
 public class PhishingDetectionDataActivities: PhishingDetectionDataActivityHandling {
-    private var activities: [DataActivity]
+    private var schedulers: [BackgroundActivityScheduler]
     private var running: Bool = false
 
     var dataProvider: PhishingDetectionDataProviding
 
     public init(detectionService: PhishingDetecting, hashPrefixInterval: TimeInterval = 20 * 60, filterSetInterval: TimeInterval = 12 * 60 * 60, phishingDetectionDataProvider: PhishingDetectionDataProviding, updateManager: PhishingDetectionUpdateManaging) {
-        let hashPrefixActivity = DataActivity(
-            scheduler: BackgroundActivityScheduler(interval: hashPrefixInterval, identifier: "hashPrefixes.update"),
-            updateAction: { await updateManager.updateHashPrefixes() }
+        let hashPrefixScheduler = BackgroundActivityScheduler(
+            interval: hashPrefixInterval,
+            identifier: "hashPrefixes.update"
         )
-        let filterSetActivity = DataActivity(
-            scheduler: BackgroundActivityScheduler(interval: filterSetInterval, identifier: "filterSet.update"),
-            updateAction: { await updateManager.updateFilterSet() }
+        let filterSetScheduler = BackgroundActivityScheduler(
+            interval: filterSetInterval,
+            identifier: "filterSet.update"
         )
-        self.activities = [hashPrefixActivity, filterSetActivity]
+        self.schedulers = [hashPrefixScheduler, filterSetScheduler]
         self.dataProvider = phishingDetectionDataProvider
+
+        // Start the schedulers
+        hashPrefixScheduler.start(activity: { await updateManager.updateHashPrefixes() })
+        filterSetScheduler.start(activity: { await updateManager.updateFilterSet() })
     }
 
     public func start() {
         if !running {
-            activities.forEach { $0.start() }
+            schedulers.forEach { $0.start() }
         }
         running = true
     }
 
     public func stop() {
         if running {
-            activities.forEach { $0.stop() }
+            schedulers.forEach { $0.stop() }
         }
         running = false
     }
