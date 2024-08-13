@@ -27,10 +27,10 @@ public enum WireGuardAdapterError: CustomNSError {
     case setNetworkSettings(Error)
 
     /// Failure to start WireGuard backend.
-    case startWireGuardBackend(Int32)
+    case startWireGuardBackend(Error)
 
     /// Failure to set the configuration for the WireGuard adapter
-    case setWireguardConfig(errorCode: Int64)
+    case setWireguardConfig(Error)
 
     static let wireguardAdapterDomain = "WireGuardAdapter"
 
@@ -58,11 +58,9 @@ public enum WireGuardAdapterError: CustomNSError {
             return [NSUnderlyingErrorKey: firstError as NSError]
         case .setNetworkSettings(let error):
             return [NSUnderlyingErrorKey: error as NSError]
-        case .startWireGuardBackend(let code):
-            let error = NSError(domain: Self.wireguardAdapterDomain, code: Int(code))
+        case .startWireGuardBackend(let error):
             return [NSUnderlyingErrorKey: error as NSError]
-        case .setWireguardConfig(let code):
-            let error = NSError(domain: Self.wireguardAdapterDomain, code: Int(code))
+        case .setWireguardConfig(let error):
             return [NSUnderlyingErrorKey: error as NSError]
         }
     }
@@ -435,7 +433,9 @@ public class WireGuardAdapter {
                     let result = wgSetConfig(handle, wgConfig)
 
                     if result < 0 {
-                        throw WireGuardAdapterError.setWireguardConfig(errorCode: result)
+                        let error = NSError(domain: WireGuardAdapterError.wireguardAdapterDomain,
+                                            code: Int(result))
+                        throw WireGuardAdapterError.setWireguardConfig(error)
                     }
 
                     #if os(iOS)
@@ -553,7 +553,9 @@ public class WireGuardAdapter {
 
         let handle = wgTurnOn(wgConfig, tunnelFileDescriptor)
         if handle < 0 {
-            throw WireGuardAdapterError.startWireGuardBackend(handle)
+            let error = NSError(domain: WireGuardAdapterError.wireguardAdapterDomain,
+                                code: Int(handle))
+            throw WireGuardAdapterError.startWireGuardBackend(error)
         }
         #if os(iOS)
         wgDisableSomeRoamingForBrokenMobileSemantics(handle)

@@ -29,10 +29,10 @@ extension WireGuardAdapterError: NetworkProtectionErrorConvertible {
             return .wireGuardDnsResolution
         case .setNetworkSettings(let error):
             return .wireGuardSetNetworkSettings(error)
-        case .startWireGuardBackend(let code):
-            return .startWireGuardBackend(code)
-        case .setWireguardConfig(let errorCode):
-            return .setWireguardConfig(errorCode: errorCode)
+        case .startWireGuardBackend(let error):
+            return .startWireGuardBackend(error)
+        case .setWireguardConfig(let error):
+            return .setWireguardConfig(error)
         }
     }
 }

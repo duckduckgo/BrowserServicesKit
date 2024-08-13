@@ -23,6 +23,7 @@ protocol NetworkProtectionErrorConvertible {
 }
 
 public enum NetworkProtectionError: LocalizedError, CustomNSError {
+
     // Tunnel configuration errors
     case noServerRegistrationInfo
     case couldNotSelectClosestServer
@@ -60,8 +61,8 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
     case wireGuardInvalidState(reason: String)
     case wireGuardDnsResolution
     case wireGuardSetNetworkSettings(Error)
-    case startWireGuardBackend(Int32)
-    case setWireguardConfig(errorCode: Int64)
+    case startWireGuardBackend(Error)
+    case setWireguardConfig(Error)
 
     // Auth errors
     case noAuthTokenFound
@@ -161,16 +162,14 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
                 .failedToParseRegisteredServersResponse(let error),
                 .failedToParseRedeemResponse(let error),
                 .wireGuardSetNetworkSettings(let error),
+                .startWireGuardBackend(let error),
+                .setWireguardConfig(let error),
                 .unhandledError(_, _, let error),
                 .failedToFetchServerStatus(let error),
                 .failedToParseServerStatusResponse(let error):
             return [
                 NSUnderlyingErrorKey: error
             ]
-        case .startWireGuardBackend(let code):
-            return [NSUnderlyingErrorKey: NSError(domain: "WireGuardAdapter", code: Int(code))]
-        case .setWireguardConfig(let code):
-            return [NSUnderlyingErrorKey: NSError(domain: "WireGuardAdapter", code: Int(code))]
         }
     }
 
