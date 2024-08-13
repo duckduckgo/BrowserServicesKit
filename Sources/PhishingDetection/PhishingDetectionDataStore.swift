@@ -168,7 +168,7 @@ public class PhishingDetectionDataStore: PhishingDetectionDataSaving {
     }
 }
 
-extension PhishingDetectionDataStore: PhishingDetectionDataSaving {
+extension PhishingDetectionDataStore {
     public func saveFilterSet(set: Set<Filter>) {
         writeFilterSet()
         self.filterSet = set
@@ -185,13 +185,12 @@ extension PhishingDetectionDataStore: PhishingDetectionDataSaving {
     }
 }
 
-
 public protocol FileStorageManager {
     func write(data: Data, to filename: String)
     func read(from filename: String) -> Data?
 }
 
-class PhishingFileStorageManager: FileStorageManager {
+final class PhishingFileStorageManager: FileStorageManager {
     private let dataStoreURL: URL
 
     init() {

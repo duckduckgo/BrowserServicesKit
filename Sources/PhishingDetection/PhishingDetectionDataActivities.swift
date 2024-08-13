@@ -25,7 +25,7 @@ public protocol BackgroundActivityScheduling: Actor {
 }
 
 actor BackgroundActivityScheduler: BackgroundActivityScheduling {
-    
+
     private var task: Task<Void, Never>?
     private var timer: Timer?
     private let interval: TimeInterval
@@ -75,12 +75,12 @@ public class PhishingDetectionDataActivities: PhishingDetectionDataActivityHandl
     public init(hashPrefixInterval: TimeInterval = 20 * 60, filterSetInterval: TimeInterval = 12 * 60 * 60, phishingDetectionDataProvider: PhishingDetectionDataProviding, updateManager: PhishingDetectionUpdateManaging) {
         let hashPrefixScheduler = BackgroundActivityScheduler(
             interval: hashPrefixInterval,
-            identifier: "hashPrefixes.update", 
+            identifier: "hashPrefixes.update",
             activity: { await updateManager.updateHashPrefixes() }
         )
         let filterSetScheduler = BackgroundActivityScheduler(
             interval: filterSetInterval,
-            identifier: "filterSet.update", 
+            identifier: "filterSet.update",
             activity: { await updateManager.updateFilterSet() }
         )
         self.schedulers = [hashPrefixScheduler, filterSetScheduler]
@@ -107,4 +107,3 @@ public class PhishingDetectionDataActivities: PhishingDetectionDataActivityHandl
          running = false
     }
 }
-
