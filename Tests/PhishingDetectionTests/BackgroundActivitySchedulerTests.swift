@@ -32,7 +32,7 @@ class BackgroundActivitySchedulerTests: XCTestCase {
         super.tearDown()
     }
 
-    func testStart() async {
+    func testStart() async throws {
         let expectation = self.expectation(description: "Activity should run")
         scheduler = BackgroundActivityScheduler(interval: 1, identifier: "test") {
             if !self.activityWasRun {
@@ -41,11 +41,11 @@ class BackgroundActivitySchedulerTests: XCTestCase {
             }
         }
         await scheduler.start()
-        waitForExpectations(timeout: 2, handler: nil)
+        try await fulfillment(of: [expectation], timeout: 2)
         XCTAssertTrue(activityWasRun)
     }
 
-    func testRepeats() async {
+    func testRepeats() async throws {
         let expectation = self.expectation(description: "Activity should repeat")
         var runCount = 0
         scheduler = BackgroundActivityScheduler(interval: 1, identifier: "test") {
@@ -55,7 +55,7 @@ class BackgroundActivitySchedulerTests: XCTestCase {
             }
         }
         await scheduler.start()
-        waitForExpectations(timeout: 3, handler: nil)
+        try await fulfillment(of: [expectation], timeout: 3)
         XCTAssertEqual(runCount, 2)
     }
 }
