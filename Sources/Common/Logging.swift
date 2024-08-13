@@ -23,7 +23,7 @@ public extension Logger {
     private static let bundleIdentifier = Bundle.main.bundleIdentifier ?? "DuckDuckGo"
 
     static var contentBlocking: Logger = { Logger(subsystem: Logger.bundleIdentifier, category: "Content Blocking") }()
-//    static var userScripts: Logger = { Logger(subsystem: Logger.bundleIdentifier, category: "User Scripts") }()
+    static var userScripts: Logger = { Logger(subsystem: Logger.bundleIdentifier, category: "User Scripts") }()
 //    static var passwordManager: Logger = { Logger(subsystem: Logger.bundleIdentifier, category: "Password Manager") }()
 //    static var remoteMessaging: Logger = { Logger(subsystem: Logger.bundleIdentifier, category: "Remote Messaging") }()
 //    static var subscription: Logger = { Logger(subsystem: Logger.bundleIdentifier, category: "Subscription") }()
@@ -38,7 +38,6 @@ public typealias OSLog = os.OSLog
 extension OSLog {
 
     public enum Categories: String, CaseIterable {
-        case userScripts = "User Scripts"
         case passwordManager = "Password Manager"
         case remoteMessaging = "Remote Messaging"
         case history = "History"
@@ -49,7 +48,6 @@ extension OSLog {
 #if DEBUG
     // To activate Logging Categories for DEBUG add categories here:
     static var debugCategories: Set<Categories> = [
-                                                    .userScripts,
                                                     .passwordManager,
                                                     .remoteMessaging,
                                                     .history,
@@ -57,7 +55,6 @@ extension OSLog {
                                                     .autofill]
 #endif
 
-    @OSLogWrapper(.userScripts)     public static var userScripts
     @OSLogWrapper(.passwordManager) public static var passwordManager
     @OSLogWrapper(.remoteMessaging) public static var remoteMessaging
     @OSLogWrapper(.history)         public static var history
