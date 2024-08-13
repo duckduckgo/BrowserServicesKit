@@ -37,7 +37,7 @@ class BackgroundActivitySchedulerTests: XCTestCase {
             }
         }
         await scheduler.start()
-        try await fulfillment(of: [expectation], timeout: 2)
+        await fulfillment(of: [expectation], timeout: 2)
         XCTAssertTrue(activityWasRun)
     }
 
@@ -51,7 +51,7 @@ class BackgroundActivitySchedulerTests: XCTestCase {
             }
         }
         await scheduler.start()
-        try await fulfillment(of: [expectation], timeout: 3)
+        await fulfillment(of: [expectation], timeout: 3)
         XCTAssertEqual(runCount, 2)
     }
 }
