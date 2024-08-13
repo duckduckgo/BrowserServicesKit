@@ -46,7 +46,7 @@ public enum PhishingDetectionError: CustomNSError {
     }
 }
 
-public struct Filter: Decodable, Encodable, Hashable {
+public struct Filter: Codable, Hashable {
 	public var hashValue: String
 	public var regex: String
 
@@ -61,7 +61,7 @@ public struct Filter: Decodable, Encodable, Hashable {
 	}
 }
 
-public struct Match: Decodable, Encodable, Hashable {
+public struct Match: Codable, Hashable {
 	var hostname: String
 	var url: String
 	var regex: String
@@ -83,9 +83,9 @@ public class PhishingDetector: PhishingDetecting {
     let hashPrefixStoreLength: Int = 8
     let hashPrefixParamLength: Int = 4
 	var apiClient: PhishingDetectionClientProtocol
-	var dataStore: PhishingDetectionDataStoring
+	var dataStore: PhishingDetectionDataSaving
 
-	public init(apiClient: PhishingDetectionClientProtocol, dataProvider: PhishingDetectionDataProviding, dataStore: PhishingDetectionDataStoring) {
+	public init(apiClient: PhishingDetectionClientProtocol, dataProvider: PhishingDetectionDataProviding, dataStore: PhishingDetectionDataSaving) {
 		self.apiClient = apiClient
 		self.dataStore = dataStore
 	}

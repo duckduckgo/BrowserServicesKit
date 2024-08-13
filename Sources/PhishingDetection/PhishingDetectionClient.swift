@@ -19,7 +19,7 @@
 import Foundation
 import Common
 
-public struct HashPrefixResponse: Decodable, Encodable {
+public struct HashPrefixResponse: Codable {
     public var insert: [String]
     public var delete: [String]
     public var revision: Int
@@ -33,7 +33,7 @@ public struct HashPrefixResponse: Decodable, Encodable {
     }
 }
 
-public struct FilterSetResponse: Decodable, Encodable {
+public struct FilterSetResponse: Codable {
     public var insert: [Filter]
     public var delete: [Filter]
     public var revision: Int
