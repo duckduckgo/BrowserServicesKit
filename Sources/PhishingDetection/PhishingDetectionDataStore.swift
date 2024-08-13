@@ -52,19 +52,16 @@ public struct Match: Codable, Hashable {
 	}
 }
 
-public protocol PhishingDetectionDataSets {
+public protocol PhishingDetectionDataSaving {
     var filterSet: Set<Filter> { get }
     var hashPrefixes: Set<String> { get }
     var currentRevision: Int { get }
-}
-
-public protocol PhishingDetectionDataSaving {
     func saveFilterSet(set: Set<Filter>)
     func saveHashPrefixes(set: Set<String>)
     func saveRevision(_ revision: Int)
 }
 
-public class PhishingDetectionDataStore: PhishingDetectionDataSets {
+public class PhishingDetectionDataStore: PhishingDetectionDataSaving {
     private lazy var _filterSet: Set<Filter> = {
         loadFilterSet()
     }()

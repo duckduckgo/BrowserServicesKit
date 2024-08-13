@@ -108,7 +108,3 @@ public class PhishingDetectionDataActivities: PhishingDetectionDataActivityHandl
     }
 }
 
-public protocol PhishingDetectionUpdateManaging {
-     func updateFilterSet() async
-     func updateHashPrefixes() async
- }
