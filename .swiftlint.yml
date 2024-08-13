@@ -16,6 +16,8 @@ disabled_rules:
   - function_body_length
   - file_length
   - type_body_length
+  - static_over_final_class
+  - non_optional_string_data_conversion
 
 opt_in_rules:
   - file_header
