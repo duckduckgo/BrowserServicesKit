@@ -21,7 +21,7 @@ import XCTest
 @testable import PhishingDetection
 
 class PhishingDetectionURLTests: XCTestCase {
-    
+
     let testURLs = [
         "http://www.example.com/security/badware/phishing.html#frags",
         "http://www.example.com/security/badware/phishing.html#frag#anotherfrag",
