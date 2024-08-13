@@ -139,7 +139,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - WireGuard
 
-    func makeAdapter(with packetTunnelProvider: PacketTunnelProvider) -> WireGuardAdapter {
+    private lazy var adapter: WireGuardAdapter = {
         WireGuardAdapter(with: self) { logLevel, message in
             if logLevel == .error {
                 os_log("🔴 Received error from adapter: %{public}@", log: .networkProtection, type: .error, message)
@@ -147,9 +147,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 os_log("Received message from adapter: %{public}@", log: .networkProtection, message)
             }
         }
-    }
-
-    private lazy var adapter = makeAdapter(with: self)
+    }()
 
     // MARK: - Timers Support
 
@@ -915,9 +913,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             await stopMonitors()
         }
 
-        var tunnelConfiguration: TunnelConfiguration?
-
         do {
+            let tunnelConfiguration: TunnelConfiguration
+
             switch updateMethod {
             case .selectServer(let serverSelectionMethod):
                 tunnelConfiguration = try await generateTunnelConfiguration(serverSelectionMethod: serverSelectionMethod,
@@ -930,7 +928,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 tunnelConfiguration = newTunnelConfiguration
             }
 
-            try await updateAdapterConfiguration(tunnelConfiguration: tunnelConfiguration!, reassert: reassert)
+            try await updateAdapterConfiguration(tunnelConfiguration: tunnelConfiguration, reassert: reassert)
 
             if reassert {
                 try await handleAdapterStarted(startReason: .reconnected)
