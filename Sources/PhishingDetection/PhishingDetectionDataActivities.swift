@@ -19,41 +19,43 @@
 import Foundation
 import Common
 
-public protocol BackgroundActivityScheduling {
-    func start(activity: @escaping () async -> Void)
+public protocol BackgroundActivityScheduling: Actor {
+    func start()
     func stop()
 }
 
-actor final class BackgroundActivityScheduler: BackgroundActivityScheduling {
+actor BackgroundActivityScheduler: BackgroundActivityScheduling {
+    
     private var task: Task<Void, Never>?
     private var timer: Timer?
     private let interval: TimeInterval
     private let identifier: String
+    private let activity: () async -> Void
 
-    init(interval: TimeInterval, identifier: String) {
+    init(interval: TimeInterval, identifier: String, activity: @escaping () async -> Void) {
         self.interval = interval
         self.identifier = identifier
+        self.activity = activity
     }
 
-    func start(activity: @escaping () async throws -> Void) {
+    func start() {
         stop()
-        timer = Timer.scheduledTimer(withTimeInterval: interval, repeats: true) { [weak self] _ in
-            guard let self = self else { return }
-            self.task = Task {
-                let taskId = UUID().uuidString
+        task = Task {
+            let taskId = UUID().uuidString
+            while !Task.isCancelled {
+                await activity()
                 do {
-                    try await activity()
-                    os_log(.debug, log: .phishingDetection, "\(self): 🟢 \(self.identifier) task was executed in instance \(taskId)")
+                    os_log(.debug, log: .autofill, "\(self): 🟢 \(identifier) task was executed in instance \(taskId)")
+                    try await Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
                 } catch {
-                    os_log(.error, log: .phishingDetection, "\(self): 🔴 \(self.identifier) task failed in instance \(taskId) with error: \(error)")
+                    os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error \(identifier) task was cancelled before it could finish sleeping.")
+                    break
                 }
             }
         }
     }
 
     func stop() {
-        timer?.invalidate()
-        timer = nil
         task?.cancel()
         task = nil
     }
@@ -70,34 +72,43 @@ public class PhishingDetectionDataActivities: PhishingDetectionDataActivityHandl
 
     var dataProvider: PhishingDetectionDataProviding
 
-    public init(detectionService: PhishingDetecting, hashPrefixInterval: TimeInterval = 20 * 60, filterSetInterval: TimeInterval = 12 * 60 * 60, phishingDetectionDataProvider: PhishingDetectionDataProviding, updateManager: PhishingDetectionUpdateManaging) {
+    public init(hashPrefixInterval: TimeInterval = 20 * 60, filterSetInterval: TimeInterval = 12 * 60 * 60, phishingDetectionDataProvider: PhishingDetectionDataProviding, updateManager: PhishingDetectionUpdateManaging) {
         let hashPrefixScheduler = BackgroundActivityScheduler(
             interval: hashPrefixInterval,
-            identifier: "hashPrefixes.update"
+            identifier: "hashPrefixes.update", 
+            activity: { await updateManager.updateHashPrefixes() }
         )
         let filterSetScheduler = BackgroundActivityScheduler(
             interval: filterSetInterval,
-            identifier: "filterSet.update"
+            identifier: "filterSet.update", 
+            activity: { await updateManager.updateFilterSet() }
         )
         self.schedulers = [hashPrefixScheduler, filterSetScheduler]
         self.dataProvider = phishingDetectionDataProvider
-
-        // Start the schedulers
-        hashPrefixScheduler.start(activity: { await updateManager.updateHashPrefixes() })
-        filterSetScheduler.start(activity: { await updateManager.updateFilterSet() })
     }
 
     public func start() {
         if !running {
-            schedulers.forEach { $0.start() }
+            Task {
+                for scheduler in schedulers {
+                    await scheduler.start()
+                }
+            }
+            running = true
         }
-        running = true
     }
 
     public func stop() {
-        if running {
-            schedulers.forEach { $0.stop() }
-        }
-        running = false
+        Task {
+             for scheduler in schedulers {
+                 await scheduler.stop()
+             }
+         }
+         running = false
     }
 }
+
+public protocol PhishingDetectionUpdateManaging {
+     func updateFilterSet() async
+     func updateHashPrefixes() async
+ }

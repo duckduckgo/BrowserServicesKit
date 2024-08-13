@@ -58,6 +58,7 @@ public class PhishingDetectionDataProvider: PhishingDetectionDataProviding {
              return try JSONDecoder().decode(Set<Filter>.self, from: filterSetData)
          } catch {
              os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error: SHA mismatch for filterSet JSON file. Expected \(embeddedFilterSetDataSHA)")
+             return []
          }
      }
 
@@ -67,6 +68,7 @@ public class PhishingDetectionDataProvider: PhishingDetectionDataProviding {
             return try JSONDecoder().decode(Set<String>.self, from: hashPrefixData)
         } catch {
             os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error: SHA mismatch for hashPrefixes JSON file. Expected \(embeddedHashPrefixDataSHA)")
+            return []
         }
     }
 }

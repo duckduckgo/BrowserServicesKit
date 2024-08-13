@@ -64,90 +64,148 @@ public protocol PhishingDetectionDataSaving {
     func saveRevision(_ revision: Int)
 }
 
-public protocol PhishingDetectionDataFileStoring {
-    func writeData()
-    func loadData() async
-}
+public class PhishingDetectionDataStore: PhishingDetectionDataSets {
+    private lazy var _filterSet: Set<Filter> = {
+        loadFilterSet()
+    }()
 
-public class PhishingDetectionDataStore: PhishingDetectionDataSets, PhishingDetectionDataSaving, PhishingDetectionDataFileStoring {
-    public var filterSet: Set<Filter> = []
-    public var hashPrefixes = Set<String>()
-    public var currentRevision = 0
+    private lazy var _hashPrefixes: Set<String> = {
+        loadHashPrefix()
+    }()
 
-    var dataProvider: PhishingDetectionDataProviding
-    var fileStorageManager: FileStorageManager
+    private lazy var _currentRevision: Int = {
+        loadRevision()
+    }()
 
-    public init(dataProvider: PhishingDetectionDataProviding) {
-        self.dataProvider = dataProvider
-
-        let dataStoreDirectory: URL
-        do {
-            dataStoreDirectory = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
-        } catch {
-            os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error accessing application support directory: \(error)")
-            dataStoreDirectory = FileManager.default.temporaryDirectory
-        }
-        let dataStoreURL = dataStoreDirectory.appendingPathComponent(Bundle.main.bundleIdentifier!, isDirectory: true)
-        self.fileStorageManager = FileStorageManager(dataStoreURL: dataStoreURL)
+    public private(set) var filterSet: Set<Filter> {
+        get { _filterSet }
+        set { _filterSet = newValue }
+    }
+    public private(set) var hashPrefixes: Set<String> {
+        get { _hashPrefixes }
+        set { _hashPrefixes = newValue }
+    }
+    public private(set) var currentRevision: Int {
+        get { _currentRevision }
+        set { _currentRevision = newValue }
     }
 
+    private let dataProvider: PhishingDetectionDataProviding
+    private let fileStorageManager: FileStorageManager
+    private let encoder = JSONEncoder()
+    private let revisionFilename = "revision.txt"
+    private let hashPrefixFilename = "hashPrefixes.json"
+    private let filterSetFilename = "filterSet.json"
+
+    public init(dataProvider: PhishingDetectionDataProviding,
+                fileStorageManager: FileStorageManager? = nil) {
+        self.dataProvider = dataProvider
+        if let injectedFileStorageManager = fileStorageManager {
+            self.fileStorageManager = injectedFileStorageManager
+        } else {
+            self.fileStorageManager = PhishingFileStorageManager()
+        }
+    }
+
+    private func writeHashPrefixes() {
+        let encoder = JSONEncoder()
+        do {
+            let hashPrefixesData = try encoder.encode(Array(hashPrefixes))
+            fileStorageManager.write(data: hashPrefixesData, to: hashPrefixFilename)
+        } catch {
+            os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error saving hash prefixes data: \(error)")
+        }
+    }
+
+    private func writeFilterSet() {
+        let encoder = JSONEncoder()
+        do {
+            let filterSetData = try encoder.encode(Array(filterSet))
+            fileStorageManager.write(data: filterSetData, to: filterSetFilename)
+        } catch {
+            os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error saving filter set data: \(error)")
+        }
+    }
+
+    private func writeRevision() {
+        let encoder = JSONEncoder()
+        do {
+            let revisionData = try encoder.encode(currentRevision)
+            fileStorageManager.write(data: revisionData, to: revisionFilename)
+        } catch {
+            os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error saving revision data: \(error)")
+        }
+    }
+
+    private func loadHashPrefix() -> Set<String> {
+        guard let data = fileStorageManager.read(from: hashPrefixFilename) else { return dataProvider.loadEmbeddedHashPrefixes() }
+        let decoder = JSONDecoder()
+        do {
+            return Set(try decoder.decode(Set<String>.self, from: data))
+        } catch {
+            os_log(.debug, log: .phishingDetection, "Error decoding \(hashPrefixFilename): \(error)")
+            return dataProvider.loadEmbeddedHashPrefixes()
+        }
+    }
+
+    private func loadFilterSet() -> Set<Filter> {
+        guard let data = fileStorageManager.read(from: filterSetFilename) else { return dataProvider.loadEmbeddedFilterSet() }
+        let decoder = JSONDecoder()
+        do {
+            return Set(try decoder.decode(Set<Filter>.self, from: data))
+        } catch {
+            os_log(.debug, log: .phishingDetection, "Error decoding \(filterSetFilename): \(error)")
+            return dataProvider.loadEmbeddedFilterSet()
+        }
+    }
+
+    private func loadRevision() -> Int {
+        guard let data = fileStorageManager.read(from: revisionFilename) else { return dataProvider.embeddedRevision }
+        let decoder = JSONDecoder()
+        do {
+            return try decoder.decode(Int.self, from: data)
+        } catch {
+            os_log(.debug, log: .phishingDetection, "Error decoding \(revisionFilename): \(error)")
+            return dataProvider.embeddedRevision
+        }
+    }
+}
+
+extension PhishingDetectionDataStore: PhishingDetectionDataSaving {
     public func saveFilterSet(set: Set<Filter>) {
+        writeFilterSet()
         self.filterSet = set
     }
 
     public func saveHashPrefixes(set: Set<String>) {
+        writeHashPrefixes()
         self.hashPrefixes = set
     }
 
     public func saveRevision(_ revision: Int) {
+        writeRevision()
         self.currentRevision = revision
-    }
-
-    public func writeData() {
-        let encoder = JSONEncoder()
-        do {
-            let hashPrefixesData = try encoder.encode(Array(hashPrefixes))
-            let filterSetData = try encoder.encode(Array(filterSet))
-            let revisionData = try encoder.encode(self.currentRevision)
-
-            fileStorageManager.write(data: hashPrefixesData, to: "hashPrefixes.json")
-            fileStorageManager.write(data: filterSetData, to: "filterSet.json")
-            fileStorageManager.write(data: revisionData, to: "revision.txt")
-        } catch {
-            os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error saving phishing protection data: \(error)")
-        }
-    }
-
-    public func loadData() async {
-        let decoder = JSONDecoder()
-        do {
-            guard let hashPrefixesData = fileStorageManager.read(from: "hashPrefixes.json"),
-                  let filterSetData = fileStorageManager.read(from: "filterSet.json"),
-                  let revisionData = fileStorageManager.read(from: "revision.txt") else {
-                throw PhishingDetectionDataError.empty
-            }
-
-            hashPrefixes = Set(try decoder.decode([String].self, from: hashPrefixesData))
-            filterSet = Set(try decoder.decode([Filter].self, from: filterSetData))
-            currentRevision = try decoder.decode(Int.self, from: revisionData)
-
-            if (hashPrefixes.isEmpty && filterSet.isEmpty) || currentRevision == 0 {
-                throw PhishingDetectionDataError.empty
-            }
-        } catch {
-            os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error loading phishing protection data: \(error). Reloading from embedded dataset.")
-            self.currentRevision = dataProvider.embeddedRevision
-            self.hashPrefixes = dataProvider.loadEmbeddedHashPrefixes()
-            self.filterSet = dataProvider.loadEmbeddedFilterSet()
-        }
     }
 }
 
-class FileStorageManager {
-    let dataStoreURL: URL
 
-    init(dataStoreURL: URL) {
-        self.dataStoreURL = dataStoreURL
+public protocol FileStorageManager {
+    func write(data: Data, to filename: String)
+    func read(from filename: String) -> Data?
+}
+
+class PhishingFileStorageManager: FileStorageManager {
+    private let dataStoreURL: URL
+
+    init() {
+        let dataStoreDirectory: URL
+        do {
+            dataStoreDirectory = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
+        } catch {
+            os_log(.debug, log: .phishingDetection, "🔴 Error accessing application support directory: \(error)")
+            dataStoreDirectory = FileManager.default.temporaryDirectory
+        }
+        dataStoreURL = dataStoreDirectory.appendingPathComponent(Bundle.main.bundleIdentifier!, isDirectory: true)
         createDirectoryIfNeeded()
     }
 

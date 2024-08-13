@@ -20,20 +20,17 @@ import XCTest
 @testable import PhishingDetection
 
 class PhishingDetectionDataProviderTest: XCTestCase {
-    var mockDetectionService: MockPhishingDetector!
     var filterSetURL: URL!
     var hashPrefixURL: URL!
     var dataProvider: PhishingDetectionDataProvider!
 
     override func setUp() {
         super.setUp()
-        mockDetectionService = MockPhishingDetector()
         filterSetURL = Bundle.module.url(forResource: "filterSet", withExtension: "json")!
         hashPrefixURL = Bundle.module.url(forResource: "hashPrefixes", withExtension: "json")!
     }
 
     override func tearDown() {
-        mockDetectionService = nil
         filterSetURL = nil
         hashPrefixURL = nil
         dataProvider = nil
