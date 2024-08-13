@@ -23,10 +23,6 @@ class BackgroundActivitySchedulerTests: XCTestCase {
     var scheduler: BackgroundActivityScheduler!
     var activityWasRun = false
 
-    override func setUp() {
-        super.setUp()
-    }
-
     override func tearDown() {
         scheduler = nil
         super.tearDown()
