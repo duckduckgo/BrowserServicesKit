@@ -937,12 +937,21 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             providerEvents.fire(.tunnelUpdateAttempt(.success))
         } catch {
             providerEvents.fire(.tunnelUpdateAttempt(.failure(error)))
+
+            switch error {
+            case WireGuardAdapterError.setWireguardConfig:
+                await cancelTunnel(with: error)
+            default:
+                break
+            }
+
             throw error
         }
     }
 
     @MainActor
     private func updateAdapterConfiguration(tunnelConfiguration: TunnelConfiguration, reassert: Bool) async throws {
+
         try await withCheckedThrowingContinuation { [weak self] (continuation: CheckedContinuation<Void, Error>) in
             guard let self = self else {
                 continuation.resume()
@@ -950,8 +959,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             }
 
             self.adapter.update(tunnelConfiguration: tunnelConfiguration, reassert: reassert) { [weak self] error in
+
                 if let error = error {
                     self?.debugEvents?.fire(error.networkProtectionError)
+
                     continuation.resume(throwing: error)
                     return
                 }
@@ -1802,6 +1813,9 @@ extension WireGuardAdapterError: LocalizedError, CustomDebugStringConvertible {
 
         case .startWireGuardBackend(let errorCode):
             return "Starting tunnel failed with wgTurnOn returning: \(errorCode)"
+
+        case .setWireguardConfig(let errorCode):
+            return "Update tunnel failed with wgSetConfig returning: \(errorCode)"
 
         case .invalidState:
             return "Starting tunnel failed with invalid error"
