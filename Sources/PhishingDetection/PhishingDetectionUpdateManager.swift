@@ -26,9 +26,9 @@ public protocol PhishingDetectionUpdateManaging {
 
 public class PhishingDetectionUpdateManager: PhishingDetectionUpdateManaging {
     var apiClient: PhishingDetectionClientProtocol
-    var dataStore: PhishingDetectionDataStoring
+    var dataStore: PhishingDetectionDataSaving
 
-    public init(client: PhishingDetectionClientProtocol, dataStore: PhishingDetectionDataStoring) {
+    public init(client: PhishingDetectionClientProtocol, dataStore: PhishingDetectionDataSaving) {
         self.apiClient = client
         self.dataStore = dataStore
     }
@@ -36,26 +36,28 @@ public class PhishingDetectionUpdateManager: PhishingDetectionUpdateManaging {
     public func updateFilterSet() async {
         let response = await apiClient.getFilterSet(revision: dataStore.currentRevision)
         if response.replace {
-            self.dataStore.filterSet = Set(response.insert)
+            self.dataStore.saveFilterSet(set: Set(response.insert))
         } else {
-            response.insert.forEach { dataStore.filterSet.insert($0) }
-            response.delete.forEach { dataStore.filterSet.remove($0) }
+            var newFilterSet = dataStore.filterSet
+            response.insert.forEach { newFilterSet.insert($0) }
+            response.delete.forEach { newFilterSet.remove($0) }
+            self.dataStore.saveFilterSet(set: newFilterSet)
         }
-        dataStore.currentRevision = response.revision
-        dataStore.writeData()
+        dataStore.saveRevision(response.revision)
         os_log(.debug, log: .phishingDetection, "\(self): 🟢 filterSet updated to revision \(dataStore.currentRevision)")
     }
 
     public func updateHashPrefixes() async {
         let response = await apiClient.getHashPrefixes(revision: dataStore.currentRevision)
         if response.replace {
-            dataStore.hashPrefixes = Set(response.insert)
+            self.dataStore.saveHashPrefixes(set: Set(response.insert))
         } else {
-            response.insert.forEach { dataStore.hashPrefixes.insert($0) }
-            response.delete.forEach { dataStore.hashPrefixes.remove($0) }
+            var newHashPrefixes = dataStore.hashPrefixes
+            response.insert.forEach { newHashPrefixes.insert($0) }
+            response.delete.forEach { newHashPrefixes.remove($0) }
+            self.dataStore.saveHashPrefixes(set: newHashPrefixes)
         }
-        dataStore.currentRevision = response.revision
-        dataStore.writeData()
+        dataStore.saveRevision(response.revision)
         os_log(.debug, log: .phishingDetection, "\(self): 🟢 hashPrefixes updated to revision \(dataStore.currentRevision)")
     }
 }
