@@ -26,8 +26,7 @@ public extension Logger {
     static var userScripts: Logger = { Logger(subsystem: Logger.bundleIdentifier, category: "User Scripts") }()
     static var passwordManager: Logger = { Logger(subsystem: Logger.bundleIdentifier, category: "Password Manager") }()
     static var remoteMessaging: Logger = { Logger(subsystem: Logger.bundleIdentifier, category: "Remote Messaging") }()
-//    static var subscription: Logger = { Logger(subsystem: Logger.bundleIdentifier, category: "Subscription") }()
-//    static var history: Logger = { Logger(subsystem: Logger.bundleIdentifier, category: "History") }()
+    static var history: Logger = { Logger(subsystem: Logger.bundleIdentifier, category: "History") }()
 //    static var general: Logger = { Logger(subsystem: Logger.bundleIdentifier, category: "General") }()
 //    static var autofill: Logger = { Logger(subsystem: Logger.bundleIdentifier, category: "Autofill") }()
 }
@@ -38,7 +37,6 @@ public typealias OSLog = os.OSLog
 extension OSLog {
 
     public enum Categories: String, CaseIterable {
-        case history = "History"
         case general = "General"
         case autofill = "Autofill"
     }
@@ -46,12 +44,10 @@ extension OSLog {
 #if DEBUG
     // To activate Logging Categories for DEBUG add categories here:
     static var debugCategories: Set<Categories> = [
-                                                    .history,
                                                     .general,
                                                     .autofill]
 #endif
 
-    @OSLogWrapper(.history)         public static var history
     @OSLogWrapper(.general)         public static var general
     @OSLogWrapper(.autofill)        public static var autofill
 
