@@ -27,29 +27,14 @@ public extension Logger {
     static var passwordManager: Logger = { Logger(subsystem: Logger.bundleIdentifier, category: "Password Manager") }()
     static var remoteMessaging: Logger = { Logger(subsystem: Logger.bundleIdentifier, category: "Remote Messaging") }()
     static var history: Logger = { Logger(subsystem: Logger.bundleIdentifier, category: "History") }()
-//    static var general: Logger = { Logger(subsystem: Logger.bundleIdentifier, category: "General") }()
-//    static var autofill: Logger = { Logger(subsystem: Logger.bundleIdentifier, category: "Autofill") }()
+    static var autofill: Logger = { Logger(subsystem: Logger.bundleIdentifier, category: "Autofill") }()
 }
 
+@available(*, deprecated, message: "Use Logger.yourFeature instead, see https://app.asana.com/0/1202500774821704/1208001254061393/f")
 public typealias OSLog = os.OSLog
 
 @available(*, deprecated, message: "Use Logger.yourFeature instead, see https://app.asana.com/0/1202500774821704/1208001254061393/f")
 extension OSLog {
-
-    public enum Categories: String, CaseIterable {
-        case general = "General"
-        case autofill = "Autofill"
-    }
-
-#if DEBUG
-    // To activate Logging Categories for DEBUG add categories here:
-    static var debugCategories: Set<Categories> = [
-                                                    .general,
-                                                    .autofill]
-#endif
-
-    @OSLogWrapper(.general)         public static var general
-    @OSLogWrapper(.autofill)        public static var autofill
 
     public static var enabledLoggingCategories = Set<String>()
 
@@ -71,24 +56,9 @@ extension OSLog {
         }
 
         public var wrappedValue: OSLog {
-            var isEnabled = OSLog.enabledLoggingCategories.contains(category)
-#if CI
-            isEnabled = true
-#elseif DEBUG
-            isEnabled = isEnabled || Categories(rawValue: category).map(OSLog.debugCategories.contains) == true
-#endif
-
-            return isEnabled ? OSLog(subsystem: OSLog.subsystem, category: category) : .disabled
+            return OSLog(subsystem: OSLog.subsystem, category: category)
         }
 
-    }
-
-}
-
-public extension OSLog.OSLogWrapper {
-
-    init(_ category: OSLog.Categories) {
-        self.init(rawValue: category.rawValue)
     }
 
 }
