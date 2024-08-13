@@ -393,11 +393,11 @@ let package = Package(
             ]
         ),
         .target(
-             name: "PhishingDetection",
-             dependencies: [
-                 "Common"
-             ]
-         ),
+            name: "PhishingDetection",
+            dependencies: [
+                "Common"
+            ]
+        ),
 
         // MARK: - Test Targets
         .testTarget(
