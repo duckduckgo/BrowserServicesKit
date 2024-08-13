@@ -23,11 +23,7 @@ public extension Logger {
     private static let bundleIdentifier = Bundle.main.bundleIdentifier ?? "DuckDuckGo"
 
     static var contentBlocking: Logger = { Logger(subsystem: Logger.bundleIdentifier, category: "Content Blocking") }()
-    static var userScripts: Logger = { Logger(subsystem: Logger.bundleIdentifier, category: "User Scripts") }()
     static var passwordManager: Logger = { Logger(subsystem: Logger.bundleIdentifier, category: "Password Manager") }()
-    static var remoteMessaging: Logger = { Logger(subsystem: Logger.bundleIdentifier, category: "Remote Messaging") }()
-    static var history: Logger = { Logger(subsystem: Logger.bundleIdentifier, category: "History") }()
-    static var autofill: Logger = { Logger(subsystem: Logger.bundleIdentifier, category: "Autofill") }()
 }
 
 @available(*, deprecated, message: "Use Logger.yourFeature instead, see https://app.asana.com/0/1202500774821704/1208001254061393/f")

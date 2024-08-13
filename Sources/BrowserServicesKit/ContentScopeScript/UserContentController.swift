@@ -83,7 +83,7 @@ final public class UserContentController: WKUserContentController {
             if let contentBlockingAssets = newValue {
                 Logger.contentBlocking.debug("📚 installing \(contentBlockingAssets.debugDescription)")
                 self.installGlobalContentRuleLists(contentBlockingAssets.globalRuleLists)
-                Logger.userScripts.debug("📜 installing user scripts")
+                Logger.contentBlocking.debug("📜 installing user scripts")
                 self.installUserScripts(contentBlockingAssets.wkUserScripts, handlers: contentBlockingAssets.userScripts.userScripts)
                 Logger.contentBlocking.debug("✅ installing content blocking assets done")
             }

@@ -1,6 +1,5 @@
 //
-//  File.swift
-//  DuckDuckGo
+//  Logger+SecureVault.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
