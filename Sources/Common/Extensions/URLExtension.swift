@@ -482,7 +482,7 @@ extension URL {
         return canonicalHost
      }
 
-     public func canonicalURL() -> URL? {
+    public func canonicalURL() -> URL? {
         // Step 1: Remove tab (0x09), CR (0x0d), and LF (0x0a) characters
         var urlString = self.absoluteString.filter { $0 != "\t" && $0 != "\r" && $0 != "\n" }
 
@@ -500,13 +500,21 @@ extension URL {
             }
         } while urlString != previousURLString
 
-        // Step 4: Remove all trailing slashes
-        while urlString.last == "/" {
-            urlString.removeLast()
+        // Step 4: Remove all trailing slashes, but keep the single slash after the domain
+        if let url = URL(string: urlString), url.path == "/" {
+            // Do not remove the single trailing slash if it's just the domain
+        } else {
+            while urlString.last == "/" {
+                urlString.removeLast()
+            }
         }
 
-        // Step 5: Remove all occurrences of more than one "/"
-        urlString = urlString.replacingOccurrences(of: "(?<!:)/+", with: "/", options: .regularExpression)
+        // Step 5: Remove all occurrences of more than one "/", but not in the protocol part
+        if let range = urlString.range(of: "://") {
+            let protocolPart = urlString[..<range.upperBound]
+            let restOfURL = urlString[range.upperBound...]
+            urlString = protocolPart + restOfURL.replacingOccurrences(of: "/+", with: "/", options: .regularExpression)
+        }
 
         // Step 6: Remove all occurrences of "/./" in the path
         urlString = urlString.replacingOccurrences(of: "/./", with: "/")
@@ -530,7 +538,7 @@ extension URL {
         }
 
         return validURL
-     }
+    }
 
 }
 
