@@ -16,8 +16,9 @@
 //  limitations under the License.
 //
 
-import Common
 import Foundation
+import Common
+import os.log
 
 public struct RemoteMessagingConfigMatcher {
 
@@ -78,7 +79,7 @@ public struct RemoteMessagingConfigMatcher {
                 let userPercentile = percentileStore.percentile(forMessageId: messageID)
 
                 if userPercentile > messagePercentile {
-                    os_log("Matching rule percentile check failed for message with ID %s", log: .remoteMessaging, type: .debug, messageID)
+                    Logger.remoteMessaging.debug("Matching rule percentile check failed for message with ID \(messageID, privacy: .public)")
                     return .fail
                 }
             }
@@ -88,7 +89,7 @@ public struct RemoteMessagingConfigMatcher {
             for attribute in matchingRule.attributes {
                 result = evaluateAttribute(matchingAttribute: attribute)
                 if result == .fail || result == .nextMessage {
-                    os_log("First failing matching attribute %s", log: .remoteMessaging, type: .debug, String(describing: attribute))
+                    Logger.remoteMessaging.debug("First failing matching attribute \(String(describing: attribute), privacy: .public)")
                     break
                 }
             }
@@ -112,7 +113,7 @@ public struct RemoteMessagingConfigMatcher {
                 let userPercentile = percentileStore.percentile(forMessageId: messageID)
 
                 if userPercentile > messagePercentile {
-                    os_log("Exclusion rule percentile check failed for message with ID %s", log: .remoteMessaging, type: .debug, messageID)
+                    Logger.remoteMessaging.debug("Exclusion rule percentile check failed for message with ID \(messageID, privacy: .public)")
                     return .fail
                 }
             }
@@ -122,7 +123,7 @@ public struct RemoteMessagingConfigMatcher {
             for attribute in matchingRule.attributes {
                 result = evaluateAttribute(matchingAttribute: attribute)
                 if result == .fail || result == .nextMessage {
-                    os_log("First failing exclusion attribute %s", log: .remoteMessaging, type: .debug, String(describing: attribute))
+                    Logger.remoteMessaging.debug("First failing exclusion attribute \(String(describing: attribute), privacy: .public)")
                     break
                 }
             }
