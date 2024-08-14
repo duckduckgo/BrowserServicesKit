@@ -22,54 +22,24 @@ import XCTest
 @testable import PhishingDetection
 
 class PhishingDetectionUpdateManagerTests: XCTestCase {
-    var updateManager: PhishingDetectionUpdateManaging!
+    var updateManager: PhishingDetectionUpdateManager!
+    var dataStore: PhishingDetectionDataSaving!
     var mockClient: MockPhishingDetectionClient!
-    var mockDataProvider: MockPhishingDetectionDataProvider!
-    let datasetFiles: [String] = ["hashPrefixes.json", "filterSet.json", "revision.txt"]
-    var dataStore: PhishingDetectionDataStore!
-    var fileStorageManager: FileStorageManager!
 
     override func setUp() {
         super.setUp()
         mockClient = MockPhishingDetectionClient()
-        mockDataProvider = MockPhishingDetectionDataProvider()
-        fileStorageManager = MockPhishingFileStorageManager()
-        dataStore = PhishingDetectionDataStore(dataProvider: mockDataProvider, fileStorageManager: fileStorageManager)
+        dataStore = MockPhishingDetectionDataStore()
         updateManager = PhishingDetectionUpdateManager(client: mockClient, dataStore: dataStore)
     }
 
     override func tearDown() {
-        mockClient = nil
-        mockDataProvider = nil
-        dataStore = nil
         updateManager = nil
+        dataStore = nil
+        mockClient = nil
         super.tearDown()
     }
-
-    func clearDatasets() {
-        for fileName in datasetFiles {
-            let emptyData = Data()
-            fileStorageManager.write(data: emptyData, to: fileName)
-        }
-    }
-
-    func testUpdateFilterSet() async {
-        await updateManager.updateFilterSet()
-        XCTAssertFalse(dataStore.filterSet.isEmpty, "Filter set should not be empty after update.")
-    }
-
-    func testLoadDataError() async {
-        clearDatasets()
-
-        // Force load data
-        _ = dataStore.filterSet
-        _ = dataStore.hashPrefixes
-
-        // Error => reload from embedded data
-        XCTAssertTrue(mockDataProvider.loadFilterSetCalled)
-        XCTAssertTrue(mockDataProvider.loadHashPrefixesCalled)
-    }
-
+    
     func testUpdateHashPrefixes() async {
         await updateManager.updateHashPrefixes()
         XCTAssertFalse(dataStore.hashPrefixes.isEmpty, "Hash prefixes should not be empty after update.")
@@ -82,39 +52,32 @@ class PhishingDetectionUpdateManagerTests: XCTestCase {
         ])
     }
 
-    func testWriteAndLoadData() async {
-        // Get and write data
-        let filterSet = dataStore.filterSet
-        let hashPrefixes = dataStore.hashPrefixes
-        let revision = dataStore.currentRevision
-        dataStore.saveHashPrefixes(set: hashPrefixes)
-        dataStore.saveFilterSet(set: filterSet)
-        dataStore.saveRevision(revision)
-
-        // Clear data in memory
-        dataStore = PhishingDetectionDataStore(dataProvider: mockDataProvider, fileStorageManager: fileStorageManager)
-
-        // Load data
-        XCTAssertFalse(dataStore.hashPrefixes.isEmpty, "Hash prefixes should not be empty after load.")
-        XCTAssertFalse(dataStore.filterSet.isEmpty, "Filter set should not be empty after load.")
+    func testUpdateFilterSet() async {
+        await updateManager.updateFilterSet()
+        XCTAssertFalse(dataStore.filterSet.isEmpty, "Filter set should not be empty after update.")
     }
 
     func testRevision1AddsData() async {
-        fileStorageManager.write(data: "1".data(using: .utf8)!, to: "revision.txt")
-        XCTAssertEqual(dataStore.currentRevision, 1, "Current revision should be 1 after load.")
+        dataStore.saveRevision(1)
+        await updateManager.updateFilterSet()
+        await updateManager.updateHashPrefixes()
         XCTAssertTrue(dataStore.filterSet.contains(where: { $0.hashValue == "testhash3" }), "Filter set should contain added data after update.")
         XCTAssertTrue(dataStore.hashPrefixes.contains("93e2435e"), "Hash prefixes should contain added data after update.")
     }
 
     func testRevision2AddsAndDeletesData() async {
-        fileStorageManager.write(data: "2".data(using: .utf8)!, to: "revision.txt")
+        dataStore.saveRevision(2)
+        await updateManager.updateFilterSet()
+        await updateManager.updateHashPrefixes()
         XCTAssertFalse(dataStore.filterSet.contains(where: { $0.hashValue == "testhash2" }), "Filter set should not contain deleted data after update.")
         XCTAssertFalse(dataStore.hashPrefixes.contains("bb00cc11"), "Hash prefixes should not contain deleted data after update.")
         XCTAssertTrue(dataStore.hashPrefixes.contains("c0be0d0a6"))
     }
 
     func testRevision4AddsAndDeletesData() async {
-        fileStorageManager.write(data: "4".data(using: .utf8)!, to: "revision.txt")
+        dataStore.saveRevision(4)
+        await updateManager.updateFilterSet()
+        await updateManager.updateHashPrefixes()
         XCTAssertTrue(dataStore.filterSet.contains(where: { $0.hashValue == "testhash5" }), "Filter set should contain added data after update.")
         XCTAssertFalse(dataStore.filterSet.contains(where: { $0.hashValue == "testhash3" }), "Filter set should not contain deleted data after update.")
         XCTAssertTrue(dataStore.hashPrefixes.contains("a379a6f6"), "Hash prefixes should contain added data after update.")
