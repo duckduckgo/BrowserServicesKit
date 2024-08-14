@@ -1,5 +1,5 @@
 //
-//  PhishingDetectionDataActivitiesTest.swift
+//  PhishingDetectionDataActivitiesTests.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //

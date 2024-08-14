@@ -232,8 +232,3 @@ final class PhishingFileStorageManager: FileStorageManager {
         }
     }
 }
-
-public protocol PhishingDetectionUpdateManaging {
-    func updateFilterSet() async
-    func updateHashPrefixes() async
-}

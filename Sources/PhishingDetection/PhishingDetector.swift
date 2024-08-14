@@ -46,35 +46,6 @@ public enum PhishingDetectionError: CustomNSError {
     }
 }
 
-public struct Filter: Codable, Hashable {
-	public var hashValue: String
-	public var regex: String
-
-	enum CodingKeys: String, CodingKey {
-		case hashValue = "hash"
-		case regex
-	}
-
-	public init(hashValue: String, regex: String) {
-		self.hashValue = hashValue
-		self.regex = regex
-	}
-}
-
-public struct Match: Codable, Hashable {
-	var hostname: String
-	var url: String
-	var regex: String
-	var hash: String
-
-	public init(hostname: String, url: String, regex: String, hash: String) {
-		self.hostname = hostname
-		self.url = url
-		self.regex = regex
-		self.hash = hash
-	}
-}
-
 public protocol PhishingDetecting {
 	func isMalicious(url: URL) async -> Bool
 }
@@ -100,8 +71,7 @@ public class PhishingDetector: PhishingDetecting {
 
 	func matchesUrl(hash: String, regexPattern: String, url: URL, hostnameHash: String) -> Bool {
 		if hash == hostnameHash,
-		   let regex = try? NSRegularExpression(pattern: regexPattern, options: [])
-		{
+		   let regex = try? NSRegularExpression(pattern: regexPattern, options: []) {
 			let urlString = url.absoluteString
 			let range = NSRange(location: 0, length: urlString.utf16.count)
 			return regex.firstMatch(in: urlString, options: [], range: range) != nil
