@@ -26,11 +26,14 @@ class PhishingDetectionUpdateManagerTests: XCTestCase {
     var dataStore: PhishingDetectionDataSaving!
     var mockClient: MockPhishingDetectionClient!
 
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
+        try await super.setUp()
         mockClient = MockPhishingDetectionClient()
         dataStore = MockPhishingDetectionDataStore()
         updateManager = PhishingDetectionUpdateManager(client: mockClient, dataStore: dataStore)
+        dataStore.saveRevision(0)
+        await updateManager.updateFilterSet()
+        await updateManager.updateHashPrefixes()
     }
 
     override func tearDown() {
@@ -54,34 +57,88 @@ class PhishingDetectionUpdateManagerTests: XCTestCase {
 
     func testUpdateFilterSet() async {
         await updateManager.updateFilterSet()
-        XCTAssertFalse(dataStore.filterSet.isEmpty, "Filter set should not be empty after update.")
+        XCTAssertEqual(dataStore.filterSet, [
+            Filter(hashValue: "testhash1", regex: ".*example.*"),
+            Filter(hashValue: "testhash2", regex: ".*test.*")
+        ])
     }
 
-    func testRevision1AddsData() async {
+    func testRevision1AddsAndDeletesData() async {
+        let expectedFilterSet: Set<Filter> = [
+            Filter(hashValue: "testhash2", regex: ".*test.*"),
+            Filter(hashValue: "testhash3", regex: ".*test.*")
+        ]
+        let expectedHashPrefixes: Set<String> = [
+            "aa00bb11",
+            "bb00cc11",
+            "a379a6f6",
+            "93e2435e"
+        ]
+
+        // Save revision and update the filter set and hash prefixes
         dataStore.saveRevision(1)
         await updateManager.updateFilterSet()
         await updateManager.updateHashPrefixes()
-        XCTAssertTrue(dataStore.filterSet.contains(where: { $0.hashValue == "testhash3" }), "Filter set should contain added data after update.")
-        XCTAssertTrue(dataStore.hashPrefixes.contains("93e2435e"), "Hash prefixes should contain added data after update.")
+
+        XCTAssertEqual(dataStore.filterSet, expectedFilterSet, "Filter set should match the expected set after update.")
+        XCTAssertEqual(dataStore.hashPrefixes, expectedHashPrefixes, "Hash prefixes should match the expected set after update.")
     }
 
     func testRevision2AddsAndDeletesData() async {
+        let expectedFilterSet: Set<Filter> = [
+            Filter(hashValue: "testhash4", regex: ".*test.*"),
+            Filter(hashValue: "testhash1", regex: ".*example.*")
+        ]
+        let expectedHashPrefixes: Set<String> = [
+            "aa00bb11",
+            "a379a6f6",
+            "c0be0d0a6",
+            "dd00ee11",
+            "cc00dd11"
+        ]
+
+        // Save revision and update the filter set and hash prefixes
         dataStore.saveRevision(2)
         await updateManager.updateFilterSet()
         await updateManager.updateHashPrefixes()
-        XCTAssertFalse(dataStore.filterSet.contains(where: { $0.hashValue == "testhash2" }), "Filter set should not contain deleted data after update.")
-        XCTAssertFalse(dataStore.hashPrefixes.contains("bb00cc11"), "Hash prefixes should not contain deleted data after update.")
-        XCTAssertTrue(dataStore.hashPrefixes.contains("c0be0d0a6"))
+
+        XCTAssertEqual(dataStore.filterSet, expectedFilterSet, "Filter set should match the expected set after update.")
+        XCTAssertEqual(dataStore.hashPrefixes, expectedHashPrefixes, "Hash prefixes should match the expected set after update.")
+    }
+
+    func testRevision3AddsAndDeletesNothing() async {
+        let expectedFilterSet = dataStore.filterSet
+        let expectedHashPrefixes = dataStore.hashPrefixes
+
+        // Save revision and update the filter set and hash prefixes
+        dataStore.saveRevision(3)
+        await updateManager.updateFilterSet()
+        await updateManager.updateHashPrefixes()
+
+        XCTAssertEqual(dataStore.filterSet, expectedFilterSet, "Filter set should match the expected set after update.")
+        XCTAssertEqual(dataStore.hashPrefixes, expectedHashPrefixes, "Hash prefixes should match the expected set after update.")
     }
 
     func testRevision4AddsAndDeletesData() async {
+        let expectedFilterSet: Set<Filter> = [
+            Filter(hashValue: "testhash2", regex: ".*test.*"),
+            Filter(hashValue: "testhash1", regex: ".*example.*"),
+            Filter(hashValue: "testhash5", regex: ".*test.*")
+        ]
+        let expectedHashPrefixes: Set<String> = [
+            "a379a6f6",
+            "dd00ee11",
+            "cc00dd11",
+            "bb00cc11"
+        ]
+
+        // Save revision and update the filter set and hash prefixes
         dataStore.saveRevision(4)
         await updateManager.updateFilterSet()
         await updateManager.updateHashPrefixes()
-        XCTAssertTrue(dataStore.filterSet.contains(where: { $0.hashValue == "testhash5" }), "Filter set should contain added data after update.")
-        XCTAssertFalse(dataStore.filterSet.contains(where: { $0.hashValue == "testhash3" }), "Filter set should not contain deleted data after update.")
-        XCTAssertTrue(dataStore.hashPrefixes.contains("a379a6f6"), "Hash prefixes should contain added data after update.")
-        XCTAssertFalse(dataStore.hashPrefixes.contains("aa00bb11"), "Hash prefixes should not contain deleted data after update.")
+
+        XCTAssertEqual(dataStore.filterSet, expectedFilterSet, "Filter set should match the expected set after update.")
+        XCTAssertEqual(dataStore.hashPrefixes, expectedHashPrefixes, "Hash prefixes should match the expected set after update.")
     }
 }
 

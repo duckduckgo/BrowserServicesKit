@@ -49,7 +49,38 @@ class IsMaliciousTests: XCTestCase {
         XCTAssertTrue(result)
     }
 
-    func testIsMaliciousWithNoMatch() async {
+    func testIsMaliciousWithHashPrefixMatch() async {
+        let mockAPIClient = MockPhishingDetectionClient()
+        let mockDataStore = MockPhishingDetectionDataStore()
+        let detector = PhishingDetector(apiClient: mockAPIClient, dataStore: mockDataStore)
+        let filter = Filter(hashValue: "notamatch", regex: ".*malicious.*")
+        mockDataStore.filterSet = [filter]
+        mockDataStore.hashPrefixes = ["4c64eb24"] // matches safe.com
+
+        let url = URL(string: "https://safe.com")!
+
+        let result = await detector.isMalicious(url: url)
+
+        XCTAssertFalse(result)
+    }
+
+    func testIsMaliciousWithFullHashMatch() async {
+        // 4c64eb2468bcd3e113b37167e6b819aeccf550f974a6082ef17fb74ca68e823b
+        let mockAPIClient = MockPhishingDetectionClient()
+        let mockDataStore = MockPhishingDetectionDataStore()
+        let detector = PhishingDetector(apiClient: mockAPIClient, dataStore: mockDataStore)
+        let filter = Filter(hashValue: "4c64eb2468bcd3e113b37167e6b819aeccf550f974a6082ef17fb74ca68e823b", regex: "https://safe.com/maliciousURI")
+        mockDataStore.filterSet = [filter]
+        mockDataStore.hashPrefixes = ["4c64eb24"]
+
+        let url = URL(string: "https://safe.com")!
+
+        let result = await detector.isMalicious(url: url)
+
+        XCTAssertFalse(result)
+    }
+
+    func testIsMaliciousWithNoHashPrefixMatch() async {
         let mockAPIClient = MockPhishingDetectionClient()
         let mockDataStore = MockPhishingDetectionDataStore()
         let detector = PhishingDetector(apiClient: mockAPIClient, dataStore: mockDataStore)
