@@ -19,7 +19,7 @@
 import Foundation
 import Common
 
-public struct HashPrefixResponse: Codable {
+public struct HashPrefixResponse: Codable, Equatable {
     public var insert: [String]
     public var delete: [String]
     public var revision: Int
@@ -33,7 +33,7 @@ public struct HashPrefixResponse: Codable {
     }
 }
 
-public struct FilterSetResponse: Codable {
+public struct FilterSetResponse: Codable, Equatable {
     public var insert: [Filter]
     public var delete: [Filter]
     public var revision: Int
@@ -47,7 +47,7 @@ public struct FilterSetResponse: Codable {
     }
 }
 
-public struct MatchResponse: Codable {
+public struct MatchResponse: Codable, Equatable {
     public var matches: [Match]
 }
 
@@ -55,6 +55,18 @@ public protocol PhishingDetectionClientProtocol {
     func getFilterSet(revision: Int) async -> FilterSetResponse
     func getHashPrefixes(revision: Int) async -> HashPrefixResponse
     func getMatches(hashPrefix: String) async -> [Match]
+}
+
+public protocol URLSessionProtocol {
+    func data(for request: URLRequest) async throws -> (Data, URLResponse)
+}
+
+extension URLSession: URLSessionProtocol {}
+
+extension URLSessionProtocol {
+    public static var defaultSession: URLSessionProtocol {
+        return URLSession.shared
+    }
 }
 
 public class PhishingDetectionAPIClient: PhishingDetectionClientProtocol {
@@ -67,35 +79,41 @@ public class PhishingDetectionAPIClient: PhishingDetectionClientProtocol {
     enum Constants {
         static let productionEndpoint = URL(string: "https://duckduckgo.com/api/protection/")!
         static let stagingEndpoint = URL(string: "https://web-use-1.duckduckgo.com/api/protection/")!
+        enum APIPath: String {
+            case filterSet = "filterSet"
+            case hashPrefix = "hashPrefix"
+            case matches = "matches"
+        }
     }
 
     private let endpointURL: URL
-    private let session: URLSession = .shared
+    private let session: URLSessionProtocol!
     private var headers: [String: String]? = [:]
 
     var filterSetURL: URL {
-        endpointURL.appendingPathComponent("filterSet")
+        endpointURL.appendingPathComponent(Constants.APIPath.filterSet.rawValue)
     }
 
     var hashPrefixURL: URL {
-        endpointURL.appendingPathComponent("hashPrefix")
+        endpointURL.appendingPathComponent(Constants.APIPath.hashPrefix.rawValue)
     }
 
     var matchesURL: URL {
-        endpointURL.appendingPathComponent("matches")
+        endpointURL.appendingPathComponent(Constants.APIPath.matches.rawValue)
     }
 
-    public init(environment: Environment = .production) {
+    public init(environment: Environment = .production, session: URLSessionProtocol = URLSession.defaultSession) {
         switch environment {
         case .production:
             endpointURL = Constants.productionEndpoint
         case .staging:
             endpointURL = Constants.stagingEndpoint
         }
+        self.session = session
     }
 
     public func getFilterSet(revision: Int) async -> FilterSetResponse {
-        guard let url = createURL(baseURL: filterSetURL, revision: revision, queryItemName: "revision") else {
+        guard let url = createURL(for: .filterSet, revision: revision) else {
             logDebug("🔸 Invalid filterSet revision URL: \(revision)")
             return FilterSetResponse(insert: [], delete: [], revision: revision, replace: false)
         }
@@ -103,7 +121,7 @@ public class PhishingDetectionAPIClient: PhishingDetectionClientProtocol {
     }
 
     public func getHashPrefixes(revision: Int) async -> HashPrefixResponse {
-        guard let url = createURL(baseURL: hashPrefixURL, revision: revision, queryItemName: "revision") else {
+        guard let url = createURL(for: .hashPrefix, revision: revision) else {
             logDebug("🔸 Invalid hashPrefix revision URL: \(revision)")
             return HashPrefixResponse(insert: [], delete: [], revision: revision, replace: false)
         }
@@ -111,14 +129,13 @@ public class PhishingDetectionAPIClient: PhishingDetectionClientProtocol {
     }
 
     public func getMatches(hashPrefix: String) async -> [Match] {
-         var urlComponents = URLComponents(url: matchesURL, resolvingAgainstBaseURL: true)
-         urlComponents?.queryItems = [URLQueryItem(name: "hashPrefix", value: hashPrefix)]
-         guard let url = urlComponents?.url else {
-             logDebug("🔸 Invalid matches URL: \(hashPrefix)")
-             return []
-         }
-         return await fetch(url: url, responseType: MatchResponse.self)?.matches ?? []
-     }
+        let queryItems = [URLQueryItem(name: "hashPrefix", value: hashPrefix)]
+        guard let url = createURL(for: .matches, queryItems: queryItems) else {
+            logDebug("🔸 Invalid matches URL: \(hashPrefix)")
+            return []
+        }
+        return await fetch(url: url, responseType: MatchResponse.self)?.matches ?? []
+    }
 }
 
 // MARK: Private Methods
@@ -128,10 +145,14 @@ extension PhishingDetectionAPIClient {
         os_log(.debug, log: .phishingDetection, "\(self): \(message)")
     }
 
-    private func createURL(baseURL: URL, revision: Int, queryItemName: String) -> URL? {
-        guard revision > 0 else { return baseURL }
-        var urlComponents = URLComponents(url: baseURL, resolvingAgainstBaseURL: true)
-        urlComponents?.queryItems = [URLQueryItem(name: queryItemName, value: String(revision))]
+    private func createURL(for path: Constants.APIPath, revision: Int? = nil, queryItems: [URLQueryItem]? = nil) -> URL? {
+        // Start with the base URL and append the path component
+        var urlComponents = URLComponents(url: endpointURL.appendingPathComponent(path.rawValue), resolvingAgainstBaseURL: true)
+        var items = queryItems ?? []
+        if let revision = revision, revision > 0 {
+            items.append(URLQueryItem(name: "revision", value: String(revision)))
+        }
+        urlComponents?.queryItems = items.isEmpty ? nil : items
         return urlComponents?.url
     }
 

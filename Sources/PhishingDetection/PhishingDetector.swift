@@ -53,23 +53,23 @@ public protocol PhishingDetecting {
 public class PhishingDetector: PhishingDetecting {
     let hashPrefixStoreLength: Int = 8
     let hashPrefixParamLength: Int = 4
-	var apiClient: PhishingDetectionClientProtocol
-	var dataStore: PhishingDetectionDataSaving
+	let apiClient: PhishingDetectionClientProtocol
+	let dataStore: PhishingDetectionDataSaving
 
-	public init(apiClient: PhishingDetectionClientProtocol, dataProvider: PhishingDetectionDataProviding, dataStore: PhishingDetectionDataSaving) {
+	public init(apiClient: PhishingDetectionClientProtocol, dataStore: PhishingDetectionDataSaving) {
 		self.apiClient = apiClient
 		self.dataStore = dataStore
 	}
 
-	func getMatches(hashPrefix: String) async -> Set<Match> {
+	private func getMatches(hashPrefix: String) async -> Set<Match> {
 		return Set(await apiClient.getMatches(hashPrefix: hashPrefix))
 	}
 
-	func inFilterSet(hash: String) -> Set<Filter> {
+	private func inFilterSet(hash: String) -> Set<Filter> {
 		return Set(dataStore.filterSet.filter { $0.hashValue == hash })
 	}
 
-	func matchesUrl(hash: String, regexPattern: String, url: URL, hostnameHash: String) -> Bool {
+	private func matchesUrl(hash: String, regexPattern: String, url: URL, hostnameHash: String) -> Bool {
 		if hash == hostnameHash,
 		   let regex = try? NSRegularExpression(pattern: regexPattern, options: []) {
 			let urlString = url.absoluteString
@@ -78,29 +78,54 @@ public class PhishingDetector: PhishingDetecting {
 		}
 		return false
 	}
+    
+    private func generateHashPrefix(for canonicalHost: String, length: Int) -> String {
+        let hostnameHash = SHA256.hash(data: Data(canonicalHost.utf8)).map { String(format: "%02hhx", $0) }.joined()
+        return String(hostnameHash.prefix(length))
+    }
+    
+    private func fetchMatches(hashPrefix: String) async -> [Match] {
+        return await apiClient.getMatches(hashPrefix: hashPrefix)
+    }
 
-	public func isMalicious(url: URL) async -> Bool {
-		guard let canonicalHost = url.canonicalHost() else { return false }
-        guard let canonicalUrl = url.canonicalURL() else { return false }
-		let hostnameHash = SHA256.hash(data: Data(canonicalHost.utf8)).map { String(format: "%02hhx", $0) }.joined()
-		let hashPrefix = String(hostnameHash.prefix(hashPrefixStoreLength))
-		if dataStore.hashPrefixes.contains(hashPrefix) {
-			// Check local filterSet first
-			let filterHit = inFilterSet(hash: hostnameHash)
-            for filter in filterHit where matchesUrl(hash: filter.hashValue, regexPattern: filter.regex, url: canonicalUrl, hostnameHash: hostnameHash) {
-                // Commented out to avoid PixelKit dependency: https://github.com/duckduckgo/BrowserServicesKit/pull/934
-				// PixelKit.fire(PhishingDetectionPixels.errorPageShown(clientSideHit: true))
+    private func checkLocalFilters(canonicalHost: String, canonicalUrl: URL) -> Bool {
+        let hostnameHash = generateHashPrefix(for: canonicalHost, length: Int.max)
+        let filterHit = inFilterSet(hash: hostnameHash)
+        for filter in filterHit where matchesUrl(hash: filter.hashValue, regexPattern: filter.regex, url: canonicalUrl, hostnameHash: hostnameHash) {
+            // Commented out to avoid PixelKit dependency: https://github.com/duckduckgo/BrowserServicesKit/pull/934
+            // PixelKit.fire(PhishingDetectionPixels.errorPageShown(clientSideHit: true))
+            return true
+        }
+        return false
+    }
+
+    private func checkApiMatches(canonicalHost: String, canonicalUrl: URL) async -> Bool {
+        let hashPrefixParam = generateHashPrefix(for: canonicalHost, length: hashPrefixParamLength)
+        let matches = await fetchMatches(hashPrefix: hashPrefixParam)
+        let hostnameHash = generateHashPrefix(for: canonicalHost, length: Int.max)
+        for match in matches where matchesUrl(hash: match.hash, regexPattern: match.regex, url: canonicalUrl, hostnameHash: hostnameHash) {
+            // Commented out to avoid PixelKit dependency: https://github.com/duckduckgo/BrowserServicesKit/pull/934
+            // PixelKit.fire(PhishingDetectionPixels.errorPageShown(clientSideHit: false))
+            return true
+        }
+        return false
+    }
+
+    public func isMalicious(url: URL) async -> Bool {
+        guard let canonicalHost = url.canonicalHost(), let canonicalUrl = url.canonicalURL() else { return false }
+
+        let hashPrefix = generateHashPrefix(for: canonicalHost, length: hashPrefixStoreLength)
+        if dataStore.hashPrefixes.contains(hashPrefix) {
+            // Check local filterSet first
+            if checkLocalFilters(canonicalHost: canonicalHost, canonicalUrl: canonicalUrl) {
                 return true
             }
-			// If nothing found, hit the API to get matches
-            let hashPrefixParam = String(hostnameHash.prefix(hashPrefixParamLength))
-			let matches = await apiClient.getMatches(hashPrefix: hashPrefixParam)
-			for match in matches where matchesUrl(hash: match.hash, regexPattern: match.regex, url: canonicalUrl, hostnameHash: hostnameHash) {
-                // Commented out to avoid PixelKit dependency: https://github.com/duckduckgo/BrowserServicesKit/pull/934
-				// PixelKit.fire(PhishingDetectionPixels.errorPageShown(clientSideHit: false))
-				return true
-			}
-		}
-		return false
-	}
+            // If nothing found, hit the API to get matches
+            if await checkApiMatches(canonicalHost: canonicalHost, canonicalUrl: canonicalUrl) {
+                return true
+            }
+        }
+
+        return false
+    }
 }
