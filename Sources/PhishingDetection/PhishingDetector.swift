@@ -88,14 +88,16 @@ public class PhishingDetector: PhishingDetecting {
 			// Check local filterSet first
 			let filterHit = inFilterSet(hash: hostnameHash)
             for filter in filterHit where matchesUrl(hash: filter.hashValue, regexPattern: filter.regex, url: canonicalUrl, hostnameHash: hostnameHash) {
-                PixelKit.fire(PhishingDetectionPixels.errorPageShown(clientSideHit: true))
+                // Commented out to avoid PixelKit dependency: https://github.com/duckduckgo/BrowserServicesKit/pull/934
+				// PixelKit.fire(PhishingDetectionPixels.errorPageShown(clientSideHit: true))
                 return true
             }
 			// If nothing found, hit the API to get matches
             let hashPrefixParam = String(hostnameHash.prefix(hashPrefixParamLength))
 			let matches = await apiClient.getMatches(hashPrefix: hashPrefixParam)
 			for match in matches where matchesUrl(hash: match.hash, regexPattern: match.regex, url: canonicalUrl, hostnameHash: hostnameHash) {
-                PixelKit.fire(PhishingDetectionPixels.errorPageShown(clientSideHit: false))
+                // Commented out to avoid PixelKit dependency: https://github.com/duckduckgo/BrowserServicesKit/pull/934
+				// PixelKit.fire(PhishingDetectionPixels.errorPageShown(clientSideHit: false))
 				return true
 			}
 		}

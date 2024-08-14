@@ -53,15 +53,15 @@ extension OSLog {
     static var debugCategories: Set<Categories> = [ /*.autofill*/ ]
 #endif
 
-    @OSLogWrapper(.contentBlocking)     public static var contentBlocking
-    @OSLogWrapper(.userScripts)         public static var userScripts
-    @OSLogWrapper(.passwordManager)     public static var passwordManager
-    @OSLogWrapper(.remoteMessaging)     public static var remoteMessaging
-    @OSLogWrapper(.subscription)        public static var subscription
-    @OSLogWrapper(.history)             public static var history
-    @OSLogWrapper(.general)             public static var general
-    @OSLogWrapper(.autofill)            public static var autofill
-    @OSLogWrapper(.phishingDetection)   public static var phishingDetection
+    @OSLogWrapper(.contentBlocking)   public static var contentBlocking
+    @OSLogWrapper(.userScripts)       public static var userScripts
+    @OSLogWrapper(.passwordManager)   public static var passwordManager
+    @OSLogWrapper(.remoteMessaging)   public static var remoteMessaging
+    @OSLogWrapper(.subscription)      public static var subscription
+    @OSLogWrapper(.history)           public static var history
+    @OSLogWrapper(.general)           public static var general
+    @OSLogWrapper(.autofill)          public static var autofill
+    @OSLogWrapper(.phishingDetection) public static var phishingDetection
 
     public static var enabledLoggingCategories = Set<String>()
 
