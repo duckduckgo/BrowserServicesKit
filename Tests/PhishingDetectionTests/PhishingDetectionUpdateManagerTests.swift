@@ -39,7 +39,7 @@ class PhishingDetectionUpdateManagerTests: XCTestCase {
         mockClient = nil
         super.tearDown()
     }
-    
+
     func testUpdateHashPrefixes() async {
         await updateManager.updateHashPrefixes()
         XCTAssertFalse(dataStore.hashPrefixes.isEmpty, "Hash prefixes should not be empty after update.")

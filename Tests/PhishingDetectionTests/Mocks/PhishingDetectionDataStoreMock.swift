@@ -33,11 +33,11 @@ public class MockPhishingDetectionDataStore: PhishingDetectionDataSaving {
     public func saveFilterSet(set: Set<PhishingDetection.Filter>) {
         filterSet = set
     }
-    
+
     public func saveHashPrefixes(set: Set<String>) {
         hashPrefixes = set
     }
-    
+
     public func saveRevision(_ revision: Int) {
         currentRevision = revision
     }
