@@ -27,28 +27,28 @@ class IsMaliciousTests: XCTestCase {
         let filter = Filter(hashValue: "255a8a793097aeea1f06a19c08cde28db0eb34c660c6e4e7480c9525d034b16d", regex: ".*malicious.*")
         mockDataStore.filterSet = Set([filter])
         mockDataStore.hashPrefixes = Set(["255a8a79"])
-        
+
         let url = URL(string: "https://malicious.com/")!
-        
+
         let result = await detector.isMalicious(url: url)
-        
+
         XCTAssertTrue(result)
     }
-    
+
     func testIsMaliciousWithApiMatch() async {
         let mockAPIClient = MockPhishingDetectionClient()
         let mockDataStore = MockPhishingDetectionDataStore()
         let detector = PhishingDetector(apiClient: mockAPIClient, dataStore: mockDataStore)
         mockDataStore.filterSet = Set()
         mockDataStore.hashPrefixes = ["a379a6f6"]
-        
+
         let url = URL(string: "https://example.com/mal")!
-        
+
         let result = await detector.isMalicious(url: url)
-        
+
         XCTAssertTrue(result)
     }
-    
+
     func testIsMaliciousWithNoMatch() async {
         let mockAPIClient = MockPhishingDetectionClient()
         let mockDataStore = MockPhishingDetectionDataStore()
@@ -56,9 +56,9 @@ class IsMaliciousTests: XCTestCase {
         let filter = Filter(hashValue: "testHash", regex: ".*malicious.*")
         mockDataStore.filterSet = [filter]
         mockDataStore.hashPrefixes = ["testPrefix"]
-        
+
         let url = URL(string: "https://safe.com")!
-        
+
         let result = await detector.isMalicious(url: url)
 
         XCTAssertFalse(result)

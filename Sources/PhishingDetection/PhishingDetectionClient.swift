@@ -80,9 +80,9 @@ public class PhishingDetectionAPIClient: PhishingDetectionClientProtocol {
         static let productionEndpoint = URL(string: "https://duckduckgo.com/api/protection/")!
         static let stagingEndpoint = URL(string: "https://web-use-1.duckduckgo.com/api/protection/")!
         enum APIPath: String {
-            case filterSet = "filterSet"
-            case hashPrefix = "hashPrefix"
-            case matches = "matches"
+            case filterSet
+            case hashPrefix
+            case matches
         }
     }
 

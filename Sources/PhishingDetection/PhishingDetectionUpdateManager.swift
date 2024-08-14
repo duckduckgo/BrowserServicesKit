@@ -32,7 +32,7 @@ public class PhishingDetectionUpdateManager: PhishingDetectionUpdateManaging {
         self.apiClient = client
         self.dataStore = dataStore
     }
-    
+
     private func updateSet<T: Hashable>(
         currentSet: Set<T>,
         insert: [T],
@@ -41,14 +41,14 @@ public class PhishingDetectionUpdateManager: PhishingDetectionUpdateManaging {
         saveSet: (Set<T>) -> Void
     ) {
         var newSet = currentSet
-        
+
         if replace {
             newSet = Set(insert)
         } else {
             newSet.formUnion(insert)
             newSet.subtract(delete)
         }
-        
+
         saveSet(newSet)
     }
 

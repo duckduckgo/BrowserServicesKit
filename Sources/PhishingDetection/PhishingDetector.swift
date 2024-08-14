@@ -78,12 +78,12 @@ public class PhishingDetector: PhishingDetecting {
 		}
 		return false
 	}
-    
+
     private func generateHashPrefix(for canonicalHost: String, length: Int) -> String {
         let hostnameHash = SHA256.hash(data: Data(canonicalHost.utf8)).map { String(format: "%02hhx", $0) }.joined()
         return String(hostnameHash.prefix(length))
     }
-    
+
     private func fetchMatches(hashPrefix: String) async -> [Match] {
         return await apiClient.getMatches(hashPrefix: hashPrefix)
     }
