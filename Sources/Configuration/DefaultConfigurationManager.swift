@@ -1,0 +1,124 @@
+//
+//  DefaultConfigurationManager.swift
+//  DuckDuckGo
+//
+//  Copyright © 2024 DuckDuckGo. All rights reserved.
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//  http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//
+
+import Foundation
+import Combine
+import Common
+import PixelKit
+
+open class DefaultConfigurationManager {
+    public enum Error: Swift.Error {
+
+        case timeout
+        case bloomFilterSpecNotFound
+        case bloomFilterBinaryNotFound
+        case bloomFilterPersistenceFailed
+        case bloomFilterExclusionsNotFound
+        case bloomFilterExclusionsPersistenceFailed
+
+        public func withUnderlyingError(_ underlyingError: Swift.Error) -> Swift.Error {
+            let nsError = self as NSError
+            return NSError(domain: nsError.domain, code: nsError.code, userInfo: [NSUnderlyingErrorKey: underlyingError])
+        }
+
+    }
+
+    public enum Constants {
+
+        public static let downloadTimeoutSeconds = 60.0 * 5
+#if DEBUG
+        public static let refreshPeriodSeconds = 60.0 * 2 // 2 minutes
+#else
+        public static let refreshPeriodSeconds = 60.0 * 30 // 30 minutes
+#endif
+        public static let retryDelaySeconds = 60.0 * 60 * 1 // 1 hour delay before checking again if something went wrong last time
+        public static let refreshCheckIntervalSeconds = 60.0 // check if we need a refresh every minute
+
+    }
+
+    public var fetcher: ConfigurationFetcher
+
+    public init(fetcher: ConfigurationFetcher) {
+        self.fetcher = fetcher
+
+        self.lastUpdateTime = .distantPast
+    }
+
+    public static let queue: DispatchQueue = DispatchQueue(label: "Configuration Manager")
+
+//    @UserDefaultsWrapper(key: .configLastUpdated, defaultValue: .distantPast)
+    private(set) var lastUpdateTime: Date
+
+//    @UserDefaultsWrapper(key: .configLastInstalled, defaultValue: nil)
+    private(set) var lastConfigurationInstallDate: Date?
+
+    private var timerCancellable: AnyCancellable?
+    public var lastRefreshCheckTime: Date = Date()
+
+    public func start() {
+        // TODO: Move .config log to BSK
+        os_log("Starting configuration refresh timer", log: .default, type: .debug)
+        timerCancellable = Timer.publish(every: Constants.refreshCheckIntervalSeconds, on: .main, in: .default)
+            .autoconnect()
+            .receive(on: Self.queue)
+            .sink(receiveValue: { _ in
+                self.lastRefreshCheckTime = Date()
+                self.refreshIfNeeded()
+            })
+        Task {
+            await refreshNow()
+        }
+    }
+
+    /**
+     Implement this in the subclass.
+     Use this method to fetch neccessary configurations and store them.
+     */
+    open func refreshNow(isDebug: Bool = false) async {
+        fatalError("refreshNow Must be implemented by subclass")
+    }
+
+    @discardableResult
+    private func refreshIfNeeded() -> Task<Void, Never>? {
+        guard isReadyToRefresh else {
+            os_log("Configuration refresh is not needed at this time", log: .default, type: .debug)
+            return nil
+        }
+        return Task {
+            await refreshNow()
+        }
+    }
+
+    open var isReadyToRefresh: Bool { Date().timeIntervalSince(lastUpdateTime) > Constants.refreshPeriodSeconds }
+
+    public func forceRefresh(isDebug: Bool = false) {
+        Task {
+            await refreshNow(isDebug: isDebug)
+        }
+    }
+
+    public func tryAgainLater() {
+        lastUpdateTime = Date()
+    }
+
+    public func tryAgainSoon() {
+        // Set the last update time to in the past so it triggers again sooner
+        lastUpdateTime = Date(timeIntervalSinceNow: Constants.refreshPeriodSeconds - Constants.retryDelaySeconds)
+    }
+}
