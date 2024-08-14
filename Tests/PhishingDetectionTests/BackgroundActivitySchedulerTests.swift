@@ -23,38 +23,35 @@ class BackgroundActivitySchedulerTests: XCTestCase {
     var scheduler: BackgroundActivityScheduler!
     var activityWasRun = false
 
-    override func setUp() {
-        super.setUp()
-        scheduler = BackgroundActivityScheduler(interval: 1, identifier: "test")
-    }
-
     override func tearDown() {
         scheduler = nil
         super.tearDown()
     }
 
-    func testStart() {
+    func testStart() async throws {
         let expectation = self.expectation(description: "Activity should run")
-        scheduler.start {
+        scheduler = BackgroundActivityScheduler(interval: 1, identifier: "test") {
             if !self.activityWasRun {
                 self.activityWasRun = true
                 expectation.fulfill()
             }
         }
-        waitForExpectations(timeout: 2, handler: nil)
+        await scheduler.start()
+        await fulfillment(of: [expectation], timeout: 2)
         XCTAssertTrue(activityWasRun)
     }
 
-    func testRepeats() {
+    func testRepeats() async throws {
         let expectation = self.expectation(description: "Activity should repeat")
         var runCount = 0
-        scheduler.start {
+        scheduler = BackgroundActivityScheduler(interval: 1, identifier: "test") {
             runCount += 1
             if runCount == 2 {
                 expectation.fulfill()
             }
         }
-        waitForExpectations(timeout: 3, handler: nil)
+        await scheduler.start()
+        await fulfillment(of: [expectation], timeout: 3)
         XCTAssertEqual(runCount, 2)
     }
 }
