@@ -20,18 +20,28 @@ import Foundation
 import PhishingDetection
 
 public class MockPhishingDetectionDataProvider: PhishingDetectionDataProviding {
-    public var embeddedRevision: Int = 0
+    public var embeddedRevision: Int = 65
     var loadHashPrefixesCalled: Bool = false
     var loadFilterSetCalled: Bool = true
+    var hashPrefixes: Set<String> = ["aabb"]
+    var filterSet: Set<Filter> = [Filter(hashValue: "dummyhash", regex: "dummyregex")]
 
-    public func loadEmbeddedFilterSet() -> Set<PhishingDetection.Filter> {
+    public func shouldReturnFilterSet(set: Set<Filter>) {
+        self.filterSet = set
+    }
+
+    public func shouldReturnHashPrefixes(set: Set<String>) {
+        self.hashPrefixes = set
+    }
+
+    public func loadEmbeddedFilterSet() -> Set<Filter> {
         self.loadHashPrefixesCalled = true
-        return [Filter(hashValue: "dummyhash", regex: "dummyregex")]
+        return self.filterSet
     }
 
     public func loadEmbeddedHashPrefixes() -> Set<String> {
         self.loadFilterSetCalled = true
-        return ["aabb"]
+        return self.hashPrefixes
     }
 
 }

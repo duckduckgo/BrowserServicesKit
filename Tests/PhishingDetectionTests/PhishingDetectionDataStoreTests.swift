@@ -47,32 +47,50 @@ class PhishingDetectionDataStoreTests: XCTestCase {
         }
     }
 
-    func testLoadDataError() async {
+    func testWhenNoDataSavedThenProviderDataReturned() async {
         clearDatasets()
+        let expectedFilerSet = Set([Filter(hashValue: "some", regex: "some")])
+        let expectedHashPrefix = Set(["sassa"])
+        mockDataProvider.shouldReturnFilterSet(set: expectedFilerSet)
+        mockDataProvider.shouldReturnHashPrefixes(set: expectedHashPrefix)
 
-        // Force load data
-        _ = dataStore.filterSet
-        _ = dataStore.hashPrefixes
+        let actualFilterSet = dataStore.filterSet
+        let actualHashPrefix = dataStore.hashPrefixes
 
-        // Error => reload from embedded data
-        XCTAssertTrue(mockDataProvider.loadFilterSetCalled)
-        XCTAssertTrue(mockDataProvider.loadHashPrefixesCalled)
+        XCTAssertEqual(actualFilterSet, expectedFilerSet)
+        XCTAssertEqual(actualHashPrefix, expectedHashPrefix)
     }
 
     func testWriteAndLoadData() async {
         // Get and write data
-        let filterSet = dataStore.filterSet
-        let hashPrefixes = dataStore.hashPrefixes
-        let revision = dataStore.currentRevision
-        dataStore.saveHashPrefixes(set: hashPrefixes)
-        dataStore.saveFilterSet(set: filterSet)
-        dataStore.saveRevision(revision)
+        let expectedHashPrefixes = Set(["aabb"])
+        let expectedFilterSet = Set([Filter(hashValue: "dummyhash", regex: "dummyregex")])
+        let expectedRevision = 65
 
-        // Clear data in memory
-        dataStore = PhishingDetectionDataStore(dataProvider: mockDataProvider, fileStorageManager: fileStorageManager)
+        dataStore.saveHashPrefixes(set: expectedHashPrefixes)
+        dataStore.saveFilterSet(set: expectedFilterSet)
+        dataStore.saveRevision(expectedRevision)
 
-        // Load data
-        XCTAssertFalse(dataStore.hashPrefixes.isEmpty, "Hash prefixes should not be empty after load.")
-        XCTAssertFalse(dataStore.filterSet.isEmpty, "Filter set should not be empty after load.")
+        XCTAssertEqual(dataStore.filterSet, expectedFilterSet)
+        XCTAssertEqual(dataStore.hashPrefixes, expectedHashPrefixes)
+        XCTAssertEqual(dataStore.currentRevision, expectedRevision)
+
+        // Test decode JSON data to expected types
+        let storedHashPrefixesData = fileStorageManager.read(from: "hashPrefixes.json")
+        let storedFilterSetData = fileStorageManager.read(from: "filterSet.json")
+        let storedRevisionData = fileStorageManager.read(from: "revision.txt")
+
+        let decoder = JSONDecoder()
+        if let storedHashPrefixes = try? decoder.decode(Set<String>.self, from: storedHashPrefixesData!),
+           let storedFilterSet = try? decoder.decode(Set<Filter>.self, from: storedFilterSetData!),
+           let storedRevisionString = String(data: storedRevisionData!, encoding: .utf8),
+           let storedRevision = Int(storedRevisionString.trimmingCharacters(in: .whitespacesAndNewlines)) {
+
+            XCTAssertEqual(storedFilterSet, expectedFilterSet)
+            XCTAssertEqual(storedHashPrefixes, expectedHashPrefixes)
+            XCTAssertEqual(storedRevision, expectedRevision)
+        } else {
+            XCTFail("Failed to decode stored PhishingDetection data")
+        }
     }
 }

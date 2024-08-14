@@ -30,7 +30,7 @@ class PhishingDetectionDataActivitiesTests: XCTestCase {
         activities = PhishingDetectionDataActivities(hashPrefixInterval: 1, filterSetInterval: 1, phishingDetectionDataProvider: MockPhishingDetectionDataProvider(), updateManager: mockUpdateManager)
     }
 
-    func testRun() async {
+    func testUpdateHashPrefixesAndFilterSetRuns() async {
         let expectation = XCTestExpectation(description: "updateHashPrefixes and updateFilterSet completes")
 
         mockUpdateManager.completionHandler = {
