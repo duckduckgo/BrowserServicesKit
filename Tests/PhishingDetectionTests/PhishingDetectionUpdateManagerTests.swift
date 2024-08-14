@@ -49,7 +49,7 @@ class PhishingDetectionUpdateManagerTests: XCTestCase {
     func clearDatasets() {
         for fileName in datasetFiles {
             let emptyData = Data()
-            let fileURL = fileStorageManager.write(data: emptyData, to: fileName)
+            fileStorageManager.write(data: emptyData, to: fileName)
         }
     }
 
@@ -91,11 +91,10 @@ class PhishingDetectionUpdateManagerTests: XCTestCase {
         dataStore.saveFilterSet(set: filterSet)
         dataStore.saveRevision(revision)
 
-        // Clear data
+        // Clear data in memory
         dataStore = PhishingDetectionDataStore(dataProvider: mockDataProvider, fileStorageManager: fileStorageManager)
 
         // Load data
-        await dataStore.loadData()
         XCTAssertFalse(dataStore.hashPrefixes.isEmpty, "Hash prefixes should not be empty after load.")
         XCTAssertFalse(dataStore.filterSet.isEmpty, "Filter set should not be empty after load.")
     }
@@ -126,11 +125,11 @@ class PhishingDetectionUpdateManagerTests: XCTestCase {
 class MockPhishingFileStorageManager: FileStorageManager {
     private var data: [String: Data] = [:]
 
-    override func write(data: Data, to filename: String) {
+    func write(data: Data, to filename: String) {
         self.data[filename] = data
     }
 
-    override func read(from filename: String) -> Data? {
+    func read(from filename: String) -> Data? {
         return data[filename]
     }
 }
