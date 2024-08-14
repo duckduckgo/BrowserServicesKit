@@ -27,13 +27,13 @@ class PhishingDetectionUpdateManagerTests: XCTestCase {
     var mockDataProvider: MockPhishingDetectionDataProvider!
     let datasetFiles: [String] = ["hashPrefixes.json", "filterSet.json", "revision.txt"]
     var dataStore: PhishingDetectionDataStore!
-    var fileStorageManager: FileStorageManaging!
+    var fileStorageManager: FileStorageManager!
 
     override func setUp() {
         super.setUp()
         mockClient = MockPhishingDetectionClient()
         mockDataProvider = MockPhishingDetectionDataProvider()
-        fileStorageManager = FileStorageManager()
+        fileStorageManager = MockPhishingFileStorageManager()
         dataStore = PhishingDetectionDataStore(dataProvider: mockDataProvider, fileStorageManager: fileStorageManager)
         updateManager = PhishingDetectionUpdateManager(client: mockClient, dataStore: dataStore)
     }
@@ -84,12 +84,12 @@ class PhishingDetectionUpdateManagerTests: XCTestCase {
 
     func testWriteAndLoadData() async {
         // Get and write data
-        _ = dataStore.filterSet
-        _ = dataStore.hashPrefixes
-        _ = dataStore.currentRevision
-        dataStore.writeHashPrefixes()
-        dataStore.writeFilterSet()
-        dataStore.writeRevision()
+        let filterSet = dataStore.filterSet
+        let hashPrefixes = dataStore.hashPrefixes
+        let revision = dataStore.currentRevision
+        dataStore.saveHashPrefixes(set: hashPrefixes)
+        dataStore.saveFilterSet(set: filterSet)
+        dataStore.saveRevision(revision)
 
         // Clear data
         dataStore = PhishingDetectionDataStore(dataProvider: mockDataProvider, fileStorageManager: fileStorageManager)
@@ -101,20 +101,21 @@ class PhishingDetectionUpdateManagerTests: XCTestCase {
     }
 
     func testRevision1AddsData() async {
-        dataStore.currentRevision = 1
+        fileStorageManager.write(data: "1".data(using: .utf8)!, to: "revision.txt")
+        XCTAssertEqual(dataStore.currentRevision, 1, "Current revision should be 1 after load.")
         XCTAssertTrue(dataStore.filterSet.contains(where: { $0.hashValue == "testhash3" }), "Filter set should contain added data after update.")
         XCTAssertTrue(dataStore.hashPrefixes.contains("93e2435e"), "Hash prefixes should contain added data after update.")
     }
 
     func testRevision2AddsAndDeletesData() async {
-        dataStore.currentRevision = 2
+        fileStorageManager.write(data: "2".data(using: .utf8)!, to: "revision.txt")
         XCTAssertFalse(dataStore.filterSet.contains(where: { $0.hashValue == "testhash2" }), "Filter set should not contain deleted data after update.")
         XCTAssertFalse(dataStore.hashPrefixes.contains("bb00cc11"), "Hash prefixes should not contain deleted data after update.")
         XCTAssertTrue(dataStore.hashPrefixes.contains("c0be0d0a6"))
     }
 
     func testRevision4AddsAndDeletesData() async {
-        dataStore.currentRevision = 4
+        fileStorageManager.write(data: "4".data(using: .utf8)!, to: "revision.txt")
         XCTAssertTrue(dataStore.filterSet.contains(where: { $0.hashValue == "testhash5" }), "Filter set should contain added data after update.")
         XCTAssertFalse(dataStore.filterSet.contains(where: { $0.hashValue == "testhash3" }), "Filter set should not contain deleted data after update.")
         XCTAssertTrue(dataStore.hashPrefixes.contains("a379a6f6"), "Hash prefixes should contain added data after update.")
@@ -122,10 +123,14 @@ class PhishingDetectionUpdateManagerTests: XCTestCase {
     }
 }
 
-// Extend dataStore to expose setting currentRevision for testing
-extension PhishingDetectionDataStore {
-    var currentRevision: Int {
-        get { _currentRevision }
-        set { _currentRevision = newValue }
+class MockPhishingFileStorageManager: FileStorageManager {
+    private var data: [String: Data] = [:]
+
+    override func write(data: Data, to filename: String) {
+        self.data[filename] = data
+    }
+
+    override func read(from filename: String) -> Data? {
+        return data[filename]
     }
 }
