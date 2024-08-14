@@ -43,6 +43,14 @@ public struct SubscriptionMockFactory {
                                                          platform: .apple,
                                                          status: .expired)
 
+    public static let expiredStripeSubscription = Subscription(productId: UUID().uuidString,
+                                                         name: "Subscription test #2",
+                                                         billingPeriod: .monthly,
+                                                         startedAt: Date().addingTimeInterval(TimeInterval.days(-31)),
+                                                         expiresOrRenewsAt: Date().addingTimeInterval(TimeInterval.days(-1)),
+                                                         platform: .stripe,
+                                                         status: .expired)
+
     public static let productsItems: [GetProductsItem] = [GetProductsItem(productId: subscription.productId,
                                                                           productLabel: subscription.name,
                                                                           billingPeriod: subscription.billingPeriod.rawValue,
@@ -91,5 +99,4 @@ public struct SubscriptionMockFactory {
                                                                     currentEnvironment: currentEnvironment,
                                                                     canPurchase: true)
 
-    public static let appStoreRestoreFlow = AppStoreRestoreFlowMock(restoreAccountFromPastPurchaseResult: .success(Void()))
 }

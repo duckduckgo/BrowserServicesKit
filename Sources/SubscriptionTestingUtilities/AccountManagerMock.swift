@@ -34,6 +34,7 @@ public final class AccountManagerMock: AccountManager {
 
     public var storeAuthTokenCalled: Bool = false
     public var storeAccountCalled: Bool = false
+    public var updateCacheWithEntitlementsCalled: Bool = false
     public var exchangeAuthTokenToAccessTokenCalled: Bool = false
     public var fetchAccountDetailsCalled: Bool = false
     public var checkForEntitlementsCalled: Bool = false
@@ -81,7 +82,7 @@ public final class AccountManagerMock: AccountManager {
     }
 
     public func updateCache(with entitlements: [Entitlement]) {
-
+        updateCacheWithEntitlementsCalled = true
     }
 
     public func fetchEntitlements(cachePolicy: APICachePolicy) async -> Result<[Entitlement], Error> {

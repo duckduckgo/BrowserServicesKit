@@ -19,13 +19,16 @@
 import Foundation
 import Subscription
 
-public struct SubscriptionEndpointServiceMock: SubscriptionEndpointService {
+public class SubscriptionEndpointServiceMock: SubscriptionEndpointService {
     public var getSubscriptionResult: Result<Subscription, SubscriptionServiceError>?
     public var getProductsResult: Result<[GetProductsItem], APIServiceError>?
     public var getCustomerPortalURLResult: Result<GetCustomerPortalURLResponse, APIServiceError>?
     public var confirmPurchaseResult: Result<ConfirmPurchaseResponse, APIServiceError>?
 
+    public var onUpdateCache: ((Subscription) -> Void)?
     public var onSignOut: (() -> Void)?
+
+    public var updateCacheWithSubscriptionCalled: Bool = false
 
     public init(getSubscriptionResult: Result<Subscription, SubscriptionServiceError>? = nil,
                 getProductsResult: Result<[GetProductsItem], APIServiceError>? = nil,
@@ -38,7 +41,8 @@ public struct SubscriptionEndpointServiceMock: SubscriptionEndpointService {
     }
 
     public func updateCache(with subscription: Subscription) {
-
+        onUpdateCache?(subscription)
+        updateCacheWithSubscriptionCalled = true
     }
 
     public func getSubscription(accessToken: String, cachePolicy: APICachePolicy) async -> Result<Subscription, SubscriptionServiceError> {

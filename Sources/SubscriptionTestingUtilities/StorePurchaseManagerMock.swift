@@ -19,7 +19,7 @@
 import Foundation
 import Subscription
 
-public struct StorePurchaseManagerMock: StorePurchaseManager {
+public class StorePurchaseManagerMock: StorePurchaseManager {
     public var purchasedProductIDs: [String]
     public var purchaseQueue: [String]
     public var areProductsAvailable: Bool
@@ -29,6 +29,8 @@ public struct StorePurchaseManagerMock: StorePurchaseManager {
     public var onMostRecentTransaction: (() -> String?)?
     public var onHasActiveSubscription: (() -> Bool)?
     public var onPurchaseSubscription: ((String, String) -> Result<TransactionJWS, StorePurchaseManagerError>)?
+
+    public var purchaseSubscriptionCalled: Bool = false
 
     public init(purchasedProductIDs: [String] = [],
                 purchaseQueue: [String] = [],
@@ -65,6 +67,7 @@ public struct StorePurchaseManagerMock: StorePurchaseManager {
     }
 
     public func purchaseSubscription(with identifier: String, externalID: String) async -> Result<TransactionJWS, StorePurchaseManagerError> {
-        onPurchaseSubscription!(identifier, externalID)
+        purchaseSubscriptionCalled = true
+        return onPurchaseSubscription!(identifier, externalID)
     }
 }

@@ -19,11 +19,16 @@
 import Foundation
 import Subscription
 
-public struct AuthEndpointServiceMock: AuthEndpointService {
+public class AuthEndpointServiceMock: AuthEndpointService {
     public var accessTokenResult: Result<AccessTokenResponse, APIServiceError>?
     public var validateTokenResult: Result<ValidateTokenResponse, APIServiceError>?
     public var createAccountResult: Result<CreateAccountResponse, APIServiceError>?
     public var storeLoginResult: Result<StoreLoginResponse, APIServiceError>?
+
+    public var getAccessTokenCalled: Bool = false
+    public var validateTokenCalled: Bool = false
+    public var createAccountCalled: Bool = false
+    public var storeLoginCalled: Bool = false
 
     public init(accessTokenResult: Result<AccessTokenResponse, APIServiceError>? = nil,
                 validateTokenResult: Result<ValidateTokenResponse, APIServiceError>? = nil,
@@ -36,18 +41,22 @@ public struct AuthEndpointServiceMock: AuthEndpointService {
     }
 
     public func getAccessToken(token: String) async -> Result<AccessTokenResponse, APIServiceError> {
-        accessTokenResult!
+        getAccessTokenCalled = true
+        return accessTokenResult!
     }
 
     public func validateToken(accessToken: String) async -> Result<ValidateTokenResponse, APIServiceError> {
-        validateTokenResult!
+        validateTokenCalled = true
+        return validateTokenResult!
     }
 
     public func createAccount(emailAccessToken: String?) async -> Result<CreateAccountResponse, APIServiceError> {
-        createAccountResult!
+        createAccountCalled = true
+        return createAccountResult!
     }
 
     public func storeLogin(signature: String) async -> Result<StoreLoginResponse, APIServiceError> {
-        storeLoginResult!
+        storeLoginCalled = true
+        return storeLoginResult!
     }
 }
