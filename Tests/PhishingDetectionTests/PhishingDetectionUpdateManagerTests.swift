@@ -27,12 +27,14 @@ class PhishingDetectionUpdateManagerTests: XCTestCase {
     var mockDataProvider: MockPhishingDetectionDataProvider!
     let datasetFiles: [String] = ["hashPrefixes.json", "filterSet.json", "revision.txt"]
     var dataStore: PhishingDetectionDataStore!
+    var fileStorageManager: FileStorageManaging!
 
     override func setUp() {
         super.setUp()
         mockClient = MockPhishingDetectionClient()
         mockDataProvider = MockPhishingDetectionDataProvider()
-        dataStore = PhishingDetectionDataStore(dataProvider: mockDataProvider)
+        fileStorageManager = FileStorageManager()
+        dataStore = PhishingDetectionDataStore(dataProvider: mockDataProvider, fileStorageManager: fileStorageManager)
         updateManager = PhishingDetectionUpdateManager(client: mockClient, dataStore: dataStore)
     }
 
@@ -46,12 +48,8 @@ class PhishingDetectionUpdateManagerTests: XCTestCase {
 
     func clearDatasets() {
         for fileName in datasetFiles {
-            let fileURL = dataStore.dataStore!.appendingPathComponent(fileName)
-            do {
-                try "".write(to: fileURL, atomically: true, encoding: .utf8)
-            } catch {
-                print("Failed to clear contents of \(fileName): \(error)")
-            }
+            let emptyData = Data()
+            let fileURL = fileStorageManager.write(data: emptyData, to: fileName)
         }
     }
 
@@ -62,7 +60,11 @@ class PhishingDetectionUpdateManagerTests: XCTestCase {
 
     func testLoadDataError() async {
         clearDatasets()
-        await dataStore.loadData()
+
+        // Force load data
+        _ = dataStore.filterSet
+        _ = dataStore.hashPrefixes
+
         // Error => reload from embedded data
         XCTAssertTrue(mockDataProvider.loadFilterSetCalled)
         XCTAssertTrue(mockDataProvider.loadHashPrefixesCalled)
@@ -79,24 +81,18 @@ class PhishingDetectionUpdateManagerTests: XCTestCase {
             "a379a6f6"
         ])
     }
-//
-//    func testCheckURL() async {
-//        await service.updateHashPrefixes()
-//        let trueResult = await service.isMalicious(url: URL(string: "https://example.com/bad/path")!)
-//        XCTAssertTrue(trueResult, "URL check should return true for phishing URLs.")
-//        let falseResult = await service.isMalicious(url: URL(string: "https://duck.com")!)
-//        XCTAssertFalse(falseResult, "URL check should return false for normal URLs.")
-//    }
 
     func testWriteAndLoadData() async {
         // Get and write data
-        await updateManager.updateFilterSet()
-        await updateManager.updateHashPrefixes()
-        dataStore.writeData()
+        _ = dataStore.filterSet
+        _ = dataStore.hashPrefixes
+        _ = dataStore.currentRevision
+        dataStore.writeHashPrefixes()
+        dataStore.writeFilterSet()
+        dataStore.writeRevision()
 
         // Clear data
-        dataStore.hashPrefixes = []
-        dataStore.filterSet = []
+        dataStore = PhishingDetectionDataStore(dataProvider: mockDataProvider, fileStorageManager: fileStorageManager)
 
         // Load data
         await dataStore.loadData()
@@ -106,16 +102,12 @@ class PhishingDetectionUpdateManagerTests: XCTestCase {
 
     func testRevision1AddsData() async {
         dataStore.currentRevision = 1
-        await updateManager.updateFilterSet()
-        await updateManager.updateHashPrefixes()
         XCTAssertTrue(dataStore.filterSet.contains(where: { $0.hashValue == "testhash3" }), "Filter set should contain added data after update.")
         XCTAssertTrue(dataStore.hashPrefixes.contains("93e2435e"), "Hash prefixes should contain added data after update.")
     }
 
     func testRevision2AddsAndDeletesData() async {
         dataStore.currentRevision = 2
-        await updateManager.updateFilterSet()
-        await updateManager.updateHashPrefixes()
         XCTAssertFalse(dataStore.filterSet.contains(where: { $0.hashValue == "testhash2" }), "Filter set should not contain deleted data after update.")
         XCTAssertFalse(dataStore.hashPrefixes.contains("bb00cc11"), "Hash prefixes should not contain deleted data after update.")
         XCTAssertTrue(dataStore.hashPrefixes.contains("c0be0d0a6"))
@@ -123,12 +115,17 @@ class PhishingDetectionUpdateManagerTests: XCTestCase {
 
     func testRevision4AddsAndDeletesData() async {
         dataStore.currentRevision = 4
-        await updateManager.updateFilterSet()
-        await updateManager.updateHashPrefixes()
         XCTAssertTrue(dataStore.filterSet.contains(where: { $0.hashValue == "testhash5" }), "Filter set should contain added data after update.")
         XCTAssertFalse(dataStore.filterSet.contains(where: { $0.hashValue == "testhash3" }), "Filter set should not contain deleted data after update.")
         XCTAssertTrue(dataStore.hashPrefixes.contains("a379a6f6"), "Hash prefixes should contain added data after update.")
         XCTAssertFalse(dataStore.hashPrefixes.contains("aa00bb11"), "Hash prefixes should not contain deleted data after update.")
     }
+}
 
+// Extend dataStore to expose setting currentRevision for testing
+extension PhishingDetectionDataStore {
+    var currentRevision: Int {
+        get { _currentRevision }
+        set { _currentRevision = newValue }
+    }
 }

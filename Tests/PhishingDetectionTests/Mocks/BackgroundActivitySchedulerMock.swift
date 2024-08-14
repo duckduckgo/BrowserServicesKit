@@ -18,13 +18,13 @@
 
 import PhishingDetection
 
-class MockBackgroundActivityScheduler: BackgroundActivityScheduling {
+actor MockBackgroundActivityScheduler: BackgroundActivityScheduling {
     var startCalled = false
     var stopCalled = false
-    var interval: Int = 1
+    var interval: TimeInterval = 1
     var identifier: String = "test"
 
-    func start(activity: @escaping () async -> Void) {
+    func start() {
         startCalled = true
     }
 

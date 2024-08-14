@@ -21,15 +21,13 @@ import XCTest
 @testable import PhishingDetection
 
 class PhishingDetectionDataActivitiesTests: XCTestCase {
-    var mockDetectionService: MockPhishingDetector!
     var mockUpdateManager: MockPhishingDetectionUpdateManager!
     var activities: PhishingDetectionDataActivities!
 
     override func setUp() {
         super.setUp()
-        mockDetectionService = MockPhishingDetector()
         mockUpdateManager = MockPhishingDetectionUpdateManager()
-        activities = PhishingDetectionDataActivities(detectionService: mockDetectionService, hashPrefixInterval: 1, filterSetInterval: 1, phishingDetectionDataProvider: MockPhishingDetectionDataProvider(), updateManager: mockUpdateManager)
+        activities = PhishingDetectionDataActivities(hashPrefixInterval: 1, filterSetInterval: 1, phishingDetectionDataProvider: MockPhishingDetectionDataProvider(), updateManager: mockUpdateManager)
     }
 
     func testRun() async {
