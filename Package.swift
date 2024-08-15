@@ -38,6 +38,7 @@ let package = Package(
         .library(name: "SubscriptionTestingUtilities", targets: ["SubscriptionTestingUtilities"]),
         .library(name: "History", targets: ["History"]),
         .library(name: "Suggestions", targets: ["Suggestions"]),
+        .library(name: "PhishingDetection", targets: ["PhishingDetection"]),
         .library(name: "PixelKit", targets: ["PixelKit"]),
         .library(name: "PixelKitTestingUtilities", targets: ["PixelKitTestingUtilities"]),
         .library(name: "DuckPlayer", targets: ["DuckPlayer"]),
@@ -391,6 +392,12 @@ let package = Package(
                 .define("DEBUG", .when(configuration: .debug))
             ]
         ),
+        .target(
+            name: "PhishingDetection",
+            dependencies: [
+                "Common"
+            ]
+        ),
 
         // MARK: - Test Targets
         .testTarget(
@@ -588,6 +595,18 @@ let package = Package(
             name: "DuckPlayerTests",
             dependencies: [
                 "DuckPlayer"                
+            ]
+        ),
+
+        .testTarget(
+            name: "PhishingDetectionTests",
+            dependencies: [
+                "PhishingDetection",
+                "PixelKit"
+            ],
+            resources: [
+                .copy("hashPrefixes.json"),
+                .copy("filterSet.json")
             ]
         ),
     ],
