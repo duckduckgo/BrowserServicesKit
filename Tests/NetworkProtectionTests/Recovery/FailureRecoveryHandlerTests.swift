@@ -337,7 +337,8 @@ final class FailureRecoveryHandlerTests: XCTestCase {
             dnsSettings: .default,
             isKillSwitchEnabled: false
         ) { _ in
-            throw WireGuardAdapterError.startWireGuardBackend(0)
+            let underlyingError = NSError(domain: "test", code: 1)
+            throw WireGuardAdapterError.startWireGuardBackend(underlyingError)
         }
     }
 
