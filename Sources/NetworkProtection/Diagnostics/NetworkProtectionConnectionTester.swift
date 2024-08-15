@@ -123,12 +123,7 @@ final class NetworkProtectionConnectionTester {
         let tunnelInterface = try await networkInterface(forInterfaceNamed: tunnelIfName)
         self.tunnelInterface = tunnelInterface
 
-        do {
-            try await scheduleTimer(testImmediately: testImmediately)
-        } catch {
-            os_log("🔴 Stopping connection tester early", log: log)
-            throw error
-        }
+        await scheduleTimer(testImmediately: testImmediately)
     }
 
     func stop() {
@@ -167,16 +162,11 @@ final class NetworkProtectionConnectionTester {
 
     // MARK: - Timer scheduling
 
-    private func scheduleTimer(testImmediately: Bool) async throws {
+    private func scheduleTimer(testImmediately: Bool) async {
         stopScheduledTimer()
 
         if testImmediately {
-            do {
-                try await testConnection()
-            } catch {
-                os_log("Rethrowing exception", log: log)
-                throw error
-            }
+            await testConnection()
         }
 
         task = Task.periodic(interval: intervalBetweenTests) { [weak self] in
@@ -185,7 +175,7 @@ final class NetworkProtectionConnectionTester {
             // The error we're ignoring here is only used when this class is initialized
             // with an immediate test, to know whether the connection is up while the user
             // still sees "Connecting..."
-            try? await self?.testConnection()
+            await self?.testConnection()
         }
     }
 
@@ -196,7 +186,7 @@ final class NetworkProtectionConnectionTester {
 
     // MARK: - Testing the connection
 
-    func testConnection() async throws {
+    func testConnection() async {
         guard let tunnelInterface = tunnelInterface else {
             os_log("No interface to test!", log: log, type: .error)
             return
