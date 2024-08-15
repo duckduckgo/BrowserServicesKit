@@ -41,6 +41,7 @@ let package = Package(
         .library(name: "PixelKit", targets: ["PixelKit"]),
         .library(name: "PixelKitTestingUtilities", targets: ["PixelKitTestingUtilities"]),
         .library(name: "DuckPlayer", targets: ["DuckPlayer"]),
+        .library(name: "PhishingDetection", targets: ["PhishingDetection"]),
     ],
     dependencies: [
         .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "12.1.0"),
@@ -386,6 +387,15 @@ let package = Package(
             dependencies: [
                 "Common",
                 "BrowserServicesKit"
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
+            ]
+        ),
+        .target(
+            name: "PhishingDetection",
+            dependencies: [
+                "Common",
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
