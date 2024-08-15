@@ -49,6 +49,7 @@ public enum PrivacyFeature: String {
     case sslCertificates
     case brokenSiteReportExperiment
     case toggleReports
+    case brokenSitePrompt
     case remoteMessaging
     case additionalCampaignPixelParams
 }
