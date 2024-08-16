@@ -23,6 +23,7 @@ protocol NetworkProtectionErrorConvertible {
 }
 
 public enum NetworkProtectionError: LocalizedError, CustomNSError {
+
     // Tunnel configuration errors
     case noServerRegistrationInfo
     case couldNotSelectClosestServer
@@ -60,7 +61,8 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
     case wireGuardInvalidState(reason: String)
     case wireGuardDnsResolution
     case wireGuardSetNetworkSettings(Error)
-    case startWireGuardBackend(Int32)
+    case startWireGuardBackend(Error)
+    case setWireguardConfig(Error)
 
     // Auth errors
     case noAuthTokenFound
@@ -110,6 +112,7 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
         case .wireGuardDnsResolution: return 302
         case .wireGuardSetNetworkSettings: return 303
         case .startWireGuardBackend: return 304
+        case .setWireguardConfig: return 305
             // 400+ Auth errors
         case .noAuthTokenFound: return 400
             // 500+ Subscription errors
@@ -140,7 +143,6 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
                 .wireGuardCannotLocateTunnelFileDescriptor,
                 .wireGuardInvalidState,
                 .wireGuardDnsResolution,
-                .startWireGuardBackend,
                 .noAuthTokenFound,
                 .vpnAccessRevoked:
             return [:]
@@ -160,6 +162,8 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
                 .failedToParseRegisteredServersResponse(let error),
                 .failedToParseRedeemResponse(let error),
                 .wireGuardSetNetworkSettings(let error),
+                .startWireGuardBackend(let error),
+                .setWireguardConfig(let error),
                 .unhandledError(_, _, let error),
                 .failedToFetchServerStatus(let error),
                 .failedToParseServerStatusResponse(let error):

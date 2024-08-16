@@ -28,7 +28,7 @@ struct StartupOptions {
         ///
         case manualByMainApp
 
-        /// Started up manually from a Syste provided source: it can be the VPN menu, a CLI command
+        /// Started up manually from a system-provided source: it can be the VPN menu, a CLI command
         /// or the list of VPNs in System Settings.
         ///
         case manualByTheSystem
