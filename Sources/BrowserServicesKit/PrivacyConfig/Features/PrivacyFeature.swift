@@ -116,7 +116,7 @@ public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {
     case isLaunchedOverrideStripe
 }
 
-public enum sslCertificatesSubfeature: String, PrivacySubfeature {
+public enum SslCertificatesSubfeature: String, PrivacySubfeature {
     public var parent: PrivacyFeature { .sslCertificates }
     case allowBypass
 }
@@ -128,7 +128,7 @@ public enum DuckPlayerSubfeature: String, PrivacySubfeature {
     case openInNewTab
 }
 
-public enum phishingDetectionSubfeature: String, PrivacySubfeature {
+public enum PhishingDetectionSubfeature: String, PrivacySubfeature {
     public var parent: PrivacyFeature { .phishingDetection }
     case allowErrorPage
     case allowPreferencesToggle
