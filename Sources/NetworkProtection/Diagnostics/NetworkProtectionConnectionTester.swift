@@ -39,6 +39,13 @@ final class NetworkProtectionConnectionTester {
     enum TesterError: Error {
         case couldNotFindInterface(named: String)
         case connectionTestFailed
+
+        public var errorCode: Int {
+            switch self {
+            case .couldNotFindInterface: return 101
+            case .connectionTestFailed: return 102
+            }
+        }
     }
 
     /// Provides a simple mechanism to synchronize an `isRunning` flag for the tester to know if it needs to interrupt its operation.
@@ -73,7 +80,7 @@ final class NetworkProtectionConnectionTester {
     ///
     private let intervalBetweenTests: TimeInterval = .seconds(15)
 
-    /// The time we'll waitfor the TCP connection to fail.  This should always be lower than `intervalBetweenTests`.
+    /// The time we'll wait for the TCP connection to fail.  This should always be lower than `intervalBetweenTests`.
     ///
     private static let connectionTimeout: TimeInterval = .seconds(5)
 
