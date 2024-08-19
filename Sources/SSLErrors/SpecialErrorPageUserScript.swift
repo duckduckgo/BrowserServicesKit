@@ -48,7 +48,7 @@ public final class SpecialErrorPageUserScript: NSObject, Subfeature {
     public var failingURL: URL?
 
     public weak var broker: UserScriptMessageBroker?
-    weak var delegate: SpecialErrorPageUserScriptDelegate?
+    public weak var delegate: SpecialErrorPageUserScriptDelegate?
 
     public func with(broker: UserScriptMessageBroker) {
         self.broker = broker
@@ -56,7 +56,7 @@ public final class SpecialErrorPageUserScript: NSObject, Subfeature {
 
     @MainActor
     public func handler(forMethodNamed methodName: String) -> Subfeature.Handler? {
-        guard isEnabled else { return nil }
+//        guard isEnabled else { return nil }
         guard let messageName = MessageName(rawValue: methodName) else { return nil }
         return methodHandlers[messageName]
     }
