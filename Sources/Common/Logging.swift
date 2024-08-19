@@ -38,6 +38,7 @@ extension OSLog {
     public enum Categories: String, CaseIterable {
         case contentBlocking = "Content Blocking"
         case userScripts = "User Scripts"
+        case config = "Configuration Downloading"
         case passwordManager = "Password Manager"
         case remoteMessaging = "Remote Messaging"
         case subscription = "Subscription"
@@ -54,6 +55,7 @@ extension OSLog {
 
     @OSLogWrapper(.contentBlocking) public static var contentBlocking
     @OSLogWrapper(.userScripts)     public static var userScripts
+    @OSLogWrapper(.config)          public static var config
     @OSLogWrapper(.passwordManager) public static var passwordManager
     @OSLogWrapper(.remoteMessaging) public static var remoteMessaging
     @OSLogWrapper(.subscription)    public static var subscription
