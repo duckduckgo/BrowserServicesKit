@@ -54,6 +54,7 @@ public extension PixelKit {
         public static let latency = "latency"
         public static let server = "server"
         public static let networkType = "net_type"
+        public static let domain = "domain"
 
         // Pixel experiments
         public static let experimentCohort = "cohort"
