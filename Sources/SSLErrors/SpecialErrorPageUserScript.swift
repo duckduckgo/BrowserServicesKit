@@ -56,7 +56,7 @@ public final class SpecialErrorPageUserScript: NSObject, Subfeature {
 
     @MainActor
     public func handler(forMethodNamed methodName: String) -> Subfeature.Handler? {
-//        guard isEnabled else { return nil }
+//        guard isEnabled else { return nil } // why is it needed?
         guard let messageName = MessageName(rawValue: methodName) else { return nil }
         return methodHandlers[messageName]
     }
@@ -76,7 +76,7 @@ public final class SpecialErrorPageUserScript: NSObject, Subfeature {
 #else
         let env = "production"
 #endif
-        let platform = Platform(name: "ios")
+        let platform = Platform(name: "ios") // todo conditional based on platform
         guard let errorData = delegate?.errorData else { return nil }
         return InitialSetupResult(env: env, locale: Locale.current.identifier, platform: platform, errorData: errorData)
     }
