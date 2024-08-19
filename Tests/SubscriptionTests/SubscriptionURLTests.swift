@@ -22,17 +22,81 @@ import SubscriptionTestingUtilities
 
 final class SubscriptionURLTests: XCTestCase {
 
-    override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
+    func testProductionURLs() throws {
+        let allURLTypes: [SubscriptionURL] = [.baseURL,
+                                              .purchase,
+                                              .activateViaEmail,
+                                              .addEmail,
+                                              .manageEmail,
+                                              .activateSuccess,
+                                              .addEmailToSubscriptionSuccess,
+                                              .addEmailToSubscriptionOTP,
+                                              .identityTheftRestoration]
+
+        for urlType in allURLTypes {
+            let url = urlType.subscriptionURL(environment: .production)
+            let environmentParameter = url.getParameter(named: "environment")
+            XCTAssertEqual (environmentParameter, nil, "Wrong environment parameter for \(url.absoluteString)")
+        }
     }
 
-    override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
+    func testStagingURLs() throws {
+        let allURLTypes: [SubscriptionURL] = [.baseURL,
+                                              .purchase,
+                                              .activateViaEmail,
+                                              .addEmail,
+                                              .manageEmail,
+                                              .activateSuccess,
+                                              .addEmailToSubscriptionSuccess,
+                                              .addEmailToSubscriptionOTP,
+                                              .identityTheftRestoration]
+
+        for urlType in allURLTypes {
+            let url = urlType.subscriptionURL(environment: .staging)
+            let environmentParameter = url.getParameter(named: "environment")
+            XCTAssertEqual (environmentParameter, "staging", "Wrong environment parameter for \(url.absoluteString)")
+        }
     }
 
-    func testURLs() throws {
-        let url = SubscriptionURL.activateSuccess.subscriptionURL(environment: SubscriptionEnvironment.ServiceEnvironment.staging)
-        XCTAssertEqual(url.absoluteString, "https://duckduckgo.com/subscriptions/activate/success?environment=staging")
-        // test all other URLs
+    func testStaticURLs() throws {
+        let faqProductionURL = SubscriptionURL.faq.subscriptionURL(environment: .production)
+        let faqStagingURL = SubscriptionURL.faq.subscriptionURL(environment: .staging)
+
+        XCTAssertEqual(faqStagingURL, faqProductionURL)
+        XCTAssertEqual(faqProductionURL.absoluteString, "https://duckduckgo.com/duckduckgo-help-pages/privacy-pro/")
+
+        let manageSubscriptionsInAppStoreProductionURL = SubscriptionURL.manageSubscriptionsInAppStore.subscriptionURL(environment: .production)
+        let manageSubscriptionsInAppStoreStagingURL = SubscriptionURL.manageSubscriptionsInAppStore.subscriptionURL(environment: .staging)
+
+        XCTAssertEqual(manageSubscriptionsInAppStoreStagingURL, manageSubscriptionsInAppStoreProductionURL)
+        XCTAssertEqual(manageSubscriptionsInAppStoreProductionURL.absoluteString, "macappstores://apps.apple.com/account/subscriptions")
+    }
+
+    func testURLForComparisonRemovingEnvironment() throws {
+        let url = URL(string: "https://duckduckgo.com/subscriptions?environment=staging")!
+        let expectedURL = URL(string: "https://duckduckgo.com/subscriptions")!
+
+        XCTAssertEqual(url.forComparison(), expectedURL)
+    }
+
+    func testURLForComparisonRemovesOrigin() throws {
+        let url = URL(string: "https://duckduckgo.com/subscriptions?origin=test")!
+        let expectedURL = URL(string: "https://duckduckgo.com/subscriptions")!
+
+        XCTAssertEqual(url.forComparison(), expectedURL)
+    }
+
+    func testURLForComparisonRemovesEnvironmentAndOrigin() throws {
+        let url = URL(string: "https://duckduckgo.com/subscriptions?environment=staging&origin=test")!
+        let expectedURL = URL(string: "https://duckduckgo.com/subscriptions")!
+
+        XCTAssertEqual(url.forComparison(), expectedURL)
+    }
+
+    func testURLForComparisonRemovesEnvironmentAndOriginButRetainsOtherParameters() throws {
+        let url = URL(string: "https://duckduckgo.com/subscriptions?environment=staging&foo=bar&origin=test")!
+        let expectedURL = URL(string: "https://duckduckgo.com/subscriptions?foo=bar")!
+
+        XCTAssertEqual(url.forComparison(), expectedURL)
     }
 }
