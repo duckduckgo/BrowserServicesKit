@@ -1,5 +1,5 @@
 //
-//  ErrorPageHTMLTemplate.swift
+//  SSLErrorType.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -17,22 +17,25 @@
 //
 
 import Foundation
-import ContentScopeScripts
-import WebKit
-import Common
 
-public struct ErrorPageHTMLTemplate {
+public enum SSLErrorType: String {
 
-    public static var htmlFromTemplate: String {
-        guard let file = ContentScopeScripts.Bundle.path(forResource: "index", ofType: "html", inDirectory: "pages/special-error") else {
-            assertionFailure("HTML template not found")
-            return ""
+    case expired
+    case wrongHost
+    case selfSigned
+    case invalid
+
+    public static func forErrorCode(_ errorCode: Int) -> Self {
+        switch Int32(errorCode) {
+        case errSSLCertExpired:
+            return .expired
+        case errSSLHostNameMismatch:
+            return .wrongHost
+        case errSSLXCertChainInvalid:
+            return .selfSigned
+        default:
+            return .invalid
         }
-        guard let html = try? String(contentsOfFile: file) else {
-            assertionFailure("Should be able to load template")
-            return ""
-        }
-        return html
     }
     
 }

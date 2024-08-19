@@ -1,5 +1,5 @@
 //
-//  ErrorPageHTMLTemplate.swift
+//  SpecialErrorData.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -17,22 +17,17 @@
 //
 
 import Foundation
-import ContentScopeScripts
-import WebKit
-import Common
 
-public struct ErrorPageHTMLTemplate {
+public struct SpecialErrorData: Encodable, Equatable {
 
-    public static var htmlFromTemplate: String {
-        guard let file = ContentScopeScripts.Bundle.path(forResource: "index", ofType: "html", inDirectory: "pages/special-error") else {
-            assertionFailure("HTML template not found")
-            return ""
-        }
-        guard let html = try? String(contentsOfFile: file) else {
-            assertionFailure("Should be able to load template")
-            return ""
-        }
-        return html
+    var kind: String
+    var errorType: String?
+    var domain: String?
+
+    public init(kind: String, errorType: String? = nil, domain: String? = nil) {
+        self.kind = kind
+        self.errorType = errorType
+        self.domain = domain
     }
-    
+
 }
