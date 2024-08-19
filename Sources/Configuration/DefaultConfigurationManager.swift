@@ -50,23 +50,28 @@ open class DefaultConfigurationManager {
         public static let retryDelaySeconds = 60.0 * 60 * 1 // 1 hour delay before checking again if something went wrong last time
         public static let refreshCheckIntervalSeconds = 60.0 // check if we need a refresh every minute
 
+        static let lastUpdateDefaultsKey = "configuration.lastUpdateTime"
     }
+
+    private var defaults: UserDefaults
 
     public var fetcher: ConfigurationFetcher
 
-    public init(fetcher: ConfigurationFetcher) {
+    public init(fetcher: ConfigurationFetcher, defaults: UserDefaults = UserDefaults()) {
         self.fetcher = fetcher
-
-        self.lastUpdateTime = .distantPast
+        self.defaults = defaults
     }
 
     public static let queue: DispatchQueue = DispatchQueue(label: "Configuration Manager")
 
-//    @UserDefaultsWrapper(key: .configLastUpdated, defaultValue: .distantPast)
-    private(set) var lastUpdateTime: Date
-
-//    @UserDefaultsWrapper(key: .configLastInstalled, defaultValue: nil)
-    private(set) var lastConfigurationInstallDate: Date?
+    open internal(set) var lastUpdateTime: Date {
+        get {
+            defaults.object(forKey: Constants.lastUpdateDefaultsKey) as? Date ?? .distantPast
+        }
+        set {
+            defaults.set(newValue, forKey: Constants.lastUpdateDefaultsKey)
+        }
+    }
 
     private var timerCancellable: AnyCancellable?
     public var lastRefreshCheckTime: Date = Date()
@@ -113,10 +118,16 @@ open class DefaultConfigurationManager {
         }
     }
 
+    /// Will try to update the config again at the regularly scheduled interval
+    /// **Note:** You must call `start()` on your `ConfigurationManager` instance for this to take effect. It relies on the internal refresh loop of the
+    /// `DefaultConfigurationManager` class
     public func tryAgainLater() {
         lastUpdateTime = Date()
     }
 
+    /// Will try to update the config again after `Constants.retryDelaySeconds`
+    /// **Note:** You must call `start()` on your `ConfigurationManager` instance for this to take effect. It relies on the internal refresh loop of the
+    /// `DefaultConfigurationManager` class
     public func tryAgainSoon() {
         // Set the last update time to in the past so it triggers again sooner
         lastUpdateTime = Date(timeIntervalSinceNow: Constants.refreshPeriodSeconds - Constants.retryDelaySeconds)
