@@ -116,10 +116,10 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
 
     public func messageHandlerFor(_ messageName: String) -> MessageHandler? {
         guard let message = MessageName(rawValue: messageName) else {
-            Logger.autofill.error("Failed to parse Autofill User Script message: '\(messageName)'")
+            Logger.autofill.error("Failed to parse Autofill User Script message: '\(messageName, privacy: .public)'")
             return nil
         }
-        Logger.autofill.debug("AutofillUserScript: received '\(messageName)'")
+        Logger.autofill.debug("AutofillUserScript: received '\(messageName, privacy: .public)'")
 
         switch message {
         case .emailHandlerStoreToken: return emailStoreToken
