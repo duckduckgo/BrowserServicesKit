@@ -26,10 +26,15 @@ public class StorePurchaseManagerMock: StorePurchaseManager {
     public var subscriptionOptionsResult: SubscriptionOptions?
     public var syncAppleIDAccountResultError: Error?
 
+    public var onUpdateAvailableProducts: (() -> Void)?
+    public var onUpdatePurchasedProducts: (() -> Void)?
+
     public var onMostRecentTransaction: (() -> String?)?
     public var onHasActiveSubscription: (() -> Bool)?
     public var onPurchaseSubscription: ((String, String) -> Result<TransactionJWS, StorePurchaseManagerError>)?
 
+    public var updateAvailableProductsCalled: Bool = false
+    public var updatePurchasedProductsCalled: Bool = false
     public var purchaseSubscriptionCalled: Bool = false
 
     public init(purchasedProductIDs: [String] = [],
@@ -54,9 +59,15 @@ public class StorePurchaseManagerMock: StorePurchaseManager {
         }
     }
 
-    public func updateAvailableProducts() async { }
+    public func updateAvailableProducts() async { 
+        updateAvailableProductsCalled = true
+        onUpdateAvailableProducts?()
+    }
 
-    public func updatePurchasedProducts() async { }
+    public func updatePurchasedProducts() async {
+        updatePurchasedProductsCalled = true
+        onUpdatePurchasedProducts?()
+    }
 
     public func mostRecentTransaction() async -> String? {
         onMostRecentTransaction!()
