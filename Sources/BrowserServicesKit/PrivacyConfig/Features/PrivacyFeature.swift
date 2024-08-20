@@ -51,6 +51,7 @@ public enum PrivacyFeature: String {
     case toggleReports
     case remoteMessaging
     case additionalCampaignPixelParams
+    case backgroundAgentPixelTest
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -126,4 +127,9 @@ public enum DuckPlayerSubfeature: String, PrivacySubfeature {
     case pip
     case autoplay
     case openInNewTab
+}
+
+public enum BackgroundAgentPixelTestSubfeature: String, PrivacySubfeature {
+    public var parent: PrivacyFeature { .backgroundAgentPixelTest }
+    case pixelTest
 }
