@@ -16,8 +16,9 @@
 //  limitations under the License.
 //
 
-import Common
 import Foundation
+import Common
+import os.log
 
 /**
  * This protocol defines API for processing RMF config file
@@ -45,7 +46,7 @@ public struct RemoteMessagingConfigProcessor: RemoteMessagingConfigProcessing {
 
     public func process(jsonRemoteMessagingConfig: RemoteMessageResponse.JsonRemoteMessagingConfig,
                         currentConfig: RemoteMessagingConfig?) -> ProcessorResult? {
-        os_log("Processing version %s", log: .remoteMessaging, type: .debug, String(jsonRemoteMessagingConfig.version))
+        Logger.remoteMessaging.debug("Processing version \(jsonRemoteMessagingConfig.version, privacy: .public)")
 
         let currentVersion = currentConfig?.version ?? 0
         let newVersion     = jsonRemoteMessagingConfig.version
@@ -58,7 +59,7 @@ public struct RemoteMessagingConfigProcessor: RemoteMessagingConfigProcessing {
                 surveyActionMapper: remoteMessagingConfigMatcher.surveyActionMapper
             )
             let message = remoteMessagingConfigMatcher.evaluate(remoteConfig: config)
-            os_log("Message to present next: %s", log: .remoteMessaging, type: .debug, message.debugDescription)
+            Logger.remoteMessaging.debug("Message to present next: \(message.debugDescription, privacy: .public)")
 
             return ProcessorResult(version: jsonRemoteMessagingConfig.version, message: message)
         }

@@ -16,8 +16,9 @@
 //  limitations under the License.
 //
 
-import Common
 import Foundation
+import Common
+import os.log
 
 private enum AttributesKey: String, CaseIterable {
     case locale
@@ -252,7 +253,7 @@ struct JsonToRemoteMessageModelMapper {
                 if let key = AttributesKey(rawValue: attribute.key) {
                     return key.matchingAttribute(jsonMatchingAttribute: attribute.value)
                 } else {
-                    os_log("Unknown attribute key %s", log: .remoteMessaging, type: .debug, attribute.key)
+                    Logger.remoteMessaging.debug("Unknown attribute key \(attribute.key, privacy: .public)")
                     return UnknownMatchingAttribute(jsonMatchingAttribute: attribute.value)
                 }
             }
