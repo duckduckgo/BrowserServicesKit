@@ -35,7 +35,6 @@ public protocol AccountManager {
     func storeAccount(token: String, email: String?, externalID: String?)
     func signOut(skipNotification: Bool)
     func signOut()
-    func migrateAccessTokenToNewStore() throws
 
     // Entitlements
     func hasEntitlement(forProductName productName: Entitlement.ProductName, cachePolicy: APICachePolicy) async -> Result<Bool, Error>
@@ -217,28 +216,6 @@ public final class DefaultAccountManager: AccountManager {
         if !skipNotification {
             NotificationCenter.default.post(name: .accountDidSignOut, object: self, userInfo: nil)
         }
-    }
-
-    public func migrateAccessTokenToNewStore() throws {
-        var errorToThrow: Error?
-        do {
-            if try accessTokenStorage.getAccessToken() != nil {
-                errorToThrow = MigrationError.noMigrationNeeded
-            } else if let oldAccessToken = try storage.getAccessToken() {
-                try accessTokenStorage.store(accessToken: oldAccessToken)
-            }
-        } catch {
-            errorToThrow = MigrationError.migrationFailed
-        }
-
-        if let errorToThrow {
-            throw errorToThrow
-        }
-    }
-
-    public enum MigrationError: Error {
-        case migrationFailed
-        case noMigrationNeeded
     }
 
     // MARK: -

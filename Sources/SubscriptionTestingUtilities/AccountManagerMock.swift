@@ -76,10 +76,6 @@ public final class AccountManagerMock: AccountManager {
         onSignOut?()
     }
 
-    public func migrateAccessTokenToNewStore() throws {
-
-    }
-
     public func hasEntitlement(forProductName productName: Entitlement.ProductName, cachePolicy: APICachePolicy) async -> Result<Bool, Error> {
         return .success(true)
     }
