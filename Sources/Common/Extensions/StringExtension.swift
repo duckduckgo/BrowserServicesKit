@@ -31,6 +31,8 @@ extension RegEx {
     static let hostName = regex("^(((?!-)[A-Za-z0-9-]{1,63}(?<!-)\\.)*[A-Za-z0-9-]{2,63})$", .caseInsensitive)
 
     static let email = regex(#"[^\s]+@[^\s]+\.[^\s]+"#)
+
+    static let mathExpression = regex(#"^[\s$]*([\d]+(\.[\d]+)?|\\.[\d]+)([\s]*[+\-*/][\s]*([\d]+(\.[\d]+)?|\\.[\d]+))*[\s$]*$"#)
 }
 
 // Use this instead of NSLocalizedString for strings that are not supposed to be translated
@@ -362,7 +364,11 @@ public extension String {
     // MARK: Host name validation
 
     var isValidHost: Bool {
-        return isValidHostname || isValidIpHost
+        return (isValidHostname || isValidIpHost) && !isMathFormula
+    }
+
+    var isMathFormula: Bool {
+        return matches(.mathExpression)
     }
 
     var isValidHostname: Bool {
