@@ -18,6 +18,7 @@
 
 import Foundation
 import Common
+import os.log
 
 public enum APIServiceError: Swift.Error {
     case decodingError
@@ -65,7 +66,7 @@ public struct DefaultAPIService: APIService {
                 if let decodedResponse = decode(T.self, from: data) {
                     return .success(decodedResponse)
                 } else {
-                    os_log(.error, log: .subscription, "Service error: APIServiceError.decodingError")
+                    Logger.subscription.error("Service error: APIServiceError.decodingError")
                     return .failure(.decodingError)
                 }
             } else {
@@ -76,11 +77,11 @@ public struct DefaultAPIService: APIService {
                 }
 
                 let errorLogMessage = "/\(endpoint) \(httpResponse.statusCode): \(errorString ?? "")"
-                os_log(.error, log: .subscription, "Service error: %{public}@", errorLogMessage)
+                Logger.subscription.error("Service error: \(errorLogMessage, privacy: .public)")
                 return .failure(.serverError(statusCode: httpResponse.statusCode, error: errorString))
             }
         } catch {
-            os_log(.error, log: .subscription, "Service error: %{public}@", error.localizedDescription)
+            Logger.subscription.error("Service error: \(error.localizedDescription, privacy: .public)")
             return .failure(.connectionError)
         }
     }
@@ -111,7 +112,7 @@ public struct DefaultAPIService: APIService {
         let statusCode = (response as? HTTPURLResponse)!.statusCode
         let stringData = String(data: data, encoding: .utf8) ?? ""
 
-        os_log(.info, log: .subscription, "[API] %d %{public}s /%{public}s :: %{public}s", statusCode, method, endpoint, stringData)
+        Logger.subscription.info("[API] \(statusCode) \(method, privacy: .public) \(endpoint, privacy: .public) :: \(stringData, privacy: .public)")
     }
 
     public func makeAuthorizationHeader(for token: String) -> [String: String] {

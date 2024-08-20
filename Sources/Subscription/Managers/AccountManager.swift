@@ -18,6 +18,7 @@
 
 import Foundation
 import Common
+import os.log
 
 public protocol AccountManagerKeychainAccessDelegate: AnyObject {
     func accountManagerKeychainAccessFailed(accessType: AccountKeychainAccessType, error: AccountKeychainAccessError)
@@ -146,7 +147,7 @@ public final class DefaultAccountManager: AccountManager {
     }
 
     public func storeAuthToken(token: String) {
-        os_log(.info, log: .subscription, "[AccountManager] storeAuthToken")
+        Logger.subscription.info("[AccountManager] storeAuthToken")
 
         do {
             try storage.store(authToken: token)
@@ -160,7 +161,7 @@ public final class DefaultAccountManager: AccountManager {
     }
 
     public func storeAccount(token: String, email: String?, externalID: String?) {
-        os_log(.info, log: .subscription, "[AccountManager] storeAccount")
+        Logger.subscription.info("[AccountManager] storeAccount")
 
         do {
             try accessTokenStorage.store(accessToken: token)
@@ -199,7 +200,7 @@ public final class DefaultAccountManager: AccountManager {
     }
 
     public func signOut(skipNotification: Bool = false) {
-        os_log(.info, log: .subscription, "[AccountManager] signOut")
+        Logger.subscription.info("[AccountManager] signOut")
 
         do {
             try storage.clearAuthenticationState()
@@ -264,7 +265,7 @@ public final class DefaultAccountManager: AccountManager {
             return .success(entitlements)
 
         case .failure(let error):
-            os_log(.error, log: .subscription, "[AccountManager] fetchEntitlements error: %{public}@", error.localizedDescription)
+            Logger.subscription.error("[AccountManager] fetchEntitlements error: \(error.localizedDescription, privacy: .public)")
             return .failure(error)
         }
     }
@@ -316,7 +317,7 @@ public final class DefaultAccountManager: AccountManager {
         case .success(let response):
             return .success(response.accessToken)
         case .failure(let error):
-            os_log(.error, log: .subscription, "[AccountManager] exchangeAuthTokenToAccessToken error: %{public}@", error.localizedDescription)
+            Logger.subscription.error("[AccountManager] exchangeAuthTokenToAccessToken error: \(error.localizedDescription, privacy: .public)")
             return .failure(error)
         }
     }
@@ -326,7 +327,7 @@ public final class DefaultAccountManager: AccountManager {
         case .success(let response):
             return .success(AccountDetails(email: response.account.email, externalID: response.account.externalID))
         case .failure(let error):
-            os_log(.error, log: .subscription, "[AccountManager] fetchAccountDetails error: %{public}@", error.localizedDescription)
+            Logger.subscription.error("[AccountManager] fetchAccountDetails error: \(error.localizedDescription, privacy: .public)")
             return .failure(error)
         }
     }
