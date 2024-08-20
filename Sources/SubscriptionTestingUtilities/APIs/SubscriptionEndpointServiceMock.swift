@@ -30,6 +30,7 @@ public class SubscriptionEndpointServiceMock: SubscriptionEndpointService {
     public var onSignOut: (() -> Void)?
 
     public var updateCacheWithSubscriptionCalled: Bool = false
+    public var signOutCalled: Bool = false
 
     public init(getSubscriptionResult: Result<Subscription, SubscriptionServiceError>? = nil,
                 getProductsResult: Result<[GetProductsItem], APIServiceError>? = nil,
@@ -52,6 +53,7 @@ public class SubscriptionEndpointServiceMock: SubscriptionEndpointService {
     }
 
     public func signOut() {
+        signOutCalled = true
         onSignOut?()
     }
 

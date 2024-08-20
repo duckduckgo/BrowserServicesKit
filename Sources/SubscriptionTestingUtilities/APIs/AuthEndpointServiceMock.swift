@@ -30,6 +30,8 @@ public class AuthEndpointServiceMock: AuthEndpointService {
     public var createAccountCalled: Bool = false
     public var storeLoginCalled: Bool = false
 
+    public var onValidateToken: ((String) -> Void)?
+
     public init(accessTokenResult: Result<AccessTokenResponse, APIServiceError>? = nil,
                 validateTokenResult: Result<ValidateTokenResponse, APIServiceError>? = nil,
                 createAccountResult: Result<CreateAccountResponse, APIServiceError>? = nil,
@@ -47,6 +49,7 @@ public class AuthEndpointServiceMock: AuthEndpointService {
 
     public func validateToken(accessToken: String) async -> Result<ValidateTokenResponse, APIServiceError> {
         validateTokenCalled = true
+        onValidateToken?(accessToken)
         return validateTokenResult!
     }
 

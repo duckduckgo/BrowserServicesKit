@@ -20,53 +20,69 @@ import Foundation
 import Subscription
 
 public class AccountKeychainStorageMock: AccountStoring {
+
+    enum MockAccountKeychainField: String {
+        case authToken, email, externalID
+    }
+
+    public var clearAuthenticationStateCalled: Bool = false
+
     public var authToken: String?
-    public var accessToken: String?
     public var email: String?
     public var externalID: String?
 
-    public init(authToken: String? = nil, accessToken: String? = nil, email: String? = nil, externalID: String? = nil) {
-        self.authToken = authToken
-        self.accessToken = accessToken
-        self.email = email
-        self.externalID = externalID
-    }
+    public var mockedAccessError: AccountKeychainAccessError?
+
+    public init() { }
 
     public func getAuthToken() throws -> String? {
-        authToken
+        try getString(forField: .authToken)
     }
 
     public func store(authToken: String) throws {
-        self.authToken = authToken
-    }
-
-    public func getAccessToken() throws -> String? {
-        accessToken
-    }
-
-    public func store(accessToken: String) throws {
-        self.accessToken = accessToken
+        try set(string: authToken, forField: .authToken)
     }
 
     public func getEmail() throws -> String? {
-        email
+        try getString(forField: .email)
     }
 
     public func store(email: String?) throws {
-        self.email = email
+        try set(string: email, forField: .email)
     }
 
     public func getExternalID() throws -> String? {
-        externalID
+        try getString(forField: .externalID)
     }
 
     public func store(externalID: String?) throws {
-        self.externalID = externalID
+        try set(string: externalID, forField: .externalID)
+    }
+
+    func getString(forField field: MockAccountKeychainField) throws -> String? {
+        if let mockedAccessError { throw mockedAccessError }
+
+        switch field {
+        case .authToken: return authToken
+        case .email: return email
+        case .externalID: return externalID
+        }
+    }
+
+    func set(string: String?, forField field: MockAccountKeychainField) throws {
+        if let mockedAccessError { throw mockedAccessError }
+
+        switch field {
+        case .authToken: authToken = string
+        case .email: email = string
+        case .externalID: externalID = string
+        }
     }
 
     public func clearAuthenticationState() throws {
+        clearAuthenticationStateCalled = true
+
         authToken = nil
-        accessToken = nil
         email = nil
         externalID = nil
     }
