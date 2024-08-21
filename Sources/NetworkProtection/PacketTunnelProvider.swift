@@ -748,7 +748,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             os_log("Generating tunnel config", log: .networkProtection)
             os_log("Excluded ranges are: %{public}@", log: .networkProtection, String(describing: settings.excludedRanges))
             os_log("Server selection method: %{public}@", log: .networkProtection, currentServerSelectionMethod.debugDescription)
-			os_log("DNS server: %{public}@", log: .networkProtection, String(describing: settings.dnsSettings))
+            os_log("DNS server: %{public}@", log: .networkProtection, String(describing: settings.dnsSettings))
             let tunnelConfiguration = try await generateTunnelConfiguration(serverSelectionMethod: currentServerSelectionMethod,
                                                                             includedRoutes: includedRoutes ?? [],
                                                                             excludedRoutes: settings.excludedRanges,
