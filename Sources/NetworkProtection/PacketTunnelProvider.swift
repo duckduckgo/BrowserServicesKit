@@ -206,6 +206,16 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Server Selection
 
+    private lazy var serverSelectionResolver: VPNServerSelectionResolving = {
+        let locationRepository = NetworkProtectionLocationListCompositeRepository(
+            environment: settings.selectedEnvironment,
+            tokenStore: tokenStore,
+            errorEvents: debugEvents,
+            isSubscriptionEnabled: isSubscriptionEnabled
+        )
+        return VPNServerSelectionResolver(locationListRepository: locationRepository, vpnSettings: settings)
+    }()
+
     @MainActor
     private var lastSelectedServer: NetworkProtectionServer? {
         didSet {
@@ -980,10 +990,11 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                                              regenerateKey: Bool) async throws -> TunnelConfiguration {
 
         let configurationResult: NetworkProtectionDeviceManager.GenerateTunnelConfigurationResult
+        let resolvedServerSelectionMethod = await serverSelectionResolver.resolvedServerSelectionMethod()
 
         do {
             configurationResult = try await deviceManager.generateTunnelConfiguration(
-                selectionMethod: serverSelectionMethod,
+                resolvedSelectionMethod: resolvedServerSelectionMethod,
                 includedRoutes: includedRoutes,
                 excludedRoutes: excludedRoutes,
                 dnsSettings: dnsSettings,

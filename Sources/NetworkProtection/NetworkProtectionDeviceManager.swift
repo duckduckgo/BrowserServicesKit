@@ -63,7 +63,7 @@ public enum NetworkProtectionDNSSettings: Codable, Equatable, CustomStringConver
 public protocol NetworkProtectionDeviceManagement {
     typealias GenerateTunnelConfigurationResult = (tunnelConfiguration: TunnelConfiguration, server: NetworkProtectionServer)
 
-    func generateTunnelConfiguration(selectionMethod: NetworkProtectionServerSelectionMethod,
+    func generateTunnelConfiguration(resolvedSelectionMethod: NetworkProtectionServerSelectionMethod,
                                      includedRoutes: [IPAddressRange],
                                      excludedRoutes: [IPAddressRange],
                                      dnsSettings: NetworkProtectionDNSSettings,
@@ -133,7 +133,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     /// 2. If the key is new, register it with all backend servers and return a tunnel configuration + its server info
     /// 3. If the key already existed, look up the stored set of backend servers and check if the preferred server is registered. If not, register it, and return the tunnel configuration + server info.
     ///
-    public func generateTunnelConfiguration(selectionMethod: NetworkProtectionServerSelectionMethod,
+    public func generateTunnelConfiguration(resolvedSelectionMethod: NetworkProtectionServerSelectionMethod,
                                             includedRoutes: [IPAddressRange],
                                             excludedRoutes: [IPAddressRange],
                                             dnsSettings: NetworkProtectionDNSSettings,
@@ -156,7 +156,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
             }
         }
 
-        let (selectedServer, newExpiration) = try await register(keyPair: keyPair, selectionMethod: selectionMethod)
+        let (selectedServer, newExpiration) = try await register(keyPair: keyPair, selectionMethod: resolvedSelectionMethod)
         os_log("Server registration successul", log: .networkProtection)
 
         keyStore.updateKeyPair(keyPair)
