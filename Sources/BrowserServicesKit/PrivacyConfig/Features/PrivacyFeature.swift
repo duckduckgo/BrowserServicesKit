@@ -84,7 +84,7 @@ public enum DBPSubfeature: String, Equatable, PrivacySubfeature {
 
     case waitlist
     case waitlistBetaActive
-    case freemiumAvailable
+    case freemium
 }
 
 public enum SyncSubfeature: String, PrivacySubfeature {
