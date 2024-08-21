@@ -1,6 +1,5 @@
 //
 //  contentblockerrules.js
-//  DuckDuckGo
 //
 //  Copyright © 2020 DuckDuckGo. All rights reserved.
 //
