@@ -424,7 +424,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     // MARK: - Initializers
 
     private let keychainType: KeychainType
-    private let debugEvents: EventMapping<NetworkProtectionError>?
+    private let debugEvents: EventMapping<NetworkProtectionError>
     private let providerEvents: EventMapping<Event>
 
     public let isSubscriptionEnabled: Bool
@@ -437,7 +437,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 snoozeTimingStore: NetworkProtectionSnoozeTimingStore,
                 keychainType: KeychainType,
                 tokenStore: NetworkProtectionTokenStore,
-                debugEvents: EventMapping<NetworkProtectionError>?,
+                debugEvents: EventMapping<NetworkProtectionError>,
                 providerEvents: EventMapping<Event>,
                 settings: VPNSettings,
                 defaults: UserDefaults,
@@ -767,7 +767,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             adapter.start(tunnelConfiguration: tunnelConfiguration) { [weak self] error in
                 if let error {
-                    self?.debugEvents?.fire(error.networkProtectionError)
+                    self?.debugEvents.fire(error.networkProtectionError)
                     continuation.resume(throwing: error)
                     return
                 }
@@ -868,7 +868,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 }
 
                 if let error {
-                    self?.debugEvents?.fire(error.networkProtectionError)
+                    self?.debugEvents.fire(error.networkProtectionError)
 
                     continuation.resume(throwing: error)
                     return
@@ -961,7 +961,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             self.adapter.update(tunnelConfiguration: tunnelConfiguration, reassert: reassert) { [weak self] error in
 
                 if let error = error {
-                    self?.debugEvents?.fire(error.networkProtectionError)
+                    self?.debugEvents.fire(error.networkProtectionError)
 
                     continuation.resume(throwing: error)
                     return
@@ -1346,7 +1346,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
             adapter.stop { [weak self] error in
                 if let error {
-                    self?.debugEvents?.fire(error.networkProtectionError)
+                    self?.debugEvents.fire(error.networkProtectionError)
                     os_log("🔴 Failed to stop WireGuard adapter: %{public}@", log: .networkProtection, error.localizedDescription)
                 }
 
