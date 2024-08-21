@@ -222,6 +222,7 @@ public final class AMPCanonicalExtractor: NSObject {
         if let imageBlockingRules = imageBlockingRules {
             configuration.userContentController.add(imageBlockingRules)
         }
+        
         return configuration
     }
 

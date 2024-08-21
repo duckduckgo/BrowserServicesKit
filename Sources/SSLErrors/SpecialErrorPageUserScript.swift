@@ -76,7 +76,12 @@ public final class SpecialErrorPageUserScript: NSObject, Subfeature {
 #else
         let env = "production"
 #endif
-        let platform = Platform(name: "ios") // todo conditional based on platform
+
+#if os(iOS)
+        let platform = Platform(name: "ios")
+#else
+        let platform = Platform(name: "macos")
+#endif
         guard let errorData = delegate?.errorData else { return nil }
         return InitialSetupResult(env: env, locale: Locale.current.identifier, platform: platform, errorData: errorData)
     }

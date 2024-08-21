@@ -18,13 +18,19 @@
 
 import Foundation
 
+public enum SpecialErrorKind: String, Encodable {
+
+    case ssl
+
+}
+
 public struct SpecialErrorData: Encodable, Equatable {
 
-    var kind: String
+    var kind: SpecialErrorKind
     var errorType: String?
     var domain: String?
 
-    public init(kind: String, errorType: String? = nil, domain: String? = nil) {
+    public init(kind: SpecialErrorKind, errorType: String? = nil, domain: String? = nil) {
         self.kind = kind
         self.errorType = errorType
         self.domain = domain

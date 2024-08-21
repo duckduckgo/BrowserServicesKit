@@ -32,7 +32,53 @@ public struct ErrorPageHTMLTemplate {
             assertionFailure("Should be able to load template")
             return ""
         }
+
+        if let localizedFile = ContentScopeScripts.Bundle.path(forResource: "special-error", ofType: "json", inDirectory: "pages/special-error/locales/pl"), 
+            let json = try? String(contentsOfFile: localizedFile) {
+            return html.replacingOccurrences(of: "$LOCALE_STRINGS$", with: json.escapedUnicodeHtmlString(), options: .literal)
+        }
         return html
     }
+
     
+
+}
+
+extension String {
+
+    private static let unicodeHtmlCharactersMapping: [Character: String] = [
+        "&": "&amp;",
+        "\"": "&quot;",
+        "'": "&apos;",
+        "<": "&lt;",
+        ">": "&gt;",
+        "/": "&#x2F;",
+        "!": "&excl;",
+        "$": "&#36;",
+        "%": "&percnt;",
+        "=": "&#61;",
+        "#": "&#35;",
+        "@": "&#64;",
+        "[": "&#91;",
+        "\\": "&#92;",
+        "]": "&#93;",
+        "^": "&#94;",
+        "`": "&#97;",
+        "{": "&#123;",
+        "}": "&#125;",
+    ]
+    func escapedUnicodeHtmlString() -> String {
+        var result = ""
+
+        for character in self {
+            if let mapped = Self.unicodeHtmlCharactersMapping[character] {
+                result.append(mapped)
+            } else {
+                result.append(character)
+            }
+        }
+
+        return result
+    }
+
 }
