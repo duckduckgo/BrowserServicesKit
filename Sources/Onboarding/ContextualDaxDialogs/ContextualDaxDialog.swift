@@ -35,8 +35,7 @@ struct ContextualDaxDialogContent: View {
     var list: [ContextualOnboardingListItem] = []
     var listAction: ((_ item: ContextualOnboardingListItem) -> Void)?
     var imageName: String?
-    var cta: String?
-    var action: (() -> Void)?
+    var customActionView: AnyView?
 
     private let itemsToAnimate: [DisplayableTypes]
 
@@ -46,17 +45,15 @@ struct ContextualDaxDialogContent: View {
         list: [ContextualOnboardingListItem] = [],
         listAction: ((_: ContextualOnboardingListItem) -> Void)? = nil,
         imageName: String? = nil, 
-        cta: String? = nil,
-        ctaStyle: (any ButtonStyle)? = nil,
-        action: (() -> Void)? = nil
+        customActionView: AnyView? = nil
     ) {
         self.title = title
         self.message = message
         self.list = list
         self.listAction = listAction
         self.imageName = imageName
-        self.cta = cta
-        self.action = action
+        self.customActionView = customActionView
+
 
         var itemsToAnimate: [DisplayableTypes] = []
         if title != nil {
@@ -69,7 +66,7 @@ struct ContextualDaxDialogContent: View {
         if imageName != nil {
             itemsToAnimate.append(.image)
         }
-        if cta != nil {
+        if customActionView != nil {
             itemsToAnimate.append(.button)
         }
 
@@ -141,11 +138,8 @@ struct ContextualDaxDialogContent: View {
 
     @ViewBuilder
     private var actionView: some View {
-        if let cta, let action {
-            Button(action: action) {
-                Text(cta)
-            }
-            //.buttonStyle(PrimaryButtonStyle(compact: true))
+        if let customActionView {
+            customActionView
         }
     }
 
@@ -233,8 +227,7 @@ enum Metrics {
     let contextualText = NSMutableAttributedString(string: "Sabrina is the best\n\nBelieve me! ☝️")
     return ContextualDaxDialogContent(
         message: contextualText,
-        cta: "Got it!",
-        action: {})
+        customActionView: AnyView(Button("Got it!", action: {})))
     .padding()
     .preferredColorScheme(.light)
 }
@@ -245,8 +238,7 @@ enum Metrics {
         title: "Who is the best?",
         message: contextualText,
         imageName: "Sync-Desktop-New-128",
-        cta: "Got it!",
-        action: {})
+        customActionView: AnyView(Button("Got it!", action: {})))
     .padding()
     .preferredColorScheme(.light)
 }
