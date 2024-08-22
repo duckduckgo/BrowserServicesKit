@@ -30,6 +30,7 @@ public final class PrivacyInfo {
     @Published public var serverTrust: SecTrust?
     @Published public var connectionUpgradedTo: URL?
     @Published public var cookieConsentManaged: CookieConsentInfo?
+    @Published public var isSpecialErrorPageVisible: Bool = false
 
     public init(url: URL, parentEntity: Entity?, protectionStatus: ProtectionStatus) {
         self.url = url

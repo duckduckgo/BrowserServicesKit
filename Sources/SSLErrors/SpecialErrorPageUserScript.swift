@@ -54,7 +54,6 @@ public final class SpecialErrorPageUserScript: NSObject, Subfeature {
     public let featureName: String = "special-error"
 
     var isEnabled: Bool = false
-    public var failingURL: URL?
 
     public weak var broker: UserScriptMessageBroker?
     public weak var delegate: SpecialErrorPageUserScriptDelegate?
@@ -98,7 +97,6 @@ public final class SpecialErrorPageUserScript: NSObject, Subfeature {
         let platform = Platform(name: "macos")
 #endif
         guard let errorData = delegate?.errorData else { return nil }
-
         return InitialSetupResult(env: env, locale: "pl", localeStrings: localeStrings, platform: platform, errorData: errorData)
     }
 
