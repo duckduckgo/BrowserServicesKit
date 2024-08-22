@@ -1321,8 +1321,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
 
         manager.isOnDemandEnabled = false
-        try await manager.loadFromPreferences()
         try await manager.saveToPreferences()
+        try await manager.loadFromPreferences()
 
         await cancelTunnel(with: TunnelError.vpnAccessRevoked)
     }

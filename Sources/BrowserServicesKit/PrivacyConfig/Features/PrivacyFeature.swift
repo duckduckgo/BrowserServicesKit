@@ -85,6 +85,7 @@ public enum DBPSubfeature: String, Equatable, PrivacySubfeature {
 
     case waitlist
     case waitlistBetaActive
+    case freemium
 }
 
 public enum SyncSubfeature: String, PrivacySubfeature {
@@ -104,6 +105,7 @@ public enum AutoconsentSubfeature: String, PrivacySubfeature {
     }
 
     case onByDefault
+    case filterlistExperiment
 }
 
 public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {
