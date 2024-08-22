@@ -1,5 +1,5 @@
 //
-//  Logging.swift
+//  Logger+Multiple.swift
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
