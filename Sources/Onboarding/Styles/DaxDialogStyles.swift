@@ -34,21 +34,6 @@ extension OnboardingStyles {
 
     }
 
-//    struct BackgroundStyle: ViewModifier {
-//
-//        let alignment: Alignment
-//
-//        func body(content: Content) -> some View {
-//            ZStack {
-//                OnboardingBackground(alignment: alignment)
-//                    .ignoresSafeArea(.keyboard)
-//
-//                content
-//            }
-//        }
-//        
-//    }
-
     struct ListButtonStyle: ButtonStyle {
         @Environment(\.colorScheme) private var colorScheme
 
@@ -69,32 +54,47 @@ extension OnboardingStyles {
         }
 
         private func foregroundColor(_ isPressed: Bool) -> Color {
-            .blue
-//            switch (colorScheme, isPressed) {
-//            case (.dark, false):
-//                return .blue30
-//            case (.dark, true):
-//                return .blue20
-//            case (_, false):
-//                return .blueBase
-//            case (_, true):
-//                return .blue70
-//            }
+            switch (colorScheme, isPressed) {
+            case (.dark, false):
+                return .blue30
+            case (.dark, true):
+                return .blue20
+            case (_, false):
+                return .blueBase
+            case (_, true):
+                return .blue70
+            }
         }
 
         private func backgroundColor(_ isPressed: Bool) -> Color {
-            .blue
-//            switch (colorScheme, isPressed) {
-//            case (.light, true):
-//                return .blueBase.opacity(0.2)
-//            case (.dark, true):
-//                return .blue30.opacity(0.2)
-//            default:
-//                return .clear
-//            }
+            switch (colorScheme, isPressed) {
+            case (.light, true):
+                return .blueBase.opacity(0.2)
+            case (.dark, true):
+                return .blue30.opacity(0.2)
+            default:
+                return .clear
+            }
         }
     }
 
+}
+
+extension Color {
+    static let blue70 = Color.init(0x1E42A4)
+    static let blueBase = Color.init(0x3969EF)
+    static let blue30 = Color.init(0x7295F6)
+    static let blue20 = Color.init(0x8FABF9)
+
+    init(_ hex: UInt, alpha: Double = 1) {
+        self.init(
+            .sRGB,
+            red: Double((hex >> 16) & 0xFF) / 255,
+            green: Double((hex >> 8) & 0xFF) / 255,
+            blue: Double(hex & 0xFF) / 255,
+            opacity: alpha
+        )
+    }
 }
 
 extension View {
@@ -103,8 +103,4 @@ extension View {
         modifier(OnboardingStyles.DaxDialogStyle(maxWidth: maxWidth))
     }
 
-//    func onboardingContextualBackgroundStyle(alignment: Alignment) -> some View {
-//        modifier(OnboardingStyles.BackgroundStyle(alignment: alignment))
-//    }
-    
 }
