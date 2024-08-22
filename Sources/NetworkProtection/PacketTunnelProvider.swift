@@ -68,10 +68,21 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     public typealias RekeyAttemptStep = AttemptStep
     public typealias ServerMigrationAttemptStep = AttemptStep
 
-    public enum ConnectionAttempt {
+    public enum ConnectionAttempt: CustomDebugStringConvertible {
         case connecting
         case success
         case failure
+
+        public var debugDescription: String {
+            switch self {
+            case .connecting:
+                "Connecting"
+            case .success:
+                "Success"
+            case .failure:
+                "Failure"
+            }
+        }
     }
 
     public enum ConnectionTesterStatus {
