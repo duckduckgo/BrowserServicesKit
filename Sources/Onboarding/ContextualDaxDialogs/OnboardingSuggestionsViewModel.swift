@@ -24,6 +24,14 @@ protocol OnboardingNavigationDelegate: AnyObject {
     func navigateTo(url: URL)
 }
 
+protocol OnboardingSearchSuggestionsPixelReporting {
+    func trackSearchSuggetionOptionTapped()
+}
+
+protocol OnboardingSiteSuggestionsPixelReporting {
+    func trackSiteSuggetionOptionTapped()
+}
+
 struct OnboardingSearchSuggestionsViewModel {
     let suggestedSearchesProvider: OnboardingSuggestionsItemsProviding
     weak var delegate: OnboardingNavigationDelegate?
