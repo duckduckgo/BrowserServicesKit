@@ -17,49 +17,20 @@
 //
 
 import Foundation
-import os // swiftlint:disable:this enforce_os_log_wrapper
+import os.log
 
+public extension Logger {
+    private static let bundleIdentifier = Bundle.main.bundleIdentifier ?? "DuckDuckGo"
+
+    static var contentBlocking: Logger = { Logger(subsystem: Logger.bundleIdentifier, category: "Content Blocking") }()
+    static var passwordManager: Logger = { Logger(subsystem: Logger.bundleIdentifier, category: "Password Manager") }()
+}
+
+@available(*, deprecated, message: "Use Logger.yourFeature instead, see https://app.asana.com/0/1202500774821704/1208001254061393/f")
 public typealias OSLog = os.OSLog
 
+@available(*, deprecated, message: "Use Logger.yourFeature instead, see https://app.asana.com/0/1202500774821704/1208001254061393/f")
 extension OSLog {
-
-    /// "exporting" `OSLog.disabled` symbol without needing to `import os.log` to disambiguate `os_log` wrapper calls and suppress "implicit import" warning
-    /// this declaration shadows the real `OSLog.disabled`
-    public static let disabled: OSLog = {
-        // the `OSLog` object returned by `OSLog.disabled` is in fact an `os_log_t *` pointer defined by C `_os_log_disabled` symbol
-        guard let disabledLog = dlsym(/*RTLD_DEFAULT*/ UnsafeMutableRawPointer(bitPattern: -2), "_os_log_disabled") else {
-            // just in case it fails for whatever reason (but it shouldn‘t) - return some log object
-            assertionFailure("_os_log_disabled symbol not found")
-            return .init(subsystem: "", category: "")
-        }
-        return unsafeBitCast(disabledLog, to: OSLog.self)
-    }()
-
-    public enum Categories: String, CaseIterable {
-        case contentBlocking = "Content Blocking"
-        case userScripts = "User Scripts"
-        case passwordManager = "Password Manager"
-        case remoteMessaging = "Remote Messaging"
-        case subscription = "Subscription"
-        case history = "History"
-        case general = "General"
-        case autofill = "Autofill"
-    }
-
-#if DEBUG
-    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    // To activate Logging Categories for DEBUG add categories here:
-    static var debugCategories: Set<Categories> = [ /*.autofill*/ ]
-#endif
-
-    @OSLogWrapper(.contentBlocking) public static var contentBlocking
-    @OSLogWrapper(.userScripts)     public static var userScripts
-    @OSLogWrapper(.passwordManager) public static var passwordManager
-    @OSLogWrapper(.remoteMessaging) public static var remoteMessaging
-    @OSLogWrapper(.subscription)    public static var subscription
-    @OSLogWrapper(.history)         public static var history
-    @OSLogWrapper(.general)         public static var general
-    @OSLogWrapper(.autofill)        public static var autofill
 
     public static var enabledLoggingCategories = Set<String>()
 
@@ -70,6 +41,7 @@ extension OSLog {
 
     static let subsystem = Bundle.main.bundleIdentifier ?? "DuckDuckGo"
 
+    @available(*, deprecated, message: "Use Logger.yourFeature instead, see https://app.asana.com/0/1202500774821704/1208001254061393/f")
     @propertyWrapper
     public struct OSLogWrapper {
 
@@ -80,24 +52,9 @@ extension OSLog {
         }
 
         public var wrappedValue: OSLog {
-            var isEnabled = OSLog.enabledLoggingCategories.contains(category)
-#if CI
-            isEnabled = true
-#elseif DEBUG
-            isEnabled = isEnabled || Categories(rawValue: category).map(OSLog.debugCategories.contains) == true
-#endif
-
-            return isEnabled ? OSLog(subsystem: OSLog.subsystem, category: category) : .disabled
+            return OSLog(subsystem: OSLog.subsystem, category: category)
         }
 
-    }
-
-}
-
-public extension OSLog.OSLogWrapper {
-
-    init(_ category: OSLog.Categories) {
-        self.init(rawValue: category.rawValue)
     }
 
 }
