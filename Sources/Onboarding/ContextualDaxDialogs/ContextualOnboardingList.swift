@@ -19,12 +19,11 @@
 
 import Foundation
 import SwiftUI
-//import DuckUI
 
 public enum ContextualOnboardingListItem: Equatable {
     case search(title: String)
     case site(title: String)
-    case surprise(title: String)
+    case surprise(title: String, visibleTitle: String)
 
     var visibleTitle: String {
         switch self {
@@ -32,8 +31,8 @@ public enum ContextualOnboardingListItem: Equatable {
             return title
         case .site(let title):
             return title.replacingOccurrences(of: "https:", with: "")
-        case .surprise:
-            return "UserText.DaxOnboardingExperiment.ContextualOnboarding.tryASearchOptionSurpriseMeTitle"
+        case .surprise(_, let visibleTitle):
+            return visibleTitle
         }
     }
 
@@ -45,7 +44,7 @@ public enum ContextualOnboardingListItem: Equatable {
                 .replacingOccurrences(of: "“", with: "")
         case .site(let title):
             return title
-        case .surprise(let title):
+        case .surprise(let title, _):
             return title
         }
     }
@@ -98,7 +97,7 @@ struct ContextualOnboardingListView: View {
     let list = [
         ContextualOnboardingListItem.search(title: "Search"),
         ContextualOnboardingListItem.site(title: "Website"),
-        ContextualOnboardingListItem.surprise(title: "Surprise"),
+        ContextualOnboardingListItem.surprise(title: "Surprise", visibleTitle: "Surpeise me!"),
     ]
     return ContextualOnboardingListView(list: list) { _ in }
         .padding()

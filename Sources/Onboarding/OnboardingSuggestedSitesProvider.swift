@@ -32,9 +32,12 @@ protocol OnboardingSuggestionsItemsProviding {
 
 struct OnboardingSuggestedSitesProvider: OnboardingSuggestionsItemsProviding {
     private let countryProvider: OnboardingRegionAndLanguageProvider
+    private let surpriseItemTitle: String
 
-    init(countryProvider: OnboardingRegionAndLanguageProvider = Locale.current) {
+    init(countryProvider: OnboardingRegionAndLanguageProvider = Locale.current,
+         surpriseItemTitle: String) {
         self.countryProvider = countryProvider
+        self.surpriseItemTitle = surpriseItemTitle
     }
 
     private let scheme = "https:"
@@ -117,6 +120,6 @@ struct OnboardingSuggestedSitesProvider: OnboardingSuggestionsItemsProviding {
         case .sweden: site = "https://www.synonymer.se/sv-syn/anka"
         default: site = "https:britannica.com/animal/duck"
         }
-        return ContextualOnboardingListItem.surprise(title: site)
+        return ContextualOnboardingListItem.surprise(title: site, visibleTitle: surpriseItemTitle)
     }
 }

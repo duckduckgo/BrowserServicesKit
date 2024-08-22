@@ -248,7 +248,7 @@ enum Metrics {
     let list = [
         ContextualOnboardingListItem.search(title: "Search"),
         ContextualOnboardingListItem.site(title: "Website"),
-        ContextualOnboardingListItem.surprise(title: "Surprise"),
+        ContextualOnboardingListItem.surprise(title: "Surprise", visibleTitle: "Surpeise me!"),
     ]
     return ContextualDaxDialogContent(
         title: "Who is the best?",
@@ -262,7 +262,7 @@ enum Metrics {
 #Preview("en_GB list") {
     ContextualDaxDialogContent(title: "title",
                                message: NSAttributedString(string: "this is a message"),
-                        list: OnboardingSuggestedSitesProvider(countryProvider: Locale(identifier: "en_GB")).list,
+                               list: OnboardingSuggestedSitesProvider(countryProvider: Locale(identifier: "en_GB"), surpriseItemTitle: "surperise").list,
                         listAction: { _ in })
     .padding()
 }
@@ -270,7 +270,7 @@ enum Metrics {
 #Preview("en_US list") {
     ContextualDaxDialogContent(title: "title",
                                message: NSAttributedString(string: "this is a message"),
-                        list: OnboardingSuggestedSitesProvider(countryProvider: Locale(identifier: "en_US")).list,
+                               list: OnboardingSuggestedSitesProvider(countryProvider: Locale(identifier: "en_US"), surpriseItemTitle: "surprise").list,
                         listAction: { _ in })
     .padding()
 }

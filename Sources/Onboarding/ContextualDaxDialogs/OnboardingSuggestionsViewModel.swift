@@ -56,7 +56,7 @@ struct OnboardingSiteSuggestionsViewModel {
 
     init(
         title: String,
-        suggestedSitesProvider: OnboardingSuggestionsItemsProviding = OnboardingSuggestedSitesProvider(),
+        suggestedSitesProvider: OnboardingSuggestionsItemsProviding,
         delegate: OnboardingNavigationDelegate? = nil,
         pixelReporter: OnboardingSiteSuggestionsPixelReporting
     ) {
