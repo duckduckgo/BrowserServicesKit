@@ -34,20 +34,20 @@ extension OnboardingStyles {
 
     }
 
-    struct BackgroundStyle: ViewModifier {
-
-        let alignment: Alignment
-
-        func body(content: Content) -> some View {
-            ZStack {
-                OnboardingBackground(alignment: alignment)
-                    .ignoresSafeArea(.keyboard)
-
-                content
-            }
-        }
-        
-    }
+//    struct BackgroundStyle: ViewModifier {
+//
+//        let alignment: Alignment
+//
+//        func body(content: Content) -> some View {
+//            ZStack {
+//                OnboardingBackground(alignment: alignment)
+//                    .ignoresSafeArea(.keyboard)
+//
+//                content
+//            }
+//        }
+//        
+//    }
 
     struct ListButtonStyle: ButtonStyle {
         @Environment(\.colorScheme) private var colorScheme
@@ -103,8 +103,8 @@ extension View {
         modifier(OnboardingStyles.DaxDialogStyle(maxWidth: maxWidth))
     }
 
-    func onboardingContextualBackgroundStyle(alignment: Alignment) -> some View {
-        modifier(OnboardingStyles.BackgroundStyle(alignment: alignment))
-    }
+//    func onboardingContextualBackgroundStyle(alignment: Alignment) -> some View {
+//        modifier(OnboardingStyles.BackgroundStyle(alignment: alignment))
+//    }
     
 }
