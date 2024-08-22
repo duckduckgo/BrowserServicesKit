@@ -367,7 +367,7 @@ public extension String {
         return (isValidHostname || isValidIpHost) && !isMathFormula
     }
 
-    var isMathFormula: Bool {
+    private var isMathFormula: Bool {
         return matches(.mathExpression)
     }
 
