@@ -58,23 +58,26 @@ struct AnimatableTypingText: View {
     }
 
     var body: some View {
-        if #available(iOS 15, macOS 12, *) {
-            Text(AttributedString(model.typedAttributedText))
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .onChange(of: startAnimating.wrappedValue, perform: { shouldAnimate in
-                    if shouldAnimate {
-                        model.startAnimating()
-                    } else {
-                        model.stopAnimating()
-                    }
-                })
-                .onAppear {
-                    if startAnimating.wrappedValue {
-                        model.startAnimating()
-                    }
-                }
-        } else {
-            fatalError()
+        Group {
+            if #available(iOS 15, macOS 12, *) {
+                Text(AttributedString(model.typedAttributedText))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                Text(model.typedAttributedText.string)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        .onChange(of: startAnimating.wrappedValue, perform: { shouldAnimate in
+            if shouldAnimate {
+                model.startAnimating()
+            } else {
+                model.stopAnimating()
+            }
+        })
+        .onAppear {
+            if startAnimating.wrappedValue {
+                model.startAnimating()
+            }
         }
     }
 }
