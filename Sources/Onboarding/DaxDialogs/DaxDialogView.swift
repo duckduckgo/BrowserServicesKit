@@ -123,7 +123,7 @@ struct DaxDialogView<Content: View>: View {
     }
 
     private var wrappedContent: some View {
-        let backgroundColor = Color.black //Color(designSystemColor: .surface)
+        let backgroundColor = Color(.surface)
         let shadowColors: (Color, Color) = colorScheme == .light ?
         (.black.opacity(0.08), .black.opacity(0.1)) :
         (.black.opacity(0.20), .black.opacity(0.16))
