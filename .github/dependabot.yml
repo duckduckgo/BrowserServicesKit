@@ -11,9 +11,9 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
-      ignore:
-        - dependency-name: "*"
-      allow:
-        - dependency-name: "PrivacyDashboard"
-      labels:
-        - dependencies
+    ignore:
+      - dependency-name: "*"
+    allow:
+      - dependency-name: "PrivacyDashboard"
+    labels:
+      - dependencies
