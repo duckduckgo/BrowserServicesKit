@@ -7,3 +7,18 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "daily"
+  - package-ecosystem: swift
+    directory: "/"
+    schedule:
+      interval: weekly
+      open-pull-requests-limit: 5
+      target-branch: main
+      ignore:
+        - dependency-name: "*"
+      allow:
+        - dependency-name: "PrivacyDashboard"
+      commit-message:
+        prefix: "chore(deps)"
+      labels:
+        - dependencies
+      auto-merge: false
