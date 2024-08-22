@@ -44,10 +44,21 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         case serverMigrationAttempt(_ step: ServerMigrationAttemptStep)
     }
 
-    public enum AttemptStep {
+    public enum AttemptStep: CustomDebugStringConvertible {
         case begin
         case success
         case failure(_ error: Error)
+
+        public var debugDescription: String {
+            switch self {
+            case .begin:
+                "Begin"
+            case .success:
+                "Success"
+            case .failure(let error):
+                "Failure \(error.localizedDescription)"
+            }
+        }
     }
 
     public typealias TunnelStartAttemptStep = AttemptStep
