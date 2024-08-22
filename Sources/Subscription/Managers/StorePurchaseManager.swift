@@ -36,21 +36,22 @@ public enum StorePurchaseManagerError: Error {
 
 public protocol StorePurchaseManager {
     typealias TransactionJWS = String
+
     func subscriptionOptions() async -> SubscriptionOptions?
     var purchasedProductIDs: [String] { get }
     var purchaseQueue: [String] { get }
     var areProductsAvailable: Bool { get }
+
     @MainActor func syncAppleIDAccount() async throws
     @MainActor func updateAvailableProducts() async
     @MainActor func updatePurchasedProducts() async
     @MainActor func mostRecentTransaction() async -> String?
     @MainActor func hasActiveSubscription() async -> Bool
+
     @MainActor func purchaseSubscription(with identifier: String, externalID: String) async -> Result<StorePurchaseManager.TransactionJWS, StorePurchaseManagerError>
 }
 
 @available(macOS 12.0, iOS 15.0, *) typealias Transaction = StoreKit.Transaction
-@available(macOS 12.0, iOS 15.0, *) typealias RenewalInfo = StoreKit.Product.SubscriptionInfo.RenewalInfo
-@available(macOS 12.0, iOS 15.0, *) typealias RenewalState = StoreKit.Product.SubscriptionInfo.RenewalState
 
 @available(macOS 12.0, iOS 15.0, *)
 public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseManager {
@@ -64,7 +65,6 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
     @Published public private(set) var availableProducts: [Product] = []
     @Published public private(set) var purchasedProductIDs: [String] = []
     @Published public private(set) var purchaseQueue: [String] = []
-    @Published private var subscriptionGroupStatus: RenewalState?
 
     public var areProductsAvailable: Bool { !availableProducts.isEmpty }
     private var transactionUpdates: Task<Void, Never>?
@@ -166,8 +166,6 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
         if self.purchasedProductIDs != purchasedSubscriptions {
             self.purchasedProductIDs = purchasedSubscriptions
         }
-
-        subscriptionGroupStatus = try? await availableProducts.first?.subscription?.status.first?.state
     }
 
     @MainActor
