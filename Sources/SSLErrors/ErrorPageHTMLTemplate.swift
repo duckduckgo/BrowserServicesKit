@@ -33,10 +33,10 @@ public struct ErrorPageHTMLTemplate {
             return ""
         }
 
-        if let localizedFile = ContentScopeScripts.Bundle.path(forResource: "special-error", ofType: "json", inDirectory: "pages/special-error/locales/pl"), 
-            let json = try? String(contentsOfFile: localizedFile) {
-            return html.replacingOccurrences(of: "$LOCALE_STRINGS$", with: json.escapedUnicodeHtmlString(), options: .literal)
-        }
+//        if let localizedFile = ContentScopeScripts.Bundle.path(forResource: "special-error", ofType: "json", inDirectory: "pages/special-error/locales/pl"), 
+//            let json = try? String(contentsOfFile: localizedFile) {
+//            return html.replacingOccurrences(of: "$LOCALE_STRINGS$", with: json.escapedUnicodeHtmlString(), options: .literal)
+//        }
         return html
     }
 

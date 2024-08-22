@@ -29,6 +29,15 @@ public protocol SpecialErrorPageUserScriptDelegate: AnyObject {
 
 }
 
+typealias Key = String
+
+struct LocalizedInfo: Encodable, Equatable {
+
+    let title: String
+    let note: String
+
+}
+
 public final class SpecialErrorPageUserScript: NSObject, Subfeature {
 
     enum MessageName: String, CaseIterable {
@@ -52,6 +61,12 @@ public final class SpecialErrorPageUserScript: NSObject, Subfeature {
 
     public func with(broker: UserScriptMessageBroker) {
         self.broker = broker
+    }
+
+    private let localeStrings: String?
+
+    public init(localeStrings: String?) {
+        self.localeStrings = localeStrings
     }
 
     @MainActor
@@ -83,7 +98,8 @@ public final class SpecialErrorPageUserScript: NSObject, Subfeature {
         let platform = Platform(name: "macos")
 #endif
         guard let errorData = delegate?.errorData else { return nil }
-        return InitialSetupResult(env: env, locale: Locale.current.identifier, platform: platform, errorData: errorData)
+
+        return InitialSetupResult(env: env, locale: "pl", localeStrings: localeStrings, platform: platform, errorData: errorData)
     }
 
     @MainActor
@@ -122,10 +138,10 @@ extension SpecialErrorPageUserScript {
 
         let env: String
         let locale: String
+        let localeStrings: String?
         let platform: Platform
         let errorData: SpecialErrorData
 
     }
 
 }
-
