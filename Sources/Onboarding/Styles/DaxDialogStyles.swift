@@ -25,18 +25,22 @@ extension OnboardingStyles {
         @Environment(\.verticalSizeClass) private var verticalSizeClass
         @Environment(\.horizontalSizeClass) private var horizontalSizeClass
 
+        let maxWidth: CGFloat
+
         func body(content: Content) -> some View {
             content
-                .frame(maxWidth: Metrics.daxDialogMaxWidth.build(v: verticalSizeClass, h: horizontalSizeClass))
+                .frame(maxWidth: maxWidth)
         }
 
     }
 
     struct BackgroundStyle: ViewModifier {
 
+        let alignment: Alignment
+
         func body(content: Content) -> some View {
             ZStack {
-                OnboardingBackground()
+                OnboardingBackground(alignment: alignment)
                     .ignoresSafeArea(.keyboard)
 
                 content
@@ -52,7 +56,7 @@ extension OnboardingStyles {
 
         public func makeBody(configuration: Configuration) -> some View {
             configuration.label
-                .font(Font(UIFont.boldAppFont(ofSize: 15)))
+                .font(.system(size: 15, weight: .bold))
                 .fixedSize(horizontal: false, vertical: true)
                 .multilineTextAlignment(.center)
                 .lineLimit(nil)
@@ -65,44 +69,42 @@ extension OnboardingStyles {
         }
 
         private func foregroundColor(_ isPressed: Bool) -> Color {
-            switch (colorScheme, isPressed) {
-            case (.dark, false):
-                return .blue30
-            case (.dark, true):
-                return .blue20
-            case (_, false):
-                return .blueBase
-            case (_, true):
-                return .blue70
-            }
+            .blue
+//            switch (colorScheme, isPressed) {
+//            case (.dark, false):
+//                return .blue30
+//            case (.dark, true):
+//                return .blue20
+//            case (_, false):
+//                return .blueBase
+//            case (_, true):
+//                return .blue70
+//            }
         }
 
         private func backgroundColor(_ isPressed: Bool) -> Color {
-            switch (colorScheme, isPressed) {
-            case (.light, true):
-                return .blueBase.opacity(0.2)
-            case (.dark, true):
-                return .blue30.opacity(0.2)
-            default:
-                return .clear
-            }
+            .blue
+//            switch (colorScheme, isPressed) {
+//            case (.light, true):
+//                return .blueBase.opacity(0.2)
+//            case (.dark, true):
+//                return .blue30.opacity(0.2)
+//            default:
+//                return .clear
+//            }
         }
     }
 
-}
-
-private enum Metrics {
-    static let daxDialogMaxWidth = MetricBuilder<CGFloat?>(iPhone: nil, iPad: 480)
 }
 
 extension View {
 
-    func onboardingDaxDialogStyle() -> some View {
-        modifier(OnboardingStyles.DaxDialogStyle())
+    func onboardingDaxDialogStyle(maxWidth: CGFloat) -> some View {
+        modifier(OnboardingStyles.DaxDialogStyle(maxWidth: maxWidth))
     }
 
-    func onboardingContextualBackgroundStyle() -> some View {
-        modifier(OnboardingStyles.BackgroundStyle())
+    func onboardingContextualBackgroundStyle(alignment: Alignment) -> some View {
+        modifier(OnboardingStyles.BackgroundStyle(alignment: alignment))
     }
     
 }

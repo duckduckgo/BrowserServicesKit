@@ -17,8 +17,13 @@
 //  limitations under the License.
 //
 
+#if canImport(UIKit)
+typealias PlatformColor = UIColor
+#elseif canImport(AppKit)
+typealias PlatformColor = NSColor
+#endif
+
 import SwiftUI
-import Core
 import Combine
 
 // MARK: - View
@@ -53,20 +58,24 @@ struct AnimatableTypingText: View {
     }
 
     var body: some View {
-        Text(AttributedString(model.typedAttributedText))
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .onChange(of: startAnimating.wrappedValue, perform: { shouldAnimate in
-                if shouldAnimate {
-                    model.startAnimating()
-                } else {
-                    model.stopAnimating()
+        if #available(iOS 15, macOS 12, *) {
+            Text(AttributedString(model.typedAttributedText))
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .onChange(of: startAnimating.wrappedValue, perform: { shouldAnimate in
+                    if shouldAnimate {
+                        model.startAnimating()
+                    } else {
+                        model.stopAnimating()
+                    }
+                })
+                .onAppear {
+                    if startAnimating.wrappedValue {
+                        model.startAnimating()
+                    }
                 }
-            })
-            .onAppear {
-                if startAnimating.wrappedValue {
-                    model.startAnimating()
-                }
-            }
+        } else {
+            fatalError()
+        }
     }
 }
 
@@ -137,8 +146,15 @@ final class AnimatableTypingTextModel: ObservableObject {
         // Make the entire text transparent
         let transparentText = original.applyingColor(.clear, to: totalRange)
 
+        #if os(iOS)
+        let visibleTextColor = UIColor.label
+        #else
+        let originalTextColor = original.attributes(at: 0, effectiveRange: nil)[.foregroundColor] as? NSColor
+        let visibleTextColor = originalTextColor ?? .black
+        #endif
+
         // Change the color to standard for the visible range
-        let visibleText = transparentText.applyingColor(.label, to: visibleRange)
+        let visibleText = transparentText.applyingColor(visibleTextColor, to: visibleRange)
 
         return visibleText
     }
@@ -146,7 +162,7 @@ final class AnimatableTypingTextModel: ObservableObject {
 
 // Extension to apply color to NSAttributedString
 extension NSAttributedString {
-    func applyingColor(_ color: UIColor, to range: NSRange) -> NSAttributedString {
+    func applyingColor(_ color: PlatformColor, to range: NSRange) -> NSAttributedString {
         let mutableAttributedString = NSMutableAttributedString(attributedString: self)
 
         mutableAttributedString.enumerateAttributes(in: range, options: []) { attributes, range, _ in

@@ -18,11 +18,10 @@
 //
 
 import SwiftUI
-import DesignResourcesKit
 
 // MARK: - Metrics
 
-private enum Metrics {
+private enum DaxDialogMetrics {
     static let contentPadding: CGFloat = 24.0
     static let shadowRadius: CGFloat = 5.0
     static let stackSpacing: CGFloat = 8
@@ -88,7 +87,7 @@ struct DaxDialogView<Content: View>: View {
     private var topLogoViewContentView: some View {
         VStack(alignment: .leading, spacing: stackSpacing) {
             daxLogo
-                .padding(.leading, Metrics.DaxLogo.horizontalPadding)
+                .padding(.leading, DaxDialogMetrics.DaxLogo.horizontalPadding)
 
             wrappedContent
                 .visibility(showDialogBox.wrappedValue ? .visible : .invisible)
@@ -106,7 +105,7 @@ struct DaxDialogView<Content: View>: View {
     }
 
     private var stackSpacing: CGFloat {
-        Metrics.stackSpacing + arrowSize.height
+        DaxDialogMetrics.stackSpacing + arrowSize.height
     }
 
     @ViewBuilder
@@ -114,7 +113,7 @@ struct DaxDialogView<Content: View>: View {
         let icon = Image(.daxIconExperiment)
             .resizable()
             .aspectRatio(contentMode: .fill)
-            .frame(width: Metrics.DaxLogo.size, height: Metrics.DaxLogo.size)
+            .frame(width: DaxDialogMetrics.DaxLogo.size, height: DaxDialogMetrics.DaxLogo.size)
 
         if let matchLogoAnimation {
             icon.matchedGeometryEffect(id: matchLogoAnimation.id, in: matchLogoAnimation.namespace)
@@ -124,13 +123,13 @@ struct DaxDialogView<Content: View>: View {
     }
 
     private var wrappedContent: some View {
-        let backgroundColor = Color(designSystemColor: .surface)
+        let backgroundColor = Color.black //Color(designSystemColor: .surface)
         let shadowColors: (Color, Color) = colorScheme == .light ?
         (.black.opacity(0.08), .black.opacity(0.1)) :
         (.black.opacity(0.20), .black.opacity(0.16))
 
         return content
-            .padding(.all, Metrics.contentPadding)
+            .padding(.all, DaxDialogMetrics.contentPadding)
             .background(backgroundColor)
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius))
             .shadow(color: shadowColors.0, radius: 16, x: 0, y: 8)
@@ -149,10 +148,10 @@ struct DaxDialogView<Content: View>: View {
     private var arrowOffset: CGSize {
         switch logoPosition {
         case .top:
-            let leadingOffset = Metrics.DaxLogo.horizontalPadding + Metrics.DaxLogo.size / 2 - arrowSize.width / 2
+            let leadingOffset = DaxDialogMetrics.DaxLogo.horizontalPadding + DaxDialogMetrics.DaxLogo.size / 2 - arrowSize.width / 2
             return CGSize(width: leadingOffset, height: -arrowSize.height)
         case .left:
-            let topOffset = Metrics.DaxLogo.size / 2 - arrowSize.width / 2
+            let topOffset = DaxDialogMetrics.DaxLogo.size / 2 - arrowSize.width / 2
             return CGSize(width: -arrowSize.height, height: topOffset)
         }
     }

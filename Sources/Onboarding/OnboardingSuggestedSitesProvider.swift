@@ -19,6 +19,13 @@
 
 import Foundation
 
+protocol OnboardingRegionAndLanguageProvider {
+    var regionCode: String? { get }
+    var languageCode: String? { get }
+}
+
+extension Locale: OnboardingRegionAndLanguageProvider {}
+
 protocol OnboardingSuggestionsItemsProviding {
     var list: [ContextualOnboardingListItem] { get }
 }

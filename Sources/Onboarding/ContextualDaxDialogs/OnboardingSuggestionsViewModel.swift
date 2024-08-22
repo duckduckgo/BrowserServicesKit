@@ -30,9 +30,9 @@ struct OnboardingSearchSuggestionsViewModel {
     private let pixelReporter: OnboardingSearchSuggestionsPixelReporting
 
     init(
-        suggestedSearchesProvider: OnboardingSuggestionsItemsProviding = OnboardingSuggestedSearchesProvider(),
+        suggestedSearchesProvider: OnboardingSuggestionsItemsProviding,
         delegate: OnboardingNavigationDelegate? = nil,
-        pixelReporter: OnboardingSearchSuggestionsPixelReporting = OnboardingPixelReporter()
+        pixelReporter: OnboardingSearchSuggestionsPixelReporting
     ) {
         self.suggestedSearchesProvider = suggestedSearchesProvider
         self.delegate = delegate
@@ -58,7 +58,7 @@ struct OnboardingSiteSuggestionsViewModel {
         title: String,
         suggestedSitesProvider: OnboardingSuggestionsItemsProviding = OnboardingSuggestedSitesProvider(),
         delegate: OnboardingNavigationDelegate? = nil,
-        pixelReporter: OnboardingSiteSuggestionsPixelReporting = OnboardingPixelReporter()
+        pixelReporter: OnboardingSiteSuggestionsPixelReporting
     ) {
         self.title = title
         self.suggestedSitesProvider = suggestedSitesProvider

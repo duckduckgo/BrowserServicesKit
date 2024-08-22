@@ -24,10 +24,10 @@ struct OnboardingBackground: View {
     @Environment(\.horizontalSizeClass) private var hSizeClass
     @Environment(\.colorScheme) private var colorScheme
 
+    let alignment: Alignment
+
     var body: some View {
         GeometryReader { proxy in
-            // On iPhone we want the background image to start from the left but on iPad we want to take the center part
-            let alignment = Metrics.imageCentering.build(v: vSizeClass, h: hSizeClass)
             Image(.onboardingBackground)
                 .resizable()
                 .aspectRatio(contentMode: .fill)
@@ -39,10 +39,6 @@ struct OnboardingBackground: View {
                 )
         }
     }
-}
-
-private enum Metrics {
-    static let imageCentering = MetricBuilder<Alignment>(iPhone: .bottomLeading, iPad: .center)
 }
 
 // MARK: - Gradient
@@ -96,11 +92,11 @@ private extension OnboardingBackground {
 }
 
 #Preview("Light Mode") {
-    OnboardingBackground()
+    OnboardingBackground(alignment: .leading)
         .preferredColorScheme(.light)
 }
 
 #Preview("Dark Mode") {
-    OnboardingBackground()
+    OnboardingBackground(alignment: .leading)
         .preferredColorScheme(.dark)
 }

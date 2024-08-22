@@ -7,7 +7,7 @@ import PackageDescription
 let package = Package(
     name: "BrowserServicesKit",
     platforms: [
-        .iOS("14.0"),
+        .iOS("15.0"),
         .macOS("11.4")
     ],
     products: [
@@ -394,6 +394,9 @@ let package = Package(
         ),
         .target(
             name: "Onboarding",
+            dependencies: [
+                "BrowserServicesKit"
+            ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
             ]

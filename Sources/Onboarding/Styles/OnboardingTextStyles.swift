@@ -33,7 +33,7 @@ extension OnboardingStyles {
                 .foregroundColor(.primary)
                 .multilineTextAlignment(.center)
 
-            if #available(iOS 16, *) {
+            if #available(iOS 16, macOS 13, *) {
                 return view.kerning(0.38)
             } else {
                 return view

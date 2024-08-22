@@ -19,12 +19,18 @@
 
 import Foundation
 import SwiftUI
-import DuckUI
 import Combine
+
+#if canImport(UIKit)
+typealias PlatformFont = UIFont
+#else
+typealias PlatformFont = NSFont
+#endif
 
 struct ContextualDaxDialogContent: View {
 
     var title: String?
+    var titleFont: Font?
     let message: NSAttributedString
     var list: [ContextualOnboardingListItem] = []
     var listAction: ((_ item: ContextualOnboardingListItem) -> Void)?
@@ -39,7 +45,9 @@ struct ContextualDaxDialogContent: View {
         message: NSAttributedString,
         list: [ContextualOnboardingListItem] = [],
         listAction: ((_: ContextualOnboardingListItem) -> Void)? = nil,
-        imageName: String? = nil, cta: String? = nil,
+        imageName: String? = nil, 
+        cta: String? = nil,
+        ctaStyle: (any ButtonStyle)? = nil,
         action: (() -> Void)? = nil
     ) {
         self.title = title
@@ -96,10 +104,13 @@ struct ContextualDaxDialogContent: View {
     @ViewBuilder
     private var titleView: some View {
         if let title {
-            AnimatableTypingText(title, startAnimating: $startTypingTitle, onTypingFinished: {
+            let animatingText = AnimatableTypingText(title, startAnimating: $startTypingTitle, onTypingFinished: {
                 startTypingMessage = true
             })
-            .daxTitle3()
+
+            if let titleFont {
+                animatingText.font(titleFont)
+            }
         }
     }
 
@@ -134,7 +145,7 @@ struct ContextualDaxDialogContent: View {
             Button(action: action) {
                 Text(cta)
             }
-            .buttonStyle(PrimaryButtonStyle(compact: true))
+            //.buttonStyle(PrimaryButtonStyle(compact: true))
         }
     }
 
@@ -145,14 +156,14 @@ struct ContextualDaxDialogContent: View {
         case image
         case button
     }
+}
 
-    struct NonTypingAnimatableItems: OptionSet {
-        let rawValue: Int
+struct NonTypingAnimatableItems: OptionSet {
+    let rawValue: Int
 
-        static let list = NonTypingAnimatableItems(rawValue: 1 << 0)
-        static let image = NonTypingAnimatableItems(rawValue: 1 << 1)
-        static let button = NonTypingAnimatableItems(rawValue: 1 << 2)
-    }
+    static let list = NonTypingAnimatableItems(rawValue: 1 << 0)
+    static let image = NonTypingAnimatableItems(rawValue: 1 << 1)
+    static let button = NonTypingAnimatableItems(rawValue: 1 << 2)
 }
 
 // MARK: - Auxiliary Functions
@@ -192,13 +203,10 @@ extension ContextualDaxDialogContent {
 
 // MARK: - Metrics
 
-extension ContextualDaxDialogContent {
-    enum Metrics {
-        static let animationDuration = 0.25
-        static let animationDelay = 0.3
-    }
+enum Metrics {
+    static let animationDuration = 0.25
+    static let animationDelay = 0.3
 }
-
 
 // MARK: - Preview
 
@@ -208,7 +216,7 @@ extension ContextualDaxDialogContent {
 
     let attributedString = NSMutableAttributedString(string: fullString)
     let boldFontAttribute: [NSAttributedString.Key: Any] = [
-        .font: UIFont.daxBodyBold()
+        .font: PlatformFont.systemFont(ofSize: 15, weight: .bold)
     ]
 
     if let boldRange = fullString.range(of: boldString) {
@@ -261,7 +269,7 @@ extension ContextualDaxDialogContent {
 
 #Preview("en_GB list") {
     ContextualDaxDialogContent(title: "title",
-                        message: "this is a message".attributedStringFromMarkdown(color: .blue),
+                               message: NSAttributedString(string: "this is a message"),
                         list: OnboardingSuggestedSitesProvider(countryProvider: Locale(identifier: "en_GB")).list,
                         listAction: { _ in })
     .padding()
@@ -269,7 +277,7 @@ extension ContextualDaxDialogContent {
 
 #Preview("en_US list") {
     ContextualDaxDialogContent(title: "title",
-                        message: "this is a message".attributedStringFromMarkdown(color: .blue),
+                               message: NSAttributedString(string: "this is a message"),
                         list: OnboardingSuggestedSitesProvider(countryProvider: Locale(identifier: "en_US")).list,
                         listAction: { _ in })
     .padding()
