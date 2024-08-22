@@ -18,9 +18,14 @@
 //
 
 import Foundation
+import os.log
 import Combine
 import Common
 import PixelKit
+
+public extension Logger {
+    static var config: Logger = { Logger(subsystem: Bundle.main.bundleIdentifier ?? "DuckDuckGo", category: "Configuration") }()
+}
 
 open class DefaultConfigurationManager {
     public enum Error: Swift.Error {
@@ -77,7 +82,7 @@ open class DefaultConfigurationManager {
     public var lastRefreshCheckTime: Date = Date()
 
     public func start() {
-        os_log("Starting configuration refresh timer", log: .config, type: .debug)
+        Logger.config.debug("Starting configuration refresh timer")
         timerCancellable = Timer.publish(every: Constants.refreshCheckIntervalSeconds, on: .main, in: .default)
             .autoconnect()
             .receive(on: Self.queue)
@@ -101,7 +106,7 @@ open class DefaultConfigurationManager {
     @discardableResult
     private func refreshIfNeeded() -> Task<Void, Never>? {
         guard isReadyToRefresh else {
-            os_log("Configuration refresh is not needed at this time", log: .config, type: .debug)
+            Logger.config.debug("Configuration refresh is not needed at this time")
             return nil
         }
         return Task {
