@@ -5,7 +5,7 @@ import Foundation
 import NetworkExtension
 @_implementationOnly import WireGuardC
 import WireGuard
-import Common
+import os.log
 
 public enum WireGuardAdapterErrorInvalidStateReason: String {
     case alreadyStarted
@@ -204,7 +204,7 @@ public class WireGuardAdapter {
     ///   as a weak reference.
     /// - Parameter logHandler: a log handler closure.
     public init(with packetTunnelProvider: NEPacketTunnelProvider, logHandler: @escaping LogHandler) {
-        os_log("[+] WireGuardAdapter", log: .networkProtectionMemoryLog, type: .debug)
+        Logger.networkProtectionMemory.debug("[+] WireGuardAdapter")
 
         self.packetTunnelProvider = packetTunnelProvider
         self.logHandler = logHandler
@@ -213,7 +213,7 @@ public class WireGuardAdapter {
     }
 
     deinit {
-        os_log("[-] WireGuardAdapter", log: .networkProtectionMemoryLog, type: .debug)
+        Logger.networkProtectionMemory.debug("[-] WireGuardAdapter")
 
         // Force remove logger to make sure that no further calls to the instance of this class
         // can happen after deallocation.

@@ -17,24 +17,25 @@
 //
 
 import Foundation
+import os.log
 
 #if DEBUG
 
 public func breakByRaisingSigInt(_ description: String, file: StaticString = #file, line: Int = #line) {
     let fileLine = "\(("\(file)" as NSString).lastPathComponent):\(line)"
-    os_log("""
+    Logger.general.debug("""
 
 
     ------------------------------------------------------------------------------------------------------
-        BREAK at %s:
+        BREAK at \(fileLine):
     ------------------------------------------------------------------------------------------------------
 
-    %s
+    \(description.components(separatedBy: "\n").map { "    " + $0.trimmingWhitespace() }.joined(separator: "\n"))
 
         Hit Continue (^⌘Y) to continue program execution
     ------------------------------------------------------------------------------------------------------
 
-    """, type: .debug, fileLine, description.components(separatedBy: "\n").map { "    " + $0.trimmingWhitespace() }.joined(separator: "\n"))
+    """)
     raise(SIGINT)
 }
 

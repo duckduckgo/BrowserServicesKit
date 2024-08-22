@@ -18,6 +18,7 @@
 
 import Foundation
 import Common
+import os.log
 
 public enum FailureRecoveryStep {
     public enum ServerHealth {
@@ -145,21 +146,19 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
             isKillSwitchEnabled: isKillSwitchEnabled,
             regenerateKey: false
         )
-        os_log("🟢 Failure recovery fetched new config.", log: .networkProtectionTunnelFailureMonitorLog)
+        Logger.networkProtectionTunnelFailureMonitor.debug("🟢 Failure recovery fetched new config.")
 
         let newServer = configurationResult.server
 
-        os_log(
-            "🟢 Failure recovery - originalServerName: %{public}s, newServerName: %{public}s, originalAllowedIPs: %{public}s, newAllowedIPs: %{public}s",
-            log: .networkProtection,
-            lastConnectedServer.serverName,
-            newServer.serverName,
-            String(describing: lastConnectedServer.allowedIPs),
-            String(describing: newServer.allowedIPs)
-        )
+        Logger.networkProtection.debug("""
+        🟢 Failure recovery - originalServerName: \(lastConnectedServer.serverName, privacy: .public)
+        newServerName: \(newServer.serverName, privacy: .public)
+        originalAllowedIPs: \(String(describing: lastConnectedServer.allowedIPs), privacy: .public)
+        newAllowedIPs: \(String(describing: newServer.allowedIPs), privacy: .public)
+        """)
 
         guard lastConnectedServer.shouldReplace(with: newServer) else {
-            os_log("🟢 Server failure recovery not necessary.", log: .networkProtectionTunnelFailureMonitorLog)
+            Logger.networkProtectionTunnelFailureMonitor.debug("🟢 Server failure recovery not necessary.")
             return .noRecoveryNecessary
         }
 
@@ -182,10 +181,10 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
                 }
                 do {
                     try await action()
-                    os_log("🟢 Failure recovery success!", log: .networkProtectionTunnelFailureMonitorLog)
+                    Logger.networkProtectionTunnelFailureMonitor.debug("🟢 Failure recovery success!")
                     return
                 } catch {
-                    os_log("🟢 Failure recovery failed. Retrying...", log: .networkProtectionTunnelFailureMonitorLog)
+                    Logger.networkProtectionTunnelFailureMonitor.error("🟢 Failure recovery failed. Retrying...")
                 }
                 do {
                     try await Task.sleep(interval: currentDelay)

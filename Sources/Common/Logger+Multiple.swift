@@ -1,5 +1,5 @@
 //
-//  NetworkProtectionLogger.swift
+//  Logging.swift
 //
 //  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
@@ -16,19 +16,12 @@
 //  limitations under the License.
 //
 
-import NetworkExtension
-import Common
+import Foundation
+import os.log
 
-public protocol NetworkProtectionLogger {
-    func log(_ error: Error)
-}
+public extension Logger {
+    static var general = { Logger(subsystem: "General", category: "") }()
 
-public final class DefaultNetworkProtectionLogger: NetworkProtectionLogger {
-    public init() {}
-
-    public func log(_ error: Error) {
-        // swiftlint:disable:next compiler_protocol_init
-        let format = StaticString(stringLiteral: "🔴 %{public}@")
-        os_log(format, type: .error, error.localizedDescription)
-    }
+    static var contentBlocking = { Logger(subsystem: "Content Blocking", category: "") }()
+    static var passwordManager = { Logger(subsystem: "Password Manager", category: "") }()
 }

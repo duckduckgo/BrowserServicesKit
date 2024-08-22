@@ -110,7 +110,7 @@ final class HTTPSUpgradeReferenceTests: XCTestCase {
 
     func testHTTPSUpgradesNavigations() async {
         let tests = httpsUpgradesTestSuite.navigations.tests
-        let httpsUpgrade = HTTPSUpgrade(store: mockStore, privacyManager: makePrivacyManager())
+        let httpsUpgrade = HTTPSUpgrade(store: mockStore, privacyManager: makePrivacyManager(), logger: Logger())
         await httpsUpgrade.loadData()
 
         for test in tests {
@@ -136,7 +136,7 @@ final class HTTPSUpgradeReferenceTests: XCTestCase {
     }
 
     func testLocalUnprotectedDomainShouldNotUpgradeToHTTPS() async {
-        let httpsUpgrade = HTTPSUpgrade(store: mockStore, privacyManager: makePrivacyManager(config: nil, unprotectedDomains: ["secure.thirdtest.com"]))
+        let httpsUpgrade = HTTPSUpgrade(store: mockStore, privacyManager: makePrivacyManager(config: nil, unprotectedDomains: ["secure.thirdtest.com"]), logger: Logger())
         await httpsUpgrade.loadData()
 
         let url = URL(string: "http://secure.thirdtest.com")!
@@ -151,7 +151,7 @@ final class HTTPSUpgradeReferenceTests: XCTestCase {
     }
 
     func testLocalUnprotectedDomainShouldUpgradeSubdomainToHTTPS() async {
-        let httpsUpgrade = HTTPSUpgrade(store: mockStore, privacyManager: makePrivacyManager(config: nil, unprotectedDomains: ["thirdtest.com"]))
+        let httpsUpgrade = HTTPSUpgrade(store: mockStore, privacyManager: makePrivacyManager(config: nil, unprotectedDomains: ["thirdtest.com"]), logger: Logger())
         await httpsUpgrade.loadData()
 
         let url = URL(string: "http://secure.thirdtest.com")!

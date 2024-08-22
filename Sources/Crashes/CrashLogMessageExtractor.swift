@@ -43,6 +43,7 @@
 import Common
 import CxxCrashHandler
 import Foundation
+import os.log
 
 /// Collects crash diagnostic messages (NSException/C++ exception name, description and stack trace) and saves to file:
 /// `applicationSupportDir/Diagnostics/2024-05-20T12:11:33Z-%pid%.log`
@@ -102,7 +103,7 @@ public struct CrashLogMessageExtractor {
                 let dianosticData = try JSONDecoder().decode(DiagnosticData.self, from: data)
                 return dianosticData
             } catch {
-                os_log("😵 could not read contents of %{public}s: %s", url.lastPathComponent, error.localizedDescription)
+                Logger.general.error("😵 could not read contents of \(url.lastPathComponent, privacy: .public): \(error.localizedDescription, privacy: .public)")
                 throw error
             }
         }
@@ -182,7 +183,7 @@ public struct CrashLogMessageExtractor {
             + (exception.userInfo ?? [:]).map { "\($0.key): " + "\($0.value)".sanitized() }
         ).joined(separator: "\n")
         let diagnosticData = CrashLogMessageExtractor.CrashDiagnostic.DiagnosticData(message: message, stackTrace: exception.callStackSymbols)
-        os_log("😵 crashing on: %{public}s", message)
+        Logger.general.log("😵 crashing on: \(message, privacy: .public)")
 
         // save crash log with `2024-05-20T12:11:33Z-%pid%.log` file name format
         let timestamp = ISO8601DateFormatter().string(from: Date())
@@ -219,7 +220,7 @@ public struct CrashLogMessageExtractor {
         }
         // take latest
         guard let crashLog = crashLogs.first else {
-            os_log("😵 no crash logs found for %{public}s/%d", timestamp.map { ISO8601DateFormatter().string(from: $0) } ?? "<nil>", pid ?? 0)
+            Logger.general.log("😵 no crash logs found for \(timestamp.map { ISO8601DateFormatter().string(from: $0) } ?? "<nil>", privacy: .public)/\(pid ?? 0)")
             return nil
         }
         return crashLog
@@ -239,7 +240,7 @@ private func handleTerminateOnCxxException() {
 
 // NSUncaughtExceptionHandler
 private func handleException(_ exception: NSException) {
-    os_log(.error, "Trapped exception \(exception)")
+    Logger.general.error("Trapped exception \(exception)")
 
     try? CrashLogMessageExtractor().writeDiagnostic(for: exception)
 

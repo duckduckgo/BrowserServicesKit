@@ -1,5 +1,5 @@
 //
-//  Logger+RemoteMessaging.swift
+//  Logger+Networking.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -20,5 +20,5 @@ import Foundation
 import os.log
 
 public extension Logger {
-    static var remoteMessaging = { Logger(subsystem: "Remote Messaging", category: "") }()
+    static var networking = { Logger(subsystem: "Networking", category: "") }()
 }

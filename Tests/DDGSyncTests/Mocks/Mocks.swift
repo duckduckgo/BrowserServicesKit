@@ -203,7 +203,6 @@ struct MockSyncDependencies: SyncDependencies, SyncDependenciesDebuggingSupport 
     var secureStore: SecureStoring = SecureStorageStub()
     var crypter: CryptingInternal = CryptingMock()
     var scheduler: SchedulingInternal = SchedulerMock()
-    var log: OSLog = .default
     var privacyConfigurationManager: PrivacyConfigurationManaging = MockPrivacyConfigurationManager()
     var errorEvents: EventMapping<SyncError> = MockErrorHandler()
     var keyValueStore: KeyValueStoring = MockKeyValueStore()

@@ -20,16 +20,12 @@ import Combine
 import Common
 import Foundation
 import WebKit
+import os.log
 
 public final class DistributedNavigationDelegate: NSObject {
 
     internal var responders = ResponderChain()
     private var customDelegateMethodHandlers = [Selector: any AnyResponderRef]()
-
-    private let getLog: () -> OSLog
-    private var log: OSLog {
-        getLog()
-    }
 
     /// approved navigation before `navigationDidStart` event received (useful for authentication challenge and redirect events)
     @MainActor
@@ -80,10 +76,8 @@ public final class DistributedNavigationDelegate: NSObject {
     private var currentHistoryItemIdentity: HistoryItemIdentity? { nil }
 #endif
 
-    public init(log: @escaping @autoclosure () -> OSLog) {
+    public override init() {
         dispatchPrecondition(condition: .onQueue(.main))
-        self.getLog = log
-
 #if !_MAIN_FRAME_NAVIGATION_ENABLED
         _=WKWebView.swizzleLoadMethodOnce
 #endif
@@ -162,8 +156,8 @@ private extension DistributedNavigationDelegate {
         }
 
         // cancel the Task if WebView deallocates before it‘s finished
-        webViewDeinitObserver.onDeinit { [log] in
-            os_log("cancelling \(actionDebugInfo.debugDescription) decision making due to <WKWebView: \(webViewDebugRef)> deallocation", log: log, type: .error)
+        webViewDeinitObserver.onDeinit {
+            Logger.general.error("cancelling \(actionDebugInfo.debugDescription) decision making due to <WKWebView: \(webViewDebugRef)> deallocation")
             task.cancel()
         }
 
@@ -330,7 +324,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
         }
 
         assert(navigationAction.mainFrameNavigation != nil || !navigationAction.isForMainFrame)
-        os_log("decidePolicyFor: %s %s", log: log, type: .default, navigationAction.debugDescription, wkNavigationAction.mainFrameNavigation?.debugDescription ?? "")
+        Logger.general.log("decidePolicyFor: \(navigationAction.debugDescription) \(wkNavigationAction.mainFrameNavigation?.debugDescription ?? "")")
 
         // initial `about:` scheme navigation doesn‘t wait for decision
         if (navigationAction.url.scheme.map(URL.NavigationalScheme.init) == .about
@@ -355,7 +349,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
 
             // get to next responder until we get non-nil (.next == nil) decision
             guard let decision = await responder.decidePolicy(for: navigationAction, preferences: &preferences) else { return .next }
-            os_log("%s: %s decision: %s", log: self.log, type: .default, navigationAction.debugDescription, "\(type(of: responder))", decision.debugDescription)
+            Logger.general.log("\(navigationAction.debugDescription): \("\(type(of: responder))") decision: \(decision.debugDescription)")
             // pass non-nil decision to `completion:`
             return decision
 
@@ -413,7 +407,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
         } /* Task */ cancellation: {
             dispatchPrecondition(condition: .onQueue(.main))
 
-            os_log("Task cancelled for %s", log: self.log, type: .default, navigationAction.debugDescription)
+            Logger.general.log("Task cancelled for \(navigationAction.debugDescription)")
             decisionHandler(.cancel, wkPreferences)
 
             // in case decision making is hung release WKNavigationAction just after cancellation
@@ -430,7 +424,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
 
     @MainActor
     private func willStart(_ navigation: Navigation) {
-        os_log("willStart %s", log: log, type: .default, navigation.debugDescription)
+        Logger.general.log("willStart \(navigation.debugDescription)")
 
         var isSameDocumentNavigation: Bool {
             guard startedNavigation !== navigation && startedNavigation?.url.isSameDocument(navigation.url) == true else { return false }
@@ -490,21 +484,21 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
         let navigation = navigationExpectedToStart ?? startedNavigation
         navigation?.challengeRececived()
 
-        os_log("didReceive challenge: %s: %s", log: log, type: .default, navigation?.debugDescription ?? webView.debugDescription, challenge.protectionSpace.description)
+        Logger.general.log("didReceive challenge: \(navigation?.debugDescription ?? webView.debugDescription): \(challenge.protectionSpace.description)")
 
         makeAsyncDecision(for: navigation?.debugDescription ?? challenge.debugDescription, boundToLifetimeOf: webView, with: navigation?.navigationResponders ?? responders) { @MainActor responder in
             dispatchPrecondition(condition: .onQueue(.main))
 
             guard let decision = await responder.didReceive(challenge, for: navigation) else { return .next }
-            os_log("%s: %s decision: %s", log: self.log, type: .default, String(describing: challenge), "\(type(of: responder))", decision.description)
+            Logger.general.log("\(String(describing: challenge)): \(type(of: responder)) decision: \(decision.description)")
 
             return decision
 
-        } completion: { @MainActor [self] (decision: AuthChallengeDisposition?) in
+        } completion: { @MainActor [](decision: AuthChallengeDisposition?) in
             dispatchPrecondition(condition: .onQueue(.main))
 
             guard let (disposition, credential) = decision?.dispositionAndCredential else {
-                os_log("%s: performDefaultHandling", log: self.log, type: .default, String(describing: challenge))
+                Logger.general.log("\(String(describing: challenge)): performDefaultHandling")
                 completionHandler(.performDefaultHandling, nil)
                 return
             }
@@ -521,7 +515,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
         }
 
         navigation.didReceiveServerRedirect(for: wkNavigation)
-        os_log("didReceiveServerRedirect %s for: %s", log: log, type: .default, navigation.navigationAction.debugDescription, navigation.debugDescription)
+        Logger.general.log("didReceiveServerRedirect \(navigation.navigationAction.debugDescription) for: \(navigation.debugDescription)")
 
         for responder in navigation.navigationResponders {
             responder.didReceiveRedirect(navigation.navigationAction, for: navigation)
@@ -585,7 +579,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
         self.startedNavigation = navigation
         self.navigationExpectedToStart = nil
 
-        os_log("didStart: %s", log: log, type: .default, navigation.debugDescription)
+        Logger.general.log("didStart: \(navigation.debugDescription)")
         assert(navigation.navigationAction.navigationType.redirect != .server, "server redirects shouldn‘t call didStartProvisionalNavigation")
 
         for responder in navigation.navigationResponders {
@@ -602,14 +596,14 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
             startedNavigation?.receivedResponse(navigationResponse)
         }
 
-        os_log("decidePolicyFor: %s", log: log, type: .default, navigationResponse.debugDescription)
+        Logger.general.debug("decidePolicyFor: \(navigationResponse.debugDescription)")
 
         let responders = (navigationResponse.isForMainFrame ? startedNavigation?.navigationResponders : nil) ?? responders
         makeAsyncDecision(for: navigationResponse.debugDescription, boundToLifetimeOf: webView, with: responders) { @MainActor responder in
             dispatchPrecondition(condition: .onQueue(.main))
 
             guard let decision = await responder.decidePolicy(for: navigationResponse) else { return .next }
-            os_log("%s: %s decision: %s", log: self.log, type: .default, navigationResponse.debugDescription, "\(type(of: responder))", "\(decision)")
+            Logger.general.debug("\(navigationResponse.debugDescription): \(type(of: responder)) decision: \(String(describing: decision))")
 
             return decision
 
@@ -652,7 +646,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
               !(url.absoluteString.hashedSuffix != nil && redirectedNavigation.url.absoluteString.droppingHashedSuffix() == url.absoluteString.droppingHashedSuffix())
         else { return }
 
-        os_log("willPerformClientRedirect to: %s, current: %s", log: log, type: .default, url.absoluteString, redirectedNavigation.debugDescription)
+        Logger.general.log("willPerformClientRedirect to: \(url.absoluteString), current: \(redirectedNavigation.debugDescription)")
 
         // keep the original Navigation non-finished until the redirect NavigationAction is received
         let originalResponders = redirectedNavigation.navigationResponders
@@ -738,7 +732,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
     @MainActor
     @objc(_webViewDidCancelClientRedirect:)
     public func webViewDidCancelClientRedirect(_ webView: WKWebView) {
-        os_log("webViewDidCancelClientRedirect", log: log, type: .default)
+        Logger.general.log("webViewDidCancelClientRedirect")
 
         for responder in responders {
             responder.webViewDidCancelClientRedirect(currentNavigation: startedNavigation)
@@ -761,7 +755,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
         guard let navigation,
               navigation.identity == wkNavigation.map(NavigationIdentity.init) || wkNavigation == nil
         else {
-            os_log("dropping didFinishNavigation: %s, as another navigation is active: %s", log: log, type: .default, wkNavigation?.description ?? "<nil>", navigation?.debugDescription ?? "<nil>")
+            Logger.general.log("dropping didFinishNavigation: \(wkNavigation?.description ?? "<nil>"), as another navigation is active: \(navigation?.debugDescription ?? "<nil>")")
             return
         }
 
@@ -769,7 +763,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
         updateCurrentHistoryItemIdentity(webView.backForwardList.currentItem)
 #endif
         navigation.didFinish(wkNavigation)
-        os_log("didFinish: %s", log: log, type: .default, navigation.debugDescription)
+        Logger.general.log("didFinish: \(navigation.debugDescription)")
 
         for responder in navigation.navigationResponders {
             responder.navigationDidFinish(navigation)
@@ -800,7 +794,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
         let navigation = wkNavigation?.navigation ?? startedNavigation
 
         guard let navigation, navigation.identity == wkNavigation.map(NavigationIdentity.init) || wkNavigation == nil else {
-            os_log("dropping didFail%sNavigation: %s with: %s, as another navigation is active: %s", log: log, type: .default, isProvisional ? "Provisional" : "", wkNavigation?.description ?? "<nil>", error.errorDescription ?? error.localizedDescription, navigation?.debugDescription ?? "<nil>")
+            Logger.general.log("dropping didFail \(isProvisional ? "Provisional" : "") Navigation: \(wkNavigation?.description ?? "<nil>") with: \(error.errorDescription ?? error.localizedDescription), as another navigation is active: \(navigation?.debugDescription ?? "<nil>")")
             return
         }
 
@@ -812,7 +806,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
             navigation.didResignCurrent()
         }
         navigation.didFail(wkNavigation, with: error)
-        os_log("didFail %s: %s", log: log, type: .default, navigation.debugDescription, error.errorDescription ?? error.localizedDescription)
+        Logger.general.log("didFail \(navigation.debugDescription): \(error.errorDescription ?? error.localizedDescription)")
 
         for responder in navigation.navigationResponders {
             responder.navigation(navigation, didFailWith: error)
@@ -882,7 +876,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
             let request = wkNavigation?.request ?? URLRequest(url: webView.url ?? .empty)
             let navigationAction = NavigationAction(request: request, navigationType: .sameDocumentNavigation(navigationType), currentHistoryItemIdentity: currentHistoryItemIdentity, redirectHistory: nil, isUserInitiated: wkNavigation?.isUserInitiated ?? false, sourceFrame: .mainFrame(for: webView), targetFrame: .mainFrame(for: webView), shouldDownload: false, mainFrameNavigation: navigation)
             navigation.navigationActionReceived(navigationAction)
-            os_log("new same-doc navigation(.%d): %s (%s): %s, isCurrent: %d", log: log, type: .debug, wkNavigationType, wkNavigation.debugDescription, navigation.debugDescription, navigationAction.debugDescription, shouldBecomeCurrent ? 1 : 0)
+            Logger.general.debug("new same-doc navigation(.\(wkNavigationType): \(wkNavigation.debugDescription) (\(navigation.debugDescription)): \(navigationAction.debugDescription), isCurrent: \(shouldBecomeCurrent ? 1 : 0)")
 
             // store `current` navigations in `startedNavigation` to get `currentNavigation` published
             if shouldBecomeCurrent {
@@ -892,7 +886,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
             navigation.didFinish()
         }
 
-        os_log("didSameDocumentNavigation: %s.%s: %s", log: log, type: .default, wkNavigation.debugDescription, navigationType.debugDescription, navigation.debugDescription)
+        Logger.general.log("didSameDocumentNavigation: \(wkNavigation.debugDescription).\(navigationType.debugDescription): \(navigation.debugDescription)")
 
         for responder in responders {
             responder.navigation(navigation, didSameDocumentNavigationOf: navigationType)
@@ -951,7 +945,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
         updateCurrentHistoryItemIdentity(webView.backForwardList.currentItem)
 #endif
         navigation.committed(wkNavigation)
-        os_log("didCommit: %s", log: log, type: .default, navigation.debugDescription)
+        Logger.general.log("didCommit: \(navigation.debugDescription)")
 
         for responder in navigation.navigationResponders {
             responder.didCommit(navigation)
@@ -966,7 +960,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
             assertionFailure("WKNavigationAction has no associated NavigationAction")
             return NavigationAction(webView: webView, navigationAction: wkNavigationAction, currentHistoryItemIdentity: currentHistoryItemIdentity, redirectHistory: nil, mainFrameNavigation: startedNavigation)
         }()
-        os_log("navigationActionDidBecomeDownload: %s", log: log, type: .default, navigationAction.debugDescription)
+        Logger.general.log("navigationActionDidBecomeDownload: \(navigationAction.debugDescription)")
 
         let responders = (navigationAction.isForMainFrame ? navigationAction.mainFrameNavigation?.navigationResponders : nil) ?? responders
         for responder in responders {
@@ -994,7 +988,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
             assertionFailure("WKNavigationResponse has no associated NavigationResponse")
             return NavigationResponse(navigationResponse: wkNavigationResponse, mainFrameNavigation: startedNavigation)
         }()
-        os_log("navigationResponseDidBecomeDownload: %s", log: log, type: .default, navigationResponse.debugDescription)
+        Logger.general.log("navigationResponseDidBecomeDownload: \(navigationResponse.debugDescription)")
 
         let responders = (navigationResponse.isForMainFrame ? navigationResponse.mainFrameNavigation?.navigationResponders : nil) ?? responders
         for responder in responders {
@@ -1019,7 +1013,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
 
     @MainActor
     private func webView(_ webView: WKWebView, processDidTerminateWith reason: WKProcessTerminationReason?) {
-        os_log("%s webContentProcessDidTerminateWithReason: %d", log: log, type: .default, webView.debugDescription, reason?.rawValue ?? -1)
+        Logger.general.log("\(webView.debugDescription) webContentProcessDidTerminateWithReason: \(reason?.rawValue ?? -1)")
 
         for responder in responders {
             responder.webContentProcessDidTerminate(with: reason ?? .init(rawValue: Int.max))

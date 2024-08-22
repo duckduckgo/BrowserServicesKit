@@ -20,6 +20,7 @@ import Foundation
 import WebKit
 import Combine
 import Common
+import os.log
 
 /// A protocol to implement if you want to opt-in to centralised messaging.
 ///
@@ -219,7 +220,7 @@ public final class UserScriptMessageBroker: NSObject {
             do {
                 _=try await handler(notification.params, original)
             } catch {
-                os_log("UserScriptMessaging: unhandled exception %s", type: .error, String(describing: error.localizedDescription))
+                Logger.general.error("UserScriptMessaging: unhandled exception \(error.localizedDescription, privacy: .public)")
             }
             return "{}"
 

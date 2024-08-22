@@ -19,6 +19,7 @@
 import Foundation
 import TrackerRadarKit
 import Common
+import os.log
 
 public protocol AdClickAttributionRulesProviding {
 
@@ -57,23 +58,17 @@ public class AdClickAttributionRulesProvider: AdClickAttributionRulesProviding {
 
     private let workQueue = DispatchQueue(label: "AdAttribution compilation queue",
                                           qos: .userInitiated)
-    private let getLog: () -> OSLog
-    private var log: OSLog {
-        getLog()
-    }
 
     public init(config: AdClickAttributing,
                 compiledRulesSource: CompiledRuleListsSource,
                 exceptionsSource: ContentBlockerRulesExceptionsSource,
                 errorReporting: EventMapping<AdClickAttributionDebugEvents>? = nil,
-                compilationErrorReporting: EventMapping<ContentBlockerDebugEvents>? = nil,
-                log: @escaping @autoclosure () -> OSLog = .disabled) {
+                compilationErrorReporting: EventMapping<ContentBlockerDebugEvents>? = nil) {
         self.attributionConfig = config
         self.compiledRulesSource = compiledRulesSource
         self.exceptionsSource = exceptionsSource
         self.errorReporting = errorReporting
         self.compilationErrorReporting = compilationErrorReporting
-        self.getLog = log
     }
 
     public var globalAttributionRules: ContentBlockerRulesManager.Rules? {
@@ -85,11 +80,11 @@ public class AdClickAttributionRulesProvider: AdClickAttributionRulesProviding {
         lock.lock()
         defer { lock.unlock() }
 
-        os_log(.debug, log: log, "Preparing attribution rules for vendor  %{private}s", vendor)
+        Logger.contentBlocking.debug("Preparing attribution rules for vendor  \(vendor)")
 
         guard let globalAttributionRules = compiledRulesSource.currentAttributionRules else {
             errorReporting?.fire(.adAttributionGlobalAttributedRulesDoNotExist)
-            os_log(.error, log: log, "Global attribution list does not exist")
+            Logger.contentBlocking.error("Global attribution list does not exist")
             completion(nil)
             return
         }
@@ -124,7 +119,7 @@ public class AdClickAttributionRulesProvider: AdClickAttributionRulesProviding {
             return
         }
 
-        os_log(.debug, log: log, "Compiling attribution rules for vendor  %{private}s", task.vendor)
+        Logger.contentBlocking.debug("Compiling attribution rules for vendor  \(task.vendor)")
 
         let mutator = AdClickAttributionRulesMutator(trackerData: sourceRules.trackerData,
                                                      config: attributionConfig)
@@ -136,11 +131,9 @@ public class AdClickAttributionRulesProvider: AdClickAttributionRulesProviding {
                                                           trackerData: nil,
                                                           fallbackTrackerData: attributedDataSet)
 
-        let log = self.log
         let sourceManager = ContentBlockerRulesSourceManager(rulesList: attributedRulesList,
                                                              exceptionsSource: exceptionsSource,
-                                                             errorReporting: compilationErrorReporting,
-                                                             log: log)
+                                                             errorReporting: compilationErrorReporting)
 
         let compilationTask = ContentBlockerRulesManager.CompilationTask(workQueue: workQueue,
                                                                          rulesList: attributedRulesList,
@@ -164,9 +157,7 @@ public class AdClickAttributionRulesProvider: AdClickAttributionRulesProviding {
         tasks.removeAll(where: { $0 == attributionTask })
         matchingTasks.append(attributionTask)
 
-        os_log(.debug, log: log,
-               "Returning attribution rules for vendor  %{private}s to %{public}d caller(s)",
-               attributionTask.vendor, matchingTasks.count)
+        Logger.contentBlocking.debug("Returning attribution rules for vendor  \(attributionTask.vendor) to \(matchingTasks.count, privacy: .public) caller(s)")
 
         var rules: ContentBlockerRulesManager.Rules?
         if let result = compilationTask.result {

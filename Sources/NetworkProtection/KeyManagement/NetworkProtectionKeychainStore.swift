@@ -18,6 +18,7 @@
 
 import Foundation
 import Common
+import os.log
 
 enum NetworkProtectionKeychainStoreError: Error, NetworkProtectionErrorConvertible {
     case failedToCastKeychainValueToData(field: String)
@@ -72,7 +73,7 @@ final class NetworkProtectionKeychainStore {
         case errSecItemNotFound:
             return nil
         default:
-            os_log("🔴 SecItemCopyMatching status %{public}@", type: .error, String(describing: status))
+            Logger.networkProtection.error("🔴 SecItemCopyMatching status \(String(describing: status), privacy: .public)")
             throw NetworkProtectionKeychainStoreError.keychainReadError(field: name, status: status)
         }
     }

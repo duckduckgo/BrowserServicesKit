@@ -1,5 +1,5 @@
 //
-//  Logger+RemoteMessaging.swift
+//  Logger+Bookmarks.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -20,5 +20,5 @@ import Foundation
 import os.log
 
 public extension Logger {
-    static var remoteMessaging = { Logger(subsystem: "Remote Messaging", category: "") }()
+    static var bookmarks = { Logger(subsystem: "Bookmarks", category: "") }()
 }
