@@ -61,15 +61,12 @@ jobs:
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_$(<.xcode-version).app/Contents/Developer
 
-      - name: Install xcbeautify
-        continue-on-error: true
-        run: brew install xcbeautify
+      
+      - name: Build BSK
+        run: set -o pipefail && swift build | tee build-log.txt | xcbeautify
 
       - name: Run tests
-        run: |
-          set -o pipefail && swift build -v | tee build-log.txt
-          set -o pipefail && swift test | tee -a build-log.txt
-          xcbeautify -qq --report junit --report-path . --junit-report-filename tests.xml < build-log.txt
+        run: set -o pipefail && swift test | tee -a build-log.txt | xcbeautify --report junit --report-path . --junit-report-filename tests.xml
 
       - name: Publish Unit Tests Report
         uses: mikepenz/action-junit-report@v3
