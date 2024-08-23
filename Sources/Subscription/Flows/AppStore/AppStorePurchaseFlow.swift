@@ -18,7 +18,7 @@
 
 import Foundation
 import StoreKit
-import Common
+import os.log
 
 public enum AppStorePurchaseFlowError: Swift.Error {
     case noProductsFound
@@ -60,7 +60,7 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
     }
 
     public func purchaseSubscription(with subscriptionIdentifier: String, emailAccessToken: String?) async -> Result<TransactionJWS, AppStorePurchaseFlowError> {
-        os_log(.info, log: .subscription, "[AppStorePurchaseFlow] purchaseSubscription")
+        Logger.subscription.info("[AppStorePurchaseFlow] purchaseSubscription")
         let externalID: String
 
         // If the current account is a third party expired account, we want to purchase and attach subs to it
@@ -72,10 +72,10 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
             // Check for past transactions most recent
             switch await appStoreRestoreFlow.restoreAccountFromPastPurchase() {
             case .success:
-                os_log(.info, log: .subscription, "[AppStorePurchaseFlow] purchaseSubscription -> restoreAccountFromPastPurchase: activeSubscriptionAlreadyPresent")
+                Logger.subscription.info("[AppStorePurchaseFlow] purchaseSubscription -> restoreAccountFromPastPurchase: activeSubscriptionAlreadyPresent")
                 return .failure(.activeSubscriptionAlreadyPresent)
             case .failure(let error):
-                os_log(.info, log: .subscription, "[AppStorePurchaseFlow] purchaseSubscription -> restoreAccountFromPastPurchase: %{public}s", String(reflecting: error))
+                Logger.subscription.info("[AppStorePurchaseFlow] purchaseSubscription -> restoreAccountFromPastPurchase: \(String(reflecting: error), privacy: .public)")
                 switch error {
                 case .subscriptionExpired(let expiredAccountDetails):
                     externalID = expiredAccountDetails.externalID
@@ -92,7 +92,7 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
                             accountManager.storeAccount(token: accessToken, email: accountDetails.email, externalID: accountDetails.externalID)
                         }
                     case .failure(let error):
-                        os_log(.error, log: .subscription, "[AppStorePurchaseFlow] createAccount error: %{public}s", String(reflecting: error))
+                        Logger.subscription.error("[AppStorePurchaseFlow] createAccount error: \(String(reflecting: error), privacy: .public)")
                         return .failure(.accountCreationFailed)
                     }
                 }
@@ -104,7 +104,7 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
         case .success(let transactionJWS):
             return .success(transactionJWS)
         case .failure(let error):
-            os_log(.error, log: .subscription, "[AppStorePurchaseFlow] purchaseSubscription error: %{public}s", String(reflecting: error))
+            Logger.subscription.error("[AppStorePurchaseFlow] purchaseSubscription error: \(String(reflecting: error), privacy: .public)")
             accountManager.signOut(skipNotification: true)
             switch error {
             case .purchaseCancelledByUser:
@@ -121,7 +121,7 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
         // Clear subscription Cache
         subscriptionEndpointService.signOut()
 
-        os_log(.info, log: .subscription, "[AppStorePurchaseFlow] completeSubscriptionPurchase")
+        Logger.subscription.info("[AppStorePurchaseFlow] completeSubscriptionPurchase")
 
         guard let accessToken = accountManager.accessToken else { return .failure(.missingEntitlements) }
 

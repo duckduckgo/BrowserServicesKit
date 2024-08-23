@@ -17,10 +17,19 @@
 //
 
 import Foundation
-import os // swiftlint:disable:this enforce_os_log_wrapper
+import os.log
 
+public extension Logger {
+    private static let bundleIdentifier = Bundle.main.bundleIdentifier ?? "DuckDuckGo"
+
+    static var contentBlocking: Logger = { Logger(subsystem: Logger.bundleIdentifier, category: "Content Blocking") }()
+    static var passwordManager: Logger = { Logger(subsystem: Logger.bundleIdentifier, category: "Password Manager") }()
+}
+
+@available(*, deprecated, message: "Use Logger.yourFeature instead, see https://app.asana.com/0/1202500774821704/1208001254061393/f")
 public typealias OSLog = os.OSLog
 
+@available(*, deprecated, message: "Use Logger.yourFeature instead, see https://app.asana.com/0/1202500774821704/1208001254061393/f")
 extension OSLog {
 
     /// "exporting" `OSLog.disabled` symbol without needing to `import os.log` to disambiguate `os_log` wrapper calls and suppress "implicit import" warning
@@ -72,6 +81,7 @@ extension OSLog {
 
     static let subsystem = Bundle.main.bundleIdentifier ?? "DuckDuckGo"
 
+    @available(*, deprecated, message: "Use Logger.yourFeature instead, see https://app.asana.com/0/1202500774821704/1208001254061393/f")
     @propertyWrapper
     public struct OSLogWrapper {
 
@@ -82,24 +92,9 @@ extension OSLog {
         }
 
         public var wrappedValue: OSLog {
-            var isEnabled = OSLog.enabledLoggingCategories.contains(category)
-#if CI
-            isEnabled = true
-#elseif DEBUG
-            isEnabled = isEnabled || Categories(rawValue: category).map(OSLog.debugCategories.contains) == true
-#endif
-
-            return isEnabled ? OSLog(subsystem: OSLog.subsystem, category: category) : .disabled
+            return OSLog(subsystem: OSLog.subsystem, category: category)
         }
 
-    }
-
-}
-
-public extension OSLog.OSLogWrapper {
-
-    init(_ category: OSLog.Categories) {
-        self.init(rawValue: category.rawValue)
     }
 
 }

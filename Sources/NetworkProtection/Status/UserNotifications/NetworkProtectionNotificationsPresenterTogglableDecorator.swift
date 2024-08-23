@@ -29,9 +29,9 @@ final public class NetworkProtectionNotificationsPresenterTogglableDecorator: Ne
         self.wrappeePresenter = wrappee
     }
 
-    public func showConnectedNotification(serverLocation: String?) {
+    public func showConnectedNotification(serverLocation: String?, snoozeEnded: Bool) {
         if settings.notifyStatusChanges {
-            wrappeePresenter.showConnectedNotification(serverLocation: serverLocation)
+            wrappeePresenter.showConnectedNotification(serverLocation: serverLocation, snoozeEnded: snoozeEnded)
         }
     }
 
@@ -44,6 +44,12 @@ final public class NetworkProtectionNotificationsPresenterTogglableDecorator: Ne
     public func showConnectionFailureNotification() {
         if settings.notifyStatusChanges {
             wrappeePresenter.showConnectionFailureNotification()
+        }
+    }
+
+    public func showSnoozingNotification(duration: TimeInterval) {
+        if settings.notifyStatusChanges {
+            wrappeePresenter.showSnoozingNotification(duration: duration)
         }
     }
 
@@ -65,4 +71,5 @@ final public class NetworkProtectionNotificationsPresenterTogglableDecorator: Ne
             wrappeePresenter.showEntitlementNotification()
         }
     }
+
 }

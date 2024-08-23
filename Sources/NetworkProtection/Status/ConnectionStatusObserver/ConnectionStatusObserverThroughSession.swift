@@ -37,6 +37,7 @@ public class ConnectionStatusObserverThroughSession: ConnectionStatusObserver {
 
     // MARK: - Notifications
     private let notificationCenter: NotificationCenter
+    private let platformSnoozeTimingStore: NetworkProtectionSnoozeTimingStore
     private let platformNotificationCenter: NotificationCenter
     private let platformDidWakeNotification: Notification.Name
     private var cancellables = Set<AnyCancellable>()
@@ -49,11 +50,13 @@ public class ConnectionStatusObserverThroughSession: ConnectionStatusObserver {
 
     public init(tunnelSessionProvider: TunnelSessionProvider,
                 notificationCenter: NotificationCenter = .default,
+                platformSnoozeTimingStore: NetworkProtectionSnoozeTimingStore,
                 platformNotificationCenter: NotificationCenter,
                 platformDidWakeNotification: Notification.Name,
                 log: OSLog = .networkProtection) {
 
         self.notificationCenter = notificationCenter
+        self.platformSnoozeTimingStore = platformSnoozeTimingStore
         self.platformNotificationCenter = platformNotificationCenter
         self.platformDidWakeNotification = platformDidWakeNotification
         self.tunnelSessionProvider = tunnelSessionProvider
@@ -74,8 +77,12 @@ public class ConnectionStatusObserverThroughSession: ConnectionStatusObserver {
             self?.handleStatusChangeNotification(notification)
         }.store(in: &cancellables)
 
+        notificationCenter.publisher(for: .VPNSnoozeRefreshed).sink { [weak self] notification in
+            self?.handleStatusRefreshNotification(notification)
+        }.store(in: &cancellables)
+
         platformNotificationCenter.publisher(for: platformDidWakeNotification).sink { [weak self] notification in
-            self?.handleDidWake(notification)
+            self?.handleStatusRefreshNotification(notification)
         }.store(in: &cancellables)
     }
 
@@ -89,7 +96,7 @@ public class ConnectionStatusObserverThroughSession: ConnectionStatusObserver {
 
     // MARK: - Handling Notifications
 
-    private func handleDidWake(_ notification: Notification) {
+    private func handleStatusRefreshNotification(_ notification: Notification) {
         Task {
             guard let session = await tunnelSessionProvider.activeSession() else {
                 return
@@ -118,7 +125,7 @@ public class ConnectionStatusObserverThroughSession: ConnectionStatusObserver {
     private func connectedDate(from session: NETunnelProviderSession) -> Date {
         // In theory when the connection has been established, the date should be set.  But in a worst-case
         // scenario where for some reason the date is missing, we're going to just use Date() as the connection
-        // has just started and it's a decent aproximation.
+        // has just started and it's a decent approximation.
         session.connectedDate ?? Date()
     }
 
@@ -128,8 +135,12 @@ public class ConnectionStatusObserverThroughSession: ConnectionStatusObserver {
 
         switch internalStatus {
         case .connected:
-            let connectedDate = connectedDate(from: session)
-            status = .connected(connectedDate: connectedDate)
+            if platformSnoozeTimingStore.activeTiming != nil {
+                status = .snoozing
+            } else {
+                let connectedDate = connectedDate(from: session)
+                status = .connected(connectedDate: connectedDate)
+            }
         case .connecting:
             status = .connecting
         case .reasserting:

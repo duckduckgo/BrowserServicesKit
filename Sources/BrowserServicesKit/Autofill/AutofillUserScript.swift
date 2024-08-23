@@ -19,6 +19,7 @@
 import Common
 import WebKit
 import UserScript
+import os.log
 
 var previousIncontextSignupPermanentlyDismissedAt: Double?
 var previousEmailSignedIn: Bool?
@@ -115,11 +116,10 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
 
     public func messageHandlerFor(_ messageName: String) -> MessageHandler? {
         guard let message = MessageName(rawValue: messageName) else {
-            os_log("Failed to parse Autofill User Script message: '%{public}s'", log: .userScripts, type: .debug, messageName)
+            Logger.autofill.error("Failed to parse Autofill User Script message: '\(messageName, privacy: .public)'")
             return nil
         }
-
-        os_log("AutofillUserScript: received '%{public}s'", log: .userScripts, type: .debug, messageName)
+        Logger.autofill.debug("AutofillUserScript: received '\(messageName, privacy: .public)'")
 
         switch message {
         case .emailHandlerStoreToken: return emailStoreToken

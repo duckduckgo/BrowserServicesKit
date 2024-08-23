@@ -20,6 +20,7 @@ import Common
 import Foundation
 import CoreData
 import Combine
+import os.log
 
 final public class HistoryStore: HistoryStoring {
 
@@ -102,7 +103,7 @@ final public class HistoryStore: HistoryStoring {
                 for entry in entriesToDelete {
                     context.delete(entry)
                 }
-                os_log("%d items cleaned from history", log: .history, entriesToDelete.count)
+                Logger.history.debug("\(entriesToDelete.count) items cleaned from history")
             } catch {
                 eventMapper.fire(.removeFailed, error: error)
                 self.context.reset()
@@ -126,7 +127,7 @@ final public class HistoryStore: HistoryStoring {
         fetchRequest.returnsObjectsAsFaults = false
         do {
             let historyEntries = try context.fetch(fetchRequest)
-            os_log("%d entries loaded from history", log: .history, historyEntries.count)
+            Logger.history.debug("\(historyEntries.count) entries loaded from history")
             let history = BrowsingHistory(historyEntries: historyEntries)
             return .success(history)
         } catch {

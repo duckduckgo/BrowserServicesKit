@@ -16,8 +16,9 @@
 //  limitations under the License.
 //
 
-import Common
 import Foundation
+import Common
+import os.log
 
 struct JsonToRemoteConfigModelMapper {
 
@@ -27,9 +28,9 @@ struct JsonToRemoteConfigModelMapper {
             jsonRemoteMessages: remoteMessagingConfig.messages,
             surveyActionMapper: surveyActionMapper
         )
-        os_log("remoteMessages mapped = %s", log: .remoteMessaging, type: .debug, String(describing: remoteMessages))
+        Logger.remoteMessaging.debug("remoteMessages mapped = \(String(describing: remoteMessages), privacy: .public)")
         let rules = JsonToRemoteMessageModelMapper.maps(jsonRemoteRules: remoteMessagingConfig.rules)
-        os_log("rules mapped = %s", log: .remoteMessaging, type: .debug, String(describing: rules))
+        Logger.remoteMessaging.debug("rules mapped = \(String(describing: rules), privacy: .public)")
         return RemoteConfigModel(messages: remoteMessages, rules: rules)
     }
 

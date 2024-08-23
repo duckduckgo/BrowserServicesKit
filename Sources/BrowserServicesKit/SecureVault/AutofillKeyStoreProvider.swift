@@ -19,6 +19,7 @@
 import Common
 import Foundation
 import SecureStorage
+import os.log
 
 final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
 
@@ -67,17 +68,11 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
     }
 
     let keychainService: KeychainService
-    private let getLog: () -> OSLog
-    private var log: OSLog {
-        getLog()
-    }
     private var reporter: SecureVaultReporting?
 
     init(keychainService: KeychainService = DefaultKeychainService(),
-         log: @escaping @autoclosure () -> OSLog = .disabled,
          reporter: SecureVaultReporting? = nil) {
         self.keychainService = keychainService
-        self.getLog = log
         self.reporter = reporter
     }
 
@@ -108,7 +103,7 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
     /// - Returns: Optional data
     private func readOrMigrate(named name: String, serviceName: String) throws -> Data? {
         if let data = try read(named: name, serviceName: serviceName) {
-            os_log("Autofill Keystore data retrieved", log: .autofill, type: .debug)
+            Logger.autofill.debug("Autofill Keystore data retrieved")
             return data
         } else {
             guard let entryName = EntryName(name) else { return nil }
@@ -117,11 +112,11 @@ final class AutofillKeyStoreProvider: SecureStorageKeyStoreProvider {
 
             // Look for items in V2 vault (i.e pre-bundle-specifc Keychain storage)
             if let data = try migrateEntry(entryName: entryName, serviceName: Constants.v2ServiceName) {
-                os_log("Migrated V2 Autofill Keystore data", log: .autofill, type: .debug)
+                Logger.autofill.debug("Migrated V2 Autofill Keystore data")
                 return data
             // Look for items in V1 vault
             } else if let data = try migrateEntry(entryName: entryName, serviceName: Constants.v1ServiceName) {
-                os_log("Migrated V1 Autofill Keystore data", log: .autofill, type: .debug)
+                Logger.autofill.debug("Migrated V1 Autofill Keystore data")
                 return data
             }
 
