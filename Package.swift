@@ -387,11 +387,11 @@ let package = Package(
             dependencies: [
                 "Common",
                 "UserScript"
-			],
-			swiftSettings: [
+            ],
+            swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
             ]
-		),
+        ),
         .target(
             name: "DuckPlayer",
             dependencies: [
