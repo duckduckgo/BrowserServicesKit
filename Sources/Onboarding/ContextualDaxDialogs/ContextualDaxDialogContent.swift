@@ -30,6 +30,11 @@ typealias PlatformFont = NSFont
 
 public struct ContextualDaxDialogContent: View {
 
+    public enum Orientation: Equatable {
+        case verticalStack
+        case horizontalStack(alignment: VerticalAlignment)
+    }
+
     let title: String?
     let titleFont: Font?
     public let message: NSAttributedString
@@ -37,10 +42,12 @@ public struct ContextualDaxDialogContent: View {
     let listAction: ((_ item: ContextualOnboardingListItem) -> Void)?
     let imageName: String?
     let customActionView: AnyView?
+    let orientation: Orientation
 
     private let itemsToAnimate: [DisplayableTypes]
 
     public init(
+        orientation: Orientation = .verticalStack,
         title: String? = nil,
         titleFont: Font? = nil,
         message: NSAttributedString,
@@ -56,7 +63,7 @@ public struct ContextualDaxDialogContent: View {
         self.listAction = listAction
         self.imageName = imageName
         self.customActionView = customActionView
-
+        self.orientation = orientation
 
         var itemsToAnimate: [DisplayableTypes] = []
         if title != nil {
@@ -81,17 +88,19 @@ public struct ContextualDaxDialogContent: View {
     @State private var nonTypingAnimatableItems: NonTypingAnimatableItems = []
 
     public var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Typing items
-            titleView
-            messageView
-            // Non Typing items
-            listView
-                .visibility(nonTypingAnimatableItems.contains(.list) ? .visible : .invisible)
-            imageView
-                .visibility(nonTypingAnimatableItems.contains(.image) ? .visible : .invisible)
-            actionView
-                .visibility(nonTypingAnimatableItems.contains(.button) ? .visible : .invisible)
+        Group {
+            if orientation == .verticalStack {
+                VStack {
+                    typingElements
+                    nonTypingElements
+                }
+            } else if case .horizontalStack(let alignment) = orientation {
+                HStack(alignment: alignment) {
+                    typingElements
+                    Spacer()
+                    nonTypingElements
+                }
+            }
         }
         .onAppear {
             Task { @MainActor in
@@ -100,6 +109,25 @@ public struct ContextualDaxDialogContent: View {
             }
         }
     }
+
+    @ViewBuilder var typingElements: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            titleView
+            messageView
+        }
+    }
+
+    @ViewBuilder var nonTypingElements: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            listView
+                .visibility(nonTypingAnimatableItems.contains(.list) ? .visible : .invisible)
+            imageView
+                .visibility(nonTypingAnimatableItems.contains(.image) ? .visible : .invisible)
+            actionView
+                .visibility(nonTypingAnimatableItems.contains(.button) ? .visible : .invisible)
+        }
+    }
+
 
     @ViewBuilder
     private var titleView: some View {
