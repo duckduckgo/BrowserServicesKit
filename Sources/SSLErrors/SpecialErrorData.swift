@@ -29,11 +29,13 @@ public struct SpecialErrorData: Encodable, Equatable {
     var kind: SpecialErrorKind
     var errorType: String?
     var domain: String?
+    var eTldPlus1: String?
 
-    public init(kind: SpecialErrorKind, errorType: String? = nil, domain: String? = nil) {
+    public init(kind: SpecialErrorKind, errorType: String? = nil, domain: String? = nil, eTldPlus1: String? = nil) {
         self.kind = kind
         self.errorType = errorType
         self.domain = domain
+        self.eTldPlus1 = eTldPlus1
     }
 
 }
