@@ -617,7 +617,7 @@ public class WireGuardAdapter {
                 let (wgConfig, resolutionResults) = settingsGenerator.endpointUapiConfiguration()
                 self.logEndpointResolutionResults(resolutionResults)
 
-                self.wireGuardInterface.setConfig(handle: handle, config: wgConfig)
+                _ = self.wireGuardInterface.setConfig(handle: handle, config: wgConfig)
                 self.wireGuardInterface.disableSomeRoamingForBrokenMobileSemantics(handle: handle)
                 self.wireGuardInterface.bumpSockets(handle: handle)
             } else {
