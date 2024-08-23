@@ -37,5 +37,5 @@ public enum SSLErrorType: String {
             return .invalid
         }
     }
-    
+
 }
