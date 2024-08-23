@@ -19,7 +19,7 @@ import Foundation
 import Common
 import PhishingDetection
 import PixelKit
- 
+
 public class MockEventMapping: EventMapping<PhishingDetectionEvents> {
     static var events: [PhishingDetectionEvents] = []
     static var clientSideHitParam: String?
