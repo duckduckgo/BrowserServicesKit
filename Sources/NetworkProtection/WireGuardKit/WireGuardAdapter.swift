@@ -4,8 +4,23 @@
 import Foundation
 import NetworkExtension
 @_implementationOnly import WireGuardC
-import WireGuard
 import Common
+
+// MARK: - WireGuard Interface
+
+/// This protocol abstracts the WireGuard Go library.
+/// The Go library is only included in VPN packet tunnel provider targets that need it, to avoid being embedded in other targets such as apps and login items that don't use it.
+public protocol WireGuardInterface {
+    func turnOn(settings: UnsafePointer<CChar>, handle: Int32) -> Int32
+    func turnOff(handle: Int32)
+    func getConfig(handle: Int32) -> UnsafeMutablePointer<CChar>?
+    func setConfig(handle: Int32, config: String) -> Int64
+    func bumpSockets(handle: Int32)
+    func disableSomeRoamingForBrokenMobileSemantics(handle: Int32)
+    func setLogger(context: UnsafeMutableRawPointer?, logFunction: ((UnsafeMutableRawPointer?, Int32, UnsafePointer<CChar>?) -> Void)?)
+}
+
+// MARK: - WireGuard Adapter
 
 public enum WireGuardAdapterErrorInvalidStateReason: String {
     case alreadyStarted
@@ -125,6 +140,8 @@ public class WireGuardAdapter {
     /// Adapter state.
     private var state: State = .stopped
 
+    private let wireGuardInterface: WireGuardInterface
+
     /// Tunnel device file descriptor.
     private var tunnelFileDescriptor: Int32? {
         var ctlInfo = ctl_info()
@@ -163,14 +180,6 @@ public class WireGuardAdapter {
         return nil
     }
 
-    /// Returns a WireGuard version.
-    public class var backendVersion: String {
-        guard let ver = wgVersion() else { return "unknown" }
-        let str = String(cString: ver)
-        free(UnsafeMutableRawPointer(mutating: ver))
-        return str
-    }
-
     /// Returns the tunnel device interface name, or nil on error.
     /// - Returns: String.
     public var interfaceName: String? {
@@ -203,10 +212,11 @@ public class WireGuardAdapter {
     /// - Parameter packetTunnelProvider: an instance of `NEPacketTunnelProvider`. Internally stored
     ///   as a weak reference.
     /// - Parameter logHandler: a log handler closure.
-    public init(with packetTunnelProvider: NEPacketTunnelProvider, logHandler: @escaping LogHandler) {
+    public init(with packetTunnelProvider: NEPacketTunnelProvider, wireGuardInterface: WireGuardInterface, logHandler: @escaping LogHandler) {
         os_log("[+] WireGuardAdapter", log: .networkProtectionMemoryLog, type: .debug)
 
         self.packetTunnelProvider = packetTunnelProvider
+        self.wireGuardInterface = wireGuardInterface
         self.logHandler = logHandler
 
         setupLogHandler()
@@ -217,14 +227,14 @@ public class WireGuardAdapter {
 
         // Force remove logger to make sure that no further calls to the instance of this class
         // can happen after deallocation.
-        wgSetLogger(nil, nil)
+        wireGuardInterface.setLogger(context: nil, logFunction: nil)
 
         // Cancel network monitor
         networkMonitor?.cancel()
 
         // Shutdown the tunnel
         if case .started(let handle, _) = self.state {
-            wgTurnOff(handle)
+            wireGuardInterface.turnOff(handle: handle)
         }
     }
 
@@ -299,7 +309,7 @@ public class WireGuardAdapter {
                 return
             }
 
-            if let settings = wgGetConfig(handle) {
+            if let settings = self.wireGuardInterface.getConfig(handle: handle) {
                 completionHandler(String(cString: settings))
                 free(settings)
             } else {
@@ -353,7 +363,7 @@ public class WireGuardAdapter {
         workQueue.async {
             switch self.state {
             case .started(let handle, _):
-                wgTurnOff(handle)
+                self.wireGuardInterface.turnOff(handle: handle)
 
             case .temporaryShutdown, .snoozing:
                 break
@@ -376,7 +386,7 @@ public class WireGuardAdapter {
         workQueue.async {
             switch self.state {
             case .started(let handle, _):
-                wgTurnOff(handle)
+                self.wireGuardInterface.turnOff(handle: handle)
 
             case .temporaryShutdown, .snoozing:
                 break
@@ -430,16 +440,15 @@ public class WireGuardAdapter {
                     let (wgConfig, resolutionResults) = settingsGenerator.uapiConfiguration()
                     self.logEndpointResolutionResults(resolutionResults)
 
-                    let result = wgSetConfig(handle, wgConfig)
+                    let result = self.wireGuardInterface.setConfig(handle: handle, config: wgConfig)
 
                     if result < 0 {
-                        let error = NSError(domain: WireGuardAdapterError.wireguardAdapterDomain,
-                                            code: Int(result))
+                        let error = NSError(domain: WireGuardAdapterError.wireguardAdapterDomain, code: Int(result))
                         throw WireGuardAdapterError.setWireguardConfig(error)
                     }
 
                     #if os(iOS)
-                    wgDisableSomeRoamingForBrokenMobileSemantics(handle)
+                    wireGuardInterface.disableSomeRoamingForBrokenMobileSemantics(handle: handle)
                     #endif
 
                     self.state = .started(handle, settingsGenerator)
@@ -468,7 +477,8 @@ public class WireGuardAdapter {
     /// Setup WireGuard log handler.
     private func setupLogHandler() {
         let context = Unmanaged.passUnretained(self).toOpaque()
-        wgSetLogger(context) { context, logLevel, message in
+
+        wireGuardInterface.setLogger(context: context) { context, logLevel, message in
             guard let context = context, let message = message else { return }
 
             let unretainedSelf = Unmanaged<WireGuardAdapter>.fromOpaque(context)
@@ -551,7 +561,7 @@ public class WireGuardAdapter {
             throw WireGuardAdapterError.cannotLocateTunnelFileDescriptor
         }
 
-        let handle = wgTurnOn(wgConfig, tunnelFileDescriptor)
+        let handle = wireGuardInterface.turnOn(settings: wgConfig, handle: tunnelFileDescriptor)
         if handle < 0 {
             let error = NSError(domain: WireGuardAdapterError.wireguardAdapterDomain,
                                 code: Int(handle))
@@ -598,7 +608,7 @@ public class WireGuardAdapter {
 
         #if os(macOS)
         if case .started(let handle, _) = self.state {
-            wgBumpSockets(handle)
+            wireGuardInterface.bumpSockets(handle: handle)
         }
         #elseif os(iOS)
         switch self.state {

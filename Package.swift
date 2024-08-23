@@ -52,7 +52,6 @@ let package = Package(
         .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "5.0.0"),
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
         .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
-        .package(url: "https://github.com/duckduckgo/wireguard-apple", exact: "1.1.3"),
         .package(url: "https://github.com/1024jp/GzipSwift.git", exact: "6.0.1")
     ],
     targets: [
@@ -321,7 +320,6 @@ let package = Package(
             name: "NetworkProtection",
             dependencies: [
                 .target(name: "WireGuardC"),
-                .product(name: "WireGuard", package: "wireguard-apple"),
                 "Common",
             ],
             swiftSettings: [

@@ -140,7 +140,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     // MARK: - WireGuard
 
     private lazy var adapter: WireGuardAdapter = {
-        WireGuardAdapter(with: self) { logLevel, message in
+        WireGuardAdapter(with: self, wireGuardInterface: self.wireGuardInterface) { logLevel, message in
             if logLevel == .error {
                 os_log("🔴 Received error from adapter: %{public}@", log: .networkProtection, type: .error, message)
             } else {
@@ -416,6 +416,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private let controllerErrorStore: NetworkProtectionTunnelErrorStore
     private let knownFailureStore: NetworkProtectionKnownFailureStore
     private let snoozeTimingStore: NetworkProtectionSnoozeTimingStore
+    private let wireGuardInterface: WireGuardInterface
 
     // MARK: - Cancellables
 
@@ -435,6 +436,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 controllerErrorStore: NetworkProtectionTunnelErrorStore,
                 knownFailureStore: NetworkProtectionKnownFailureStore = NetworkProtectionKnownFailureStore(),
                 snoozeTimingStore: NetworkProtectionSnoozeTimingStore,
+                wireGuardInterface: WireGuardInterface,
                 keychainType: KeychainType,
                 tokenStore: NetworkProtectionTokenStore,
                 debugEvents: EventMapping<NetworkProtectionError>?,
@@ -454,6 +456,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         self.controllerErrorStore = controllerErrorStore
         self.knownFailureStore = knownFailureStore
         self.snoozeTimingStore = snoozeTimingStore
+        self.wireGuardInterface = wireGuardInterface
         self.settings = settings
         self.defaults = defaults
         self.isSubscriptionEnabled = isSubscriptionEnabled
