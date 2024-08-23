@@ -30,13 +30,13 @@ public enum ContextualOnboardingListItem: Equatable {
         case .search(let title):
             return title
         case .site(let title):
-            return title.replacingOccurrences(of: "https:", with: "")
+            return title.replacingOccurrences(of: "https://", with: "")
         case .surprise(_, let visibleTitle):
             return visibleTitle
         }
     }
 
-    var title: String {
+    public var title: String {
         switch self {
         case .search(let title):
             return title
@@ -61,12 +61,18 @@ public enum ContextualOnboardingListItem: Equatable {
     }
 }
 
-struct ContextualOnboardingListView: View {
-    let list: [ContextualOnboardingListItem]
-    var action: (_ item: ContextualOnboardingListItem) -> Void
-    let iconSize = 16.0
+public struct ContextualOnboardingListView: View {
+    private let list: [ContextualOnboardingListItem]
+    private var action: (_ item: ContextualOnboardingListItem) -> Void
+    private let iconSize: CGFloat
 
-    var body: some View {
+    public init(list: [ContextualOnboardingListItem], action: @escaping (ContextualOnboardingListItem) -> Void, iconSize: CGFloat = 16.0) {
+        self.list = list
+        self.action = action
+        self.iconSize = iconSize
+    }
+
+    public var body: some View {
         VStack {
             ForEach(list.indices, id: \.self) { index in
                 Button(action: {

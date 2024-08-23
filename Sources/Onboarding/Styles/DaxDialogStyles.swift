@@ -19,27 +19,16 @@
 
 import SwiftUI
 
+public enum OnboardingStyles {}
+
 extension OnboardingStyles {
-
-    struct DaxDialogStyle: ViewModifier {
-        @Environment(\.verticalSizeClass) private var verticalSizeClass
-        @Environment(\.horizontalSizeClass) private var horizontalSizeClass
-
-        let maxWidth: CGFloat
-
-        func body(content: Content) -> some View {
-            content
-                .frame(maxWidth: maxWidth)
-        }
-
-    }
 
     struct ListButtonStyle: ButtonStyle {
         @Environment(\.colorScheme) private var colorScheme
 
-        public init() {}
+        init() {}
 
-        public func makeBody(configuration: Configuration) -> some View {
+        func makeBody(configuration: Configuration) -> some View {
             configuration.label
                 .font(.system(size: 15, weight: .bold))
                 .fixedSize(horizontal: false, vertical: true)
@@ -81,10 +70,10 @@ extension OnboardingStyles {
 }
 
 extension Color {
-    static let blue70 = Color.init(0x1E42A4)
-    static let blueBase = Color.init(0x3969EF)
-    static let blue30 = Color.init(0x7295F6)
-    static let blue20 = Color.init(0x8FABF9)
+    static let blue70 = Color(0x1E42A4)
+    static let blueBase = Color(0x3969EF)
+    static let blue30 = Color(0x7295F6)
+    static let blue20 = Color(0x8FABF9)
 
     init(_ hex: UInt, alpha: Double = 1) {
         self.init(
@@ -95,12 +84,4 @@ extension Color {
             opacity: alpha
         )
     }
-}
-
-extension View {
-
-    func onboardingDaxDialogStyle(maxWidth: CGFloat) -> some View {
-        modifier(OnboardingStyles.DaxDialogStyle(maxWidth: maxWidth))
-    }
-
 }

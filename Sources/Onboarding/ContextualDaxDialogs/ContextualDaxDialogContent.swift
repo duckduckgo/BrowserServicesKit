@@ -1,5 +1,5 @@
 //
-//  ContextualDaxDialog.swift
+//  ContextualDaxDialogContent.swift
 //  DuckDuckGo
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
@@ -28,27 +28,29 @@ typealias PlatformFont = UIFont
 typealias PlatformFont = NSFont
 #endif
 
-struct ContextualDaxDialogContent: View {
+public struct ContextualDaxDialogContent: View {
 
-    var title: String?
-    var titleFont: Font?
-    let message: NSAttributedString
-    var list: [ContextualOnboardingListItem] = []
-    var listAction: ((_ item: ContextualOnboardingListItem) -> Void)?
-    var imageName: String?
-    var customActionView: AnyView?
+    let title: String?
+    let titleFont: Font?
+    public let message: NSAttributedString
+    let list: [ContextualOnboardingListItem]
+    let listAction: ((_ item: ContextualOnboardingListItem) -> Void)?
+    let imageName: String?
+    let customActionView: AnyView?
 
     private let itemsToAnimate: [DisplayableTypes]
 
-    init(
+    public init(
         title: String? = nil,
+        titleFont: Font? = nil,
         message: NSAttributedString,
         list: [ContextualOnboardingListItem] = [],
         listAction: ((_: ContextualOnboardingListItem) -> Void)? = nil,
-        imageName: String? = nil, 
+        imageName: String? = nil,
         customActionView: AnyView? = nil
     ) {
         self.title = title
+        self.titleFont = titleFont
         self.message = message
         self.list = list
         self.listAction = listAction
@@ -78,7 +80,7 @@ struct ContextualDaxDialogContent: View {
     @State private var startTypingMessage: Bool = false
     @State private var nonTypingAnimatableItems: NonTypingAnimatableItems = []
 
-    var body: some View {
+    public var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             // Typing items
             titleView
@@ -108,6 +110,8 @@ struct ContextualDaxDialogContent: View {
 
             if let titleFont {
                 animatingText.font(titleFont)
+            } else {
+                animatingText
             }
         }
     }

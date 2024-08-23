@@ -27,14 +27,14 @@ import SwiftUI
 import Combine
 
 // MARK: - View
-struct AnimatableTypingText: View {
+public struct AnimatableTypingText: View {
     private let text: NSAttributedString
     private var startAnimating: Binding<Bool>
     private var onTypingFinished: (() -> Void)?
 
     @StateObject private var model: AnimatableTypingTextModel
 
-    init(
+    public init(
         _ text: NSAttributedString,
         startAnimating: Binding<Bool> = .constant(true),
         onTypingFinished: (() -> Void)? = nil
@@ -45,7 +45,7 @@ struct AnimatableTypingText: View {
         self.onTypingFinished = onTypingFinished
     }
 
-    init(
+    public init(
         _ text: String,
         startAnimating: Binding<Bool> = .constant(true),
         onTypingFinished: (() -> Void)? = nil
@@ -57,7 +57,7 @@ struct AnimatableTypingText: View {
         self.onTypingFinished = onTypingFinished
     }
 
-    var body: some View {
+    public var body: some View {
         Group {
             if #available(iOS 15, macOS 12, *) {
                 Text(AttributedString(model.typedAttributedText))

@@ -19,10 +19,12 @@
 
 import SwiftUI
 
-struct OnboardingGradient: View {
+public struct OnboardingGradient: View {
     @Environment(\.colorScheme) private var colorScheme
 
-    var body: some View {
+    public init() {}
+
+    public var body: some View {
         switch colorScheme {
         case .light:
             lightGradient

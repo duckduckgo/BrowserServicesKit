@@ -593,11 +593,16 @@ let package = Package(
                 "PixelKitTestingUtilities",
             ]
         ),
-
         .testTarget(
             name: "DuckPlayerTests",
             dependencies: [
                 "DuckPlayer"
+            ]
+        ),
+        .testTarget(
+            name: "OnboardingTests",
+            dependencies: [
+                "Onboarding"
             ]
         ),
     ],

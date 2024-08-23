@@ -19,28 +19,28 @@
 
 import Foundation
 
-protocol OnboardingRegionAndLanguageProvider {
+public protocol OnboardingRegionAndLanguageProvider {
     var regionCode: String? { get }
     var languageCode: String? { get }
 }
 
 extension Locale: OnboardingRegionAndLanguageProvider {}
 
-protocol OnboardingSuggestionsItemsProviding {
+public protocol OnboardingSuggestionsItemsProviding {
     var list: [ContextualOnboardingListItem] { get }
 }
 
-struct OnboardingSuggestedSitesProvider: OnboardingSuggestionsItemsProviding {
+public struct OnboardingSuggestedSitesProvider: OnboardingSuggestionsItemsProviding {
     private let countryProvider: OnboardingRegionAndLanguageProvider
     private let surpriseItemTitle: String
 
-    init(countryProvider: OnboardingRegionAndLanguageProvider = Locale.current,
+    public init(countryProvider: OnboardingRegionAndLanguageProvider = Locale.current,
          surpriseItemTitle: String) {
         self.countryProvider = countryProvider
         self.surpriseItemTitle = surpriseItemTitle
     }
 
-    private let scheme = "https:"
+    private let scheme = "https://"
 
     enum Countries: String {
         case indonesia = "ID"
@@ -53,7 +53,7 @@ struct OnboardingSuggestedSitesProvider: OnboardingSuggestionsItemsProviding {
         case ireland = "IE"
     }
 
-    var list: [ContextualOnboardingListItem] {
+    public var list: [ContextualOnboardingListItem] {
         return [
             option1,
             option2,
@@ -115,11 +115,11 @@ struct OnboardingSuggestedSitesProvider: OnboardingSuggestionsItemsProviding {
     private var surpriseMe: ContextualOnboardingListItem {
         let site: String
         switch Countries(rawValue: country) {
-        case .germany: site = "https://duden.de"
-        case .netherlands: site = "https://www.woorden.org/woord/eend"
-        case .sweden: site = "https://www.synonymer.se/sv-syn/anka"
-        default: site = "https:britannica.com/animal/duck"
+        case .germany: site = "duden.de"
+        case .netherlands: site = "www.woorden.org/woord/eend"
+        case .sweden: site = "www.synonymer.se/sv-syn/anka"
+        default: site = "britannica.com/animal/duck"
         }
-        return ContextualOnboardingListItem.surprise(title: site, visibleTitle: surpriseItemTitle)
+        return ContextualOnboardingListItem.surprise(title: scheme + site, visibleTitle: surpriseItemTitle)
     }
 }

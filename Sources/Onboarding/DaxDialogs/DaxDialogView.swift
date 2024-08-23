@@ -34,12 +34,12 @@ private enum DaxDialogMetrics {
 
 // MARK: - DaxDialog
 
-enum DaxDialogLogoPosition {
+public enum DaxDialogLogoPosition {
     case top
     case left
 }
 
-struct DaxDialogView<Content: View>: View {
+public struct DaxDialogView<Content: View>: View {
 
     @Environment(\.colorScheme) var colorScheme
 
@@ -52,7 +52,7 @@ struct DaxDialogView<Content: View>: View {
     private let onTapGesture: (() -> Void)?
     private let content: Content
 
-    init(
+    public init(
         logoPosition: DaxDialogLogoPosition,
         matchLogoAnimation: (String, Namespace.ID)? = nil,
         showDialogBox: Binding<Bool> = .constant(true),
@@ -70,7 +70,7 @@ struct DaxDialogView<Content: View>: View {
         self.content = content()
     }
 
-    var body: some View {
+    public var body: some View {
         Group {
             switch logoPosition {
             case .top:
