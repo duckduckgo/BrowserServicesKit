@@ -562,7 +562,6 @@ class AutofillVaultUserScriptTests: XCTestCase {
 }
 
 class MockSecureVaultDelegate: AutofillSecureVaultDelegate {
-
     enum CallbackType {
         case didRequestCreditCardsManagerForDomain
         case didRequestIdentitiesManagerForDomain
@@ -623,7 +622,8 @@ class MockSecureVaultDelegate: AutofillSecureVaultDelegate {
 
     func autofillUserScript(_: BrowserServicesKit.AutofillUserScript,
                             didRequestAutoFillInitDataForDomain domain: String,
-                            completionHandler: @escaping ([BrowserServicesKit.SecureVaultModels.WebsiteAccount], [BrowserServicesKit.SecureVaultModels.Identity], [BrowserServicesKit.SecureVaultModels.CreditCard], BrowserServicesKit.SecureVaultModels.CredentialsProvider) -> Void) {
+                            completionHandler: @escaping ([BrowserServicesKit.SecureVaultModels.WebsiteCredentials], [BrowserServicesKit.SecureVaultModels.Identity], [BrowserServicesKit.SecureVaultModels.CreditCard], BrowserServicesKit.SecureVaultModels.CredentialsProvider) -> Void) {
+
     }
 
     func autofillUserScript(_: AutofillUserScript,

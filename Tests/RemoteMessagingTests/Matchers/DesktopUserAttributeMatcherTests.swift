@@ -51,7 +51,7 @@ class DesktopUserAttributeMatcherTests: XCTestCase {
         emailManagerStorage.mockToken = "token"
 
         emailManager = EmailManager(storage: emailManagerStorage)
-        setUpUserAttributeMatcher()
+        setUpUserAttributeMatcher(dismissedDeprecatedMacRemoteMessageIds: ["dismissed-message"])
     }
 
     override func tearDownWithError() throws {
@@ -133,9 +133,37 @@ class DesktopUserAttributeMatcherTests: XCTestCase {
                        .fail)
     }
 
+    // MARK: - DeprecatedMacRemoteMessage
+
+    func testWhenNoDismissedMessageIdsAreProvidedThenReturnFail() throws {
+        XCTAssertEqual(matcher.evaluate(
+            matchingAttribute: InteractedWithDeprecatedMacRemoteMessageMatchingAttribute(value: [], fallback: nil)
+        ), .fail)
+    }
+
+    func testWhenNoDismissedMessageIdsMatchThenReturnFail() throws {
+        XCTAssertEqual(matcher.evaluate(
+            matchingAttribute: InteractedWithDeprecatedMacRemoteMessageMatchingAttribute(value: ["unrelated-message"], fallback: nil)
+        ), .fail)
+    }
+
+    func testWhenOneDismissedMessageIdMatchesThenReturnMatch() throws {
+        XCTAssertEqual(matcher.evaluate(
+            matchingAttribute: InteractedWithDeprecatedMacRemoteMessageMatchingAttribute(value: ["dismissed-message"], fallback: nil)
+        ), .match)
+    }
+
+    func testWhenTwoDismissedMessageIdsMatchThenReturnMatch() throws {
+        XCTAssertEqual(matcher.evaluate(
+            matchingAttribute: InteractedWithDeprecatedMacRemoteMessageMatchingAttribute(value: [
+                "dismissed-message", "unrelated-message"
+            ], fallback: nil)
+        ), .match)
+    }
+
     // MARK: -
 
-    private func setUpUserAttributeMatcher(dismissedMessageIds: [String] = []) {
+    private func setUpUserAttributeMatcher(dismissedMessageIds: [String] = [], dismissedDeprecatedMacRemoteMessageIds: [String] = []) {
         matcher = DesktopUserAttributeMatcher(
             statisticsStore: mockStatisticsStore,
             variantManager: manager,
@@ -153,10 +181,12 @@ class DesktopUserAttributeMatcherTests: XCTestCase {
             isPrivacyProSubscriptionExpiring: false,
             isPrivacyProSubscriptionExpired: false,
             dismissedMessageIds: dismissedMessageIds,
+            shownMessageIds: [],
             pinnedTabsCount: 3,
             hasCustomHomePage: true,
             isDuckPlayerOnboarded: true,
-            isDuckPlayerEnabled: false
+            isDuckPlayerEnabled: false,
+            dismissedDeprecatedMacRemoteMessageIds: dismissedDeprecatedMacRemoteMessageIds
         )
     }
 }

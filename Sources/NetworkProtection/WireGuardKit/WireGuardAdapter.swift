@@ -27,7 +27,12 @@ public enum WireGuardAdapterError: CustomNSError {
     case setNetworkSettings(Error)
 
     /// Failure to start WireGuard backend.
-    case startWireGuardBackend(Int32)
+    case startWireGuardBackend(Error)
+
+    /// Failure to set the configuration for the WireGuard adapter
+    case setWireguardConfig(Error)
+
+    static let wireguardAdapterDomain = "WireGuardAdapter"
 
     public var errorCode: Int {
         switch self {
@@ -36,6 +41,7 @@ public enum WireGuardAdapterError: CustomNSError {
         case .dnsResolution: return 102
         case .setNetworkSettings: return 103
         case .startWireGuardBackend: return 104
+        case .setWireguardConfig: return 105
         }
     }
 
@@ -52,8 +58,9 @@ public enum WireGuardAdapterError: CustomNSError {
             return [NSUnderlyingErrorKey: firstError as NSError]
         case .setNetworkSettings(let error):
             return [NSUnderlyingErrorKey: error as NSError]
-        case .startWireGuardBackend(let code):
-            let error = NSError(domain: "startWireGuardBackend", code: Int(code))
+        case .startWireGuardBackend(let error):
+            return [NSUnderlyingErrorKey: error as NSError]
+        case .setWireguardConfig(let error):
             return [NSUnderlyingErrorKey: error as NSError]
         }
     }
@@ -69,8 +76,18 @@ private enum State {
 
     /// The tunnel is temporarily shutdown due to device going offline
     case temporaryShutdown(_ settingsGenerator: PacketTunnelSettingsGenerator)
+
+    case snoozing
+
+    var canStartAdapter: Bool {
+        switch self {
+        case .stopped, .snoozing: return true
+        case .started, .temporaryShutdown: return false
+        }
+    }
 }
 
+// swiftlint:disable:next type_body_length
 public class WireGuardAdapter {
     public typealias LogHandler = (WireGuardLogLevel, String) -> Void
 
@@ -297,7 +314,7 @@ public class WireGuardAdapter {
     ///   - completionHandler: completion handler.
     public func start(tunnelConfiguration: TunnelConfiguration, completionHandler: @escaping (WireGuardAdapterError?) -> Void) {
         workQueue.async {
-            guard case .stopped = self.state else {
+            guard self.state.canStartAdapter else {
                 completionHandler(.invalidState(.alreadyStarted))
                 return
             }
@@ -338,7 +355,7 @@ public class WireGuardAdapter {
             case .started(let handle, _):
                 wgTurnOff(handle)
 
-            case .temporaryShutdown:
+            case .temporaryShutdown, .snoozing:
                 break
 
             case .stopped:
@@ -350,6 +367,31 @@ public class WireGuardAdapter {
             self.networkMonitor = nil
 
             self.state = .stopped
+
+            completionHandler(nil)
+        }
+    }
+
+    public func snooze(completionHandler: @escaping (WireGuardAdapterError?) -> Void) {
+        workQueue.async {
+            switch self.state {
+            case .started(let handle, _):
+                wgTurnOff(handle)
+
+            case .temporaryShutdown, .snoozing:
+                break
+
+            case .stopped:
+                completionHandler(.invalidState(.alreadyStopped))
+                return
+            }
+
+            self.networkMonitor?.cancel()
+            self.networkMonitor = nil
+
+            self.state = .snoozing
+
+            try? self.setNetworkSettings(nil)
 
             completionHandler(nil)
         }
@@ -370,9 +412,6 @@ public class WireGuardAdapter {
             }
 
             if reassert {
-                // Tell the system that the tunnel is going to reconnect using new WireGuard
-                // configuration.
-                // This will broadcast the `NEVPNStatusDidChange` notification to the GUI process.
                 self.packetTunnelProvider?.reasserting = true
             }
 
@@ -391,7 +430,14 @@ public class WireGuardAdapter {
                     let (wgConfig, resolutionResults) = settingsGenerator.uapiConfiguration()
                     self.logEndpointResolutionResults(resolutionResults)
 
-                    wgSetConfig(handle, wgConfig)
+                    let result = wgSetConfig(handle, wgConfig)
+
+                    if result < 0 {
+                        let error = NSError(domain: WireGuardAdapterError.wireguardAdapterDomain,
+                                            code: Int(result))
+                        throw WireGuardAdapterError.setWireguardConfig(error)
+                    }
+
                     #if os(iOS)
                     wgDisableSomeRoamingForBrokenMobileSemantics(handle)
                     #endif
@@ -400,6 +446,9 @@ public class WireGuardAdapter {
 
                 case .temporaryShutdown:
                     self.state = .temporaryShutdown(settingsGenerator)
+
+                case .snoozing:
+                    assertionFailure("Attempted to update WireGuard adapter while snoozing")
 
                 case .stopped:
                     fatalError()
@@ -440,7 +489,7 @@ public class WireGuardAdapter {
     ///   - networkSettings: an instance of type `NEPacketTunnelNetworkSettings`.
     /// - Throws: an error of type `WireGuardAdapterError`.
     /// - Returns: `PacketTunnelSettingsGenerator`.
-    private func setNetworkSettings(_ networkSettings: NEPacketTunnelNetworkSettings) throws {
+    private func setNetworkSettings(_ networkSettings: NEPacketTunnelNetworkSettings?) throws {
         var systemError: Error?
         let condition = NSCondition()
 
@@ -504,7 +553,9 @@ public class WireGuardAdapter {
 
         let handle = wgTurnOn(wgConfig, tunnelFileDescriptor)
         if handle < 0 {
-            throw WireGuardAdapterError.startWireGuardBackend(handle)
+            let error = NSError(domain: WireGuardAdapterError.wireguardAdapterDomain,
+                                code: Int(handle))
+            throw WireGuardAdapterError.startWireGuardBackend(error)
         }
         #if os(iOS)
         wgDisableSomeRoamingForBrokenMobileSemantics(handle)
@@ -585,7 +636,7 @@ public class WireGuardAdapter {
                 self.logHandler(.error, "Failed to restart backend: \(error.localizedDescription)")
             }
 
-        case .stopped:
+        case .stopped, .snoozing:
             // no-op
             break
         }

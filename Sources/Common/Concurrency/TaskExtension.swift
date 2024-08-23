@@ -42,6 +42,29 @@ public extension Task where Success == Never, Failure == Error {
             }
         }
     }
+
+    static func periodic(delay: TimeInterval? = nil,
+                         interval: TimeInterval,
+                         operation: @escaping @Sendable () async throws -> Void,
+                         cancellationHandler: (@Sendable () async -> Void)? = nil) -> Task {
+
+        Task {
+            do {
+                if let delay {
+                    try await Task<Never, Never>.sleep(interval: delay)
+                }
+
+                repeat {
+                    try await operation()
+
+                    try await Task<Never, Never>.sleep(interval: interval)
+                } while true
+            } catch {
+                await cancellationHandler?()
+                throw error
+            }
+        }
+    }
 }
 
 public extension Task where Success == Never, Failure == Never {

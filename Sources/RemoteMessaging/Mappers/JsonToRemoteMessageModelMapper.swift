@@ -16,8 +16,9 @@
 //  limitations under the License.
 //
 
-import Common
 import Foundation
+import Common
+import os.log
 
 private enum AttributesKey: String, CaseIterable {
     case locale
@@ -43,11 +44,13 @@ private enum AttributesKey: String, CaseIterable {
     case pproPurchasePlatform
     case pproSubscriptionStatus
     case interactedWithMessage
+    case interactedWithDeprecatedMacRemoteMessage
     case installedMacAppStore
     case pinnedTabs
     case customHomePage
     case duckPlayerOnboarded
     case duckPlayerEnabled
+    case messageShown
 
     func matchingAttribute(jsonMatchingAttribute: AnyDecodable) -> MatchingAttribute {
         switch self {
@@ -74,11 +77,15 @@ private enum AttributesKey: String, CaseIterable {
         case .pproPurchasePlatform: return PrivacyProPurchasePlatformMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         case .pproSubscriptionStatus: return PrivacyProSubscriptionStatusMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         case .interactedWithMessage: return InteractedWithMessageMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .interactedWithDeprecatedMacRemoteMessage: return InteractedWithDeprecatedMacRemoteMessageMatchingAttribute(
+            jsonMatchingAttribute: jsonMatchingAttribute
+        )
         case .installedMacAppStore: return IsInstalledMacAppStoreMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         case .pinnedTabs: return PinnedTabsMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         case .customHomePage: return CustomHomePageMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         case .duckPlayerOnboarded: return DuckPlayerOnboardedMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         case .duckPlayerEnabled: return DuckPlayerEnabledMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .messageShown: return MessageShownMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         }
     }
 }
@@ -93,10 +100,13 @@ struct JsonToRemoteMessageModelMapper {
                 return
             }
 
-            var remoteMessage = RemoteMessageModel(id: message.id,
-                                              content: content,
-                                              matchingRules: message.matchingRules ?? [],
-                                              exclusionRules: message.exclusionRules ?? [])
+            var remoteMessage = RemoteMessageModel(
+                id: message.id,
+                content: content,
+                matchingRules: message.matchingRules ?? [],
+                exclusionRules: message.exclusionRules ?? [],
+                isMetricsEnabled: message.isMetricsEnabled
+            )
 
             if let translation = getTranslation(from: message.translations, for: Locale.current) {
                 remoteMessage.localizeContent(translation: translation)
@@ -243,7 +253,7 @@ struct JsonToRemoteMessageModelMapper {
                 if let key = AttributesKey(rawValue: attribute.key) {
                     return key.matchingAttribute(jsonMatchingAttribute: attribute.value)
                 } else {
-                    os_log("Unknown attribute key %s", log: .remoteMessaging, type: .debug, attribute.key)
+                    Logger.remoteMessaging.debug("Unknown attribute key \(attribute.key, privacy: .public)")
                     return UnknownMatchingAttribute(jsonMatchingAttribute: attribute.value)
                 }
             }

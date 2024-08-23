@@ -30,6 +30,7 @@ public enum PrivacyFeature: String {
     case autoconsent
     case clickToLoad
     case autofill
+    case autofillBreakageReporter
     case ampLinks
     case trackingParameters
     case customUserAgent
@@ -48,7 +49,9 @@ public enum PrivacyFeature: String {
     case sslCertificates
     case brokenSiteReportExperiment
     case toggleReports
+    case brokenSitePrompt
     case remoteMessaging
+    case additionalCampaignPixelParams
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -72,6 +75,7 @@ public enum AutofillSubfeature: String, PrivacySubfeature {
     case autofillPasswordGeneration
     case onByDefault
     case deduplicateLoginsOnImport
+    case onForExistingUsers
 }
 
 public enum DBPSubfeature: String, Equatable, PrivacySubfeature {
@@ -81,6 +85,7 @@ public enum DBPSubfeature: String, Equatable, PrivacySubfeature {
 
     case waitlist
     case waitlistBetaActive
+    case freemium
 }
 
 public enum SyncSubfeature: String, PrivacySubfeature {
@@ -100,6 +105,7 @@ public enum AutoconsentSubfeature: String, PrivacySubfeature {
     }
 
     case onByDefault
+    case filterlistExperiment
 }
 
 public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {

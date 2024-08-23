@@ -95,7 +95,7 @@ public struct BrokenSiteReport {
     let vpnOn: Bool
     let jsPerformance: [Double]?
     let userRefreshCount: Int
-    let localeIdentifier: String
+    let locale: Locale
 #if os(iOS)
     let siteType: SiteType
     let atb: String
@@ -125,7 +125,7 @@ public struct BrokenSiteReport {
         vpnOn: Bool,
         jsPerformance: [Double]?,
         userRefreshCount: Int,
-        localeIdentifier: String = Locale.current.identifier
+        locale: Locale = Locale.current
     ) {
         self.siteUrl = siteUrl
         self.category = category
@@ -147,7 +147,7 @@ public struct BrokenSiteReport {
         self.vpnOn = vpnOn
         self.jsPerformance = jsPerformance
         self.userRefreshCount = userRefreshCount
-        self.localeIdentifier = localeIdentifier
+        self.locale = locale
     }
 #endif
 
@@ -177,7 +177,7 @@ public struct BrokenSiteReport {
         jsPerformance: [Double]?,
         userRefreshCount: Int,
         variant: String,
-        localeIdentifier: String = Locale.current.identifier
+        locale: Locale = Locale.current
     ) {
         self.siteUrl = siteUrl
         self.category = category
@@ -203,7 +203,7 @@ public struct BrokenSiteReport {
         self.jsPerformance = jsPerformance
         self.userRefreshCount = userRefreshCount
         self.variant = variant
-        self.localeIdentifier = localeIdentifier
+        self.locale = locale
     }
 #endif
 
@@ -226,7 +226,7 @@ public struct BrokenSiteReport {
             "openerContext": openerContext?.rawValue ?? "",
             "vpnOn": vpnOn.description,
             "userRefreshCount": String(userRefreshCount),
-            "locale": localeIdentifier
+            "locale": locale.localeIdentifierAsJsonFormat
         ]
 
         if mode == .regular {
