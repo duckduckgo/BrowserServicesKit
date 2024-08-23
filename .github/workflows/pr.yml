@@ -67,7 +67,8 @@ jobs:
 
       - name: Run tests
         run: |
-          set -o pipefail && swift test | tee build-log.txt
+          set -o pipefail && swift build -v | tee build-log.txt
+          set -o pipefail && swift test | tee -a build-log.txt
           xcbeautify -qq --report junit --report-path . --junit-report-filename tests.xml < build-log.txt
 
       - name: Publish Unit Tests Report
