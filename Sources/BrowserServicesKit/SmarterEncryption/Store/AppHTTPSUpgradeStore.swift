@@ -189,7 +189,7 @@ public struct AppHTTPSUpgradeStore: HTTPSUpgradeStore {
     }
 
     public func persistExcludedDomains(_ domains: [String]) throws {
-        logger.debug("Persisting excluded domains: \(domains.debugDescription)")
+        logger.debug("Persisting excluded \(domains.count) domains")
 
         var saveError: Swift.Error?
         context.performAndWait {
