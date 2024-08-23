@@ -24,4 +24,5 @@ public extension Logger {
 
     static var contentBlocking = { Logger(subsystem: "Content Blocking", category: "") }()
     static var passwordManager = { Logger(subsystem: "Password Manager", category: "") }()
+    static var autoconsent = { Logger(subsystem: "Autoconsent", category: "") }()
 }
