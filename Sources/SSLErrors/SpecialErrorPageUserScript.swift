@@ -53,8 +53,6 @@ public final class SpecialErrorPageUserScript: NSObject, Subfeature {
     public let messageOriginPolicy: MessageOriginPolicy = .all
     public let featureName: String = "special-error"
 
-    var isEnabled: Bool = false
-
     public weak var broker: UserScriptMessageBroker?
     public weak var delegate: SpecialErrorPageUserScriptDelegate?
 
@@ -63,14 +61,15 @@ public final class SpecialErrorPageUserScript: NSObject, Subfeature {
     }
 
     private let localeStrings: String?
+    private let languageCode: String
 
-    public init(localeStrings: String?) {
+    public init(localeStrings: String?, languageCode: String) {
         self.localeStrings = localeStrings
+        self.languageCode = languageCode
     }
 
     @MainActor
     public func handler(forMethodNamed methodName: String) -> Subfeature.Handler? {
-//        guard isEnabled else { return nil } // why is it needed?
         guard let messageName = MessageName(rawValue: methodName) else { return nil }
         return methodHandlers[messageName]
     }
@@ -97,7 +96,7 @@ public final class SpecialErrorPageUserScript: NSObject, Subfeature {
         let platform = Platform(name: "macos")
 #endif
         guard let errorData = delegate?.errorData else { return nil }
-        return InitialSetupResult(env: env, locale: "pl", localeStrings: localeStrings, platform: platform, errorData: errorData)
+        return InitialSetupResult(env: env, locale: languageCode, localeStrings: localeStrings, platform: platform, errorData: errorData)
     }
 
     @MainActor
