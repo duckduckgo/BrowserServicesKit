@@ -21,6 +21,12 @@ import XCTest
 import Combine
 @testable import Onboarding
 
+#if canImport(UIKit)
+typealias PlatformColor = UIColor
+#else
+typealias PlatformColor = NSColor
+#endif
+
 final class AnimatableTypingTextModelTests: XCTestCase {
     private var factoryMock: MockTimerFactory!
     private var cancellables: Set<AnyCancellable>!
@@ -114,7 +120,7 @@ final class AnimatableTypingTextModelTests: XCTestCase {
         // THEN the string does not have any clear character
         XCTAssertEqual(typedText, text)
         let attributes = typedText.attributes(at: 0, effectiveRange: nil)
-        let foregroundcColor = attributes[.foregroundColor] as? UIColor
+        let foregroundcColor = attributes[.foregroundColor] as? PlatformColor
         XCTAssertNil(foregroundcColor)
     }
 
@@ -162,12 +168,12 @@ private extension AnimatableTypingTextModelTests {
         var isCorrect = true
         let range = NSRange(location: 0, length: attributedString.length)
         attributedString.enumerateAttribute(.foregroundColor, in: range, options: []) { value, range, _ in
-            guard let color = value as? UIColor else {
+            guard let color = value as? PlatformColor else {
                 isCorrect = false
                 return
             }
             if range.location < visibleLength {
-                if color != .label {
+                if color == .clear {
                     isCorrect = false
                 }
             } else {
