@@ -20,12 +20,12 @@ import XCTest
 @testable import PhishingDetection
 
 class IsMaliciousTests: XCTestCase {
-    
+
     private var mockAPIClient: MockPhishingDetectionClient!
     private var mockDataStore: MockPhishingDetectionDataStore!
     private var mockEventMapping: MockEventMapping!
     private var detector: PhishingDetector!
-    
+
     override func setUp() {
         super.setUp()
         mockAPIClient = MockPhishingDetectionClient()
@@ -33,7 +33,7 @@ class IsMaliciousTests: XCTestCase {
         mockEventMapping = MockEventMapping()
         detector = PhishingDetector(apiClient: mockAPIClient, dataStore: mockDataStore, eventMapping: mockEventMapping)
     }
-    
+
     override func tearDown() {
         mockAPIClient = nil
         mockDataStore = nil
@@ -41,7 +41,7 @@ class IsMaliciousTests: XCTestCase {
         detector = nil
         super.tearDown()
     }
-    
+
     func testIsMaliciousWithLocalFilterHit() async {
         let filter = Filter(hashValue: "255a8a793097aeea1f06a19c08cde28db0eb34c660c6e4e7480c9525d034b16d", regex: ".*malicious.*")
         mockDataStore.filterSet = Set([filter])
