@@ -20,7 +20,6 @@ import Foundation
 import CryptoKit
 import Common
 import WebKit
-import PixelKit
 
 public enum PhishingDetectionError: CustomNSError {
     case detected
@@ -55,10 +54,12 @@ public class PhishingDetector: PhishingDetecting {
     let hashPrefixParamLength: Int = 4
 	let apiClient: PhishingDetectionClientProtocol
 	let dataStore: PhishingDetectionDataSaving
+    let eventMapping: EventMapping<PhishingDetectionEvents>
 
-	public init(apiClient: PhishingDetectionClientProtocol, dataStore: PhishingDetectionDataSaving) {
+    public init(apiClient: PhishingDetectionClientProtocol, dataStore: PhishingDetectionDataSaving, eventMapping: EventMapping<PhishingDetectionEvents>) {
 		self.apiClient = apiClient
 		self.dataStore = dataStore
+        	self.eventMapping = eventMapping
 	}
 
 	private func getMatches(hashPrefix: String) async -> Set<Match> {
@@ -92,8 +93,7 @@ public class PhishingDetector: PhishingDetecting {
         let hostnameHash = generateHashPrefix(for: canonicalHost, length: Int.max)
         let filterHit = inFilterSet(hash: hostnameHash)
         for filter in filterHit where matchesUrl(hash: filter.hashValue, regexPattern: filter.regex, url: canonicalUrl, hostnameHash: hostnameHash) {
-            // Commented out to avoid PixelKit dependency: https://github.com/duckduckgo/BrowserServicesKit/pull/934
-            // PixelKit.fire(PhishingDetectionPixels.errorPageShown(clientSideHit: true))
+            eventMapping.fire(PhishingDetectionEvents.errorPageShown(clientSideHit: true))
             return true
         }
         return false
@@ -104,8 +104,7 @@ public class PhishingDetector: PhishingDetecting {
         let matches = await fetchMatches(hashPrefix: hashPrefixParam)
         let hostnameHash = generateHashPrefix(for: canonicalHost, length: Int.max)
         for match in matches where matchesUrl(hash: match.hash, regexPattern: match.regex, url: canonicalUrl, hostnameHash: hostnameHash) {
-            // Commented out to avoid PixelKit dependency: https://github.com/duckduckgo/BrowserServicesKit/pull/934
-            // PixelKit.fire(PhishingDetectionPixels.errorPageShown(clientSideHit: false))
+            eventMapping.fire(PhishingDetectionEvents.errorPageShown(clientSideHit: false))
             return true
         }
         return false
