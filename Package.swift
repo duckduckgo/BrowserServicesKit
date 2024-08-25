@@ -198,7 +198,8 @@ let package = Package(
                 .process("TLD/tlds.json")
             ],
             swiftSettings: [
-                .define("DEBUG", .when(configuration: .debug))
+                .define("DEBUG", .when(configuration: .debug)),
+                .enableExperimentalFeature("StrictConcurrency")
             ]
         ),
         .target(
@@ -471,6 +472,9 @@ let package = Package(
             name: "CommonTests",
             dependencies: [
                 "Common",
+            ],
+            swiftSettings: [
+                .enableExperimentalFeature("StrictConcurrency")
             ]
         ),
         .testTarget(
