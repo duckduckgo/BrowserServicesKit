@@ -18,7 +18,7 @@
 
 import Foundation
 
-public struct AppVersion {
+public struct AppVersion: Sendable {
 
     public static let shared = AppVersion()
 

@@ -18,7 +18,7 @@
 
 import Foundation
 
-public protocol InfoBundle {
+public protocol InfoBundle: Sendable {
 
     func object(forInfoDictionaryKey key: String) -> Any?
 
