@@ -17,7 +17,7 @@ public protocol WireGuardInterface {
     func setConfig(handle: Int32, config: String) -> Int64
     func bumpSockets(handle: Int32)
     func disableSomeRoamingForBrokenMobileSemantics(handle: Int32)
-    func setLogger(context: UnsafeMutableRawPointer?, logFunction: ((UnsafeMutableRawPointer?, Int32, UnsafePointer<CChar>?) -> Void)?)
+    func setLogger(context: UnsafeMutableRawPointer?, logFunction: (@convention(c) (UnsafeMutableRawPointer?, Int32, UnsafePointer<CChar>?) -> Void)?)
 }
 
 // MARK: - WireGuard Adapter
@@ -476,12 +476,10 @@ public class WireGuardAdapter {
 
     /// Setup WireGuard log handler.
     private func setupLogHandler() {
-        let context = Unmanaged.passUnretained(self).toOpaque()
+        let loggerFunction: @convention(c) (UnsafeMutableRawPointer?, Int32, UnsafePointer<CChar>?) -> Void = { adapter, logLevel, message in
+            guard let adapter = adapter, let message = message else { return }
 
-        wireGuardInterface.setLogger(context: context) { context, logLevel, message in
-            guard let context = context, let message = message else { return }
-
-            let unretainedSelf = Unmanaged<WireGuardAdapter>.fromOpaque(context)
+            let unretainedSelf = Unmanaged<WireGuardAdapter>.fromOpaque(adapter)
                 .takeUnretainedValue()
 
             let swiftString = String(cString: message).trimmingCharacters(in: .newlines)
@@ -489,6 +487,9 @@ public class WireGuardAdapter {
 
             unretainedSelf.logHandler(tunnelLogLevel, swiftString)
         }
+
+        let context = Unmanaged.passUnretained(self).toOpaque()
+        wireGuardInterface.setLogger(context: context, logFunction: loggerFunction)
     }
 
     /// Set network tunnel configuration.
