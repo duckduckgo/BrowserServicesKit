@@ -41,9 +41,9 @@ public enum AccountKeychainAccessError: Error, Equatable {
         switch self {
         case .failedToDecodeKeychainValueAsData: return "failedToDecodeKeychainValueAsData"
         case .failedToDecodeKeychainDataAsString: return "failedToDecodeKeychainDataAsString"
-        case .keychainSaveFailure: return "keychainSaveFailure"
-        case .keychainDeleteFailure: return "keychainDeleteFailure"
-        case .keychainLookupFailure: return "keychainLookupFailure"
+        case .keychainSaveFailure(let status): return "keychainSaveFailure(\(status))"
+        case .keychainDeleteFailure(let status): return "keychainDeleteFailure(\(status))"
+        case .keychainLookupFailure(let status): return "keychainLookupFailure(\(status))"
         }
     }
 }
