@@ -62,9 +62,18 @@ public enum ContextualOnboardingListItem: Equatable {
 }
 
 public struct ContextualOnboardingListView: View {
+    @Environment(\.colorScheme) private var colorScheme
     private let list: [ContextualOnboardingListItem]
     private var action: (_ item: ContextualOnboardingListItem) -> Void
     private let iconSize: CGFloat
+
+#if os(macOS)
+private var strokeColor: Color {
+    return (colorScheme == .dark) ? Color.white.opacity(0.09) : Color.black.opacity(0.09)
+}
+#else
+private let strokeColor = Color.blue
+#endif
 
     public init(list: [ContextualOnboardingListItem], action: @escaping (ContextualOnboardingListItem) -> Void, iconSize: CGFloat = 16.0) {
         self.list = list
@@ -90,7 +99,7 @@ public struct ContextualOnboardingListView: View {
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)
                         .inset(by: 0.5)
-                        .stroke(.blue, lineWidth: 1)
+                        .stroke(strokeColor, lineWidth: 1)
                 )
             }
         }

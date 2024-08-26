@@ -19,24 +19,36 @@
 
 import SwiftUI
 
-public enum OnboardingStyles {}
+enum OnboardingStyles {}
 
 extension OnboardingStyles {
 
     struct ListButtonStyle: ButtonStyle {
         @Environment(\.colorScheme) private var colorScheme
 
+#if os(macOS)
+        private let maxHeight = 32.0
+#else
+        private let maxHeight = 40.0
+#endif
+
+#if os(macOS)
+        private let fontSize = 12.0
+#else
+        private let fontSize = 15.0
+#endif
+
         init() {}
 
         func makeBody(configuration: Configuration) -> some View {
             configuration.label
-                .font(.system(size: 15, weight: .bold))
+                .font(.system(size: fontSize, weight: .bold))
                 .fixedSize(horizontal: false, vertical: true)
                 .multilineTextAlignment(.center)
                 .lineLimit(nil)
                 .foregroundColor(foregroundColor(configuration.isPressed))
                 .padding()
-                .frame(minWidth: 0, maxWidth: .infinity, maxHeight: 40)
+                .frame(minWidth: 0, maxWidth: .infinity, maxHeight: maxHeight)
                 .background(backgroundColor(configuration.isPressed))
                 .cornerRadius(8)
                 .contentShape(Rectangle()) // Makes whole button area tappable, when there's no background

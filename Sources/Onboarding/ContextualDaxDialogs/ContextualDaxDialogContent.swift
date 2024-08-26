@@ -37,6 +37,7 @@ public struct ContextualDaxDialogContent: View {
 
     let title: String?
     let titleFont: Font?
+    let messageFont: Font?
     public let message: NSAttributedString
     let list: [ContextualOnboardingListItem]
     let listAction: ((_ item: ContextualOnboardingListItem) -> Void)?
@@ -51,6 +52,7 @@ public struct ContextualDaxDialogContent: View {
         title: String? = nil,
         titleFont: Font? = nil,
         message: NSAttributedString,
+        messageFont: Font? = nil,
         list: [ContextualOnboardingListItem] = [],
         listAction: ((_: ContextualOnboardingListItem) -> Void)? = nil,
         imageName: String? = nil,
@@ -59,6 +61,7 @@ public struct ContextualDaxDialogContent: View {
         self.title = title
         self.titleFont = titleFont
         self.message = message
+        self.messageFont = messageFont
         self.list = list
         self.listAction = listAction
         self.imageName = imageName
@@ -146,9 +149,14 @@ public struct ContextualDaxDialogContent: View {
 
     @ViewBuilder
     private var messageView: some View {
-        AnimatableTypingText(message, startAnimating: $startTypingMessage, onTypingFinished: {
+        let animatingText = AnimatableTypingText(message, startAnimating: $startTypingMessage, onTypingFinished: {
             animateNonTypingItems()
         })
+        if let messageFont {
+            animatingText.font(messageFont)
+        } else {
+            animatingText
+        }
     }
 
     @ViewBuilder
