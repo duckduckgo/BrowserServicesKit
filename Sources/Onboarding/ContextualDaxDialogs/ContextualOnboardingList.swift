@@ -49,14 +49,14 @@ public enum ContextualOnboardingListItem: Equatable {
         }
     }
 
-    var imageName: String {
+    var imageName: ImageResource {
         switch self {
         case .search:
-            return "SuggestLoupe"
+            return .suggestLoupe
         case .site:
-            return "SuggestGlobe"
+            return .suggestGlobe
         case .surprise:
-            return "Wand-16"
+            return .wand16
         }
     }
 }

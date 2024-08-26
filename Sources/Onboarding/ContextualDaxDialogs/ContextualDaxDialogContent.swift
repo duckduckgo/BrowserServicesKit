@@ -95,7 +95,7 @@ public struct ContextualDaxDialogContent: View {
                     nonTypingElements
                 }
             } else if case .horizontalStack(let alignment) = orientation {
-                HStack(alignment: alignment) {
+                HStack(alignment: alignment, spacing: 10) {
                     typingElements
                     Spacer()
                     nonTypingElements

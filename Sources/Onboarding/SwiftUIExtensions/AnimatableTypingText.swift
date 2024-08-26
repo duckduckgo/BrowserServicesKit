@@ -152,8 +152,7 @@ final class AnimatableTypingTextModel: ObservableObject {
         #if os(iOS)
         let visibleTextColor = UIColor.label
         #else
-        let originalTextColor = original.attributes(at: 0, effectiveRange: nil)[.foregroundColor] as? NSColor
-        let visibleTextColor = originalTextColor ?? .black
+        let visibleTextColor = NSColor.labelColor
         #endif
 
         // Change the color to standard for the visible range
