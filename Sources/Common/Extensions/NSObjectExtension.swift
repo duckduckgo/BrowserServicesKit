@@ -65,7 +65,7 @@ extension NSObject {
         }
     }
 
-    public struct DeallocationCheckAction {
+    public struct DeallocationCheckAction: @unchecked Sendable {
         let perform: (NSObject) -> Void
         public init(action: @escaping (NSObject) -> Void) {
             self.perform = action
@@ -87,9 +87,15 @@ extension NSObject {
     /// DEBUG-only runtime check for an expected object deallocation
     /// will raise an assertionFailure if the object is not deallocated after the timeout
     public func ensureObjectDeallocated(after timeout: TimeInterval = 0, do action: DeallocationCheckAction) {
+        struct UncheckedSendableNSObjectWrapper: @unchecked Sendable {
+            weak var object: NSObject?
+        }
+
+        let wrapper = UncheckedSendableNSObjectWrapper(object: self)
+
         guard Thread.isMainThread else {
-            DispatchQueue.main.async { [weak self] in
-                self?.assertObjectDeallocated(after: timeout)
+            DispatchQueue.main.async {
+                wrapper.object?.assertObjectDeallocated(after: timeout)
             }
             return
         }

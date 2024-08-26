@@ -22,8 +22,10 @@ import os.log
 public extension Logger {
     private static let bundleIdentifier = Bundle.main.bundleIdentifier ?? "DuckDuckGo"
 
-    static var contentBlocking: Logger = { Logger(subsystem: Logger.bundleIdentifier, category: "Content Blocking") }()
-    static var passwordManager: Logger = { Logger(subsystem: Logger.bundleIdentifier, category: "Password Manager") }()
+    // Logger instances are thread-safe and have been made Sendable in Xcode 16. Until then, they can be marked as nonisolated using the
+    // GlobalConcurrency experimental feature. Reference: https://forums.developer.apple.com/forums/thread/747816
+    nonisolated(unsafe) static var contentBlocking: Logger = { Logger(subsystem: Logger.bundleIdentifier, category: "Content Blocking") }()
+    nonisolated(unsafe) static var passwordManager: Logger = { Logger(subsystem: Logger.bundleIdentifier, category: "Password Manager") }()
 }
 
 @available(*, deprecated, message: "Use Logger.yourFeature instead, see https://app.asana.com/0/1202500774821704/1208001254061393/f")
@@ -32,7 +34,7 @@ public typealias OSLog = os.OSLog
 @available(*, deprecated, message: "Use Logger.yourFeature instead, see https://app.asana.com/0/1202500774821704/1208001254061393/f")
 extension OSLog {
 
-    public static var enabledLoggingCategories = Set<String>()
+    nonisolated(unsafe) public static var enabledLoggingCategories = Set<String>()
 
     static let isRunningInDebugEnvironment: Bool = {
         ProcessInfo().environment[ProcessInfo.Constants.osActivityMode] == ProcessInfo.Constants.debug
