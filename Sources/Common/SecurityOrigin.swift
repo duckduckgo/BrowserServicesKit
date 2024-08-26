@@ -18,7 +18,7 @@
 
 import Foundation
 
-public struct SecurityOrigin: Hashable {
+public struct SecurityOrigin: Hashable, Sendable {
 
     public let `protocol`: String
     public let host: String
