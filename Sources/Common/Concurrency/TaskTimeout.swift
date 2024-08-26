@@ -19,8 +19,8 @@
 import Foundation
 
 public func withTimeout<T: Sendable>(_ timeout: TimeInterval,
-                           throwing error: @Sendable @autoclosure @escaping () -> Error,
-                           do operation: @Sendable @escaping () async throws -> T) async throws -> T {
+                                     throwing error: @Sendable @autoclosure @escaping () -> Error,
+                                     do operation: @Sendable @escaping () async throws -> T) async throws -> T {
     try await withThrowingTaskGroup(of: T.self) { group -> T in
         group.addTask {
             try await operation()
@@ -42,8 +42,8 @@ public func withTimeout<T: Sendable>(_ timeout: TimeInterval,
 }
 
 public func withTimeout<T: Sendable>(_ timeout: TimeInterval,
-                           file: StaticString = #file,
-                           line: UInt = #line,
-                           do operation: @Sendable @escaping () async throws -> T) async throws -> T {
+                                     file: StaticString = #file,
+                                     line: UInt = #line,
+                                     do operation: @Sendable @escaping () async throws -> T) async throws -> T {
     try await withTimeout(timeout, throwing: TimeoutError(interval: timeout, file: file, line: line), do: operation)
 }
