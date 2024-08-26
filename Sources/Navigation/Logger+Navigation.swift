@@ -19,6 +19,6 @@
 import Foundation
 import os.log
 
-extension Logger {
+public extension Logger {
     static var navigation = { Logger(subsystem: "Navigation", category: "") }()
 }
