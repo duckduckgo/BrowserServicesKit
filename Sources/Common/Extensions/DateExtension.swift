@@ -81,11 +81,11 @@ public extension Date {
         }
     }
 
-    static var daysInMonth: [Int] = {
+    static var daysInMonth: [Int] {
         return Array(1...31)
-    }()
+    }
 
-    static var nextTenYears: [Int] = {
+    static var nextTenYears: [Int] {
         let offsetComponents = DateComponents(year: 1)
 
         var years = [Int]()
@@ -99,9 +99,9 @@ public extension Date {
         }
 
         return years
-    }()
+    }
 
-    static var lastHundredYears: [Int] = {
+    static var lastHundredYears: [Int] {
         let offsetComponents = DateComponents(year: -1)
 
         var years = [Int]()
@@ -115,7 +115,7 @@ public extension Date {
         }
 
         return years
-    }()
+    }
 
     var daySinceReferenceDate: Int {
         Int(self.timeIntervalSinceReferenceDate / TimeInterval.day)
