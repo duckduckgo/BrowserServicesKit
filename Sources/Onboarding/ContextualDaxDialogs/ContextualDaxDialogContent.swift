@@ -130,7 +130,6 @@ public struct ContextualDaxDialogContent: View {
         }
     }
 
-
     @ViewBuilder
     private var titleView: some View {
         if let title {

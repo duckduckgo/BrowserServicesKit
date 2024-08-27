@@ -1,8 +1,6 @@
 //
 //  OnboardingSuggestedSitesProvider.swift
 //
-//  DuckDuckGo
-//
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
@@ -36,7 +34,7 @@ public struct OnboardingSuggestedSitesProvider: OnboardingSuggestionsItemsProvid
     private let surpriseItemTitle: String
 
     public init(countryProvider: OnboardingRegionAndLanguageProvider = Locale.current,
-         surpriseItemTitle: String) {
+                surpriseItemTitle: String) {
         self.countryProvider = countryProvider
         self.surpriseItemTitle = surpriseItemTitle
     }
