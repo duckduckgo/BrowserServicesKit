@@ -50,6 +50,7 @@ public enum PrivacyFeature: String {
     case brokenSiteReportExperiment
     case toggleReports
     case phishingDetection
+    case brokenSitePrompt
     case remoteMessaging
     case additionalCampaignPixelParams
 }
@@ -75,6 +76,7 @@ public enum AutofillSubfeature: String, PrivacySubfeature {
     case autofillPasswordGeneration
     case onByDefault
     case deduplicateLoginsOnImport
+    case onForExistingUsers
 }
 
 public enum DBPSubfeature: String, Equatable, PrivacySubfeature {
@@ -84,6 +86,7 @@ public enum DBPSubfeature: String, Equatable, PrivacySubfeature {
 
     case waitlist
     case waitlistBetaActive
+    case freemium
 }
 
 public enum SyncSubfeature: String, PrivacySubfeature {
@@ -103,6 +106,7 @@ public enum AutoconsentSubfeature: String, PrivacySubfeature {
     }
 
     case onByDefault
+    case filterlistExperiment
 }
 
 public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {
@@ -114,6 +118,7 @@ public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {
     case allowPurchaseStripe
     case isLaunchedOverride
     case isLaunchedOverrideStripe
+    case useUnifiedFeedback
 }
 
 public enum SslCertificatesSubfeature: String, PrivacySubfeature {
