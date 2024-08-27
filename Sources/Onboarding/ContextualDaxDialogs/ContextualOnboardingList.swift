@@ -88,7 +88,7 @@ private let strokeColor = Color.blue
                     action(list[index])
                 }, label: {
                     HStack {
-                        Image(list[index].imageName, bundle: .module)
+                        Image(list[index].imageName, bundle: .onboardingBundle)
                             .frame(width: iconSize, height: iconSize)
                         Text(list[index].visibleTitle)
                             .frame(alignment: .leading)
@@ -104,6 +104,10 @@ private let strokeColor = Color.blue
             }
         }
     }
+}
+
+public extension Bundle {
+    static let onboardingBundle: Bundle = .module
 }
 
 // MARK: - Preview
