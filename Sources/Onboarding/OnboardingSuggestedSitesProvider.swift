@@ -1,5 +1,6 @@
 //
 //  OnboardingSuggestedSitesProvider.swift
+//
 //  DuckDuckGo
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.

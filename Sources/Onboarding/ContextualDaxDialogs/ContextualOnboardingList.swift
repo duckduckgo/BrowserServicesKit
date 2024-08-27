@@ -1,5 +1,6 @@
 //
 //  ContextualOnboardingList.swift
+//
 //  DuckDuckGo
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
@@ -49,16 +50,17 @@ public enum ContextualOnboardingListItem: Equatable {
         }
     }
 
-    var imageName: ImageResource {
+    var imageName: String {
         switch self {
         case .search:
-            return .suggestLoupe
+            return "SuggestLoupe"
         case .site:
-            return .suggestGlobe
+            return "SuggestGlobe"
         case .surprise:
-            return .wand16
+            return "Wand-16"
         }
     }
+
 }
 
 public struct ContextualOnboardingListView: View {
@@ -88,7 +90,7 @@ private let strokeColor = Color.blue
                     action(list[index])
                 }, label: {
                     HStack {
-                        Image(list[index].imageName)
+                        Image(list[index].imageName, bundle: .module)
                             .frame(width: iconSize, height: iconSize)
                         Text(list[index].visibleTitle)
                             .frame(alignment: .leading)
