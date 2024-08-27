@@ -397,6 +397,9 @@ let package = Package(
             dependencies: [
                 "BrowserServicesKit"
             ],
+            resources: [
+                .process("Resources")
+            ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
             ]

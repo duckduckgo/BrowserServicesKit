@@ -117,6 +117,3 @@ private let strokeColor = Color.blue
     return ContextualOnboardingListView(list: list) { _ in }
         .padding()
 }
-
-
-public let bundle = Bundle.module
