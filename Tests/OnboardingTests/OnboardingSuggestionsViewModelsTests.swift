@@ -150,7 +150,7 @@ class CapturingOnboardingNavigationDelegate: OnboardingNavigationDelegate {
     func searchFor(_ query: String) {
         suggestedSearchQuery = query
     }
-    
+
     func navigateTo(url: URL) {
         urlToNavigateTo = url
     }
@@ -163,7 +163,7 @@ final class MockOnboaringSuggestionsPixelReporting: OnboardingSearchSuggestionsP
     func trackSearchSuggetionOptionTapped() {
         didCallTrackSearchOptionTapped = true
     }
-    
+
     func trackSiteSuggetionOptionTapped() {
         didCallTrackSiteOptionTapped = true
     }

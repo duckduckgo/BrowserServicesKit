@@ -88,7 +88,7 @@ private let strokeColor = Color.blue
                     action(list[index])
                 }, label: {
                     HStack {
-                        Image(list[index].imageName, bundle: .onboardingBundle)
+                        Image(list[index].imageName, bundle: bundle)
                             .frame(width: iconSize, height: iconSize)
                         Text(list[index].visibleTitle)
                             .frame(alignment: .leading)
@@ -106,10 +106,6 @@ private let strokeColor = Color.blue
     }
 }
 
-public extension Bundle {
-    static let onboardingBundle: Bundle = .module
-}
-
 // MARK: - Preview
 
 #Preview("List") {
@@ -121,3 +117,6 @@ public extension Bundle {
     return ContextualOnboardingListView(list: list) { _ in }
         .padding()
 }
+
+
+public let bundle = Bundle.module
