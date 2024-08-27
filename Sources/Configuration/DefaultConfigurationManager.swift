@@ -21,13 +21,14 @@ import Foundation
 import os.log
 import Combine
 import Common
+import Persistence
 import PixelKit
 
 public extension Logger {
     static var config: Logger = { Logger(subsystem: Bundle.main.bundleIdentifier ?? "DuckDuckGo", category: "Configuration") }()
 }
 
-open class DefaultConfigurationManager {
+open class DefaultConfigurationManager: NSObject {
     public enum Error: Swift.Error {
 
         case timeout
@@ -58,16 +59,23 @@ open class DefaultConfigurationManager {
         static let lastUpdateDefaultsKey = "configuration.lastUpdateTime"
     }
 
-    private var defaults: UserDefaults
+    private var defaults: KeyValueStoring
 
     public var fetcher: ConfigurationFetcher
 
-    public init(fetcher: ConfigurationFetcher, defaults: UserDefaults = UserDefaults()) {
+    public init(fetcher: ConfigurationFetcher, defaults: KeyValueStoring = UserDefaults()) {
         self.fetcher = fetcher
         self.defaults = defaults
+        super.init()
+        NSFileCoordinator.addFilePresenter(self)
+    }
+
+    deinit {
+        NSFileCoordinator.removeFilePresenter(self)
     }
 
     public static let queue: DispatchQueue = DispatchQueue(label: "Configuration Manager")
+    public static let filePresenterOperationQueue = OperationQueue()
 
     open internal(set) var lastUpdateTime: Date {
         get {
@@ -136,4 +144,17 @@ open class DefaultConfigurationManager {
         // Set the last update time to in the past so it triggers again sooner
         lastUpdateTime = Date(timeIntervalSinceNow: Constants.refreshPeriodSeconds - Constants.retryDelaySeconds)
     }
+}
+
+extension DefaultConfigurationManager: NSFilePresenter {
+    open var presentedItemURL: URL? {
+        return nil
+    }
+    
+    public var presentedItemOperationQueue: OperationQueue {
+        return Self.filePresenterOperationQueue
+    }
+
+    open func presentedItemDidChange() { }
+
 }
