@@ -22,7 +22,6 @@ import os.log
 import Combine
 import Common
 import Persistence
-import PixelKit
 
 public extension Logger {
     static var config: Logger = { Logger(subsystem: Bundle.main.bundleIdentifier ?? "DuckDuckGo", category: "Configuration") }()
