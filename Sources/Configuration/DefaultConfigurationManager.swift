@@ -78,7 +78,7 @@ open class DefaultConfigurationManager: NSObject {
     public static let queue: DispatchQueue = DispatchQueue(label: "Configuration Manager")
     public static let filePresenterOperationQueue = OperationQueue()
 
-    open internal(set) var lastUpdateTime: Date {
+    public var lastUpdateTime: Date {
         get {
             defaults.object(forKey: Constants.lastUpdateDefaultsKey) as? Date ?? .distantPast
         }
