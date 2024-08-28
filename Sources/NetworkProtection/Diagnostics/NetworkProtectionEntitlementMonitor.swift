@@ -17,7 +17,7 @@
 //
 
 import Foundation
-import Common
+import os.log
 
 public actor NetworkProtectionEntitlementMonitor {
     public enum Result {
@@ -41,40 +41,40 @@ public actor NetworkProtectionEntitlementMonitor {
     // MARK: - Init & deinit
 
     public init() {
-        os_log("[+] %{public}@", log: .networkProtectionMemoryLog, type: .debug, String(describing: self))
+        Logger.networkProtectionMemory.debug("[+] \(String(describing: self), privacy: .public)")
     }
 
     deinit {
         task?.cancel()
 
-        os_log("[-] %{public}@", log: .networkProtectionMemoryLog, type: .debug, String(describing: self))
+        Logger.networkProtectionMemory.debug("[-] \(String(describing: self), privacy: .public)")
     }
 
     // MARK: - Start/Stop monitoring
 
     public func start(entitlementCheck: @escaping () async -> Swift.Result<Bool, Error>, callback: @escaping (Result) async -> Void) {
-        os_log("⚫️ Starting entitlement monitor", log: .networkProtectionEntitlementMonitorLog)
+        Logger.networkProtectionEntitlement.log("⚫️ Starting entitlement monitor")
 
         task = Task.periodic(interval: Self.monitoringInterval) {
             let result = await entitlementCheck()
             switch result {
             case .success(let hasEntitlement):
                 if hasEntitlement {
-                    os_log("⚫️ Valid entitlement", log: .networkProtectionEntitlementMonitorLog)
+                    Logger.networkProtectionEntitlement.log("⚫️ Valid entitlement")
                     await callback(.validEntitlement)
                 } else {
-                    os_log("⚫️ Invalid entitlement", log: .networkProtectionEntitlementMonitorLog)
+                    Logger.networkProtectionEntitlement.log("⚫️ Invalid entitlement")
                     await callback(.invalidEntitlement)
                 }
             case .failure(let error):
-                os_log("⚫️ Error retrieving entitlement: %{public}@", log: .networkProtectionEntitlementMonitorLog, error.localizedDescription)
+                Logger.networkProtectionEntitlement.error("⚫️ Error retrieving entitlement: \(error.localizedDescription, privacy: .public)")
                 await callback(.error(error))
             }
         }
     }
 
     public func stop() {
-        os_log("⚫️ Stopping entitlement monitor", log: .networkProtectionEntitlementMonitorLog)
+        Logger.networkProtectionEntitlement.log("⚫️ Stopping entitlement monitor")
 
         task?.cancel() // Just making extra sure in case it's detached
         task = nil

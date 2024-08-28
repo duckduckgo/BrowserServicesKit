@@ -20,5 +20,5 @@ import Foundation
 import os.log
 
 public extension Logger {
-    static var autofill: Logger = { Logger(subsystem: Bundle.main.bundleIdentifier ?? "DuckDuckGo", category: "Autofill") }()
+    static var autofill = { Logger(subsystem: "Autofill", category: "") }()
 }

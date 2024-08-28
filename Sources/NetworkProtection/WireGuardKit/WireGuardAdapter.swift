@@ -4,6 +4,7 @@
 import Foundation
 import NetworkExtension
 @_implementationOnly import WireGuardC
+import os.log
 import Common
 
 // MARK: - WireGuard Interface
@@ -212,8 +213,9 @@ public class WireGuardAdapter {
     /// - Parameter packetTunnelProvider: an instance of `NEPacketTunnelProvider`. Internally stored
     ///   as a weak reference.
     /// - Parameter logHandler: a log handler closure.
+
     public init(with packetTunnelProvider: NEPacketTunnelProvider, wireGuardInterface: WireGuardInterface, logHandler: @escaping LogHandler) {
-        os_log("[+] WireGuardAdapter", log: .networkProtectionMemoryLog, type: .debug)
+        Logger.networkProtectionMemory.debug("[+] WireGuardAdapter")
 
         self.packetTunnelProvider = packetTunnelProvider
         self.wireGuardInterface = wireGuardInterface
@@ -223,7 +225,7 @@ public class WireGuardAdapter {
     }
 
     deinit {
-        os_log("[-] WireGuardAdapter", log: .networkProtectionMemoryLog, type: .debug)
+        Logger.networkProtectionMemory.debug("[-] WireGuardAdapter")
 
         // Force remove logger to make sure that no further calls to the instance of this class
         // can happen after deallocation.

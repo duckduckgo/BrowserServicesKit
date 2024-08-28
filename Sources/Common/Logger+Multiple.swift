@@ -1,7 +1,7 @@
 //
-//  Logger+RemoteMessaging.swift
+//  Logger+Multiple.swift
 //
-//  Copyright © 2024 DuckDuckGo. All rights reserved.
+//  Copyright © 2022 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -20,5 +20,9 @@ import Foundation
 import os.log
 
 public extension Logger {
-    static var remoteMessaging = { Logger(subsystem: "Remote Messaging", category: "") }()
+    static var general = { Logger(subsystem: "General", category: "") }()
+
+    static var contentBlocking = { Logger(subsystem: "Content Blocking", category: "") }()
+    static var passwordManager = { Logger(subsystem: "Password Manager", category: "") }()
+    static var autoconsent = { Logger(subsystem: "Autoconsent", category: "") }()
 }

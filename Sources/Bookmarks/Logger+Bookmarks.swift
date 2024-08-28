@@ -1,7 +1,7 @@
 //
-//  NetworkProtectionLogger.swift
+//  Logger+Bookmarks.swift
 //
-//  Copyright © 2022 DuckDuckGo. All rights reserved.
+//  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -16,19 +16,9 @@
 //  limitations under the License.
 //
 
-import NetworkExtension
-import Common
+import Foundation
+import os.log
 
-public protocol NetworkProtectionLogger {
-    func log(_ error: Error)
-}
-
-public final class DefaultNetworkProtectionLogger: NetworkProtectionLogger {
-    public init() {}
-
-    public func log(_ error: Error) {
-        // swiftlint:disable:next compiler_protocol_init
-        let format = StaticString(stringLiteral: "🔴 %{public}@")
-        os_log(format, type: .error, error.localizedDescription)
-    }
+public extension Logger {
+    static var bookmarks = { Logger(subsystem: "Bookmarks", category: "") }()
 }

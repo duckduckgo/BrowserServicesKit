@@ -19,6 +19,7 @@
 import Foundation
 import Common
 import NetworkExtension
+import os.log
 
 public enum NetworkProtectionServerSelectionMethod: CustomDebugStringConvertible {
     public var debugDescription: String {
@@ -157,7 +158,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
         }
 
         let (selectedServer, newExpiration) = try await register(keyPair: keyPair, selectionMethod: selectionMethod)
-        os_log("Server registration successul", log: .networkProtection)
+        Logger.networkProtection.debug("Server registration successul")
 
         keyStore.updateKeyPair(keyPair)
 

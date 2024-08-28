@@ -23,6 +23,7 @@ import Foundation
 import Common
 import Network
 import QuartzCore
+import os.log
 
 /// Latency measurement class (Pinger)
 /// For reference see:
@@ -72,11 +73,6 @@ public final class Pinger: @unchecked Sendable {
     /// socket TTL
     let ttl: Int?
 
-    private let getLogger: (() -> OSLog)
-    private var log: OSLog {
-        getLogger()
-    }
-
     private let queue: DispatchQueue
     /// sent request ids
     private var sentIndices = IndexSet()
@@ -89,15 +85,13 @@ public final class Pinger: @unchecked Sendable {
                 id: UUID = UUID(),
                 ttl: Int? = nil,
                 timeout: TimeInterval = Constants.defaultTimeout,
-                queue: DispatchQueue = DispatchQueue(label: "Pinger"),
-                log: @autoclosure @escaping (() -> OSLog) = .disabled) {
+                queue: DispatchQueue = DispatchQueue(label: "Pinger")) {
 
         self.ip = ip
         self.id = id
         self.ttl = ttl
         self.timeout = timeout
         self.queue = queue
-        self.getLogger = log
     }
 
     public func ping() async -> Result<PingResult, PingError> {
@@ -295,7 +289,7 @@ extension Pinger {
         let seq = self.nextSeq()
         sentIndices.insert(Int(seq))
 
-        os_log("PING %s: %d data bytes", log: log, ip.debugDescription, MemoryLayout<ICMP>.size)
+        Logger.networkProtection.debug("PING \(self.ip.debugDescription): \(MemoryLayout<ICMP>.size) data bytes")
         // form ICMP packet with id, icmp_seq, timestamp and checksum
         let icmp = ICMP(id: id, index: seq)
 
@@ -358,9 +352,7 @@ extension Pinger {
                     return self.ip
                 }()
                 let r = PingResult(ip: srcIp, bytesCount: bytesCount, seq: Int(response.index), ttl: Int(ip.ip_ttl), time: end - icmp.timestamp)
-                os_log("%d bytes from %s: icmp_seq=%d ttl=%d time=%.3f ms",
-                       log: log,
-                       r.bytesCount, r.ip.debugDescription, r.seq, r.ttl, r.time * 1000)
+                Logger.networkProtection.debug("\(r.bytesCount) bytes from \(r.ip.debugDescription): icmp_seq=\(r.seq) ttl=\(r.ttl) time=\(r.time * 1000) ms")
 
                 return .success(r)
 
