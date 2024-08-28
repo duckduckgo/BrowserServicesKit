@@ -1,5 +1,5 @@
 //
-//  ErrorPageHTMLTemplate.swift
+//  SpecialErrorPageHTMLTemplate.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -21,7 +21,7 @@ import ContentScopeScripts
 import WebKit
 import Common
 
-public struct ErrorPageHTMLTemplate {
+public struct SpecialErrorPageHTMLTemplate {
 
     public static var htmlFromTemplate: String {
         guard let file = ContentScopeScripts.Bundle.path(forResource: "index", ofType: "html", inDirectory: "pages/special-error") else {

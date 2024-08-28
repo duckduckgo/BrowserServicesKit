@@ -38,4 +38,13 @@ public enum SSLErrorType: String {
         }
     }
 
+    public var rawParameter: String {
+        switch self {
+        case .expired: return "expired"
+        case .wrongHost: return "wrong_host"
+        case .selfSigned: return "self_signed"
+        case .invalid: return "generic"
+        }
+    }
+
 }

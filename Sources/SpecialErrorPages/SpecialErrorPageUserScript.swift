@@ -19,6 +19,7 @@
 import Foundation
 import UserScript
 import WebKit
+import Common
 
 public protocol SpecialErrorPageUserScriptDelegate: AnyObject {
 
@@ -26,10 +27,9 @@ public protocol SpecialErrorPageUserScriptDelegate: AnyObject {
 
     func leaveSite()
     func visitSite()
+    func advancedInfoPresented()
 
 }
-
-typealias Key = String
 
 struct LocalizedInfo: Encodable, Equatable {
 
@@ -47,11 +47,14 @@ public final class SpecialErrorPageUserScript: NSObject, Subfeature {
         case reportInitException
         case leaveSite
         case visitSite
+        case advancedInfo
 
     }
 
     public let messageOriginPolicy: MessageOriginPolicy = .all
     public let featureName: String = "special-error"
+
+    public var isEnabled: Bool = false
 
     public weak var broker: UserScriptMessageBroker?
     public weak var delegate: SpecialErrorPageUserScriptDelegate?
@@ -70,7 +73,7 @@ public final class SpecialErrorPageUserScript: NSObject, Subfeature {
 
     @MainActor
     public func handler(forMethodNamed methodName: String) -> Subfeature.Handler? {
-        guard let messageName = MessageName(rawValue: methodName) else { return nil }
+        guard isEnabled, let messageName = MessageName(rawValue: methodName) else { return nil }
         return methodHandlers[messageName]
     }
 
@@ -79,7 +82,8 @@ public final class SpecialErrorPageUserScript: NSObject, Subfeature {
         .reportPageException: reportPageException,
         .reportInitException: reportInitException,
         .leaveSite: handleLeaveSiteAction,
-        .visitSite: handleVisitSiteAction
+        .visitSite: handleVisitSiteAction,
+        .advancedInfo: handleAdvancedInfoPresented
     ]
 
     @MainActor
@@ -108,6 +112,12 @@ public final class SpecialErrorPageUserScript: NSObject, Subfeature {
     @MainActor
     func handleVisitSiteAction(params: Any, message: UserScriptMessage) -> Encodable? {
         delegate?.visitSite()
+        return nil
+    }
+
+    @MainActor
+    func handleAdvancedInfoPresented(params: Any, message: UserScriptMessage) -> Encodable? {
+        delegate?.advancedInfoPresented()
         return nil
     }
 

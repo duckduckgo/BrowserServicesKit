@@ -40,7 +40,7 @@ let package = Package(
         .library(name: "Suggestions", targets: ["Suggestions"]),
         .library(name: "PixelKit", targets: ["PixelKit"]),
         .library(name: "PixelKitTestingUtilities", targets: ["PixelKitTestingUtilities"]),
-        .library(name: "SSLErrors", targets: ["SSLErrors"]),
+        .library(name: "SpecialErrorPages", targets: ["SpecialErrorPages"]),
         .library(name: "DuckPlayer", targets: ["DuckPlayer"]),
     ],
     dependencies: [
@@ -383,7 +383,7 @@ let package = Package(
             ]
         ),
         .target(
-            name: "SSLErrors",
+            name: "SpecialErrorPages",
             dependencies: [
                 "Common",
                 "UserScript"
