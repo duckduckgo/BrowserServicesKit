@@ -60,10 +60,12 @@ open class DefaultConfigurationManager: NSObject {
 
     private var defaults: KeyValueStoring
 
-    public var fetcher: ConfigurationFetcher
+    public var fetcher: ConfigurationFetching
+    public var store: ConfigurationStoring
 
-    public init(fetcher: ConfigurationFetcher, defaults: KeyValueStoring = UserDefaults()) {
+    public init(fetcher: ConfigurationFetching, store: ConfigurationStoring, defaults: KeyValueStoring = UserDefaults()) {
         self.fetcher = fetcher
+        self.store = store
         self.defaults = defaults
         super.init()
         NSFileCoordinator.addFilePresenter(self)
