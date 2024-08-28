@@ -21,6 +21,11 @@ import WebKit
 import UserScript
 import os.log
 
+public protocol AutofillLoginImportUserScriptDelegate: AnyObject {
+    var isNewDDGUser: Bool { get }
+    var hasImportedLogins: Bool { get }
+}
+
 var previousIncontextSignupPermanentlyDismissedAt: Double?
 var previousEmailSignedIn: Bool?
 
@@ -73,6 +78,7 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
 
     public weak var emailDelegate: AutofillEmailDelegate?
     public weak var vaultDelegate: AutofillSecureVaultDelegate?
+    public weak var importUserScriptDelegate: AutofillPasswordImportUserScriptDelegate?
 
     internal var scriptSourceProvider: AutofillUserScriptSourceProvider
 
