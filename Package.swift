@@ -617,6 +617,12 @@ let package = Package(
                 "Onboarding"
             ]
         ),
+        .testTarget(
+            name: "SpecialErrorPagesTests",
+            dependencies: [
+                "SpecialErrorPages"
+            ]
+        ),
     ],
     cxxLanguageStandard: .cxx11
 )
