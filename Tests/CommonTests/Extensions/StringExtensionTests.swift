@@ -336,4 +336,38 @@ final class StringExtensionTests: XCTestCase {
 
     }
 
+    func testWhenStringIsValidHost_thenValidHostIsTrue() {
+        let validHostnames = [
+            "example.com",
+            "subdomain.example.com",
+            "my-host123",
+            "localhost",
+            "192.168.1.1", // Valid IP address
+            "2001:0db8:85a3:0000:0000:8a2e:0370:7334" // Valid IPv6 address
+        ]
+
+        for hostname in validHostnames {
+            XCTAssertTrue(hostname.isValidHost, "\(hostname) should be a valid host")
+        }
+    }
+
+    func testWhenStringIsInvalidHost_thenValidHostIsFalse() {
+        let invalidHostnames = [
+            "invalid_hostname", // Invalid character
+            "-example.com", // Starts with a hyphen
+            "example-.com", // Ends with a hyphen
+            "example..com", // Consecutive dots
+            "1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890.com", // Too long
+            "example.com.", // Ends with a dot
+            "3 + 5 * (2 - 1)", // Mathematical expression
+            "16385-12228.72", // Other mathetmatical expression
+            "example@domain.com", // Invalid character
+            "2001:0db8:85a3:0000:0000:8a2e:0370:7334:1234" // Invalid IPv6 address
+        ]
+
+        for hostname in invalidHostnames {
+            XCTAssertFalse(hostname.isValidHost, "\(hostname) should NOT be a valid host")
+        }
+    }
+
 }

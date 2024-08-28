@@ -56,7 +56,6 @@ public final class SettingsProvider: DataProvider, SettingSyncHandlingDelegate {
         metadataStore: SyncMetadataStore,
         settingsHandlers: [SettingSyncHandler],
         metricsEvents: EventMapping<MetricsEvent>? = nil,
-        log: @escaping @autoclosure () -> OSLog = .disabled,
         syncDidUpdateData: @escaping () -> Void
     ) {
         let settingsHandlersBySetting = settingsHandlers.reduce(into: [Setting: any SettingSyncHandling]()) { partialResult, handler in
@@ -70,7 +69,6 @@ public final class SettingsProvider: DataProvider, SettingSyncHandlingDelegate {
             metadataStore: metadataStore,
             settingsHandlersBySetting: settingsHandlers,
             metricsEvents: metricsEvents,
-            log: log(),
             syncDidUpdateData: syncDidUpdateData
         )
 
@@ -86,13 +84,12 @@ public final class SettingsProvider: DataProvider, SettingSyncHandlingDelegate {
         metadataStore: SyncMetadataStore,
         settingsHandlersBySetting: [Setting: any SettingSyncHandling],
         metricsEvents: EventMapping<MetricsEvent>? = nil,
-        log: @escaping @autoclosure () -> OSLog = .disabled,
         syncDidUpdateData: @escaping () -> Void
     ) {
         self.metadataDatabase = metadataDatabase
         self.settingsHandlers = settingsHandlersBySetting
         self.metricsEvents = metricsEvents
-        super.init(feature: .init(name: "settings"), metadataStore: metadataStore, log: log(), syncDidUpdateData: syncDidUpdateData)
+        super.init(feature: .init(name: "settings"), metadataStore: metadataStore, syncDidUpdateData: syncDidUpdateData)
     }
 
     // MARK: - DataProviding

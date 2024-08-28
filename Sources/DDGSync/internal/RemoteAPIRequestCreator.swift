@@ -19,12 +19,9 @@
 import Foundation
 import Networking
 import Common
+import os.log
 
-struct RemoteAPIRequestCreator: RemoteAPIRequestCreating {
-
-    public init(log: @escaping @autoclosure () -> OSLog = .disabled) {
-        self.getLog = log
-    }
+public struct RemoteAPIRequestCreator: RemoteAPIRequestCreating {
 
     public func createRequest(
         url: URL,
@@ -48,16 +45,11 @@ struct RemoteAPIRequestCreator: RemoteAPIRequestCreating {
                                                      body: body)
 
         if let body {
-            os_log(.debug, log: log, "%{public}s request body: %{public}s", method.rawValue, String(bytes: body, encoding: .utf8) ?? "")
+            Logger.sync.debug("\(method.rawValue, privacy: .public) request body: \(String(bytes: body, encoding: .utf8) ?? "", privacy: .public)")
         }
 
-        return APIRequest(configuration: configuration, requirements: [.allowHTTPNotModified], log: log)
+        return APIRequest(configuration: configuration, requirements: [.allowHTTPNotModified])
     }
-
-    private var log: OSLog {
-        getLog()
-    }
-    private let getLog: () -> OSLog
 }
 
 extension APIRequest.HTTPMethod {
@@ -77,7 +69,7 @@ extension APIRequest.HTTPMethod {
 
 extension APIRequest: HTTPRequesting {
 
-    func execute() async throws -> HTTPResult {
+    public func execute() async throws -> HTTPResult {
         do {
             let (data, response) = try await fetch()
             return .init(data: data, response: response)

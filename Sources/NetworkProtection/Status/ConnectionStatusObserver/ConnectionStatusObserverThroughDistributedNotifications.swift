@@ -23,6 +23,7 @@ import Foundation
 import NetworkExtension
 import NotificationCenter
 import Common
+import os.log
 
 /// Observes the tunnel status through Distributed Notifications.
 ///
@@ -48,19 +49,13 @@ public class ConnectionStatusObserverThroughDistributedNotifications: Connection
     private let workspaceNotificationCenter: NotificationCenter
     private var cancellables = Set<AnyCancellable>()
 
-    // MARK: - Logging
-
-    private let log: OSLog
-
     // MARK: - Initialization
 
     public init(distributedNotificationCenter: DistributedNotificationCenter = .default(),
-                workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter,
-                log: OSLog = .networkProtectionStatusReporterLog) {
+                workspaceNotificationCenter: NotificationCenter = NSWorkspace.shared.notificationCenter) {
 
         self.distributedNotificationCenter = distributedNotificationCenter
         self.workspaceNotificationCenter = workspaceNotificationCenter
-        self.log = log
 
         start()
     }
@@ -91,10 +86,7 @@ public class ConnectionStatusObserverThroughDistributedNotifications: Connection
         do {
             statusChange = try ConnectionStatusChangeDecoder().decodeObject(from: notification)
         } catch {
-            os_log("Could not decode .statusDidChange distributed notification object: %{public}@",
-                   log: log,
-                   type: .error,
-                   String(describing: notification.object))
+            Logger.networkProtection.fault("Could not decode .statusDidChange distributed notification object: \(String(describing: notification.object), privacy: .public)")
             assertionFailure("Could not decode .statusDidChange distributed notification object: \(String(describing: notification.object))")
             return
         }
@@ -152,7 +144,7 @@ public class ConnectionStatusObserverThroughDistributedNotifications: Connection
     // MARK: - Logging
 
     private func logStatusChanged(status: ConnectionStatus) {
-        os_log("%{public}@: connection status is now %{public}@", log: log, type: .debug, String(describing: self), String(describing: status))
+        Logger.networkProtectionMemory.debug("\(String(describing: self), privacy: .public): connection status is now \(String(describing: status), privacy: .public)")
     }
 }
 

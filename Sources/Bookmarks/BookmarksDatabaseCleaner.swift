@@ -21,6 +21,7 @@ import Combine
 import Common
 import CoreData
 import Persistence
+import os.log
 
 public struct BookmarksCleanupError: Error {
     public let cleanupError: Error
@@ -37,12 +38,10 @@ public final class BookmarkDatabaseCleaner {
     public init(
         bookmarkDatabase: CoreDataDatabase,
         errorEvents: EventMapping<BookmarksCleanupError>?,
-        log: @escaping @autoclosure () -> OSLog = .disabled,
         fetchBookmarksPendingDeletion: @escaping (NSManagedObjectContext) -> [BookmarkEntity] = BookmarkUtils.fetchBookmarksPendingDeletion
     ) {
         self.database = bookmarkDatabase
         self.errorEvents = errorEvents
-        self.getLog = log
         self.fetchBookmarksPendingDeletion = fetchBookmarksPendingDeletion
 
         cleanupCancellable = Publishers
@@ -87,7 +86,7 @@ public final class BookmarkDatabaseCleaner {
             while true {
                 let bookmarksPendingDeletion = fetchBookmarksPendingDeletion(context)
                 if bookmarksPendingDeletion.isEmpty {
-                    os_log(.debug, log: log, "No bookmarks pending deletion")
+                    Logger.bookmarks.debug("No bookmarks pending deletion")
                     break
                 }
 
@@ -97,7 +96,7 @@ public final class BookmarkDatabaseCleaner {
 
                 do {
                     try context.save()
-                    os_log(.debug, log: log, "Successfully purged %{public}d bookmarks", bookmarksPendingDeletion.count)
+                    Logger.bookmarks.debug("Successfully purged \(bookmarksPendingDeletion.count, privacy: .public) bookmarks")
                     break
                 } catch {
                     if (error as NSError).code == NSManagedObjectMergeError {
@@ -134,9 +133,4 @@ public final class BookmarkDatabaseCleaner {
     private var cleanupCancellable: AnyCancellable?
     private var scheduleCleanupCancellable: AnyCancellable?
     private let fetchBookmarksPendingDeletion: (NSManagedObjectContext) -> [BookmarkEntity]
-
-    private let getLog: () -> OSLog
-    private var log: OSLog {
-        getLog()
-    }
 }

@@ -44,7 +44,7 @@ public class UserDefaultsCache<ObjectType: Codable> {
         let object: ObjectType
     }
 
-    let logger: Logger = { Logger(subsystem: Bundle.main.bundleIdentifier ?? "DuckDuckGo", category: "UserDefaultsCache") }()
+    let logger = { Logger(subsystem: Bundle.main.bundleIdentifier ?? "DuckDuckGo", category: "UserDefaultsCache") }()
     private var userDefaults: UserDefaults
     public private(set) var settings: UserDefaultsCacheSettings
 
