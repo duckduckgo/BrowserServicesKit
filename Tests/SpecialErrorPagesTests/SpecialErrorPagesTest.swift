@@ -1,5 +1,5 @@
 //
-//  SpecialErrorPageUserScriptTests.swift
+//  SpecialErrorPagesTest.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -21,6 +21,7 @@ import XCTest
 import UserScript
 import WebKit
 
+// swiftlint:disable weak_delegate
 final class SpecialErrorPageUserScriptTests: XCTestCase {
 
     var delegate: CapturingSpecialErrorPageUserScriptDelegate!
