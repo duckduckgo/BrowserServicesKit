@@ -34,6 +34,15 @@ extension TrackerData {
         return nil
     }
 
+    public func findParentEntity(forHost host: String) -> Entity? {
+        for host in variations(of: host) {
+            if let tracker = trackers[host], let parentOwnerName = tracker.owner?.ownedBy {
+                return entities[parentOwnerName]
+            }
+        }
+        return nil
+    }
+
     private func variations(of host: String) -> [String] {
         var parts = host.components(separatedBy: ".")
         var domains = [String]()
