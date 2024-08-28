@@ -19,6 +19,7 @@
 import Foundation
 import Autofill
 import Common
+import os.log
 
 public protocol AutofillUserScriptSourceProvider {
     var source: String { get }
@@ -149,7 +150,7 @@ public class DefaultAutofillSourceProvider: AutofillUserScriptSourceProvider {
                 return filteredData
             }
         } catch {
-            os_log(.debug, "Error during JSON serialization of privacy config: \(error.localizedDescription)")
+            Logger.autofill.error("Error during JSON serialization of privacy config: \(error.localizedDescription)")
         }
 
         return nil

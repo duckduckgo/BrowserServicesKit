@@ -18,7 +18,7 @@
 
 import Foundation
 import Network
-import Common
+import os.log
 import Combine
 
 public actor NetworkProtectionLatencyMonitor {
@@ -78,19 +78,19 @@ public actor NetworkProtectionLatencyMonitor {
     // MARK: - Init & deinit
 
     init() {
-        os_log("[+] %{public}@", log: .networkProtectionMemoryLog, type: .debug, String(describing: self))
+        Logger.networkProtectionMemory.debug("[+] \(String(describing: self), privacy: .public)")
     }
 
     deinit {
         task?.cancel()
 
-        os_log("[-] %{public}@", log: .networkProtectionMemoryLog, type: .debug, String(describing: self))
+        Logger.networkProtectionMemory.debug("[-] \(String(describing: self), privacy: .public)")
     }
 
     // MARK: - Start/Stop monitoring
 
     public func start(serverIP: IPv4Address, callback: @escaping (Result) -> Void) {
-        os_log("⚫️ Starting latency monitor", log: .networkProtectionLatencyMonitorLog)
+        Logger.networkProtectionLatencyMonitor.log("⚫️ Starting latency monitor")
 
         lastLatencyReported = Date()
 
@@ -99,12 +99,12 @@ public actor NetworkProtectionLatencyMonitor {
             .scan(ExponentialGeometricAverage()) { measurements, latency in
                 if latency >= 0 {
                     measurements.addMeasurement(latency)
-                    os_log("⚫️ Latency: %{public}f milliseconds", log: .networkProtectionLatencyMonitorLog, type: .debug, latency)
+                    Logger.networkProtectionMemory.debug("⚫️ Latency: \(latency, privacy: .public) milliseconds")
                 } else {
                     callback(.error)
                 }
 
-                os_log("⚫️ Average: %{public}f milliseconds", log: .networkProtectionLatencyMonitorLog, type: .debug, measurements.average)
+                Logger.networkProtectionMemory.debug("⚫️ Average: \(measurements.average, privacy: .public) milliseconds")
 
                 return measurements
             }
@@ -126,7 +126,7 @@ public actor NetworkProtectionLatencyMonitor {
     }
 
     public func stop() {
-        os_log("⚫️ Stopping latency monitor", log: .networkProtectionLatencyMonitorLog)
+        Logger.networkProtectionLatencyMonitor.log("⚫️ Stopping latency monitor")
 
         latencyCancellable = nil
         task?.cancel() // Just making extra sure in case it's detached
@@ -140,15 +140,15 @@ public actor NetworkProtectionLatencyMonitor {
     // MARK: - Latency monitor
 
     private func measureLatency(to ip: IPv4Address) async {
-        os_log("⚫️ Pinging %{public}s", log: .networkProtectionLatencyMonitorLog, type: .debug, ip.debugDescription)
+        Logger.networkProtectionLatencyMonitor.debug("⚫️ Pinging \(ip.debugDescription, privacy: .public)")
 
-        let result = await Pinger(ip: ip, timeout: Self.pingTimeout, log: .networkProtectionLatencyMonitorLog).ping()
+        let result = await Pinger(ip: ip, timeout: Self.pingTimeout).ping()
 
         switch result {
         case .success(let pingResult):
             latencySubject.send(pingResult.time * 1000)
         case .failure(let error):
-            os_log("⚫️ Ping error: %{public}s", log: .networkProtectionLatencyMonitorLog, type: .debug, error.localizedDescription)
+            Logger.networkProtectionMemory.error("⚫️ Ping error: \(error.localizedDescription, privacy: .public)")
             latencySubject.send(Self.unknownLatency)
         }
     }

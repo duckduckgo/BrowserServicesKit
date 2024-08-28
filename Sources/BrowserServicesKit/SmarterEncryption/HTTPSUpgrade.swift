@@ -19,6 +19,7 @@
 import Common
 import Foundation
 import BloomFilterWrapper
+import os.log
 
 public enum HTTPSUpgradeError: Error {
     case badUrl
@@ -37,16 +38,12 @@ public actor HTTPSUpgrade {
     private nonisolated let privacyManager: PrivacyConfigurationManaging
 
     private var bloomFilter: BloomFilter?
+    private let logger: Logger
 
-    private nonisolated let getLog: () -> OSLog
-    nonisolated private var log: OSLog {
-        getLog()
-    }
-
-    public init(store: HTTPSUpgradeStore, privacyManager: PrivacyConfigurationManaging, log: @escaping @autoclosure () -> OSLog = .disabled) {
+    public init(store: HTTPSUpgradeStore, privacyManager: PrivacyConfigurationManaging, logger: Logger) {
         self.store = store
         self.privacyManager = privacyManager
-        self.getLog = log
+        self.logger = logger
     }
 
     @MainActor
@@ -91,7 +88,7 @@ public actor HTTPSUpgrade {
     }
 
     nonisolated public func loadDataAsync() {
-        os_log("loadDataAsync", log: log, type: .debug)
+        logger.debug("loadDataAsync")
         Task {
             await self.loadData()
         }
@@ -99,7 +96,7 @@ public actor HTTPSUpgrade {
 
     public func loadData() async {
         if let dataReloadTask {
-            os_log("Reload already in progress", log: log)
+            logger.log("Reload already in progress")
             _=await dataReloadTask.value
         }
         dataReloadTask = Task.detached { [store] in
@@ -110,7 +107,7 @@ public actor HTTPSUpgrade {
     }
 
     private func reloadBloomFilter() async -> BloomFilter? {
-        os_log("Reloading Bloom Filter", log: log, type: .debug)
+        logger.debug("Reloading Bloom Filter")
         let bloomFilter = store.loadBloomFilter().map { BloomFilter(wrapper: $0.wrapper, specification: $0.specification) }
         self.bloomFilter = bloomFilter
         return bloomFilter

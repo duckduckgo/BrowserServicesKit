@@ -108,7 +108,7 @@ public final class CredentialsDatabaseCleaner {
                         Logger.secureVault.debug("No syncable credentials metadata pending deletion")
 
                     } else {
-                        Logger.secureVault.debug("Successfully purged %{public}d sync credentials metadata")
+                        Logger.secureVault.debug("Successfully purged \(numberOfDeletedEntries, privacy: .public) sync credentials metadata")
                     }
                     break
                 } catch {

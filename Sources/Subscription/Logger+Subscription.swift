@@ -20,5 +20,5 @@ import Foundation
 import os.log
 
 public extension Logger {
-    static var subscription: Logger = { Logger(subsystem: Bundle.main.bundleIdentifier ?? "DuckDuckGo", category: "Subscription") }()
+    static var subscription = { Logger(subsystem: "Subscription", category: "") }()
 }

@@ -78,11 +78,9 @@ class AdClickAttributionRulesProviderTests: XCTestCase {
                                                                         tempListId: "updatedEtag",
                                                                         allowListId: nil,
                                                                         unprotectedSitesHash: nil)
-        let log: OSLog = OSLog(subsystem: Bundle.main.bundleIdentifier ?? "Test", category: "DDG Test")
         provider = AdClickAttributionRulesProvider(config: feature,
                                                    compiledRulesSource: compiledRulesSource,
-                                                   exceptionsSource: exceptionsSource,
-                                                   log: log)
+                                                   exceptionsSource: exceptionsSource)
     }
 
     func testWhenAttributionIsRequestedThenRulesArePrepared() {

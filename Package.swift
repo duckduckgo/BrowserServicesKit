@@ -7,7 +7,7 @@ import PackageDescription
 let package = Package(
     name: "BrowserServicesKit",
     platforms: [
-        .iOS("14.0"),
+        .iOS("15.0"),
         .macOS("11.4")
     ],
     products: [
@@ -42,6 +42,7 @@ let package = Package(
         .library(name: "PixelKitTestingUtilities", targets: ["PixelKitTestingUtilities"]),
         .library(name: "SpecialErrorPages", targets: ["SpecialErrorPages"]),
         .library(name: "DuckPlayer", targets: ["DuckPlayer"]),
+        .library(name: "Onboarding", targets: ["Onboarding"])
     ],
     dependencies: [
         .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "13.0.0"),
@@ -50,10 +51,9 @@ let package = Package(
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.2.0"),
         .package(url: "https://github.com/gumob/PunycodeSwift.git", exact: "2.1.0"),
         .package(url: "https://github.com/duckduckgo/content-scope-scripts", branch: "pr-releases/pr-1009"),
-        .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "5.0.0"),
+        .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "5.1.1"),
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
         .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
-        .package(url: "https://github.com/duckduckgo/wireguard-apple", exact: "1.1.3"),
         .package(url: "https://github.com/1024jp/GzipSwift.git", exact: "6.0.1")
     ],
     targets: [
@@ -322,7 +322,6 @@ let package = Package(
             name: "NetworkProtection",
             dependencies: [
                 .target(name: "WireGuardC"),
-                .product(name: "WireGuard", package: "wireguard-apple"),
                 "Common",
             ],
             swiftSettings: [
@@ -397,6 +396,18 @@ let package = Package(
             dependencies: [
                 "Common",
                 "BrowserServicesKit"
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
+            ]
+        ),
+        .target(
+            name: "Onboarding",
+            dependencies: [
+                "BrowserServicesKit"
+            ],
+            resources: [
+                .process("Resources")
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
@@ -594,11 +605,16 @@ let package = Package(
                 "PixelKitTestingUtilities",
             ]
         ),
-
         .testTarget(
             name: "DuckPlayerTests",
             dependencies: [
                 "DuckPlayer"
+            ]
+        ),
+        .testTarget(
+            name: "OnboardingTests",
+            dependencies: [
+                "Onboarding"
             ]
         ),
     ],

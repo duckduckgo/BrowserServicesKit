@@ -21,6 +21,7 @@ import Foundation
 import NetworkExtension
 import NotificationCenter
 import Common
+import os.log
 
 /// This status observer can only be used from the App that owns the tunnel, as other Apps won't have access to the
 /// NEVPNStatusDidChange notifications or tunnel session.
@@ -42,25 +43,19 @@ public class ConnectionStatusObserverThroughSession: ConnectionStatusObserver {
     private let platformDidWakeNotification: Notification.Name
     private var cancellables = Set<AnyCancellable>()
 
-    // MARK: - Logging
-
-    private let log: OSLog
-
     // MARK: - Initialization
 
     public init(tunnelSessionProvider: TunnelSessionProvider,
                 notificationCenter: NotificationCenter = .default,
                 platformSnoozeTimingStore: NetworkProtectionSnoozeTimingStore,
                 platformNotificationCenter: NotificationCenter,
-                platformDidWakeNotification: Notification.Name,
-                log: OSLog = .networkProtection) {
+                platformDidWakeNotification: Notification.Name) {
 
         self.notificationCenter = notificationCenter
         self.platformSnoozeTimingStore = platformSnoozeTimingStore
         self.platformNotificationCenter = platformNotificationCenter
         self.platformDidWakeNotification = platformDidWakeNotification
         self.tunnelSessionProvider = tunnelSessionProvider
-        self.log = log
 
         start()
     }
@@ -161,6 +156,6 @@ public class ConnectionStatusObserverThroughSession: ConnectionStatusObserver {
     private func logStatusChanged(status: ConnectionStatus) {
         let unmanagedObject = Unmanaged.passUnretained(self)
         let address = unmanagedObject.toOpaque()
-        os_log("%{public}@<%{public}@>: connection status is now %{public}@", log: log, type: .debug, String(describing: self), String(describing: address), String(describing: status))
+        Logger.networkProtectionMemory.debug("\(String(describing: self), privacy: .public)<\(String(describing: address), privacy: .public)>: connection status is now \(String(describing: status), privacy: .public)")
     }
 }
