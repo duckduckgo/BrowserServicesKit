@@ -19,8 +19,6 @@
 import Foundation
 import os.log
 
-#if DEBUG
-
 public func breakByRaisingSigInt(_ description: String, file: StaticString = #file, line: Int = #line) {
     let fileLine = "\(("\(file)" as NSString).lastPathComponent):\(line)"
     Logger.general.debug("""
@@ -38,6 +36,8 @@ public func breakByRaisingSigInt(_ description: String, file: StaticString = #fi
     """)
     raise(SIGINT)
 }
+
+#if DEBUG
 
 // get symbol from stack trace for a caller of a calling method
 public func callingSymbol() -> String {
