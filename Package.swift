@@ -7,7 +7,7 @@ import PackageDescription
 let package = Package(
     name: "BrowserServicesKit",
     platforms: [
-        .iOS("14.0"),
+        .iOS("15.0"),
         .macOS("11.4")
     ],
     products: [
@@ -41,6 +41,7 @@ let package = Package(
         .library(name: "PixelKit", targets: ["PixelKit"]),
         .library(name: "PixelKitTestingUtilities", targets: ["PixelKitTestingUtilities"]),
         .library(name: "DuckPlayer", targets: ["DuckPlayer"]),
+        .library(name: "Onboarding", targets: ["Onboarding"])
     ],
     dependencies: [
         .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "13.0.0"),
@@ -389,6 +390,18 @@ let package = Package(
                 .define("DEBUG", .when(configuration: .debug))
             ]
         ),
+        .target(
+            name: "Onboarding",
+            dependencies: [
+                "BrowserServicesKit"
+            ],
+            resources: [
+                .process("Resources")
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
+            ]
+        ),
 
         // MARK: - Test Targets
         .testTarget(
@@ -581,11 +594,16 @@ let package = Package(
                 "PixelKitTestingUtilities",
             ]
         ),
-
         .testTarget(
             name: "DuckPlayerTests",
             dependencies: [
                 "DuckPlayer"
+            ]
+        ),
+        .testTarget(
+            name: "OnboardingTests",
+            dependencies: [
+                "Onboarding"
             ]
         ),
     ],
