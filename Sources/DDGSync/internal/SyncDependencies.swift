@@ -38,7 +38,6 @@ protocol SyncDependencies: SyncDependenciesDebuggingSupport {
     var scheduler: SchedulingInternal { get }
     var privacyConfigurationManager: PrivacyConfigurationManaging { get }
     var errorEvents: EventMapping<SyncError> { get }
-    var log: OSLog { get }
 
     func createRemoteConnector(_ connectInfo: ConnectInfo) throws -> RemoteConnecting
     func createRecoveryKeyTransmitter() throws -> RecoveryKeyTransmitting
@@ -80,23 +79,23 @@ protocol CryptingInternal: Crypting {
 
 }
 
-enum HTTPRequestMethod: String {
+public enum HTTPRequestMethod: String {
     case GET
     case POST
     case PATCH
     case DELETE
 }
 
-struct HTTPResult {
+public struct HTTPResult {
     let data: Data?
     let response: HTTPURLResponse
 }
 
-protocol HTTPRequesting {
+public protocol HTTPRequesting {
     func execute() async throws -> HTTPResult
 }
 
-protocol RemoteAPIRequestCreating {
+public protocol RemoteAPIRequestCreating {
     func createRequest(url: URL,
                        method: HTTPRequestMethod,
                        headers: [String: String],

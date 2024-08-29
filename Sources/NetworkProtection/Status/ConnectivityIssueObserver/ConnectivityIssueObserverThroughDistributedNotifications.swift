@@ -23,6 +23,7 @@ import Foundation
 import NetworkExtension
 import NotificationCenter
 import Common
+import os.log
 
 /// Observes the tunnel status through Distributed Notifications.
 ///
@@ -39,18 +40,11 @@ public class ConnectivityIssueObserverThroughDistributedNotifications: Connectiv
     private let distributedNotificationCenter: DistributedNotificationCenter
     private var cancellables = Set<AnyCancellable>()
 
-    // MARK: - Logging
-
-    private let log: OSLog
-
     // MARK: - Initialization
 
-    public init(distributedNotificationCenter: DistributedNotificationCenter = .default(),
-                log: OSLog = .networkProtectionStatusReporterLog) {
+    public init(distributedNotificationCenter: DistributedNotificationCenter = .default()) {
 
         self.distributedNotificationCenter = distributedNotificationCenter
-        self.log = log
-
         start()
     }
 
@@ -74,9 +68,9 @@ public class ConnectivityIssueObserverThroughDistributedNotifications: Connectiv
 
     private func logIssuesChanged(isHavingIssues: Bool) {
         if isHavingIssues {
-            os_log("%{public}@: issues started", log: log, type: .debug, String(describing: self))
+            Logger.networkProtectionStatusReporter.debug("\(String(describing: self), privacy: .public): issues started")
         } else {
-            os_log("%{public}@: issues stopped", log: log, type: .debug, String(describing: self))
+            Logger.networkProtectionStatusReporter.debug("\(String(describing: self), privacy: .public): issues stopped")
         }
     }
 }

@@ -18,6 +18,7 @@
 
 import Common
 import Foundation
+import os.log
 
 public protocol NetworkProtectionKeyStore {
 
@@ -74,24 +75,17 @@ public final class NetworkProtectionKeychainKeyStore: NetworkProtectionKeyStore 
     // MARK: - NetworkProtectionKeyStore
 
     public func currentKeyPair() -> KeyPair? {
-        os_log("Querying the current key pair (publicKey: %{public}@, expirationDate: %{public}@)",
-               log: .networkProtectionKeyManagement,
-               String(describing: currentPublicKey),
-               String(describing: currentExpirationDate))
+        Logger.networkProtectionKeyManagement.debug("Querying the current key pair (publicKey: \(String(describing: self.currentPublicKey), privacy: .public), expirationDate: \(String(describing: self.currentExpirationDate), privacy: .public))")
 
         guard let currentPrivateKey = currentPrivateKey else {
-            os_log("There's no current private key.",
-                   log: .networkProtectionKeyManagement)
+            Logger.networkProtectionKeyManagement.debug("There's no current private key.")
             return nil
         }
 
         guard let currentExpirationDate = currentExpirationDate,
               Date().addingTimeInterval(validityInterval) >= currentExpirationDate else {
 
-            os_log("The expirationDate date is missing, or we're past it (now: %{public}@, expirationDate: %{public}@)",
-                   log: .networkProtectionKeyManagement,
-                   String(describing: Date()),
-                   String(describing: currentExpirationDate))
+            Logger.networkProtectionKeyManagement.debug("The expirationDate date is missing, or we're past it (now: \(String(describing: Date()), privacy: .public), expirationDate: \(String(describing: self.currentExpirationDate), privacy: .public))")
             return nil
         }
 

@@ -20,6 +20,7 @@ import Foundation
 import Network
 import Common
 import Combine
+import os.log
 
 public actor NetworkProtectionServerStatusMonitor {
 
@@ -56,19 +57,19 @@ public actor NetworkProtectionServerStatusMonitor {
         self.networkClient = networkClient
         self.tokenStore = tokenStore
 
-        os_log("[+] %{public}@", log: .networkProtectionMemoryLog, type: .debug, String(describing: self))
+        Logger.networkProtectionMemory.debug("[+] \(String(describing: self), privacy: .public)")
     }
 
     deinit {
         task?.cancel()
 
-        os_log("[-] %{public}@", log: .networkProtectionMemoryLog, type: .debug, String(describing: self))
+        Logger.networkProtectionMemory.debug("[-] \(String(describing: self), privacy: .public)")
     }
 
     // MARK: - Start/Stop monitoring
 
     public func start(serverName: String, callback: @escaping (ServerStatusResult) -> Void) {
-        os_log("⚫️ Starting server status monitor for %{public}s", log: .networkProtectionServerStatusMonitorLog, serverName)
+        Logger.networkProtectionServerStatusMonitor.debug("⚫️ Starting server status monitor for \(serverName, privacy: .public)")
 
         task = Task.periodic(delay: Self.monitoringInterval, interval: Self.monitoringInterval) {
             let result = await self.checkServerStatus(for: serverName)
@@ -76,20 +77,20 @@ public actor NetworkProtectionServerStatusMonitor {
             switch result {
             case .success(let serverStatus):
                 if serverStatus.shouldMigrate {
-                    os_log("⚫️ Initiating server migration away from %{public}s", log: .networkProtectionServerStatusMonitorLog, serverName)
+                    Logger.networkProtectionMemory.debug("⚫️ Initiating server migration away from \(serverName, privacy: .public)")
                     callback(.serverMigrationRequested)
                 } else {
-                    os_log("⚫️ No migration requested for %{public}s", log: .networkProtectionServerStatusMonitorLog, serverName)
+                    Logger.networkProtectionMemory.debug("⚫️ No migration requested for \(serverName, privacy: .public)")
                 }
             case .failure(let error):
-                os_log("⚫️ Error retrieving server status: %{public}@", log: .networkProtectionServerStatusMonitorLog, error.localizedDescription)
+                Logger.networkProtectionMemory.error("⚫️ Error retrieving server status: \(error.localizedDescription, privacy: .public)")
                 callback(.error(error))
             }
         }
     }
 
     public func stop() {
-        os_log("⚫️ Stopping server status monitor", log: .networkProtectionServerStatusMonitorLog)
+        Logger.networkProtectionMemory.error("⚫️ Stopping server status monitor")
 
         task?.cancel()
         task = nil
