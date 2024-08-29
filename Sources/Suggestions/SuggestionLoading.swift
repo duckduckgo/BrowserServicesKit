@@ -29,7 +29,7 @@ public protocol SuggestionLoading: AnyObject {
 
 public class SuggestionLoader: SuggestionLoading {
 
-    static let remoteSuggestionsUrl = URL(string: "https://750c-52-242-224-168.ngrok-free.app/ac/")!
+    static let remoteSuggestionsUrl = URL(string: "https://6abe-52-242-224-168.ngrok-free.app/ac/")!
     static let searchParameter = "q"
 
     public enum SuggestionLoaderError: Error {
