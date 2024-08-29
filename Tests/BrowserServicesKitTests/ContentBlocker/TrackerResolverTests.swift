@@ -116,8 +116,7 @@ class TrackerResolverTests: XCTestCase {
 
         let tracker = KnownTracker(domain: "tracker.com",
                                    defaultAction: .block,
-                                   owner: KnownTracker.Owner(name: "Tracker Inc",
-                                                             displayName: "Tracker Inc company"),
+                                   owner: .trackerInc,
                                    prevalence: 0.1,
                                    subdomains: nil,
                                    categories: ["Advertising"],
@@ -149,8 +148,7 @@ class TrackerResolverTests: XCTestCase {
 
         let tracker = KnownTracker(domain: "tracker.com",
                                    defaultAction: .block,
-                                   owner: KnownTracker.Owner(name: "Tracker Inc",
-                                                             displayName: "Tracker Inc company"),
+                                   owner: .trackerInc,
                                    prevalence: 0.1,
                                    subdomains: nil,
                                    categories: nil,
@@ -325,8 +323,7 @@ class TrackerResolverTests: XCTestCase {
 
         let tracker = KnownTracker(domain: "tracker.com",
                                    defaultAction: .ignore,
-                                   owner: KnownTracker.Owner(name: "Tracker Inc",
-                                                             displayName: "Tracker Inc company"),
+                                   owner: .trackerInc,
                                    prevalence: 0.1,
                                    subdomains: nil,
                                    categories: nil,
@@ -392,8 +389,7 @@ class TrackerResolverTests: XCTestCase {
 
         let tracker = KnownTracker(domain: "tracker.com",
                                    defaultAction: .block,
-                                   owner: KnownTracker.Owner(name: "Tracker Inc",
-                                                             displayName: "Tracker Inc company"),
+                                   owner: .trackerInc,
                                    prevalence: 0.1,
                                    subdomains: nil,
                                    categories: nil,
@@ -423,8 +419,7 @@ class TrackerResolverTests: XCTestCase {
 
         let tracker = KnownTracker(domain: "tracker.com",
                                    defaultAction: .block,
-                                   owner: KnownTracker.Owner(name: "Tracker Inc",
-                                                             displayName: "Tracker Inc company"),
+                                   owner:.trackerInc,
                                    prevalence: 0.1,
                                    subdomains: nil,
                                    categories: nil,
@@ -456,8 +451,7 @@ class TrackerResolverTests: XCTestCase {
 
         let tracker = KnownTracker(domain: "tracker.com",
                                    defaultAction: .block,
-                                   owner: KnownTracker.Owner(name: "Tracker Inc",
-                                                             displayName: "Tracker Inc company"),
+                                   owner: .trackerInc,
                                    prevalence: 0.1,
                                    subdomains: nil,
                                    categories: nil,
@@ -466,7 +460,8 @@ class TrackerResolverTests: XCTestCase {
         let another = KnownTracker(domain: "another.com",
                                    defaultAction: .block,
                                    owner: KnownTracker.Owner(name: "Another Inc",
-                                                             displayName: "Another Inc company"),
+                                                             displayName: "Another Inc company",
+                                                             ownedBy: nil),
                                    prevalence: 0.1,
                                    subdomains: nil,
                                    categories: nil,
@@ -504,8 +499,7 @@ class TrackerResolverTests: XCTestCase {
     func testWhenTrackerIsOnUnprotectedSiteItIsNotBlocked() {
         let tracker = KnownTracker(domain: "tracker.com",
                                    defaultAction: .block,
-                                   owner: KnownTracker.Owner(name: "Tracker Inc",
-                                                             displayName: "Tracker Inc company"),
+                                   owner: .trackerInc,
                                    prevalence: 0.1,
                                    subdomains: nil,
                                    categories: nil,
@@ -533,8 +527,7 @@ class TrackerResolverTests: XCTestCase {
     func testWhenTrackerIsOnTempListItIsNotBlocked() {
         let tracker = KnownTracker(domain: "tracker.com",
                                    defaultAction: .block,
-                                   owner: KnownTracker.Owner(name: "Tracker Inc",
-                                                             displayName: "Tracker Inc company"),
+                                   owner: .trackerInc,
                                    prevalence: 0.1,
                                    subdomains: nil,
                                    categories: nil,
@@ -563,8 +556,7 @@ class TrackerResolverTests: XCTestCase {
     func testWhenTrackerIsOnDomainWithDisabledContentBlockingFeatureItIsNotBlocked() {
         let tracker = KnownTracker(domain: "tracker.com",
                                    defaultAction: .block,
-                                   owner: KnownTracker.Owner(name: "Tracker Inc",
-                                                             displayName: "Tracker Inc company"),
+                                   owner: .trackerInc,
                                    prevalence: 0.1,
                                    subdomains: nil,
                                    categories: nil,
@@ -592,8 +584,7 @@ class TrackerResolverTests: XCTestCase {
     func testWhenTrackerIsFirstPartyThenItIsNotNotBlocked() { //
         let tracker = KnownTracker(domain: "tracker.com",
                                    defaultAction: .block,
-                                   owner: KnownTracker.Owner(name: "Tracker Inc",
-                                                             displayName: "Tracker Inc company"),
+                                   owner: .trackerInc,
                                    prevalence: 0.1,
                                    subdomains: nil,
                                    categories: nil,
@@ -621,8 +612,7 @@ class TrackerResolverTests: XCTestCase {
     func testWhenRequestIsThirdPartyNonTrackerThenItIsIgnored() { // Note: User script has additional logic regarding this case
         let tracker = KnownTracker(domain: "tracker.com",
                                    defaultAction: .block,
-                                   owner: KnownTracker.Owner(name: "Tracker Inc",
-                                                             displayName: "Tracker Inc company"),
+                                   owner: .trackerInc,
                                    prevalence: 0.1,
                                    subdomains: nil,
                                    categories: nil,
@@ -648,8 +638,7 @@ class TrackerResolverTests: XCTestCase {
     func testWhenRequestIsFirstPartyNonTrackerThenItIsIgnored() {
         let tracker = KnownTracker(domain: "tracker.com",
                                    defaultAction: .block,
-                                   owner: KnownTracker.Owner(name: "Tracker Inc",
-                                                             displayName: "Tracker Inc company"),
+                                   owner: .trackerInc,
                                    prevalence: 0.1,
                                    subdomains: nil,
                                    categories: nil,
@@ -675,8 +664,7 @@ class TrackerResolverTests: XCTestCase {
     func testWhenRequestIsSameEntityNonTrackerThenItIsIgnored() {
         let tracker = KnownTracker(domain: "tracker.com",
                                    defaultAction: .block,
-                                   owner: KnownTracker.Owner(name: "Tracker Inc",
-                                                             displayName: "Tracker Inc company"),
+                                   owner: .trackerInc,
                                    prevalence: 0.1,
                                    subdomains: nil,
                                    categories: nil,
@@ -704,4 +692,43 @@ class TrackerResolverTests: XCTestCase {
         XCTAssertNil(result)
     }
 
+    // MARK: - Owned By
+
+    func testWhenTrackerIsOwnedByAnotherCompanyThenOwnerNameIsParentOwner() throws {
+        // GIVEN
+        let tracker = KnownTracker(domain: "tracker.com",
+                                   defaultAction: .block,
+                                   owner: .init(name: "Tracker Inc", displayName: "Tracker Inc company", ownedBy: "Parent Owner Tracker"),
+                                   prevalence: 0.1,
+                                   subdomains: nil,
+                                   categories: ["Advertising"],
+                                   rules: nil)
+
+        let entity = Entity(displayName: "Trackr Inc company",
+                            domains: ["tracker.com"],
+                            prevalence: 0.1)
+
+        let tds = TrackerData(trackers: ["tracker.com": tracker],
+                              entities: ["Tracker Inc": entity],
+                              domains: ["tracker.com": "Tracker Inc"],
+                              cnames: [:])
+
+        let resolver = TrackerResolver(tds: tds, unprotectedSites: [], tempList: [], tld: tld)
+
+        // WHEN
+        let result = try XCTUnwrap(resolver.trackerFromUrl("https://tracker.com/img/1.png", pageUrlString: "https://example.com", resourceType: "image", potentiallyBlocked: true))
+
+        // THEN
+        XCTAssert(result.isBlocked)
+        XCTAssertEqual(result.state, .blocked)
+        XCTAssertEqual(result.ownerName, tracker.owner?.ownedBy)
+        XCTAssertEqual(result.entityName, entity.displayName)
+        XCTAssertEqual(result.category, tracker.category)
+        XCTAssertEqual(result.prevalence, tracker.prevalence)
+    }
+
+}
+
+private extension KnownTracker.Owner {
+    static let trackerInc = KnownTracker.Owner(name: "Tracker Inc", displayName: "Tracker Inc company", ownedBy: nil)
 }

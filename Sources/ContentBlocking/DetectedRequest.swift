@@ -48,7 +48,7 @@ public struct DetectedRequest: Encodable {
         self.url = url
         self.eTLDplus1 = eTLDplus1
         self.state = state
-        self.ownerName = knownTracker?.owner?.name
+        self.ownerName = knownTracker?.owner?.ownedBy ?? knownTracker?.owner?.name
         self.entityName = entity?.displayName
         self.category = knownTracker?.category
         self.prevalence = entity?.prevalence
