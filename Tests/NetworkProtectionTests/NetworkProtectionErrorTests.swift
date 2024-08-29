@@ -54,8 +54,6 @@ final class NetworkProtectionErrorTests: XCTestCase {
             .keychainUpdateError(field: "test", status: 1),
             .keychainDeleteError(status: 1),
             .wireGuardInvalidState(reason: "test"),
-            .startWireGuardBackend(1),
-
         ]
 
         for error in errorsWithoutUnderlyingError {
@@ -77,6 +75,7 @@ final class NetworkProtectionErrorTests: XCTestCase {
             .failedToRedeemInviteCode(underlyingError),
             .failedToParseRedeemResponse(underlyingError),
             .wireGuardSetNetworkSettings(underlyingError),
+            .startWireGuardBackend(underlyingError),
             .unhandledError(function: #function, line: #line, error: underlyingError),
         ]
 

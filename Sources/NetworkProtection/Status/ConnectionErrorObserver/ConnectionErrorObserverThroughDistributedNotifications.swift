@@ -38,18 +38,11 @@ public class ConnectionErrorObserverThroughDistributedNotifications: ConnectionE
     private let distributedNotificationCenter: DistributedNotificationCenter
     private var tunnelErrorChangedCancellable: AnyCancellable!
 
-    // MARK: - Logging
-
-    private let log: OSLog
-
     // MARK: - Initialization
 
-    public init(distributedNotificationCenter: DistributedNotificationCenter = .default(),
-                log: OSLog = .networkProtection) {
+    public init(distributedNotificationCenter: DistributedNotificationCenter = .default()) {
 
         self.distributedNotificationCenter = distributedNotificationCenter
-        self.log = log
-
         start()
     }
 

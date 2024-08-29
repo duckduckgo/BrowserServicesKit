@@ -18,6 +18,7 @@
 
 import Common
 import Foundation
+import os.log
 
 extension UnsafeBufferPointer {
 
@@ -30,6 +31,10 @@ extension UnsafeBufferPointer {
         }
     }
 
+    /// Temporarily removes memory protection from the buffer (if needed) and calls the callback with the readable/writable memory buffer.
+    /// Memory protection is restored to the original state afterwards.
+    /// - Returns: Generic callback result.
+    /// - Throws: `MemoryProtectionFailure` error if the memory protection change fails.
     func withTemporaryUnprotectedMemory<Result>(_ body: (_ pointer: UnsafeMutableBufferPointer<Self.Element>) throws -> Result) throws -> Result {
         let protection = try vm_region_basic_info_data_64_t(self.baseAddress!).protection
         let mutableBuffer = UnsafeMutableBufferPointer(mutating: self)
@@ -42,7 +47,7 @@ extension UnsafeBufferPointer {
             if protection & (PROT_WRITE | PROT_READ) != (PROT_WRITE | PROT_READ) {
                 let result = mprotect(mutableBuffer.baseAddress!, mutableBuffer.count * MemoryLayout<Element>.size, protection)
                 if result != 0 {
-                    os_log(.error, "failed to restore protection %d for %s with %d", protection, self.debugDescription, result)
+                    Logger.general.error("failed to restore protection \(protection, privacy: .public) for \(self.debugDescription, privacy: .public) with \(result, privacy: .public)")
                 }
             }
         }

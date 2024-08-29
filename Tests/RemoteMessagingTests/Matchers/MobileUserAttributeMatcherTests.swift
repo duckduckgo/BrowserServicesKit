@@ -90,7 +90,10 @@ class MobileUserAttributeMatcherTests: XCTestCase {
             isPrivacyProSubscriptionActive: true,
             isPrivacyProSubscriptionExpiring: false,
             isPrivacyProSubscriptionExpired: false,
-            dismissedMessageIds: dismissedMessageIds
+            isDuckPlayerOnboarded: false,
+            isDuckPlayerEnabled: false,
+            dismissedMessageIds: dismissedMessageIds,
+            shownMessageIds: []
         )
     }
 }

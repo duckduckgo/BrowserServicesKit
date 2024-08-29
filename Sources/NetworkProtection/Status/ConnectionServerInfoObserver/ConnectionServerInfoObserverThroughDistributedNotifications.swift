@@ -23,6 +23,7 @@ import Foundation
 import Common
 import NetworkExtension
 import NotificationCenter
+import os.log
 
 /// Observes the server info through Distributed Notifications and an IPC connection.
 ///
@@ -39,18 +40,11 @@ public class ConnectionServerInfoObserverThroughDistributedNotifications: Connec
     private let distributedNotificationCenter: DistributedNotificationCenter
     private var serverSelectedCancellable: AnyCancellable!
 
-    // MARK: - Logging
-
-    private let log: OSLog
-
     // MARK: - Initialization
 
-    public init(distributedNotificationCenter: DistributedNotificationCenter = .default(),
-                log: OSLog = .networkProtection) {
+    public init(distributedNotificationCenter: DistributedNotificationCenter = .default()) {
 
         self.distributedNotificationCenter = distributedNotificationCenter
-        self.log = log
-
         start()
     }
 
@@ -70,7 +64,7 @@ public class ConnectionServerInfoObserverThroughDistributedNotifications: Connec
             // swiftlint:disable:next compiler_protocol_init
             let error = StaticString(stringLiteral: "Could not decode .serverSelected distributed notification object")
             assertionFailure("\(error)")
-            os_log(error, log: log, type: .error)
+            Logger.networkProtection.error("Error: \(error, privacy: .public)")
             return
         }
 

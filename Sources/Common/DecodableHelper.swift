@@ -17,6 +17,7 @@
 //
 
 import Foundation
+import os.log
 
 public struct DecodableHelper {
     public static func decode<Input: Any, Target: Decodable>(from input: Input) -> Target? {
@@ -24,7 +25,7 @@ public struct DecodableHelper {
             let json = try JSONSerialization.data(withJSONObject: input)
             return try JSONDecoder().decode(Target.self, from: json)
         } catch {
-            os_log(.error, "Error decoding message body: %{public}@", error.localizedDescription)
+            Logger.general.error("Error decoding message body: \(error.localizedDescription, privacy: .public)")
             return nil
         }
     }

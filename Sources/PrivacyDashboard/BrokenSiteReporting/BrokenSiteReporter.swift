@@ -19,6 +19,7 @@
 import Foundation
 import Common
 import Persistence
+import os.log
 
 public protocol BrokenSiteReportPersistencyManaging {
 
@@ -42,36 +43,38 @@ public class BrokenSiteReporter {
     public typealias PixelHandler = (_ parameters: [String: String]) -> Void
     /// Pixels are sent by the main apps not by BSK, this is the closure called by the class when a pixel need to be sent
     let pixelHandler: PixelHandler
-    let persistencyManager: ExpiryStorage
+    public let persistencyManager: ExpiryStorage
 
-    public init(pixelHandler: @escaping PixelHandler, keyValueStoring: KeyValueStoringDictionaryRepresentable) {
+    public init(pixelHandler: @escaping PixelHandler,
+                keyValueStoring: KeyValueStoringDictionaryRepresentable,
+                storageConfiguration: ExpiryStorageConfiguration = .defaultConfig) {
         self.pixelHandler = pixelHandler
-        self.persistencyManager = ExpiryStorage(keyValueStoring: keyValueStoring)
+        self.persistencyManager = ExpiryStorage(keyValueStoring: keyValueStoring, configuration: storageConfiguration)
     }
 
     /// Report the site breakage
-    public func report(_ report: BrokenSiteReport, reportMode: BrokenSiteReport.Mode) throws {
+    public func report(_ report: BrokenSiteReport, reportMode: BrokenSiteReport.Mode, daysToExpiry: Int = 30) throws {
 
         let now = Date()
         let removedCount = persistencyManager.removeExpiredItems(currentDate: now)
         if removedCount > 0 {
-            os_log(.debug, "\(removedCount) breakage history record removed")
+            Logger.privacyDashboard.debug("\(removedCount) breakage history record removed")
         }
 
         var report = report
 
         // Create history entry
-        guard let entry = BrokenSiteReportEntry(report: report, currentDate: now) else {
-            os_log(.error, "Failed to create a history entry for broken site report")
+        guard let entry = BrokenSiteReportEntry(report: report, currentDate: now, daysToExpiry: daysToExpiry) else {
+            Logger.privacyDashboard.error("Failed to create a history entry for broken site report")
             throw BrokenSiteReporterError.failedToGenerateHistoryEntry
         }
 
-        os_log(.debug, "Reporting website breakage for \(entry.identifier)")
+        Logger.privacyDashboard.debug("Reporting website breakage for \(entry.identifier)")
 
         // Check if the report has been sent before
         if let storedHistoryEntry = try persistencyManager.getBrokenSiteReportHistory(forDomainIdentifier: entry.identifier) {
             report.lastSentDay = storedHistoryEntry.lastSentDayString
-            os_log(.debug, "Broken site report sent on the \(report.lastSentDay ?? "?") for \(entry.identifier)")
+            Logger.privacyDashboard.debug("Broken site report sent on the \(report.lastSentDay ?? "?") for \(entry.identifier)")
         }
 
         let pixelParams = report.getRequestParameters(forReportMode: reportMode)
@@ -82,7 +85,7 @@ public class BrokenSiteReporter {
         // persist history entry
         try persistencyManager.persist(entry: entry) // this overrides the previously stored entry if existed
 
-        os_log(.debug, "Website breakage reported for \(entry.identifier)")
+        Logger.privacyDashboard.debug("Website breakage reported for \(entry.identifier)")
     }
 
 }

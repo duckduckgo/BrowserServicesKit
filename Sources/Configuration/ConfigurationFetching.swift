@@ -41,27 +41,20 @@ public final class ConfigurationFetcher: ConfigurationFetching {
     private var store: ConfigurationStoring
     private let validator: ConfigurationValidating
     private let urlSession: URLSession
-    private let getLog: () -> OSLog
-    private var log: OSLog {
-        getLog()
-    }
 
     public convenience init(store: ConfigurationStoring,
                             urlSession: URLSession = .shared,
-                            log: @escaping @autoclosure () -> OSLog = .disabled,
                             eventMapping: EventMapping<ConfigurationDebugEvents>? = nil) {
         let validator = ConfigurationValidator(eventMapping: eventMapping)
-        self.init(store: store, validator: validator, log: log())
+        self.init(store: store, validator: validator)
     }
 
     init(store: ConfigurationStoring,
          validator: ConfigurationValidating,
-         urlSession: URLSession = .shared,
-         log: @escaping @autoclosure () -> OSLog = .disabled) {
+         urlSession: URLSession = .shared) {
         self.store = store
         self.validator = validator
         self.urlSession = urlSession
-        self.getLog = log
     }
 
     /**
@@ -132,8 +125,7 @@ public final class ConfigurationFetcher: ConfigurationFetching {
         let configuration = APIRequest.Configuration(url: url,
                                                      headers: APIRequest.Headers(etag: etag),
                                                      cachePolicy: .reloadIgnoringLocalCacheData)
-        let log = log
-        let request = APIRequest(configuration: configuration, requirements: requirements, urlSession: urlSession, log: log)
+        let request = APIRequest(configuration: configuration, requirements: requirements, urlSession: urlSession)
         let (data, response) = try await request.fetch()
         return (response.etag ?? "", data)
     }

@@ -18,6 +18,7 @@
 
 import Combine
 import Foundation
+import os.log
 
 extension NSObject {
 
@@ -79,7 +80,7 @@ extension NSObject {
         #endif
         }
         public static let log = DeallocationCheckAction { object in
-            os_log(.error, "\(object) has not been deallocated. Ensure there‘s no retain cycle added.")
+            Logger.general.error("\(object) has not been deallocated. Ensure there‘s no retain cycle added.")
         }
     }
 #if DEBUG

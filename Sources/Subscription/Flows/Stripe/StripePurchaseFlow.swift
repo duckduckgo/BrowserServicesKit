@@ -18,7 +18,7 @@
 
 import Foundation
 import StoreKit
-import Common
+import os.log
 
 public enum StripePurchaseFlowError: Swift.Error {
     case noProductsFound
@@ -45,10 +45,10 @@ public final class DefaultStripePurchaseFlow: StripePurchaseFlow {
     }
 
     public func subscriptionOptions() async -> Result<SubscriptionOptions, StripePurchaseFlowError> {
-        os_log(.info, log: .subscription, "[StripePurchaseFlow] subscriptionOptions")
+        Logger.subscription.info("[StripePurchaseFlow] subscriptionOptions")
 
         guard case let .success(products) = await subscriptionEndpointService.getProducts(), !products.isEmpty else {
-            os_log(.error, log: .subscription, "[StripePurchaseFlow] Error: noProductsFound")
+            Logger.subscription.error("[StripePurchaseFlow] Error: noProductsFound")
             return .failure(.noProductsFound)
         }
 
@@ -79,7 +79,7 @@ public final class DefaultStripePurchaseFlow: StripePurchaseFlow {
     }
 
     public func prepareSubscriptionPurchase(emailAccessToken: String?) async -> Result<PurchaseUpdate, StripePurchaseFlowError> {
-        os_log(.info, log: .subscription, "[StripePurchaseFlow] prepareSubscriptionPurchase")
+        Logger.subscription.info("[StripePurchaseFlow] prepareSubscriptionPurchase")
 
         // Clear subscription Cache
         subscriptionEndpointService.signOut()
@@ -95,7 +95,7 @@ public final class DefaultStripePurchaseFlow: StripePurchaseFlow {
                 token = response.authToken
                 accountManager.storeAuthToken(token: token)
             case .failure:
-                os_log(.error, log: .subscription, "[StripePurchaseFlow] Error: accountCreationFailed")
+                Logger.subscription.error("[StripePurchaseFlow] Error: accountCreationFailed")
                 return .failure(.accountCreationFailed)
             }
         }
@@ -115,7 +115,7 @@ public final class DefaultStripePurchaseFlow: StripePurchaseFlow {
         // Clear subscription Cache
         subscriptionEndpointService.signOut()
 
-        os_log(.info, log: .subscription, "[StripePurchaseFlow] completeSubscriptionPurchase")
+        Logger.subscription.info("[StripePurchaseFlow] completeSubscriptionPurchase")
         if !accountManager.isUserAuthenticated,
            let authToken = accountManager.authToken {
             if case let .success(accessToken) = await accountManager.exchangeAuthTokenToAccessToken(authToken),

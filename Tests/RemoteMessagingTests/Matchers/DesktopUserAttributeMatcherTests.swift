@@ -133,6 +133,18 @@ class DesktopUserAttributeMatcherTests: XCTestCase {
                        .fail)
     }
 
+    // MARK: - FreemiumPIRCurrentUser
+
+    func testWhenIsCurrentFreemiumPIRUserEnabledMatchesThenReturnMatch() throws {
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: FreemiumPIRCurrentUserMatchingAttribute(value: false, fallback: nil)),
+                       .match)
+    }
+
+    func testWhenIsCurrentFreemiumPIRUserDoesNotMatchThenReturnFail() throws {
+        XCTAssertEqual(matcher.evaluate(matchingAttribute: FreemiumPIRCurrentUserMatchingAttribute(value: true, fallback: nil)),
+                       .fail)
+    }
+
     // MARK: - DeprecatedMacRemoteMessage
 
     func testWhenNoDismissedMessageIdsAreProvidedThenReturnFail() throws {
@@ -181,10 +193,12 @@ class DesktopUserAttributeMatcherTests: XCTestCase {
             isPrivacyProSubscriptionExpiring: false,
             isPrivacyProSubscriptionExpired: false,
             dismissedMessageIds: dismissedMessageIds,
+            shownMessageIds: [],
             pinnedTabsCount: 3,
             hasCustomHomePage: true,
             isDuckPlayerOnboarded: true,
             isDuckPlayerEnabled: false,
+            isCurrentFreemiumPIRUser: false,
             dismissedDeprecatedMacRemoteMessageIds: dismissedDeprecatedMacRemoteMessageIds
         )
     }

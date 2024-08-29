@@ -20,6 +20,7 @@ import Foundation
 import Combine
 import Common
 import Gzip
+import os.log
 
 final class SyncOperation: Operation, @unchecked Sendable {
 
@@ -71,14 +72,12 @@ final class SyncOperation: Operation, @unchecked Sendable {
         dataProviders: [DataProviding],
         storage: SecureStoring,
         crypter: Crypting,
-        requestMaker: SyncRequestMaking,
-        log: @escaping @autoclosure () -> OSLog = .disabled
+        requestMaker: SyncRequestMaking
     ) {
         self.dataProviders = dataProviders
         self.storage = storage
         self.crypter = crypter
         self.requestMaker = requestMaker
-        self.getLog = log
     }
 
     override func start() {
@@ -126,9 +125,9 @@ final class SyncOperation: Operation, @unchecked Sendable {
     }
 
     func sync(fetchOnly: Bool, dataProviders: [DataProviding] = []) async throws {
-        os_log(.debug, log: log, "Sync Operation Started. Fetch-only: %{public}s", String(fetchOnly))
+        Logger.sync.debug("Sync Operation Started. Fetch-only: \(String(fetchOnly), privacy: .public)")
         defer {
-            os_log(.debug, log: log, "Sync Operation Finished. Fetch-only: %{public}s", String(fetchOnly))
+            Logger.sync.debug("Sync Operation Finished. Fetch-only: \(String(fetchOnly), privacy: .public)")
         }
 
         try await withThrowingTaskGroup(of: Void.self) { group in
@@ -137,7 +136,7 @@ final class SyncOperation: Operation, @unchecked Sendable {
                     guard let self else {
                         return
                     }
-                    os_log(.debug, log: self.log, "Syncing %{public}s", dataProvider.feature.name)
+                    Logger.sync.debug("Syncing \(dataProvider.feature.name, privacy: .public)")
 
                     do {
                         try checkCancellation()
@@ -153,9 +152,7 @@ final class SyncOperation: Operation, @unchecked Sendable {
                             guard let data = httpResult.data else {
                                 throw SyncError.noResponseBody
                             }
-                            os_log(.debug, log: self.log, "Response for %{public}s: %{public}s",
-                                   dataProvider.feature.name,
-                                   String(data: data, encoding: .utf8) ?? "")
+                            Logger.sync.debug("Response for \(dataProvider.feature.name, privacy: .public): \(String(data: data, encoding: .utf8) ?? "", privacy: .public)")
                             let syncResult = try self.decodeResponse(with: data, request: syncRequest)
                             try checkCancellation()
                             try await self.handleResponse(for: dataProvider, syncResult: syncResult, fetchOnly: fetchOnly, timestamp: clientTimestamp)
@@ -169,12 +166,12 @@ final class SyncOperation: Operation, @unchecked Sendable {
                             throw SyncError.unexpectedStatusCode(httpResult.response.statusCode)
                         }
                     } catch is CancellationError {
-                        os_log(.debug, log: self.log, "Syncing %{public}s cancelled", dataProvider.feature.name)
+                        Logger.sync.debug("Syncing \(dataProvider.feature.name, privacy: .public) cancelled")
                     } catch {
                         if case SyncError.unexpectedStatusCode = error {
                             didReceiveHTTPRequestError?(error)
                         }
-                        os_log(.debug, log: self.log, "Error syncing %{public}s: %{public}s", dataProvider.feature.name, error.localizedDescription)
+                        Logger.sync.error("Error syncing \(dataProvider.feature.name, privacy: .public): \(error.localizedDescription, privacy: .public)")
                         dataProvider.handleSyncError(error)
                         throw FeatureError(feature: dataProvider.feature, underlyingError: error)
                     }
@@ -256,11 +253,6 @@ final class SyncOperation: Operation, @unchecked Sendable {
             )
         }
     }
-
-    private var log: OSLog {
-        getLog()
-    }
-    private let getLog: () -> OSLog
 
     // MARK: - Overrides
 

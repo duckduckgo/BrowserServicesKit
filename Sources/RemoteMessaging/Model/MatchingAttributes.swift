@@ -191,6 +191,16 @@ struct DuckPlayerEnabledMatchingAttribute: SingleValueMatching {
     var fallback: Bool?
 }
 
+struct FreemiumPIRCurrentUserMatchingAttribute: SingleValueMatching {
+    var value: Bool?
+    var fallback: Bool?
+}
+
+struct MessageShownMatchingAttribute: SingleValueMatching {
+    var value: [String]? = []
+    var fallback: Bool?
+}
+
 struct UnknownMatchingAttribute: MatchingAttribute, Equatable {
     var fallback: Bool?
 

@@ -229,7 +229,7 @@ public struct BookmarkTree {
 
     @discardableResult
     public func createEntitiesForCheckingModifiedAt(in context: NSManagedObjectContext) -> (BookmarkEntity, [BookmarkEntity]) {
-        BookmarkUtils.prepareLegacyFoldersStructure(in: context)
+        try? BookmarkUtils.prepareLegacyFoldersStructure(in: context)
 
         let rootFolder = BookmarkUtils.fetchRootFolder(context)!
         rootFolder.modifiedAt = modifiedAt

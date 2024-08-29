@@ -23,6 +23,7 @@ import Common
 import Swifter
 import WebKit
 import XCTest
+import os.log
 @testable import Navigation
 
 @available(macOS 12.0, iOS 15.0, *)

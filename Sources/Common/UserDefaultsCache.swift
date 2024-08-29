@@ -17,6 +17,7 @@
 //
 
 import Foundation
+import os.log
 
 public struct UserDefaultsCacheSettings {
     public let defaultExpirationInterval: TimeInterval
@@ -43,6 +44,7 @@ public class UserDefaultsCache<ObjectType: Codable> {
         let object: ObjectType
     }
 
+    let logger = { Logger(subsystem: Bundle.main.bundleIdentifier ?? "DuckDuckGo", category: "UserDefaultsCache") }()
     private var userDefaults: UserDefaults
     public private(set) var settings: UserDefaultsCacheSettings
 
@@ -63,7 +65,7 @@ public class UserDefaultsCache<ObjectType: Codable> {
         do {
             let data = try encoder.encode(cacheObject)
             userDefaults.set(data, forKey: key.rawValue)
-            os_log(.debug, log: .general, "Cache Set: \(cacheObject)")
+            logger.debug("Cache Set: \(String(describing: cacheObject))")
         } catch {
             assertionFailure("Failed to encode CacheObject: \(error)")
         }
@@ -75,21 +77,21 @@ public class UserDefaultsCache<ObjectType: Codable> {
         do {
             let cacheObject = try decoder.decode(CacheObject.self, from: data)
             if cacheObject.expires > Date() {
-                os_log(.debug, log: .general, "Cache Hit: \(ObjectType.self)")
+                logger.debug("Cache Hit: \(ObjectType.self)")
                 return cacheObject.object
             } else {
-                os_log(.debug, log: .general, "Cache Miss: \(ObjectType.self)")
+                logger.debug("Cache Miss: \(ObjectType.self)")
                 reset()  // Clear expired data
                 return nil
             }
         } catch let error {
-            os_log(.error, log: .general, "Cache Decode Error: \(error)")
+            logger.error("Cache Decode Error: \(error)")
             return nil
         }
     }
 
     public func reset() {
-        os_log(.debug, log: .general, "Cache Clean: \(ObjectType.self)")
+        logger.debug("Cache Clean: \(ObjectType.self)")
         userDefaults.removeObject(forKey: key.rawValue)
     }
 }

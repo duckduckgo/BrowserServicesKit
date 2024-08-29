@@ -19,6 +19,7 @@
 import Foundation
 import Combine
 import Common
+import os.log
 
 public typealias BrowsingHistory = [HistoryEntry]
 
@@ -86,7 +87,7 @@ final public class HistoryCoordinator: HistoryCoordinating {
 
     @discardableResult public func addVisit(of url: URL) -> Visit? {
         guard let historyDictionary = historyDictionary else {
-            os_log("Visit of %s ignored", log: .history, url.absoluteString)
+            Logger.history.debug("Visit of \(url.absoluteString) ignored")
             return nil
         }
 
@@ -102,12 +103,12 @@ final public class HistoryCoordinator: HistoryCoordinating {
 
     public func addBlockedTracker(entityName: String, on url: URL) {
         guard let historyDictionary = historyDictionary else {
-            os_log("Add tracker to %s ignored, no history", log: .history, url.absoluteString)
+            Logger.history.debug("Add tracker to \(url.absoluteString) ignored, no history")
             return
         }
 
         guard let entry = historyDictionary[url] else {
-            os_log("Add tracker to %s ignored, no entry", log: .history, url.absoluteString)
+            Logger.history.debug("Add tracker to \(url.absoluteString) ignored, no entry")
             return
         }
 
@@ -116,12 +117,12 @@ final public class HistoryCoordinator: HistoryCoordinating {
 
     public func trackerFound(on url: URL) {
         guard let historyDictionary = historyDictionary else {
-            os_log("Add tracker to %s ignored, no history", log: .history, url.absoluteString)
+            Logger.history.debug("Add tracker to \(url.absoluteString) ignored, no history")
             return
         }
 
         guard let entry = historyDictionary[url] else {
-            os_log("Add tracker to %s ignored, no entry", log: .history, url.absoluteString)
+            Logger.history.debug("Add tracker to \(url.absoluteString) ignored, no entry")
             return
         }
 
@@ -131,7 +132,7 @@ final public class HistoryCoordinator: HistoryCoordinating {
     public func updateTitleIfNeeded(title: String, url: URL) {
         guard let historyDictionary = historyDictionary else { return }
         guard let entry = historyDictionary[url] else {
-            os_log("Title update ignored - URL not part of history yet", log: .history, type: .debug)
+            Logger.history.debug("Title update ignored - URL not part of history yet")
             return
         }
         guard !title.isEmpty, entry.title != title else { return }
@@ -205,10 +206,10 @@ final public class HistoryCoordinator: HistoryCoordinating {
             .sink(receiveCompletion: { completion in
                 switch completion {
                 case .finished:
-                    os_log("History cleaned successfully", log: .history)
+                    Logger.history.debug("History cleaned successfully")
                 case .failure(let error):
                     // This should really be a pixel
-                    os_log("Cleaning of history failed: %s", log: .history, type: .error, error.localizedDescription)
+                    Logger.history.error("Cleaning of history failed: \(error.localizedDescription)")
                 }
                 onCleanFinished?()
             }, receiveValue: { [weak self] history in
@@ -230,11 +231,11 @@ final public class HistoryCoordinator: HistoryCoordinating {
             .sink(receiveCompletion: { completion in
                 switch completion {
                 case .finished:
-                    os_log("Entries removed successfully", log: .history)
+                    Logger.history.debug("Entries removed successfully")
                     completionHandler?(nil)
                 case .failure(let error):
                     assertionFailure("Removal failed")
-                    os_log("Removal failed: %s", log: .history, type: .error, error.localizedDescription)
+                    Logger.history.error("Removal failed: \(error.localizedDescription)")
                     completionHandler?(error)
                 }
             }, receiveValue: {})
@@ -271,12 +272,12 @@ final public class HistoryCoordinator: HistoryCoordinating {
             .sink(receiveCompletion: { [weak self] completion in
                 switch completion {
                 case .finished:
-                    os_log("Visits removed successfully", log: .history)
+                    Logger.history.debug("Visits removed successfully")
                     // Remove entries with no remaining visits
                     self?.removeEntries(entriesToRemove, completionHandler: completionHandler)
                 case .failure(let error):
                     assertionFailure("Removal failed")
-                    os_log("Removal failed: %s", log: .history, type: .error, error.localizedDescription)
+                    Logger.history.error("Removal failed: \(error.localizedDescription)")
                     completionHandler?(error)
                 }
             }, receiveValue: {})
@@ -319,14 +320,9 @@ final public class HistoryCoordinator: HistoryCoordinating {
             .sink(receiveCompletion: { completion in
                 switch completion {
                 case .finished:
-                    os_log("Visit entry updated successfully. URL: %s, Title: %s, Number of visits: %d, failed to load: %s",
-                           log: .history,
-                           entry.url.absoluteString,
-                           entry.title ?? "",
-                           entry.numberOfTotalVisits,
-                           entry.failedToLoad ? "yes" : "no")
+                    Logger.history.debug("Visit entry updated successfully. URL: \(entry.url.absoluteString), Title: \(entry.title ?? "-"), Number of visits: \(entry.numberOfTotalVisits), failed to load: \(entry.failedToLoad ? "yes" : "no")")
                 case .failure(let error):
-                    os_log("Saving of history entry failed: %s", log: .history, type: .error, error.localizedDescription)
+                    Logger.history.error("Saving of history entry failed: \(error.localizedDescription)")
                 }
             }, receiveValue: { result in
                 for (id, date) in result {
@@ -342,8 +338,7 @@ final public class HistoryCoordinator: HistoryCoordinating {
     /// Does the same for the root URL if it has no visits
     private func mark(url: URL, keyPath: WritableKeyPath<HistoryEntry, Bool>, value: Bool) {
         guard let historyDictionary = historyDictionary, var entry = historyDictionary[url] else {
-            os_log("Marking of %s not saved. History not loaded yet or entry doesn't exist",
-                   log: .history, url.absoluteString)
+            Logger.history.debug("Marking of \(url.absoluteString) not saved. History not loaded yet or entry doesn't exist")
             return
         }
 

@@ -20,6 +20,7 @@ import Foundation
 import XCTest
 @testable import BrowserServicesKit
 import class Persistence.CoreDataDatabase
+import os.log
 
 final class AppHTTPSUpgradeStoreTests: XCTestCase {
 
@@ -49,7 +50,7 @@ final class AppHTTPSUpgradeStoreTests: XCTestCase {
                                                     bloomFilter: Resource.bloomFilter,
                                                     excludedDomains: Resource.allowList)
 
-        testee = AppHTTPSUpgradeStore(database: database, bloomFilterDataURL: bloomFilterUrl, embeddedResources: embedded, errorEvents: nil)
+        testee = AppHTTPSUpgradeStore(database: database, bloomFilterDataURL: bloomFilterUrl, embeddedResources: embedded, errorEvents: nil, logger: Logger())
     }
 
     override func tearDown() {
