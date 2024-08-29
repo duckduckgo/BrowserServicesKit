@@ -21,7 +21,7 @@ import WebKit
 import UserScript
 import os.log
 
-public protocol AutofillLoginImportUserScriptDelegate: AnyObject {
+public protocol AutofillLoginImportStateProvider: AnyObject {
     var isNewDDGUser: Bool { get }
     var hasImportedLogins: Bool { get }
 }
@@ -80,6 +80,7 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
     public weak var vaultDelegate: AutofillSecureVaultDelegate?
     public weak var importUserScriptDelegate: AutofillPasswordImportUserScriptDelegate?
 
+    internal let loginImportStateProvider: AutofillLoginImportStateProvider
     internal var scriptSourceProvider: AutofillUserScriptSourceProvider
 
     internal lazy var autofillDomainNameUrlMatcher: AutofillDomainNameUrlMatcher = {
@@ -173,19 +174,22 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
         return hostProvider.hostForMessage(message)
     }
 
-    public convenience init(scriptSourceProvider: AutofillUserScriptSourceProvider) {
+    public convenience init(scriptSourceProvider: AutofillUserScriptSourceProvider, loginImportStateProvider: AutofillLoginImportStateProvider) {
         self.init(scriptSourceProvider: scriptSourceProvider,
                   encrypter: AESGCMUserScriptEncrypter(),
-                  hostProvider: SecurityOriginHostProvider())
+                  hostProvider: SecurityOriginHostProvider(),
+                  loginImportStateProvider: loginImportStateProvider)
     }
 
     init(scriptSourceProvider: AutofillUserScriptSourceProvider,
          encrypter: UserScriptEncrypter = AESGCMUserScriptEncrypter(),
-         hostProvider: UserScriptHostProvider = SecurityOriginHostProvider()) {
+         hostProvider: UserScriptHostProvider = SecurityOriginHostProvider(),
+         loginImportStateProvider: AutofillLoginImportStateProvider) {
         self.scriptSourceProvider = scriptSourceProvider
         self.hostProvider = hostProvider
         self.encrypter = encrypter
         self.isTopAutofillContext = false
+        self.loginImportStateProvider = loginImportStateProvider
     }
 }
 

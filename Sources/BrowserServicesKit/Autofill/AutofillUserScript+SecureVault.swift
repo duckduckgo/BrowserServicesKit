@@ -27,6 +27,8 @@ public enum RequestVaultCredentialsAction: String, Codable {
 
 public protocol AutofillSecureVaultDelegate: AnyObject {
 
+    typealias SecureVaultLoginsCount = Int
+
     var autofillWebsiteAccountMatcher: AutofillWebsiteAccountMatcher? { get }
     var tld: TLD? { get }
 
@@ -34,7 +36,8 @@ public protocol AutofillSecureVaultDelegate: AnyObject {
         [SecureVaultModels.WebsiteCredentials],
         [SecureVaultModels.Identity],
         [SecureVaultModels.CreditCard],
-        SecureVaultModels.CredentialsProvider
+        SecureVaultModels.CredentialsProvider,
+        SecureVaultLoginsCount
     ) -> Void)
 
     func autofillUserScript(_: AutofillUserScript, didRequestCreditCardsManagerForDomain domain: String)
@@ -435,17 +438,41 @@ extension AutofillUserScript {
     func getAvailableInputTypes(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         let domain = hostForMessage(message)
         let email = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
-        vaultDelegate?.autofillUserScript(self, didRequestAutoFillInitDataForDomain: domain) { credentials, identities, cards, credentialsProvider  in
+        vaultDelegate?.autofillUserScript(self, didRequestAutoFillInitDataForDomain: domain) { [weak self] credentials, identities, cards, credentialsProvider, totalCredentialsCount in
+            guard let self else {
+                replyHandler("")
+                return
+            }
+            let passwordImport = self.shouldShowPasswordImportDialog(credentials: credentials, credentialsProvider: credentialsProvider, totalCredentialsCount: totalCredentialsCount)
             let response = RequestAvailableInputTypesResponse(credentials: credentials,
                                                               identities: identities,
                                                               cards: cards,
                                                               email: email,
                                                               credentialsProvider: credentialsProvider,
-                                                              passwordImport: true)
+                                                              passwordImport: passwordImport)
             if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
                 replyHandler(jsonString)
             }
         }
+    }
+
+    private func shouldShowPasswordImportDialog(credentials: [SecureVaultModels.WebsiteCredentials], credentialsProvider: SecureVaultModels.CredentialsProvider, totalCredentialsCount: Int) -> Bool {
+        guard credentialsProvider.name != .bitwarden else {
+            return false
+        }
+        guard credentials.isEmpty else {
+            return false
+        }
+        guard totalCredentialsCount < 10 else {
+            return false
+        }
+        guard !loginImportStateProvider.hasImportedLogins else {
+            return false
+        }
+        guard loginImportStateProvider.isNewDDGUser else {
+            return false
+        }
+        return true
     }
 
     // https://github.com/duckduckgo/duckduckgo-autofill/blob/main/src/deviceApiCalls/schemas/getAutofillData.params.json
@@ -517,7 +544,7 @@ extension AutofillUserScript {
 
     func pmGetAutoFillInitData(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         let domain = hostForMessage(message)
-        vaultDelegate?.autofillUserScript(self, didRequestAutoFillInitDataForDomain: domain) { credentials, identities, cards, credentialsProvider in
+        vaultDelegate?.autofillUserScript(self, didRequestAutoFillInitDataForDomain: domain) { credentials, identities, cards, credentialsProvider, totalCredentialsCount in
             let credentialObjects: [CredentialObject]
             if credentialsProvider.locked {
                 credentialObjects = [CredentialObject(id: "provider_locked", username: "", credentialsProvider: credentialsProvider.name.rawValue)]
