@@ -172,7 +172,7 @@ final class SpecialErrorPageUserScriptTests: XCTestCase {
         userScript.isEnabled = true
 
         // WHEN
-        let handler = userScript.handler(forMethodNamed: "advancedInfoPresented")
+        let handler = userScript.handler(forMethodNamed: "advancedInfo")
         if let handler {
             encodable = try? await handler(Data(), WKScriptMessage())
         }

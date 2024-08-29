@@ -385,7 +385,8 @@ let package = Package(
             name: "SpecialErrorPages",
             dependencies: [
                 "Common",
-                "UserScript"
+                "UserScript",
+                "BrowserServicesKit"
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
