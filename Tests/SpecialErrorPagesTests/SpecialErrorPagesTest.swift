@@ -166,7 +166,7 @@ final class SpecialErrorPageUserScriptTests: XCTestCase {
     }
 
     @MainActor
-    func test_WhenHandlerAdvancedInfoPresentedCalled_AndIsEnabledTrue_ThenVisitSiteCalled() async {
+    func test_WhenHandlerAdvancedInfoPresentedCalled_AndIsEnabledTrue_ThenAdvancedInfoPresentedCalled() async {
         // GIVEN
         var encodable: Encodable?
         userScript.isEnabled = true
