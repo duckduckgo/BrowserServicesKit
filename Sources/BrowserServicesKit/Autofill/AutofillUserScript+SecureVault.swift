@@ -317,7 +317,7 @@ extension AutofillUserScript {
         let creditCards: AvailableInputTypesCreditCards
         let email: Bool
         let credentialsProviderStatus: CredentialProviderStatus
-        let passwordImport: Bool
+        let credentialsImport: Bool
 
     }
 
@@ -443,13 +443,13 @@ extension AutofillUserScript {
                 replyHandler("")
                 return
             }
-            let passwordImport = self.shouldShowPasswordImportDialog(credentials: credentials, credentialsProvider: credentialsProvider, totalCredentialsCount: totalCredentialsCount)
+            let credentialsImport = self.shouldShowPasswordImportDialog(credentials: credentials, credentialsProvider: credentialsProvider, totalCredentialsCount: totalCredentialsCount)
             let response = RequestAvailableInputTypesResponse(credentials: credentials,
                                                               identities: identities,
                                                               cards: cards,
                                                               email: email,
                                                               credentialsProvider: credentialsProvider,
-                                                              passwordImport: passwordImport)
+                                                              credentialsImport: true)
             if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
                 replyHandler(jsonString)
             }
@@ -818,7 +818,7 @@ extension AutofillUserScript.RequestAvailableInputTypesResponse {
          cards: [SecureVaultModels.CreditCard],
          email: Bool,
          credentialsProvider: SecureVaultModels.CredentialsProvider,
-         passwordImport: Bool) {
+         credentialsImport: Bool) {
         let credentialObjects: [AutofillUserScript.CredentialObject] = accounts.compactMap {
             guard let id = $0.id, let username = $0.username else { return nil }
             return .init(id: id, username: username, credentialsProvider: credentialsProvider.name.rawValue)
@@ -834,7 +834,7 @@ extension AutofillUserScript.RequestAvailableInputTypesResponse {
             creditCards: cards,
             email: email,
             credentialsProviderStatus: credentialsProvider.locked ? .locked : .unlocked,
-            passwordImport: passwordImport
+            credentialsImport: credentialsImport
         )
         self.init(success: success, error: nil)
     }
@@ -844,7 +844,7 @@ extension AutofillUserScript.RequestAvailableInputTypesResponse {
          cards: [SecureVaultModels.CreditCard],
          email: Bool,
          credentialsProvider: SecureVaultModels.CredentialsProvider,
-         passwordImport: Bool) {
+         credentialsImport: Bool) {
         let username = credentialsProvider.locked || credentials.hasAtLeastOneUsername
         let password = credentialsProvider.locked || credentials.hasAtLeastOnePassword
         let credentials = AutofillUserScript.AvailableInputTypesSuccess.AvailableInputTypesCredentials(username: username, password: password)
@@ -854,7 +854,7 @@ extension AutofillUserScript.RequestAvailableInputTypesResponse {
             creditCards: AutofillUserScript.AvailableInputTypesSuccess.AvailableInputTypesCreditCards(creditCards: cards),
             email: email,
             credentialsProviderStatus: credentialsProvider.locked ? .locked : .unlocked,
-            passwordImport: passwordImport
+            credentialsImport: credentialsImport
         )
         self.init(success: success, error: nil)
     }
@@ -956,7 +956,7 @@ extension AutofillUserScript.AskToUnlockProviderResponse {
                                                                                                 cards: cards,
                                                                                                 email: email,
                                                                                                 credentialsProvider: credentialsProvider,
-                                                                                                passwordImport: false) // TODO: Check what this is for
+                                                                                                credentialsImport: false) // TODO: Check what this is for
         let status = credentialsProvider.locked ? AutofillUserScript.CredentialProviderStatus.locked : .unlocked
         let credentialsArray: [AutofillUserScript.CredentialResponse] = credentials.compactMap { credential in
             guard let id = credential.account.id,
