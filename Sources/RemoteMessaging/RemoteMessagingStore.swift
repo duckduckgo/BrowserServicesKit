@@ -22,6 +22,7 @@ import Common
 import CoreData
 import BrowserServicesKit
 import Persistence
+import os.log
 
 public enum RemoteMessagingStoreError: Error {
     case saveConfigFailed
@@ -53,14 +54,12 @@ public final class RemoteMessagingStore: RemoteMessagingStoring {
         database: CoreDataDatabase,
         notificationCenter: NotificationCenter = .default,
         errorEvents: EventMapping<RemoteMessagingStoreError>?,
-        remoteMessagingAvailabilityProvider: RemoteMessagingAvailabilityProviding,
-        log: @escaping @autoclosure () -> OSLog = .disabled
+        remoteMessagingAvailabilityProvider: RemoteMessagingAvailabilityProviding
     ) {
         self.database = database
         self.notificationCenter = notificationCenter
         self.errorEvents = errorEvents
         self.remoteMessagingAvailabilityProvider = remoteMessagingAvailabilityProvider
-        self.getLog = log
 
         featureFlagDisabledCancellable = remoteMessagingAvailabilityProvider.isRemoteMessagingAvailablePublisher
             .map { !$0 }
@@ -72,15 +71,10 @@ public final class RemoteMessagingStore: RemoteMessagingStoring {
 
     public func saveProcessedResult(_ processorResult: RemoteMessagingConfigProcessor.ProcessorResult) {
         guard remoteMessagingAvailabilityProvider.isRemoteMessagingAvailable else {
-            os_log(
-                "Remote messaging feature flag is disabled, skipping saving processed version: %d",
-                log: log,
-                type: .debug,
-                processorResult.version
-            )
+            Logger.remoteMessaging.debug("Remote messaging feature flag is disabled, skipping saving processed version: \(processorResult.version)")
             return
         }
-        os_log("Remote messaging config - save processed version: %d", log: log, type: .debug, processorResult.version)
+        Logger.remoteMessaging.debug("Remote messaging config - save processed version: \(processorResult.version)")
 
         let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType, name: Constants.privateContextName)
         context.performAndWait {
@@ -98,7 +92,7 @@ public final class RemoteMessagingStore: RemoteMessagingStoring {
                 notificationCenter.post(name: Notifications.remoteMessagesDidChange, object: nil)
             } catch {
                 errorEvents?.fire(.saveConfigFailed, error: error)
-                os_log("Failed to updare remote messages: %@", log: log, type: .error, error.localizedDescription)
+                Logger.remoteMessaging.error("Failed to update remote messages: \(error.localizedDescription, privacy: .public)")
             }
         }
     }
@@ -120,18 +114,13 @@ public final class RemoteMessagingStore: RemoteMessagingStoring {
                 notificationCenter.post(name: Notifications.remoteMessagesDidChange, object: nil)
             } catch {
                 errorEvents?.fire(.saveConfigFailed, error: error)
-                os_log("Failed to updare remote messages: %@", log: log, type: .error, error.localizedDescription)
+                Logger.remoteMessaging.error("Failed to updare remote messages: \(error.localizedDescription, privacy: .public)")
             }
         }
     }
 
     private let errorEvents: EventMapping<RemoteMessagingStoreError>?
     private var featureFlagDisabledCancellable: AnyCancellable?
-
-    private let getLog: () -> OSLog
-    private var log: OSLog {
-        getLog()
-    }
 }
 
 // MARK: - RemoteMessagingConfigManagedObject Public Interface
@@ -303,7 +292,7 @@ extension RemoteMessagingStore {
                 let results = try context.fetch(fetchRequest)
                 dismissedMessageIds = results.compactMap { $0.id }
             } catch {
-                os_log("Failed to fetch shown remote messages: %@", log: log, type: .error, error.localizedDescription)
+                Logger.remoteMessaging.error("Failed to fetch shown remote messages: \(error.localizedDescription, privacy: .public)")
             }
         }
         return dismissedMessageIds
@@ -344,7 +333,7 @@ extension RemoteMessagingStore {
                 try context.save()
             } catch {
                 errorEvents?.fire(.updateMessageStatusFailed, error: error)
-                os_log("Error saving updateMessageStatus", log: log, type: .error)
+                Logger.remoteMessaging.error("Error saving updateMessageStatus")
             }
         }
     }
@@ -365,7 +354,7 @@ extension RemoteMessagingStore {
                 let results = try context.fetch(fetchRequest)
                 dismissedMessageIds = results.compactMap { $0.id }
             } catch {
-                os_log("Failed to fetch dismissed remote messages: %@", log: log, type: .error, error.localizedDescription)
+                Logger.remoteMessaging.error("Failed to fetch dismissed remote messages: \(error.localizedDescription, privacy: .public)")
             }
         }
         return dismissedMessageIds
@@ -393,7 +382,7 @@ extension RemoteMessagingStore {
                 try context.save()
             } catch {
                 errorEvents?.fire(.updateMessageShownFailed, error: error)
-                os_log("Failed to save message update as shown", log: log, type: .error)
+                Logger.remoteMessaging.error("Failed to save message update as shown")
             }
         }
     }
@@ -413,7 +402,7 @@ extension RemoteMessagingStore {
             do {
                 try context.save()
             } catch {
-                os_log("Failed to reset remote messages", log: log, type: .error)
+                Logger.remoteMessaging.error("Failed to reset remote messages")
             }
         }
         notificationCenter.post(name: Notifications.remoteMessagesDidChange, object: nil)

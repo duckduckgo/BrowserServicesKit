@@ -20,6 +20,7 @@ import Common
 import Foundation
 import WebKit
 import TrackerRadarKit
+import os.log
 
 extension ContentBlockerRulesManager {
 
@@ -31,36 +32,29 @@ extension ContentBlockerRulesManager {
         let workQueue: DispatchQueue
         let rulesList: ContentBlockerRulesList
         let sourceManager: ContentBlockerRulesSourceManager
-        private let getLog: () -> OSLog
-        private var log: OSLog {
-            getLog()
-        }
-
         var isCompleted: Bool { result != nil || compilationImpossible }
         private(set) var compilationImpossible = false
         private(set) var result: (compiledRulesList: WKContentRuleList, model: ContentBlockerRulesSourceModel)?
 
         init(workQueue: DispatchQueue,
              rulesList: ContentBlockerRulesList,
-             sourceManager: ContentBlockerRulesSourceManager,
-             log: @escaping @autoclosure () -> OSLog = .disabled) {
+             sourceManager: ContentBlockerRulesSourceManager) {
             self.workQueue = workQueue
             self.rulesList = rulesList
             self.sourceManager = sourceManager
-            self.getLog = log
         }
 
         func start(ignoreCache: Bool = false, completionHandler: @escaping Completion) {
             self.workQueue.async {
                 guard let model = self.sourceManager.makeModel() else {
-                    os_log("❌ compilation impossible", log: self.log, type: .default)
+                    Logger.contentBlocking.log("❌ compilation impossible")
                     self.compilationImpossible = true
                     completionHandler(self, false)
                     return
                 }
 
                 guard !ignoreCache else {
-                    os_log("❗️ ignoring cache", log: self.log, type: .default)
+                    Logger.contentBlocking.log("❗️ ignoring cache")
                     self.workQueue.async {
                         self.compile(model: model, completionHandler: completionHandler)
                     }
@@ -70,10 +64,10 @@ extension ContentBlockerRulesManager {
                 // Delegate querying to main thread - crashes were observed in background.
                 DispatchQueue.main.async {
                     let identifier = model.rulesIdentifier.stringValue
-                    os_log("Lookup CBR with %{public}s", log: self.log, type: .default, identifier)
+                    Logger.contentBlocking.debug("Lookup CBR with \(identifier, privacy: .public)")
                     WKContentRuleListStore.default()?.lookUpContentRuleList(forIdentifier: identifier) { ruleList, _ in
                         if let ruleList = ruleList {
-                            os_log("🟢 CBR loaded from cache: %{public}s", log: self.log, type: .default, self.rulesList.name)
+                            Logger.contentBlocking.log("🟢 CBR loaded from cache: \(self.rulesList.name, privacy: .public)")
                             self.compilationSucceeded(with: ruleList, model: model, completionHandler: completionHandler)
                         } else {
                             self.workQueue.async {
@@ -98,11 +92,7 @@ extension ContentBlockerRulesManager {
                                        with error: Error,
                                        completionHandler: @escaping Completion) {
             workQueue.async {
-                os_log("❌ Failed to compile %{public}s rules %{public}s",
-                       log: self.log,
-                       type: .error,
-                       self.rulesList.name,
-                       error.localizedDescription)
+                Logger.contentBlocking.error("❌ Failed to compile \(self.rulesList.name, privacy: .public) rules \(error.localizedDescription, privacy: .public)")
 
                 // Retry after marking failed state in the source
                 self.sourceManager.compilationFailed(for: model, with: error)
@@ -118,7 +108,7 @@ extension ContentBlockerRulesManager {
 
         private func compile(model: ContentBlockerRulesSourceModel,
                              completionHandler: @escaping Completion) {
-            os_log("Starting CBR compilation for %{public}s", log: log, type: .default, rulesList.name)
+            Logger.contentBlocking.log("Starting CBR compilation for \(self.rulesList.name, privacy: .public)")
 
             let builder = ContentBlockerRulesBuilder(trackerData: model.tds)
             let rules = builder.buildRules(withExceptions: model.unprotectedSites,
@@ -129,7 +119,7 @@ extension ContentBlockerRulesManager {
             do {
                 data = try JSONEncoder().encode(rules)
             } catch {
-                os_log("❌ Failed to encode content blocking rules %{public}s", log: log, type: .error, rulesList.name)
+                Logger.contentBlocking.error("❌ Failed to encode content blocking rules \(self.rulesList.name, privacy: .public)")
                 compilationFailed(for: model, with: error, completionHandler: completionHandler)
                 return
             }
@@ -140,7 +130,7 @@ extension ContentBlockerRulesManager {
                                                                         encodedContentRuleList: ruleList) { ruleList, error in
 
                     if let ruleList = ruleList {
-                        os_log("🟢 CBR compilation for %{public}s succeeded", log: self.log, type: .default, self.rulesList.name)
+                        Logger.contentBlocking.log("🟢 CBR compilation for \(self.rulesList.name, privacy: .public) succeeded")
                         self.compilationSucceeded(with: ruleList, model: model, completionHandler: completionHandler)
                     } else if let error = error {
                         self.compilationFailed(for: model, with: error, completionHandler: completionHandler)

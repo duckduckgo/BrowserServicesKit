@@ -19,7 +19,7 @@
 import Foundation
 import Network
 import NetworkExtension
-import Common
+import os.log
 import Combine
 
 public actor NetworkProtectionTunnelFailureMonitor {
@@ -65,20 +65,20 @@ public actor NetworkProtectionTunnelFailureMonitor {
         self.handshakeReporter = handshakeReporter
         self.networkMonitor.start(queue: .global())
 
-        os_log("[+] %{public}@", log: .networkProtectionMemoryLog, type: .debug, String(describing: self))
+        Logger.networkProtectionMemory.debug("[+] \(String(describing: self), privacy: .public)")
     }
 
     deinit {
         task?.cancel()
         networkMonitor.cancel()
 
-        os_log("[-] %{public}@", log: .networkProtectionMemoryLog, type: .debug, String(describing: self))
+        Logger.networkProtectionMemory.debug("[-] \(String(describing: self), privacy: .public)")
     }
 
     // MARK: - Start/Stop monitoring
 
     func start(callback: @escaping (Result) -> Void) {
-        os_log("⚫️ Starting tunnel failure monitor", log: .networkProtectionTunnelFailureMonitorLog)
+        Logger.networkProtectionTunnelFailureMonitor.debug("⚫️ Starting tunnel failure monitor")
 
         failureReported = false
         firstCheckSkipped = false
@@ -93,7 +93,7 @@ public actor NetworkProtectionTunnelFailureMonitor {
     }
 
     func stop() {
-        os_log("⚫️ Stopping tunnel failure monitor", log: .networkProtectionTunnelFailureMonitorLog)
+        Logger.networkProtectionTunnelFailureMonitor.debug("⚫️ Stopping tunnel failure monitor")
 
         networkMonitor.cancel()
         networkMonitor.pathUpdateHandler = nil
@@ -108,7 +108,7 @@ public actor NetworkProtectionTunnelFailureMonitor {
         guard firstCheckSkipped else {
             // Avoid running the first tunnel failure check after startup to avoid reading the first handshake after sleep, which will almost always
             // be out of date. In normal operation, the first check will frequently be 0 as WireGuard hasn't had the chance to handshake yet.
-            os_log("⚫️ Skipping first tunnel failure check", log: .networkProtectionTunnelFailureMonitorLog)
+            Logger.networkProtectionTunnelFailureMonitor.debug("⚫️ Skipping first tunnel failure check")
             firstCheckSkipped = true
             return
         }
@@ -116,23 +116,23 @@ public actor NetworkProtectionTunnelFailureMonitor {
         let mostRecentHandshake = (try? await handshakeReporter.getMostRecentHandshake()) ?? 0
 
         guard mostRecentHandshake > 0 else {
-            os_log("⚫️ Got handshake timestamp at or below 0, skipping check", log: .networkProtectionTunnelFailureMonitorLog)
+            Logger.networkProtectionTunnelFailureMonitor.debug("⚫️ Got handshake timestamp at or below 0, skipping check")
             return
         }
 
         let difference = Date().timeIntervalSince1970 - mostRecentHandshake
-        os_log("⚫️ Last handshake: %{public}f seconds ago", log: .networkProtectionTunnelFailureMonitorLog, difference)
+        Logger.networkProtectionTunnelFailureMonitor.debug("⚫️ Last handshake: \(difference, privacy: .public) seconds ago")
 
         if difference > Result.failureDetected.threshold, isConnected {
             if failureReported {
-                os_log("⚫️ Tunnel failure already reported", log: .networkProtectionTunnelFailureMonitorLog)
+                Logger.networkProtectionTunnelFailureMonitor.debug("⚫️ Tunnel failure already reported")
             } else {
-                os_log("⚫️ Tunnel failure reported", log: .networkProtectionTunnelFailureMonitorLog)
+                Logger.networkProtectionTunnelFailureMonitor.debug("⚫️ Tunnel failure reported")
                 callback(.failureDetected)
                 failureReported = true
             }
         } else if difference <= Result.failureRecovered.threshold, failureReported {
-            os_log("⚫️ Tunnel recovered from failure", log: .networkProtectionTunnelFailureMonitorLog)
+            Logger.networkProtectionTunnelFailureMonitor.debug("⚫️ Tunnel recovered from failure")
             callback(.failureRecovered)
             failureReported = false
         }

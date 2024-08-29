@@ -23,6 +23,7 @@ import Common
 import DDGSync
 import GRDB
 import SecureStorage
+import os.log
 
 public final class CredentialsProvider: DataProvider {
 
@@ -31,13 +32,12 @@ public final class CredentialsProvider: DataProvider {
         secureVaultErrorReporter: SecureVaultReporting,
         metadataStore: SyncMetadataStore,
         metricsEvents: EventMapping<MetricsEvent>? = nil,
-        log: @escaping @autoclosure () -> OSLog = .disabled,
         syncDidUpdateData: @escaping () -> Void
     ) throws {
         self.secureVaultFactory = secureVaultFactory
         self.secureVaultErrorReporter = secureVaultErrorReporter
         self.metricsEvents = metricsEvents
-        super.init(feature: .init(name: "credentials"), metadataStore: metadataStore, log: log(), syncDidUpdateData: syncDidUpdateData)
+        super.init(feature: .init(name: "credentials"), metadataStore: metadataStore, syncDidUpdateData: syncDidUpdateData)
     }
 
     // MARK: - DataProviding
@@ -99,13 +99,7 @@ public final class CredentialsProvider: DataProvider {
                     encryptedUsing: { try crypter.encryptAndBase64Encode($0, using: encryptionKey) }
                 )
             } catch Syncable.SyncableCredentialError.validationFailed {
-                os_log(
-                    .error,
-                    log: log,
-                    "Validation failed for credential %{private}s with title: %{private}s",
-                    credentials.metadata.uuid,
-                    credentials.account?.title.flatMap { String($0.prefix(100)) } ?? ""
-                )
+                Logger.sync.error("Validation failed for credential \(credentials.metadata.uuid) with title: \(credentials.account?.title.flatMap { String($0.prefix(100)) } ?? "")")
                 return nil
             }
         }

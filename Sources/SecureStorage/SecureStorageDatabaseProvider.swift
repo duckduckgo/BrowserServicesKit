@@ -19,6 +19,7 @@
 import Foundation
 import Common
 import GRDB
+import os.log
 
 public protocol SecureStorageDatabaseProvider {
 
@@ -68,10 +69,10 @@ open class GRDBSecureStorageDatabaseProvider: SecureStorageDatabaseProvider {
             case .pool: writer = try DatabasePool(path: file.path, configuration: config)
             }
         } catch let error as DatabaseError where [.SQLITE_NOTADB, .SQLITE_CORRUPT].contains(error.resultCode) {
-            os_log("database corrupt: %{public}s", type: .error, error.message ?? "")
+            Logger.secureStorage.error("database corrupt: \(error.localizedDescription, privacy: .public)")
             throw SecureStorageDatabaseError.corruptedDatabase(error)
         } catch {
-            os_log("database initialization failed with %{public}s", type: .error, error.localizedDescription)
+            Logger.secureStorage.error("database initialization failed with \(error.localizedDescription, privacy: .public)")
             throw error
         }
 
@@ -81,7 +82,7 @@ open class GRDBSecureStorageDatabaseProvider: SecureStorageDatabaseProvider {
         do {
             try migrator.migrate(writer)
         } catch {
-            os_log("database migration error: %{public}s", type: .error, error.localizedDescription)
+            Logger.secureStorage.error("database migration error: \(error.localizedDescription, privacy: .public)")
             throw error
         }
 
