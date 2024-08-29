@@ -28,7 +28,7 @@ final class TrackerDataQueryExtensionTests: XCTestCase {
         let tds = try JSONDecoder().decode(TrackerData.self, from: Self.mockTDS)
 
         // WHEN
-        let result = try XCTUnwrap(tds.findParentOrFallback(forHost: "www.instagram.com"))
+        let result = try XCTUnwrap(tds.findParentEntityOrFallback(forHost: "www.instagram.com"))
 
         // THEN
         XCTAssertEqual(result.displayName, "Facebook")
@@ -39,7 +39,7 @@ final class TrackerDataQueryExtensionTests: XCTestCase {
         let tds = try JSONDecoder().decode(TrackerData.self, from: Self.mockTDS)
 
         // WHEN
-        let result = try XCTUnwrap(tds.findParentOrFallback(forHost: "www.roku.com"))
+        let result = try XCTUnwrap(tds.findParentEntityOrFallback(forHost: "www.roku.com"))
 
         // THEN
         XCTAssertEqual(result.displayName, "Roku")
@@ -50,7 +50,7 @@ final class TrackerDataQueryExtensionTests: XCTestCase {
         let tds = try JSONDecoder().decode(TrackerData.self, from: Self.mockTDS)
 
         // WHEN
-        let result = tds.findParentOrFallback(forHost: "www.test.com")
+        let result = tds.findParentEntityOrFallback(forHost: "www.test.com")
 
         // THEN
         XCTAssertNil(result)

@@ -34,10 +34,10 @@ extension TrackerData {
         return nil
     }
 
-    /// Returns the entity associated with the host. If the entity is owned by a parent entity, it returns the parent entity.
+    /// Returns the parent of the entity associated with the host if any. If the entity associated with the host doesn't have a parent return the entity. Otherwise, return nil.
     /// - Parameter host:
     /// - Returns: The entity associated with the host.
-    public func findParentOrFallback(forHost host: String) -> Entity? {
+    public func findParentEntityOrFallback(forHost host: String) -> Entity? {
         // If the entity associated with the host is owned by a parent company (e.g. Instagram is owned by Facebook) return the parent company.
         // If the entity associated with the host is not owned by a parent company return the entity.
         // If the are no entities associated with the host return nil
