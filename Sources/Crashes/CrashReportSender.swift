@@ -22,17 +22,10 @@ import MetricKit
 public final class CrashReportSender {
 
     static let reportServiceUrl = URL(string: "https://duckduckgo.com/crash.js")!
-
     public let platform: CrashCollectionPlatform
 
-    public var log: OSLog {
-        getLog()
-    }
-    private let getLog: () -> OSLog
-
-    public init(platform: CrashCollectionPlatform, log: @escaping @autoclosure () -> OSLog = .disabled) {
+    public init(platform: CrashCollectionPlatform) {
         self.platform = platform
-        getLog = log
     }
 
     public func send(_ crashReportData: Data) async {

@@ -49,6 +49,7 @@ public enum PrivacyFeature: String {
     case sslCertificates
     case brokenSiteReportExperiment
     case toggleReports
+    case brokenSitePrompt
     case remoteMessaging
     case additionalCampaignPixelParams
     case syncPromotion
@@ -85,6 +86,7 @@ public enum DBPSubfeature: String, Equatable, PrivacySubfeature {
 
     case waitlist
     case waitlistBetaActive
+    case freemium
 }
 
 public enum SyncSubfeature: String, PrivacySubfeature {
@@ -116,6 +118,7 @@ public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {
     case allowPurchaseStripe
     case isLaunchedOverride
     case isLaunchedOverrideStripe
+    case useUnifiedFeedback
 }
 
 public enum sslCertificatesSubfeature: String, PrivacySubfeature {

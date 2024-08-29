@@ -18,6 +18,7 @@
 
 import Common
 import Foundation
+import os.log
 
 extension UnsafeBufferPointer {
 
@@ -46,7 +47,7 @@ extension UnsafeBufferPointer {
             if protection & (PROT_WRITE | PROT_READ) != (PROT_WRITE | PROT_READ) {
                 let result = mprotect(mutableBuffer.baseAddress!, mutableBuffer.count * MemoryLayout<Element>.size, protection)
                 if result != 0 {
-                    os_log(.error, "failed to restore protection %d for %s with %d", protection, self.debugDescription, result)
+                    Logger.general.error("failed to restore protection \(protection, privacy: .public) for \(self.debugDescription, privacy: .public) with \(result, privacy: .public)")
                 }
             }
         }

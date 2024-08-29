@@ -21,6 +21,7 @@ import Combine
 import Common
 import DDGSyncCrypto
 import Foundation
+import os.log
 
 public class DDGSync: DDGSyncing {
 
@@ -62,13 +63,11 @@ public class DDGSync: DDGSyncing {
     public convenience init(dataProvidersSource: DataProvidersSource,
                             errorEvents: EventMapping<SyncError>,
                             privacyConfigurationManager: PrivacyConfigurationManaging,
-                            log: @escaping @autoclosure () -> OSLog = .disabled,
                             environment: ServerEnvironment = .production) {
         let dependencies = ProductionDependencies(
             serverEnvironment: environment,
             privacyConfigurationManager: privacyConfigurationManager,
-            errorEvents: errorEvents,
-            log: log()
+            errorEvents: errorEvents
         )
         self.init(dataProvidersSource: dataProvidersSource, dependencies: dependencies)
     }
@@ -333,7 +332,7 @@ public class DDGSync: DDGSyncing {
             try updateAccount(nil)
             throw SyncError.unauthenticatedWhileLoggedIn
         } catch {
-            os_log(.error, log: dependencies.log, "Failed to delete account upon unauthenticated server response: %{public}s", error.localizedDescription)
+            Logger.sync.error("Failed to delete account upon unauthenticated server response: \(error.localizedDescription, privacy: .public)")
             if error is SyncError {
                 throw error
             }

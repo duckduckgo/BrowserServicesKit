@@ -38,15 +38,9 @@ public enum CrashCollectionPlatform {
 @available(iOS 13, macOS 12, *)
 public final class CrashCollection {
 
-    public var log: OSLog {
-        getLog()
-    }
-    private let getLog: () -> OSLog
-
-    public init(platform: CrashCollectionPlatform, log: @escaping @autoclosure () -> OSLog = .disabled) {
-        self.getLog = log
+    public init(platform: CrashCollectionPlatform) {
         crashHandler = CrashHandler()
-        crashSender = CrashReportSender(platform: platform, log: log())
+        crashSender = CrashReportSender(platform: platform)
     }
 
     public func start(didFindCrashReports: @escaping (_ pixelParameters: [[String: String]], _ payloads: [Data], _ uploadReports: @escaping () -> Void) -> Void) {
@@ -65,8 +59,8 @@ public final class CrashCollection {
         let first = isFirstCrash
         isFirstCrash = false
 
-        crashHandler.crashDiagnosticsPayloadHandler = { [log] payloads in
-            os_log("😵 loaded %{public}d diagnostic payloads", log: log, payloads.count)
+        crashHandler.crashDiagnosticsPayloadHandler = { payloads in
+            Logger.general.log("😵 loaded \(payloads.count, privacy: .public) diagnostic payloads")
             let pixelParameters = payloads
                 .compactMap(\.crashDiagnostics)
                 .flatMap { $0 }

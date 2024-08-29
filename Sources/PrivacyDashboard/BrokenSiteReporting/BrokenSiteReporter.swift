@@ -19,6 +19,7 @@
 import Foundation
 import Common
 import Persistence
+import os.log
 
 public protocol BrokenSiteReportPersistencyManaging {
 
@@ -57,23 +58,23 @@ public class BrokenSiteReporter {
         let now = Date()
         let removedCount = persistencyManager.removeExpiredItems(currentDate: now)
         if removedCount > 0 {
-            os_log(.debug, "\(removedCount) breakage history record removed")
+            Logger.privacyDashboard.debug("\(removedCount) breakage history record removed")
         }
 
         var report = report
 
         // Create history entry
         guard let entry = BrokenSiteReportEntry(report: report, currentDate: now, daysToExpiry: daysToExpiry) else {
-            os_log(.error, "Failed to create a history entry for broken site report")
+            Logger.privacyDashboard.error("Failed to create a history entry for broken site report")
             throw BrokenSiteReporterError.failedToGenerateHistoryEntry
         }
 
-        os_log(.debug, "Reporting website breakage for \(entry.identifier)")
+        Logger.privacyDashboard.debug("Reporting website breakage for \(entry.identifier)")
 
         // Check if the report has been sent before
         if let storedHistoryEntry = try persistencyManager.getBrokenSiteReportHistory(forDomainIdentifier: entry.identifier) {
             report.lastSentDay = storedHistoryEntry.lastSentDayString
-            os_log(.debug, "Broken site report sent on the \(report.lastSentDay ?? "?") for \(entry.identifier)")
+            Logger.privacyDashboard.debug("Broken site report sent on the \(report.lastSentDay ?? "?") for \(entry.identifier)")
         }
 
         let pixelParams = report.getRequestParameters(forReportMode: reportMode)
@@ -84,7 +85,7 @@ public class BrokenSiteReporter {
         // persist history entry
         try persistencyManager.persist(entry: entry) // this overrides the previously stored entry if existed
 
-        os_log(.debug, "Website breakage reported for \(entry.identifier)")
+        Logger.privacyDashboard.debug("Website breakage reported for \(entry.identifier)")
     }
 
 }

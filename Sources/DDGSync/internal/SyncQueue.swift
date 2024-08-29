@@ -19,6 +19,7 @@
 import Foundation
 import Combine
 import Common
+import os.log
 
 struct FeatureError: Error {
     let feature: Feature
@@ -69,8 +70,7 @@ final class SyncQueue {
             crypter: dependencies.crypter,
             api: dependencies.api,
             endpoints: dependencies.endpoints,
-            payloadCompressor: dependencies.payloadCompressor,
-            log: dependencies.log
+            payloadCompressor: dependencies.payloadCompressor
         )
     }
 
@@ -80,13 +80,11 @@ final class SyncQueue {
         crypter: Crypting,
         api: RemoteAPIRequestCreating,
         endpoints: Endpoints,
-        payloadCompressor: SyncPayloadCompressing,
-        log: @escaping @autoclosure () -> OSLog = .disabled
+        payloadCompressor: SyncPayloadCompressing
     ) {
         self.dataProviders = dataProviders
         self.storage = storage
         self.crypter = crypter
-        self.getLog = log
         requestMaker = SyncRequestMaker(storage: storage, api: api, endpoints: endpoints, payloadCompressor: payloadCompressor)
         syncDidFinishPublisher = syncDidFinishSubject.eraseToAnyPublisher()
         syncHTTPRequestErrorPublisher = syncHTTPRequestErrorSubject.eraseToAnyPublisher()
@@ -111,7 +109,7 @@ final class SyncQueue {
                 try dataProvider.prepareForFirstSync()
                 try dataProvider.registerFeature(withState: setupState)
             } catch {
-                os_log(.debug, log: self.log, "Error when preparing %{public}s for first sync: %{public}s", dataProvider.feature.name, error.localizedDescription)
+                Logger.sync.error("Error when preparing \(dataProvider.feature.name, privacy: .public) for first sync: \(error.localizedDescription, privacy: .public)")
                 dataProvider.handleSyncError(error)
                 throw error
             }
@@ -121,9 +119,9 @@ final class SyncQueue {
     var isDataSyncingFeatureFlagEnabled: Bool = true {
         didSet {
             if isDataSyncingFeatureFlagEnabled {
-                os_log(.debug, log: self.log, "Sync Feature has been enabled")
+                Logger.sync.debug("Sync Feature has been enabled")
             } else {
-                os_log(.debug, log: self.log, "Sync Feature has been disabled, cancelling all operations")
+                Logger.sync.debug("Sync Feature has been disabled, cancelling all operations")
                 operationQueue.cancelAllOperations()
             }
         }
@@ -131,7 +129,7 @@ final class SyncQueue {
 
     func startSync() {
         guard isDataSyncingFeatureFlagEnabled else {
-            os_log(.debug, log: self.log, "Sync Feature is temporarily disabled, not starting sync")
+            Logger.sync.debug("Sync Feature is temporarily disabled, not starting sync")
             return
         }
         let operation = makeSyncOperation()
@@ -139,13 +137,13 @@ final class SyncQueue {
     }
 
     func cancelOngoingSyncAndSuspendQueue() {
-        os_log(.debug, log: self.log, "Cancelling sync and suspending sync queue")
+        Logger.sync.debug("Cancelling sync and suspending sync queue")
         operationQueue.cancelAllOperations()
         operationQueue.isSuspended = true
     }
 
     func resumeQueue() {
-        os_log(.debug, log: self.log, "Resuming sync queue")
+        Logger.sync.debug("Resuming sync queue")
         operationQueue.isSuspended = false
     }
 
@@ -156,8 +154,7 @@ final class SyncQueue {
             dataProviders: dataProviders,
             storage: storage,
             crypter: crypter,
-            requestMaker: requestMaker,
-            log: self.log
+            requestMaker: requestMaker
         )
         operation.didStart = { [weak self] in
             self?.syncDidStartSubject.send(())
@@ -187,8 +184,4 @@ final class SyncQueue {
     private let syncDidFinishSubject = PassthroughSubject<Result<Void, Error>, Never>()
     private let syncDidStartSubject = PassthroughSubject<Void, Never>()
     private let syncHTTPRequestErrorSubject = PassthroughSubject<Error, Never>()
-    private var log: OSLog {
-        getLog()
-    }
-    private let getLog: () -> OSLog
 }
