@@ -78,7 +78,6 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
 
     public weak var emailDelegate: AutofillEmailDelegate?
     public weak var vaultDelegate: AutofillSecureVaultDelegate?
-    public weak var importUserScriptDelegate: AutofillPasswordImportUserScriptDelegate?
 
     internal let loginImportStateProvider: AutofillLoginImportStateProvider
     internal var scriptSourceProvider: AutofillUserScriptSourceProvider
