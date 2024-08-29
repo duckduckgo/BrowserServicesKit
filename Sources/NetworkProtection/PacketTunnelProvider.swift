@@ -229,6 +229,16 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Server Selection
 
+    private lazy var serverSelectionResolver: VPNServerSelectionResolving = {
+        let locationRepository = NetworkProtectionLocationListCompositeRepository(
+            environment: settings.selectedEnvironment,
+            tokenStore: tokenStore,
+            errorEvents: debugEvents,
+            isSubscriptionEnabled: isSubscriptionEnabled
+        )
+        return VPNServerSelectionResolver(locationListRepository: locationRepository, vpnSettings: settings)
+    }()
+
     @MainActor
     private var lastSelectedServer: NetworkProtectionServer? {
         didSet {
@@ -441,7 +451,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     // MARK: - Initializers
 
     private let keychainType: KeychainType
-    private let debugEvents: EventMapping<NetworkProtectionError>?
+    private let debugEvents: EventMapping<NetworkProtectionError>
     private let providerEvents: EventMapping<Event>
 
     public let isSubscriptionEnabled: Bool
@@ -455,7 +465,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 wireGuardInterface: WireGuardInterface,
                 keychainType: KeychainType,
                 tokenStore: NetworkProtectionTokenStore,
-                debugEvents: EventMapping<NetworkProtectionError>?,
+                debugEvents: EventMapping<NetworkProtectionError>,
                 providerEvents: EventMapping<Event>,
                 settings: VPNSettings,
                 defaults: UserDefaults,
@@ -786,7 +796,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             adapter.start(tunnelConfiguration: tunnelConfiguration) { [weak self] error in
                 if let error {
-                    self?.debugEvents?.fire(error.networkProtectionError)
+                    self?.debugEvents.fire(error.networkProtectionError)
                     continuation.resume(throwing: error)
                     return
                 }
@@ -887,7 +897,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 }
 
                 if let error {
-                    self?.debugEvents?.fire(error.networkProtectionError)
+                    self?.debugEvents.fire(error.networkProtectionError)
 
                     continuation.resume(throwing: error)
                     return
@@ -980,7 +990,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             self.adapter.update(tunnelConfiguration: tunnelConfiguration, reassert: reassert) { [weak self] error in
 
                 if let error = error {
-                    self?.debugEvents?.fire(error.networkProtectionError)
+                    self?.debugEvents.fire(error.networkProtectionError)
 
                     continuation.resume(throwing: error)
                     return
@@ -999,10 +1009,11 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                                              regenerateKey: Bool) async throws -> TunnelConfiguration {
 
         let configurationResult: NetworkProtectionDeviceManager.GenerateTunnelConfigurationResult
+        let resolvedServerSelectionMethod = await serverSelectionResolver.resolvedServerSelectionMethod()
 
         do {
             configurationResult = try await deviceManager.generateTunnelConfiguration(
-                selectionMethod: serverSelectionMethod,
+                resolvedSelectionMethod: resolvedServerSelectionMethod,
                 includedRoutes: includedRoutes,
                 excludedRoutes: excludedRoutes,
                 dnsSettings: dnsSettings,
@@ -1362,7 +1373,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
             adapter.stop { [weak self] error in
                 if let error {
-                    self?.debugEvents?.fire(error.networkProtectionError)
+                    self?.debugEvents.fire(error.networkProtectionError)
                     Logger.networkProtection.error("🔴 Failed to stop WireGuard adapter: \(error.localizedDescription, privacy: .public)")
                 }
 

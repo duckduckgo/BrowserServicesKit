@@ -139,7 +139,7 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
         let configurationResult: NetworkProtectionDeviceManagement.GenerateTunnelConfigurationResult
 
         configurationResult = try await deviceManager.generateTunnelConfiguration(
-            selectionMethod: serverSelectionMethod,
+            resolvedSelectionMethod: serverSelectionMethod,
             includedRoutes: includedRoutes,
             excludedRoutes: excludedRoutes,
             dnsSettings: dnsSettings,

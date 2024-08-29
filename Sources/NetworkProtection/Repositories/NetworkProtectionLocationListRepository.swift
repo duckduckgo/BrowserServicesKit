@@ -19,8 +19,16 @@
 import Foundation
 import Common
 
+public enum NetworkProtectionLocationListCachePolicy {
+    case returnCacheElseLoad
+    case ignoreCache
+
+    static var `default` = NetworkProtectionLocationListCachePolicy.returnCacheElseLoad
+}
+
 public protocol NetworkProtectionLocationListRepository {
     func fetchLocationList() async throws -> [NetworkProtectionLocation]
+    func fetchLocationList(cachePolicy: NetworkProtectionLocationListCachePolicy) async throws -> [NetworkProtectionLocation]
 }
 
 final public class NetworkProtectionLocationListCompositeRepository: NetworkProtectionLocationListRepository {
@@ -56,10 +64,33 @@ final public class NetworkProtectionLocationListCompositeRepository: NetworkProt
 
     @MainActor
     @discardableResult
+    public func fetchLocationList(cachePolicy: NetworkProtectionLocationListCachePolicy) async throws -> [NetworkProtectionLocation] {
+        switch cachePolicy {
+        case .returnCacheElseLoad:
+            return try await fetchLocationList()
+        case .ignoreCache:
+            return try await fetchLocationListFromRemote()
+        }
+    }
+
+    @MainActor
+    @discardableResult
     public func fetchLocationList() async throws -> [NetworkProtectionLocation] {
+        try await fetchLocationListReturningCacheElseLoad()
+    }
+
+    @MainActor
+    @discardableResult
+    func fetchLocationListReturningCacheElseLoad() async throws -> [NetworkProtectionLocation] {
         guard !canUseCache else {
             return Self.locationList
         }
+        return try await fetchLocationListFromRemote()
+    }
+
+    @MainActor
+    @discardableResult
+    func fetchLocationListFromRemote() async throws -> [NetworkProtectionLocation] {
         do {
             guard let authToken = try tokenStore.fetchToken() else {
                 throw NetworkProtectionError.noAuthTokenFound
