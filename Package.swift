@@ -40,6 +40,7 @@ let package = Package(
         .library(name: "Suggestions", targets: ["Suggestions"]),
         .library(name: "PixelKit", targets: ["PixelKit"]),
         .library(name: "PixelKitTestingUtilities", targets: ["PixelKitTestingUtilities"]),
+        .library(name: "SpecialErrorPages", targets: ["SpecialErrorPages"]),
         .library(name: "DuckPlayer", targets: ["DuckPlayer"]),
         .library(name: "Onboarding", targets: ["Onboarding"])
     ],
@@ -49,7 +50,7 @@ let package = Package(
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "2.1.2"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.2.0"),
         .package(url: "https://github.com/gumob/PunycodeSwift.git", exact: "2.1.0"),
-        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "6.11.0"),
+        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "6.12.0"),
         .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "5.1.1"),
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
         .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
@@ -381,6 +382,17 @@ let package = Package(
             ]
         ),
         .target(
+            name: "SpecialErrorPages",
+            dependencies: [
+                "Common",
+                "UserScript",
+                "BrowserServicesKit"
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
+            ]
+        ),
+        .target(
             name: "DuckPlayer",
             dependencies: [
                 "Common",
@@ -604,6 +616,12 @@ let package = Package(
             name: "OnboardingTests",
             dependencies: [
                 "Onboarding"
+            ]
+        ),
+        .testTarget(
+            name: "SpecialErrorPagesTests",
+            dependencies: [
+                "SpecialErrorPages"
             ]
         ),
     ],
