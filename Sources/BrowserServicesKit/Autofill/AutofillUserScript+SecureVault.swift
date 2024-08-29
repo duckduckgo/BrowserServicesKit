@@ -449,7 +449,7 @@ extension AutofillUserScript {
                                                               cards: cards,
                                                               email: email,
                                                               credentialsProvider: credentialsProvider,
-                                                              credentialsImport: true)
+                                                              credentialsImport: credentialsImport)
             if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
                 replyHandler(jsonString)
             }
