@@ -244,7 +244,11 @@ extension PrivacyDashboardController: WKNavigationDelegate {
         privacyInfo?.$serverTrust
             .receive(on: DispatchQueue.global(qos: .userInitiated))
             .map { serverTrust in
-                ServerTrustViewModel(serverTrust: serverTrust)
+                if let serverTrust {
+                    // swiftlint:disable:next force_cast
+                    return ServerTrustViewModel(serverTrust: (serverTrust as! SecTrust))
+                }
+                return ServerTrustViewModel(serverTrust: nil)
             }
             .receive(on: DispatchQueue.main)
             .sink(receiveValue: { [weak self] serverTrustViewModel in
