@@ -425,6 +425,16 @@ extension AutofillUserScript {
         let success: CredentialResponse
     }
 
+    struct CredentialsImportFlowResponse: Codable {
+
+        struct CredentialsImportFlowResponseContents: Codable {
+            let credentials: [CredentialResponse]
+            let availableInputTypes: AvailableInputTypesSuccess
+        }
+
+        let success: CredentialsImportFlowResponseContents
+    }
+
     // MARK: - Message Handlers
 
     func getRuntimeConfiguration(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
@@ -742,6 +752,54 @@ extension AutofillUserScript {
     func pmOpenManagePasswords(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         vaultDelegate?.autofillUserScript(self, didRequestPasswordManagerForDomain: hostForMessage(message))
         replyHandler(nil)
+    }
+
+    // MARK: Credentials Import Flow
+
+    func startCredentialsImportFlow(_ message: UserScriptMessage, replyHandler: @escaping MessageReplyHandler) {
+        let email = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
+        let domain = hostForMessage(message)
+        passwordImportDelegate?.autofillUserScriptDidRequestPasswordImportFlow { [weak self] in
+            guard let self else { 
+                replyHandler(nil)
+                return
+            }
+            vaultDelegate?.autofillUserScript(self, didRequestAutoFillInitDataForDomain: domain) { [weak self] credentials, identities, cards, credentialsProvider, totalCredentialsCount in
+                guard let self else {
+                    replyHandler("")
+                    return
+                }
+                let credentialsImport = self.shouldShowPasswordImportDialog(credentials: credentials, credentialsProvider: credentialsProvider, totalCredentialsCount: totalCredentialsCount)
+                let inputTypesSuccess = RequestAvailableInputTypesResponse(credentials: credentials,
+                                                                           identities: identities,
+                                                                           cards: cards,
+                                                                           email: email,
+                                                                           credentialsProvider: credentialsProvider,
+                                                                           credentialsImport: credentialsImport).success
+                let credentialsArray: [AutofillUserScript.CredentialResponse] = credentials.compactMap { credential in
+                    guard let id = credential.account.id,
+                          let username = credential.account.username,
+                          let password = credential.password
+                    else {
+                        return nil
+                    }
+
+                    return AutofillUserScript.CredentialResponse(id: String(id),
+                                                                 username: username,
+                                                                 password: String(data: password, encoding: .utf8) ?? "",
+                                                                 credentialsProvider: credentialsProvider.name.rawValue)
+                }
+                let response = CredentialsImportFlowResponse(
+                    success: .init(
+                        credentials: credentialsArray,
+                        availableInputTypes: inputTypesSuccess
+                    )
+                )
+                if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
+                    replyHandler(jsonString)
+                }
+            }
+        }
     }
 
     // MARK: Pixels

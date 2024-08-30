@@ -21,9 +21,13 @@ import WebKit
 import UserScript
 import os.log
 
-public protocol AutofillLoginImportStateProvider: AnyObject {
+public protocol AutofillLoginImportStateProvider {
     var isNewDDGUser: Bool { get }
     var hasImportedLogins: Bool { get }
+}
+
+public protocol AutofillPasswordImportDelegate: AnyObject {
+    func autofillUserScriptDidRequestPasswordImportFlow(_ completion: @escaping () -> Void)
 }
 
 var previousIncontextSignupPermanentlyDismissedAt: Double?
@@ -66,6 +70,8 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
         case getIncontextSignupDismissedAt
         case startEmailProtectionSignup
         case closeEmailProtectionTab
+
+        case startCredentialsImportFlow // TODO: Update to startCredentialsImportFlow if needed
     }
 
     /// Represents if the autofill is loaded into the top autofill context.
@@ -78,6 +84,7 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
 
     public weak var emailDelegate: AutofillEmailDelegate?
     public weak var vaultDelegate: AutofillSecureVaultDelegate?
+    public weak var passwordImportDelegate: AutofillPasswordImportDelegate?
 
     internal let loginImportStateProvider: AutofillLoginImportStateProvider
     internal var scriptSourceProvider: AutofillUserScriptSourceProvider
@@ -162,6 +169,7 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
         case .getIncontextSignupDismissedAt: return getIncontextSignupDismissedAt
         case .startEmailProtectionSignup: return startEmailProtectionSignup
         case .closeEmailProtectionTab: return closeEmailProtectionTab
+        case .startCredentialsImportFlow: return startCredentialsImportFlow
         }
     }
 
