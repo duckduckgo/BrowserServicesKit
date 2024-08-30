@@ -23,6 +23,7 @@ import Common
 import CoreData
 import DDGSync
 import Persistence
+import os.log
 
 public struct FaviconsFetcherInput {
     public var modifiedBookmarksUUIDs: Set<String>
@@ -37,13 +38,12 @@ public final class BookmarksProvider: DataProvider {
         database: CoreDataDatabase,
         metadataStore: SyncMetadataStore,
         metricsEvents: EventMapping<MetricsEvent>? = nil,
-        log: @escaping @autoclosure () -> OSLog = .disabled,
         syncDidUpdateData: @escaping () -> Void,
         syncDidFinish: @escaping (FaviconsFetcherInput?) -> Void
     ) {
         self.database = database
         self.metricsEvents = metricsEvents
-        super.init(feature: .init(name: "bookmarks"), metadataStore: metadataStore, log: log(), syncDidUpdateData: syncDidUpdateData)
+        super.init(feature: .init(name: "bookmarks"), metadataStore: metadataStore, syncDidUpdateData: syncDidUpdateData)
         self.syncDidFinish = { [weak self] in
             syncDidFinish(self?.faviconsFetcherInput)
         }
@@ -103,13 +103,7 @@ public final class BookmarksProvider: DataProvider {
                     return try Syncable(bookmark: bookmarkEntity, encryptedUsing: { try crypter.encryptAndBase64Encode($0, using: encryptionKey)})
                 } catch {
                     if case Syncable.SyncableBookmarkError.validationFailed = error {
-                        os_log(
-                            .error,
-                            log: log,
-                            "Validation failed for bookmark %{private}s with title: %{private}s",
-                            bookmarkEntity.uuid ?? "",
-                            bookmarkEntity.title.flatMap { String($0.prefix(100)) } ?? ""
-                        )
+                        Logger.bookmarks.error("Validation failed for bookmark \(bookmarkEntity.uuid ?? "") with title: \(bookmarkEntity.title.flatMap { String($0.prefix(100)) } ?? "")")
                     }
                     return nil
                 }

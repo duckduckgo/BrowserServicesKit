@@ -51,7 +51,7 @@ public enum AuthChallengeDisposition: Sendable {
 
 }
 
-extension AuthChallengeDisposition? {
+public extension AuthChallengeDisposition? {
     /// Pass challenge to next responder
-    public static let next = AuthChallengeDisposition?.none
+    static let next = AuthChallengeDisposition?.none
 }

@@ -71,8 +71,7 @@ final class BookmarksFaviconsFetcherTests: XCTestCase {
             stateStore: stateStore,
             fetcher: fetcher,
             faviconStore: faviconStore,
-            errorEvents: eventMapper,
-            log: .default
+            errorEvents: eventMapper
         )
     }
 

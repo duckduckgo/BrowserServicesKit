@@ -14,8 +14,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/content-scope-scripts",
       "state" : {
-        "revision" : "f97053d24c21ea301d4067adbbe0899ff940526a",
-        "version" : "6.7.0"
+        "revision" : "5876a5d2e2e7f5a2e11f6419c6c3fafb7cafdfca",
+        "version" : "6.12.0"
       }
     },
     {
@@ -88,15 +88,6 @@
       "state" : {
         "revision" : "1403e17eeeb8493b92fb9d11eb8c846bb9776581",
         "version" : "2.1.2"
-      }
-    },
-    {
-      "identity" : "wireguard-apple",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/duckduckgo/wireguard-apple",
-      "state" : {
-        "revision" : "13fd026384b1af11048451061cc1b21434990668",
-        "version" : "1.1.3"
       }
     }
   ],

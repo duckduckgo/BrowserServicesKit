@@ -25,7 +25,7 @@ public struct DecodableHelper {
             let json = try JSONSerialization.data(withJSONObject: input)
             return try JSONDecoder().decode(Target.self, from: json)
         } catch {
-            os_log(.error, "Error decoding message body: %{public}@", error.localizedDescription)
+            Logger.general.error("Error decoding message body: \(error.localizedDescription, privacy: .public)")
             return nil
         }
     }

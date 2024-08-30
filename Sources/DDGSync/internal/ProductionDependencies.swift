@@ -35,24 +35,17 @@ struct ProductionDependencies: SyncDependencies {
     let privacyConfigurationManager: PrivacyConfigurationManaging
     let errorEvents: EventMapping<SyncError>
 
-    var log: OSLog {
-        getLog()
-    }
-    private let getLog: () -> OSLog
-
     init(
         serverEnvironment: ServerEnvironment,
         privacyConfigurationManager: PrivacyConfigurationManaging,
-        errorEvents: EventMapping<SyncError>,
-        log: @escaping @autoclosure () -> OSLog = .disabled
+        errorEvents: EventMapping<SyncError>
     ) {
         self.init(fileStorageUrl: FileManager.default.applicationSupportDirectoryForComponent(named: "Sync"),
                   serverEnvironment: serverEnvironment,
                   keyValueStore: UserDefaults(),
                   secureStore: SecureStorage(),
                   privacyConfigurationManager: privacyConfigurationManager,
-                  errorEvents: errorEvents,
-                  log: log())
+                  errorEvents: errorEvents)
     }
 
     init(
@@ -61,8 +54,7 @@ struct ProductionDependencies: SyncDependencies {
         keyValueStore: KeyValueStoring,
         secureStore: SecureStoring,
         privacyConfigurationManager: PrivacyConfigurationManaging,
-        errorEvents: EventMapping<SyncError>,
-        log: @escaping @autoclosure () -> OSLog = .disabled
+        errorEvents: EventMapping<SyncError>
     ) {
         self.fileStorageUrl = fileStorageUrl
         self.endpoints = Endpoints(serverEnvironment: serverEnvironment)
@@ -70,9 +62,8 @@ struct ProductionDependencies: SyncDependencies {
         self.secureStore = secureStore
         self.privacyConfigurationManager = privacyConfigurationManager
         self.errorEvents = errorEvents
-        self.getLog = log
 
-        api = RemoteAPIRequestCreator(log: log())
+        api = RemoteAPIRequestCreator()
         payloadCompressor = SyncGzipPayloadCompressor()
 
         crypter = Crypter(secureStore: secureStore)

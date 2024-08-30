@@ -18,6 +18,7 @@
 
 import Foundation
 import Common
+import os.log
 
 #if os(macOS)
 
@@ -37,16 +38,12 @@ extension DistributedNotificationCenter {
     // MARK: - Logging
 
     private func logPost(_ notification: NetworkProtectionNotification,
-                         object: String? = nil,
-                         log: OSLog = .networkProtectionDistributedNotificationsLog) {
+                         object: String? = nil) {
 
         if let string = object {
-            os_log("%{public}@: Distributed notification posted: %{public}@ (%{public}@)",
-                   log: log,
-                   type: .debug,
-                   String(describing: Thread.current), notification.name.rawValue, string)
+            Logger.networkProtectionMemory.debug("\(String(describing: Thread.current), privacy: .public): Distributed notification posted: \(notification.name.rawValue, privacy: .public) (\(string, privacy: .public))")
         } else {
-            os_log("Distributed notification posted: %{public}@", log: log, type: .debug, notification.name.rawValue)
+            Logger.networkProtectionMemory.debug("Distributed notification posted: \(notification.name.rawValue, privacy: .public)")
         }
     }
 }
@@ -54,21 +51,20 @@ extension DistributedNotificationCenter {
 extension DistributedNotificationCenter: NetworkProtectionNotificationPosting {
     public func post(_ networkProtectionNotification: NetworkProtectionNotification,
                      object: String? = nil,
-                     userInfo: [AnyHashable: Any]? = nil,
-                     log: OSLog = .networkProtectionDistributedNotificationsLog) {
-        logPost(networkProtectionNotification, object: object, log: log)
+                     userInfo: [AnyHashable: Any]? = nil) {
+        logPost(networkProtectionNotification, object: object)
 
         postNotificationName(networkProtectionNotification.name, object: object, options: [.deliverImmediately, .postToAllSessions])
     }
 }
 
 public protocol NetworkProtectionNotificationPosting: AnyObject {
-    func post(_ networkProtectionNotification: NetworkProtectionNotification, object: String?, userInfo: [AnyHashable: Any]?, log: OSLog)
+    func post(_ networkProtectionNotification: NetworkProtectionNotification, object: String?, userInfo: [AnyHashable: Any]?)
 }
 
 public extension NetworkProtectionNotificationPosting {
     func post(_ networkProtectionNotification: NetworkProtectionNotification, object: String? = nil, userInfo: [AnyHashable: Any]? = nil) {
-        post(networkProtectionNotification, object: object, userInfo: userInfo, log: .networkProtectionDistributedNotificationsLog)
+        post(networkProtectionNotification, object: object, userInfo: userInfo)
     }
 }
 

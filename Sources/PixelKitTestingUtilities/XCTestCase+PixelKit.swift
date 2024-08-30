@@ -17,7 +17,7 @@
 //
 
 import Foundation
-@testable import PixelKit
+import PixelKit
 import XCTest
 
 public extension XCTestCase {

@@ -23,6 +23,7 @@ import Foundation
 import NetworkExtension
 import NotificationCenter
 import Common
+import os.log
 
 /// Observes the tunnel status through Distributed Notifications.
 ///
@@ -41,18 +42,10 @@ public class ControllerErrorMesssageObserverThroughDistributedNotifications: Con
     private let distributedNotificationCenter: DistributedNotificationCenter
     private var cancellable: AnyCancellable?
 
-    // MARK: - Logging
-
-    private let log: OSLog
-
     // MARK: - Initialization
 
-    public init(distributedNotificationCenter: DistributedNotificationCenter = .default(),
-                log: OSLog = .networkProtectionStatusReporterLog) {
-
+    public init(distributedNotificationCenter: DistributedNotificationCenter = .default()) {
         self.distributedNotificationCenter = distributedNotificationCenter
-        self.log = log
-
         start()
     }
 
@@ -75,9 +68,9 @@ public class ControllerErrorMesssageObserverThroughDistributedNotifications: Con
 
     private func logErrorChanged(isShowingError: Bool) {
         if isShowingError {
-            os_log("%{public}@: error message set", log: log, type: .debug, String(describing: self))
+            Logger.networkProtectionStatusReporter.debug("\(String(describing: self), privacy: .public): error message set")
         } else {
-            os_log("%{public}@: error message cleared", log: log, type: .debug, String(describing: self))
+            Logger.networkProtectionStatusReporter.debug("\(String(describing: self), privacy: .public): error message cleared")
         }
     }
 }
