@@ -98,6 +98,7 @@ public struct MobileUserAttributeMatcher: AttributeMatching {
 public struct DesktopUserAttributeMatcher: AttributeMatching {
     private let pinnedTabsCount: Int
     private let hasCustomHomePage: Bool
+    private let isCurrentFreemiumPIRUser: Bool
     private let dismissedDeprecatedMacRemoteMessageIds: [String]
 
     private let commonUserAttributeMatcher: CommonUserAttributeMatcher
@@ -123,10 +124,12 @@ public struct DesktopUserAttributeMatcher: AttributeMatching {
                 hasCustomHomePage: Bool,
                 isDuckPlayerOnboarded: Bool,
                 isDuckPlayerEnabled: Bool,
+                isCurrentFreemiumPIRUser: Bool,
                 dismissedDeprecatedMacRemoteMessageIds: [String]
     ) {
         self.pinnedTabsCount = pinnedTabsCount
         self.hasCustomHomePage = hasCustomHomePage
+        self.isCurrentFreemiumPIRUser = isCurrentFreemiumPIRUser
         self.dismissedDeprecatedMacRemoteMessageIds = dismissedDeprecatedMacRemoteMessageIds
 
         commonUserAttributeMatcher = .init(
@@ -158,6 +161,8 @@ public struct DesktopUserAttributeMatcher: AttributeMatching {
             return matchingAttribute.evaluate(for: pinnedTabsCount)
         case let matchingAttribute as CustomHomePageMatchingAttribute:
             return matchingAttribute.evaluate(for: hasCustomHomePage)
+        case let matchingAttribute as FreemiumPIRCurrentUserMatchingAttribute:
+            return matchingAttribute.evaluate(for: isCurrentFreemiumPIRUser)
         case let matchingAttribute as InteractedWithDeprecatedMacRemoteMessageMatchingAttribute:
             if dismissedDeprecatedMacRemoteMessageIds.contains(where: { messageId in
                 StringArrayMatchingAttribute(matchingAttribute.value).matches(value: messageId) == .match

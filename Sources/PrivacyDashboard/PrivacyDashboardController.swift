@@ -160,6 +160,7 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
         switch entryPoint {
         case .report: source = .appMenu
         case .dashboard: source = .dashboard
+        case .prompt(let event): source = .prompt(event)
         case .toggleReport: source = .onProtectionsOffMenu
         case .afterTogglePrompt: source = .afterTogglePrompt
         }
@@ -204,6 +205,7 @@ extension PrivacyDashboardController: WKNavigationDelegate {
         subscribeToServerTrust()
         subscribeToConsentManaged()
         subscribeToAllowedPermissions()
+        subscribeToIsPhishing()
     }
 
     private func subscribeToTheme() {
@@ -249,6 +251,16 @@ extension PrivacyDashboardController: WKNavigationDelegate {
             .sink(receiveValue: { [weak self] serverTrustViewModel in
                 guard let self, let serverTrustViewModel, let webView else { return }
                 script.setServerTrust(serverTrustViewModel, webView: webView)
+            })
+            .store(in: &cancellables)
+    }
+
+    private func subscribeToIsPhishing() {
+        privacyInfo?.$isPhishing
+            .receive(on: DispatchQueue.main )
+            .sink(receiveValue: { [weak self] isPhishing in
+                guard let self = self, let webView = self.webView else { return }
+                script.setIsPhishing(isPhishing, webView: webView)
             })
             .store(in: &cancellables)
     }
