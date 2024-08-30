@@ -19,6 +19,7 @@
 import Foundation
 import CryptoKit
 import Common
+import os
 
 public protocol PhishingDetectionDataProviding {
     var embeddedRevision: Int { get }
@@ -57,7 +58,7 @@ public class PhishingDetectionDataProvider: PhishingDetectionDataProviding {
              let filterSetData = try loadData(from: embeddedFilterSetURL, expectedSHA: embeddedFilterSetDataSHA)
              return try JSONDecoder().decode(Set<Filter>.self, from: filterSetData)
          } catch {
-             os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error: SHA mismatch for filterSet JSON file. Expected \(embeddedFilterSetDataSHA)")
+             Logger.phishingDetectionDataProvider.error("🔴 Error: SHA mismatch for filterSet JSON file. Expected \(self.embeddedFilterSetDataSHA)")
              return []
          }
      }
@@ -67,7 +68,7 @@ public class PhishingDetectionDataProvider: PhishingDetectionDataProviding {
             let hashPrefixData = try loadData(from: embeddedHashPrefixURL, expectedSHA: embeddedHashPrefixDataSHA)
             return try JSONDecoder().decode(Set<String>.self, from: hashPrefixData)
         } catch {
-            os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error: SHA mismatch for hashPrefixes JSON file. Expected \(embeddedHashPrefixDataSHA)")
+            Logger.phishingDetectionDataProvider.error("🔴 Error: SHA mismatch for hashPrefixes JSON file. Expected \(self.embeddedHashPrefixDataSHA)")
             return []
         }
     }

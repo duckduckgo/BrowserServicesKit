@@ -18,6 +18,7 @@
 
 import Foundation
 import Common
+import os
 
 public protocol BackgroundActivityScheduling: Actor {
     func start()
@@ -45,10 +46,10 @@ actor BackgroundActivityScheduler: BackgroundActivityScheduling {
             while !Task.isCancelled {
                 await activity()
                 do {
-                    os_log(.debug, log: .autofill, "\(self): 🟢 \(identifier) task was executed in instance \(taskId)")
+                    Logger.phishingDetectionTasks.debug("🟢 \(self.identifier) task was executed in instance \(taskId)")
                     try await Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
                 } catch {
-                    os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error \(identifier) task was cancelled before it could finish sleeping.")
+                    Logger.phishingDetectionTasks.error("🔴 Error \(self.identifier) task was cancelled before it could finish sleeping.")
                     break
                 }
             }
