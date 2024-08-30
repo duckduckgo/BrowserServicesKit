@@ -419,7 +419,7 @@ class TrackerResolverTests: XCTestCase {
 
         let tracker = KnownTracker(domain: "tracker.com",
                                    defaultAction: .block,
-                                   owner:.trackerInc,
+                                   owner: .trackerInc,
                                    prevalence: 0.1,
                                    subdomains: nil,
                                    categories: nil,
