@@ -87,7 +87,7 @@
       "location" : "https://github.com/duckduckgo/TrackerRadarKit",
       "state" : {
         "branch" : "alessandro/fix-site-owned-by-major-network",
-        "revision" : "0961058099f05dd4b8ec2467f64687b9c1900dce"
+        "revision" : "c02419f6968b953aee052fc2999fadf41ab090a9"
       }
     }
   ],
