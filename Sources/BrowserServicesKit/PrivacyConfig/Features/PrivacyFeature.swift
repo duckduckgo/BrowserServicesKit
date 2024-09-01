@@ -52,6 +52,7 @@ public enum PrivacyFeature: String {
     case brokenSitePrompt
     case remoteMessaging
     case additionalCampaignPixelParams
+    case syncPromotion
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -130,4 +131,10 @@ public enum DuckPlayerSubfeature: String, PrivacySubfeature {
     case pip
     case autoplay
     case openInNewTab
+}
+
+public enum SyncPromotionSubfeature: String, PrivacySubfeature {
+    public var parent: PrivacyFeature { .syncPromotion }
+    case bookmarks
+    case passwords
 }
