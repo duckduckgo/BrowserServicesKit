@@ -27,5 +27,6 @@ extension ContentScopeFeatureToggles {
                                                          credentialsSaving: true,
                                                          passwordGeneration: true,
                                                          inlineIconCredentials: true,
-                                                         thirdPartyCredentialsProvider: false)
+                                                         thirdPartyCredentialsProvider: false,
+                                                         unknownUsernameCategorization: true)
 }
