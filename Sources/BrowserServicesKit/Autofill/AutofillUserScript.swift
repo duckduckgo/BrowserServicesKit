@@ -71,7 +71,7 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
         case startEmailProtectionSignup
         case closeEmailProtectionTab
 
-        case startCredentialsImportFlow // TODO: Update to startCredentialsImportFlow if needed
+        case startCredentialsImportFlow
     }
 
     /// Represents if the autofill is loaded into the top autofill context.
