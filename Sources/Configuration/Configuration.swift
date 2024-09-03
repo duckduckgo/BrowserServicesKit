@@ -32,7 +32,6 @@ public enum Configuration: String, CaseIterable, Sendable {
     case privacyConfiguration
     case surrogates
     case trackerDataSet
-    case FBConfig
     case remoteMessagingConfig
 
     private static var urlProvider: ConfigurationURLProviding?

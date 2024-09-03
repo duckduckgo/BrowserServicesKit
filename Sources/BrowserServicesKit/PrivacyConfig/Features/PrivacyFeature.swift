@@ -53,6 +53,8 @@ public enum PrivacyFeature: String {
     case remoteMessaging
     case additionalCampaignPixelParams
     case backgroundAgentPixelTest
+    case newTabPageImprovements
+    case syncPromotion
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -77,6 +79,7 @@ public enum AutofillSubfeature: String, PrivacySubfeature {
     case onByDefault
     case deduplicateLoginsOnImport
     case onForExistingUsers
+    case unknownUsernameCategorization
 }
 
 public enum DBPSubfeature: String, Equatable, PrivacySubfeature {
@@ -136,4 +139,10 @@ public enum DuckPlayerSubfeature: String, PrivacySubfeature {
 public enum BackgroundAgentPixelTestSubfeature: String, PrivacySubfeature {
     public var parent: PrivacyFeature { .backgroundAgentPixelTest }
     case pixelTest
+}
+
+public enum SyncPromotionSubfeature: String, PrivacySubfeature {
+    public var parent: PrivacyFeature { .syncPromotion }
+    case bookmarks
+    case passwords
 }
