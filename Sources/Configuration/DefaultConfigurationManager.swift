@@ -1,6 +1,5 @@
 //
 //  DefaultConfigurationManager.swift
-//  DuckDuckGo
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -151,7 +150,7 @@ extension DefaultConfigurationManager: NSFilePresenter {
     open var presentedItemURL: URL? {
         return nil
     }
-    
+
     public var presentedItemOperationQueue: OperationQueue {
         return Self.filePresenterOperationQueue
     }
