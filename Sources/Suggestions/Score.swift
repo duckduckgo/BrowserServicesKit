@@ -18,6 +18,7 @@
 
 import Foundation
 import Common
+import os.log
 
 typealias Score = Int
 
@@ -86,9 +87,13 @@ extension Score {
     init(bookmark: Bookmark, query: Query, queryTokens: [Query]? = nil) {
         guard let urlObject = URL(string: bookmark.url) else {
             self = 0
+            Logger.suggestions.info("SuggestionProcessing [\(query)] Score Bookmark(\(bookmark.title), \(bookmark.url) - SKIPPED")
             return
         }
         self.init(title: bookmark.title, url: urlObject, visitCount: 0, query: query, queryTokens: queryTokens)
+
+        let score = self
+        Logger.suggestions.info("SuggestionProcessing [\(query)] Score Bookmark(\(bookmark.title), \(bookmark.url) -> \(score)")
     }
 
     init(historyEntry: HistorySuggestion, query: Query, queryTokens: [Query]? = nil) {

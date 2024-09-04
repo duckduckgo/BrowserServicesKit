@@ -18,6 +18,7 @@
 
 import Foundation
 import Common
+import os.log
 
 /// Class encapsulates the whole ordering and filtering algorithm
 /// It takes query, history, bookmarks, and apiResult as input parameters
@@ -36,8 +37,10 @@ final class SuggestionProcessing {
                 internalPages: [InternalPage],
                 apiResult: APIResult?) -> SuggestionResult? {
         let query = query.lowercased()
+        Logger.suggestions.log("SuggestionProcessing [\(query)]")
 
         let duckDuckGoSuggestions = (try? self.duckDuckGoSuggestions(from: apiResult)) ?? []
+        Logger.suggestions.log("SuggestionProcessing [\(query)] - duckDuckGoSuggestions.count \(duckDuckGoSuggestions.count)")
 
         // Get domain suggestions from the DuckDuckGo Suggestions section (for the Top Hits section)
         let duckDuckGoDomainSuggestions = duckDuckGoSuggestions.compactMap { suggestion -> Suggestion? in
@@ -47,20 +50,26 @@ final class SuggestionProcessing {
             }
             return nil
         }
+        Logger.suggestions.log("SuggestionProcessing [\(query)] - duckDuckGoDomainSuggestions.count \(duckDuckGoDomainSuggestions.count)")
 
         // Get best matches from history and bookmarks
         let allLocalSuggestions = localSuggestions(from: history, bookmarks: bookmarks, internalPages: internalPages, query: query)
+        Logger.suggestions.log("SuggestionProcessing [\(query)] - allLocalSuggestions.count \(allLocalSuggestions.count)")
 
         // Combine HaB and domains into navigational suggestions and remove duplicates
         let navigationalSuggestions = allLocalSuggestions + duckDuckGoDomainSuggestions
+        Logger.suggestions.log("SuggestionProcessing [\(query)] - navigationalSuggestions.count \(navigationalSuggestions.count)")
 
         let maximumOfNavigationalSuggestions = min(
             Self.maximumNumberOfSuggestions - Self.minimumNumberInSuggestionGroup,
             query.count + 1)
         let mergedSuggestions = merge(navigationalSuggestions, maximum: maximumOfNavigationalSuggestions)
+        Logger.suggestions.log("SuggestionProcessing [\(query)] - mergedSuggestions.count \(mergedSuggestions.count)")
 
         // Split the Top Hits and the History and Bookmarks section
         let topHits = topHits(from: mergedSuggestions)
+        Logger.suggestions.log("SuggestionProcessing [\(query)] - topHits.count \(topHits.count)")
+
         let localSuggestions = Array(mergedSuggestions.dropFirst(topHits.count).filter { suggestion in
             switch suggestion {
             case .bookmark, .historyEntry, .internalPage:
@@ -69,8 +78,36 @@ final class SuggestionProcessing {
                 return false
             }
         })
+        Logger.suggestions.log("SuggestionProcessing [\(query)] - localSuggestions.count \(localSuggestions.count)")
 
         let dedupedDuckDuckGoSuggestions = removeDuplicateWebsiteSuggestions(in: topHits, from: duckDuckGoSuggestions)
+
+        Logger.suggestions.log("SuggestionProcessing [\(query)] - dedupedDuckDuckGoSuggestions.count \(dedupedDuckDuckGoSuggestions.count)")
+
+        for i in 0 ..< topHits.count {
+            let suggestionType: String
+            switch topHits[i] {
+            case .bookmark:
+                suggestionType = "bookmark"
+
+            case .historyEntry:
+                suggestionType = "historyEntry"
+
+            case .internalPage:
+                suggestionType = "internalPage"
+
+            case .phrase:
+                suggestionType = "phrase"
+
+            case .unknown:
+                suggestionType = "unknown"
+
+            case .website:
+                suggestionType = "website"
+            }
+
+            Logger.suggestions.log("SuggestionProcessing [\(query)] - topHits[\(i)]: [\(suggestionType)][\(topHits[i].url?.absoluteString ?? "<nil url>")][\(topHits[i].title ?? "<nil title>")]")
+        }
 
         return makeResult(topHits: topHits,
                           duckduckgoSuggestions: dedupedDuckDuckGoSuggestions,
@@ -122,7 +159,6 @@ final class SuggestionProcessing {
                 case .internalPage(let internalPage):
                     Score(internalPage: internalPage, query: query, queryTokens: queryTokens)
                 }
-
                 return (item, score)
             }
             // Filter not relevant
