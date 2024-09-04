@@ -153,6 +153,8 @@ extension DefaultConfigurationManager: NSFilePresenter {
         return Self.filePresenterOperationQueue
     }
 
-    open func presentedItemDidChange() { }
+    open func presentedSubitemDidChange(at url: URL) { }
+
+    open func presentedSubitemDidAppear(at url: URL) { }
 
 }

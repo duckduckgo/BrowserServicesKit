@@ -51,7 +51,7 @@ final class MockStore: ConfigurationStoring {
     }
 
     func fileUrl(for configuration: Configuration) -> URL {
-        return URL(string: "file:///\(configuration.rawValue)")!
+        return FileManager.default.temporaryDirectory.appending(configuration.rawValue)
     }
 
 }
