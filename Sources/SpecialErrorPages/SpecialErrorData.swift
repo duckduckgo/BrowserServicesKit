@@ -19,9 +19,8 @@
 import Foundation
 
 public enum SpecialErrorKind: String, Encodable {
-
     case ssl
-
+    case phishing
 }
 
 public struct SpecialErrorData: Encodable, Equatable {
