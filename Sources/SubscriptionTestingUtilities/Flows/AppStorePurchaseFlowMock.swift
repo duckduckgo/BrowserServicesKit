@@ -20,19 +20,19 @@ import Foundation
 import Subscription
 
 public class AppStorePurchaseFlowMock: AppStorePurchaseFlow {
-    public var purchaseSubscriptionResult: Result<TransactionJWS, AppStorePurchaseFlowError>
-    public var completeSubscriptionPurchaseResult: Result<PurchaseUpdate, AppStorePurchaseFlowError>
+    public var purchaseSubscriptionResult: Result<TransactionJWS, AppStorePurchaseFlowError>?
+    public var completeSubscriptionPurchaseResult: Result<PurchaseUpdate, AppStorePurchaseFlowError>?
 
-    public init(purchaseSubscriptionResult: Result<TransactionJWS, AppStorePurchaseFlowError>, completeSubscriptionPurchaseResult: Result<PurchaseUpdate, AppStorePurchaseFlowError>) {
+    public init(purchaseSubscriptionResult: Result<TransactionJWS, AppStorePurchaseFlowError>? = nil, completeSubscriptionPurchaseResult: Result<PurchaseUpdate, AppStorePurchaseFlowError>? = nil) {
         self.purchaseSubscriptionResult = purchaseSubscriptionResult
         self.completeSubscriptionPurchaseResult = completeSubscriptionPurchaseResult
     }
 
     public func purchaseSubscription(with subscriptionIdentifier: String, emailAccessToken: String?) async -> Result<TransactionJWS, AppStorePurchaseFlowError> {
-        purchaseSubscriptionResult
+        purchaseSubscriptionResult!
     }
 
     public func completeSubscriptionPurchase(with transactionJWS: TransactionJWS) async -> Result<PurchaseUpdate, AppStorePurchaseFlowError> {
-        completeSubscriptionPurchaseResult
+        completeSubscriptionPurchaseResult!
     }
 }
