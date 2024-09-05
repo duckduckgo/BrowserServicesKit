@@ -46,7 +46,7 @@ class HistoryCoordinatorTests: XCTestCase {
     func testWhenAddVisitIsCalledBeforeHistoryIsLoadedFromStorage_ThenVisitIsIgnored() {
         let historyStoringMock = HistoryStoringMock()
         historyStoringMock.cleanOldResult = nil
-        let historyCoordinator = HistoryCoordinator(historyStoring: historyStoringMock)
+        let historyCoordinator = HistoryCoordinator(historyStoring: historyStoringMock, eventMapper: MockHistoryCoordinatorEventMapper())
 
         let url = URL.duckDuckGo
         historyCoordinator.addVisit(of: url)
@@ -195,7 +195,7 @@ class HistoryCoordinatorTests: XCTestCase {
         }
 
         let historyStore = HistoryStore(context: context, eventMapper: MockHistoryStoreEventMapper())
-        let historyCoordinator = HistoryCoordinator(historyStoring: historyStore)
+        let historyCoordinator = HistoryCoordinator(historyStoring: historyStore, eventMapper: MockHistoryCoordinatorEventMapper())
         historyCoordinator.loadHistory { }
 
         let url1 = URL(string: "https://duckduckgo.com")!
@@ -287,7 +287,7 @@ fileprivate extension HistoryCoordinator {
         let historyStoringMock = HistoryStoringMock()
         historyStoringMock.cleanOldResult = .success(BrowsingHistory())
         historyStoringMock.removeEntriesResult = .success(())
-        let historyCoordinator = HistoryCoordinator(historyStoring: historyStoringMock)
+        let historyCoordinator = HistoryCoordinator(historyStoring: historyStoringMock, eventMapper: MockHistoryCoordinatorEventMapper())
         historyCoordinator.loadHistory { }
 
         return (historyStoringMock, historyCoordinator)
@@ -376,5 +376,13 @@ class MockHistoryStoreEventMapper: EventMapping<HistoryStore.HistoryStoreEvents>
 
     override init(mapping: @escaping EventMapping<HistoryStore.HistoryStoreEvents>.Mapping) {
         fatalError("Use init()")
+    }
+}
+
+final class MockHistoryCoordinatorEventMapper: EventMapping<HistoryCoordinator.Event> {
+    public init() {
+        super.init { _, _, _, _ in
+
+        }
     }
 }
