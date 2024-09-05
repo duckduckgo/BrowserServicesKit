@@ -19,7 +19,7 @@
 import Foundation
 import Subscription
 
-public class AuthEndpointServiceMock: AuthEndpointService {
+public final class AuthEndpointServiceMock: AuthEndpointService {
     public var getAccessTokenResult: Result<AccessTokenResponse, APIServiceError>?
     public var validateTokenResult: Result<ValidateTokenResponse, APIServiceError>?
     public var createAccountResult: Result<CreateAccountResponse, APIServiceError>?
@@ -32,15 +32,7 @@ public class AuthEndpointServiceMock: AuthEndpointService {
 
     public var onValidateToken: ((String) -> Void)?
 
-    public init(accessTokenResult: Result<AccessTokenResponse, APIServiceError>? = nil,
-                validateTokenResult: Result<ValidateTokenResponse, APIServiceError>? = nil,
-                createAccountResult: Result<CreateAccountResponse, APIServiceError>? = nil,
-                storeLoginResult: Result<StoreLoginResponse, APIServiceError>? = nil) {
-        self.getAccessTokenResult = accessTokenResult
-        self.validateTokenResult = validateTokenResult
-        self.createAccountResult = createAccountResult
-        self.storeLoginResult = storeLoginResult
-    }
+    public init() { }
 
     public func getAccessToken(token: String) async -> Result<AccessTokenResponse, APIServiceError> {
         getAccessTokenCalled = true

@@ -63,9 +63,7 @@ final class AppStoreRestoreFlowTests: XCTestCase {
     // MARK: - Tests for restoreAccountFromPastPurchase
 
     func testRestoreAccountFromPastPurchaseSuccess() async throws {
-        storePurchaseManager.onMostRecentTransaction = {
-            return Constants.mostRecentTransactionJWS
-        }
+        storePurchaseManager.mostRecentTransactionResult = Constants.mostRecentTransactionJWS
 
         authService.storeLoginResult = .success(Constants.storeLoginResponse)
 
@@ -108,9 +106,7 @@ final class AppStoreRestoreFlowTests: XCTestCase {
     }
 
     func testRestoreAccountFromPastPurchaseErrorDueToSubscriptionBeingExpired() async throws {
-        storePurchaseManager.onMostRecentTransaction = {
-            return Constants.mostRecentTransactionJWS
-        }
+        storePurchaseManager.mostRecentTransactionResult = Constants.mostRecentTransactionJWS
 
         authService.storeLoginResult = .success(Constants.storeLoginResponse)
 
@@ -162,7 +158,7 @@ final class AppStoreRestoreFlowTests: XCTestCase {
     }
 
     func testRestoreAccountFromPastPurchaseErrorWhenNoRecentTransaction() async throws {
-        storePurchaseManager.onMostRecentTransaction = { return nil }
+        storePurchaseManager.mostRecentTransactionResult = nil
 
         let appStoreRestoreFlow = DefaultAppStoreRestoreFlow(accountManager: accountManager,
                                               storePurchaseManager: storePurchaseManager,
@@ -181,9 +177,7 @@ final class AppStoreRestoreFlowTests: XCTestCase {
     }
 
     func testRestoreAccountFromPastPurchaseErrorDueToStoreLoginFailure() async throws {
-        storePurchaseManager.onMostRecentTransaction = {
-            return Constants.mostRecentTransactionJWS
-        }
+        storePurchaseManager.mostRecentTransactionResult = Constants.mostRecentTransactionJWS
 
         authService.storeLoginResult = .failure(Constants.unknownServerError)
 
@@ -204,9 +198,7 @@ final class AppStoreRestoreFlowTests: XCTestCase {
     }
 
     func testRestoreAccountFromPastPurchaseErrorDueToStoreAuthTokenExchangeFailure() async throws {
-        storePurchaseManager.onMostRecentTransaction = {
-            return Constants.mostRecentTransactionJWS
-        }
+        storePurchaseManager.mostRecentTransactionResult = Constants.mostRecentTransactionJWS
 
         authService.storeLoginResult = .success(Constants.storeLoginResponse)
 
@@ -231,9 +223,7 @@ final class AppStoreRestoreFlowTests: XCTestCase {
     }
 
     func testRestoreAccountFromPastPurchaseErrorDueToAccountDetailsFetchFailure() async throws {
-        storePurchaseManager.onMostRecentTransaction = {
-            return Constants.mostRecentTransactionJWS
-        }
+        storePurchaseManager.mostRecentTransactionResult = Constants.mostRecentTransactionJWS
 
         authService.storeLoginResult = .success(Constants.storeLoginResponse)
 
@@ -263,9 +253,7 @@ final class AppStoreRestoreFlowTests: XCTestCase {
     }
 
     func testRestoreAccountFromPastPurchaseErrorDueToSubscriptionFetchFailure() async throws {
-        storePurchaseManager.onMostRecentTransaction = {
-            return Constants.mostRecentTransactionJWS
-        }
+        storePurchaseManager.mostRecentTransactionResult = Constants.mostRecentTransactionJWS
 
         authService.storeLoginResult = .success(Constants.storeLoginResponse)
 

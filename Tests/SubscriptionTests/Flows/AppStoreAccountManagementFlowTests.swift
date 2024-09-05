@@ -25,10 +25,11 @@ final class AppStoreAccountManagementFlowTests: XCTestCase {
     private struct Constants {
         static let oldAuthToken = UUID().uuidString
         static let newAuthToken = UUID().uuidString
+
         static let externalID = UUID ().uuidString
         static let otherExternalID = UUID().uuidString
 
-        static let mostRecentTransactionJWS = "this-should-be-transaction-jws"
+        static let mostRecentTransactionJWS = "dGhpcyBpcyBub3QgYSByZWFsIEFw(...)cCBTdG9yZSB0cmFuc2FjdGlvbiBKV1M="
 
         static let invalidTokenError = APIServiceError.serverError(statusCode: 401, error: "invalid_token")
 
@@ -47,6 +48,10 @@ final class AppStoreAccountManagementFlowTests: XCTestCase {
         accountManager = AccountManagerMock()
         authEndpointService = AuthEndpointServiceMock()
         storePurchaseManager = StorePurchaseManagerMock()
+
+        appStoreAccountManagementFlow = DefaultAppStoreAccountManagementFlow(authEndpointService: authEndpointService,
+                                                                             storePurchaseManager: storePurchaseManager,
+                                                                             accountManager: accountManager)
     }
 
     override func tearDownWithError() throws {
@@ -64,12 +69,8 @@ final class AppStoreAccountManagementFlowTests: XCTestCase {
         accountManager.externalID = Constants.externalID
 
         authEndpointService.validateTokenResult = .failure(Constants.invalidTokenError)
-        
-        let mostRecentTransactionExpectation = expectation(description: "mostRecentTransaction")
-        storePurchaseManager.onMostRecentTransaction = {
-            mostRecentTransactionExpectation.fulfill()
-            return Constants.mostRecentTransactionJWS
-        }
+
+        storePurchaseManager.mostRecentTransactionResult = Constants.mostRecentTransactionJWS
 
         authEndpointService.storeLoginResult = .success(StoreLoginResponse(authToken: Constants.newAuthToken,
                                                                            email: "",
@@ -77,12 +78,9 @@ final class AppStoreAccountManagementFlowTests: XCTestCase {
                                                                            id: 1,
                                                                            status: "ok"))
 
-        let flow = DefaultAppStoreAccountManagementFlow(authEndpointService: authEndpointService,
-                                                        storePurchaseManager: storePurchaseManager,
-                                                        accountManager: accountManager)
-        switch await flow.refreshAuthTokenIfNeeded() {
+        switch await appStoreAccountManagementFlow.refreshAuthTokenIfNeeded() {
         case .success(let success):
-            await fulfillment(of: [mostRecentTransactionExpectation], timeout: 0.1)
+            XCTAssertTrue(storePurchaseManager.mostRecentTransactionCalled)
             XCTAssertEqual(success, Constants.newAuthToken)
         case .failure(let error):
             XCTFail("Unexpected failure: \(String(reflecting: error))")
@@ -111,11 +109,7 @@ final class AppStoreAccountManagementFlowTests: XCTestCase {
 
         authEndpointService.validateTokenResult = .failure(Constants.invalidTokenError)
 
-        let mostRecentTransactionExpectation = expectation(description: "mostRecentTransaction")
-        storePurchaseManager.onMostRecentTransaction = {
-            mostRecentTransactionExpectation.fulfill()
-            return Constants.mostRecentTransactionJWS
-        }
+        storePurchaseManager.mostRecentTransactionResult = Constants.mostRecentTransactionJWS
 
         authEndpointService.storeLoginResult = .success(StoreLoginResponse(authToken: Constants.newAuthToken,
                                                                            email: "",
@@ -128,7 +122,7 @@ final class AppStoreAccountManagementFlowTests: XCTestCase {
                                                         accountManager: accountManager)
         switch await flow.refreshAuthTokenIfNeeded() {
         case .success(let success):
-            await fulfillment(of: [mostRecentTransactionExpectation], timeout: 0.1)
+            XCTAssertTrue(storePurchaseManager.mostRecentTransactionCalled)
             XCTAssertEqual(success, Constants.oldAuthToken)
         case .failure(let error):
             XCTFail("Unexpected failure: \(String(reflecting: error))")
@@ -140,11 +134,7 @@ final class AppStoreAccountManagementFlowTests: XCTestCase {
 
         authEndpointService.validateTokenResult = .failure(Constants.invalidTokenError)
 
-        let mostRecentTransactionExpectation = expectation(description: "mostRecentTransaction")
-        storePurchaseManager.onMostRecentTransaction = {
-            mostRecentTransactionExpectation.fulfill()
-            return nil
-        }
+        storePurchaseManager.mostRecentTransactionResult = nil
 
         let flow = DefaultAppStoreAccountManagementFlow(authEndpointService: authEndpointService,
                                                         storePurchaseManager: storePurchaseManager,
@@ -153,7 +143,7 @@ final class AppStoreAccountManagementFlowTests: XCTestCase {
         case .success:
             XCTFail("Unexpected success")
         case .failure(let error):
-            await fulfillment(of: [mostRecentTransactionExpectation], timeout: 0.1)
+            XCTAssertTrue(storePurchaseManager.mostRecentTransactionCalled)
             XCTAssertEqual(error, .noPastTransaction)
         }
     }
@@ -163,11 +153,7 @@ final class AppStoreAccountManagementFlowTests: XCTestCase {
 
         authEndpointService.validateTokenResult = .failure(Constants.invalidTokenError)
 
-        let mostRecentTransactionExpectation = expectation(description: "mostRecentTransaction")
-        storePurchaseManager.onMostRecentTransaction = {
-            mostRecentTransactionExpectation.fulfill()
-            return Constants.mostRecentTransactionJWS
-        }
+        storePurchaseManager.mostRecentTransactionResult = Constants.mostRecentTransactionJWS
 
         authEndpointService.storeLoginResult = .failure(.unknownServerError)
 
@@ -178,7 +164,7 @@ final class AppStoreAccountManagementFlowTests: XCTestCase {
         case .success:
             XCTFail("Unexpected success")
         case .failure(let error):
-            await fulfillment(of: [mostRecentTransactionExpectation], timeout: 0.1)
+            XCTAssertTrue(storePurchaseManager.mostRecentTransactionCalled)
             XCTAssertEqual(error, .authenticatingWithTransactionFailed)
         }
     }

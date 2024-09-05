@@ -30,17 +30,7 @@ public class APIServiceMock: APIService {
 
     public typealias ExecuteAPICallParameters = (method: String, endpoint: String, headers: [String: String]?, body: Data?)
 
-    public init(mockAuthHeaders: [String: String] = [:],
-                mockResponseJSONData: Data? = nil,
-                mockAPICallSuccessResult: Any? = nil,
-                mockAPICallError: APIServiceError? = nil,
-                onExecuteAPICall: ((ExecuteAPICallParameters) -> Void)? = nil) {
-        self.mockAuthHeaders = mockAuthHeaders
-        self.mockResponseJSONData = mockResponseJSONData
-        self.mockAPICallSuccessResult = mockAPICallSuccessResult
-        self.mockAPICallError = mockAPICallError
-        self.onExecuteAPICall = onExecuteAPICall
-    }
+    public init() { }
 
     // swiftlint:disable force_cast
     public func executeAPICall<T>(method: String, endpoint: String, headers: [String: String]?, body: Data?) async -> Result<T, APIServiceError> where T: Decodable {

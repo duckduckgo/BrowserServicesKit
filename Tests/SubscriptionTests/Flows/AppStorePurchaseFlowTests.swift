@@ -90,7 +90,7 @@ final class AppStorePurchaseFlowTests: XCTestCase {
         authService.createAccountResult = .success(Constants.createAccountResponse)
         accountManager.onExchangeAuthTokenToAccessToken = { _ in .success(Constants.accessToken) }
         accountManager.onFetchAccountDetails = { _ in .success((email: "", externalID: Constants.externalID)) }
-        storePurchaseManager.onPurchaseSubscription = { _, _ in return.success(Constants.transactionJWS) }
+        storePurchaseManager.purchaseSubscriptionResult = .success(Constants.transactionJWS)
 
         switch await appStorePurchaseFlow.purchaseSubscription(with: Constants.productID, emailAccessToken: nil) {
         case .success(let success):
@@ -119,7 +119,7 @@ final class AppStorePurchaseFlowTests: XCTestCase {
 
         subscriptionService.getSubscriptionResult = .success(subscription)
         appStoreRestoreFlow.restoreAccountFromPastPurchaseResult = .failure(.subscriptionExpired(accountDetails: Constants.restoredAccount))
-        storePurchaseManager.onPurchaseSubscription = { _, _ in return.success(Constants.transactionJWS) }
+        storePurchaseManager.purchaseSubscriptionResult = .success(Constants.transactionJWS)
 
         switch await appStorePurchaseFlow.purchaseSubscription(with: Constants.productID, emailAccessToken: nil) {
         case .success(let success):
@@ -146,7 +146,7 @@ final class AppStorePurchaseFlowTests: XCTestCase {
         XCTAssertTrue(accountManager.isUserAuthenticated)
 
         subscriptionService.getSubscriptionResult = .success(subscription)
-        storePurchaseManager.onPurchaseSubscription = { _, _ in return.success(Constants.transactionJWS) }
+        storePurchaseManager.purchaseSubscriptionResult = .success(Constants.transactionJWS)
 
         switch await appStorePurchaseFlow.purchaseSubscription(with: Constants.productID, emailAccessToken: nil) {
         case .success:
@@ -190,7 +190,7 @@ final class AppStorePurchaseFlowTests: XCTestCase {
         authService.createAccountResult = .success(Constants.createAccountResponse)
         accountManager.onExchangeAuthTokenToAccessToken = { _ in .success(Constants.accessToken) }
         accountManager.onFetchAccountDetails = { _ in .success((email: "", externalID: Constants.externalID)) }
-        storePurchaseManager.onPurchaseSubscription = { _, _ in .failure(.productNotFound) }
+        storePurchaseManager.purchaseSubscriptionResult = .failure(.productNotFound)
 
         switch await appStorePurchaseFlow.purchaseSubscription(with: Constants.productID, emailAccessToken: nil) {
         case .success:
@@ -207,7 +207,7 @@ final class AppStorePurchaseFlowTests: XCTestCase {
         authService.createAccountResult = .success(Constants.createAccountResponse)
         accountManager.onExchangeAuthTokenToAccessToken = { _ in .success(Constants.accessToken) }
         accountManager.onFetchAccountDetails = { _ in .success((email: "", externalID: Constants.externalID)) }
-        storePurchaseManager.onPurchaseSubscription = { _, _ in .failure(.purchaseCancelledByUser) }
+        storePurchaseManager.purchaseSubscriptionResult = .failure(.purchaseCancelledByUser)
 
         switch await appStorePurchaseFlow.purchaseSubscription(with: Constants.productID, emailAccessToken: nil) {
         case .success:

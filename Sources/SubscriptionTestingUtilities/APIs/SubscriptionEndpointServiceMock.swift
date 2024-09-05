@@ -32,15 +32,7 @@ public class SubscriptionEndpointServiceMock: SubscriptionEndpointService {
     public var onGetSubscriptionCalled: ((String, APICachePolicy) -> Void)?
     public var onSignOut: (() -> Void)?
 
-    public init(getSubscriptionResult: Result<Subscription, SubscriptionServiceError>? = nil,
-                getProductsResult: Result<[GetProductsItem], APIServiceError>? = nil,
-                getCustomerPortalURLResult: Result<GetCustomerPortalURLResponse, APIServiceError>? = nil,
-                confirmPurchaseResult: Result<ConfirmPurchaseResponse, APIServiceError>? = nil) {
-        self.getSubscriptionResult = getSubscriptionResult
-        self.getProductsResult = getProductsResult
-        self.getCustomerPortalURLResult = getCustomerPortalURLResult
-        self.confirmPurchaseResult = confirmPurchaseResult
-    }
+    public init() { }
 
     public func updateCache(with subscription: Subscription) {
         onUpdateCache?(subscription)
