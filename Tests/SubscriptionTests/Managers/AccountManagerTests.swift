@@ -24,6 +24,8 @@ import Common
 final class AccountManagerTests: XCTestCase {
 
     private struct Constants {
+        static let userDefaultsSuiteName = "AccountManagerTests"
+
         static let authToken = UUID().uuidString
         static let accessToken = UUID().uuidString
         static let externalID = UUID().uuidString
@@ -49,7 +51,9 @@ final class AccountManagerTests: XCTestCase {
     var accountManager: AccountManager!
 
     override func setUpWithError() throws {
-        userDefaults = UserDefaults(suiteName: #file)!
+        userDefaults = UserDefaults(suiteName: Constants.userDefaultsSuiteName)!
+        userDefaults.removePersistentDomain(forName: Constants.userDefaultsSuiteName)
+
         accountStorage = AccountKeychainStorageMock()
         accessTokenStorage = SubscriptionTokenKeychainStorageMock()
         entitlementsCache = UserDefaultsCache<[Entitlement]>(userDefaults: userDefaults,
@@ -66,7 +70,6 @@ final class AccountManagerTests: XCTestCase {
     }
 
     override func tearDownWithError() throws {
-        userDefaults.removePersistentDomain(forName: #file)
         accountStorage = nil
         accessTokenStorage = nil
         entitlementsCache = nil

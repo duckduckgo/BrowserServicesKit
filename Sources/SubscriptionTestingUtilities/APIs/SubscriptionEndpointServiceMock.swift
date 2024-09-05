@@ -26,10 +26,11 @@ public class SubscriptionEndpointServiceMock: SubscriptionEndpointService {
     public var confirmPurchaseResult: Result<ConfirmPurchaseResponse, APIServiceError>?
 
     public var onUpdateCache: ((Subscription) -> Void)?
-    public var onGetSubscriptionCalled: ((String, APICachePolicy) -> Void)?
+    public var onGetSubscription: ((String, APICachePolicy) -> Void)?
     public var onSignOut: (() -> Void)?
 
     public var updateCacheWithSubscriptionCalled: Bool = false
+    public var getSubscriptionCalled: Bool = false
     public var signOutCalled: Bool = false
 
     public init() { }
@@ -40,7 +41,8 @@ public class SubscriptionEndpointServiceMock: SubscriptionEndpointService {
     }
 
     public func getSubscription(accessToken: String, cachePolicy: APICachePolicy) async -> Result<Subscription, SubscriptionServiceError> {
-        onGetSubscriptionCalled?(accessToken, cachePolicy)
+        getSubscriptionCalled = true
+        onGetSubscription?(accessToken, cachePolicy)
         return getSubscriptionResult!
     }
 

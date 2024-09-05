@@ -31,7 +31,6 @@ public final class AccountManagerMock: AccountManager {
 
     public var onStoreAuthToken: ((String) -> Void)?
     public var onStoreAccount: ((String, String?, String?) -> Void)?
-    public var onSignOut: (() -> Void)?
     public var onFetchEntitlements: ((APICachePolicy) -> Void)?
     public var onExchangeAuthTokenToAccessToken: ((String) -> Void)?
     public var onFetchAccountDetails: ((String) -> Void)?
@@ -73,12 +72,13 @@ public final class AccountManagerMock: AccountManager {
     }
 
     public func signOut(skipNotification: Bool) {
+        signOutCalled = true
         accessToken = nil
     }
 
     public func signOut() {
+        signOutCalled = true
         accessToken = nil
-        onSignOut?()
     }
 
     public func hasEntitlement(forProductName productName: Entitlement.ProductName, cachePolicy: APICachePolicy) async -> Result<Bool, Error> {
@@ -90,6 +90,7 @@ public final class AccountManagerMock: AccountManager {
     }
 
     public func fetchEntitlements(cachePolicy: APICachePolicy) async -> Result<[Entitlement], Error> {
+        fetchEntitlementsCalled = true
         onFetchEntitlements?(cachePolicy)
         return .success([])
     }

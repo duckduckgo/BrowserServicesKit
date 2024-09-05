@@ -23,6 +23,8 @@ import SubscriptionTestingUtilities
 final class SubscriptionManagerTests: XCTestCase {
 
     private struct Constants {
+        static let userDefaultsSuiteName = "SubscriptionManagerTests"
+
         static let accessToken = UUID().uuidString
 
         static let invalidTokenError = APIServiceError.serverError(statusCode: 401, error: "invalid_token")
@@ -56,8 +58,8 @@ final class SubscriptionManagerTests: XCTestCase {
     // MARK: - Tests for save and loadEnvironmentFrom
 
     func testLoadEnvironmentFromUserDefaults() async throws {
-        let userDefaults = UserDefaults(suiteName: #file)!
-        userDefaults.removePersistentDomain(forName: #file)
+        let userDefaults = UserDefaults(suiteName: Constants.userDefaultsSuiteName)!
+        userDefaults.removePersistentDomain(forName: Constants.userDefaultsSuiteName)
 
         var loadedEnvironment = DefaultSubscriptionManager.loadEnvironmentFrom(userDefaults: userDefaults)
         XCTAssertNil(loadedEnvironment)
@@ -99,17 +101,13 @@ final class SubscriptionManagerTests: XCTestCase {
     func testLoadInitialData() async throws {
         accountManager.accessToken = Constants.accessToken
 
-        let getSubscriptionCalled = expectation(description: "getSubscriptionCalled called")
-        subscriptionService.onGetSubscriptionCalled = { _, cachePolicy in
+        subscriptionService.onGetSubscription = { _, cachePolicy in
             XCTAssertEqual(cachePolicy, .reloadIgnoringLocalCacheData)
-            getSubscriptionCalled.fulfill()
         }
         subscriptionService.getSubscriptionResult = .success(SubscriptionMockFactory.subscription)
 
-        let fetchEntitlementsCalled = expectation(description: "fetchEntitlements called")
         accountManager.onFetchEntitlements = { cachePolicy in
             XCTAssertEqual(cachePolicy, .reloadIgnoringLocalCacheData)
-            fetchEntitlementsCalled.fulfill()
         }
 
         subscriptionEnvironment = SubscriptionEnvironment(serviceEnvironment: .production, purchasePlatform: .appStore)
@@ -121,25 +119,16 @@ final class SubscriptionManagerTests: XCTestCase {
                                                          subscriptionEnvironment: subscriptionEnvironment)
         subscriptionManager.loadInitialData()
 
-        await fulfillment(of: [getSubscriptionCalled, fetchEntitlementsCalled], timeout: 0.5)
+        try await Task.sleep(seconds: 0.5)
+        
+        XCTAssertTrue(subscriptionService.getSubscriptionCalled)
+        XCTAssertTrue(accountManager.fetchEntitlementsCalled)
     }
 
     func testLoadInitialDataNotCalledWhenUnauthenticated() async throws {
         XCTAssertNil(accountManager.accessToken)
         XCTAssertFalse(accountManager.isUserAuthenticated)
 
-        let getSubscriptionCalled = expectation(description: "getSubscriptionCalled called")
-        getSubscriptionCalled.isInverted = true
-        subscriptionService.onGetSubscriptionCalled = { _, cachePolicy in
-            getSubscriptionCalled.fulfill()
-        }
-
-        let fetchEntitlementsCalled = expectation(description: "fetchEntitlements called")
-        fetchEntitlementsCalled.isInverted = true
-        accountManager.onFetchEntitlements = { cachePolicy in
-            fetchEntitlementsCalled.fulfill()
-        }
-
         subscriptionEnvironment = SubscriptionEnvironment(serviceEnvironment: .production, purchasePlatform: .appStore)
 
         subscriptionManager = DefaultSubscriptionManager(storePurchaseManager: storePurchaseManager,
@@ -149,7 +138,8 @@ final class SubscriptionManagerTests: XCTestCase {
                                                          subscriptionEnvironment: subscriptionEnvironment)
         subscriptionManager.loadInitialData()
 
-        await fulfillment(of: [getSubscriptionCalled, fetchEntitlementsCalled], timeout: 0.5)
+        XCTAssertFalse(subscriptionService.getSubscriptionCalled)
+        XCTAssertFalse(accountManager.fetchEntitlementsCalled)
     }
 
     // MARK: - Tests for refreshCachedSubscriptionAndEntitlements
@@ -159,17 +149,13 @@ final class SubscriptionManagerTests: XCTestCase {
 
         accountManager.accessToken = Constants.accessToken
 
-        let getSubscriptionCalled = expectation(description: "getSubscriptionCalled called")
-        subscriptionService.onGetSubscriptionCalled = { _, cachePolicy in
+        subscriptionService.onGetSubscription = { _, cachePolicy in
             XCTAssertEqual(cachePolicy, .reloadIgnoringLocalCacheData)
-            getSubscriptionCalled.fulfill()
         }
         subscriptionService.getSubscriptionResult = .success(subscription)
 
-        let fetchEntitlementsCalled = expectation(description: "fetchEntitlements called")
         accountManager.onFetchEntitlements = { cachePolicy in
             XCTAssertEqual(cachePolicy, .reloadIgnoringLocalCacheData)
-            fetchEntitlementsCalled.fulfill()
         }
 
         subscriptionEnvironment = SubscriptionEnvironment(serviceEnvironment: .production, purchasePlatform: .appStore)
@@ -186,23 +172,19 @@ final class SubscriptionManagerTests: XCTestCase {
             XCTAssertEqual(isSubscriptionActive, subscription.isActive)
         }
 
-        await fulfillment(of: [getSubscriptionCalled, fetchEntitlementsCalled, completionCalled], timeout: 0.5)
+
+        XCTAssertFalse(subscriptionService.getSubscriptionCalled)
+        XCTAssertFalse(accountManager.fetchEntitlementsCalled)
+        await fulfillment(of: [completionCalled], timeout: 0.5)
     }
 
     func testForRefreshCachedSubscriptionAndEntitlementsSignOutUserOn401() async throws {
         accountManager.accessToken = Constants.accessToken
 
-        let getSubscriptionCalled = expectation(description: "getSubscriptionCalled called")
-        subscriptionService.onGetSubscriptionCalled = { _, cachePolicy in
+        subscriptionService.onGetSubscription = { _, cachePolicy in
             XCTAssertEqual(cachePolicy, .reloadIgnoringLocalCacheData)
-            getSubscriptionCalled.fulfill()
         }
         subscriptionService.getSubscriptionResult = .failure(.apiError(Constants.invalidTokenError))
-
-        let signOutCalled = expectation(description: "signOut called")
-        accountManager.onSignOut = {
-            signOutCalled.fulfill()
-        }
 
         subscriptionEnvironment = SubscriptionEnvironment(serviceEnvironment: .production, purchasePlatform: .appStore)
 
@@ -218,7 +200,9 @@ final class SubscriptionManagerTests: XCTestCase {
             XCTAssertFalse(isSubscriptionActive)
         }
 
-        await fulfillment(of: [getSubscriptionCalled, signOutCalled, completionCalled], timeout: 0.5)
+        await fulfillment(of: [completionCalled], timeout: 0.5)
+        XCTAssertTrue(accountManager.signOutCalled)
+        XCTAssertTrue(subscriptionService.getSubscriptionCalled)
     }
 
     // MARK: - Tests for url
