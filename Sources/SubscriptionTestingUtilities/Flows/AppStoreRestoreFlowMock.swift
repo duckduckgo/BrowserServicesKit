@@ -20,13 +20,10 @@ import Foundation
 import Subscription
 
 public class AppStoreRestoreFlowMock: AppStoreRestoreFlow {
-
     public var restoreAccountFromPastPurchaseResult: Result<Void, AppStoreRestoreFlowError>?
     public var restoreAccountFromPastPurchaseCalled: Bool = false
 
-    public init(restoreAccountFromPastPurchaseResult: Result<Void, AppStoreRestoreFlowError>? = nil) {
-        self.restoreAccountFromPastPurchaseResult = restoreAccountFromPastPurchaseResult
-    }
+    public init() { }
 
     public func restoreAccountFromPastPurchase() async -> Result<Void, AppStoreRestoreFlowError> {
         restoreAccountFromPastPurchaseCalled = true

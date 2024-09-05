@@ -75,9 +75,9 @@ final class AppStoreRestoreFlowTests: XCTestCase {
 
         accountManager.exchangeAuthTokenToAccessTokenResult = .success(Constants.accessToken)
 
+        accountManager.fetchAccountDetailsResult = .success(AccountManager.AccountDetails(email: nil, externalID: Constants.externalID))
         accountManager.onFetchAccountDetails = { accessToken in
             XCTAssertEqual(accessToken, Constants.accessToken)
-            return .success(AccountManager.AccountDetails(email: nil, externalID: Constants.externalID))
         }
 
         let subscription = SubscriptionMockFactory.subscription
@@ -112,9 +112,9 @@ final class AppStoreRestoreFlowTests: XCTestCase {
 
         accountManager.exchangeAuthTokenToAccessTokenResult = .success(Constants.accessToken)
 
+        accountManager.fetchAccountDetailsResult = .success(AccountManager.AccountDetails(email: nil, externalID: Constants.externalID))
         accountManager.onFetchAccountDetails = { accessToken in
             XCTAssertEqual(accessToken, Constants.accessToken)
-            return .success(AccountManager.AccountDetails(email: nil, externalID: Constants.externalID))
         }
 
         let subscription = SubscriptionMockFactory.expiredSubscription
@@ -225,9 +225,9 @@ final class AppStoreRestoreFlowTests: XCTestCase {
 
         accountManager.exchangeAuthTokenToAccessTokenResult = .success(Constants.accessToken)
 
+        accountManager.fetchAccountDetailsResult = .failure(Constants.unknownServerError)
         accountManager.onFetchAccountDetails = { accessToken in
             XCTAssertEqual(accessToken, Constants.accessToken)
-            return .failure(Constants.unknownServerError)
         }
 
         let appStoreRestoreFlow = DefaultAppStoreRestoreFlow(accountManager: accountManager,
@@ -253,9 +253,9 @@ final class AppStoreRestoreFlowTests: XCTestCase {
 
         accountManager.exchangeAuthTokenToAccessTokenResult = .success(Constants.accessToken)
 
+        accountManager.fetchAccountDetailsResult = .success(AccountManager.AccountDetails(email: nil, externalID: Constants.externalID))
         accountManager.onFetchAccountDetails = { accessToken in
             XCTAssertEqual(accessToken, Constants.accessToken)
-            return .success(AccountManager.AccountDetails(email: nil, externalID: Constants.externalID))
         }
         
         subscriptionService.getSubscriptionResult = .failure(.apiError(Constants.unknownServerError))

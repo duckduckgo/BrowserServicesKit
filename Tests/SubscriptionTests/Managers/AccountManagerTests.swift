@@ -87,11 +87,11 @@ final class AccountManagerTests: XCTestCase {
 
     func testStoreAuthTokenFailure() async throws {
         let delegateCalled = expectation(description: "AccountManagerKeychainAccessDelegate called")
-        let keychainAccessDelegateMock = AccountManagerKeychainAccessDelegateMock(onAccountManagerKeychainAccessFailed: { type, error in
+        let keychainAccessDelegateMock = AccountManagerKeychainAccessDelegateMock() { type, error in
             delegateCalled.fulfill()
             XCTAssertEqual(type, .storeAuthToken)
             XCTAssertEqual(error, Constants.keychainError)
-        })
+        }
 
         accountStorage.mockedAccessError = Constants.keychainError
         accountManager.delegate = keychainAccessDelegateMock

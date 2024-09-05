@@ -25,13 +25,13 @@ public final class AuthEndpointServiceMock: AuthEndpointService {
     public var createAccountResult: Result<CreateAccountResponse, APIServiceError>?
     public var storeLoginResult: Result<StoreLoginResponse, APIServiceError>?
 
+    public var onValidateToken: ((String) -> Void)?
+
     public var getAccessTokenCalled: Bool = false
     public var validateTokenCalled: Bool = false
     public var createAccountCalled: Bool = false
     public var storeLoginCalled: Bool = false
-
-    public var onValidateToken: ((String) -> Void)?
-
+    
     public init() { }
 
     public func getAccessToken(token: String) async -> Result<AccessTokenResponse, APIServiceError> {

@@ -87,7 +87,7 @@ final class AppStorePurchaseFlowTests: XCTestCase {
         appStoreRestoreFlow.restoreAccountFromPastPurchaseResult = .failure(.missingAccountOrTransactions)
         authService.createAccountResult = .success(Constants.createAccountResponse)
         accountManager.exchangeAuthTokenToAccessTokenResult = .success(Constants.accessToken)
-        accountManager.onFetchAccountDetails = { _ in .success((email: "", externalID: Constants.externalID)) }
+        accountManager.fetchAccountDetailsResult = .success((email: "", externalID: Constants.externalID))
         storePurchaseManager.purchaseSubscriptionResult = .success(Constants.transactionJWS)
 
         switch await appStorePurchaseFlow.purchaseSubscription(with: Constants.productID, emailAccessToken: nil) {
@@ -187,7 +187,7 @@ final class AppStorePurchaseFlowTests: XCTestCase {
         appStoreRestoreFlow.restoreAccountFromPastPurchaseResult = .failure(.missingAccountOrTransactions)
         authService.createAccountResult = .success(Constants.createAccountResponse)
         accountManager.exchangeAuthTokenToAccessTokenResult = .success(Constants.accessToken)
-        accountManager.onFetchAccountDetails = { _ in .success((email: "", externalID: Constants.externalID)) }
+        accountManager.fetchAccountDetailsResult = .success((email: "", externalID: Constants.externalID))
         storePurchaseManager.purchaseSubscriptionResult = .failure(.productNotFound)
 
         switch await appStorePurchaseFlow.purchaseSubscription(with: Constants.productID, emailAccessToken: nil) {
@@ -204,7 +204,7 @@ final class AppStorePurchaseFlowTests: XCTestCase {
         appStoreRestoreFlow.restoreAccountFromPastPurchaseResult = .failure(.missingAccountOrTransactions)
         authService.createAccountResult = .success(Constants.createAccountResponse)
         accountManager.exchangeAuthTokenToAccessTokenResult = .success(Constants.accessToken)
-        accountManager.onFetchAccountDetails = { _ in .success((email: "", externalID: Constants.externalID)) }
+        accountManager.fetchAccountDetailsResult = .success((email: "", externalID: Constants.externalID))
         storePurchaseManager.purchaseSubscriptionResult = .failure(.purchaseCancelledByUser)
 
         switch await appStorePurchaseFlow.purchaseSubscription(with: Constants.productID, emailAccessToken: nil) {

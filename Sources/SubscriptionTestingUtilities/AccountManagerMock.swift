@@ -27,13 +27,14 @@ public final class AccountManagerMock: AccountManager {
     public var externalID: String?
 
     public var exchangeAuthTokenToAccessTokenResult: Result<String, Error>?
+    public var fetchAccountDetailsResult: Result<AccountDetails, Error>?
 
     public var onStoreAuthToken: ((String) -> Void)?
     public var onStoreAccount: ((String, String?, String?) -> Void)?
-    public var onFetchEntitlements: ((APICachePolicy) -> Void)?
     public var onSignOut: (() -> Void)?
+    public var onFetchEntitlements: ((APICachePolicy) -> Void)?
     public var onExchangeAuthTokenToAccessToken: ((String) -> Void)?
-    public var onFetchAccountDetails: ((String) -> Result<AccountDetails, Error>)?
+    public var onFetchAccountDetails: ((String) -> Void)?
     public var onCheckForEntitlements: ((Double, Int) -> Bool)?
 
     public var storeAuthTokenCalled: Bool = false
@@ -101,7 +102,8 @@ public final class AccountManagerMock: AccountManager {
 
     public func fetchAccountDetails(with accessToken: String) async -> Result<AccountDetails, Error> {
         fetchAccountDetailsCalled = true
-        return onFetchAccountDetails!(accessToken)
+        onFetchAccountDetails?(accessToken)
+        return fetchAccountDetailsResult!
     }
 
     public func checkForEntitlements(wait waitTime: Double, retry retryCount: Int) async -> Bool {

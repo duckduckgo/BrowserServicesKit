@@ -26,6 +26,7 @@ final class StripePurchaseFlowTests: XCTestCase {
         static let authToken = UUID().uuidString
         static let accessToken = UUID().uuidString
         static let externalID = UUID().uuidString
+        static let email = "dax@duck.com"
 
         static let unknownServerError = APIServiceError.serverError(statusCode: 401, error: "unknown_error")
     }
@@ -69,8 +70,8 @@ final class StripePurchaseFlowTests: XCTestCase {
             for name in SubscriptionFeatureName.allCases {
                 XCTAssertTrue(allNames.contains(name.rawValue))
             }
-        case .failure(let failure):
-            XCTFail("Unexpected failure: \(failure)")
+        case .failure(let error):
+            XCTFail("Unexpected failure: \(error)")
         }
     }
 
@@ -81,39 +82,14 @@ final class StripePurchaseFlowTests: XCTestCase {
         switch result {
         case .success:
             XCTFail("Unexpected success")
-        case .failure(let failure):
-            XCTAssertEqual(failure, .noProductsFound)
+        case .failure(let error):
+            XCTAssertEqual(error, .noProductsFound)
         }
     }
 
     // MARK: - Tests for prepareSubscriptionPurchase
 
-    func testPrepareSubscriptionPurchaseSuccessWhenSignedInAndSubscriptionExpired() async throws {
-        let subscription = SubscriptionMockFactory.expiredSubscription
-
-        accountManager.accessToken = Constants.accessToken
-
-        let subscriptionServiceSignOutExpectation = expectation(description: "signOut()")
-        subscriptionService.onSignOut = { subscriptionServiceSignOutExpectation.fulfill() }
-        subscriptionService.getSubscriptionResult = .success(subscription)
-        subscriptionService.getProductsResult = .success(SubscriptionMockFactory.productsItems)
-        
-
-        XCTAssertTrue(accountManager.isUserAuthenticated)
-        XCTAssertFalse(subscription.isActive)
-
-        let result = await stripePurchaseFlow.prepareSubscriptionPurchase(emailAccessToken: nil)
-        switch result {
-        case .success(let success):
-            await fulfillment(of: [subscriptionServiceSignOutExpectation], timeout: 0.1)
-            XCTAssertEqual(success.type, "redirect")
-            XCTAssertEqual(success.token, Constants.accessToken)
-        case .failure(let failure):
-            XCTFail("Unexpected failure: \(failure)")
-        }
-    }
-
-    func testPrepareSubscriptionPurchaseSuccessWhenNotSignedIn() async throws {
+    func testPrepareSubscriptionPurchaseSuccess() async throws {
         authEndpointService.createAccountResult = .success(CreateAccountResponse(authToken: Constants.authToken,
                                                                                  externalID: Constants.externalID,
                                                                                  status: "created"))
@@ -124,27 +100,60 @@ final class StripePurchaseFlowTests: XCTestCase {
         case .success(let success):
             XCTAssertEqual(success.type, "redirect")
             XCTAssertEqual(success.token, Constants.authToken)
+            
+            XCTAssertTrue(authEndpointService.createAccountCalled)
             XCTAssertEqual(accountManager.authToken, Constants.authToken)
-        case .failure(let failure):
-            XCTFail("Unexpected failure: \(failure)")
+        case .failure(let error):
+            XCTFail("Unexpected failure: \(error)")
+        }
+    }
+
+    func testPrepareSubscriptionPurchaseSuccessWhenSignedInAndSubscriptionExpired() async throws {
+        let subscription = SubscriptionMockFactory.expiredSubscription
+
+        accountManager.accessToken = Constants.accessToken
+
+        subscriptionService.getSubscriptionResult = .success(subscription)
+        subscriptionService.getProductsResult = .success(SubscriptionMockFactory.productsItems)
+
+        XCTAssertTrue(accountManager.isUserAuthenticated)
+        XCTAssertFalse(subscription.isActive)
+
+        let result = await stripePurchaseFlow.prepareSubscriptionPurchase(emailAccessToken: nil)
+        switch result {
+        case .success(let success):
+            XCTAssertEqual(success.type, "redirect")
+            XCTAssertEqual(success.token, Constants.accessToken)
+
+            XCTAssertTrue(subscriptionService.signOutCalled)
+            XCTAssertFalse(authEndpointService.createAccountCalled)
+        case .failure(let error):
+            XCTFail("Unexpected failure: \(error)")
         }
     }
 
     func testPrepareSubscriptionPurchaseErrorWhenAccountCreationFailed() async throws {
         authEndpointService.createAccountResult = .failure(Constants.unknownServerError)
-        XCTAssertNil(accountManager.accessToken)
+        XCTAssertFalse(accountManager.isUserAuthenticated)
 
         let result = await stripePurchaseFlow.prepareSubscriptionPurchase(emailAccessToken: nil)
         switch result {
         case .success:
             XCTFail("Unexpected success")
-        case .failure(let failure):
-            XCTAssertEqual(failure, .accountCreationFailed)
+        case .failure(let error):
+            XCTAssertEqual(error, .accountCreationFailed)
         }
     }
 
     func testPrepareSubscriptionPurchaseErrorWhenWhenSignedInAndSubscriptionActive() async throws {
+        
         // TODO: prepareSubscriptionPurchase should fail when has active subscription
+
+
+
+
+
+
     }
 
     // MARK: - Tests for completeSubscriptionPurchase
@@ -154,38 +163,27 @@ final class StripePurchaseFlowTests: XCTestCase {
         accountManager.authToken = Constants.authToken
         XCTAssertNil(accountManager.accessToken)
 
-        let subscriptionServiceSignOutExpectation = expectation(description: "signOut")
-        subscriptionService.onSignOut = { subscriptionServiceSignOutExpectation.fulfill() }
-
         accountManager.exchangeAuthTokenToAccessTokenResult = .success(Constants.accessToken)
         accountManager.onExchangeAuthTokenToAccessToken = { authToken in
             XCTAssertEqual(authToken, Constants.authToken)
         }
 
-
-        let accountManagerFetchAccountDetailsExpectation = expectation(description: "fetchAccountDetails")
+        accountManager.fetchAccountDetailsResult = .success(AccountManager.AccountDetails(email: nil, externalID: Constants.externalID))
         accountManager.onFetchAccountDetails = { accessToken in
-            accountManagerFetchAccountDetailsExpectation.fulfill()
             XCTAssertEqual(accessToken, Constants.accessToken)
-            return .success(AccountManager.AccountDetails(email: nil, externalID: Constants.externalID))
         }
 
-        let accountManagerStoreAuthTokenExpectation = expectation(description: "storeAuthToken")
         accountManager.onStoreAuthToken = { authToken in
-            accountManagerStoreAuthTokenExpectation.fulfill()
             XCTAssertEqual(authToken, Constants.authToken)
         }
 
-        let accountManagerStoreAccountExpectation = expectation(description: "storeAccount")
         accountManager.onStoreAccount = { accessToken, email, externalID in
-            accountManagerStoreAccountExpectation.fulfill()
             XCTAssertEqual(accessToken, Constants.accessToken)
             XCTAssertEqual(externalID, Constants.externalID)
+            XCTAssertNil(email)
         }
 
-        let accountManagerCheckForEntitlementsExpectation = expectation(description: "checkForEntitlements")
         accountManager.onCheckForEntitlements = { wait, retry in
-            accountManagerCheckForEntitlementsExpectation.fulfill()
             XCTAssertEqual(wait, 2.0)
             XCTAssertEqual(retry, 5)
             return true
@@ -196,12 +194,13 @@ final class StripePurchaseFlowTests: XCTestCase {
 
         await stripePurchaseFlow.completeSubscriptionPurchase()
 
-        await fulfillment(of: [subscriptionServiceSignOutExpectation,
-                               accountManagerFetchAccountDetailsExpectation,
-                               accountManagerStoreAuthTokenExpectation,
-                               accountManagerStoreAccountExpectation,
-                               accountManagerCheckForEntitlementsExpectation], timeout: 0.1)
+        XCTAssertTrue(subscriptionService.signOutCalled)
         XCTAssertTrue(accountManager.exchangeAuthTokenToAccessTokenCalled)
+        XCTAssertTrue(accountManager.fetchAccountDetailsCalled)
+        XCTAssertTrue(accountManager.storeAuthTokenCalled)
+        XCTAssertTrue(accountManager.storeAccountCalled)
+        XCTAssertTrue(accountManager.checkForEntitlementsCalled)
+
         XCTAssertTrue(accountManager.isUserAuthenticated)
         XCTAssertEqual(accountManager.accessToken, Constants.accessToken)
         XCTAssertEqual(accountManager.externalID, Constants.externalID)
@@ -213,31 +212,9 @@ final class StripePurchaseFlowTests: XCTestCase {
         accountManager.accessToken = Constants.accessToken
         accountManager.externalID = Constants.externalID
 
-        let subscriptionServiceSignOutExpectation = expectation(description: "signOut")
-        subscriptionService.onSignOut = { subscriptionServiceSignOutExpectation.fulfill() }
+        accountManager.fetchAccountDetailsResult = .success(AccountManager.AccountDetails(email: Constants.email, externalID: Constants.externalID))
 
-        let fetchAccountDetailsExpectation = expectation(description: "fetchAccountDetails")
-        fetchAccountDetailsExpectation.isInverted = true
-        accountManager.onFetchAccountDetails = { _ in
-            fetchAccountDetailsExpectation.fulfill()
-            return .success(AccountManager.AccountDetails(email: nil, externalID: Constants.externalID))
-        }
-
-        let storeAuthTokenExpectation = expectation(description: "storeAuthToken")
-        storeAuthTokenExpectation.isInverted = true
-        accountManager.onStoreAuthToken = { authToken in
-            storeAuthTokenExpectation.fulfill()
-        }
-
-        let storeAccountExpectation = expectation(description: "storeAccount")
-        storeAccountExpectation.isInverted = true
-        accountManager.onStoreAccount = { _, _, _ in
-            storeAccountExpectation.fulfill()
-        }
-
-        let checkForEntitlementsExpectation = expectation(description: "checkForEntitlements")
         accountManager.onCheckForEntitlements = { wait, retry in
-            checkForEntitlementsExpectation.fulfill()
             XCTAssertEqual(wait, 2.0)
             XCTAssertEqual(retry, 5)
             return true
@@ -247,12 +224,13 @@ final class StripePurchaseFlowTests: XCTestCase {
 
         await stripePurchaseFlow.completeSubscriptionPurchase()
 
-        await fulfillment(of: [subscriptionServiceSignOutExpectation,
-                               fetchAccountDetailsExpectation,
-                               storeAuthTokenExpectation,
-                               storeAccountExpectation,
-                               checkForEntitlementsExpectation], timeout: 0.1)
+        XCTAssertTrue(subscriptionService.signOutCalled)
         XCTAssertFalse(accountManager.exchangeAuthTokenToAccessTokenCalled)
+        XCTAssertFalse(accountManager.fetchAccountDetailsCalled)
+        XCTAssertFalse(accountManager.storeAuthTokenCalled)
+        XCTAssertFalse(accountManager.storeAccountCalled)
+        XCTAssertTrue(accountManager.checkForEntitlementsCalled)
+
         XCTAssertTrue(accountManager.isUserAuthenticated)
         XCTAssertEqual(accountManager.accessToken, Constants.accessToken)
         XCTAssertEqual(accountManager.externalID, Constants.externalID)

@@ -22,7 +22,6 @@ import Foundation
 /// Provides all mocks needed for testing subscription initialised with positive outcomes and basic configurations. All mocks can be partially reconfigured with failures or incorrect data
 public struct SubscriptionMockFactory {
 
-
     public static let subscription = Subscription(productId: UUID().uuidString,
                                                   name: "Subscription test #1",
                                                   billingPeriod: .monthly,

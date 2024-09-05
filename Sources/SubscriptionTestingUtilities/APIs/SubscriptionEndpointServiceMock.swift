@@ -25,12 +25,12 @@ public class SubscriptionEndpointServiceMock: SubscriptionEndpointService {
     public var getCustomerPortalURLResult: Result<GetCustomerPortalURLResponse, APIServiceError>?
     public var confirmPurchaseResult: Result<ConfirmPurchaseResponse, APIServiceError>?
 
-    public var updateCacheWithSubscriptionCalled: Bool = false
-    public var signOutCalled: Bool = false
-
     public var onUpdateCache: ((Subscription) -> Void)?
     public var onGetSubscriptionCalled: ((String, APICachePolicy) -> Void)?
     public var onSignOut: (() -> Void)?
+
+    public var updateCacheWithSubscriptionCalled: Bool = false
+    public var signOutCalled: Bool = false
 
     public init() { }
 

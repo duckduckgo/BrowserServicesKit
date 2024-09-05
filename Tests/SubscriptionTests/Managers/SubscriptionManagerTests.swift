@@ -88,6 +88,8 @@ final class SubscriptionManagerTests: XCTestCase {
                                                          authEndpointService: authService,
                                                          subscriptionEnvironment: subscriptionEnvironment)
 
+        try await Task.sleep(seconds: 0.5)
+
         XCTAssertTrue(storePurchaseManager.updateAvailableProductsCalled)
         XCTAssertTrue(subscriptionManager.canPurchase)
     }

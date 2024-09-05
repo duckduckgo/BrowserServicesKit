@@ -20,14 +20,11 @@ import Foundation
 import Subscription
 
 public class AppStoreAccountManagementFlowMock: AppStoreAccountManagementFlow {
-
     public var refreshAuthTokenIfNeededResult: Result<String, AppStoreAccountManagementFlowError>?
     public var onRefreshAuthTokenIfNeeded: (() -> Void)?
     public var refreshAuthTokenIfNeededCalled: Bool = false
 
-    public init(refreshAuthTokenIfNeededResult: Result<String, AppStoreAccountManagementFlowError>? = nil) {
-        self.refreshAuthTokenIfNeededResult = refreshAuthTokenIfNeededResult
-    }
+    public init() { }
 
     public func refreshAuthTokenIfNeeded() async -> Result<String, AppStoreAccountManagementFlowError> {
         refreshAuthTokenIfNeededCalled = true
