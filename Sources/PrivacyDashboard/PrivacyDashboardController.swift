@@ -160,6 +160,7 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
         switch entryPoint {
         case .report: source = .appMenu
         case .dashboard: source = .dashboard
+        case .prompt(let event): source = .prompt(event)
         case .toggleReport: source = .onProtectionsOffMenu
         case .afterTogglePrompt: source = .afterTogglePrompt
         }
@@ -243,7 +244,11 @@ extension PrivacyDashboardController: WKNavigationDelegate {
         privacyInfo?.$serverTrust
             .receive(on: DispatchQueue.global(qos: .userInitiated))
             .map { serverTrust in
-                ServerTrustViewModel(serverTrust: serverTrust)
+                if let serverTrust {
+                    // swiftlint:disable:next force_cast
+                    return ServerTrustViewModel(serverTrust: (serverTrust as! SecTrust))
+                }
+                return ServerTrustViewModel(serverTrust: nil)
             }
             .receive(on: DispatchQueue.main)
             .sink(receiveValue: { [weak self] serverTrustViewModel in

@@ -19,6 +19,7 @@
 import Foundation
 import ContentBlocking
 import Common
+import os.log
 
 public protocol AdClickAttributionLogicDelegate: AnyObject {
 
@@ -56,10 +57,6 @@ public class AdClickAttributionLogic {
     private let featureConfig: AdClickAttributing
     private let rulesProvider: AdClickAttributionRulesProviding
     private let tld: TLD
-    private let getLog: () -> OSLog
-    private var log: OSLog {
-        getLog()
-    }
     private let eventReporting: EventMapping<AdClickAttributionEvents>?
     private let errorReporting: EventMapping<AdClickAttributionDebugEvents>?
     private lazy var counter: AdClickAttributionCounter = AdClickAttributionCounter(onSendRequest: { count in
@@ -78,14 +75,12 @@ public class AdClickAttributionLogic {
                 rulesProvider: AdClickAttributionRulesProviding,
                 tld: TLD,
                 eventReporting: EventMapping<AdClickAttributionEvents>? = nil,
-                errorReporting: EventMapping<AdClickAttributionDebugEvents>? = nil,
-                log: @escaping @autoclosure () -> OSLog = .disabled) {
+                errorReporting: EventMapping<AdClickAttributionDebugEvents>? = nil) {
         self.featureConfig = featureConfig
         self.rulesProvider = rulesProvider
         self.tld = tld
         self.eventReporting = eventReporting
         self.errorReporting = errorReporting
-        self.getLog = log
     }
 
     public func applyInheritedAttribution(state: State?) {
@@ -151,18 +146,18 @@ public class AdClickAttributionLogic {
         case .noAttribution:
             completion()
         case .preparingAttribution(let vendor, let session, var completionBlocks):
-            os_log(.debug, log: log, "Suspending provisional navigation...")
+            Logger.contentBlocking.debug("Suspending provisional navigation...")
             completionBlocks.append(completion)
             state = .preparingAttribution(vendor: vendor,
                                           session: session,
                                           completionBlocks: completionBlocks)
         case .activeAttribution(_, let session, _):
             if currentTime.timeIntervalSince(session.attributionStartedAt) >= featureConfig.totalExpiration {
-                os_log(.debug, log: log, "Attribution has expired - total expiration")
+                Logger.contentBlocking.debug("Attribution has expired - total expiration")
                 disableAttribution()
             } else if let leftAttributionContextAt = session.leftAttributionContextAt,
                       currentTime.timeIntervalSince(leftAttributionContextAt) >= featureConfig.navigationExpiration {
-                os_log(.debug, log: log, "Attribution has expired - navigational expiration")
+                Logger.contentBlocking.debug("Attribution has expired - navigational expiration")
                 disableAttribution()
             }
             completion()
@@ -188,23 +183,23 @@ public class AdClickAttributionLogic {
         }
 
         if currentTime.timeIntervalSince(session.attributionStartedAt) >= featureConfig.totalExpiration {
-            os_log(.debug, log: log, "Attribution has expired - total expiration")
+            Logger.contentBlocking.debug("Attribution has expired - total expiration")
             disableAttribution()
             return
         }
 
         if let leftAttributionContextAt = session.leftAttributionContextAt {
            if currentTime.timeIntervalSince(leftAttributionContextAt) >= featureConfig.navigationExpiration {
-               os_log(.debug, log: log, "Attribution has expired - navigational expiration")
+               Logger.contentBlocking.debug("Attribution has expired - navigational expiration")
                disableAttribution()
            } else if tld.eTLDplus1(host) == vendor {
-               os_log(.debug, log: log, "Refreshing navigational duration for attribution")
+               Logger.contentBlocking.debug("Refreshing navigational duration for attribution")
                state = .activeAttribution(vendor: vendor,
                                           session: SessionInfo(start: session.attributionStartedAt),
                                           rules: rules)
            }
         } else if tld.eTLDplus1(host) != vendor {
-            os_log(.debug, log: log, "Leaving attribution context")
+            Logger.contentBlocking.debug("Leaving attribution context")
             state = .activeAttribution(vendor: vendor,
                                        session: SessionInfo(start: session.attributionStartedAt,
                                                             leftContextAt: Date()),
@@ -212,11 +207,15 @@ public class AdClickAttributionLogic {
         }
     }
 
-    public func onRequestDetected(request: DetectedRequest) {
+    public func onRequestDetected(request: DetectedRequest, cpmExperimentOn: Bool? = nil) {
         guard registerFirstActivity,
             BlockingState.allowed(reason: .adClickAttribution) == request.state else { return }
 
-        eventReporting?.fire(.adAttributionActive)
+        var parameters: [String: String] = [:]
+        if let cpmExperimentOn {
+            parameters[AdClickAttributionEvents.Parameters.cpmExperiment] = cpmExperimentOn ? "1" : "0"
+        }
+        eventReporting?.fire(.adAttributionActive, parameters: parameters)
         registerFirstActivity = false
     }
 
@@ -228,18 +227,18 @@ public class AdClickAttributionLogic {
 
     private func onAttributedRulesCompiled(forVendor vendor: String, _ rules: ContentBlockerRulesManager.Rules) {
         guard case .preparingAttribution(let expectedVendor, let session, let completionBlocks) = state else {
-            os_log(.error, log: log, "Attributed Rules received unexpectedly")
+            Logger.contentBlocking.error("Attributed Rules received unexpectedly")
             errorReporting?.fire(.adAttributionLogicUnexpectedStateOnRulesCompiled)
             return
         }
         guard expectedVendor == vendor else {
-            os_log(.debug, log: log, "Attributed Rules received for wrong vendor")
+            Logger.contentBlocking.debug("Attributed Rules received for wrong vendor")
             errorReporting?.fire(.adAttributionLogicWrongVendorOnSuccessfulCompilation)
             return
         }
         state = .activeAttribution(vendor: vendor, session: session, rules: rules)
         applyRules()
-        os_log(.debug, log: log, "Resuming provisional navigation for %{public}d requests", completionBlocks.count)
+        Logger.contentBlocking.debug("Resuming provisional navigation for \(completionBlocks.count, privacy: .public) requests")
         for completion in completionBlocks {
             completion()
         }
@@ -247,7 +246,7 @@ public class AdClickAttributionLogic {
 
     private func onAttributedRulesCompilationFailed(forVendor vendor: String) {
         guard case .preparingAttribution(let expectedVendor, _, let completionBlocks) = state else {
-            os_log(.error, log: log, "Attributed Rules compilation failed")
+            Logger.contentBlocking.error("Attributed Rules compilation failed")
             errorReporting?.fire(.adAttributionLogicUnexpectedStateOnRulesCompilationFailed)
             return
         }
@@ -258,7 +257,7 @@ public class AdClickAttributionLogic {
         state = .noAttribution
 
         applyRules()
-        os_log(.debug, log: log, "Resuming provisional navigation for {public}%d requests", completionBlocks.count)
+        Logger.contentBlocking.debug("Resuming provisional navigation for \(completionBlocks.count, privacy: .public) requests")
         for completion in completionBlocks {
             completion()
         }
@@ -312,21 +311,21 @@ public class AdClickAttributionLogic {
 
         switch state {
         case .noAttribution:
-            os_log(.debug, log: log, "Preparing attribution for %{private}s", vendorHost)
+            Logger.contentBlocking.debug("Preparing attribution for \(vendorHost)")
                 requestAttribution(forVendor: vendorHost)
         case .preparingAttribution(let expectedVendor, _, let completionBlocks):
             if expectedVendor != vendorHost {
-                os_log(.debug, log: log, "Preparing attributon for %{private}s replacing pending one for %{private}s", vendorHost, expectedVendor)
+                Logger.contentBlocking.debug("Preparing attributon for \(vendorHost) replacing pending one for \(expectedVendor)")
                 requestAttribution(forVendor: vendorHost, completionBlocks: completionBlocks)
             } else {
-                os_log(.debug, log: log, "Preparing attribution for %{private}s already in progress", vendorHost)
+                Logger.contentBlocking.debug("Preparing attribution for \(vendorHost) already in progress")
             }
         case .activeAttribution(let expectedVendor, _, _):
             if expectedVendor != vendorHost {
-                os_log(.debug, log: log, "Preparing attributon for %{private}s replacing %{private}s", vendorHost, expectedVendor)
+                Logger.contentBlocking.debug("Preparing attributon for \(vendorHost) replacing \(expectedVendor)")
                 requestAttribution(forVendor: vendorHost)
             } else {
-                os_log(.debug, log: log, "Attribution for %{private}s already active", vendorHost)
+                Logger.contentBlocking.debug("Attribution for \(vendorHost) already active")
             }
         }
     }
@@ -337,7 +336,7 @@ extension AdClickAttributionLogic: AdClickAttributionDetectionDelegate {
 
     public func attributionDetection(_ detection: AdClickAttributionDetection,
                                      didDetectVendor vendorHost: String) {
-        os_log(.debug, log: log, "Detected attribution requests for %{private}s", vendorHost)
+        Logger.contentBlocking.debug("Detected attribution requests for \(vendorHost)")
         onAttributionRequested(forVendor: vendorHost)
         registerFirstActivity = true
     }

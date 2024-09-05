@@ -21,6 +21,7 @@ import Foundation
 import NetworkExtension
 import NotificationCenter
 import Common
+import os.log
 
 public class DataVolumeObserverThroughSession: DataVolumeObserver {
     public lazy var publisher = subject.eraseToAnyPublisher()
@@ -42,21 +43,15 @@ public class DataVolumeObserverThroughSession: DataVolumeObserver {
 
     private static let interval: TimeInterval = .seconds(1)
 
-    // MARK: - Logging
-
-    private let log: OSLog
-
     // MARK: - Initialization
 
     public init(tunnelSessionProvider: TunnelSessionProvider,
                 platformNotificationCenter: NotificationCenter,
-                platformDidWakeNotification: Notification.Name,
-                log: OSLog = .networkProtection) {
+                platformDidWakeNotification: Notification.Name) {
 
         self.platformNotificationCenter = platformNotificationCenter
         self.platformDidWakeNotification = platformDidWakeNotification
         self.tunnelSessionProvider = tunnelSessionProvider
-        self.log = log
 
         start()
     }

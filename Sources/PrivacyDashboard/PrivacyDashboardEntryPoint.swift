@@ -30,6 +30,10 @@ public enum PrivacyDashboardEntryPoint: Equatable {
     /// This is only available on iOS, as macOS does not have an option to disable protection outside of the dashboard.
     case toggleReport(completionHandler: (Bool) -> Void)
 
+    /// The prompt report screen, which is triggered whenever the user taps report from the toast popup for refreshes
+    /// This is currently only available on iOS.
+    case prompt(String)
+
     /// The experimental after toggle prompt screen, presented in variant B.
     /// After the user toggles off protection, this prompt asks if the action helped and allows the user to report their experience.
     /// - Parameters:
@@ -47,6 +51,7 @@ public enum PrivacyDashboardEntryPoint: Equatable {
 
         case (.afterTogglePrompt, _): return .choiceBreakageForm
 
+        case (.prompt, _): return .promptBreakageForm
         case (.toggleReport, _): return .toggleReport
         }
     }
@@ -57,6 +62,7 @@ public enum PrivacyDashboardEntryPoint: Equatable {
             (.dashboard, .dashboard),
             (.report, .report),
             (.toggleReport, .toggleReport),
+            (.prompt, .prompt),
             (.afterTogglePrompt, .afterTogglePrompt):
             return true
         default:

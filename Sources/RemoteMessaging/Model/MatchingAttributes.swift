@@ -159,6 +159,11 @@ struct InteractedWithMessageMatchingAttribute: SingleValueMatching {
     var fallback: Bool?
 }
 
+struct InteractedWithDeprecatedMacRemoteMessageMatchingAttribute: SingleValueMatching {
+    var value: [String]? = []
+    var fallback: Bool?
+}
+
 struct IsInstalledMacAppStoreMatchingAttribute: SingleValueMatching {
     var value: Bool?
     var fallback: Bool?
@@ -183,6 +188,16 @@ struct DuckPlayerOnboardedMatchingAttribute: SingleValueMatching {
 
 struct DuckPlayerEnabledMatchingAttribute: SingleValueMatching {
     var value: Bool?
+    var fallback: Bool?
+}
+
+struct FreemiumPIRCurrentUserMatchingAttribute: SingleValueMatching {
+    var value: Bool?
+    var fallback: Bool?
+}
+
+struct MessageShownMatchingAttribute: SingleValueMatching {
+    var value: [String]? = []
     var fallback: Bool?
 }
 

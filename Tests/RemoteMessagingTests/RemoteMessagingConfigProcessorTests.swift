@@ -45,7 +45,10 @@ class RemoteMessagingConfigProcessorTests: XCTestCase {
                 isPrivacyProSubscriptionActive: false,
                 isPrivacyProSubscriptionExpiring: false,
                 isPrivacyProSubscriptionExpired: false,
-                dismissedMessageIds: []
+                isDuckPlayerOnboarded: false,
+                isDuckPlayerEnabled: false,
+                dismissedMessageIds: [],
+                shownMessageIds: []
             ),
             percentileStore: MockRemoteMessagePercentileStore(),
             surveyActionMapper: MockRemoteMessageSurveyActionMapper(),
@@ -85,7 +88,10 @@ class RemoteMessagingConfigProcessorTests: XCTestCase {
                     isPrivacyProSubscriptionActive: false,
                     isPrivacyProSubscriptionExpiring: false,
                     isPrivacyProSubscriptionExpired: false,
-                    dismissedMessageIds: []
+                    isDuckPlayerOnboarded: false,
+                    isDuckPlayerEnabled: false,
+                    dismissedMessageIds: [],
+                    shownMessageIds: []
                 ),
                 percentileStore: MockRemoteMessagePercentileStore(),
                 surveyActionMapper: MockRemoteMessageSurveyActionMapper(),

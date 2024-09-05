@@ -91,7 +91,7 @@ extension URL {
         public static let data = NavigationalScheme(rawValue: "data")
         public static let blob = NavigationalScheme(rawValue: "blob")
         public static let about = NavigationalScheme(rawValue: "about")
-
+        public static let duck = NavigationalScheme(rawValue: "duck")
         public static let mailto = NavigationalScheme(rawValue: "mailto")
 
         public init(rawValue: String) {
@@ -106,7 +106,7 @@ extension URL {
         }
 
         public static var navigationalSchemes: [NavigationalScheme] {
-            return [.http, .https, .ftp, .file, .data, .blob, .about]
+            return [.http, .https, .ftp, .file, .data, .blob, .about, duck]
         }
 
         public static var schemesWithRemovableBasicAuth: [NavigationalScheme] {

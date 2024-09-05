@@ -16,10 +16,11 @@
 //  limitations under the License.
 //
 
+import Foundation
 import BrowserServicesKit
 import Common
 import Configuration
-import Foundation
+import os.log
 
 /**
  * This protocol defines API for providing RMF config matcher
@@ -76,12 +77,12 @@ public extension RemoteMessagingProcessing {
 
     func fetchAndProcess(using store: RemoteMessagingStoring) async throws {
         guard remoteMessagingAvailabilityProvider.isRemoteMessagingAvailable else {
-            os_log("Remote messaging feature flag is disabled, skipping fetching messages", log: .remoteMessaging, type: .debug)
+            Logger.remoteMessaging.debug("Remote messaging feature flag is disabled, skipping fetching messages")
             return
         }
         do {
             let jsonConfig = try await configFetcher.fetchRemoteMessagingConfig()
-            os_log("Successfully fetched remote messages", log: .remoteMessaging, type: .debug)
+            Logger.remoteMessaging.debug("Successfully fetched remote messages")
 
             let remoteMessagingConfigMatcher = await configMatcherProvider.refreshConfigMatcher(using: store)
 
@@ -93,7 +94,7 @@ public extension RemoteMessagingProcessing {
             }
 
         } catch {
-            os_log("Failed to fetch remote messages", log: .remoteMessaging, type: .error)
+            Logger.remoteMessaging.error("Failed to fetch remote messages \(error.localizedDescription, privacy: .public)")
             throw error
         }
     }

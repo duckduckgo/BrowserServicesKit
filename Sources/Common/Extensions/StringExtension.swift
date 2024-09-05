@@ -30,7 +30,9 @@ extension RegEx {
     // from https://stackoverflow.com/a/25717506/73479
     static let hostName = regex("^(((?!-)[A-Za-z0-9-]{1,63}(?<!-)\\.)*[A-Za-z0-9-]{2,63})$", .caseInsensitive)
 
-    static let email = regex(#"[a-zA-Z0-9]+(?:\.[a-zA-Z0-9]+)*@[a-zA-Z0-9]+(?:\.[a-zA-Z0-9]+)+"#)
+    static let email = regex(#"[^\s]+@[^\s]+\.[^\s]+"#)
+
+    static let mathExpression = regex(#"^[\s$]*([\d]+(\.[\d]+)?|\\.[\d]+)([\s]*[+\-*/][\s]*([\d]+(\.[\d]+)?|\\.[\d]+))*[\s$]*$"#)
 }
 
 // Use this instead of NSLocalizedString for strings that are not supposed to be translated
@@ -99,7 +101,8 @@ public extension String {
 
     // clean-up file paths and email addresses
     func sanitized() -> String {
-        var message = self
+        // clean-up emails
+        var message = self.replacing(RegEx.email, with: "<removed>")
 
         // find all the substring ranges looking like a file path
         let pathRanges = message.rangesOfFilePaths()
@@ -132,15 +135,17 @@ public extension String {
             }
         }
 
-        // clean-up emails
-        message = message.replacing(RegEx.email, with: "<removed>")
-
         return message
     }
 
     private enum FileRegex {
         //                           "(matching url/file/path/at/in..-like prefix)(not an end of expr)(=|:)  (open quote/brace)
-        static let varStart = regex(#"(?:url\b|\bfile\b|path\b|\bin\b|\bfrom\b|\bat)[^.,;?!"'`\])}>]\s*[:= ]?\s*["'“`\[({<]?"#, .caseInsensitive)
+        static let varStart = regex(#"(?:"# +
+                                    #"ur[il]\b|"# +
+                                    #"\b(?:config|input|output|temp|log|backup|resource)?file(?:ur[il]|name)?\b|"# +
+                                    #"\b(?:absolute|relative|network|temp|url|uri|config|input|output|log|backup|resource)?(?:file|directory|dir)?path(?:ur[il])?\b|"# +
+                                    #"\bin\b|\bfrom\b|\bat"# +
+                                    #")[^.,;?!"'`\])}>]\s*[:= ]?\s*["'“`\[({<]?"#, .caseInsensitive)
         static let closingQuotes = [
             "\"": regex(#""[,.;:]?(?:\s|$)|$"#),
             "'": regex(#"'[,.;:]?(?:\s|$)|$"#),
@@ -163,6 +168,9 @@ public extension String {
 
         static let lineNumber = regex(#":\d+$"#)
         static let trailingSpecialCharacters = regex(#"[\s\.,;:\])}>"”'`]+$"#)
+
+        static let moduleTypeName = regex(#"^\.*[A-Za-z_]*(?:DuckDuckGo|DataBroker|NetworkProtection|VPNProxy)[A-Za-z_]*\.(?:(?:[A-Z_]+[a-z_]+)+)$"#)
+        static let swiftTypeName = regex(#"^\.*[A-Za-z_]+\.Type$"#)
     }
 
     // MARK: File Paths
@@ -291,6 +299,10 @@ public extension String {
             dropLineNumberAndTrimSpaces(&resultRange)
 
             guard let pathRange = Range(NSRange(resultRange, in: self)), pathRange.count > 2 else { continue }
+            // don‘t remove type names like _NSViewAnimator_DuckDuckGo_Privacy_Browser.MouseOverButton or Any.Type
+            let fileName = String(self[resultRange])
+            guard FileRegex.moduleTypeName.matches(in: fileName, range: fileName.fullRange).isEmpty,
+                  FileRegex.swiftTypeName.matches(in: fileName, range: fileName.fullRange).isEmpty else { continue }
             // collect the result
             result.insert(integersIn: pathRange)
         }
@@ -352,7 +364,11 @@ public extension String {
     // MARK: Host name validation
 
     var isValidHost: Bool {
-        return isValidHostname || isValidIpHost
+        return (isValidHostname || isValidIpHost) && !isMathFormula
+    }
+
+    private var isMathFormula: Bool {
+        return matches(.mathExpression)
     }
 
     var isValidHostname: Bool {

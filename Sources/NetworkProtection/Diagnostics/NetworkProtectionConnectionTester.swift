@@ -20,6 +20,7 @@ import Foundation
 import Network
 import NetworkExtension
 import Common
+import os.log
 
 /// This class takes care of testing whether the Network Protection connection is working or not.  Results are handled by
 /// an injected object that implements ``NetworkProtectionConnectionTestResultsHandler``.
@@ -77,10 +78,6 @@ final class NetworkProtectionConnectionTester {
     ///
     private static let connectionTimeout: TimeInterval = .seconds(5)
 
-    // MARK: - Logging
-
-    private nonisolated let log: OSLog
-
     // MARK: - Test result handling
 
     private var failureCount = 0
@@ -90,16 +87,15 @@ final class NetworkProtectionConnectionTester {
 
     // MARK: - Init & deinit
 
-    init(timerQueue: DispatchQueue, log: OSLog, resultHandler: @escaping @MainActor (Result) -> Void) {
+    init(timerQueue: DispatchQueue, resultHandler: @escaping @MainActor (Result) -> Void) {
         self.timerQueue = timerQueue
-        self.log = log
         self.resultHandler = resultHandler
 
-        os_log("[+] %{public}@", log: .networkProtectionMemoryLog, type: .debug, String(describing: self))
+        Logger.networkProtectionMemory.debug("[+] \(String(describing: self), privacy: .public)")
     }
 
     deinit {
-        os_log("[-] %{public}@", log: .networkProtectionMemoryLog, type: .debug, String(describing: self))
+        Logger.networkProtectionMemory.debug("[-] \(String(describing: self), privacy: .public)")
         task?.cancel()
     }
 
@@ -113,26 +109,26 @@ final class NetworkProtectionConnectionTester {
 
     func start(tunnelIfName: String, testImmediately: Bool) async throws {
         guard !isRunning else {
-            os_log("Will not start the connection tester as it's already running", log: log)
+            Logger.networkProtectionConnectionTester.log("Will not start the connection tester as it's already running")
             return
         }
 
         isRunning = true
 
-        os_log("🟢 Starting connection tester (testImmediately: %{public}@)", log: log, String(reflecting: testImmediately))
+        Logger.networkProtectionConnectionTester.log("🟢 Starting connection tester (testImmediately: \(String(reflecting: testImmediately), privacy: .public)")
         let tunnelInterface = try await networkInterface(forInterfaceNamed: tunnelIfName)
         self.tunnelInterface = tunnelInterface
 
         do {
             try await scheduleTimer(testImmediately: testImmediately)
         } catch {
-            os_log("🔴 Stopping connection tester early", log: log)
+            Logger.networkProtectionConnectionTester.log("🔴 Stopping connection tester early")
             throw error
         }
     }
 
     func stop() {
-        os_log("🔴 Stopping connection tester", log: log)
+        Logger.networkProtectionConnectionTester.log("🔴 Stopping connection tester")
         stopScheduledTimer()
         isRunning = false
     }
@@ -144,10 +140,10 @@ final class NetworkProtectionConnectionTester {
             let monitor = NWPathMonitor()
 
             monitor.pathUpdateHandler = { path in
-                os_log("All interfaces: %{public}@", log: self.log, String(describing: path.availableInterfaces))
+                Logger.networkProtectionConnectionTester.log("All interfaces: \(String(describing: path.availableInterfaces), privacy: .public)")
 
                 guard let tunnelInterface = path.availableInterfaces.first(where: { $0.name == interfaceName }) else {
-                    os_log("Could not find VPN interface %{public}@", log: self.log, type: .error, interfaceName)
+                    Logger.networkProtectionConnectionTester.error("Could not find VPN interface \(interfaceName, privacy: .public)")
                     monitor.cancel()
                     monitor.pathUpdateHandler = nil
 
@@ -174,7 +170,7 @@ final class NetworkProtectionConnectionTester {
             do {
                 try await testConnection()
             } catch {
-                os_log("Rethrowing exception", log: log)
+                Logger.networkProtectionConnectionTester.log("Rethrowing exception")
                 throw error
             }
         }
@@ -198,11 +194,11 @@ final class NetworkProtectionConnectionTester {
 
     func testConnection() async throws {
         guard let tunnelInterface = tunnelInterface else {
-            os_log("No interface to test!", log: log, type: .error)
+            Logger.networkProtectionConnectionTester.error("No interface to test!")
             return
         }
 
-        os_log("Testing connection...", log: log, type: .debug)
+        Logger.networkProtectionConnectionTester.debug("Testing connection...")
 
         let vpnParameters = NWParameters.tcp
         vpnParameters.requiredInterface = tunnelInterface
@@ -222,15 +218,15 @@ final class NetworkProtectionConnectionTester {
         // After completing the connection tests we check if the tester is still supposed to be running
         // to avoid giving results when it should not be running.
         guard isRunning else {
-            os_log("Tester skipped returning results as it was stopped while running the tests", log: log)
+            Logger.networkProtectionConnectionTester.log("Tester skipped returning results as it was stopped while running the tests")
             return
         }
 
         if onlyVPNIsDown {
-            os_log("👎 VPN is DOWN", log: log)
+            Logger.networkProtectionConnectionTester.log("👎 VPN is DOWN")
             handleDisconnected()
         } else {
-            os_log("👍 VPN: \(vpnIsConnected ? "UP" : "DOWN") local: \(localIsConnected ? "UP" : "DOWN")", log: log)
+            Logger.networkProtectionConnectionTester.log("👍 VPN: \(vpnIsConnected ? "UP" : "DOWN") local: \(localIsConnected ? "UP" : "DOWN")")
             handleConnected()
         }
     }

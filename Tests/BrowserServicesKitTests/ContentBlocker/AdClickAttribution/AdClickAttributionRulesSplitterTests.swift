@@ -134,7 +134,7 @@ final class AdClickAttributionRulesSplitterTests: XCTestCase {
     private func makeKnownTracker(withName name: String, ownerName: String) -> KnownTracker {
         KnownTracker(domain: name,
                      defaultAction: .block,
-                     owner: .init(name: ownerName, displayName: ownerName),
+                     owner: .init(name: ownerName, displayName: ownerName, ownedBy: nil),
                      prevalence: 5.0,
                      subdomains: nil,
                      categories: nil,

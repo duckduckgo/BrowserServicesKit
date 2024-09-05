@@ -12,17 +12,17 @@ jobs:
 
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: SwiftLint
         uses: docker://norionomura/swiftlint:0.54.0_swift-5.9.0
         with:
-          args: swiftlint --reporter github-actions-logging --strict
+          args: swiftlint --reporter github-actions-logging --strict --quiet
 
   unit-tests:
 
       name: Run unit tests (macOS)
 
-      runs-on: macos-13-xlarge
+      runs-on: macos-14
       timeout-minutes: 30
 
       outputs:
@@ -31,7 +31,7 @@ jobs:
       steps:
 
       - name: Check out the code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -46,7 +46,7 @@ jobs:
 
       - name: Cache SPM
         if: env.cache_key_hash
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             .build/artifacts
@@ -60,12 +60,11 @@ jobs:
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode_$(<.xcode-version).app/Contents/Developer
 
-      - name: Install xcbeautify
-        continue-on-error: true
-        run: brew install xcbeautify
+      - name: Build BSK
+        run: set -o pipefail && swift build | tee build-log.txt | xcbeautify
 
       - name: Run tests
-        run: set -o pipefail && swift test | tee build-log.txt | xcbeautify --report junit --report-path . --junit-report-filename tests.xml
+        run: set -o pipefail && swift test | tee -a build-log.txt | xcbeautify --report junit --report-path . --junit-report-filename tests.xml
 
       - name: Publish Unit Tests Report
         uses: mikepenz/action-junit-report@v3
@@ -89,7 +88,7 @@ jobs:
             | xargs -L 1 ./scripts/report-failed-unit-test.sh -s ${{ vars.APPLE_CI_FAILING_TESTS_FAILED_TESTS_SECTION_ID }}
 
       - name: Upload logs
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: build-log.txt
@@ -109,13 +108,13 @@ jobs:
 
       name: Run unit tests (iOS)
 
-      runs-on: macos-13-xlarge
+      runs-on: macos-14
       timeout-minutes: 30
 
       steps:
 
       - name: Check out the code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           submodules: recursive
 
@@ -130,7 +129,7 @@ jobs:
 
       - name: Cache SPM
         if: env.cache_key_hash
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: DerivedData/SourcePackages
           key: ${{ runner.os }}-spm-ios-${{ env.cache_key_hash }}
@@ -144,7 +143,7 @@ jobs:
         run: |
           while xcodebuild -resolvePackageDependencies \
             -scheme BrowserServicesKit-Package \
-            -destination 'platform=iOS Simulator,name=iPhone 15' \
+            -destination 'platform=iOS Simulator,name=iPhone 15,OS=17' \
             -derivedDataPath DerivedData \
             2>&1 | grep Error; do :; done
 
@@ -157,7 +156,7 @@ jobs:
         run: |
           set -o pipefail && xcodebuild test \
             -scheme BrowserServicesKit \
-            -destination 'platform=iOS Simulator,name=iPhone 15' \
+            -destination 'platform=iOS Simulator,name=iPhone 15,OS=17' \
             -derivedDataPath DerivedData \
             -skipPackagePluginValidation \
             -skipMacroValidation \
@@ -187,7 +186,7 @@ jobs:
             | xargs -L 1 ./scripts/report-failed-unit-test.sh -s ${{ vars.APPLE_CI_FAILING_TESTS_FAILED_TESTS_SECTION_ID }}
 
       - name: Upload logs
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: ios-build-log.txt
@@ -203,7 +202,7 @@ jobs:
 
     steps:
       - name: Check out the code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Create Asana Task
         uses: ./.github/actions/asana-failed-pr-checks
         with:
@@ -222,7 +221,7 @@ jobs:
 
     steps:
       - name: Check out the code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: Close Asana Task
         uses: ./.github/actions/asana-failed-pr-checks
         with:

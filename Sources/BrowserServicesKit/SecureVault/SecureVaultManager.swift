@@ -20,6 +20,7 @@ import Foundation
 import Combine
 import Common
 import SecureStorage
+import os.log
 
 public enum AutofillType {
     case password
@@ -144,7 +145,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
 
     public func autofillUserScript(_: AutofillUserScript,
                                    didRequestAutoFillInitDataForDomain domain: String,
-                                   completionHandler: @escaping ([SecureVaultModels.WebsiteAccount],
+                                   completionHandler: @escaping ([SecureVaultModels.WebsiteCredentials],
                                                                  [SecureVaultModels.Identity],
                                                                  [SecureVaultModels.CreditCard],
                                                                  SecureVaultModels.CredentialsProvider) -> Void) {
@@ -167,16 +168,13 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
             }
 
             if delegate.secureVaultManagerIsEnabledStatus(self, forType: .password) {
-                getAccounts(for: domain,
-                            from: vault,
-                            or: passwordManager,
-                            withPartialMatches: includePartialAccountMatches) { [weak self] accounts, error in
+                getCredentials(forDomain: domain, from: vault, or: passwordManager, withPartialMatches: includePartialAccountMatches) { [weak self] credentials, error in
                     guard let self = self else { return }
                     if let error = error {
-                        os_log(.error, "Error requesting autofill init data: %{public}@", error.localizedDescription)
+                        Logger.secureVault.error("Error requesting autofill init data: \(error.localizedDescription, privacy: .public)")
                         completionHandler([], [], [], self.credentialsProvider)
                     } else {
-                        completionHandler(accounts, identities, cards, self.credentialsProvider)
+                        completionHandler(credentials, identities, cards, self.credentialsProvider)
                     }
                 }
             } else {
@@ -184,7 +182,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
             }
 
         } catch {
-            os_log(.error, "Error requesting autofill init data: %{public}@", error.localizedDescription)
+            Logger.secureVault.error("Error requesting autofill init data: \(error.localizedDescription, privacy: .public)")
             completionHandler([], [], [], credentialsProvider)
         }
     }
@@ -309,7 +307,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
             }
 
         } catch {
-            os_log(.error, "Error storing data: %{public}@", error.localizedDescription)
+            Logger.secureVault.error("Error storing data: \(error.localizedDescription, privacy: .public)")
         }
     }
 
@@ -325,14 +323,14 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                         withPartialMatches: includePartialAccountMatches) { [weak self] accounts, error in
                 guard let self = self else { return }
                 if let error = error {
-                    os_log(.error, "Error requesting accounts: %{public}@", error.localizedDescription)
+                    Logger.secureVault.error("Error requesting accounts: \(error.localizedDescription, privacy: .public)")
                     completionHandler([], self.credentialsProvider)
                 } else {
                     completionHandler(accounts, self.credentialsProvider)
                 }
             }
         } catch {
-            os_log(.error, "Error requesting accounts: %{public}@", error.localizedDescription)
+            Logger.secureVault.error("Error requesting accounts: \(error.localizedDescription, privacy: .public)")
             completionHandler([], credentialsProvider)
         }
 
@@ -354,7 +352,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                         withPartialMatches: includePartialAccountMatches) { [weak self] accounts, error in
                 guard let self = self else { return }
                 if let error = error {
-                    os_log(.error, "Error requesting accounts: %{public}@", error.localizedDescription)
+                    Logger.secureVault.error("Error requesting accounts: \(error.localizedDescription, privacy: .public)")
                     completionHandler(nil, self.credentialsProvider, .none)
                 }
 
@@ -367,7 +365,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                 }
 
                 if accounts.count == 0 {
-                    os_log(.debug, "Not showing the modal, no suitable accounts found")
+                    Logger.secureVault.debug("Not showing the modal, no suitable accounts found")
                     completionHandler(nil, self.credentialsProvider, .none)
                     return
                 }
@@ -390,7 +388,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                     self.getCredentials(for: accountID, from: vault, or: self.passwordManager) { [weak self] credentials, error in
                         guard let self = self else { return }
                         if let error = error {
-                            os_log(.error, "Error requesting credentials: %{public}@", error.localizedDescription)
+                            Logger.secureVault.error("Error requesting credentials: \(error.localizedDescription, privacy: .public)")
                             completionHandler(nil, self.credentialsProvider, .none)
                         } else {
                             completionHandler(credentials, self.credentialsProvider, .fill)
@@ -399,7 +397,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                 })
             }
         } catch {
-            os_log(.error, "Error requesting accounts: %{public}@", error.localizedDescription)
+            Logger.secureVault.error("Error requesting accounts: \(error.localizedDescription, privacy: .public)")
             completionHandler(nil, credentialsProvider, .none)
         }
     }
@@ -419,7 +417,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                     self.getCredentials(for: accountId, from: vault, or: self.passwordManager) { [weak self] credentials, error in
                         guard let self = self else { return }
                         if let error = error {
-                            os_log(.error, "Error requesting credentials: %{public}@", error.localizedDescription)
+                            Logger.secureVault.error("Error requesting credentials: \(error.localizedDescription, privacy: .public)")
                             completionHandler(nil, self.credentialsProvider)
                         } else {
                             completionHandler(credentials, self.credentialsProvider)
@@ -432,7 +430,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
             })
 
         } catch {
-            os_log(.error, "Error requesting credentials: %{public}@", error.localizedDescription)
+            Logger.secureVault.error("Error requesting credentials: \(error.localizedDescription, privacy: .public)")
             completionHandler(nil, credentialsProvider)
         }
 
@@ -455,7 +453,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
 
             delegate?.secureVaultManager(self, didAutofill: .card, withObjectId: String(creditCardId))
         } catch {
-            os_log(.error, "Error requesting credit card: %{public}@", error.localizedDescription)
+            Logger.secureVault.error("Error requesting credit card: \(error.localizedDescription, privacy: .public)")
             completionHandler(nil)
         }
     }
@@ -469,7 +467,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
 
             delegate?.secureVaultManager(self, didAutofill: .identity, withObjectId: String(identityId))
         } catch {
-            os_log(.error, "Error requesting identity: %{public}@", error.localizedDescription)
+            Logger.secureVault.error("Error requesting identity: \(error.localizedDescription, privacy: .public)")
             completionHandler(nil)
         }
     }
@@ -485,7 +483,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                 passwordManager.websiteCredentialsFor(domain: domain) { [weak self] credentials, error in
                     guard let self = self else { return }
                     if let error = error {
-                        os_log(.error, "Error requesting credentials: %{public}@", error.localizedDescription)
+                        Logger.secureVault.error("Error requesting credentials: \(error.localizedDescription, privacy: .public)")
                         completionHandler([], [], [], self.credentialsProvider)
                     } else {
                         do {
@@ -494,7 +492,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                             let cards = try vault.creditCards()
                             completionHandler(credentials, identities, cards, self.credentialsProvider)
                         } catch {
-                            os_log(.error, "Error requesting identities or cards: %{public}@", error.localizedDescription)
+                            Logger.secureVault.error("Error requesting identities or cards: \(error.localizedDescription, privacy: .public)")
                             completionHandler([], [], [], self.credentialsProvider)
                         }
                     }
@@ -513,7 +511,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
             passwordManager.websiteCredentialsFor(domain: domain) { [weak self] credentials, error in
                 guard let self = self else { return }
                 if let error = error {
-                    os_log(.error, "Error requesting credentials: %{public}@", error.localizedDescription)
+                    Logger.secureVault.error("Error requesting credentials: \(error.localizedDescription, privacy: .public)")
                     completionHandler([], self.credentialsProvider)
                 } else {
                     completionHandler(credentials, self.credentialsProvider)
@@ -551,7 +549,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
 
         guard autogeneratedCredentials,
                 let credentials = autofillData.credentials else {
-            os_log("Did not meet conditions for silently saving autogenerated credentials, returning early", log: .passwordManager)
+            Logger.passwordManager.error("Did not meet conditions for silently saving autogenerated credentials, returning early")
             return
         }
 
@@ -657,10 +655,10 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
     private func existingIdentity(with autofillData: AutofillUserScript.DetectedAutofillData,
                                   vault: any AutofillSecureVault) throws -> SecureVaultModels.Identity? {
         if let identity = autofillData.identity, try vault.existingIdentityForAutofill(matching: identity) == nil {
-            os_log("Got new identity/address to save", log: .passwordManager)
+            Logger.passwordManager.debug("Got new identity/address to save")
             return identity
         } else {
-            os_log("No new identity/address found, avoid prompting user", log: .passwordManager)
+            Logger.passwordManager.debug("No new identity/address found, avoid prompting user")
             return nil
         }
     }
@@ -714,10 +712,10 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
     private func existingPaymentMethod(with autofillData: AutofillUserScript.DetectedAutofillData,
                                        vault: any AutofillSecureVault) throws -> SecureVaultModels.CreditCard? {
         if let card = autofillData.creditCard, try vault.existingCardForAutofill(matching: card) == nil {
-            os_log("Got new payment method to save", log: .passwordManager)
+            Logger.passwordManager.debug("Got new payment method to save")
             return card
         } else {
-            os_log("No new payment method found, avoid prompting user", log: .passwordManager)
+            Logger.passwordManager.debug("No new payment method found, avoid prompting user")
             return nil
         }
     }
@@ -746,23 +744,12 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
         } else {
             do {
                 if withPartialMatches {
-                    guard var currentUrlComponents = AutofillDomainNameUrlMatcher().normalizeSchemeForAutofill(domain) else {
+                    guard let eTLDplus1 = eTLDplus1(for: domain) else {
                         completion([], nil)
                         return
                     }
-
-                    if currentUrlComponents.host == .localhost {
-                        let accounts = try vault.accountsWithPartialMatchesFor(eTLDplus1: domain)
-                        completion(accounts, nil)
-                    } else {
-                        guard let tld = tld, let eTLDplus1 = currentUrlComponents.eTLDplus1WithPort(tld: tld) else {
-                            completion([], nil)
-                            return
-                        }
-
-                        let accounts = try vault.accountsWithPartialMatchesFor(eTLDplus1: eTLDplus1)
-                        completion(accounts, nil)
-                    }
+                    let accounts = try vault.accountsWithPartialMatchesFor(eTLDplus1: eTLDplus1)
+                    completion(accounts, nil)
                 } else {
                     let accounts = try vault.accountsFor(domain: domain)
                     completion(accounts, nil)
@@ -787,6 +774,49 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
             } catch {
                 completion(nil, error)
             }
+        }
+    }
+
+    private func getCredentials(forDomain domain: String,
+                                from vault: any AutofillSecureVault,
+                                or passwordManager: PasswordManager?,
+                                withPartialMatches: Bool,
+                                completion: @escaping ([SecureVaultModels.WebsiteCredentials], Error?) -> Void) {
+        if let passwordManager = passwordManager,
+           passwordManager.isEnabled {
+            passwordManager.websiteCredentialsFor(domain: domain, completion: completion)
+        } else {
+            do {
+                if withPartialMatches {
+                    guard let eTLDplus1 = eTLDplus1(for: domain) else {
+                        completion([], nil)
+                        return
+                    }
+                    let accounts = try vault.websiteCredentialsWithPartialMatchesFor(eTLDplus1: eTLDplus1)
+                    completion(accounts, nil)
+                } else {
+                    let credentials = try vault.websiteCredentialsFor(domain: domain)
+                    completion(credentials, nil)
+                }
+            } catch {
+                completion([], error)
+            }
+        }
+    }
+
+    private func eTLDplus1(for domain: String) -> String? {
+        guard var currentUrlComponents = AutofillDomainNameUrlMatcher().normalizeSchemeForAutofill(domain) else {
+            return nil
+        }
+
+        if currentUrlComponents.host == .localhost {
+            return domain
+        } else {
+            guard let tld = tld, let eTLDplus1 = currentUrlComponents.eTLDplus1WithPort(tld: tld) else {
+                return nil
+            }
+
+            return eTLDplus1
         }
     }
 

@@ -27,7 +27,7 @@ final class PingerTests: XCTestCase {
         let ip = IPv4Address("8.8.8.8")!
         let timeout = 3.0
 
-        let pinger = Pinger(ip: ip, timeout: timeout, log: .default)
+        let pinger = Pinger(ip: ip, timeout: timeout)
         let r = try await pinger.ping().get()
 
         XCTAssertEqual(r.ip, ip)
@@ -43,7 +43,7 @@ final class PingerTests: XCTestCase {
 
         let e = expectation(description: "ready")
         do {
-            let pinger = Pinger(ip: ip, timeout: timeout, log: .default)
+            let pinger = Pinger(ip: ip, timeout: timeout)
             _=try await pinger.ping().get()
 
             XCTFail("ping should fail")

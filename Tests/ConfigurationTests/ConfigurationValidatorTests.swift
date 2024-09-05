@@ -40,7 +40,7 @@ final class ConfigurationValidatorTests: XCTestCase {
         let tracker = KnownTracker(
             domain: "tracker.com",
             defaultAction: .block,
-            owner: .init(name: "Tracker Inc", displayName: "Tracker Inc company"),
+            owner: .init(name: "Tracker Inc", displayName: "Tracker Inc company", ownedBy: nil),
             prevalence: 0.1,
             subdomains: nil,
             categories: nil,

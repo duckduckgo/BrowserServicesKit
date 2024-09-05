@@ -21,6 +21,7 @@ import Combine
 import Common
 import GRDB
 import SecureStorage
+import os.log
 
 public struct CredentialsCleanupError: Error {
     public let cleanupError: Error
@@ -37,14 +38,12 @@ public final class CredentialsDatabaseCleaner {
     public convenience init(
         secureVaultFactory: AutofillVaultFactory,
         secureVaultErrorReporter: SecureVaultReporting,
-        errorEvents: EventMapping<CredentialsCleanupError>?,
-        log: @escaping @autoclosure () -> OSLog = .disabled
+        errorEvents: EventMapping<CredentialsCleanupError>?
     ) {
         self.init(
             secureVaultFactory: secureVaultFactory,
             secureVaultErrorReporter: secureVaultErrorReporter,
             errorEvents: errorEvents,
-            log: log(),
             removeSyncMetadataPendingDeletion: Self.removeSyncMetadataPendingDeletion(in:)
         )
     }
@@ -53,13 +52,11 @@ public final class CredentialsDatabaseCleaner {
         secureVaultFactory: AutofillVaultFactory,
         secureVaultErrorReporter: SecureVaultReporting,
         errorEvents: EventMapping<CredentialsCleanupError>?,
-        log: @escaping @autoclosure () -> OSLog = .disabled,
         removeSyncMetadataPendingDeletion: @escaping ((Database) throws -> Int)
     ) {
         self.secureVaultFactory = secureVaultFactory
         self.secureVaultErrorReporter = secureVaultErrorReporter
         self.errorEvents = errorEvents
-        self.getLog = log
         self.removeSyncMetadataPendingDeletion = removeSyncMetadataPendingDeletion
 
         cleanupCancellable = Publishers
@@ -108,9 +105,10 @@ public final class CredentialsDatabaseCleaner {
                         numberOfDeletedEntries = try self.removeSyncMetadataPendingDeletion(database)
                     }
                     if numberOfDeletedEntries == 0 {
-                        os_log(.debug, log: log, "No syncable credentials metadata pending deletion")
+                        Logger.secureVault.debug("No syncable credentials metadata pending deletion")
+
                     } else {
-                        os_log(.debug, log: log, "Successfully purged %{public}d sync credentials metadata", numberOfDeletedEntries)
+                        Logger.secureVault.debug("Successfully purged \(numberOfDeletedEntries, privacy: .public) sync credentials metadata")
                     }
                     break
                 } catch {
@@ -161,9 +159,4 @@ public final class CredentialsDatabaseCleaner {
     private var cleanupCancellable: AnyCancellable?
     private var scheduleCleanupCancellable: AnyCancellable?
     private let removeSyncMetadataPendingDeletion: (Database) throws -> Int
-
-    private let getLog: () -> OSLog
-    private var log: OSLog {
-        getLog()
-    }
 }
