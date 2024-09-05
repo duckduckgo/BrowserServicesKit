@@ -48,11 +48,20 @@ public protocol HistoryCoordinating: AnyObject {
 
 /// Coordinates access to History. Uses its own queue with high qos for all operations.
 final public class HistoryCoordinator: HistoryCoordinating {
+    
+    public enum Event {
 
+        case dataCleaningFailed(_ error: Error)
+        case dataCleaningFinished
+
+    }
+
+    let eventMapper: EventMapping<Event>
     let historyStoringProvider: () -> HistoryStoring
 
-    public init(historyStoring: @autoclosure @escaping () -> HistoryStoring) {
+    public init(historyStoring: @autoclosure @escaping () -> HistoryStoring, eventMapper: EventMapping<Event>) {
         self.historyStoringProvider = historyStoring
+        self.eventMapper = eventMapper
     }
 
     public func loadHistory(onCleanFinished: @escaping () -> Void) {
@@ -203,13 +212,15 @@ final public class HistoryCoordinator: HistoryCoordinating {
     private func clean(until date: Date, onCleanFinished: (() -> Void)? = nil) {
         historyStoring.cleanOld(until: date)
             .receive(on: DispatchQueue.main)
-            .sink(receiveCompletion: { completion in
+            .sink(receiveCompletion: { [weak self] completion in
                 switch completion {
                 case .finished:
+                    self?.eventMapper.fire(.dataCleaningFinished)
                     Logger.history.debug("History cleaned successfully")
                 case .failure(let error):
                     // This should really be a pixel
                     Logger.history.error("Cleaning of history failed: \(error.localizedDescription)")
+                    self?.eventMapper.fire(.dataCleaningFailed(error))
                 }
                 onCleanFinished?()
             }, receiveValue: { [weak self] history in
