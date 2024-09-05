@@ -78,6 +78,16 @@ public protocol AutofillSecureVaultDelegate: AnyObject {
 
 }
 
+public protocol AutofillLoginImportStateProvider {
+    var isNewDDGUser: Bool { get }
+    var hasImportedLogins: Bool { get }
+}
+
+public protocol AutofillPasswordImportDelegate: AnyObject {
+    func autofillUserScriptDidRequestPasswordImportFlow(_ completion: @escaping () -> Void)
+    func autofillUserScriptDidFinishImportWithImportedCredentialForCurrentDomain()
+}
+
 extension AutofillUserScript {
 
     // MARK: - Response Objects
@@ -447,6 +457,7 @@ extension AutofillUserScript {
 
     func getAvailableInputTypes(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         let domain = hostForMessage(message)
+        Self.domainOfMostRecentGetAvailableInputsMessage = domain
         let email = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
         vaultDelegate?.autofillUserScript(self, didRequestAutoFillInitDataForDomain: domain) { [weak self] credentials, identities, cards, credentialsProvider, totalCredentialsCount in
             guard let self else {
@@ -757,10 +768,15 @@ extension AutofillUserScript {
     // MARK: Credentials Import Flow
 
     func startCredentialsImportFlow(_ message: UserScriptMessage, replyHandler: @escaping MessageReplyHandler) {
-        let email = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
-        let domain = hostForMessage(message)
-        passwordImportDelegate?.autofillUserScriptDidRequestPasswordImportFlow {
+        passwordImportDelegate?.autofillUserScriptDidRequestPasswordImportFlow { [weak self] in
             NotificationCenter.default.post(name: .passwordImportDidCloseImportDialog, object: nil)
+            guard let self else { return }
+            let domain = Self.domainOfMostRecentGetAvailableInputsMessage ?? ""
+            vaultDelegate?.autofillUserScript(self, didRequestAccountsForDomain: domain, completionHandler: { [weak self] credentials, _ in
+                if !credentials.isEmpty {
+                    self?.passwordImportDelegate?.autofillUserScriptDidFinishImportWithImportedCredentialForCurrentDomain()
+                }
+            })
         }
     }
 
@@ -980,7 +996,7 @@ extension AutofillUserScript.AskToUnlockProviderResponse {
                                                                                                 cards: cards,
                                                                                                 email: email,
                                                                                                 credentialsProvider: credentialsProvider,
-                                                                                                credentialsImport: false) // TODO: Check what this is for
+                                                                                                credentialsImport: false)
         let status = credentialsProvider.locked ? AutofillUserScript.CredentialProviderStatus.locked : .unlocked
         let credentialsArray: [AutofillUserScript.CredentialResponse] = credentials.compactMap { credential in
             guard let id = credential.account.id,

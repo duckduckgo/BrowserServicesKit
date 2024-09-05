@@ -21,15 +21,6 @@ import WebKit
 import UserScript
 import os.log
 
-public protocol AutofillLoginImportStateProvider {
-    var isNewDDGUser: Bool { get }
-    var hasImportedLogins: Bool { get }
-}
-
-public protocol AutofillPasswordImportDelegate: AnyObject {
-    func autofillUserScriptDidRequestPasswordImportFlow(_ completion: @escaping () -> Void)
-}
-
 var previousIncontextSignupPermanentlyDismissedAt: Double?
 var previousEmailSignedIn: Bool?
 
@@ -110,6 +101,9 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
         // We can't do reply based messaging to frames on versions before the ones mentioned above, so main frame only
         return true
     }
+
+    // Temporary only for Pixel purposes. Do not rely on this for any functional logic
+    static var domainOfMostRecentGetAvailableInputsMessage: String?
 
     public var messageNames: [String] {
         return MessageName.allCases.map(\.rawValue)
