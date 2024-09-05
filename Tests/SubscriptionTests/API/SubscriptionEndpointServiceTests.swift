@@ -23,29 +23,42 @@ import SubscriptionTestingUtilities
 final class SubscriptionEndpointServiceTests: XCTestCase {
 
     private struct Constants {
-        static let authToken = "this-is-auth-token"
-        static let accessToken = "this-is-access-token"
-        static let externalID = "0084026b-0340-4880-0000-0006026abd00"
-        static let authorizationHeader = ["Authorization": "Bearer TOKEN"]
-        static let transactionSignature = "APPSTORETRANSACTIONSIGNATUREJWT"
+        static let authToken = UUID().uuidString
+        static let accessToken = UUID().uuidString
+        static let externalID = UUID().uuidString
+        static let email = "dax@duck.com"
+        
+        static let mostRecentTransactionJWS = "dGhpcyBpcyBub3QgYSByZWFsIEFw(...)cCBTdG9yZSB0cmFuc2FjdGlvbiBKV1M="
 
-        static let subscriptionProductID = "ddg-privacy-pro-tests-monthly"
-        static let subscriptionName = "Monthly Subscription"
-        static let subscriptionBillingPeriod = Subscription.BillingPeriod.monthly
-        static let subscriptionStartedAtDate = Date(timeIntervalSince1970: 1722323477)
-        static let subscriptionExpiresDate = Date(timeIntervalSince1970: 1722323657)
-        static let subscriptionPlatform = Subscription.Platform.stripe
-        static let subscriptionStatus = Subscription.Status.autoRenewable
+        static let subscription = SubscriptionMockFactory.subscription
 
         static let customerPortalURL = "https://billing.stripe.com/p/session/test_ABC"
-        
+
+        static let authorizationHeader = ["Authorization": "Bearer TOKEN"]
+
         static let unknownServerError = APIServiceError.serverError(statusCode: 401, error: "unknown_error")
     }
+
+    var apiService: APIServiceMock!
+    var subscriptionService: SubscriptionEndpointService!
+
+    override func setUpWithError() throws {
+        apiService = APIServiceMock()
+        subscriptionService = DefaultSubscriptionEndpointService(currentServiceEnvironment: .staging, apiService: apiService)
+    }
+
+    override func tearDownWithError() throws {
+        apiService = nil
+        subscriptionService = nil
+    }
+
+    // MARK: - Tests for
 
     func testGetSubscriptionCall() async throws {
         let apiServiceCalledExpectation = expectation(description: "apiService")
 
-        let onExecute: (APIServiceMock.ExecuteAPICallParameters) -> Void = { parameters in
+        apiService.mockAuthHeaders = Constants.authorizationHeader
+        apiService.onExecuteAPICall = { parameters in
             let (method, endpoint, headers, _) = parameters;
 
             apiServiceCalledExpectation.fulfill()
@@ -54,47 +67,46 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
             XCTAssertEqual(headers, Constants.authorizationHeader)
         }
 
-        let apiService = APIServiceMock(mockAuthHeaders: Constants.authorizationHeader, onExecuteAPICall: onExecute)
-        let subscriptionService = DefaultSubscriptionEndpointService(currentServiceEnvironment: .staging, apiService: apiService)
-
         _ = await subscriptionService.getSubscription(accessToken: Constants.accessToken, cachePolicy: .reloadIgnoringLocalCacheData)
         await fulfillment(of: [apiServiceCalledExpectation], timeout: 0.1)
     }
 
     func testGetSubscriptionSuccess() async throws {
-        let json = """
+        apiService.mockAuthHeaders = Constants.authorizationHeader
+        apiService.mockResponseJSONData = """
         {
-            "productId": "\(Constants.subscriptionProductID)",
-            "name": "\(Constants.subscriptionName)",
-            "billingPeriod": "\(Constants.subscriptionBillingPeriod.rawValue)",
-            "startedAt": \(Constants.subscriptionStartedAtDate.timeIntervalSince1970*1000),
-            "expiresOrRenewsAt": \(Constants.subscriptionExpiresDate.timeIntervalSince1970*1000),
-            "platform": "\(Constants.subscriptionPlatform.rawValue)",
-            "status": "\(Constants.subscriptionStatus.rawValue)"
+            "productId": "\(Constants.subscription.productId)",
+            "name": "\(Constants.subscription.name)",
+            "billingPeriod": "\(Constants.subscription.billingPeriod.rawValue)",
+            "startedAt": \(Constants.subscription.startedAt.timeIntervalSince1970*1000),
+            "expiresOrRenewsAt": \(Constants.subscription.expiresOrRenewsAt.timeIntervalSince1970*1000),
+            "platform": "\(Constants.subscription.platform.rawValue)",
+            "status": "\(Constants.subscription.status.rawValue)"
         }
         """.data(using: .utf8)!
-
-        let apiService = APIServiceMock(mockAuthHeaders: Constants.authorizationHeader, mockResponseJSONData: json)
-        let subscriptionService = DefaultSubscriptionEndpointService(currentServiceEnvironment: .staging, apiService: apiService)
 
         let result = await subscriptionService.getSubscription(accessToken: Constants.accessToken, cachePolicy: .reloadIgnoringLocalCacheData)
         switch result {
         case .success(let success):
-            XCTAssertEqual(success.productId, Constants.subscriptionProductID)
-            XCTAssertEqual(success.name, Constants.subscriptionName)
-            XCTAssertEqual(success.billingPeriod, Constants.subscriptionBillingPeriod)
-            XCTAssertEqual(success.startedAt, Constants.subscriptionStartedAtDate)
-            XCTAssertEqual(success.expiresOrRenewsAt, Constants.subscriptionExpiresDate)
-            XCTAssertEqual(success.platform, Constants.subscriptionPlatform)
-            XCTAssertEqual(success.status, Constants.subscriptionStatus)
+            XCTAssertEqual(success.productId, Constants.subscription.productId)
+            XCTAssertEqual(success.name, Constants.subscription.name)
+            XCTAssertEqual(success.billingPeriod, Constants.subscription.billingPeriod)
+            XCTAssertEqual(success.startedAt.timeIntervalSince1970,
+                           Constants.subscription.startedAt.timeIntervalSince1970,
+                           accuracy: 0.001)
+            XCTAssertEqual(success.expiresOrRenewsAt.timeIntervalSince1970,
+                           Constants.subscription.expiresOrRenewsAt.timeIntervalSince1970,
+                           accuracy: 0.001)
+            XCTAssertEqual(success.platform, Constants.subscription.platform)
+            XCTAssertEqual(success.status, Constants.subscription.status)
         case .failure:
             XCTFail("Unexpected failure")
         }
     }
 
     func testGetSubscriptionError() async throws {
-        let apiService = APIServiceMock(mockAuthHeaders: Constants.authorizationHeader, mockAPICallError: Constants.unknownServerError)
-        let subscriptionService = DefaultSubscriptionEndpointService(currentServiceEnvironment: .staging, apiService: apiService)
+        apiService.mockAuthHeaders = Constants.authorizationHeader
+        apiService.mockAPICallError = Constants.unknownServerError
 
         let result = await subscriptionService.getSubscription(accessToken: Constants.accessToken, cachePolicy: .reloadIgnoringLocalCacheData)
         switch result {
@@ -105,10 +117,13 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
         }
     }
 
+    // MARK: - Tests for getProducts
+
     func testGetProductsCall() async throws {
         let apiServiceCalledExpectation = expectation(description: "apiService")
 
-        let onExecute: (APIServiceMock.ExecuteAPICallParameters) -> Void = { parameters in
+        apiService.mockAuthHeaders = Constants.authorizationHeader
+        apiService.onExecuteAPICall = { parameters in
             let (method, endpoint, headers, _) = parameters;
 
             apiServiceCalledExpectation.fulfill()
@@ -117,15 +132,12 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
             XCTAssertNil(headers)
         }
 
-        let apiService = APIServiceMock(mockAuthHeaders: Constants.authorizationHeader, onExecuteAPICall: onExecute)
-        let subscriptionService = DefaultSubscriptionEndpointService(currentServiceEnvironment: .staging, apiService: apiService)
-
         _ = await subscriptionService.getProducts()
         await fulfillment(of: [apiServiceCalledExpectation], timeout: 0.1)
     }
 
     func testGetProductsSuccess() async throws {
-        let json = """
+        apiService.mockResponseJSONData = """
         [
             {
                 "productId":"ddg-privacy-pro-sandbox-monthly-renews-us",
@@ -144,9 +156,6 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
         ]
         """.data(using: .utf8)!
 
-        let apiService = APIServiceMock(mockResponseJSONData: json)
-        let subscriptionService = DefaultSubscriptionEndpointService(currentServiceEnvironment: .staging, apiService: apiService)
-
         let result = await subscriptionService.getProducts()
         switch result {
         case .success(let success):
@@ -157,8 +166,7 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
     }
 
     func testGetProductsError() async throws {
-        let apiService = APIServiceMock(mockAPICallError: Constants.unknownServerError)
-        let subscriptionService = DefaultSubscriptionEndpointService(currentServiceEnvironment: .staging, apiService: apiService)
+        apiService.mockAPICallError = Constants.unknownServerError
 
         let result = await subscriptionService.getProducts()
         switch result {
@@ -169,10 +177,13 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
         }
     }
 
+    // MARK: - Tests for getCustomerPortalURL
+
     func testGetCustomerPortalURLCall() async throws {
         let apiServiceCalledExpectation = expectation(description: "apiService")
 
-        let onExecute: (APIServiceMock.ExecuteAPICallParameters) -> Void = { parameters in
+        apiService.mockAuthHeaders = Constants.authorizationHeader
+        apiService.onExecuteAPICall = { parameters in
             let (method, endpoint, headers, _) = parameters;
 
             apiServiceCalledExpectation.fulfill()
@@ -186,22 +197,17 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
             }
         }
 
-        let apiService = APIServiceMock(mockAuthHeaders: Constants.authorizationHeader, onExecuteAPICall: onExecute)
-        let subscriptionService = DefaultSubscriptionEndpointService(currentServiceEnvironment: .staging, apiService: apiService)
-
         _ = await subscriptionService.getCustomerPortalURL(accessToken: Constants.accessToken, externalID: Constants.externalID)
         await fulfillment(of: [apiServiceCalledExpectation], timeout: 0.1)
     }
 
     func testGetCustomerPortalURLSuccess() async throws {
-        let json = """
+        apiService.mockAuthHeaders = Constants.authorizationHeader
+        apiService.mockResponseJSONData = """
         {
             "customerPortalUrl":"\(Constants.customerPortalURL)"
         }
         """.data(using: .utf8)!
-
-        let apiService = APIServiceMock(mockResponseJSONData: json)
-        let subscriptionService = DefaultSubscriptionEndpointService(currentServiceEnvironment: .staging, apiService: apiService)
 
         let result = await subscriptionService.getCustomerPortalURL(accessToken: Constants.accessToken, externalID: Constants.externalID)
         switch result {
@@ -213,8 +219,8 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
     }
 
     func testGetCustomerPortalURLError() async throws {
-        let apiService = APIServiceMock(mockAuthHeaders: Constants.authorizationHeader, mockAPICallError: Constants.unknownServerError)
-        let subscriptionService = DefaultSubscriptionEndpointService(currentServiceEnvironment: .staging, apiService: apiService)
+        apiService.mockAuthHeaders = Constants.authorizationHeader
+        apiService.mockAPICallError = Constants.unknownServerError
 
         let result = await subscriptionService.getCustomerPortalURL(accessToken: Constants.accessToken, externalID: Constants.externalID)
         switch result {
@@ -225,10 +231,13 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
         }
     }
 
+    // MARK: - Tests for confirmPurchase
+
     func testConfirmPurchaseCall() async throws {
         let apiServiceCalledExpectation = expectation(description: "apiService")
 
-        let onExecute: (APIServiceMock.ExecuteAPICallParameters) -> Void = { parameters in
+        apiService.mockAuthHeaders = Constants.authorizationHeader
+        apiService.onExecuteAPICall = { parameters in
             let (method, endpoint, headers, body) = parameters;
 
             apiServiceCalledExpectation.fulfill()
@@ -238,21 +247,19 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
             XCTAssertNotNil(body)
 
             if let bodyDict = try? JSONDecoder().decode([String: String].self, from: body!) {
-                XCTAssertEqual(bodyDict["signedTransactionInfo"], Constants.transactionSignature)
+                XCTAssertEqual(bodyDict["signedTransactionInfo"], Constants.mostRecentTransactionJWS)
             } else {
                 XCTFail("Failed to decode body")
             }
         }
 
-        let apiService = APIServiceMock(mockAuthHeaders: Constants.authorizationHeader, onExecuteAPICall: onExecute)
-        let subscriptionService = DefaultSubscriptionEndpointService(currentServiceEnvironment: .staging, apiService: apiService)
-
-        _ = await subscriptionService.confirmPurchase(accessToken: Constants.accessToken, signature: Constants.transactionSignature)
+        _ = await subscriptionService.confirmPurchase(accessToken: Constants.accessToken, signature: Constants.mostRecentTransactionJWS)
         await fulfillment(of: [apiServiceCalledExpectation], timeout: 0.1)
     }
 
     func testConfirmPurchaseSuccess() async throws {
-        let json = """
+        apiService.mockAuthHeaders = Constants.authorizationHeader
+        apiService.mockResponseJSONData = """
         {
             "email":"",
             "entitlements":
@@ -263,41 +270,42 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
             ],
             "subscription":
             {
-                "productId": "\(Constants.subscriptionProductID)",
-                "name": "\(Constants.subscriptionName)",
-                "billingPeriod": "\(Constants.subscriptionBillingPeriod.rawValue)",
-                "startedAt": \(Constants.subscriptionStartedAtDate.timeIntervalSince1970*1000),
-                "expiresOrRenewsAt": \(Constants.subscriptionExpiresDate.timeIntervalSince1970*1000),
-                "platform": "\(Constants.subscriptionPlatform.rawValue)",
-                "status": "\(Constants.subscriptionStatus.rawValue)"
+                "productId": "\(Constants.subscription.productId)",
+                "name": "\(Constants.subscription.name)",
+                "billingPeriod": "\(Constants.subscription.billingPeriod.rawValue)",
+                "startedAt": \(Constants.subscription.startedAt.timeIntervalSince1970*1000),
+                "expiresOrRenewsAt": \(Constants.subscription.expiresOrRenewsAt.timeIntervalSince1970*1000),
+                "platform": "\(Constants.subscription.platform.rawValue)",
+                "status": "\(Constants.subscription.status.rawValue)"
             }
         }
         """.data(using: .utf8)!
 
-        let apiService = APIServiceMock(mockResponseJSONData: json)
-        let subscriptionService = DefaultSubscriptionEndpointService(currentServiceEnvironment: .staging, apiService: apiService)
-
-        let result = await subscriptionService.confirmPurchase(accessToken: Constants.accessToken, signature: Constants.transactionSignature)
+        let result = await subscriptionService.confirmPurchase(accessToken: Constants.accessToken, signature: Constants.mostRecentTransactionJWS)
         switch result {
         case .success(let success):
             XCTAssertEqual(success.entitlements.count, 3)
-            XCTAssertEqual(success.subscription.productId, Constants.subscriptionProductID)
-            XCTAssertEqual(success.subscription.name, Constants.subscriptionName)
-            XCTAssertEqual(success.subscription.billingPeriod, Constants.subscriptionBillingPeriod)
-            XCTAssertEqual(success.subscription.startedAt, Constants.subscriptionStartedAtDate)
-            XCTAssertEqual(success.subscription.expiresOrRenewsAt, Constants.subscriptionExpiresDate)
-            XCTAssertEqual(success.subscription.platform, Constants.subscriptionPlatform)
-            XCTAssertEqual(success.subscription.status, Constants.subscriptionStatus)
+            XCTAssertEqual(success.subscription.productId, Constants.subscription.productId)
+            XCTAssertEqual(success.subscription.name, Constants.subscription.name)
+            XCTAssertEqual(success.subscription.billingPeriod, Constants.subscription.billingPeriod)
+            XCTAssertEqual(success.subscription.startedAt.timeIntervalSince1970,
+                           Constants.subscription.startedAt.timeIntervalSince1970,
+                           accuracy: 0.001)
+            XCTAssertEqual(success.subscription.expiresOrRenewsAt.timeIntervalSince1970, 
+                           Constants.subscription.expiresOrRenewsAt.timeIntervalSince1970,
+                           accuracy: 0.001)
+            XCTAssertEqual(success.subscription.platform, Constants.subscription.platform)
+            XCTAssertEqual(success.subscription.status, Constants.subscription.status)
         case .failure:
             XCTFail("Unexpected failure")
         }
     }
 
     func testConfirmPurchaseError() async throws {
-        let apiService = APIServiceMock(mockAuthHeaders: Constants.authorizationHeader, mockAPICallError: Constants.unknownServerError)
-        let subscriptionService = DefaultSubscriptionEndpointService(currentServiceEnvironment: .staging, apiService: apiService)
+        apiService.mockAuthHeaders = Constants.authorizationHeader
+        apiService.mockAPICallError = Constants.unknownServerError
 
-        let result = await subscriptionService.confirmPurchase(accessToken: Constants.accessToken, signature: Constants.transactionSignature)
+        let result = await subscriptionService.confirmPurchase(accessToken: Constants.accessToken, signature: Constants.mostRecentTransactionJWS)
         switch result {
         case .success:
             XCTFail("Unexpected success")

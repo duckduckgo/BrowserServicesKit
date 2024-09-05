@@ -19,8 +19,8 @@
 import Foundation
 import Subscription
 
-public struct APIServiceMock: APIService {
-    public var mockAuthHeaders: [String: String]
+public class APIServiceMock: APIService {
+    public var mockAuthHeaders: [String: String] = [String: String]()
 
     public var mockResponseJSONData: Data?
     public var mockAPICallSuccessResult: Any?

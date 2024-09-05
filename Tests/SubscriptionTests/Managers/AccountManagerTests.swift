@@ -26,7 +26,7 @@ final class AccountManagerTests: XCTestCase {
     private struct Constants {
         static let authToken = UUID().uuidString
         static let accessToken = UUID().uuidString
-        static let externalID = UUID ().uuidString
+        static let externalID = UUID().uuidString
 
         static let email = "dax@duck.com"
 
@@ -341,7 +341,7 @@ final class AccountManagerTests: XCTestCase {
     // MARK: - Tests for exchangeAuthTokenToAccessToken
 
     func testExchangeAuthTokenToAccessToken() async throws {
-        authService.accessTokenResult = .success(.init(accessToken: Constants.accessToken))
+        authService.getAccessTokenResult = .success(.init(accessToken: Constants.accessToken))
 
         let result = await accountManager.exchangeAuthTokenToAccessToken(Constants.authToken)
         switch result {

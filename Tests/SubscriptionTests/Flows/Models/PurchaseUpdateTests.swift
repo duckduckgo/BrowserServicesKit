@@ -32,7 +32,7 @@ final class PurchaseUpdateTests: XCTestCase {
         let purchaseUpdate = PurchaseUpdate.completed
         let data = try? JSONEncoder().encode(purchaseUpdate)
 
-        var purchaseUpdateString = String(data: data!, encoding: .utf8)!
+        let purchaseUpdateString = String(data: data!, encoding: .utf8)!
         XCTAssertEqual(purchaseUpdateString, "{\"type\":\"completed\"}")
     }
 

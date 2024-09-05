@@ -26,7 +26,7 @@ final class AppStoreAccountManagementFlowTests: XCTestCase {
         static let oldAuthToken = UUID().uuidString
         static let newAuthToken = UUID().uuidString
         static let externalID = UUID ().uuidString
-        static let otherExternalID = UUID ().uuidString
+        static let otherExternalID = UUID().uuidString
 
         static let mostRecentTransactionJWS = "this-should-be-transaction-jws"
 

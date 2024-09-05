@@ -28,7 +28,7 @@ final class AppStorePurchaseFlowTests: XCTestCase {
 
         static let authToken = UUID().uuidString
         static let accessToken = UUID().uuidString
-        static let externalID = UUID ().uuidString
+        static let externalID = UUID().uuidString
 
         static let transactionJWS = "dGhpcyBpcyBub3QgYSByZWFsIEFw(...)cCBTdG9yZSB0cmFuc2FjdGlvbiBKV1M="
 
