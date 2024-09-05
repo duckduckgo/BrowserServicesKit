@@ -26,17 +26,21 @@ public final class AccountManagerMock: AccountManager {
     public var email: String?
     public var externalID: String?
 
+    public var exchangeAuthTokenToAccessTokenResult: Result<String, Error>?
+
     public var onStoreAuthToken: ((String) -> Void)?
     public var onStoreAccount: ((String, String?, String?) -> Void)?
     public var onFetchEntitlements: ((APICachePolicy) -> Void)?
     public var onSignOut: (() -> Void)?
-    public var onExchangeAuthTokenToAccessToken: ((String) -> Result<String, Error>)?
+    public var onExchangeAuthTokenToAccessToken: ((String) -> Void)?
     public var onFetchAccountDetails: ((String) -> Result<AccountDetails, Error>)?
     public var onCheckForEntitlements: ((Double, Int) -> Bool)?
 
     public var storeAuthTokenCalled: Bool = false
     public var storeAccountCalled: Bool = false
+    public var signOutCalled: Bool = false
     public var updateCacheWithEntitlementsCalled: Bool = false
+    public var fetchEntitlementsCalled: Bool = false
     public var exchangeAuthTokenToAccessTokenCalled: Bool = false
     public var fetchAccountDetailsCalled: Bool = false
     public var checkForEntitlementsCalled: Bool = false
@@ -91,7 +95,8 @@ public final class AccountManagerMock: AccountManager {
 
     public func exchangeAuthTokenToAccessToken(_ authToken: String) async -> Result<String, Error> {
         exchangeAuthTokenToAccessTokenCalled = true
-        return onExchangeAuthTokenToAccessToken!(authToken)
+        onExchangeAuthTokenToAccessToken?(authToken)
+        return exchangeAuthTokenToAccessTokenResult!
     }
 
     public func fetchAccountDetails(with accessToken: String) async -> Result<AccountDetails, Error> {

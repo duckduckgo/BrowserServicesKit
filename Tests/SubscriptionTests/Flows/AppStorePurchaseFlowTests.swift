@@ -23,13 +23,11 @@ import SubscriptionTestingUtilities
 final class AppStorePurchaseFlowTests: XCTestCase {
 
     private struct Constants {
-        static let productID = UUID().uuidString
-
-
         static let authToken = UUID().uuidString
         static let accessToken = UUID().uuidString
         static let externalID = UUID().uuidString
 
+        static let productID = UUID().uuidString
         static let transactionJWS = "dGhpcyBpcyBub3QgYSByZWFsIEFw(...)cCBTdG9yZSB0cmFuc2FjdGlvbiBKV1M="
 
         static let createAccountResponse = CreateAccountResponse(authToken: authToken,
@@ -88,7 +86,7 @@ final class AppStorePurchaseFlowTests: XCTestCase {
 
         appStoreRestoreFlow.restoreAccountFromPastPurchaseResult = .failure(.missingAccountOrTransactions)
         authService.createAccountResult = .success(Constants.createAccountResponse)
-        accountManager.onExchangeAuthTokenToAccessToken = { _ in .success(Constants.accessToken) }
+        accountManager.exchangeAuthTokenToAccessTokenResult = .success(Constants.accessToken)
         accountManager.onFetchAccountDetails = { _ in .success((email: "", externalID: Constants.externalID)) }
         storePurchaseManager.purchaseSubscriptionResult = .success(Constants.transactionJWS)
 
@@ -188,7 +186,7 @@ final class AppStorePurchaseFlowTests: XCTestCase {
     func testPurchaseSubscriptionErrorWhenAppStorePurchaseFails() async throws {
         appStoreRestoreFlow.restoreAccountFromPastPurchaseResult = .failure(.missingAccountOrTransactions)
         authService.createAccountResult = .success(Constants.createAccountResponse)
-        accountManager.onExchangeAuthTokenToAccessToken = { _ in .success(Constants.accessToken) }
+        accountManager.exchangeAuthTokenToAccessTokenResult = .success(Constants.accessToken)
         accountManager.onFetchAccountDetails = { _ in .success((email: "", externalID: Constants.externalID)) }
         storePurchaseManager.purchaseSubscriptionResult = .failure(.productNotFound)
 
@@ -205,7 +203,7 @@ final class AppStorePurchaseFlowTests: XCTestCase {
     func testPurchaseSubscriptionErrorWhenAppStorePurchaseCancelledByUser() async throws {
         appStoreRestoreFlow.restoreAccountFromPastPurchaseResult = .failure(.missingAccountOrTransactions)
         authService.createAccountResult = .success(Constants.createAccountResponse)
-        accountManager.onExchangeAuthTokenToAccessToken = { _ in .success(Constants.accessToken) }
+        accountManager.exchangeAuthTokenToAccessTokenResult = .success(Constants.accessToken)
         accountManager.onFetchAccountDetails = { _ in .success((email: "", externalID: Constants.externalID)) }
         storePurchaseManager.purchaseSubscriptionResult = .failure(.purchaseCancelledByUser)
 

@@ -38,17 +38,23 @@ final class AppStoreRestoreFlowTests: XCTestCase {
     }
 
     var accountManager: AccountManagerMock!
+    var storePurchaseManager: StorePurchaseManagerMock!
     var subscriptionService: SubscriptionEndpointServiceMock!
     var authService: AuthEndpointServiceMock!
-    var storePurchaseManager: StorePurchaseManagerMock!
+
 
     var appStoreRestoreFlow: AppStoreRestoreFlow!
 
     override func setUpWithError() throws {
         accountManager = AccountManagerMock()
+        storePurchaseManager = StorePurchaseManagerMock()
         subscriptionService = SubscriptionEndpointServiceMock()
         authService = AuthEndpointServiceMock()
-        storePurchaseManager = StorePurchaseManagerMock()
+
+        appStoreRestoreFlow = DefaultAppStoreRestoreFlow(accountManager: accountManager,
+                                                         storePurchaseManager: storePurchaseManager,
+                                                         subscriptionEndpointService: subscriptionService,
+                                                         authEndpointService: authService)
     }
 
     override func tearDownWithError() throws {
@@ -67,9 +73,7 @@ final class AppStoreRestoreFlowTests: XCTestCase {
 
         authService.storeLoginResult = .success(Constants.storeLoginResponse)
 
-        accountManager.onExchangeAuthTokenToAccessToken = { _ in
-            return .success(Constants.accessToken)
-        }
+        accountManager.exchangeAuthTokenToAccessTokenResult = .success(Constants.accessToken)
 
         accountManager.onFetchAccountDetails = { accessToken in
             XCTAssertEqual(accessToken, Constants.accessToken)
@@ -90,10 +94,6 @@ final class AppStoreRestoreFlowTests: XCTestCase {
             XCTAssertEqual(externalID, Constants.externalID)
         }
 
-        let appStoreRestoreFlow = DefaultAppStoreRestoreFlow(accountManager: accountManager,
-                                              storePurchaseManager: storePurchaseManager,
-                                              subscriptionEndpointService: subscriptionService,
-                                              authEndpointService: authService)
         switch await appStoreRestoreFlow.restoreAccountFromPastPurchase() {
         case .success:
             XCTAssertTrue(accountManager.exchangeAuthTokenToAccessTokenCalled)
@@ -110,9 +110,7 @@ final class AppStoreRestoreFlowTests: XCTestCase {
 
         authService.storeLoginResult = .success(Constants.storeLoginResponse)
 
-        accountManager.onExchangeAuthTokenToAccessToken = { _ in
-            return .success(Constants.accessToken)
-        }
+        accountManager.exchangeAuthTokenToAccessTokenResult = .success(Constants.accessToken)
 
         accountManager.onFetchAccountDetails = { accessToken in
             XCTAssertEqual(accessToken, Constants.accessToken)
@@ -202,9 +200,7 @@ final class AppStoreRestoreFlowTests: XCTestCase {
 
         authService.storeLoginResult = .success(Constants.storeLoginResponse)
 
-        accountManager.onExchangeAuthTokenToAccessToken = { _ in
-            return .failure(Constants.unknownServerError)
-        }
+        accountManager.exchangeAuthTokenToAccessTokenResult = .failure(Constants.unknownServerError)
 
         let appStoreRestoreFlow = DefaultAppStoreRestoreFlow(accountManager: accountManager,
                                               storePurchaseManager: storePurchaseManager,
@@ -227,9 +223,7 @@ final class AppStoreRestoreFlowTests: XCTestCase {
 
         authService.storeLoginResult = .success(Constants.storeLoginResponse)
 
-        accountManager.onExchangeAuthTokenToAccessToken = { _ in
-            return .success(Constants.accessToken)
-        }
+        accountManager.exchangeAuthTokenToAccessTokenResult = .success(Constants.accessToken)
 
         accountManager.onFetchAccountDetails = { accessToken in
             XCTAssertEqual(accessToken, Constants.accessToken)
@@ -257,9 +251,7 @@ final class AppStoreRestoreFlowTests: XCTestCase {
 
         authService.storeLoginResult = .success(Constants.storeLoginResponse)
 
-        accountManager.onExchangeAuthTokenToAccessToken = { _ in
-            return .success(Constants.accessToken)
-        }
+        accountManager.exchangeAuthTokenToAccessTokenResult = .success(Constants.accessToken)
 
         accountManager.onFetchAccountDetails = { accessToken in
             XCTAssertEqual(accessToken, Constants.accessToken)
