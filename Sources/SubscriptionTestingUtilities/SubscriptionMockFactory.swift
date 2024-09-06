@@ -50,9 +50,5 @@ public struct SubscriptionMockFactory {
                                                                           billingPeriod: subscription.billingPeriod.rawValue,
                                                                           price: "0.99",
                                                                           currency: "USD")]
-
-    public static let entitlements = [Entitlement(product: .dataBrokerProtection),
-                                      Entitlement(product: .identityTheftRestoration),
-                                      Entitlement(product: .networkProtection)]
     
 }
