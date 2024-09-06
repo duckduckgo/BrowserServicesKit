@@ -33,7 +33,7 @@ class AutofillUserScriptTests: XCTestCase {
                                                                                             identities: [],
                                                                                             cards: [],
                                                                                             email: false,
-                                                                                            credentialsProvider: credentialsProvider, 
+                                                                                            credentialsProvider: credentialsProvider,
                                                                                             credentialsImport: false)
         XCTAssertEqual(responseFromCredentials.success.credentials.username, false)
 
@@ -62,7 +62,7 @@ class AutofillUserScriptTests: XCTestCase {
                                                                                          identities: [],
                                                                                          cards: [],
                                                                                          email: false,
-                                                                                         credentialsProvider: credentialsProvider, 
+                                                                                         credentialsProvider: credentialsProvider,
                                                                                          credentialsImport: false)
         XCTAssertEqual(responseFromAccounts.success.credentials.username, true)
     }
@@ -74,7 +74,7 @@ class AutofillUserScriptTests: XCTestCase {
                                                                                             identities: [],
                                                                                             cards: [],
                                                                                             email: false,
-                                                                                            credentialsProvider: credentialsProvider, 
+                                                                                            credentialsProvider: credentialsProvider,
                                                                                             credentialsImport: false)
         XCTAssertEqual(responseFromCredentials.success.credentials.password, false)
     }
@@ -86,7 +86,7 @@ class AutofillUserScriptTests: XCTestCase {
                                                                                             identities: [],
                                                                                             cards: [],
                                                                                             email: false,
-                                                                                            credentialsProvider: credentialsProvider, 
+                                                                                            credentialsProvider: credentialsProvider,
                                                                                             credentialsImport: false)
         XCTAssertEqual(responseFromCredentials.success.credentials.password, false)
     }
@@ -101,7 +101,7 @@ class AutofillUserScriptTests: XCTestCase {
                                                                                             identities: [],
                                                                                             cards: [],
                                                                                             email: false,
-                                                                                            credentialsProvider: credentialsProvider, 
+                                                                                            credentialsProvider: credentialsProvider,
                                                                                             credentialsImport: false)
         XCTAssertEqual(responseFromCredentials.success.credentials.password, true)
     }
@@ -184,7 +184,7 @@ class AutofillUserScriptTests: XCTestCase {
         runGetAvailableInputsAndCredentialsImportFlow(userScript: userScript, vaultDelegate: vaultDelegate, passwordImportDelegate: passwordImportDelegate)
 
         passwordImportDelegate.autofillUserScriptDidRequestPasswordImportFlowCompletion?()
-        
+
         XCTAssertEqual(getAvailableInputsHost, vaultDelegate.lastDomain)
     }
 
@@ -297,7 +297,7 @@ class MockAutofillPasswordImportDelegate: AutofillPasswordImportDelegate {
     func autofillUserScriptDidRequestPasswordImportFlow(_ completion: @escaping () -> Void) {
         autofillUserScriptDidRequestPasswordImportFlowCompletion = completion
     }
-    
+
     var didCallDidFinishImport: Bool = false
     func autofillUserScriptDidFinishImportWithImportedCredentialForCurrentDomain() {
         didCallDidFinishImport = true

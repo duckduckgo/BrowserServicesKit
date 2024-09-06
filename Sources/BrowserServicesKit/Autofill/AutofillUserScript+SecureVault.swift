@@ -555,7 +555,7 @@ extension AutofillUserScript {
 
     func pmGetAutoFillInitData(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         let domain = hostForMessage(message)
-        vaultDelegate?.autofillUserScript(self, didRequestAutoFillInitDataForDomain: domain) { credentials, identities, cards, credentialsProvider, totalCredentialsCount in
+        vaultDelegate?.autofillUserScript(self, didRequestAutoFillInitDataForDomain: domain) { credentials, identities, cards, credentialsProvider, _ in
             let credentialObjects: [CredentialObject]
             if credentialsProvider.locked {
                 credentialObjects = [CredentialObject(id: "provider_locked", username: "", credentialsProvider: credentialsProvider.name.rawValue)]

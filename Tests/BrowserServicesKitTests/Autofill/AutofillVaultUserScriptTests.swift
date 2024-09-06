@@ -562,7 +562,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
 }
 
 class MockSecureVaultDelegate: AutofillSecureVaultDelegate {
-    
+
     enum CallbackType {
         case didRequestCreditCardsManagerForDomain
         case didRequestIdentitiesManagerForDomain
