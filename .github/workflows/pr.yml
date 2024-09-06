@@ -66,6 +66,11 @@ jobs:
       - name: Run tests
         run: set -o pipefail && swift test --enable-code-coverage | tee -a build-log.txt | xcbeautify --report junit --report-path . --junit-report-filename tests.xml
 
+      - name: Get list of modified files
+        run: |
+          git fetch origin ${{ github.base_ref }} --depth=1
+          git diff --name-only origin/${{ github.base_ref }} ${{ github.sha }} | tee -a modified_files.txt
+
       - name: Calculate code coverage
         run: |
           xcrun llvm-cov report --summary-only --format=text --ignore-filename-regex 'Tests/|.build/' -instr-profile $(swift test --show-codecov-path | xargs dirname)/default.profdata .build/debug/BrowserServicesKitPackageTests.xctest/Contents/MacOS/BrowserServicesKitPackageTests | awk '{print $1, $10}' | tee -a code_coverage.txt
