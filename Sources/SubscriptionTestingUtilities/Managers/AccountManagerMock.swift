@@ -45,22 +45,12 @@ public final class AccountManagerMock: AccountManager {
     public var fetchAccountDetailsCalled: Bool = false
     public var checkForEntitlementsCalled: Bool = false
 
-    public init(delegate: AccountManagerKeychainAccessDelegate? = nil,
-                accessToken: String? = nil,
-                authToken: String? = nil,
-                email: String? = nil,
-                externalID: String? = nil) {
-        self.delegate = delegate
-        self.accessToken = accessToken
-        self.authToken = authToken
-        self.email = email
-        self.externalID = externalID
-    }
+    public init() { }
 
     public func storeAuthToken(token: String) {
         storeAuthTokenCalled = true
         onStoreAuthToken?(token)
-        authToken = token
+        self.authToken = token
     }
 
     public func storeAccount(token: String, email: String?, externalID: String?) {
@@ -73,12 +63,18 @@ public final class AccountManagerMock: AccountManager {
 
     public func signOut(skipNotification: Bool) {
         signOutCalled = true
-        accessToken = nil
+        self.authToken = nil
+        self.accessToken = nil
+        self.email = nil
+        self.externalID = nil
     }
 
     public func signOut() {
         signOutCalled = true
-        accessToken = nil
+        self.authToken = nil
+        self.accessToken = nil
+        self.email = nil
+        self.externalID = nil
     }
 
     public func hasEntitlement(forProductName productName: Entitlement.ProductName, cachePolicy: APICachePolicy) async -> Result<Bool, Error> {

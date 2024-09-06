@@ -26,22 +26,10 @@ final class AppStorePurchaseFlowTests: XCTestCase {
         static let authToken = UUID().uuidString
         static let accessToken = UUID().uuidString
         static let externalID = UUID().uuidString
+        static let email = "dax@duck.com"
 
         static let productID = UUID().uuidString
         static let transactionJWS = "dGhpcyBpcyBub3QgYSByZWFsIEFw(...)cCBTdG9yZSB0cmFuc2FjdGlvbiBKV1M="
-
-        static let createAccountResponse = CreateAccountResponse(authToken: authToken,
-                                                                 externalID: externalID,
-                                                                 status: "ok")
-
-        static let restoredAccount = RestoredAccountDetails(authToken: authToken,
-                                                            accessToken: accessToken, 
-                                                            externalID: externalID,
-                                                            email: nil)
-
-        static let account = ValidateTokenResponse.Account(email: nil,
-                                                           entitlements: [],
-                                                           externalID: externalID)
 
         static let unknownServerError = APIServiceError.serverError(statusCode: 401, error: "unknown_error")
     }
@@ -50,7 +38,6 @@ final class AppStorePurchaseFlowTests: XCTestCase {
     var subscriptionService: SubscriptionEndpointServiceMock!
     var authService: AuthEndpointServiceMock!
     var storePurchaseManager: StorePurchaseManagerMock!
-
     var appStoreRestoreFlow: AppStoreRestoreFlowMock!
 
     var appStorePurchaseFlow: AppStorePurchaseFlow!
@@ -85,7 +72,9 @@ final class AppStorePurchaseFlowTests: XCTestCase {
         XCTAssertFalse(accountManager.isUserAuthenticated)
 
         appStoreRestoreFlow.restoreAccountFromPastPurchaseResult = .failure(.missingAccountOrTransactions)
-        authService.createAccountResult = .success(Constants.createAccountResponse)
+        authService.createAccountResult = .success(CreateAccountResponse(authToken: Constants.authToken,
+                                                                         externalID: Constants.externalID,
+                                                                         status: "created"))
         accountManager.exchangeAuthTokenToAccessTokenResult = .success(Constants.accessToken)
         accountManager.fetchAccountDetailsResult = .success((email: "", externalID: Constants.externalID))
         storePurchaseManager.purchaseSubscriptionResult = .success(Constants.transactionJWS)
@@ -108,15 +97,19 @@ final class AppStorePurchaseFlowTests: XCTestCase {
         accountManager.authToken = Constants.authToken
         accountManager.accessToken = Constants.accessToken
         accountManager.externalID = Constants.externalID
+        accountManager.email = Constants.email
 
-        let subscription = SubscriptionMockFactory.expiredSubscription
+        let expiredSubscription = SubscriptionMockFactory.expiredSubscription
 
-        XCTAssertFalse(subscription.isActive)
-        XCTAssertEqual(subscription.platform, .apple)
+        XCTAssertFalse(expiredSubscription.isActive)
+        XCTAssertEqual(expiredSubscription.platform, .apple)
         XCTAssertTrue(accountManager.isUserAuthenticated)
 
-        subscriptionService.getSubscriptionResult = .success(subscription)
-        appStoreRestoreFlow.restoreAccountFromPastPurchaseResult = .failure(.subscriptionExpired(accountDetails: Constants.restoredAccount))
+        subscriptionService.getSubscriptionResult = .success(expiredSubscription)
+        appStoreRestoreFlow.restoreAccountFromPastPurchaseResult = .failure(.subscriptionExpired(accountDetails: .init(authToken: Constants.authToken,
+                                                                                                                       accessToken: Constants.accessToken,
+                                                                                                                       externalID: Constants.externalID,
+                                                                                                                       email: Constants.email)))
         storePurchaseManager.purchaseSubscriptionResult = .success(Constants.transactionJWS)
 
         switch await appStorePurchaseFlow.purchaseSubscription(with: Constants.productID, emailAccessToken: nil) {
@@ -127,6 +120,7 @@ final class AppStorePurchaseFlowTests: XCTestCase {
             XCTAssertTrue(storePurchaseManager.purchaseSubscriptionCalled)
             XCTAssertEqual(success, Constants.transactionJWS)
             XCTAssertEqual(accountManager.externalID, Constants.externalID)
+            XCTAssertEqual(accountManager.email, Constants.email)
         case .failure(let error):
             XCTFail("Unexpected failure: \(String(reflecting: error))")
         }
@@ -185,7 +179,9 @@ final class AppStorePurchaseFlowTests: XCTestCase {
 
     func testPurchaseSubscriptionErrorWhenAppStorePurchaseFails() async throws {
         appStoreRestoreFlow.restoreAccountFromPastPurchaseResult = .failure(.missingAccountOrTransactions)
-        authService.createAccountResult = .success(Constants.createAccountResponse)
+        authService.createAccountResult = .success(CreateAccountResponse(authToken: Constants.authToken,
+                                                                         externalID: Constants.externalID,
+                                                                         status: "created"))
         accountManager.exchangeAuthTokenToAccessTokenResult = .success(Constants.accessToken)
         accountManager.fetchAccountDetailsResult = .success((email: "", externalID: Constants.externalID))
         storePurchaseManager.purchaseSubscriptionResult = .failure(.productNotFound)
@@ -202,7 +198,9 @@ final class AppStorePurchaseFlowTests: XCTestCase {
 
     func testPurchaseSubscriptionErrorWhenAppStorePurchaseCancelledByUser() async throws {
         appStoreRestoreFlow.restoreAccountFromPastPurchaseResult = .failure(.missingAccountOrTransactions)
-        authService.createAccountResult = .success(Constants.createAccountResponse)
+        authService.createAccountResult = .success(CreateAccountResponse(authToken: Constants.authToken,
+                                                                         externalID: Constants.externalID,
+                                                                         status: "created"))
         accountManager.exchangeAuthTokenToAccessTokenResult = .success(Constants.accessToken)
         accountManager.fetchAccountDetailsResult = .success((email: "", externalID: Constants.externalID))
         storePurchaseManager.purchaseSubscriptionResult = .failure(.purchaseCancelledByUser)

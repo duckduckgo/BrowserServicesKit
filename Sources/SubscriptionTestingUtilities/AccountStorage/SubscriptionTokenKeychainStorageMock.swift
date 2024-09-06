@@ -21,9 +21,9 @@ import Subscription
 
 public class SubscriptionTokenKeychainStorageMock: SubscriptionTokenStoring {
 
-    public var removeAccessTokenCalled: Bool = false
-
     public var accessToken: String?
+
+    public var removeAccessTokenCalled: Bool = false
 
     public init(accessToken: String? = nil) {
         self.accessToken = accessToken

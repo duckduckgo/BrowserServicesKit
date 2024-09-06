@@ -43,6 +43,15 @@ final class SubscriptionManagerTests: XCTestCase {
         accountManager = AccountManagerMock()
         subscriptionService = SubscriptionEndpointServiceMock()
         authService = AuthEndpointServiceMock()
+        subscriptionEnvironment = SubscriptionEnvironment(serviceEnvironment: .production,
+                                                          purchasePlatform: .appStore)
+
+        subscriptionManager = DefaultSubscriptionManager(storePurchaseManager: storePurchaseManager,
+                                                         accountManager: accountManager,
+                                                         subscriptionEndpointService: subscriptionService,
+                                                         authEndpointService: authService,
+                                                         subscriptionEnvironment: subscriptionEnvironment)
+
     }
 
     override func tearDownWithError() throws {
@@ -64,9 +73,6 @@ final class SubscriptionManagerTests: XCTestCase {
         var loadedEnvironment = DefaultSubscriptionManager.loadEnvironmentFrom(userDefaults: userDefaults)
         XCTAssertNil(loadedEnvironment)
 
-        let subscriptionEnvironment = SubscriptionEnvironment(serviceEnvironment: .production, 
-                                                              purchasePlatform: .appStore)
-
         DefaultSubscriptionManager.save(subscriptionEnvironment: subscriptionEnvironment, 
                                         userDefaults: userDefaults)
         
@@ -81,14 +87,6 @@ final class SubscriptionManagerTests: XCTestCase {
         storePurchaseManager.onUpdateAvailableProducts = {
             self.storePurchaseManager.areProductsAvailable = true
         }
-
-        subscriptionEnvironment = SubscriptionEnvironment(serviceEnvironment: .production, purchasePlatform: .appStore)
-
-        subscriptionManager = DefaultSubscriptionManager(storePurchaseManager: storePurchaseManager,
-                                                         accountManager: accountManager,
-                                                         subscriptionEndpointService: subscriptionService,
-                                                         authEndpointService: authService,
-                                                         subscriptionEnvironment: subscriptionEnvironment)
 
         try await Task.sleep(seconds: 0.5)
 
@@ -110,13 +108,6 @@ final class SubscriptionManagerTests: XCTestCase {
             XCTAssertEqual(cachePolicy, .reloadIgnoringLocalCacheData)
         }
 
-        subscriptionEnvironment = SubscriptionEnvironment(serviceEnvironment: .production, purchasePlatform: .appStore)
-
-        subscriptionManager = DefaultSubscriptionManager(storePurchaseManager: storePurchaseManager,
-                                                         accountManager: accountManager,
-                                                         subscriptionEndpointService: subscriptionService,
-                                                         authEndpointService: authService,
-                                                         subscriptionEnvironment: subscriptionEnvironment)
         subscriptionManager.loadInitialData()
 
         try await Task.sleep(seconds: 0.5)
@@ -129,13 +120,6 @@ final class SubscriptionManagerTests: XCTestCase {
         XCTAssertNil(accountManager.accessToken)
         XCTAssertFalse(accountManager.isUserAuthenticated)
 
-        subscriptionEnvironment = SubscriptionEnvironment(serviceEnvironment: .production, purchasePlatform: .appStore)
-
-        subscriptionManager = DefaultSubscriptionManager(storePurchaseManager: storePurchaseManager,
-                                                         accountManager: accountManager,
-                                                         subscriptionEndpointService: subscriptionService,
-                                                         authEndpointService: authService,
-                                                         subscriptionEnvironment: subscriptionEnvironment)
         subscriptionManager.loadInitialData()
 
         XCTAssertFalse(subscriptionService.getSubscriptionCalled)
@@ -158,24 +142,15 @@ final class SubscriptionManagerTests: XCTestCase {
             XCTAssertEqual(cachePolicy, .reloadIgnoringLocalCacheData)
         }
 
-        subscriptionEnvironment = SubscriptionEnvironment(serviceEnvironment: .production, purchasePlatform: .appStore)
-
-        subscriptionManager = DefaultSubscriptionManager(storePurchaseManager: storePurchaseManager,
-                                                         accountManager: accountManager,
-                                                         subscriptionEndpointService: subscriptionService,
-                                                         authEndpointService: authService,
-                                                         subscriptionEnvironment: subscriptionEnvironment)
-
         let completionCalled = expectation(description: "completion called")
         subscriptionManager.refreshCachedSubscriptionAndEntitlements { isSubscriptionActive in
             completionCalled.fulfill()
             XCTAssertEqual(isSubscriptionActive, subscription.isActive)
         }
 
-
-        XCTAssertFalse(subscriptionService.getSubscriptionCalled)
-        XCTAssertFalse(accountManager.fetchEntitlementsCalled)
         await fulfillment(of: [completionCalled], timeout: 0.5)
+        XCTAssertTrue(subscriptionService.getSubscriptionCalled)
+        XCTAssertTrue(accountManager.fetchEntitlementsCalled)
     }
 
     func testForRefreshCachedSubscriptionAndEntitlementsSignOutUserOn401() async throws {
@@ -186,14 +161,6 @@ final class SubscriptionManagerTests: XCTestCase {
         }
         subscriptionService.getSubscriptionResult = .failure(.apiError(Constants.invalidTokenError))
 
-        subscriptionEnvironment = SubscriptionEnvironment(serviceEnvironment: .production, purchasePlatform: .appStore)
-
-        subscriptionManager = DefaultSubscriptionManager(storePurchaseManager: storePurchaseManager,
-                                                         accountManager: accountManager,
-                                                         subscriptionEndpointService: subscriptionService,
-                                                         authEndpointService: authService,
-                                                         subscriptionEnvironment: subscriptionEnvironment)
-
         let completionCalled = expectation(description: "completion called")
         subscriptionManager.refreshCachedSubscriptionAndEntitlements { isSubscriptionActive in
             completionCalled.fulfill()
@@ -203,31 +170,32 @@ final class SubscriptionManagerTests: XCTestCase {
         await fulfillment(of: [completionCalled], timeout: 0.5)
         XCTAssertTrue(accountManager.signOutCalled)
         XCTAssertTrue(subscriptionService.getSubscriptionCalled)
+        XCTAssertFalse(accountManager.fetchEntitlementsCalled)
     }
 
     // MARK: - Tests for url
 
     func testForProductionURL() throws {
-        subscriptionEnvironment = SubscriptionEnvironment(serviceEnvironment: .production, purchasePlatform: .appStore)
+        let productionEnvironment = SubscriptionEnvironment(serviceEnvironment: .production, purchasePlatform: .appStore)
 
-        subscriptionManager = DefaultSubscriptionManager(storePurchaseManager: storePurchaseManager,
-                                                         accountManager: accountManager,
-                                                         subscriptionEndpointService: subscriptionService,
-                                                         authEndpointService: authService,
-                                                         subscriptionEnvironment: subscriptionEnvironment)
+        let productionSubscriptionManager = DefaultSubscriptionManager(storePurchaseManager: storePurchaseManager,
+                                                                       accountManager: accountManager,
+                                                                       subscriptionEndpointService: subscriptionService,
+                                                                       authEndpointService: authService,
+                                                                       subscriptionEnvironment: productionEnvironment)
         
-        XCTAssertEqual(subscriptionManager.url(for: .purchase), SubscriptionURL.purchase.subscriptionURL(environment: .production))
+        XCTAssertEqual(productionSubscriptionManager.url(for: .purchase), SubscriptionURL.purchase.subscriptionURL(environment: .production))
     }
 
     func testForStagingURL() throws {
-        subscriptionEnvironment = SubscriptionEnvironment(serviceEnvironment: .staging, purchasePlatform: .appStore)
+        let stagingEnvironment = SubscriptionEnvironment(serviceEnvironment: .staging, purchasePlatform: .appStore)
 
-        subscriptionManager = DefaultSubscriptionManager(storePurchaseManager: storePurchaseManager,
-                                                         accountManager: accountManager,
-                                                         subscriptionEndpointService: subscriptionService,
-                                                         authEndpointService: authService,
-                                                         subscriptionEnvironment: subscriptionEnvironment)
-
-        XCTAssertEqual(subscriptionManager.url(for: .purchase), SubscriptionURL.purchase.subscriptionURL(environment: .staging))
+        let stagingSubscriptionManager = DefaultSubscriptionManager(storePurchaseManager: storePurchaseManager,
+                                                                    accountManager: accountManager,
+                                                                    subscriptionEndpointService: subscriptionService,
+                                                                    authEndpointService: authService,
+                                                                    subscriptionEnvironment: stagingEnvironment)
+        
+        XCTAssertEqual(stagingSubscriptionManager.url(for: .purchase), SubscriptionURL.purchase.subscriptionURL(environment: .staging))
     }
 }
