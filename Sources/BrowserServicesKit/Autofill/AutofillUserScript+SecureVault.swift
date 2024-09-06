@@ -435,16 +435,6 @@ extension AutofillUserScript {
         let success: CredentialResponse
     }
 
-    struct CredentialsImportFlowResponse: Codable {
-
-        struct CredentialsImportFlowResponseContents: Codable {
-            let credentials: [CredentialResponse]
-            let availableInputTypes: AvailableInputTypesSuccess
-        }
-
-        let success: CredentialsImportFlowResponseContents
-    }
-
     // MARK: - Message Handlers
 
     func getRuntimeConfiguration(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
