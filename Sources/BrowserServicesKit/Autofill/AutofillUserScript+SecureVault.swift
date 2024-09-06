@@ -787,6 +787,10 @@ extension AutofillUserScript {
             case autofillIdentity = "autofill_identity"
         }
 
+        private enum CredentialsImportPromotionPixelName: String {
+            case promotionShown = "autofill_import_credentials_prompt_shown"
+        }
+
         /// The pixel name sent by the JS layer. This name does not include the platform on which it was sent.
         private let originalPixelName: String
 
@@ -807,6 +811,13 @@ extension AutofillUserScript {
 
         public var isIdentityPixel: Bool {
             if case IdentityPixelName.autofillIdentity.rawValue = originalPixelName {
+                return true
+            }
+            return false
+        }
+
+        public var isCredentialsImportPromotionPixel: Bool {
+            if case CredentialsImportPromotionPixelName.promotionShown.rawValue = originalPixelName {
                 return true
             }
             return false
