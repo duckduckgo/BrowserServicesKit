@@ -770,12 +770,16 @@ extension AutofillUserScript {
     func startCredentialsImportFlow(_ message: UserScriptMessage, replyHandler: @escaping MessageReplyHandler) {
         passwordImportDelegate?.autofillUserScriptDidRequestPasswordImportFlow { [weak self] in
             NotificationCenter.default.post(name: .passwordImportDidCloseImportDialog, object: nil)
-            guard let self else { return }
+            guard let self else {
+                replyHandler(nil)
+                return
+            }
             let domain = Self.domainOfMostRecentGetAvailableInputsMessage ?? ""
             vaultDelegate?.autofillUserScript(self, didRequestAccountsForDomain: domain, completionHandler: { [weak self] credentials, _ in
                 if !credentials.isEmpty {
                     self?.passwordImportDelegate?.autofillUserScriptDidFinishImportWithImportedCredentialForCurrentDomain()
                 }
+                replyHandler(nil)
             })
         }
     }

@@ -571,6 +571,7 @@ class MockSecureVaultDelegate: AutofillSecureVaultDelegate {
         case didRequestAccountsForDomain
         case didRequestCredentialsForDomain
         case didRequestRuntimeConfigurationForDomain
+        case didRequestAutoFillInitDataForDomain
     }
 
     var receivedCallbacks: [CallbackType] = []
@@ -604,10 +605,13 @@ class MockSecureVaultDelegate: AutofillSecureVaultDelegate {
         receivedCallbacks.append(.didRequestStoreDataForDomain)
     }
 
+    var didRequestAccountsForDomainCompletionHandler: (([BrowserServicesKit.SecureVaultModels.WebsiteAccount], BrowserServicesKit.SecureVaultModels.CredentialsProvider) -> Void)?
+
     func autofillUserScript(_: BrowserServicesKit.AutofillUserScript,
                             didRequestAccountsForDomain domain: String,
                             completionHandler: @escaping ([BrowserServicesKit.SecureVaultModels.WebsiteAccount], BrowserServicesKit.SecureVaultModels.CredentialsProvider) -> Void) {
         lastDomain = domain
+        didRequestAccountsForDomainCompletionHandler = completionHandler
         receivedCallbacks.append(.didRequestAccountsForDomain)
     }
 

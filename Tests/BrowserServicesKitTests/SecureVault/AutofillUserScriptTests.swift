@@ -21,6 +21,7 @@ import XCTest
 import CryptoKit
 @testable import BrowserServicesKit
 import Common
+import WebKit
 
 class AutofillUserScriptTests: XCTestCase {
 
@@ -173,6 +174,56 @@ class AutofillUserScriptTests: XCTestCase {
         XCTAssertTrue(response.success.credentialsImport)
     }
 
+    func testStartCredentialsImportFlow_passesDomainFromLastGetAvailableInputsCall() {
+        let getAvailableInputsHost = "example.com"
+        let hostProvider = MockHostProvider(host: getAvailableInputsHost)
+        let userScript = AutofillUserScript(scriptSourceProvider: MockAutofillUserScriptSourceProvider(), hostProvider: hostProvider, loginImportStateProvider: MockAutofillLoginImportStateProvider())
+        let vaultDelegate = MockSecureVaultDelegate()
+        let passwordImportDelegate = MockAutofillPasswordImportDelegate()
+
+        runGetAvailableInputsAndCredentialsImportFlow(userScript: userScript, vaultDelegate: vaultDelegate, passwordImportDelegate: passwordImportDelegate)
+
+        passwordImportDelegate.autofillUserScriptDidRequestPasswordImportFlowCompletion?()
+        
+        XCTAssertEqual(getAvailableInputsHost, vaultDelegate.lastDomain)
+    }
+
+    func testStartCredentialsImportFlow_onPasswordImportFlowCompletion_firesDidCloseImportDialogNotification() {
+        let userScript = AutofillUserScript(scriptSourceProvider: MockAutofillUserScriptSourceProvider(), loginImportStateProvider: MockAutofillLoginImportStateProvider())
+        let passwordImportDelegate = MockAutofillPasswordImportDelegate()
+        userScript.passwordImportDelegate = passwordImportDelegate
+
+        userScript.startCredentialsImportFlow(MockWKScriptMessage(name: "", body: "")) { _ in }
+        let notificationExpectation = expectation(forNotification: .passwordImportDidCloseImportDialog, object: nil)
+        passwordImportDelegate.autofillUserScriptDidRequestPasswordImportFlowCompletion?()
+
+        wait(for: [notificationExpectation], timeout: 5)
+    }
+
+    func testStartCredentialsImportFlow_accountsForDomainIsNOTEmpty_callsDidFinishImport() {
+        let userScript = AutofillUserScript(scriptSourceProvider: MockAutofillUserScriptSourceProvider(), loginImportStateProvider: MockAutofillLoginImportStateProvider())
+        let vaultDelegate = MockSecureVaultDelegate()
+        let passwordImportDelegate = MockAutofillPasswordImportDelegate()
+
+        runGetAvailableInputsAndCredentialsImportFlow(userScript: userScript, vaultDelegate: vaultDelegate, passwordImportDelegate: passwordImportDelegate)
+        let accounts = createListOfCredentials(withPassword: nil).map(\.account)
+        vaultDelegate.didRequestAccountsForDomainCompletionHandler?(accounts, .init(name: .duckduckgo, locked: false))
+
+        XCTAssertTrue(passwordImportDelegate.didCallDidFinishImport)
+    }
+
+    func testStartCredentialsImportFlow_credentialsForDomainIsEmpty_doesNOTCallDidFinishImport() {
+        let userScript = AutofillUserScript(scriptSourceProvider: MockAutofillUserScriptSourceProvider(), loginImportStateProvider: MockAutofillLoginImportStateProvider())
+        let vaultDelegate = MockSecureVaultDelegate()
+        let passwordImportDelegate = MockAutofillPasswordImportDelegate()
+
+        runGetAvailableInputsAndCredentialsImportFlow(userScript: userScript, vaultDelegate: vaultDelegate, passwordImportDelegate: passwordImportDelegate)
+        passwordImportDelegate.autofillUserScriptDidRequestPasswordImportFlowCompletion?()
+        vaultDelegate.didRequestAccountsForDomainCompletionHandler?([], .init(name: .duckduckgo, locked: false))
+
+        XCTAssertFalse(passwordImportDelegate.didCallDidFinishImport)
+    }
+
     // MARK: Private
 
     // Default vaules here are those that will result in a `true` value for credentialsImport. Override to test `false` case.
@@ -210,6 +261,16 @@ class AutofillUserScriptTests: XCTestCase {
         return decodedResponse
     }
 
+    private func runGetAvailableInputsAndCredentialsImportFlow(userScript: AutofillUserScript, vaultDelegate: MockSecureVaultDelegate, passwordImportDelegate: MockAutofillPasswordImportDelegate) {
+        let userScriptMessage = MockWKScriptMessage(name: "getAvailableInputTypes", body: "")
+        userScript.vaultDelegate = vaultDelegate
+        userScript.passwordImportDelegate = passwordImportDelegate
+
+        userScript.getAvailableInputTypes(userScriptMessage) { _ in }
+        userScript.startCredentialsImportFlow(MockWKScriptMessage(name: "", body: "")) { _ in }
+        passwordImportDelegate.autofillUserScriptDidRequestPasswordImportFlowCompletion?()
+    }
+
     private func createListOfCredentials(withPassword password: Data?) -> [SecureVaultModels.WebsiteCredentials] {
         var credentialsList = [SecureVaultModels.WebsiteCredentials]()
         for i in 0...10 {
@@ -228,4 +289,17 @@ class MockAutofillLoginImportStateProvider: AutofillLoginImportStateProvider {
 
 class MockAutofillUserScriptSourceProvider: AutofillUserScriptSourceProvider {
     var source: String = ""
+}
+
+class MockAutofillPasswordImportDelegate: AutofillPasswordImportDelegate {
+
+    var autofillUserScriptDidRequestPasswordImportFlowCompletion: (() -> Void)?
+    func autofillUserScriptDidRequestPasswordImportFlow(_ completion: @escaping () -> Void) {
+        autofillUserScriptDidRequestPasswordImportFlowCompletion = completion
+    }
+    
+    var didCallDidFinishImport: Bool = false
+    func autofillUserScriptDidFinishImportWithImportedCredentialForCurrentDomain() {
+        didCallDidFinishImport = true
+    }
 }
