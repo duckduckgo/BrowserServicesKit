@@ -17,6 +17,7 @@
 //
 
 import Foundation
+import Networking
 
 extension RemoteAPIRequestCreating {
 
@@ -28,7 +29,7 @@ extension RemoteAPIRequestCreating {
         headers["Authorization"] = "Bearer \(authToken)"
         return createRequest(
             url: url,
-            method: .GET,
+            method: .get,
             headers: headers,
             parameters: parameters,
             body: nil,

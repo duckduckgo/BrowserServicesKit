@@ -23,6 +23,7 @@ import Foundation
 import Gzip
 import Persistence
 import TestUtils
+import Networking
 
 @testable import DDGSync
 

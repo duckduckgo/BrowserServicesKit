@@ -20,17 +20,16 @@ import Foundation
 import Networking
 import Common
 import os.log
+import Networking
 
 public struct RemoteAPIRequestCreator: RemoteAPIRequestCreating {
 
-    public func createRequest(
-        url: URL,
-        method: HTTPRequestMethod,
-        headers: HTTPHeaders,
-        parameters: [String: String],
-        body: Data?,
-        contentType: String?
-    ) -> HTTPRequesting {
+    public func createRequest(url: URL,
+                              method: HTTPRequestMethod,
+                              headers: HTTPHeaders,
+                              parameters: [String: String],
+                              body: Data?,
+                              contentType: String?) -> HTTPRequesting {
 
         var requestHeaders = headers
         if let contentType {
@@ -39,7 +38,7 @@ public struct RemoteAPIRequestCreator: RemoteAPIRequestCreating {
 
         let headers = APIRequest.Headers(additionalHeaders: requestHeaders)
         let configuration = APIRequest.Configuration(url: url,
-                                                     method: .init(method),
+                                                     method: method,
                                                      queryParameters: parameters,
                                                      headers: headers,
                                                      body: body)
@@ -49,21 +48,6 @@ public struct RemoteAPIRequestCreator: RemoteAPIRequestCreating {
         }
 
         return APIRequest(configuration: configuration, requirements: [.allowHTTPNotModified])
-    }
-}
-
-extension APIRequest.HTTPMethod {
-    init(_ httpRequestMethod: HTTPRequestMethod) {
-        switch httpRequestMethod {
-        case .GET:
-            self = .get
-        case .POST:
-            self = .post
-        case .PATCH:
-            self = .patch
-        case .DELETE:
-            self = .delete
-        }
     }
 }
 
