@@ -43,7 +43,7 @@ let package = Package(
         .library(name: "DuckPlayer", targets: ["DuckPlayer"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", branch: "dbajpeyi/import-promotion"),
+        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", revision: "09ea5e7efff42b906375c438827e73073f8aa508"),
         .package(url: "https://github.com/duckduckgo/GRDB.swift.git", exact: "2.4.0"),
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "2.1.2"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.2.0"),
