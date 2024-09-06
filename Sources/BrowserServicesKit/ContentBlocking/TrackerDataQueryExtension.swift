@@ -34,6 +34,23 @@ extension TrackerData {
         return nil
     }
 
+    /// Returns the parent of the entity associated with the host if any. If the entity associated with the host doesn't have a parent return the entity. Otherwise, return nil.
+    /// - Parameter host:
+    /// - Returns: The entity associated with the host.
+    public func findParentEntityOrFallback(forHost host: String) -> Entity? {
+        // If the entity associated with the host is owned by a parent company (e.g. Instagram is owned by Facebook) return the parent company.
+        // If the entity associated with the host is not owned by a parent company return the entity.
+        // If the are no entities associated with the host return nil
+        for host in variations(of: host) {
+            if let trackerOwner = trackers[host]?.owner?.ownedBy {
+                return entities[trackerOwner]
+            } else if let entityName = domains[host] {
+                return entities[entityName]
+            }
+        }
+        return nil
+    }
+
     private func variations(of host: String) -> [String] {
         var parts = host.components(separatedBy: ".")
         var domains = [String]()
