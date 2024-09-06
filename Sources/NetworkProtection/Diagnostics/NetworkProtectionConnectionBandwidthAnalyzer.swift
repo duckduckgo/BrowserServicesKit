@@ -17,7 +17,7 @@
 //
 
 import Foundation
-import Common
+import os.log
 
 /// Simple bandwidth analyzer that will provide some useful information based on the delta of two snapshots over time
 ///
@@ -41,7 +41,7 @@ final class NetworkProtectionConnectionBandwidthAnalyzer {
 
     private var idle = false {
         didSet {
-            os_log("Connection set to idle: %{public}@", log: .networkProtectionBandwidthAnalysis, String(describing: idle))
+            Logger.networkProtectionBandwidthAnalysis.log("Connection set to idle: \(String(describing: self.idle), privacy: .public)")
         }
     }
 
@@ -87,10 +87,7 @@ final class NetworkProtectionConnectionBandwidthAnalyzer {
         }
 
         let (rx, tx) = Self.bytesPerSecond(newer: newer, older: older)
-
-        os_log("Bytes per second in last time-interval: (rx: %{public}@, tx: %{public}@)",
-               log: .networkProtectionBandwidthAnalysis,
-               String(describing: rx), String(describing: tx))
+        Logger.networkProtectionBandwidthAnalysis.log("Bytes per second in last time-interval: (rx: \(String(describing: rx), privacy: .public), tx: \(String(describing: tx), privacy: .public))")
 
         idle = UInt64(rx) < Self.rxThreshold && UInt64(tx) < Self.txThreshold
     }
@@ -102,7 +99,7 @@ final class NetworkProtectionConnectionBandwidthAnalyzer {
     /// Useful when servers are swapped
     ///
     func reset() {
-        os_log("Bandwidth analyzer reset", log: .networkProtectionBandwidthAnalysis)
+        Logger.networkProtectionBandwidthAnalysis.log("Bandwidth analyzer reset")
         entries.removeAll()
     }
 

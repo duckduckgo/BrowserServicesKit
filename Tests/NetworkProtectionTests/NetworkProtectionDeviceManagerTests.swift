@@ -212,7 +212,7 @@ extension NetworkProtectionDeviceManager {
     func generateTunnelConfiguration(selectionMethod: NetworkProtectionServerSelectionMethod,
                                      regenerateKey: Bool) async throws -> NetworkProtectionDeviceManager.GenerateTunnelConfigurationResult {
         try await generateTunnelConfiguration(
-            selectionMethod: selectionMethod,
+            resolvedSelectionMethod: selectionMethod,
             includedRoutes: [],
             excludedRoutes: [],
             dnsSettings: .default,

@@ -143,11 +143,6 @@ public protocol DataProviding: AnyObject {
     func updateSyncTimestamps(server: String?, local: Date?)
 
     /**
-     * Handle to the logger instance for the data provider.
-     */
-    var log: OSLog { get }
-
-    /**
      * Prepare data models for first sync.
      *
      * This function is called before the initial sync is performed.
@@ -272,21 +267,14 @@ open class DataProvider: DataProviding {
         metadataStore.update(server, local, .readyToSync, forFeatureNamed: feature.name)
     }
 
-    public var log: OSLog {
-        getLog()
-    }
-    private let getLog: () -> OSLog
-
     public init(
         feature: Feature,
         metadataStore: SyncMetadataStore,
-        log: @escaping @autoclosure () -> OSLog = .disabled,
         syncDidUpdateData: @escaping () -> Void = {},
         syncDidFinish: @escaping () -> Void = {}
     ) {
         self.feature = feature
         self.metadataStore = metadataStore
-        self.getLog = log
         self.syncDidUpdateData = syncDidUpdateData
         self.syncDidFinish = syncDidFinish
         self.syncErrorPublisher = syncErrorSubject.eraseToAnyPublisher()

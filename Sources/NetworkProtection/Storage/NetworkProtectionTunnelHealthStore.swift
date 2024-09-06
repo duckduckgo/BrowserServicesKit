@@ -18,6 +18,7 @@
 
 import Foundation
 import Common
+import os.log
 
 /// Stores information about NetP's tunnel health
 ///
@@ -63,7 +64,7 @@ public final class NetworkProtectionTunnelHealthStore {
                 return
             }
             userDefaults.set(newValue, forKey: Self.isHavingConnectivityIssuesKey)
-            os_log("Issues set to %{public}@", log: .networkProtectionConnectionTesterLog, String(reflecting: newValue))
+            Logger.networkProtectionConnectionTester.debug("Issues set to \(String(reflecting: newValue), privacy: .public)")
 #if os(macOS)
             postIssueChangeNotification(newValue: newValue)
 #endif

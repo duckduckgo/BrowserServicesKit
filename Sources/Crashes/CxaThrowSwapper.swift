@@ -69,12 +69,11 @@
 import Foundation
 import Common
 import MachO
+import os.log
 
 public typealias CxaThrowType = @convention(c) (UnsafeMutableRawPointer?, UnsafeMutableRawPointer?, (@convention(c) (UnsafeMutableRawPointer?) -> Void)?) -> Void
 
 public struct CxaThrowSwapper {
-
-    public static var log: OSLog = .disabled
 
     fileprivate static var cxaThrowHandler: CxaThrowType?
     /// Swap `__cxa_throw` (the method called when C++ `throw MyCppException();` is executed) to collect the stack trace when the throw occurs.
@@ -109,7 +108,7 @@ private func processMachHeader(_ header: UnsafePointer<mach_header>?, slide: Int
     do {
         try _processMachHeader(header.map(UnsafeRawPointer.init)?.assumingMemoryBound(to: mach_header_64.self), slide: slide)
     } catch {
-        os_log(.error, log: CxaThrowSwapper.log, "mach header %s processing error: %s", header.debugDescription, error.localizedDescription)
+        Logger.general.error("mach header \(header.debugDescription) processing error: \(error.localizedDescription)")
     }
 }
 
@@ -119,7 +118,7 @@ private let indicesToSkip = [UInt32(INDIRECT_SYMBOL_ABS), INDIRECT_SYMBOL_LOCAL,
 private func _processMachHeader(_ header: UnsafePointer<mach_header_64>?, slide: Int) throws {
     guard let header, slide != 0 else { throw ProcessingError.zeroSlide }
     let headerInfo = try Dl_info(header)
-    os_log(.debug, log: CxaThrowSwapper.log, "processing image %s (%s), slide: %02X", String(cString: headerInfo.dli_fname), header.debugDescription, slide)
+    Logger.general.debug("processing image \(String(cString: headerInfo.dli_fname)) (\(header.debugDescription), slide: \(slide)")
 
     // Lookup for the needed Mach-O loader commands and segments.
     guard let imageMap = ImageMap(header: header, slide: slide) else { throw ProcessingError.imageMap }
@@ -150,7 +149,7 @@ private func _processMachHeader(_ header: UnsafePointer<mach_header_64>?, slide:
                           strcmp(symbolName.advanced(by: 1), "__cxa_throw") == 0 else { continue }
 
                     let sectionInfo = try Dl_info(section)
-                    os_log(.debug, log: CxaThrowSwapper.log, "found %s: %s", String(cString: symbolName), indirectSymbolBindings[i].debugDescription)
+                    Logger.general.debug("found \(String(cString: symbolName)): \(indirectSymbolBindings[i].debugDescription)")
 
                     // Now that the `__cxa_throw` symbol index is found, the magique begins:
                     // - We store the original function pointer from the section’s indirect symbol bindings table in the
@@ -175,7 +174,7 @@ private func _processMachHeader(_ header: UnsafePointer<mach_header_64>?, slide:
 private func cxaThrowHandler(thrownException: UnsafeMutableRawPointer?, tinfo: UnsafeMutableRawPointer?, dest: (@convention(c) (UnsafeMutableRawPointer?) -> Void)?) {
     let kRequiredFrames = 2
 
-    os_log(.debug, log: CxaThrowSwapper.log, "handling __cxa_throw")
+    Logger.general.debug("handling __cxa_throw")
     CxaThrowSwapper.cxaThrowHandler?(thrownException, tinfo, dest)
 
     var backtraceArr = [UnsafeMutableRawPointer?](repeating: nil, count: kRequiredFrames)
@@ -185,7 +184,7 @@ private func cxaThrowHandler(thrownException: UnsafeMutableRawPointer?, tinfo: U
         var info = Dl_info()
         if dladdr(backtraceArr[kRequiredFrames - 1], &info) != 0 {
             if let function = cxxOriginalThrowFunctions[info.dli_fbase] {
-                os_log(.debug, log: CxaThrowSwapper.log, "calling original __cxa_throw function at %p", function.debugDescription)
+                Logger.general.debug("calling original __cxa_throw function at \(function.debugDescription)")
                 let original = unsafeBitCast(function, to: CxaThrowType.self)
                 original(thrownException, tinfo, dest)
             }

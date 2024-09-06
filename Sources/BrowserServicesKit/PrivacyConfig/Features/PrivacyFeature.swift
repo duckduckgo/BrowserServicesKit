@@ -52,6 +52,8 @@ public enum PrivacyFeature: String {
     case brokenSitePrompt
     case remoteMessaging
     case additionalCampaignPixelParams
+    case newTabPageImprovements
+    case syncPromotion
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -76,6 +78,7 @@ public enum AutofillSubfeature: String, PrivacySubfeature {
     case onByDefault
     case deduplicateLoginsOnImport
     case onForExistingUsers
+    case unknownUsernameCategorization
 }
 
 public enum DBPSubfeature: String, Equatable, PrivacySubfeature {
@@ -117,6 +120,7 @@ public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {
     case allowPurchaseStripe
     case isLaunchedOverride
     case isLaunchedOverrideStripe
+    case useUnifiedFeedback
 }
 
 public enum sslCertificatesSubfeature: String, PrivacySubfeature {
@@ -129,4 +133,10 @@ public enum DuckPlayerSubfeature: String, PrivacySubfeature {
     case pip
     case autoplay
     case openInNewTab
+}
+
+public enum SyncPromotionSubfeature: String, PrivacySubfeature {
+    public var parent: PrivacyFeature { .syncPromotion }
+    case bookmarks
+    case passwords
 }

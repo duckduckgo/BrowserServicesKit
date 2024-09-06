@@ -20,5 +20,5 @@ import Foundation
 import os.log
 
 public extension Logger {
-    static var remoteMessaging: Logger = { Logger(subsystem: Bundle.main.bundleIdentifier ?? "DuckDuckGo", category: "Remote Messaging") }()
+    static var remoteMessaging = { Logger(subsystem: "Remote Messaging", category: "") }()
 }

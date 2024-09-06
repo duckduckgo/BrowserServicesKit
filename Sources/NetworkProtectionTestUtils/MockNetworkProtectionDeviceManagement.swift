@@ -43,14 +43,14 @@ public final class MockNetworkProtectionDeviceManagement: NetworkProtectionDevic
     public init() {}
 
     public func generateTunnelConfiguration(
-        selectionMethod: NetworkProtection.NetworkProtectionServerSelectionMethod,
+        resolvedSelectionMethod: NetworkProtection.NetworkProtectionServerSelectionMethod,
         includedRoutes: [NetworkProtection.IPAddressRange],
         excludedRoutes: [NetworkProtection.IPAddressRange],
         dnsSettings: NetworkProtectionDNSSettings,
         isKillSwitchEnabled: Bool,
         regenerateKey: Bool) async throws -> (tunnelConfiguration: NetworkProtection.TunnelConfiguration, server: NetworkProtection.NetworkProtectionServer) {
             spyGenerateTunnelConfiguration = (
-                selectionMethod: selectionMethod,
+                selectionMethod: resolvedSelectionMethod,
                 includedRoutes: includedRoutes,
                 excludedRoutes: excludedRoutes,
                 isKillSwitchEnabled: isKillSwitchEnabled,

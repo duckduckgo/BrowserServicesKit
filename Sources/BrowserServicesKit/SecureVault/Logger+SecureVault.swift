@@ -20,5 +20,5 @@ import Foundation
 import os.log
 
 public extension Logger {
-    static var secureVault: Logger = { Logger(subsystem: Bundle.main.bundleIdentifier ?? "DuckDuckGo", category: "Secure Vault") }()
+    static var secureVault = { Logger(subsystem: "Secure Vault", category: "") }()
 }
