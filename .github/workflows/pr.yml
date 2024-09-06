@@ -66,6 +66,10 @@ jobs:
       - name: Run tests
         run: set -o pipefail && swift test --enable-code-coverage | tee -a build-log.txt | xcbeautify --report junit --report-path . --junit-report-filename tests.xml
 
+      - name: Calculate code coverage
+        run: |
+          xcrun llvm-cov report --summary-only --format=text --ignore-filename-regex 'Tests/|.build/' -instr-profile $(swift test --show-codecov-path | xargs dirname)/default.profdata .build/debug/BrowserServicesKitPackageTests.xctest/Contents/MacOS/BrowserServicesKitPackageTests | awk '{print $1, $10}' > code_coverage.txt
+
       - name: Publish Unit Tests Report
         uses: mikepenz/action-junit-report@v3
         if: always()
@@ -162,7 +166,7 @@ jobs:
             -skipMacroValidation \
             CODE_SIGNING_ALLOWED=NO \
             | tee -a ios-build-log.txt \
-            | xcbeautify --report junit --report-path . --junit-report-filename ios-unittests.xml 
+            | xcbeautify --report junit --report-path . --junit-report-filename ios-unittests.xml
 
       - name: Publish Unit Tests Report
         uses: mikepenz/action-junit-report@v3
