@@ -330,7 +330,7 @@ class MockAutofillLoginImportStateProvider: AutofillLoginImportStateProvider {
     func hasNeverPromptWebsitesFor(_ domain: String) -> Bool {
         stubHasNeverPromptWebsitesForDomain
     }
-    
+
     var isNewDDGUser: Bool = false
     var hasImportedLogins: Bool = false
 }
