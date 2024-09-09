@@ -425,15 +425,6 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         evaluate(js: "window.onChangeCertificateData(\(certificateDataJson))", in: webView)
     }
 
-    func setIsPhishing(_ isPhishing: Bool, webView: WKWebView) {
-        let phishingStatus = ["phishingStatus": isPhishing]
-        guard let phishingStatusJson = try? JSONEncoder().encode(phishingStatus).utf8String() else {
-            assertionFailure("Can't encode phishingStatus into JSON")
-            return
-        }
-        evaluate(js: "window.onChangePhishingStatus(\(phishingStatusJson))", in: webView)
-    }
-
     func setIsPendingUpdates(_ isPendingUpdates: Bool, webView: WKWebView) {
         evaluate(js: "window.onIsPendingUpdates(\(isPendingUpdates))", in: webView)
     }
