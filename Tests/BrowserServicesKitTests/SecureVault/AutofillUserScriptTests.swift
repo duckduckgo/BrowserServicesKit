@@ -165,6 +165,39 @@ class AutofillUserScriptTests: XCTestCase {
         XCTAssertFalse(response.success.credentialsImport)
     }
 
+    func testWhenAutofillIsDisabled_ThenAvailableInputTypesCredentialsImportIsFalse() {
+        guard let response = getAvailableInputTypesResponse(
+            isAutofillEnabled: false
+        ) else {
+            XCTFail("No getAvailableInputTypes response")
+            return
+        }
+
+        XCTAssertFalse(response.success.credentialsImport)
+    }
+
+    func testWhenHasNeverPromptWebsitesIsTrue_ThenAvailableInputTypesCredentialsImportIsFalse() {
+        guard let response = getAvailableInputTypesResponse(
+            hasNeverPromptWebsites: true
+        ) else {
+            XCTFail("No getAvailableInputTypes response")
+            return
+        }
+
+        XCTAssertFalse(response.success.credentialsImport)
+    }
+
+    func testWhenCredentialsImportPresentationCountIs5_ThenAvailableInputTypesCredentialsImportIsFalse() {
+        guard let response = getAvailableInputTypesResponse(
+            credentialsImportPresentationCount: 5
+        ) else {
+            XCTFail("No getAvailableInputTypes response")
+            return
+        }
+
+        XCTAssertFalse(response.success.credentialsImport)
+    }
+
     func testWhenAllOtherCredentialsImportConditionsAreMet_ThenAvailableInputTypesCredentialsImportIsTrue() {
         guard let response = getAvailableInputTypesResponse() else {
             XCTFail("No getAvailableInputTypes response")
@@ -232,11 +265,17 @@ class AutofillUserScriptTests: XCTestCase {
                                                 totalCredentialsCount: Int = 9,
                                                 hasUserImportedLogins: Bool = false,
                                                 isNewDDGUser: Bool = true,
+                                                hasNeverPromptWebsites: Bool = false,
+                                                isAutofillEnabled: Bool = true,
+                                                credentialsImportPresentationCount: Int = 0,
                                                 file: StaticString = #filePath,
                                                 line: UInt = #line) -> AutofillUserScript.RequestAvailableInputTypesResponse? {
         let loginImportStateProvider = MockAutofillLoginImportStateProvider()
         loginImportStateProvider.hasImportedLogins = hasUserImportedLogins
         loginImportStateProvider.isNewDDGUser = isNewDDGUser
+        loginImportStateProvider.stubHasNeverPromptWebsitesForDomain = hasNeverPromptWebsites
+        loginImportStateProvider.isAutofillEnabled = isAutofillEnabled
+        loginImportStateProvider.credentialsImportPromptPresentationCount = credentialsImportPresentationCount
         let userScript = AutofillUserScript(scriptSourceProvider: MockAutofillUserScriptSourceProvider(), loginImportStateProvider: loginImportStateProvider)
         let userScriptMessage = MockWKScriptMessage(name: "getAvailableInputTypes", body: "")
         let vaultDelegate = MockSecureVaultDelegate()
@@ -283,6 +322,15 @@ class AutofillUserScriptTests: XCTestCase {
 }
 
 class MockAutofillLoginImportStateProvider: AutofillLoginImportStateProvider {
+    var credentialsImportPromptPresentationCount: Int = 0
+
+    var isAutofillEnabled: Bool = false
+
+    var stubHasNeverPromptWebsitesForDomain: Bool = false
+    func hasNeverPromptWebsitesFor(_ domain: String) -> Bool {
+        stubHasNeverPromptWebsitesForDomain
+    }
+    
     var isNewDDGUser: Bool = false
     var hasImportedLogins: Bool = false
 }
@@ -292,6 +340,10 @@ class MockAutofillUserScriptSourceProvider: AutofillUserScriptSourceProvider {
 }
 
 class MockAutofillPasswordImportDelegate: AutofillPasswordImportDelegate {
+    var serializedInputContext: String?
+    func autofillUserScriptWillDisplayOverlay(_ serializedInputContext: String) {
+        self.serializedInputContext = serializedInputContext
+    }
 
     var autofillUserScriptDidRequestPasswordImportFlowCompletion: (() -> Void)?
     func autofillUserScriptDidRequestPasswordImportFlow(_ completion: @escaping () -> Void) {
