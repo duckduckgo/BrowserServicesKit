@@ -29,7 +29,7 @@ public class MockEventMapping: EventMapping<PhishingDetectionEvents> {
         super.init { event, error, params, _ in
             Self.events.append(event)
             switch event {
-            case .errorPageShown(clientSideHit: let clientSideHit):
+            case .errorPageShown(clientSideHit: _):
                 Self.clientSideHitParam = params?[PixelKit.Parameters.clientSideHit]
             case .updateTaskFailed48h(error: let error):
                 Self.errorParam = error

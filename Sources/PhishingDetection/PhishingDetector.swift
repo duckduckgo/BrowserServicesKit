@@ -59,7 +59,7 @@ public class PhishingDetector: PhishingDetecting {
     public init(apiClient: PhishingDetectionClientProtocol, dataStore: PhishingDetectionDataSaving, eventMapping: EventMapping<PhishingDetectionEvents>) {
 		self.apiClient = apiClient
 		self.dataStore = dataStore
-        	self.eventMapping = eventMapping
+        self.eventMapping = eventMapping
 	}
 
 	private func getMatches(hashPrefix: String) async -> Set<Match> {
