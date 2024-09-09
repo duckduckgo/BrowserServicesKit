@@ -28,7 +28,7 @@ final class ContentBlockingRulesHelper {
 
         let tracker = KnownTracker(domain: "tracker.com",
                                    defaultAction: .block,
-                                   owner: KnownTracker.Owner(name: "Tracker", displayName: "Tracker"),
+                                   owner: KnownTracker.Owner(name: "Tracker", displayName: "Tracker", ownedBy: nil),
                                    prevalence: 0.1,
                                    subdomains: nil,
                                    categories: nil,

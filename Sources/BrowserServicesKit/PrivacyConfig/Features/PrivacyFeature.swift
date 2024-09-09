@@ -52,6 +52,7 @@ public enum PrivacyFeature: String {
     case brokenSitePrompt
     case remoteMessaging
     case additionalCampaignPixelParams
+    case newTabPageImprovements
     case syncPromotion
 }
 
@@ -77,6 +78,7 @@ public enum AutofillSubfeature: String, PrivacySubfeature {
     case onByDefault
     case deduplicateLoginsOnImport
     case onForExistingUsers
+    case unknownUsernameCategorization
 }
 
 public enum DBPSubfeature: String, Equatable, PrivacySubfeature {
