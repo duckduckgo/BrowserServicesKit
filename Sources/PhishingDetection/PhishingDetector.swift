@@ -46,39 +46,39 @@ public enum PhishingDetectionError: CustomNSError {
 }
 
 public protocol PhishingDetecting {
-	func isMalicious(url: URL) async -> Bool
+    func isMalicious(url: URL) async -> Bool
 }
 
 public class PhishingDetector: PhishingDetecting {
     let hashPrefixStoreLength: Int = 8
     let hashPrefixParamLength: Int = 4
-	let apiClient: PhishingDetectionClientProtocol
-	let dataStore: PhishingDetectionDataSaving
+    let apiClient: PhishingDetectionClientProtocol
+    let dataStore: PhishingDetectionDataSaving
     let eventMapping: EventMapping<PhishingDetectionEvents>
 
     public init(apiClient: PhishingDetectionClientProtocol, dataStore: PhishingDetectionDataSaving, eventMapping: EventMapping<PhishingDetectionEvents>) {
-		self.apiClient = apiClient
-		self.dataStore = dataStore
+        self.apiClient = apiClient
+        self.dataStore = dataStore
         self.eventMapping = eventMapping
-	}
+    }
 
-	private func getMatches(hashPrefix: String) async -> Set<Match> {
-		return Set(await apiClient.getMatches(hashPrefix: hashPrefix))
-	}
+    private func getMatches(hashPrefix: String) async -> Set<Match> {
+        return Set(await apiClient.getMatches(hashPrefix: hashPrefix))
+    }
 
-	private func inFilterSet(hash: String) -> Set<Filter> {
-		return Set(dataStore.filterSet.filter { $0.hashValue == hash })
-	}
+    private func inFilterSet(hash: String) -> Set<Filter> {
+        return Set(dataStore.filterSet.filter { $0.hashValue == hash })
+    }
 
-	private func matchesUrl(hash: String, regexPattern: String, url: URL, hostnameHash: String) -> Bool {
-		if hash == hostnameHash,
-		   let regex = try? NSRegularExpression(pattern: regexPattern, options: []) {
-			let urlString = url.absoluteString
-			let range = NSRange(location: 0, length: urlString.utf16.count)
-			return regex.firstMatch(in: urlString, options: [], range: range) != nil
-		}
-		return false
-	}
+    private func matchesUrl(hash: String, regexPattern: String, url: URL, hostnameHash: String) -> Bool {
+        if hash == hostnameHash,
+           let regex = try? NSRegularExpression(pattern: regexPattern, options: []) {
+            let urlString = url.absoluteString
+            let range = NSRange(location: 0, length: urlString.utf16.count)
+            return regex.firstMatch(in: urlString, options: [], range: range) != nil
+        }
+        return false
+    }
 
     private func generateHashPrefix(for canonicalHost: String, length: Int) -> String {
         let hostnameHash = SHA256.hash(data: Data(canonicalHost.utf8)).map { String(format: "%02hhx", $0) }.joined()
