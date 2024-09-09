@@ -478,6 +478,9 @@ extension AutofillUserScript {
         guard credentialsProvider.name != .bitwarden else {
             return false
         }
+        guard !isBurnerWindow else {
+            return false
+        }
         guard loginImportStateProvider.credentialsImportPromptPresentationCount < 5 else {
             return false
         }
