@@ -21,6 +21,7 @@ import Foundation
 public extension APIRequestV2 {
 
     struct HeadersV2 {
+
         private var userAgent: String?
         let acceptEncoding: String = "gzip;q=1.0, compress;q=0.5"
         let acceptLanguage: String = {
