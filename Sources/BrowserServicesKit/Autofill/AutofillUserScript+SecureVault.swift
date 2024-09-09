@@ -83,6 +83,7 @@ public protocol AutofillLoginImportStateProvider {
     var hasImportedLogins: Bool { get }
     var credentialsImportPromptPresentationCount: Int { get }
     var isAutofillEnabled: Bool { get }
+    func hasNeverPromptWebsitesFor(_ domain: String) -> Bool
 }
 
 public protocol AutofillPasswordImportDelegate: AnyObject {
@@ -457,7 +458,7 @@ extension AutofillUserScript {
                 replyHandler("")
                 return
             }
-            let credentialsImport = self.shouldShowPasswordImportDialog(credentials: credentials, credentialsProvider: credentialsProvider, totalCredentialsCount: totalCredentialsCount)
+            let credentialsImport = self.shouldShowPasswordImportDialog(domain: domain, credentials: credentials, credentialsProvider: credentialsProvider, totalCredentialsCount: totalCredentialsCount)
             let response = RequestAvailableInputTypesResponse(credentials: credentials,
                                                               identities: identities,
                                                               cards: cards,
@@ -470,7 +471,7 @@ extension AutofillUserScript {
         }
     }
 
-    private func shouldShowPasswordImportDialog(credentials: [SecureVaultModels.WebsiteCredentials], credentialsProvider: SecureVaultModels.CredentialsProvider, totalCredentialsCount: Int) -> Bool {
+    private func shouldShowPasswordImportDialog(domain: String, credentials: [SecureVaultModels.WebsiteCredentials], credentialsProvider: SecureVaultModels.CredentialsProvider, totalCredentialsCount: Int) -> Bool {
         guard loginImportStateProvider.isAutofillEnabled else {
             return false
         }
@@ -490,6 +491,9 @@ extension AutofillUserScript {
             return false
         }
         guard loginImportStateProvider.isNewDDGUser else {
+            return false
+        }
+        guard !loginImportStateProvider.hasNeverPromptWebsitesFor(domain) else {
             return false
         }
         return true
