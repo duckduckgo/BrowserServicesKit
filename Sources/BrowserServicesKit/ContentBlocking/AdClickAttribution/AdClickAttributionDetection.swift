@@ -18,6 +18,7 @@
 
 import Foundation
 import Common
+import os.log
 
 public protocol AdClickAttributionDetectionDelegate: AnyObject {
 
@@ -39,12 +40,9 @@ public class AdClickAttributionDetection {
     private var state = State.idle
 
     private let tld: TLD
-    private let getLog: () -> OSLog
-    private var log: OSLog {
-        getLog()
-    }
     private let eventReporting: EventMapping<AdClickAttributionEvents>?
     private let errorReporting: EventMapping<AdClickAttributionDebugEvents>?
+    private let cpmExperimentOn: Bool?
 
     public weak var delegate: AdClickAttributionDetectionDelegate?
 
@@ -52,12 +50,12 @@ public class AdClickAttributionDetection {
                 tld: TLD,
                 eventReporting: EventMapping<AdClickAttributionEvents>? = nil,
                 errorReporting: EventMapping<AdClickAttributionDebugEvents>? = nil,
-                log: @escaping @autoclosure () -> OSLog = .disabled) {
+                cpmExperimentOn: Bool? = nil) {
         self.attributionFeature = feature
         self.tld = tld
         self.eventReporting = eventReporting
         self.errorReporting = errorReporting
-        self.getLog = log
+        self.cpmExperimentOn = cpmExperimentOn
     }
 
     // MARK: - Public API
@@ -66,7 +64,7 @@ public class AdClickAttributionDetection {
         guard attributionFeature.isEnabled,
               let url = url, attributionFeature.isMatchingAttributionFormat(url) else { return }
 
-        os_log(.debug, log: log, "Starting Attribution detection for %{private}s", url.host ?? "nil")
+        Logger.contentBlocking.debug("Starting Attribution detection for \(url.host ?? "nil")")
 
         var vendorDomain: String?
         if attributionFeature.isDomainDetectionEnabled,
@@ -98,7 +96,7 @@ public class AdClickAttributionDetection {
     }
 
     public func onDidFailNavigation() {
-        os_log(.debug, log: log, "Attribution detection has been cancelled")
+        Logger.contentBlocking.debug("Attribution detection has been cancelled")
         state = .idle
     }
 
@@ -117,7 +115,7 @@ public class AdClickAttributionDetection {
             return
         }
 
-        os_log(.debug, log: log, "Attribution detected for %{private}s", host)
+        Logger.contentBlocking.debug("Attribution detected for \(host)")
         state = .idle
 
         let detectedDomain = tld.eTLDplus1(host)?.lowercased()
@@ -148,9 +146,12 @@ public class AdClickAttributionDetection {
             domainDetection = "none"
         }
 
-        let parameters = [AdClickAttributionEvents.Parameters.domainDetection: domainDetection,
+        var parameters = [AdClickAttributionEvents.Parameters.domainDetection: domainDetection,
                           AdClickAttributionEvents.Parameters.domainDetectionEnabled: attributionFeature.isDomainDetectionEnabled ? "1" : "0",
                           AdClickAttributionEvents.Parameters.heuristicDetectionEnabled: attributionFeature.isHeuristicDetectionEnabled ? "1" : "0"]
+        if let cpmExperimentOn {
+            parameters[AdClickAttributionEvents.Parameters.cpmExperiment] = cpmExperimentOn ? "1" : "0"
+        }
         eventReporting?.fire(.adAttributionDetected, parameters: parameters)
     }
 }

@@ -20,6 +20,9 @@ import Foundation
 import TrackerRadarKit
 import Common
 
+public protocol SecurityTrust { }
+extension SecTrust: SecurityTrust {}
+
 public final class PrivacyInfo {
 
     public private(set) var url: URL
@@ -27,14 +30,17 @@ public final class PrivacyInfo {
 
     @Published public var trackerInfo: TrackerInfo
     @Published private(set) var protectionStatus: ProtectionStatus
-    @Published public var serverTrust: SecTrust?
+    @Published public var serverTrust: SecurityTrust?
     @Published public var connectionUpgradedTo: URL?
     @Published public var cookieConsentManaged: CookieConsentInfo?
+    @Published public var isPhishing: Bool
+    @Published public var isSpecialErrorPageVisible: Bool = false
 
-    public init(url: URL, parentEntity: Entity?, protectionStatus: ProtectionStatus) {
+    public init(url: URL, parentEntity: Entity?, protectionStatus: ProtectionStatus, isPhishing: Bool) {
         self.url = url
         self.parentEntity = parentEntity
         self.protectionStatus = protectionStatus
+        self.isPhishing = isPhishing
 
         trackerInfo = TrackerInfo()
     }

@@ -21,6 +21,7 @@ import Combine
 import Common
 import CoreData
 import Persistence
+import os.log
 
 final class FaviconsFetchOperation: Operation, @unchecked Sendable {
 
@@ -63,14 +64,12 @@ final class FaviconsFetchOperation: Operation, @unchecked Sendable {
         database: CoreDataDatabase,
         stateStore: BookmarksFaviconsFetcherStateStoring,
         fetcher: FaviconFetching,
-        faviconStore: FaviconStoring,
-        log: @escaping @autoclosure () -> OSLog = .disabled
+        faviconStore: FaviconStoring
     ) {
         self.database = database
         self.stateStore = stateStore
         self.fetcher = fetcher
         self.faviconStore = faviconStore
-        self.getLog = log
     }
 
     override func start() {
@@ -104,13 +103,13 @@ final class FaviconsFetchOperation: Operation, @unchecked Sendable {
         var idsToProcess = try stateStore.getBookmarkIDs()
 
         guard !idsToProcess.isEmpty else {
-            os_log(.debug, log: log, "No new Favicons to fetch")
+            Logger.bookmarks.debug("No new Favicons to fetch")
             return
         }
 
-        os_log(.debug, log: log, "Favicons Fetch Operation started")
+        Logger.bookmarks.debug("Favicons Fetch Operation started")
         defer {
-            os_log(.debug, log: log, "Favicons Fetch Operation finished")
+            Logger.bookmarks.debug("Favicons Fetch Operation finished")
         }
 
         var bookmarkDomains = mapBookmarkDomainsToUUIDs(for: idsToProcess)
@@ -125,11 +124,11 @@ final class FaviconsFetchOperation: Operation, @unchecked Sendable {
         var allDomains = bookmarkDomains.allDomains
 
         guard !allDomains.isEmpty else {
-            os_log(.debug, log: log, "No favicons to fetch")
+            Logger.bookmarks.debug("No favicons to fetch")
             try stateStore.storeBookmarkIDs(idsToProcess)
             return
         }
-        os_log(.debug, log: log, "Will try to fetch favicons for %{public}d domains", allDomains.count)
+        Logger.bookmarks.debug("Will try to fetch favicons for \(allDomains.count, privacy: .public) domains")
 
         while !allDomains.isEmpty {
             let numberOfDomainsToFetch = min(Const.maximumConcurrentFetches, allDomains.count)
@@ -204,18 +203,18 @@ final class FaviconsFetchOperation: Operation, @unchecked Sendable {
         do {
             let (imageData, imageURL) = fetchResult
             if let imageData {
-                os_log(.debug, log: log, "Favicon found for %{public}s", url.absoluteString)
+                Logger.bookmarks.debug("Favicon found for \(url.absoluteString, privacy: .public)")
                 try await faviconStore.storeFavicon(imageData, with: imageURL, for: url)
             } else {
-                os_log(.debug, log: log, "Favicon not found for %{public}s", url.absoluteString)
+                Logger.bookmarks.debug("Favicon not found for \(url.absoluteString, privacy: .public)")
             }
 
             try checkCancellation()
         } catch is CancellationError {
-            os_log(.debug, log: log, "Favicon fetching cancelled")
+            Logger.bookmarks.debug("Favicon fetching cancelled")
             throw CancellationError()
         } catch {
-            os_log(.debug, log: log, "Error storing favicon for %{public}s: %{public}s", url.absoluteString, error.localizedDescription)
+            Logger.bookmarks.debug("Error storing favicon for \(url.absoluteString, privacy: .public): \(error.localizedDescription, privacy: .public)")
             throw error
         }
     }
@@ -246,11 +245,6 @@ final class FaviconsFetchOperation: Operation, @unchecked Sendable {
         }
         return bookmarkDomains
     }
-
-    private var log: OSLog {
-        getLog()
-    }
-    private let getLog: () -> OSLog
 
     // MARK: - Overrides
 

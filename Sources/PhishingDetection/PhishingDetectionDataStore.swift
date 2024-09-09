@@ -18,6 +18,7 @@
 
 import Foundation
 import Common
+import os
 
 enum PhishingDetectionDataError: Error {
     case empty
@@ -110,7 +111,7 @@ public class PhishingDetectionDataStore: PhishingDetectionDataSaving {
             let hashPrefixesData = try encoder.encode(Array(hashPrefixes))
             fileStorageManager.write(data: hashPrefixesData, to: hashPrefixFilename)
         } catch {
-            os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error saving hash prefixes data: \(error)")
+            Logger.phishingDetectionDataStore.error("Error saving hash prefixes data: \(error.localizedDescription)")
         }
     }
 
@@ -120,7 +121,7 @@ public class PhishingDetectionDataStore: PhishingDetectionDataSaving {
             let filterSetData = try encoder.encode(Array(filterSet))
             fileStorageManager.write(data: filterSetData, to: filterSetFilename)
         } catch {
-            os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error saving filter set data: \(error)")
+            Logger.phishingDetectionDataStore.error("Error saving filter set data: \(error.localizedDescription)")
         }
     }
 
@@ -130,7 +131,7 @@ public class PhishingDetectionDataStore: PhishingDetectionDataSaving {
             let revisionData = try encoder.encode(currentRevision)
             fileStorageManager.write(data: revisionData, to: revisionFilename)
         } catch {
-            os_log(.debug, log: .phishingDetection, "\(self): 🔴 Error saving revision data: \(error)")
+            Logger.phishingDetectionDataStore.error("Error saving revision data: \(error.localizedDescription)")
         }
     }
 
@@ -140,7 +141,7 @@ public class PhishingDetectionDataStore: PhishingDetectionDataSaving {
         do {
             return Set(try decoder.decode(Set<String>.self, from: data))
         } catch {
-            os_log(.debug, log: .phishingDetection, "Error decoding \(hashPrefixFilename): \(error)")
+            Logger.phishingDetectionDataStore.error("Error decoding \(self.hashPrefixFilename): \(error.localizedDescription)")
             return dataProvider.loadEmbeddedHashPrefixes()
         }
     }
@@ -151,7 +152,7 @@ public class PhishingDetectionDataStore: PhishingDetectionDataSaving {
         do {
             return Set(try decoder.decode(Set<Filter>.self, from: data))
         } catch {
-            os_log(.debug, log: .phishingDetection, "Error decoding \(filterSetFilename): \(error)")
+            Logger.phishingDetectionDataStore.error("Error decoding \(self.filterSetFilename): \(error.localizedDescription)")
             return dataProvider.loadEmbeddedFilterSet()
         }
     }
@@ -162,7 +163,7 @@ public class PhishingDetectionDataStore: PhishingDetectionDataSaving {
         do {
             return try decoder.decode(Int.self, from: data)
         } catch {
-            os_log(.debug, log: .phishingDetection, "Error decoding \(revisionFilename): \(error)")
+            Logger.phishingDetectionDataStore.error("Error decoding \(self.revisionFilename): \(error.localizedDescription)")
             return dataProvider.embeddedRevision
         }
     }
@@ -198,7 +199,7 @@ final class PhishingFileStorageManager: FileStorageManager {
         do {
             dataStoreDirectory = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
         } catch {
-            os_log(.debug, log: .phishingDetection, "🔴 Error accessing application support directory: \(error)")
+            Logger.phishingDetectionDataStore.error("Error accessing application support directory: \(error.localizedDescription)")
             dataStoreDirectory = FileManager.default.temporaryDirectory
         }
         dataStoreURL = dataStoreDirectory.appendingPathComponent(Bundle.main.bundleIdentifier!, isDirectory: true)
@@ -209,7 +210,7 @@ final class PhishingFileStorageManager: FileStorageManager {
         do {
             try FileManager.default.createDirectory(at: dataStoreURL, withIntermediateDirectories: true, attributes: nil)
         } catch {
-            os_log(.error, log: .default, "Failed to create directory: %{public}@", error.localizedDescription)
+            Logger.phishingDetectionDataStore.error("Failed to create directory: \(error.localizedDescription)")
         }
     }
 
@@ -218,7 +219,7 @@ final class PhishingFileStorageManager: FileStorageManager {
         do {
             try data.write(to: fileURL)
         } catch {
-            os_log(.error, log: .default, "Error writing to %{public}@: %{public}@", filename, error.localizedDescription)
+            Logger.phishingDetectionDataStore.error("Error writing to directory: \(error.localizedDescription)")
         }
     }
 
@@ -227,7 +228,7 @@ final class PhishingFileStorageManager: FileStorageManager {
         do {
             return try Data(contentsOf: fileURL)
         } catch {
-            os_log(.error, log: .default, "Error reading from %{public}@: %{public}@", filename, error.localizedDescription)
+            Logger.phishingDetectionDataStore.error("Error accessing application support directory: \(error)")
             return nil
         }
     }

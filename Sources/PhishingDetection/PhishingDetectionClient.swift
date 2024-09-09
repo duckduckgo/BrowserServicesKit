@@ -18,6 +18,7 @@
 
 import Foundation
 import Common
+import os
 
 public struct HashPrefixResponse: Codable, Equatable {
     public var insert: [String]
@@ -78,7 +79,7 @@ public class PhishingDetectionAPIClient: PhishingDetectionClientProtocol {
 
     enum Constants {
         static let productionEndpoint = URL(string: "https://duckduckgo.com/api/protection/")!
-        static let stagingEndpoint = URL(string: "https://web-use-1.duckduckgo.com/api/protection/")!
+        static let stagingEndpoint = URL(string: "https://staging.duckduckgo.com/api/protection/")!
         enum APIPath: String {
             case filterSet
             case hashPrefix
@@ -142,7 +143,7 @@ public class PhishingDetectionAPIClient: PhishingDetectionClientProtocol {
 extension PhishingDetectionAPIClient {
 
     private func logDebug(_ message: String) {
-        os_log(.debug, log: .phishingDetection, "\(self): \(message)")
+        Logger.phishingDetectionClient.debug("\(message)")
     }
 
     private func createURL(for path: Constants.APIPath, revision: Int? = nil, queryItems: [URLQueryItem]? = nil) -> URL? {

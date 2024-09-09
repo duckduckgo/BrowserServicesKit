@@ -21,6 +21,7 @@ import Common
 import CoreData
 import Foundation
 import Persistence
+import os.log
 
 /**
  * This protocol abstracts favicons fetcher state storing interface.
@@ -104,15 +105,13 @@ public final class BookmarksFaviconsFetcher {
         stateStore: BookmarksFaviconsFetcherStateStoring,
         fetcher: FaviconFetching,
         faviconStore: FaviconStoring,
-        errorEvents: EventMapping<BookmarksFaviconsFetcherError>?,
-        log: @escaping @autoclosure () -> OSLog = .disabled
+        errorEvents: EventMapping<BookmarksFaviconsFetcherError>?
     ) {
         self.database = database
         self.stateStore = stateStore
         self.fetcher = fetcher
         self.faviconStore = faviconStore
         self.errorEvents = errorEvents
-        self.getLog = log
 
         fetchingDidFinishPublisher = fetchingDidFinishSubject.eraseToAnyPublisher()
 
@@ -139,7 +138,7 @@ public final class BookmarksFaviconsFetcher {
                 let allBookmarkIDs = self.fetchAllBookmarksUUIDs()
                 try self.stateStore.storeBookmarkIDs(allBookmarkIDs)
             } catch {
-                os_log(.debug, log: self.log, "Error updating bookmark IDs: %{public}s", error.localizedDescription)
+                Logger.bookmarks.error("Error updating bookmark IDs: \(error.localizedDescription, privacy: .public)")
                 if let fetcherError = error as? BookmarksFaviconsFetcherError {
                     self.errorEvents?.fire(fetcherError)
                 } else {
@@ -167,7 +166,7 @@ public final class BookmarksFaviconsFetcher {
                 let ids = try self.stateStore.getBookmarkIDs().union(modified).subtracting(deleted)
                 try self.stateStore.storeBookmarkIDs(ids)
             } catch {
-                os_log(.debug, log: self.log, "Error updating bookmark IDs: %{public}s", error.localizedDescription)
+                Logger.bookmarks.error("Error updating bookmark IDs: \(error.localizedDescription, privacy: .public)")
                 if let fetcherError = error as? BookmarksFaviconsFetcherError {
                     self.errorEvents?.fire(fetcherError)
                 } else {
@@ -188,8 +187,7 @@ public final class BookmarksFaviconsFetcher {
             database: database,
             stateStore: stateStore,
             fetcher: fetcher,
-            faviconStore: faviconStore,
-            log: self.log
+            faviconStore: faviconStore
         )
         operation.didStart = { [weak self] in
             self?.fetchingDidStartSubject.send()
@@ -242,9 +240,4 @@ public final class BookmarksFaviconsFetcher {
     private var isFetchingInProgressCancellable: AnyCancellable?
     private let fetchingDidStartSubject = PassthroughSubject<Void, Never>()
     private let fetchingDidFinishSubject = PassthroughSubject<Result<Void, Error>, Never>()
-
-    private var log: OSLog {
-        getLog()
-    }
-    private let getLog: () -> OSLog
 }

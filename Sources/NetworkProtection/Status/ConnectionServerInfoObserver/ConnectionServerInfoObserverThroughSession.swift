@@ -21,6 +21,7 @@ import Foundation
 import NetworkExtension
 import NotificationCenter
 import Common
+import os.log
 
 /// This status observer can only be used from the App that owns the tunnel, as other Apps won't have access to the
 /// NEVPNStatusDidChange notifications or tunnel session.
@@ -42,23 +43,17 @@ public class ConnectionServerInfoObserverThroughSession: ConnectionServerInfoObs
     private let platformDidWakeNotification: Notification.Name
     private var cancellables = Set<AnyCancellable>()
 
-    // MARK: - Logging
-
-    private let log: OSLog
-
     // MARK: - Initialization
 
     public init(tunnelSessionProvider: TunnelSessionProvider,
                 notificationCenter: NotificationCenter = .default,
                 platformNotificationCenter: NotificationCenter,
-                platformDidWakeNotification: Notification.Name,
-                log: OSLog = .networkProtection) {
+                platformDidWakeNotification: Notification.Name) {
 
         self.notificationCenter = notificationCenter
         self.platformNotificationCenter = platformNotificationCenter
         self.platformDidWakeNotification = platformDidWakeNotification
         self.tunnelSessionProvider = tunnelSessionProvider
-        self.log = log
 
         start()
     }
@@ -99,6 +94,7 @@ public class ConnectionServerInfoObserverThroughSession: ConnectionServerInfoObs
 
     private func updateServerInfo(session: NETunnelProviderSession) async {
         guard session.status == .connected else {
+            subject.send(NetworkProtectionStatusServerInfo.unknown)
             return
         }
 
