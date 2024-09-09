@@ -323,6 +323,7 @@ let package = Package(
             dependencies: [
                 .target(name: "WireGuardC"),
                 "Common",
+                "Networking"
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
