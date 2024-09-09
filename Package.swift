@@ -45,7 +45,7 @@ let package = Package(
         .library(name: "Onboarding", targets: ["Onboarding"])
     ],
     dependencies: [
-        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", branch: "dbajpeyi/remove-response-param"),
+        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "1fee787458d13f8ed07f9fe81aecd6e59609339e"),
         .package(url: "https://github.com/duckduckgo/GRDB.swift.git", exact: "2.4.0"),
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "3.0.0"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.2.0"),
