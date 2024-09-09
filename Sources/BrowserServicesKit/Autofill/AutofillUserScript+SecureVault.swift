@@ -81,11 +81,13 @@ public protocol AutofillSecureVaultDelegate: AnyObject {
 public protocol AutofillLoginImportStateProvider {
     var isNewDDGUser: Bool { get }
     var hasImportedLogins: Bool { get }
+    var credentialsImportPromptPresentationCount: Int { get }
 }
 
 public protocol AutofillPasswordImportDelegate: AnyObject {
     func autofillUserScriptDidRequestPasswordImportFlow(_ completion: @escaping () -> Void)
     func autofillUserScriptDidFinishImportWithImportedCredentialForCurrentDomain()
+    func autofillUserScriptWillDisplayOverlay(_ serializedInputContext: String)
 }
 
 extension AutofillUserScript {
@@ -469,6 +471,9 @@ extension AutofillUserScript {
 
     private func shouldShowPasswordImportDialog(credentials: [SecureVaultModels.WebsiteCredentials], credentialsProvider: SecureVaultModels.CredentialsProvider, totalCredentialsCount: Int) -> Bool {
         guard credentialsProvider.name != .bitwarden else {
+            return false
+        }
+        guard loginImportStateProvider.credentialsImportPromptPresentationCount < 5 else {
             return false
         }
         guard credentials.isEmpty else {
