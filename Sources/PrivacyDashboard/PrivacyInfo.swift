@@ -36,7 +36,7 @@ public final class PrivacyInfo {
     @Published public var isPhishing: Bool
     @Published public var isSpecialErrorPageVisible: Bool = false
 
-    public init(url: URL, parentEntity: Entity?, protectionStatus: ProtectionStatus, isPhishing: Bool) {
+    public init(url: URL, parentEntity: Entity?, protectionStatus: ProtectionStatus, isPhishing: Bool = false) {
         self.url = url
         self.parentEntity = parentEntity
         self.protectionStatus = protectionStatus
