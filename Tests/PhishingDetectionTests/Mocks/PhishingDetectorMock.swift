@@ -1,5 +1,5 @@
 //
-//  SpecialErrorData.swift
+//  PhishingDetectorMock.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -17,24 +17,22 @@
 //
 
 import Foundation
+import PhishingDetection
 
-public enum SpecialErrorKind: String, Encodable {
-    case ssl
-    case phishing
-}
+public class MockPhishingDetector: PhishingDetecting {
+    private var mockClient: PhishingDetectionClientProtocol
+    public var didCallIsMalicious: Bool = false
 
-public struct SpecialErrorData: Encodable, Equatable {
-
-    var kind: SpecialErrorKind
-    var errorType: String?
-    var domain: String?
-    var eTldPlus1: String?
-
-    public init(kind: SpecialErrorKind, errorType: String? = nil, domain: String? = nil, eTldPlus1: String? = nil) {
-        self.kind = kind
-        self.errorType = errorType
-        self.domain = domain
-        self.eTldPlus1 = eTldPlus1
+    init() {
+        self.mockClient = MockPhishingDetectionClient()
     }
 
+    public func getMatches(hashPrefix: String) async -> Set<Match> {
+        let matches = await mockClient.getMatches(hashPrefix: hashPrefix)
+        return Set(matches)
+    }
+
+    public func isMalicious(url: URL) async -> Bool {
+        return url.absoluteString.contains("malicious")
+    }
 }

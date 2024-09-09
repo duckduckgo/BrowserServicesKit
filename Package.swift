@@ -42,6 +42,7 @@ let package = Package(
         .library(name: "PixelKitTestingUtilities", targets: ["PixelKitTestingUtilities"]),
         .library(name: "SpecialErrorPages", targets: ["SpecialErrorPages"]),
         .library(name: "DuckPlayer", targets: ["DuckPlayer"]),
+        .library(name: "PhishingDetection", targets: ["PhishingDetection"]),
         .library(name: "Onboarding", targets: ["Onboarding"])
     ],
     dependencies: [
@@ -50,8 +51,8 @@ let package = Package(
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "3.0.0"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.2.0"),
         .package(url: "https://github.com/gumob/PunycodeSwift.git", exact: "2.1.0"),
+        .package(url: "https://github.com/duckduckgo/privacy-dashboard", branch:"mgurgel/phishing-warning"),
         .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "6.14.1"),
-        .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "5.1.1"),
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
         .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
         .package(url: "https://github.com/1024jp/GzipSwift.git", exact: "6.0.1")
@@ -404,6 +405,19 @@ let package = Package(
             ]
         ),
         .target(
+            name: "PhishingDetection",
+            dependencies: [
+                "Common"
+            ],
+            resources: [
+                .copy("hashPrefixes.json"),
+                .copy("filterSet.json")
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
+            ]
+        ),
+        .target(
             name: "Onboarding",
             dependencies: [
                 "BrowserServicesKit"
@@ -611,6 +625,18 @@ let package = Package(
             name: "DuckPlayerTests",
             dependencies: [
                 "DuckPlayer"
+            ]
+        ),
+
+        .testTarget(
+            name: "PhishingDetectionTests",
+            dependencies: [
+                "PhishingDetection",
+                "PixelKit"
+            ],
+            resources: [
+                .copy("hashPrefixes.json"),
+                .copy("filterSet.json")
             ]
         ),
         .testTarget(
