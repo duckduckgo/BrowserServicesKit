@@ -82,6 +82,7 @@ public protocol AutofillLoginImportStateProvider {
     var isNewDDGUser: Bool { get }
     var hasImportedLogins: Bool { get }
     var credentialsImportPromptPresentationCount: Int { get }
+    var isAutofillEnabled: Bool { get }
 }
 
 public protocol AutofillPasswordImportDelegate: AnyObject {
@@ -470,6 +471,9 @@ extension AutofillUserScript {
     }
 
     private func shouldShowPasswordImportDialog(credentials: [SecureVaultModels.WebsiteCredentials], credentialsProvider: SecureVaultModels.CredentialsProvider, totalCredentialsCount: Int) -> Bool {
+        guard loginImportStateProvider.isAutofillEnabled else {
+            return false
+        }
         guard credentialsProvider.name != .bitwarden else {
             return false
         }
