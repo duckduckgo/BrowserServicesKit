@@ -38,7 +38,6 @@ let package = Package(
         .library(name: "SubscriptionTestingUtilities", targets: ["SubscriptionTestingUtilities"]),
         .library(name: "History", targets: ["History"]),
         .library(name: "Suggestions", targets: ["Suggestions"]),
-        .library(name: "PhishingDetection", targets: ["PhishingDetection"]),
         .library(name: "PixelKit", targets: ["PixelKit"]),
         .library(name: "PixelKitTestingUtilities", targets: ["PixelKitTestingUtilities"]),
         .library(name: "SpecialErrorPages", targets: ["SpecialErrorPages"]),
@@ -52,8 +51,8 @@ let package = Package(
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "3.0.0"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.2.0"),
         .package(url: "https://github.com/gumob/PunycodeSwift.git", exact: "2.1.0"),
-        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "6.12.0"),
         .package(url: "https://github.com/duckduckgo/privacy-dashboard", branch:"mgurgel/phishing-warning"),
+        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "6.14.1"),
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
         .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
         .package(url: "https://github.com/1024jp/GzipSwift.git", exact: "6.0.1")
