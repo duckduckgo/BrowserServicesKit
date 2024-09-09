@@ -32,7 +32,7 @@ public struct FrameHandle: Hashable, _ObjectiveCBridgeable {
         return object.value(forKey: Self.frameIDKey) as? UInt64 ?? 0
     }
 
-    public init?(rawValue: Any) {
+    init?(rawValue: Any) {
         guard rawValue is UInt64
                 || (rawValue as? NSObject)?.responds(to: NSSelectorFromString("_" + Self.frameIDKey)) == true
                 || (rawValue as? NSObject)?.responds(to: NSSelectorFromString(Self.frameIDKey)) == true
