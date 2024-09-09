@@ -1,5 +1,5 @@
 //
-//  APIResponseRequirementV2.swift
+//  MockAPIService.swift
 //  DuckDuckGo
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
@@ -18,9 +18,3 @@
 //
 
 import Foundation
-
-public enum APIResponseRequirementV2: String {
-    case requireETagHeader = "Require ETag header"
-    case allowHTTPNotModified = "Allow 'Not Modified' HTTP response"
-    case requireUserAgent = "Require user agent"
-}

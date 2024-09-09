@@ -23,21 +23,13 @@ import TestUtils
 
 final class APIServiceTests: XCTestCase {
 
-    override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
-    }
-
-    override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
-    }
-
     private var mockURLSession: URLSession {
         let testConfiguration = URLSessionConfiguration.default
         testConfiguration.protocolClasses = [MockURLProtocol.self]
         return URLSession(configuration: testConfiguration)
     }
 
-    func testRealCall() async throws { // TODO: Disable
+    func testRealCallJSON() async throws { // TODO: Disable
         let configuration = APIRequestV2.ConfigurationV2(url: HTTPURLResponse.testUrl,
                                                          method: .get)
         guard let request = APIRequestV2(configuration: configuration) else {
@@ -52,6 +44,32 @@ final class APIServiceTests: XCTestCase {
 
         let responseHTML = String(data: result.data!, encoding: .utf8)
         XCTAssertNotNil(responseHTML)
+    }
+
+    func testRealCallString() async throws { // TODO: Disable
+        let configuration = APIRequestV2.ConfigurationV2(url: HTTPURLResponse.testUrl,
+                                                         method: .get)
+        let request = APIRequestV2(configuration: configuration)!
+        let apiService = DefaultAPIService()
+        let result: String = try await apiService.fetch(request: request)
+
+        XCTAssertNotNil(result)
+    }
+
+    func testQueryItems() async throws {
+        let qItems = [URLQueryItem(name: "qName1", value: "qValue1"),
+                      URLQueryItem(name: "qName2", value: "qValue2")]
+        let configuration = APIRequestV2.ConfigurationV2(url: HTTPURLResponse.testUrl,
+                                                         method: .get,
+                                                         queryParameters: qItems)
+        MockURLProtocol.requestHandler = { request in
+            let urlComponents = URLComponents(string: request.url!.absoluteString)!
+            XCTAssertTrue(urlComponents.queryItems!.contains(qItems))
+            return (HTTPURLResponse.ok, nil)
+        }
+        let request = APIRequestV2(configuration: configuration)!
+        let apiService = DefaultAPIService(urlSession: mockURLSession)
+        let result = try await apiService.fetch(request: request)
     }
 
     func testURLRequestError() async throws {
@@ -159,10 +177,12 @@ final class APIServiceTests: XCTestCase {
         let requirements = [ APIResponseRequirementV2.requireUserAgent ]
         let request = APIRequestV2(configuration: configuration, requirements: requirements)!
 
-        MockURLProtocol.requestHandler = { _ in ( HTTPURLResponse.okUserAgent, nil) }
+        MockURLProtocol.requestHandler = { _ in
+            ( HTTPURLResponse.okUserAgent, nil)
+        }
 
         let apiService = DefaultAPIService(urlSession: mockURLSession)
-        let result = try await apiService.fetch(request: request)
+        let result: APIService.APIResponse = try await apiService.fetch(request: request)
         XCTAssertNotNil(result)
         XCTAssertEqual(result.httpResponse.statusCode, HTTPStatusCode.ok.rawValue)
     }

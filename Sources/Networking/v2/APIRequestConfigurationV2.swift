@@ -27,7 +27,7 @@ public extension APIRequestV2 {
         let url: URL
         let method: HTTPRequestMethod
         let queryParameters: QueryParams?
-        let headers: HTTPHeaders
+        let headers: HTTPHeaders?
         let body: Data?
         let timeoutInterval: TimeInterval
         let cachePolicy: URLRequest.CachePolicy?
@@ -35,14 +35,14 @@ public extension APIRequestV2 {
         public init(url: URL,
                     method: HTTPRequestMethod = .get,
                     queryParameters: QueryParams? = nil,
-                    headers: APIRequest.Headers = APIRequest.Headers(),
+                    headers: APIRequestV2.HeadersV2? = APIRequestV2.HeadersV2(),
                     body: Data? = nil,
                     timeoutInterval: TimeInterval = 60.0,
                     cachePolicy: URLRequest.CachePolicy? = nil) {
             self.url = url
             self.method = method
             self.queryParameters = queryParameters
-            self.headers = headers.httpHeaders
+            self.headers = headers?.httpHeaders
             self.body = body
             self.timeoutInterval = timeoutInterval
             self.cachePolicy = cachePolicy
@@ -69,8 +69,7 @@ public extension APIRequestV2 {
         public var debugDescription: String {
             """
             \(method.rawValue) \(urlRequest?.url?.absoluteString ?? "nil")
-            Query params: \(queryParameters?.debugDescription ?? "-")
-            Headers: \(headers)
+            Headers: \(headers?.debugDescription ?? "-")
             Body: \(body?.debugDescription ?? "-")
             """
         }

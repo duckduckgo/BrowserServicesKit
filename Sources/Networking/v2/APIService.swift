@@ -35,11 +35,11 @@ public struct DefaultAPIService: APIService {
         self.urlSession = urlSession
     }
 
-    /// Fetch an API Request that returns a JSON Decodable structure
+    /// Fetch an API Request
     /// - Parameter request: A configured APIRequest
-    /// - Returns: An instance of the inferred decodable object
+    /// - Returns: An instance of the inferred decodable object, can be a String or a Decodable model
     public func fetch<T: Decodable>(request: APIRequestV2) async throws -> T {
-        let response = try await fetch(request: request)
+        let response: APIService.APIResponse = try await fetch(request: request)
 
         guard let data = response.data else {
             throw APIRequestV2.Error.emptyData
@@ -47,9 +47,18 @@ public struct DefaultAPIService: APIService {
 
         try Task.checkCancellation()
 
-        // Decode data
-        let decoder = JSONDecoder()
-        return try decoder.decode(T.self, from: data)
+        // Try to decode the data
+        switch T.self {
+        case is String.Type:
+            guard let resultString = String(data: data, encoding: .utf8) else {
+                throw APIRequestV2.Error.invalidDataType
+            }
+            return resultString as! T
+        default:
+            // Decode data
+            let decoder = JSONDecoder()
+            return try decoder.decode(T.self, from: data)
+        }
     }
 
     /// Fetch an API Request
@@ -83,7 +92,8 @@ public struct DefaultAPIService: APIService {
                     throw APIRequestV2.Error.unsatisfiedRequirement(requirement)
                 }
             case .requireUserAgent:
-                guard let userAgent = request.urlRequest.allHTTPHeaderFields?[HTTPHeaderKey.userAgent], !userAgent.isEmpty else {
+                guard let userAgent = httpResponse.allHeaderFields[HTTPHeaderKey.userAgent] as? String, 
+                        !userAgent.isEmpty else {
                     throw APIRequestV2.Error.unsatisfiedRequirement(requirement)
                 }
             case .allowHTTPNotModified:

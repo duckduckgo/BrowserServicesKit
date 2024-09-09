@@ -34,6 +34,6 @@ public struct APIRequestV2: CustomDebugStringConvertible {
     }
 
     public var debugDescription: String {
-        "Configuration: \(configuration.debugDescription) - Requirements: \(requirements.debugDescription)"
+        "Configuration: \(configuration) - Requirements: \(requirements)"
     }
 }
