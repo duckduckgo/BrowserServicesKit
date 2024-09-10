@@ -135,6 +135,7 @@ public enum DuckPlayerSubfeature: String, PrivacySubfeature {
     case pip
     case autoplay
     case openInNewTab
+    case enableDuckPlayer // iOS DuckPlayer rollout feature
 }
 
 public enum PhishingDetectionSubfeature: String, PrivacySubfeature {
