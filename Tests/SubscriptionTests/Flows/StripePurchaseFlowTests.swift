@@ -145,17 +145,6 @@ final class StripePurchaseFlowTests: XCTestCase {
         }
     }
 
-    func testPrepareSubscriptionPurchaseErrorWhenWhenSignedInAndSubscriptionActive() async throws {
-        
-        // TODO: prepareSubscriptionPurchase should fail when has active subscription
-
-
-
-
-
-
-    }
-
     // MARK: - Tests for completeSubscriptionPurchase
 
     func testCompleteSubscriptionPurchaseSuccessOnInitialPurchase() async throws {
