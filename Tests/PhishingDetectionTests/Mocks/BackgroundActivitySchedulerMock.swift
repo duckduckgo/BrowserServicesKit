@@ -1,5 +1,5 @@
 //
-//  SpecialErrorData.swift
+//  BackgroundActivitySchedulerMock.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -17,24 +17,19 @@
 //
 
 import Foundation
+import PhishingDetection
 
-public enum SpecialErrorKind: String, Encodable {
-    case ssl
-    case phishing
-}
+actor MockBackgroundActivityScheduler: BackgroundActivityScheduling {
+    var startCalled = false
+    var stopCalled = false
+    var interval: TimeInterval = 1
+    var identifier: String = "test"
 
-public struct SpecialErrorData: Encodable, Equatable {
-
-    var kind: SpecialErrorKind
-    var errorType: String?
-    var domain: String?
-    var eTldPlus1: String?
-
-    public init(kind: SpecialErrorKind, errorType: String? = nil, domain: String? = nil, eTldPlus1: String? = nil) {
-        self.kind = kind
-        self.errorType = errorType
-        self.domain = domain
-        self.eTldPlus1 = eTldPlus1
+    func start() {
+        startCalled = true
     }
 
+    func stop() {
+        stopCalled = true
+    }
 }
