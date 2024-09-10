@@ -19,21 +19,59 @@
 import Foundation
 
 public struct APIRequestV2: CustomDebugStringConvertible {
-    let requirements: [APIResponseRequirementV2]
-    let urlRequest: URLRequest
-    let configuration: APIRequestV2.ConfigurationV2
+    public typealias QueryParams = [URLQueryItem]
 
-    public init?(configuration: APIRequestV2.ConfigurationV2,
-                 requirements: [APIResponseRequirementV2] = []) {
-        guard let request = configuration.urlRequest else {
+    let url: URL
+    let method: HTTPRequestMethod
+    let queryParameters: QueryParams?
+    let headers: HTTPHeaders?
+    let body: Data?
+    let timeoutInterval: TimeInterval
+    let cachePolicy: URLRequest.CachePolicy?
+    let requirements: [APIResponseRequirementV2]?
+    public let urlRequest: URLRequest
+
+    public init?(url: URL,
+                 method: HTTPRequestMethod = .get,
+                 queryParameters: QueryParams? = nil,
+                 headers: APIRequestV2.HeadersV2? = APIRequestV2.HeadersV2(),
+                 body: Data? = nil,
+                 timeoutInterval: TimeInterval = 60.0,
+                 cachePolicy: URLRequest.CachePolicy? = nil,
+                 requirements: [APIResponseRequirementV2]? = nil) {
+        self.url = url
+        self.method = method
+        self.queryParameters = queryParameters
+        self.headers = headers?.httpHeaders
+        self.body = body
+        self.timeoutInterval = timeoutInterval
+        self.cachePolicy = cachePolicy
+        self.requirements = requirements
+
+        // Generate URL request
+        guard var urlComps = URLComponents(url: url, resolvingAgainstBaseURL: true) else {
             return nil
         }
+        urlComps.queryItems = queryParameters
+        guard let finalURL = urlComps.url else {
+            return nil
+        }
+        var request = URLRequest(url: finalURL, timeoutInterval: timeoutInterval)
+        request.allHTTPHeaderFields = self.headers
+        request.httpMethod = self.method.rawValue
+        request.httpBody = body
+        if let cachePolicy = cachePolicy {
+            request.cachePolicy = cachePolicy
+        }
         self.urlRequest = request
-        self.requirements = requirements
-        self.configuration = configuration
     }
 
     public var debugDescription: String {
-        "Configuration: \(configuration) - Requirements: \(requirements)"
+        """
+        \(method.rawValue) \(urlRequest.url?.absoluteString ?? "nil")
+        Headers: \(headers?.debugDescription ?? "-")
+        Body: \(body?.debugDescription ?? "-")
+        Requirements: \(requirements?.debugDescription ?? "-")
+        """
     }
 }

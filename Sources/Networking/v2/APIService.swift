@@ -81,22 +81,25 @@ public struct DefaultAPIService: APIService {
         }
 
         // Check requirements
-        if responseHTTPStatus == .notModified && !request.requirements.contains(.allowHTTPNotModified) {
+        let notModifiedIsAllowed: Bool = request.requirements?.contains(.allowHTTPNotModified) ?? false
+        if responseHTTPStatus == .notModified && !notModifiedIsAllowed {
             throw APIRequestV2.Error.unsatisfiedRequirement(.allowHTTPNotModified)
         }
-        for requirement in request.requirements {
-            switch requirement {
-            case .requireETagHeader:
-                guard httpResponse.etag != nil else {
-                    throw APIRequestV2.Error.unsatisfiedRequirement(requirement)
+        if let requirements = request.requirements {
+            for requirement in requirements {
+                switch requirement {
+                case .requireETagHeader:
+                    guard httpResponse.etag != nil else {
+                        throw APIRequestV2.Error.unsatisfiedRequirement(requirement)
+                    }
+                case .requireUserAgent:
+                    guard let userAgent = httpResponse.allHeaderFields[HTTPHeaderKey.userAgent] as? String,
+                          !userAgent.isEmpty else {
+                        throw APIRequestV2.Error.unsatisfiedRequirement(requirement)
+                    }
+                case .allowHTTPNotModified:
+                    break
                 }
-            case .requireUserAgent:
-                guard let userAgent = httpResponse.allHeaderFields[HTTPHeaderKey.userAgent] as? String,
-                        !userAgent.isEmpty else {
-                    throw APIRequestV2.Error.unsatisfiedRequirement(requirement)
-                }
-            case .allowHTTPNotModified:
-                break
             }
         }
 

@@ -30,12 +30,7 @@ final class APIServiceTests: XCTestCase {
 
     // Real API call, do not enable
     func disabled_testRealCallJSON() async throws {
-        let configuration = APIRequestV2.ConfigurationV2(url: HTTPURLResponse.testUrl,
-                                                         method: .get)
-        guard let request = APIRequestV2(configuration: configuration) else {
-            XCTFail("Invalid API Request")
-            return
-        }
+        let request = APIRequestV2(url: HTTPURLResponse.testUrl)!
         let apiService = DefaultAPIService()
         let result = try await apiService.fetch(request: request)
 
@@ -48,9 +43,7 @@ final class APIServiceTests: XCTestCase {
 
     // Real API call, do not enable
     func disabled_testRealCallString() async throws {
-        let configuration = APIRequestV2.ConfigurationV2(url: HTTPURLResponse.testUrl,
-                                                         method: .get)
-        let request = APIRequestV2(configuration: configuration)!
+        let request = APIRequestV2(url: HTTPURLResponse.testUrl)!
         let apiService = DefaultAPIService()
         let result: String = try await apiService.fetch(request: request)
 
@@ -60,22 +53,19 @@ final class APIServiceTests: XCTestCase {
     func testQueryItems() async throws {
         let qItems = [URLQueryItem(name: "qName1", value: "qValue1"),
                       URLQueryItem(name: "qName2", value: "qValue2")]
-        let configuration = APIRequestV2.ConfigurationV2(url: HTTPURLResponse.testUrl,
-                                                         method: .get,
-                                                         queryParameters: qItems)
         MockURLProtocol.requestHandler = { request in
             let urlComponents = URLComponents(string: request.url!.absoluteString)!
             XCTAssertTrue(urlComponents.queryItems!.contains(qItems))
             return (HTTPURLResponse.ok, nil)
         }
-        let request = APIRequestV2(configuration: configuration)!
+        let request = APIRequestV2(url: HTTPURLResponse.testUrl,
+                                   queryParameters: qItems)!
         let apiService = DefaultAPIService(urlSession: mockURLSession)
         _ = try await apiService.fetch(request: request)
     }
 
     func testURLRequestError() async throws {
-        let configuration = APIRequestV2.ConfigurationV2(url: HTTPURLResponse.testUrl, method: .get)
-        let request = APIRequestV2(configuration: configuration)!
+        let request = APIRequestV2(url: HTTPURLResponse.testUrl)!
 
         enum TestError: Error {
             case anError
@@ -100,9 +90,8 @@ final class APIServiceTests: XCTestCase {
     // MARK: - allowHTTPNotModified
 
     func testResponseRequirementAllowHTTPNotModifiedSuccess() async throws {
-        let configuration = APIRequestV2.ConfigurationV2(url: HTTPURLResponse.testUrl, method: .get)
         let requirements = [APIResponseRequirementV2.allowHTTPNotModified ]
-        let request = APIRequestV2(configuration: configuration, requirements: requirements)!
+        let request = APIRequestV2(url: HTTPURLResponse.testUrl, requirements: requirements)!
 
         MockURLProtocol.requestHandler = { _ in ( HTTPURLResponse.notModified, Data()) }
 
@@ -113,8 +102,7 @@ final class APIServiceTests: XCTestCase {
     }
 
     func testResponseRequirementAllowHTTPNotModifiedFailure() async throws {
-        let configuration = APIRequestV2.ConfigurationV2(url: HTTPURLResponse.testUrl, method: .get)
-        let request = APIRequestV2(configuration: configuration)!
+        let request = APIRequestV2(url: HTTPURLResponse.testUrl)!
 
         MockURLProtocol.requestHandler = { _ in ( HTTPURLResponse.notModified, Data()) }
 
@@ -136,11 +124,10 @@ final class APIServiceTests: XCTestCase {
     // MARK: - requireETagHeader
 
     func testResponseRequirementRequireETagHeaderSuccess() async throws {
-        let configuration = APIRequestV2.ConfigurationV2(url: HTTPURLResponse.testUrl, method: .get)
         let requirements: [APIResponseRequirementV2] = [
             APIResponseRequirementV2.requireETagHeader
         ]
-        let request = APIRequestV2(configuration: configuration, requirements: requirements)!
+        let request = APIRequestV2(url: HTTPURLResponse.testUrl, requirements: requirements)!
         MockURLProtocol.requestHandler = { _ in ( HTTPURLResponse.ok, nil) } // HTTPURLResponse.ok contains etag
 
         let apiService = DefaultAPIService(urlSession: mockURLSession)
@@ -150,9 +137,8 @@ final class APIServiceTests: XCTestCase {
     }
 
     func testResponseRequirementRequireETagHeaderFailure() async throws {
-        let configuration = APIRequestV2.ConfigurationV2(url: HTTPURLResponse.testUrl, method: .get)
         let requirements = [ APIResponseRequirementV2.requireETagHeader ]
-        let request = APIRequestV2(configuration: configuration, requirements: requirements)!
+        let request = APIRequestV2(url: HTTPURLResponse.testUrl, requirements: requirements)!
 
         MockURLProtocol.requestHandler = { _ in ( HTTPURLResponse.okNoEtag, nil) }
 
@@ -174,9 +160,8 @@ final class APIServiceTests: XCTestCase {
     // MARK: - requireUserAgent
 
     func testResponseRequirementRequireUserAgentSuccess() async throws {
-        let configuration = APIRequestV2.ConfigurationV2(url: HTTPURLResponse.testUrl, method: .get)
         let requirements = [ APIResponseRequirementV2.requireUserAgent ]
-        let request = APIRequestV2(configuration: configuration, requirements: requirements)!
+        let request = APIRequestV2(url: HTTPURLResponse.testUrl, requirements: requirements)!
 
         MockURLProtocol.requestHandler = { _ in
             ( HTTPURLResponse.okUserAgent, nil)
@@ -189,9 +174,8 @@ final class APIServiceTests: XCTestCase {
     }
 
     func testResponseRequirementRequireUserAgentFailure() async throws {
-        let configuration = APIRequestV2.ConfigurationV2(url: HTTPURLResponse.testUrl, method: .get)
         let requirements = [ APIResponseRequirementV2.requireUserAgent ]
-        let request = APIRequestV2(configuration: configuration, requirements: requirements)!
+        let request = APIRequestV2(url: HTTPURLResponse.testUrl, requirements: requirements)!
 
         MockURLProtocol.requestHandler = { _ in ( HTTPURLResponse.ok, nil) }
 
