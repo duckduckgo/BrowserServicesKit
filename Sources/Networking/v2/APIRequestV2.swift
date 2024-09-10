@@ -19,13 +19,24 @@
 import Foundation
 
 public struct APIRequestV2: CustomDebugStringConvertible {
-    
+
     public typealias QueryItems = [String: String]
 
     let timeoutInterval: TimeInterval
     let requirements: [APIResponseRequirementV2]?
     public let urlRequest: URLRequest
 
+    /// Designated initialiser
+    /// - Parameters:
+    ///   - url: The request URL, included protocol and host
+    ///   - method: HTTP method
+    ///   - queryItems: A key value dictionary with query parameters
+    ///   - headers: HTTP headers
+    ///   - body: The request body
+    ///   - timeoutInterval: The request timeout interval, default is `60`s
+    ///   - cachePolicy: The request cache policy, default is `.useProtocolCachePolicy`
+    ///   - responseRequirements: The request requirements
+    ///   - allowedQueryReservedCharacters: The characters in this character set will not be URL encoded in the query parameters
     public init?(url: URL,
                  method: HTTPRequestMethod = .get,
                  queryItems: QueryItems? = nil,
@@ -33,10 +44,10 @@ public struct APIRequestV2: CustomDebugStringConvertible {
                  body: Data? = nil,
                  timeoutInterval: TimeInterval = 60.0,
                  cachePolicy: URLRequest.CachePolicy? = nil,
-                 requirements: [APIResponseRequirementV2]? = nil,
+                 responseRequirements: [APIResponseRequirementV2]? = nil,
                  allowedQueryReservedCharacters: CharacterSet? = nil) {
         self.timeoutInterval = timeoutInterval
-        self.requirements = requirements
+        self.requirements = responseRequirements
 
         // Generate URL request
         guard var urlComps = URLComponents(url: url, resolvingAgainstBaseURL: true) else {

@@ -61,7 +61,7 @@ public struct DefaultAPIService: APIService {
     }
 
     /// Fetch an API Request
-    /// - Parameter request: A configured API request
+    /// - Parameter request: A configured APIRequest
     /// - Returns: An `APIResponse`, a tuple composed by (data: Data?, httpResponse: HTTPURLResponse)
     public func fetch(request: APIRequestV2) async throws -> APIService.APIResponse {
 
@@ -109,7 +109,7 @@ public struct DefaultAPIService: APIService {
     /// Fetch data using the class URL session, in case of error wraps it in a `APIRequestV2.Error.urlSession` error
     /// - Parameter request: The URLRequest to fetch
     /// - Returns: The Data fetched and the URLResponse
-    func fetch(for request: URLRequest) async throws -> (Data, URLResponse) {
+    internal func fetch(for request: URLRequest) async throws -> (Data, URLResponse) {
         do {
             return try await urlSession.data(for: request)
         } catch let error {

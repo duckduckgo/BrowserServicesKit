@@ -28,6 +28,30 @@ final class APIServiceTests: XCTestCase {
         return URLSession(configuration: testConfiguration)
     }
 
+    func disabled_testRealFull() async throws {
+        let request = APIRequestV2(url: HTTPURLResponse.testUrl,
+                                   method: .post,
+                                   queryItems: ["Query,Item1%Name": "Query,Item1%Value"],
+                                   headers: APIRequestV2.HeadersV2(userAgent: "UserAgent"),
+                                   body: Data(),
+                                   timeoutInterval: TimeInterval(20),
+                                   cachePolicy: .reloadIgnoringLocalAndRemoteCacheData,
+                                   responseRequirements: [
+                                    APIResponseRequirementV2.allowHTTPNotModified,
+                                    APIResponseRequirementV2.requireETagHeader,
+                                    APIResponseRequirementV2.requireUserAgent,
+                                   ],
+                                   allowedQueryReservedCharacters: CharacterSet(charactersIn: ","))!
+        let apiService = DefaultAPIService(urlSession: URLSession.shared)
+        let result = try await apiService.fetch(request: request)
+
+        XCTAssertNotNil(result.data)
+        XCTAssertNotNil(result.httpResponse)
+
+        let responseHTML = String(data: result.data!, encoding: .utf8)
+        XCTAssertNotNil(responseHTML)
+    }
+
     // Real API call, do not enable
     func disabled_testRealCallJSON() async throws {
         let request = APIRequestV2(url: HTTPURLResponse.testUrl)!
@@ -91,7 +115,7 @@ final class APIServiceTests: XCTestCase {
 
     func testResponseRequirementAllowHTTPNotModifiedSuccess() async throws {
         let requirements = [APIResponseRequirementV2.allowHTTPNotModified ]
-        let request = APIRequestV2(url: HTTPURLResponse.testUrl, requirements: requirements)!
+        let request = APIRequestV2(url: HTTPURLResponse.testUrl, responseRequirements: requirements)!
 
         MockURLProtocol.requestHandler = { _ in ( HTTPURLResponse.notModified, Data()) }
 
@@ -127,7 +151,7 @@ final class APIServiceTests: XCTestCase {
         let requirements: [APIResponseRequirementV2] = [
             APIResponseRequirementV2.requireETagHeader
         ]
-        let request = APIRequestV2(url: HTTPURLResponse.testUrl, requirements: requirements)!
+        let request = APIRequestV2(url: HTTPURLResponse.testUrl, responseRequirements: requirements)!
         MockURLProtocol.requestHandler = { _ in ( HTTPURLResponse.ok, nil) } // HTTPURLResponse.ok contains etag
 
         let apiService = DefaultAPIService(urlSession: mockURLSession)
@@ -138,7 +162,7 @@ final class APIServiceTests: XCTestCase {
 
     func testResponseRequirementRequireETagHeaderFailure() async throws {
         let requirements = [ APIResponseRequirementV2.requireETagHeader ]
-        let request = APIRequestV2(url: HTTPURLResponse.testUrl, requirements: requirements)!
+        let request = APIRequestV2(url: HTTPURLResponse.testUrl, responseRequirements: requirements)!
 
         MockURLProtocol.requestHandler = { _ in ( HTTPURLResponse.okNoEtag, nil) }
 
@@ -161,7 +185,7 @@ final class APIServiceTests: XCTestCase {
 
     func testResponseRequirementRequireUserAgentSuccess() async throws {
         let requirements = [ APIResponseRequirementV2.requireUserAgent ]
-        let request = APIRequestV2(url: HTTPURLResponse.testUrl, requirements: requirements)!
+        let request = APIRequestV2(url: HTTPURLResponse.testUrl, responseRequirements: requirements)!
 
         MockURLProtocol.requestHandler = { _ in
             ( HTTPURLResponse.okUserAgent, nil)
@@ -175,7 +199,7 @@ final class APIServiceTests: XCTestCase {
 
     func testResponseRequirementRequireUserAgentFailure() async throws {
         let requirements = [ APIResponseRequirementV2.requireUserAgent ]
-        let request = APIRequestV2(url: HTTPURLResponse.testUrl, requirements: requirements)!
+        let request = APIRequestV2(url: HTTPURLResponse.testUrl, responseRequirements: requirements)!
 
         MockURLProtocol.requestHandler = { _ in ( HTTPURLResponse.ok, nil) }
 

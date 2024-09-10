@@ -20,7 +20,7 @@ import Foundation
 import Common
 
 extension Dictionary where Key == String, Value == String {
- 
+
     func toURLQueryItems(allowedReservedCharacters: CharacterSet? = nil) -> [URLQueryItem] {
         return self.map {
             if let allowedReservedCharacters {
