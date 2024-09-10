@@ -49,7 +49,7 @@ class SecureVaultManagerTests: XCTestCase {
         let sourceProvider = DefaultAutofillSourceProvider(privacyConfigurationManager: privacyConfig,
                                                            properties: properties,
                                                            isDebug: false)
-        return AutofillUserScript(scriptSourceProvider: sourceProvider, encrypter: MockEncrypter(), hostProvider: SecurityOriginHostProvider())
+        return AutofillUserScript(scriptSourceProvider: sourceProvider, encrypter: MockEncrypter(), hostProvider: SecurityOriginHostProvider(), loginImportStateProvider: MockAutofillLoginImportStateProvider())
     }()
 
     private var testVault: (any AutofillSecureVault)!
@@ -321,7 +321,7 @@ class SecureVaultManagerTests: XCTestCase {
         let expect = expectation(description: #function)
 
         // When
-        manager.autofillUserScript(mockAutofillUserScript, didRequestAutoFillInitDataForDomain: domain) { credentials, _, _, _ in
+        manager.autofillUserScript(mockAutofillUserScript, didRequestAutoFillInitDataForDomain: domain) { credentials, _, _, _, _  in
 
             // Then
             XCTAssertEqual(credentials.count, 1, file: file, line: line)
