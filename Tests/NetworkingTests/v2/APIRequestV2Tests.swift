@@ -20,27 +20,12 @@ import XCTest
 @testable import Networking
 import TestUtils
 
-// final class APIRequestV2Tests: XCTestCase {
-//
-//    // NOTE: There's virtually no way to create an invalid APIRequest, any failure will be at fetch time
-//
-//    func testValidAPIRequest() throws {
-//        let request = APIRequestV2(url: HTTPURLResponse.testUrl,
-//                                   queryParameters: [
-//                                    URLQueryItem(name: "test", value: "1"),
-//                                    URLQueryItem(name: "another", value: "2")
-//                                   ])
-//        XCTAssertNotNil(request, "Valid request is nil")
-//        XCTAssertEqual(request?.urlRequest.url?.absoluteString, "http://www.example.com?test=1&another=2")
-//    }
-// }
-
 final class APIRequestV2Tests: XCTestCase {
 
     func testInitializationWithValidURL() {
         let url = URL(string: "https://www.example.com")!
         let method = HTTPRequestMethod.get
-        let queryParameters: [URLQueryItem] = [URLQueryItem(name: "key", value: "value")]
+        let queryItems = ["key": "value"]
         let headers = APIRequestV2.HeadersV2()
         let body = "Test body".data(using: .utf8)
         let timeoutInterval: TimeInterval = 30.0
@@ -49,28 +34,34 @@ final class APIRequestV2Tests: XCTestCase {
 
         let apiRequest = APIRequestV2(url: url,
                                       method: method,
-                                      queryParameters: queryParameters,
+                                      queryItems: queryItems,
                                       headers: headers,
                                       body: body,
                                       timeoutInterval: timeoutInterval,
                                       cachePolicy: cachePolicy,
                                       requirements: requirements)
 
-        XCTAssertNotNil(apiRequest)
-        XCTAssertEqual(apiRequest?.url, url)
-        XCTAssertEqual(apiRequest?.method, method)
-        XCTAssertEqual(apiRequest?.queryParameters, queryParameters)
-        XCTAssertEqual(apiRequest?.headers, headers.httpHeaders)
-        XCTAssertEqual(apiRequest?.body, body)
+        guard let urlRequest = apiRequest?.urlRequest else {
+            XCTFail("Nil URLRequest")
+            return
+        }
+        XCTAssertEqual(urlRequest.url?.host(), url.host())
+        XCTAssertEqual(urlRequest.httpMethod, method.rawValue)
+
+        let urlComponents = URLComponents(string: urlRequest.url!.absoluteString)!
+        XCTAssertTrue(urlComponents.queryItems!.contains(queryItems.toURLQueryItems()))
+
+        XCTAssertEqual(urlRequest.allHTTPHeaderFields, headers.httpHeaders)
+        XCTAssertEqual(urlRequest.httpBody, body)
         XCTAssertEqual(apiRequest?.timeoutInterval, timeoutInterval)
-        XCTAssertEqual(apiRequest?.cachePolicy, cachePolicy)
+        XCTAssertEqual(urlRequest.cachePolicy, cachePolicy)
         XCTAssertEqual(apiRequest?.requirements, requirements)
     }
 
     func testURLRequestGeneration() {
         let url = URL(string: "https://www.example.com")!
         let method = HTTPRequestMethod.post
-        let queryParameters: [URLQueryItem] = [URLQueryItem(name: "key", value: "value")]
+        let queryItems = ["key": "value"]
         let headers = APIRequestV2.HeadersV2()
         let body = "Test body".data(using: .utf8)
         let timeoutInterval: TimeInterval = 30.0
@@ -78,11 +69,14 @@ final class APIRequestV2Tests: XCTestCase {
 
         let apiRequest = APIRequestV2(url: url,
                                       method: method,
-                                      queryParameters: queryParameters,
+                                      queryItems: queryItems,
                                       headers: headers,
                                       body: body,
                                       timeoutInterval: timeoutInterval,
                                       cachePolicy: cachePolicy)
+
+        let urlComponents = URLComponents(string: apiRequest!.urlRequest.url!.absoluteString)!
+        XCTAssertTrue(urlComponents.queryItems!.contains(queryItems.toURLQueryItems()))
 
         XCTAssertNotNil(apiRequest)
         XCTAssertEqual(apiRequest?.urlRequest.url?.absoluteString, "https://www.example.com?key=value")
@@ -98,13 +92,15 @@ final class APIRequestV2Tests: XCTestCase {
         let apiRequest = APIRequestV2(url: url)
         let headers = APIRequestV2.HeadersV2()
 
-        XCTAssertNotNil(apiRequest)
-        XCTAssertEqual(apiRequest?.method, .get)
-        XCTAssertEqual(apiRequest?.timeoutInterval, 60.0)
-        XCTAssertNil(apiRequest?.queryParameters)
-        XCTAssertEqual(headers.httpHeaders, apiRequest?.headers)
-        XCTAssertNil(apiRequest?.body)
-        XCTAssertNil(apiRequest?.cachePolicy)
+        guard let urlRequest = apiRequest?.urlRequest else {
+            XCTFail("Nil URLRequest")
+            return
+        }
+        XCTAssertEqual(urlRequest.httpMethod, HTTPRequestMethod.get.rawValue)
+        XCTAssertEqual(urlRequest.timeoutInterval, 60.0)
+        XCTAssertEqual(headers.httpHeaders, urlRequest.allHTTPHeaderFields)
+        XCTAssertNil(urlRequest.httpBody)
+        XCTAssertEqual(urlRequest.cachePolicy.rawValue, 0)
         XCTAssertNil(apiRequest?.requirements)
     }
 }

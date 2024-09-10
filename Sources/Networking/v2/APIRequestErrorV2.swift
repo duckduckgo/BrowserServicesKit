@@ -27,7 +27,6 @@ extension APIRequestV2 {
         case invalidStatusCode(Int)
         case emptyData
         case invalidDataType
-        case invalidRequest
 
         public var errorDescription: String? {
             switch self {
@@ -43,8 +42,6 @@ extension APIRequestV2 {
                 return "Empty response data"
             case .invalidDataType:
                 return "Invalid response data type"
-            case .invalidRequest:
-                return "Invalid request"
             }
         }
     }

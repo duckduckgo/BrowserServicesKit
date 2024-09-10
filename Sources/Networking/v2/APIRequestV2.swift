@@ -19,46 +19,36 @@
 import Foundation
 
 public struct APIRequestV2: CustomDebugStringConvertible {
-    public typealias QueryParams = [URLQueryItem]
+    
+    public typealias QueryItems = [String: String]
 
-    let url: URL
-    let method: HTTPRequestMethod
-    let queryParameters: QueryParams?
-    let headers: HTTPHeaders?
-    let body: Data?
     let timeoutInterval: TimeInterval
-    let cachePolicy: URLRequest.CachePolicy?
     let requirements: [APIResponseRequirementV2]?
     public let urlRequest: URLRequest
 
     public init?(url: URL,
                  method: HTTPRequestMethod = .get,
-                 queryParameters: QueryParams? = nil,
+                 queryItems: QueryItems? = nil,
                  headers: APIRequestV2.HeadersV2? = APIRequestV2.HeadersV2(),
                  body: Data? = nil,
                  timeoutInterval: TimeInterval = 60.0,
                  cachePolicy: URLRequest.CachePolicy? = nil,
-                 requirements: [APIResponseRequirementV2]? = nil) {
-        self.url = url
-        self.method = method
-        self.queryParameters = queryParameters
-        self.headers = headers?.httpHeaders
-        self.body = body
+                 requirements: [APIResponseRequirementV2]? = nil,
+                 allowedQueryReservedCharacters: CharacterSet? = nil) {
         self.timeoutInterval = timeoutInterval
-        self.cachePolicy = cachePolicy
         self.requirements = requirements
 
         // Generate URL request
         guard var urlComps = URLComponents(url: url, resolvingAgainstBaseURL: true) else {
             return nil
         }
-        urlComps.queryItems = queryParameters
+        urlComps.queryItems = queryItems?.toURLQueryItems(allowedReservedCharacters: allowedQueryReservedCharacters)
         guard let finalURL = urlComps.url else {
             return nil
         }
         var request = URLRequest(url: finalURL, timeoutInterval: timeoutInterval)
-        request.allHTTPHeaderFields = self.headers
-        request.httpMethod = self.method.rawValue
+        request.allHTTPHeaderFields = headers?.httpHeaders
+        request.httpMethod = method.rawValue
         request.httpBody = body
         if let cachePolicy = cachePolicy {
             request.cachePolicy = cachePolicy
@@ -68,9 +58,9 @@ public struct APIRequestV2: CustomDebugStringConvertible {
 
     public var debugDescription: String {
         """
-        \(method.rawValue) \(urlRequest.url?.absoluteString ?? "nil")
-        Headers: \(headers?.debugDescription ?? "-")
-        Body: \(body?.debugDescription ?? "-")
+        \(urlRequest.httpMethod ?? "Nil") \(urlRequest.url?.absoluteString ?? "nil")
+        Headers: \(urlRequest.allHTTPHeaderFields?.debugDescription ?? "-")
+        Body: \(urlRequest.httpBody?.debugDescription ?? "-")
         Requirements: \(requirements?.debugDescription ?? "-")
         """
     }

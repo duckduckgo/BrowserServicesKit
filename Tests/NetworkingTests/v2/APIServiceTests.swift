@@ -51,15 +51,15 @@ final class APIServiceTests: XCTestCase {
     }
 
     func testQueryItems() async throws {
-        let qItems = [URLQueryItem(name: "qName1", value: "qValue1"),
-                      URLQueryItem(name: "qName2", value: "qValue2")]
+        let qItems = ["qName1": "qValue1",
+                      "qName2": "qValue2"]
         MockURLProtocol.requestHandler = { request in
             let urlComponents = URLComponents(string: request.url!.absoluteString)!
-            XCTAssertTrue(urlComponents.queryItems!.contains(qItems))
+            XCTAssertTrue(urlComponents.queryItems!.contains(qItems.toURLQueryItems()))
             return (HTTPURLResponse.ok, nil)
         }
         let request = APIRequestV2(url: HTTPURLResponse.testUrl,
-                                   queryParameters: qItems)!
+                                   queryItems: qItems)!
         let apiService = DefaultAPIService(urlSession: mockURLSession)
         _ = try await apiService.fetch(request: request)
     }
