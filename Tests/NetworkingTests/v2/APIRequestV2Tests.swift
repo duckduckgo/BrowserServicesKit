@@ -103,4 +103,18 @@ final class APIRequestV2Tests: XCTestCase {
         XCTAssertEqual(urlRequest.cachePolicy.rawValue, 0)
         XCTAssertNil(apiRequest?.requirements)
     }
+
+    func testAllowedQueryReservedCharacters() {
+        let url = URL(string: "https://www.example.com")!
+        let queryItems = ["k#e,y": "val#ue"]
+
+        let apiRequest = APIRequestV2(url: url,
+                                      queryItems: queryItems,
+                                      allowedQueryReservedCharacters: CharacterSet(charactersIn: ","))
+
+        let urlString = apiRequest!.urlRequest.url!.absoluteString
+        XCTAssertTrue(urlString == "https://www.example.com?k%2523e,y=val%2523ue")
+        let urlComponents = URLComponents(string: urlString)!
+        XCTAssertTrue(urlComponents.queryItems?.count == 1)
+    }
 }
