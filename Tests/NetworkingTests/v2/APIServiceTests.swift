@@ -1,6 +1,5 @@
 //
 //  APIServiceTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -29,7 +28,8 @@ final class APIServiceTests: XCTestCase {
         return URLSession(configuration: testConfiguration)
     }
 
-    func testRealCallJSON() async throws { // TODO: Disable
+    // Real API call, do not enable
+    func disabled_testRealCallJSON() async throws {
         let configuration = APIRequestV2.ConfigurationV2(url: HTTPURLResponse.testUrl,
                                                          method: .get)
         guard let request = APIRequestV2(configuration: configuration) else {
@@ -46,7 +46,8 @@ final class APIServiceTests: XCTestCase {
         XCTAssertNotNil(responseHTML)
     }
 
-    func testRealCallString() async throws { // TODO: Disable
+    // Real API call, do not enable
+    func disabled_testRealCallString() async throws {
         let configuration = APIRequestV2.ConfigurationV2(url: HTTPURLResponse.testUrl,
                                                          method: .get)
         let request = APIRequestV2(configuration: configuration)!
@@ -69,7 +70,7 @@ final class APIServiceTests: XCTestCase {
         }
         let request = APIRequestV2(configuration: configuration)!
         let apiService = DefaultAPIService(urlSession: mockURLSession)
-        let result = try await apiService.fetch(request: request)
+        _ = try await apiService.fetch(request: request)
     }
 
     func testURLRequestError() async throws {
@@ -208,6 +209,5 @@ final class APIServiceTests: XCTestCase {
             }
         }
     }
-
 
 }

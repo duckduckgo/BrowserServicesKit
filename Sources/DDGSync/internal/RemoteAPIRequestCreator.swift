@@ -20,8 +20,6 @@ import Foundation
 import Networking
 import Common
 import os.log
-import Networking
-
 public struct RemoteAPIRequestCreator: RemoteAPIRequestCreating {
 
     public func createRequest(url: URL,

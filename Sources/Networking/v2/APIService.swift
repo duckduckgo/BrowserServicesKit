@@ -1,6 +1,5 @@
 //
 //  APIService.swift
-//  DuckDuckGo
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -50,10 +49,10 @@ public struct DefaultAPIService: APIService {
         // Try to decode the data
         switch T.self {
         case is String.Type:
-            guard let resultString = String(data: data, encoding: .utf8) else {
+            guard let resultString = String(data: data, encoding: .utf8) as? T else {
                 throw APIRequestV2.Error.invalidDataType
             }
-            return resultString as! T
+            return resultString
         default:
             // Decode data
             let decoder = JSONDecoder()
@@ -92,7 +91,7 @@ public struct DefaultAPIService: APIService {
                     throw APIRequestV2.Error.unsatisfiedRequirement(requirement)
                 }
             case .requireUserAgent:
-                guard let userAgent = httpResponse.allHeaderFields[HTTPHeaderKey.userAgent] as? String, 
+                guard let userAgent = httpResponse.allHeaderFields[HTTPHeaderKey.userAgent] as? String,
                         !userAgent.isEmpty else {
                     throw APIRequestV2.Error.unsatisfiedRequirement(requirement)
                 }

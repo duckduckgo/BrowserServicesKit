@@ -23,7 +23,7 @@ public extension APIRequestV2 {
     struct ConfigurationV2: CustomDebugStringConvertible {
 
         public typealias QueryParams = [URLQueryItem]
-        
+
         let url: URL
         let method: HTTPRequestMethod
         let queryParameters: QueryParams?

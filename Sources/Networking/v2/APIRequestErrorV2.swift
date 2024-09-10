@@ -1,6 +1,5 @@
 //
-//  File.swift
-//  DuckDuckGo
+//  APIRequestErrorV2.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //

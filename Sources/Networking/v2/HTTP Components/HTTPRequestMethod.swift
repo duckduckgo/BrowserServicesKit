@@ -1,6 +1,5 @@
 //
 //  HTTPRequestMethod.swift
-//  DuckDuckGo
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -49,5 +48,3 @@ public enum HTTPRequestMethod: String {
     /// Establishes a tunnel to the server.
     case connect = "CONNECT"
 }
-
-

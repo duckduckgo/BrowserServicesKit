@@ -1,6 +1,5 @@
 //
 //  HTTPStatusCode.swift
-//  DuckDuckGo
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -20,7 +19,7 @@
 import Foundation
 
 public enum HTTPStatusCode: Int, CustomDebugStringConvertible {
-    
+
     case unknown = 0
 
     // 1xx Informational
