@@ -49,11 +49,13 @@ public enum PrivacyFeature: String {
     case sslCertificates
     case brokenSiteReportExperiment
     case toggleReports
+    case phishingDetection
     case brokenSitePrompt
     case remoteMessaging
     case additionalCampaignPixelParams
     case newTabPageImprovements
     case syncPromotion
+    case autofillSurveys
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -123,7 +125,7 @@ public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {
     case useUnifiedFeedback
 }
 
-public enum sslCertificatesSubfeature: String, PrivacySubfeature {
+public enum SslCertificatesSubfeature: String, PrivacySubfeature {
     public var parent: PrivacyFeature { .sslCertificates }
     case allowBypass
 }
@@ -133,6 +135,12 @@ public enum DuckPlayerSubfeature: String, PrivacySubfeature {
     case pip
     case autoplay
     case openInNewTab
+}
+
+public enum PhishingDetectionSubfeature: String, PrivacySubfeature {
+    public var parent: PrivacyFeature { .phishingDetection }
+    case allowErrorPage
+    case allowPreferencesToggle
 }
 
 public enum SyncPromotionSubfeature: String, PrivacySubfeature {

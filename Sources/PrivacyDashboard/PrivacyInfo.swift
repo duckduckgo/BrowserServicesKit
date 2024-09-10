@@ -33,12 +33,14 @@ public final class PrivacyInfo {
     @Published public var serverTrust: SecurityTrust?
     @Published public var connectionUpgradedTo: URL?
     @Published public var cookieConsentManaged: CookieConsentInfo?
+    @Published public var isPhishing: Bool
     @Published public var isSpecialErrorPageVisible: Bool = false
 
-    public init(url: URL, parentEntity: Entity?, protectionStatus: ProtectionStatus) {
+    public init(url: URL, parentEntity: Entity?, protectionStatus: ProtectionStatus, isPhishing: Bool = false) {
         self.url = url
         self.parentEntity = parentEntity
         self.protectionStatus = protectionStatus
+        self.isPhishing = isPhishing
 
         trackerInfo = TrackerInfo()
     }

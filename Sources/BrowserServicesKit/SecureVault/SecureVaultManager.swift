@@ -148,11 +148,12 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
                                    completionHandler: @escaping ([SecureVaultModels.WebsiteCredentials],
                                                                  [SecureVaultModels.Identity],
                                                                  [SecureVaultModels.CreditCard],
-                                                                 SecureVaultModels.CredentialsProvider) -> Void) {
+                                                                 SecureVaultModels.CredentialsProvider,
+                                                                 SecureVaultLoginsCount) -> Void) {
 
         do {
             guard let delegate = delegate, delegate.secureVaultManagerIsEnabledStatus(self, forType: nil) else {
-                completionHandler([], [], [], credentialsProvider)
+                completionHandler([], [], [], credentialsProvider, 0)
                 return
             }
             let vault = try self.vault ?? AutofillSecureVaultFactory.makeVault(reporter: self.delegate)
@@ -168,22 +169,23 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
             }
 
             if delegate.secureVaultManagerIsEnabledStatus(self, forType: .password) {
+                let accountsCount = try vault.accountsCount()
                 getCredentials(forDomain: domain, from: vault, or: passwordManager, withPartialMatches: includePartialAccountMatches) { [weak self] credentials, error in
                     guard let self = self else { return }
                     if let error = error {
                         Logger.secureVault.error("Error requesting autofill init data: \(error.localizedDescription, privacy: .public)")
-                        completionHandler([], [], [], self.credentialsProvider)
+                        completionHandler([], [], [], self.credentialsProvider, 0)
                     } else {
-                        completionHandler(credentials, identities, cards, self.credentialsProvider)
+                        completionHandler(credentials, identities, cards, self.credentialsProvider, accountsCount)
                     }
                 }
             } else {
-                completionHandler([], identities, cards, self.credentialsProvider)
+                completionHandler([], identities, cards, self.credentialsProvider, 0)
             }
 
         } catch {
             Logger.secureVault.error("Error requesting autofill init data: \(error.localizedDescription, privacy: .public)")
-            completionHandler([], [], [], credentialsProvider)
+            completionHandler([], [], [], credentialsProvider, 0)
         }
     }
 

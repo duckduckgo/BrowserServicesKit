@@ -1,5 +1,5 @@
 //
-//  SpecialErrorData.swift
+//  PhishingDetectionUpdateManagerMock.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -17,24 +17,27 @@
 //
 
 import Foundation
+import PhishingDetection
 
-public enum SpecialErrorKind: String, Encodable {
-    case ssl
-    case phishing
-}
+public class MockPhishingDetectionUpdateManager: PhishingDetectionUpdateManaging {
+    var didUpdateFilterSet = false
+    var didUpdateHashPrefixes = false
+    var completionHandler: (() -> Void)?
 
-public struct SpecialErrorData: Encodable, Equatable {
+    public func updateFilterSet() async {
+        didUpdateFilterSet = true
+        checkCompletion()
+    }
 
-    var kind: SpecialErrorKind
-    var errorType: String?
-    var domain: String?
-    var eTldPlus1: String?
+    public func updateHashPrefixes() async {
+        didUpdateHashPrefixes = true
+        checkCompletion()
+    }
 
-    public init(kind: SpecialErrorKind, errorType: String? = nil, domain: String? = nil, eTldPlus1: String? = nil) {
-        self.kind = kind
-        self.errorType = errorType
-        self.domain = domain
-        self.eTldPlus1 = eTldPlus1
+    private func checkCompletion() {
+        if didUpdateFilterSet && didUpdateHashPrefixes {
+            completionHandler?()
+        }
     }
 
 }
