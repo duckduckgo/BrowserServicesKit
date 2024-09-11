@@ -23,7 +23,7 @@ import os.log
 public struct RemoteAPIRequestCreator: RemoteAPIRequestCreating {
 
     public func createRequest(url: URL,
-                              method: HTTPRequestMethod,
+                              method: APIRequest.HTTPMethod,
                               headers: HTTPHeaders,
                               parameters: [String: String],
                               body: Data?,

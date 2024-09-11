@@ -91,7 +91,7 @@ public protocol HTTPRequesting {
 
 public protocol RemoteAPIRequestCreating {
     func createRequest(url: URL,
-                       method: HTTPRequestMethod,
+                       method: APIRequest.HTTPMethod,
                        headers: [String: String],
                        parameters: [String: String],
                        body: Data?,

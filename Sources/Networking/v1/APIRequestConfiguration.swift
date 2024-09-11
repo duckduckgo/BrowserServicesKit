@@ -24,7 +24,7 @@ extension APIRequest {
     public struct Configuration<QueryParams: Collection> where QueryParams.Element == (key: String, value: String) {
 
         let url: URL
-        let method: HTTPRequestMethod
+        let method: APIRequest.HTTPMethod
         let queryParameters: QueryParams
         let allowedQueryReservedCharacters: CharacterSet?
         let headers: HTTPHeaders
@@ -33,7 +33,7 @@ extension APIRequest {
         let cachePolicy: URLRequest.CachePolicy?
 
         public init(url: URL,
-                    method: HTTPRequestMethod = .get,
+                    method: APIRequest.HTTPMethod = .get,
                     queryParameters: QueryParams = [],
                     allowedQueryReservedCharacters: CharacterSet? = nil,
                     headers: APIRequest.Headers = APIRequest.Headers(),
