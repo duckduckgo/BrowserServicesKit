@@ -22,21 +22,13 @@ import WebKit
     var originalRequest: URLRequest? { get }
     var webView: WKWebView? { get }
     var delegate: WKDownloadDelegate? { get set }
+    func cancel(_ completionHandler: ((Data?) -> Void)?)
 }
 
 extension WebKitDownload {
-    public func cancel(_ completionHandler: ((Data?) -> Void)? = nil) {
-        if #available(macOS 11.3, iOS 14.5, *),
-           let download = self as? WKDownload {
-
-            download.cancel(completionHandler)
-        } else {
-            // perform objc _WKDownload.cancel selector
-            self.perform(#selector(Progress.cancel))
-            completionHandler?(nil)
-        }
+    public func cancel() {
+        cancel(/*completionHandler:*/ nil)
     }
 }
 
-@available(macOS 11.3, iOS 14.5, *)
 extension WKDownload: WebKitDownload {}
