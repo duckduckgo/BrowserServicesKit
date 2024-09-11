@@ -35,7 +35,7 @@ public struct APIRequestV2: CustomDebugStringConvertible {
     ///   - body: The request body
     ///   - timeoutInterval: The request timeout interval, default is `60`s
     ///   - cachePolicy: The request cache policy, default is `.useProtocolCachePolicy`
-    ///   - responseRequirements: The request requirements
+    ///   - responseRequirements: The response requirements
     ///   - allowedQueryReservedCharacters: The characters in this character set will not be URL encoded in the query parameters
     public init?(url: URL,
                  method: HTTPRequestMethod = .get,
