@@ -28,7 +28,10 @@ final class APIServiceTests: XCTestCase {
         return URLSession(configuration: testConfiguration)
     }
 
+    // MARK: - Real API calls, do not enable
+
     func disabled_testRealFull() async throws {
+//    func testRealFull() async throws {
         let request = APIRequestV2(url: HTTPURLResponse.testUrl,
                                    method: .post,
                                    queryItems: ["Query,Item1%Name": "Query,Item1%Value"],
@@ -36,24 +39,16 @@ final class APIServiceTests: XCTestCase {
                                    body: Data(),
                                    timeoutInterval: TimeInterval(20),
                                    cachePolicy: .reloadIgnoringLocalAndRemoteCacheData,
-                                   responseRequirements: [
-                                    APIResponseRequirementV2.allowHTTPNotModified,
-                                    APIResponseRequirementV2.requireETagHeader,
-                                    APIResponseRequirementV2.requireUserAgent,
-                                   ],
+                                   responseRequirements: [APIResponseRequirementV2.allowHTTPNotModified,
+                                                          APIResponseRequirementV2.requireETagHeader],
                                    allowedQueryReservedCharacters: CharacterSet(charactersIn: ","))!
         let apiService = DefaultAPIService(urlSession: URLSession.shared)
-        let result = try await apiService.fetch(request: request)
-
-        XCTAssertNotNil(result.data)
-        XCTAssertNotNil(result.httpResponse)
-
-        let responseHTML = String(data: result.data!, encoding: .utf8)
+        let responseHTML: String? = try await apiService.fetch(request: request)
         XCTAssertNotNil(responseHTML)
     }
 
-    // Real API call, do not enable
     func disabled_testRealCallJSON() async throws {
+//    func testRealCallJSON() async throws {
         let request = APIRequestV2(url: HTTPURLResponse.testUrl)!
         let apiService = DefaultAPIService()
         let result = try await apiService.fetch(request: request)
@@ -65,11 +60,11 @@ final class APIServiceTests: XCTestCase {
         XCTAssertNotNil(responseHTML)
     }
 
-    // Real API call, do not enable
     func disabled_testRealCallString() async throws {
+//    func testRealCallString() async throws {
         let request = APIRequestV2(url: HTTPURLResponse.testUrl)!
         let apiService = DefaultAPIService()
-        let result: String = try await apiService.fetch(request: request)
+        let result: String? = try await apiService.fetch(request: request)
 
         XCTAssertNotNil(result)
     }

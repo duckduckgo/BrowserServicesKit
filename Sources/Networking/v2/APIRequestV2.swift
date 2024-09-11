@@ -23,7 +23,7 @@ public struct APIRequestV2: CustomDebugStringConvertible {
     public typealias QueryItems = [String: String]
 
     let timeoutInterval: TimeInterval
-    let requirements: [APIResponseRequirementV2]?
+    let responseRequirements: [APIResponseRequirementV2]?
     public let urlRequest: URLRequest
 
     /// Designated initialiser
@@ -47,7 +47,7 @@ public struct APIRequestV2: CustomDebugStringConvertible {
                  responseRequirements: [APIResponseRequirementV2]? = nil,
                  allowedQueryReservedCharacters: CharacterSet? = nil) {
         self.timeoutInterval = timeoutInterval
-        self.requirements = responseRequirements
+        self.responseRequirements = responseRequirements
 
         // Generate URL request
         guard var urlComps = URLComponents(url: url, resolvingAgainstBaseURL: true) else {
@@ -72,7 +72,7 @@ public struct APIRequestV2: CustomDebugStringConvertible {
         \(urlRequest.httpMethod ?? "Nil") \(urlRequest.url?.absoluteString ?? "nil")
         Headers: \(urlRequest.allHTTPHeaderFields?.debugDescription ?? "-")
         Body: \(urlRequest.httpBody?.debugDescription ?? "-")
-        Requirements: \(requirements?.debugDescription ?? "-")
+        Requirements: \(responseRequirements?.debugDescription ?? "-")
         """
     }
 }

@@ -7,6 +7,7 @@ If the library doesn't have the features you require, please improve it.
 
 ### USage
 
+API request configuration:
 ```
 let request = APIRequestV2(url: HTTPURLResponse.testUrl,
                            method: .post,
@@ -20,8 +21,19 @@ let request = APIRequestV2(url: HTTPURLResponse.testUrl,
                                           APIResponseRequirementV2.requireUserAgent],
                            allowedQueryReservedCharacters: CharacterSet(charactersIn: ","))!
 let apiService = DefaultAPIService(urlSession: URLSession.shared)
-let result = try await apiService.fetch(request: request)
 ```
+
+The request can be fetched using two functions:
+
+One returning a `APIResponse`, aka `(data: Data?, httpResponse: HTTPURLResponse)`
+
+`let result = try await apiService.fetch(request: request)`
+
+And one decoding an optional `String` or any object implementing `Decodable`
+
+`let result: String? = try await apiService.fetch(request: request)`
+
+`let result: MyModel? = try await apiService.fetch(request: request)`
 
 ### Mock
 

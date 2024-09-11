@@ -23,7 +23,7 @@ public protocol APIService {
 
     typealias APIResponse = (data: Data?, httpResponse: HTTPURLResponse)
 
-    func fetch<T: Decodable>(request: APIRequestV2) async throws -> T
+    func fetch<T: Decodable>(request: APIRequestV2) async throws -> T?
     func fetch(request: APIRequestV2) async throws -> APIService.APIResponse
 }
 
@@ -36,21 +36,24 @@ public struct DefaultAPIService: APIService {
 
     /// Fetch an API Request
     /// - Parameter request: A configured APIRequest
-    /// - Returns: An instance of the inferred decodable object, can be a String or a Decodable model
-    public func fetch<T: Decodable>(request: APIRequestV2) async throws -> T {
+    /// - Returns: An instance of the inferred decodable object, can be a `String` or any `Decodable` model, nil if the response body is empty
+    public func fetch<T: Decodable>(request: APIRequestV2) async throws -> T? {
         let response: APIService.APIResponse = try await fetch(request: request)
 
         guard let data = response.data else {
-            throw APIRequestV2.Error.emptyData
+            return nil
         }
 
         try Task.checkCancellation()
 
         // Try to decode the data
+        Logger.networking.debug("Decoding response body as \(T.self)")
         switch T.self {
         case is String.Type:
             guard let resultString = String(data: data, encoding: .utf8) as? T else {
-                throw APIRequestV2.Error.invalidDataType
+                let error = APIRequestV2.Error.invalidDataType
+                Logger.networking.error("Error: \(error.localizedDescription)")
+                throw error
             }
             return resultString
         default:
@@ -62,43 +65,48 @@ public struct DefaultAPIService: APIService {
 
     /// Fetch an API Request
     /// - Parameter request: A configured APIRequest
-    /// - Returns: An `APIResponse`, a tuple composed by (data: Data?, httpResponse: HTTPURLResponse)
+    /// - Returns: An `APIResponse`, a tuple composed by `(data: Data?, httpResponse: HTTPURLResponse)`
     public func fetch(request: APIRequestV2) async throws -> APIService.APIResponse {
-
-        try Task.checkCancellation()
 
         Logger.networking.debug("Fetching: \(request.debugDescription)")
         let (data, response) = try await fetch(for: request.urlRequest)
         Logger.networking.debug("Response: \(response.debugDescription) Data size: \(data.count) bytes")
-        let httpResponse = try response.asHTTPURLResponse()
-        let responseHTTPStatus = httpResponse.httpStatus
 
         try Task.checkCancellation()
 
         // Check response code
+        let httpResponse = try response.asHTTPURLResponse()
+        let responseHTTPStatus = httpResponse.httpStatus
         if responseHTTPStatus.isFailure {
-            throw APIRequestV2.Error.invalidStatusCode(httpResponse.statusCode)
+            let error = APIRequestV2.Error.invalidStatusCode(httpResponse.statusCode)
+            Logger.networking.error("Error: \(error.localizedDescription)")
+            throw error
         }
 
         // Check requirements
-        let notModifiedIsAllowed: Bool = request.requirements?.contains(.allowHTTPNotModified) ?? false
+        let notModifiedIsAllowed: Bool = request.responseRequirements?.contains(.allowHTTPNotModified) ?? false
         if responseHTTPStatus == .notModified && !notModifiedIsAllowed {
-            throw APIRequestV2.Error.unsatisfiedRequirement(.allowHTTPNotModified)
+            let error = APIRequestV2.Error.unsatisfiedRequirement(.allowHTTPNotModified)
+            Logger.networking.error("Error: \(error.localizedDescription)")
+            throw error
         }
-        if let requirements = request.requirements {
+        if let requirements = request.responseRequirements {
             for requirement in requirements {
                 switch requirement {
                 case .requireETagHeader:
                     guard httpResponse.etag != nil else {
-                        throw APIRequestV2.Error.unsatisfiedRequirement(requirement)
+                        let error = APIRequestV2.Error.unsatisfiedRequirement(requirement)
+                        Logger.networking.error("Error: \(error.localizedDescription)")
+                        throw error
                     }
                 case .requireUserAgent:
                     guard let userAgent = httpResponse.allHeaderFields[HTTPHeaderKey.userAgent] as? String,
-                          !userAgent.isEmpty else {
-                        throw APIRequestV2.Error.unsatisfiedRequirement(requirement)
+                          userAgent.isEmpty == false else {
+                        let error = APIRequestV2.Error.unsatisfiedRequirement(requirement)
+                        Logger.networking.error("Error: \(error.localizedDescription)")
+                        throw error
                     }
-                case .allowHTTPNotModified:
-                    break
+                default: break
                 }
             }
         }

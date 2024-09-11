@@ -25,7 +25,6 @@ extension APIRequestV2 {
         case invalidResponse
         case unsatisfiedRequirement(APIResponseRequirementV2)
         case invalidStatusCode(Int)
-        case emptyData
         case invalidDataType
 
         public var errorDescription: String? {
@@ -38,8 +37,6 @@ extension APIRequestV2 {
                 return "The response doesn't satisfy the requirement: \(requirement.rawValue)"
             case .invalidStatusCode(let statusCode):
                 return "Invalid status code received in response (\(statusCode))."
-            case .emptyData:
-                return "Empty response data"
             case .invalidDataType:
                 return "Invalid response data type"
             }
