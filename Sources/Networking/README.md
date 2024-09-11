@@ -7,7 +7,7 @@ If the library doesn't have the features you require, please improve it.
 
 ### USage
 
-API request configuration:
+#### Configuration:
 ```
 let request = APIRequestV2(url: HTTPURLResponse.testUrl,
                            method: .post,
@@ -23,17 +23,30 @@ let request = APIRequestV2(url: HTTPURLResponse.testUrl,
 let apiService = DefaultAPIService(urlSession: URLSession.shared)
 ```
 
-The request can be fetched using two functions:
+#### Fetching Methods
 
-One returning a `APIResponse`, aka `(data: Data?, httpResponse: HTTPURLResponse)`
+The library provides two primary functions for fetching requests:
 
-`let result = try await apiService.fetch(request: request)`
+1. **Raw Response Fetching**: This function returns an `APIResponse`, which is a tuple containing the raw data and the HTTP response.
+   
+   ```swift
+   let result = try await apiService.fetch(request: request)
+   ```
+   
+   The `APIResponse` is defined as:
+   
+   ```swift
+   typealias APIResponse = (data: Data?, httpResponse: HTTPURLResponse)
+   ```
 
-And one decoding an optional `String` or any object implementing `Decodable`
+2. **Decoded Response Fetching**: This function decodes the response into an optional `String` or any object conforming to the `Decodable` protocol.
+   
+   ```swift
+   let result: String? = try await apiService.fetch(request: request)
+   let result: MyModel? = try await apiService.fetch(request: request)
+   ```
 
-`let result: String? = try await apiService.fetch(request: request)`
-
-`let result: MyModel? = try await apiService.fetch(request: request)`
+**Concurrency Considerations**: This library is designed to be agnostic with respect to concurrency models. It maintains a stateless architecture, and the URLSession instance is injected by the user, thereby delegating all concurrency management decisions to the user. The library facilitates task cancellation by frequently invoking `try Task.checkCancellation()`, ensuring responsive and cooperative cancellation handling.
 
 ### Mock
 
@@ -50,4 +63,4 @@ let mockedAPIService = MockAPIService(decodableResponse: Result.failure(SomeErro
 
 ## v1 (Legacy)
 
-Not to be used, maintained only for backward compatibility 
+Not to be used. All V1 public functions have been deprecated and maintained only for backward compatibility. 
