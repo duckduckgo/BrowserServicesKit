@@ -363,7 +363,6 @@ private class PermanentScriptMessageHandler: NSObject, WKScriptMessageHandler, W
         handler.userContentController(userContentController, didReceive: message)
     }
 
-    @available(macOS 11.0, iOS 14.0, *)
     public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage, replyHandler: @escaping (Any?, String?) -> Void) {
         guard let box = self.registeredMessageHandlers[message.messageName] else {
             assertionFailure("no registered message handler for \(message.messageName)")
