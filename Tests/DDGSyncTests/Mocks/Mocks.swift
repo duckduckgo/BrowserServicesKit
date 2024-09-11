@@ -261,14 +261,14 @@ class RemoteAPIRequestCreatingMock: RemoteAPIRequestCreating {
 
     struct CreateRequestCallArgs: Equatable {
         let url: URL
-        let method: HTTPRequestMethod
+        let method: Networking.APIRequest.HTTPMethod
         let headers: [String: String]
         let parameters: [String: String]
         let body: Data?
         let contentType: String?
     }
 
-    func createRequest(url: URL, method: HTTPRequestMethod, headers: [String: String], parameters: [String: String], body: Data?, contentType: String?) -> HTTPRequesting {
+    func createRequest(url: URL, method: Networking.APIRequest.HTTPMethod, headers: [String: String], parameters: [String: String], body: Data?, contentType: String?) -> HTTPRequesting {
         lock.lock()
         defer { lock.unlock() }
         createRequestCallCount += 1
