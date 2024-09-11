@@ -37,6 +37,9 @@ public protocol PrivacyConfiguration {
     /// Identifier of given Privacy Configuration, typically an ETag
     var identifier: String { get }
 
+    /// Version of config parsed from the `version` key
+    var version: String? { get }
+
     /// Domains for which user has toggled protection off.
     ///
     /// Use `isUserUnprotected(domain:)` to check if given domain is unprotected.

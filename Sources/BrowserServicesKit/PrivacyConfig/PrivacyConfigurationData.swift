@@ -39,7 +39,7 @@ public struct PrivacyConfigurationData {
     public let features: [FeatureName: PrivacyFeature]
     public let trackerAllowlist: TrackerAllowlist
     public let unprotectedTemporary: [ExceptionEntry]
-    public let version: String
+    public let version: String?
 
     public init(data: Data) throws {
         guard let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {
@@ -50,7 +50,7 @@ public struct PrivacyConfigurationData {
 
     internal init(json: [String: Any]) {
 
-        version = json[CodingKeys.version.rawValue] as? String ?? ""
+        version = json[CodingKeys.version.rawValue] as? String
 
         if let tempListData = json[CodingKeys.unprotectedTemporary.rawValue] as? [[String: String]] {
             unprotectedTemporary = tempListData.compactMap({ ExceptionEntry(json: $0) })
@@ -89,7 +89,7 @@ public struct PrivacyConfigurationData {
     public init(features: [FeatureName: PrivacyFeature],
                 unprotectedTemporary: [ExceptionEntry],
                 trackerAllowlist: TrackerAllowlistData,
-                version: String = "") {
+                version: String? = nil) {
         self.features = features
         self.unprotectedTemporary = unprotectedTemporary
         self.trackerAllowlist = TrackerAllowlist(entries: trackerAllowlist, state: State.enabled)
