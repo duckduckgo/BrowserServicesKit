@@ -181,7 +181,7 @@ class MockPrivacyConfiguration: PrivacyConfiguration {
     }
 
     var identifier: String = "abcd"
-    var version: String? = nil
+    var version: String? = "123456789"
     var userUnprotectedDomains: [String] = []
     var tempUnprotectedDomains: [String] = []
     var trackerAllowlist: PrivacyConfigurationData.TrackerAllowlist = .init(json: ["state": "disabled"])!
