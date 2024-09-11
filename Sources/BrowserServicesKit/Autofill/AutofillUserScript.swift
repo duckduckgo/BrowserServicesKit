@@ -61,6 +61,8 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
         case getIncontextSignupDismissedAt
         case startEmailProtectionSignup
         case closeEmailProtectionTab
+
+        case startCredentialsImportFlow
     }
 
     /// Represents if the autofill is loaded into the top autofill context.
@@ -69,11 +71,16 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
     ///  once the user selects a field to open, we store field type and other contextual information to be initialized into the top autofill.
     public var serializedInputContext: String?
 
+    /// Represents whether the webView is part of a burner window
+    public var isBurnerWindow: Bool = false
+
     public var sessionKey: String?
 
     public weak var emailDelegate: AutofillEmailDelegate?
     public weak var vaultDelegate: AutofillSecureVaultDelegate?
+    public weak var passwordImportDelegate: AutofillPasswordImportDelegate?
 
+    internal let loginImportStateProvider: AutofillLoginImportStateProvider
     internal var scriptSourceProvider: AutofillUserScriptSourceProvider
 
     internal lazy var autofillDomainNameUrlMatcher: AutofillDomainNameUrlMatcher = {
@@ -97,6 +104,9 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
         // We can't do reply based messaging to frames on versions before the ones mentioned above, so main frame only
         return true
     }
+
+    // Temporary only for Pixel purposes. Do not rely on this for any functional logic
+    static var domainOfMostRecentGetAvailableInputsMessage: String?
 
     public var messageNames: [String] {
         return MessageName.allCases.map(\.rawValue)
@@ -156,6 +166,7 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
         case .getIncontextSignupDismissedAt: return getIncontextSignupDismissedAt
         case .startEmailProtectionSignup: return startEmailProtectionSignup
         case .closeEmailProtectionTab: return closeEmailProtectionTab
+        case .startCredentialsImportFlow: return startCredentialsImportFlow
         }
     }
 
@@ -167,19 +178,22 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
         return hostProvider.hostForMessage(message)
     }
 
-    public convenience init(scriptSourceProvider: AutofillUserScriptSourceProvider) {
+    public convenience init(scriptSourceProvider: AutofillUserScriptSourceProvider, loginImportStateProvider: AutofillLoginImportStateProvider) {
         self.init(scriptSourceProvider: scriptSourceProvider,
                   encrypter: AESGCMUserScriptEncrypter(),
-                  hostProvider: SecurityOriginHostProvider())
+                  hostProvider: SecurityOriginHostProvider(),
+                  loginImportStateProvider: loginImportStateProvider)
     }
 
     init(scriptSourceProvider: AutofillUserScriptSourceProvider,
          encrypter: UserScriptEncrypter = AESGCMUserScriptEncrypter(),
-         hostProvider: UserScriptHostProvider = SecurityOriginHostProvider()) {
+         hostProvider: UserScriptHostProvider = SecurityOriginHostProvider(),
+         loginImportStateProvider: AutofillLoginImportStateProvider) {
         self.scriptSourceProvider = scriptSourceProvider
         self.hostProvider = hostProvider
         self.encrypter = encrypter
         self.isTopAutofillContext = false
+        self.loginImportStateProvider = loginImportStateProvider
     }
 }
 

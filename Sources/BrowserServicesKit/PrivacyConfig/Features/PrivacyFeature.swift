@@ -49,6 +49,7 @@ public enum PrivacyFeature: String {
     case sslCertificates
     case brokenSiteReportExperiment
     case toggleReports
+    case phishingDetection
     case brokenSitePrompt
     case remoteMessaging
     case additionalCampaignPixelParams
@@ -125,7 +126,7 @@ public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {
     case useUnifiedFeedback
 }
 
-public enum sslCertificatesSubfeature: String, PrivacySubfeature {
+public enum SslCertificatesSubfeature: String, PrivacySubfeature {
     public var parent: PrivacyFeature { .sslCertificates }
     case allowBypass
 }
@@ -140,6 +141,12 @@ public enum DuckPlayerSubfeature: String, PrivacySubfeature {
 public enum BackgroundAgentPixelTestSubfeature: String, PrivacySubfeature {
     public var parent: PrivacyFeature { .backgroundAgentPixelTest }
     case pixelTest
+}
+
+public enum PhishingDetectionSubfeature: String, PrivacySubfeature {
+    public var parent: PrivacyFeature { .phishingDetection }
+    case allowErrorPage
+    case allowPreferencesToggle
 }
 
 public enum SyncPromotionSubfeature: String, PrivacySubfeature {

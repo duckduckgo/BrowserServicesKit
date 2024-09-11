@@ -46,7 +46,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
         let sourceProvider = DefaultAutofillSourceProvider(privacyConfigurationManager: privacyConfig,
                                                            properties: properties,
                                                            isDebug: false)
-        return AutofillUserScript(scriptSourceProvider: sourceProvider, hostProvider: hostProvider)
+        return AutofillUserScript(scriptSourceProvider: sourceProvider, hostProvider: hostProvider, loginImportStateProvider: MockAutofillLoginImportStateProvider())
     }()
 
     let userContentController = WKUserContentController()
@@ -562,6 +562,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
 }
 
 class MockSecureVaultDelegate: AutofillSecureVaultDelegate {
+
     enum CallbackType {
         case didRequestCreditCardsManagerForDomain
         case didRequestIdentitiesManagerForDomain
@@ -570,6 +571,7 @@ class MockSecureVaultDelegate: AutofillSecureVaultDelegate {
         case didRequestAccountsForDomain
         case didRequestCredentialsForDomain
         case didRequestRuntimeConfigurationForDomain
+        case didRequestAutoFillInitDataForDomain
     }
 
     var receivedCallbacks: [CallbackType] = []
@@ -603,10 +605,13 @@ class MockSecureVaultDelegate: AutofillSecureVaultDelegate {
         receivedCallbacks.append(.didRequestStoreDataForDomain)
     }
 
+    var didRequestAccountsForDomainCompletionHandler: (([BrowserServicesKit.SecureVaultModels.WebsiteAccount], BrowserServicesKit.SecureVaultModels.CredentialsProvider) -> Void)?
+
     func autofillUserScript(_: BrowserServicesKit.AutofillUserScript,
                             didRequestAccountsForDomain domain: String,
                             completionHandler: @escaping ([BrowserServicesKit.SecureVaultModels.WebsiteAccount], BrowserServicesKit.SecureVaultModels.CredentialsProvider) -> Void) {
         lastDomain = domain
+        didRequestAccountsForDomainCompletionHandler = completionHandler
         receivedCallbacks.append(.didRequestAccountsForDomain)
     }
 
@@ -620,10 +625,16 @@ class MockSecureVaultDelegate: AutofillSecureVaultDelegate {
                             completionHandler: @escaping ([BrowserServicesKit.SecureVaultModels.WebsiteCredentials], BrowserServicesKit.SecureVaultModels.CredentialsProvider) -> Void) {
     }
 
+    var didRequestAutoFillInitDataForDomainCompletionHandler: (([BrowserServicesKit.SecureVaultModels.WebsiteCredentials],
+                                                                [BrowserServicesKit.SecureVaultModels.Identity],
+                                                                [BrowserServicesKit.SecureVaultModels.CreditCard],
+                                                                BrowserServicesKit.SecureVaultModels.CredentialsProvider,
+                                                                SecureVaultLoginsCount) -> Void)?
+
     func autofillUserScript(_: BrowserServicesKit.AutofillUserScript,
                             didRequestAutoFillInitDataForDomain domain: String,
-                            completionHandler: @escaping ([BrowserServicesKit.SecureVaultModels.WebsiteCredentials], [BrowserServicesKit.SecureVaultModels.Identity], [BrowserServicesKit.SecureVaultModels.CreditCard], BrowserServicesKit.SecureVaultModels.CredentialsProvider) -> Void) {
-
+                            completionHandler: @escaping ([BrowserServicesKit.SecureVaultModels.WebsiteCredentials], [BrowserServicesKit.SecureVaultModels.Identity], [BrowserServicesKit.SecureVaultModels.CreditCard], BrowserServicesKit.SecureVaultModels.CredentialsProvider, SecureVaultLoginsCount) -> Void) {
+        didRequestAutoFillInitDataForDomainCompletionHandler = completionHandler
     }
 
     func autofillUserScript(_: AutofillUserScript,

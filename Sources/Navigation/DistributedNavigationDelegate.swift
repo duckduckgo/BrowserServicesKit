@@ -953,7 +953,6 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
     }
 
     @MainActor
-    @available(macOS 11.3, iOS 14.5, *) // objc does‘t care about availability
     @objc(webView:navigationAction:didBecomeDownload:)
     public func webView(_ webView: WKWebView, navigationAction wkNavigationAction: WKNavigationAction, didBecome download: WKDownload) {
         let navigationAction = wkNavigationAction.navigationAction ?? {
@@ -981,7 +980,6 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
     }
 
     @MainActor
-    @available(macOS 11.3, iOS 14.5, *) // objc does‘t care about availability
     @objc(webView:navigationResponse:didBecomeDownload:)
     public func webView(_ webView: WKWebView, navigationResponse wkNavigationResponse: WKNavigationResponse, didBecome download: WKDownload) {
         let navigationResponse = wkNavigationResponse.navigationResponse ?? {
