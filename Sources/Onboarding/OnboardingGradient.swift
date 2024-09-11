@@ -18,6 +18,23 @@
 
 import SwiftUI
 
+public struct OnboardingGradient: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    public init() {}
+
+    public var body: some View {
+        switch colorScheme {
+        case .light:
+            LightGradient()
+        case .dark:
+            DarkGradient()
+        @unknown default:
+            LightGradient()
+        }
+    }
+}
+
 public struct LightGradient: View {
 
     public init() {}
