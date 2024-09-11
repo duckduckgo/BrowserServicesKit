@@ -26,14 +26,12 @@ public extension HTTPURLResponse {
     }
     var etag: String? { etag(droppingWeakPrefix: true) }
 
-    enum Constants {
-        static let weakEtagPrefix = "W/"
-    }
+    private static let weakEtagPrefix = "W/"
 
     func etag(droppingWeakPrefix: Bool) -> String? {
         let etag = value(forHTTPHeaderField: HTTPHeaderKey.etag)
         if droppingWeakPrefix {
-            return etag?.dropping(prefix: HTTPURLResponse.Constants.weakEtagPrefix)
+            return etag?.dropping(prefix: HTTPURLResponse.weakEtagPrefix)
         }
         return etag
     }

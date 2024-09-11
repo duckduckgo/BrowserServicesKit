@@ -1,7 +1,7 @@
 //
 //  HTTPURLResponseExtension.swift
 //
-//  Copyright © 2024 DuckDuckGo. All rights reserved.
+//  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -17,3 +17,32 @@
 //
 
 import Foundation
+import Common
+
+public extension HTTPURLResponse {
+
+    enum Constants {
+
+        static let weakEtagPrefix = "W/"
+        static let successfulStatusCodes = 200..<300
+        static let notModifiedStatusCode = 304
+
+    }
+
+    func assertStatusCode<S: Sequence>(_ acceptedStatusCodes: S) throws where S.Iterator.Element == Int {
+        guard acceptedStatusCodes.contains(statusCode) else { throw APIRequest.Error.invalidStatusCode(statusCode) }
+    }
+
+    func assertSuccessfulStatusCode() throws {
+        try assertStatusCode(Constants.successfulStatusCodes)
+    }
+
+    var isSuccessfulResponse: Bool {
+        do {
+            try assertSuccessfulStatusCode()
+            return true
+        } catch {
+            return false
+        }
+    }
+}
