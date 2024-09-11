@@ -50,7 +50,11 @@ public struct PrivacyConfigurationData {
 
     internal init(json: [String: Any]) {
 
-        version = json[CodingKeys.version.rawValue] as? String
+        if let versionInt = json[CodingKeys.version.rawValue] as? Int {
+            version = String(versionInt)
+        } else {
+            version = nil
+        }
 
         if let tempListData = json[CodingKeys.unprotectedTemporary.rawValue] as? [[String: String]] {
             unprotectedTemporary = tempListData.compactMap({ ExceptionEntry(json: $0) })
