@@ -131,7 +131,7 @@ final class SubscriptionTests: XCTestCase {
 }
 
 extension Subscription {
-    
+
     static func make(withStatus status: Subscription.Status) -> Subscription {
         Subscription(productId: UUID().uuidString,
                      name: "Subscription test #1",

@@ -73,9 +73,9 @@ final class SubscriptionManagerTests: XCTestCase {
         var loadedEnvironment = DefaultSubscriptionManager.loadEnvironmentFrom(userDefaults: userDefaults)
         XCTAssertNil(loadedEnvironment)
 
-        DefaultSubscriptionManager.save(subscriptionEnvironment: subscriptionEnvironment, 
+        DefaultSubscriptionManager.save(subscriptionEnvironment: subscriptionEnvironment,
                                         userDefaults: userDefaults)
-        
+
         loadedEnvironment = DefaultSubscriptionManager.loadEnvironmentFrom(userDefaults: userDefaults)
         XCTAssertEqual(loadedEnvironment?.serviceEnvironment, subscriptionEnvironment.serviceEnvironment)
         XCTAssertEqual(loadedEnvironment?.purchasePlatform, subscriptionEnvironment.purchasePlatform)
@@ -111,7 +111,7 @@ final class SubscriptionManagerTests: XCTestCase {
         subscriptionManager.loadInitialData()
 
         try await Task.sleep(seconds: 0.5)
-        
+
         XCTAssertTrue(subscriptionService.getSubscriptionCalled)
         XCTAssertTrue(accountManager.fetchEntitlementsCalled)
     }
@@ -183,7 +183,7 @@ final class SubscriptionManagerTests: XCTestCase {
                                                                        subscriptionEndpointService: subscriptionService,
                                                                        authEndpointService: authService,
                                                                        subscriptionEnvironment: productionEnvironment)
-        
+
         XCTAssertEqual(productionSubscriptionManager.url(for: .purchase), SubscriptionURL.purchase.subscriptionURL(environment: .production))
     }
 
@@ -195,7 +195,7 @@ final class SubscriptionManagerTests: XCTestCase {
                                                                     subscriptionEndpointService: subscriptionService,
                                                                     authEndpointService: authService,
                                                                     subscriptionEnvironment: stagingEnvironment)
-        
+
         XCTAssertEqual(stagingSubscriptionManager.url(for: .purchase), SubscriptionURL.purchase.subscriptionURL(environment: .staging))
     }
 }

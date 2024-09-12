@@ -27,7 +27,7 @@ final class AuthEndpointServiceTests: XCTestCase {
         static let accessToken = UUID().uuidString
         static let externalID = UUID().uuidString
         static let email = "dax@duck.com"
-        
+
         static let mostRecentTransactionJWS = "dGhpcyBpcyBub3QgYSByZWFsIEFw(...)cCBTdG9yZSB0cmFuc2FjdGlvbiBKV1M="
 
         static let authorizationHeader = ["Authorization": "Bearer TOKEN"]
@@ -55,7 +55,7 @@ final class AuthEndpointServiceTests: XCTestCase {
 
         apiService.mockAuthHeaders = Constants.authorizationHeader
         apiService.onExecuteAPICall = { parameters in
-            let (method, endpoint, headers, _) = parameters;
+            let (method, endpoint, headers, _) = parameters
 
             apiServiceCalledExpectation.fulfill()
             XCTAssertEqual(method, "GET")
@@ -104,7 +104,7 @@ final class AuthEndpointServiceTests: XCTestCase {
 
         apiService.mockAuthHeaders = Constants.authorizationHeader
         apiService.onExecuteAPICall = { parameters in
-            let (method, endpoint, headers, _) = parameters;
+            let (method, endpoint, headers, _) = parameters
 
             apiServiceCalledExpectation.fulfill()
             XCTAssertEqual(method, "GET")
@@ -163,7 +163,7 @@ final class AuthEndpointServiceTests: XCTestCase {
         let apiServiceCalledExpectation = expectation(description: "apiService")
 
         apiService.onExecuteAPICall = { parameters in
-            let (method, endpoint, headers, _) = parameters;
+            let (method, endpoint, headers, _) = parameters
 
             apiServiceCalledExpectation.fulfill()
             XCTAssertEqual(method, "POST")
@@ -214,7 +214,7 @@ final class AuthEndpointServiceTests: XCTestCase {
         let apiServiceCalledExpectation = expectation(description: "apiService")
 
         apiService.onExecuteAPICall = { parameters in
-            let (method, endpoint, headers, body) = parameters;
+            let (method, endpoint, headers, body) = parameters
 
             apiServiceCalledExpectation.fulfill()
             XCTAssertEqual(method, "POST")

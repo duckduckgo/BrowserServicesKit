@@ -31,7 +31,7 @@ public final class AuthEndpointServiceMock: AuthEndpointService {
     public var validateTokenCalled: Bool = false
     public var createAccountCalled: Bool = false
     public var storeLoginCalled: Bool = false
-    
+
     public init() { }
 
     public func getAccessToken(token: String) async -> Result<AccessTokenResponse, APIServiceError> {

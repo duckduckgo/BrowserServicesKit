@@ -100,7 +100,7 @@ final class StripePurchaseFlowTests: XCTestCase {
         case .success(let success):
             XCTAssertEqual(success.type, "redirect")
             XCTAssertEqual(success.token, Constants.authToken)
-            
+
             XCTAssertTrue(authEndpointService.createAccountCalled)
             XCTAssertEqual(accountManager.authToken, Constants.authToken)
         case .failure(let error):

@@ -48,7 +48,7 @@ public final class StorePurchaseManagerMock: StorePurchaseManager {
         }
     }
 
-    public func updateAvailableProducts() async { 
+    public func updateAvailableProducts() async {
         updateAvailableProductsCalled = true
         onUpdateAvailableProducts?()
     }

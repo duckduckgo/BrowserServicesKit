@@ -34,7 +34,7 @@ public class APIServiceMock: APIService {
 
     // swiftlint:disable force_cast
     public func executeAPICall<T>(method: String, endpoint: String, headers: [String: String]?, body: Data?) async -> Result<T, APIServiceError> where T: Decodable {
-        
+
         onExecuteAPICall?(ExecuteAPICallParameters(method, endpoint, headers, body))
 
         if let data = mockResponseJSONData {

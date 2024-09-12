@@ -50,13 +50,12 @@ public struct SubscriptionMockFactory {
                                                                           billingPeriod: subscription.billingPeriod.rawValue,
                                                                           price: "0.99",
                                                                           currency: "USD")]
-    
 
     // old, to be removed
 
     public static let subscriptionEndpointService = SubscriptionEndpointServiceMock()
     public static let authToken = "someAuthToken"
-    
+
     public static let accountManager = AccountManagerMock()
 
     public static let authEndpointService = AuthEndpointServiceMock()
@@ -67,7 +66,6 @@ public struct SubscriptionMockFactory {
                                                                    purchasePlatform: .appStore)
 
     public static let appStoreRestoreFlow = AppStoreRestoreFlowMock()
-
 
     public static let subscriptionManager = SubscriptionManagerMock(accountManager: accountManager,
                                                                     subscriptionEndpointService: subscriptionEndpointService,

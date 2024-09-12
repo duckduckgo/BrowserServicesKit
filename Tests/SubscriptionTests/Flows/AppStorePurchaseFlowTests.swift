@@ -166,7 +166,7 @@ final class AppStorePurchaseFlowTests: XCTestCase {
     func testPurchaseSubscriptionErrorWhenAccountCreationFails() async throws {
         appStoreRestoreFlow.restoreAccountFromPastPurchaseResult = .failure(.missingAccountOrTransactions)
         authService.createAccountResult = .failure(.unknownServerError)
-        
+
         switch await appStorePurchaseFlow.purchaseSubscription(with: Constants.productID, emailAccessToken: nil) {
         case .success:
             XCTFail("Unexpected success")

@@ -27,7 +27,7 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
         static let accessToken = UUID().uuidString
         static let externalID = UUID().uuidString
         static let email = "dax@duck.com"
-        
+
         static let mostRecentTransactionJWS = "dGhpcyBpcyBub3QgYSByZWFsIEFw(...)cCBTdG9yZSB0cmFuc2FjdGlvbiBKV1M="
 
         static let subscription = SubscriptionMockFactory.subscription
@@ -59,7 +59,7 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
 
         apiService.mockAuthHeaders = Constants.authorizationHeader
         apiService.onExecuteAPICall = { parameters in
-            let (method, endpoint, headers, _) = parameters;
+            let (method, endpoint, headers, _) = parameters
 
             apiServiceCalledExpectation.fulfill()
             XCTAssertEqual(method, "GET")
@@ -124,7 +124,7 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
 
         apiService.mockAuthHeaders = Constants.authorizationHeader
         apiService.onExecuteAPICall = { parameters in
-            let (method, endpoint, headers, _) = parameters;
+            let (method, endpoint, headers, _) = parameters
 
             apiServiceCalledExpectation.fulfill()
             XCTAssertEqual(method, "GET")
@@ -184,7 +184,7 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
 
         apiService.mockAuthHeaders = Constants.authorizationHeader
         apiService.onExecuteAPICall = { parameters in
-            let (method, endpoint, headers, _) = parameters;
+            let (method, endpoint, headers, _) = parameters
 
             apiServiceCalledExpectation.fulfill()
             XCTAssertEqual(method, "GET")
@@ -238,7 +238,7 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
 
         apiService.mockAuthHeaders = Constants.authorizationHeader
         apiService.onExecuteAPICall = { parameters in
-            let (method, endpoint, headers, body) = parameters;
+            let (method, endpoint, headers, body) = parameters
 
             apiServiceCalledExpectation.fulfill()
             XCTAssertEqual(method, "POST")
@@ -291,7 +291,7 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
             XCTAssertEqual(success.subscription.startedAt.timeIntervalSince1970,
                            Constants.subscription.startedAt.timeIntervalSince1970,
                            accuracy: 0.001)
-            XCTAssertEqual(success.subscription.expiresOrRenewsAt.timeIntervalSince1970, 
+            XCTAssertEqual(success.subscription.expiresOrRenewsAt.timeIntervalSince1970,
                            Constants.subscription.expiresOrRenewsAt.timeIntervalSince1970,
                            accuracy: 0.001)
             XCTAssertEqual(success.subscription.platform, Constants.subscription.platform)

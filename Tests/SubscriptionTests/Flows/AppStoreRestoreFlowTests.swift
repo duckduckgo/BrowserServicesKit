@@ -43,7 +43,6 @@ final class AppStoreRestoreFlowTests: XCTestCase {
     var subscriptionService: SubscriptionEndpointServiceMock!
     var authService: AuthEndpointServiceMock!
 
-
     var appStoreRestoreFlow: AppStoreRestoreFlow!
 
     override func setUpWithError() throws {
@@ -104,7 +103,7 @@ final class AppStoreRestoreFlowTests: XCTestCase {
             XCTAssertTrue(accountManager.fetchAccountDetailsCalled)
             XCTAssertTrue(accountManager.storeAuthTokenCalled)
             XCTAssertTrue(accountManager.storeAccountCalled)
-            
+
             XCTAssertTrue(accountManager.isUserAuthenticated)
             XCTAssertEqual(accountManager.authToken, Constants.authToken)
             XCTAssertEqual(accountManager.accessToken, Constants.accessToken)
@@ -289,7 +288,7 @@ final class AppStoreRestoreFlowTests: XCTestCase {
         accountManager.onFetchAccountDetails = { accessToken in
             XCTAssertEqual(accessToken, Constants.accessToken)
         }
-        
+
         subscriptionService.getSubscriptionResult = .failure(.apiError(Constants.unknownServerError))
 
         let appStoreRestoreFlow = DefaultAppStoreRestoreFlow(accountManager: accountManager,
