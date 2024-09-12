@@ -57,6 +57,7 @@ public enum PrivacyFeature: String {
     case newTabPageImprovements
     case syncPromotion
     case autofillSurveys
+    case marketplaceAdPostback
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -136,6 +137,7 @@ public enum DuckPlayerSubfeature: String, PrivacySubfeature {
     case pip
     case autoplay
     case openInNewTab
+    case enableDuckPlayer // iOS DuckPlayer rollout feature
 }
 
 public enum BackgroundAgentPixelTestSubfeature: String, PrivacySubfeature {
