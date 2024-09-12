@@ -58,9 +58,13 @@ final class StripePurchaseFlowTests: XCTestCase {
     // MARK: - Tests for subscriptionOptions
 
     func testSubscriptionOptionsSuccess() async throws {
+        // Given
         subscriptionService .getProductsResult = .success(SubscriptionMockFactory.productsItems)
 
+        // When
         let result = await stripePurchaseFlow.subscriptionOptions()
+
+        // Then
         switch result {
         case .success(let success):
             XCTAssertEqual(success.platform, SubscriptionPlatformName.stripe.rawValue)
@@ -76,9 +80,13 @@ final class StripePurchaseFlowTests: XCTestCase {
     }
 
     func testSubscriptionOptionsErrorWhenNoProductsAreFetched() async throws {
+        // Given
         subscriptionService.getProductsResult = .failure(.unknownServerError)
 
+        // When
         let result = await stripePurchaseFlow.subscriptionOptions()
+
+        // Then
         switch result {
         case .success:
             XCTFail("Unexpected success")
@@ -90,12 +98,16 @@ final class StripePurchaseFlowTests: XCTestCase {
     // MARK: - Tests for prepareSubscriptionPurchase
 
     func testPrepareSubscriptionPurchaseSuccess() async throws {
+        // Given
         authEndpointService.createAccountResult = .success(CreateAccountResponse(authToken: Constants.authToken,
                                                                                  externalID: Constants.externalID,
                                                                                  status: "created"))
         XCTAssertFalse(accountManager.isUserAuthenticated)
 
+        // When
         let result = await stripePurchaseFlow.prepareSubscriptionPurchase(emailAccessToken: nil)
+
+        // Then
         switch result {
         case .success(let success):
             XCTAssertEqual(success.type, "redirect")
@@ -109,6 +121,7 @@ final class StripePurchaseFlowTests: XCTestCase {
     }
 
     func testPrepareSubscriptionPurchaseSuccessWhenSignedInAndSubscriptionExpired() async throws {
+        // Given
         let subscription = SubscriptionMockFactory.expiredSubscription
 
         accountManager.accessToken = Constants.accessToken
@@ -119,7 +132,10 @@ final class StripePurchaseFlowTests: XCTestCase {
         XCTAssertTrue(accountManager.isUserAuthenticated)
         XCTAssertFalse(subscription.isActive)
 
+        // When
         let result = await stripePurchaseFlow.prepareSubscriptionPurchase(emailAccessToken: nil)
+
+        // Then
         switch result {
         case .success(let success):
             XCTAssertEqual(success.type, "redirect")
@@ -133,10 +149,14 @@ final class StripePurchaseFlowTests: XCTestCase {
     }
 
     func testPrepareSubscriptionPurchaseErrorWhenAccountCreationFailed() async throws {
+        // Given
         authEndpointService.createAccountResult = .failure(Constants.unknownServerError)
         XCTAssertFalse(accountManager.isUserAuthenticated)
 
+        // When
         let result = await stripePurchaseFlow.prepareSubscriptionPurchase(emailAccessToken: nil)
+
+        // Then
         switch result {
         case .success:
             XCTFail("Unexpected success")
@@ -148,6 +168,7 @@ final class StripePurchaseFlowTests: XCTestCase {
     // MARK: - Tests for completeSubscriptionPurchase
 
     func testCompleteSubscriptionPurchaseSuccessOnInitialPurchase() async throws {
+        // Given
         // Initial purchase flow: authToken is present but no accessToken yet
         accountManager.authToken = Constants.authToken
         XCTAssertNil(accountManager.accessToken)
@@ -181,8 +202,10 @@ final class StripePurchaseFlowTests: XCTestCase {
         XCTAssertFalse(accountManager.isUserAuthenticated)
         XCTAssertNotNil(accountManager.authToken)
 
+        // When
         await stripePurchaseFlow.completeSubscriptionPurchase()
 
+        // Then
         XCTAssertTrue(subscriptionService.signOutCalled)
         XCTAssertTrue(accountManager.exchangeAuthTokenToAccessTokenCalled)
         XCTAssertTrue(accountManager.fetchAccountDetailsCalled)
@@ -196,6 +219,7 @@ final class StripePurchaseFlowTests: XCTestCase {
     }
 
     func testCompleteSubscriptionPurchaseSuccessOnRepurchase() async throws {
+        // Given
         // Repurchase flow: authToken, accessToken and externalID are present
         accountManager.authToken = Constants.authToken
         accountManager.accessToken = Constants.accessToken
@@ -211,8 +235,10 @@ final class StripePurchaseFlowTests: XCTestCase {
 
         XCTAssertTrue(accountManager.isUserAuthenticated)
 
+        // When
         await stripePurchaseFlow.completeSubscriptionPurchase()
 
+        // Then
         XCTAssertTrue(subscriptionService.signOutCalled)
         XCTAssertFalse(accountManager.exchangeAuthTokenToAccessTokenCalled)
         XCTAssertFalse(accountManager.fetchAccountDetailsCalled)
@@ -225,3 +251,4 @@ final class StripePurchaseFlowTests: XCTestCase {
         XCTAssertEqual(accountManager.externalID, Constants.externalID)
     }
 }
+

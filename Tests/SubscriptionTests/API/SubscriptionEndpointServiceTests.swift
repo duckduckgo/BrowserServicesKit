@@ -55,6 +55,7 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
     // MARK: - Tests for
 
     func testGetSubscriptionCall() async throws {
+        // Given
         let apiServiceCalledExpectation = expectation(description: "apiService")
 
         apiService.mockAuthHeaders = Constants.authorizationHeader
@@ -67,11 +68,15 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
             XCTAssertEqual(headers, Constants.authorizationHeader)
         }
 
+        // When
         _ = await subscriptionService.getSubscription(accessToken: Constants.accessToken, cachePolicy: .reloadIgnoringLocalCacheData)
+
+        // Then
         await fulfillment(of: [apiServiceCalledExpectation], timeout: 0.1)
     }
 
     func testGetSubscriptionSuccess() async throws {
+        // Given
         apiService.mockAuthHeaders = Constants.authorizationHeader
         apiService.mockResponseJSONData = """
         {
@@ -85,7 +90,10 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
         }
         """.data(using: .utf8)!
 
+        // When
         let result = await subscriptionService.getSubscription(accessToken: Constants.accessToken, cachePolicy: .reloadIgnoringLocalCacheData)
+
+        // Then
         switch result {
         case .success(let success):
             XCTAssertEqual(success.productId, Constants.subscription.productId)
@@ -105,10 +113,14 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
     }
 
     func testGetSubscriptionError() async throws {
+        // Given
         apiService.mockAuthHeaders = Constants.authorizationHeader
         apiService.mockAPICallError = Constants.unknownServerError
 
+        // When
         let result = await subscriptionService.getSubscription(accessToken: Constants.accessToken, cachePolicy: .reloadIgnoringLocalCacheData)
+
+        // Then
         switch result {
         case .success:
             XCTFail("Unexpected success")
@@ -120,6 +132,7 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
     // MARK: - Tests for getProducts
 
     func testGetProductsCall() async throws {
+        // Given
         let apiServiceCalledExpectation = expectation(description: "apiService")
 
         apiService.mockAuthHeaders = Constants.authorizationHeader
@@ -132,11 +145,15 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
             XCTAssertNil(headers)
         }
 
+        // When
         _ = await subscriptionService.getProducts()
+
+        // Then
         await fulfillment(of: [apiServiceCalledExpectation], timeout: 0.1)
     }
 
     func testGetProductsSuccess() async throws {
+        // Given
         apiService.mockResponseJSONData = """
         [
             {
@@ -156,7 +173,10 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
         ]
         """.data(using: .utf8)!
 
+        // When
         let result = await subscriptionService.getProducts()
+
+        // Then
         switch result {
         case .success(let success):
             XCTAssertEqual(success.count, 2)
@@ -166,9 +186,13 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
     }
 
     func testGetProductsError() async throws {
+        // Given
         apiService.mockAPICallError = Constants.unknownServerError
 
+        // When
         let result = await subscriptionService.getProducts()
+
+        // Then
         switch result {
         case .success:
             XCTFail("Unexpected success")
@@ -180,6 +204,7 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
     // MARK: - Tests for getCustomerPortalURL
 
     func testGetCustomerPortalURLCall() async throws {
+        // Given
         let apiServiceCalledExpectation = expectation(description: "apiService")
 
         apiService.mockAuthHeaders = Constants.authorizationHeader
@@ -197,11 +222,15 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
             }
         }
 
+        // When
         _ = await subscriptionService.getCustomerPortalURL(accessToken: Constants.accessToken, externalID: Constants.externalID)
+
+        // Then
         await fulfillment(of: [apiServiceCalledExpectation], timeout: 0.1)
     }
 
     func testGetCustomerPortalURLSuccess() async throws {
+        // Given
         apiService.mockAuthHeaders = Constants.authorizationHeader
         apiService.mockResponseJSONData = """
         {
@@ -209,7 +238,10 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
         }
         """.data(using: .utf8)!
 
+        // When
         let result = await subscriptionService.getCustomerPortalURL(accessToken: Constants.accessToken, externalID: Constants.externalID)
+
+        // Then
         switch result {
         case .success(let success):
             XCTAssertEqual(success.customerPortalUrl, Constants.customerPortalURL)
@@ -219,10 +251,14 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
     }
 
     func testGetCustomerPortalURLError() async throws {
+        // Given
         apiService.mockAuthHeaders = Constants.authorizationHeader
         apiService.mockAPICallError = Constants.unknownServerError
 
+        // When
         let result = await subscriptionService.getCustomerPortalURL(accessToken: Constants.accessToken, externalID: Constants.externalID)
+
+        // Then
         switch result {
         case .success:
             XCTFail("Unexpected success")
@@ -234,6 +270,7 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
     // MARK: - Tests for confirmPurchase
 
     func testConfirmPurchaseCall() async throws {
+        // Given
         let apiServiceCalledExpectation = expectation(description: "apiService")
 
         apiService.mockAuthHeaders = Constants.authorizationHeader
@@ -253,11 +290,15 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
             }
         }
 
+        // When
         _ = await subscriptionService.confirmPurchase(accessToken: Constants.accessToken, signature: Constants.mostRecentTransactionJWS)
+
+        // Then
         await fulfillment(of: [apiServiceCalledExpectation], timeout: 0.1)
     }
 
     func testConfirmPurchaseSuccess() async throws {
+        // Given
         apiService.mockAuthHeaders = Constants.authorizationHeader
         apiService.mockResponseJSONData = """
         {
@@ -281,7 +322,10 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
         }
         """.data(using: .utf8)!
 
+        // When
         let result = await subscriptionService.confirmPurchase(accessToken: Constants.accessToken, signature: Constants.mostRecentTransactionJWS)
+
+        // Then
         switch result {
         case .success(let success):
             XCTAssertEqual(success.entitlements.count, 3)
@@ -302,10 +346,14 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
     }
 
     func testConfirmPurchaseError() async throws {
+        // Given
         apiService.mockAuthHeaders = Constants.authorizationHeader
         apiService.mockAPICallError = Constants.unknownServerError
 
+        // When
         let result = await subscriptionService.confirmPurchase(accessToken: Constants.accessToken, signature: Constants.mostRecentTransactionJWS)
+
+        // Then
         switch result {
         case .success:
             XCTFail("Unexpected success")

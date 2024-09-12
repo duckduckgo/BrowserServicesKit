@@ -69,6 +69,7 @@ final class AppStoreRestoreFlowTests: XCTestCase {
     // MARK: - Tests for restoreAccountFromPastPurchase
 
     func testRestoreAccountFromPastPurchaseSuccess() async throws {
+        // Given
         XCTAssertFalse(accountManager.isUserAuthenticated)
 
         storePurchaseManager.mostRecentTransactionResult = Constants.mostRecentTransactionJWS
@@ -97,8 +98,10 @@ final class AppStoreRestoreFlowTests: XCTestCase {
             XCTAssertEqual(externalID, Constants.externalID)
         }
 
+        // When
         switch await appStoreRestoreFlow.restoreAccountFromPastPurchase() {
         case .success:
+            // Then
             XCTAssertTrue(accountManager.exchangeAuthTokenToAccessTokenCalled)
             XCTAssertTrue(accountManager.fetchAccountDetailsCalled)
             XCTAssertTrue(accountManager.storeAuthTokenCalled)
@@ -115,6 +118,7 @@ final class AppStoreRestoreFlowTests: XCTestCase {
     }
 
     func testRestoreAccountFromPastPurchaseErrorDueToSubscriptionBeingExpired() async throws {
+        // Given
         XCTAssertFalse(accountManager.isUserAuthenticated)
 
         storePurchaseManager.mostRecentTransactionResult = Constants.mostRecentTransactionJWS
@@ -146,10 +150,12 @@ final class AppStoreRestoreFlowTests: XCTestCase {
                                               storePurchaseManager: storePurchaseManager,
                                               subscriptionEndpointService: subscriptionService,
                                               authEndpointService: authService)
+        // When
         switch await appStoreRestoreFlow.restoreAccountFromPastPurchase() {
         case .success:
             XCTFail("Unexpected success")
         case .failure(let error):
+            // Then
             XCTAssertTrue(accountManager.exchangeAuthTokenToAccessTokenCalled)
             XCTAssertTrue(accountManager.fetchAccountDetailsCalled)
             XCTAssertFalse(accountManager.storeAuthTokenCalled)
@@ -169,6 +175,7 @@ final class AppStoreRestoreFlowTests: XCTestCase {
     }
 
     func testRestoreAccountFromPastPurchaseErrorWhenNoRecentTransaction() async throws {
+        // Given
         XCTAssertFalse(accountManager.isUserAuthenticated)
 
         storePurchaseManager.mostRecentTransactionResult = nil
@@ -177,10 +184,12 @@ final class AppStoreRestoreFlowTests: XCTestCase {
                                               storePurchaseManager: storePurchaseManager,
                                               subscriptionEndpointService: subscriptionService,
                                               authEndpointService: authService)
+        // When
         switch await appStoreRestoreFlow.restoreAccountFromPastPurchase() {
         case .success:
             XCTFail("Unexpected success")
         case .failure(let error):
+            // Then
             XCTAssertFalse(accountManager.exchangeAuthTokenToAccessTokenCalled)
             XCTAssertFalse(accountManager.fetchAccountDetailsCalled)
             XCTAssertFalse(accountManager.storeAuthTokenCalled)
@@ -192,6 +201,7 @@ final class AppStoreRestoreFlowTests: XCTestCase {
     }
 
     func testRestoreAccountFromPastPurchaseErrorDueToStoreLoginFailure() async throws {
+        // Given
         XCTAssertFalse(accountManager.isUserAuthenticated)
 
         storePurchaseManager.mostRecentTransactionResult = Constants.mostRecentTransactionJWS
@@ -202,10 +212,12 @@ final class AppStoreRestoreFlowTests: XCTestCase {
                                               storePurchaseManager: storePurchaseManager,
                                               subscriptionEndpointService: subscriptionService,
                                               authEndpointService: authService)
+        // When
         switch await appStoreRestoreFlow.restoreAccountFromPastPurchase() {
         case .success:
             XCTFail("Unexpected success")
         case .failure(let error):
+            // Then
             XCTAssertFalse(accountManager.exchangeAuthTokenToAccessTokenCalled)
             XCTAssertFalse(accountManager.fetchAccountDetailsCalled)
             XCTAssertFalse(accountManager.storeAuthTokenCalled)
@@ -217,6 +229,7 @@ final class AppStoreRestoreFlowTests: XCTestCase {
     }
 
     func testRestoreAccountFromPastPurchaseErrorDueToStoreAuthTokenExchangeFailure() async throws {
+        // Given
         XCTAssertFalse(accountManager.isUserAuthenticated)
 
         storePurchaseManager.mostRecentTransactionResult = Constants.mostRecentTransactionJWS
@@ -229,10 +242,12 @@ final class AppStoreRestoreFlowTests: XCTestCase {
                                               storePurchaseManager: storePurchaseManager,
                                               subscriptionEndpointService: subscriptionService,
                                               authEndpointService: authService)
+        // When
         switch await appStoreRestoreFlow.restoreAccountFromPastPurchase() {
         case .success:
             XCTFail("Unexpected success")
         case .failure(let error):
+            // Then
             XCTAssertTrue(accountManager.exchangeAuthTokenToAccessTokenCalled)
             XCTAssertFalse(accountManager.fetchAccountDetailsCalled)
             XCTAssertFalse(accountManager.storeAuthTokenCalled)
@@ -244,6 +259,7 @@ final class AppStoreRestoreFlowTests: XCTestCase {
     }
 
     func testRestoreAccountFromPastPurchaseErrorDueToAccountDetailsFetchFailure() async throws {
+        // Given
         XCTAssertFalse(accountManager.isUserAuthenticated)
 
         storePurchaseManager.mostRecentTransactionResult = Constants.mostRecentTransactionJWS
@@ -261,10 +277,12 @@ final class AppStoreRestoreFlowTests: XCTestCase {
                                               storePurchaseManager: storePurchaseManager,
                                               subscriptionEndpointService: subscriptionService,
                                               authEndpointService: authService)
+        // When
         switch await appStoreRestoreFlow.restoreAccountFromPastPurchase() {
         case .success:
             XCTFail("Unexpected success")
         case .failure(let error):
+            // Then
             XCTAssertTrue(accountManager.exchangeAuthTokenToAccessTokenCalled)
             XCTAssertTrue(accountManager.fetchAccountDetailsCalled)
             XCTAssertFalse(accountManager.storeAuthTokenCalled)
@@ -276,6 +294,7 @@ final class AppStoreRestoreFlowTests: XCTestCase {
     }
 
     func testRestoreAccountFromPastPurchaseErrorDueToSubscriptionFetchFailure() async throws {
+        // Given
         XCTAssertFalse(accountManager.isUserAuthenticated)
 
         storePurchaseManager.mostRecentTransactionResult = Constants.mostRecentTransactionJWS
@@ -295,10 +314,12 @@ final class AppStoreRestoreFlowTests: XCTestCase {
                                               storePurchaseManager: storePurchaseManager,
                                               subscriptionEndpointService: subscriptionService,
                                               authEndpointService: authService)
+        // When
         switch await appStoreRestoreFlow.restoreAccountFromPastPurchase() {
         case .success:
             XCTFail("Unexpected success")
         case .failure(let error):
+            // Then
             XCTAssertTrue(accountManager.exchangeAuthTokenToAccessTokenCalled)
             XCTAssertTrue(accountManager.fetchAccountDetailsCalled)
             XCTAssertFalse(accountManager.storeAuthTokenCalled)

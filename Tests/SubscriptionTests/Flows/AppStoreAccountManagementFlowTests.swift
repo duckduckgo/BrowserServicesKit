@@ -67,6 +67,7 @@ final class AppStoreAccountManagementFlowTests: XCTestCase {
     // MARK: - Tests for refreshAuthTokenIfNeeded
 
     func testRefreshAuthTokenIfNeededSuccess() async throws {
+        // Given
         accountManager.authToken = Constants.oldAuthToken
         accountManager.externalID = Constants.externalID
 
@@ -80,8 +81,10 @@ final class AppStoreAccountManagementFlowTests: XCTestCase {
                                                                            id: 1,
                                                                            status: "authenticated"))
 
+        // When
         switch await appStoreAccountManagementFlow.refreshAuthTokenIfNeeded() {
         case .success(let success):
+            // Then
             XCTAssertTrue(storePurchaseManager.mostRecentTransactionCalled)
             XCTAssertEqual(success, Constants.newAuthToken)
             XCTAssertEqual(accountManager.authToken, Constants.newAuthToken)
@@ -91,17 +94,17 @@ final class AppStoreAccountManagementFlowTests: XCTestCase {
     }
 
     func testRefreshAuthTokenIfNeededSuccessButNotRefreshedIfStillValid() async throws {
+        // Given
         accountManager.authToken = Constants.oldAuthToken
 
         authEndpointService.validateTokenResult = .success(ValidateTokenResponse(account: .init(email: Constants.email,
                                                                                                 entitlements: Constants.entitlements,
                                                                                                 externalID: Constants.externalID)))
 
-        let flow = DefaultAppStoreAccountManagementFlow(authEndpointService: authEndpointService,
-                                                        storePurchaseManager: storePurchaseManager,
-                                                        accountManager: accountManager)
-        switch await flow.refreshAuthTokenIfNeeded() {
+        // When
+        switch await appStoreAccountManagementFlow.refreshAuthTokenIfNeeded() {
         case .success(let success):
+            // Then
             XCTAssertEqual(success, Constants.oldAuthToken)
             XCTAssertEqual(accountManager.authToken, Constants.oldAuthToken)
         case .failure(let error):
@@ -110,6 +113,7 @@ final class AppStoreAccountManagementFlowTests: XCTestCase {
     }
 
     func testRefreshAuthTokenIfNeededSuccessButNotRefreshedIfStoreLoginRetrievedDifferentAccount() async throws {
+        // Given
         accountManager.authToken = Constants.oldAuthToken
         accountManager.externalID = Constants.externalID
         accountManager.email = Constants.email
@@ -124,11 +128,10 @@ final class AppStoreAccountManagementFlowTests: XCTestCase {
                                                                            id: 1,
                                                                            status: "authenticated"))
 
-        let flow = DefaultAppStoreAccountManagementFlow(authEndpointService: authEndpointService,
-                                                        storePurchaseManager: storePurchaseManager,
-                                                        accountManager: accountManager)
-        switch await flow.refreshAuthTokenIfNeeded() {
+        // When
+        switch await appStoreAccountManagementFlow.refreshAuthTokenIfNeeded() {
         case .success(let success):
+            // Then
             XCTAssertTrue(storePurchaseManager.mostRecentTransactionCalled)
             XCTAssertEqual(success, Constants.oldAuthToken)
             XCTAssertEqual(accountManager.authToken, Constants.oldAuthToken)
@@ -140,25 +143,26 @@ final class AppStoreAccountManagementFlowTests: XCTestCase {
     }
 
     func testRefreshAuthTokenIfNeededErrorDueToNoPastTransactions() async throws {
+        // Given
         accountManager.authToken = Constants.oldAuthToken
 
         authEndpointService.validateTokenResult = .failure(Constants.invalidTokenError)
 
         storePurchaseManager.mostRecentTransactionResult = nil
 
-        let flow = DefaultAppStoreAccountManagementFlow(authEndpointService: authEndpointService,
-                                                        storePurchaseManager: storePurchaseManager,
-                                                        accountManager: accountManager)
-        switch await flow.refreshAuthTokenIfNeeded() {
+        // When
+        switch await appStoreAccountManagementFlow.refreshAuthTokenIfNeeded() {
         case .success:
             XCTFail("Unexpected success")
         case .failure(let error):
+            // Then
             XCTAssertTrue(storePurchaseManager.mostRecentTransactionCalled)
             XCTAssertEqual(error, .noPastTransaction)
         }
     }
 
     func testRefreshAuthTokenIfNeededErrorDueToStoreLoginFailure() async throws {
+        // Given
         accountManager.authToken = Constants.oldAuthToken
 
         authEndpointService.validateTokenResult = .failure(Constants.invalidTokenError)
@@ -167,13 +171,12 @@ final class AppStoreAccountManagementFlowTests: XCTestCase {
 
         authEndpointService.storeLoginResult = .failure(.unknownServerError)
 
-        let flow = DefaultAppStoreAccountManagementFlow(authEndpointService: authEndpointService,
-                                                        storePurchaseManager: storePurchaseManager,
-                                                        accountManager: accountManager)
-        switch await flow.refreshAuthTokenIfNeeded() {
+        // When
+        switch await appStoreAccountManagementFlow.refreshAuthTokenIfNeeded() {
         case .success:
             XCTFail("Unexpected success")
         case .failure(let error):
+            // Then
             XCTAssertTrue(storePurchaseManager.mostRecentTransactionCalled)
             XCTAssertEqual(error, .authenticatingWithTransactionFailed)
         }

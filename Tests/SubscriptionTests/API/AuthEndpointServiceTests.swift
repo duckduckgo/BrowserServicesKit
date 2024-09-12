@@ -51,6 +51,7 @@ final class AuthEndpointServiceTests: XCTestCase {
     // MARK: - Tests for getAccessToken
 
     func testGetAccessTokenCall() async throws {
+        // Given
         let apiServiceCalledExpectation = expectation(description: "apiService")
 
         apiService.mockAuthHeaders = Constants.authorizationHeader
@@ -63,11 +64,15 @@ final class AuthEndpointServiceTests: XCTestCase {
             XCTAssertEqual(headers, Constants.authorizationHeader)
         }
 
+        // When
         _ = await authService.getAccessToken(token: Constants.authToken)
+
+        // Then
         await fulfillment(of: [apiServiceCalledExpectation], timeout: 0.1)
     }
 
     func testGetAccessTokenSuccess() async throws {
+        // Given
         apiService.mockAuthHeaders = Constants.authorizationHeader
         apiService.mockResponseJSONData = """
         {
@@ -75,7 +80,10 @@ final class AuthEndpointServiceTests: XCTestCase {
         }
         """.data(using: .utf8)!
 
+        // When
         let result = await authService.getAccessToken(token: Constants.authToken)
+
+        // Then
         switch result {
         case .success(let success):
             XCTAssertEqual(success.accessToken, Constants.accessToken)
@@ -85,10 +93,14 @@ final class AuthEndpointServiceTests: XCTestCase {
     }
 
     func testGetAccessTokenError() async throws {
+        // Given
         apiService.mockAuthHeaders = Constants.authorizationHeader
         apiService.mockAPICallError = Constants.invalidTokenError
 
+        // When
         let result = await authService.getAccessToken(token: Constants.authToken)
+
+        // Then
         switch result {
         case .success:
             XCTFail("Unexpected success")
@@ -100,6 +112,7 @@ final class AuthEndpointServiceTests: XCTestCase {
     // MARK: - Tests for validateToken
 
     func testValidateTokenCall() async throws {
+        // Given
         let apiServiceCalledExpectation = expectation(description: "apiService")
 
         apiService.mockAuthHeaders = Constants.authorizationHeader
@@ -112,11 +125,15 @@ final class AuthEndpointServiceTests: XCTestCase {
             XCTAssertEqual(headers, Constants.authorizationHeader)
         }
 
+        // When
         _ = await authService.validateToken(accessToken: Constants.accessToken)
+
+        // Then
         await fulfillment(of: [apiServiceCalledExpectation], timeout: 0.1)
     }
 
     func testValidateTokenSuccess() async throws {
+        // Given
         apiService.mockAuthHeaders = Constants.authorizationHeader
         apiService.mockResponseJSONData = """
         {
@@ -133,7 +150,10 @@ final class AuthEndpointServiceTests: XCTestCase {
         }
         """.data(using: .utf8)!
 
+        // When
         let result = await authService.validateToken(accessToken: Constants.accessToken)
+
+        // Then
         switch result {
         case .success(let success):
             XCTAssertEqual(success.account.externalID, Constants.externalID)
@@ -145,10 +165,14 @@ final class AuthEndpointServiceTests: XCTestCase {
     }
 
     func testValidateTokenError() async throws {
+        // Given
         apiService.mockAuthHeaders = Constants.authorizationHeader
         apiService.mockAPICallError = Constants.invalidTokenError
 
+        // When
         let result = await authService.validateToken(accessToken: Constants.accessToken)
+
+        // Then
         switch result {
         case .success:
             XCTFail("Unexpected success")
@@ -160,6 +184,7 @@ final class AuthEndpointServiceTests: XCTestCase {
     // MARK: - Tests for createAccount
 
     func testCreateAccountCall() async throws {
+        // Given
         let apiServiceCalledExpectation = expectation(description: "apiService")
 
         apiService.onExecuteAPICall = { parameters in
@@ -171,11 +196,15 @@ final class AuthEndpointServiceTests: XCTestCase {
             XCTAssertNil(headers)
         }
 
+        // When
         _ = await authService.createAccount(emailAccessToken: nil)
+
+        // Then
         await fulfillment(of: [apiServiceCalledExpectation], timeout: 0.1)
     }
 
     func testCreateAccountSuccess() async throws {
+        // Given
         apiService.mockResponseJSONData = """
         {
             "auth_token": "\(Constants.authToken)",
@@ -184,7 +213,10 @@ final class AuthEndpointServiceTests: XCTestCase {
         }
         """.data(using: .utf8)!
 
+        // When
         let result = await authService.createAccount(emailAccessToken: nil)
+
+        // Then
         switch result {
         case .success(let success):
             XCTAssertEqual(success.authToken, Constants.authToken)
@@ -196,10 +228,14 @@ final class AuthEndpointServiceTests: XCTestCase {
     }
 
     func testCreateAccountError() async throws {
+        // Given
         apiService.mockAuthHeaders = Constants.authorizationHeader
         apiService.mockAPICallError = Constants.invalidTokenError
 
+        // When
         let result = await authService.createAccount(emailAccessToken: nil)
+
+        // Then
         switch result {
         case .success:
             XCTFail("Unexpected success")
@@ -211,6 +247,7 @@ final class AuthEndpointServiceTests: XCTestCase {
     // MARK: - Tests for storeLogin
 
     func testStoreLoginCall() async throws {
+        // Given
         let apiServiceCalledExpectation = expectation(description: "apiService")
 
         apiService.onExecuteAPICall = { parameters in
@@ -229,11 +266,15 @@ final class AuthEndpointServiceTests: XCTestCase {
             }
         }
 
+        // When
         _ = await authService.storeLogin(signature: Constants.mostRecentTransactionJWS)
+
+        // Then
         await fulfillment(of: [apiServiceCalledExpectation], timeout: 0.1)
     }
 
     func testStoreLoginSuccess() async throws {
+        // Given
         apiService.mockResponseJSONData = """
         {
             "auth_token": "\(Constants.authToken)",
@@ -244,7 +285,10 @@ final class AuthEndpointServiceTests: XCTestCase {
         }
         """.data(using: .utf8)!
 
+        // When
         let result = await authService.storeLogin(signature: Constants.mostRecentTransactionJWS)
+
+        // Then
         switch result {
         case .success(let success):
             XCTAssertEqual(success.authToken, Constants.authToken)
@@ -258,9 +302,13 @@ final class AuthEndpointServiceTests: XCTestCase {
     }
 
     func testStoreLoginError() async throws {
+        // Given
         apiService.mockAPICallError = Constants.invalidTokenError
 
+        // When
         let result = await authService.storeLogin(signature: Constants.mostRecentTransactionJWS)
+
+        // Then
         switch result {
         case .success:
             XCTFail("Unexpected success")

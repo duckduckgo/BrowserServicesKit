@@ -34,7 +34,10 @@ final class SubscriptionURLTests: XCTestCase {
                                               .identityTheftRestoration]
 
         for urlType in allURLTypes {
+            // When
             let url = urlType.subscriptionURL(environment: .production)
+
+            // Then
             let environmentParameter = url.getParameter(named: "environment")
             XCTAssertEqual (environmentParameter, nil, "Wrong environment parameter for \(url.absoluteString)")
         }
@@ -52,7 +55,10 @@ final class SubscriptionURLTests: XCTestCase {
                                               .identityTheftRestoration]
 
         for urlType in allURLTypes {
+            // When
             let url = urlType.subscriptionURL(environment: .staging)
+
+            // Then
             let environmentParameter = url.getParameter(named: "environment")
             XCTAssertEqual (environmentParameter, "staging", "Wrong environment parameter for \(url.absoluteString)")
         }
