@@ -53,7 +53,7 @@ public struct PrivacyConfigurationData {
         if let versionInt = json[CodingKeys.version.rawValue] as? Int {
             version = String(versionInt)
         } else {
-            version = nil
+            version = json[CodingKeys.version.rawValue] as? String
         }
 
         if let tempListData = json[CodingKeys.unprotectedTemporary.rawValue] as? [[String: String]] {
