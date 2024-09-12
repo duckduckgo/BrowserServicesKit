@@ -19,7 +19,7 @@
 import Foundation
 import Subscription
 
-public class SubscriptionEndpointServiceMock: SubscriptionEndpointService {
+public final class SubscriptionEndpointServiceMock: SubscriptionEndpointService {
     public var getSubscriptionResult: Result<Subscription, SubscriptionServiceError>?
     public var getProductsResult: Result<[GetProductsItem], APIServiceError>?
     public var getCustomerPortalURLResult: Result<GetCustomerPortalURLResponse, APIServiceError>?

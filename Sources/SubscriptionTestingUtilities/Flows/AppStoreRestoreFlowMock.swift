@@ -19,7 +19,7 @@
 import Foundation
 import Subscription
 
-public class AppStoreRestoreFlowMock: AppStoreRestoreFlow {
+public final class AppStoreRestoreFlowMock: AppStoreRestoreFlow {
     public var restoreAccountFromPastPurchaseResult: Result<Void, AppStoreRestoreFlowError>?
     public var restoreAccountFromPastPurchaseCalled: Bool = false
 

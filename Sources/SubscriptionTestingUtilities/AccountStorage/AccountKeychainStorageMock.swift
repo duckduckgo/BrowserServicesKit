@@ -19,7 +19,7 @@
 import Foundation
 import Subscription
 
-public class AccountKeychainStorageMock: AccountStoring {
+public final class AccountKeychainStorageMock: AccountStoring {
     public var authToken: String?
     public var email: String?
     public var externalID: String?

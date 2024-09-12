@@ -19,7 +19,7 @@
 import Foundation
 import Subscription
 
-public class AppStoreAccountManagementFlowMock: AppStoreAccountManagementFlow {
+public final class AppStoreAccountManagementFlowMock: AppStoreAccountManagementFlow {
     public var refreshAuthTokenIfNeededResult: Result<String, AppStoreAccountManagementFlowError>?
     public var onRefreshAuthTokenIfNeeded: (() -> Void)?
     public var refreshAuthTokenIfNeededCalled: Bool = false
