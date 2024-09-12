@@ -41,7 +41,7 @@ public protocol HistoryCoordinating: AnyObject {
     func title(for url: URL) -> String?
 
     func burnAll(completion: @escaping () -> Void)
-    func burnDomains(_ baseDomains: Set<String>, tld: TLD, completion: @escaping () -> Void)
+    func burnDomains(_ baseDomains: Set<String>, tld: TLD, completion: @escaping (Set<URL>) -> Void)
     func burnVisits(_ visits: [Visit], completion: @escaping () -> Void)
 
 }
@@ -168,19 +168,18 @@ final public class HistoryCoordinator: HistoryCoordinating {
         }
     }
 
-    public func burnDomains(_ baseDomains: Set<String>, tld: TLD, completion: @escaping () -> Void) {
+    public func burnDomains(_ baseDomains: Set<String>, tld: TLD, completion: @escaping (Set<URL>) -> Void) {
         guard let historyDictionary = historyDictionary else { return }
 
+        var urls = Set<URL>()
         let entries: [HistoryEntry] = historyDictionary.values.filter { historyEntry in
-            guard let host = historyEntry.url.host, let baseDomain = tld.eTLDplus1(host) else {
-                return false
-            }
-
+            guard let host = historyEntry.url.host, let baseDomain = tld.eTLDplus1(host) else { return false }
+            urls.insert(historyEntry.url)
             return baseDomains.contains(baseDomain)
         }
 
         removeEntries(entries, completionHandler: { _ in
-            completion()
+            completion(urls)
         })
     }
 
