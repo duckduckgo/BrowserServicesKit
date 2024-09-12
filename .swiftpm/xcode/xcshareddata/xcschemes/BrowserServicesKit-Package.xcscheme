@@ -482,7 +482,7 @@
                BlueprintName = "SpecialErrorPages"
                ReferencedContainer = "container:">
             </BuildableReference>
-         </BuildActionEntry>         
+         </BuildActionEntry> 
       </BuildActionEntries>
    </BuildAction>
    <TestAction
@@ -721,7 +721,7 @@
                BlueprintName = "SpecialErrorPagesTests"
                ReferencedContainer = "container:">
             </BuildableReference>
-         </TestableReference>         
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction
