@@ -19,6 +19,7 @@
 import Foundation
 
 enum AuthServiceError: Error, LocalizedError {
+    case authAPIError(code: String, description: String)
     case apiServiceError(Error)
     case invalidRequest
     case invalidResponseCode(HTTPStatusCode)
@@ -26,6 +27,8 @@ enum AuthServiceError: Error, LocalizedError {
 
     public var errorDescription: String? {
         switch self {
+        case .authAPIError(let code, let description):
+            "Auth API responded with error \(code) - \(description)"
         case .apiServiceError(let error):
             "API service error - \(error.localizedDescription)"
         case .invalidRequest:

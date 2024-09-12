@@ -31,11 +31,31 @@ public struct AuthService {
         return result
     }
 
-    func extractError(from)
+    func extractError(from responseBody: Data) -> AuthServiceError? {
+        let decoder = JSONDecoder()
+        guard let bodyError = try? decoder.decode(AuthRequest.BodyError.self, from: responseBody) else {
+            return nil
+        }
+        return AuthServiceError.authAPIError(code: bodyError.error, description: bodyError.description)
+    }
 
-    // MARK: Auth API Requests
+    func throwError(forErrorBody body: Data?) throws {
+        if let body,
+           let error = extractError(from: body) {
+            throw error
+        } else {
+            throw AuthServiceError.missingResponseValue("Body error")
+        }
+    }
 
-    public func authorise(codeChallenge: String) async throws {
+    // MARK: Authorise
+
+    public struct AuthoriseResponse {
+        let location: String
+        let setCookie: String
+    }
+
+    public func authorise(codeChallenge: String) async throws -> AuthoriseResponse {
 
         guard let authRequest = AuthRequest.authorize(baseURL: baseURL, codeChallenge: codeChallenge) else {
             throw AuthServiceError.invalidRequest
@@ -43,14 +63,14 @@ public struct AuthService {
         let response = try await apiService.fetch(request: authRequest.apiRequest)
         let statusCode = response.httpResponse.httpStatus
         if statusCode == authRequest.httpSuccessCode {
-            let headers = response.httpResponse.allHeaderFields
             let location = try extract(header: HTTPHeaderKey.location, from: response.httpResponse)
             let setCookie = try extract(header: HTTPHeaderKey.setCookie, from: response.httpResponse)
-
+            return AuthoriseResponse(location: location, setCookie: setCookie)
         } else if authRequest.httpErrorCodes.contains(statusCode) {
-
-        } else {
-            throw AuthServiceError.invalidResponseCode(statusCode)
+            try throwError(forErrorBody: response.data)
         }
+        throw AuthServiceError.invalidResponseCode(statusCode)
     }
+
+    // MARK:
 }

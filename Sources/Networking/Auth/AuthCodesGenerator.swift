@@ -15,23 +15,21 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-// Documentation: https://auth0.com/docs/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce/add-login-using-the-authorization-code-flow-with-pkce#create-code-verifier
 
 import Foundation
 import CommonCrypto
 
-/// Code verifier used in the OAuth2 authentication process
+/// Helper that generates codes used in the OAuth2 authentication process
 struct AuthCodesGenerator {
 
+    /// https://auth0.com/docs/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce/add-login-using-the-authorization-code-flow-with-pkce#create-code-verifier
     static var codeVerifier: String {
         var buffer = [UInt8](repeating: 0, count: 128)
         _ = SecRandomCopyBytes(kSecRandomDefault, buffer.count, &buffer)
-        return Data(buffer).base64EncodedString()
-            .replacingOccurrences(of: "+", with: "-")
-            .replacingOccurrences(of: "/", with: "_")
-            .replacingOccurrences(of: "=", with: "")
+        return Data(buffer).base64EncodedString().replacingInvalidCharacters()
     }
 
+    /// https://auth0.com/docs/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce/add-login-using-the-authorization-code-flow-with-pkce#create-code-challenge
     static func codeChallenge(codeVerifier: String) -> String? {
 
         guard let data = codeVerifier.data(using: .utf8) else {
@@ -43,8 +41,14 @@ struct AuthCodesGenerator {
             CC_SHA256($0.baseAddress, CC_LONG(data.count), &buffer)
         }
         let hash = Data(buffer)
-        return hash.base64EncodedString()
-            .replacingOccurrences(of: "+", with: "-")
+        return hash.base64EncodedString().replacingInvalidCharacters()
+    }
+}
+
+fileprivate extension String {
+
+    func replacingInvalidCharacters() -> String {
+        self.replacingOccurrences(of: "+", with: "-")
             .replacingOccurrences(of: "/", with: "_")
             .replacingOccurrences(of: "=", with: "")
     }

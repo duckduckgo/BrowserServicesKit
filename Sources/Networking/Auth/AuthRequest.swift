@@ -31,10 +31,40 @@ struct AuthRequest {
         static let scope = "privacypro"
     }
 
-    static let errorCodes = [
-        "invalid_authorization_request": "One or more of the required parameters are missing or any provided parameters have invalid values.",
-        "authorize_failed": "Failed to create the authorization session, either because of a reused code challenge or internal server error."
-    ]
+    struct BodyError: Decodable {
+        let error: String
+        let description: String
+
+        init(error: String) {
+            self.error = error
+            if let description = BodyError.errorDetails[error] {
+                self.description = description
+            } else {
+                assertionFailure("Unknown error type, investigate")
+                self.description = "Unknown description"
+            }
+        }
+
+        enum CodingKeys: CodingKey {
+            case error
+        }
+
+        init(from decoder: any Decoder) throws {
+            let container: KeyedDecodingContainer<AuthRequest.BodyError.CodingKeys> = try decoder.container(keyedBy: AuthRequest.BodyError.CodingKeys.self)
+            self.error = try container.decode(String.self, forKey: AuthRequest.BodyError.CodingKeys.error)
+            
+            guard let description = BodyError.errorDetails[error] else {
+                throw AuthServiceError.missingResponseValue("Error code")
+            }
+            self.description = description
+        }
+
+        static let errorDetails = [
+            // Authorise
+            "invalid_authorization_request": "One or more of the required parameters are missing or any provided parameters have invalid values.",
+            "authorize_failed": "Failed to create the authorization session, either because of a reused code challenge or internal server error."
+        ]
+    }
 
     static func authorize(baseURL: URL, codeChallenge: String) -> AuthRequest? {
         let path = "/api/auth/v2/authorize"
