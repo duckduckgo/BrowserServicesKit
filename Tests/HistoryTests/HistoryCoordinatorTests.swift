@@ -218,6 +218,43 @@ class HistoryCoordinatorTests: XCTestCase {
         waitForExpectations(timeout: 1.0)
     }
 
+    func testWhenHistoryIsBurningDomains_ThenHistoryIsCleanedForDomainsAndRemovedUrlsReturnedInCallback() {
+        let burnAllFinished = expectation(description: "Burn All Finished")
+        let (historyStoringMock, historyCoordinator) = HistoryCoordinator.aHistoryCoordinator
+
+        let url0 = URL(string: "https://tobekept.com")!
+        historyCoordinator.addVisit(of: url0)
+
+        let url1 = URL(string: "https://duckduckgo.com")!
+        historyCoordinator.addVisit(of: url1)
+
+        let url2 = URL(string: "https://test.duckduckgo.com")!
+        historyCoordinator.addVisit(of: url2)
+
+        let fireproofDomain = "wikipedia.org"
+        let url3 = URL(string: "https://\(fireproofDomain)")!
+        historyCoordinator.addVisit(of: url3)
+
+        let url4 = URL(string: "https://subdomain.\(fireproofDomain)")!
+        historyCoordinator.addVisit(of: url4)
+
+        let url5 = URL(string: "https://test.com")!
+        historyCoordinator.addVisit(of: url5)
+
+        XCTAssert(historyCoordinator.history!.count == 6)
+
+        historyCoordinator.burnDomains(["duckduckgo.com", fireproofDomain], tld: TLD()) { urls in
+            let expectedUrls = Set([url1, url2, url3, url4])
+
+            XCTAssertEqual(Set(historyStoringMock.removeEntriesArray.map(\.url)), expectedUrls)
+            XCTAssertEqual(urls, expectedUrls)
+
+            burnAllFinished.fulfill()
+        }
+
+        waitForExpectations(timeout: 2.0)
+    }
+
     func testWhenUrlIsMarkedAsFailedToLoad_ThenFailedToLoadFlagIsStored() {
         let (historyStoringMock, historyCoordinator) = HistoryCoordinator.aHistoryCoordinator
 

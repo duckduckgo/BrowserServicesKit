@@ -173,9 +173,11 @@ final public class HistoryCoordinator: HistoryCoordinating {
 
         var urls = Set<URL>()
         let entries: [HistoryEntry] = historyDictionary.values.filter { historyEntry in
-            guard let host = historyEntry.url.host, let baseDomain = tld.eTLDplus1(host) else { return false }
+            guard let host = historyEntry.url.host,
+                  let baseDomain = tld.eTLDplus1(host),
+                  baseDomains.contains(baseDomain) else { return false }
             urls.insert(historyEntry.url)
-            return baseDomains.contains(baseDomain)
+            return true
         }
 
         removeEntries(entries, completionHandler: { _ in
