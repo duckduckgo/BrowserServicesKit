@@ -34,6 +34,7 @@ final class SuggestionProcessing {
                 from history: [HistorySuggestion],
                 bookmarks: [Bookmark],
                 internalPages: [InternalPage],
+                openTabs: [BrowserTab],
                 apiResult: APIResult?) -> SuggestionResult? {
         let query = query.lowercased()
 
@@ -49,7 +50,7 @@ final class SuggestionProcessing {
         }
 
         // Get best matches from history and bookmarks
-        let allLocalSuggestions = localSuggestions(from: history, bookmarks: bookmarks, internalPages: internalPages, query: query)
+        let allLocalSuggestions = localSuggestions(from: history, bookmarks: bookmarks, internalPages: internalPages, openTabs: openTabs, query: query)
 
         // Combine HaB and domains into navigational suggestions and remove duplicates
         let navigationalSuggestions = allLocalSuggestions + duckDuckGoDomainSuggestions
@@ -102,13 +103,14 @@ final class SuggestionProcessing {
 
     // MARK: - History and Bookmarks
 
-    private func localSuggestions(from history: [HistorySuggestion], bookmarks: [Bookmark], internalPages: [InternalPage], query: Query) -> [Suggestion] {
+    private func localSuggestions(from history: [HistorySuggestion], bookmarks: [Bookmark], internalPages: [InternalPage], openTabs: [BrowserTab], query: Query) -> [Suggestion] {
         enum LocalSuggestion {
             case bookmark(Bookmark)
             case history(HistorySuggestion)
             case internalPage(InternalPage)
+            case openTab(BrowserTab)
         }
-        let localSuggestions: [LocalSuggestion] = bookmarks.map(LocalSuggestion.bookmark) + history.map(LocalSuggestion.history) + internalPages.map(LocalSuggestion.internalPage)
+        let localSuggestions: [LocalSuggestion] = bookmarks.map(LocalSuggestion.bookmark) + openTabs.map(LocalSuggestion.openTab) + history.map(LocalSuggestion.history) + internalPages.map(LocalSuggestion.internalPage)
         let queryTokens = Score.tokens(from: query)
 
         let result: [Suggestion] = localSuggestions
@@ -121,6 +123,8 @@ final class SuggestionProcessing {
                     Score(historyEntry: historyEntry, query: query, queryTokens: queryTokens)
                 case .internalPage(let internalPage):
                     Score(internalPage: internalPage, query: query, queryTokens: queryTokens)
+                case .openTab(let tab):
+                    Score(browserTab: tab, query: query)
                 }
 
                 return (item, score)
@@ -138,6 +142,8 @@ final class SuggestionProcessing {
                     return Suggestion(historyEntry: historyEntry)
                 case .internalPage(let internalPage):
                     return Suggestion(internalPage: internalPage)
+                case .openTab(let tab):
+                    return Suggestion(tab: tab)
                 }
             }
 
@@ -162,31 +168,41 @@ final class SuggestionProcessing {
             }) ?? nil
         }
 
-        // Finds a bookmark duplicate for history entry and copies allowedInTopHits value
-        func findBookmarkDuplicate(to historySuggestion: Suggestion,
-                                   nakedUrl: URL,
-                                   from sugestions: [Suggestion]) -> Suggestion? {
+        // Finds a bookmark or open tab duplicate for history entry and copies allowedInTopHits value if appropriate
+        func findBookmarkOrTabDuplicate(to historySuggestion: Suggestion,
+                                        nakedUrl: URL,
+                                        from sugestions: [Suggestion]) -> Suggestion? {
             guard case .historyEntry = historySuggestion else {
                 return nil
             }
-            if let newSuggestion = suggestions.first(where: {
+
+            guard let newSuggestion = suggestions.first(where: {
                 if case .bookmark = $0, $0.url?.naked == nakedUrl { return true }
+                if case .openTab = $0, $0.url?.naked == nakedUrl { return true }
                 return false
-            }), case let Suggestion.bookmark(title: title, url: url, isFavorite: isFavorite, allowedInTopHits: _) = newSuggestion {
-                #if os(macOS)
+            }) else {
+                return nil
+            }
+
+            switch newSuggestion {
+            case .bookmark(title: let title, url: let url, isFavorite: let isFavorite, allowedInTopHits: _):
+#if os(macOS)
                 // Copy allowedInTopHits from original suggestion
                 return Suggestion.bookmark(title: title,
                                            url: url,
                                            isFavorite: isFavorite,
                                            allowedInTopHits: historySuggestion.allowedInTopHits)
-                #else
+#else
+                // iOS always allows bookmarks in the top hits
                 return Suggestion.bookmark(title: title,
                                            url: url,
                                            isFavorite: isFavorite,
                                            allowedInTopHits: true)
-                #endif
-            } else {
-                return nil
+#endif
+            case .openTab(title: let title, url: let url):
+                return .openTab(title: title, url: url)
+
+            default: return nil
             }
         }
 
@@ -232,8 +248,8 @@ final class SuggestionProcessing {
             switch suggestion {
             case .historyEntry:
                 // If there is a historyEntry and bookmark with the same URL, suggest the bookmark
-                newSuggestion = findBookmarkDuplicate(to: suggestion, nakedUrl: suggestionNakedUrl, from: suggestions)
-            case .bookmark:
+                newSuggestion = findBookmarkOrTabDuplicate(to: suggestion, nakedUrl: suggestionNakedUrl, from: suggestions)
+            case .bookmark, .openTab:
                 newSuggestion = findAndMergeHistoryDuplicate(with: suggestion, nakedUrl: suggestionNakedUrl, from: suggestions)
             case .phrase, .website, .internalPage, .unknown:
                 break
@@ -244,7 +260,7 @@ final class SuggestionProcessing {
                 switch suggestion {
                 case .historyEntry:
                     newSuggestion = findDuplicateContainingTitle(suggestion, nakedUrl: suggestionNakedUrl, from: suggestions)
-                case .bookmark, .phrase, .website, .internalPage, .unknown:
+                case .bookmark, .phrase, .website, .internalPage, .openTab, .unknown:
                     break
                 }
             }
