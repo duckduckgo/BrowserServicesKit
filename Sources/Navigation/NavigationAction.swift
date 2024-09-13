@@ -182,7 +182,6 @@ public struct NavigationPreferences: Equatable {
     public var contentMode: WKWebpagePreferences.ContentMode
 
     fileprivate var javaScriptEnabledValue: Bool
-    @available(macOS 11.0, iOS 14.0, *)
     public var javaScriptEnabled: Bool {
         get {
             javaScriptEnabledValue
@@ -212,11 +211,7 @@ public struct NavigationPreferences: Equatable {
 
     internal init(userAgent: String?, preferences: WKWebpagePreferences) {
         self.contentMode = preferences.preferredContentMode
-        if #available(macOS 11.0, iOS 14.0, *) {
-            self.javaScriptEnabledValue = preferences.allowsContentJavaScript
-        } else {
-            self.javaScriptEnabledValue = true
-        }
+        self.javaScriptEnabledValue = preferences.allowsContentJavaScript
 #if _WEBPAGE_PREFS_CUSTOM_HEADERS_ENABLED
         if Self.customHeadersSupported {
             self.customHeaders = preferences.customHeaderFields
@@ -226,9 +221,7 @@ public struct NavigationPreferences: Equatable {
 
     internal func applying(to preferences: WKWebpagePreferences) -> WKWebpagePreferences {
         preferences.preferredContentMode = contentMode
-        if #available(macOS 11.0, iOS 14.0, *) {
-            preferences.allowsContentJavaScript = javaScriptEnabled
-        }
+        preferences.allowsContentJavaScript = javaScriptEnabled
 #if _WEBPAGE_PREFS_CUSTOM_HEADERS_ENABLED
         if Self.customHeadersSupported, let customHeaders = customHeaders {
             preferences.customHeaderFields = customHeaders

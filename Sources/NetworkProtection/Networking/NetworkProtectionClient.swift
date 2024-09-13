@@ -17,6 +17,8 @@
 //
 
 import Foundation
+import Networking
+import os.log
 
 protocol NetworkProtectionClient {
     func getLocations(authToken: String) async -> Result<[NetworkProtectionLocation], NetworkProtectionClientError>
@@ -242,6 +244,7 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
 
     func getLocations(authToken: String) async -> Result<[NetworkProtectionLocation], NetworkProtectionClientError> {
         var request = URLRequest(url: locationsURL)
+        request.allHTTPHeaderFields = APIRequest.Headers().httpHeaders
         request.setValue("bearer \(authToken)", forHTTPHeaderField: "Authorization")
         let downloadedData: Data
 
@@ -285,6 +288,7 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
 
     func getServers(authToken: String) async -> Result<[NetworkProtectionServer], NetworkProtectionClientError> {
         var request = URLRequest(url: serversURL)
+        request.allHTTPHeaderFields = APIRequest.Headers().httpHeaders
         request.setValue("bearer \(authToken)", forHTTPHeaderField: "Authorization")
         let downloadedData: Data
 
@@ -328,6 +332,7 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
 
     func getServerStatus(authToken: String, serverName: String) async -> Result<NetworkProtectionServerStatus, NetworkProtectionClientError> {
         var request = URLRequest(url: serverStatusURL(serverName: serverName))
+        request.allHTTPHeaderFields = APIRequest.Headers().httpHeaders
         request.setValue("bearer \(authToken)", forHTTPHeaderField: "Authorization")
         let downloadedData: Data
 
@@ -380,6 +385,7 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
         }
 
         var request = URLRequest(url: registerKeyURL)
+        request.allHTTPHeaderFields = APIRequest.Headers().httpHeaders
         request.setValue("bearer \(authToken)", forHTTPHeaderField: "Authorization")
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpMethod = "POST"
@@ -442,6 +448,7 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
         }
 
         var request = URLRequest(url: endpoint)
+        request.allHTTPHeaderFields = APIRequest.Headers().httpHeaders
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpMethod = "POST"
         request.httpBody = requestBodyData
