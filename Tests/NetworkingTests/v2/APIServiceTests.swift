@@ -42,7 +42,7 @@ final class APIServiceTests: XCTestCase {
                                    responseRequirements: [APIResponseRequirementV2.allowHTTPNotModified,
                                                           APIResponseRequirementV2.requireETagHeader],
                                    allowedQueryReservedCharacters: CharacterSet(charactersIn: ","))!
-        let apiService = DefaultAPIService(urlSession: URLSession.shared)
+        let apiService = DefaultAPIService()
         let responseHTML: String? = try await apiService.fetch(request: request)
         XCTAssertNotNil(responseHTML)
     }

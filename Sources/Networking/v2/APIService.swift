@@ -32,6 +32,7 @@ public struct DefaultAPIService: APIService {
 
     public init(urlSession: URLSession = .shared) {
         self.urlSession = urlSession
+
     }
 
     /// Fetch an API Request
@@ -78,9 +79,7 @@ public struct DefaultAPIService: APIService {
         let httpResponse = try response.asHTTPURLResponse()
         let responseHTTPStatus = httpResponse.httpStatus
         if responseHTTPStatus.isFailure {
-            let error = APIRequestV2.Error.invalidStatusCode(httpResponse.statusCode)
-            Logger.networking.error("Error: \(error.localizedDescription)")
-            throw error
+            return (data, httpResponse)
         }
 
         // Check requirements
