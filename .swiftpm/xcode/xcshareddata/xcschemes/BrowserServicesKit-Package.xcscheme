@@ -483,20 +483,6 @@
                ReferencedContainer = "container:">
             </BuildableReference>
          </BuildActionEntry>
-         <BuildActionEntry
-            buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "PhishingDetection"
-               BuildableName = "PhishingDetection"
-               BlueprintName = "PhishingDetection"
-               ReferencedContainer = "container:">
-            </BuildableReference>
-         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
@@ -733,16 +719,6 @@
                BlueprintIdentifier = "SpecialErrorPagesTests"
                BuildableName = "SpecialErrorPagesTests"
                BlueprintName = "SpecialErrorPagesTests"
-               ReferencedContainer = "container:">
-            </BuildableReference>
-         </TestableReference>
-         <TestableReference
-            skipped = "NO">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "PhishingDetectionTests"
-               BuildableName = "PhishingDetectionTests"
-               BlueprintName = "PhishingDetectionTests"
                ReferencedContainer = "container:">
             </BuildableReference>
          </TestableReference>
