@@ -18,6 +18,7 @@
 
 import Foundation
 import Persistence
+import TestUtils
 @testable import Configuration
 
 final class MockStoreWithStorage: ConfigurationStoring {
@@ -81,7 +82,7 @@ final class MockStoreWithStorage: ConfigurationStoring {
     }
 
     static func clearTempConfigs() {
-        let tempStore = MockStoreWithStorage(etagStorage: MockDefaults())
+        let tempStore = MockStoreWithStorage(etagStorage: MockKeyValueStore())
         for conf in Configuration.allCases {
             try? FileManager.default.removeItem(at: tempStore.fileUrl(for: conf))
         }

@@ -28,8 +28,8 @@ final class MockConfigurationManager: DefaultConfigurationManager {
     var name: String?
 
     override func refreshNow(isDebug: Bool = false) async {
-        let configFetcched = await fetchConfigDependencies(isDebug: isDebug)
-        if configFetcched {
+        let configFetched = await fetchConfigDependencies(isDebug: isDebug)
+        if configFetched {
             updateConfigDependencies()
         }
     }
@@ -43,9 +43,11 @@ final class MockConfigurationManager: DefaultConfigurationManager {
         }
     }
 
+    var onDependenciesUpdated: (() -> Void)?
     func updateConfigDependencies() {
         dependencyProvider.privacyConfigData = store.loadData(for: .privacyConfiguration)
         dependencyProvider.privacyConfigEtag = store.loadEtag(for: .privacyConfiguration)
+        onDependenciesUpdated?()
     }
 
     override var presentedItemURL: URL? {
@@ -68,30 +70,10 @@ struct MockDependencyProvider {
     var privacyConfigData: Data?
 }
 
-final class MockDefaults: KeyValueStoring {
-    var defaults: [String: Any] = [:]
-
-    func object(forKey defaultName: String) -> Any? {
-        return defaults[defaultName]
-    }
-
-    func set(_ value: Any?, forKey defaultName: String) {
-        defaults[defaultName] = value
-    }
-
-    func removeObject(forKey defaultName: String) {
-        defaults.removeValue(forKey: defaultName)
-    }
-
-    func clearAll() {
-        defaults.removeAll()
-    }
-}
-
 final class ConfigurationManagerTests: XCTestCase {
 
     // Shared "UserDefaults" to mock app group defaults
-    var sharedDefaults = MockDefaults()
+    var sharedDefaults = MockKeyValueStore()
 
     override func setUp() {
         APIRequest.Headers.setUserAgent("")
@@ -143,10 +125,16 @@ final class ConfigurationManagerTests: XCTestCase {
         let managerA = makeConfigurationManager(name: "A")
         let managerB = makeConfigurationManager(name: "B")
 
+        var e: XCTestExpectation? = expectation(description: "ConfigManager B updated")
+        managerB.onDependenciesUpdated = {
+            e?.fulfill()
+            e = nil
+        }
+
         let configData = Data("Privacy Config".utf8)
         MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.ok, configData) }
         await managerA.refreshNow()
-        try await Task.sleep(interval: 2)
+        await fulfillment(of: [e!], timeout: 2)
 
         XCTAssertEqual(managerB.dependencyProvider.privacyConfigData, configData)
         XCTAssertEqual(managerB.dependencyProvider.privacyConfigEtag, HTTPURLResponse.testEtag)
@@ -156,18 +144,31 @@ final class ConfigurationManagerTests: XCTestCase {
         let managerA = makeConfigurationManager()
         let managerB = makeConfigurationManager()
 
+        var e: XCTestExpectation? = expectation(description: "ConfigManager B updated")
+        managerB.onDependenciesUpdated = {
+            e?.fulfill()
+            e = nil
+        }
+
         var configData = Data("Privacy Config".utf8)
         MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.ok, configData) }
         await managerA.refreshNow()
-        try await Task.sleep(interval: 2) // Sleeps are needed to let NSFilePresenter update
+        await fulfillment(of: [e!], timeout: 2)
 
         XCTAssertEqual(managerB.dependencyProvider.privacyConfigData, configData)
         XCTAssertEqual(managerB.dependencyProvider.privacyConfigEtag, HTTPURLResponse.testEtag)
 
+        e = expectation(description: "ConfigManager A updated")
+        managerB.onDependenciesUpdated = nil
+        managerA.onDependenciesUpdated = {
+            e?.fulfill()
+            e = nil
+        }
+
         configData = Data("Privacy Config 2".utf8)
         MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.ok, configData) }
         await managerB.refreshNow()
-        try await Task.sleep(interval: 2)
+        await fulfillment(of: [e!], timeout: 2)
 
         XCTAssertEqual(managerA.dependencyProvider.privacyConfigData, configData)
         XCTAssertEqual(managerA.dependencyProvider.privacyConfigEtag, HTTPURLResponse.testEtag)
@@ -182,17 +183,22 @@ final class ConfigurationManagerTests: XCTestCase {
         let managerA = makeConfigurationManager()
         let managerB = makeConfigurationManager()
 
+        var e: XCTestExpectation? = expectation(description: "ConfigManager B updated")
+        managerB.onDependenciesUpdated = {
+            e?.fulfill()
+            e = nil
+        }
+
         let configData = Data("Privacy Config".utf8)
         MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.ok, configData) }
         await managerA.refreshNow()
-        try await Task.sleep(interval: 2) // Sleeps are needed to let NSFilePresenter update
+        await fulfillment(of: [e!], timeout: 2)
 
         XCTAssertEqual(managerB.dependencyProvider.privacyConfigData, configData)
         XCTAssertEqual(managerB.dependencyProvider.privacyConfigEtag, HTTPURLResponse.testEtag)
 
         MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.internalServerError, nil) }
         await managerB.refreshNow()
-        try await Task.sleep(interval: 2)
 
         XCTAssertEqual(managerB.dependencyProvider.privacyConfigData, configData)
         XCTAssertEqual(managerB.dependencyProvider.privacyConfigEtag, HTTPURLResponse.testEtag)
