@@ -162,7 +162,7 @@ public final class ContentScopeUserScript: NSObject, UserScript, UserScriptMessa
                                       isolated: Bool,
                                       config: WebkitMessagingConfig
     ) -> String {
- 
+
         guard var privacyConfigJson = String(data: privacyConfigurationManager.currentConfig, encoding: .utf8) else {
             return ""
         }
@@ -195,27 +195,27 @@ public final class ContentScopeUserScript: NSObject, UserScript, UserScriptMessa
     public let injectionTime: WKUserScriptInjectionTime = .atDocumentStart
     public let forMainFrameOnly: Bool = false
     public var requiresRunInPageContentWorld: Bool { !self.isIsolated }
-    
-    
+
+
     // The Frontend does not support "internal" state for features, so in order to release
     // DuckPlayer to internal users, we need to patch the Privacy Config to replace "internal" with "enabled"
     // This will be removed once DuckPlayer is released to the public
     private static func patchPrivacyConfigForDuckPlayerInternal(privacyConfigJson: String) -> String {
         do {
-            
+ 
             guard let jsonData = privacyConfigJson.data(using: .utf8) else { return privacyConfigJson }
-            
+
             guard var jsonObject = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any] else {
                 return privacyConfigJson
             }
-                        
+
             if var features = jsonObject["features"] as? [String: Any],
                var duckPlayer = features["duckPlayer"] as? [String: Any] {
                 duckPlayer["state"] = "enabled"
                 features["duckPlayer"] = duckPlayer
                 jsonObject["features"] = features
             }
-                        
+
             let modifiedData = try JSONSerialization.data(withJSONObject: jsonObject, options: .prettyPrinted)
             return String(data: modifiedData, encoding: .utf8) ?? privacyConfigJson
             
@@ -223,7 +223,7 @@ public final class ContentScopeUserScript: NSObject, UserScript, UserScriptMessa
             return privacyConfigJson
         }
     }
-    
+
 }
 
 @available(macOS 11.0, iOS 14.0, *)
