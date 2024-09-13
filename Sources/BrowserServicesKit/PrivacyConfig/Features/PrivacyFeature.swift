@@ -56,6 +56,7 @@ public enum PrivacyFeature: String {
     case newTabPageImprovements
     case syncPromotion
     case autofillSurveys
+    case marketplaceAdPostback
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
