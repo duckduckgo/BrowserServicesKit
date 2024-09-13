@@ -104,8 +104,7 @@ final class AuthServiceTests: XCTestCase {
              );
          } } Data size: 36639 bytes
          */
-        let realApiService = DefaultAPIService()
-        let authService = AuthService(baseURL: baseURL, apiService: realApiService)
+        let authService = DefaultAuthService(baseURL: baseURL)
         let codeChallenge = AuthCodesGenerator.codeChallenge(codeVerifier: AuthCodesGenerator.codeVerifier)!
         let result = try await authService.authorise(codeChallenge: codeChallenge)
         XCTAssertNotNil(result.location)
@@ -113,8 +112,7 @@ final class AuthServiceTests: XCTestCase {
     }
 
     func testAuthoriseRealFailure() async throws { // TODO: Disable
-        let realApiService = DefaultAPIService()
-        let authService = AuthService(baseURL: baseURL, apiService: realApiService)
+        let authService = DefaultAuthService(baseURL: baseURL)
         do {
             _ = try await authService.authorise(codeChallenge: "")
         } catch {

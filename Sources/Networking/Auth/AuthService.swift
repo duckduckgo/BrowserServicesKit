@@ -17,11 +17,32 @@
 //
 
 import Foundation
+import os.log
 
-public struct AuthService {
+public protocol AuthService {
+
+}
+
+public struct DefaultAuthService: AuthService {
 
     let baseURL: URL
-    let apiService: APIService
+    var apiService: APIService
+    let sessionDelegate = SessionDelegate()
+    let urlSessionOperationQueue = OperationQueue()
+
+    public init(baseURL: URL, apiService: APIService? = nil) {
+        self.baseURL = baseURL
+        
+        if let apiService {
+            self.apiService = apiService
+        } else {
+            let configuration = URLSessionConfiguration.default
+            let urlSession = URLSession(configuration: configuration,
+                                        delegate: sessionDelegate,
+                                        delegateQueue: urlSessionOperationQueue)
+            self.apiService = DefaultAPIService(urlSession: urlSession)
+        }
+    }
 
     func extract(header: String, from httpResponse: HTTPURLResponse) throws -> String {
         let headers = httpResponse.allHeaderFields
@@ -73,4 +94,12 @@ public struct AuthService {
     }
 
     // MARK:
+}
+
+class SessionDelegate: NSObject, URLSessionTaskDelegate {
+
+    public func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest) async -> URLRequest? {
+        Logger.networking.debug("Stopping AUTH API redirection")
+        return nil
+    }
 }

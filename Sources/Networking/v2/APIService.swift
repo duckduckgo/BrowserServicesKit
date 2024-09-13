@@ -32,6 +32,7 @@ public struct DefaultAPIService: APIService {
 
     public init(urlSession: URLSession = .shared) {
         self.urlSession = urlSession
+
     }
 
     /// Fetch an API Request
