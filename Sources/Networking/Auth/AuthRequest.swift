@@ -17,6 +17,7 @@
 //
 
 import Foundation
+import os.log
 
 /// Auth API v2 Endpoints, doc: https://dub.duckduckgo.com/duckduckgo/ddg/blob/main/components/auth/docs/AuthAPIV2Documentation.md#auth-api-v2-endpoints
 struct AuthRequest {
@@ -29,6 +30,18 @@ struct AuthRequest {
     struct BodyError: Decodable {
         let error: String
     }
+
+    internal init(apiRequest: APIRequestV2,
+                  httpSuccessCode: HTTPStatusCode = HTTPStatusCode.ok,
+                  httpErrorCodes: [HTTPStatusCode] = [HTTPStatusCode.badRequest, HTTPStatusCode.internalServerError],
+                  errorDetails: [String : String]) {
+        self.apiRequest = apiRequest
+        self.httpSuccessCode = httpSuccessCode
+        self.httpErrorCodes = httpErrorCodes
+        self.errorDetails = errorDetails
+    }
+
+    // MARK: Authorize
 
     static func authorize(baseURL: URL, codeChallenge: String) -> AuthRequest? {
         let path = "/api/auth/v2/authorize"
@@ -51,11 +64,10 @@ struct AuthRequest {
         ]
         return AuthRequest(apiRequest: request,
                            httpSuccessCode: HTTPStatusCode.found,
-                           httpErrorCodes: [
-                            HTTPStatusCode.badRequest,
-                            HTTPStatusCode.internalServerError
-                           ], errorDetails: errorDetails)
+                           errorDetails: errorDetails)
     }
+
+    // MARK: Create account
 
     static func createAccount(baseURL: URL, authSessionID: String) -> AuthRequest? {
         let path = "/api/auth/v2/account/create"
@@ -71,12 +83,10 @@ struct AuthRequest {
         ]
         return AuthRequest(apiRequest: request,
                            httpSuccessCode: HTTPStatusCode.found,
-                           httpErrorCodes: [
-                            HTTPStatusCode.badRequest,
-                            HTTPStatusCode.internalServerError
-                           ],
                            errorDetails: errorDetails)
     }
+
+    // MARK: Sent OTP
 
     static func sendOTP(baseURL: URL, authSessionID: String, emailAddress: String) -> AuthRequest? {
         let path = "/api/auth/v2/otp"
@@ -95,11 +105,53 @@ struct AuthRequest {
              "email_sending_error": "Failed to send the OTP to the email address provided."
         ]
         return AuthRequest(apiRequest: request,
-                           httpSuccessCode: HTTPStatusCode.ok,
-                           httpErrorCodes: [
-                            HTTPStatusCode.badRequest,
-                            HTTPStatusCode.internalServerError
-                           ],
+                           errorDetails: errorDetails)
+    }
+
+    // MARK: Login
+
+    static func login(baseURL: URL, authSessionID: String, method: OAuthLoginMethod) -> AuthRequest? {
+        let path = "/api/auth/v2/login"
+        let headers = [ HTTPHeaderKey.cookie: authSessionID ]
+        var queryItems: [String: String]
+        switch method.self {
+        case is OAuthLoginMethodOTP:
+            guard let otpMethod = method as? OAuthLoginMethodOTP else {
+                return nil
+            }
+            queryItems = [
+                "method": otpMethod.name,
+                "email": otpMethod.email,
+                "otp": otpMethod.otp
+            ]
+        case is OAuthLoginMethodSignature:
+            guard let signatureMethod = method as? OAuthLoginMethodSignature else {
+                return nil
+            }
+            queryItems = [
+                "method": signatureMethod.name,
+                "email": signatureMethod.signature,
+                "source": signatureMethod.source
+            ]
+        default:
+            Logger.networking.fault("Unknown login method: \(String(describing: method))")
+            return nil
+        }
+
+        guard let request = APIRequestV2(url: baseURL.appendingPathComponent(path),
+                                         method: .post,
+                                         queryItems: queryItems,
+                                         headers: APIRequestV2.HeadersV2(additionalHeaders: headers)) else {
+            return nil
+        }
+        let errorDetails = [
+            "invalid_login_credentials": "One or more of the provided parameters is invalid.",
+            "invalid_session_id": "The session id is missing, invalid or has already been used for logging in.",
+            "suspended_account": "The account you are logging in to is suspended.",
+            "unknown_account": "The login credentials appear valid but do not link to a known account."
+        ]
+        return AuthRequest(apiRequest: request,
+                           httpSuccessCode: HTTPStatusCode.found,
                            errorDetails: errorDetails)
     }
 }

@@ -19,11 +19,15 @@
 import Foundation
 import os.log
 
-public protocol AuthService {
-
+public protocol OAuthService {
+    
+    func authorise(codeChallenge: String) async throws -> OAuthAuthoriseResponse
+    func createAccount(authSessionID: String) async throws -> OAuthLocation
+    func sendOTP(authSessionID: String, emailAddress: String) async throws
+    func login(authSessionID: String, method: OAuthLoginMethod) async throws -> OAuthLocation
 }
 
-public struct DefaultAuthService: AuthService {
+public struct DefaultOAuthService: OAuthService {
 
     let baseURL: URL
     var apiService: APIService
@@ -91,12 +95,7 @@ public struct DefaultAuthService: AuthService {
 
     // MARK: Authorise
 
-    public struct AuthoriseResponse {
-        let location: String
-        let setCookie: String
-    }
-
-    public func authorise(codeChallenge: String) async throws -> AuthoriseResponse {
+    public func authorise(codeChallenge: String) async throws -> OAuthAuthoriseResponse {
 
         guard let request = AuthRequest.authorize(baseURL: baseURL, codeChallenge: codeChallenge) else {
             throw AuthServiceError.invalidRequest
@@ -111,7 +110,7 @@ public struct DefaultAuthService: AuthService {
             let location = try extract(header: HTTPHeaderKey.location, from: response.httpResponse)
             let setCookie = try extract(header: HTTPHeaderKey.setCookie, from: response.httpResponse)
             Logger.networking.debug("\(#function) request completed")
-            return AuthoriseResponse(location: location, setCookie: setCookie)
+            return OAuthAuthoriseResponse(location: location, setCookie: setCookie)
         } else if request.httpErrorCodes.contains(statusCode) {
             try throwError(forErrorBody: response.data, request: request)
         }
@@ -120,11 +119,8 @@ public struct DefaultAuthService: AuthService {
 
     // MARK: Create Account
 
-    public struct CreateAccountResponse {
-        let location: String
-    }
 
-    public func createAccount(authSessionID: String) async throws -> CreateAccountResponse {
+    public func createAccount(authSessionID: String) async throws -> OAuthLocation {
         guard let request = AuthRequest.createAccount(baseURL: baseURL, authSessionID: authSessionID) else {
             throw AuthServiceError.invalidRequest
         }
@@ -135,9 +131,8 @@ public struct DefaultAuthService: AuthService {
 
         let statusCode = response.httpResponse.httpStatus
         if statusCode == request.httpSuccessCode {
-            let location = try extract(header: HTTPHeaderKey.location, from: response.httpResponse)
             Logger.networking.debug("\(#function) request completed")
-            return CreateAccountResponse(location: location)
+            return try extract(header: HTTPHeaderKey.location, from: response.httpResponse)
         } else if request.httpErrorCodes.contains(statusCode) {
             try throwError(forErrorBody: response.data, request: request)
         }
@@ -163,4 +158,51 @@ public struct DefaultAuthService: AuthService {
         }
         throw AuthServiceError.invalidResponseCode(statusCode)
     }
+
+    // MARK: Login
+
+    public func login(authSessionID: String, method: OAuthLoginMethod) async throws -> OAuthLocation {
+        guard let request = AuthRequest.login(baseURL: baseURL, authSessionID: authSessionID, method: method) else {
+            throw AuthServiceError.invalidRequest
+        }
+
+        try Task.checkCancellation()
+        let response = try await apiService.fetch(request: request.apiRequest)
+        try Task.checkCancellation()
+
+        let statusCode = response.httpResponse.httpStatus
+        if statusCode == request.httpSuccessCode {
+            Logger.networking.debug("\(#function) request completed")
+            return try extract(header: HTTPHeaderKey.location, from: response.httpResponse)
+        } else if request.httpErrorCodes.contains(statusCode) {
+            try throwError(forErrorBody: response.data, request: request)
+        }
+        throw AuthServiceError.invalidResponseCode(statusCode)
+    }
 }
+
+// MARK: - Requests' support models and types
+
+public struct OAuthAuthoriseResponse {
+    let location: String
+    let setCookie: String
+}
+
+public protocol OAuthLoginMethod {
+    var name: String { get }
+}
+
+public struct OAuthLoginMethodOTP: OAuthLoginMethod {
+    public let name = "otp"
+    let email: String
+    let otp: String
+}
+
+public struct OAuthLoginMethodSignature: OAuthLoginMethod {
+    public let name = "signature"
+    let signature: String
+    let source = "apple_store" // TODO: verify with Thomas
+}
+
+/// The redirect URI from the original Authorization request indicated by the ddg_auth_session_id in the provided Cookie header, with the authorization code needed for the Access Token request appended as a query param. The intention is that the client will intercept this redirect and extract the authorization code to make the Access Token request in the background.
+public typealias OAuthLocation = String
