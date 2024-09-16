@@ -18,7 +18,7 @@
 
 import Foundation
 
-public enum APIResponseRequirementV2: String, CustomDebugStringConvertible {
+public enum APIResponseConstraints: String, CustomDebugStringConvertible {
     case requireETagHeader = "Require ETag header"
     case allowHTTPNotModified = "Allow 'Not Modified' HTTP response"
     case requireUserAgent = "Require user agent"

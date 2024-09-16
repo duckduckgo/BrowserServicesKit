@@ -39,8 +39,8 @@ final class APIServiceTests: XCTestCase {
                                    body: Data(),
                                    timeoutInterval: TimeInterval(20),
                                    cachePolicy: .reloadIgnoringLocalAndRemoteCacheData,
-                                   responseRequirements: [APIResponseRequirementV2.allowHTTPNotModified,
-                                                          APIResponseRequirementV2.requireETagHeader],
+                                   responseConstraints: [APIResponseConstraints.allowHTTPNotModified,
+                                                          APIResponseConstraints.requireETagHeader],
                                    allowedQueryReservedCharacters: CharacterSet(charactersIn: ","))!
         let apiService = DefaultAPIService()
         let responseHTML: String? = try await apiService.fetch(request: request)
@@ -109,8 +109,8 @@ final class APIServiceTests: XCTestCase {
     // MARK: - allowHTTPNotModified
 
     func testResponseRequirementAllowHTTPNotModifiedSuccess() async throws {
-        let requirements = [APIResponseRequirementV2.allowHTTPNotModified ]
-        let request = APIRequestV2(url: HTTPURLResponse.testUrl, responseRequirements: requirements)!
+        let requirements = [APIResponseConstraints.allowHTTPNotModified ]
+        let request = APIRequestV2(url: HTTPURLResponse.testUrl, responseConstraints: requirements)!
 
         MockURLProtocol.requestHandler = { _ in ( HTTPURLResponse.notModified, Data()) }
 
@@ -132,7 +132,7 @@ final class APIServiceTests: XCTestCase {
         } catch {
             guard let error = error as? APIRequestV2.Error,
                   case .unsatisfiedRequirement(let requirement) = error,
-                  requirement == APIResponseRequirementV2.allowHTTPNotModified
+                  requirement == APIResponseConstraints.allowHTTPNotModified
             else {
                 XCTFail("Unexpected error thrown: \(error).")
                 return
@@ -143,10 +143,10 @@ final class APIServiceTests: XCTestCase {
     // MARK: - requireETagHeader
 
     func testResponseRequirementRequireETagHeaderSuccess() async throws {
-        let requirements: [APIResponseRequirementV2] = [
-            APIResponseRequirementV2.requireETagHeader
+        let requirements: [APIResponseConstraints] = [
+            APIResponseConstraints.requireETagHeader
         ]
-        let request = APIRequestV2(url: HTTPURLResponse.testUrl, responseRequirements: requirements)!
+        let request = APIRequestV2(url: HTTPURLResponse.testUrl, responseConstraints: requirements)!
         MockURLProtocol.requestHandler = { _ in ( HTTPURLResponse.ok, nil) } // HTTPURLResponse.ok contains etag
 
         let apiService = DefaultAPIService(urlSession: mockURLSession)
@@ -156,8 +156,8 @@ final class APIServiceTests: XCTestCase {
     }
 
     func testResponseRequirementRequireETagHeaderFailure() async throws {
-        let requirements = [ APIResponseRequirementV2.requireETagHeader ]
-        let request = APIRequestV2(url: HTTPURLResponse.testUrl, responseRequirements: requirements)!
+        let requirements = [ APIResponseConstraints.requireETagHeader ]
+        let request = APIRequestV2(url: HTTPURLResponse.testUrl, responseConstraints: requirements)!
 
         MockURLProtocol.requestHandler = { _ in ( HTTPURLResponse.okNoEtag, nil) }
 
@@ -168,7 +168,7 @@ final class APIServiceTests: XCTestCase {
         } catch {
             guard let error = error as? APIRequestV2.Error,
                   case .unsatisfiedRequirement(let requirement) = error,
-                  requirement == APIResponseRequirementV2.requireETagHeader
+                  requirement == APIResponseConstraints.requireETagHeader
             else {
                 XCTFail("Unexpected error thrown: \(error).")
                 return
@@ -179,8 +179,8 @@ final class APIServiceTests: XCTestCase {
     // MARK: - requireUserAgent
 
     func testResponseRequirementRequireUserAgentSuccess() async throws {
-        let requirements = [ APIResponseRequirementV2.requireUserAgent ]
-        let request = APIRequestV2(url: HTTPURLResponse.testUrl, responseRequirements: requirements)!
+        let requirements = [ APIResponseConstraints.requireUserAgent ]
+        let request = APIRequestV2(url: HTTPURLResponse.testUrl, responseConstraints: requirements)!
 
         MockURLProtocol.requestHandler = { _ in
             ( HTTPURLResponse.okUserAgent, nil)
@@ -193,8 +193,8 @@ final class APIServiceTests: XCTestCase {
     }
 
     func testResponseRequirementRequireUserAgentFailure() async throws {
-        let requirements = [ APIResponseRequirementV2.requireUserAgent ]
-        let request = APIRequestV2(url: HTTPURLResponse.testUrl, responseRequirements: requirements)!
+        let requirements = [ APIResponseConstraints.requireUserAgent ]
+        let request = APIRequestV2(url: HTTPURLResponse.testUrl, responseConstraints: requirements)!
 
         MockURLProtocol.requestHandler = { _ in ( HTTPURLResponse.ok, nil) }
 
@@ -205,7 +205,7 @@ final class APIServiceTests: XCTestCase {
         } catch {
             guard let error = error as? APIRequestV2.Error,
                   case .unsatisfiedRequirement(let requirement) = error,
-                  requirement == APIResponseRequirementV2.requireUserAgent
+                  requirement == APIResponseConstraints.requireUserAgent
             else {
                 XCTFail("Unexpected error thrown: \(error).")
                 return

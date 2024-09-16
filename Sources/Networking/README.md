@@ -16,9 +16,9 @@ let request = APIRequestV2(url: HTTPURLResponse.testUrl,
                            body: Data(),
                            timeoutInterval: TimeInterval(20),
                            cachePolicy: .reloadIgnoringLocalAndRemoteCacheData,
-                           requirements: [APIResponseRequirementV2.allowHTTPNotModified,
-                                          APIResponseRequirementV2.requireETagHeader,
-                                          APIResponseRequirementV2.requireUserAgent],
+                           responseConstraints: [.allowHTTPNotModified,
+                                                 .requireETagHeader,
+                                                 .requireUserAgent],
                            allowedQueryReservedCharacters: CharacterSet(charactersIn: ","))!
 let apiService = DefaultAPIService(urlSession: URLSession.shared)
 ```
