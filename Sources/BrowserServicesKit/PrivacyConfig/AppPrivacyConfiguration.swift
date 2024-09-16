@@ -49,6 +49,10 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         self.installDate = installDate
     }
 
+    public var version: String? {
+        return data.version
+    }
+
     public var userUnprotectedDomains: [String] {
         return Array(locallyUnprotected.unprotectedDomains).normalizedDomainsForContentBlocking().sorted()
     }
