@@ -83,13 +83,13 @@ public struct DefaultAPIService: APIService {
         }
 
         // Check requirements
-        let notModifiedIsAllowed: Bool = request.responseRequirements?.contains(.allowHTTPNotModified) ?? false
+        let notModifiedIsAllowed: Bool = request.responseConstraints?.contains(.allowHTTPNotModified) ?? false
         if responseHTTPStatus == .notModified && !notModifiedIsAllowed {
             let error = APIRequestV2.Error.unsatisfiedRequirement(.allowHTTPNotModified)
             Logger.networking.error("Error: \(error.localizedDescription)")
             throw error
         }
-        if let requirements = request.responseRequirements {
+        if let requirements = request.responseConstraints {
             for requirement in requirements {
                 switch requirement {
                 case .requireETagHeader:

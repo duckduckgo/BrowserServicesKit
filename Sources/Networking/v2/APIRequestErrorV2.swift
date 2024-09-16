@@ -23,7 +23,7 @@ extension APIRequestV2 {
     public enum Error: Swift.Error, LocalizedError {
         case urlSession(Swift.Error)
         case invalidResponse
-        case unsatisfiedRequirement(APIResponseRequirementV2)
+        case unsatisfiedRequirement(APIResponseConstraints)
         case invalidStatusCode(Int)
         case invalidDataType
 

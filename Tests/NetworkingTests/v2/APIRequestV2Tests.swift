@@ -30,7 +30,7 @@ final class APIRequestV2Tests: XCTestCase {
         let body = "Test body".data(using: .utf8)
         let timeoutInterval: TimeInterval = 30.0
         let cachePolicy: URLRequest.CachePolicy = .reloadIgnoringLocalCacheData
-        let requirements: [APIResponseRequirementV2] = []
+        let constraints: [APIResponseConstraints] = []
 
         let apiRequest = APIRequestV2(url: url,
                                       method: method,
@@ -39,7 +39,7 @@ final class APIRequestV2Tests: XCTestCase {
                                       body: body,
                                       timeoutInterval: timeoutInterval,
                                       cachePolicy: cachePolicy,
-                                      responseRequirements: requirements)
+                                      responseConstraints: constraints)
 
         guard let urlRequest = apiRequest?.urlRequest else {
             XCTFail("Nil URLRequest")
@@ -55,7 +55,7 @@ final class APIRequestV2Tests: XCTestCase {
         XCTAssertEqual(urlRequest.httpBody, body)
         XCTAssertEqual(apiRequest?.timeoutInterval, timeoutInterval)
         XCTAssertEqual(urlRequest.cachePolicy, cachePolicy)
-        XCTAssertEqual(apiRequest?.responseRequirements, requirements)
+        XCTAssertEqual(apiRequest?.responseConstraints, constraints)
     }
 
     func testURLRequestGeneration() {
@@ -101,7 +101,7 @@ final class APIRequestV2Tests: XCTestCase {
         XCTAssertEqual(headers.httpHeaders, urlRequest.allHTTPHeaderFields)
         XCTAssertNil(urlRequest.httpBody)
         XCTAssertEqual(urlRequest.cachePolicy.rawValue, 0)
-        XCTAssertNil(apiRequest?.responseRequirements)
+        XCTAssertNil(apiRequest?.responseConstraints)
     }
 
     func testAllowedQueryReservedCharacters() {
