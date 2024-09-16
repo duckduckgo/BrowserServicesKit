@@ -21,9 +21,8 @@ import Foundation
 public protocol SuggestionLoading: AnyObject {
 
     func getSuggestions(query: Query,
+                        usingDataSource dataSource: SuggestionLoadingDataSource,
                         completion: @escaping (SuggestionResult?, Error?) -> Void)
-
-    var dataSource: SuggestionLoadingDataSource? { get set }
 
 }
 
@@ -38,22 +37,15 @@ public class SuggestionLoader: SuggestionLoading {
         case failedToProcessData
     }
 
-    public weak var dataSource: SuggestionLoadingDataSource?
-    private let processing: SuggestionProcessing
     private let urlFactory: (String) -> URL?
 
-    public init(dataSource: SuggestionLoadingDataSource? = nil, urlFactory: @escaping (String) -> URL?) {
-        self.dataSource = dataSource
+    public init(urlFactory: @escaping (String) -> URL?) {
         self.urlFactory = urlFactory
-        self.processing = SuggestionProcessing(urlFactory: urlFactory)
     }
 
     public func getSuggestions(query: Query,
+                               usingDataSource dataSource: SuggestionLoadingDataSource,
                                completion: @escaping (SuggestionResult?, Error?) -> Void) {
-        guard let dataSource = dataSource else {
-            completion(nil, SuggestionLoaderError.noDataSource)
-            return
-        }
 
         if query.isEmpty {
             completion(.empty, nil)
@@ -95,7 +87,9 @@ public class SuggestionLoader: SuggestionLoading {
 
         // 2) Processing it
         group.notify(queue: .global(qos: .userInitiated)) { [weak self] in
-            let result = self?.processing.result(for: query,
+            guard let self = self else { return }
+            let processor = SuggestionProcessing(platform: dataSource.platform, urlFactory: self.urlFactory)
+            let result = processor.result(for: query,
                                                  from: history,
                                                  bookmarks: bookmarks,
                                                  internalPages: internalPages,
@@ -113,6 +107,8 @@ public class SuggestionLoader: SuggestionLoading {
 }
 
 public protocol SuggestionLoadingDataSource: AnyObject {
+
+    var platform: Platform { get }
 
     func bookmarks(for suggestionLoading: SuggestionLoading) -> [Bookmark]
 

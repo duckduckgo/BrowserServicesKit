@@ -25,58 +25,76 @@ final class SuggestionProcessingTests: XCTestCase {
     static let simpleUrlFactory: (String) -> URL? = { _ in return nil }
 
     func testWhenDuplicatesAreInSourceArrays_ThenTheOneWithTheBiggestInformationValueIsUsed() {
-        let processing = SuggestionProcessing(urlFactory: Self.simpleUrlFactory)
-        let result = processing.result(for: "DuckDuckGo",
-                                       from: HistoryEntryMock.aHistory,
-                                       bookmarks: BookmarkMock.someBookmarks,
-                                       internalPages: InternalPage.someInternalPages,
-                                       apiResult: APIResult.anAPIResult)
+        func runAssertion(_ platform: Platform) {
+            let processing = SuggestionProcessing(platform: platform, urlFactory: Self.simpleUrlFactory)
+            let result = processing.result(for: "DuckDuckGo",
+                                                  from: HistoryEntryMock.aHistory,
+                                                  bookmarks: BookmarkMock.someBookmarks,
+                                                  internalPages: InternalPage.someInternalPages,
+                                                  openTabs: [],
+                                                  apiResult: APIResult.anAPIResult)
 
-        XCTAssertEqual(result!.topHits.count, 1)
-        XCTAssertEqual(result!.topHits.first!.title, "DuckDuckGo")
+            XCTAssertEqual(result!.topHits.count, 1)
+            XCTAssertEqual(result!.topHits.first!.title, "DuckDuckGo")
+        }
+
+        // Same for both platforms
+        runAssertion(.desktop)
+        runAssertion(.mobile)
     }
 
     func testWhenBuildingTopHits_ThenOnlyWebsiteSuggestionsAreUsedForNavigationalSuggestions() {
 
-        let processing = SuggestionProcessing(urlFactory: Self.simpleUrlFactory)
+        func runAssertion(_ platform: Platform) {
+            let processing = SuggestionProcessing(platform: platform, urlFactory: Self.simpleUrlFactory)
 
-        let result = processing.result(for: "DuckDuckGo",
-                                       from: HistoryEntryMock.aHistory,
-                                       bookmarks: BookmarkMock.someBookmarks,
-                                       internalPages: InternalPage.someInternalPages,
-                                       apiResult: APIResult.anAPIResultWithNav)
+            let result = processing.result(for: "DuckDuckGo",
+                                                 from: HistoryEntryMock.aHistory,
+                                                 bookmarks: BookmarkMock.someBookmarks,
+                                                 internalPages: InternalPage.someInternalPages,
+                                                 openTabs: [],
+                                                 apiResult: APIResult.anAPIResultWithNav)
 
-        XCTAssertEqual(result!.topHits.count, 2)
-        XCTAssertEqual(result!.topHits.first!.title, "DuckDuckGo")
-        XCTAssertEqual(result!.topHits.last!.url?.absoluteString, "http://www.example.com")
+            XCTAssertEqual(result!.topHits.count, 2)
+            XCTAssertEqual(result!.topHits.first!.title, "DuckDuckGo")
+            XCTAssertEqual(result!.topHits.last!.url?.absoluteString, "http://www.example.com")
+        }
 
+        // Same for both platforms
+        runAssertion(.desktop)
+        runAssertion(.mobile)
     }
 
     func testWhenWebsiteInTopHits_ThenWebsiteRemovedFromSuggestions() {
 
-        let processing = SuggestionProcessing(urlFactory: Self.simpleUrlFactory)
+        func runAssertion(_ platform: Platform) {
+            let processing = SuggestionProcessing(platform: platform, urlFactory: Self.simpleUrlFactory)
 
-        guard let result = processing.result(for: "DuckDuckGo",
-                                             from: [],
-                                             bookmarks: [],
-                                             internalPages: [],
-                                             apiResult: APIResult.anAPIResultWithNav) else {
-            XCTFail("Expected result")
-            return
+            guard let result = processing.result(for: "DuckDuckGo",
+                                                 from: [],
+                                                 bookmarks: [],
+                                                 internalPages: [],
+                                                 openTabs: [],
+                                                 apiResult: APIResult.anAPIResultWithNav) else {
+                XCTFail("Expected result")
+                return
+            }
+
+            XCTAssertEqual(result.topHits.count, 1)
+            XCTAssertEqual(result.topHits[0].url?.absoluteString, "http://www.example.com")
+
+            XCTAssertFalse(
+                result.duckduckgoSuggestions.contains(where: {
+                    if case .website(let url) = $0, url.absoluteString.hasSuffix("://www.example.com") {
+                        return true
+                    }
+                    return false
+                })
+            )
         }
-
-        XCTAssertEqual(result.topHits.count, 1)
-        XCTAssertEqual(result.topHits[0].url?.absoluteString, "http://www.example.com")
-
-        XCTAssertFalse(
-            result.duckduckgoSuggestions.contains(where: {
-                if case .website(let url) = $0, url.absoluteString.hasSuffix("://www.example.com") {
-                    return true
-                }
-                return false
-            })
-        )
-
+        // Same for both platforms
+        runAssertion(.desktop)
+        runAssertion(.mobile)
     }
 
 }

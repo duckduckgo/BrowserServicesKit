@@ -19,14 +19,22 @@
 import Foundation
 import Common
 
+public enum Platform {
+
+    case mobile, desktop
+
+}
+
 /// Class encapsulates the whole ordering and filtering algorithm
 /// It takes query, history, bookmarks, and apiResult as input parameters
 /// The output is instance of SuggestionResult
 final class SuggestionProcessing {
 
+    private let platform: Platform
     private var urlFactory: (String) -> URL?
 
-    init(urlFactory: @escaping (String) -> URL?) {
+    init(platform: Platform, urlFactory: @escaping (String) -> URL?) {
+        self.platform = platform
         self.urlFactory = urlFactory
     }
 
