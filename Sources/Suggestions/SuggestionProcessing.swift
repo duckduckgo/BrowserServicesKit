@@ -72,7 +72,7 @@ final class SuggestionProcessing {
         let topHits = topHits(from: mergedSuggestions)
         let localSuggestions = Array(mergedSuggestions.dropFirst(topHits.count).filter { suggestion in
             switch suggestion {
-            case .bookmark, .historyEntry, .internalPage:
+            case .bookmark, .openTab, .historyEntry, .internalPage:
                 return true
             default:
                 return false
@@ -166,7 +166,7 @@ final class SuggestionProcessing {
 
     // The point of this method is to prioritise duplicates that
     // provide a higher value or replace history suggestions with bookmark suggestions
-    private func merge(_ suggestions: [Suggestion], maximum: Int? = nil) -> [Suggestion] {
+    private func merge(_ suggestions: [Suggestion], maximum: Int) -> [Suggestion] {
 
         // Finds a duplicate with the same URL and available title
         func findDuplicateContainingTitle(_ suggestion: Suggestion,
@@ -283,12 +283,14 @@ final class SuggestionProcessing {
             urls.insert(suggestionNakedUrl)
             newSuggestions.append(newSuggestion ?? suggestion)
 
-            if let maximum = maximum, newSuggestions.count >= maximum {
+            if newSuggestions.count >= maximum {
+                // We've got what we need so bail out
                 break
             }
         }
 
-        return newSuggestions
+        // Just in case we have gone over, only return the maximum allowed
+        return Array(newSuggestions.prefix(maximum))
     }
 
     // MARK: - Top Hits

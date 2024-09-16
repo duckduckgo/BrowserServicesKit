@@ -67,6 +67,20 @@ public enum Suggestion: Equatable {
         }
     }
 
+    var isOpenTab: Bool {
+        if case .openTab = self {
+            return true
+        }
+        return false
+    }
+
+    var isBookmark: Bool {
+        if case .bookmark = self {
+            return true
+        }
+        return false
+    }
+
 }
 
 extension Suggestion {
