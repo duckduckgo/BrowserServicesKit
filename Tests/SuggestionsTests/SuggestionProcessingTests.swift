@@ -24,6 +24,36 @@ final class SuggestionProcessingTests: XCTestCase {
 
     static let simpleUrlFactory: (String) -> URL? = { _ in return nil }
 
+    func testWhenOnDesktop_ThenBookmarksNotInTopHitsWithoutHistoryVisits() {
+
+        let processing = SuggestionProcessing(platform: .desktop, urlFactory: Self.simpleUrlFactory)
+        let result = processing.result(for: "Duck",
+                                       from: HistoryEntryMock.duckHistoryWithoutDuckDuckGo,
+                                       bookmarks: BookmarkMock.someBookmarks,
+                                       internalPages: [],
+                                       openTabs: [],
+                                       apiResult: APIResult.anAPIResult)
+
+        XCTAssertEqual(false, result?.topHits.contains(where: { $0.title == "DuckDuckGo" }))
+        XCTAssertEqual(1, result?.localSuggestions.count)
+        XCTAssertEqual(true, result?.localSuggestions.contains(where: { $0.title == "DuckDuckGo" }))
+
+    }
+
+    func testWhenOnMobile_ThenBookmarksAlwaysInTopHits() {
+
+        let processing = SuggestionProcessing(platform: .mobile, urlFactory: Self.simpleUrlFactory)
+        let result = processing.result(for: "Duck",
+                                              from: [],
+                                              bookmarks: BookmarkMock.someBookmarks,
+                                              internalPages: [],
+                                              openTabs: [],
+                                              apiResult: APIResult.anAPIResult)
+
+        XCTAssertEqual(true, result?.topHits.contains(where: { $0.title == "DuckDuckGo" }))
+
+    }
+
     func testWhenDuplicatesAreInSourceArrays_ThenTheOneWithTheBiggestInformationValueIsUsed() {
         func runAssertion(_ platform: Platform) {
             let processing = SuggestionProcessing(platform: platform, urlFactory: Self.simpleUrlFactory)
@@ -109,6 +139,28 @@ extension HistoryEntryMock {
                            lastVisit: Date(),
                            failedToLoad: false,
                            isDownload: false)
+        ]
+    }
+
+    static var duckHistoryWithoutDuckDuckGo: [HistorySuggestion] {
+        [
+            HistoryEntryMock(identifier: UUID(),
+                           url: URL(string: "http://www.ducktails.com")!,
+                           title: nil,
+                           numberOfVisits: 100,
+                           lastVisit: Date(),
+                           failedToLoad: false,
+                           isDownload: false),
+
+            HistoryEntryMock(identifier: UUID(),
+                           url: URL(string: "http://www.duck.com")!,
+                           title: "DuckMail",
+                           numberOfVisits: 300,
+                           lastVisit: Date(),
+                           failedToLoad: false,
+                           isDownload: false)
+
+
         ]
     }
 

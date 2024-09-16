@@ -194,19 +194,21 @@ final class SuggestionProcessing {
 
             switch newSuggestion {
             case .bookmark(title: let title, url: let url, isFavorite: let isFavorite, allowedInTopHits: _):
-#if os(macOS)
-                // Copy allowedInTopHits from original suggestion
-                return Suggestion.bookmark(title: title,
-                                           url: url,
-                                           isFavorite: isFavorite,
-                                           allowedInTopHits: historySuggestion.allowedInTopHits)
-#else
-                // iOS always allows bookmarks in the top hits
-                return Suggestion.bookmark(title: title,
-                                           url: url,
-                                           isFavorite: isFavorite,
-                                           allowedInTopHits: true)
-#endif
+                switch platform {
+                case .desktop:
+                    // Copy allowedInTopHits from original suggestion
+                    return Suggestion.bookmark(title: title,
+                                               url: url,
+                                               isFavorite: isFavorite,
+                                               allowedInTopHits: historySuggestion.allowedInTopHits)
+                case .mobile:
+                    // iOS always allows bookmarks in the top hits
+                    return Suggestion.bookmark(title: title,
+                                               url: url,
+                                               isFavorite: isFavorite,
+                                               allowedInTopHits: true)
+                }
+
             case .openTab(title: let title, url: let url):
                 return .openTab(title: title, url: url)
 
@@ -225,17 +227,18 @@ final class SuggestionProcessing {
                 if case .historyEntry = $0, $0.url?.naked == nakedUrl { return true }
                 return false
             }), historySuggestion.allowedInTopHits {
-                #if os(macOS)
-                return Suggestion.bookmark(title: title,
-                                           url: url,
-                                           isFavorite: isFavorite,
-                                           allowedInTopHits: historySuggestion.allowedInTopHits)
-                #else
-                return Suggestion.bookmark(title: title,
-                                           url: url,
-                                           isFavorite: isFavorite,
-                                           allowedInTopHits: true)
-                #endif
+                switch platform {
+                case .desktop:
+                    return Suggestion.bookmark(title: title,
+                                               url: url,
+                                               isFavorite: isFavorite,
+                                               allowedInTopHits: historySuggestion.allowedInTopHits)
+                case .mobile:
+                    return Suggestion.bookmark(title: title,
+                                               url: url,
+                                               isFavorite: isFavorite,
+                                               allowedInTopHits: true)
+                }
             } else {
                 return nil
             }
@@ -286,11 +289,12 @@ final class SuggestionProcessing {
 
     // MARK: - Top Hits
 
+    /// Take the top two items from the suggestions, but only up to the first suggestion that is not allowed in top hits
     private func topHits(from suggestions: [Suggestion]) -> [Suggestion] {
         var topHits = [Suggestion]()
 
-        for (i, suggestion) in suggestions.enumerated() {
-            guard i <= Self.maximumNumberOfTopHits else { break }
+        for suggestion in suggestions {
+            guard topHits.count < Self.maximumNumberOfTopHits else { break }
 
             if suggestion.allowedInTopHits {
                 topHits.append(suggestion)
@@ -311,8 +315,10 @@ final class SuggestionProcessing {
     private func makeResult(topHits: [Suggestion],
                             duckduckgoSuggestions: [Suggestion],
                             localSuggestions: [Suggestion]) -> SuggestionResult {
+
+        assert(topHits.count <= Self.maximumNumberOfTopHits)
+
         // Top Hits
-        let topHits = Array(topHits.prefix(2))
         var total = topHits.count
 
         // History and Bookmarks
