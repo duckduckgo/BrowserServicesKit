@@ -62,7 +62,7 @@ open class DefaultConfigurationManager: NSObject {
     public var fetcher: ConfigurationFetching
     public var store: ConfigurationStoring
 
-    public init(fetcher: ConfigurationFetching, store: ConfigurationStoring, defaults: KeyValueStoring = UserDefaults()) {
+    public init(fetcher: ConfigurationFetching, store: ConfigurationStoring, defaults: KeyValueStoring) {
         self.fetcher = fetcher
         self.store = store
         self.defaults = defaults
