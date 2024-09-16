@@ -71,19 +71,20 @@ public enum Suggestion: Equatable {
 
 extension Suggestion {
 
+    init?(bookmark: Bookmark, allowedInTopHits: Bool) {
+        guard let urlObject = URL(string: bookmark.url) else { return nil }
+        self = .bookmark(title: bookmark.title,
+                         url: urlObject,
+                         isFavorite: bookmark.isFavorite,
+                         allowedInTopHits: allowedInTopHits)
+    }
+
     init?(bookmark: Bookmark) {
         guard let urlObject = URL(string: bookmark.url) else { return nil }
-        #if os(macOS)
         self = .bookmark(title: bookmark.title,
                          url: urlObject,
                          isFavorite: bookmark.isFavorite,
                          allowedInTopHits: bookmark.isFavorite)
-        #else
-        self = .bookmark(title: bookmark.title,
-                         url: urlObject,
-                         isFavorite: bookmark.isFavorite,
-                         allowedInTopHits: true)
-        #endif
     }
 
     init(historyEntry: HistorySuggestion) {

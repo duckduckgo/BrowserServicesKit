@@ -145,7 +145,11 @@ final class SuggestionProcessing {
             .compactMap {
                 switch $0.item {
                 case .bookmark(let bookmark):
-                    return Suggestion(bookmark: bookmark)
+                    switch platform {
+                    case .desktop: return Suggestion(bookmark: bookmark)
+                    case .mobile: return Suggestion(bookmark: bookmark, allowedInTopHits: true)
+                    }
+                    
                 case .history(let historyEntry):
                     return Suggestion(historyEntry: historyEntry)
                 case .internalPage(let internalPage):

@@ -24,6 +24,64 @@ final class SuggestionProcessingTests: XCTestCase {
 
     static let simpleUrlFactory: (String) -> URL? = { _ in return nil }
 
+    func testWhenTabsAndBookmarksAvailableOnMobile_ThenReplaceHistoryWithBoth() {
+
+        let tabs = [
+            BrowserTabMock(url: "http://duckduckgo.com", title: "DuckDuckGo"),
+            BrowserTabMock(url: "http://ducktails.com", title: "Duck Tails"),
+            BrowserTabMock(url: "wikipedia.org", title: "Wikipedia")
+        ]
+
+        let bookmarks = [
+            BookmarkMock(url: "http://ducktails.com", title: "Duck Tails", isFavorite: false)
+        ]
+
+        let processing = SuggestionProcessing(platform: .mobile, urlFactory: Self.simpleUrlFactory)
+        let result = processing.result(for: "Duck Tails",
+                                       from: HistoryEntryMock.duckHistoryWithoutDuckDuckGo,
+                                       bookmarks: bookmarks,
+                                       internalPages: [],
+                                       openTabs: tabs,
+                                       apiResult: APIResult.anAPIResult)
+
+        XCTAssertEqual(true, result?.topHits.contains(where: {
+            if case .bookmark = $0, $0.title == "Duck Tails" {
+                return true
+            }
+            return false
+        }))
+        XCTAssertEqual(true, result?.topHits.contains(where: {
+            if case .openTab = $0, $0.title == "Duck Tails" {
+                return true
+            }
+            return false
+        }))
+    }
+
+    func testWhenTabsAvailableOnMobile_ThenReplaceHistoryLikeBookmarks() {
+
+        let tabs = [
+            BrowserTabMock(url: "http://duckduckgo.com", title: "DuckDuckGo"),
+            BrowserTabMock(url: "http://ducktails.com", title: "Duck Tails"),
+            BrowserTabMock(url: "wikipedia.org", title: "Wikipedia")
+        ]
+
+        let processing = SuggestionProcessing(platform: .desktop, urlFactory: Self.simpleUrlFactory)
+        let result = processing.result(for: "Duck Tails",
+                                       from: HistoryEntryMock.duckHistoryWithoutDuckDuckGo,
+                                       bookmarks: [],
+                                       internalPages: [],
+                                       openTabs: tabs,
+                                       apiResult: APIResult.anAPIResult)
+
+        XCTAssertEqual(true, result?.topHits.contains(where: {
+            if case .openTab = $0, $0.title == "Duck Tails" {
+                return true
+            }
+            return false
+        }))
+    }
+
     func testWhenOnDesktop_ThenBookmarksNotInTopHitsWithoutHistoryVisits() {
 
         let processing = SuggestionProcessing(platform: .desktop, urlFactory: Self.simpleUrlFactory)
