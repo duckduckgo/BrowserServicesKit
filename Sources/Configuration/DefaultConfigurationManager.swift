@@ -87,17 +87,21 @@ open class DefaultConfigurationManager: NSObject {
     }
 
     private var timerCancellable: AnyCancellable?
+    private var refreshTask: Task<Never, Swift.Error>? {
+        willSet {
+            refreshTask?.cancel()
+        }
+    }
     public var lastRefreshCheckTime: Date = Date()
 
     public func start() {
         Logger.config.debug("Starting configuration refresh timer")
-        timerCancellable = Timer.publish(every: Constants.refreshCheckIntervalSeconds, on: .main, in: .default)
-            .autoconnect()
-            .receive(on: Self.queue)
-            .sink(receiveValue: { _ in
-                self.lastRefreshCheckTime = Date()
-                self.refreshIfNeeded()
-            })
+        refreshTask = Task.periodic(interval: Constants.refreshCheckIntervalSeconds) {
+            Self.queue.async { [weak self] in
+                self?.lastRefreshCheckTime = Date()
+                self?.refreshIfNeeded()
+            }
+        }
         Task {
             await refreshNow()
         }
