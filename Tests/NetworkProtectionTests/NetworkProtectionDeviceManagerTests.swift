@@ -40,8 +40,7 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
             networkClient: networkClient,
             tokenStore: tokenStore,
             keyStore: keyStore,
-            errorEvents: nil,
-            isSubscriptionEnabled: false
+            errorEvents: nil
         )
     }
 
