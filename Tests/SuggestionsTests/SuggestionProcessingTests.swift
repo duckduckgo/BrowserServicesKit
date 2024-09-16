@@ -24,6 +24,21 @@ final class SuggestionProcessingTests: XCTestCase {
 
     static let simpleUrlFactory: (String) -> URL? = { _ in return nil }
 
+    func testWhenOnlyHistoryMatches_ThenHistoryInTopHits() {
+
+        let processing = SuggestionProcessing(platform: .mobile, urlFactory: Self.simpleUrlFactory)
+        let result = processing.result(for: "Duck",
+                                       from: HistoryEntryMock.duckHistoryWithoutDuckDuckGo,
+                                       bookmarks: [],
+                                       internalPages: [],
+                                       openTabs: [],
+                                       apiResult: APIResult.anAPIResult)
+
+        XCTAssertEqual(true, result?.topHits.contains(where: { $0.title == "DuckMail" }))
+        XCTAssertEqual(2, result?.topHits.count)
+        XCTAssertEqual(0, result?.localSuggestions.count)
+    }
+
     func testWhenTabsAndBookmarksAvailableOnMobile_ThenReplaceHistoryWithBoth() {
 
         let tabs = [
@@ -97,7 +112,7 @@ final class SuggestionProcessingTests: XCTestCase {
         ]
 
         let processing = SuggestionProcessing(platform: .desktop, urlFactory: Self.simpleUrlFactory)
-        let result = processing.result(for: "Duck",
+        let result = processing.result(for: "DuckDuckGo",
                                        from: HistoryEntryMock.duckHistoryWithoutDuckDuckGo,
                                        bookmarks: bookmarks,
                                        internalPages: [],

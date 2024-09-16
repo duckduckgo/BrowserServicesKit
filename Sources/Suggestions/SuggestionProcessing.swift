@@ -67,7 +67,6 @@ final class SuggestionProcessing {
             Self.maximumNumberOfSuggestions - Self.minimumNumberInSuggestionGroup,
             query.count + 1)
         let expandedSuggestions = replaceHistoryWithBookmarksAndTabs(navigationalSuggestions)
-        // let mergedSuggestions = Array(merge(expandedSuggestions).prefix(maximumOfNavigationalSuggestions))
 
         let dedupedNavigationalSuggestions = Array(dedupSuggestions(expandedSuggestions).prefix(maximumOfNavigationalSuggestions))
 
@@ -161,16 +160,25 @@ final class SuggestionProcessing {
                 continue
             }
 
+            var foundTab = false
+            var foundBookmark = false
+
             if let tab = sourceSuggestions[i ..< sourceSuggestions.endIndex].first(where: {
                 $0.isOpenTab && $0.url?.naked == suggestion.url?.naked
             }) {
+                foundTab = true
                 expanded.append(tab)
             }
 
             if case .bookmark(title: let title, url: let url, isFavorite: let isFavorite, allowedInTopHits: let allowedInTopHits) = sourceSuggestions[i ..< sourceSuggestions.endIndex].first(where: {
                 $0.isBookmark && $0.url?.naked == suggestion.url?.naked
             }) {
+                foundBookmark = true
                 expanded.append(.bookmark(title: title, url: url, isFavorite: isFavorite, allowedInTopHits: allowedInTopHits))
+            }
+
+            if !foundTab && !foundBookmark {
+                expanded.append(suggestion)
             }
         }
         return expanded
