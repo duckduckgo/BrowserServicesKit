@@ -66,10 +66,16 @@ final class SuggestionProcessingTests: XCTestCase {
             BrowserTabMock(url: "wikipedia.org", title: "Wikipedia")
         ]
 
+        let bookmarks = [ 
+            BookmarkMock(url: "http://duckduckgo.com", title: "DuckDuckGo", isFavorite: false),
+            BookmarkMock(url: "spreadprivacy.com", title: "Test 2", isFavorite: false),
+            BookmarkMock(url: "wikipedia.org", title: "Wikipedia", isFavorite: false)
+        ]
+
         let processing = SuggestionProcessing(platform: .desktop, urlFactory: Self.simpleUrlFactory)
         let result = processing.result(for: "Duck Tails",
                                        from: HistoryEntryMock.duckHistoryWithoutDuckDuckGo,
-                                       bookmarks: [],
+                                       bookmarks: bookmarks,
                                        internalPages: [],
                                        openTabs: tabs,
                                        apiResult: APIResult.anAPIResult)
@@ -82,12 +88,40 @@ final class SuggestionProcessingTests: XCTestCase {
         }))
     }
 
-    func testWhenOnDesktop_ThenBookmarksNotInTopHitsWithoutHistoryVisits() {
+    func testWhenOnDesktopAndBookmarkIsFavorite_ThenBookmarkAppearsInTopHits() {
+
+        let bookmarks = [
+            BookmarkMock(url: "http://duckduckgo.com", title: "DuckDuckGo", isFavorite: true),
+            BookmarkMock(url: "spreadprivacy.com", title: "Test 2", isFavorite: false),
+            BookmarkMock(url: "wikipedia.org", title: "Wikipedia", isFavorite: false)
+        ]
 
         let processing = SuggestionProcessing(platform: .desktop, urlFactory: Self.simpleUrlFactory)
         let result = processing.result(for: "Duck",
                                        from: HistoryEntryMock.duckHistoryWithoutDuckDuckGo,
-                                       bookmarks: BookmarkMock.someBookmarks,
+                                       bookmarks: bookmarks,
+                                       internalPages: [],
+                                       openTabs: [],
+                                       apiResult: APIResult.anAPIResult)
+
+        XCTAssertEqual(true, result?.topHits.contains(where: { $0.title == "DuckDuckGo" }))
+        XCTAssertEqual(0, result?.localSuggestions.count)
+        XCTAssertEqual(false, result?.localSuggestions.contains(where: { $0.title == "DuckDuckGo" }))
+
+    }
+
+    func testWhenOnDesktopAndBookmarkHasHistoryVisits_ThenBookmarkAppearsInTopHits() {
+
+        let bookmarks = [
+            BookmarkMock(url: "http://duckduckgo.com", title: "DuckDuckGo", isFavorite: false),
+            BookmarkMock(url: "spreadprivacy.com", title: "Test 2", isFavorite: false),
+            BookmarkMock(url: "wikipedia.org", title: "Wikipedia", isFavorite: false)
+        ]
+
+        let processing = SuggestionProcessing(platform: .desktop, urlFactory: Self.simpleUrlFactory)
+        let result = processing.result(for: "Duck",
+                                       from: HistoryEntryMock.duckHistoryWithoutDuckDuckGo,
+                                       bookmarks: bookmarks,
                                        internalPages: [],
                                        openTabs: [],
                                        apiResult: APIResult.anAPIResult)
