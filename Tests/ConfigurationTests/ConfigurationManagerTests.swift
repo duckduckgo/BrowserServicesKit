@@ -82,6 +82,11 @@ final class ConfigurationManagerTests: XCTestCase {
         MockStoreWithStorage.clearTempConfigs()
     }
 
+    override func tearDown() {
+        MockURLProtocol.lastRequest = nil
+        MockURLProtocol.requestHandler = nil
+    }
+
     func makeConfigurationFetcher(store: ConfigurationStoring,
                                   validator: ConfigurationValidating = MockValidator()) -> ConfigurationFetcher {
         let testConfiguration = URLSessionConfiguration.default
@@ -107,6 +112,7 @@ final class ConfigurationManagerTests: XCTestCase {
         MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.ok, configData) }
         await configurationManager.refreshNow()
 
+        XCTAssertNotNil(MockURLProtocol.lastRequest)
         XCTAssertEqual(configurationManager.dependencyProvider.privacyConfigData, configData)
         XCTAssertEqual(configurationManager.dependencyProvider.privacyConfigEtag, HTTPURLResponse.testEtag)
     }
@@ -117,6 +123,7 @@ final class ConfigurationManagerTests: XCTestCase {
         MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.notModified, nil) }
         await configurationManager.refreshNow()
 
+        XCTAssertNotNil(MockURLProtocol.lastRequest)
         XCTAssertNil(configurationManager.dependencyProvider.privacyConfigData)
         XCTAssertNil(configurationManager.dependencyProvider.privacyConfigEtag)
     }
@@ -136,6 +143,7 @@ final class ConfigurationManagerTests: XCTestCase {
         await managerA.refreshNow()
         await fulfillment(of: [e!], timeout: 2)
 
+        XCTAssertNotNil(MockURLProtocol.lastRequest)
         XCTAssertEqual(managerB.dependencyProvider.privacyConfigData, configData)
         XCTAssertEqual(managerB.dependencyProvider.privacyConfigEtag, HTTPURLResponse.testEtag)
     }
@@ -155,9 +163,11 @@ final class ConfigurationManagerTests: XCTestCase {
         await managerA.refreshNow()
         await fulfillment(of: [e!], timeout: 2)
 
+        XCTAssertNotNil(MockURLProtocol.lastRequest)
         XCTAssertEqual(managerB.dependencyProvider.privacyConfigData, configData)
         XCTAssertEqual(managerB.dependencyProvider.privacyConfigEtag, HTTPURLResponse.testEtag)
 
+        MockURLProtocol.lastRequest = nil
         e = expectation(description: "ConfigManager A updated")
         managerB.onDependenciesUpdated = nil
         managerA.onDependenciesUpdated = {
@@ -170,11 +180,15 @@ final class ConfigurationManagerTests: XCTestCase {
         await managerB.refreshNow()
         await fulfillment(of: [e!], timeout: 2)
 
+        XCTAssertNotNil(MockURLProtocol.lastRequest)
         XCTAssertEqual(managerA.dependencyProvider.privacyConfigData, configData)
         XCTAssertEqual(managerA.dependencyProvider.privacyConfigEtag, HTTPURLResponse.testEtag)
 
+        MockURLProtocol.lastRequest = nil
         MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.notModified, nil) }
         await managerA.refreshNow()
+
+        XCTAssertNotNil(MockURLProtocol.lastRequest)
         XCTAssertEqual(managerA.dependencyProvider.privacyConfigData, configData)
         XCTAssertEqual(managerA.dependencyProvider.privacyConfigEtag, HTTPURLResponse.testEtag)
     }
@@ -194,12 +208,15 @@ final class ConfigurationManagerTests: XCTestCase {
         await managerA.refreshNow()
         await fulfillment(of: [e!], timeout: 2)
 
+        XCTAssertNotNil(MockURLProtocol.lastRequest)
         XCTAssertEqual(managerB.dependencyProvider.privacyConfigData, configData)
         XCTAssertEqual(managerB.dependencyProvider.privacyConfigEtag, HTTPURLResponse.testEtag)
 
+        MockURLProtocol.lastRequest = nil
         MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.internalServerError, nil) }
         await managerB.refreshNow()
 
+        XCTAssertNotNil(MockURLProtocol.lastRequest)
         XCTAssertEqual(managerB.dependencyProvider.privacyConfigData, configData)
         XCTAssertEqual(managerB.dependencyProvider.privacyConfigEtag, HTTPURLResponse.testEtag)
     }
