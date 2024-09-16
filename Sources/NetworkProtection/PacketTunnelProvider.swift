@@ -233,8 +233,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         let locationRepository = NetworkProtectionLocationListCompositeRepository(
             environment: settings.selectedEnvironment,
             tokenStore: tokenStore,
-            errorEvents: debugEvents,
-            isSubscriptionEnabled: isSubscriptionEnabled
+            errorEvents: debugEvents
         )
         return VPNServerSelectionResolver(locationListRepository: locationRepository, vpnSettings: settings)
     }()
@@ -420,8 +419,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         environment: self.settings.selectedEnvironment,
         tokenStore: self.tokenStore,
         keyStore: self.keyStore,
-        errorEvents: self.debugEvents,
-        isSubscriptionEnabled: self.isSubscriptionEnabled
+        errorEvents: self.debugEvents
     )
 
     private lazy var tunnelFailureMonitor = NetworkProtectionTunnelFailureMonitor(handshakeReporter: adapter)
@@ -429,10 +427,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     public lazy var latencyMonitor = NetworkProtectionLatencyMonitor()
     public lazy var entitlementMonitor = NetworkProtectionEntitlementMonitor()
     public lazy var serverStatusMonitor = NetworkProtectionServerStatusMonitor(
-        networkClient: NetworkProtectionBackendClient(
-            environment: self.settings.selectedEnvironment,
-            isSubscriptionEnabled: true
-        ),
+        networkClient: NetworkProtectionBackendClient(environment: self.settings.selectedEnvironment),
         tokenStore: self.tokenStore
     )
 
@@ -453,8 +448,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private let keychainType: KeychainType
     private let debugEvents: EventMapping<NetworkProtectionError>
     private let providerEvents: EventMapping<Event>
-
-    public let isSubscriptionEnabled: Bool
     public let entitlementCheck: (() async -> Result<Bool, Error>)?
 
     public init(notificationsPresenter: NetworkProtectionNotificationsPresenter,
@@ -469,7 +462,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 providerEvents: EventMapping<Event>,
                 settings: VPNSettings,
                 defaults: UserDefaults,
-                isSubscriptionEnabled: Bool,
                 entitlementCheck: (() async -> Result<Bool, Error>)?) {
         Logger.networkProtectionMemory.debug("[+] PacketTunnelProvider")
 
@@ -485,8 +477,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         self.wireGuardInterface = wireGuardInterface
         self.settings = settings
         self.defaults = defaults
-        self.isSubscriptionEnabled = isSubscriptionEnabled
-        self.entitlementCheck = isSubscriptionEnabled ? entitlementCheck : nil
+        self.entitlementCheck = entitlementCheck
 
         super.init()
 
@@ -1021,7 +1012,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 regenerateKey: regenerateKey
             )
         } catch {
-            if isSubscriptionEnabled, let error = error as? NetworkProtectionError, case .vpnAccessRevoked = error {
+            if let error = error as? NetworkProtectionError, case .vpnAccessRevoked = error {
                 throw TunnelError.vpnAccessRevoked
             }
 
@@ -1513,7 +1504,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             await latencyMonitor.stop()
         }
 
-        if isSubscriptionEnabled, await isEntitlementInvalid() {
+        if await isEntitlementInvalid() {
             return
         }
 
@@ -1532,7 +1523,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             await entitlementMonitor.stop()
         }
 
-        guard isSubscriptionEnabled, let entitlementCheck else { return }
+        guard let entitlementCheck else {
+            assertionFailure("Expected entitlement check but didn't find one")
+            return
+        }
 
         await entitlementMonitor.start(entitlementCheck: entitlementCheck) { [weak self] result in
             /// Attempt tunnel shutdown & show messaging iff the entitlement is verified to be invalid

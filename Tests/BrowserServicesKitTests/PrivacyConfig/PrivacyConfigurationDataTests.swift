@@ -28,6 +28,8 @@ class PrivacyConfigurationDataTests: XCTestCase {
         let jsonData = data.fromJsonFile("Resources/privacy-config-example.json")
         let configData = try PrivacyConfigurationData(data: jsonData)
 
+        XCTAssertEqual(configData.version, "2021.6.7")
+
         XCTAssertEqual(configData.unprotectedTemporary.count, 1)
         XCTAssertEqual(configData.unprotectedTemporary.first?.domain, "example.com")
 

@@ -42,7 +42,7 @@ public protocol NetworkProtectionTokenStore {
 public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenStore {
     private let keychainStore: NetworkProtectionKeychainStore
     private let errorEvents: EventMapping<NetworkProtectionError>?
-    private let isSubscriptionEnabled: Bool
+    private let useAccessTokenProvider: Bool
     public typealias AccessTokenProvider = () -> String?
     private let accessTokenProvider: AccessTokenProvider
 
@@ -59,13 +59,13 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
     public init(keychainType: KeychainType,
                 serviceName: String = Defaults.tokenStoreService,
                 errorEvents: EventMapping<NetworkProtectionError>?,
-                isSubscriptionEnabled: Bool,
+                useAccessTokenProvider: Bool,
                 accessTokenProvider: @escaping AccessTokenProvider) {
         keychainStore = NetworkProtectionKeychainStore(label: Defaults.tokenStoreEntryLabel,
                                                        serviceName: serviceName,
                                                        keychainType: keychainType)
         self.errorEvents = errorEvents
-        self.isSubscriptionEnabled = isSubscriptionEnabled
+        self.useAccessTokenProvider = useAccessTokenProvider
         self.accessTokenProvider = accessTokenProvider
     }
 
@@ -84,7 +84,7 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
     }
 
     public func fetchToken() throws -> String? {
-        if isSubscriptionEnabled {
+        if useAccessTokenProvider {
             return accessTokenProvider().map { makeToken(from: $0) }
         }
 
