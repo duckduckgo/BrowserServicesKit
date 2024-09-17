@@ -37,6 +37,10 @@ public class MockKeyValueStore: KeyValueStoring {
         store[defaultName] = nil
     }
 
+    public func clearAll() {
+        store.removeAll()
+    }
+
 }
 
 extension MockKeyValueStore: DictionaryRepresentable {
