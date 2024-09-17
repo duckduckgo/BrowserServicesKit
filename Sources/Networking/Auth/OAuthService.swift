@@ -193,16 +193,41 @@ public struct DefaultOAuthService: OAuthService {
 
         let statusCode = response.httpResponse.httpStatus
         if statusCode == request.httpSuccessCode {
+            guard let data = response.data else {
+                throw OAuthServiceError.missingResponseValue("Decodable OAuthTokenResponse body")
+            }
             Logger.networking.debug("\(#function) request completed")
-            return
+
+            let decoder = JSONDecoder()
+            return try decoder.decode(OAuthTokenResponse.self, from: data)
         } else if request.httpErrorCodes.contains(statusCode) {
             try throwError(forErrorBody: response.data, request: request)
         }
         throw OAuthServiceError.invalidResponseCode(statusCode)
     }
 
-    public func refreshAccessToken(clientID: String, codeVerifier: String, code: String, redirectURI: String) async throws -> OAuthTokenResponse {
+    public func refreshAccessToken(clientID: String, refreshToken: String) async throws -> OAuthTokenResponse {
+        guard let request = OAuthRequest.refreshAccessToken(baseURL: baseURL, clientID: clientID, refreshToken: refreshToken) else {
+            throw OAuthServiceError.invalidRequest
+        }
 
+        try Task.checkCancellation()
+        let response = try await apiService.fetch(request: request.apiRequest)
+        try Task.checkCancellation()
+
+        let statusCode = response.httpResponse.httpStatus
+        if statusCode == request.httpSuccessCode {
+            guard let data = response.data else {
+                throw OAuthServiceError.missingResponseValue("Decodable OAuthTokenResponse body")
+            }
+            Logger.networking.debug("\(#function) request completed")
+
+            let decoder = JSONDecoder()
+            return try decoder.decode(OAuthTokenResponse.self, from: data)
+        } else if request.httpErrorCodes.contains(statusCode) {
+            try throwError(forErrorBody: response.data, request: request)
+        }
+        throw OAuthServiceError.invalidResponseCode(statusCode)
     }
 }
 

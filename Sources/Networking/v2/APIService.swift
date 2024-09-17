@@ -23,8 +23,7 @@ public protocol APIService {
 
     typealias APIResponse = (data: Data?, httpResponse: HTTPURLResponse)
 
-    func fetch<T: Decodable>(request: APIRequestV2) async throws -> (responseBody: T?, httpResponse: HTTPURLResponse)
-//    func fetch<T: Decodable>(request: APIRequestV2) async throws -> T?
+    func fetch<T: Decodable>(request: APIRequestV2) async throws -> T?
     func fetch(request: APIRequestV2) async throws -> APIService.APIResponse
 }
 
@@ -36,12 +35,14 @@ public struct DefaultAPIService: APIService {
 
     }
 
-    public func fetch<T: Decodable>(request: APIRequestV2) async throws -> (responseBody: T?, httpResponse: HTTPURLResponse)  {
-        try Task.checkCancellation()
+    /// Fetch an API Request
+    /// - Parameter request: A configured APIRequest
+    /// - Returns: An instance of the inferred decodable object, can be a `String` or any `Decodable` model, nil if the response body is empty
+    public func fetch<T: Decodable>(request: APIRequestV2) async throws -> T? {
         let response: APIService.APIResponse = try await fetch(request: request)
 
         guard let data = response.data else {
-            return (nil, response.httpResponse)
+            return nil
         }
 
         try Task.checkCancellation()
@@ -55,43 +56,13 @@ public struct DefaultAPIService: APIService {
                 Logger.networking.error("Error: \(error.localizedDescription)")
                 throw error
             }
-            return (resultString, response.httpResponse)
+            return resultString
         default:
             // Decode data
             let decoder = JSONDecoder()
-            let decodedData = try decoder.decode(T.self, from: data)
-            return (decodedData, response.httpResponse)
+            return try decoder.decode(T.self, from: data)
         }
     }
-
-    /// Fetch an API Request
-    /// - Parameter request: A configured APIRequest
-    /// - Returns: An instance of the inferred decodable object, can be a `String` or any `Decodable` model, nil if the response body is empty
-//    public func fetch<T: Decodable>(request: APIRequestV2) async throws -> T? {
-//        let response: APIService.APIResponse = try await fetch(request: request)
-//
-//        guard let data = response.data else {
-//            return nil
-//        }
-//
-//        try Task.checkCancellation()
-//
-//        // Try to decode the data
-//        Logger.networking.debug("Decoding response body as \(T.self)")
-//        switch T.self {
-//        case is String.Type:
-//            guard let resultString = String(data: data, encoding: .utf8) as? T else {
-//                let error = APIRequestV2.Error.invalidDataType
-//                Logger.networking.error("Error: \(error.localizedDescription)")
-//                throw error
-//            }
-//            return resultString
-//        default:
-//            // Decode data
-//            let decoder = JSONDecoder()
-//            return try decoder.decode(T.self, from: data)
-//        }
-//    }
 
     /// Fetch an API Request
     /// - Parameter request: A configured APIRequest
