@@ -100,7 +100,7 @@ final class AccountManagerTests: XCTestCase {
 
         accountStorage.mockedAccessError = Constants.keychainError
         accountManager.delegate = keychainAccessDelegateMock
-        
+
         // When
         accountManager.storeAuthToken(token: Constants.authToken)
 
@@ -202,7 +202,7 @@ final class AccountManagerTests: XCTestCase {
 
         // When
         let result = await accountManager.hasEntitlement(forProductName: productName, cachePolicy: .reloadIgnoringLocalCacheData)
-        
+
         // Then
         switch result {
         case .success(let success):
@@ -296,7 +296,7 @@ final class AccountManagerTests: XCTestCase {
 
         // When
         let result = await accountManager.fetchEntitlements(cachePolicy: .reloadIgnoringLocalCacheData)
-        
+
         // Then
         switch result {
         case .success(let success):

@@ -251,4 +251,3 @@ final class StripePurchaseFlowTests: XCTestCase {
         XCTAssertEqual(accountManager.externalID, Constants.externalID)
     }
 }
-

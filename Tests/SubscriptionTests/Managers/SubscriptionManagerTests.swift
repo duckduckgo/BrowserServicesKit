@@ -221,7 +221,7 @@ final class SubscriptionManagerTests: XCTestCase {
                                                                     authEndpointService: authService,
                                                                     subscriptionEnvironment: stagingEnvironment)
 
-        //When
+        // When
         let stagingPurchaseURL = stagingSubscriptionManager.url(for: .purchase)
 
         // Then
