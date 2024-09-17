@@ -222,10 +222,8 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
     }()
 
     private let endpointURL: URL
-    private let isSubscriptionEnabled: Bool
 
-    init(environment: VPNSettings.SelectedEnvironment = .default, isSubscriptionEnabled: Bool) {
-        self.isSubscriptionEnabled = isSubscriptionEnabled
+    init(environment: VPNSettings.SelectedEnvironment = .default) {
         self.endpointURL = environment.endpointURL
     }
 
@@ -405,7 +403,7 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
                 responseData = data
             case 401:
                 return .failure(.invalidAuthToken)
-            case 403 where isSubscriptionEnabled:
+            case 403:
                 return .failure(.accessDenied)
             default:
                 throw RegisterError.unexpectedStatus(status: response.statusCode)

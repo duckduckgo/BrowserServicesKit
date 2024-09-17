@@ -58,7 +58,10 @@ public struct DefaultRemoteMessagingSurveyURLBuilder: RemoteMessagingSurveyActio
                     queryItems.append(URLQueryItem(name: parameter.rawValue, value: variant))
                 }
             case .osVersion:
-                queryItems.append(URLQueryItem(name: parameter.rawValue, value: AppVersion.shared.osVersion))
+                let os = ProcessInfo().operatingSystemVersion
+                let version = "\(os.majorVersion)"
+
+                queryItems.append(URLQueryItem(name: parameter.rawValue, value: version))
             case .appVersion:
                 queryItems.append(URLQueryItem(name: parameter.rawValue, value: AppVersion.shared.versionAndBuildNumber))
             case .hardwareModel:
