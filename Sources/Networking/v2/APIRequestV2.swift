@@ -67,7 +67,7 @@ public struct APIRequestV2: CustomDebugStringConvertible {
         self.urlRequest = request
     }
 
-   public var debugDescription: String {
+    public var debugDescription: String {
         """
         APIRequestV2:
         URL: \(urlRequest.url?.absoluteString ?? "nil")

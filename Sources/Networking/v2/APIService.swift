@@ -82,7 +82,15 @@ public struct DefaultAPIService: APIService {
             return (data, httpResponse)
         }
 
-        // Check requirements
+        // Check constraints
+        try checkConstraints(in: httpResponse, for: request)
+
+        return (data, httpResponse)
+    }
+
+    func checkConstraints(in response: HTTPURLResponse, for request: APIRequestV2) throws {
+        let httpResponse = try response.asHTTPURLResponse()
+        let responseHTTPStatus = httpResponse.httpStatus
         let notModifiedIsAllowed: Bool = request.responseConstraints?.contains(.allowHTTPNotModified) ?? false
         if responseHTTPStatus == .notModified && !notModifiedIsAllowed {
             let error = APIRequestV2.Error.unsatisfiedRequirement(.allowHTTPNotModified)
@@ -105,12 +113,12 @@ public struct DefaultAPIService: APIService {
                         Logger.networking.error("Error: \(error.localizedDescription)")
                         throw error
                     }
-                default: break
+                default:
+                    break
                 }
             }
         }
 
-        return (data, httpResponse)
     }
 
     /// Fetch data using the class URL session, in case of error wraps it in a `APIRequestV2.Error.urlSession` error
