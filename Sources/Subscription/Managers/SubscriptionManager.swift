@@ -64,7 +64,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
                 assertionFailure("Trying to setup AppStore where not supported")
             }
         case .stripe:
-            setupForStripe()
+            break
         }
     }
 
@@ -99,14 +99,6 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
         Task {
             await storePurchaseManager().updateAvailableProducts()
             canPurchase = storePurchaseManager().areProductsAvailable
-        }
-    }
-
-    private func setupForStripe() {
-        Task {
-            if case let .success(products) = await subscriptionEndpointService.getProducts() {
-                canPurchase = !products.isEmpty
-            }
         }
     }
 

@@ -21,8 +21,6 @@ import Foundation
 public protocol AccountStoring: AnyObject {
     func getAuthToken() throws -> String?
     func store(authToken: String) throws
-    func getAccessToken() throws -> String?
-    func store(accessToken: String) throws
     func getEmail() throws -> String?
     func store(email: String?) throws
     func getExternalID() throws -> String?
