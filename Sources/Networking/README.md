@@ -5,7 +5,7 @@ If the library doesn't have the features you require, please improve it.
 
 ## v2
 
-### USage
+### Usage
 
 #### Configuration:
 ```
