@@ -55,7 +55,7 @@ public struct DefaultAPIService: APIService {
     }
 
     /// Check if the response satisfies the required constraints
-    internal func checkConstraints(in response: HTTPURLResponse, for request: APIRequestV2) throws {
+    private func checkConstraints(in response: HTTPURLResponse, for request: APIRequestV2) throws {
 
         let httpResponse = try response.asHTTPURLResponse()
         let responseHTTPStatus = httpResponse.httpStatus
@@ -92,7 +92,7 @@ public struct DefaultAPIService: APIService {
     /// Fetch data using the class URL session, in case of error wraps it in a `APIRequestV2.Error.urlSession` error
     /// - Parameter request: The URLRequest to fetch
     /// - Returns: The Data fetched and the URLResponse
-    internal func fetch(for request: URLRequest) async throws -> (Data, URLResponse) {
+    private func fetch(for request: URLRequest) async throws -> (Data, URLResponse) {
         do {
             return try await urlSession.data(for: request)
         } catch let error {
