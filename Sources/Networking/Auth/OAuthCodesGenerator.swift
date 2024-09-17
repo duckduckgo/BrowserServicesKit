@@ -20,7 +20,7 @@ import Foundation
 import CommonCrypto
 
 /// Helper that generates codes used in the OAuth2 authentication process
-struct AuthCodesGenerator {
+struct OAuthCodesGenerator {
 
     /// https://auth0.com/docs/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce/add-login-using-the-authorization-code-flow-with-pkce#create-code-verifier
     static var codeVerifier: String {

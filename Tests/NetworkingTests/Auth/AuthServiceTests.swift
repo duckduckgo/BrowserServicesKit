@@ -39,7 +39,7 @@ final class AuthServiceTests: XCTestCase {
 
     func testAuthoriseRealSuccess() async throws { // TODO: Disable
         let authService = DefaultOAuthService(baseURL: baseURL)
-        let codeChallenge = AuthCodesGenerator.codeChallenge(codeVerifier: AuthCodesGenerator.codeVerifier)!
+        let codeChallenge = OAuthCodesGenerator.codeChallenge(codeVerifier: OAuthCodesGenerator.codeVerifier)!
         let result = try await authService.authorise(codeChallenge: codeChallenge)
         XCTAssertNotNil(result.location)
         XCTAssertNotNil(result.setCookie)
@@ -51,7 +51,7 @@ final class AuthServiceTests: XCTestCase {
             _ = try await authService.authorise(codeChallenge: "")
         } catch {
             switch error {
-            case AuthServiceError.authAPIError(let code, let desc):
+            case OAuthServiceError.authAPIError(let code, let desc):
                 XCTAssertEqual(code, "invalid_authorization_request")
                 XCTAssertEqual(desc, "One or more of the required parameters are missing or any provided parameters have invalid values.")
                 break

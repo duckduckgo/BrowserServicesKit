@@ -22,7 +22,7 @@ import os.log
 class SessionDelegate: NSObject, URLSessionTaskDelegate {
 
     public func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest) async -> URLRequest? {
-        Logger.networking.debug("Stopping AUTH API redirection: \(response)")
+        Logger.networking.debug("Stopping OAuth API redirection: \(response)")
         return nil
     }
 }

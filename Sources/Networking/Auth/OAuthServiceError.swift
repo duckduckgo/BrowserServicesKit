@@ -18,7 +18,7 @@
 
 import Foundation
 
-enum AuthServiceError: Error, LocalizedError {
+enum OAuthServiceError: Error, LocalizedError {
     case authAPIError(code: String, description: String)
     case apiServiceError(Error)
     case invalidRequest
