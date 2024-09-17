@@ -61,7 +61,7 @@ public struct DefaultOAuthService: OAuthService {
     ///   - header: The header key
     ///   - httpResponse: The HTTP URL Response
     /// - Returns: The header value, throws an error if not present
-    func extract(header: String, from httpResponse: HTTPURLResponse) throws -> String {
+    internal func extract(header: String, from httpResponse: HTTPURLResponse) throws -> String {
         let headers = httpResponse.allHeaderFields
         guard let result = headers[header] as? String else {
             throw OAuthServiceError.missingResponseValue(header)
@@ -73,7 +73,7 @@ public struct DefaultOAuthService: OAuthService {
     ///  The Auth API can answer with errors in the HTTP response body, format: `{ "error": "$error_code" }`, this function decodes the body in `AuthRequest.BodyError`and generates an AuthServiceError containing the error info
     /// - Parameter responseBody: The HTTP response body Data
     /// - Returns: and AuthServiceError.authAPIError containing the error code and description, nil if the body
-    func extractError(from responseBody: Data, request: OAuthRequest) -> OAuthServiceError? {
+    internal func extractError(from responseBody: Data, request: OAuthRequest) -> OAuthServiceError? {
         let decoder = JSONDecoder()
         guard let bodyError = try? decoder.decode(OAuthRequest.BodyError.self, from: responseBody) else {
             return nil
@@ -82,13 +82,33 @@ public struct DefaultOAuthService: OAuthService {
         return OAuthServiceError.authAPIError(code: bodyError.error, description: description)
     }
 
-    func throwError(forErrorBody body: Data?, request: OAuthRequest) throws {
+    internal func throwError(forErrorBody body: Data?, request: OAuthRequest) throws {
         if let body,
            let error = extractError(from: body, request: request) {
             throw error
         } else {
             throw OAuthServiceError.missingResponseValue("Body error")
         }
+    }
+
+    internal func fetch<T: Decodable>(request: OAuthRequest) async throws -> T {
+        try Task.checkCancellation()
+        let response = try await apiService.fetch(request: request.apiRequest)
+        try Task.checkCancellation()
+
+        let statusCode = response.httpResponse.httpStatus
+        if statusCode == request.httpSuccessCode {
+            guard let data = response.data else {
+                throw OAuthServiceError.missingResponseValue("Decodable \(T.self) body")
+            }
+            Logger.networking.debug("\(#function) request completed")
+
+            let decoder = JSONDecoder()
+            return try decoder.decode(T.self, from: data)
+        } else if request.httpErrorCodes.contains(statusCode) {
+            try throwError(forErrorBody: response.data, request: request)
+        }
+        throw OAuthServiceError.invalidResponseCode(statusCode)
     }
 
     // MARK: - API requests
@@ -118,7 +138,6 @@ public struct DefaultOAuthService: OAuthService {
     }
 
     // MARK: Create Account
-
 
     public func createAccount(authSessionID: String) async throws -> OAuthLocation {
         guard let request = OAuthRequest.createAccount(baseURL: baseURL, authSessionID: authSessionID) else {
@@ -186,48 +205,34 @@ public struct DefaultOAuthService: OAuthService {
         guard let request = OAuthRequest.getAccessToken(baseURL: baseURL, clientID: clientID, codeVerifier: codeVerifier, code: code, redirectURI: redirectURI) else {
             throw OAuthServiceError.invalidRequest
         }
-
-        try Task.checkCancellation()
-        let response = try await apiService.fetch(request: request.apiRequest)
-        try Task.checkCancellation()
-
-        let statusCode = response.httpResponse.httpStatus
-        if statusCode == request.httpSuccessCode {
-            guard let data = response.data else {
-                throw OAuthServiceError.missingResponseValue("Decodable OAuthTokenResponse body")
-            }
-            Logger.networking.debug("\(#function) request completed")
-
-            let decoder = JSONDecoder()
-            return try decoder.decode(OAuthTokenResponse.self, from: data)
-        } else if request.httpErrorCodes.contains(statusCode) {
-            try throwError(forErrorBody: response.data, request: request)
-        }
-        throw OAuthServiceError.invalidResponseCode(statusCode)
+        return try await fetch(request: request)
     }
 
     public func refreshAccessToken(clientID: String, refreshToken: String) async throws -> OAuthTokenResponse {
         guard let request = OAuthRequest.refreshAccessToken(baseURL: baseURL, clientID: clientID, refreshToken: refreshToken) else {
             throw OAuthServiceError.invalidRequest
         }
+        return try await fetch(request: request)
+    }
 
-        try Task.checkCancellation()
-        let response = try await apiService.fetch(request: request.apiRequest)
-        try Task.checkCancellation()
+    // MARK: - Edit account
 
-        let statusCode = response.httpResponse.httpStatus
-        if statusCode == request.httpSuccessCode {
-            guard let data = response.data else {
-                throw OAuthServiceError.missingResponseValue("Decodable OAuthTokenResponse body")
-            }
-            Logger.networking.debug("\(#function) request completed")
-
-            let decoder = JSONDecoder()
-            return try decoder.decode(OAuthTokenResponse.self, from: data)
-        } else if request.httpErrorCodes.contains(statusCode) {
-            try throwError(forErrorBody: response.data, request: request)
+    /// Edit an account email address
+    /// - Parameters:
+    ///   - email: The email address to change to. If omitted, the account email address will be removed.
+    /// - Returns: EditAccountResponse containing a status, always "confirmed" and an hash used in the `confirm edit account` API call
+    public func editAccount(clientID: String, accessToken: String, email: String?) async throws -> EditAccountResponse {
+        guard let request = OAuthRequest.editAccount(baseURL: baseURL, accessToken: accessToken, email: email) else {
+            throw OAuthServiceError.invalidRequest
         }
-        throw OAuthServiceError.invalidResponseCode(statusCode)
+        return try await fetch(request: request)
+    }
+
+    public func confirmEditAccount(clientID: String, accessToken: String, email: String?) async throws -> EditAccountResponse {
+        guard let request = OAuthRequest.editAccount(baseURL: baseURL, accessToken: accessToken, email: email) else {
+            throw OAuthServiceError.invalidRequest
+        }
+        return try await fetch(request: request)
     }
 }
 
@@ -282,4 +287,9 @@ public struct OAuthTokenResponse: Decodable {
         self.expiresIn = try container.decode(Double.self, forKey: .expires_in)
         self.tokenType = try container.decode(String.self, forKey: .token_type)
     }
+}
+
+public struct EditAccountResponse: Decodable {
+    let status: String
+    let hash: String
 }

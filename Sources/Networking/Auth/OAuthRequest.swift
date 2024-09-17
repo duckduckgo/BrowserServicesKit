@@ -25,7 +25,25 @@ struct OAuthRequest {
     let apiRequest: APIRequestV2
     let httpSuccessCode: HTTPStatusCode
     let httpErrorCodes: [HTTPStatusCode]
-    let errorDetails: [String: String]
+    static let errorDetails = [
+        "invalid_authorization_request": "One or more of the required parameters are missing or any provided parameters have invalid values",
+        "authorize_failed": "Failed to create the authorization session, either because of a reused code challenge or internal server error",
+        "invalid_request": "The ddg_auth_session_id is missing or has already been used to log in to a different account",
+        "account_create_failed": "Failed to create the account because of an internal server error",
+        "invalid_email_address": "Provided email address is missing or of an invalid format",
+        "invalid_session_id": "The session id is missing, invalid or has already been used for logging in",
+        "suspended_account": "The account you are logging in to is suspended",
+        "email_sending_error": "Failed to send the OTP to the email address provided",
+        "invalid_login_credentials": "One or more of the provided parameters is invalid",
+        "unknown_account": "The login credentials appear valid but do not link to a known account",
+        "invalid_token_request": "One or more of the required parameters are missing or any provided parameters have invalid values",
+        "unverified_account": "The token is valid but is for an unverified account",
+        "email_address_not_changed": "New email address is the same as the old email address",
+        "failed_mx_check": "DNS check to see if email address domain is valid failed",
+        "account_edit_failed": "Something went wrong and the edit was aborted",
+        "invalid_link_signature": "The hash is invalid or does not match the provided email address and account",
+        "account_change_email_address_failed": "Something went wrong and the edit was aborted",
+    ]
 
     struct BodyError: Decodable {
         let error: String
@@ -33,12 +51,10 @@ struct OAuthRequest {
 
     internal init(apiRequest: APIRequestV2,
                   httpSuccessCode: HTTPStatusCode = HTTPStatusCode.ok,
-                  httpErrorCodes: [HTTPStatusCode] = [HTTPStatusCode.badRequest, HTTPStatusCode.internalServerError],
-                  errorDetails: [String : String]) {
+                  httpErrorCodes: [HTTPStatusCode] = [HTTPStatusCode.badRequest, HTTPStatusCode.internalServerError]) {
         self.apiRequest = apiRequest
         self.httpSuccessCode = httpSuccessCode
         self.httpErrorCodes = httpErrorCodes
-        self.errorDetails = errorDetails
     }
 
     // MARK: Authorize
@@ -58,13 +74,7 @@ struct OAuthRequest {
                                          queryItems: queryItems) else {
             return nil
         }
-        let errorDetails = [
-            "invalid_authorization_request": "One or more of the required parameters are missing or any provided parameters have invalid values.",
-            "authorize_failed": "Failed to create the authorization session, either because of a reused code challenge or internal server error.",
-        ]
-        return OAuthRequest(apiRequest: request,
-                           httpSuccessCode: HTTPStatusCode.found,
-                           errorDetails: errorDetails)
+        return OAuthRequest(apiRequest: request, httpSuccessCode: HTTPStatusCode.found)
     }
 
     // MARK: Create account
@@ -77,13 +87,7 @@ struct OAuthRequest {
                                          headers: APIRequestV2.HeadersV2(additionalHeaders: headers)) else {
             return nil
         }
-        let errorDetails = [
-            "invalid_request": "The ddg_auth_session_id is missing or has already been used to log in to a different account.",
-            "account_create_failed": "Failed to create the account because of an internal server error."
-        ]
-        return OAuthRequest(apiRequest: request,
-                           httpSuccessCode: HTTPStatusCode.found,
-                           errorDetails: errorDetails)
+        return OAuthRequest(apiRequest: request, httpSuccessCode: HTTPStatusCode.found)
     }
 
     // MARK: Sent OTP
@@ -98,14 +102,7 @@ struct OAuthRequest {
                                          headers: APIRequestV2.HeadersV2(additionalHeaders: headers)) else {
             return nil
         }
-        let errorDetails = [
-             "invalid_email_address": "Provided email address is missing or of an invalid format.",
-             "invalid_session_id": "The session id is missing, invalid or has already been used for logging in.",
-             "suspended_account": "The account you are logging in to is suspended.",
-             "email_sending_error": "Failed to send the OTP to the email address provided."
-        ]
-        return OAuthRequest(apiRequest: request,
-                           errorDetails: errorDetails)
+        return OAuthRequest(apiRequest: request)
     }
 
     // MARK: Login
@@ -144,26 +141,12 @@ struct OAuthRequest {
                                          headers: APIRequestV2.HeadersV2(additionalHeaders: headers)) else {
             return nil
         }
-        let errorDetails = [
-            "invalid_login_credentials": "One or more of the provided parameters is invalid.",
-            "invalid_session_id": "The session id is missing, invalid or has already been used for logging in.",
-            "suspended_account": "The account you are logging in to is suspended.",
-            "unknown_account": "The login credentials appear valid but do not link to a known account."
-        ]
-        return OAuthRequest(apiRequest: request,
-                           httpSuccessCode: HTTPStatusCode.found,
-                           errorDetails: errorDetails)
+        return OAuthRequest(apiRequest: request, httpSuccessCode: HTTPStatusCode.found)
     }
 
     // MARK: Access Token
     // Note: The API has a single endpoint for both getting a new token and refreshing an old one, but here I'll split the endpoint in 2 different calls
     // https://dub.duckduckgo.com/duckduckgo/ddg/blob/main/components/auth/docs/AuthAPIV2Documentation.md#access-token
-
-    static let accessTokenErrorDetails = [
-         "invalid_token_request": "One or more of the required parameters are missing or any provided parameters have invalid values.",
-         "suspended_account": "The account you are logging in to is suspended.",
-         "unknown_account": "The login credentials appear valid but do not link to a known account."
-    ]
 
     static func getAccessToken(baseURL: URL, clientID: String, codeVerifier: String, code: String, redirectURI: String) -> OAuthRequest? {
         let path = "/api/auth/v2/token"
@@ -180,9 +163,7 @@ struct OAuthRequest {
             return nil
         }
 
-        return OAuthRequest(apiRequest: request,
-                           httpSuccessCode: .ok,
-                           errorDetails: accessTokenErrorDetails)
+        return OAuthRequest(apiRequest: request)
     }
 
     static func refreshAccessToken(baseURL: URL, clientID: String, refreshToken: String) -> OAuthRequest? {
@@ -197,12 +178,49 @@ struct OAuthRequest {
                                          queryItems: queryItems) else {
             return nil
         }
-        return OAuthRequest(apiRequest: request,
-                           httpSuccessCode: .ok,
-                           errorDetails: accessTokenErrorDetails)
+        return OAuthRequest(apiRequest: request)
     }
 
-    // MARK:
+    // MARK: Edit Account
 
+    static func editAccount(baseURL: URL, accessToken: String, email: String?) -> OAuthRequest? {
+        let path = "/api/auth/v2/account/edit"
+        let headers = [
+            HTTPHeaderKey.authorization: "Bearer \(accessToken)"
+        ]
+        var queryItems: [String: String] = [:]
+
+        if let email {
+            queryItems["email"] = email
+        }
+
+        guard let request = APIRequestV2(url: baseURL.appendingPathComponent(path),
+                                         method: .post,
+                                         queryItems: queryItems,
+                                         headers: APIRequestV2.HeadersV2(additionalHeaders: headers)) else {
+            return nil
+        }
+        return OAuthRequest(apiRequest: request, httpErrorCodes: [.unauthorized, .internalServerError])
+    }
+
+    static func confirmEditAccount(baseURL: URL, accessToken: String, email: String, hash: String, otp: String) -> OAuthRequest? {
+        let path = "/account/edit/confirm"
+        let headers = [
+            HTTPHeaderKey.authorization: "Bearer \(accessToken)"
+        ]
+        var queryItems: [String: String] = [
+            "email": email,
+            "hash": hash,
+            "otp": otp,
+        ]
+
+        guard let request = APIRequestV2(url: baseURL.appendingPathComponent(path),
+                                         method: .get,
+                                         queryItems: queryItems,
+                                         headers: APIRequestV2.HeadersV2(additionalHeaders: headers)) else {
+            return nil
+        }
+        return OAuthRequest(apiRequest: request, httpErrorCodes: [.unauthorized, .internalServerError])
+    }
 
 }
