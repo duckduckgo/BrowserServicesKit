@@ -20,11 +20,7 @@ import Foundation
 import os.log
 
 public protocol APIService {
-
-    typealias APIResponse = (data: Data?, httpResponse: HTTPURLResponse)
-
-    func fetch<T: Decodable>(request: APIRequestV2) async throws -> T?
-    func fetch(request: APIRequestV2) async throws -> APIService.APIResponse
+    func fetch(request: APIRequestV2) async throws -> APIResponseV2
 }
 
 public struct DefaultAPIService: APIService {
@@ -37,37 +33,8 @@ public struct DefaultAPIService: APIService {
 
     /// Fetch an API Request
     /// - Parameter request: A configured APIRequest
-    /// - Returns: An instance of the inferred decodable object, can be a `String` or any `Decodable` model, nil if the response body is empty
-    public func fetch<T: Decodable>(request: APIRequestV2) async throws -> T? {
-        let response: APIService.APIResponse = try await fetch(request: request)
-
-        guard let data = response.data else {
-            return nil
-        }
-
-        try Task.checkCancellation()
-
-        // Try to decode the data
-        Logger.networking.debug("Decoding response body as \(T.self)")
-        switch T.self {
-        case is String.Type:
-            guard let resultString = String(data: data, encoding: .utf8) as? T else {
-                let error = APIRequestV2.Error.invalidDataType
-                Logger.networking.error("Error: \(error.localizedDescription)")
-                throw error
-            }
-            return resultString
-        default:
-            // Decode data
-            let decoder = JSONDecoder()
-            return try decoder.decode(T.self, from: data)
-        }
-    }
-
-    /// Fetch an API Request
-    /// - Parameter request: A configured APIRequest
-    /// - Returns: An `APIResponse`, a tuple composed by `(data: Data?, httpResponse: HTTPURLResponse)`
-    public func fetch(request: APIRequestV2) async throws -> APIService.APIResponse {
+    /// - Returns: An `APIResponseV2` containing the body data and the HTTPURLResponse
+    public func fetch(request: APIRequestV2) async throws -> APIResponseV2 {
 
         Logger.networking.debug("Fetching: \(request.debugDescription)")
         let (data, response) = try await fetch(for: request.urlRequest)
@@ -79,16 +46,17 @@ public struct DefaultAPIService: APIService {
         let httpResponse = try response.asHTTPURLResponse()
         let responseHTTPStatus = httpResponse.httpStatus
         if responseHTTPStatus.isFailure {
-            return (data, httpResponse)
+            return APIResponseV2(data: data, httpResponse: httpResponse)
         }
 
-        // Check constraints
         try checkConstraints(in: httpResponse, for: request)
 
-        return (data, httpResponse)
+        return APIResponseV2(data: data, httpResponse: httpResponse)
     }
 
-    func checkConstraints(in response: HTTPURLResponse, for request: APIRequestV2) throws {
+    /// Check if the response satisfies the required constraints
+    internal func checkConstraints(in response: HTTPURLResponse, for request: APIRequestV2) throws {
+
         let httpResponse = try response.asHTTPURLResponse()
         let responseHTTPStatus = httpResponse.httpStatus
         let notModifiedIsAllowed: Bool = request.responseConstraints?.contains(.allowHTTPNotModified) ?? false

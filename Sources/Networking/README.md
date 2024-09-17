@@ -39,13 +39,6 @@ The library provides two primary functions for fetching requests:
    typealias APIResponse = (data: Data?, httpResponse: HTTPURLResponse)
    ```
 
-2. **Decoded Response Fetching**: This function decodes the response into an optional `String` or any object conforming to the `Decodable` protocol.
-   
-   ```swift
-   let result: String? = try await apiService.fetch(request: request)
-   let result: MyModel? = try await apiService.fetch(request: request)
-   ```
-
 **Concurrency Considerations**: This library is designed to be agnostic with respect to concurrency models. It maintains a stateless architecture, and the URLSession instance is injected by the user, thereby delegating all concurrency management decisions to the user. The library facilitates task cancellation by frequently invoking `try Task.checkCancellation()`, ensuring responsive and cooperative cancellation handling.
 
 ### Mock

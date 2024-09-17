@@ -21,19 +21,9 @@ import Networking
 
 public struct MockAPIService: APIService {
 
-    public var decodableResponse: Result<Decodable, Error>
-    public var apiResponse: Result<APIService.APIResponse, Error>
+    public var apiResponse: Result<APIResponseV2, Error>
 
-    public func fetch<T: Decodable>(request: Networking.APIRequestV2) async throws -> T? {
-        switch decodableResponse {
-        case .success(let result):
-            return result as? T
-        case .failure(let error):
-            throw error
-        }
-    }
-
-    public func fetch(request: Networking.APIRequestV2) async throws -> (data: Data?, httpResponse: HTTPURLResponse) {
+    public func fetch(request: Networking.APIRequestV2) async throws -> APIResponseV2 {
         switch apiResponse {
         case .success(let result):
             return result

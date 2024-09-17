@@ -43,7 +43,8 @@ final class APIServiceTests: XCTestCase {
                                                           APIResponseConstraints.requireETagHeader],
                                    allowedQueryReservedCharacters: CharacterSet(charactersIn: ","))!
         let apiService = DefaultAPIService()
-        let responseHTML: String? = try await apiService.fetch(request: request)
+        let response = try await apiService.fetch(request: request)
+        let responseHTML: String = try response.decodeBody()
         XCTAssertNotNil(responseHTML)
     }
 
@@ -56,7 +57,7 @@ final class APIServiceTests: XCTestCase {
         XCTAssertNotNil(result.data)
         XCTAssertNotNil(result.httpResponse)
 
-        let responseHTML = String(data: result.data!, encoding: .utf8)
+        let responseHTML: String = try result.decodeBody()
         XCTAssertNotNil(responseHTML)
     }
 
@@ -64,7 +65,7 @@ final class APIServiceTests: XCTestCase {
 //    func testRealCallString() async throws {
         let request = APIRequestV2(url: HTTPURLResponse.testUrl)!
         let apiService = DefaultAPIService()
-        let result: String? = try await apiService.fetch(request: request)
+        let result = try await apiService.fetch(request: request)
 
         XCTAssertNotNil(result)
     }
@@ -187,8 +188,7 @@ final class APIServiceTests: XCTestCase {
         }
 
         let apiService = DefaultAPIService(urlSession: mockURLSession)
-        let result: APIService.APIResponse = try await apiService.fetch(request: request)
-        XCTAssertNotNil(result)
+        let result = try await apiService.fetch(request: request)
         XCTAssertEqual(result.httpResponse.statusCode, HTTPStatusCode.ok.rawValue)
     }
 

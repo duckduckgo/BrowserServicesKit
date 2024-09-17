@@ -71,7 +71,7 @@ public struct APIRequestV2: CustomDebugStringConvertible {
         """
         APIRequestV2:
         URL: \(urlRequest.url?.absoluteString ?? "nil")
-        Method: \(urlRequest.httpMethod ?? "Nil")
+        Method: \(urlRequest.httpMethod ?? "nil")
         Headers: \(urlRequest.allHTTPHeaderFields?.debugDescription ?? "-")
         Body: \(urlRequest.httpBody?.debugDescription ?? "-")
         Timeout Interval: \(timeoutInterval)s
