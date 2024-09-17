@@ -100,7 +100,7 @@ public final class DefaultStripePurchaseFlow: StripePurchaseFlow {
             }
         }
 
-        return .success(PurchaseUpdate(type: "redirect", token: token))
+        return .success(PurchaseUpdate.redirect(withToken: token))
     }
 
     private func isSubscriptionExpired(accessToken: String) async -> Bool {

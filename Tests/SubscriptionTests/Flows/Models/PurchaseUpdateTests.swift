@@ -22,15 +22,25 @@ import SubscriptionTestingUtilities
 
 final class PurchaseUpdateTests: XCTestCase {
 
-    override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
+    func testTypes() throws {
+        XCTAssertEqual(PurchaseUpdate.completed.type, "completed")
+        XCTAssertEqual(PurchaseUpdate.canceled.type, "canceled")
+        XCTAssertEqual(PurchaseUpdate.redirect.type, "redirect")
     }
 
-    override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
+    func testEncoding() throws {
+        let purchaseUpdate = PurchaseUpdate.completed
+        let data = try? JSONEncoder().encode(purchaseUpdate)
+
+        let purchaseUpdateString = String(data: data!, encoding: .utf8)!
+        XCTAssertEqual(purchaseUpdateString, "{\"type\":\"completed\"}")
     }
 
-    func testCodable() throws {
+    func testDecoding() throws {
+        let rawPurchaseUpdate = "{\"type\":\"redirect\",\"token\":\"token\"}"
+        let purchaseUpdate = try JSONDecoder().decode(PurchaseUpdate.self, from: Data(rawPurchaseUpdate.utf8))
 
+        XCTAssertEqual(purchaseUpdate.type, "redirect")
+        XCTAssertEqual(purchaseUpdate.token, "token")
     }
 }

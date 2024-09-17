@@ -19,24 +19,40 @@
 import Foundation
 import Subscription
 
-public struct APIServiceMock: APIService {
-    public var mockAuthHeaders: [String: String]
+public final class APIServiceMock: APIService {
+    public var mockAuthHeaders: [String: String] = [String: String]()
+
+    public var mockResponseJSONData: Data?
     public var mockAPICallSuccessResult: Any?
     public var mockAPICallError: APIServiceError?
 
-    public init(mockAuthHeaders: [String: String], mockAPICallSuccessResult: Any? = nil, mockAPICallError: APIServiceError? = nil) {
-        self.mockAuthHeaders = mockAuthHeaders
-        self.mockAPICallSuccessResult = mockAPICallSuccessResult
-        self.mockAPICallError = mockAPICallError
-    }
+    public var onExecuteAPICall: ((ExecuteAPICallParameters) -> Void)?
+
+    public typealias ExecuteAPICallParameters = (method: String, endpoint: String, headers: [String: String]?, body: Data?)
+
+    public init() { }
 
     // swiftlint:disable force_cast
     public func executeAPICall<T>(method: String, endpoint: String, headers: [String: String]?, body: Data?) async -> Result<T, APIServiceError> where T: Decodable {
-        if let success = mockAPICallSuccessResult {
+
+        onExecuteAPICall?(ExecuteAPICallParameters(method, endpoint, headers, body))
+
+        if let data = mockResponseJSONData {
+            let decoder = JSONDecoder()
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
+            decoder.dateDecodingStrategy = .millisecondsSince1970
+
+            if let decodedResponse = try? decoder.decode(T.self, from: data) {
+                return .success(decodedResponse)
+            } else {
+                return .failure(.decodingError)
+            }
+        } else if let success = mockAPICallSuccessResult {
             return .success(success as! T)
         } else if let error = mockAPICallError {
             return .failure(error)
         }
+
         return .failure(.unknownServerError)
     }
     // swiftlint:enable force_cast

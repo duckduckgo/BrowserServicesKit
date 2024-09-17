@@ -1,5 +1,5 @@
 //
-//  PurchaseUpdate.swift
+//  SubscriptionTokenKeychainStorageMock.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -17,18 +17,28 @@
 //
 
 import Foundation
+import Subscription
 
-public struct PurchaseUpdate: Codable {
-    let type: String
-    let token: String?
+public final class SubscriptionTokenKeychainStorageMock: SubscriptionTokenStoring {
 
-    public init(type: String, token: String? = nil) {
-        self.type = type
-        self.token = token
+    public var accessToken: String?
+
+    public var removeAccessTokenCalled: Bool = false
+
+    public init(accessToken: String? = nil) {
+        self.accessToken = accessToken
     }
 
-    public static let completed = PurchaseUpdate(type: "completed")
-    public static let canceled = PurchaseUpdate(type: "canceled")
-    public static let redirect = PurchaseUpdate(type: "redirect")
-    public static func redirect(withToken token: String) -> Self { PurchaseUpdate(type: "redirect", token: token) }
+    public func getAccessToken() throws -> String? {
+        accessToken
+    }
+
+    public func store(accessToken: String) throws {
+        self.accessToken = accessToken
+    }
+
+    public func removeAccessToken() throws {
+        removeAccessTokenCalled = true
+        accessToken = nil
+    }
 }
