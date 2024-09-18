@@ -122,7 +122,7 @@ final class ConfigurationFetcherTests: XCTestCase {
         let fetcher = makeConfigurationFetcher(store: store)
         try? await fetcher.fetch(.privacyConfiguration)
 
-        XCTAssertEqual(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: APIRequest.HTTPHeaderField.ifNoneMatch), etag)
+        XCTAssertEqual(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: HTTPHeaderKey.ifNoneMatch), etag)
     }
 
     func testFetchConfigurationWhenNoEtagStoredThenNoEtagAddedToRequest() async {
@@ -133,7 +133,7 @@ final class ConfigurationFetcherTests: XCTestCase {
         let fetcher = makeConfigurationFetcher(store: store)
         try? await fetcher.fetch(.privacyConfiguration)
 
-        XCTAssertNil(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: APIRequest.HTTPHeaderField.ifNoneMatch))
+        XCTAssertNil(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: HTTPHeaderKey.ifNoneMatch))
     }
 
     func testFetchConfigurationWhenNoDataStoredThenNoEtagAddedToRequest() async {
@@ -145,7 +145,7 @@ final class ConfigurationFetcherTests: XCTestCase {
         let fetcher = makeConfigurationFetcher(store: store)
         try? await fetcher.fetch(.privacyConfiguration)
 
-        XCTAssertNil(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: APIRequest.HTTPHeaderField.ifNoneMatch))
+        XCTAssertNil(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: HTTPHeaderKey.ifNoneMatch))
     }
 
     func testFetchConfigurationWhenEtagProvidedThenItIsAddedToRequest() async {
@@ -157,7 +157,7 @@ final class ConfigurationFetcherTests: XCTestCase {
         let fetcher = makeConfigurationFetcher(store: store)
         try? await fetcher.fetch(.privacyConfiguration)
 
-        XCTAssertEqual(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: APIRequest.HTTPHeaderField.ifNoneMatch), etag)
+        XCTAssertEqual(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: HTTPHeaderKey.ifNoneMatch), etag)
     }
 
     func testFetchConfigurationWhenEmbeddedEtagAndExternalEtagProvidedThenExternalAddedToRequest() async {
@@ -171,7 +171,7 @@ final class ConfigurationFetcherTests: XCTestCase {
         let fetcher = makeConfigurationFetcher(store: store)
         try? await fetcher.fetch(.privacyConfiguration)
 
-        XCTAssertEqual(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: APIRequest.HTTPHeaderField.ifNoneMatch), etag)
+        XCTAssertEqual(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: HTTPHeaderKey.ifNoneMatch), etag)
     }
 
     // MARK: - Tests for fetch(all:)
@@ -300,7 +300,7 @@ final class ConfigurationFetcherTests: XCTestCase {
         let fetcher = makeConfigurationFetcher(store: store)
         try? await fetcher.fetch(all: [.privacyConfiguration])
 
-        XCTAssertEqual(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: APIRequest.HTTPHeaderField.ifNoneMatch), etag)
+        XCTAssertEqual(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: HTTPHeaderKey.ifNoneMatch), etag)
     }
 
     func testFetchAllWhenNoEtagStoredThenNoEtagAddedToRequest() async {
@@ -311,7 +311,7 @@ final class ConfigurationFetcherTests: XCTestCase {
         let fetcher = makeConfigurationFetcher(store: store)
         try? await fetcher.fetch(all: [.privacyConfiguration])
 
-        XCTAssertNil(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: APIRequest.HTTPHeaderField.ifNoneMatch))
+        XCTAssertNil(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: HTTPHeaderKey.ifNoneMatch))
     }
 
     func testFetchAllWhenNoDataStoredThenNoEtagAddedToRequest() async {
@@ -323,7 +323,7 @@ final class ConfigurationFetcherTests: XCTestCase {
         let fetcher = makeConfigurationFetcher(store: store)
         try? await fetcher.fetch(all: [.privacyConfiguration])
 
-        XCTAssertNil(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: APIRequest.HTTPHeaderField.ifNoneMatch))
+        XCTAssertNil(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: HTTPHeaderKey.ifNoneMatch))
     }
 
     func testFetchAllWhenEtagProvidedThenItIsAddedToRequest() async {
@@ -335,7 +335,7 @@ final class ConfigurationFetcherTests: XCTestCase {
         let fetcher = makeConfigurationFetcher(store: store)
         try? await fetcher.fetch(all: [.privacyConfiguration])
 
-        XCTAssertEqual(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: APIRequest.HTTPHeaderField.ifNoneMatch), etag)
+        XCTAssertEqual(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: HTTPHeaderKey.ifNoneMatch), etag)
     }
 
     func testFetchAllWhenEmbeddedEtagAndExternalEtagProvidedThenExternalAddedToRequest() async {
@@ -349,7 +349,7 @@ final class ConfigurationFetcherTests: XCTestCase {
         let fetcher = makeConfigurationFetcher(store: store)
         try? await fetcher.fetch(all: [.privacyConfiguration])
 
-        XCTAssertEqual(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: APIRequest.HTTPHeaderField.ifNoneMatch), etag)
+        XCTAssertEqual(MockURLProtocol.lastRequest?.value(forHTTPHeaderField: HTTPHeaderKey.ifNoneMatch), etag)
     }
 
 }

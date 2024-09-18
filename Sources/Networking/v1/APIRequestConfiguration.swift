@@ -24,23 +24,21 @@ extension APIRequest {
     public struct Configuration<QueryParams: Collection> where QueryParams.Element == (key: String, value: String) {
 
         let url: URL
-        let method: HTTPMethod
+        let method: APIRequest.HTTPMethod
         let queryParameters: QueryParams
         let allowedQueryReservedCharacters: CharacterSet?
         let headers: HTTPHeaders
         let body: Data?
         let timeoutInterval: TimeInterval
-        let attribution: URLRequestAttribution?
         let cachePolicy: URLRequest.CachePolicy?
 
         public init(url: URL,
-                    method: HTTPMethod = .get,
+                    method: APIRequest.HTTPMethod = .get,
                     queryParameters: QueryParams = [],
                     allowedQueryReservedCharacters: CharacterSet? = nil,
                     headers: APIRequest.Headers = APIRequest.Headers(),
                     body: Data? = nil,
                     timeoutInterval: TimeInterval = 60.0,
-                    attribution: URLRequestAttribution? = .developer,
                     cachePolicy: URLRequest.CachePolicy? = nil) {
             self.url = url
             self.method = method
@@ -49,7 +47,6 @@ extension APIRequest {
             self.headers = headers.httpHeaders
             self.body = body
             self.timeoutInterval = timeoutInterval
-            self.attribution = attribution
             self.cachePolicy = cachePolicy
         }
 
@@ -61,11 +58,6 @@ extension APIRequest {
             request.httpBody = body
             if let cachePolicy = cachePolicy {
                 request.cachePolicy = cachePolicy
-            }
-            if #available(iOS 15.0, macOS 12.0, *) {
-                if let attribution = attribution?.urlRequestAttribution {
-                    request.attribution = attribution
-                }
             }
             return request
         }

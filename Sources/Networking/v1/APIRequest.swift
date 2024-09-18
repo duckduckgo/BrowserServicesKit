@@ -23,8 +23,7 @@ public typealias APIResponse = (data: Data?, response: HTTPURLResponse)
 public typealias APIRequestCompletion = (APIResponse?, APIRequest.Error?) -> Void
 
 public struct APIRequest {
-
-    private let request: URLRequest
+    let request: URLRequest
     private let requirements: APIResponseRequirements
     private let urlSession: URLSession
 
@@ -35,19 +34,14 @@ public struct APIRequest {
         self.requirements = requirements
         self.urlSession = urlSession
 
-        assertUserAgentIsPresent()
-    }
-
-    private func assertUserAgentIsPresent() {
-        guard request.allHTTPHeaderFields?[HTTPHeaderField.userAgent] != nil else {
+        guard request.allHTTPHeaderFields?[HTTPHeaderKey.userAgent] != nil else {
             assertionFailure("A user agent must be included in the request's HTTP header fields.")
             return
         }
     }
 
-    /// This method is deprecated. Please use the 'fetch()' async method instead.
-    @discardableResult
-    public func fetch(completion: @escaping APIRequestCompletion) -> URLSessionDataTask {
+    @available(*, deprecated, message: "Please use 'APIService' instead.")
+    @discardableResult public func fetch(completion: @escaping APIRequestCompletion) -> URLSessionDataTask {
         Logger.networking.debug("Requesting \(request.httpMethod ?? "") \(request.url?.absoluteString ?? ""), headers \(String(describing: request.allHTTPHeaderFields ?? [:]))")
         let task = urlSession.dataTask(with: request) { (data, urlResponse, error) in
             if let error = error {
@@ -66,16 +60,18 @@ public struct APIRequest {
         return task
     }
 
-    private func validateAndUnwrap(data: Data?, response: URLResponse) throws -> APIResponse {
+    fileprivate func validateAndUnwrap(data: Data?, response: URLResponse) throws -> APIResponse {
         let httpResponse = try response.asHTTPURLResponse()
 
         Logger.networking.debug("Request completed: \(request.httpMethod ?? "") \(request.url?.absoluteString ?? "") response code: \(httpResponse.statusCode)")
 
         var data = data
-        if requirements.contains(.allowHTTPNotModified), httpResponse.statusCode == HTTPURLResponse.Constants.notModifiedStatusCode {
+        if requirements.contains(.allowHTTPNotModified), httpResponse.httpStatus == .notModified {
             data = nil // avoid returning empty data
         } else {
-            try httpResponse.assertSuccessfulStatusCode()
+            guard httpResponse.httpStatus.isSuccess else {
+                throw APIRequest.Error.invalidStatusCode(httpResponse.statusCode)
+            }
             let data = data ?? Data()
             if requirements.contains(.requireNonEmptyData), data.isEmpty {
                 throw APIRequest.Error.emptyData
@@ -89,18 +85,18 @@ public struct APIRequest {
         return (data, httpResponse)
     }
 
+    @available(*, deprecated, message: "Please use 'APIService' instead.")
     public func fetch() async throws -> APIResponse {
         Logger.networking.debug("Requesting \(request.httpMethod ?? "") \(request.url?.absoluteString ?? ""), headers \(String(describing: request.allHTTPHeaderFields ?? [:]))")
         let (data, response) = try await fetch(for: request)
         return try validateAndUnwrap(data: data, response: response)
     }
 
-    private func fetch(for request: URLRequest) async throws -> (Data, URLResponse) {
+    fileprivate func fetch(for request: URLRequest) async throws -> (Data, URLResponse) {
         do {
             return try await urlSession.data(for: request)
         } catch let error {
             throw Error.urlSession(error)
         }
     }
-
 }

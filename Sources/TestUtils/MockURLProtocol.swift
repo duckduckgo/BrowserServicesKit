@@ -19,16 +19,14 @@
 import Foundation
 
 /// A catch-all URL protocol that returns successful response and records all requests.
-final class MockURLProtocol: URLProtocol {
+public final class MockURLProtocol: URLProtocol {
 
-    static var lastRequest: URLRequest?
-    static var requestHandler: ((URLRequest) throws -> (HTTPURLResponse, Data?))?
+    public static var lastRequest: URLRequest?
+    public static var requestHandler: ((URLRequest) throws -> (HTTPURLResponse, Data?))?
+    public override class func canInit(with request: URLRequest) -> Bool { true }
+    public override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
 
-    override class func canInit(with request: URLRequest) -> Bool { true }
-
-    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
-
-    override func startLoading() {
+    public override func startLoading() {
         guard let handler = MockURLProtocol.requestHandler else {
             fatalError("Handler is unavailable.")
         }
@@ -46,6 +44,6 @@ final class MockURLProtocol: URLProtocol {
         }
     }
 
-    override func stopLoading() { }
+    public override func stopLoading() { }
 
 }

@@ -18,7 +18,7 @@
 
 import XCTest
 @testable import Networking
-@testable import TestUtils
+import TestUtils
 
 final class APIRequestTests: XCTestCase {
 
