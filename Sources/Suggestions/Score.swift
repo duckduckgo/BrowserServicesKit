@@ -26,6 +26,7 @@ extension Score {
     // swiftlint:disable:next cyclomatic_complexity
     init(title: String?, url: URL, visitCount: Int, query: Query, queryTokens: [Query]? = nil) {
         // To optimize, query tokens can be precomputed
+        let query = query.lowercased()
         let queryTokens = queryTokens ?? Self.tokens(from: query)
 
         var score = 0
@@ -39,7 +40,9 @@ extension Score {
             score += 300
             // Prioritize root URLs most
             if url.isRoot { score += 2000 }
-        } else if lowercasedTitle.starts(with: query) {
+        } else if lowercasedTitle
+                .trimmingCharacters(in: .alphanumerics.inverted)
+                .starts(with: query) {
             score += 200
             if url.isRoot { score += 2000 }
         } else if queryCount > 2 && domain.contains(query) {
@@ -52,7 +55,9 @@ extension Score {
                 var matchesAllTokens = true
                 for token in queryTokens {
                     // Match only from the begining of the word to avoid unintuitive matches.
-                    if !lowercasedTitle.starts(with: token) && !lowercasedTitle.contains(" \(token)") && !nakedUrl.starts(with: token) {
+                    if !lowercasedTitle
+                        .trimmingCharacters(in: .alphanumerics.inverted)
+                        .starts(with: token) && !lowercasedTitle.contains(" \(token)") && !nakedUrl.starts(with: token) {
                         matchesAllTokens = false
                         break
                     }
@@ -66,7 +71,9 @@ extension Score {
                     if let firstToken = queryTokens.first { // nakedUrlString - high score boost
                         if nakedUrl.starts(with: firstToken) {
                             score += 70
-                        } else if lowercasedTitle.starts(with: firstToken) { // begining of the title - moderate score boost
+                        } else if lowercasedTitle
+                            .trimmingCharacters(in: .alphanumerics.inverted)
+                            .starts(with: firstToken) { // begining of the title - moderate score boost
                             score += 50
                         }
                     }
@@ -104,12 +111,9 @@ extension Score {
     }
 
     static func tokens(from query: Query) -> [Query] {
-        return query
-            .split(whereSeparator: {
-                $0.unicodeScalars.contains(where: { CharacterSet.whitespacesAndNewlines.contains($0) })
-            })
+        return query.components(separatedBy: .whitespacesAndNewlines)
             .filter { !$0.isEmpty }
-            .map { String($0).lowercased() }
+            .map { $0.lowercased() }
     }
 
 }

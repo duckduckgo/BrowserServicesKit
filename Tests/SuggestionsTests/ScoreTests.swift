@@ -22,6 +22,22 @@ import XCTest
 
 final class ScoreTests: XCTestCase {
 
+    func testWhenTitleStartsWithQuotes_ThenStillScoresHighlyForWordsAtStart() {
+
+        func runAssertion(_ title: String, _ query: String) {
+            let score = Score(title: title,
+                               url: URL(string: "https://www.testcase.com/notroot")!,
+                               visitCount: 0,
+                               query: query)
+            XCTAssertTrue(score > 0, "\(score)")
+        }
+
+        runAssertion("\"Cats and Dogs\"", "Cats")
+        runAssertion("«Рукописи не горят»: первый замысел «Мастера и Маргариты». Лекция из курса «Мир Булгакова». АУДИО - YouTube", "Р")
+        runAssertion("«Рукописи не горят»: первый замысел «Мастера и Маргариты». Лекция из курса «Мир Булгакова». АУДИО - YouTube", "Ру")
+        runAssertion("«Рукописи не горят»: первый замысел «Мастера и Маргариты». Лекция из курса «Мир Булгакова». АУДИО - YouTube", "Рукописи")
+    }
+
     func testWhenQueryIsJustWhitespaces_ThenTokensAreEmpty() {
         let query = "  \t\n\t\t \t \t  \n\n\n "
         let tokens = Score.tokens(from: query)
