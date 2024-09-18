@@ -64,3 +64,4 @@ let mockedAPIService = MockAPIService(decodableResponse: Result.failure(SomeErro
 ## v1 (Legacy)
 
 Not to be used. All V1 public functions have been deprecated and maintained only for backward compatibility. 
+ƒ

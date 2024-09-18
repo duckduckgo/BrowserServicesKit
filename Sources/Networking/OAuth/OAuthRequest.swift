@@ -19,7 +19,7 @@
 import Foundation
 import os.log
 
-/// Auth API v2 Endpoints, doc: https://dub.duckduckgo.com/duckduckgo/ddg/blob/main/components/auth/docs/AuthAPIV2Documentation.md#auth-api-v2-endpoints
+/// Auth API v2 Endpoints: https://dub.duckduckgo.com/duckduckgo/ddg/blob/main/components/auth/docs/AuthAPIV2Documentation.md#auth-api-v2-endpoints
 struct OAuthRequest {
 
     let apiRequest: APIRequestV2
@@ -43,6 +43,8 @@ struct OAuthRequest {
         "account_edit_failed": "Something went wrong and the edit was aborted",
         "invalid_link_signature": "The hash is invalid or does not match the provided email address and account",
         "account_change_email_address_failed": "Something went wrong and the edit was aborted",
+        "invalid_token": "Provided access token is missing or invalid",
+        "expired_token": "Provided access token is expired"
     ]
 
     struct BodyError: Decodable {
@@ -208,7 +210,7 @@ struct OAuthRequest {
         let headers = [
             HTTPHeaderKey.authorization: "Bearer \(accessToken)"
         ]
-        var queryItems: [String: String] = [
+        let queryItems = [
             "email": email,
             "hash": hash,
             "otp": otp,
@@ -223,4 +225,52 @@ struct OAuthRequest {
         return OAuthRequest(apiRequest: request, httpErrorCodes: [.unauthorized, .internalServerError])
     }
 
+    // MARK: Logout
+
+    static func logout(baseURL: URL, accessToken: String) -> OAuthRequest? {
+        let path = "/api/auth/v2/logout"
+        let headers = [
+            HTTPHeaderKey.authorization: "Bearer \(accessToken)"
+        ]
+
+        guard let request = APIRequestV2(url: baseURL.appendingPathComponent(path),
+                                         method: .post,
+                                         headers: APIRequestV2.HeadersV2(additionalHeaders: headers)) else {
+            return nil
+        }
+        return OAuthRequest(apiRequest: request, httpErrorCodes: [.unauthorized, .internalServerError])
+    }
+
+    // MARK: Exchange token
+
+    static func exchangeToken(baseURL: URL, accessTokenV1: String, authSessionID: String) -> OAuthRequest? {
+        let path = "/api/auth/v2/exchange"
+        let headers = [
+            HTTPHeaderKey.authorization: "Bearer \(accessTokenV1)",
+            HTTPHeaderKey.cookie: authSessionID
+        ]
+
+        guard let request = APIRequestV2(url: baseURL.appendingPathComponent(path),
+                                         method: .post,
+                                         headers: APIRequestV2.HeadersV2(additionalHeaders: headers)) else {
+            return nil
+        }
+        return OAuthRequest(apiRequest: request,
+                            httpSuccessCode: .found,
+                            httpErrorCodes: [.unauthorized, .internalServerError])
+    }
+
+    // MARK: JWKs
+
+    /// This endpoint is where the Auth service will publish public keys for consuming services and clients to use to independently verify access tokens. Tokens should be downloaded and cached for an hour upon first use. When rotating private keys for signing JWTs, the Auth service will publish new public keys 24 hours in advance of starting to sign new JWTs with them. This should provide consuming services with plenty of time to invalidate their public key cache and have the new key available before they can expect to start receiving JWTs signed with the old key. The old key will remain published until the next key rotation, so there should generally be two public keys available through this endpoint. The response format is a standard JWKS response, as documented in RFC 7517.
+    static func jwks(baseURL: URL) -> OAuthRequest? {
+        let path = "/api/auth/v2/.well-known/jwks.json"
+
+        guard let request = APIRequestV2(url: baseURL.appendingPathComponent(path), method: .get) else {
+            return nil
+        }
+        return OAuthRequest(apiRequest: request,
+                            httpSuccessCode: .ok,
+                            httpErrorCodes: [.internalServerError])
+    }
 }

@@ -18,6 +18,7 @@
 
 import Foundation
 import os.log
+import JWTKit
 
 public protocol OAuthService {
     
@@ -96,11 +97,7 @@ public struct DefaultOAuthService: OAuthService {
 
         let statusCode = response.httpResponse.httpStatus
         if statusCode == request.httpSuccessCode {
-            guard let data = response.data else {
-                throw OAuthServiceError.missingResponseValue("Decodable \(T.self) body")
-            }
             Logger.networking.debug("\(#function) request completed")
-
             return try response.decodeBody()
         } else if request.httpErrorCodes.contains(statusCode) {
             try throwError(forResponse: response, request: request)
@@ -212,7 +209,7 @@ public struct DefaultOAuthService: OAuthService {
         return try await fetch(request: request)
     }
 
-    // MARK: - Edit account
+    // MARK: Edit account
 
     /// Edit an account email address
     /// - Parameters:
@@ -225,11 +222,59 @@ public struct DefaultOAuthService: OAuthService {
         return try await fetch(request: request)
     }
 
-    public func confirmEditAccount(clientID: String, accessToken: String, email: String?) async throws -> EditAccountResponse {
-        guard let request = OAuthRequest.editAccount(baseURL: baseURL, accessToken: accessToken, email: email) else {
+    public func confirmEditAccount(accessToken: String, email: String, hash: String, otp: String) async throws -> ConfirmEditAccountResponse {
+        guard let request = OAuthRequest.confirmEditAccount(baseURL: baseURL, accessToken: accessToken, email: email, hash: hash, otp: otp) else {
             throw OAuthServiceError.invalidRequest
         }
         return try await fetch(request: request)
+    }
+
+    // MARK: Logout
+
+    public func logout(accessToken: String) async throws {
+        guard let request = OAuthRequest.logout(baseURL: baseURL, accessToken: accessToken) else {
+            throw OAuthServiceError.invalidRequest
+        }
+        let response: LogoutResponse = try await fetch(request: request)
+        guard response.status == "logged_out" else {
+            throw OAuthServiceError.missingResponseValue("LogoutResponse.status")
+        }
+    }
+
+    // MARK: Access token exchange
+
+    public func exchangeToken(accessTokenV1: String, authSessionID: String) async throws -> OAuthLocation {
+        guard let request = OAuthRequest.exchangeToken(baseURL: baseURL, accessTokenV1: accessTokenV1, authSessionID: authSessionID) else {
+            throw OAuthServiceError.invalidRequest
+        }
+
+        try Task.checkCancellation()
+        let response = try await apiService.fetch(request: request.apiRequest)
+        try Task.checkCancellation()
+
+        let statusCode = response.httpResponse.httpStatus
+        if statusCode == request.httpSuccessCode {
+            Logger.networking.debug("\(#function) request completed")
+            return try extract(header: HTTPHeaderKey.location, from: response.httpResponse)
+        } else if request.httpErrorCodes.contains(statusCode) {
+            try throwError(forResponse: response, request: request)
+        }
+        throw OAuthServiceError.invalidResponseCode(statusCode)
+    }
+
+    // MARK: JWKs
+
+    /// Create a  JWTSigners with the JWKs provided by the endpoint
+    /// - Returns: A JWTSigners that can be used to verify JWTs
+    public func getJWTSigners() async throws -> JWTSigners {
+        guard let request = OAuthRequest.jwks(baseURL: baseURL) else {
+            throw OAuthServiceError.invalidRequest
+        }
+        let response: String = try await fetch(request: request)
+        let signers = JWTSigners()
+        try signers.use(jwksJSON: response)
+
+        return signers
     }
 }
 
@@ -287,6 +332,16 @@ public struct OAuthTokenResponse: Decodable {
 }
 
 public struct EditAccountResponse: Decodable {
-    let status: String
-    let hash: String
+    let status: String // Always "confirm"
+    let hash: String // Edit hash for edit confirmation
 }
+
+public struct ConfirmEditAccountResponse: Decodable {
+    let status: String // Always "confirmed"
+    let email: String // The new email address
+}
+
+public struct LogoutResponse: Decodable {
+    let status: String // Always "logged_out"
+}
+

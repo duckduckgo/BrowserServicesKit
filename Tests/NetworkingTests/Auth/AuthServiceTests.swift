@@ -61,4 +61,15 @@ final class AuthServiceTests: XCTestCase {
             }
         }
     }
+
+    func testGetJWTSigner() async throws { // TODO: Disable
+        let authService = DefaultOAuthService(baseURL: baseURL)
+        let signer = try await authService.getJWTSigners()
+        do {
+            let _: AccessTokenPayload = try signer.verify("sdfgdsdzfgsdf")
+            XCTFail("Should have thrown an error")
+        } catch {
+            XCTAssertNotNil(error)
+        }
+    }
 }
