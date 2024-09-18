@@ -79,7 +79,6 @@ public enum AutofillSubfeature: String, PrivacySubfeature {
     case accessCredentialManagement
     case autofillPasswordGeneration
     case onByDefault
-    case deduplicateLoginsOnImport
     case onForExistingUsers
     case unknownUsernameCategorization
 }
