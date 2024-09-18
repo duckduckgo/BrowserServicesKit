@@ -1,5 +1,5 @@
 //
-//  SubscriptionTokenKeychainStorageMock.swift
+//  AccountManagerKeychainAccessDelegateMock.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -19,22 +19,15 @@
 import Foundation
 import Subscription
 
-public class SubscriptionTokenKeychainStorageMock: SubscriptionTokenStoring {
-    public var accessToken: String?
+public final class AccountManagerKeychainAccessDelegateMock: AccountManagerKeychainAccessDelegate {
 
-    public init(accessToken: String? = nil) {
-        self.accessToken = accessToken
+    public var onAccountManagerKeychainAccessFailed: ((AccountKeychainAccessType, AccountKeychainAccessError) -> Void)?
+
+    public init(onAccountManagerKeychainAccessFailed: ( (AccountKeychainAccessType, AccountKeychainAccessError) -> Void)? = nil) {
+        self.onAccountManagerKeychainAccessFailed = onAccountManagerKeychainAccessFailed
     }
 
-    public func getAccessToken() throws -> String? {
-        accessToken
-    }
-
-    public func store(accessToken: String) throws {
-        self.accessToken = accessToken
-    }
-
-    public func removeAccessToken() throws {
-        accessToken = nil
+    public func accountManagerKeychainAccessFailed(accessType: AccountKeychainAccessType, error: AccountKeychainAccessError) {
+        onAccountManagerKeychainAccessFailed?(accessType, error)
     }
 }

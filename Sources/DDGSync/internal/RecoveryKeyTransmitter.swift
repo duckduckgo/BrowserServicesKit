@@ -45,7 +45,7 @@ struct RecoveryKeyTransmitter: RecoveryKeyTransmitting {
         )
 
         let request = api.createRequest(url: endpoints.connect,
-                                        method: .POST,
+                                        method: .post,
                                         headers: ["Authorization": "Bearer \(token)"],
                                         parameters: [:],
                                         body: body,

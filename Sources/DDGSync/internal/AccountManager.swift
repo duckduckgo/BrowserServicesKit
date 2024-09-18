@@ -18,6 +18,7 @@
 
 import Foundation
 import DDGSyncCrypto
+import Networking
 
 struct AccountManager: AccountManaging {
 
@@ -50,7 +51,7 @@ struct AccountManager: AccountManaging {
             fatalError()
         }
 
-        let request = api.createUnauthenticatedJSONRequest(url: endpoints.signup, method: .POST, json: paramJson)
+        let request = api.createUnauthenticatedJSONRequest(url: endpoints.signup, method: .post, json: paramJson)
 
         let result = try await request.execute()
 
@@ -88,7 +89,7 @@ struct AccountManager: AccountManaging {
             fatalError()
         }
 
-        let request = api.createAuthenticatedJSONRequest(url: endpoints.logoutDevice, method: .POST, authToken: token, json: paramJson)
+        let request = api.createAuthenticatedJSONRequest(url: endpoints.logoutDevice, method: .post, authToken: token, json: paramJson)
 
         let result = try await request.execute()
 
@@ -152,7 +153,7 @@ struct AccountManager: AccountManaging {
             throw SyncError.noToken
         }
 
-        let request = api.createAuthenticatedJSONRequest(url: endpoints.deleteAccount, method: .POST, authToken: token)
+        let request = api.createAuthenticatedJSONRequest(url: endpoints.deleteAccount, method: .post, authToken: token)
         let result = try await request.execute()
         let statusCode = result.response.statusCode
 
@@ -179,7 +180,7 @@ struct AccountManager: AccountManaging {
 
         let paramJson = try JSONEncoder.snakeCaseKeys.encode(params)
 
-        let request = api.createUnauthenticatedJSONRequest(url: endpoints.login, method: .POST, json: paramJson)
+        let request = api.createUnauthenticatedJSONRequest(url: endpoints.login, method: .post, json: paramJson)
 
         let result = try await request.execute()
 

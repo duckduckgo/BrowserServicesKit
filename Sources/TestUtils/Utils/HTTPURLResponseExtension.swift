@@ -19,15 +19,16 @@
 import Foundation
 import Networking
 
-extension HTTPURLResponse {
+public extension HTTPURLResponse {
 
     static let testEtag = "test-etag"
     static let testUrl = URL(string: "http://www.example.com")!
+    static let testUserAgent = "test-user-agent"
 
     static let ok = HTTPURLResponse(url: testUrl,
                                     statusCode: 200,
                                     httpVersion: nil,
-                                    headerFields: [APIRequest.HTTPHeaderField.etag: testEtag])!
+                                    headerFields: [HTTPHeaderKey.etag: testEtag])!
 
     static let okNoEtag = HTTPURLResponse(url: testUrl,
                                           statusCode: 200,
@@ -37,11 +38,15 @@ extension HTTPURLResponse {
     static let notModified = HTTPURLResponse(url: testUrl,
                                              statusCode: 304,
                                              httpVersion: nil,
-                                             headerFields: [APIRequest.HTTPHeaderField.etag: testEtag])!
+                                             headerFields: [HTTPHeaderKey.etag: testEtag])!
 
     static let internalServerError = HTTPURLResponse(url: testUrl,
                                                      statusCode: 500,
                                                      httpVersion: nil,
                                                      headerFields: [:])!
 
+    static let okUserAgent = HTTPURLResponse(url: testUrl,
+                                             statusCode: 200,
+                                             httpVersion: nil,
+                                             headerFields: [HTTPHeaderKey.userAgent: testUserAgent])!
 }

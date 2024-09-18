@@ -557,7 +557,7 @@ public extension CharacterSet {
 
 }
 
-extension URLQueryItem {
+public extension URLQueryItem {
 
     init(percentEncodingName name: String, value: String, withAllowedCharacters allowedReservedCharacters: CharacterSet? = nil) {
         let allowedCharacters: CharacterSet = {

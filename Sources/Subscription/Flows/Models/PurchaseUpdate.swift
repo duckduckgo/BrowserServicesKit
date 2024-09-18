@@ -26,4 +26,9 @@ public struct PurchaseUpdate: Codable {
         self.type = type
         self.token = token
     }
+
+    public static let completed = PurchaseUpdate(type: "completed")
+    public static let canceled = PurchaseUpdate(type: "canceled")
+    public static let redirect = PurchaseUpdate(type: "redirect")
+    public static func redirect(withToken token: String) -> Self { PurchaseUpdate(type: "redirect", token: token) }
 }

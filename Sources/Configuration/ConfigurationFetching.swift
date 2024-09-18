@@ -20,7 +20,7 @@ import Foundation
 import Common
 import Networking
 
-protocol ConfigurationFetching {
+public protocol ConfigurationFetching {
 
     func fetch(_ configuration: Configuration, isDebug: Bool) async throws
     func fetch(all configurations: [Configuration]) async throws

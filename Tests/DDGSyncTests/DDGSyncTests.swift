@@ -154,7 +154,7 @@ final class DDGSyncTests: XCTestCase {
 
         let api = dependencies.api as! RemoteAPIRequestCreatingMock
         XCTAssertEqual(api.createRequestCallCount, 3)
-        XCTAssertEqual(api.createRequestCallArgs.map(\.method), [.PATCH, .PATCH, .PATCH])
+        XCTAssertEqual(api.createRequestCallArgs.map(\.method), [.patch, .patch, .patch])
     }
 
     func testThatFirstSyncAndRegularSyncOperationsAreSerialized() {
@@ -192,7 +192,7 @@ final class DDGSyncTests: XCTestCase {
 
         let api = dependencies.api as! RemoteAPIRequestCreatingMock
         XCTAssertEqual(api.createRequestCallCount, 4)
-        XCTAssertEqual(api.createRequestCallArgs.map(\.method), [.GET, .PATCH, .PATCH, .PATCH])
+        XCTAssertEqual(api.createRequestCallArgs.map(\.method), [.get, .patch, .patch, .patch])
     }
 
     func testWhenNewSyncAccountIsCreatedWithMultipleModelsThenInitialFetchDoesNotHappen() throws {
@@ -227,7 +227,7 @@ final class DDGSyncTests: XCTestCase {
 
         let api = dependencies.api as! RemoteAPIRequestCreatingMock
         XCTAssertEqual(api.createRequestCallCount, 2)
-        XCTAssertEqual(api.createRequestCallArgs.map(\.method), [.PATCH, .PATCH])
+        XCTAssertEqual(api.createRequestCallArgs.map(\.method), [.patch, .patch])
     }
 
     func testWhenDeviceIsAddedToExistingSyncAccountWithMultipleModelsThenInitialFetchHappens() throws {
@@ -262,7 +262,7 @@ final class DDGSyncTests: XCTestCase {
 
         let api = dependencies.api as! RemoteAPIRequestCreatingMock
         XCTAssertEqual(api.createRequestCallCount, 4)
-        XCTAssertEqual(api.createRequestCallArgs.map(\.method), [.GET, .GET, .PATCH, .PATCH])
+        XCTAssertEqual(api.createRequestCallArgs.map(\.method), [.get, .get, .patch, .patch])
     }
 
     /// Test initial fetch for newly added models.
@@ -314,7 +314,7 @@ final class DDGSyncTests: XCTestCase {
 
         let api = dependencies.api as! RemoteAPIRequestCreatingMock
         XCTAssertEqual(api.createRequestCallCount, 5)
-        XCTAssertEqual(api.createRequestCallArgs.map(\.method), [.GET, .PATCH, .PATCH, .PATCH, .PATCH])
+        XCTAssertEqual(api.createRequestCallArgs.map(\.method), [.get, .patch, .patch, .patch, .patch])
         XCTAssertEqual(api.createRequestCallArgs[0].url.lastPathComponent, "credentials")
     }
 
@@ -359,7 +359,7 @@ final class DDGSyncTests: XCTestCase {
         ])
 
         let api = dependencies.api as! RemoteAPIRequestCreatingMock
-        XCTAssertEqual(api.createRequestCallArgs.map(\.method), [.PATCH])
+        XCTAssertEqual(api.createRequestCallArgs.map(\.method), [.patch])
     }
 
     func testWhenSyncQueueIsSuspendedThenNewOperationsDoNotStart() {
@@ -418,7 +418,7 @@ final class DDGSyncTests: XCTestCase {
         ])
 
         let api = dependencies.api as! RemoteAPIRequestCreatingMock
-        XCTAssertEqual(api.createRequestCallArgs.map(\.method), [.PATCH])
+        XCTAssertEqual(api.createRequestCallArgs.map(\.method), [.patch])
     }
 
     func testWhenSyncGetsDisabledBeforeStartingOperationThenOperationReturnsEarly() throws {

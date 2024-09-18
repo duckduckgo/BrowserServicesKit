@@ -84,7 +84,7 @@ final class RemoteConnector: RemoteConnecting {
         let url = endpoints.connect.appendingPathComponent(connectInfo.deviceID)
 
         let request = api.createRequest(url: url,
-                                        method: .GET,
+                                        method: .get,
                                         headers: [:],
                                         parameters: [:],
                                         body: nil,

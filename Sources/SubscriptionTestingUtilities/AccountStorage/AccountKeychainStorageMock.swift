@@ -19,54 +19,51 @@
 import Foundation
 import Subscription
 
-public class AccountKeychainStorageMock: AccountStoring {
+public final class AccountKeychainStorageMock: AccountStoring {
     public var authToken: String?
-    public var accessToken: String?
     public var email: String?
     public var externalID: String?
 
-    public init(authToken: String? = nil, accessToken: String? = nil, email: String? = nil, externalID: String? = nil) {
-        self.authToken = authToken
-        self.accessToken = accessToken
-        self.email = email
-        self.externalID = externalID
-    }
+    public var mockedAccessError: AccountKeychainAccessError?
+
+    public var clearAuthenticationStateCalled: Bool = false
+
+    public init() { }
 
     public func getAuthToken() throws -> String? {
-        authToken
+        if let mockedAccessError { throw mockedAccessError }
+        return authToken
     }
 
     public func store(authToken: String) throws {
+        if let mockedAccessError { throw mockedAccessError }
         self.authToken = authToken
     }
 
-    public func getAccessToken() throws -> String? {
-        accessToken
-    }
-
-    public func store(accessToken: String) throws {
-        self.accessToken = accessToken
-    }
-
     public func getEmail() throws -> String? {
-        email
+        if let mockedAccessError { throw mockedAccessError }
+        return email
     }
 
     public func store(email: String?) throws {
+        if let mockedAccessError { throw mockedAccessError }
         self.email = email
     }
 
     public func getExternalID() throws -> String? {
-        externalID
+        if let mockedAccessError { throw mockedAccessError }
+        return externalID
     }
 
     public func store(externalID: String?) throws {
+        if let mockedAccessError { throw mockedAccessError }
         self.externalID = externalID
     }
 
     public func clearAuthenticationState() throws {
+        clearAuthenticationStateCalled = true
+
         authToken = nil
-        accessToken = nil
         email = nil
         externalID = nil
     }
