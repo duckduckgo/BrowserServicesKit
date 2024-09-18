@@ -767,9 +767,6 @@
             ReferencedContainer = "container:">
          </BuildableReference>
       </MacroExpansion>
-      <StoreKitConfigurationFileReference
-         identifier = "../../../Tests/SubscriptionTests/Resources/TestingConfiguration.storekit">
-      </StoreKitConfigurationFileReference>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"

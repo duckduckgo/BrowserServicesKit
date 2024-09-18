@@ -80,30 +80,24 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
 
     private let errorEvents: EventMapping<NetworkProtectionError>?
 
-    private let isSubscriptionEnabled: Bool
-
     public init(environment: VPNSettings.SelectedEnvironment,
                 tokenStore: NetworkProtectionTokenStore,
                 keyStore: NetworkProtectionKeyStore,
-                errorEvents: EventMapping<NetworkProtectionError>?,
-                isSubscriptionEnabled: Bool) {
-        self.init(networkClient: NetworkProtectionBackendClient(environment: environment, isSubscriptionEnabled: isSubscriptionEnabled),
+                errorEvents: EventMapping<NetworkProtectionError>?) {
+        self.init(networkClient: NetworkProtectionBackendClient(environment: environment),
                   tokenStore: tokenStore,
                   keyStore: keyStore,
-                  errorEvents: errorEvents,
-                  isSubscriptionEnabled: isSubscriptionEnabled)
+                  errorEvents: errorEvents)
     }
 
     init(networkClient: NetworkProtectionClient,
          tokenStore: NetworkProtectionTokenStore,
          keyStore: NetworkProtectionKeyStore,
-         errorEvents: EventMapping<NetworkProtectionError>?,
-         isSubscriptionEnabled: Bool) {
+         errorEvents: EventMapping<NetworkProtectionError>?) {
         self.networkClient = networkClient
         self.tokenStore = tokenStore
         self.keyStore = keyStore
         self.errorEvents = errorEvents
-        self.isSubscriptionEnabled = isSubscriptionEnabled
     }
 
     /// Requests a new server list from the backend and updates it locally.
@@ -348,10 +342,8 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     private func handleAccessRevoked(_ error: NetworkProtectionClientError) throws {
         switch error {
         case .accessDenied, .invalidAuthToken:
-            if isSubscriptionEnabled {
-                errorEvents?.fire(.vpnAccessRevoked)
-                throw NetworkProtectionError.vpnAccessRevoked
-            }
+            errorEvents?.fire(.vpnAccessRevoked)
+            throw NetworkProtectionError.vpnAccessRevoked
         default:
             break
         }

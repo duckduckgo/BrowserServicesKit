@@ -19,35 +19,39 @@
 import Foundation
 import Subscription
 
-public struct AuthEndpointServiceMock: AuthEndpointService {
-    public var accessTokenResult: Result<AccessTokenResponse, APIServiceError>?
+public final class AuthEndpointServiceMock: AuthEndpointService {
+    public var getAccessTokenResult: Result<AccessTokenResponse, APIServiceError>?
     public var validateTokenResult: Result<ValidateTokenResponse, APIServiceError>?
     public var createAccountResult: Result<CreateAccountResponse, APIServiceError>?
     public var storeLoginResult: Result<StoreLoginResponse, APIServiceError>?
 
-    public init(accessTokenResult: Result<AccessTokenResponse, APIServiceError>?,
-                validateTokenResult: Result<ValidateTokenResponse, APIServiceError>?,
-                createAccountResult: Result<CreateAccountResponse, APIServiceError>?,
-                storeLoginResult: Result<StoreLoginResponse, APIServiceError>?) {
-        self.accessTokenResult = accessTokenResult
-        self.validateTokenResult = validateTokenResult
-        self.createAccountResult = createAccountResult
-        self.storeLoginResult = storeLoginResult
-    }
+    public var onValidateToken: ((String) -> Void)?
+
+    public var getAccessTokenCalled: Bool = false
+    public var validateTokenCalled: Bool = false
+    public var createAccountCalled: Bool = false
+    public var storeLoginCalled: Bool = false
+
+    public init() { }
 
     public func getAccessToken(token: String) async -> Result<AccessTokenResponse, APIServiceError> {
-        accessTokenResult!
+        getAccessTokenCalled = true
+        return getAccessTokenResult!
     }
 
     public func validateToken(accessToken: String) async -> Result<ValidateTokenResponse, APIServiceError> {
-        validateTokenResult!
+        validateTokenCalled = true
+        onValidateToken?(accessToken)
+        return validateTokenResult!
     }
 
     public func createAccount(emailAccessToken: String?) async -> Result<CreateAccountResponse, APIServiceError> {
-        createAccountResult!
+        createAccountCalled = true
+        return createAccountResult!
     }
 
     public func storeLogin(signature: String) async -> Result<StoreLoginResponse, APIServiceError> {
-        storeLoginResult!
+        storeLoginCalled = true
+        return storeLoginResult!
     }
 }

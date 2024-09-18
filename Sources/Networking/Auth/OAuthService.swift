@@ -73,18 +73,16 @@ public struct DefaultOAuthService: OAuthService {
     ///  The Auth API can answer with errors in the HTTP response body, format: `{ "error": "$error_code" }`, this function decodes the body in `AuthRequest.BodyError`and generates an AuthServiceError containing the error info
     /// - Parameter responseBody: The HTTP response body Data
     /// - Returns: and AuthServiceError.authAPIError containing the error code and description, nil if the body
-    internal func extractError(from responseBody: Data, request: OAuthRequest) -> OAuthServiceError? {
-        let decoder = JSONDecoder()
-        guard let bodyError = try? decoder.decode(OAuthRequest.BodyError.self, from: responseBody) else {
-            return nil
+    internal func extractError(from response: APIResponseV2, request: OAuthRequest) -> OAuthServiceError? {
+        if let bodyError: OAuthRequest.BodyError = try? response.decodeBody() {
+            let description = OAuthRequest.errorDetails[bodyError.error] ?? "Missing description"
+            return OAuthServiceError.authAPIError(code: bodyError.error, description: description)
         }
-        let description = request.errorDetails[bodyError.error] ?? "Missing description"
-        return OAuthServiceError.authAPIError(code: bodyError.error, description: description)
+        return nil
     }
 
-    internal func throwError(forErrorBody body: Data?, request: OAuthRequest) throws {
-        if let body,
-           let error = extractError(from: body, request: request) {
+    internal func throwError(forResponse response: APIResponseV2, request: OAuthRequest) throws {
+        if let error = extractError(from: response, request: request) {
             throw error
         } else {
             throw OAuthServiceError.missingResponseValue("Body error")
@@ -103,10 +101,9 @@ public struct DefaultOAuthService: OAuthService {
             }
             Logger.networking.debug("\(#function) request completed")
 
-            let decoder = JSONDecoder()
-            return try decoder.decode(T.self, from: data)
+            return try response.decodeBody()
         } else if request.httpErrorCodes.contains(statusCode) {
-            try throwError(forErrorBody: response.data, request: request)
+            try throwError(forResponse: response, request: request)
         }
         throw OAuthServiceError.invalidResponseCode(statusCode)
     }
@@ -132,7 +129,7 @@ public struct DefaultOAuthService: OAuthService {
             Logger.networking.debug("\(#function) request completed")
             return OAuthAuthoriseResponse(location: location, setCookie: setCookie)
         } else if request.httpErrorCodes.contains(statusCode) {
-            try throwError(forErrorBody: response.data, request: request)
+            try throwError(forResponse: response, request: request)
         }
         throw OAuthServiceError.invalidResponseCode(statusCode)
     }
@@ -153,7 +150,7 @@ public struct DefaultOAuthService: OAuthService {
             Logger.networking.debug("\(#function) request completed")
             return try extract(header: HTTPHeaderKey.location, from: response.httpResponse)
         } else if request.httpErrorCodes.contains(statusCode) {
-            try throwError(forErrorBody: response.data, request: request)
+            try throwError(forResponse: response, request: request)
         }
         throw OAuthServiceError.invalidResponseCode(statusCode)
     }
@@ -173,7 +170,7 @@ public struct DefaultOAuthService: OAuthService {
         if statusCode == request.httpSuccessCode {
             Logger.networking.debug("\(#function) request completed")
         } else if request.httpErrorCodes.contains(statusCode) {
-            try throwError(forErrorBody: response.data, request: request)
+            try throwError(forResponse: response, request: request)
         }
         throw OAuthServiceError.invalidResponseCode(statusCode)
     }
@@ -194,7 +191,7 @@ public struct DefaultOAuthService: OAuthService {
             Logger.networking.debug("\(#function) request completed")
             return try extract(header: HTTPHeaderKey.location, from: response.httpResponse)
         } else if request.httpErrorCodes.contains(statusCode) {
-            try throwError(forErrorBody: response.data, request: request)
+            try throwError(forResponse: response, request: request)
         }
         throw OAuthServiceError.invalidResponseCode(statusCode)
     }

@@ -26,6 +26,7 @@ extension APIRequestV2 {
         case unsatisfiedRequirement(APIResponseConstraints)
         case invalidStatusCode(Int)
         case invalidDataType
+        case emptyResponseBody
 
         public var errorDescription: String? {
             switch self {
@@ -39,6 +40,8 @@ extension APIRequestV2 {
                 return "Invalid status code received in response (\(statusCode))."
             case .invalidDataType:
                 return "Invalid response data type"
+            case .emptyResponseBody:
+                return "The response body is nil"
             }
         }
     }

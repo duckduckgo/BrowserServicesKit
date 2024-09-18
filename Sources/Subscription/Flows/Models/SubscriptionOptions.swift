@@ -18,7 +18,7 @@
 
 import Foundation
 
-public struct SubscriptionOptions: Encodable {
+public struct SubscriptionOptions: Encodable, Equatable {
     let platform: String
     let options: [SubscriptionOption]
     let features: [SubscriptionFeature]
@@ -34,16 +34,16 @@ public struct SubscriptionOptions: Encodable {
     }
 }
 
-public struct SubscriptionOption: Encodable {
+public struct SubscriptionOption: Encodable, Equatable {
     let id: String
     let cost: SubscriptionOptionCost
 }
 
-struct SubscriptionOptionCost: Encodable {
+struct SubscriptionOptionCost: Encodable, Equatable {
     let displayPrice: String
     let recurrence: String
 }
 
-public struct SubscriptionFeature: Encodable {
+public struct SubscriptionFeature: Encodable, Equatable {
     let name: String
 }

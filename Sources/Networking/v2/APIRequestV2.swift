@@ -69,10 +69,14 @@ public struct APIRequestV2: CustomDebugStringConvertible {
 
     public var debugDescription: String {
         """
-        \(urlRequest.httpMethod ?? "Nil") \(urlRequest.url?.absoluteString ?? "nil")
+        APIRequestV2:
+        URL: \(urlRequest.url?.absoluteString ?? "nil")
+        Method: \(urlRequest.httpMethod ?? "nil")
         Headers: \(urlRequest.allHTTPHeaderFields?.debugDescription ?? "-")
         Body: \(urlRequest.httpBody?.debugDescription ?? "-")
-        Constraints: \(responseConstraints?.debugDescription ?? "-")
+        Timeout Interval: \(timeoutInterval)s
+        Cache Policy: \(urlRequest.cachePolicy)
+        Response Constraints: \(responseConstraints?.map { $0.rawValue } ?? [])
         """
     }
 }

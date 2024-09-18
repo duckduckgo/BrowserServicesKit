@@ -136,7 +136,7 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
             }
         }
 
-        return result ? .success(PurchaseUpdate(type: "completed")) : .failure(.missingEntitlements)
+        return result ? .success(PurchaseUpdate.completed) : .failure(.missingEntitlements)
     }
 
     private func callWithRetries(retry retryCount: Int, wait waitTime: Double, conditionToCheck: () async -> Bool) async -> Bool {

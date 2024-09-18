@@ -1,5 +1,5 @@
 //
-//  APIResponseRequirementV2.swift
+//  APIResponseConstraints.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //

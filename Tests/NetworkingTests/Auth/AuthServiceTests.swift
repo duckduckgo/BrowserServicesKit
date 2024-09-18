@@ -53,7 +53,7 @@ final class AuthServiceTests: XCTestCase {
             switch error {
             case OAuthServiceError.authAPIError(let code, let desc):
                 XCTAssertEqual(code, "invalid_authorization_request")
-                XCTAssertEqual(desc, "One or more of the required parameters are missing or any provided parameters have invalid values.")
+                XCTAssertEqual(desc, "One or more of the required parameters are missing or any provided parameters have invalid values")
                 break
             default:
                 XCTFail("Wrong error")

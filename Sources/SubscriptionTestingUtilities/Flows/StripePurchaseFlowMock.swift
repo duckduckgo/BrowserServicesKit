@@ -19,7 +19,7 @@
 import Foundation
 import Subscription
 
-public class StripePurchaseFlowMock: StripePurchaseFlow {
+public final class StripePurchaseFlowMock: StripePurchaseFlow {
     public var subscriptionOptionsResult: Result<SubscriptionOptions, StripePurchaseFlowError>
     public var prepareSubscriptionPurchaseResult: Result<PurchaseUpdate, StripePurchaseFlowError>
 

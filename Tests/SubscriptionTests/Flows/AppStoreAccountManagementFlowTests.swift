@@ -22,27 +22,163 @@ import SubscriptionTestingUtilities
 
 final class AppStoreAccountManagementFlowTests: XCTestCase {
 
+    private struct Constants {
+        static let oldAuthToken = UUID().uuidString
+        static let newAuthToken = UUID().uuidString
+
+        static let externalID = UUID ().uuidString
+        static let otherExternalID = UUID().uuidString
+
+        static let email = "dax@duck.com"
+
+        static let mostRecentTransactionJWS = "dGhpcyBpcyBub3QgYSByZWFsIEFw(...)cCBTdG9yZSB0cmFuc2FjdGlvbiBKV1M="
+
+        static let invalidTokenError = APIServiceError.serverError(statusCode: 401, error: "invalid_token")
+
+        static let entitlements = [Entitlement(product: .dataBrokerProtection),
+                                   Entitlement(product: .identityTheftRestoration),
+                                   Entitlement(product: .networkProtection)]
+    }
+
+    var accountManager: AccountManagerMock!
+    var authEndpointService: AuthEndpointServiceMock!
+    var storePurchaseManager: StorePurchaseManagerMock!
+
+    var appStoreAccountManagementFlow: AppStoreAccountManagementFlow!
+
     override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
+        accountManager = AccountManagerMock()
+        authEndpointService = AuthEndpointServiceMock()
+        storePurchaseManager = StorePurchaseManagerMock()
+
+        appStoreAccountManagementFlow = DefaultAppStoreAccountManagementFlow(authEndpointService: authEndpointService,
+                                                                             storePurchaseManager: storePurchaseManager,
+                                                                             accountManager: accountManager)
     }
 
     override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
+        accountManager = nil
+        authEndpointService = nil
+        storePurchaseManager = nil
+
+        appStoreAccountManagementFlow = nil
     }
 
-    func testRefreshAuthTokenIfNeededSuccess() async throws {
-        let authEndpointService = SubscriptionMockFactory.authEndpointService
-        let storePurchaseManager = SubscriptionMockFactory.storePurchaseManager
-        let accountManager = SubscriptionMockFactory.accountManager
+    // MARK: - Tests for refreshAuthTokenIfNeeded
 
-        let flow = DefaultAppStoreAccountManagementFlow(authEndpointService: authEndpointService,
-                                                        storePurchaseManager: storePurchaseManager,
-                                                        accountManager: accountManager)
-        switch await flow.refreshAuthTokenIfNeeded() {
-        case .success:
-            break
+    func testRefreshAuthTokenIfNeededSuccess() async throws {
+        // Given
+        accountManager.authToken = Constants.oldAuthToken
+        accountManager.externalID = Constants.externalID
+
+        authEndpointService.validateTokenResult = .failure(Constants.invalidTokenError)
+
+        storePurchaseManager.mostRecentTransactionResult = Constants.mostRecentTransactionJWS
+
+        authEndpointService.storeLoginResult = .success(StoreLoginResponse(authToken: Constants.newAuthToken,
+                                                                           email: "",
+                                                                           externalID: Constants.externalID,
+                                                                           id: 1,
+                                                                           status: "authenticated"))
+
+        // When
+        switch await appStoreAccountManagementFlow.refreshAuthTokenIfNeeded() {
+        case .success(let success):
+            // Then
+            XCTAssertTrue(storePurchaseManager.mostRecentTransactionCalled)
+            XCTAssertEqual(success, Constants.newAuthToken)
+            XCTAssertEqual(accountManager.authToken, Constants.newAuthToken)
         case .failure(let error):
-            XCTFail("Unexpected failure: \(error.localizedDescription)")
+            XCTFail("Unexpected failure: \(String(reflecting: error))")
+        }
+    }
+
+    func testRefreshAuthTokenIfNeededSuccessButNotRefreshedIfStillValid() async throws {
+        // Given
+        accountManager.authToken = Constants.oldAuthToken
+
+        authEndpointService.validateTokenResult = .success(ValidateTokenResponse(account: .init(email: Constants.email,
+                                                                                                entitlements: Constants.entitlements,
+                                                                                                externalID: Constants.externalID)))
+
+        // When
+        switch await appStoreAccountManagementFlow.refreshAuthTokenIfNeeded() {
+        case .success(let success):
+            // Then
+            XCTAssertEqual(success, Constants.oldAuthToken)
+            XCTAssertEqual(accountManager.authToken, Constants.oldAuthToken)
+        case .failure(let error):
+            XCTFail("Unexpected failure: \(String(reflecting: error))")
+        }
+    }
+
+    func testRefreshAuthTokenIfNeededSuccessButNotRefreshedIfStoreLoginRetrievedDifferentAccount() async throws {
+        // Given
+        accountManager.authToken = Constants.oldAuthToken
+        accountManager.externalID = Constants.externalID
+        accountManager.email = Constants.email
+
+        authEndpointService.validateTokenResult = .failure(Constants.invalidTokenError)
+
+        storePurchaseManager.mostRecentTransactionResult = Constants.mostRecentTransactionJWS
+
+        authEndpointService.storeLoginResult = .success(StoreLoginResponse(authToken: Constants.newAuthToken,
+                                                                           email: "",
+                                                                           externalID: Constants.otherExternalID,
+                                                                           id: 1,
+                                                                           status: "authenticated"))
+
+        // When
+        switch await appStoreAccountManagementFlow.refreshAuthTokenIfNeeded() {
+        case .success(let success):
+            // Then
+            XCTAssertTrue(storePurchaseManager.mostRecentTransactionCalled)
+            XCTAssertEqual(success, Constants.oldAuthToken)
+            XCTAssertEqual(accountManager.authToken, Constants.oldAuthToken)
+            XCTAssertEqual(accountManager.externalID, Constants.externalID)
+            XCTAssertEqual(accountManager.email, Constants.email)
+        case .failure(let error):
+            XCTFail("Unexpected failure: \(String(reflecting: error))")
+        }
+    }
+
+    func testRefreshAuthTokenIfNeededErrorDueToNoPastTransactions() async throws {
+        // Given
+        accountManager.authToken = Constants.oldAuthToken
+
+        authEndpointService.validateTokenResult = .failure(Constants.invalidTokenError)
+
+        storePurchaseManager.mostRecentTransactionResult = nil
+
+        // When
+        switch await appStoreAccountManagementFlow.refreshAuthTokenIfNeeded() {
+        case .success:
+            XCTFail("Unexpected success")
+        case .failure(let error):
+            // Then
+            XCTAssertTrue(storePurchaseManager.mostRecentTransactionCalled)
+            XCTAssertEqual(error, .noPastTransaction)
+        }
+    }
+
+    func testRefreshAuthTokenIfNeededErrorDueToStoreLoginFailure() async throws {
+        // Given
+        accountManager.authToken = Constants.oldAuthToken
+
+        authEndpointService.validateTokenResult = .failure(Constants.invalidTokenError)
+
+        storePurchaseManager.mostRecentTransactionResult = Constants.mostRecentTransactionJWS
+
+        authEndpointService.storeLoginResult = .failure(.unknownServerError)
+
+        // When
+        switch await appStoreAccountManagementFlow.refreshAuthTokenIfNeeded() {
+        case .success:
+            XCTFail("Unexpected success")
+        case .failure(let error):
+            // Then
+            XCTAssertTrue(storePurchaseManager.mostRecentTransactionCalled)
+            XCTAssertEqual(error, .authenticatingWithTransactionFailed)
         }
     }
 }

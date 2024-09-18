@@ -5,7 +5,7 @@ If the library doesn't have the features you require, please improve it.
 
 ## v2
 
-### USage
+### Usage
 
 #### Configuration:
 ```
@@ -23,28 +23,29 @@ let request = APIRequestV2(url: HTTPURLResponse.testUrl,
 let apiService = DefaultAPIService(urlSession: URLSession.shared)
 ```
 
-#### Fetching Methods
+#### Fetching
 
-The library provides two primary functions for fetching requests:
+The library provides a primary function for fetching requests:
 
-1. **Raw Response Fetching**: This function returns an `APIResponse`, which is a tuple containing the raw data and the HTTP response.
+**Raw Response Fetching**: This function returns an `APIResponseV2`, which is a tuple containing the raw data and the HTTP response.
    
    ```swift
    let result = try await apiService.fetch(request: request)
    ```
    
-   The `APIResponse` is defined as:
+   The `APIResponseV2` is defined as:
    
    ```swift
-   typealias APIResponse = (data: Data?, httpResponse: HTTPURLResponse)
+   typealias APIResponseV2 = (data: Data?, httpResponse: HTTPURLResponse)
    ```
 
-2. **Decoded Response Fetching**: This function decodes the response into an optional `String` or any object conforming to the `Decodable` protocol.
-   
-   ```swift
-   let result: String? = try await apiService.fetch(request: request)
-   let result: MyModel? = try await apiService.fetch(request: request)
-   ```
+**Response body deconding**: `APIResponseV2` provides an utility function for deconding the request body `Data` in the infered `Decodable` type.
+
+```
+let response = try await apiService.fetch(request: request.apiRequest)
+let decodedModel: MyDecodableModelType = try response.decodeBody()
+```
+
 
 **Concurrency Considerations**: This library is designed to be agnostic with respect to concurrency models. It maintains a stateless architecture, and the URLSession instance is injected by the user, thereby delegating all concurrency management decisions to the user. The library facilitates task cancellation by frequently invoking `try Task.checkCancellation()`, ensuring responsive and cooperative cancellation handling.
 
@@ -57,8 +58,7 @@ let apiResponse = (Data(), HTTPURLResponse(url: HTTPURLResponse.testUrl,
                                     statusCode: 200,
                                     httpVersion: nil,
                                     headerFields: nil)!)
-let mockedAPIService = MockAPIService(decodableResponse: Result.failure(SomeError.testError),
-                              apiResponse: Result.success(apiResponse) )
+let mockedAPIService = MockAPIService(decodableResponse: Result.failure(SomeError.testError), apiResponse: Result.success(apiResponse) )
 ```
 
 ## v1 (Legacy)
