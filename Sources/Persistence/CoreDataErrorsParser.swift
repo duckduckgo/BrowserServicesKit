@@ -38,6 +38,9 @@ public class CoreDataErrorsParser {
         if let errors = error.userInfo[NSDetailedErrorsKey] as? [NSError] {
             return errors
         }
+        if let errors = error.userInfo["NSDetailedErrors"] as? [NSError] {
+            return errors
+        }
         return [error]
     }
 
