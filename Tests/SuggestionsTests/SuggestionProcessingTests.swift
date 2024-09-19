@@ -81,7 +81,7 @@ final class SuggestionProcessingTests: XCTestCase {
             BrowserTabMock(url: "wikipedia.org", title: "Wikipedia")
         ]
 
-        let bookmarks = [ 
+        let bookmarks = [
             BookmarkMock(url: "http://duckduckgo.com", title: "DuckDuckGo", isFavorite: false),
             BookmarkMock(url: "spreadprivacy.com", title: "Test 2", isFavorite: false),
             BookmarkMock(url: "wikipedia.org", title: "Wikipedia", isFavorite: false)
@@ -129,6 +129,7 @@ final class SuggestionProcessingTests: XCTestCase {
 
         let bookmarks = [
             BookmarkMock(url: "http://duckduckgo.com", title: "DuckDuckGo", isFavorite: false),
+            BookmarkMock(url: "http://duck.com", title: "DuckMail", isFavorite: false),
             BookmarkMock(url: "spreadprivacy.com", title: "Test 2", isFavorite: false),
             BookmarkMock(url: "wikipedia.org", title: "Wikipedia", isFavorite: false)
         ]
@@ -141,6 +142,7 @@ final class SuggestionProcessingTests: XCTestCase {
                                        openTabs: [],
                                        apiResult: APIResult.anAPIResult)
 
+        XCTAssertEqual(true, result?.topHits.contains(where: { $0.title == "DuckMail" }))
         XCTAssertEqual(false, result?.topHits.contains(where: { $0.title == "DuckDuckGo" }))
         XCTAssertEqual(1, result?.localSuggestions.count)
         XCTAssertEqual(true, result?.localSuggestions.contains(where: { $0.title == "DuckDuckGo" }))
@@ -265,9 +267,7 @@ extension HistoryEntryMock {
                            numberOfVisits: 300,
                            lastVisit: Date(),
                            failedToLoad: false,
-                           isDownload: false)
-
-
+                           isDownload: false),
         ]
     }
 

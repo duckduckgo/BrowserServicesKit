@@ -68,7 +68,7 @@ final class SuggestionProcessing {
             query.count + 1)
         let expandedSuggestions = replaceHistoryWithBookmarksAndTabs(navigationalSuggestions)
 
-        let dedupedNavigationalSuggestions = Array(dedupSuggestions(expandedSuggestions).prefix(maximumOfNavigationalSuggestions))
+        let dedupedNavigationalSuggestions = Array(dedupLocalSuggestions(expandedSuggestions).prefix(maximumOfNavigationalSuggestions))
 
         // Split the Top Hits and the History and Bookmarks section
         let topHits = topHits(from: dedupedNavigationalSuggestions)
@@ -88,37 +88,23 @@ final class SuggestionProcessing {
                           localSuggestions: localSuggestions)
     }
 
-    private func dedupSuggestions(_ suggestions: [Suggestion]) -> [Suggestion] {
+    private func dedupLocalSuggestions(_ suggestions: [Suggestion]) -> [Suggestion] {
         return suggestions.reduce([]) { partialResult, suggestion in
             if partialResult.contains(where: {
 
                 switch $0 {
-                case .phrase(phrase: let phrase):
-                    if case .phrase(let searchPhrase) = suggestion,
-                       searchPhrase == phrase {
-                        return true
-                    }
-
-                case .website(url: let url):
-                    if case .website(let searchUrl) = suggestion,
-                       searchUrl.naked == url.naked {
-                        return true
-                    }
-
-                case .bookmark(title: let title, url: let url, isFavorite: let isFavorite, allowedInTopHits: let allowedInTopHits):
-                    if case .bookmark(let searchTitle, let searchUrl, let searchIsFavorite, let searchAllowedInTopHits) = suggestion,
+                case .bookmark(title: let title, url: let url, isFavorite: let isFavorite, allowedInTopHits: _):
+                    if case .bookmark(let searchTitle, let searchUrl, let searchIsFavorite, _) = suggestion,
                        searchTitle == title,
                        searchUrl.naked == url.naked,
-                       searchIsFavorite == isFavorite,
-                       searchAllowedInTopHits == allowedInTopHits {
+                       searchIsFavorite == isFavorite {
                         return true
                     }
 
-                case .historyEntry(title: let title, url: let url, allowedInTopHits: let allowedInTopHits):
-                    if case .historyEntry(let searchTitle, let searchUrl, let searchAllowedInTopHits) = suggestion,
+                case .historyEntry(title: let title, url: let url, allowedInTopHits: _):
+                    if case .historyEntry(let searchTitle, let searchUrl, _) = suggestion,
                        searchTitle == title,
-                       searchUrl.naked == url,
-                       searchAllowedInTopHits == allowedInTopHits {
+                       searchUrl.naked == url {
                         return true
                     }
 
@@ -136,11 +122,9 @@ final class SuggestionProcessing {
                         return true
                     }
 
-                case .unknown(value: let value):
-                    if case .unknown(let searchValue) = suggestion,
-                       searchValue == value {
-                        return true
-                    }
+                default:
+                    assertionFailure("Unexpected suggestion in local suggestions")
+                    return true
                 }
 
                 return false
@@ -170,11 +154,11 @@ final class SuggestionProcessing {
                 expanded.append(tab)
             }
 
-            if case .bookmark(title: let title, url: let url, isFavorite: let isFavorite, allowedInTopHits: let allowedInTopHits) = sourceSuggestions[i ..< sourceSuggestions.endIndex].first(where: {
+            if case .bookmark(title: let title, url: let url, isFavorite: let isFavorite, allowedInTopHits: _) = sourceSuggestions[i ..< sourceSuggestions.endIndex].first(where: {
                 $0.isBookmark && $0.url?.naked == suggestion.url?.naked
             }) {
                 foundBookmark = true
-                expanded.append(.bookmark(title: title, url: url, isFavorite: isFavorite, allowedInTopHits: allowedInTopHits))
+                expanded.append(.bookmark(title: title, url: url, isFavorite: isFavorite, allowedInTopHits: suggestion.allowedInTopHits))
             }
 
             if !foundTab && !foundBookmark {
@@ -247,7 +231,7 @@ final class SuggestionProcessing {
                     case .desktop: return Suggestion(bookmark: bookmark)
                     case .mobile: return Suggestion(bookmark: bookmark, allowedInTopHits: true)
                     }
-                    
+
                 case .history(let historyEntry):
                     return Suggestion(historyEntry: historyEntry)
                 case .internalPage(let internalPage):
