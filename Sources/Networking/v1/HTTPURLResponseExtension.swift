@@ -45,15 +45,4 @@ public extension HTTPURLResponse {
             return false
         }
     }
-
-    func etag(droppingWeakPrefix: Bool) -> String? {
-        let etag = value(forHTTPHeaderField: APIRequest.HTTPHeaderField.etag)
-        if droppingWeakPrefix {
-            return etag?.dropping(prefix: HTTPURLResponse.Constants.weakEtagPrefix)
-        }
-        return etag
-    }
-
-    var etag: String? { etag(droppingWeakPrefix: true) }
-
 }

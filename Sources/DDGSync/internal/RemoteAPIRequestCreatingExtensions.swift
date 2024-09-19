@@ -17,6 +17,7 @@
 //
 
 import Foundation
+import Networking
 
 extension RemoteAPIRequestCreating {
 
@@ -28,7 +29,7 @@ extension RemoteAPIRequestCreating {
         headers["Authorization"] = "Bearer \(authToken)"
         return createRequest(
             url: url,
-            method: .GET,
+            method: .get,
             headers: headers,
             parameters: parameters,
             body: nil,
@@ -37,7 +38,7 @@ extension RemoteAPIRequestCreating {
     }
 
     func createAuthenticatedJSONRequest(url: URL,
-                                        method: HTTPRequestMethod,
+                                        method: APIRequest.HTTPMethod,
                                         authToken: String,
                                         json: Data? = nil,
                                         headers: [String: String] = [:],
@@ -55,7 +56,7 @@ extension RemoteAPIRequestCreating {
     }
 
     func createUnauthenticatedJSONRequest(url: URL,
-                                          method: HTTPRequestMethod,
+                                          method: APIRequest.HTTPMethod,
                                           json: Data,
                                           headers: [String: String] = [:],
                                           parameters: [String: String] = [:]) -> HTTPRequesting {

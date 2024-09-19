@@ -21,6 +21,7 @@ import Combine
 import Common
 import Foundation
 import Persistence
+import Networking
 
 protocol SyncDependenciesDebuggingSupport {
     func updateServerEnvironment(_ serverEnvironment: ServerEnvironment)
@@ -79,13 +80,6 @@ protocol CryptingInternal: Crypting {
 
 }
 
-public enum HTTPRequestMethod: String {
-    case GET
-    case POST
-    case PATCH
-    case DELETE
-}
-
 public struct HTTPResult {
     let data: Data?
     let response: HTTPURLResponse
@@ -97,7 +91,7 @@ public protocol HTTPRequesting {
 
 public protocol RemoteAPIRequestCreating {
     func createRequest(url: URL,
-                       method: HTTPRequestMethod,
+                       method: APIRequest.HTTPMethod,
                        headers: [String: String],
                        parameters: [String: String],
                        body: Data?,

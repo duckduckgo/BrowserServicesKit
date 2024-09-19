@@ -1,7 +1,7 @@
 //
-//  URLResponseExtension.swift
+//  Dictionary+URLQueryItem.swift
 //
-//  Copyright © 2023 DuckDuckGo. All rights reserved.
+//  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -17,14 +17,19 @@
 //
 
 import Foundation
+import Common
 
-extension URLResponse {
+extension Dictionary where Key == String, Value == String {
 
-    func asHTTPURLResponse() throws -> HTTPURLResponse {
-        guard let httpResponse = self as? HTTPURLResponse else {
-            throw APIRequest.Error.invalidResponse
+    func toURLQueryItems(allowedReservedCharacters: CharacterSet? = nil) -> [URLQueryItem] {
+        return self.map {
+            if let allowedReservedCharacters {
+                URLQueryItem(percentEncodingName: $0.key,
+                             value: $0.value,
+                             withAllowedCharacters: allowedReservedCharacters)
+            } else {
+                URLQueryItem(name: $0.key, value: $0.value)
+            }
         }
-        return httpResponse
     }
-
 }

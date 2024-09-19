@@ -50,12 +50,12 @@ public extension APIRequest {
 
         public var httpHeaders: HTTPHeaders {
             var headers = [
-                HTTPHeaderField.acceptEncoding: acceptEncoding,
-                HTTPHeaderField.acceptLanguage: acceptLanguage,
-                HTTPHeaderField.userAgent: userAgent
+                HTTPHeaderKey.acceptEncoding: acceptEncoding,
+                HTTPHeaderKey.acceptLanguage: acceptLanguage,
+                HTTPHeaderKey.userAgent: userAgent
             ]
             if let etag {
-                headers[HTTPHeaderField.ifNoneMatch] = etag
+                headers[HTTPHeaderKey.ifNoneMatch] = etag
             }
             if let additionalHeaders {
                 headers.merge(additionalHeaders) { old, _ in old }

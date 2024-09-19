@@ -1,5 +1,5 @@
 //
-//  URLRequestAttribution.swift
+//  HTTPURLResponse+Utilities.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -19,22 +19,20 @@
 import Foundation
 import Common
 
-public enum URLRequestAttribution {
+public extension HTTPURLResponse {
 
-    case unattributed
-    case developer
-    case user
-
-    @available(iOS 15.0, macOS 12.0, *)
-    public var urlRequestAttribution: URLRequest.Attribution? {
-        switch self {
-        case .developer:
-            return .developer
-        case .user:
-            return .user
-        case .unattributed:
-            return nil
-        }
+    var httpStatus: HTTPStatusCode {
+        HTTPStatusCode(rawValue: statusCode) ?? .unknown
     }
+    var etag: String? { etag(droppingWeakPrefix: true) }
 
+    private static let weakEtagPrefix = "W/"
+
+    func etag(droppingWeakPrefix: Bool) -> String? {
+        let etag = value(forHTTPHeaderField: HTTPHeaderKey.etag)
+        if droppingWeakPrefix {
+            return etag?.dropping(prefix: HTTPURLResponse.weakEtagPrefix)
+        }
+        return etag
+    }
 }

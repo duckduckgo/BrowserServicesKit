@@ -50,4 +50,8 @@ final class MockStore: ConfigurationStoring {
         try defaultSaveEtag?(etag, configuration)
     }
 
+    func fileUrl(for configuration: Configuration) -> URL {
+        return FileManager.default.temporaryDirectory.appending(configuration.rawValue)
+    }
+
 }
