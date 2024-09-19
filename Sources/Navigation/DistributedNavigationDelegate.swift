@@ -301,8 +301,8 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
 
     // MARK: Policy making
 
-    @MainActor
-    public func webView(_ webView: WKWebView, decidePolicyFor wkNavigationAction: WKNavigationAction, preferences wkPreferences: WKWebpagePreferences, decisionHandler: @escaping (WKNavigationActionPolicy, WKWebpagePreferences) -> Void) {
+    // swiftlint:disable:next cyclomatic_complexity
+    @MainActor public func webView(_ webView: WKWebView, decidePolicyFor wkNavigationAction: WKNavigationAction, preferences wkPreferences: WKWebpagePreferences, decisionHandler: @escaping (WKNavigationActionPolicy, WKWebpagePreferences) -> Void) {
 
         // new navigation or an ongoing navigation (for a server-redirect)?
         let navigation = navigation(for: wkNavigationAction, in: webView)
@@ -342,7 +342,7 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
 
         var preferences = NavigationPreferences(userAgent: webView.customUserAgent, preferences: wkPreferences)
         // keep WKNavigationAction alive until the decision is made but not any longer!
-        var wkNavigationAction: WKNavigationAction! = wkNavigationAction
+        var wkNavigationAction: WKNavigationAction? = wkNavigationAction
         // pass async decision making to Navigation.navigationResponders (or the delegate navigationResponders for non-main-frame navigations)
         let task = makeAsyncDecision(for: navigationAction, boundToLifetimeOf: webView, with: mainFrameNavigation?.navigationResponders ?? responders) { @MainActor responder in
             dispatchPrecondition(condition: .onQueue(.main))
@@ -355,6 +355,12 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
 
         } completion: { @MainActor [self, weak webView] (decision: NavigationActionPolicy?) in
             dispatchPrecondition(condition: .onQueue(.main))
+            guard wkNavigationAction != nil else { return } // the Task has been cancelled
+            defer {
+                // don‘t release the original WKNavigationAction until the end
+                withExtendedLifetime(wkNavigationAction) {}
+                wkNavigationAction = nil
+            }
             guard let webView else {
                 decisionHandler(.cancel, wkPreferences)
                 return
@@ -401,19 +407,19 @@ extension DistributedNavigationDelegate: WKNavigationDelegate {
                 self.willStartDownload(with: navigationAction, in: webView)
                 decisionHandler(.downloadPolicy, wkPreferences)
             }
-            // don‘t release the original WKNavigationAction until the end
-            withExtendedLifetime(wkNavigationAction) {}
 
         } /* Task */ cancellation: {
             dispatchPrecondition(condition: .onQueue(.main))
+            guard wkNavigationAction != nil else { return } // the decision was already made
+            defer {
+                // in case decision making is hung release WKNavigationAction just after cancellation
+                // to release WKProcessPool and everything bound to it including UserContentController
+                withExtendedLifetime(wkNavigationAction) {}
+                wkNavigationAction = nil
+            }
 
             Logger.navigation.log("Task cancelled for \(navigationAction.debugDescription)")
             decisionHandler(.cancel, wkPreferences)
-
-            // in case decision making is hung release WKNavigationAction just after cancellation
-            // to release WKProcessPool and everything bound to it including UserContentController
-            withExtendedLifetime(wkNavigationAction) {}
-            wkNavigationAction = nil
         }
 
         if navigationAction.isForMainFrame {

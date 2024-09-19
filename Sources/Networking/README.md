@@ -1,7 +1,7 @@
 #  Networking
 
 This is the preferred Networking library for iOS and macOS DuckDuckGo apps.
-If the library doesn't have the features you require, please improve it. 
+If the library lacks the required features, please improve it. 
 
 ## v2
 
@@ -39,7 +39,7 @@ The library provides a primary function for fetching requests:
    typealias APIResponseV2 = (data: Data?, httpResponse: HTTPURLResponse)
    ```
 
-**Response body deconding**: `APIResponseV2` provides an utility function for deconding the request body `Data` in the infered `Decodable` type.
+**Response body decoding**: `APIResponseV2` provides a utility function for decoding the request body `Data` in the inferred `Decodable` type.
 
 ```
 let response = try await apiService.fetch(request: request.apiRequest)
@@ -47,7 +47,7 @@ let decodedModel: MyDecodableModelType = try response.decodeBody()
 ```
 
 
-**Concurrency Considerations**: This library is designed to be agnostic with respect to concurrency models. It maintains a stateless architecture, and the URLSession instance is injected by the user, thereby delegating all concurrency management decisions to the user. The library facilitates task cancellation by frequently invoking `try Task.checkCancellation()`, ensuring responsive and cooperative cancellation handling.
+**Concurrency Considerations**: This library is designed to be agnostic concerning concurrency models. It maintains a stateless architecture, and the URLSession instance is injected by the user, thereby delegating all concurrency management decisions to the user. The library facilitates task cancellation by frequently invoking `try Task.checkCancellation()`, ensuring responsive and cooperative cancellation handling.
 
 ### Mock
 
@@ -63,5 +63,4 @@ let mockedAPIService = MockAPIService(decodableResponse: Result.failure(SomeErro
 
 ## v1 (Legacy)
 
-Not to be used. All V1 public functions have been deprecated and maintained only for backward compatibility. 
-ƒ
+Not to be used. All V1 public functions have been deprecated and maintained only for backward compatibility.
