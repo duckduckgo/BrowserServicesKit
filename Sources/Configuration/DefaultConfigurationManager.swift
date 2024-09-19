@@ -62,16 +62,18 @@ open class DefaultConfigurationManager: NSObject {
     public var fetcher: ConfigurationFetching
     public var store: ConfigurationStoring
 
+    private var filePresenterCount: Int = 0
+
     public init(fetcher: ConfigurationFetching, store: ConfigurationStoring, defaults: KeyValueStoring) {
         self.fetcher = fetcher
         self.store = store
         self.defaults = defaults
         super.init()
-        NSFileCoordinator.addFilePresenter(self)
+        addPresenter()
     }
 
     deinit {
-        NSFileCoordinator.removeFilePresenter(self)
+        removePresenter()
     }
 
     public static let queue: DispatchQueue = DispatchQueue(label: "Configuration Manager")
@@ -93,6 +95,22 @@ open class DefaultConfigurationManager: NSObject {
         }
     }
     public var lastRefreshCheckTime: Date = Date()
+
+    /// Calls to `addFilePresenter` and `removeFilePresenter` must be balanced
+    /// We'll use `filePresenterCount` to ensure we're properly managing this.
+    @objc public func addPresenter() {
+        guard filePresenterCount == 0 else { return }
+        NSFileCoordinator.addFilePresenter(self)
+        filePresenterCount += 1
+    }
+
+    @objc public func removePresenter() {
+        guard filePresenterCount > 0 else { return }
+        while filePresenterCount > 0 {
+            NSFileCoordinator.removeFilePresenter(self)
+            filePresenterCount -= 1
+        }
+    }
 
     public func start() {
         Logger.config.debug("Starting configuration refresh timer")
