@@ -43,7 +43,7 @@ public struct AccessTokenPayload: JWTPayload {
     }
 }
 
-public struct RefreshTokenPayload {
+public struct RefreshTokenPayload: JWTPayload {
     let exp: Int
     let iat: Int
     let sub: String
@@ -52,6 +52,13 @@ public struct RefreshTokenPayload {
     let jti: String
     let scope: String
     let api: String
+
+    public func verify(using signer: JWTKit.JWTSigner) throws {
+        try self.exp.verifyNotExpired()
+        if self.scope != "refresh" {
+            throw TokenPayloadError.InvalidTokenScope
+        }
+    }
 }
 
 // Token Entitlement struct
