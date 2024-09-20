@@ -40,9 +40,7 @@ extension Score {
             score += 300
             // Prioritize root URLs most
             if url.isRoot { score += 2000 }
-        } else if lowercasedTitle
-                .trimmingCharacters(in: .alphanumerics.inverted)
-                .starts(with: query) {
+        } else if lowercasedTitle.leadingBoundaryStartsWith(query) {
             score += 200
             if url.isRoot { score += 2000 }
         } else if queryCount > 2 && domain.contains(query) {
@@ -55,9 +53,7 @@ extension Score {
                 var matchesAllTokens = true
                 for token in queryTokens {
                     // Match only from the begining of the word to avoid unintuitive matches.
-                    if !lowercasedTitle
-                        .trimmingCharacters(in: .alphanumerics.inverted)
-                        .starts(with: token) && !lowercasedTitle.contains(" \(token)") && !nakedUrl.starts(with: token) {
+                    if !lowercasedTitle.leadingBoundaryStartsWith(token) && !lowercasedTitle.contains(" \(token)") && !nakedUrl.starts(with: token) {
                         matchesAllTokens = false
                         break
                     }
@@ -71,9 +67,7 @@ extension Score {
                     if let firstToken = queryTokens.first { // nakedUrlString - high score boost
                         if nakedUrl.starts(with: firstToken) {
                             score += 70
-                        } else if lowercasedTitle
-                            .trimmingCharacters(in: .alphanumerics.inverted)
-                            .starts(with: firstToken) { // begining of the title - moderate score boost
+                        } else if lowercasedTitle.leadingBoundaryStartsWith(firstToken) { // begining of the title - moderate score boost
                             score += 50
                         }
                     }
@@ -114,6 +108,15 @@ extension Score {
         return query.components(separatedBy: .whitespacesAndNewlines)
             .filter { !$0.isEmpty }
             .map { $0.lowercased() }
+    }
+
+}
+
+extension String {
+
+    /// e.g. "Cats and Dogs" would match `Cats` or `"Cats`
+    func leadingBoundaryStartsWith(_ s: String) -> Bool {
+        return starts(with: s) || trimmingCharacters(in: .alphanumerics.inverted).starts(with: s)
     }
 
 }

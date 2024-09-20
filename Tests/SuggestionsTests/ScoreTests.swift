@@ -22,20 +22,31 @@ import XCTest
 
 final class ScoreTests: XCTestCase {
 
+    func testWhenFirstCharacterIsNonAlphaNumeric_ThenStillScored() {
+        assertHasNonZeroScore("\"Cats and Dogs\"", "\"")
+        assertHasNonZeroScore("\"Cats and Dogs\"", "\"C")
+        assertHasNonZeroScore("\"Cats and Dogs\"", "\"Cats")
+        assertHasNonZeroScore("\"Cats and Dogs\"", "and")
+        assertHasNonZeroScore("\"Cats and Dogs\"", "\"Cats Dogs")
+        assertHasNonZeroScore("\"Cats and Dogs\"", "Dogs Cats")
+        assertHasNonZeroScore("\"Cats and Dogs\"", "Dogs \"Cats")
+        assertHasNonZeroScore("«Рукописи не горят»: первый :", "«")
+    }
+
     func testWhenTitleStartsWithQuotes_ThenStillScoresHighlyForWordsAtStart() {
 
-        func runAssertion(_ title: String, _ query: String) {
-            let score = Score(title: title,
-                               url: URL(string: "https://www.testcase.com/notroot")!,
-                               visitCount: 0,
-                               query: query)
-            XCTAssertTrue(score > 0, "\(score)")
-        }
+        assertHasNonZeroScore("\"Cats and Dogs\"", "Cats")
+        assertHasNonZeroScore("«Рукописи не горят»: первый замысел «Мастера и Маргариты». Лекция из курса «Мир Булгакова». АУДИО - YouTube", "Р")
+        assertHasNonZeroScore("«Рукописи не горят»: первый замысел «Мастера и Маргариты». Лекция из курса «Мир Булгакова». АУДИО - YouTube", "Ру")
+        assertHasNonZeroScore("«Рукописи не горят»: первый замысел «Мастера и Маргариты». Лекция из курса «Мир Булгакова». АУДИО - YouTube", "Рукописи")
+    }
 
-        runAssertion("\"Cats and Dogs\"", "Cats")
-        runAssertion("«Рукописи не горят»: первый замысел «Мастера и Маргариты». Лекция из курса «Мир Булгакова». АУДИО - YouTube", "Р")
-        runAssertion("«Рукописи не горят»: первый замысел «Мастера и Маргариты». Лекция из курса «Мир Булгакова». АУДИО - YouTube", "Ру")
-        runAssertion("«Рукописи не горят»: первый замысел «Мастера и Маргариты». Лекция из курса «Мир Булгакова». АУДИО - YouTube", "Рукописи")
+    func assertHasNonZeroScore(_ title: String, _ query: String) {
+        let score = Score(title: title,
+                           url: URL(string: "https://www.testcase.com/notroot")!,
+                           visitCount: 0,
+                           query: query)
+        XCTAssertTrue(score > 0, "\(score)")
     }
 
     func testWhenQueryIsJustWhitespaces_ThenTokensAreEmpty() {
