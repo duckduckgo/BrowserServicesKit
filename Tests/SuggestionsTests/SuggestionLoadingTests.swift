@@ -26,6 +26,7 @@ final class SuggestionLoadingTests: XCTestCase {
         private var bookmarks: [Bookmark]
         private var history: [HistorySuggestion]
         private var internalPages: [InternalPage]
+        private var openTabs: [BrowserTab]
 
         private var completionData: Data?
         private var completionError: Error?
@@ -36,19 +37,26 @@ final class SuggestionLoadingTests: XCTestCase {
         private(set) var historyCallCount = 0
         private(set) var dataCallCount = 0
         private(set) var internalPagesCallCount = 0
+        private(set) var openTabsCallCount = 0
+
+        let platform: Platform
 
         init(data: Data? = nil,
              error: Error? = nil,
+             platform: Platform,
              history: [HistorySuggestion] = [],
              bookmarks: [Bookmark] = [],
              internalPages: [InternalPage] = [],
+             openTabs: [BrowserTab] = [],
              delay: TimeInterval? = 0.01) {
             self.completionData = data
             self.bookmarks = bookmarks
             self.history = history
             self.internalPages = internalPages
+            self.openTabs = openTabs
             self.completionError = error
             self.asyncDelay = delay
+            self.platform = platform
         }
 
         func history(for suggestionLoading: SuggestionLoading) -> [HistorySuggestion] {
@@ -64,6 +72,11 @@ final class SuggestionLoadingTests: XCTestCase {
         func internalPages(for suggestionLoading: Suggestions.SuggestionLoading) -> [Suggestions.InternalPage] {
             internalPagesCallCount += 1
             return internalPages
+        }
+
+        func openTabs(for suggestionLoading: Suggestions.SuggestionLoading) -> [Suggestions.BrowserTab] {
+            openTabsCallCount += 1
+            return openTabs
         }
 
         func suggestionLoading(_ suggestionLoading: SuggestionLoading,
@@ -83,23 +96,12 @@ final class SuggestionLoadingTests: XCTestCase {
 
     struct E: Error {}
 
-    func testWhenNoDataSource_ThenErrorMustBeReturned() {
-        let loader = SuggestionLoader(urlFactory: {_ in return nil})
-        let e = expectation(description: "suggestions callback")
-        loader.getSuggestions(query: "test") { (suggestions, error) in
-            XCTAssertNil(suggestions)
-            XCTAssertNotNil(error)
-            e.fulfill()
-        }
-        waitForExpectations(timeout: 1)
-    }
-
     func testWhenQueryIsEmpty_ThenSuggestionsAreEmpty() {
-        let dataSource = SuggestionLoadingDataSourceMock()
-        let loader = SuggestionLoader(dataSource: dataSource)
+        let dataSource = SuggestionLoadingDataSourceMock(platform: .desktop)
+        let loader = SuggestionLoader()
 
         let e = expectation(description: "suggestions callback")
-        loader.getSuggestions(query: "") { (suggestions, error) in
+        loader.getSuggestions(query: "", usingDataSource: dataSource) { (suggestions, error) in
             XCTAssertEqual(suggestions, .empty)
             XCTAssertNil(error)
             e.fulfill()
@@ -109,11 +111,12 @@ final class SuggestionLoadingTests: XCTestCase {
 
     func testWhenGetSuggestionsIsCalled_ThenDataSourceAsksForHistoryBookmarksAndDataOnce() {
         let dataSource = SuggestionLoadingDataSourceMock(data: Data.anAPIResultData,
+                                                         platform: .desktop,
                                                          bookmarks: BookmarkMock.someBookmarks)
-        let loader = SuggestionLoader(dataSource: dataSource)
+        let loader = SuggestionLoader()
 
         let e = expectation(description: "suggestions callback")
-        loader.getSuggestions(query: "test") { (_, _) in
+        loader.getSuggestions(query: "test", usingDataSource: dataSource) { (_, _) in
             XCTAssertEqual(dataSource.historyCallCount, 1)
             XCTAssertEqual(dataSource.bookmarkCallCount, 1)
             XCTAssertEqual(dataSource.internalPagesCallCount, 1)
@@ -124,11 +127,11 @@ final class SuggestionLoadingTests: XCTestCase {
     }
 
     func testWhenAPIReturnsError_ThenErrorAndLocalSuggestionsAreReturned() {
-        let dataSource = SuggestionLoadingDataSourceMock(error: E(), bookmarks: [], delay: 0)
-        let loader = SuggestionLoader(dataSource: dataSource)
+        let dataSource = SuggestionLoadingDataSourceMock(error: E(), platform: .desktop, bookmarks: [], delay: 0)
+        let loader = SuggestionLoader()
 
         let e = expectation(description: "suggestions callback")
-        loader.getSuggestions(query: "test") { (suggestions, error) in
+        loader.getSuggestions(query: "test", usingDataSource: dataSource) { (suggestions, error) in
             XCTAssertNotNil(suggestions)
             XCTAssertNotNil(error)
             e.fulfill()
@@ -138,11 +141,12 @@ final class SuggestionLoadingTests: XCTestCase {
 
     func testWhenAPIReturnsMalformedData_ThenErrorAndLocalSuggestionsAreReturned() {
         let dataSource = SuggestionLoadingDataSourceMock(data: "malformed data".data(using: .utf8),
+                                                         platform: .desktop,
                                                          bookmarks: [], delay: 0)
-        let loader = SuggestionLoader(dataSource: dataSource)
+        let loader = SuggestionLoader()
 
         let e = expectation(description: "suggestions callback")
-        loader.getSuggestions(query: "test") { (suggestions, error) in
+        loader.getSuggestions(query: "test", usingDataSource: dataSource) { (suggestions, error) in
             XCTAssertNotNil(suggestions)
             XCTAssertNotNil(error)
             e.fulfill()
@@ -152,12 +156,13 @@ final class SuggestionLoadingTests: XCTestCase {
 
     func testWhenDataSourceProvidesAllData_ThenResultAndNoErrorIsReturned() {
         let dataSource = SuggestionLoadingDataSourceMock(data: Data.anAPIResultData,
+                                                         platform: .desktop,
                                                          history: HistoryEntryMock.aHistory,
                                                          bookmarks: BookmarkMock.someBookmarks)
-        let loader = SuggestionLoader(dataSource: dataSource)
+        let loader = SuggestionLoader()
 
         let e = expectation(description: "suggestions callback")
-        loader.getSuggestions(query: "test") { (result, error) in
+        loader.getSuggestions(query: "test", usingDataSource: dataSource) { (result, error) in
             XCTAssertNotNil(result)
             XCTAssertNil(error)
             e.fulfill()
@@ -178,8 +183,8 @@ fileprivate extension Data {
 
 fileprivate extension SuggestionLoader {
 
-    convenience init(dataSource: SuggestionLoadingDataSource) {
-        self.init(dataSource: dataSource, urlFactory: {_ in return nil})
+    convenience init() {
+        self.init(urlFactory: {_ in return nil})
     }
 
 }
