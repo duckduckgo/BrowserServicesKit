@@ -1,5 +1,5 @@
 //
-//  AccessTokenClaims.swift
+//  TokenPayload.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -23,7 +23,7 @@ enum TokenPayloadError: Error {
     case InvalidTokenScope
 }
 
-public struct AccessTokenPayload: JWTPayload {
+public struct OAuthAccessToken: JWTPayload {
     let exp: ExpirationClaim
     let iat: IssuedAtClaim
     let sub: SubjectClaim
@@ -43,13 +43,13 @@ public struct AccessTokenPayload: JWTPayload {
     }
 }
 
-public struct RefreshTokenPayload: JWTPayload {
-    let exp: Int
-    let iat: Int
-    let sub: String
-    let aud: String
-    let iss: String
-    let jti: String
+public struct OAuthRefreshToken: JWTPayload {
+    let exp: ExpirationClaim
+    let iat: IssuedAtClaim
+    let sub: SubjectClaim
+    let aud: AudienceClaim
+    let iss: IssuerClaim
+    let jti: IDClaim
     let scope: String
     let api: String
 

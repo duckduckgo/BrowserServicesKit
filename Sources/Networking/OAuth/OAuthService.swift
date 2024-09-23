@@ -21,11 +21,88 @@ import os.log
 import JWTKit
 
 public protocol OAuthService {
-    
-    func authorise(codeChallenge: String) async throws -> OAuthAuthoriseResponse
-    func createAccount(authSessionID: String) async throws -> OAuthLocation
+
+    /// Authorizes a user with a given code challenge.
+    /// - Parameter codeChallenge: The code challenge for authorization.
+    /// - Returns: An OAuthSessionID.
+    /// - Throws: An error if the authorization fails.
+    func authorise(codeChallenge: String) async throws -> OAuthSessionID
+
+    /// Creates a new account using the provided auth session ID.
+    /// - Parameter authSessionID: The authentication session ID.
+    /// - Returns: The authorization code needed for the Access Token request.
+    /// - Throws: An error if account creation fails.
+    func createAccount(authSessionID: String) async throws -> AuthorisationCode
+
+    /// Sends an OTP to the specified email address.
+    /// - Parameters:
+    ///   - authSessionID: The authentication session ID.
+    ///   - emailAddress: The email address to send the OTP to.
+    /// - Throws: An error if sending the OTP fails.
     func sendOTP(authSessionID: String, emailAddress: String) async throws
-    func login(authSessionID: String, method: OAuthLoginMethod) async throws -> OAuthLocation
+
+    /// Logs in a user with the specified method and auth session ID.
+    /// - Parameters:
+    ///   - authSessionID: The authentication session ID.
+    ///   - method: The login method to use.
+    /// - Returns: An OAuthRedirectionURI.
+    /// - Throws: An error if login fails.
+    func login(authSessionID: String, method: OAuthLoginMethod) async throws -> AuthorisationCode
+
+    /// Retrieves an access token using the provided parameters.
+    /// - Parameters:
+    ///   - clientID: The client ID.
+    ///   - codeVerifier: The code verifier.
+    ///   - code: The authorization code.
+    ///   - redirectURI: The redirect URI.
+    /// - Returns: An OAuthTokenResponse.
+    /// - Throws: An error if token retrieval fails.
+    func getAccessToken(clientID: String, codeVerifier: String, code: String, redirectURI: String) async throws -> OAuthTokenResponse
+
+    /// Refreshes an access token using the provided client ID and refresh token.
+    /// - Parameters:
+    ///   - clientID: The client ID.
+    ///   - refreshToken: The refresh token.
+    /// - Returns: An OAuthTokenResponse.
+    /// - Throws: An error if token refresh fails.
+    func refreshAccessToken(clientID: String, refreshToken: String) async throws -> OAuthTokenResponse
+
+    /// Edits the account email address.
+    /// - Parameters:
+    ///   - clientID: The client ID.
+    ///   - accessToken: The access token.
+    ///   - email: The new email address, or nil to remove the email.
+    /// - Returns: An EditAccountResponse.
+    /// - Throws: An error if the edit fails.
+    func editAccount(clientID: String, accessToken: String, email: String?) async throws -> EditAccountResponse
+
+    /// Confirms the edit of an account email address.
+    /// - Parameters:
+    ///   - accessToken: The access token.
+    ///   - email: The new email address.
+    ///   - hash: The hash used for confirmation.
+    ///   - otp: The one-time password.
+    /// - Returns: A ConfirmEditAccountResponse.
+    /// - Throws: An error if confirmation fails.
+    func confirmEditAccount(accessToken: String, email: String, hash: String, otp: String) async throws -> ConfirmEditAccountResponse
+
+    /// Logs out the user using the provided access token.
+    /// - Parameter accessToken: The access token.
+    /// - Throws: An error if logout fails.
+    func logout(accessToken: String) async throws
+
+    /// Exchanges an access token for a new one.
+    /// - Parameters:
+    ///   - accessTokenV1: The old access token.
+    ///   - authSessionID: The authentication session ID.
+    /// - Returns: An OAuthRedirectionURI.
+    /// - Throws: An error if the exchange fails.
+    func exchangeToken(accessTokenV1: String, authSessionID: String) async throws -> AuthorisationCode
+
+    /// Retrieves JWT signers using JWKs from the endpoint.
+    /// - Returns: A JWTSigners instance.
+    /// - Throws: An error if retrieval fails.
+    func getJWTSigners() async throws -> JWTSigners
 }
 
 public struct DefaultOAuthService: OAuthService {
@@ -109,7 +186,7 @@ public struct DefaultOAuthService: OAuthService {
 
     // MARK: Authorise
 
-    public func authorise(codeChallenge: String) async throws -> OAuthAuthoriseResponse {
+    public func authorise(codeChallenge: String) async throws -> OAuthSessionID {
 
         guard let request = OAuthRequest.authorize(baseURL: baseURL, codeChallenge: codeChallenge) else {
             throw OAuthServiceError.invalidRequest
@@ -121,10 +198,10 @@ public struct DefaultOAuthService: OAuthService {
 
         let statusCode = response.httpResponse.httpStatus
         if statusCode == request.httpSuccessCode {
-            let location = try extract(header: HTTPHeaderKey.location, from: response.httpResponse)
+//            let location = try extract(header: HTTPHeaderKey.location, from: response.httpResponse)
             let setCookie = try extract(header: HTTPHeaderKey.setCookie, from: response.httpResponse)
             Logger.networking.debug("\(#function) request completed")
-            return OAuthAuthoriseResponse(location: location, setCookie: setCookie)
+            return setCookie
         } else if request.httpErrorCodes.contains(statusCode) {
             try throwError(forResponse: response, request: request)
         }
@@ -133,7 +210,7 @@ public struct DefaultOAuthService: OAuthService {
 
     // MARK: Create Account
 
-    public func createAccount(authSessionID: String) async throws -> OAuthLocation {
+    public func createAccount(authSessionID: String) async throws -> AuthorisationCode {
         guard let request = OAuthRequest.createAccount(baseURL: baseURL, authSessionID: authSessionID) else {
             throw OAuthServiceError.invalidRequest
         }
@@ -145,7 +222,16 @@ public struct DefaultOAuthService: OAuthService {
         let statusCode = response.httpResponse.httpStatus
         if statusCode == request.httpSuccessCode {
             Logger.networking.debug("\(#function) request completed")
-            return try extract(header: HTTPHeaderKey.location, from: response.httpResponse)
+            //  The redirect URI from the original Authorization request indicated by the ddg_auth_session_id in the provided Cookie header, with the authorization code needed for the Access Token request appended as a query param. The intention is that the client will intercept this redirect and extract the authorization code to make the Access Token request in the background.
+            let redirectURI = try extract(header: HTTPHeaderKey.location, from: response.httpResponse)
+
+            // Extract the code from the URL query params, example: com.duckduckgo:/authcb?code=NgNjnlLaqUomt9b5LDbzAtTyeW9cBNhCGtLB3vpcctluSZI51M9tb2ZDIZdijSPTYBr4w8dtVZl85zNSemxozv
+            guard let authCode = URLComponents(string: redirectURI)?.queryItems?.first(where: { queryItem in
+                queryItem.name == "code"
+            })?.value else {
+                throw OAuthServiceError.missingResponseValue("Authorization Code in redirect URI")
+            }
+            return authCode
         } else if request.httpErrorCodes.contains(statusCode) {
             try throwError(forResponse: response, request: request)
         }
@@ -174,7 +260,7 @@ public struct DefaultOAuthService: OAuthService {
 
     // MARK: Login
 
-    public func login(authSessionID: String, method: OAuthLoginMethod) async throws -> OAuthLocation {
+    public func login(authSessionID: String, method: OAuthLoginMethod) async throws -> AuthorisationCode {
         guard let request = OAuthRequest.login(baseURL: baseURL, authSessionID: authSessionID, method: method) else {
             throw OAuthServiceError.invalidRequest
         }
@@ -243,7 +329,7 @@ public struct DefaultOAuthService: OAuthService {
 
     // MARK: Access token exchange
 
-    public func exchangeToken(accessTokenV1: String, authSessionID: String) async throws -> OAuthLocation {
+    public func exchangeToken(accessTokenV1: String, authSessionID: String) async throws -> AuthorisationCode {
         guard let request = OAuthRequest.exchangeToken(baseURL: baseURL, accessTokenV1: accessTokenV1, authSessionID: authSessionID) else {
             throw OAuthServiceError.invalidRequest
         }
@@ -267,23 +353,22 @@ public struct DefaultOAuthService: OAuthService {
     /// Create a  JWTSigners with the JWKs provided by the endpoint
     /// - Returns: A JWTSigners that can be used to verify JWTs
     public func getJWTSigners() async throws -> JWTSigners {
+        try Task.checkCancellation()
         guard let request = OAuthRequest.jwks(baseURL: baseURL) else {
             throw OAuthServiceError.invalidRequest
         }
+        try Task.checkCancellation()
         let response: String = try await fetch(request: request)
         let signers = JWTSigners()
         try signers.use(jwksJSON: response)
-
         return signers
     }
+
 }
 
 // MARK: - Requests' support models and types
 
-public struct OAuthAuthoriseResponse {
-    let location: String
-    let setCookie: String
-}
+public typealias OAuthSessionID = String
 
 public protocol OAuthLoginMethod {
     var name: String { get }
@@ -302,7 +387,7 @@ public struct OAuthLoginMethodSignature: OAuthLoginMethod {
 }
 
 /// The redirect URI from the original Authorization request indicated by the ddg_auth_session_id in the provided Cookie header, with the authorization code needed for the Access Token request appended as a query param. The intention is that the client will intercept this redirect and extract the authorization code to make the Access Token request in the background.
-public typealias OAuthLocation = String
+public typealias AuthorisationCode = String
 
 /// https://www.rfc-editor.org/rfc/rfc6749#section-4.2.2
 public struct OAuthTokenResponse: Decodable {

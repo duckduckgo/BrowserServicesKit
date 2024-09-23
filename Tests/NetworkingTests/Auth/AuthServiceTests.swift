@@ -42,7 +42,7 @@ final class AuthServiceTests: XCTestCase {
         let codeChallenge = OAuthCodesGenerator.codeChallenge(codeVerifier: OAuthCodesGenerator.codeVerifier)!
         let result = try await authService.authorise(codeChallenge: codeChallenge)
         XCTAssertNotNil(result.location)
-        XCTAssertNotNil(result.setCookie)
+        XCTAssertNotNil(result.authSessionID)
     }
 
     func testAuthoriseRealFailure() async throws { // TODO: Disable
@@ -66,7 +66,7 @@ final class AuthServiceTests: XCTestCase {
         let authService = DefaultOAuthService(baseURL: baseURL)
         let signer = try await authService.getJWTSigners()
         do {
-            let _: AccessTokenPayload = try signer.verify("sdfgdsdzfgsdf")
+            let _: OAuthAccessToken = try signer.verify("sdfgdsdzfgsdf")
             XCTFail("Should have thrown an error")
         } catch {
             XCTAssertNotNil(error)
