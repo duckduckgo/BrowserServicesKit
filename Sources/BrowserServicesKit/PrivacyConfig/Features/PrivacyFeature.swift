@@ -58,6 +58,7 @@ public enum PrivacyFeature: String {
     case syncPromotion
     case autofillSurveys
     case marketplaceAdPostback
+    case autocompleteTabs
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -80,7 +81,6 @@ public enum AutofillSubfeature: String, PrivacySubfeature {
     case accessCredentialManagement
     case autofillPasswordGeneration
     case onByDefault
-    case deduplicateLoginsOnImport
     case onForExistingUsers
     case unknownUsernameCategorization
 }
