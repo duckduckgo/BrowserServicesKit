@@ -33,7 +33,7 @@
       "location" : "https://github.com/duckduckgo/GRDB.swift.git",
       "state" : {
         "branch" : "SQLCipher-source",
-        "revision" : "e39e3de61ff2c3b7cbbb7e50a51c01f8b369594a"
+        "revision" : "5519b284e9887c9ad1c232795ef1eebf8d8edc29"
       }
     },
     {
