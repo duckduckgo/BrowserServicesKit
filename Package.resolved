@@ -32,8 +32,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/GRDB.swift.git",
       "state" : {
-        "branch" : "SQLCipher-source",
-        "revision" : "f1754542ef09d3f0254212e990a679d630bff38d"
+        "revision" : "80cae244b20530bc3a4aae93ed2f211167ac08c0",
+        "version" : "2.4.2-1"
       }
     },
     {
