@@ -108,7 +108,7 @@ jobs:
 
       name: Run unit tests (iOS)
 
-      runs-on: macos-14
+      runs-on: macos-14-xlarge
       timeout-minutes: 30
 
       steps:
