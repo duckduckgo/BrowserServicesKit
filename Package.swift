@@ -304,7 +304,7 @@ let package = Package(
                 "BrowserServicesKit",
                 "Common",
                 "DDGSync",
-                .product(name: "GRDB", package: "GRDB.swift"),
+                .product(name: "GRDB-dynamic", package: "GRDB.swift"),
                 "Persistence",
                 "SecureStorage",
             ],
@@ -334,7 +334,7 @@ let package = Package(
             name: "SecureStorage",
             dependencies: [
                 "Common",
-                .product(name: "GRDB", package: "GRDB.swift"),
+                .product(name: "GRDB-dynamic", package: "GRDB.swift"),
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
