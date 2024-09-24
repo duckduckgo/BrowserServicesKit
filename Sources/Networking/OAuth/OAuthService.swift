@@ -186,7 +186,7 @@ public struct DefaultOAuthService: OAuthService {
 
         let statusCode = response.httpResponse.httpStatus
         if statusCode == request.httpSuccessCode {
-            Logger.networking.debug("\(#function) request completed")
+            Logger.OAuth.debug("\(#function) request completed")
             return try response.decodeBody()
         } else if request.httpErrorCodes.contains(statusCode) {
             try throwError(forResponse: response, request: request)
@@ -214,7 +214,7 @@ public struct DefaultOAuthService: OAuthService {
             guard let cookieValue = response.httpResponse.getCookie(withName: "ddg_auth_session_id")?.value else {
                 throw OAuthServiceError.missingResponseValue("ddg_auth_session_id cookie")
             }
-            Logger.networking.debug("\(#function) request completed")
+            Logger.OAuth.debug("\(#function) request completed")
             return cookieValue
         } else if request.httpErrorCodes.contains(statusCode) {
             try throwError(forResponse: response, request: request)
@@ -235,7 +235,7 @@ public struct DefaultOAuthService: OAuthService {
 
         let statusCode = response.httpResponse.httpStatus
         if statusCode == request.httpSuccessCode {
-            Logger.networking.debug("\(#function) request completed")
+            Logger.OAuth.debug("\(#function) request completed")
             //  The redirect URI from the original Authorization request indicated by the ddg_auth_session_id in the provided Cookie header, with the authorization code needed for the Access Token request appended as a query param. The intention is that the client will intercept this redirect and extract the authorization code to make the Access Token request in the background.
             let redirectURI = try extract(header: HTTPHeaderKey.location, from: response.httpResponse)
 
@@ -265,7 +265,7 @@ public struct DefaultOAuthService: OAuthService {
 
         let statusCode = response.httpResponse.httpStatus
         if statusCode == request.httpSuccessCode {
-            Logger.networking.debug("\(#function) request completed")
+            Logger.OAuth.debug("\(#function) request completed")
         } else if request.httpErrorCodes.contains(statusCode) {
             try throwError(forResponse: response, request: request)
         }
@@ -286,7 +286,7 @@ public struct DefaultOAuthService: OAuthService {
 
         let statusCode = response.httpResponse.httpStatus
         if statusCode == request.httpSuccessCode {
-            Logger.networking.debug("\(#function) request completed")
+            Logger.OAuth.debug("\(#function) request completed")
             return try extract(header: HTTPHeaderKey.location, from: response.httpResponse)
         } else if request.httpErrorCodes.contains(statusCode) {
             try throwError(forResponse: response, request: request)
@@ -306,7 +306,7 @@ public struct DefaultOAuthService: OAuthService {
 
         let statusCode = response.httpResponse.httpStatus
         if statusCode == request.httpSuccessCode {
-            Logger.networking.debug("\(#function) request completed")
+            Logger.OAuth.debug("\(#function) request completed")
             return try extract(header: HTTPHeaderKey.location, from: response.httpResponse)
         } else if request.httpErrorCodes.contains(statusCode) {
             try throwError(forResponse: response, request: request)
@@ -375,7 +375,7 @@ public struct DefaultOAuthService: OAuthService {
 
         let statusCode = response.httpResponse.httpStatus
         if statusCode == request.httpSuccessCode {
-            Logger.networking.debug("\(#function) request completed")
+            Logger.OAuth.debug("\(#function) request completed")
             return try extract(header: HTTPHeaderKey.location, from: response.httpResponse)
         } else if request.httpErrorCodes.contains(statusCode) {
             try throwError(forResponse: response, request: request)

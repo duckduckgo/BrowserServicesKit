@@ -149,7 +149,7 @@ struct OAuthRequest {
                 "source": signatureMethod.source
             ]
         default:
-            Logger.networking.fault("Unknown login method: \(String(describing: method))")
+            Logger.OAuth.fault("Unknown login method: \(String(describing: method))")
             return nil
         }
 
