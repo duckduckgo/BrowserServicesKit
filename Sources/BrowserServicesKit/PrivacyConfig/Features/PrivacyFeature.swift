@@ -40,6 +40,7 @@ public enum PrivacyFeature: String {
     case windowsDownloadLink
     case incontextSignup
     case newTabContinueSetUp
+    case newTabSearchField
     case dbp
     case sync
     case privacyDashboard
