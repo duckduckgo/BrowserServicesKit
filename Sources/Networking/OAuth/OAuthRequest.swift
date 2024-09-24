@@ -1,5 +1,5 @@
 //
-//  AuthServiceRequest.swift
+//  OAuthRequest.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -25,6 +25,9 @@ struct OAuthRequest {
     let apiRequest: APIRequestV2
     let httpSuccessCode: HTTPStatusCode
     let httpErrorCodes: [HTTPStatusCode]
+    var url: URL {
+        apiRequest.urlRequest.url!
+    }
     static let errorDetails = [
         "invalid_authorization_request": "One or more of the required parameters are missing or any provided parameters have invalid values",
         "authorize_failed": "Failed to create the authorization session, either because of a reused code challenge or internal server error",
@@ -83,10 +86,23 @@ struct OAuthRequest {
 
     static func createAccount(baseURL: URL, authSessionID: String) -> OAuthRequest? {
         let path = "/api/auth/v2/account/create"
-        let headers = [ HTTPHeaderKey.cookie: authSessionID ]
-        guard let request = APIRequestV2(url: baseURL.appendingPathComponent(path),
+        guard let domain = baseURL.host else {
+            return nil
+        }
+        let cookie = HTTPCookie(properties: [
+            .domain: domain,
+            .path: path,
+            .name: "ddg_auth_session_id",
+            .value: authSessionID
+        ])
+        let headers = [
+            HTTPHeaderKey.cookie: authSessionID
+        ]
+        guard let cookie,
+              let request = APIRequestV2(url: baseURL.appendingPathComponent(path),
                                          method: .post,
-                                         headers: APIRequestV2.HeadersV2(additionalHeaders: headers)) else {
+                                         headers: APIRequestV2.HeadersV2(cookies: [cookie],
+                                                                         additionalHeaders: headers)) else {
             return nil
         }
         return OAuthRequest(apiRequest: request, httpSuccessCode: HTTPStatusCode.found)
@@ -94,7 +110,7 @@ struct OAuthRequest {
 
     // MARK: Sent OTP
 
-    static func sendOTP(baseURL: URL, authSessionID: String, emailAddress: String) -> OAuthRequest? {
+    static func requestOTP(baseURL: URL, authSessionID: String, emailAddress: String) -> OAuthRequest? {
         let path = "/api/auth/v2/otp"
         let headers = [ HTTPHeaderKey.cookie: authSessionID ]
         let queryItems = [ "email": emailAddress ]

@@ -1,5 +1,5 @@
 //
-//  TokenPayload.swift
+//  OAuthTokens.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -32,7 +32,7 @@ public struct OAuthAccessToken: JWTPayload {
     let jti: IDClaim
     let scope: String
     let api: String // always v2
-    let email: String // Can it be nil?
+    let email: String?
     let entitlements: [TokenPayloadEntitlement]
 
     public func verify(using signer: JWTKit.JWTSigner) throws {
@@ -40,6 +40,15 @@ public struct OAuthAccessToken: JWTPayload {
         if self.scope != "privacypro" {
             throw TokenPayloadError.InvalidTokenScope
         }
+    }
+
+    public func isExpired() -> Bool {
+        do {
+            try self.exp.verifyNotExpired()
+        } catch {
+            return true
+        }
+        return false
     }
 }
 
@@ -61,7 +70,6 @@ public struct OAuthRefreshToken: JWTPayload {
     }
 }
 
-// Token Entitlement struct
 public struct TokenPayloadEntitlement: Codable {
     let product: String
     let name: String

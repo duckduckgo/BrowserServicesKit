@@ -1,5 +1,5 @@
 //
-//  File.swift
+//  OAuthCLientTests.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -16,4 +16,18 @@
 //  limitations under the License.
 //
 
-import Foundation
+import Testing
+@testable import Networking
+
+struct OAuthCLientTest {
+
+    @Test func testCreateAccount() async throws {
+        // Write your test here and use APIs like `#expect(...)` to check expected conditions.
+
+        let client = OAuthCLient()
+        let tokens = try await client.createAccount()
+
+        #expect(tokens != nil)
+    }
+
+}

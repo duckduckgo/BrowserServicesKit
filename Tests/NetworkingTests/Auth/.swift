@@ -1,5 +1,5 @@
 //
-//  SessionDelegate.swift
+//  Untitled.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -16,14 +16,3 @@
 //  limitations under the License.
 //
 
-import Foundation
-import os.log
-
-final class SessionDelegate: NSObject, URLSessionTaskDelegate {
-
-    /// Disable automatic redirection, in our specific OAuth implementation we manage the redirection, not the user
-    public func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest) async -> URLRequest? {
-        Logger.networking.debug("Stopping OAuth API redirection: \(response)")
-        return nil
-    }
-}

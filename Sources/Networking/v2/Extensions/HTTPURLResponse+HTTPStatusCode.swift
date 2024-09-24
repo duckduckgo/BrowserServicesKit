@@ -1,7 +1,7 @@
 //
-//  SessionDelegate.swift
+//  HTTPURLResponse+HTTPStatusCode.swift
 //
-//  Copyright © 2024 DuckDuckGo. All rights reserved.
+//  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -17,13 +17,11 @@
 //
 
 import Foundation
-import os.log
+import Common
 
-final class SessionDelegate: NSObject, URLSessionTaskDelegate {
+public extension HTTPURLResponse {
 
-    /// Disable automatic redirection, in our specific OAuth implementation we manage the redirection, not the user
-    public func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest) async -> URLRequest? {
-        Logger.networking.debug("Stopping OAuth API redirection: \(response)")
-        return nil
+    var httpStatus: HTTPStatusCode {
+        HTTPStatusCode(rawValue: statusCode) ?? .unknown
     }
 }

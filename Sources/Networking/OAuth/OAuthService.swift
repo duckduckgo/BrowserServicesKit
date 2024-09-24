@@ -1,5 +1,5 @@
 //
-//  AuthService.swift
+//  OAuthService.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -39,15 +39,24 @@ public protocol OAuthService {
     ///   - authSessionID: The authentication session ID.
     ///   - emailAddress: The email address to send the OTP to.
     /// - Throws: An error if sending the OTP fails.
-    func sendOTP(authSessionID: String, emailAddress: String) async throws
+    func requestOTP(authSessionID: String, emailAddress: String) async throws
 
-    /// Logs in a user with the specified method and auth session ID.
+    /// Logs in a user with an OTP and auth session ID.
     /// - Parameters:
+    ///   - otp: The One Time Password received from the user
     ///   - authSessionID: The authentication session ID.
-    ///   - method: The login method to use.
+    ///   - email: the user email where the otp will be received
     /// - Returns: An OAuthRedirectionURI.
     /// - Throws: An error if login fails.
-    func login(authSessionID: String, method: OAuthLoginMethod) async throws -> AuthorisationCode
+    func login(withOTP otp: String, authSessionID: String, email: String) async throws -> AuthorisationCode
+
+    /// Logs in a user with a signature and auth session ID.
+    /// - Parameters:
+    ///   - signature: The platform signature
+    ///   - authSessionID: The authentication session ID.
+    /// - Returns: An OAuthRedirectionURI.
+    /// - Throws: An error if login fails.
+    func login(withSignature signature: String, authSessionID: String) async throws -> AuthorisationCode
 
     /// Retrieves an access token using the provided parameters.
     /// - Parameters:
@@ -107,10 +116,12 @@ public protocol OAuthService {
 
 public struct DefaultOAuthService: OAuthService {
 
-    let baseURL: URL
-    var apiService: APIService
-    let sessionDelegate = SessionDelegate()
-    let urlSessionOperationQueue = OperationQueue()
+    private let baseURL: URL
+    private var apiService: APIService
+    private let sessionDelegate = SessionDelegate()
+    private let urlSessionOperationQueue = OperationQueue()
+    /// Not really used but implemented as a way to isolate the possible cookies received by the OAuth API calls.
+    private let localCookieStorage = HTTPCookieStorage()
 
     /// Default initialiser
     /// - Parameters:
@@ -119,6 +130,7 @@ public struct DefaultOAuthService: OAuthService {
         self.baseURL = baseURL
 
         let configuration = URLSessionConfiguration.default
+        configuration.httpCookieStorage = localCookieStorage
         let urlSession = URLSession(configuration: configuration,
                                     delegate: sessionDelegate,
                                     delegateQueue: urlSessionOperationQueue)
@@ -128,7 +140,7 @@ public struct DefaultOAuthService: OAuthService {
     /// Initialiser for TESTING purposes only
     /// - Parameters:
     ///   - baseURL: The API base url, used for building all requests URL
-    ///   - apiService: A custom apiService. Warning: Auth API answers with redirects that should be ignored, the custom URLSession with SessionDelegate as delegate handles this scenario correctly, a custom one would not.
+    ///   - apiService: A custom apiService. Warning: Some AuthAPI endpoints response is a redirect that is handled in a very specific way. The default apiService uses a URLSession that handles this scenario correctly implementing a SessionDelegate, a custom one would brake this.
     internal init(baseURL: URL, apiService: APIService) {
         self.baseURL = baseURL
         self.apiService = apiService
@@ -198,10 +210,12 @@ public struct DefaultOAuthService: OAuthService {
 
         let statusCode = response.httpResponse.httpStatus
         if statusCode == request.httpSuccessCode {
-//            let location = try extract(header: HTTPHeaderKey.location, from: response.httpResponse)
-            let setCookie = try extract(header: HTTPHeaderKey.setCookie, from: response.httpResponse)
+            // let location = try extract(header: HTTPHeaderKey.location, from: response.httpResponse)
+            guard let cookieValue = response.httpResponse.getCookie(withName: "ddg_auth_session_id")?.value else {
+                throw OAuthServiceError.missingResponseValue("ddg_auth_session_id cookie")
+            }
             Logger.networking.debug("\(#function) request completed")
-            return setCookie
+            return cookieValue
         } else if request.httpErrorCodes.contains(statusCode) {
             try throwError(forResponse: response, request: request)
         }
@@ -238,10 +252,10 @@ public struct DefaultOAuthService: OAuthService {
         throw OAuthServiceError.invalidResponseCode(statusCode)
     }
 
-    // MARK: Send OTP
+    // MARK: Request OTP
 
-    public func sendOTP(authSessionID: String, emailAddress: String) async throws {
-        guard let request = OAuthRequest.sendOTP(baseURL: baseURL, authSessionID: authSessionID, emailAddress: emailAddress) else {
+    public func requestOTP(authSessionID: String, emailAddress: String) async throws {
+        guard let request = OAuthRequest.requestOTP(baseURL: baseURL, authSessionID: authSessionID, emailAddress: emailAddress) else {
             throw OAuthServiceError.invalidRequest
         }
 
@@ -260,7 +274,28 @@ public struct DefaultOAuthService: OAuthService {
 
     // MARK: Login
 
-    public func login(authSessionID: String, method: OAuthLoginMethod) async throws -> AuthorisationCode {
+    public func login(withOTP otp: String, authSessionID: String, email: String) async throws -> AuthorisationCode {
+        let method = OAuthLoginMethodOTP(email: email, otp: otp)
+        guard let request = OAuthRequest.login(baseURL: baseURL, authSessionID: authSessionID, method: method) else {
+            throw OAuthServiceError.invalidRequest
+        }
+
+        try Task.checkCancellation()
+        let response = try await apiService.fetch(request: request.apiRequest)
+        try Task.checkCancellation()
+
+        let statusCode = response.httpResponse.httpStatus
+        if statusCode == request.httpSuccessCode {
+            Logger.networking.debug("\(#function) request completed")
+            return try extract(header: HTTPHeaderKey.location, from: response.httpResponse)
+        } else if request.httpErrorCodes.contains(statusCode) {
+            try throwError(forResponse: response, request: request)
+        }
+        throw OAuthServiceError.invalidResponseCode(statusCode)
+    }
+
+    public func login(withSignature signature: String, authSessionID: String) async throws -> AuthorisationCode {
+        let method = OAuthLoginMethodSignature(signature: signature)
         guard let request = OAuthRequest.login(baseURL: baseURL, authSessionID: authSessionID, method: method) else {
             throw OAuthServiceError.invalidRequest
         }
@@ -401,18 +436,27 @@ public struct OAuthTokenResponse: Decodable {
     let tokenType: String
 
     enum CodingKeys: CodingKey {
-        case access_token
-        case refresh_token
-        case expires_in
-        case token_type
+        case accessToken
+        case refreshToken
+        case expiresIn
+        case tokenType
+
+        var stringValue: String {
+            switch self {
+            case .accessToken: return "access_token"
+            case .refreshToken: return "refresh_token"
+            case .expiresIn: return "expires_in"
+            case .tokenType: return "token_type"
+            }
+        }
     }
 
     public init(from decoder: any Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        self.accessToken = try container.decode(String.self, forKey: .access_token)
-        self.refreshToken = try container.decode(String.self, forKey: .refresh_token)
-        self.expiresIn = try container.decode(Double.self, forKey: .expires_in)
-        self.tokenType = try container.decode(String.self, forKey: .token_type)
+        self.accessToken = try container.decode(String.self, forKey: .accessToken)
+        self.refreshToken = try container.decode(String.self, forKey: .refreshToken)
+        self.expiresIn = try container.decode(Double.self, forKey: .expiresIn)
+        self.tokenType = try container.decode(String.self, forKey: .tokenType)
     }
 }
 
@@ -429,4 +473,3 @@ public struct ConfirmEditAccountResponse: Decodable {
 public struct LogoutResponse: Decodable {
     let status: String // Always "logged_out"
 }
-

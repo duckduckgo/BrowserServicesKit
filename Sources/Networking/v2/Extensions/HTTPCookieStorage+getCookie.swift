@@ -1,7 +1,7 @@
 //
-//  HTTPURLResponse+Utilities.swift
+//  HTTPCookieStorage+getCookie.swift
 //
-//  Copyright © 2023 DuckDuckGo. All rights reserved.
+//  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -17,22 +17,13 @@
 //
 
 import Foundation
-import Common
 
-public extension HTTPURLResponse {
+public extension HTTPCookieStorage {
 
-    var httpStatus: HTTPStatusCode {
-        HTTPStatusCode(rawValue: statusCode) ?? .unknown
-    }
-    var etag: String? { etag(droppingWeakPrefix: true) }
-
-    private static let weakEtagPrefix = "W/"
-
-    func etag(droppingWeakPrefix: Bool) -> String? {
-        let etag = value(forHTTPHeaderField: HTTPHeaderKey.etag)
-        if droppingWeakPrefix {
-            return etag?.dropping(prefix: HTTPURLResponse.weakEtagPrefix)
+    func getCookie(withName name: String) -> HTTPCookie? {
+        if let cookie = cookies?.first(where: { $0.name == name }) {
+            return cookie
         }
-        return etag
+        return nil
     }
 }

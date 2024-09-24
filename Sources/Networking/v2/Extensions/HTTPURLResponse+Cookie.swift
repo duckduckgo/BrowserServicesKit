@@ -1,5 +1,5 @@
 //
-//  SessionDelegate.swift
+//  HTTPURLResponse+Cookie.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -17,13 +17,20 @@
 //
 
 import Foundation
-import os.log
 
-final class SessionDelegate: NSObject, URLSessionTaskDelegate {
+public extension HTTPURLResponse {
 
-    /// Disable automatic redirection, in our specific OAuth implementation we manage the redirection, not the user
-    public func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest) async -> URLRequest? {
-        Logger.networking.debug("Stopping OAuth API redirection: \(response)")
+    var cookies: [HTTPCookie]? {
+        guard let fields = allHeaderFields as? [String: String], let url else {
+            return nil
+        }
+        return HTTPCookie.cookies(withResponseHeaderFields: fields, for: url)
+    }
+
+    func getCookie(withName name: String) -> HTTPCookie? {
+        if let cookie = cookies?.first(where: { $0.name == name }) {
+            return cookie
+        }
         return nil
     }
 }

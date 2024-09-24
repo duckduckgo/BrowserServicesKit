@@ -1,5 +1,5 @@
 //
-//  SessionDelegate.swift
+//  HTTPURLResponse+Etag.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -17,13 +17,17 @@
 //
 
 import Foundation
-import os.log
 
-final class SessionDelegate: NSObject, URLSessionTaskDelegate {
+public extension HTTPURLResponse {
 
-    /// Disable automatic redirection, in our specific OAuth implementation we manage the redirection, not the user
-    public func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest) async -> URLRequest? {
-        Logger.networking.debug("Stopping OAuth API redirection: \(response)")
-        return nil
+    var etag: String? { etag(droppingWeakPrefix: true) }
+    private static let weakEtagPrefix = "W/"
+
+    func etag(droppingWeakPrefix: Bool) -> String? {
+        let etag = value(forHTTPHeaderField: HTTPHeaderKey.etag)
+        if droppingWeakPrefix {
+            return etag?.dropping(prefix: HTTPURLResponse.weakEtagPrefix)
+        }
+        return etag
     }
 }
