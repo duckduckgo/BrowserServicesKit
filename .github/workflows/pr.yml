@@ -67,7 +67,7 @@ jobs:
         run: set -o pipefail && swift test | tee -a build-log.txt | xcbeautify --report junit --report-path . --junit-report-filename tests.xml
 
       - name: Publish Unit Tests Report
-        uses: mikepenz/action-junit-report@v3
+        uses: mikepenz/action-junit-report@v4
         if: always()
         with:
           check_name: Test Report (macOS)
@@ -165,7 +165,7 @@ jobs:
             | xcbeautify --report junit --report-path . --junit-report-filename ios-unittests.xml 
 
       - name: Publish Unit Tests Report
-        uses: mikepenz/action-junit-report@v3
+        uses: mikepenz/action-junit-report@v4
         if: always()
         with:
           check_name: Test Report (iOS)
