@@ -63,6 +63,7 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
         case closeEmailProtectionTab
 
         case startCredentialsImportFlow
+        case credentialsImportFlowPermanentlyDismissed
     }
 
     /// Represents if the autofill is loaded into the top autofill context.
@@ -167,6 +168,7 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
         case .startEmailProtectionSignup: return startEmailProtectionSignup
         case .closeEmailProtectionTab: return closeEmailProtectionTab
         case .startCredentialsImportFlow: return startCredentialsImportFlow
+        case .credentialsImportFlowPermanentlyDismissed
         }
     }
 

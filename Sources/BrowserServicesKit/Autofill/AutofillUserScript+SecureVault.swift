@@ -90,6 +90,7 @@ public protocol AutofillPasswordImportDelegate: AnyObject {
     func autofillUserScriptDidRequestPasswordImportFlow(_ completion: @escaping () -> Void)
     func autofillUserScriptDidFinishImportWithImportedCredentialForCurrentDomain()
     func autofillUserScriptWillDisplayOverlay(_ serializedInputContext: String)
+    func autofillUserScriptDidRequestPermanentCredentialsImportPromptDismissal()
 }
 
 extension AutofillUserScript {
@@ -788,6 +789,11 @@ extension AutofillUserScript {
                 replyHandler(nil)
             })
         }
+    }
+
+    func credentialsImportFlowPermanentlyDismissed(_ message: UserScriptMessage, replyHandler: @escaping MessageReplyHandler) {
+        passwordImportDelegate?.autofillUserScriptDidRequestPermanentCredentialsImportPromptDismissal()
+        replyHandler(nil)
     }
 
     // MARK: Pixels
