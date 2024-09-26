@@ -81,13 +81,6 @@ public class BookmarkEditorViewModel: ObservableObject {
         registerForChanges()
     }
 
-    deinit {
-        if let observer {
-            NotificationCenter.default.removeObserver(observer)
-            self.observer = nil
-        }
-    }
-
     public init(creatingFolderWithParentID parentFolderID: NSManagedObjectID?,
                 bookmarksDatabase: CoreDataDatabase,
                 favoritesDisplayMode: FavoritesDisplayMode,
@@ -114,6 +107,39 @@ public class BookmarkEditorViewModel: ObservableObject {
         refresh()
         registerForChanges()
     }
+
+    public init(addingBookmarkWith url: String,
+                title: String,
+                toFolderWithID folderID: NSManagedObjectID? = nil,
+                bookmarksDatabase: CoreDataDatabase,
+                favoritesDisplayMode: FavoritesDisplayMode,
+                errorEvents: EventMapping<BookmarksModelError>?) {
+        externalUpdates = subject.eraseToAnyPublisher()
+        self.errorEvents = errorEvents
+        self.context = bookmarksDatabase.makeContext(concurrencyType: .mainQueueConcurrencyType)
+        self.favoritesDisplayMode = favoritesDisplayMode
+
+        let parent: BookmarkEntity?
+        if let folderID {
+            parent = context.object(with: folderID) as? BookmarkEntity
+        } else {
+            parent = BookmarkUtils.fetchRootFolder(context)
+        }
+        assert(parent != nil)
+
+        self.bookmark = BookmarkEntity.makeBookmark(title: title, url: url, parent: parent!, context: context)
+
+        refresh()
+        registerForChanges()
+    }
+
+    deinit {
+        if let observer {
+            NotificationCenter.default.removeObserver(observer)
+            self.observer = nil
+        }
+    }
+
 
     private func registerForChanges() {
         observer = NotificationCenter.default.addObserver(forName: NSManagedObjectContext.didSaveObjectsNotification,
