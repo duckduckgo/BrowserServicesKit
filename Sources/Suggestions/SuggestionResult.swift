@@ -54,7 +54,7 @@ public struct SuggestionResult: Equatable {
         }
 
         // Disable autocompletion for website suggestions
-        if case .website(url: _) = firstTopHit {
+        if case .website = firstTopHit {
             return false
         }
 
