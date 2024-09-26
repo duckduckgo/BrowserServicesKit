@@ -798,6 +798,7 @@ extension AutofillUserScript {
     func credentialsImportFlowPermanentlyDismissed(_ message: UserScriptMessage, replyHandler: @escaping MessageReplyHandler) {
         passwordImportDelegate?.autofillUserScriptDidRequestPermanentCredentialsImportPromptDismissal()
         replyHandler(nil)
+        NotificationCenter.default.post(name: .passwordImportDidCloseImportDialog, object: nil)
     }
 
     // MARK: Pixels
