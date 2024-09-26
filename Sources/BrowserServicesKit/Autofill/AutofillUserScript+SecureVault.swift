@@ -83,6 +83,7 @@ public protocol AutofillLoginImportStateProvider {
     var hasImportedLogins: Bool { get }
     var credentialsImportPromptPresentationCount: Int { get }
     var isAutofillEnabled: Bool { get }
+    var isCredentialsImportPromptPermanantlyDismissed: Bool { get }
     func hasNeverPromptWebsitesFor(_ domain: String) -> Bool
 }
 
@@ -498,6 +499,9 @@ extension AutofillUserScript {
             return false
         }
         guard !loginImportStateProvider.hasNeverPromptWebsitesFor(domain) else {
+            return false
+        }
+        guard !loginImportStateProvider.isCredentialsImportPromptPermanantlyDismissed else {
             return false
         }
         return true
