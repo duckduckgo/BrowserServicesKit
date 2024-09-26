@@ -23,8 +23,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/duckduckgo-autofill.git",
       "state" : {
-        "revision" : "1fee787458d13f8ed07f9fe81aecd6e59609339e",
-        "version" : "13.1.0"
+        "branch" : "dbajpeyi/feature/dismiss-password-import-flow",
+        "revision" : "bf31f3f2c55d0183ff67bea8bf95d145116f6366"
       }
     },
     {
