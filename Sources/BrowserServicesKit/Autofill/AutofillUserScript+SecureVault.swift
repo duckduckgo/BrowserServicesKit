@@ -79,7 +79,7 @@ public protocol AutofillSecureVaultDelegate: AnyObject {
 }
 
 public protocol AutofillLoginImportStateProvider {
-    var isNewDDGUser: Bool { get }
+    var isEligibleDDGUser: Bool { get }
     var hasImportedLogins: Bool { get }
     var credentialsImportPromptPresentationCount: Int { get }
     var isAutofillEnabled: Bool { get }
@@ -493,7 +493,7 @@ extension AutofillUserScript {
         guard !loginImportStateProvider.hasImportedLogins else {
             return false
         }
-        guard loginImportStateProvider.isNewDDGUser else {
+        guard loginImportStateProvider.isEligibleDDGUser else {
             return false
         }
         guard !loginImportStateProvider.hasNeverPromptWebsitesFor(domain) else {
