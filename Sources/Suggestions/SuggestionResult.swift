@@ -49,7 +49,16 @@ public struct SuggestionResult: Equatable {
     }
 
     public var canBeAutocompleted: Bool {
-        !topHits.isEmpty
+        guard let firstTopHit = topHits.first else {
+            return false
+        }
+
+        // Disable autocompletion for website suggestions
+        if case .website(url: _) = firstTopHit {
+            return false
+        }
+
+        return true
     }
 
 }
