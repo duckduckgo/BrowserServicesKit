@@ -30,4 +30,22 @@ final class SuggestionResultTests: XCTestCase {
         XCTAssertEqual(emptyResult.duckduckgoSuggestions.count, 0)
     }
 
+    func testWhenResultContainsWebsiteSuggestionAsFirstSuggestion_ThenCanNotBeAutocompleted() {
+        let suggestions = [Suggestion.website(url: URL(string: "duckduckgo.com")!), Suggestion.website(url: URL(string: "spreadprivacy.com")!)]
+        let result = SuggestionResult(topHits: suggestions, duckduckgoSuggestions: [], localSuggestions: [])
+
+        XCTAssertFalse(result.canBeAutocompleted)
+    }
+
+    func testWhenResultContainsHistoryOrBookmarkSuggestionAsFirstSuggestion_ThenCanBeAutocompleted() {
+        let suggestions = [Suggestion.bookmark(title: "", url: URL(string: "duckduckgo.com")!, isFavorite: false, allowedInTopHits: true), Suggestion.bookmark(title: "", url: URL(string: "spreadprivacy.com")!, isFavorite: false, allowedInTopHits: true)]
+        let result = SuggestionResult(topHits: suggestions, duckduckgoSuggestions: [], localSuggestions: [])
+
+        XCTAssert(result.canBeAutocompleted)
+
+        let suggestions2 = [Suggestion.historyEntry(title: nil, url: URL(string: "duckduckgo.com")!, allowedInTopHits: true), Suggestion.historyEntry(title: nil, url: URL(string: "spreadprivacy.com")!, allowedInTopHits: true)]
+        let result2 = SuggestionResult(topHits: suggestions2, duckduckgoSuggestions: [], localSuggestions: [])
+        XCTAssert(result2.canBeAutocompleted)
+    }
+
 }
