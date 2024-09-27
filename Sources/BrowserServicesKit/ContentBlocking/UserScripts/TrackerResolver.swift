@@ -85,7 +85,7 @@ public class TrackerResolver {
                                pageUrl: pageUrlString)
     }
 
-    private func isPageAffiliatedWithTrackerEntity(pageUrlString: String, trackerEntity: Entity) -> Bool {
+    public func isPageAffiliatedWithTrackerEntity(pageUrlString: String, trackerEntity: Entity) -> Bool {
         guard let pageHost = URL(string: pageUrlString)?.host,
               let pageEntity = tds.findEntity(forHost: pageHost)
         else { return false }
