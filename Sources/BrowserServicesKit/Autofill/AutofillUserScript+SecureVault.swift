@@ -483,9 +483,6 @@ extension AutofillUserScript {
         guard !isBurnerWindow else {
             return false
         }
-        guard loginImportStateProvider.credentialsImportPromptPresentationCount < 5 else {
-            return false
-        }
         guard credentials.isEmpty else {
             return false
         }
