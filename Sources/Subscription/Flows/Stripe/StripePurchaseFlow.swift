@@ -19,6 +19,7 @@
 import Foundation
 import StoreKit
 import os.log
+import Networking
 
 public enum StripePurchaseFlowError: Swift.Error {
     case noProductsFound
@@ -32,16 +33,20 @@ public protocol StripePurchaseFlow {
 }
 
 public final class DefaultStripePurchaseFlow: StripePurchaseFlow {
+    private let oAuthClient: OAuthClient
     private let subscriptionEndpointService: SubscriptionEndpointService
-    private let authEndpointService: AuthEndpointService
-    private let accountManager: AccountManager
+//    private let authEndpointService: AuthEndpointService
+//    private let accountManager: AccountManager
 
     public init(subscriptionEndpointService: any SubscriptionEndpointService,
-                authEndpointService: any AuthEndpointService,
-                accountManager: any AccountManager) {
+                oAuthClient: OAuthClient
+//                authEndpointService: any AuthEndpointService,
+//                accountManager: any AccountManager
+    ) {
         self.subscriptionEndpointService = subscriptionEndpointService
-        self.authEndpointService = authEndpointService
-        self.accountManager = accountManager
+//        self.authEndpointService = authEndpointService
+//        self.accountManager = accountManager
+        self.oAuthClient = oAuthClient
     }
 
     public func subscriptionOptions() async -> Result<SubscriptionOptions, StripePurchaseFlowError> {

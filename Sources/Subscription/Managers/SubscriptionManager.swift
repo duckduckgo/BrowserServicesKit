@@ -18,12 +18,20 @@
 
 import Foundation
 import Common
+import os.log
+import Networking
+
+//public protocol SubscriptionManagerTokenProviding {
+//
+//    func getTokens() async throws -> TokensContainer
+//    func refreshTokens() async throws
+//    func logout()
+//}
 
 public protocol SubscriptionManager {
+
     // Dependencies
-    var accountManager: AccountManager { get }
     var subscriptionEndpointService: SubscriptionEndpointService { get }
-    var authEndpointService: AuthEndpointService { get }
 
     // Environment
     static func loadEnvironmentFrom(userDefaults: UserDefaults) -> SubscriptionEnvironment?
@@ -32,29 +40,27 @@ public protocol SubscriptionManager {
 
     var canPurchase: Bool { get }
     @available(macOS 12.0, iOS 15.0, *) func storePurchaseManager() -> StorePurchaseManager
-    func loadInitialData()
-    func refreshCachedSubscriptionAndEntitlements(completion: @escaping (_ isSubscriptionActive: Bool) -> Void)
+//    func loadInitialData()
+    func refreshCachedSubscription(completion: @escaping (_ isSubscriptionActive: Bool) -> Void)
     func url(for type: SubscriptionURL) -> URL
 }
 
 /// Single entry point for everything related to Subscription. This manager is disposable, every time something related to the environment changes this need to be recreated.
 public final class DefaultSubscriptionManager: SubscriptionManager {
+
+    private let oAuthClient: OAuthClient
     private let _storePurchaseManager: StorePurchaseManager?
-    public let accountManager: AccountManager
     public let subscriptionEndpointService: SubscriptionEndpointService
-    public let authEndpointService: AuthEndpointService
     public let currentEnvironment: SubscriptionEnvironment
     public private(set) var canPurchase: Bool = false
 
     public init(storePurchaseManager: StorePurchaseManager? = nil,
-                accountManager: AccountManager,
+                oAuthClient: OAuthClient,
                 subscriptionEndpointService: SubscriptionEndpointService,
-                authEndpointService: AuthEndpointService,
                 subscriptionEnvironment: SubscriptionEnvironment) {
         self._storePurchaseManager = storePurchaseManager
-        self.accountManager = accountManager
+        self.oAuthClient = oAuthClient
         self.subscriptionEndpointService = subscriptionEndpointService
-        self.authEndpointService = authEndpointService
         self.currentEnvironment = subscriptionEnvironment
         switch currentEnvironment.purchasePlatform {
         case .appStore:
@@ -104,19 +110,18 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
 
     // MARK: -
 
-    public func loadInitialData() {
-        Task {
-            if let token = accountManager.accessToken {
-                _ = await subscriptionEndpointService.getSubscription(accessToken: token, cachePolicy: .reloadIgnoringLocalCacheData)
-                _ = await accountManager.fetchEntitlements(cachePolicy: .reloadIgnoringLocalCacheData)
-            }
-        }
-    }
+//    public func loadInitialData() {
+//        Task {
+//            let tokensContainer = try await oAuthClient.getValidAccessToken()
+//            _ = await subscriptionEndpointService.getSubscription(accessToken: tokensContainer.accessToken, cachePolicy: .reloadIgnoringLocalCacheData)
+//            //            _ = await accountManager.fetchEntitlements(cachePolicy: .reloadIgnoringLocalCacheData)
+//        }
+//    }
 
-    public func refreshCachedSubscriptionAndEntitlements(completion: @escaping (_ isSubscriptionActive: Bool) -> Void) {
+    public func refreshCachedSubscription(completion: @escaping (_ isSubscriptionActive: Bool) -> Void) {
         Task {
-            guard let token = accountManager.accessToken else { return }
-
+//            let tokensContainer = try await tokenProvider.getTokens()
+            let tokensContainer = try await oAuthClient.getValidTokens()
             var isSubscriptionActive = false
 
             defer {
@@ -124,21 +129,24 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
             }
 
             // Refetch and cache subscription
-            switch await subscriptionEndpointService.getSubscription(accessToken: token, cachePolicy: .reloadIgnoringLocalCacheData) {
+            switch await subscriptionEndpointService.getSubscription(accessToken: tokensContainer.accessToken, cachePolicy: .reloadIgnoringLocalCacheData) {
             case .success(let subscription):
                 isSubscriptionActive = subscription.isActive
             case .failure(let error):
                 if case let .apiError(serviceError) = error, case let .serverError(statusCode, _) = serviceError {
                     if statusCode == 401 {
                         // Token is no longer valid
-                        accountManager.signOut()
+//                        tokenProvider.logout()
+                        // TODO: refresh
+                        oAuthClient.refreshToken()
                         return
                     }
                 }
             }
 
-            // Refetch and cache entitlements
-            _ = await accountManager.fetchEntitlements(cachePolicy: .reloadIgnoringLocalCacheData)
+//            // Refetch and cache entitlements
+//            _ = await accountManager.fetchEntitlements(cachePolicy: .reloadIgnoringLocalCacheData)
+//            try await tokenProvider.refreshToken()
         }
     }
 

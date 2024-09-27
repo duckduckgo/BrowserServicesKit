@@ -189,7 +189,7 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
     }
 
     private func getProtectionState(from message: WKScriptMessage) -> ProtectionState? {
-        guard let protectionState: ProtectionState = DecodableHelper.decode(from: message.messageBody) else {
+        guard let protectionState: ProtectionState = CodableHelper.decode(from: message.messageBody) else {
             assertionFailure("privacyDashboardSetProtection: expected ProtectionState")
             return nil
         }
@@ -314,7 +314,7 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
     }
 
     private func handleTelemetrySpan(message: WKScriptMessage) {
-        guard let telemetrySpan: TelemetrySpan = DecodableHelper.decode(from: message.messageBody) else {
+        guard let telemetrySpan: TelemetrySpan = CodableHelper.decode(from: message.messageBody) else {
             assertionFailure("privacyDashboardTelemetrySpan: expected TelemetrySpan")
             return
         }

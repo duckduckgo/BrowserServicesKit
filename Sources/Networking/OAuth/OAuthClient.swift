@@ -36,16 +36,13 @@ public enum OAuthClientError: Error, LocalizedError {
     }
 }
 
+public protocol TokensStoring {
+    var tokensContainer: TokensContainer? { get set }
+}
+
 final public class OAuthClient {
 
-    public protocol TokensStoring {
-        var accessToken: String? { get set }
-        var decodedAccessToken: OAuthAccessToken? { get set }
-        var refreshToken: String? { get set }
-        var decodedRefreshToken: OAuthRefreshToken? { get set }
-    }
-
-    public struct Constants {
+    private struct Constants {
         /// https://app.asana.com/0/1205784033024509/1207979495854201/f
         static let clientID = "f4311287-0121-40e6-8bbd-85c36daf1837"
         static let redirectURI = "com.duckduckgo:/authcb"
@@ -57,38 +54,49 @@ final public class OAuthClient {
 
     // MARK: -
 
-    let authService: OAuthService
-    var tokensStorage: TokensStoring
+    private let authService: OAuthService
+    private var tokensStorage: TokensStoring
 
-    public init(authService: OAuthService = DefaultOAuthService(baseURL: Constants.stagingBaseURL), // TODO: change to production
-         tokensStorage: any TokensStoring) {
-        self.authService = authService
+    public init(tokensStorage: any TokensStoring, authService: OAuthService? = nil) {
+
         self.tokensStorage = tokensStorage
+        if let authService {
+            self.authService = authService
+        } else {
+            let configuration = URLSessionConfiguration.default
+            configuration.httpCookieStorage = nil
+            configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+            let urlSession = URLSession(configuration: configuration,
+                                        delegate: SessionDelegate(),
+                                        delegateQueue: nil)
+            let apiService = DefaultAPIService(urlSession: urlSession)
+            self.authService = DefaultOAuthService(baseURL: Constants.stagingBaseURL, // TODO: change to production
+                                                   apiService: apiService)
+
+            apiService.authorizationRefresherCallback = { request in // TODO: is this updated?
+                // safety check
+                if tokensStorage.tokensContainer?.decodedAccessToken.isExpired() == false {
+                    assertionFailure("Refresh attempted on non expired token")
+                }
+                Logger.OAuth.debug("Refreshing tokens")
+                let tokens = try await self.refreshTokens()
+                return tokens.accessToken
+            }
+        }
     }
 
     // MARK: - Internal
 
-    internal func getTokens(authCode: String, codeVerifier: String) async throws {
+    @discardableResult
+    private func getTokens(authCode: String, codeVerifier: String) async throws -> TokensContainer {
         let getTokensResponse = try await authService.getAccessToken(clientID: Constants.clientID,
                                                              codeVerifier: codeVerifier,
                                                              code: authCode,
                                                              redirectURI: Constants.redirectURI)
-        let jwtSigners = try await authService.getJWTSigners()
-        let decodedAccessToken = try jwtSigners.verify(getTokensResponse.accessToken, as: OAuthAccessToken.self)
-        let decodedRefreshToken = try jwtSigners.verify(getTokensResponse.refreshToken, as: OAuthRefreshToken.self)
-        tokensStorage.accessToken = getTokensResponse.accessToken
-        tokensStorage.decodedAccessToken = decodedAccessToken
-        tokensStorage.refreshToken = getTokensResponse.refreshToken
-        tokensStorage.decodedRefreshToken = decodedRefreshToken
+        return try await decode(accessToken: getTokensResponse.accessToken, refreshToken: getTokensResponse.refreshToken)
     }
 
-//    internal func createAccountIfNeeded() async throws {
-//        if tokensStorage.accessToken == nil {
-//            try await createAccount()
-//        }
-//    }
-
-    func getVerificationCodes() async throws -> (codeVerifier: String, codeChallenge: String) {
+    private func getVerificationCodes() async throws -> (codeVerifier: String, codeChallenge: String) {
         let codeVerifier = OAuthCodesGenerator.codeVerifier
         guard let codeChallenge = OAuthCodesGenerator.codeChallenge(codeVerifier: codeVerifier) else {
             throw OAuthClientError.internalError("Failed to generate code challenge")
@@ -96,29 +104,52 @@ final public class OAuthClient {
         return (codeVerifier, codeChallenge)
     }
 
+    private func decode(accessToken: String, refreshToken: String) async throws -> TokensContainer {
+        let jwtSigners = try await authService.getJWTSigners()
+        let decodedAccessToken = try jwtSigners.verify(accessToken, as: JWTAccessToken.self)
+        let decodedRefreshToken = try jwtSigners.verify(refreshToken, as: JWTRefreshToken.self)
+
+        return TokensContainer(accessToken: accessToken,
+                               refreshToken: refreshToken,
+                               decodedAccessToken: decodedAccessToken,
+                               decodedRefreshToken: decodedRefreshToken)
+    }
+
     // MARK: - Public
 
-    public func getValidAccessToken() async throws -> String {
-        if let token = tokensStorage.accessToken {
-            if tokensStorage.decodedAccessToken?.isExpired() == false {
-                return token
+    /// Returns a valid access token
+    /// - If present and not expired, from the storage
+    /// - if present but expired refreshes it
+    /// - if not present creates a new account
+    /// All options store the tokens via the tokensStorage
+    public func getValidTokens() async throws -> TokensContainer {
+
+        if let tokensContainer = tokensStorage.tokensContainer {
+            if tokensContainer.decodedAccessToken.isExpired() == false {
+                return tokensContainer
             } else {
-                try await refreshToken()
-                if let token = tokensStorage.accessToken {
-                    return token
-                }
+                let refreshedTokens = try await refreshTokens()
+                tokensStorage.tokensContainer = refreshedTokens
+                return refreshedTokens
             }
+        } else {
+            // We don't have a token stored, create a new account
+            let tokens = try await createAccount()
+            // Save tokens
+            tokensStorage.tokensContainer = tokens
+            return tokens
         }
-        throw OAuthClientError.unauthenticated
     }
 
     // MARK: Create
 
-    public func createAccount() async throws {
+    /// Create an accounts, stores all tokens and returns them
+    public func createAccount() async throws -> TokensContainer {
         let (codeVerifier, codeChallenge) = try await getVerificationCodes()
         let authSessionID = try await authService.authorise(codeChallenge: codeChallenge)
         let authCode = try await authService.createAccount(authSessionID: authSessionID)
-        try await getTokens(authCode: authCode, codeVerifier: codeVerifier)
+        let tokens = try await getTokens(authCode: authCode, codeVerifier: codeVerifier)
+        return tokens
     }
 
     // MARK: Activate
@@ -131,73 +162,74 @@ final public class OAuthClient {
         private var authSessionID: String? = nil
         private var codeVerifier: String? = nil
 
-        internal init(oAuthClient: OAuthClient) {
+        public init(oAuthClient: OAuthClient) {
             self.oAuthClient = oAuthClient
         }
 
-        func activateWith(email: String) async throws {
+        public func activateWith(email: String) async throws {
             self.email = email
             let (authSessionID, codeVerifier) = try await oAuthClient.requestOTP(email: email)
             self.authSessionID = authSessionID
             self.codeVerifier = codeVerifier
         }
 
-        func confirm(otp: String) async throws {
+        public func confirm(otp: String) async throws {
             guard let codeVerifier, let authSessionID, let email else { return }
             try await oAuthClient.activate(withOTP: otp, email: email, codeVerifier: codeVerifier, authSessionID: authSessionID)
         }
     }
 
-    public func requestOTP(email: String) async throws -> (authSessionID: String, codeVerifier: String) {
+    private func requestOTP(email: String) async throws -> (authSessionID: String, codeVerifier: String) {
         let (codeVerifier, codeChallenge) = try await getVerificationCodes()
         let authSessionID = try await authService.authorise(codeChallenge: codeChallenge)
         try await authService.requestOTP(authSessionID: authSessionID, emailAddress: email)
         return (authSessionID, codeVerifier) // to be used in activate(withOTP or activate(withPlatformSignature
     }
 
-    public func activate(withOTP otp: String, email: String, codeVerifier: String, authSessionID: String) async throws {
+    private func activate(withOTP otp: String, email: String, codeVerifier: String, authSessionID: String) async throws {
         let authCode = try await authService.login(withOTP: otp, authSessionID: authSessionID, email: email)
         try await getTokens(authCode: authCode, codeVerifier: codeVerifier)
     }
 
-    public func activate(withPlatformSignature signature: String, codeVerifier: String, authSessionID: String) async throws {
+    public func activate(withPlatformSignature signature: String) async throws -> TokensContainer {
+        let (codeVerifier, codeChallenge) = try await getVerificationCodes()
+        let authSessionID = try await authService.authorise(codeChallenge: codeChallenge)
         let authCode = try await authService.login(withSignature: signature, authSessionID: authSessionID)
-        try await getTokens(authCode: authCode, codeVerifier: codeVerifier)
+        let tokens = try await getTokens(authCode: authCode, codeVerifier: codeVerifier)
+        tokensStorage.tokensContainer = tokens
+        return tokens
     }
 
     // MARK: Refresh
 
-    public func refreshToken() async throws {
-        guard let refreshToken = tokensStorage.refreshToken else {
+    @discardableResult
+    public func refreshTokens() async throws -> TokensContainer {
+        guard let refreshToken = tokensStorage.tokensContainer?.refreshToken else {
             throw OAuthClientError.missingRefreshToken
         }
         let refreshTokenResponse = try await authService.refreshAccessToken(clientID: Constants.clientID, refreshToken: refreshToken)
-        let jwtSigners = try await authService.getJWTSigners()
-        let decodedAccessToken = try jwtSigners.verify(refreshTokenResponse.accessToken, as: OAuthAccessToken.self)
-        let decodedRefreshToken = try jwtSigners.verify(refreshTokenResponse.refreshToken, as: OAuthRefreshToken.self)
-        tokensStorage.accessToken = refreshTokenResponse.accessToken
-        tokensStorage.decodedAccessToken = decodedAccessToken
-        tokensStorage.refreshToken = refreshTokenResponse.refreshToken
-        tokensStorage.decodedRefreshToken = decodedRefreshToken
+        let refreshedTokens = try await decode(accessToken: refreshTokenResponse.accessToken, refreshToken: refreshTokenResponse.refreshToken)
+        tokensStorage.tokensContainer = refreshedTokens
+        return refreshedTokens
     }
 
     // MARK: Exchange V1 to V2 token
 
-    public func exchange(accessTokenV1: String) async throws {
+    public func exchange(accessTokenV1: String) async throws -> TokensContainer {
         let (codeVerifier, codeChallenge) = try await getVerificationCodes()
         let authSessionID = try await authService.authorise(codeChallenge: codeChallenge)
-        let refreshTokenResponse = try await authService.exchangeToken(accessTokenV1: accessTokenV1, authSessionID: authSessionID)
+        let authCode = try await authService.exchangeToken(accessTokenV1: accessTokenV1, authSessionID: authSessionID)
+        let tokens = try await getTokens(authCode: authCode, codeVerifier: codeVerifier)
+        tokensStorage.tokensContainer = tokens
+        return tokens
     }
 
     // MARK: Logout
 
     public func logout() async throws {
-        let (codeVerifier, codeChallenge) = try await getVerificationCodes()
-        let authSessionID = try await authService.authorise(codeChallenge: codeChallenge)
-        guard let token = tokensStorage.accessToken else {
-            throw OAuthClientError.unauthenticated
+        if let token = tokensStorage.tokensContainer?.accessToken {
+            try await authService.logout(accessToken: token)
         }
-        try await authService.logout(accessToken: token)
     }
 
     // MARK: Edit account
@@ -209,7 +241,7 @@ final public class OAuthClient {
         private var hashString: String? = nil
         private var email: String? = nil
 
-        internal init(oAuthClient: OAuthClient) {
+        public init(oAuthClient: OAuthClient) {
             self.oAuthClient = oAuthClient
         }
 
@@ -222,21 +254,22 @@ final public class OAuthClient {
                 throw OAuthClientError.internalError("Missing email or hashString")
             }
             try await oAuthClient.confirmChangeAccount(email: email, otp: otp, hash: hashString)
+            try await oAuthClient.refreshTokens()
         }
     }
 
-    public func changeAccount(email: String?) async throws -> String {
-        guard let token = tokensStorage.accessToken else {
+    private func changeAccount(email: String?) async throws -> String {
+        guard let token = tokensStorage.tokensContainer?.accessToken else {
             throw OAuthClientError.unauthenticated
         }
         let editAccountResponse = try await authService.editAccount(clientID: Constants.clientID, accessToken: token, email: email)
         return editAccountResponse.hash
     }
 
-    public func confirmChangeAccount(email: String, otp: String, hash: String) async throws {
-        guard let token = tokensStorage.accessToken else {
+    private func confirmChangeAccount(email: String, otp: String, hash: String) async throws {
+        guard let token = tokensStorage.tokensContainer?.accessToken else {
             throw OAuthClientError.unauthenticated
         }
-        let response = try await authService.confirmEditAccount(accessToken: token, email: email, hash: hash, otp: otp)
+        _ = try await authService.confirmEditAccount(accessToken: token, email: email, hash: hash, otp: otp)
     }
 }

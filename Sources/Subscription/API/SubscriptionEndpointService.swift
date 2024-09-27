@@ -60,21 +60,20 @@ extension SubscriptionEndpointService {
 
 /// Communicates with our backend
 public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
-    private let currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment
+//    private let currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment
     private let apiService: APIService
     private let subscriptionCache = UserDefaultsCache<Subscription>(key: UserDefaultsCacheKey.subscription,
                                                                     settings: UserDefaultsCacheSettings(defaultExpirationInterval: .minutes(20)))
 
-    public init(currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment, apiService: APIService) {
-        self.currentServiceEnvironment = currentServiceEnvironment
+    public init(apiService: APIService) {
+//        self.currentServiceEnvironment = currentServiceEnvironment
         self.apiService = apiService
     }
 
     public init(currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment) {
-        self.currentServiceEnvironment = currentServiceEnvironment
-        let baseURL = currentServiceEnvironment == .production ? URL(string: "https://subscriptions.duckduckgo.com/api")! : URL(string: "https://subscriptions-dev.duckduckgo.com/api")!
+//        self.currentServiceEnvironment = currentServiceEnvironment
         let session = URLSession(configuration: URLSessionConfiguration.ephemeral)
-        self.apiService = DefaultAPIService(baseURL: baseURL, session: session)
+        self.apiService = DefaultAPIService(baseURL: currentServiceEnvironment.url, session: session)
     }
 
     // MARK: - Subscription fetching with caching

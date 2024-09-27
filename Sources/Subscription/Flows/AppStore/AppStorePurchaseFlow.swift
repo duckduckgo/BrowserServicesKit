@@ -19,6 +19,7 @@
 import Foundation
 import StoreKit
 import os.log
+import Networking
 
 public enum AppStorePurchaseFlowError: Swift.Error {
     case noProductsFound
@@ -41,22 +42,26 @@ public protocol AppStorePurchaseFlow {
 
 @available(macOS 12.0, iOS 15.0, *)
 public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
+    private let oAuthClient: OAuthClient
     private let subscriptionEndpointService: SubscriptionEndpointService
     private let storePurchaseManager: StorePurchaseManager
-    private let accountManager: AccountManager
+//    private let accountManager: AccountManager
     private let appStoreRestoreFlow: AppStoreRestoreFlow
-    private let authEndpointService: AuthEndpointService
+//    private let authEndpointService: AuthEndpointService
 
-    public init(subscriptionEndpointService: any SubscriptionEndpointService,
+    public init(oAuthClient: OAuthClient,
+                subscriptionEndpointService: any SubscriptionEndpointService,
                 storePurchaseManager: any StorePurchaseManager,
-                accountManager: any AccountManager,
-                appStoreRestoreFlow: any AppStoreRestoreFlow,
-                authEndpointService: any AuthEndpointService) {
+//                accountManager: any AccountManager,
+                appStoreRestoreFlow: any AppStoreRestoreFlow
+//                authEndpointService: any AuthEndpointService
+    ) {
+        self.oAuthClient = oAuthClient
         self.subscriptionEndpointService = subscriptionEndpointService
         self.storePurchaseManager = storePurchaseManager
-        self.accountManager = accountManager
+//        self.accountManager = accountManager
         self.appStoreRestoreFlow = appStoreRestoreFlow
-        self.authEndpointService = authEndpointService
+//        self.authEndpointService = authEndpointService
     }
 
     public func purchaseSubscription(with subscriptionIdentifier: String, emailAccessToken: String?) async -> Result<TransactionJWS, AppStorePurchaseFlowError> {
@@ -66,21 +71,24 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
         // If the current account is a third party expired account, we want to purchase and attach subs to it
         if let existingExternalID = await getExpiredSubscriptionID() {
             externalID = existingExternalID
+        } else { // Otherwise, try to retrieve an expired Apple subscription or create a new one
 
-        // Otherwise, try to retrieve an expired Apple subscription or create a new one
-        } else {
             // Check for past transactions most recent
             switch await appStoreRestoreFlow.restoreAccountFromPastPurchase() {
             case .success:
                 Logger.subscription.info("[AppStorePurchaseFlow] purchaseSubscription -> restoreAccountFromPastPurchase: activeSubscriptionAlreadyPresent")
                 return .failure(.activeSubscriptionAlreadyPresent)
             case .failure(let error):
-                Logger.subscription.info("[AppStorePurchaseFlow] purchaseSubscription -> restoreAccountFromPastPurchase: \(String(reflecting: error), privacy: .public)")
+                Logger.subscription.info("[AppStorePurchaseFlow] purchaseSubscription -> restoreAccountFromPastPurchase: \(error.localizedDescription, privacy: .public)")
+
                 switch error {
-                case .subscriptionExpired(let expiredAccountDetails):
-                    externalID = expiredAccountDetails.externalID
-                    accountManager.storeAuthToken(token: expiredAccountDetails.authToken)
-                    accountManager.storeAccount(token: expiredAccountDetails.accessToken, email: expiredAccountDetails.email, externalID: expiredAccountDetails.externalID)
+                case .subscriptionExpired(let expiredAccountTokens):
+//                    accountManager.storeAuthToken(token: expiredAccountTokens.authToken)
+//                    accountManager.storeAccount(token: expiredAccountTokens.accessToken,
+//                                                email: expiredAccountTokens.decodedAccessToken.email,
+//                                                externalID: expiredAccountTokens.decodedAccessToken.externalID)
+
+
                 default:
                     switch await authEndpointService.createAccount(emailAccessToken: emailAccessToken) {
                     case .success(let response):

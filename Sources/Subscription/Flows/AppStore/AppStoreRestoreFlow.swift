@@ -19,6 +19,7 @@
 import Foundation
 import StoreKit
 import os.log
+import Networking
 
 public enum AppStoreRestoreFlowError: Swift.Error, Equatable {
     case missingAccountOrTransactions
@@ -26,15 +27,15 @@ public enum AppStoreRestoreFlowError: Swift.Error, Equatable {
     case failedToObtainAccessToken
     case failedToFetchAccountDetails
     case failedToFetchSubscriptionDetails
-    case subscriptionExpired(accountDetails: RestoredAccountDetails)
+    case subscriptionExpired(tokens: TokensContainer)
 }
 
-public struct RestoredAccountDetails: Equatable {
-    let authToken: String
-    let accessToken: String
-    let externalID: String
-    let email: String?
-}
+//public struct RestoredAccountDetails: Equatable {
+//    let authToken: String
+//    let accessToken: String
+//    let externalID: String
+//    let email: String?
+//}
 
 @available(macOS 12.0, iOS 15.0, *)
 public protocol AppStoreRestoreFlow {
@@ -43,19 +44,24 @@ public protocol AppStoreRestoreFlow {
 
 @available(macOS 12.0, iOS 15.0, *)
 public final class DefaultAppStoreRestoreFlow: AppStoreRestoreFlow {
-    private let accountManager: AccountManager
+//    private let accountManager: AccountManager
+    private let oAuthClient: OAuthClient
     private let storePurchaseManager: StorePurchaseManager
     private let subscriptionEndpointService: SubscriptionEndpointService
-    private let authEndpointService: AuthEndpointService
+//    private let authEndpointService: AuthEndpointService
 
-    public init(accountManager: any AccountManager,
+    public init(
+        oAuthClient: OAuthClient,
+//        accountManager: any AccountManager,
                 storePurchaseManager: any StorePurchaseManager,
-                subscriptionEndpointService: any SubscriptionEndpointService,
-                authEndpointService: any AuthEndpointService) {
-        self.accountManager = accountManager
+                subscriptionEndpointService: any SubscriptionEndpointService
+//                authEndpointService: any AuthEndpointService
+    ) {
+        self.oAuthClient = oAuthClient
+//        self.accountManager = accountManager
         self.storePurchaseManager = storePurchaseManager
         self.subscriptionEndpointService = subscriptionEndpointService
-        self.authEndpointService = authEndpointService
+//        self.authEndpointService = authEndpointService
     }
 
     @discardableResult
@@ -71,41 +77,35 @@ public final class DefaultAppStoreRestoreFlow: AppStoreRestoreFlow {
             return .failure(.missingAccountOrTransactions)
         }
 
-        // Do the store login to get short-lived token
-        let authToken: String
-
-        switch await authEndpointService.storeLogin(signature: lastTransactionJWSRepresentation) {
-        case .success(let response):
-            authToken = response.authToken
-        case .failure:
+        guard let tokensContainer: TokensContainer = try? await oAuthClient.activate(withPlatformSignature: lastTransactionJWSRepresentation) else {
             Logger.subscription.error("[AppStoreRestoreFlow] Error: pastTransactionAuthenticationError")
             return .failure(.pastTransactionAuthenticationError)
         }
 
-        let accessToken: String
-        let email: String?
-        let externalID: String
+//        let accessToken: String
+//        let email: String?
+//        let externalID: String
 
-        switch await accountManager.exchangeAuthTokenToAccessToken(authToken) {
-        case .success(let exchangedAccessToken):
-            accessToken = exchangedAccessToken
-        case .failure:
-            Logger.subscription.error("[AppStoreRestoreFlow] Error: failedToObtainAccessToken")
-            return .failure(.failedToObtainAccessToken)
-        }
+//        switch await accountManager.exchangeAuthTokenToAccessToken(authToken) {
+//        case .success(let exchangedAccessToken):
+//            accessToken = exchangedAccessToken
+//        case .failure:
+//            Logger.subscription.error("[AppStoreRestoreFlow] Error: failedToObtainAccessToken")
+//            return .failure(.failedToObtainAccessToken)
+//        }
 
-        switch await accountManager.fetchAccountDetails(with: accessToken) {
-        case .success(let accountDetails):
-            email = accountDetails.email
-            externalID = accountDetails.externalID
-        case .failure:
-            Logger.subscription.error("[AppStoreRestoreFlow] Error: failedToFetchAccountDetails")
-            return .failure(.failedToFetchAccountDetails)
-        }
+//        switch await accountManager.fetchAccountDetails(with: accessToken) {
+//        case .success(let accountDetails):
+//            email = accountDetails.email
+//            externalID = accountDetails.externalID
+//        case .failure:
+//            Logger.subscription.error("[AppStoreRestoreFlow] Error: failedToFetchAccountDetails")
+//            return .failure(.failedToFetchAccountDetails)
+//        }
 
         var isSubscriptionActive = false
 
-        switch await subscriptionEndpointService.getSubscription(accessToken: accessToken, cachePolicy: .reloadIgnoringLocalCacheData) {
+        switch await subscriptionEndpointService.getSubscription(accessToken: tokensContainer.accessToken, cachePolicy: .reloadIgnoringLocalCacheData) {
         case .success(let subscription):
             isSubscriptionActive = subscription.isActive
         case .failure:
@@ -114,13 +114,11 @@ public final class DefaultAppStoreRestoreFlow: AppStoreRestoreFlow {
         }
 
         if isSubscriptionActive {
-            accountManager.storeAuthToken(token: authToken)
-            accountManager.storeAccount(token: accessToken, email: email, externalID: externalID)
             return .success(())
         } else {
-            let details = RestoredAccountDetails(authToken: authToken, accessToken: accessToken, externalID: externalID, email: email)
+//            let details = RestoredAccountDetails(authToken: authToken, accessToken: accessToken, externalID: externalID, email: email)
             Logger.subscription.error("[AppStoreRestoreFlow] Error: subscriptionExpired")
-            return .failure(.subscriptionExpired(accountDetails: details))
+            return .failure(.subscriptionExpired(tokens: tokensContainer))
         }
     }
 }

@@ -539,7 +539,7 @@ extension AutofillUserScript {
 
     // https://github.com/duckduckgo/duckduckgo-autofill/blob/main/docs/runtime.ios.md#getautofilldatarequest
     func getAutofillData(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
-        guard let request: GetAutofillDataRequest = DecodableHelper.decode(from: message.messageBody) else {
+        guard let request: GetAutofillDataRequest = CodableHelper.decode(from: message.messageBody) else {
             return
         }
 

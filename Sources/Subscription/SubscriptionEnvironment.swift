@@ -20,13 +20,15 @@ import Foundation
 
 public struct SubscriptionEnvironment: Codable {
 
-    public enum ServiceEnvironment: Codable {
+    public enum ServiceEnvironment: String, Codable {
         case production, staging
 
-        public var description: String {
+        var url: URL {
             switch self {
-            case .production: return "Production"
-            case .staging: return "Staging"
+            case .production:
+                URL(string: "https://subscriptions.duckduckgo.com/api")!
+            case .staging:
+                URL(string: "https://subscriptions-dev.duckduckgo.com/api")!
             }
         }
     }

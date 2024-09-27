@@ -33,19 +33,22 @@ public extension APIRequestV2 {
         }()
         let etag: String?
         let cookies: [HTTPCookie]?
-        let additionalHeaders: HTTPHeaders?
+        let authToken: String?
+        let additionalHeaders: [String: String]?
 
         public init(userAgent: String? = nil,
                     etag: String? = nil,
                     cookies: [HTTPCookie]? = nil,
-                    additionalHeaders: HTTPHeaders? = nil) {
+                    authToken: String? = nil,
+                    additionalHeaders: [String: String]? = nil) {
             self.userAgent = userAgent
             self.etag = etag
             self.cookies = cookies
+            self.authToken = authToken
             self.additionalHeaders = additionalHeaders
         }
 
-        public var httpHeaders: HTTPHeaders {
+        public var httpHeaders: [String: String] {
             var headers = [
                 HTTPHeaderKey.acceptEncoding: acceptEncoding,
                 HTTPHeaderKey.acceptLanguage: acceptLanguage
@@ -62,6 +65,9 @@ public extension APIRequestV2 {
                     assertionFailure("Duplicated values in HTTPHeaders")
                     return lx
                 }
+            }
+            if let authToken {
+                headers[HTTPHeaderKey.authorization] = "Bearer \(authToken)"
             }
             if let additionalHeaders {
                 headers.merge(additionalHeaders) { old, _ in old }

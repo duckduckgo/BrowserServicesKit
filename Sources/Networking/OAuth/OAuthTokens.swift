@@ -23,7 +23,7 @@ enum TokenPayloadError: Error {
     case InvalidTokenScope
 }
 
-public struct OAuthAccessToken: JWTPayload {
+public struct JWTAccessToken: JWTPayload {
     let exp: ExpirationClaim
     let iat: IssuedAtClaim
     let sub: SubjectClaim
@@ -33,7 +33,7 @@ public struct OAuthAccessToken: JWTPayload {
     let scope: String
     let api: String // always v2
     let email: String?
-    let entitlements: [TokenPayloadEntitlement]
+    let entitlements: [EntitlementPayload]
 
     public func verify(using signer: JWTKit.JWTSigner) throws {
         try self.exp.verifyNotExpired()
@@ -50,9 +50,13 @@ public struct OAuthAccessToken: JWTPayload {
         }
         return false
     }
+
+    public var externalID: String {
+        sub.value
+    }
 }
 
-public struct OAuthRefreshToken: JWTPayload {
+public struct JWTRefreshToken: JWTPayload {
     let exp: ExpirationClaim
     let iat: IssuedAtClaim
     let sub: SubjectClaim
@@ -70,7 +74,29 @@ public struct OAuthRefreshToken: JWTPayload {
     }
 }
 
-public struct TokenPayloadEntitlement: Codable {
-    let product: String
-    let name: String
+public struct EntitlementPayload: Codable {
+    let product: SubscriptionEntitlement // Can expand in future
+    let name: String // always `subscriber`
+
+    public enum SubscriptionEntitlement: String, Codable {
+        case networkProtection = "Network Protection"
+        case dataBrokerProtection = "Data Broker Protection"
+        case identityTheftRestoration = "Identity Theft Restoration"
+        case unknown
+
+        public init(from decoder: Decoder) throws {
+            self = try Self(rawValue: decoder.singleValueContainer().decode(RawValue.self)) ?? .unknown
+        }
+    }
+}
+
+public struct TokensContainer: Codable, Equatable {
+    public  let accessToken: String
+    public let refreshToken: String
+    public let decodedAccessToken: JWTAccessToken
+    public let decodedRefreshToken: JWTRefreshToken
+
+    public static func == (lhs: TokensContainer, rhs: TokensContainer) -> Bool {
+        lhs.accessToken == rhs.accessToken && lhs.refreshToken == rhs.refreshToken
+    }
 }

@@ -18,13 +18,14 @@
 
 import Foundation
 
-public struct APIRequestV2: CustomDebugStringConvertible {
+public class APIRequestV2: CustomDebugStringConvertible {
 
     public typealias QueryItems = [String: String]
 
     let timeoutInterval: TimeInterval
     let responseConstraints: [APIResponseConstraints]?
-    public let urlRequest: URLRequest
+    public var urlRequest: URLRequest
+    public var retryCount: Int = 0
 
     /// Designated initialiser
     /// - Parameters:
@@ -78,5 +79,13 @@ public struct APIRequestV2: CustomDebugStringConvertible {
         Cache Policy: \(urlRequest.cachePolicy)
         Response Constraints: \(responseConstraints?.map { $0.rawValue } ?? [])
         """
+    }
+
+    public func updateAuthorizationHeader(_ token: String) {
+        self.urlRequest.allHTTPHeaderFields?[HTTPHeaderKey.authorization] = "Bearer \(token)"
+    }
+
+    public var isAuthenticated: Bool {
+        return urlRequest.allHTTPHeaderFields?[HTTPHeaderKey.authorization] != nil
     }
 }

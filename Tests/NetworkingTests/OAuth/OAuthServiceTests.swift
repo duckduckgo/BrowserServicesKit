@@ -1,5 +1,5 @@
 //
-//  AuthServiceTests.swift
+//  OAuthServiceTests.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -63,7 +63,7 @@ final class AuthServiceTests: XCTestCase {
         let authService = DefaultOAuthService(baseURL: baseURL)
         let signer = try await authService.getJWTSigners()
         do {
-            let _: OAuthAccessToken = try signer.verify("sdfgdsdzfgsdf")
+            let _: JWTAccessToken = try signer.verify("sdfgdsdzfgsdf")
             XCTFail("Should have thrown an error")
         } catch {
             XCTAssertNotNil(error)

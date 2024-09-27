@@ -203,11 +203,7 @@ struct OAuthRequest {
 
     static func editAccount(baseURL: URL, accessToken: String, email: String?) -> OAuthRequest? {
         let path = "/api/auth/v2/account/edit"
-        let headers = [
-            HTTPHeaderKey.authorization: "Bearer \(accessToken)"
-        ]
         var queryItems: [String: String] = [:]
-
         if let email {
             queryItems["email"] = email
         }
@@ -215,7 +211,8 @@ struct OAuthRequest {
         guard let request = APIRequestV2(url: baseURL.appendingPathComponent(path),
                                          method: .post,
                                          queryItems: queryItems,
-                                         headers: APIRequestV2.HeadersV2(additionalHeaders: headers)) else {
+                                         headers: APIRequestV2.HeadersV2(
+                                            authToken: accessToken)) else {
             return nil
         }
         return OAuthRequest(apiRequest: request, httpErrorCodes: [.unauthorized, .internalServerError])
@@ -223,9 +220,6 @@ struct OAuthRequest {
 
     static func confirmEditAccount(baseURL: URL, accessToken: String, email: String, hash: String, otp: String) -> OAuthRequest? {
         let path = "/account/edit/confirm"
-        let headers = [
-            HTTPHeaderKey.authorization: "Bearer \(accessToken)"
-        ]
         let queryItems = [
             "email": email,
             "hash": hash,
@@ -235,7 +229,7 @@ struct OAuthRequest {
         guard let request = APIRequestV2(url: baseURL.appendingPathComponent(path),
                                          method: .get,
                                          queryItems: queryItems,
-                                         headers: APIRequestV2.HeadersV2(additionalHeaders: headers)) else {
+                                         headers: APIRequestV2.HeadersV2(authToken: accessToken)) else {
             return nil
         }
         return OAuthRequest(apiRequest: request, httpErrorCodes: [.unauthorized, .internalServerError])
@@ -245,13 +239,9 @@ struct OAuthRequest {
 
     static func logout(baseURL: URL, accessToken: String) -> OAuthRequest? {
         let path = "/api/auth/v2/logout"
-        let headers = [
-            HTTPHeaderKey.authorization: "Bearer \(accessToken)"
-        ]
-
         guard let request = APIRequestV2(url: baseURL.appendingPathComponent(path),
                                          method: .post,
-                                         headers: APIRequestV2.HeadersV2(additionalHeaders: headers)) else {
+                                         headers: APIRequestV2.HeadersV2(authToken: accessToken)) else {
             return nil
         }
         return OAuthRequest(apiRequest: request, httpErrorCodes: [.unauthorized, .internalServerError])
@@ -262,13 +252,13 @@ struct OAuthRequest {
     static func exchangeToken(baseURL: URL, accessTokenV1: String, authSessionID: String) -> OAuthRequest? {
         let path = "/api/auth/v2/exchange"
         let headers = [
-            HTTPHeaderKey.authorization: "Bearer \(accessTokenV1)",
             HTTPHeaderKey.cookie: authSessionID
         ]
 
         guard let request = APIRequestV2(url: baseURL.appendingPathComponent(path),
                                          method: .post,
-                                         headers: APIRequestV2.HeadersV2(additionalHeaders: headers)) else {
+                                         headers: APIRequestV2.HeadersV2(authToken: accessTokenV1,
+                                                                         additionalHeaders: headers)) else {
             return nil
         }
         return OAuthRequest(apiRequest: request,

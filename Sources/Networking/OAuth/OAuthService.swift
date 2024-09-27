@@ -117,34 +117,24 @@ public protocol OAuthService {
 public struct DefaultOAuthService: OAuthService {
 
     private let baseURL: URL
-    private var apiService: APIService
-    private let sessionDelegate = SessionDelegate()
-    private let urlSessionOperationQueue = OperationQueue()
-    /// Not really used but implemented as a way to isolate the possible cookies received by the OAuth API calls.
-    private let localCookieStorage = HTTPCookieStorage()
+    private let apiService: APIService
 
     /// Default initialiser
     /// - Parameters:
     ///   - baseURL: The API protocol + host url, used for building all API requests' URL
-    public init(baseURL: URL) {
-        self.baseURL = baseURL
-
-        let configuration = URLSessionConfiguration.default
-        configuration.httpCookieStorage = localCookieStorage
-        let urlSession = URLSession(configuration: configuration,
-                                    delegate: sessionDelegate,
-                                    delegateQueue: urlSessionOperationQueue)
-        self.apiService = DefaultAPIService(urlSession: urlSession)
-    }
-
-    /// Initialiser for TESTING purposes only
-    /// - Parameters:
-    ///   - baseURL: The API base url, used for building all requests URL
-    ///   - apiService: A custom apiService. Warning: Some AuthAPI endpoints response is a redirect that is handled in a very specific way. The default apiService uses a URLSession that handles this scenario correctly implementing a SessionDelegate, a custom one would brake this.
-    internal init(baseURL: URL, apiService: APIService) {
+    public init(baseURL: URL, apiService: APIService) {
         self.baseURL = baseURL
         self.apiService = apiService
     }
+
+//    /// Initialiser for TESTING purposes only
+//    /// - Parameters:
+//    ///   - baseURL: The API base url, used for building all requests URL
+//    ///   - apiService: A custom apiService. Warning: Some AuthAPI endpoints response is a redirect that is handled in a very specific way. The default apiService uses a URLSession that handles this scenario correctly implementing a SessionDelegate, a custom one would brake this.
+//    internal init(baseURL: URL, apiService: APIService) {
+//        self.baseURL = baseURL
+//        self.apiService = apiService
+//    }
 
     /// Extract an header from the HTTP response
     /// - Parameters:
