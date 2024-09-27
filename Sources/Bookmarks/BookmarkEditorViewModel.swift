@@ -148,7 +148,6 @@ public class BookmarkEditorViewModel: ObservableObject {
         }
     }
 
-
     private func registerForChanges() {
         observer = NotificationCenter.default.addObserver(forName: NSManagedObjectContext.didSaveObjectsNotification,
                                                           object: nil,
@@ -241,5 +240,3 @@ public class BookmarkEditorViewModel: ObservableObject {
         }
     }
 }
-
-
