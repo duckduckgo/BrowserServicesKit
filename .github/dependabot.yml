@@ -7,3 +7,13 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "daily"
+  - package-ecosystem: swift
+    directory: "/"
+    schedule:
+      interval: "daily"
+    ignore:
+      - dependency-name: "*"
+    allow:
+      - dependency-name: "PrivacyDashboard"
+    labels:
+      - dependencies
