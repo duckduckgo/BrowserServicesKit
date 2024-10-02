@@ -523,7 +523,7 @@ final class AutofillPixelReporterTests: XCTestCase {
 
     private func createAutofillPixelReporter(installDate: Date? = Date(), autofillEnabled: Bool = true, deviceAuthEnabled: Bool = true) -> AutofillPixelReporter {
         return AutofillPixelReporter(userDefaults: userDefaults,
-                                     autofillEnabled: autofillEnabled, 
+                                     autofillEnabled: autofillEnabled,
                                      deviceAuthEnabled: deviceAuthEnabled,
                                      eventMapping: eventMapping,
                                      secureVault: vault,
