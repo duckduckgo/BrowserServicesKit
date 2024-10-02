@@ -136,6 +136,16 @@ final class AutofillPixelReporterTests: XCTestCase {
         XCTAssertEqual(MockEventMapping.loginsParam, AutofillPixelReporter.BucketName.none.rawValue)
     }
 
+    func testWhenFirstSearchDauAndDeviceAuthDisabledAndFillDateIsNotTodayAndAccountsCountIsZeroThenNoEventIsFired() throws {
+        let autofillPixelReporter = createAutofillPixelReporter(deviceAuthEnabled: false)
+        autofillPixelReporter.resetStoreDefaults()
+        createAccountsInVault(count: 0)
+
+        NotificationCenter.default.post(name: .searchDAU, object: nil)
+
+        XCTAssertEqual(MockEventMapping.events.count, 0)
+    }
+
     func testWhenFirstSearchDauAndAutofillDisabledAndFillDateIsNotTodayAndAndAccountsCountIsTenThenThenOneEventIsFired() throws {
         let autofillPixelReporter = createAutofillPixelReporter(autofillEnabled: false)
         autofillPixelReporter.resetStoreDefaults()
@@ -511,9 +521,10 @@ final class AutofillPixelReporterTests: XCTestCase {
         XCTAssertTrue(onboardedState)
     }
 
-    private func createAutofillPixelReporter(installDate: Date? = Date(), autofillEnabled: Bool = true) -> AutofillPixelReporter {
+    private func createAutofillPixelReporter(installDate: Date? = Date(), autofillEnabled: Bool = true, deviceAuthEnabled: Bool = true) -> AutofillPixelReporter {
         return AutofillPixelReporter(userDefaults: userDefaults,
-                                     autofillEnabled: autofillEnabled,
+                                     autofillEnabled: autofillEnabled, 
+                                     deviceAuthEnabled: deviceAuthEnabled,
                                      eventMapping: eventMapping,
                                      secureVault: vault,
                                      installDate: installDate)
