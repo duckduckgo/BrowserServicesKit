@@ -31,6 +31,8 @@ public class BookmarkEditorViewModel: ObservableObject {
     }
 
     let context: NSManagedObjectContext
+    let sanitization: BookmarkSanitization?
+
     public let favoritesDisplayMode: FavoritesDisplayMode
 
     @Published public var bookmark: BookmarkEntity
@@ -64,12 +66,14 @@ public class BookmarkEditorViewModel: ObservableObject {
     public init(editingEntityID: NSManagedObjectID,
                 bookmarksDatabase: CoreDataDatabase,
                 favoritesDisplayMode: FavoritesDisplayMode,
-                errorEvents: EventMapping<BookmarksModelError>?) {
+                errorEvents: EventMapping<BookmarksModelError>?,
+                sanitization: BookmarkSanitization? = nil) {
 
         externalUpdates = subject.eraseToAnyPublisher()
         self.errorEvents = errorEvents
         self.context = bookmarksDatabase.makeContext(concurrencyType: .mainQueueConcurrencyType)
         self.favoritesDisplayMode = favoritesDisplayMode
+        self.sanitization = sanitization
 
         guard let entity = context.object(with: editingEntityID) as? BookmarkEntity else {
             // For sync, this is valid scenario in case of a timing issue
@@ -81,22 +85,17 @@ public class BookmarkEditorViewModel: ObservableObject {
         registerForChanges()
     }
 
-    deinit {
-        if let observer {
-            NotificationCenter.default.removeObserver(observer)
-            self.observer = nil
-        }
-    }
-
     public init(creatingFolderWithParentID parentFolderID: NSManagedObjectID?,
                 bookmarksDatabase: CoreDataDatabase,
                 favoritesDisplayMode: FavoritesDisplayMode,
-                errorEvents: EventMapping<BookmarksModelError>?) {
+                errorEvents: EventMapping<BookmarksModelError>?,
+                sanitization: BookmarkSanitization? = nil) {
 
         externalUpdates = subject.eraseToAnyPublisher()
         self.errorEvents = errorEvents
         self.context = bookmarksDatabase.makeContext(concurrencyType: .mainQueueConcurrencyType)
         self.favoritesDisplayMode = favoritesDisplayMode
+        self.sanitization = sanitization
 
         let parent: BookmarkEntity?
         if let parentFolderID = parentFolderID {
@@ -113,6 +112,40 @@ public class BookmarkEditorViewModel: ObservableObject {
 
         refresh()
         registerForChanges()
+    }
+
+    public init(addingBookmarkWith url: String,
+                title: String,
+                toFolderWithID folderID: NSManagedObjectID? = nil,
+                bookmarksDatabase: CoreDataDatabase,
+                favoritesDisplayMode: FavoritesDisplayMode,
+                errorEvents: EventMapping<BookmarksModelError>?,
+                sanitization: BookmarkSanitization? = nil) {
+        externalUpdates = subject.eraseToAnyPublisher()
+        self.errorEvents = errorEvents
+        self.context = bookmarksDatabase.makeContext(concurrencyType: .mainQueueConcurrencyType)
+        self.favoritesDisplayMode = favoritesDisplayMode
+        self.sanitization = sanitization
+
+        let parent: BookmarkEntity?
+        if let folderID {
+            parent = context.object(with: folderID) as? BookmarkEntity
+        } else {
+            parent = BookmarkUtils.fetchRootFolder(context)
+        }
+        assert(parent != nil)
+
+        self.bookmark = BookmarkEntity.makeBookmark(title: title, url: url, parent: parent!, context: context)
+
+        refresh()
+        registerForChanges()
+    }
+
+    deinit {
+        if let observer {
+            NotificationCenter.default.removeObserver(observer)
+            self.observer = nil
+        }
     }
 
     private func registerForChanges() {
@@ -200,6 +233,7 @@ public class BookmarkEditorViewModel: ObservableObject {
 
     public func save() {
         do {
+            sanitization?.sanitize(bookmark)
             try context.save()
         } catch {
             errorEvents?.fire(.saveFailed(.edit), error: error)
