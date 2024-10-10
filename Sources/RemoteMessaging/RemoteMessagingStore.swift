@@ -249,41 +249,6 @@ extension RemoteMessagingStore {
         return scheduledRemoteMessage
     }
 
-    public func fetchRemoteMessage(withID id: String) -> RemoteMessageModel? {
-        guard remoteMessagingAvailabilityProvider.isRemoteMessagingAvailable else {
-            return nil
-        }
-
-        var remoteMessage: RemoteMessageModel?
-        let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType, name: Constants.privateReadOnlyContextName)
-        context.performAndWait {
-            let fetchRequest: NSFetchRequest<RemoteMessageManagedObject> = RemoteMessageManagedObject.fetchRequest()
-            fetchRequest.predicate = NSPredicate(format: "id == %@", id)
-            fetchRequest.returnsObjectsAsFaults = false
-
-            guard let results = try? context.fetch(fetchRequest) else { return }
-
-            for remoteMessageManagedObject in results {
-                guard let message = remoteMessageManagedObject.message,
-                      let remoteMessageMapped = RemoteMessageMapper.fromString(message),
-                      let id = remoteMessageManagedObject.id
-                else {
-                    continue
-                }
-
-                remoteMessage = RemoteMessageModel(
-                    id: id,
-                    content: remoteMessageMapped.content,
-                    matchingRules: [],
-                    exclusionRules: [],
-                    isMetricsEnabled: remoteMessageMapped.isMetricsEnabled
-                )
-                break
-            }
-        }
-        return remoteMessage
-    }
-
     public func hasShownRemoteMessage(withID id: String) -> Bool {
         guard remoteMessagingAvailabilityProvider.isRemoteMessagingAvailable else {
             return false
@@ -325,27 +290,6 @@ extension RemoteMessagingStore {
             }
         }
         return dismissedMessageIds
-    }
-
-    public func hasDismissedRemoteMessage(withID id: String) -> Bool {
-        guard remoteMessagingAvailabilityProvider.isRemoteMessagingAvailable else {
-            return false
-        }
-
-        var dismissed: Bool = true
-        let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType, name: Constants.privateReadOnlyContextName)
-        context.performAndWait {
-            let fetchRequest: NSFetchRequest<RemoteMessageManagedObject> = RemoteMessageManagedObject.fetchRequest()
-            fetchRequest.fetchLimit = 1
-            fetchRequest.predicate = NSPredicate(format: "status == %i", RemoteMessageStatus.dismissed.rawValue)
-
-            guard let results = try? context.fetch(fetchRequest) else { return }
-
-            if results.first != nil {
-                dismissed = true
-            }
-        }
-        return dismissed
     }
 
     public func dismissRemoteMessage(withID id: String) async {

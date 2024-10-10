@@ -126,20 +126,6 @@ class RemoteMessagingStoreTests: XCTestCase {
         XCTAssertEqual(store.fetchShownRemoteMessageIDs(), [remoteMessage.id])
     }
 
-    func testWhenDismissRemoteMessageThenFetchedMessageHasDismissedState() async throws {
-        let remoteMessage = try await saveProcessedResultFetchRemoteMessage()
-
-        await store.dismissRemoteMessage(withID: remoteMessage.id)
-
-        guard let fetchedRemoteMessage = store.fetchRemoteMessage(withID: remoteMessage.id) else {
-            XCTFail("No remote message found")
-            return
-        }
-
-        XCTAssertEqual(fetchedRemoteMessage.id, remoteMessage.id)
-        XCTAssertTrue(store.hasDismissedRemoteMessage(withID: fetchedRemoteMessage.id))
-    }
-
     func testFetchDismissedRemoteMessageIds() async throws {
         let remoteMessage = try await saveProcessedResultFetchRemoteMessage()
 
@@ -345,14 +331,6 @@ class RemoteMessagingStoreTests: XCTestCase {
         XCTAssertNil(store.fetchRemoteMessagingConfig())
     }
 
-    func testWhenFeatureFlagIsDisabledThenFetchedMessageReturnsNil() async throws {
-        let remoteMessage = try await saveProcessedResultFetchRemoteMessage()
-
-        try await setFeatureFlagEnabled(false)
-
-        XCTAssertNil(store.fetchRemoteMessage(withID: remoteMessage.id))
-    }
-
     func testWhenFeatureFlagIsDisabledThenUpdateShownFlagHasNoEffect() async throws {
         let remoteMessage = try await saveProcessedResultFetchRemoteMessage()
         try await setFeatureFlagEnabled(false)
@@ -377,15 +355,6 @@ class RemoteMessagingStoreTests: XCTestCase {
         await store.dismissRemoteMessage(withID: remoteMessage.id)
 
         XCTAssertEqual(store.fetchDismissedRemoteMessageIDs(), [])
-    }
-
-    func testWhenFeatureFlagIsDisabledThenHasDismissedRemoteMessageReturnsFalse() async throws {
-        let remoteMessage = try await saveProcessedResultFetchRemoteMessage()
-
-        await store.dismissRemoteMessage(withID: remoteMessage.id)
-        try await setFeatureFlagEnabled(false)
-
-        XCTAssertEqual(store.hasDismissedRemoteMessage(withID: remoteMessage.id), false)
     }
 
     // MARK: -
