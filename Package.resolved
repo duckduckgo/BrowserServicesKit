@@ -24,7 +24,7 @@
       "location" : "https://github.com/duckduckgo/duckduckgo-autofill.git",
       "state" : {
         "branch" : "dbajpeyi/feature/dismiss-password-import-flow",
-        "revision" : "bf31f3f2c55d0183ff67bea8bf95d145116f6366"
+        "revision" : "cc23669514be5c2b9ec167a706dd20aeadb8c444"
       }
     },
     {
