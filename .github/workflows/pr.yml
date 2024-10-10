@@ -22,7 +22,7 @@ jobs:
 
       name: Run unit tests (macOS)
 
-      runs-on: macos-14
+      runs-on: macos-15
       timeout-minutes: 30
 
       outputs:
@@ -67,7 +67,7 @@ jobs:
         run: set -o pipefail && swift test | tee -a build-log.txt | xcbeautify --report junit --report-path . --junit-report-filename tests.xml
 
       - name: Publish Unit Tests Report
-        uses: mikepenz/action-junit-report@v3
+        uses: mikepenz/action-junit-report@v4
         if: always()
         with:
           check_name: Test Report (macOS)
@@ -108,7 +108,7 @@ jobs:
 
       name: Run unit tests (iOS)
 
-      runs-on: macos-14
+      runs-on: macos-15
       timeout-minutes: 30
 
       steps:
@@ -143,7 +143,7 @@ jobs:
         run: |
           while xcodebuild -resolvePackageDependencies \
             -scheme BrowserServicesKit-Package \
-            -destination 'platform=iOS Simulator,name=iPhone 15,OS=17' \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.0' \
             -derivedDataPath DerivedData \
             2>&1 | grep Error; do :; done
 
@@ -156,7 +156,7 @@ jobs:
         run: |
           set -o pipefail && xcodebuild test \
             -scheme BrowserServicesKit \
-            -destination 'platform=iOS Simulator,name=iPhone 15,OS=17' \
+            -destination 'platform=iOS Simulator,name=iPhone 16,OS=18.0' \
             -derivedDataPath DerivedData \
             -skipPackagePluginValidation \
             -skipMacroValidation \
@@ -165,7 +165,7 @@ jobs:
             | xcbeautify --report junit --report-path . --junit-report-filename ios-unittests.xml 
 
       - name: Publish Unit Tests Report
-        uses: mikepenz/action-junit-report@v3
+        uses: mikepenz/action-junit-report@v4
         if: always()
         with:
           check_name: Test Report (iOS)
