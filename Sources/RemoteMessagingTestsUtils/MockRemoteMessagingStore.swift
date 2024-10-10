@@ -24,10 +24,8 @@ public class MockRemoteMessagingStore: RemoteMessagingStoring {
     public var saveProcessedResultCalls = 0
     public var fetchRemoteMessagingConfigCalls = 0
     public var fetchScheduledRemoteMessageCalls = 0
-    public var fetchRemoteMessageCalls = 0
     public var hasShownRemoteMessageCalls = 0
     public var fetchShownRemoteMessageIDsCalls = 0
-    public var hasDismissedRemoteMessageCalls = 0
     public var dismissRemoteMessageCalls = 0
     public var fetchDismissedRemoteMessageIDsCalls = 0
     public var updateRemoteMessageCalls = 0
