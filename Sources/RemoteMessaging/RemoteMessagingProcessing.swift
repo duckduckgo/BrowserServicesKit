@@ -90,7 +90,7 @@ public extension RemoteMessagingProcessing {
             let storedConfig = store.fetchRemoteMessagingConfig()
 
             if let processorResult = processor.process(jsonRemoteMessagingConfig: jsonConfig, currentConfig: storedConfig) {
-                store.saveProcessedResult(processorResult)
+                await store.saveProcessedResult(processorResult)
             }
 
         } catch {
