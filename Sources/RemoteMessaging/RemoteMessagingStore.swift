@@ -43,9 +43,22 @@ public final class RemoteMessagingStore: RemoteMessagingStoring {
     }
 
     public enum Constants {
+        /// Identifier for a managed context used for saving data to the store
         public static let privateContextName = "RemoteMessaging"
+        /// Identifier for a managed context used for read operations on the store
+        public static let privateReadOnlyContextName = "RemoteMessagingFetching"
     }
 
+    let database: CoreDataDatabase
+    /**
+     * This is a long-lived context, used for saving data to the store.
+     *
+     * All calls to this context are asynchronous to ensure that the code
+     * is deadlock-free. A single context instance is used in order to avoid
+     * merge conflicts.
+     *
+     * Read operations on the store use local context instances created on demand.
+     */
     let context: NSManagedObjectContext
     let notificationCenter: NotificationCenter
     let remoteMessagingAvailabilityProvider: RemoteMessagingAvailabilityProviding
@@ -56,6 +69,7 @@ public final class RemoteMessagingStore: RemoteMessagingStoring {
         errorEvents: EventMapping<RemoteMessagingStoreError>?,
         remoteMessagingAvailabilityProvider: RemoteMessagingAvailabilityProviding
     ) {
+        self.database = database
         self.notificationCenter = notificationCenter
         self.errorEvents = errorEvents
         self.remoteMessagingAvailabilityProvider = remoteMessagingAvailabilityProvider
@@ -148,6 +162,7 @@ extension RemoteMessagingStore {
         }
 
         var config: RemoteMessagingConfig?
+        let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType, name: Constants.privateReadOnlyContextName)
         context.performAndWait {
             let fetchRequest = RemoteMessagingConfigManagedObject.fetchRequest()
             fetchRequest.fetchLimit = 1
@@ -205,6 +220,7 @@ extension RemoteMessagingStore {
         }
 
         var scheduledRemoteMessage: RemoteMessageModel?
+        let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType, name: Constants.privateReadOnlyContextName)
         context.performAndWait {
             let fetchRequest: NSFetchRequest<RemoteMessageManagedObject> = RemoteMessageManagedObject.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "status == %i", RemoteMessageStatus.scheduled.rawValue)
@@ -239,6 +255,7 @@ extension RemoteMessagingStore {
         }
 
         var remoteMessage: RemoteMessageModel?
+        let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType, name: Constants.privateReadOnlyContextName)
         context.performAndWait {
             let fetchRequest: NSFetchRequest<RemoteMessageManagedObject> = RemoteMessageManagedObject.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "id == %@", id)
@@ -273,6 +290,7 @@ extension RemoteMessagingStore {
         }
 
         var shown: Bool = true
+        let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType, name: Constants.privateReadOnlyContextName)
         context.performAndWait {
             let fetchRequest: NSFetchRequest<RemoteMessageManagedObject> = RemoteMessageManagedObject.fetchRequest()
             fetchRequest.fetchLimit = 1
@@ -293,6 +311,7 @@ extension RemoteMessagingStore {
         }
 
         var dismissedMessageIds: [String] = []
+        let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType, name: Constants.privateReadOnlyContextName)
         context.performAndWait {
             let fetchRequest: NSFetchRequest<RemoteMessageManagedObject> = RemoteMessageManagedObject.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "%K == YES", #keyPath(RemoteMessageManagedObject.shown))
@@ -314,6 +333,7 @@ extension RemoteMessagingStore {
         }
 
         var dismissed: Bool = true
+        let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType, name: Constants.privateReadOnlyContextName)
         context.performAndWait {
             let fetchRequest: NSFetchRequest<RemoteMessageManagedObject> = RemoteMessageManagedObject.fetchRequest()
             fetchRequest.fetchLimit = 1
@@ -360,6 +380,7 @@ extension RemoteMessagingStore {
         }
 
         var dismissedMessageIds: [String] = []
+        let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType, name: Constants.privateReadOnlyContextName)
         context.performAndWait {
             let fetchRequest: NSFetchRequest<RemoteMessageManagedObject> = RemoteMessageManagedObject.fetchRequest()
             fetchRequest.predicate = NSPredicate(format: "status == %i", RemoteMessageStatus.dismissed.rawValue)
