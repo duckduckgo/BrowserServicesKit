@@ -65,6 +65,7 @@ public final class AutofillPixelReporter {
     private let passwordManager: PasswordManager?
     private var installDate: Date?
     private var autofillEnabled: Bool
+    private var deviceAuthEnabled: Bool
 
     private var autofillSearchDauDate: Date? { userDefaults.object(forKey: Keys.autofillSearchDauDateKey) as? Date ?? .distantPast }
     private var autofillFillDate: Date? { userDefaults.object(forKey: Keys.autofillFillDateKey) as? Date ?? .distantPast }
@@ -72,6 +73,7 @@ public final class AutofillPixelReporter {
 
     public init(userDefaults: UserDefaults,
                 autofillEnabled: Bool,
+                deviceAuthEnabled: Bool,
                 eventMapping: EventMapping<AutofillPixelEvent>,
                 secureVault: (any AutofillSecureVault)? = nil,
                 reporter: SecureVaultReporting? = nil,
@@ -80,6 +82,7 @@ public final class AutofillPixelReporter {
     ) {
         self.userDefaults = userDefaults
         self.autofillEnabled = autofillEnabled
+        self.deviceAuthEnabled = deviceAuthEnabled
         self.eventMapping = eventMapping
         self.secureVault = secureVault
         self.reporter = reporter
@@ -161,7 +164,7 @@ public final class AutofillPixelReporter {
                 eventMapping.fire(.autofillEnabledUser)
             }
 
-            if let accountsCountBucket = getAccountsCountBucket() {
+            if deviceAuthEnabled, let accountsCountBucket = getAccountsCountBucket() {
                 eventMapping.fire(autofillEnabled ? .autofillToggledOn : .autofillToggledOff,
                                   parameters: [AutofillPixelEvent.Parameter.countBucket: accountsCountBucket])
             }
