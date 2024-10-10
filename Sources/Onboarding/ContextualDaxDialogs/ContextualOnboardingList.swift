@@ -91,7 +91,6 @@ private let strokeColor = Color.blue
                         Image(list[index].imageName, bundle: bundle)
                             .frame(width: iconSize, height: iconSize)
                         Text(list[index].visibleTitle)
-                            .lineLimit(1)
                             .frame(alignment: .leading)
                         Spacer(minLength: 0)
                     }
