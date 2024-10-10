@@ -79,17 +79,19 @@ public protocol AutofillSecureVaultDelegate: AnyObject {
 }
 
 public protocol AutofillLoginImportStateProvider {
-    var isNewDDGUser: Bool { get }
+    var isEligibleDDGUser: Bool { get }
     var hasImportedLogins: Bool { get }
     var credentialsImportPromptPresentationCount: Int { get }
     var isAutofillEnabled: Bool { get }
+    var isCredentialsImportPromptPermanantlyDismissed: Bool { get }
     func hasNeverPromptWebsitesFor(_ domain: String) -> Bool
 }
 
 public protocol AutofillPasswordImportDelegate: AnyObject {
     func autofillUserScriptDidRequestPasswordImportFlow(_ completion: @escaping () -> Void)
     func autofillUserScriptDidFinishImportWithImportedCredentialForCurrentDomain()
-    func autofillUserScriptWillDisplayOverlay(_ serializedInputContext: String)
+    func autofillUserScriptShouldDisplayOverlay(_ serializedInputContext: String) -> Bool
+    func autofillUserScriptDidRequestPermanentCredentialsImportPromptDismissal()
 }
 
 extension AutofillUserScript {
@@ -481,9 +483,6 @@ extension AutofillUserScript {
         guard !isBurnerWindow else {
             return false
         }
-        guard loginImportStateProvider.credentialsImportPromptPresentationCount < 5 else {
-            return false
-        }
         guard credentials.isEmpty else {
             return false
         }
@@ -493,10 +492,13 @@ extension AutofillUserScript {
         guard !loginImportStateProvider.hasImportedLogins else {
             return false
         }
-        guard loginImportStateProvider.isNewDDGUser else {
+        guard loginImportStateProvider.isEligibleDDGUser else {
             return false
         }
         guard !loginImportStateProvider.hasNeverPromptWebsitesFor(domain) else {
+            return false
+        }
+        guard !loginImportStateProvider.isCredentialsImportPromptPermanantlyDismissed else {
             return false
         }
         return true
@@ -788,6 +790,12 @@ extension AutofillUserScript {
                 replyHandler(nil)
             })
         }
+    }
+
+    func credentialsImportFlowPermanentlyDismissed(_ message: UserScriptMessage, replyHandler: @escaping MessageReplyHandler) {
+        passwordImportDelegate?.autofillUserScriptDidRequestPermanentCredentialsImportPromptDismissal()
+        replyHandler(nil)
+        NotificationCenter.default.post(name: .passwordImportDidCloseImportDialog, object: nil)
     }
 
     // MARK: Pixels

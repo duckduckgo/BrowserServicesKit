@@ -156,7 +156,7 @@ class AutofillUserScriptTests: XCTestCase {
 
     func testWhenUserIsNOTNew_ThenAvailableInputTypesCredentialsImportIsFalse() {
         guard let response = getAvailableInputTypesResponse(
-            isNewDDGUser: false
+            isEligibleDDGUser: false
         ) else {
             XCTFail("No getAvailableInputTypes response")
             return
@@ -264,7 +264,7 @@ class AutofillUserScriptTests: XCTestCase {
                                                 credentialsProvider: SecureVaultModels.CredentialsProvider = .init(name: .duckduckgo, locked: false),
                                                 totalCredentialsCount: Int = 9,
                                                 hasUserImportedLogins: Bool = false,
-                                                isNewDDGUser: Bool = true,
+                                                isEligibleDDGUser: Bool = true,
                                                 hasNeverPromptWebsites: Bool = false,
                                                 isAutofillEnabled: Bool = true,
                                                 credentialsImportPresentationCount: Int = 0,
@@ -272,7 +272,7 @@ class AutofillUserScriptTests: XCTestCase {
                                                 line: UInt = #line) -> AutofillUserScript.RequestAvailableInputTypesResponse? {
         let loginImportStateProvider = MockAutofillLoginImportStateProvider()
         loginImportStateProvider.hasImportedLogins = hasUserImportedLogins
-        loginImportStateProvider.isNewDDGUser = isNewDDGUser
+        loginImportStateProvider.isEligibleDDGUser = isEligibleDDGUser
         loginImportStateProvider.stubHasNeverPromptWebsitesForDomain = hasNeverPromptWebsites
         loginImportStateProvider.isAutofillEnabled = isAutofillEnabled
         loginImportStateProvider.credentialsImportPromptPresentationCount = credentialsImportPresentationCount
@@ -331,7 +331,7 @@ class MockAutofillLoginImportStateProvider: AutofillLoginImportStateProvider {
         stubHasNeverPromptWebsitesForDomain
     }
 
-    var isNewDDGUser: Bool = false
+    var isEligibleDDGUser: Bool = false
     var hasImportedLogins: Bool = false
 }
 
