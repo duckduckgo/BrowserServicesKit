@@ -90,7 +90,7 @@ public protocol AutofillLoginImportStateProvider {
 public protocol AutofillPasswordImportDelegate: AnyObject {
     func autofillUserScriptDidRequestPasswordImportFlow(_ completion: @escaping () -> Void)
     func autofillUserScriptDidFinishImportWithImportedCredentialForCurrentDomain()
-    func autofillUserScriptWillDisplayOverlay(_ serializedInputContext: String)
+    func autofillUserScriptShouldDisplayOverlay(_ serializedInputContext: String) -> Bool
     func autofillUserScriptDidRequestPermanentCredentialsImportPromptDismissal()
 }
 
