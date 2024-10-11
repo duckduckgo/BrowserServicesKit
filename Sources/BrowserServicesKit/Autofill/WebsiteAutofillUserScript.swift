@@ -91,7 +91,7 @@ public class WebsiteAutofillUserScript: AutofillUserScript {
         }
         // Sets the last message host, so we can check when it messages back
         lastOpenHost = hostProvider.hostForMessage(message)
-        if passwordImportDelegate?.autofillUserScriptShouldDisplayOverlay(serializedInputContext) != true {
+        if passwordImportDelegate?.autofillUserScriptShouldDisplayOverlay(serializedInputContext, for: hostForMessage(message)) != true {
             replyHandler(nil)
             return
         }

@@ -78,19 +78,11 @@ public protocol AutofillSecureVaultDelegate: AnyObject {
 
 }
 
-public protocol AutofillLoginImportStateProvider {
-    var isEligibleDDGUser: Bool { get }
-    var hasImportedLogins: Bool { get }
-    var credentialsImportPromptPresentationCount: Int { get }
-    var isAutofillEnabled: Bool { get }
-    var isCredentialsImportPromptPermanantlyDismissed: Bool { get }
-    func hasNeverPromptWebsitesFor(_ domain: String) -> Bool
-}
-
 public protocol AutofillPasswordImportDelegate: AnyObject {
+    func autofillUserScriptShouldShowPasswordImportDialog(domain: String, credentials: [SecureVaultModels.WebsiteCredentials], credentialsProvider: SecureVaultModels.CredentialsProvider, totalCredentialsCount: Int) -> Bool
     func autofillUserScriptDidRequestPasswordImportFlow(_ completion: @escaping () -> Void)
     func autofillUserScriptDidFinishImportWithImportedCredentialForCurrentDomain()
-    func autofillUserScriptShouldDisplayOverlay(_ serializedInputContext: String) -> Bool
+    func autofillUserScriptShouldDisplayOverlay(_ serializedInputContext: String, for domain: String) -> Bool
     func autofillUserScriptDidRequestPermanentCredentialsImportPromptDismissal()
 }
 
@@ -460,7 +452,7 @@ extension AutofillUserScript {
                 replyHandler("")
                 return
             }
-            let credentialsImport = self.shouldShowPasswordImportDialog(domain: domain, credentials: credentials, credentialsProvider: credentialsProvider, totalCredentialsCount: totalCredentialsCount)
+            let credentialsImport = self.passwordImportDelegate?.autofillUserScriptShouldShowPasswordImportDialog(domain: domain, credentials: credentials, credentialsProvider: credentialsProvider, totalCredentialsCount: totalCredentialsCount) ?? false
             let response = RequestAvailableInputTypesResponse(credentials: credentials,
                                                               identities: identities,
                                                               cards: cards,
@@ -471,37 +463,6 @@ extension AutofillUserScript {
                 replyHandler(jsonString)
             }
         }
-    }
-
-    private func shouldShowPasswordImportDialog(domain: String, credentials: [SecureVaultModels.WebsiteCredentials], credentialsProvider: SecureVaultModels.CredentialsProvider, totalCredentialsCount: Int) -> Bool {
-        guard loginImportStateProvider.isAutofillEnabled else {
-            return false
-        }
-        guard credentialsProvider.name != .bitwarden else {
-            return false
-        }
-        guard !isBurnerWindow else {
-            return false
-        }
-        guard credentials.isEmpty else {
-            return false
-        }
-        guard totalCredentialsCount < 10 else {
-            return false
-        }
-        guard !loginImportStateProvider.hasImportedLogins else {
-            return false
-        }
-        guard loginImportStateProvider.isEligibleDDGUser else {
-            return false
-        }
-        guard !loginImportStateProvider.hasNeverPromptWebsitesFor(domain) else {
-            return false
-        }
-        guard !loginImportStateProvider.isCredentialsImportPromptPermanantlyDismissed else {
-            return false
-        }
-        return true
     }
 
     // https://github.com/duckduckgo/duckduckgo-autofill/blob/main/src/deviceApiCalls/schemas/getAutofillData.params.json

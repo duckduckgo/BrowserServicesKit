@@ -210,7 +210,7 @@ class AutofillUserScriptTests: XCTestCase {
     func testStartCredentialsImportFlow_passesDomainFromLastGetAvailableInputsCall() {
         let getAvailableInputsHost = "example.com"
         let hostProvider = MockHostProvider(host: getAvailableInputsHost)
-        let userScript = AutofillUserScript(scriptSourceProvider: MockAutofillUserScriptSourceProvider(), hostProvider: hostProvider, loginImportStateProvider: MockAutofillLoginImportStateProvider())
+        let userScript = AutofillUserScript(scriptSourceProvider: MockAutofillUserScriptSourceProvider(), hostProvider: hostProvider)
         let vaultDelegate = MockSecureVaultDelegate()
         let passwordImportDelegate = MockAutofillPasswordImportDelegate()
 
@@ -222,7 +222,7 @@ class AutofillUserScriptTests: XCTestCase {
     }
 
     func testStartCredentialsImportFlow_onPasswordImportFlowCompletion_firesDidCloseImportDialogNotification() {
-        let userScript = AutofillUserScript(scriptSourceProvider: MockAutofillUserScriptSourceProvider(), loginImportStateProvider: MockAutofillLoginImportStateProvider())
+        let userScript = AutofillUserScript(scriptSourceProvider: MockAutofillUserScriptSourceProvider())
         let passwordImportDelegate = MockAutofillPasswordImportDelegate()
         userScript.passwordImportDelegate = passwordImportDelegate
 
@@ -234,7 +234,7 @@ class AutofillUserScriptTests: XCTestCase {
     }
 
     func testStartCredentialsImportFlow_accountsForDomainIsNOTEmpty_callsDidFinishImport() {
-        let userScript = AutofillUserScript(scriptSourceProvider: MockAutofillUserScriptSourceProvider(), loginImportStateProvider: MockAutofillLoginImportStateProvider())
+        let userScript = AutofillUserScript(scriptSourceProvider: MockAutofillUserScriptSourceProvider())
         let vaultDelegate = MockSecureVaultDelegate()
         let passwordImportDelegate = MockAutofillPasswordImportDelegate()
 
@@ -246,7 +246,7 @@ class AutofillUserScriptTests: XCTestCase {
     }
 
     func testStartCredentialsImportFlow_credentialsForDomainIsEmpty_doesNOTCallDidFinishImport() {
-        let userScript = AutofillUserScript(scriptSourceProvider: MockAutofillUserScriptSourceProvider(), loginImportStateProvider: MockAutofillLoginImportStateProvider())
+        let userScript = AutofillUserScript(scriptSourceProvider: MockAutofillUserScriptSourceProvider())
         let vaultDelegate = MockSecureVaultDelegate()
         let passwordImportDelegate = MockAutofillPasswordImportDelegate()
 
@@ -270,13 +270,7 @@ class AutofillUserScriptTests: XCTestCase {
                                                 credentialsImportPresentationCount: Int = 0,
                                                 file: StaticString = #filePath,
                                                 line: UInt = #line) -> AutofillUserScript.RequestAvailableInputTypesResponse? {
-        let loginImportStateProvider = MockAutofillLoginImportStateProvider()
-        loginImportStateProvider.hasImportedLogins = hasUserImportedLogins
-        loginImportStateProvider.isEligibleDDGUser = isEligibleDDGUser
-        loginImportStateProvider.stubHasNeverPromptWebsitesForDomain = hasNeverPromptWebsites
-        loginImportStateProvider.isAutofillEnabled = isAutofillEnabled
-        loginImportStateProvider.credentialsImportPromptPresentationCount = credentialsImportPresentationCount
-        let userScript = AutofillUserScript(scriptSourceProvider: MockAutofillUserScriptSourceProvider(), loginImportStateProvider: loginImportStateProvider)
+        let userScript = AutofillUserScript(scriptSourceProvider: MockAutofillUserScriptSourceProvider())
         let userScriptMessage = MockWKScriptMessage(name: "getAvailableInputTypes", body: "")
         let vaultDelegate = MockSecureVaultDelegate()
         userScript.vaultDelegate = vaultDelegate
@@ -321,25 +315,22 @@ class AutofillUserScriptTests: XCTestCase {
     }
 }
 
-class MockAutofillLoginImportStateProvider: AutofillLoginImportStateProvider {
-    var credentialsImportPromptPresentationCount: Int = 0
-
-    var isAutofillEnabled: Bool = false
-
-    var stubHasNeverPromptWebsitesForDomain: Bool = false
-    func hasNeverPromptWebsitesFor(_ domain: String) -> Bool {
-        stubHasNeverPromptWebsitesForDomain
-    }
-
-    var isEligibleDDGUser: Bool = false
-    var hasImportedLogins: Bool = false
-}
-
 class MockAutofillUserScriptSourceProvider: AutofillUserScriptSourceProvider {
     var source: String = ""
 }
 
 class MockAutofillPasswordImportDelegate: AutofillPasswordImportDelegate {
+    func autofillUserScriptShouldShowPasswordImportDialog(domain: String, credentials: [BrowserServicesKit.SecureVaultModels.WebsiteCredentials], credentialsProvider: BrowserServicesKit.SecureVaultModels.CredentialsProvider, totalCredentialsCount: Int) -> Bool {
+        return false
+    }
+    
+    func autofillUserScriptShouldDisplayOverlay(_ serializedInputContext: String, for domain: String) -> Bool {
+        return false
+    }
+    
+    func autofillUserScriptDidRequestPermanentCredentialsImportPromptDismissal() {
+    }
+    
     var serializedInputContext: String?
     func autofillUserScriptWillDisplayOverlay(_ serializedInputContext: String) {
         self.serializedInputContext = serializedInputContext
