@@ -69,7 +69,7 @@ public struct ContextualOnboardingListView: View {
 
 #if os(macOS)
 private var strokeColor: Color {
-    return (colorScheme == .dark) ? Color.white.opacity(0.09) : Color.black.opacity(0.09)
+    return (colorScheme == .dark) ? Color.white.opacity(0.12) : Color.black.opacity(0.09)
 }
 #else
 private let strokeColor = Color.blue
