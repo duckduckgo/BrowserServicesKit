@@ -58,7 +58,8 @@ final class SuggestionProcessing {
         }
 
         // Get best matches from history and bookmarks
-        let allLocalSuggestions = localSuggestions(from: history, bookmarks: bookmarks, internalPages: internalPages, openTabs: openTabs, query: query)
+        let allLocalSuggestions = Array(localSuggestions(from: history, bookmarks: bookmarks, internalPages: internalPages, openTabs: openTabs, query: query)
+            .prefix(100)) // temporary optimsiation
 
         // Combine HaB and domains into navigational suggestions and remove duplicates
         let navigationalSuggestions = allLocalSuggestions + duckDuckGoDomainSuggestions
