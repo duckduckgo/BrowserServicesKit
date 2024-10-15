@@ -147,6 +147,7 @@ extension URL {
         return true
     }
 
+    // swiftlint:disable cyclomatic_complexity
     /// URL and URLComponents can't cope with emojis and international characters so this routine does some manual processing while trying to
     /// retain the input as much as possible.
     public init?(trimmedAddressBarString: String) {
@@ -176,7 +177,23 @@ extension URL {
                urlWithScheme.port != nil || urlWithScheme.user != nil {
                 // could be a local domain but user needs to use the protocol to specify that
                 // make exception for "localhost"
-                guard urlWithScheme.host?.contains(".") == true || urlWithScheme.host == .localhost else { return nil }
+                let hasDomain = urlWithScheme.host?.contains(".") == true
+                guard hasDomain || urlWithScheme.host == .localhost else { return nil }
+
+                let isInvalidUserInfo = {
+                    let hasUser = urlWithScheme.user != nil
+                    let hasPassword = urlWithScheme.password != nil
+                    let hasPath = !urlWithScheme.path.isEmpty
+                    let hasPort = urlWithScheme.port != nil
+                    let hasFragment = urlWithScheme.fragment != nil
+
+                    return hasUser && !hasPassword && !hasPath && !hasPort && !hasFragment
+                }()
+
+                if isInvalidUserInfo {
+                    return nil
+                }
+
                 self = urlWithScheme
                 return
 
@@ -204,6 +221,7 @@ extension URL {
 
         self.init(punycodeEncodedString: s)
     }
+    // swiftlint:enable cyclomatic_complexity
 
     private init?(punycodeEncodedString: String) {
         var s = punycodeEncodedString
@@ -222,6 +240,10 @@ extension URL {
         }
 
         guard let (authData, urlPart, query) = Self.fixupAndSplitURLString(s) else { return nil }
+
+        if (authData?.contains(" ") == true) || urlPart.contains(" ") {
+            return nil
+        }
 
         let componentsWithoutQuery = urlPart.split(separator: "/").map(String.init)
         guard !componentsWithoutQuery.isEmpty else {
