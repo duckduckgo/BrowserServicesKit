@@ -147,6 +147,7 @@ extension URL {
         return true
     }
 
+    // swiftlint:disable cyclomatic_complexity
     /// URL and URLComponents can't cope with emojis and international characters so this routine does some manual processing while trying to
     /// retain the input as much as possible.
     public init?(trimmedAddressBarString: String) {
@@ -220,6 +221,7 @@ extension URL {
 
         self.init(punycodeEncodedString: s)
     }
+    // swiftlint:enable cyclomatic_complexity
 
     private init?(punycodeEncodedString: String) {
         var s = punycodeEncodedString
