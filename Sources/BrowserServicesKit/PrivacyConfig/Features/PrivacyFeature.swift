@@ -123,7 +123,6 @@ public enum AutoconsentSubfeature: String, PrivacySubfeature {
     }
 
     case onByDefault
-    case filterlistExperiment
 }
 
 public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {
