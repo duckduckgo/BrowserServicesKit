@@ -25,10 +25,11 @@ public final class AppStorePurchaseFlowMock: AppStorePurchaseFlow {
 
     public init() { }
 
-    public func purchaseSubscription(with subscriptionIdentifier: String, emailAccessToken: String?) async -> Result<TransactionJWS, AppStorePurchaseFlowError> {
+    public func purchaseSubscription(with subscriptionIdentifier: String) async -> Result<TransactionJWS, AppStorePurchaseFlowError> {
         purchaseSubscriptionResult!
     }
 
+    @discardableResult
     public func completeSubscriptionPurchase(with transactionJWS: TransactionJWS) async -> Result<PurchaseUpdate, AppStorePurchaseFlowError> {
         completeSubscriptionPurchaseResult!
     }

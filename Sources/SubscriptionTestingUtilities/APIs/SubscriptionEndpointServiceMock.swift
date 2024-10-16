@@ -18,15 +18,16 @@
 
 import Foundation
 import Subscription
+import Networking
 
 public final class SubscriptionEndpointServiceMock: SubscriptionEndpointService {
-    public var getSubscriptionResult: Result<Subscription, SubscriptionServiceError>?
-    public var getProductsResult: Result<[GetProductsItem], APIServiceError>?
-    public var getCustomerPortalURLResult: Result<GetCustomerPortalURLResponse, APIServiceError>?
-    public var confirmPurchaseResult: Result<ConfirmPurchaseResponse, APIServiceError>?
+    public var getSubscriptionResult: Result<PrivacyProSubscription, SubscriptionServiceError>?
+    public var getProductsResult: Result<[GetProductsItem], APIRequestV2.Error>?
+    public var getCustomerPortalURLResult: Result<GetCustomerPortalURLResponse, APIRequestV2.Error>?
+    public var confirmPurchaseResult: Result<ConfirmPurchaseResponse, APIRequestV2.Error>?
 
-    public var onUpdateCache: ((Subscription) -> Void)?
-    public var onGetSubscription: ((String, APICachePolicy) -> Void)?
+    public var onUpdateCache: ((PrivacyProSubscription) -> Void)?
+    public var onGetSubscription: ((String, SubscriptionCachePolicy) -> Void)?
     public var onSignOut: (() -> Void)?
 
     public var updateCacheWithSubscriptionCalled: Bool = false
@@ -35,15 +36,18 @@ public final class SubscriptionEndpointServiceMock: SubscriptionEndpointService 
 
     public init() { }
 
-    public func updateCache(with subscription: Subscription) {
+    public func updateCache(with subscription: PrivacyProSubscription) {
         onUpdateCache?(subscription)
         updateCacheWithSubscriptionCalled = true
     }
 
-    public func getSubscription(accessToken: String, cachePolicy: APICachePolicy) async -> Result<Subscription, SubscriptionServiceError> {
+    public func getSubscription(accessToken: String, cachePolicy: SubscriptionCachePolicy) async throws -> PrivacyProSubscription {
         getSubscriptionCalled = true
         onGetSubscription?(accessToken, cachePolicy)
-        return getSubscriptionResult!
+        switch getSubscriptionResult! {
+            case .success(let subscription): return subscription
+            case .failure(let error): throw error
+        }
     }
 
     public func signOut() {
@@ -51,15 +55,24 @@ public final class SubscriptionEndpointServiceMock: SubscriptionEndpointService 
         onSignOut?()
     }
 
-    public func getProducts() async -> Result<[GetProductsItem], APIServiceError> {
-        getProductsResult!
+    public func getProducts() async throws -> [GetProductsItem] {
+        switch getProductsResult! {
+        case .success(let result): return result
+        case .failure(let error): throw error
+        }
     }
 
-    public func getCustomerPortalURL(accessToken: String, externalID: String) async -> Result<GetCustomerPortalURLResponse, APIServiceError> {
-        getCustomerPortalURLResult!
+    public func getCustomerPortalURL(accessToken: String, externalID: String) async throws -> GetCustomerPortalURLResponse {
+        switch getCustomerPortalURLResult! {
+        case .success(let result): return result
+        case .failure(let error): throw error
+        }
     }
 
-    public func confirmPurchase(accessToken: String, signature: String) async -> Result<ConfirmPurchaseResponse, APIServiceError> {
-        confirmPurchaseResult!
+    public func confirmPurchase(accessToken: String, signature: String) async throws -> ConfirmPurchaseResponse {
+        switch confirmPurchaseResult! {
+        case .success(let result): return result
+        case .failure(let error): throw error
+        }
     }
 }

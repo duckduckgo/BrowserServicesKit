@@ -18,15 +18,13 @@
 
 import Foundation
 
-public typealias DDGSubscription = Subscription // to avoid conflicts when Combine is imported
-
-public struct Subscription: Codable, Equatable {
+public struct PrivacyProSubscription: Codable, Equatable {
     public let productId: String
     public let name: String
-    public let billingPeriod: Subscription.BillingPeriod
+    public let billingPeriod: PrivacyProSubscription.BillingPeriod
     public let startedAt: Date
     public let expiresOrRenewsAt: Date
-    public let platform: Subscription.Platform
+    public let platform: PrivacyProSubscription.Platform
     public let status: Status
 
     public enum BillingPeriod: String, Codable {

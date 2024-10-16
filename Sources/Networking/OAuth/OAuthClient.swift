@@ -21,6 +21,7 @@ import os.log
 
 public enum OAuthClientError: Error, LocalizedError {
     case internalError(String)
+    case missingTokens
     case missingRefreshToken
     case unauthenticated
 
@@ -28,6 +29,8 @@ public enum OAuthClientError: Error, LocalizedError {
         switch self {
         case .internalError(let error):
             return "Internal error: \(error)"
+        case .missingTokens:
+            return "No token available"
         case .missingRefreshToken:
             return "No refresh token available, please re-authenticate"
         case .unauthenticated:
@@ -40,49 +43,125 @@ public protocol TokensStoring {
     var tokensContainer: TokensContainer? { get set }
 }
 
-final public class OAuthClient {
+public enum TokensCachePolicy {
+    /// The locally stored one as it is, valid or not
+    case local
+    /// The locally stored one refreshed
+    case localValid
+    /// Local refreshed, if doesn't exist create a new one
+    case valid
+}
+
+public protocol OAuthClient {
+
+    // MARK: - Public
+
+    var isUserAuthenticated: Bool { get }
+
+    var currentTokensContainer: TokensContainer? { get }
+
+    /// Returns a tokens container based on the policy
+    /// - `.local`: returns what's in the storage, as it is, throws an error if no token is available
+    /// - `.localValid`: returns what's in the storage, refreshes it if needed. throws an error if no token is available
+    /// - `.valid`: Returns a tokens container with unexpired tokens, creates a new account if needed
+    /// All options store new or refreshed tokens via the tokensStorage
+    func getTokens(policy: TokensCachePolicy) async throws -> TokensContainer
+
+    /// Create an account, store all tokens and return them
+    func createAccount() async throws -> TokensContainer
+
+    // MARK: Activate
+
+    /// Request an OTP for the provided email
+    /// - Parameter email: The email to request the OTP for
+    /// - Returns: A tuple containing the authSessionID and codeVerifier
+    func requestOTP(email: String) async throws -> (authSessionID: String, codeVerifier: String)
+
+    /// Activate the account with an OTP
+    /// - Parameters:
+    ///   - otp: The OTP received via email
+    ///   - email: The email address
+    ///   - codeVerifier: The codeVerifier
+    ///   - authSessionID: The authentication session ID
+    func activate(withOTP otp: String, email: String, codeVerifier: String, authSessionID: String) async throws
+
+    /// Activate the account with a platform signature
+    /// - Parameter signature: The platform signature
+    /// - Returns: A container of tokens
+    func activate(withPlatformSignature signature: String) async throws -> TokensContainer
+
+    // MARK: Refresh
+
+    /// Refresh the tokens and store the refreshed tokens
+    /// - Returns: A container of refreshed tokens
+    @discardableResult
+    func refreshTokens() async throws -> TokensContainer
+
+    // MARK: Exchange V1 to V2 token
+
+    /// Exchange a V1 access token for a V2 token
+    /// - Parameter accessTokenV1: The V1 access token
+    /// - Returns: A container of tokens
+    func exchange(accessTokenV1: String) async throws -> TokensContainer
+
+    // MARK: Logout
+
+    /// Logout by invalidating the current access token
+    func logout() async throws
+
+    // MARK: Edit account
+
+    /// Change the email address of the account
+    /// - Parameter email: The new email address
+    /// - Returns: A hash string for verification
+    func changeAccount(email: String?) async throws -> String
+
+    /// Confirm the change of email address
+    /// - Parameters:
+    ///   - email: The new email address
+    ///   - otp: The OTP received via email
+    ///   - hash: The hash for verification
+    func confirmChangeAccount(email: String, otp: String, hash: String) async throws
+}
+
+final public class DefaultOAuthClient: OAuthClient {
 
     private struct Constants {
         /// https://app.asana.com/0/1205784033024509/1207979495854201/f
         static let clientID = "f4311287-0121-40e6-8bbd-85c36daf1837"
         static let redirectURI = "com.duckduckgo:/authcb"
         static let availableScopes = [ "privacypro" ]
-
-        public static let productionBaseURL = URL(string: "https://quack.duckduckgo.com")!
-        public static let stagingBaseURL = URL(string: "https://quackdev.duckduckgo.com")!
     }
 
     // MARK: -
 
-    private let authService: OAuthService
-    private var tokensStorage: TokensStoring
+    private let authService: any OAuthService
+    public var tokensStorage: any TokensStoring
 
-    public init(tokensStorage: any TokensStoring, authService: OAuthService? = nil) {
-
+    public init(tokensStorage: any TokensStoring, authService: OAuthService) {
         self.tokensStorage = tokensStorage
-        if let authService {
-            self.authService = authService
-        } else {
-            let configuration = URLSessionConfiguration.default
-            configuration.httpCookieStorage = nil
-            configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
-            let urlSession = URLSession(configuration: configuration,
-                                        delegate: SessionDelegate(),
-                                        delegateQueue: nil)
-            let apiService = DefaultAPIService(urlSession: urlSession)
-            self.authService = DefaultOAuthService(baseURL: Constants.stagingBaseURL, // TODO: change to production
-                                                   apiService: apiService)
+        self.authService = authService
 
-            apiService.authorizationRefresherCallback = { request in // TODO: is this updated?
-                // safety check
-                if tokensStorage.tokensContainer?.decodedAccessToken.isExpired() == false {
-                    assertionFailure("Refresh attempted on non expired token")
-                }
-                Logger.OAuth.debug("Refreshing tokens")
-                let tokens = try await self.refreshTokens()
-                return tokens.accessToken
-            }
-        }
+        // TODO: Move UP
+//            let configuration = URLSessionConfiguration.default
+//            configuration.httpCookieStorage = nil
+//            configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+//            let urlSession = URLSession(configuration: configuration,
+//                                        delegate: SessionDelegate(),
+//                                        delegateQueue: nil)
+//            let apiService = DefaultAPIService(urlSession: urlSession)
+//            self.authService = DefaultOAuthService(baseURL: Constants.stagingBaseURL, // TODO: change to production
+//                                                   apiService: apiService)
+//
+//            apiService.authorizationRefresherCallback = { request in // TODO: is this updated?
+//                // safety check
+//                if tokensStorage.tokensContainer?.decodedAccessToken.isExpired() == false {
+//                    assertionFailure("Refresh attempted on non expired token")
+//                }
+//                Logger.OAuth.debug("Refreshing tokens")
+//                let tokens = try await self.refreshTokens()
+//                return tokens.accessToken
+//            }
     }
 
     // MARK: - Internal
@@ -117,27 +196,59 @@ final public class OAuthClient {
 
     // MARK: - Public
 
-    /// Returns a valid access token
-    /// - If present and not expired, from the storage
-    /// - if present but expired refreshes it
-    /// - if not present creates a new account
-    /// All options store the tokens via the tokensStorage
-    public func getValidTokens() async throws -> TokensContainer {
+    public var isUserAuthenticated: Bool {
+        tokensStorage.tokensContainer != nil
+    }
 
-        if let tokensContainer = tokensStorage.tokensContainer {
-            if tokensContainer.decodedAccessToken.isExpired() == false {
-                return tokensContainer
+    public var currentTokensContainer: TokensContainer? {
+        tokensStorage.tokensContainer
+    }
+
+    /// Returns a tokens container based on the policy
+    /// - `.local`: returns what's in the storage, as it is, throws an error if no token is available
+    /// - `.localValid`: returns what's in the storage, refreshes it if needed. throws an error if no token is available
+    /// - `.valid`: Returns a tokens container with unexpired tokens, creates a new account if needed
+    /// All options store new or refreshed tokens via the tokensStorage
+    public func getTokens(policy: TokensCachePolicy) async throws -> TokensContainer {
+
+        let storedTokens = tokensStorage.tokensContainer
+
+        switch policy {
+        case .local:
+            if let storedTokens {
+                return storedTokens
             } else {
-                let refreshedTokens = try await refreshTokens()
-                tokensStorage.tokensContainer = refreshedTokens
-                return refreshedTokens
+                throw OAuthClientError.missingTokens
             }
-        } else {
-            // We don't have a token stored, create a new account
-            let tokens = try await createAccount()
-            // Save tokens
-            tokensStorage.tokensContainer = tokens
-            return tokens
+        case .localValid:
+            if let storedTokens {
+                if storedTokens.decodedAccessToken.isExpired() {
+                    let refreshedTokens = try await refreshTokens()
+                    tokensStorage.tokensContainer = refreshedTokens
+                    return refreshedTokens
+                } else {
+                    return storedTokens
+                }
+            } else {
+                throw OAuthClientError.missingTokens
+            }
+        case .valid:
+            if let storedTokens {
+                // An account existed before, recovering it and refreshing the tokens
+                if storedTokens.decodedAccessToken.isExpired() {
+                    let refreshedTokens = try await refreshTokens()
+                    tokensStorage.tokensContainer = refreshedTokens
+                    return refreshedTokens
+                } else {
+                    return storedTokens
+                }
+            } else {
+                // We don't have a token stored, create a new account
+                let tokens = try await createAccount()
+                // Save tokens
+                tokensStorage.tokensContainer = tokens
+                return tokens
+            }
         }
     }
 
@@ -157,12 +268,12 @@ final public class OAuthClient {
     /// Helper, single use // TODO: doc
     public class EmailAccountActivator {
 
-        private let oAuthClient: OAuthClient
+        private let oAuthClient: any OAuthClient
         private var email: String? = nil
         private var authSessionID: String? = nil
         private var codeVerifier: String? = nil
 
-        public init(oAuthClient: OAuthClient) {
+        public init(oAuthClient: any OAuthClient) {
             self.oAuthClient = oAuthClient
         }
 
@@ -179,14 +290,14 @@ final public class OAuthClient {
         }
     }
 
-    private func requestOTP(email: String) async throws -> (authSessionID: String, codeVerifier: String) {
+    public func requestOTP(email: String) async throws -> (authSessionID: String, codeVerifier: String) {
         let (codeVerifier, codeChallenge) = try await getVerificationCodes()
         let authSessionID = try await authService.authorise(codeChallenge: codeChallenge)
         try await authService.requestOTP(authSessionID: authSessionID, emailAddress: email)
         return (authSessionID, codeVerifier) // to be used in activate(withOTP or activate(withPlatformSignature
     }
 
-    private func activate(withOTP otp: String, email: String, codeVerifier: String, authSessionID: String) async throws {
+    public func activate(withOTP otp: String, email: String, codeVerifier: String, authSessionID: String) async throws {
         let authCode = try await authService.login(withOTP: otp, authSessionID: authSessionID, email: email)
         try await getTokens(authCode: authCode, codeVerifier: codeVerifier)
     }
@@ -229,6 +340,7 @@ final public class OAuthClient {
     public func logout() async throws {
         if let token = tokensStorage.tokensContainer?.accessToken {
             try await authService.logout(accessToken: token)
+            tokensStorage.tokensContainer = nil // TODO: Correct?
         }
     }
 
@@ -237,11 +349,11 @@ final public class OAuthClient {
     /// Helper, single use // TODO: doc
     public class AccountEditor {
 
-        private let oAuthClient: OAuthClient
+        private let oAuthClient: any OAuthClient
         private var hashString: String? = nil
         private var email: String? = nil
 
-        public init(oAuthClient: OAuthClient) {
+        public init(oAuthClient: any OAuthClient) {
             self.oAuthClient = oAuthClient
         }
 
@@ -258,7 +370,7 @@ final public class OAuthClient {
         }
     }
 
-    private func changeAccount(email: String?) async throws -> String {
+    public func changeAccount(email: String?) async throws -> String {
         guard let token = tokensStorage.tokensContainer?.accessToken else {
             throw OAuthClientError.unauthenticated
         }
@@ -266,7 +378,7 @@ final public class OAuthClient {
         return editAccountResponse.hash
     }
 
-    private func confirmChangeAccount(email: String, otp: String, hash: String) async throws {
+    public func confirmChangeAccount(email: String, otp: String, hash: String) async throws {
         guard let token = tokensStorage.tokensContainer?.accessToken else {
             throw OAuthClientError.unauthenticated
         }

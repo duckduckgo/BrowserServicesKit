@@ -1,5 +1,5 @@
 //
-//  SessionDelegate.swift
+//  SubscriptionKeychainManager+TokensStoring.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -17,13 +17,24 @@
 //
 
 import Foundation
-import os.log
+import Networking
+import Common
 
-public final class SessionDelegate: NSObject, URLSessionTaskDelegate {
+extension SubscriptionKeychainManager: TokensStoring {
 
-    /// Disable automatic redirection, in our specific OAuth implementation we manage the redirection, not the user
-    public func urlSession(_ session: URLSession, task: URLSessionTask, willPerformHTTPRedirection response: HTTPURLResponse, newRequest request: URLRequest) async -> URLRequest? {
-        Logger.networking.debug("Stopping OAuth API redirection: \(response)")
-        return nil
+    public var tokensContainer: TokensContainer? {
+        get {
+            guard let data = try? retrieveData(forField: .tokens) else {
+                return nil
+            }
+            return CodableHelper.decode(jsonData: data)
+        }
+        set {
+            if let data = CodableHelper.encode(newValue) {
+                try? store(data: data, forField: .tokens)
+            } else {
+                assertionFailure("Failed to encode TokensContainer")
+            }
+        }
     }
 }

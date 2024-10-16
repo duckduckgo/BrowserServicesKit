@@ -22,7 +22,7 @@ import TestUtils
 
 final class AuthServiceTests: XCTestCase {
 
-    let baseURL = URL(string: "https://quackdev.duckduckgo.com")!
+    let baseURL = OAuthEnvironment.staging.url
 
     override func setUpWithError() throws {
 /*
@@ -35,17 +35,27 @@ final class AuthServiceTests: XCTestCase {
         // Put teardown code here. This method is called after the invocation of each test method in the class.
     }
 
+    var realAPISService: APIService {
+        let configuration = URLSessionConfiguration.default
+        configuration.httpCookieStorage = nil
+        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+        let urlSession = URLSession(configuration: configuration,
+                                    delegate: SessionDelegate(),
+                                    delegateQueue: nil)
+        return DefaultAPIService(urlSession: urlSession)
+    }
+
     // MARK: - Authorise
 
-    func testAuthoriseRealSuccess() async throws { // TODO: Disable
-        let authService = DefaultOAuthService(baseURL: baseURL)
+    func test_real_AuthoriseSuccess() async throws { // TODO: Disable
+        let authService = DefaultOAuthService(baseURL: baseURL, apiService: realAPISService)
         let codeChallenge = OAuthCodesGenerator.codeChallenge(codeVerifier: OAuthCodesGenerator.codeVerifier)!
         let result = try await authService.authorise(codeChallenge: codeChallenge)
         XCTAssertNotNil(result)
     }
 
-    func testAuthoriseRealFailure() async throws { // TODO: Disable
-        let authService = DefaultOAuthService(baseURL: baseURL)
+    func test_real_AuthoriseFailure() async throws { // TODO: Disable
+        let authService = DefaultOAuthService(baseURL: baseURL, apiService: realAPISService)
         do {
             _ = try await authService.authorise(codeChallenge: "")
         } catch {
@@ -59,8 +69,8 @@ final class AuthServiceTests: XCTestCase {
         }
     }
 
-    func testGetJWTSigner() async throws { // TODO: Disable
-        let authService = DefaultOAuthService(baseURL: baseURL)
+    func test_real_GetJWTSigner() async throws { // TODO: Disable
+        let authService = DefaultOAuthService(baseURL: baseURL, apiService: realAPISService)
         let signer = try await authService.getJWTSigners()
         do {
             let _: JWTAccessToken = try signer.verify("sdfgdsdzfgsdf")

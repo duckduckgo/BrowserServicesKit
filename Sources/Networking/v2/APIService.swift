@@ -49,11 +49,11 @@ public class DefaultAPIService: APIService {
         let responseHTTPStatus = httpResponse.httpStatus
 
         // First time the request is executed and the response is `.unauthorized` we try to refresh the authentication token
-        if request.isAuthenticated == true,
-           request.retryCount == 0,
-           responseHTTPStatus == .unauthorized,
+        if responseHTTPStatus == .unauthorized,
+           request.isAuthenticated == true,
+           request.authRefreshRetryCount == 0,
            let authorizationRefresherCallback {
-            request.retryCount += 1
+            request.authRefreshRetryCount += 1
             // Ask to refresh the token
             let refreshedToken = try await authorizationRefresherCallback(request)
             request.updateAuthorizationHeader(refreshedToken)
@@ -61,6 +61,20 @@ public class DefaultAPIService: APIService {
             return try await fetch(request: request)
         }
 
+        // It's a failure and the request must be retried
+        if  let retryPolicy = request.retryPolicy,
+            responseHTTPStatus.isFailure,
+            responseHTTPStatus != .unauthorized, // No retries needed is unuathorised
+            request.failureRetryCount < retryPolicy.maxRetries {
+            request.failureRetryCount += 1
+
+            try? await Task.sleep(interval: retryPolicy.delay)
+
+            // Try again
+            return try await fetch(request: request)
+        }
+
+        // It's not a failure, we check the constraints
         if !responseHTTPStatus.isFailure {
             try checkConstraints(in: httpResponse, for: request)
         }

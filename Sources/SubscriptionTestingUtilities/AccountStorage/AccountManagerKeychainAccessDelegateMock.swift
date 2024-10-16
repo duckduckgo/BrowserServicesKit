@@ -19,15 +19,15 @@
 import Foundation
 import Subscription
 
-public final class AccountManagerKeychainAccessDelegateMock: AccountManagerKeychainAccessDelegate {
-
-    public var onAccountManagerKeychainAccessFailed: ((AccountKeychainAccessType, AccountKeychainAccessError) -> Void)?
-
-    public init(onAccountManagerKeychainAccessFailed: ( (AccountKeychainAccessType, AccountKeychainAccessError) -> Void)? = nil) {
-        self.onAccountManagerKeychainAccessFailed = onAccountManagerKeychainAccessFailed
-    }
-
-    public func accountManagerKeychainAccessFailed(accessType: AccountKeychainAccessType, error: AccountKeychainAccessError) {
-        onAccountManagerKeychainAccessFailed?(accessType, error)
-    }
-}
+//public final class AccountManagerKeychainAccessDelegateMock: AccountManagerKeychainAccessDelegate {
+//
+//    public var onAccountManagerKeychainAccessFailed: ((AccountKeychainAccessType, AccountKeychainAccessError) -> Void)?
+//
+//    public init(onAccountManagerKeychainAccessFailed: ( (AccountKeychainAccessType, AccountKeychainAccessError) -> Void)? = nil) {
+//        self.onAccountManagerKeychainAccessFailed = onAccountManagerKeychainAccessFailed
+//    }
+//
+//    public func accountManagerKeychainAccessFailed(accessType: AccountKeychainAccessType, error: AccountKeychainAccessError) {
+//        onAccountManagerKeychainAccessFailed?(accessType, error)
+//    }
+//}

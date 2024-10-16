@@ -19,21 +19,21 @@
 import Foundation
 import JWTKit
 
-enum TokenPayloadError: Error {
+public enum TokenPayloadError: Error {
     case InvalidTokenScope
 }
 
 public struct JWTAccessToken: JWTPayload {
-    let exp: ExpirationClaim
-    let iat: IssuedAtClaim
-    let sub: SubjectClaim
-    let aud: AudienceClaim
-    let iss: IssuerClaim
-    let jti: IDClaim
-    let scope: String
-    let api: String // always v2
-    let email: String?
-    let entitlements: [EntitlementPayload]
+    public let exp: ExpirationClaim
+    public let iat: IssuedAtClaim
+    public let sub: SubjectClaim
+    public let aud: AudienceClaim
+    public let iss: IssuerClaim
+    public let jti: IDClaim
+    public let scope: String
+    public let api: String // always v2
+    public let email: String?
+    public let entitlements: [EntitlementPayload]
 
     public func verify(using signer: JWTKit.JWTSigner) throws {
         try self.exp.verifyNotExpired()
@@ -57,14 +57,14 @@ public struct JWTAccessToken: JWTPayload {
 }
 
 public struct JWTRefreshToken: JWTPayload {
-    let exp: ExpirationClaim
-    let iat: IssuedAtClaim
-    let sub: SubjectClaim
-    let aud: AudienceClaim
-    let iss: IssuerClaim
-    let jti: IDClaim
-    let scope: String
-    let api: String
+    public let exp: ExpirationClaim
+    public let iat: IssuedAtClaim
+    public let sub: SubjectClaim
+    public let aud: AudienceClaim
+    public let iss: IssuerClaim
+    public let jti: IDClaim
+    public let scope: String
+    public let api: String
 
     public func verify(using signer: JWTKit.JWTSigner) throws {
         try self.exp.verifyNotExpired()
@@ -74,23 +74,23 @@ public struct JWTRefreshToken: JWTPayload {
     }
 }
 
-public struct EntitlementPayload: Codable {
-    let product: SubscriptionEntitlement // Can expand in future
-    let name: String // always `subscriber`
+public enum SubscriptionEntitlement: String, Codable {
+    case networkProtection = "Network Protection"
+    case dataBrokerProtection = "Data Broker Protection"
+    case identityTheftRestoration = "Identity Theft Restoration"
+    case unknown
 
-    public enum SubscriptionEntitlement: String, Codable {
-        case networkProtection = "Network Protection"
-        case dataBrokerProtection = "Data Broker Protection"
-        case identityTheftRestoration = "Identity Theft Restoration"
-        case unknown
-
-        public init(from decoder: Decoder) throws {
-            self = try Self(rawValue: decoder.singleValueContainer().decode(RawValue.self)) ?? .unknown
-        }
+    public init(from decoder: Decoder) throws {
+        self = try Self(rawValue: decoder.singleValueContainer().decode(RawValue.self)) ?? .unknown
     }
 }
 
-public struct TokensContainer: Codable, Equatable {
+public struct EntitlementPayload: Codable {
+    public let product: SubscriptionEntitlement // Can expand in future
+    public let name: String // always `subscriber`
+}
+
+public struct TokensContainer: Codable, Equatable, CustomDebugStringConvertible {
     public  let accessToken: String
     public let refreshToken: String
     public let decodedAccessToken: JWTAccessToken
@@ -98,5 +98,25 @@ public struct TokensContainer: Codable, Equatable {
 
     public static func == (lhs: TokensContainer, rhs: TokensContainer) -> Bool {
         lhs.accessToken == rhs.accessToken && lhs.refreshToken == rhs.refreshToken
+    }
+
+    public var debugDescription: String {
+        """
+        Access Token: \(decodedAccessToken)
+        Refresh Token: \(decodedRefreshToken)
+        """
+    }
+}
+
+public extension JWTAccessToken {
+
+    var subscriptionEntitlements: [SubscriptionEntitlement] {
+        return entitlements.map({ entPayload in
+            entPayload.product
+        })
+    }
+
+    func hasEntitlement(_ entitlement: SubscriptionEntitlement) -> Bool {
+        return subscriptionEntitlements.contains(entitlement)
     }
 }

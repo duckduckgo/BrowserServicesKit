@@ -21,4 +21,7 @@ import os.log
 
 public extension Logger {
     static var subscription = { Logger(subsystem: "Subscription", category: "") }()
+    static var subscriptionAppStorePurchaseFlow = { Logger(subsystem: "Subscription", category: "AppStorePurchaseFlow") }()
+    static var subscriptionAppStoreRestoreFlow = { Logger(subsystem: "Subscription", category: "AppStoreRestoreFlow") }()
+    static var subscriptionStripePurchaseFlow = { Logger(subsystem: "Subscription", category: "StripePurchaseFlow") }()
 }

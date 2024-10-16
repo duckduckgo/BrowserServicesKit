@@ -43,19 +43,30 @@ public protocol SubscriptionManager {
 //    func loadInitialData()
     func refreshCachedSubscription(completion: @escaping (_ isSubscriptionActive: Bool) -> Void)
     func url(for type: SubscriptionURL) -> URL
+
+    // User
+    var isUserAuthenticated: Bool { get }
+    var userEmail: String? { get }
+    var entitlements: [SubscriptionEntitlement] { get }
+
+    func refreshAccount()
+    func getTokens(policy: TokensCachePolicy) async throws -> TokensContainer
+
+    func signOut()
+    func signOut(skipNotification: Bool)
 }
 
 /// Single entry point for everything related to Subscription. This manager is disposable, every time something related to the environment changes this need to be recreated.
 public final class DefaultSubscriptionManager: SubscriptionManager {
 
-    private let oAuthClient: OAuthClient
+    private let oAuthClient: any OAuthClient
     private let _storePurchaseManager: StorePurchaseManager?
     public let subscriptionEndpointService: SubscriptionEndpointService
     public let currentEnvironment: SubscriptionEnvironment
     public private(set) var canPurchase: Bool = false
 
     public init(storePurchaseManager: StorePurchaseManager? = nil,
-                oAuthClient: OAuthClient,
+                oAuthClient: any OAuthClient,
                 subscriptionEndpointService: SubscriptionEndpointService,
                 subscriptionEnvironment: SubscriptionEnvironment) {
         self._storePurchaseManager = storePurchaseManager
@@ -120,33 +131,10 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
 
     public func refreshCachedSubscription(completion: @escaping (_ isSubscriptionActive: Bool) -> Void) {
         Task {
-//            let tokensContainer = try await tokenProvider.getTokens()
-            let tokensContainer = try await oAuthClient.getValidTokens()
-            var isSubscriptionActive = false
-
-            defer {
-                completion(isSubscriptionActive)
-            }
-
+            let tokensContainer = try await oAuthClient.getTokens(policy: .valid)
             // Refetch and cache subscription
-            switch await subscriptionEndpointService.getSubscription(accessToken: tokensContainer.accessToken, cachePolicy: .reloadIgnoringLocalCacheData) {
-            case .success(let subscription):
-                isSubscriptionActive = subscription.isActive
-            case .failure(let error):
-                if case let .apiError(serviceError) = error, case let .serverError(statusCode, _) = serviceError {
-                    if statusCode == 401 {
-                        // Token is no longer valid
-//                        tokenProvider.logout()
-                        // TODO: refresh
-                        oAuthClient.refreshToken()
-                        return
-                    }
-                }
-            }
-
-//            // Refetch and cache entitlements
-//            _ = await accountManager.fetchEntitlements(cachePolicy: .reloadIgnoringLocalCacheData)
-//            try await tokenProvider.refreshToken()
+            let subscription = try? await subscriptionEndpointService.getSubscription(accessToken: tokensContainer.accessToken, cachePolicy: .reloadIgnoringLocalCacheData)
+            completion(subscription?.isActive ?? false)
         }
     }
 
@@ -155,4 +143,52 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     public func url(for type: SubscriptionURL) -> URL {
         type.subscriptionURL(environment: currentEnvironment.serviceEnvironment)
     }
+
+    // MARK: - User
+    public var isUserAuthenticated: Bool {
+        oAuthClient.isUserAuthenticated
+    }
+
+    public var userEmail: String? {
+        return oAuthClient.currentTokensContainer?.decodedAccessToken.email
+    }
+
+    public var entitlements: [SubscriptionEntitlement] {
+        return oAuthClient.currentTokensContainer?.decodedAccessToken.subscriptionEntitlements ?? []
+    }
+
+    public func refreshAccount() {
+        Task {
+            try? await oAuthClient.refreshTokens()
+        }
+    }
+
+    public func getTokens(policy: TokensCachePolicy) async throws -> TokensContainer {
+        try await oAuthClient.getTokens(policy: policy)
+    }
+
+    public func signOut() {
+        signOut(skipNotification: false)
+    }
+
+    public func signOut(skipNotification: Bool = false) {
+        Logger.subscription.debug("SignOut")
+        Task {
+            do {
+                try await oAuthClient.logout()
+                //            try storage.clearAuthenticationState()
+                //            try accessTokenStorage.removeAccessToken()
+                subscriptionEndpointService.signOut()
+//                entitlementsCache.reset()
+            } catch {
+                Logger.subscription.error("\(error.localizedDescription)")
+                assertionFailure(error.localizedDescription)
+            }
+
+            if !skipNotification {
+                NotificationCenter.default.post(name: .accountDidSignOut, object: self, userInfo: nil)
+            }
+        }
+    }
+
 }

@@ -27,7 +27,7 @@ public enum AppStoreRestoreFlowError: Swift.Error, Equatable {
     case failedToObtainAccessToken
     case failedToFetchAccountDetails
     case failedToFetchSubscriptionDetails
-    case subscriptionExpired(tokens: TokensContainer)
+    case subscriptionExpired
 }
 
 //public struct RestoredAccountDetails: Equatable {
@@ -45,13 +45,12 @@ public protocol AppStoreRestoreFlow {
 @available(macOS 12.0, iOS 15.0, *)
 public final class DefaultAppStoreRestoreFlow: AppStoreRestoreFlow {
 //    private let accountManager: AccountManager
-    private let oAuthClient: OAuthClient
+    private let oAuthClient: any OAuthClient
     private let storePurchaseManager: StorePurchaseManager
     private let subscriptionEndpointService: SubscriptionEndpointService
 //    private let authEndpointService: AuthEndpointService
 
-    public init(
-        oAuthClient: OAuthClient,
+    public init(oAuthClient: any OAuthClient,
 //        accountManager: any AccountManager,
                 storePurchaseManager: any StorePurchaseManager,
                 subscriptionEndpointService: any SubscriptionEndpointService
@@ -103,22 +102,21 @@ public final class DefaultAppStoreRestoreFlow: AppStoreRestoreFlow {
 //            return .failure(.failedToFetchAccountDetails)
 //        }
 
-        var isSubscriptionActive = false
+//        let tokensContainer = try? await oAuthClient.refreshTokens()
 
-        switch await subscriptionEndpointService.getSubscription(accessToken: tokensContainer.accessToken, cachePolicy: .reloadIgnoringLocalCacheData) {
-        case .success(let subscription):
-            isSubscriptionActive = subscription.isActive
-        case .failure:
+        do {
+            let subscription = try await subscriptionEndpointService.getSubscription(accessToken: tokensContainer.accessToken, cachePolicy: .reloadIgnoringLocalCacheData)
+            if subscription.isActive {
+                return .success(())
+            } else {
+    //            let details = RestoredAccountDetails(authToken: authToken, accessToken: accessToken, externalID: externalID, email: email)
+                Logger.subscription.error("[AppStoreRestoreFlow] Error: subscriptionExpired")
+                return .failure(.subscriptionExpired)
+            }
+
+        } catch {
             Logger.subscription.error("[AppStoreRestoreFlow] Error: failedToFetchSubscriptionDetails")
             return .failure(.failedToFetchSubscriptionDetails)
-        }
-
-        if isSubscriptionActive {
-            return .success(())
-        } else {
-//            let details = RestoredAccountDetails(authToken: authToken, accessToken: accessToken, externalID: externalID, email: email)
-            Logger.subscription.error("[AppStoreRestoreFlow] Error: subscriptionExpired")
-            return .failure(.subscriptionExpired(tokens: tokensContainer))
         }
     }
 }

@@ -20,11 +20,13 @@ import Foundation
 @testable import Subscription
 
 public final class SubscriptionManagerMock: SubscriptionManager {
-    public var accountManager: AccountManager
-    public var subscriptionEndpointService: SubscriptionEndpointService
-    public var authEndpointService: AuthEndpointService
 
-    public static var storedEnvironment: SubscriptionEnvironment?
+//    public var accountManager: AccountManager
+    public var subscriptionEndpointService: SubscriptionEndpointService
+//    public var authEndpointService: AuthEndpointService
+    let internalStorePurchaseManager: StorePurchaseManager
+    public static var storedEnvironment: SubscriptionEnvironment? = nil
+
     public static func loadEnvironmentFrom(userDefaults: UserDefaults) -> SubscriptionEnvironment? {
         return storedEnvironment
     }
@@ -34,17 +36,17 @@ public final class SubscriptionManagerMock: SubscriptionManager {
     }
 
     public var currentEnvironment: SubscriptionEnvironment
-    public var canPurchase: Bool
+    public var canPurchase: Bool = true
 
     public func storePurchaseManager() -> StorePurchaseManager {
         internalStorePurchaseManager
     }
 
-    public func loadInitialData() {
+//    public func loadInitialData() {
+//
+//    }
 
-    }
-
-    public func refreshCachedSubscriptionAndEntitlements(completion: @escaping (Bool) -> Void) {
+    public func refreshCachedSubscription(completion: @escaping (Bool) -> Void) {
         completion(true)
     }
 
@@ -52,21 +54,20 @@ public final class SubscriptionManagerMock: SubscriptionManager {
         type.subscriptionURL(environment: currentEnvironment.serviceEnvironment)
     }
 
-    public init(accountManager: AccountManager,
+    public init(
+        //accountManager: AccountManager,
                 subscriptionEndpointService: SubscriptionEndpointService,
-                authEndpointService: AuthEndpointService,
+//                authEndpointService: AuthEndpointService,
                 storePurchaseManager: StorePurchaseManager,
                 currentEnvironment: SubscriptionEnvironment,
                 canPurchase: Bool) {
-        self.accountManager = accountManager
+//        self.accountManager = accountManager
         self.subscriptionEndpointService = subscriptionEndpointService
-        self.authEndpointService = authEndpointService
+//        self.authEndpointService = authEndpointService
         self.internalStorePurchaseManager = storePurchaseManager
         self.currentEnvironment = currentEnvironment
         self.canPurchase = canPurchase
     }
 
     // MARK: -
-
-    let internalStorePurchaseManager: StorePurchaseManager
 }

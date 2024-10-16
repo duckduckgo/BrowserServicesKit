@@ -1,5 +1,5 @@
 //
-//  KeychainManager.swift
+//  SubscriptionKeychainManager.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -19,12 +19,15 @@
 import Foundation
 import Security
 
-public struct KeychainManager {
+public struct SubscriptionKeychainManager {
+
+    public init() {}
+
     /*
      Uses just kSecAttrService as the primary key, since we don't want to store
      multiple accounts/tokens at the same time
     */
-    enum SubscriptionKeychainField: String, CaseIterable {
+    public enum SubscriptionKeychainField: String, CaseIterable {
         case tokens = "subscription.v2.tokens"
 
         var keyValue: String {
@@ -32,7 +35,7 @@ public struct KeychainManager {
         }
     }
 
-    func retrieveData(forField field: SubscriptionKeychainField, useDataProtectionKeychain: Bool = true) throws -> Data? {
+    public func retrieveData(forField field: SubscriptionKeychainField, useDataProtectionKeychain: Bool = true) throws -> Data? {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecMatchLimit as String: kSecMatchLimitOne,
@@ -57,7 +60,7 @@ public struct KeychainManager {
         }
     }
 
-    func store(data: Data, forField field: SubscriptionKeychainField, useDataProtectionKeychain: Bool = true) throws {
+    public func store(data: Data, forField field: SubscriptionKeychainField, useDataProtectionKeychain: Bool = true) throws {
         let query = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrSynchronizable: false,
@@ -73,7 +76,7 @@ public struct KeychainManager {
         }
     }
 
-    func deleteItem(forField field: SubscriptionKeychainField, useDataProtectionKeychain: Bool = true) throws {
+    public func deleteItem(forField field: SubscriptionKeychainField, useDataProtectionKeychain: Bool = true) throws {
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: field.keyValue,

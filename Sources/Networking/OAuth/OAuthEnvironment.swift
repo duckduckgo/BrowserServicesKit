@@ -1,5 +1,5 @@
 //
-//  KeychainManager+TokensStoring.swift
+//  OAuthEnvironment.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -17,24 +17,25 @@
 //
 
 import Foundation
-import Networking
-import Common
 
-extension KeychainManager: TokensStoring {
+public enum OAuthEnvironment: String, Codable, CustomStringConvertible {
+    case production, staging
 
-    public var tokensContainer: TokensContainer? {
-        get {
-            guard let data = try? retrieveData(forField: .tokens) else {
-                return nil
-            }
-            return CodableHelper.decode(jsonData: data)
+    public var description: String {
+        switch self {
+        case .production:
+            "Production"
+        case .staging:
+            "Staging"
         }
-        set {
-            if let data = CodableHelper.encode(newValue) {
-                try? store(data: data, forField: .tokens)
-            } else {
-                assertionFailure("Failed to encode TokensContainer")
-            }
+    }
+
+    public var url: URL {
+        switch self {
+        case .production:
+            URL(string: "https://quack.duckduckgo.com")!
+        case .staging:
+            URL(string: "https://quackdev.duckduckgo.com")!
         }
     }
 }

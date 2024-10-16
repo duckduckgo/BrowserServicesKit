@@ -52,7 +52,7 @@ public final class DefaultStripePurchaseFlow: StripePurchaseFlow {
     public func subscriptionOptions() async -> Result<SubscriptionOptions, StripePurchaseFlowError> {
         Logger.subscription.info("[StripePurchaseFlow] subscriptionOptions")
 
-        guard case let .success(products) = await subscriptionEndpointService.getProducts(), !products.isEmpty else {
+        guard let products = try? await subscriptionEndpointService.getProducts(), !products.isEmpty else {
             Logger.subscription.error("[StripePurchaseFlow] Error: noProductsFound")
             return .failure(.noProductsFound)
         }
@@ -88,31 +88,41 @@ public final class DefaultStripePurchaseFlow: StripePurchaseFlow {
 
         // Clear subscription Cache
         subscriptionEndpointService.signOut()
-        var token: String = ""
 
-        if let accessToken = accountManager.accessToken {
+//        var token: String = ""
+//        if let accessToken = try? await oAuthClient.getValidTokens().accessToken {
+//            if await isSubscriptionExpired(accessToken: accessToken) {
+//                token = accessToken
+//            }
+//        } else {
+//            switch await authEndpointService.createAccount(emailAccessToken: emailAccessToken) {
+//            case .success(let response):
+//                token = response.authToken
+//                accountManager.storeAuthToken(token: token)
+//            case .failure:
+//                Logger.subscription.error("[StripePurchaseFlow] Error: accountCreationFailed")
+//                return .failure(.accountCreationFailed)
+//            }
+//        }
+
+        do {
+            let accessToken = try await oAuthClient.getTokens(policy: .valid).accessToken
             if await isSubscriptionExpired(accessToken: accessToken) {
-                token = accessToken
+                return .success(PurchaseUpdate.redirect(withToken: accessToken))
+            } else {
+                return .success(PurchaseUpdate.redirect(withToken: ""))
             }
-        } else {
-            switch await authEndpointService.createAccount(emailAccessToken: emailAccessToken) {
-            case .success(let response):
-                token = response.authToken
-                accountManager.storeAuthToken(token: token)
-            case .failure:
-                Logger.subscription.error("[StripePurchaseFlow] Error: accountCreationFailed")
-                return .failure(.accountCreationFailed)
-            }
-        }
 
-        return .success(PurchaseUpdate.redirect(withToken: token))
+        } catch {
+            Logger.subscription.error("[StripePurchaseFlow] Error: accountCreationFailed")
+            return .failure(.accountCreationFailed)
+        }
     }
 
     private func isSubscriptionExpired(accessToken: String) async -> Bool {
-        if case .success(let subscription) = await subscriptionEndpointService.getSubscription(accessToken: accessToken) {
+        if let subscription = try? await subscriptionEndpointService.getSubscription(accessToken: accessToken) {
             return !subscription.isActive
         }
-
         return false
     }
 
@@ -120,16 +130,16 @@ public final class DefaultStripePurchaseFlow: StripePurchaseFlow {
         // Clear subscription Cache
         subscriptionEndpointService.signOut()
 
-        Logger.subscription.info("[StripePurchaseFlow] completeSubscriptionPurchase")
-        if !accountManager.isUserAuthenticated,
-           let authToken = accountManager.authToken {
-            if case let .success(accessToken) = await accountManager.exchangeAuthTokenToAccessToken(authToken),
-               case let .success(accountDetails) = await accountManager.fetchAccountDetails(with: accessToken) {
-                accountManager.storeAuthToken(token: authToken)
-                accountManager.storeAccount(token: accessToken, email: accountDetails.email, externalID: accountDetails.externalID)
-            }
-        }
-
-        await accountManager.checkForEntitlements(wait: 2.0, retry: 5)
+        // NONE OF THIS IS USEFUL ANYMORE, ACCESS TOKEN AND ACCOUNT DETAILS ARE OBTAINED AS PART OF THE AUTHENTICATION
+//        Logger.subscription.info("[StripePurchaseFlow] completeSubscriptionPurchase")
+//        if !accountManager.isUserAuthenticated,
+//           let authToken = accountManager.authToken {
+//            if case let .success(accessToken) = await accountManager.exchangeAuthTokenToAccessToken(authToken),
+//               case let .success(accountDetails) = await accountManager.fetchAccountDetails(with: accessToken) {
+//                accountManager.storeAuthToken(token: authToken)
+//                accountManager.storeAccount(token: accessToken, email: accountDetails.email, externalID: accountDetails.externalID)
+//            }
+//        }
+//        await accountManager.checkForEntitlements(wait: 2.0, retry: 5)
     }
 }

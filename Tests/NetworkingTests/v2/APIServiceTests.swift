@@ -213,4 +213,41 @@ final class APIServiceTests: XCTestCase {
         }
     }
 
+    // MARK: - Retry
+
+    func testRetry() async throws {
+        let request = APIRequestV2(url: HTTPURLResponse.testUrl, retryPolicy: APIRequestV2.RetryPolicy(maxRetries: 3, delay: 0))!
+        let requestCountExpectation = expectation(description: "Request performed count")
+        requestCountExpectation.expectedFulfillmentCount = 3
+
+        MockURLProtocol.requestHandler = { request in
+            requestCountExpectation.fulfill()
+            return ( HTTPURLResponse.internalServerError, nil)
+        }
+
+        let apiService = DefaultAPIService(urlSession: mockURLSession)
+        do {
+            _ = try await apiService.fetch(request: request)
+        }
+
+        await fulfillment(of: [requestCountExpectation], timeout: 1.0)
+    }
+
+    func testNoRetry() async throws {
+        let request = APIRequestV2(url: HTTPURLResponse.testUrl)!
+        let requestCountExpectation = expectation(description: "Request performed count")
+        requestCountExpectation.expectedFulfillmentCount = 1
+
+        MockURLProtocol.requestHandler = { request in
+            requestCountExpectation.fulfill()
+            return ( HTTPURLResponse.internalServerError, nil)
+        }
+
+        let apiService = DefaultAPIService(urlSession: mockURLSession)
+        do {
+            _ = try await apiService.fetch(request: request)
+        }
+
+        await fulfillment(of: [requestCountExpectation], timeout: 1.0)
+    }
 }

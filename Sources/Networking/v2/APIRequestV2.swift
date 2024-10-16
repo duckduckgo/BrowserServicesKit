@@ -20,12 +20,27 @@ import Foundation
 
 public class APIRequestV2: CustomDebugStringConvertible {
 
-    public typealias QueryItems = [String: String]
+    public struct RetryPolicy: CustomDebugStringConvertible {
+        public let maxRetries: Int
+        public let delay: TimeInterval
 
-    let timeoutInterval: TimeInterval
-    let responseConstraints: [APIResponseConstraints]?
+        public init(maxRetries: Int, delay: TimeInterval) {
+            self.maxRetries = maxRetries
+            self.delay = delay
+        }
+
+        public var debugDescription: String {
+            "MaxRetries: \(maxRetries), delay: \(delay)"
+        }
+    }
+
+    public typealias QueryItems = [String: String]
     public var urlRequest: URLRequest
-    public var retryCount: Int = 0
+    internal let timeoutInterval: TimeInterval
+    internal let responseConstraints: [APIResponseConstraints]?
+    internal let retryPolicy: RetryPolicy?
+    internal var authRefreshRetryCount: Int = 0
+    internal var failureRetryCount: Int = 0
 
     /// Designated initialiser
     /// - Parameters:
@@ -44,6 +59,7 @@ public class APIRequestV2: CustomDebugStringConvertible {
                  headers: APIRequestV2.HeadersV2? = APIRequestV2.HeadersV2(),
                  body: Data? = nil,
                  timeoutInterval: TimeInterval = 60.0,
+                 retryPolicy: RetryPolicy? = nil,
                  cachePolicy: URLRequest.CachePolicy? = nil,
                  responseConstraints: [APIResponseConstraints]? = nil,
                  allowedQueryReservedCharacters: CharacterSet? = nil) {
@@ -66,6 +82,7 @@ public class APIRequestV2: CustomDebugStringConvertible {
             request.cachePolicy = cachePolicy
         }
         self.urlRequest = request
+        self.retryPolicy = retryPolicy
     }
 
     public var debugDescription: String {
@@ -78,6 +95,8 @@ public class APIRequestV2: CustomDebugStringConvertible {
         Timeout Interval: \(timeoutInterval)s
         Cache Policy: \(urlRequest.cachePolicy)
         Response Constraints: \(responseConstraints?.map { $0.rawValue } ?? [])
+        Retry Policy: \(retryPolicy?.debugDescription ?? "None")
+        Retries counts: Refresh (\(authRefreshRetryCount), Failure (\(failureRetryCount))
         """
     }
 

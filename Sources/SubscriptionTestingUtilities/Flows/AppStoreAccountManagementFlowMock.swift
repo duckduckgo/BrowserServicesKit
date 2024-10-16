@@ -16,19 +16,19 @@
 //  limitations under the License.
 //
 
-import Foundation
-import Subscription
+//import Foundation
+//import Subscription
 
-public final class AppStoreAccountManagementFlowMock: AppStoreAccountManagementFlow {
-    public var refreshAuthTokenIfNeededResult: Result<String, AppStoreAccountManagementFlowError>?
-    public var onRefreshAuthTokenIfNeeded: (() -> Void)?
-    public var refreshAuthTokenIfNeededCalled: Bool = false
-
-    public init() { }
-
-    public func refreshAuthTokenIfNeeded() async -> Result<String, AppStoreAccountManagementFlowError> {
-        refreshAuthTokenIfNeededCalled = true
-        onRefreshAuthTokenIfNeeded?()
-        return refreshAuthTokenIfNeededResult!
-    }
-}
+//public final class AppStoreAccountManagementFlowMock: AppStoreAccountManagementFlow {
+//    public var refreshAuthTokenIfNeededResult: Result<String, AppStoreAccountManagementFlowError>?
+//    public var onRefreshAuthTokenIfNeeded: (() -> Void)?
+//    public var refreshAuthTokenIfNeededCalled: Bool = false
+//
+//    public init() { }
+//
+//    public func refreshAuthTokenIfNeeded() async -> Result<String, AppStoreAccountManagementFlowError> {
+//        refreshAuthTokenIfNeededCalled = true
+//        onRefreshAuthTokenIfNeeded?()
+//        return refreshAuthTokenIfNeededResult!
+//    }
+//}

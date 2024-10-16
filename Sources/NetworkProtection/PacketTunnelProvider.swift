@@ -462,7 +462,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 providerEvents: EventMapping<Event>,
                 settings: VPNSettings,
                 defaults: UserDefaults,
-                entitlementCheck: (() async -> Result<Bool, Error>)?) {
+                entitlementCheck: (() async -> Result<Bool, Error>)?
+    ) {
         Logger.networkProtectionMemory.debug("[+] PacketTunnelProvider")
 
         self.notificationsPresenter = notificationsPresenter
