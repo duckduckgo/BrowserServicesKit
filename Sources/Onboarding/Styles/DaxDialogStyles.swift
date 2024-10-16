@@ -18,9 +18,9 @@
 
 import SwiftUI
 
-enum OnboardingStyles {}
+public enum OnboardingStyles {}
 
-extension OnboardingStyles {
+public extension OnboardingStyles {
 
     struct ListButtonStyle: ButtonStyle {
         @Environment(\.colorScheme) private var colorScheme
@@ -30,6 +30,7 @@ extension OnboardingStyles {
 #else
         private let maxHeight = 40.0
 #endif
+        private var maxWidth: CGFloat? = .infinity
 
 #if os(macOS)
         private let fontSize = 12.0
@@ -37,42 +38,65 @@ extension OnboardingStyles {
         private let fontSize = 15.0
 #endif
 
-        init() {}
+        @State private var isHovered = false
 
-        func makeBody(configuration: Configuration) -> some View {
+        public init(maxWidth: CGFloat? = .infinity) {
+            self.maxWidth = maxWidth
+        }
+
+        public func makeBody(configuration: Configuration) -> some View {
             configuration.label
                 .font(.system(size: fontSize, weight: .bold))
                 .fixedSize(horizontal: false, vertical: true)
                 .multilineTextAlignment(.center)
                 .lineLimit(nil)
-                .foregroundColor(foregroundColor(configuration.isPressed))
+                .foregroundColor(foregroundColor(isPressed: configuration.isPressed, isHovered: isHovered))
                 .padding()
-                .frame(minWidth: 0, maxWidth: .infinity, maxHeight: maxHeight)
-                .background(backgroundColor(configuration.isPressed))
+                .frame(minWidth: 0, maxWidth: maxWidth, maxHeight: maxHeight)
+                .background(backgroundColor(isPressed: configuration.isPressed, isHovered: isHovered))
                 .cornerRadius(8)
                 .contentShape(Rectangle()) // Makes whole button area tappable, when there's no background
+                .onHover { hovering in
+                    #if os(macOS)
+                    self.isHovered = hovering
+                    #endif
+                }
         }
 
-        private func foregroundColor(_ isPressed: Bool) -> Color {
-            switch (colorScheme, isPressed) {
-            case (.dark, false):
-                return .blue30
-            case (.dark, true):
-                return .blue20
-            case (_, false):
-                return .blueBase
-            case (_, true):
-                return .blue70
+        private func foregroundColor(isPressed: Bool, isHovered: Bool) -> Color {
+            switch (colorScheme, isPressed, isHovered) {
+            case (.light, false, false):
+                return .lightRestBlue
+            case (.dark, false, false):
+                return .darkRestBlue
+            case (.light, false, true):
+                return .lightHoverBlue
+            case (.dark, false, true):
+                return .darkHoverBlue
+            case (.light, true, _):
+                return .lightPressedBlue
+            case (.dark, true, _):
+                return .darkPressedBlue
+            case (_, _, _):
+                return .lightRestBlue
             }
         }
 
-        private func backgroundColor(_ isPressed: Bool) -> Color {
-            switch (colorScheme, isPressed) {
-            case (.light, true):
-                return .blueBase.opacity(0.2)
-            case (.dark, true):
-                return .blue30.opacity(0.2)
-            default:
+        private func backgroundColor(isPressed: Bool, isHovered: Bool) -> Color {
+            switch (colorScheme, isPressed, isHovered) {
+            case (.light, false, false):
+                return .black.opacity(0.01)
+            case (.dark, false, false):
+                return .white.opacity(0.03)
+            case (.light, false, true):
+                return .black.opacity(0.03)
+            case (.dark, false, true):
+                return .white.opacity(0.06)
+            case (.light, true, _):
+                return .black.opacity(0.06)
+            case (.dark, true, _):
+                return .white.opacity(0.06)
+            case (_, _, _):
                 return .clear
             }
         }
@@ -81,10 +105,12 @@ extension OnboardingStyles {
 }
 
 extension Color {
-    static let blue70 = Color(0x1E42A4)
-    static let blueBase = Color(0x3969EF)
-    static let blue30 = Color(0x7295F6)
-    static let blue20 = Color(0x8FABF9)
+    static let lightRestBlue = Color(0x3969EF)
+    static let darkRestBlue = Color(0x7295F6)
+    static let lightHoverBlue = Color(0x2B55CA)
+    static let darkHoverBlue = Color(0x8FABF9)
+    static let lightPressedBlue = Color(0x1E42A4)
+    static let darkPressedBlue = Color(0xADC2FC)
 
     init(_ hex: UInt, alpha: Double = 1) {
         self.init(
