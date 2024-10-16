@@ -19,7 +19,37 @@
 // "use strict";
 
 (function () {
-    const topLevelUrl = getTopLevelURL()
+
+
+    /**
+     * Best guess effort of the tabs hostname. Cribbed from getTabHostname in: https://github.com/duckduckgo/content-scope-scripts/
+     * @returns {string|null} inferred tab hostname
+     */
+    function getTabURL () {
+        let framingOrigin = null
+        try {
+            // @ts-expect-error - globalThis.top is possibly 'null' here
+            framingOrigin = globalThis.top.location.href
+        } catch {
+            framingOrigin = globalThis.document.referrer
+        }
+    
+        // Not supported in Firefox
+        if ('ancestorOrigins' in globalThis.location && globalThis.location.ancestorOrigins.length) {
+            // ancestorOrigins is reverse order, with the last item being the top frame
+            framingOrigin = globalThis.location.ancestorOrigins.item(globalThis.location.ancestorOrigins.length - 1)
+        }
+    
+        try {
+            // @ts-expect-error - framingOrigin is possibly 'null' here
+            framingOrigin = new URL(framingOrigin)
+        } catch {
+            framingOrigin = null
+        }
+        return framingOrigin
+    }
+    
+    const topLevelUrl = getTabURL()
 
     let unprotectedDomain = false
     const domainParts = topLevelUrl && topLevelUrl.host ? topLevelUrl.host.split('.') : []
@@ -131,21 +161,6 @@
         }
 
         return false
-    }
-
-    // private
-    function getTopLevelURL () {
-        try {
-            // FROM: https://stackoverflow.com/a/7739035/73479
-            // FIX: Better capturing of top level URL so that trackers in embedded documents are not considered first party
-            if (window.location !== window.parent.location) {
-                return new URL(window.location.href !== 'about:blank' ? document.referrer : window.parent.location.href)
-            } else {
-                return new URL(document.location.href)
-            }
-        } catch (error) {
-            return new URL(location.href)
-        }
     }
 
     if (!window.__firefox__) {
