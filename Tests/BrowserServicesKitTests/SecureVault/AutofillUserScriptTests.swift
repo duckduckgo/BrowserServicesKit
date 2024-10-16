@@ -246,14 +246,14 @@ class MockAutofillPasswordImportDelegate: AutofillPasswordImportDelegate {
     func autofillUserScriptShouldShowPasswordImportDialog(domain: String, credentials: [BrowserServicesKit.SecureVaultModels.WebsiteCredentials], credentialsProvider: BrowserServicesKit.SecureVaultModels.CredentialsProvider, totalCredentialsCount: Int) -> Bool {
         return stubAutofillUserScriptShouldShowPasswordImportDialog
     }
-    
+
     func autofillUserScriptShouldDisplayOverlay(_ serializedInputContext: String, for domain: String) -> Bool {
         return false
     }
-    
+
     func autofillUserScriptDidRequestPermanentCredentialsImportPromptDismissal() {
     }
-    
+
     var serializedInputContext: String?
     func autofillUserScriptWillDisplayOverlay(_ serializedInputContext: String) {
         self.serializedInputContext = serializedInputContext
