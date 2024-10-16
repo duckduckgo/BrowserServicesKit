@@ -187,11 +187,13 @@ open class ContentBlockerRulesUserScript: NSObject, UserScript {
                   !isFirstParty(requestURL: trackerUrlString, websiteURL: pageUrlStr) else { return }
 
             let entity = currentTrackerData.findEntity(forHost: requestETLDp1) ?? Entity(displayName: requestETLDp1, domains: nil, prevalence: nil)
+            let isAffiliated = resolver.isPageAffiliatedWithTrackerEntity(pageUrlString: pageUrlStr, trackerEntity: entity)
+
             let thirdPartyRequest = DetectedRequest(url: trackerUrlString,
                                                     eTLDplus1: requestETLDp1,
                                                     knownTracker: nil,
                                                     entity: entity,
-                                                    state: .allowed(reason: .otherThirdPartyRequest),
+                                                    state: .allowed(reason: isAffiliated ? .ownedByFirstParty : .otherThirdPartyRequest),
                                                     pageUrl: pageUrlStr)
             delegate.contentBlockerRulesUserScript(self, detectedThirdPartyRequest: thirdPartyRequest)
         }

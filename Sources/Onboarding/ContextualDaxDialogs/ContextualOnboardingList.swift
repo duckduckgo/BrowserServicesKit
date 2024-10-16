@@ -69,7 +69,7 @@ public struct ContextualOnboardingListView: View {
 
 #if os(macOS)
 private var strokeColor: Color {
-    return (colorScheme == .dark) ? Color.white.opacity(0.09) : Color.black.opacity(0.09)
+    return (colorScheme == .dark) ? Color.white.opacity(0.12) : Color.black.opacity(0.09)
 }
 #else
 private let strokeColor = Color.blue
@@ -92,7 +92,7 @@ private let strokeColor = Color.blue
                             .frame(width: iconSize, height: iconSize)
                         Text(list[index].visibleTitle)
                             .frame(alignment: .leading)
-                        Spacer()
+                        Spacer(minLength: 0)
                     }
                 })
                 .buttonStyle(OnboardingStyles.ListButtonStyle())

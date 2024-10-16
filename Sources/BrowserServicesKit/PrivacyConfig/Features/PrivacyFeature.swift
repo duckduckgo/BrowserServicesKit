@@ -59,6 +59,7 @@ public enum PrivacyFeature: String {
     case autofillSurveys
     case marketplaceAdPostback
     case autocompleteTabs
+    case networkProtection
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -94,6 +95,16 @@ public enum DBPSubfeature: String, Equatable, PrivacySubfeature {
     case waitlist
     case waitlistBetaActive
     case freemium
+}
+
+public enum NetworkProtectionSubfeature: String, Equatable, PrivacySubfeature {
+    public var parent: PrivacyFeature {
+        .networkProtection
+    }
+
+    /// Display user tips for Network Protection
+    /// https://app.asana.com/0/72649045549333/1208231259093710/f
+    case userTips
 }
 
 public enum SyncSubfeature: String, PrivacySubfeature {
