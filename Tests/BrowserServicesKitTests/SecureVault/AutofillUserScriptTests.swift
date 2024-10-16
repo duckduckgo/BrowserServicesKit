@@ -106,12 +106,13 @@ class AutofillUserScriptTests: XCTestCase {
         XCTAssertEqual(responseFromCredentials.success.credentials.password, true)
     }
 
-    func testWhenProviderNameIsBitwarden_ThenAvailableInputTypesCredentialsImportIsFalse() {
-        let credentialsProvider = SecureVaultModels.CredentialsProvider(name: .bitwarden, locked: false)
+    func testWhenPasswordImportDelegateReturnsFalse_ThenAvailableInputTypesCredentialsImportIsFalse() {
+        let userScript = AutofillUserScript(scriptSourceProvider: MockAutofillUserScriptSourceProvider())
+        let passwordImportDelegate = MockAutofillPasswordImportDelegate()
+        userScript.passwordImportDelegate = passwordImportDelegate
+        passwordImportDelegate.stubAutofillUserScriptShouldShowPasswordImportDialog = false
 
-        guard let response = getAvailableInputTypesResponse(
-            credentialsProvider: credentialsProvider
-        ) else {
+        guard let response = getAvailableInputTypesResponse(userScript: userScript) else {
             XCTFail("No getAvailableInputTypes response")
             return
         }
@@ -119,87 +120,13 @@ class AutofillUserScriptTests: XCTestCase {
         XCTAssertFalse(response.success.credentialsImport)
     }
 
-    func testWhenCredentialsForDomainAreNotEmpty_ThenAvailableInputTypesCredentialsImportIsFalse() {
-        let credentialsList = createListOfCredentials(withPassword: nil)
+    func testWhenPasswordImportDelegateReturnsTrue_ThenAvailableInputTypesCredentialsImportIsTrue() {
+        let userScript = AutofillUserScript(scriptSourceProvider: MockAutofillUserScriptSourceProvider())
+        let passwordImportDelegate = MockAutofillPasswordImportDelegate()
+        userScript.passwordImportDelegate = passwordImportDelegate
+        passwordImportDelegate.stubAutofillUserScriptShouldShowPasswordImportDialog = true
 
-        guard let response = getAvailableInputTypesResponse(
-            credentialsList: credentialsList
-        ) else {
-            XCTFail("No getAvailableInputTypes response")
-            return
-        }
-
-        XCTAssertFalse(response.success.credentialsImport)
-    }
-
-    func testWhenTotalCredentialsCountIsTenOrMore_ThenAvailableInputTypesCredentialsImportIsFalse() {
-        guard let response = getAvailableInputTypesResponse(
-            totalCredentialsCount: 10
-        ) else {
-            XCTFail("No getAvailableInputTypes response")
-            return
-        }
-
-        XCTAssertFalse(response.success.credentialsImport)
-    }
-
-    func testWhenUserHasImportedLogins_ThenAvailableInputTypesCredentialsImportIsFalse() {
-        guard let response = getAvailableInputTypesResponse(
-            hasUserImportedLogins: true
-        ) else {
-            XCTFail("No getAvailableInputTypes response")
-            return
-        }
-
-        XCTAssertFalse(response.success.credentialsImport)
-    }
-
-    func testWhenUserIsNOTNew_ThenAvailableInputTypesCredentialsImportIsFalse() {
-        guard let response = getAvailableInputTypesResponse(
-            isEligibleDDGUser: false
-        ) else {
-            XCTFail("No getAvailableInputTypes response")
-            return
-        }
-
-        XCTAssertFalse(response.success.credentialsImport)
-    }
-
-    func testWhenAutofillIsDisabled_ThenAvailableInputTypesCredentialsImportIsFalse() {
-        guard let response = getAvailableInputTypesResponse(
-            isAutofillEnabled: false
-        ) else {
-            XCTFail("No getAvailableInputTypes response")
-            return
-        }
-
-        XCTAssertFalse(response.success.credentialsImport)
-    }
-
-    func testWhenHasNeverPromptWebsitesIsTrue_ThenAvailableInputTypesCredentialsImportIsFalse() {
-        guard let response = getAvailableInputTypesResponse(
-            hasNeverPromptWebsites: true
-        ) else {
-            XCTFail("No getAvailableInputTypes response")
-            return
-        }
-
-        XCTAssertFalse(response.success.credentialsImport)
-    }
-
-    func testWhenCredentialsImportPresentationCountIs5_ThenAvailableInputTypesCredentialsImportIsFalse() {
-        guard let response = getAvailableInputTypesResponse(
-            credentialsImportPresentationCount: 5
-        ) else {
-            XCTFail("No getAvailableInputTypes response")
-            return
-        }
-
-        XCTAssertFalse(response.success.credentialsImport)
-    }
-
-    func testWhenAllOtherCredentialsImportConditionsAreMet_ThenAvailableInputTypesCredentialsImportIsTrue() {
-        guard let response = getAvailableInputTypesResponse() else {
+        guard let response = getAvailableInputTypesResponse(userScript: userScript) else {
             XCTFail("No getAvailableInputTypes response")
             return
         }
@@ -259,18 +186,12 @@ class AutofillUserScriptTests: XCTestCase {
 
     // MARK: Private
 
-    // Default vaules here are those that will result in a `true` value for credentialsImport. Override to test `false` case.
-    private func getAvailableInputTypesResponse(credentialsList: [SecureVaultModels.WebsiteCredentials] = [],
+    private func getAvailableInputTypesResponse(userScript: AutofillUserScript = AutofillUserScript(scriptSourceProvider: MockAutofillUserScriptSourceProvider()),
+                                                credentialsList: [SecureVaultModels.WebsiteCredentials] = [],
                                                 credentialsProvider: SecureVaultModels.CredentialsProvider = .init(name: .duckduckgo, locked: false),
-                                                totalCredentialsCount: Int = 9,
-                                                hasUserImportedLogins: Bool = false,
-                                                isEligibleDDGUser: Bool = true,
-                                                hasNeverPromptWebsites: Bool = false,
-                                                isAutofillEnabled: Bool = true,
-                                                credentialsImportPresentationCount: Int = 0,
+                                                totalCredentialsCount: Int = 0,
                                                 file: StaticString = #filePath,
                                                 line: UInt = #line) -> AutofillUserScript.RequestAvailableInputTypesResponse? {
-        let userScript = AutofillUserScript(scriptSourceProvider: MockAutofillUserScriptSourceProvider())
         let userScriptMessage = MockWKScriptMessage(name: "getAvailableInputTypes", body: "")
         let vaultDelegate = MockSecureVaultDelegate()
         userScript.vaultDelegate = vaultDelegate
@@ -320,8 +241,10 @@ class MockAutofillUserScriptSourceProvider: AutofillUserScriptSourceProvider {
 }
 
 class MockAutofillPasswordImportDelegate: AutofillPasswordImportDelegate {
+
+    var stubAutofillUserScriptShouldShowPasswordImportDialog = false
     func autofillUserScriptShouldShowPasswordImportDialog(domain: String, credentials: [BrowserServicesKit.SecureVaultModels.WebsiteCredentials], credentialsProvider: BrowserServicesKit.SecureVaultModels.CredentialsProvider, totalCredentialsCount: Int) -> Bool {
-        return false
+        return stubAutofillUserScriptShouldShowPasswordImportDialog
     }
     
     func autofillUserScriptShouldDisplayOverlay(_ serializedInputContext: String, for domain: String) -> Bool {
