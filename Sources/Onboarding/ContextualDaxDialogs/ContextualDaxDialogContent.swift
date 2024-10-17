@@ -102,6 +102,7 @@ public struct ContextualDaxDialogContent: View {
                     Spacer()
                     nonTypingElements
                 }
+                .frame(width: 488)
             }
         }
         .onAppear {
