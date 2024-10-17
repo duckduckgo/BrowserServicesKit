@@ -20,7 +20,7 @@ import Foundation
 import TipKit
 
 public protocol TipGrouping {
-    @available(iOS 17.0, *)
+    @available(iOS 17.0, macOS 14.0, *)
     @MainActor
     var currentTip: (any Tip)? { get }
 }
@@ -34,7 +34,7 @@ public protocol TipGrouping {
 /// A glorified no-op to be able to compile TipGrouping in iOS versions below 17.
 ///
 public struct EmptyTipGroup: TipGrouping {
-    @available(iOS 17.0, *)
+    @available(iOS 17.0, macOS 14.0, *)
     public var currentTip: (any Tip)? {
         return nil
     }
@@ -42,12 +42,13 @@ public struct EmptyTipGroup: TipGrouping {
     public init() {}
 }
 
-/// Backport of TipKit's TipGroup to iOS 17.
+/// Backport of TipKit's TipGroup to iOS 17 and macOS 14.
 ///
-/// In iOS 17: this class should provide the same functionality as TipKit's `TipGroup`.
+/// In iOS 17 and macOS 14: this class should provide the same functionality as TipKit's `TipGroup`.
 ///
-@available(iOS 17.0, *)
+@available(iOS 17.0, macOS 14.0, *)
 @available(iOS, obsoleted: 18.0)
+@available(macOS, obsoleted: 15.0)
 public struct LegacyTipGroup: TipGrouping {
 
     /// This is an implementation of TipGroup.Priority for iOS versions below 18.
@@ -96,8 +97,9 @@ public struct LegacyTipGroup: TipGrouping {
     }
 }
 
-@available(iOS 17.0, *)
+@available(iOS 17.0, macOS 14.0, *)
 @available(iOS, obsoleted: 18.0)
+@available(macOS, obsoleted: 18.0)
 @resultBuilder public struct LegacyTipGroupBuilder {
     public static func buildBlock() -> [Any] {
         []

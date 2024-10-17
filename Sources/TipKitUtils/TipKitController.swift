@@ -52,7 +52,7 @@ public final class TipKitController {
         self.userDefaults = userDefaults
     }
 
-    @available(iOS 17.0, *)
+    @available(iOS 17.0, macOS 14.0, *)
     public func configureTipKit(_ configuration: [Tips.ConfigurationOption] = []) {
         do {
             if resetTipKitOnNextLaunch {
@@ -68,7 +68,7 @@ public final class TipKitController {
         }
     }
 
-    @available(iOS 17.0, *)
+    @available(iOS 17.0, macOS 14.0, *)
     private func resetTipKit() {
         do {
             try Tips.resetDatastore()
