@@ -42,20 +42,17 @@ public class AdClickAttributionDetection {
     private let tld: TLD
     private let eventReporting: EventMapping<AdClickAttributionEvents>?
     private let errorReporting: EventMapping<AdClickAttributionDebugEvents>?
-    private let cpmExperimentOn: Bool?
 
     public weak var delegate: AdClickAttributionDetectionDelegate?
 
     public init(feature: AdClickAttributing,
                 tld: TLD,
                 eventReporting: EventMapping<AdClickAttributionEvents>? = nil,
-                errorReporting: EventMapping<AdClickAttributionDebugEvents>? = nil,
-                cpmExperimentOn: Bool? = nil) {
+                errorReporting: EventMapping<AdClickAttributionDebugEvents>? = nil) {
         self.attributionFeature = feature
         self.tld = tld
         self.eventReporting = eventReporting
         self.errorReporting = errorReporting
-        self.cpmExperimentOn = cpmExperimentOn
     }
 
     // MARK: - Public API
@@ -146,12 +143,9 @@ public class AdClickAttributionDetection {
             domainDetection = "none"
         }
 
-        var parameters = [AdClickAttributionEvents.Parameters.domainDetection: domainDetection,
+        let parameters = [AdClickAttributionEvents.Parameters.domainDetection: domainDetection,
                           AdClickAttributionEvents.Parameters.domainDetectionEnabled: attributionFeature.isDomainDetectionEnabled ? "1" : "0",
                           AdClickAttributionEvents.Parameters.heuristicDetectionEnabled: attributionFeature.isHeuristicDetectionEnabled ? "1" : "0"]
-        if let cpmExperimentOn {
-            parameters[AdClickAttributionEvents.Parameters.cpmExperiment] = cpmExperimentOn ? "1" : "0"
-        }
         eventReporting?.fire(.adAttributionDetected, parameters: parameters)
     }
 }
