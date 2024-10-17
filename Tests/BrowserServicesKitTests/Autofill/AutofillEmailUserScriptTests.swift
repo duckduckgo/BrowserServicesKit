@@ -42,7 +42,7 @@ class AutofillEmailUserScriptTests: XCTestCase {
                                                                            properties: properties)
             .withJSLoading()
             .build()
-        return AutofillUserScript(scriptSourceProvider: sourceProvider, encrypter: MockEncrypter(), hostProvider: SecurityOriginHostProvider(), loginImportStateProvider: MockAutofillLoginImportStateProvider())
+        return AutofillUserScript(scriptSourceProvider: sourceProvider, encrypter: MockEncrypter(), hostProvider: SecurityOriginHostProvider())
     }()
     let userContentController = WKUserContentController()
 

@@ -83,8 +83,8 @@ public class OverlayAutofillUserScript: AutofillUserScript {
     }
 
     /// Used to create a top autofill context script for injecting into a ContentOverlay
-    public convenience init(scriptSourceProvider: AutofillUserScriptSourceProvider, overlay: OverlayAutofillUserScriptPresentationDelegate, loginImportStateProvider: AutofillLoginImportStateProvider) {
-        self.init(scriptSourceProvider: scriptSourceProvider, encrypter: AESGCMUserScriptEncrypter(), hostProvider: SecurityOriginHostProvider(), loginImportStateProvider: loginImportStateProvider)
+    public convenience init(scriptSourceProvider: AutofillUserScriptSourceProvider, overlay: OverlayAutofillUserScriptPresentationDelegate) {
+        self.init(scriptSourceProvider: scriptSourceProvider, encrypter: AESGCMUserScriptEncrypter(), hostProvider: SecurityOriginHostProvider())
         self.isTopAutofillContext = true
         self.contentOverlay = overlay
     }

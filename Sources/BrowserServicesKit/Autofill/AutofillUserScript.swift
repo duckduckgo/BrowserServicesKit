@@ -63,6 +63,7 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
         case closeEmailProtectionTab
 
         case startCredentialsImportFlow
+        case credentialsImportFlowPermanentlyDismissed
     }
 
     /// Represents if the autofill is loaded into the top autofill context.
@@ -80,7 +81,6 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
     public weak var vaultDelegate: AutofillSecureVaultDelegate?
     public weak var passwordImportDelegate: AutofillPasswordImportDelegate?
 
-    internal let loginImportStateProvider: AutofillLoginImportStateProvider
     internal var scriptSourceProvider: AutofillUserScriptSourceProvider
 
     internal lazy var autofillDomainNameUrlMatcher: AutofillDomainNameUrlMatcher = {
@@ -167,6 +167,7 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
         case .startEmailProtectionSignup: return startEmailProtectionSignup
         case .closeEmailProtectionTab: return closeEmailProtectionTab
         case .startCredentialsImportFlow: return startCredentialsImportFlow
+        case .credentialsImportFlowPermanentlyDismissed: return credentialsImportFlowPermanentlyDismissed
         }
     }
 
@@ -178,22 +179,19 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
         return hostProvider.hostForMessage(message)
     }
 
-    public convenience init(scriptSourceProvider: AutofillUserScriptSourceProvider, loginImportStateProvider: AutofillLoginImportStateProvider) {
+    public convenience init(scriptSourceProvider: AutofillUserScriptSourceProvider) {
         self.init(scriptSourceProvider: scriptSourceProvider,
                   encrypter: AESGCMUserScriptEncrypter(),
-                  hostProvider: SecurityOriginHostProvider(),
-                  loginImportStateProvider: loginImportStateProvider)
+                  hostProvider: SecurityOriginHostProvider())
     }
 
     init(scriptSourceProvider: AutofillUserScriptSourceProvider,
          encrypter: UserScriptEncrypter = AESGCMUserScriptEncrypter(),
-         hostProvider: UserScriptHostProvider = SecurityOriginHostProvider(),
-         loginImportStateProvider: AutofillLoginImportStateProvider) {
+         hostProvider: UserScriptHostProvider = SecurityOriginHostProvider()) {
         self.scriptSourceProvider = scriptSourceProvider
         self.hostProvider = hostProvider
         self.encrypter = encrypter
         self.isTopAutofillContext = false
-        self.loginImportStateProvider = loginImportStateProvider
     }
 }
 
