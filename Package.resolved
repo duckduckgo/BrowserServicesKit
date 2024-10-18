@@ -23,8 +23,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/duckduckgo-autofill.git",
       "state" : {
-        "branch" : "dbajpeyi/remove-get-available-input-types-caching",
-        "revision" : "131e0d5efc8548b449fa4b811004fba26048a41c"
+        "revision" : "945ac09a0189dc6736db617867fde193ea984b20",
+        "version" : "15.0.0"
       }
     },
     {
