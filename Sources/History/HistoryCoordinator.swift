@@ -44,6 +44,7 @@ public protocol HistoryCoordinating: AnyObject {
     func burnDomains(_ baseDomains: Set<String>, tld: TLD, completion: @escaping (Set<URL>) -> Void)
     func burnVisits(_ visits: [Visit], completion: @escaping () -> Void)
 
+    func removeUrlEntry(_ url: URL, completion: ((Error?) -> Void)?)
 }
 
 /// Coordinates access to History. Uses its own queue with high qos for all operations.
@@ -189,6 +190,20 @@ final public class HistoryCoordinator: HistoryCoordinating {
         removeVisits(visits) { _ in
             completion()
         }
+    }
+
+    public enum EntryRemovalError: Error {
+        case notAvailable
+    }
+
+    public func removeUrlEntry(_ url: URL, completion: ((Error?) -> Void)? = nil) {
+        guard let historyDictionary = historyDictionary else { return }
+        guard let entry = historyDictionary[url] else {
+            completion?(EntryRemovalError.notAvailable)
+            return
+        }
+
+        removeEntries([entry], completionHandler: completion)
     }
 
     var cleaningDate: Date { .monthAgo }
