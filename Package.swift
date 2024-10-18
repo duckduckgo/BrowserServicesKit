@@ -43,7 +43,8 @@ let package = Package(
         .library(name: "SpecialErrorPages", targets: ["SpecialErrorPages"]),
         .library(name: "DuckPlayer", targets: ["DuckPlayer"]),
         .library(name: "PhishingDetection", targets: ["PhishingDetection"]),
-        .library(name: "Onboarding", targets: ["Onboarding"])
+        .library(name: "Onboarding", targets: ["Onboarding"]),
+        .library(name: "TipKitUtils", targets: ["TipKitUtils"])
     ],
     dependencies: [
         .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "13.1.0"),
@@ -424,6 +425,14 @@ let package = Package(
             ],
             resources: [
                 .process("Resources")
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
+            ]
+        ),
+        .target(
+            name: "TipKitUtils",
+            dependencies: [
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
