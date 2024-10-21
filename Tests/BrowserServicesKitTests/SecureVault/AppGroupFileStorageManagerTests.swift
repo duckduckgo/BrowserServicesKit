@@ -102,7 +102,7 @@ final class MockFileManager: FileManager {
         copiedFiles.append((from: srcURL, to: dstURL))
     }
 
-    override func createDirectory(at url: URL, withIntermediateDirectories createIntermediates: Bool, attributes: [FileAttributeKey : Any]? = nil) throws {
+    override func createDirectory(at url: URL, withIntermediateDirectories createIntermediates: Bool, attributes: [FileAttributeKey: Any]? = nil) throws {
         createdDirectories.insert(url)
     }
 

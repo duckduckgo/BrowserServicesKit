@@ -1,6 +1,5 @@
 //
-//  AppGroupFileStorageManager.swift
-//  DuckDuckGo
+//  FileStorageManaging.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -23,7 +22,6 @@ import os.log
 public protocol FileStorageManaging {
     func migrateDatabaseToSharedStorageIfNeeded(from databaseURL: URL, to sharedDatabaseURL: URL) throws -> URL
 }
-
 
 final public class AppGroupFileStorageManager: FileStorageManaging {
 
