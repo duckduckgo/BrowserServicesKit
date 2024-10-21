@@ -106,7 +106,7 @@ public final class DefaultStripePurchaseFlow: StripePurchaseFlow {
 //        }
 
         do {
-            let accessToken = try await oAuthClient.getTokens(policy: .valid).accessToken
+            let accessToken = try await oAuthClient.getTokens(policy: .createIfNeeded).accessToken
             if await isSubscriptionExpired(accessToken: accessToken) {
                 return .success(PurchaseUpdate.redirect(withToken: accessToken))
             } else {

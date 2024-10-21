@@ -21,7 +21,7 @@ import Subscription
 import Networking
 
 public final class SubscriptionEndpointServiceMock: SubscriptionEndpointService {
-    public var getSubscriptionResult: Result<PrivacyProSubscription, SubscriptionServiceError>?
+    public var getSubscriptionResult: Result<PrivacyProSubscription, SubscriptionEndpointServiceError>?
     public var getProductsResult: Result<[GetProductsItem], APIRequestV2.Error>?
     public var getCustomerPortalURLResult: Result<GetCustomerPortalURLResponse, APIRequestV2.Error>?
     public var confirmPurchaseResult: Result<ConfirmPurchaseResponse, APIRequestV2.Error>?

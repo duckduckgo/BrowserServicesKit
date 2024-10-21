@@ -23,7 +23,7 @@ public struct SubscriptionEnvironment: Codable {
     public enum ServiceEnvironment: String, Codable {
         case production, staging
 
-        var url: URL {
+        public var url: URL {
             switch self {
             case .production:
                 URL(string: "https://subscriptions.duckduckgo.com/api")!

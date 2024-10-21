@@ -21,9 +21,7 @@ import Foundation
 
 public final class SubscriptionManagerMock: SubscriptionManager {
 
-//    public var accountManager: AccountManager
     public var subscriptionEndpointService: SubscriptionEndpointService
-//    public var authEndpointService: AuthEndpointService
     let internalStorePurchaseManager: StorePurchaseManager
     public static var storedEnvironment: SubscriptionEnvironment? = nil
 

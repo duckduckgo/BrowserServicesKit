@@ -65,19 +65,17 @@ public final class DefaultAppStoreRestoreFlow: AppStoreRestoreFlow {
 
     @discardableResult
     public func restoreAccountFromPastPurchase() async -> Result<Void, AppStoreRestoreFlowError> {
+        Logger.subscriptionAppStoreRestoreFlow.info("Restoring account from past purchase")
 
         // Clear subscription Cache
         subscriptionEndpointService.signOut()
-
-        Logger.subscription.info("[AppStoreRestoreFlow] restoreAccountFromPastPurchase")
-
         guard let lastTransactionJWSRepresentation = await storePurchaseManager.mostRecentTransaction() else {
-            Logger.subscription.error("[AppStoreRestoreFlow] Error: missingAccountOrTransactions")
+            Logger.subscriptionAppStoreRestoreFlow.error("Missing last transaction")
             return .failure(.missingAccountOrTransactions)
         }
 
         guard let tokensContainer: TokensContainer = try? await oAuthClient.activate(withPlatformSignature: lastTransactionJWSRepresentation) else {
-            Logger.subscription.error("[AppStoreRestoreFlow] Error: pastTransactionAuthenticationError")
+            Logger.subscriptionAppStoreRestoreFlow.error("Missing tokens")
             return .failure(.pastTransactionAuthenticationError)
         }
 
@@ -89,7 +87,7 @@ public final class DefaultAppStoreRestoreFlow: AppStoreRestoreFlow {
 //        case .success(let exchangedAccessToken):
 //            accessToken = exchangedAccessToken
 //        case .failure:
-//            Logger.subscription.error("[AppStoreRestoreFlow] Error: failedToObtainAccessToken")
+//            Logger.subscriptionAppStoreRestoreFlow.error("[AppStoreRestoreFlow] Error: failedToObtainAccessToken")
 //            return .failure(.failedToObtainAccessToken)
 //        }
 
@@ -98,7 +96,7 @@ public final class DefaultAppStoreRestoreFlow: AppStoreRestoreFlow {
 //            email = accountDetails.email
 //            externalID = accountDetails.externalID
 //        case .failure:
-//            Logger.subscription.error("[AppStoreRestoreFlow] Error: failedToFetchAccountDetails")
+//            Logger.subscriptionAppStoreRestoreFlow.error("[AppStoreRestoreFlow] Error: failedToFetchAccountDetails")
 //            return .failure(.failedToFetchAccountDetails)
 //        }
 
@@ -110,12 +108,12 @@ public final class DefaultAppStoreRestoreFlow: AppStoreRestoreFlow {
                 return .success(())
             } else {
     //            let details = RestoredAccountDetails(authToken: authToken, accessToken: accessToken, externalID: externalID, email: email)
-                Logger.subscription.error("[AppStoreRestoreFlow] Error: subscriptionExpired")
+                Logger.subscriptionAppStoreRestoreFlow.error("Subscription expired")
                 return .failure(.subscriptionExpired)
             }
 
         } catch {
-            Logger.subscription.error("[AppStoreRestoreFlow] Error: failedToFetchSubscriptionDetails")
+            Logger.subscriptionAppStoreRestoreFlow.error("Failed to fetch subscription details")
             return .failure(.failedToFetchSubscriptionDetails)
         }
     }

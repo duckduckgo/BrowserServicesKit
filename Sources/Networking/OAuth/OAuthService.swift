@@ -17,7 +17,6 @@
 //
 
 import Foundation
-import os.log
 import JWTKit
 
 public protocol OAuthService {
@@ -155,8 +154,7 @@ public struct DefaultOAuthService: OAuthService {
     /// - Returns: and AuthServiceError.authAPIError containing the error code and description, nil if the body
     internal func extractError(from response: APIResponseV2, request: OAuthRequest) -> OAuthServiceError? {
         if let bodyError: OAuthRequest.BodyError = try? response.decodeBody() {
-            let description = OAuthRequest.errorDetails[bodyError.error] ?? "Missing description"
-            return OAuthServiceError.authAPIError(code: bodyError.error, description: description)
+            return OAuthServiceError.authAPIError(code: bodyError.error)
         }
         return nil
     }
@@ -176,7 +174,6 @@ public struct DefaultOAuthService: OAuthService {
 
         let statusCode = response.httpResponse.httpStatus
         if statusCode == request.httpSuccessCode {
-            Logger.OAuth.debug("\(#function) request completed")
             return try response.decodeBody()
         } else if request.httpErrorCodes.contains(statusCode) {
             try throwError(forResponse: response, request: request)
@@ -189,12 +186,11 @@ public struct DefaultOAuthService: OAuthService {
     // MARK: Authorise
 
     public func authorise(codeChallenge: String) async throws -> OAuthSessionID {
-
+        try Task.checkCancellation()
         guard let request = OAuthRequest.authorize(baseURL: baseURL, codeChallenge: codeChallenge) else {
             throw OAuthServiceError.invalidRequest
         }
 
-        try Task.checkCancellation()
         let response = try await apiService.fetch(request: request.apiRequest)
         try Task.checkCancellation()
 
@@ -204,7 +200,6 @@ public struct DefaultOAuthService: OAuthService {
             guard let cookieValue = response.httpResponse.getCookie(withName: "ddg_auth_session_id")?.value else {
                 throw OAuthServiceError.missingResponseValue("ddg_auth_session_id cookie")
             }
-            Logger.OAuth.debug("\(#function) request completed")
             return cookieValue
         } else if request.httpErrorCodes.contains(statusCode) {
             try throwError(forResponse: response, request: request)
@@ -215,17 +210,16 @@ public struct DefaultOAuthService: OAuthService {
     // MARK: Create Account
 
     public func createAccount(authSessionID: String) async throws -> AuthorisationCode {
+        try Task.checkCancellation()
         guard let request = OAuthRequest.createAccount(baseURL: baseURL, authSessionID: authSessionID) else {
             throw OAuthServiceError.invalidRequest
         }
 
-        try Task.checkCancellation()
         let response = try await apiService.fetch(request: request.apiRequest)
         try Task.checkCancellation()
 
         let statusCode = response.httpResponse.httpStatus
         if statusCode == request.httpSuccessCode {
-            Logger.OAuth.debug("\(#function) request completed")
             //  The redirect URI from the original Authorization request indicated by the ddg_auth_session_id in the provided Cookie header, with the authorization code needed for the Access Token request appended as a query param. The intention is that the client will intercept this redirect and extract the authorization code to make the Access Token request in the background.
             let redirectURI = try extract(header: HTTPHeaderKey.location, from: response.httpResponse)
 
@@ -245,17 +239,16 @@ public struct DefaultOAuthService: OAuthService {
     // MARK: Request OTP
 
     public func requestOTP(authSessionID: String, emailAddress: String) async throws {
+        try Task.checkCancellation()
         guard let request = OAuthRequest.requestOTP(baseURL: baseURL, authSessionID: authSessionID, emailAddress: emailAddress) else {
             throw OAuthServiceError.invalidRequest
         }
 
-        try Task.checkCancellation()
         let response = try await apiService.fetch(request: request.apiRequest)
         try Task.checkCancellation()
 
         let statusCode = response.httpResponse.httpStatus
         if statusCode == request.httpSuccessCode {
-            Logger.OAuth.debug("\(#function) request completed")
         } else if request.httpErrorCodes.contains(statusCode) {
             try throwError(forResponse: response, request: request)
         }
@@ -265,18 +258,17 @@ public struct DefaultOAuthService: OAuthService {
     // MARK: Login
 
     public func login(withOTP otp: String, authSessionID: String, email: String) async throws -> AuthorisationCode {
+        try Task.checkCancellation()
         let method = OAuthLoginMethodOTP(email: email, otp: otp)
         guard let request = OAuthRequest.login(baseURL: baseURL, authSessionID: authSessionID, method: method) else {
             throw OAuthServiceError.invalidRequest
         }
 
-        try Task.checkCancellation()
         let response = try await apiService.fetch(request: request.apiRequest)
         try Task.checkCancellation()
 
         let statusCode = response.httpResponse.httpStatus
         if statusCode == request.httpSuccessCode {
-            Logger.OAuth.debug("\(#function) request completed")
             return try extract(header: HTTPHeaderKey.location, from: response.httpResponse)
         } else if request.httpErrorCodes.contains(statusCode) {
             try throwError(forResponse: response, request: request)
@@ -285,18 +277,17 @@ public struct DefaultOAuthService: OAuthService {
     }
 
     public func login(withSignature signature: String, authSessionID: String) async throws -> AuthorisationCode {
+        try Task.checkCancellation()
         let method = OAuthLoginMethodSignature(signature: signature)
         guard let request = OAuthRequest.login(baseURL: baseURL, authSessionID: authSessionID, method: method) else {
             throw OAuthServiceError.invalidRequest
         }
 
-        try Task.checkCancellation()
         let response = try await apiService.fetch(request: request.apiRequest)
         try Task.checkCancellation()
 
         let statusCode = response.httpResponse.httpStatus
         if statusCode == request.httpSuccessCode {
-            Logger.OAuth.debug("\(#function) request completed")
             return try extract(header: HTTPHeaderKey.location, from: response.httpResponse)
         } else if request.httpErrorCodes.contains(statusCode) {
             try throwError(forResponse: response, request: request)
@@ -355,17 +346,15 @@ public struct DefaultOAuthService: OAuthService {
     // MARK: Access token exchange
 
     public func exchangeToken(accessTokenV1: String, authSessionID: String) async throws -> AuthorisationCode {
+        try Task.checkCancellation()
         guard let request = OAuthRequest.exchangeToken(baseURL: baseURL, accessTokenV1: accessTokenV1, authSessionID: authSessionID) else {
             throw OAuthServiceError.invalidRequest
         }
-
-        try Task.checkCancellation()
         let response = try await apiService.fetch(request: request.apiRequest)
         try Task.checkCancellation()
 
         let statusCode = response.httpResponse.httpStatus
         if statusCode == request.httpSuccessCode {
-            Logger.OAuth.debug("\(#function) request completed")
             return try extract(header: HTTPHeaderKey.location, from: response.httpResponse)
         } else if request.httpErrorCodes.contains(statusCode) {
             try throwError(forResponse: response, request: request)

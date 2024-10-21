@@ -19,6 +19,7 @@
 import Foundation
 import Networking
 import Common
+import os.log
 
 extension SubscriptionKeychainManager: TokensStoring {
 
@@ -30,10 +31,24 @@ extension SubscriptionKeychainManager: TokensStoring {
             return CodableHelper.decode(jsonData: data)
         }
         set {
-            if let data = CodableHelper.encode(newValue) {
-                try? store(data: data, forField: .tokens)
-            } else {
-                assertionFailure("Failed to encode TokensContainer")
+            do {
+                guard let newValue else {
+                    Logger.subscription.debug("removing TokensContainer")
+                    try deleteItem(forField: .tokens)
+                    return
+                }
+
+                try? deleteItem(forField: .tokens)
+
+                if let data = CodableHelper.encode(newValue) {
+                    try store(data: data, forField: .tokens)
+                } else {
+                    Logger.subscription.fault("Failed to encode TokensContainer")
+                    assertionFailure("Failed to encode TokensContainer")
+                }
+            } catch {
+                Logger.subscription.fault("Failed to set TokensContainer: \(error, privacy: .public)")
+                assertionFailure("Failed to set TokensContainer")
             }
         }
     }

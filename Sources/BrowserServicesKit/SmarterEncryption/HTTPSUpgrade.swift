@@ -88,7 +88,6 @@ public actor HTTPSUpgrade {
     }
 
     nonisolated public func loadDataAsync() {
-        logger.debug("loadDataAsync")
         Task {
             await self.loadData()
         }

@@ -100,7 +100,6 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
     }
 
     public func subscriptionOptions() async -> SubscriptionOptions? {
-        Logger.subscription.info("[AppStorePurchaseFlow] subscriptionOptions")
         let products = availableProducts
         let monthly = products.first(where: { $0.subscription?.subscriptionPeriod.unit == .month && $0.subscription?.subscriptionPeriod.value == 1 })
         let yearly = products.first(where: { $0.subscription?.subscriptionPeriod.unit == .year && $0.subscription?.subscriptionPeriod.value == 1 })
@@ -126,23 +125,23 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
 
     @MainActor
     public func updateAvailableProducts() async {
-        Logger.subscription.info("[StorePurchaseManager] updateAvailableProducts")
+        Logger.subscription.debug("Update available products")
 
         do {
             let availableProducts = try await Product.products(for: productIdentifiers)
-            Logger.subscription.info("[StorePurchaseManager] updateAvailableProducts fetched \(availableProducts.count) products")
+            Logger.subscription.debug("\(availableProducts.count) products available")
 
             if self.availableProducts != availableProducts {
                 self.availableProducts = availableProducts
             }
         } catch {
-            Logger.subscription.error("[StorePurchaseManager] Error: \(String(reflecting: error), privacy: .public)")
+            Logger.subscription.error("Failed to fetch available products: \(String(reflecting: error), privacy: .public)")
         }
     }
 
     @MainActor
     public func updatePurchasedProducts() async {
-        Logger.subscription.info("[StorePurchaseManager] updatePurchasedProducts")
+        Logger.subscription.debug("Update purchased products")
 
         var purchasedSubscriptions: [String] = []
 
@@ -158,10 +157,10 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
                 }
             }
         } catch {
-            Logger.subscription.error("[StorePurchaseManager] Error: \(String(reflecting: error), privacy: .public)")
+            Logger.subscription.error("Failed to update purchased products: \(String(reflecting: error), privacy: .public)")
         }
 
-        Logger.subscription.info("[StorePurchaseManager] updatePurchasedProducts fetched \(purchasedSubscriptions.count) active subscriptions")
+        Logger.subscription.debug("UpdatePurchasedProducts fetched \(purchasedSubscriptions.count) active subscriptions")
 
         if self.purchasedProductIDs != purchasedSubscriptions {
             self.purchasedProductIDs = purchasedSubscriptions
@@ -203,7 +202,7 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
 
         guard let product = availableProducts.first(where: { $0.id == identifier }) else { return .failure(StorePurchaseManagerError.productNotFound) }
 
-        Logger.subscription.info("[StorePurchaseManager] purchaseSubscription \(product.displayName, privacy: .public) (\(externalID, privacy: .public))")
+        Logger.subscription.info("Purchasing Subscription \(product.displayName, privacy: .public) (\(externalID, privacy: .public))")
 
         purchaseQueue.append(product.id)
 

@@ -24,4 +24,5 @@ public extension Logger {
     static var subscriptionAppStorePurchaseFlow = { Logger(subsystem: "Subscription", category: "AppStorePurchaseFlow") }()
     static var subscriptionAppStoreRestoreFlow = { Logger(subsystem: "Subscription", category: "AppStoreRestoreFlow") }()
     static var subscriptionStripePurchaseFlow = { Logger(subsystem: "Subscription", category: "StripePurchaseFlow") }()
+    static var subscriptionEndpointService = { Logger(subsystem: "Subscription", category: "EndpointService") }()
 }

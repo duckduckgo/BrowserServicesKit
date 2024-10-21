@@ -54,9 +54,11 @@ public class DefaultAPIService: APIService {
            request.authRefreshRetryCount == 0,
            let authorizationRefresherCallback {
             request.authRefreshRetryCount += 1
+
             // Ask to refresh the token
             let refreshedToken = try await authorizationRefresherCallback(request)
             request.updateAuthorizationHeader(refreshedToken)
+
             // Try again
             return try await fetch(request: request)
         }

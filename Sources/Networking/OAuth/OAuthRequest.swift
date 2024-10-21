@@ -28,30 +28,74 @@ struct OAuthRequest {
     var url: URL {
         apiRequest.urlRequest.url!
     }
-    static let errorDetails = [
-        "invalid_authorization_request": "One or more of the required parameters are missing or any provided parameters have invalid values",
-        "authorize_failed": "Failed to create the authorization session, either because of a reused code challenge or internal server error",
-        "invalid_request": "The ddg_auth_session_id is missing or has already been used to log in to a different account",
-        "account_create_failed": "Failed to create the account because of an internal server error",
-        "invalid_email_address": "Provided email address is missing or of an invalid format",
-        "invalid_session_id": "The session id is missing, invalid or has already been used for logging in",
-        "suspended_account": "The account you are logging in to is suspended",
-        "email_sending_error": "Failed to send the OTP to the email address provided",
-        "invalid_login_credentials": "One or more of the provided parameters is invalid",
-        "unknown_account": "The login credentials appear valid but do not link to a known account",
-        "invalid_token_request": "One or more of the required parameters are missing or any provided parameters have invalid values",
-        "unverified_account": "The token is valid but is for an unverified account",
-        "email_address_not_changed": "New email address is the same as the old email address",
-        "failed_mx_check": "DNS check to see if email address domain is valid failed",
-        "account_edit_failed": "Something went wrong and the edit was aborted",
-        "invalid_link_signature": "The hash is invalid or does not match the provided email address and account",
-        "account_change_email_address_failed": "Something went wrong and the edit was aborted",
-        "invalid_token": "Provided access token is missing or invalid",
-        "expired_token": "Provided access token is expired"
-    ]
+
+    public enum BodyErrorCode: String, Decodable {
+        case invalidAuthorizationRequest = "invalid_authorization_request"
+        case authorizeFailed = "authorize_failed"
+        case invalidRequest = "invalid_request"
+        case accountCreateFailed = "account_create_failed"
+        case invalidEmailAddress = "invalid_email_address"
+        case invalidSessionId = "invalid_session_id"
+        case suspendedAccount = "suspended_account"
+        case emailSendingError = "email_sending_error"
+        case invalidLoginCredentials = "invalid_login_credentials"
+        case unknownAccount = "unknown_account"
+        case invalidTokenRequest = "invalid_token_request"
+        case unverifiedAccount = "unverified_account"
+        case emailAddressNotChanged = "email_address_not_changed"
+        case failedMxCheck = "failed_mx_check"
+        case accountEditFailed = "account_edit_failed"
+        case invalidLinkSignature = "invalid_link_signature"
+        case accountChangeEmailAddressFailed = "account_change_email_address_failed"
+        case invalidToken = "invalid_token"
+        case expiredToken = "expired_token"
+
+        public var description: String {
+            switch self {
+            case .invalidAuthorizationRequest:
+                return "One or more of the required parameters are missing or any provided parameters have invalid values"
+            case .authorizeFailed:
+                return "Failed to create the authorization session, either because of a reused code challenge or internal server error"
+            case .invalidRequest:
+                return "The ddg_auth_session_id is missing or has already been used to log in to a different account"
+            case .accountCreateFailed:
+                return "Failed to create the account because of an internal server error"
+            case .invalidEmailAddress:
+                return "Provided email address is missing or of an invalid format"
+            case .invalidSessionId:
+                return "The session id is missing, invalid or has already been used for logging in"
+            case .suspendedAccount:
+                return "The account you are logging in to is suspended"
+            case .emailSendingError:
+                return "Failed to send the OTP to the email address provided"
+            case .invalidLoginCredentials:
+                return "One or more of the provided parameters is invalid"
+            case .unknownAccount:
+                return "The login credentials appear valid but do not link to a known account"
+            case .invalidTokenRequest:
+                return "One or more of the required parameters are missing or any provided parameters have invalid values"
+            case .unverifiedAccount:
+                return "The token is valid but is for an unverified account"
+            case .emailAddressNotChanged:
+                return "New email address is the same as the old email address"
+            case .failedMxCheck:
+                return "DNS check to see if email address domain is valid failed"
+            case .accountEditFailed:
+                return "Something went wrong and the edit was aborted"
+            case .invalidLinkSignature:
+                return "The hash is invalid or does not match the provided email address and account"
+            case .accountChangeEmailAddressFailed:
+                return "Something went wrong and the edit was aborted"
+            case .invalidToken:
+                return "Provided access token is missing or invalid"
+            case .expiredToken:
+                return "Provided access token is expired"
+            }
+        }
+    }
 
     struct BodyError: Decodable {
-        let error: String
+        let error: BodyErrorCode
     }
 
     internal init(apiRequest: APIRequestV2,
