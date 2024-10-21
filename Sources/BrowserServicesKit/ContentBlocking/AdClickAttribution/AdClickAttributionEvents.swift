@@ -25,7 +25,6 @@ public enum AdClickAttributionEvents {
         public static let heuristicDetectionEnabled = "heuristicDetectionEnabled"
         public static let domainDetectionEnabled = "domainDetectionEnabled"
         public static let count = "count"
-        public static let cpmExperiment = "cpmExperiment"
     }
 
     case adAttributionDetected
