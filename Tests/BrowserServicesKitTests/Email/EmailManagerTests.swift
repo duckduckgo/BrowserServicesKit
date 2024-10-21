@@ -51,7 +51,7 @@ class EmailManagerTests: XCTestCase {
                                                                                               sessionKey: "1234",
                                                                                               featureToggles: ContentScopeFeatureToggles.allTogglesOn),
                                                            isDebug: false)
-        let userScript = AutofillUserScript(scriptSourceProvider: sourceProvider, loginImportStateProvider: MockAutofillLoginImportStateProvider())
+        let userScript = AutofillUserScript(scriptSourceProvider: sourceProvider)
         return userScript
     }
 
