@@ -58,28 +58,34 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
     }
 
     public func purchaseSubscription(with subscriptionIdentifier: String) async -> Result<TransactionJWS, AppStorePurchaseFlowError> {
-        Logger.subscriptionAppStorePurchaseFlow.debug("Purchase Subscription")
+        Logger.subscriptionAppStorePurchaseFlow.debug("Purchasing Subscription")
 
-        var externalID: String? = nil
+        var externalID: String?
         // If the current account is a third party expired account, we want to purchase and attach subs to it
         if let existingExternalID = await getExpiredSubscriptionID() {
+            Logger.subscriptionAppStorePurchaseFlow.debug("External ID retrieved from expired subscription")
             externalID = existingExternalID
-        } else { // Otherwise, try to retrieve an expired Apple subscription or create a new one
-
+        } else {
+            Logger.subscriptionAppStorePurchaseFlow.debug("Try to retrieve an expired Apple subscription or create a new one")
             // Check for past transactions most recent
             switch await appStoreRestoreFlow.restoreAccountFromPastPurchase() {
-            case .success():
-                Logger.subscriptionAppStorePurchaseFlow.error("purchaseSubscription -> restoreAccountFromPastPurchase: activeSubscriptionAlreadyPresent")
+            case .success:
+                Logger.subscriptionAppStorePurchaseFlow.debug("An active subscription is already present")
                 return .failure(.activeSubscriptionAlreadyPresent)
             case .failure(let error):
-                Logger.subscriptionAppStorePurchaseFlow.debug("purchaseSubscription -> restoreAccountFromPastPurchase: \(error.localizedDescription, privacy: .public)")
-                externalID = try? await oAuthClient.getTokens(policy: .createIfNeeded).decodedAccessToken.externalID
-                break
+                Logger.subscriptionAppStorePurchaseFlow.debug("Failed to restore an account from a past purchase: \(error.localizedDescription, privacy: .public)")
+                do {
+                    let newAccountExternalID = try await oAuthClient.getTokens(policy: .createIfNeeded).decodedAccessToken.externalID
+                    externalID = newAccountExternalID
+                } catch {
+                    Logger.subscriptionStripePurchaseFlow.error("Failed to create a new account: \(error.localizedDescription, privacy: .public), the operation is unrecoverable")
+                    return .failure(.internalError)
+                }
             }
         }
 
         guard let externalID else {
-            Logger.subscriptionAppStorePurchaseFlow.error("purchaseSubscription -> externalID is nil")
+            Logger.subscriptionAppStorePurchaseFlow.fault("Missing externalID, subscription purchase failed")
             return .failure(.internalError)
         }
 
@@ -89,7 +95,7 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
             return .success(transactionJWS)
         case .failure(let error):
             Logger.subscriptionAppStorePurchaseFlow.error("purchaseSubscription error: \(String(reflecting: error), privacy: .public)")
-            //                accountManager.signOut(skipNotification: true)
+            oAuthClient.removeLocalAccount()
             switch error {
             case .purchaseCancelledByUser:
                 return .failure(.cancelledByUser)
@@ -107,7 +113,7 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
         subscriptionEndpointService.signOut()
 
         do {
-            let accessToken = try await oAuthClient.getTokens(policy: .createIfNeeded).accessToken
+            let accessToken = try await oAuthClient.getTokens(policy: .localValid).accessToken
             do {
                 let confirmation = try await subscriptionEndpointService.confirmPurchase(accessToken: accessToken, signature: transactionJWS)
                 subscriptionEndpointService.updateCache(with: confirmation.subscription)
@@ -125,7 +131,7 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
 
     private func getExpiredSubscriptionID() async -> String? {
         do {
-            let tokenStorage = try await oAuthClient.getTokens(policy: .createIfNeeded)
+            let tokenStorage = try await oAuthClient.getTokens(policy: .localValid)
             let subscription = try await subscriptionEndpointService.getSubscription(accessToken: tokenStorage.accessToken, cachePolicy: .reloadIgnoringLocalCacheData)
 
             // Only return an externalID if the subscription is expired so to prevent creating multiple subscriptions in the same account

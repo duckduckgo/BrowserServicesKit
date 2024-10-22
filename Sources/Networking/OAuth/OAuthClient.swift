@@ -109,6 +109,9 @@ public protocol OAuthClient {
     /// Logout by invalidating the current access token
     func logout() async throws
 
+    /// Remove the tokens container stored locally
+    func removeLocalAccount()
+
     // MARK: Edit account
 
     /// Change the email address of the account
@@ -284,6 +287,7 @@ final public class DefaultOAuthClient: OAuthClient {
     }
 
     public func requestOTP(email: String) async throws -> (authSessionID: String, codeVerifier: String) {
+        Logger.OAuthClient.debug("Requesting OTP")
         let (codeVerifier, codeChallenge) = try await getVerificationCodes()
         let authSessionID = try await authService.authorise(codeChallenge: codeChallenge)
         try await authService.requestOTP(authSessionID: authSessionID, emailAddress: email)
@@ -291,16 +295,19 @@ final public class DefaultOAuthClient: OAuthClient {
     }
 
     public func activate(withOTP otp: String, email: String, codeVerifier: String, authSessionID: String) async throws {
+        Logger.OAuthClient.debug("Activating with OTP")
         let authCode = try await authService.login(withOTP: otp, authSessionID: authSessionID, email: email)
         try await getTokens(authCode: authCode, codeVerifier: codeVerifier)
     }
 
     public func activate(withPlatformSignature signature: String) async throws -> TokensContainer {
+        Logger.OAuthClient.debug("Activating with platform signature")
         let (codeVerifier, codeChallenge) = try await getVerificationCodes()
         let authSessionID = try await authService.authorise(codeChallenge: codeChallenge)
         let authCode = try await authService.login(withSignature: signature, authSessionID: authSessionID)
         let tokens = try await getTokens(authCode: authCode, codeVerifier: codeVerifier)
         tokensStorage.tokensContainer = tokens
+        Logger.OAuthClient.debug("Activation completed")
         return tokens
     }
 
@@ -356,6 +363,11 @@ final public class DefaultOAuthClient: OAuthClient {
         if let token = tokensStorage.tokensContainer?.accessToken {
             try await authService.logout(accessToken: token)
         }
+        removeLocalAccount()
+    }
+
+    public func removeLocalAccount() {
+        Logger.OAuthClient.debug("Removing local account")
         tokensStorage.tokensContainer = nil
     }
 

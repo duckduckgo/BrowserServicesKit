@@ -98,6 +98,17 @@ struct OAuthRequest {
         let error: BodyErrorCode
     }
 
+    static func ddgAuthSessionCookie(domain: String, path: String, authSessionID: String) -> HTTPCookie? {
+        return HTTPCookie(properties: [
+            .domain: domain,
+            .path: path,
+            .name: "ddg_auth_session_id",
+            .value: authSessionID
+        ])
+    }
+
+    // MARK: -
+
     internal init(apiRequest: APIRequestV2,
                   httpSuccessCode: HTTPStatusCode = HTTPStatusCode.ok,
                   httpErrorCodes: [HTTPStatusCode] = [HTTPStatusCode.badRequest, HTTPStatusCode.internalServerError]) {
@@ -130,23 +141,16 @@ struct OAuthRequest {
 
     static func createAccount(baseURL: URL, authSessionID: String) -> OAuthRequest? {
         let path = "/api/auth/v2/account/create"
-        guard let domain = baseURL.host else {
-            return nil
-        }
-        let cookie = HTTPCookie(properties: [
-            .domain: domain,
-            .path: path,
-            .name: "ddg_auth_session_id",
-            .value: authSessionID
-        ])
-        let headers = [
-            HTTPHeaderKey.cookie: authSessionID
-        ]
-        guard let cookie,
-              let request = APIRequestV2(url: baseURL.appendingPathComponent(path),
+        guard let domain = baseURL.host,
+              let cookie = Self.ddgAuthSessionCookie(domain: domain, path: path, authSessionID: authSessionID)
+        else { return nil }
+
+//        let headers = [
+//            HTTPHeaderKey.cookie: authSessionID
+//        ]
+        guard let request = APIRequestV2(url: baseURL.appendingPathComponent(path),
                                          method: .post,
-                                         headers: APIRequestV2.HeadersV2(cookies: [cookie],
-                                                                         additionalHeaders: headers)) else {
+                                         headers: APIRequestV2.HeadersV2(cookies: [cookie])) else {
             return nil
         }
         return OAuthRequest(apiRequest: request, httpSuccessCode: HTTPStatusCode.found)
@@ -156,12 +160,14 @@ struct OAuthRequest {
 
     static func requestOTP(baseURL: URL, authSessionID: String, emailAddress: String) -> OAuthRequest? {
         let path = "/api/auth/v2/otp"
-        let headers = [ HTTPHeaderKey.cookie: authSessionID ]
         let queryItems = [ "email": emailAddress ]
+        guard let domain = baseURL.host,
+              let cookie = Self.ddgAuthSessionCookie(domain: domain, path: path, authSessionID: authSessionID)
+        else { return nil }
         guard let request = APIRequestV2(url: baseURL.appendingPathComponent(path),
                                          method: .post,
                                          queryItems: queryItems,
-                                         headers: APIRequestV2.HeadersV2(additionalHeaders: headers)) else {
+                                         headers: APIRequestV2.HeadersV2(cookies: [cookie])) else {
             return nil
         }
         return OAuthRequest(apiRequest: request)
@@ -171,8 +177,12 @@ struct OAuthRequest {
 
     static func login(baseURL: URL, authSessionID: String, method: OAuthLoginMethod) -> OAuthRequest? {
         let path = "/api/auth/v2/login"
-        let headers = [ HTTPHeaderKey.cookie: authSessionID ]
         var queryItems: [String: String]
+
+        guard let domain = baseURL.host,
+              let cookie = Self.ddgAuthSessionCookie(domain: domain, path: path, authSessionID: authSessionID)
+        else { return nil }
+
         switch method.self {
         case is OAuthLoginMethodOTP:
             guard let otpMethod = method as? OAuthLoginMethodOTP else {
@@ -189,7 +199,7 @@ struct OAuthRequest {
             }
             queryItems = [
                 "method": signatureMethod.name,
-                "email": signatureMethod.signature,
+                "signature": signatureMethod.signature,
                 "source": signatureMethod.source
             ]
         default:
@@ -200,7 +210,7 @@ struct OAuthRequest {
         guard let request = APIRequestV2(url: baseURL.appendingPathComponent(path),
                                          method: .post,
                                          queryItems: queryItems,
-                                         headers: APIRequestV2.HeadersV2(additionalHeaders: headers)) else {
+                                         headers: APIRequestV2.HeadersV2(cookies: [cookie])) else {
             return nil
         }
         return OAuthRequest(apiRequest: request, httpSuccessCode: HTTPStatusCode.found)
@@ -295,14 +305,14 @@ struct OAuthRequest {
 
     static func exchangeToken(baseURL: URL, accessTokenV1: String, authSessionID: String) -> OAuthRequest? {
         let path = "/api/auth/v2/exchange"
-        let headers = [
-            HTTPHeaderKey.cookie: authSessionID
-        ]
+        guard let domain = baseURL.host,
+              let cookie = Self.ddgAuthSessionCookie(domain: domain, path: path, authSessionID: authSessionID)
+        else { return nil }
 
         guard let request = APIRequestV2(url: baseURL.appendingPathComponent(path),
                                          method: .post,
-                                         headers: APIRequestV2.HeadersV2(authToken: accessTokenV1,
-                                                                         additionalHeaders: headers)) else {
+                                         headers: APIRequestV2.HeadersV2(cookies: [cookie],
+                                                                         authToken: accessTokenV1)) else {
             return nil
         }
         return OAuthRequest(apiRequest: request,

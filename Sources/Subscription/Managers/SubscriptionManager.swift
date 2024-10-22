@@ -146,19 +146,16 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     }
 
     public func currentSubscription(refresh: Bool) async throws -> PrivacyProSubscription? {
-        guard isUserAuthenticated == true else {
-            Logger.subscription.debug("Subscription not present")
-            return nil
-        }
-
         do {
             let tokensContainer = try await oAuthClient.getTokens(policy: .localValid)
             let subscription = try await subscriptionEndpointService.getSubscription(accessToken: tokensContainer.accessToken, cachePolicy: refresh ? .returnCacheDataElseLoad : .returnCacheDataDontLoad )
             return subscription
+        } catch(Subscription.SubscriptionEndpointServiceError.noData) {
+            Logger.subscription.debug("No subscription found")
         } catch {
             Logger.subscription.error("Error fetching subscription: \(error, privacy: .public)")
-            return nil
         }
+        return nil
     }
 
     // MARK: - URLs

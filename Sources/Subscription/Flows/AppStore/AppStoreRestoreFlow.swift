@@ -74,8 +74,18 @@ public final class DefaultAppStoreRestoreFlow: AppStoreRestoreFlow {
             return .failure(.missingAccountOrTransactions)
         }
 
-        guard let tokensContainer: TokensContainer = try? await oAuthClient.activate(withPlatformSignature: lastTransactionJWSRepresentation) else {
-            Logger.subscriptionAppStoreRestoreFlow.error("Missing tokens")
+        do {
+            let tokensContainer = try await oAuthClient.activate(withPlatformSignature: lastTransactionJWSRepresentation)
+            let subscription = try await subscriptionEndpointService.getSubscription(accessToken: tokensContainer.accessToken, cachePolicy: .reloadIgnoringLocalCacheData)
+            if subscription.isActive {
+                return .success(())
+            } else {
+    //            let details = RestoredAccountDetails(authToken: authToken, accessToken: accessToken, externalID: externalID, email: email)
+                Logger.subscriptionAppStoreRestoreFlow.error("Subscription expired")
+                return .failure(.subscriptionExpired)
+            }
+        } catch {
+            Logger.subscriptionAppStoreRestoreFlow.error("Error activating past transaction: \(error, privacy: .public)")
             return .failure(.pastTransactionAuthenticationError)
         }
 
@@ -101,20 +111,5 @@ public final class DefaultAppStoreRestoreFlow: AppStoreRestoreFlow {
 //        }
 
 //        let tokensContainer = try? await oAuthClient.refreshTokens()
-
-        do {
-            let subscription = try await subscriptionEndpointService.getSubscription(accessToken: tokensContainer.accessToken, cachePolicy: .reloadIgnoringLocalCacheData)
-            if subscription.isActive {
-                return .success(())
-            } else {
-    //            let details = RestoredAccountDetails(authToken: authToken, accessToken: accessToken, externalID: externalID, email: email)
-                Logger.subscriptionAppStoreRestoreFlow.error("Subscription expired")
-                return .failure(.subscriptionExpired)
-            }
-
-        } catch {
-            Logger.subscriptionAppStoreRestoreFlow.error("Failed to fetch subscription details")
-            return .failure(.failedToFetchSubscriptionDetails)
-        }
     }
 }
