@@ -60,14 +60,14 @@ class PhishingDetectionDataStoreTests: XCTestCase {
         XCTAssertEqual(actualFilterSet, expectedFilerSet)
         XCTAssertEqual(actualHashPrefix, expectedHashPrefix)
     }
-    
+
     func testWhenEmbeddedRevisionNewerThanOnDisk_ThenLoadEmbedded() async {
         mockDataProvider.embeddedRevision = 5
         let expectedFilerSet = Set([Filter(hashValue: "some", regex: "some")])
         let expectedHashPrefix = Set(["sassa"])
         mockDataProvider.shouldReturnFilterSet(set: expectedFilerSet)
         mockDataProvider.shouldReturnHashPrefixes(set: expectedHashPrefix)
-        
+
         let actualRevision = dataStore.currentRevision
         let actualFilterSet = dataStore.filterSet
         let actualHashPrefix = dataStore.hashPrefixes
