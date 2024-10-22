@@ -136,10 +136,16 @@ public class PhishingDetectionDataStore: PhishingDetectionDataSaving {
     }
 
     private func loadHashPrefix() -> Set<String> {
-        guard let data = fileStorageManager.read(from: hashPrefixFilename) else { return dataProvider.loadEmbeddedHashPrefixes() }
+        guard let data = fileStorageManager.read(from: hashPrefixFilename) else {
+            return dataProvider.loadEmbeddedHashPrefixes()
+        }
         let decoder = JSONDecoder()
         do {
-            return Set(try decoder.decode(Set<String>.self, from: data))
+            if loadRevisionFromDisk() < dataProvider.embeddedRevision {
+                return dataProvider.loadEmbeddedHashPrefixes()
+            }
+            let onDiskHashPrefixes = Set(try decoder.decode(Set<String>.self, from: data))
+            return onDiskHashPrefixes
         } catch {
             Logger.phishingDetectionDataStore.error("Error decoding \(self.hashPrefixFilename): \(error.localizedDescription)")
             return dataProvider.loadEmbeddedHashPrefixes()
@@ -147,21 +153,46 @@ public class PhishingDetectionDataStore: PhishingDetectionDataSaving {
     }
 
     private func loadFilterSet() -> Set<Filter> {
-        guard let data = fileStorageManager.read(from: filterSetFilename) else { return dataProvider.loadEmbeddedFilterSet() }
+        guard let data = fileStorageManager.read(from: filterSetFilename) else {
+            return dataProvider.loadEmbeddedFilterSet()
+        }
         let decoder = JSONDecoder()
         do {
-            return Set(try decoder.decode(Set<Filter>.self, from: data))
+            if loadRevisionFromDisk() < dataProvider.embeddedRevision {
+                return dataProvider.loadEmbeddedFilterSet()
+            }
+            let onDiskFilterSet = Set(try decoder.decode(Set<Filter>.self, from: data))
+            return onDiskFilterSet
         } catch {
             Logger.phishingDetectionDataStore.error("Error decoding \(self.filterSetFilename): \(error.localizedDescription)")
             return dataProvider.loadEmbeddedFilterSet()
         }
     }
 
-    private func loadRevision() -> Int {
-        guard let data = fileStorageManager.read(from: revisionFilename) else { return dataProvider.embeddedRevision }
+    private func loadRevisionFromDisk() -> Int {
+        guard let data = fileStorageManager.read(from: revisionFilename) else {
+            return dataProvider.embeddedRevision
+        }
         let decoder = JSONDecoder()
         do {
             return try decoder.decode(Int.self, from: data)
+        } catch {
+            Logger.phishingDetectionDataStore.error("Error decoding \(self.revisionFilename): \(error.localizedDescription)")
+            return dataProvider.embeddedRevision
+        }
+    }
+
+    private func loadRevision() -> Int {
+        guard let data = fileStorageManager.read(from: revisionFilename) else {
+            return dataProvider.embeddedRevision
+        }
+        let decoder = JSONDecoder()
+        do {
+            let loadedRevision = try decoder.decode(Int.self, from: data)
+            if loadedRevision < dataProvider.embeddedRevision {
+                return dataProvider.embeddedRevision
+            }
+            return loadedRevision
         } catch {
             Logger.phishingDetectionDataStore.error("Error decoding \(self.revisionFilename): \(error.localizedDescription)")
             return dataProvider.embeddedRevision
