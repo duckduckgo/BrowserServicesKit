@@ -75,7 +75,7 @@ public final class NetworkProtectionKeychainKeyStore: NetworkProtectionKeyStore 
     // MARK: - NetworkProtectionKeyStore
 
     public func currentKeyPair() -> KeyPair? {
-        Logger.networkProtectionKeyManagement.debug("Querying the current key pair (publicKey: \(String(describing: self.currentPublicKey), privacy: .public), expirationDate: \(String(describing: self.currentExpirationDate), privacy: .public))")
+        Logger.networkProtectionKeyManagement.log("Querying the current key pair (publicKey: \(String(describing: self.currentPublicKey), privacy: .public), expirationDate: \(String(describing: self.currentExpirationDate), privacy: .public))")
 
         guard let currentPrivateKey = currentPrivateKey else {
             Logger.networkProtectionKeyManagement.log("There's no current private key.")

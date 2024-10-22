@@ -69,7 +69,7 @@ public actor NetworkProtectionServerStatusMonitor {
     // MARK: - Start/Stop monitoring
 
     public func start(serverName: String, callback: @escaping (ServerStatusResult) -> Void) {
-        Logger.networkProtectionServerStatusMonitor.debug("⚫️ Starting server status monitor for \(serverName, privacy: .public)")
+        Logger.networkProtectionServerStatusMonitor.log("⚫️ Starting server status monitor for \(serverName, privacy: .public)")
 
         task = Task.periodic(delay: Self.monitoringInterval, interval: Self.monitoringInterval) {
             let result = await self.checkServerStatus(for: serverName)
@@ -77,10 +77,10 @@ public actor NetworkProtectionServerStatusMonitor {
             switch result {
             case .success(let serverStatus):
                 if serverStatus.shouldMigrate {
-                    Logger.networkProtectionMemory.debug("⚫️ Initiating server migration away from \(serverName, privacy: .public)")
+                    Logger.networkProtectionMemory.log("⚫️ Initiating server migration away from \(serverName, privacy: .public)")
                     callback(.serverMigrationRequested)
                 } else {
-                    Logger.networkProtectionMemory.debug("⚫️ No migration requested for \(serverName, privacy: .public)")
+                    Logger.networkProtectionMemory.log("⚫️ No migration requested for \(serverName, privacy: .public)")
                 }
             case .failure(let error):
                 Logger.networkProtectionMemory.error("⚫️ Error retrieving server status: \(error.localizedDescription, privacy: .public)")
