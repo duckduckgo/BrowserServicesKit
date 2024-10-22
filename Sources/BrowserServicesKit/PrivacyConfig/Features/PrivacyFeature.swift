@@ -84,6 +84,7 @@ public enum AutofillSubfeature: String, PrivacySubfeature {
     case onByDefault
     case onForExistingUsers
     case unknownUsernameCategorization
+    case credentialsImportPromotionForExistingUsers
 }
 
 public enum DBPSubfeature: String, Equatable, PrivacySubfeature {
@@ -123,7 +124,7 @@ public enum AutoconsentSubfeature: String, PrivacySubfeature {
     }
 
     case onByDefault
-    case filterlistExperiment
+    case filterlistExperiment2
 }
 
 public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {

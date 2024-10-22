@@ -22,6 +22,7 @@ import PixelKit
 public extension PixelKit {
     enum Parameters: Hashable {
         public static let clientSideHit = "client_side_hit"
+        public static let settingToggledTo = "setting_toggled_to"
     }
 }
 
@@ -30,6 +31,7 @@ public enum PhishingDetectionEvents: PixelKitEventV2 {
     case visitSite
     case iframeLoaded
     case updateTaskFailed48h(error: Error?)
+    case settingToggled(to: Bool)
 
     public var name: String {
         switch self {
@@ -41,6 +43,8 @@ public enum PhishingDetectionEvents: PixelKitEventV2 {
             return "phishing_detection_iframe-loaded"
         case .updateTaskFailed48h:
             return "phishing_detection_update-task-failed-48h"
+        case .settingToggled:
+            return "phishing_detection_setting-toggled"
         }
     }
 
@@ -54,6 +58,8 @@ public enum PhishingDetectionEvents: PixelKitEventV2 {
             return [:]
         case .updateTaskFailed48h(let error):
             return error?.pixelParameters
+        case .settingToggled(let state):
+            return [PixelKit.Parameters.settingToggledTo: String(state)]
         }
     }
 
@@ -66,6 +72,8 @@ public enum PhishingDetectionEvents: PixelKitEventV2 {
         case .visitSite:
             return nil
         case .iframeLoaded:
+            return nil
+        case .settingToggled:
             return nil
         }
     }
