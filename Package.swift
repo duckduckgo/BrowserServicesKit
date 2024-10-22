@@ -47,7 +47,7 @@ let package = Package(
         .library(name: "TipKitUtils", targets: ["TipKitUtils"])
     ],
     dependencies: [
-        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "13.1.0"),
+        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "15.0.0"),
         .package(url: "https://github.com/duckduckgo/GRDB.swift.git", exact: "2.4.0"),
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "3.0.0"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.2.0"),
