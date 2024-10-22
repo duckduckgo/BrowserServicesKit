@@ -152,7 +152,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
         }
 
         let (selectedServer, newExpiration) = try await register(keyPair: keyPair, selectionMethod: resolvedSelectionMethod)
-        Logger.networkProtection.debug("Server registration successul")
+        Logger.networkProtection.log("Server registration successul")
 
         keyStore.updateKeyPair(keyPair)
 

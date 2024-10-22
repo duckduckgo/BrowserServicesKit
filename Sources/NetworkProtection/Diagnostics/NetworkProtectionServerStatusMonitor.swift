@@ -90,7 +90,7 @@ public actor NetworkProtectionServerStatusMonitor {
     }
 
     public func stop() {
-        Logger.networkProtectionMemory.error("⚫️ Stopping server status monitor")
+        Logger.networkProtectionMemory.log("⚫️ Stopping server status monitor")
 
         task?.cancel()
         task = nil

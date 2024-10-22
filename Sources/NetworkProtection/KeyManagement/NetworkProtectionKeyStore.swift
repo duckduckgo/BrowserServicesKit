@@ -78,14 +78,14 @@ public final class NetworkProtectionKeychainKeyStore: NetworkProtectionKeyStore 
         Logger.networkProtectionKeyManagement.debug("Querying the current key pair (publicKey: \(String(describing: self.currentPublicKey), privacy: .public), expirationDate: \(String(describing: self.currentExpirationDate), privacy: .public))")
 
         guard let currentPrivateKey = currentPrivateKey else {
-            Logger.networkProtectionKeyManagement.debug("There's no current private key.")
+            Logger.networkProtectionKeyManagement.log("There's no current private key.")
             return nil
         }
 
         guard let currentExpirationDate = currentExpirationDate,
               Date().addingTimeInterval(validityInterval) >= currentExpirationDate else {
 
-            Logger.networkProtectionKeyManagement.debug("The expirationDate date is missing, or we're past it (now: \(String(describing: Date()), privacy: .public), expirationDate: \(String(describing: self.currentExpirationDate), privacy: .public))")
+            Logger.networkProtectionKeyManagement.log("The expirationDate date is missing, or we're past it (now: \(String(describing: Date()), privacy: .public), expirationDate: \(String(describing: self.currentExpirationDate), privacy: .public))")
             return nil
         }
 
