@@ -60,8 +60,9 @@ extension WKNavigationAction: WebViewNavigationAction {
         let swizzledSourceFrameMethod = class_getInstanceMethod(WKNavigationAction.self, #selector(WKNavigationAction.swizzledSourceFrame))!
         method_exchangeImplementations(originalSourceFrameMethod, swizzledSourceFrameMethod)
 
+        let callingSymbol = callingSymbol(after: "addSafetyCheckForSafeSourceFrameUsageOnce")
         // ignore `sourceFrame` selector calls from `safeSourceFrame` itself
-        ignoredSourceFrameUsageSymbols.insert(callingSymbol())
+        ignoredSourceFrameUsageSymbols.insert(callingSymbol)
         // ignore `-[WKNavigationAction description]`
         ignoredSourceFrameUsageSymbols.insert("-[WKNavigationAction description]")
     }()
