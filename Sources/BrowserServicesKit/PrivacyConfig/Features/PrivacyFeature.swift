@@ -60,6 +60,7 @@ public enum PrivacyFeature: String {
     case marketplaceAdPostback
     case autocompleteTabs
     case networkProtection
+    case aiChat
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -84,6 +85,7 @@ public enum AutofillSubfeature: String, PrivacySubfeature {
     case onByDefault
     case onForExistingUsers
     case unknownUsernameCategorization
+    case credentialsImportPromotionForExistingUsers
 }
 
 public enum DBPSubfeature: String, Equatable, PrivacySubfeature {
@@ -94,6 +96,18 @@ public enum DBPSubfeature: String, Equatable, PrivacySubfeature {
     case waitlist
     case waitlistBetaActive
     case freemium
+}
+
+public enum AIChatSubfeature: String, Equatable, PrivacySubfeature {
+    public var parent: PrivacyFeature {
+        .aiChat
+    }
+
+    /// Displays the settings item for showing a shortcut in the Application Menu
+    case applicationMenuShortcut
+
+    /// Displays the settings item for showing a shortcut in the Toolbar
+    case toolbarShortcut
 }
 
 public enum NetworkProtectionSubfeature: String, Equatable, PrivacySubfeature {
