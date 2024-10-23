@@ -107,7 +107,7 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
 
     @discardableResult
     public func completeSubscriptionPurchase(with transactionJWS: TransactionJWS) async -> Result<PurchaseUpdate, AppStorePurchaseFlowError> {
-        Logger.subscriptionAppStorePurchaseFlow.debug("Complete Subscription Purchase")
+        Logger.subscriptionAppStorePurchaseFlow.debug("Completing Subscription Purchase")
 
         // Clear subscription Cache
         subscriptionEndpointService.signOut()
@@ -117,6 +117,8 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
             do {
                 let confirmation = try await subscriptionEndpointService.confirmPurchase(accessToken: accessToken, signature: transactionJWS)
                 subscriptionEndpointService.updateCache(with: confirmation.subscription)
+
+                // Refresh the token in order to get new entitlements
                 try await oAuthClient.refreshTokens()
                 return .success(PurchaseUpdate.completed)
             } catch {

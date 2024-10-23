@@ -288,7 +288,13 @@ public struct DefaultOAuthService: OAuthService {
 
         let statusCode = response.httpResponse.httpStatus
         if statusCode == request.httpSuccessCode {
-            return try extract(header: HTTPHeaderKey.location, from: response.httpResponse)
+            // "com.duckduckgo:/authcb?code=eud8rNxyq2lhN4VFwQ7CAcir80dFBRIE4YpPY0gqeunTw4j6SoWkN4AA2c0TNO1sohqe84zubUtERkLLl94Qam"
+            guard let locationHeaderValue = try? extract(header: HTTPHeaderKey.location, from: response.httpResponse),
+                  let redirectURL = URL(string: locationHeaderValue),
+                  let authCode = redirectURL.queryParameters()?["code"] else {
+                throw OAuthServiceError.missingResponseValue("Auth code")
+                  }
+            return authCode
         } else if request.httpErrorCodes.contains(statusCode) {
             try throwError(forResponse: response, request: request)
         }
@@ -390,14 +396,14 @@ public protocol OAuthLoginMethod {
 
 public struct OAuthLoginMethodOTP: OAuthLoginMethod {
     public let name = "otp"
-    let email: String
-    let otp: String
+    public let email: String
+    public let otp: String
 }
 
 public struct OAuthLoginMethodSignature: OAuthLoginMethod {
     public let name = "signature"
-    let signature: String
-    let source = "apple_app_store"
+    public let signature: String
+    public let source = "apple_app_store"
 }
 
 /// The redirect URI from the original Authorization request indicated by the ddg_auth_session_id in the provided Cookie header, with the authorization code needed for the Access Token request appended as a query param. The intention is that the client will intercept this redirect and extract the authorization code to make the Access Token request in the background.

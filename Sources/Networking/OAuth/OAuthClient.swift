@@ -323,14 +323,19 @@ final public class DefaultOAuthClient: OAuthClient {
         do {
             let refreshTokenResponse = try await authService.refreshAccessToken(clientID: Constants.clientID, refreshToken: refreshToken)
             let refreshedTokens = try await decode(accessToken: refreshTokenResponse.accessToken, refreshToken: refreshTokenResponse.refreshToken)
+
+            Logger.OAuthClient.debug("Tokens refreshed: \(refreshedTokens.debugDescription)")
+
+            tokensStorage.tokensContainer = refreshedTokens
             return refreshedTokens
         } catch OAuthServiceError.authAPIError(let code) {
             // NOTE: If the client succeeds in making a refresh request but does not get the response, then the second refresh request will fail with `invalidTokenRequest` and the stored token will become unusable so the user will have to sign in again.
             if code == OAuthRequest.BodyErrorCode.invalidTokenRequest {
                 Logger.OAuthClient.error("Failed to refresh token, logging out")
 
-                tokensStorage.tokensContainer = nil
+                removeLocalAccount()
 
+                // Creating new account
                 let tokens = try await createAccount()
                 tokensStorage.tokensContainer = tokens
                 return tokens

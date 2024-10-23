@@ -18,6 +18,7 @@
 
 import Foundation
 import os.log
+import Common
 
 /// Auth API v2 Endpoints: https://dub.duckduckgo.com/duckduckgo/ddg/blob/main/components/auth/docs/AuthAPIV2Documentation.md#auth-api-v2-endpoints
 struct OAuthRequest {
@@ -177,18 +178,22 @@ struct OAuthRequest {
 
     static func login(baseURL: URL, authSessionID: String, method: OAuthLoginMethod) -> OAuthRequest? {
         let path = "/api/auth/v2/login"
-        var queryItems: [String: String]
+        var body: [String: String]
 
         guard let domain = baseURL.host,
               let cookie = Self.ddgAuthSessionCookie(domain: domain, path: path, authSessionID: authSessionID)
-        else { return nil }
+        else {
+            Logger.OAuth.fault("Failed to create cookie")
+            assertionFailure("Failed to create cookie")
+            return nil
+        }
 
         switch method.self {
         case is OAuthLoginMethodOTP:
             guard let otpMethod = method as? OAuthLoginMethodOTP else {
                 return nil
             }
-            queryItems = [
+            body = [
                 "method": otpMethod.name,
                 "email": otpMethod.email,
                 "otp": otpMethod.otp
@@ -197,20 +202,27 @@ struct OAuthRequest {
             guard let signatureMethod = method as? OAuthLoginMethodSignature else {
                 return nil
             }
-            queryItems = [
+            body = [
                 "method": signatureMethod.name,
                 "signature": signatureMethod.signature,
                 "source": signatureMethod.source
             ]
         default:
             Logger.OAuth.fault("Unknown login method: \(String(describing: method))")
+            assertionFailure("Unknown login method: \(String(describing: method))")
+            return nil
+        }
+
+        guard let jsonBody = CodableHelper.encode(body) else {
+            assertionFailure("Failed to encode body: \(body)")
             return nil
         }
 
         guard let request = APIRequestV2(url: baseURL.appendingPathComponent(path),
                                          method: .post,
-                                         queryItems: queryItems,
-                                         headers: APIRequestV2.HeadersV2(cookies: [cookie])) else {
+                                         headers: APIRequestV2.HeadersV2(cookies: [cookie],
+                                                                         contentType: .json),
+                                         body: jsonBody) else {
             return nil
         }
         return OAuthRequest(apiRequest: request, httpSuccessCode: HTTPStatusCode.found)

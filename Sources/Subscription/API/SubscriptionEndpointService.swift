@@ -35,7 +35,7 @@ public struct GetCustomerPortalURLResponse: Decodable {
 
 public struct ConfirmPurchaseResponse: Decodable {
     public let email: String?
-//    public let entitlements: [Entitlement] // TODO: are they coming here or in the token? both?
+    public let entitlements: [SubscriptionEntitlement] // TODO: are they coming here or in the token? both?
     public let subscription: PrivacyProSubscription
 }
 
@@ -118,15 +118,17 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
 //        }
     }
 
-    public func updateCache(with subscription: PrivacyProSubscription) {
-        let cachedSubscription: PrivacyProSubscription? = subscriptionCache.get()
-        if subscription != cachedSubscription {
-            let defaultExpiryDate = Date().addingTimeInterval(subscriptionCache.settings.defaultExpirationInterval)
-            let expiryDate = min(defaultExpiryDate, subscription.expiresOrRenewsAt)
-
-            subscriptionCache.set(subscription, expires: expiryDate)
-            NotificationCenter.default.post(name: .subscriptionDidChange, object: self, userInfo: [UserDefaultsCacheKey.subscription: subscription])
-        }
+    public func updateCache(with subscription: PrivacyProSubscription) { // TODO: why all this overhead? just replace and notify, TBC
+//        let cachedSubscription: PrivacyProSubscription? = subscriptionCache.get()
+//        if subscription != cachedSubscription {
+//            let defaultExpiryDate = Date().addingTimeInterval(subscriptionCache.settings.defaultExpirationInterval)
+//            let expiryDate = min(defaultExpiryDate, subscription.expiresOrRenewsAt)
+//
+//            subscriptionCache.set(subscription, expires: expiryDate)
+//            NotificationCenter.default.post(name: .subscriptionDidChange, object: self, userInfo: [UserDefaultsCacheKey.subscription: subscription])
+//        }
+        subscriptionCache.set(subscription)
+        NotificationCenter.default.post(name: .subscriptionDidChange, object: self, userInfo: [UserDefaultsCacheKey.subscription: subscription])
     }
 
     public func getSubscription(accessToken: String, cachePolicy: SubscriptionCachePolicy = .returnCacheDataElseLoad) async throws -> PrivacyProSubscription {

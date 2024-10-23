@@ -18,6 +18,7 @@
 
 import Foundation
 import Networking
+import Common
 
 struct SubscriptionRequest {
     let apiRequest: APIRequestV2
@@ -63,7 +64,7 @@ struct SubscriptionRequest {
     static func confirmPurchase(baseURL: URL, accessToken: String, signature: String) -> SubscriptionRequest? {
         let path = "/purchase/confirm/apple"
         let bodyDict = ["signedTransactionInfo": signature]
-        guard let bodyData = try? JSONEncoder().encode(bodyDict) else { return nil }
+        guard let bodyData = CodableHelper.encode(bodyDict) else { return nil }
         guard let request = APIRequestV2(url: baseURL.appendingPathComponent(path),
                                          method: .post,
                                          headers: APIRequestV2.HeadersV2(authToken: accessToken),

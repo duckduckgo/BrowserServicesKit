@@ -31,9 +31,17 @@ public extension APIResponseV2 {
     /// - Returns: An instance of a Decodable model of the type inferred, throws an error if the body is empty or the decoding fails
     func decodeBody<T: Decodable>(decoder: JSONDecoder = JSONDecoder()) throws -> T {
 
+//        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        decoder.dateDecodingStrategy = .millisecondsSince1970
+
         guard let data = self.data else {
             throw APIRequestV2.Error.emptyResponseBody
         }
+
+#if DEBUG
+        let resultString = String(data: data, encoding: .utf8)
+        Logger.networking.debug("APIResponse body: \(resultString ?? "<empty>")")
+#endif
 
         Logger.networking.debug("Decoding APIResponse body as \(T.self)")
         switch T.self {

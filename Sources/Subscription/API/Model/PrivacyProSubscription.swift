@@ -1,5 +1,5 @@
 //
-//  Subscription.swift
+//  PrivacyProSubscription.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -18,7 +18,7 @@
 
 import Foundation
 
-public struct PrivacyProSubscription: Codable, Equatable {
+public struct PrivacyProSubscription: Codable, Equatable, CustomDebugStringConvertible {
     public let productId: String
     public let name: String
     public let billingPeriod: PrivacyProSubscription.BillingPeriod
@@ -61,5 +61,26 @@ public struct PrivacyProSubscription: Codable, Equatable {
 
     public var isActive: Bool {
         status != .expired && status != .inactive
+    }
+
+    public var debugDescription: String {
+        return """
+        Subscription:
+        - Product ID: \(productId)
+        - Name: \(name)
+        - Billing Period: \(billingPeriod.rawValue)
+        - Started At: \(formatDate(startedAt))
+        - Expires/Renews At: \(formatDate(expiresOrRenewsAt))
+        - Platform: \(platform.rawValue)
+        - Status: \(status.rawValue)
+        """
+    }
+
+    private func formatDate(_ date: Date) -> String {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateStyle = .medium
+        dateFormatter.timeStyle = .short
+        dateFormatter.timeZone = TimeZone.current
+        return dateFormatter.string(from: date)
     }
 }
