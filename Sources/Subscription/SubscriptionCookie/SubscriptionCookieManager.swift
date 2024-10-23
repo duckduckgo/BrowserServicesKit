@@ -31,7 +31,7 @@ public final class SubscriptionCookieManager: SubscriptionCookieManaging {
     public static let cookieDomain = "duckduckgo.com"
     public static let cookieName = "privacy_pro_access_token"
 
-    private static let defaultRefreshTimeInterval: TimeInterval = .seconds(10) // TODO: change the default to e.g. 4h
+    private static let defaultRefreshTimeInterval: TimeInterval = .hours(4)
 
     private let subscriptionManager: SubscriptionManager
     private let currentCookieStore: @MainActor () -> HTTPCookieStore?
