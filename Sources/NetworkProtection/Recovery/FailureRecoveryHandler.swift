@@ -146,11 +146,11 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
             isKillSwitchEnabled: isKillSwitchEnabled,
             regenerateKey: false
         )
-        Logger.networkProtectionTunnelFailureMonitor.debug("🟢 Failure recovery fetched new config.")
+        Logger.networkProtectionTunnelFailureMonitor.log("🟢 Failure recovery fetched new config.")
 
         let newServer = configurationResult.server
 
-        Logger.networkProtection.debug("""
+        Logger.networkProtection.log("""
         🟢 Failure recovery - originalServerName: \(lastConnectedServer.serverName, privacy: .public)
         newServerName: \(newServer.serverName, privacy: .public)
         originalAllowedIPs: \(String(describing: lastConnectedServer.allowedIPs), privacy: .public)
@@ -158,7 +158,7 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
         """)
 
         guard lastConnectedServer.shouldReplace(with: newServer) else {
-            Logger.networkProtectionTunnelFailureMonitor.debug("🟢 Server failure recovery not necessary.")
+            Logger.networkProtectionTunnelFailureMonitor.log("🟢 Server failure recovery not necessary.")
             return .noRecoveryNecessary
         }
 
@@ -181,10 +181,10 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
                 }
                 do {
                     try await action()
-                    Logger.networkProtectionTunnelFailureMonitor.debug("🟢 Failure recovery success!")
+                    Logger.networkProtectionTunnelFailureMonitor.log("🟢 Failure recovery success!")
                     return
                 } catch {
-                    Logger.networkProtectionTunnelFailureMonitor.error("🟢 Failure recovery failed. Retrying...")
+                    Logger.networkProtectionTunnelFailureMonitor.log("🟢 Failure recovery failed. Retrying...")
                 }
                 do {
                     try await Task.sleep(interval: currentDelay)
