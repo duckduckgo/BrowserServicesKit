@@ -78,7 +78,7 @@ public actor NetworkProtectionTunnelFailureMonitor {
     // MARK: - Start/Stop monitoring
 
     func start(callback: @escaping (Result) -> Void) {
-        Logger.networkProtectionTunnelFailureMonitor.debug("⚫️ Starting tunnel failure monitor")
+        Logger.networkProtectionTunnelFailureMonitor.log("⚫️ Starting tunnel failure monitor")
 
         failureReported = false
         firstCheckSkipped = false
@@ -93,7 +93,7 @@ public actor NetworkProtectionTunnelFailureMonitor {
     }
 
     func stop() {
-        Logger.networkProtectionTunnelFailureMonitor.debug("⚫️ Stopping tunnel failure monitor")
+        Logger.networkProtectionTunnelFailureMonitor.log("⚫️ Stopping tunnel failure monitor")
 
         networkMonitor.cancel()
         networkMonitor.pathUpdateHandler = nil
@@ -108,7 +108,7 @@ public actor NetworkProtectionTunnelFailureMonitor {
         guard firstCheckSkipped else {
             // Avoid running the first tunnel failure check after startup to avoid reading the first handshake after sleep, which will almost always
             // be out of date. In normal operation, the first check will frequently be 0 as WireGuard hasn't had the chance to handshake yet.
-            Logger.networkProtectionTunnelFailureMonitor.debug("⚫️ Skipping first tunnel failure check")
+            Logger.networkProtectionTunnelFailureMonitor.log("⚫️ Skipping first tunnel failure check")
             firstCheckSkipped = true
             return
         }
@@ -116,23 +116,23 @@ public actor NetworkProtectionTunnelFailureMonitor {
         let mostRecentHandshake = (try? await handshakeReporter.getMostRecentHandshake()) ?? 0
 
         guard mostRecentHandshake > 0 else {
-            Logger.networkProtectionTunnelFailureMonitor.debug("⚫️ Got handshake timestamp at or below 0, skipping check")
+            Logger.networkProtectionTunnelFailureMonitor.log("⚫️ Got handshake timestamp at or below 0, skipping check")
             return
         }
 
         let difference = Date().timeIntervalSince1970 - mostRecentHandshake
-        Logger.networkProtectionTunnelFailureMonitor.debug("⚫️ Last handshake: \(difference, privacy: .public) seconds ago")
+        Logger.networkProtectionTunnelFailureMonitor.log("⚫️ Last handshake: \(difference, privacy: .public) seconds ago")
 
         if difference > Result.failureDetected.threshold, isConnected {
             if failureReported {
-                Logger.networkProtectionTunnelFailureMonitor.debug("⚫️ Tunnel failure already reported")
+                Logger.networkProtectionTunnelFailureMonitor.log("⚫️ Tunnel failure already reported")
             } else {
-                Logger.networkProtectionTunnelFailureMonitor.debug("⚫️ Tunnel failure reported")
+                Logger.networkProtectionTunnelFailureMonitor.log("⚫️ Tunnel failure reported")
                 callback(.failureDetected)
                 failureReported = true
             }
         } else if difference <= Result.failureRecovered.threshold, failureReported {
-            Logger.networkProtectionTunnelFailureMonitor.debug("⚫️ Tunnel recovered from failure")
+            Logger.networkProtectionTunnelFailureMonitor.log("⚫️ Tunnel recovered from failure")
             callback(.failureRecovered)
             failureReported = false
         }
