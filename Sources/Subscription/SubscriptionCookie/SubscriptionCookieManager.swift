@@ -80,7 +80,7 @@ public final class SubscriptionCookieManager: SubscriptionCookieManaging {
                 try await cookieStore.setSubscriptionCookie(for: accessToken)
                 updateLastRefreshDateToNow()
             } catch {
-                eventMapping.fire(.errorFailedToSetSubscriptionCookie)
+                eventMapping.fire(.failedToSetSubscriptionCookie)
             }
         }
     }
@@ -116,7 +116,7 @@ public final class SubscriptionCookieManager: SubscriptionCookieManaging {
                     try await cookieStore.setSubscriptionCookie(for: accessToken)
                     eventMapping.fire(.subscriptionCookieRefreshedWithUpdate)
                 } catch {
-                    eventMapping.fire(.errorFailedToSetSubscriptionCookie)
+                    eventMapping.fire(.failedToSetSubscriptionCookie)
                 }
             } else {
                 Logger.subscription.info("[SubscriptionCookieManager] Refresh: Cookie exists and is up to date")

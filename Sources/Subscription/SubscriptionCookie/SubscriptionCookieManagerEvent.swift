@@ -25,5 +25,5 @@ public enum SubscriptionCookieManagerEvent {
     case subscriptionCookieRefreshedWithUpdate
     case subscriptionCookieRefreshedWithDelete
 
-    case errorFailedToSetSubscriptionCookie
+    case failedToSetSubscriptionCookie
 }
