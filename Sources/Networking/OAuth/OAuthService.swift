@@ -397,7 +397,7 @@ public struct OAuthLoginMethodOTP: OAuthLoginMethod {
 public struct OAuthLoginMethodSignature: OAuthLoginMethod {
     public let name = "signature"
     let signature: String
-    let source = "apple_store" // TODO: verify with Thomas
+    let source = "apple_app_store"
 }
 
 /// The redirect URI from the original Authorization request indicated by the ddg_auth_session_id in the provided Cookie header, with the authorization code needed for the Access Token request appended as a query param. The intention is that the client will intercept this redirect and extract the authorization code to make the Access Token request in the background.
