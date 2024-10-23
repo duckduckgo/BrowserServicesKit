@@ -18,6 +18,7 @@
 
 import Foundation
 import WebKit
+import os.log
 
 public protocol HTTPCookieStore {
     func allCookies() async -> [HTTPCookie]
@@ -30,7 +31,7 @@ extension WKHTTPCookieStore: HTTPCookieStore {}
 public protocol SubscriptionCookieManaging {
     init(subscriptionManager: SubscriptionManager, currentCookieStore: @MainActor @escaping () -> HTTPCookieStore?) async
     func refreshSubscriptionCookie() async
-    func testCookies() async
+    func resetLastRefreshDate()
 }
 
 public final class SubscriptionCookieManager: SubscriptionCookieManaging {
@@ -75,10 +76,9 @@ public final class SubscriptionCookieManager: SubscriptionCookieManaging {
                 // TODO: Add error handling ".accountDidSignIn event but access token is missing"
                 return
             }
-
+            Logger.subscription.info("[SubscriptionCookieManager] Handle .accountDidSignIn - setting cookie")
             await cookieStore.setSubscriptionCookie(for: accessToken)
             updateLastRefreshDateToNow()
-            print("[🍪 Cookie] == Subscription sign in - setting cookie (token: \(accessToken))")
         }
     }
 
@@ -89,44 +89,37 @@ public final class SubscriptionCookieManager: SubscriptionCookieManaging {
                 // TODO: Add error handling ".accountDidSignOut event but cookie is missing"
                 return
             }
-
+            Logger.subscription.info("[SubscriptionCookieManager] Handle .accountDidSignOut - deleting cookie")
             await cookieStore.deleteCookie(subscriptionCookie)
             updateLastRefreshDateToNow()
-            print("[🍪 Cookie] == Subscription sign out - removing cookie")
         }
     }
 
     public func refreshSubscriptionCookie() async {
+        guard shouldRefreshSubscriptionCookie() else { return }
         guard let cookieStore = await currentCookieStore() else { return }
 
-        print("[🍪 Cookie] Refresh subscription cookie (last refresh date since now: \(lastRefreshDate?.timeIntervalSinceNow ?? 0.0)")
-        guard shouldRefreshSubscriptionCookie() else { return }
-
-        let accessToken: String? = subscriptionManager.accountManager.accessToken
-
-        print("[🍪 Cookie] Token: \(accessToken ?? "<none>")")
+        Logger.subscription.info("[SubscriptionCookieManager] Refresh subscription cookie")
         updateLastRefreshDateToNow()
 
+        let accessToken: String? = subscriptionManager.accountManager.accessToken
+        let subscriptionCookie = await cookieStore.fetchCurrentSubscriptionCookie()
 
         if let accessToken {
-            if let subscriptionCookie = await cookieStore.fetchCurrentSubscriptionCookie(), subscriptionCookie.value == accessToken {
-                print("[🍪 Cookie] Current up to date")
-                // Cookie present with proper value
-                return
-            } else {
-                // Cookie not present or with different value
-                print("[🍪 Cookie] Cookie not present or with different value")
+            if subscriptionCookie == nil || subscriptionCookie?.value != accessToken {
+                Logger.subscription.info("[SubscriptionCookieManager] Refresh: No cookie or one with different value")
                 await cookieStore.setSubscriptionCookie(for: accessToken)
-
                 // TODO: Pixel that refresh actually was required - fixed by updating the token
+            } else {
+                Logger.subscription.info("[SubscriptionCookieManager] Refresh: Cookie exists and is up to date")
+                return
             }
         } else {
-            // remove cookie
-            if let subscriptionCookie = await cookieStore.fetchCurrentSubscriptionCookie() {
+            if let subscriptionCookie {
+                Logger.subscription.info("[SubscriptionCookieManager] Refresh: No access token but old cookie exists, deleting it")
                 await cookieStore.deleteCookie(subscriptionCookie)
+                // TODO: Pixel that refresh actually was required - fixed by deleting the token
             }
-
-            // TODO: Pixel that refresh actually was required - fixed by deleting the token
         }
     }
 
@@ -143,33 +136,15 @@ public final class SubscriptionCookieManager: SubscriptionCookieManaging {
         lastRefreshDate = Date()
     }
 
-    public func testCookies() async {
-        print("[🍪 testCookie] Test cookies ================= ")
-        guard let cookieStore = await currentCookieStore() else { return }
-
-        for cookie in await cookieStore.allCookies() {
-            if cookie.domain == Self.cookieDomain {
-                print(" [🍪 testCookie]  Cookie: \(cookie.domain) \(cookie.name)")
-                print("  \(cookie.debugDescription.replacingOccurrences(of: "\n", with: "; "))")
-            }
-        }
-        print("[🍪 testCookie] ============================== ")
+    public func resetLastRefreshDate() {
+        lastRefreshDate = nil
     }
 }
 
 private extension HTTPCookieStore {
 
     func fetchCurrentSubscriptionCookie() async -> HTTPCookie? {
-        var currentCookie: HTTPCookie?
-
-        for cookie in await allCookies() {
-            if cookie.domain == SubscriptionCookieManager.cookieDomain && cookie.name == SubscriptionCookieManager.cookieName {
-                currentCookie = cookie
-                break
-            }
-        }
-
-        return currentCookie
+        await allCookies().first { $0.domain == SubscriptionCookieManager.cookieDomain && $0.name == SubscriptionCookieManager.cookieName }
     }
 
     func setSubscriptionCookie(for token: String) async {
@@ -183,10 +158,12 @@ private extension HTTPCookieStore {
             .init(rawValue: "HttpOnly"): true
         ]) else {
             // TODO: Add error handling "Failed to make a subscription cookie"
+            Logger.subscription.error("[HTTPCookieStore] Subscription cookie could not be created")
+            assertionFailure("Subscription cookie could not be created")
             return
         }
 
-        print("[🍪 Cookie] Updating cookie")
+        Logger.subscription.info("[HTTPCookieStore] Setting subscription cookie")
         await setCookie(cookie)
     }
 }
