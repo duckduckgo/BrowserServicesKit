@@ -551,6 +551,14 @@ final class URLExtensionTests: XCTestCase {
         XCTAssertEqual(result.last, .init(name: "another_item", value: "test_2"))
     }
 
+    func testWhenUserInfoDoesNotContaintPassword_ThenNavigateToSearch() {
+        XCTAssertNil(URL(trimmedAddressBarString: "user@domain.com"))
+        XCTAssertNil(URL(trimmedAddressBarString: "user: @domain.com"))
+
+        XCTAssertEqual(URL(trimmedAddressBarString: "user:,,@domain.com")?.host, "domain.com")
+        XCTAssertEqual(URL(trimmedAddressBarString: "user:pass@domain.com")?.host, "domain.com")
+    }
+
 }
 
 extension String {
