@@ -28,7 +28,7 @@ public enum Suggestion: Equatable {
     case openTab(title: String, url: URL)
     case unknown(value: String)
 
-    var url: URL? {
+    public var url: URL? {
         switch self {
         case .website(url: let url),
              .historyEntry(title: _, url: let url, allowedInTopHits: _),
@@ -67,20 +67,26 @@ public enum Suggestion: Equatable {
         }
     }
 
-    var isOpenTab: Bool {
+    public var isOpenTab: Bool {
         if case .openTab = self {
             return true
         }
         return false
     }
 
-    var isBookmark: Bool {
+    public var isBookmark: Bool {
         if case .bookmark = self {
             return true
         }
         return false
     }
 
+    public var isHistoryEntry: Bool {
+        if case .historyEntry = self {
+            return true
+        }
+        return false
+    }
 }
 
 extension Suggestion {

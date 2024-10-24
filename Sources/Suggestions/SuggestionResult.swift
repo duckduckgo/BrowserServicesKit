@@ -24,9 +24,9 @@ public struct SuggestionResult: Equatable {
         SuggestionResult(topHits: [], duckduckgoSuggestions: [], localSuggestions: [])
     }
 
-    private(set) public var topHits: [Suggestion]
-    private(set) public var duckduckgoSuggestions: [Suggestion]
-    private(set) public var localSuggestions: [Suggestion]
+    public var topHits: [Suggestion]
+    public var duckduckgoSuggestions: [Suggestion]
+    public var localSuggestions: [Suggestion]
 
     public init(topHits: [Suggestion],
                 duckduckgoSuggestions: [Suggestion],
