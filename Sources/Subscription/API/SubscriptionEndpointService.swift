@@ -54,7 +54,7 @@ public enum SubscriptionCachePolicy {
 public protocol SubscriptionEndpointService {
     func updateCache(with subscription: PrivacyProSubscription)
     func getSubscription(accessToken: String, cachePolicy: SubscriptionCachePolicy) async throws -> PrivacyProSubscription
-    func signOut()
+    func clearSubscription()
     func getProducts() async throws -> [GetProductsItem]
     func getCustomerPortalURL(accessToken: String, externalID: String) async throws -> GetCustomerPortalURLResponse
     func confirmPurchase(accessToken: String, signature: String) async throws -> ConfirmPurchaseResponse
@@ -90,7 +90,7 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
     // MARK: - Subscription fetching with caching
 
     private func getRemoteSubscription(accessToken: String) async throws -> PrivacyProSubscription {
-        Logger.subscriptionEndpointService.debug("Requesting subscription details")
+        Logger.subscriptionEndpointService.log("Requesting subscription details")
         guard let request = SubscriptionRequest.getSubscription(baseURL: baseURL, accessToken: accessToken) else {
             throw SubscriptionEndpointServiceError.invalidRequest
         }
@@ -100,11 +100,11 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
         if statusCode.isSuccess {
             let subscription: PrivacyProSubscription = try response.decodeBody()
             updateCache(with: subscription)
-            Logger.subscriptionEndpointService.debug("Subscription details retrieved successfully: \(String(describing: subscription))")
+            Logger.subscriptionEndpointService.log("Subscription details retrieved successfully: \(String(describing: subscription))")
             return subscription
         } else {
             let error: String = try response.decodeBody()
-            Logger.subscriptionEndpointService.debug("Failed to retrieve Subscription details: \(error)")
+            Logger.subscriptionEndpointService.log("Failed to retrieve Subscription details: \(error)")
             throw SubscriptionEndpointServiceError.invalidResponseCode(statusCode)
         }
         
@@ -163,7 +163,7 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
         }
     }
 
-    public func signOut() {
+    public func clearSubscription() {
         subscriptionCache.reset()
     }
 
@@ -178,7 +178,7 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
         let statusCode = response.httpResponse.httpStatus
 
         if statusCode.isSuccess {
-            Logger.subscriptionEndpointService.debug("\(#function) request completed")
+            Logger.subscriptionEndpointService.log("\(#function) request completed")
             return try response.decodeBody()
         } else {
             throw SubscriptionEndpointServiceError.invalidResponseCode(statusCode)
@@ -197,7 +197,7 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
         let response = try await apiService.fetch(request: request.apiRequest)
         let statusCode = response.httpResponse.httpStatus
         if statusCode.isSuccess {
-            Logger.subscriptionEndpointService.debug("\(#function) request completed")
+            Logger.subscriptionEndpointService.log("\(#function) request completed")
             return try response.decodeBody()
         } else {
             throw SubscriptionEndpointServiceError.invalidResponseCode(statusCode)
@@ -218,7 +218,7 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
         let response = try await apiService.fetch(request: request.apiRequest)
         let statusCode = response.httpResponse.httpStatus
         if statusCode.isSuccess {
-            Logger.subscriptionEndpointService.debug("\(#function) request completed")
+            Logger.subscriptionEndpointService.log("\(#function) request completed")
             return try response.decodeBody()
         } else {
             throw SubscriptionEndpointServiceError.invalidResponseCode(statusCode)

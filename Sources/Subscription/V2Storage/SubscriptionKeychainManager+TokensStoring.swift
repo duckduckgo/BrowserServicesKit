@@ -33,7 +33,7 @@ extension SubscriptionKeychainManager: TokensStoring {
         set {
             do {
                 guard let newValue else {
-                    Logger.subscription.debug("removing TokensContainer")
+                    Logger.subscription.log("removing TokensContainer")
                     try deleteItem(forField: .tokens)
                     return
                 }

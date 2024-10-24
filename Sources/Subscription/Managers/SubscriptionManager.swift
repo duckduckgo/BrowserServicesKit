@@ -37,6 +37,7 @@ public protocol SubscriptionManager {
     // Subscription
     func refreshCachedSubscription(completion: @escaping (_ isSubscriptionActive: Bool) -> Void)
     func currentSubscription(refresh: Bool) async throws -> PrivacyProSubscription
+    func getSubscriptionFrom(lastTransactionJWSRepresentation: String) async throws -> PrivacyProSubscription
     var canPurchase: Bool { get }
 
     @available(macOS 12.0, iOS 15.0, *) func storePurchaseManager() -> StorePurchaseManager
@@ -48,7 +49,7 @@ public protocol SubscriptionManager {
     var entitlements: [SubscriptionEntitlement] { get }
 
     func refreshAccount() async
-    func getTokens(policy: TokensCachePolicy) async throws -> TokensContainer
+    func getTokensContainer(policy: TokensCachePolicy) async throws -> TokensContainer
     func exchange(tokenV1: String) async throws -> TokensContainer
 
     func signOut(skipNotification: Bool)
@@ -129,7 +130,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
 
     public func loadInitialData() {
         refreshCachedSubscription { isSubscriptionActive in
-            Logger.subscription.info("Subscription is \(isSubscriptionActive ? "active" : "not active")")
+            Logger.subscription.log("Subscription is \(isSubscriptionActive ? "active" : "not active")")
         }
     }
 
@@ -149,6 +150,11 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
         let tokensContainer = try await oAuthClient.getTokens(policy: .localValid)
         let subscription = try await subscriptionEndpointService.getSubscription(accessToken: tokensContainer.accessToken, cachePolicy: refresh ? .returnCacheDataElseLoad : .returnCacheDataDontLoad )
         return subscription
+    }
+
+    public func getSubscriptionFrom(lastTransactionJWSRepresentation: String) async throws -> PrivacyProSubscription {
+        let tokensContainer = try await oAuthClient.activate(withPlatformSignature: lastTransactionJWSRepresentation)
+        return try await subscriptionEndpointService.getSubscription(accessToken: tokensContainer.accessToken, cachePolicy: .reloadIgnoringLocalCacheData)
     }
 
     // MARK: - URLs
@@ -171,10 +177,15 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     }
 
     public func refreshAccount() async {
-        _ = try? await oAuthClient.refreshTokens()
+        do {
+            let tokensContainer = try await oAuthClient.refreshTokens()
+            NotificationCenter.default.post(name: .entitlementsDidChange, object: self, userInfo: nil)
+        } catch {
+            Logger.subscription.error("Failed to refresh account: \(error.localizedDescription, privacy: .public)")
+        }
     }
 
-    public func getTokens(policy: TokensCachePolicy) async throws -> TokensContainer {
+    public func getTokensContainer(policy: TokensCachePolicy) async throws -> TokensContainer {
         try await oAuthClient.getTokens(policy: policy)
     }
 
@@ -183,10 +194,10 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     }
 
     public func signOut(skipNotification: Bool = false) {
-        Logger.subscription.debug("Signing out")
-        subscriptionEndpointService.signOut()
+        Logger.subscription.log("Removing all traces of the subscription")
+        subscriptionEndpointService.clearSubscription()
         oAuthClient.removeLocalAccount()
-//        Task {
+//        Task { // TODO: is this needed??
 //            do {
 //                try await oAuthClient.logout()
 //            } catch {

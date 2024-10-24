@@ -85,11 +85,11 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
         do {
             purchaseQueue.removeAll()
 
-            Logger.subscriptionStorePurchaseManager.debug("Before AppStore.sync()")
+            Logger.subscriptionStorePurchaseManager.log("Before AppStore.sync()")
 
             try await AppStore.sync()
 
-            Logger.subscriptionStorePurchaseManager.debug("After AppStore.sync()")
+            Logger.subscriptionStorePurchaseManager.log("After AppStore.sync()")
 
             await updatePurchasedProducts()
             await updateAvailableProducts()
@@ -125,11 +125,11 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
 
     @MainActor
     public func updateAvailableProducts() async {
-        Logger.subscription.debug("Update available products")
+        Logger.subscription.log("Update available products")
 
         do {
             let availableProducts = try await Product.products(for: productIdentifiers)
-            Logger.subscription.debug("\(availableProducts.count) products available")
+            Logger.subscription.log("\(availableProducts.count) products available")
 
             if self.availableProducts != availableProducts {
                 self.availableProducts = availableProducts
@@ -141,7 +141,7 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
 
     @MainActor
     public func updatePurchasedProducts() async {
-        Logger.subscription.debug("Update purchased products")
+        Logger.subscription.log("Update purchased products")
 
         var purchasedSubscriptions: [String] = []
 
@@ -160,7 +160,7 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
             Logger.subscription.error("Failed to update purchased products: \(String(reflecting: error), privacy: .public)")
         }
 
-        Logger.subscription.debug("UpdatePurchasedProducts fetched \(purchasedSubscriptions.count) active subscriptions")
+        Logger.subscription.log("UpdatePurchasedProducts fetched \(purchasedSubscriptions.count) active subscriptions")
 
         if self.purchasedProductIDs != purchasedSubscriptions {
             self.purchasedProductIDs = purchasedSubscriptions
@@ -169,13 +169,13 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
 
     @MainActor
     public func mostRecentTransaction() async -> String? {
-        Logger.subscriptionStorePurchaseManager.debug("Retrieving most recent transaction")
+        Logger.subscriptionStorePurchaseManager.log("Retrieving most recent transaction")
 
         var transactions: [VerificationResult<Transaction>] = []
         for await result in Transaction.all {
             transactions.append(result)
         }
-        Logger.subscriptionStorePurchaseManager.debug("Most recent transaction fetched \(transactions.count) transactions")
+        Logger.subscriptionStorePurchaseManager.log("Most recent transaction fetched \(transactions.count) transactions")
         return transactions.first?.jwsRepresentation
     }
 
@@ -185,7 +185,7 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
         for await result in Transaction.currentEntitlements {
             transactions.append(result)
         }
-        Logger.subscriptionStorePurchaseManager.debug("hasActiveSubscription fetched \(transactions.count) transactions")
+        Logger.subscriptionStorePurchaseManager.log("hasActiveSubscription fetched \(transactions.count) transactions")
         return !transactions.isEmpty
     }
 
@@ -215,7 +215,7 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
             return .failure(StorePurchaseManagerError.purchaseFailed)
         }
 
-        Logger.subscriptionStorePurchaseManager.debug("purchaseSubscription complete")
+        Logger.subscriptionStorePurchaseManager.log("purchaseSubscription complete")
 
         purchaseQueue.removeAll()
 
@@ -223,27 +223,27 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
         case let .success(verificationResult):
             switch verificationResult {
             case let .verified(transaction):
-                Logger.subscriptionStorePurchaseManager.debug("purchaseSubscription result: success")
+                Logger.subscriptionStorePurchaseManager.log("purchaseSubscription result: success")
                 // Successful purchase
                 await transaction.finish()
                 await self.updatePurchasedProducts()
                 return .success(verificationResult.jwsRepresentation)
             case let .unverified(_, error):
-                Logger.subscriptionStorePurchaseManager.debug("purchaseSubscription result: success /unverified/ - \(String(reflecting: error), privacy: .public)")
+                Logger.subscriptionStorePurchaseManager.log("purchaseSubscription result: success /unverified/ - \(String(reflecting: error), privacy: .public)")
                 // Successful purchase but transaction/receipt can't be verified
                 // Could be a jailbroken phone
                 return .failure(StorePurchaseManagerError.transactionCannotBeVerified)
             }
         case .pending:
-            Logger.subscriptionStorePurchaseManager.debug("purchaseSubscription result: pending")
+            Logger.subscriptionStorePurchaseManager.log("purchaseSubscription result: pending")
             // Transaction waiting on SCA (Strong Customer Authentication) or
             // approval from Ask to Buy
             return .failure(StorePurchaseManagerError.transactionPendingAuthentication)
         case .userCancelled:
-            Logger.subscriptionStorePurchaseManager.debug("purchaseSubscription result: user cancelled")
+            Logger.subscriptionStorePurchaseManager.log("purchaseSubscription result: user cancelled")
             return .failure(StorePurchaseManagerError.purchaseCancelledByUser)
         @unknown default:
-            Logger.subscriptionStorePurchaseManager.debug("purchaseSubscription result: unknown")
+            Logger.subscriptionStorePurchaseManager.log("purchaseSubscription result: unknown")
             return .failure(StorePurchaseManagerError.unknownError)
         }
     }
@@ -264,7 +264,7 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
 
         Task.detached { [weak self] in
             for await result in Transaction.updates {
-                Logger.subscriptionStorePurchaseManager.debug("observeTransactionUpdates")
+                Logger.subscriptionStorePurchaseManager.log("observeTransactionUpdates")
 
                 if case .verified(let transaction) = result {
                     await transaction.finish()
@@ -279,7 +279,7 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
 
         Task.detached { [weak self] in
             for await result in Storefront.updates {
-                Logger.subscriptionStorePurchaseManager.debug("observeStorefrontChanges: \(result.countryCode)")
+                Logger.subscriptionStorePurchaseManager.log("observeStorefrontChanges: \(result.countryCode)")
                 await self?.updatePurchasedProducts()
                 await self?.updateAvailableProducts()
             }

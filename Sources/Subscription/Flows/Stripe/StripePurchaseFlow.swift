@@ -87,7 +87,7 @@ public final class DefaultStripePurchaseFlow: StripePurchaseFlow {
         Logger.subscription.info("[StripePurchaseFlow] prepareSubscriptionPurchase")
 
         // Clear subscription Cache
-        subscriptionEndpointService.signOut()
+        subscriptionEndpointService.clearSubscription()
 
 //        var token: String = ""
 //        if let accessToken = try? await oAuthClient.getValidTokens().accessToken {
@@ -128,7 +128,7 @@ public final class DefaultStripePurchaseFlow: StripePurchaseFlow {
 
     public func completeSubscriptionPurchase() async {
         // Clear subscription Cache
-        subscriptionEndpointService.signOut()
+        subscriptionEndpointService.clearSubscription()
 
         // NONE OF THIS IS USEFUL ANYMORE, ACCESS TOKEN AND ACCOUNT DETAILS ARE OBTAINED AS PART OF THE AUTHENTICATION
 //        Logger.subscription.info("[StripePurchaseFlow] completeSubscriptionPurchase")
