@@ -23,6 +23,82 @@ import SecureStorageTestsUtils
 
 final class AutofillKeyStoreProviderTests: XCTestCase {
 
+#if os(iOS)
+    let iOSPlatformProvider = iOSKeyStorePlatformProvider(appGroupName: "MockAppGroup")
+
+    func testV1ToV4Migration() throws {
+        try AutofillKeyStoreProvider.EntryName.allCases.forEach { entry in
+            // Given
+            let keychainService = MockKeychainService()
+            keychainService.mode = .v1Found // Simulate a v1 keychain entry found
+            let sut = AutofillKeyStoreProvider(keychainService: keychainService, platformProvider: iOSPlatformProvider)
+
+            // When
+            _ = try sut.readData(named: entry.keychainIdentifier(using: iOSPlatformProvider), serviceName: sut.keychainServiceName)
+
+            // Then
+            XCTAssertEqual(keychainService.addCallCount, 1) // Migration should trigger a write
+            XCTAssertEqual(keychainService.latestAddQuery[kSecAttrService as String] as! String, AutofillKeyStoreProvider.Constants.v4ServiceName) // Ensure it's migrated to v4
+            XCTAssertEqual(keychainService.latestAddQuery[kSecAttrAccessGroup as String] as! String, iOSPlatformProvider.keychainSecurityGroup as String) // Ensure correct accessibility
+        }
+    }
+
+    func testV2ToV4Migration() throws {
+        try AutofillKeyStoreProvider.EntryName.allCases.forEach { entry in
+            // Given
+            let keychainService = MockKeychainService()
+            keychainService.mode = .v2Found // Simulate a v2 keychain entry found
+            let sut = AutofillKeyStoreProvider(keychainService: keychainService, platformProvider: iOSPlatformProvider)
+
+            // When
+            _ = try sut.readData(named: entry.keychainIdentifier(using: iOSPlatformProvider), serviceName: sut.keychainServiceName)
+
+            // Then
+            XCTAssertEqual(keychainService.addCallCount, 1) // Migration should trigger a write
+            XCTAssertEqual(keychainService.latestAddQuery[kSecAttrService as String] as! String, AutofillKeyStoreProvider.Constants.v4ServiceName) // Ensure it's migrated to v4
+            XCTAssertEqual(keychainService.latestAddQuery[kSecAttrAccessGroup as String] as! String, iOSPlatformProvider.keychainSecurityGroup as String) // Ensure correct accessibility
+        }
+    }
+
+    func testV3ToV4Migration() throws {
+        try AutofillKeyStoreProvider.EntryName.allCases.forEach { entry in
+            // Given
+            let keychainService = MockKeychainService()
+            keychainService.mode = .v3Found // Simulate a v3 keychain entry found
+            let sut = AutofillKeyStoreProvider(keychainService: keychainService, platformProvider: iOSPlatformProvider)
+
+            // When
+            _ = try sut.readData(named: entry.keychainIdentifier(using: iOSPlatformProvider), serviceName: sut.keychainServiceName)
+
+            // Then
+            XCTAssertEqual(keychainService.addCallCount, 1) // Migration should trigger a write
+            XCTAssertEqual(keychainService.latestAddQuery[kSecAttrService as String] as! String, AutofillKeyStoreProvider.Constants.v4ServiceName) // Ensure it's migrated to v4
+            XCTAssertEqual(keychainService.latestAddQuery[kSecAttrAccessGroup as String] as! String, iOSPlatformProvider.keychainSecurityGroup as String) // Ensure correct accessibility
+        }
+    }
+
+    func testWhenWriteData_v4KeychainUsed() throws {
+        try AutofillKeyStoreProvider.EntryName.allCases.forEach { entry in
+            // Given
+            let originalString = "Mock Keychain data for v4!"
+            let data = originalString.data(using: .utf8)!
+            let encodedString = data.base64EncodedString()
+            let mockData = encodedString.data(using: .utf8)!
+            let keychainService = MockKeychainService()
+            let sut = AutofillKeyStoreProvider(keychainService: keychainService, platformProvider: iOSPlatformProvider)
+
+            // When
+            _ = try sut.writeData(mockData, named: entry.keychainIdentifier(using: iOSPlatformProvider), serviceName: AutofillKeyStoreProvider.Constants.v4ServiceName)
+
+            // Then
+            XCTAssertEqual(keychainService.addCallCount, 1)
+            XCTAssertEqual(keychainService.latestAddQuery[kSecAttrService as String] as! String, AutofillKeyStoreProvider.Constants.v4ServiceName) // Ensure v4 is used for write
+            XCTAssertEqual(keychainService.latestAddQuery[kSecAttrAccessible as String] as! String, kSecAttrAccessibleWhenUnlocked as String) // Ensure correct accessibility
+            XCTAssertEqual(keychainService.latestAddQuery[kSecAttrAccessGroup as String] as! String, iOSPlatformProvider.keychainSecurityGroup as String) // Ensure correct accessibility
+        }
+    }
+
+    #else
     func testWhenReadData_AndValueIsFound_NoFallbackSearchIsPerformed() throws {
 
         try AutofillKeyStoreProvider.EntryName.allCases.forEach { entry in
@@ -32,7 +108,7 @@ final class AutofillKeyStoreProviderTests: XCTestCase {
             let sut = AutofillKeyStoreProvider(keychainService: keychainService)
 
             // When
-            let result = try sut.readData(named: entry.keychainIdentifier, serviceName: sut.keychainServiceName)
+            let result = try sut.readData(named: entry.keychainIdentifier(using: macOSKeyStorePlatformProvider()), serviceName: sut.keychainServiceName)
 
             // Then
             XCTAssertEqual(keychainService.itemMatchingCallCount, 1)
@@ -48,7 +124,7 @@ final class AutofillKeyStoreProviderTests: XCTestCase {
             let sut = AutofillKeyStoreProvider(keychainService: keychainService)
 
             // When
-            _ = try sut.readData(named: entry.keychainIdentifier, serviceName: sut.keychainServiceName)
+            _ = try sut.readData(named: entry.keychainIdentifier(using: macOSKeyStorePlatformProvider()), serviceName: sut.keychainServiceName)
 
             // Then
             XCTAssertEqual(keychainService.itemMatchingCallCount, 3)
@@ -64,7 +140,7 @@ final class AutofillKeyStoreProviderTests: XCTestCase {
             let sut = AutofillKeyStoreProvider(keychainService: keychainService)
 
             // When
-            let result = try sut.readData(named: entry.keychainIdentifier, serviceName: sut.keychainServiceName)
+            let result = try sut.readData(named: entry.keychainIdentifier(using: macOSKeyStorePlatformProvider()), serviceName: sut.keychainServiceName)
 
             // Then
             XCTAssertEqual(keychainService.itemMatchingCallCount, 2)
@@ -83,7 +159,7 @@ final class AutofillKeyStoreProviderTests: XCTestCase {
             let sut = AutofillKeyStoreProvider(keychainService: keychainService)
 
             // When
-            _ = try sut.readData(named: entry.keychainIdentifier, serviceName: sut.keychainServiceName)
+            _ = try sut.readData(named: entry.keychainIdentifier(using: macOSKeyStorePlatformProvider()), serviceName: sut.keychainServiceName)
 
             // Then
             XCTAssertEqual(keychainService.itemMatchingCallCount, 3)
@@ -101,11 +177,11 @@ final class AutofillKeyStoreProviderTests: XCTestCase {
             let sut = AutofillKeyStoreProvider(keychainService: keychainService)
 
             // When
-            let result = try sut.readData(named: entry.keychainIdentifier, serviceName: sut.keychainServiceName)
+            let result = try sut.readData(named: entry.keychainIdentifier(using: macOSKeyStorePlatformProvider()), serviceName: sut.keychainServiceName)
 
             // Then
             XCTAssertEqual(keychainService.addCallCount, 1)
-            XCTAssertEqual(keychainService.latestAddQuery[kSecAttrAccount as String] as! String, entry.keychainIdentifier)
+            XCTAssertEqual(keychainService.latestAddQuery[kSecAttrAccount as String] as! String, entry.keychainIdentifier(using: macOSKeyStorePlatformProvider()))
             XCTAssertEqual(keychainService.latestAddQuery[kSecAttrService as String] as! String, AutofillKeyStoreProvider.Constants.v3ServiceName)
             XCTAssertEqual(String(decoding: result!, as: UTF8.self), "Mock Keychain data!")
         }
@@ -120,11 +196,11 @@ final class AutofillKeyStoreProviderTests: XCTestCase {
             let sut = AutofillKeyStoreProvider(keychainService: keychainService)
 
             // When
-            _ = try sut.readData(named: entry.keychainIdentifier, serviceName: sut.keychainServiceName)
+            _ = try sut.readData(named: entry.keychainIdentifier(using: macOSKeyStorePlatformProvider()), serviceName: sut.keychainServiceName)
 
             // Then
             XCTAssertEqual(keychainService.addCallCount, 1)
-            XCTAssertEqual(keychainService.latestAddQuery[kSecAttrAccount as String] as! String, entry.keychainIdentifier)
+            XCTAssertEqual(keychainService.latestAddQuery[kSecAttrAccount as String] as! String, entry.keychainIdentifier(using: macOSKeyStorePlatformProvider()))
             XCTAssertEqual(keychainService.latestAddQuery[kSecAttrService as String] as! String, AutofillKeyStoreProvider.Constants.v3ServiceName)
         }
     }
@@ -140,11 +216,12 @@ final class AutofillKeyStoreProviderTests: XCTestCase {
             let sut = AutofillKeyStoreProvider(keychainService: keychainService)
 
             // When
-            _ = try sut.writeData(mockData, named: entry.keychainIdentifier, serviceName: sut.keychainServiceName)
+            _ = try sut.writeData(mockData, named: entry.keychainIdentifier(using: macOSKeyStorePlatformProvider()), serviceName: sut.keychainServiceName)
 
             // Then
             XCTAssertEqual(keychainService.addCallCount, 1)
             XCTAssertEqual(keychainService.latestAddQuery[kSecAttrAccessible as String] as! String, kSecAttrAccessibleWhenUnlocked as String)
         }
     }
+#endif
 }
