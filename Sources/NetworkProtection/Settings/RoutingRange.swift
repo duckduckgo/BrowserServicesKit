@@ -48,8 +48,45 @@ public enum RoutingRange {
     ]
 
     public static let localNetworkRanges: [RoutingRange] = [
-        .section("IPv4 - Local Routes"),
+        .section("IPv4 - Local Network"),
         .range("172.16.0.0/12"  /* 255.240.0.0 */),
         .range("192.168.0.0/16" /* 255.255.0.0 */),
+    ]
+
+    public static let privateNetworkRanges: [RoutingRange] = [
+        .section("IPv4 - Private Routes"),
+        .range("1.0.0.0/8"),
+        .range("2.0.0.0/8"),
+        .range("3.0.0.0/8"),
+        .range("4.0.0.0/6"),
+        .range("8.0.0.0/7"),
+        .range("11.0.0.0/8"),
+        .range("12.0.0.0/6"),
+        .range("16.0.0.0/4"),
+        .range("32.0.0.0/3"),
+        .range("64.0.0.0/2"),
+        .range("128.0.0.0/3"),
+        .range("160.0.0.0/5"),
+        .range("168.0.0.0/6"),
+        .range("172.0.0.0/12"),
+        .range("172.32.0.0/11"),
+        .range("172.64.0.0/10"),
+        .range("172.128.0.0/9"),
+        .range("173.0.0.0/8"),
+        .range("174.0.0.0/7"),
+        .range("176.0.0.0/4"),
+        .range("192.0.0.0/9"),
+        .range("192.128.0.0/11"),
+        .range("192.160.0.0/13"),
+        .range("192.169.0.0/16"),
+        .range("192.170.0.0/15"),
+        .range("192.172.0.0/14"),
+        .range("192.176.0.0/12"),
+        .range("192.192.0.0/10"),
+        .range("193.0.0.0/8"),
+        .range("194.0.0.0/7"),
+        .range("196.0.0.0/6"),
+        .range("200.0.0.0/5"),
+        .range("208.0.0.0/4")
     ]
 }

@@ -442,6 +442,22 @@ public final class VPNSettings {
         }
     }
 
+    public var includedRoutes: [RoutingRange] {
+        RoutingRange.privateNetworkRanges
+    }
+
+    public var includedRanges: [IPAddressRange] {
+        includedRoutes.compactMap { entry in
+            switch entry {
+            case .section:
+                // Nothing to map
+                return nil
+            case .range(let range, _):
+                return range
+            }
+        }
+    }
+
     // MARK: - Disable Rekeying
 
     public var disableRekeyingPublisher: AnyPublisher<Bool, Never> {

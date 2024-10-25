@@ -282,6 +282,12 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
             throw NetworkProtectionError.couldNotGetInterfaceAddressRange
         }
 
+        let routingTableResolver = VPNRoutingTableResolver(
+            baseIncludedRoutes: includedRoutes,
+            baseExcludedRoutes: excludedRoutes,
+            server: server,
+            dnsSettings: dnsSettings)
+
         let dns: [DNSServer]
         switch dnsSettings {
         case .default:
@@ -292,10 +298,12 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
                 .map { DNSServer(address: $0) }
         }
 
+        Logger.networkProtection.log("Routing table information:\nL Included Routes: \(routingTableResolver.includedRoutes, privacy: .public)\nL Excluded Routes: \(routingTableResolver.excludedRoutes, privacy: .public)")
+
         let interface = interfaceConfiguration(privateKey: interfacePrivateKey,
                                                addressRange: interfaceAddressRange,
-                                               includedRoutes: includedRoutes,
-                                               excludedRoutes: excludedRoutes,
+                                               includedRoutes: routingTableResolver.includedRoutes,
+                                               excludedRoutes: routingTableResolver.excludedRoutes,
                                                dns: dns,
                                                isKillSwitchEnabled: isKillSwitchEnabled)
 

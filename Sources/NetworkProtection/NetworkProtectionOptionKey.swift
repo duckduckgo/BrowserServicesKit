@@ -30,6 +30,5 @@ public enum NetworkProtectionOptionKey {
     public static let tunnelFailureSimulation = "tunnelFailureSimulation"
     public static let tunnelFatalErrorCrashSimulation = "tunnelFatalErrorCrashSimulation"
     public static let tunnelMemoryCrashSimulation = "tunnelMemoryCrashSimulation"
-    public static let includedRoutes = "includedRoutes"
     public static let connectionTesterEnabled = "connectionTesterEnabled"
 }
