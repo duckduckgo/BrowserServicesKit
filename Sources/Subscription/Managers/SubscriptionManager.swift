@@ -24,7 +24,7 @@ import Networking
 public protocol SubscriptionManager {
 
     // Dependencies
-    var subscriptionEndpointService: SubscriptionEndpointService { get } // TODO: remove access and handle everything in SubscriptionManager
+    var subscriptionEndpointService: SubscriptionEndpointService { get }
 
     // Environment
     static func loadEnvironmentFrom(userDefaults: UserDefaults) -> SubscriptionEnvironment?
@@ -201,15 +201,15 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
                 Logger.subscription.error("Failed to logout: \(error.localizedDescription, privacy: .public)")
                 return
             }
-            
+
             Logger.subscription.log("Removing all traces of the subscription and auth tokens")
             subscriptionEndpointService.clearSubscription()
             oAuthClient.removeLocalAccount()
-            
+
             if !skipNotification {
                 NotificationCenter.default.post(name: .accountDidSignOut, object: self, userInfo: nil)
             }
         }
     }
-    
+
 }

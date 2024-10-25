@@ -34,53 +34,9 @@ public struct GetCustomerPortalURLResponse: Decodable {
 }
 
 public struct ConfirmPurchaseResponse: Decodable {
-    /*
-     {
-         "email": "",
-         "entitlements": [
-             {
-                 "product": "Data Broker Protection",
-                 "name": "subscriber"
-             },
-             {
-                 "product": "Identity Theft Restoration",
-                 "name": "subscriber"
-             },
-             {
-                 "product": "Network Protection",
-                 "name": "subscriber"
-             }
-         ],
-         "subscription": {
-             "productId": "ios.subscription.1month",
-             "name": "Monthly Subscription",
-             "billingPeriod": "Monthly",
-             "startedAt": 1729784648000,
-             "expiresOrRenewsAt": 1729784948000,
-             "platform": "apple",
-             "status": "Auto-Renewable"
-         }
-     }
-     */
     public let email: String?
-//    public let entitlements: [Entitlement]
     public let subscription: PrivacyProSubscription
 }
-
-//public struct Entitlement: Codable, Equatable {
-//    public let product: ProductName
-//
-//    public enum ProductName: String, Codable {
-//        case networkProtection = "Network Protection"
-//        case dataBrokerProtection = "Data Broker Protection"
-//        case identityTheftRestoration = "Identity Theft Restoration"
-//        case unknown
-//
-//        public init(from decoder: Decoder) throws {
-//            self = try Self(rawValue: decoder.singleValueContainer().decode(RawValue.self)) ?? .unknown
-//        }
-//    }
-//}
 
 public enum SubscriptionEndpointServiceError: Error {
     case noData
@@ -113,22 +69,14 @@ extension SubscriptionEndpointService {
 /// Communicates with our backend
 public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
 
-//    private let currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment
     private let apiService: APIService
     private let baseURL: URL
     private let subscriptionCache = UserDefaultsCache<PrivacyProSubscription>(key: UserDefaultsCacheKey.subscription, settings: UserDefaultsCacheSettings(defaultExpirationInterval: .minutes(20)))
 
     public init(apiService: APIService, baseURL: URL) {
-//        self.currentServiceEnvironment = currentServiceEnvironment
         self.apiService = apiService
         self.baseURL = baseURL
     }
-
-//    public init(currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment) {
-////        self.currentServiceEnvironment = currentServiceEnvironment
-//        let session = URLSession(configuration: URLSessionConfiguration.ephemeral)
-//        self.apiService = DefaultAPIService(baseURL: currentServiceEnvironment.url, session: session)
-//    }
 
     // MARK: - Subscription fetching with caching
 
@@ -150,33 +98,16 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
             Logger.subscriptionEndpointService.log("Failed to retrieve Subscription details: \(error)")
             throw SubscriptionEndpointServiceError.invalidResponseCode(statusCode)
         }
-        
-//        let result: Result<Subscription, APIServiceError> = await apiService.executeAPICall(method: "GET", endpoint: "subscription", headers: apiService.makeAuthorizationHeader(for: accessToken), body: nil)
-//        switch result {
-//        case .success(let subscriptionResponse):
-//            updateCache(with: subscriptionResponse)
-//            return .success(subscriptionResponse)
-//        case .failure(let error):
-//            return .failure(.apiError(error))
-//        }
     }
 
-    public func updateCache(with subscription: PrivacyProSubscription) { // TODO: why all this overhead? just replace and notify, TBC
-//        let cachedSubscription: PrivacyProSubscription? = subscriptionCache.get()
-//        if subscription != cachedSubscription {
-//            let defaultExpiryDate = Date().addingTimeInterval(subscriptionCache.settings.defaultExpirationInterval)
-//            let expiryDate = min(defaultExpiryDate, subscription.expiresOrRenewsAt)
-//
-//            subscriptionCache.set(subscription, expires: expiryDate)
-//            NotificationCenter.default.post(name: .subscriptionDidChange, object: self, userInfo: [UserDefaultsCacheKey.subscription: subscription])
-//        }
+    public func updateCache(with subscription: PrivacyProSubscription) {
         subscriptionCache.set(subscription)
         NotificationCenter.default.post(name: .subscriptionDidChange, object: self, userInfo: [UserDefaultsCacheKey.subscription: subscription])
     }
 
     public func getSubscription(accessToken: String, cachePolicy: SubscriptionCachePolicy = .returnCacheDataElseLoad) async throws -> PrivacyProSubscription {
 
-        switch cachePolicy { // TODO: improve removing code duplication
+        switch cachePolicy {
         case .reloadIgnoringLocalCacheData:
             if let subscription = try? await getRemoteSubscription(accessToken: accessToken) {
                 subscriptionCache.set(subscription)
@@ -213,7 +144,7 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
     // MARK: -
 
     public func getProducts() async throws -> [GetProductsItem] {
-        //await apiService.executeAPICall(method: "GET", endpoint: "products", headers: nil, body: nil)
+        // await apiService.executeAPICall(method: "GET", endpoint: "products", headers: nil, body: nil)
         guard let request = SubscriptionRequest.getProducts(baseURL: baseURL) else {
             throw SubscriptionEndpointServiceError.invalidRequest
         }
@@ -231,9 +162,6 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
     // MARK: -
 
     public func getCustomerPortalURL(accessToken: String, externalID: String) async throws -> GetCustomerPortalURLResponse {
-//        var headers = apiService.makeAuthorizationHeader(for: accessToken)
-//        headers["externalAccountId"] = externalID
-//        return await apiService.executeAPICall(method: "GET", endpoint: "checkout/portal", headers: headers, body: nil)
         guard let request = SubscriptionRequest.getCustomerPortalURL(baseURL: baseURL, accessToken: accessToken, externalID: externalID) else {
             throw SubscriptionEndpointServiceError.invalidRequest
         }

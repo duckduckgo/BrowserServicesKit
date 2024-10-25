@@ -45,8 +45,8 @@ public final class SubscriptionEndpointServiceMock: SubscriptionEndpointService 
         getSubscriptionCalled = true
         onGetSubscription?(accessToken, cachePolicy)
         switch getSubscriptionResult! {
-            case .success(let subscription): return subscription
-            case .failure(let error): throw error
+        case .success(let subscription): return subscription
+        case .failure(let error): throw error
         }
     }
 

@@ -22,7 +22,7 @@ public extension URL {
 
     /// Extract the query parameters from the URL
     func queryParameters() -> [String: String]? {
-        guard let urlComponents = URLComponents(url: self, resolvingAgainstBaseURL: false) ,
+        guard let urlComponents = URLComponents(url: self, resolvingAgainstBaseURL: false),
               let queryItems = urlComponents.queryItems else {
             return nil
         }

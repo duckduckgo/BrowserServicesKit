@@ -23,7 +23,7 @@ public final class SubscriptionManagerMock: SubscriptionManager {
 
     public var subscriptionEndpointService: SubscriptionEndpointService
     let internalStorePurchaseManager: StorePurchaseManager
-    public static var storedEnvironment: SubscriptionEnvironment? = nil
+    public static var storedEnvironment: SubscriptionEnvironment?
 
     public static func loadEnvironmentFrom(userDefaults: UserDefaults) -> SubscriptionEnvironment? {
         return storedEnvironment
@@ -40,31 +40,12 @@ public final class SubscriptionManagerMock: SubscriptionManager {
         internalStorePurchaseManager
     }
 
-//    public func loadInitialData() {
-//
-//    }
-
     public func refreshCachedSubscription(completion: @escaping (Bool) -> Void) {
         completion(true)
     }
 
     public func url(for type: SubscriptionURL) -> URL {
         type.subscriptionURL(environment: currentEnvironment.serviceEnvironment)
-    }
-
-    public init(
-        //accountManager: AccountManager,
-                subscriptionEndpointService: SubscriptionEndpointService,
-//                authEndpointService: AuthEndpointService,
-                storePurchaseManager: StorePurchaseManager,
-                currentEnvironment: SubscriptionEnvironment,
-                canPurchase: Bool) {
-//        self.accountManager = accountManager
-        self.subscriptionEndpointService = subscriptionEndpointService
-//        self.authEndpointService = authEndpointService
-        self.internalStorePurchaseManager = storePurchaseManager
-        self.currentEnvironment = currentEnvironment
-        self.canPurchase = canPurchase
     }
 
     // MARK: -

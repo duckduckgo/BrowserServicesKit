@@ -301,13 +301,13 @@ final public class DefaultOAuthClient: OAuthClient {
 
     // MARK: Activate
 
-    /// Helper, single use // TODO: doc
+    /// Helper, single use
     public class EmailAccountActivator {
 
         private let oAuthClient: any OAuthClient
-        private var email: String? = nil
-        private var authSessionID: String? = nil
-        private var codeVerifier: String? = nil
+        private var email: String?
+        private var authSessionID: String?
+        private var codeVerifier: String?
 
         public init(oAuthClient: any OAuthClient) {
             self.oAuthClient = oAuthClient
@@ -418,7 +418,7 @@ final public class DefaultOAuthClient: OAuthClient {
 
     // MARK: Edit account
 
-    /// Helper, single use // TODO: doc
+    /// Helper, single use
     public class AccountEditor {
 
         private let oAuthClient: any OAuthClient

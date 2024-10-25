@@ -20,7 +20,7 @@ import Foundation
 import JWTKit
 
 public enum TokenPayloadError: Error {
-    case InvalidTokenScope
+    case invalidTokenScope
 }
 
 public struct JWTAccessToken: JWTPayload {
@@ -38,7 +38,7 @@ public struct JWTAccessToken: JWTPayload {
     public func verify(using signer: JWTKit.JWTSigner) throws {
         try self.exp.verifyNotExpired()
         if self.scope != "privacypro" {
-            throw TokenPayloadError.InvalidTokenScope
+            throw TokenPayloadError.invalidTokenScope
         }
     }
 
@@ -69,7 +69,7 @@ public struct JWTRefreshToken: JWTPayload {
     public func verify(using signer: JWTKit.JWTSigner) throws {
         try self.exp.verifyNotExpired()
         if self.scope != "refresh" {
-            throw TokenPayloadError.InvalidTokenScope
+            throw TokenPayloadError.invalidTokenScope
         }
     }
 }

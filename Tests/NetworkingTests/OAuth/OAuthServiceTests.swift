@@ -25,10 +25,10 @@ final class AuthServiceTests: XCTestCase {
     let baseURL = OAuthEnvironment.staging.url
 
     override func setUpWithError() throws {
-/*
- var mockedApiService = MockAPIService(decodableResponse: <#T##Result<any Decodable, any Error>#>,
-                                       apiResponse: <#T##Result<(data: Data?, httpResponse: HTTPURLResponse), any Error>#>)
- */
+        /*
+         var mockedApiService = MockAPIService(decodableResponse: <#T##Result<any Decodable, any Error>#>,
+         apiResponse: <#T##Result<(data: Data?, httpResponse: HTTPURLResponse), any Error>#>)
+         */
     }
 
     override func tearDownWithError() throws {
@@ -63,7 +63,7 @@ final class AuthServiceTests: XCTestCase {
             case OAuthServiceError.authAPIError(let code, let desc):
                 XCTAssertEqual(code, "invalid_authorization_request")
                 XCTAssertEqual(desc, "One or more of the required parameters are missing or any provided parameters have invalid values")
-                default:
+            default:
                 XCTFail("Wrong error")
             }
         }
