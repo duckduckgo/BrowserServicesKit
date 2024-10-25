@@ -28,7 +28,7 @@ public protocol SubscriptionCookieManaging {
 
 public final class SubscriptionCookieManager: SubscriptionCookieManaging {
 
-    public static let cookieDomain = "duckduckgo.com"
+    public static let cookieDomain = ".duckduckgo.com"
     public static let cookieName = "privacy_pro_access_token"
 
     private static let defaultRefreshTimeInterval: TimeInterval = .hours(4)
