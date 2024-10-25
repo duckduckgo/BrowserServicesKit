@@ -150,7 +150,7 @@ final public class DefaultOAuthClient: OAuthClient {
 
     @discardableResult
     private func getTokens(authCode: String, codeVerifier: String) async throws -> TokensContainer {
-        Logger.OAuthClient.debug("Getting tokens")
+        Logger.OAuthClient.log("Getting tokens")
         let getTokensResponse = try await authService.getAccessToken(clientID: Constants.clientID,
                                                              codeVerifier: codeVerifier,
                                                              code: authCode,
@@ -159,7 +159,7 @@ final public class DefaultOAuthClient: OAuthClient {
     }
 
     private func getVerificationCodes() async throws -> (codeVerifier: String, codeChallenge: String) {
-        Logger.OAuthClient.debug("Getting verification codes")
+        Logger.OAuthClient.log("Getting verification codes")
         let codeVerifier = OAuthCodesGenerator.codeVerifier
         guard let codeChallenge = OAuthCodesGenerator.codeChallenge(codeVerifier: codeVerifier) else {
             Logger.OAuthClient.error("Failed to get verification codes")
@@ -169,7 +169,7 @@ final public class DefaultOAuthClient: OAuthClient {
     }
 
     private func decode(accessToken: String, refreshToken: String) async throws -> TokensContainer {
-        Logger.OAuthClient.debug("Decoding tokens")
+        Logger.OAuthClient.log("Decoding tokens")
         let jwtSigners = try await authService.getJWTSigners()
         let decodedAccessToken = try jwtSigners.verify(accessToken, as: JWTAccessToken.self)
         let decodedRefreshToken = try jwtSigners.verify(refreshToken, as: JWTRefreshToken.self)
@@ -200,19 +200,19 @@ final public class DefaultOAuthClient: OAuthClient {
 
         switch policy {
         case .local:
-            Logger.OAuthClient.debug("Getting local tokens")
+            Logger.OAuthClient.log("Getting local tokens")
             if let storedTokens {
-                Logger.OAuthClient.debug("Local tokens found, expiry: \(storedTokens.decodedAccessToken.exp.value)")
+                Logger.OAuthClient.log("Local tokens found, expiry: \(storedTokens.decodedAccessToken.exp.value)")
                 return storedTokens
             } else {
                 throw OAuthClientError.missingTokens
             }
         case .localValid: // TODO: Optimise code removing duplications
-            Logger.OAuthClient.debug("Getting local tokens and refreshing them if needed")
+            Logger.OAuthClient.log("Getting local tokens and refreshing them if needed")
             if let storedTokens {
-                Logger.OAuthClient.debug("Local tokens found, expiry: \(storedTokens.decodedAccessToken.exp.value)")
+                Logger.OAuthClient.log("Local tokens found, expiry: \(storedTokens.decodedAccessToken.exp.value)")
                 if storedTokens.decodedAccessToken.isExpired() {
-                    Logger.OAuthClient.debug("Local access token is expired, refreshing it")
+                    Logger.OAuthClient.log("Local access token is expired, refreshing it")
                     let refreshedTokens = try await refreshTokens()
                     tokensStorage.tokensContainer = refreshedTokens
                     return refreshedTokens
@@ -223,12 +223,12 @@ final public class DefaultOAuthClient: OAuthClient {
                 throw OAuthClientError.missingTokens
             }
         case .createIfNeeded:
-            Logger.OAuthClient.debug("Getting tokens and creating a new account if needed")
+            Logger.OAuthClient.log("Getting tokens and creating a new account if needed")
             if let storedTokens {
-                Logger.OAuthClient.debug("Local tokens found, expiry: \(storedTokens.decodedAccessToken.exp.value)")
+                Logger.OAuthClient.log("Local tokens found, expiry: \(storedTokens.decodedAccessToken.exp.value)")
                 // An account existed before, recovering it and refreshing the tokens
                 if storedTokens.decodedAccessToken.isExpired() {
-                    Logger.OAuthClient.debug("Local access token is expired, refreshing it")
+                    Logger.OAuthClient.log("Local access token is expired, refreshing it")
                     let refreshedTokens = try await refreshTokens()
                     tokensStorage.tokensContainer = refreshedTokens
                     return refreshedTokens
@@ -236,7 +236,7 @@ final public class DefaultOAuthClient: OAuthClient {
                     return storedTokens
                 }
             } else {
-                Logger.OAuthClient.debug("Local token not found, creating a new account")
+                Logger.OAuthClient.log("Local token not found, creating a new account")
                 // We don't have a token stored, create a new account
                 let tokens = try await createAccount()
                 // Save tokens
@@ -250,12 +250,12 @@ final public class DefaultOAuthClient: OAuthClient {
 
     /// Create an accounts, stores all tokens and returns them
     public func createAccount() async throws -> TokensContainer {
-        Logger.OAuthClient.debug("Creating new account")
+        Logger.OAuthClient.log("Creating new account")
         let (codeVerifier, codeChallenge) = try await getVerificationCodes()
         let authSessionID = try await authService.authorise(codeChallenge: codeChallenge)
         let authCode = try await authService.createAccount(authSessionID: authSessionID)
         let tokens = try await getTokens(authCode: authCode, codeVerifier: codeVerifier)
-        Logger.OAuthClient.debug("New account created successfully")
+        Logger.OAuthClient.log("New account created successfully")
         return tokens
     }
 
@@ -287,7 +287,7 @@ final public class DefaultOAuthClient: OAuthClient {
     }
 
     public func requestOTP(email: String) async throws -> (authSessionID: String, codeVerifier: String) {
-        Logger.OAuthClient.debug("Requesting OTP")
+        Logger.OAuthClient.log("Requesting OTP")
         let (codeVerifier, codeChallenge) = try await getVerificationCodes()
         let authSessionID = try await authService.authorise(codeChallenge: codeChallenge)
         try await authService.requestOTP(authSessionID: authSessionID, emailAddress: email)
@@ -295,19 +295,19 @@ final public class DefaultOAuthClient: OAuthClient {
     }
 
     public func activate(withOTP otp: String, email: String, codeVerifier: String, authSessionID: String) async throws {
-        Logger.OAuthClient.debug("Activating with OTP")
+        Logger.OAuthClient.log("Activating with OTP")
         let authCode = try await authService.login(withOTP: otp, authSessionID: authSessionID, email: email)
         try await getTokens(authCode: authCode, codeVerifier: codeVerifier)
     }
 
     public func activate(withPlatformSignature signature: String) async throws -> TokensContainer {
-        Logger.OAuthClient.debug("Activating with platform signature")
+        Logger.OAuthClient.log("Activating with platform signature")
         let (codeVerifier, codeChallenge) = try await getVerificationCodes()
         let authSessionID = try await authService.authorise(codeChallenge: codeChallenge)
         let authCode = try await authService.login(withSignature: signature, authSessionID: authSessionID)
         let tokens = try await getTokens(authCode: authCode, codeVerifier: codeVerifier)
         tokensStorage.tokensContainer = tokens
-        Logger.OAuthClient.debug("Activation completed")
+        Logger.OAuthClient.log("Activation completed")
         return tokens
     }
 
@@ -315,7 +315,7 @@ final public class DefaultOAuthClient: OAuthClient {
 
     @discardableResult
     public func refreshTokens() async throws -> TokensContainer {
-        Logger.OAuthClient.debug("Refreshing tokens")
+        Logger.OAuthClient.log("Refreshing tokens")
         guard let refreshToken = tokensStorage.tokensContainer?.refreshToken else {
             throw OAuthClientError.missingRefreshToken
         }
@@ -324,7 +324,7 @@ final public class DefaultOAuthClient: OAuthClient {
             let refreshTokenResponse = try await authService.refreshAccessToken(clientID: Constants.clientID, refreshToken: refreshToken)
             let refreshedTokens = try await decode(accessToken: refreshTokenResponse.accessToken, refreshToken: refreshTokenResponse.refreshToken)
 
-            Logger.OAuthClient.debug("Tokens refreshed: \(refreshedTokens.debugDescription)")
+            Logger.OAuthClient.log("Tokens refreshed: \(refreshedTokens.debugDescription)")
 
             tokensStorage.tokensContainer = refreshedTokens
             return refreshedTokens
@@ -352,7 +352,7 @@ final public class DefaultOAuthClient: OAuthClient {
     // MARK: Exchange V1 to V2 token
 
     public func exchange(accessTokenV1: String) async throws -> TokensContainer {
-        Logger.OAuthClient.debug("Exchanging access token V1 to V2")
+        Logger.OAuthClient.log("Exchanging access token V1 to V2")
         let (codeVerifier, codeChallenge) = try await getVerificationCodes()
         let authSessionID = try await authService.authorise(codeChallenge: codeChallenge)
         let authCode = try await authService.exchangeToken(accessTokenV1: accessTokenV1, authSessionID: authSessionID)
@@ -364,7 +364,7 @@ final public class DefaultOAuthClient: OAuthClient {
     // MARK: Logout
 
     public func logout() async throws {
-        Logger.OAuthClient.debug("Logging out")
+        Logger.OAuthClient.log("Logging out")
         if let token = tokensStorage.tokensContainer?.accessToken {
             try await authService.logout(accessToken: token)
         }
@@ -372,7 +372,7 @@ final public class DefaultOAuthClient: OAuthClient {
     }
 
     public func removeLocalAccount() {
-        Logger.OAuthClient.debug("Removing local account")
+        Logger.OAuthClient.log("Removing local account")
         tokensStorage.tokensContainer = nil
     }
 

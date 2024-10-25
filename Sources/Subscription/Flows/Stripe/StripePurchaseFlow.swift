@@ -33,27 +33,20 @@ public protocol StripePurchaseFlow {
 }
 
 public final class DefaultStripePurchaseFlow: StripePurchaseFlow {
-    private let oAuthClient: OAuthClient
+    private let subscriptionManager: SubscriptionManager
     private let subscriptionEndpointService: SubscriptionEndpointService
-//    private let authEndpointService: AuthEndpointService
-//    private let accountManager: AccountManager
 
-    public init(subscriptionEndpointService: any SubscriptionEndpointService,
-                oAuthClient: OAuthClient
-//                authEndpointService: any AuthEndpointService,
-//                accountManager: any AccountManager
-    ) {
+    public init(subscriptionManager: SubscriptionManager,
+                subscriptionEndpointService: any SubscriptionEndpointService) {
+        self.subscriptionManager = subscriptionManager
         self.subscriptionEndpointService = subscriptionEndpointService
-//        self.authEndpointService = authEndpointService
-//        self.accountManager = accountManager
-        self.oAuthClient = oAuthClient
     }
 
     public func subscriptionOptions() async -> Result<SubscriptionOptions, StripePurchaseFlowError> {
-        Logger.subscription.info("[StripePurchaseFlow] subscriptionOptions")
+        Logger.subscriptionStripePurchaseFlow.log("Getting subscription options")
 
         guard let products = try? await subscriptionEndpointService.getProducts(), !products.isEmpty else {
-            Logger.subscription.error("[StripePurchaseFlow] Error: noProductsFound")
+            Logger.subscriptionStripePurchaseFlow.error("Failed to obtain products")
             return .failure(.noProductsFound)
         }
 
@@ -69,77 +62,36 @@ public final class DefaultStripePurchaseFlow: StripePurchaseFlow {
             if let price = Float($0.price), let formattedPrice = formatter.string(from: price as NSNumber) {
                  displayPrice = formattedPrice
             }
-
             let cost = SubscriptionOptionCost(displayPrice: displayPrice, recurrence: $0.billingPeriod.lowercased())
-
-            return SubscriptionOption(id: $0.productId,
-                                      cost: cost)
+            return SubscriptionOption(id: $0.productId, cost: cost)
         }
 
         let features = SubscriptionFeatureName.allCases.map { SubscriptionFeature(name: $0.rawValue) }
-
-        return .success(SubscriptionOptions(platform: SubscriptionPlatformName.stripe.rawValue,
-                                            options: options,
-                                            features: features))
+        return .success(SubscriptionOptions(platform: SubscriptionPlatformName.stripe.rawValue, options: options, features: features))
     }
 
     public func prepareSubscriptionPurchase(emailAccessToken: String?) async -> Result<PurchaseUpdate, StripePurchaseFlowError> {
-        Logger.subscription.info("[StripePurchaseFlow] prepareSubscriptionPurchase")
 
-        // Clear subscription Cache
+        Logger.subscription.log("Preparing subscription purchase")
         subscriptionEndpointService.clearSubscription()
-
-//        var token: String = ""
-//        if let accessToken = try? await oAuthClient.getValidTokens().accessToken {
-//            if await isSubscriptionExpired(accessToken: accessToken) {
-//                token = accessToken
-//            }
-//        } else {
-//            switch await authEndpointService.createAccount(emailAccessToken: emailAccessToken) {
-//            case .success(let response):
-//                token = response.authToken
-//                accountManager.storeAuthToken(token: token)
-//            case .failure:
-//                Logger.subscription.error("[StripePurchaseFlow] Error: accountCreationFailed")
-//                return .failure(.accountCreationFailed)
-//            }
-//        }
-
         do {
-            let accessToken = try await oAuthClient.getTokens(policy: .createIfNeeded).accessToken
-            if await isSubscriptionExpired(accessToken: accessToken) {
+            let accessToken = try await subscriptionManager.getTokensContainer(policy: .createIfNeeded).accessToken
+            if let subscription = try? await subscriptionEndpointService.getSubscription(accessToken: accessToken),
+               !subscription.isActive {
                 return .success(PurchaseUpdate.redirect(withToken: accessToken))
             } else {
                 return .success(PurchaseUpdate.redirect(withToken: ""))
             }
-
         } catch {
-            Logger.subscription.error("[StripePurchaseFlow] Error: accountCreationFailed")
+            Logger.subscriptionStripePurchaseFlow.error("Account creation failed: \(error.localizedDescription, privacy: .public)")
             return .failure(.accountCreationFailed)
         }
     }
 
-    private func isSubscriptionExpired(accessToken: String) async -> Bool {
-        if let subscription = try? await subscriptionEndpointService.getSubscription(accessToken: accessToken) {
-            return !subscription.isActive
-        }
-        return false
-    }
-
     public func completeSubscriptionPurchase() async {
-        // Clear subscription Cache
+        Logger.subscriptionStripePurchaseFlow.log("Completing subscription purchase")
         subscriptionEndpointService.clearSubscription()
 
-        // NONE OF THIS IS USEFUL ANYMORE, ACCESS TOKEN AND ACCOUNT DETAILS ARE OBTAINED AS PART OF THE AUTHENTICATION
-//        Logger.subscription.info("[StripePurchaseFlow] completeSubscriptionPurchase")
-//        if !accountManager.isUserAuthenticated,
-//           let authToken = accountManager.authToken {
-//            if case let .success(accessToken) = await accountManager.exchangeAuthTokenToAccessToken(authToken),
-//               case let .success(accountDetails) = await accountManager.fetchAccountDetails(with: accessToken) {
-//                accountManager.storeAuthToken(token: authToken)
-//                accountManager.storeAccount(token: accessToken, email: accountDetails.email, externalID: accountDetails.externalID)
-//            }
-//        }
-//        await accountManager.checkForEntitlements(wait: 2.0, retry: 5)
+        await subscriptionManager.refreshAccount()
     }
 }

@@ -16,8 +16,8 @@
 //  limitations under the License.
 //
 
-//import Foundation
-//
+import Foundation
+
 //public struct Entitlement: Codable, Equatable {
 //    public let product: ProductName
 //

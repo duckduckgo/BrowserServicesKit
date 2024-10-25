@@ -145,9 +145,7 @@ private extension SubscriptionTokenKeychainStorage {
             kSecClass: kSecClassGenericPassword,
             kSecAttrSynchronizable: false
         ]
-
         attributes.merge(keychainType.queryAttributes()) { $1 }
-
         return attributes
     }
 }

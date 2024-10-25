@@ -21,7 +21,7 @@ import StoreKit
 import os.log
 import Networking
 
-public enum AppStoreRestoreFlowError: Error, Equatable {
+public enum AppStoreRestoreFlowError: LocalizedError, Equatable {
     case missingAccountOrTransactions
     case pastTransactionAuthenticationError
     case failedToObtainAccessToken
@@ -29,7 +29,7 @@ public enum AppStoreRestoreFlowError: Error, Equatable {
     case failedToFetchSubscriptionDetails
     case subscriptionExpired
 
-    var description: String {
+    public var errorDescription: String? {
         switch self {
         case .missingAccountOrTransactions:
             return "Missing account or transactions."
@@ -84,7 +84,7 @@ public final class DefaultAppStoreRestoreFlow: AppStoreRestoreFlow {
             } else {
                 Logger.subscriptionAppStoreRestoreFlow.error("Subscription expired")
 
-                // Removing all traces of the subscription
+                // Removing all traces of the subscription and the account
                 subscriptionManager.signOut()
 
                 return .failure(.subscriptionExpired)

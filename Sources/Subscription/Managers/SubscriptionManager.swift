@@ -178,7 +178,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
 
     public func refreshAccount() async {
         do {
-            let tokensContainer = try await oAuthClient.refreshTokens()
+            _ = try await oAuthClient.refreshTokens()
             NotificationCenter.default.post(name: .entitlementsDidChange, object: self, userInfo: nil)
         } catch {
             Logger.subscription.error("Failed to refresh account: \(error.localizedDescription, privacy: .public)")

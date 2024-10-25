@@ -19,8 +19,9 @@
 import Foundation
 import Security
 
-public struct SubscriptionKeychainManager {
+public class SubscriptionKeychainManager {
 
+    internal let queue = DispatchQueue(label: "SubscriptionKeychainManager.queue")
     public init() {}
 
     /*
@@ -86,6 +87,26 @@ public struct SubscriptionKeychainManager {
 
         if status != errSecSuccess && status != errSecItemNotFound {
             throw AccountKeychainAccessError.keychainDeleteFailure(status)
+        }
+    }
+
+    public func updateData(_ data: Data, forField field: SubscriptionKeychainField) throws {
+        let query = [
+            kSecClass: kSecClassGenericPassword,
+            kSecAttrSynchronizable: false,
+            kSecAttrService: field.keyValue,
+            kSecAttrAccessible: kSecAttrAccessibleAfterFirstUnlock,
+            kSecUseDataProtectionKeychain: true] as [String: Any]
+
+        let newAttributes = [
+          kSecValueData: data,
+          kSecAttrAccessible: kSecAttrAccessibleAfterFirstUnlock
+        ] as [CFString: Any]
+
+        let status = SecItemUpdate(query as CFDictionary, newAttributes as CFDictionary)
+
+        if status != errSecSuccess && status != errSecItemNotFound {
+            throw AccountKeychainAccessError.keychainSaveFailure(status)
         }
     }
 }

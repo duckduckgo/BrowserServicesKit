@@ -25,30 +25,38 @@ extension SubscriptionKeychainManager: TokensStoring {
 
     public var tokensContainer: TokensContainer? {
         get {
-            guard let data = try? retrieveData(forField: .tokens) else {
-                return nil
+            queue.sync {
+                guard let data = try? retrieveData(forField: .tokens) else {
+                    return nil
+                }
+                return CodableHelper.decode(jsonData: data)
             }
-            return CodableHelper.decode(jsonData: data)
         }
         set {
-            do {
-                guard let newValue else {
-                    Logger.subscription.log("removing TokensContainer")
-                    try deleteItem(forField: .tokens)
-                    return
-                }
+            queue.sync { [weak self] in
+                guard let strongSelf = self else { return }
 
-                try? deleteItem(forField: .tokens)
+                do {
+                    guard let newValue else {
+                        Logger.subscription.log("removing TokensContainer")
+                        try strongSelf.deleteItem(forField: .tokens)
+                        return
+                    }
 
-                if let data = CodableHelper.encode(newValue) {
-                    try store(data: data, forField: .tokens)
-                } else {
-                    Logger.subscription.fault("Failed to encode TokensContainer")
-                    assertionFailure("Failed to encode TokensContainer")
+                    if let data = CodableHelper.encode(newValue) {
+                        if (try? strongSelf.retrieveData(forField: .tokens)) != nil {
+                            try strongSelf.updateData(data, forField: .tokens)
+                        } else {
+                            try strongSelf.store(data: data, forField: .tokens)
+                        }
+                    } else {
+                        Logger.subscription.fault("Failed to encode TokensContainer")
+                        assertionFailure("Failed to encode TokensContainer")
+                    }
+                } catch {
+                    Logger.subscription.fault("Failed to set TokensContainer: \(error, privacy: .public)")
+                    assertionFailure("Failed to set TokensContainer")
                 }
-            } catch {
-                Logger.subscription.fault("Failed to set TokensContainer: \(error, privacy: .public)")
-                assertionFailure("Failed to set TokensContainer")
             }
         }
     }

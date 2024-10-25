@@ -34,10 +34,53 @@ public struct GetCustomerPortalURLResponse: Decodable {
 }
 
 public struct ConfirmPurchaseResponse: Decodable {
+    /*
+     {
+         "email": "",
+         "entitlements": [
+             {
+                 "product": "Data Broker Protection",
+                 "name": "subscriber"
+             },
+             {
+                 "product": "Identity Theft Restoration",
+                 "name": "subscriber"
+             },
+             {
+                 "product": "Network Protection",
+                 "name": "subscriber"
+             }
+         ],
+         "subscription": {
+             "productId": "ios.subscription.1month",
+             "name": "Monthly Subscription",
+             "billingPeriod": "Monthly",
+             "startedAt": 1729784648000,
+             "expiresOrRenewsAt": 1729784948000,
+             "platform": "apple",
+             "status": "Auto-Renewable"
+         }
+     }
+     */
     public let email: String?
-    public let entitlements: [SubscriptionEntitlement] // TODO: are they coming here or in the token? both?
+//    public let entitlements: [Entitlement]
     public let subscription: PrivacyProSubscription
 }
+
+//public struct Entitlement: Codable, Equatable {
+//    public let product: ProductName
+//
+//    public enum ProductName: String, Codable {
+//        case networkProtection = "Network Protection"
+//        case dataBrokerProtection = "Data Broker Protection"
+//        case identityTheftRestoration = "Identity Theft Restoration"
+//        case unknown
+//
+//        public init(from decoder: Decoder) throws {
+//            self = try Self(rawValue: decoder.singleValueContainer().decode(RawValue.self)) ?? .unknown
+//        }
+//    }
+//}
 
 public enum SubscriptionEndpointServiceError: Error {
     case noData
@@ -207,11 +250,6 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
     // MARK: -
 
     public func confirmPurchase(accessToken: String, signature: String) async throws -> ConfirmPurchaseResponse {
-//        let headers = apiService.makeAuthorizationHeader(for: accessToken)
-//        let bodyDict = ["signedTransactionInfo": signature]
-//
-//        guard let bodyData = try? JSONEncoder().encode(bodyDict) else { return .failure(.encodingError) }
-//        return await apiService.executeAPICall(method: "POST", endpoint: "purchase/confirm/apple", headers: headers, body: bodyData)
         guard let request = SubscriptionRequest.confirmPurchase(baseURL: baseURL, accessToken: accessToken, signature: signature) else {
             throw SubscriptionEndpointServiceError.invalidRequest
         }
