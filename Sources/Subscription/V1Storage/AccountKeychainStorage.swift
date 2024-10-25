@@ -100,7 +100,7 @@ public final class AccountKeychainStorage: AccountStoring {
     }
 }
 
-private extension AccountKeychainStorage {
+extension AccountKeychainStorage {
 
     /*
      Uses just kSecAttrService as the primary key, since we don't want to store

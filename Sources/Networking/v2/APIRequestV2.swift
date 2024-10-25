@@ -24,7 +24,7 @@ public class APIRequestV2: CustomDebugStringConvertible {
         public let maxRetries: Int
         public let delay: TimeInterval
 
-        public init(maxRetries: Int, delay: TimeInterval) {
+        public init(maxRetries: Int, delay: TimeInterval = 0) {
             self.maxRetries = maxRetries
             self.delay = delay
         }

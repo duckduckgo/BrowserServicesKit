@@ -39,8 +39,14 @@ public enum OAuthClientError: Error, LocalizedError {
     }
 }
 
+/// Provides the locally stored tokens container
 public protocol TokensStoring {
     var tokensContainer: TokensContainer? { get set }
+}
+
+/// Provides the legacy AuthToken V1
+public protocol LegacyTokenStoring {
+    var token: String? { get set }
 }
 
 public enum TokensCachePolicy {
@@ -97,11 +103,11 @@ public protocol OAuthClient {
     @discardableResult
     func refreshTokens() async throws -> TokensContainer
 
-    // MARK: Exchange V1 to V2 token
+    // MARK: Exchange
 
-    /// Exchange a V1 access token for a V2 token
-    /// - Parameter accessTokenV1: The V1 access token
-    /// - Returns: A container of tokens
+    /// Exchange token v1 for tokens v2
+    /// - Parameter accessTokenV1: The legacy auth token
+    /// - Returns: A TokensContainer with access and refresh tokens
     func exchange(accessTokenV1: String) async throws -> TokensContainer
 
     // MARK: Logout
@@ -140,8 +146,11 @@ final public class DefaultOAuthClient: OAuthClient {
 
     private let authService: any OAuthService
     public var tokensStorage: any TokensStoring
+    public var legacyTokenStorage: (any LegacyTokenStoring)?
 
-    public init(tokensStorage: any TokensStoring, authService: OAuthService) {
+    public init(tokensStorage: any TokensStoring,
+                legacyTokenStorage: (any LegacyTokenStoring)? = nil,
+                authService: OAuthService) {
         self.tokensStorage = tokensStorage
         self.authService = authService
     }
@@ -196,44 +205,50 @@ final public class DefaultOAuthClient: OAuthClient {
     /// - `.createIfNeeded`: Returns a tokens container with unexpired tokens, creates a new account if needed
     /// All options store new or refreshed tokens via the tokensStorage
     public func getTokens(policy: TokensCachePolicy) async throws -> TokensContainer {
-        let storedTokens = tokensStorage.tokensContainer
+        let localTokensContainer: TokensContainer?
+
+        if let migratedTokensContainer = await migrateLegacyTokenIfNeeded() {
+            localTokensContainer = migratedTokensContainer
+        } else {
+            localTokensContainer = tokensStorage.tokensContainer
+        }
 
         switch policy {
         case .local:
             Logger.OAuthClient.log("Getting local tokens")
-            if let storedTokens {
-                Logger.OAuthClient.log("Local tokens found, expiry: \(storedTokens.decodedAccessToken.exp.value)")
-                return storedTokens
+            if let localTokensContainer {
+                Logger.OAuthClient.log("Local tokens found, expiry: \(localTokensContainer.decodedAccessToken.exp.value)")
+                return localTokensContainer
             } else {
                 throw OAuthClientError.missingTokens
             }
-        case .localValid: // TODO: Optimise code removing duplications
+        case .localValid:
             Logger.OAuthClient.log("Getting local tokens and refreshing them if needed")
-            if let storedTokens {
-                Logger.OAuthClient.log("Local tokens found, expiry: \(storedTokens.decodedAccessToken.exp.value)")
-                if storedTokens.decodedAccessToken.isExpired() {
+            if let localTokensContainer {
+                Logger.OAuthClient.log("Local tokens found, expiry: \(localTokensContainer.decodedAccessToken.exp.value)")
+                if localTokensContainer.decodedAccessToken.isExpired() {
                     Logger.OAuthClient.log("Local access token is expired, refreshing it")
                     let refreshedTokens = try await refreshTokens()
                     tokensStorage.tokensContainer = refreshedTokens
                     return refreshedTokens
                 } else {
-                    return storedTokens
+                    return localTokensContainer
                 }
             } else {
                 throw OAuthClientError.missingTokens
             }
         case .createIfNeeded:
             Logger.OAuthClient.log("Getting tokens and creating a new account if needed")
-            if let storedTokens {
-                Logger.OAuthClient.log("Local tokens found, expiry: \(storedTokens.decodedAccessToken.exp.value)")
+            if let localTokensContainer {
+                Logger.OAuthClient.log("Local tokens found, expiry: \(localTokensContainer.decodedAccessToken.exp.value)")
                 // An account existed before, recovering it and refreshing the tokens
-                if storedTokens.decodedAccessToken.isExpired() {
+                if localTokensContainer.decodedAccessToken.isExpired() {
                     Logger.OAuthClient.log("Local access token is expired, refreshing it")
                     let refreshedTokens = try await refreshTokens()
                     tokensStorage.tokensContainer = refreshedTokens
                     return refreshedTokens
                 } else {
-                    return storedTokens
+                    return localTokensContainer
                 }
             } else {
                 Logger.OAuthClient.log("Local token not found, creating a new account")
@@ -243,6 +258,31 @@ final public class DefaultOAuthClient: OAuthClient {
                 tokensStorage.tokensContainer = tokens
                 return tokens
             }
+        }
+    }
+
+    /// Tries to retrieve the v1 auth token stored locally, if present performs a migration to v2 and removes the old token
+    private func migrateLegacyTokenIfNeeded() async -> TokensContainer? {
+        guard var legacyTokenStorage,
+                let legacyToken = legacyTokenStorage.token else {
+            return nil
+        }
+
+        Logger.OAuthClient.log("Migrating legacy token")
+        do {
+            let tokensContainer = try await exchange(accessTokenV1: legacyToken)
+            Logger.OAuthClient.log("Tokens migrated successfully, removing legacy token")
+
+            // Remove old token
+            legacyTokenStorage.token = nil
+
+            // Store new tokens
+            tokensStorage.tokensContainer = tokensContainer
+
+            return tokensContainer
+        } catch {
+            Logger.OAuthClient.error("Failed to migrate legacy token: \(error, privacy: .public)")
+            return nil
         }
     }
 
@@ -357,7 +397,6 @@ final public class DefaultOAuthClient: OAuthClient {
         let authSessionID = try await authService.authorise(codeChallenge: codeChallenge)
         let authCode = try await authService.exchangeToken(accessTokenV1: accessTokenV1, authSessionID: authSessionID)
         let tokens = try await getTokens(authCode: authCode, codeVerifier: codeVerifier)
-        tokensStorage.tokensContainer = tokens
         return tokens
     }
 
@@ -374,6 +413,7 @@ final public class DefaultOAuthClient: OAuthClient {
     public func removeLocalAccount() {
         Logger.OAuthClient.log("Removing local account")
         tokensStorage.tokensContainer = nil
+        legacyTokenStorage?.token = nil
     }
 
     // MARK: Edit account

@@ -194,20 +194,22 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     }
 
     public func signOut(skipNotification: Bool = false) {
-        Logger.subscription.log("Removing all traces of the subscription")
-        subscriptionEndpointService.clearSubscription()
-        oAuthClient.removeLocalAccount()
-//        Task { // TODO: is this needed??
-//            do {
-//                try await oAuthClient.logout()
-//            } catch {
-//                Logger.subscription.error("Failed to logout: \(error.localizedDescription, privacy: .public)")
-//                return
-//            }
-//        }
-        if !skipNotification {
-            NotificationCenter.default.post(name: .accountDidSignOut, object: self, userInfo: nil)
+        Task {
+            do {
+                try await oAuthClient.logout()
+            } catch {
+                Logger.subscription.error("Failed to logout: \(error.localizedDescription, privacy: .public)")
+                return
+            }
+            
+            Logger.subscription.log("Removing all traces of the subscription and auth tokens")
+            subscriptionEndpointService.clearSubscription()
+            oAuthClient.removeLocalAccount()
+            
+            if !skipNotification {
+                NotificationCenter.default.post(name: .accountDidSignOut, object: self, userInfo: nil)
+            }
         }
     }
-
+    
 }

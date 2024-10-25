@@ -324,7 +324,8 @@ struct OAuthRequest {
         guard let request = APIRequestV2(url: baseURL.appendingPathComponent(path),
                                          method: .post,
                                          headers: APIRequestV2.HeadersV2(cookies: [cookie],
-                                                                         authToken: accessTokenV1)) else {
+                                                                         authToken: accessTokenV1),
+                                         retryPolicy: APIRequestV2.RetryPolicy(maxRetries: 3)) else {
             return nil
         }
         return OAuthRequest(apiRequest: request,
