@@ -24,6 +24,8 @@ public protocol SubscriptionCookieManaging {
     init(subscriptionManager: SubscriptionManager, currentCookieStore: @MainActor @escaping () -> HTTPCookieStore?, eventMapping: EventMapping<SubscriptionCookieManagerEvent>) async
     func refreshSubscriptionCookie() async
     func resetLastRefreshDate()
+
+    var lastRefreshDate: Date? { get }
 }
 
 public final class SubscriptionCookieManager: SubscriptionCookieManaging {
@@ -37,7 +39,7 @@ public final class SubscriptionCookieManager: SubscriptionCookieManaging {
     private let currentCookieStore: @MainActor () -> HTTPCookieStore?
     private let eventMapping: EventMapping<SubscriptionCookieManagerEvent>
 
-    private var lastRefreshDate: Date?
+    public private(set) var lastRefreshDate: Date?
     private let refreshTimeInterval: TimeInterval
 
     convenience nonisolated public required init(subscriptionManager: SubscriptionManager,
