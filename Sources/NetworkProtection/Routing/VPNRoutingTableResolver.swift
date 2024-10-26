@@ -18,8 +18,12 @@
 
 import Foundation
 
-/// Owns the responsibility of defining the routing table for the VPN based on all the relevant
-/// configuration options and values.
+/// Owns the responsibility of defining the routing table for the VPN.
+///
+/// This class is a bit limited in scope right now and only combines ``VPNSettings``
+/// routing rules with the DNS settings, which can only be known with certainty at connection-time.
+/// This class could be extended in the future to also factor in provider configurations, since
+/// those are not taken into account in ``VPNSettings``.
 ///
 struct VPNRoutingTableResolver {
 
@@ -27,10 +31,6 @@ struct VPNRoutingTableResolver {
     private let baseIncludedRoutes: [IPAddressRange]
     private let dnsSettings: NetworkProtectionDNSSettings
     private let server: NetworkProtectionServer
-
-    private static let localNetworks: [IPAddressRange] = {
-        ["172.16.0.0/12", "192.168.0.0/16"]
-    }()
 
     init(baseIncludedRoutes: [IPAddressRange],
          baseExcludedRoutes: [IPAddressRange],
@@ -44,7 +44,7 @@ struct VPNRoutingTableResolver {
     }
 
     var excludedRoutes: [IPAddressRange] {
-        baseExcludedRoutes + Self.localNetworks
+        baseExcludedRoutes
     }
 
     var includedRoutes: [IPAddressRange] {
