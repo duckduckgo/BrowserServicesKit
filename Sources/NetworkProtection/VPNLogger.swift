@@ -41,11 +41,11 @@ public final class VPNLogger {
     public func log(_ step: AttemptStep, named name: String) {
         switch step {
         case .begin:
-            Logger.networkProtection.debug("🔵 \(name, privacy: .public) attempt begins")
+            Logger.networkProtection.log("🔵 \(name, privacy: .public) attempt begins")
         case .failure(let error):
             Logger.networkProtection.error("🔴 \(name, privacy: .public) attempt failed with error: \(error.localizedDescription, privacy: .public)")
         case .success:
-            Logger.networkProtection.debug("🟢 \(name, privacy: .public) attempt succeeded")
+            Logger.networkProtection.log("🟢 \(name, privacy: .public) attempt succeeded")
         }
     }
 
@@ -53,11 +53,11 @@ public final class VPNLogger {
     public func log(_ step: ConnectionAttempt) {
         switch step {
         case .connecting:
-            Logger.networkProtection.debug("🔵 Connection attempt detected")
+            Logger.networkProtection.log("🔵 Connection attempt detected")
         case .failure:
             Logger.networkProtection.error("🔴 Connection attempt failed")
         case .success:
-            Logger.networkProtection.debug("🟢 Connection attempt successful")
+            Logger.networkProtection.log("🟢 Connection attempt successful")
         }
     }
 
@@ -67,7 +67,7 @@ public final class VPNLogger {
         case .failed(let duration):
             Logger.networkProtectionConnectionTester.error("🔴 Connection tester (\(duration.rawValue, privacy: .public) - \(server, privacy: .public)) failure")
         case .recovered(let duration, let failureCount):
-            Logger.networkProtectionConnectionTester.debug("🟢 Connection tester (\(duration.rawValue, privacy: .public) - \(server, privacy: .public)) recovery (after \(String(failureCount), privacy: .public) failures)")
+            Logger.networkProtectionConnectionTester.log("🟢 Connection tester (\(duration.rawValue, privacy: .public) - \(server, privacy: .public)) recovery (after \(String(failureCount), privacy: .public) failures)")
         }
     }
 
@@ -75,13 +75,13 @@ public final class VPNLogger {
     public func log(_ step: FailureRecoveryStep) {
         switch step {
         case .started:
-            Logger.networkProtectionTunnelFailureMonitor.debug("🔵 Failure Recovery attempt started")
+            Logger.networkProtectionTunnelFailureMonitor.log("🔵 Failure Recovery attempt started")
         case .failed(let error):
             Logger.networkProtectionTunnelFailureMonitor.error("🔴 Failure Recovery attempt failed with error: \(error.localizedDescription, privacy: .public)")
         case .completed(let health):
             switch health {
             case .healthy:
-                Logger.networkProtectionTunnelFailureMonitor.debug("🟢 Failure Recovery attempt completed")
+                Logger.networkProtectionTunnelFailureMonitor.log("🟢 Failure Recovery attempt completed")
             case .unhealthy:
                 Logger.networkProtectionTunnelFailureMonitor.error("🔴 Failure Recovery attempt ended as unhealthy")
             }
@@ -94,9 +94,9 @@ public final class VPNLogger {
         case .failureDetected:
             Logger.networkProtectionTunnelFailureMonitor.error("🔴 Tunnel failure detected")
         case .failureRecovered:
-            Logger.networkProtectionTunnelFailureMonitor.debug("🟢 Tunnel failure recovered")
+            Logger.networkProtectionTunnelFailureMonitor.log("🟢 Tunnel failure recovered")
         case .networkPathChanged:
-            Logger.networkProtectionTunnelFailureMonitor.debug("🔵 Tunnel recovery detected path change")
+            Logger.networkProtectionTunnelFailureMonitor.log("🔵 Tunnel recovery detected path change")
         }
     }
 
@@ -106,7 +106,7 @@ public final class VPNLogger {
         case .error:
             Logger.networkProtectionLatencyMonitor.error("🔴 There was an error logging the latency")
         case .quality(let quality):
-            Logger.networkProtectionLatencyMonitor.debug("Connection quality is: \(quality.rawValue, privacy: .public)")
+            Logger.networkProtectionLatencyMonitor.log("Connection quality is: \(quality.rawValue, privacy: .public)")
         }
     }
 }
