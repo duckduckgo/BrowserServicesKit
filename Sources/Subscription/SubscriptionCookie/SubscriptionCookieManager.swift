@@ -21,7 +21,7 @@ import Common
 import os.log
 
 public protocol SubscriptionCookieManaging {
-    init(subscriptionManager: SubscriptionManager, currentCookieStore: @MainActor @escaping () -> HTTPCookieStore?, eventMapping: EventMapping<SubscriptionCookieManagerEvent>) async
+    init(subscriptionManager: SubscriptionManager, currentCookieStore: @MainActor @escaping () -> HTTPCookieStore?, eventMapping: EventMapping<SubscriptionCookieManagerEvent>)
     func refreshSubscriptionCookie() async
     func resetLastRefreshDate()
 
