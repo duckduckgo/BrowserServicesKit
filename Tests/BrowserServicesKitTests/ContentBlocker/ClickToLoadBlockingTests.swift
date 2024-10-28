@@ -301,7 +301,8 @@ class ClickToLoadBlockingTests: XCTestCase {
         mockWebsite = MockWebsite(resources: [resource])
 
         schemeHandler.reset()
-        schemeHandler.requestHandlers[siteURL] = { _ in
+        schemeHandler.requestHandlers[siteURL] = { url in
+            os_log("DEBUG: Returning request handler for %s", url.absoluteString)
             return self.mockWebsite.htmlRepresentation.data(using: .utf8)!
         }
 

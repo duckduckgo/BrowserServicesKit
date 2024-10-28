@@ -18,6 +18,7 @@
 
 import XCTest
 import WebKit
+import os.log
 
 final class TestSchemeHandler: NSObject, WKURLSchemeHandler {
     typealias RequestResponse = (URL) -> Data
@@ -46,6 +47,8 @@ final class TestSchemeHandler: NSObject, WKURLSchemeHandler {
         let handler = self.requestHandlers[url] ?? self.genericHandler
 
         let data = handler(url)
+
+        os_log("DEBUG: WebView loading URL scheme task with URL: %s, data length: %d", url.absoluteString, data.count)
 
         let response = URLResponse(url: url,
                                    mimeType: "text/html",
