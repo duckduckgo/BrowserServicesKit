@@ -77,7 +77,7 @@ public final class SubscriptionCookieManager: SubscriptionCookieManaging {
                 return
             }
             Logger.subscription.info("[SubscriptionCookieManager] Handle .accountDidSignIn - setting cookie")
-           
+
             do {
                 try await cookieStore.setSubscriptionCookie(for: accessToken)
                 updateLastRefreshDateToNow()
@@ -154,7 +154,6 @@ public final class SubscriptionCookieManager: SubscriptionCookieManaging {
 enum SubscriptionCookieManagerError: Error {
     case failedToCreateSubscriptionCookie
 }
-
 
 private extension HTTPCookieStore {
 

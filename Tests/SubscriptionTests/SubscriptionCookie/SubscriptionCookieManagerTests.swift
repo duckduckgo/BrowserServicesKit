@@ -126,13 +126,12 @@ final class SubscriptionCookieManagerTests: XCTestCase {
         let firstRefreshDate: Date?
         let secondRefreshDate: Date?
 
-
         // When
         await subscriptionCookieManager.refreshSubscriptionCookie()
         firstRefreshDate = subscriptionCookieManager.lastRefreshDate
-        
+
         try await Task.sleep(seconds: 0.5)
-        
+
         await subscriptionCookieManager.refreshSubscriptionCookie()
         secondRefreshDate = subscriptionCookieManager.lastRefreshDate
 

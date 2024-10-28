@@ -52,7 +52,6 @@ public final class SubscriptionCookieManagerMock: SubscriptionCookieManaging {
     public func resetLastRefreshDate() { }
 }
 
-
 public final class MockSubscriptionCookieManagerEventPixelMapping: EventMapping<SubscriptionCookieManagerEvent> {
 
     public init() {
