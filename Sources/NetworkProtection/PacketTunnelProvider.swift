@@ -131,7 +131,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             case .couldNotGenerateTunnelConfiguration: return 1
             case .simulateTunnelFailureError: return 2
                 // Subscription Errors - 100+
-            case .vpnAccessRevoked: return 100
+            case .vpnAccessRevoked: return 101
                 // State Reset - 200+
             case .appRequestedCancellation: return 200
             }
@@ -529,7 +529,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 #endif
     }
 
-    open func loadVendorOptions(from provider: NETunnelProviderProtocol?) throws {
+    open func loadVendorOptions(from provider: NETunnelProviderProtocol?) {
         let vendorOptions = provider?.providerConfiguration
 
         loadRoutes(from: vendorOptions)
@@ -672,8 +672,32 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Tunnel Start
 
+    enum TestEnum {
+        case testCase
+    }
+
+    struct NonXPCCodableError: LocalizedError, CustomNSError {
+        let message: String
+        let enumCase: TestEnum = .testCase
+        let details: [String: Any] // An unsupported property for XPC encoding
+
+        public var errorDescription: String? {
+            return "Description goes here \(enumCase)"
+        }
+
+        public var errorCode: Int {
+            return 1234
+        }
+
+        public var errorUserInfo: [String: Any] {
+            return [NSUnderlyingErrorKey: enumCase]
+        }
+    }
+
     @MainActor
     open override func startTunnel(options: [String: NSObject]? = nil) async throws {
+
+        throw NonXPCCodableError(message: "This is a non-XPC encodable error", details: ["key": TestEnum.testCase])
 
         // It's important to have this as soon as possible since it helps setup PixelKit
         prepareToConnect(using: tunnelProviderProtocol)
@@ -685,11 +709,12 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         self.snoozeTimingStore.reset()
 
         do {
-            try load(options: startupOptions)
-            try loadVendorOptions(from: tunnelProviderProtocol)
+            // throw TunnelError.startingTunnelWithoutAuthToken
+            try load(options: startupOptions) // NO PROBLEM
+            loadVendorOptions(from: tunnelProviderProtocol)
 
             if (try? tokenStore.fetchToken()) == nil {
-                throw TunnelError.startingTunnelWithoutAuthToken
+                throw TunnelError.startingTunnelWithoutAuthToken // NO PROBLEM
             }
         } catch {
             if startupOptions.startupMethod == .automaticOnDemand {
@@ -699,7 +724,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 // expired.  In either case it should be enough to record the manual failures
                 // for these prerequisited to avoid flooding our metrics.
                 providerEvents.fire(.tunnelStartOnDemandWithoutAccessToken)
-                try await Task.sleep(interval: .seconds(15))
+                try? await Task.sleep(interval: .seconds(15))
             } else {
                 // If the VPN was started manually without the basic prerequisites we always
                 // want to know as this should not be possible.
@@ -713,13 +738,15 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             throw error
         }
 
+        // throw TunnelError.startingTunnelWithoutAuthToken
+
         do {
             providerEvents.fire(.tunnelStartAttempt(.begin))
             connectionStatus = .connecting
             resetIssueStateOnTunnelStart(startupOptions)
 
-            try runDebugSimulations(options: startupOptions)
-            try await startTunnel(onDemand: startupOptions.startupMethod == .automaticOnDemand)
+            try runDebugSimulations(options: startupOptions) // NO PROBLEM
+            try await startTunnel(onDemand: startupOptions.startupMethod == .automaticOnDemand) // PROBLEM??
 
             providerEvents.fire(.tunnelStartAttempt(.success))
         } catch {
@@ -727,7 +754,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 // We add a delay when the VPN is started by
                 // on-demand and there's an error, to avoid frenetic ON/OFF
                 // cycling.
-                try await Task.sleep(interval: .seconds(15))
+                try? await Task.sleep(interval: .seconds(15))
             }
 
             let errorDescription = (error as? LocalizedError)?.localizedDescription ?? String(describing: error)
