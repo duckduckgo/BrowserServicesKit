@@ -62,19 +62,57 @@ class PhishingDetectionDataStoreTests: XCTestCase {
     }
 
     func testWhenEmbeddedRevisionNewerThanOnDisk_ThenLoadEmbedded() async {
+        let encoder = JSONEncoder()
+        // On Disk Data Setup
+        fileStorageManager.write(data: "1".utf8data, to: "revision.txt")
+        let onDiskFilterSet = Set([Filter(hashValue: "other", regex: "other")])
+        let filterSetData = try! encoder.encode(Array(onDiskFilterSet))
+        let onDiskHashPrefix = Set(["faffa"])
+        let hashPrefixData = try! encoder.encode(Array(onDiskHashPrefix))
+        fileStorageManager.write(data: filterSetData, to: "filterSet.json")
+        fileStorageManager.write(data: hashPrefixData, to: "hashPrefixes.json")
+
+        // Embedded Data Setup
         mockDataProvider.embeddedRevision = 5
-        let expectedFilerSet = Set([Filter(hashValue: "some", regex: "some")])
-        let expectedHashPrefix = Set(["sassa"])
-        mockDataProvider.shouldReturnFilterSet(set: expectedFilerSet)
-        mockDataProvider.shouldReturnHashPrefixes(set: expectedHashPrefix)
+        let embeddedFilterSet = Set([Filter(hashValue: "some", regex: "some")])
+        let embeddedHashPrefix = Set(["sassa"])
+        mockDataProvider.shouldReturnFilterSet(set: embeddedFilterSet)
+        mockDataProvider.shouldReturnHashPrefixes(set: embeddedHashPrefix)
 
         let actualRevision = dataStore.currentRevision
         let actualFilterSet = dataStore.filterSet
         let actualHashPrefix = dataStore.hashPrefixes
 
-        XCTAssertEqual(actualFilterSet, expectedFilerSet)
-        XCTAssertEqual(actualHashPrefix, expectedHashPrefix)
+        XCTAssertEqual(actualFilterSet, embeddedFilterSet)
+        XCTAssertEqual(actualHashPrefix, embeddedHashPrefix)
         XCTAssertEqual(actualRevision, 5)
+    }
+    
+    func testWhenEmbeddedRevisionOlderThanOnDisk_ThenDontLoadEmbedded() async {
+        let encoder = JSONEncoder()
+        // On Disk Data Setup
+        fileStorageManager.write(data: "6".utf8data, to: "revision.txt")
+        let onDiskFilterSet = Set([Filter(hashValue: "other", regex: "other")])
+        let filterSetData = try! encoder.encode(Array(onDiskFilterSet))
+        let onDiskHashPrefix = Set(["faffa"])
+        let hashPrefixData = try! encoder.encode(Array(onDiskHashPrefix))
+        fileStorageManager.write(data: filterSetData, to: "filterSet.json")
+        fileStorageManager.write(data: hashPrefixData, to: "hashPrefixes.json")
+
+        // Embedded Data Setup
+        mockDataProvider.embeddedRevision = 1
+        let embeddedFilterSet = Set([Filter(hashValue: "some", regex: "some")])
+        let embeddedHashPrefix = Set(["sassa"])
+        mockDataProvider.shouldReturnFilterSet(set: embeddedFilterSet)
+        mockDataProvider.shouldReturnHashPrefixes(set: embeddedHashPrefix)
+
+        let actualRevision = dataStore.currentRevision
+        let actualFilterSet = dataStore.filterSet
+        let actualHashPrefix = dataStore.hashPrefixes
+
+        XCTAssertEqual(actualFilterSet, onDiskFilterSet)
+        XCTAssertEqual(actualHashPrefix, onDiskHashPrefix)
+        XCTAssertEqual(actualRevision, 6)
     }
 
     func testWriteAndLoadData() async {
