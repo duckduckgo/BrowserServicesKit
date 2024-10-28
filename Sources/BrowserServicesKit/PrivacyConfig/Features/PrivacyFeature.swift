@@ -63,6 +63,7 @@ public enum PrivacyFeature: String {
     case networkProtection
     case aiChat
     case contextualOnboarding
+    case adAttributionReporting
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -182,4 +183,9 @@ public enum SyncPromotionSubfeature: String, PrivacySubfeature {
     public var parent: PrivacyFeature { .syncPromotion }
     case bookmarks
     case passwords
+}
+
+public enum AdAttributionReportingSubfeature: String, PrivacySubfeature {
+    public var parent: PrivacyFeature { .adAttributionReporting }
+    case includeToken
 }
