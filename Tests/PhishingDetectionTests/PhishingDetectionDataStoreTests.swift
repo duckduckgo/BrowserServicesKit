@@ -147,4 +147,51 @@ class PhishingDetectionDataStoreTests: XCTestCase {
             XCTFail("Failed to decode stored PhishingDetection data")
         }
     }
+
+    func testLazyLoadingDoesNotReturnStaleData() async {
+        clearDatasets()
+
+        // Set up initial data
+        let initialFilterSet = Set([Filter(hashValue: "initial", regex: "initial")])
+        let initialHashPrefixes = Set(["initialPrefix"])
+        mockDataProvider.shouldReturnFilterSet(set: initialFilterSet)
+        mockDataProvider.shouldReturnHashPrefixes(set: initialHashPrefixes)
+
+        // Access the lazy-loaded properties to trigger loading
+        let loadedFilterSet = dataStore.filterSet
+        let loadedHashPrefixes = dataStore.hashPrefixes
+
+        // Validate loaded data matches initial data
+        XCTAssertEqual(loadedFilterSet, initialFilterSet)
+        XCTAssertEqual(loadedHashPrefixes, initialHashPrefixes)
+
+        // Update in-memory data
+        let updatedFilterSet = Set([Filter(hashValue: "updated", regex: "updated")])
+        let updatedHashPrefixes = Set(["updatedPrefix"])
+        dataStore.saveFilterSet(set: updatedFilterSet)
+        dataStore.saveHashPrefixes(set: updatedHashPrefixes)
+
+        // Access lazy-loaded properties again
+        let reloadedFilterSet = dataStore.filterSet
+        let reloadedHashPrefixes = dataStore.hashPrefixes
+
+        // Validate reloaded data matches updated data
+        XCTAssertEqual(reloadedFilterSet, updatedFilterSet)
+        XCTAssertEqual(reloadedHashPrefixes, updatedHashPrefixes)
+
+        // Validate on-disk data is also updated
+        let storedFilterSetData = fileStorageManager.read(from: "filterSet.json")
+        let storedHashPrefixesData = fileStorageManager.read(from: "hashPrefixes.json")
+
+        let decoder = JSONDecoder()
+        if let storedFilterSet = try? decoder.decode(Set<Filter>.self, from: storedFilterSetData!),
+           let storedHashPrefixes = try? decoder.decode(Set<String>.self, from: storedHashPrefixesData!) {
+            
+            XCTAssertEqual(storedFilterSet, updatedFilterSet)
+            XCTAssertEqual(storedHashPrefixes, updatedHashPrefixes)
+        } else {
+            XCTFail("Failed to decode stored PhishingDetection data after update")
+        }
+    }
+
 }

@@ -202,18 +202,18 @@ public class PhishingDetectionDataStore: PhishingDetectionDataSaving {
 
 extension PhishingDetectionDataStore {
     public func saveFilterSet(set: Set<Filter>) {
-        writeFilterSet()
         self.filterSet = set
+        writeFilterSet()
     }
 
     public func saveHashPrefixes(set: Set<String>) {
-        writeHashPrefixes()
         self.hashPrefixes = set
+        writeHashPrefixes()
     }
 
     public func saveRevision(_ revision: Int) {
-        writeRevision()
         self.currentRevision = revision
+        writeRevision()
     }
 }
 
