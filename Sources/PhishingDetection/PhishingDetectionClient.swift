@@ -161,7 +161,6 @@ extension PhishingDetectionAPIClient {
         var request = URLRequest(url: url)
         request.httpMethod = "GET"
         request.allHTTPHeaderFields = headers
-        request.cachePolicy = .reloadIgnoringLocalCacheData // Disable caching
 
         do {
             let (data, _) = try await session.data(for: request)
