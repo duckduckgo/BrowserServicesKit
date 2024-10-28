@@ -28,7 +28,7 @@ public final class SubscriptionCookieManagerMock: SubscriptionCookieManaging {
         let accountManager = AccountManagerMock()
         let subscriptionService = DefaultSubscriptionEndpointService(currentServiceEnvironment: .production)
         let authService = DefaultAuthEndpointService(currentServiceEnvironment: .production)
-        let storePurchaseManager = DefaultStorePurchaseManager()
+        let storePurchaseManager = StorePurchaseManagerMock()
         let subscriptionManager = SubscriptionManagerMock(accountManager: accountManager,
                                                       subscriptionEndpointService: subscriptionService,
                                                       authEndpointService: authService,
