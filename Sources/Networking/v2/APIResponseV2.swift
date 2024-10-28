@@ -30,8 +30,7 @@ public extension APIResponseV2 {
     /// - Parameter decoder: A custom JSONDecoder, if not provided the default JSONDecoder() is used
     /// - Returns: An instance of a Decodable model of the type inferred, throws an error if the body is empty or the decoding fails
     func decodeBody<T: Decodable>(decoder: JSONDecoder = JSONDecoder()) throws -> T {
-
-//        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        // decoder.keyDecodingStrategy = .convertFromSnakeCase
         decoder.dateDecodingStrategy = .millisecondsSince1970
 
         guard let data = self.data else {

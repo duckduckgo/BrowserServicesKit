@@ -20,7 +20,8 @@ import Foundation
 
 extension APIRequestV2 {
 
-    public enum Error: Swift.Error, LocalizedError {
+    public enum Error: Swift.Error, LocalizedError, Equatable {
+
         case urlSession(Swift.Error)
         case invalidResponse
         case unsatisfiedRequirement(APIResponseConstraints)
@@ -42,6 +43,26 @@ extension APIRequestV2 {
                 return "Invalid response data type"
             case .emptyResponseBody:
                 return "The response body is nil"
+            }
+        }
+
+        // MARK: - Equatable Conformance
+        public static func == (lhs: Error, rhs: Error) -> Bool {
+            switch (lhs, rhs) {
+            case (.urlSession(let lhsError), .urlSession(let rhsError)):
+                return lhsError.localizedDescription == rhsError.localizedDescription
+            case (.invalidResponse, .invalidResponse):
+                return true
+            case (.unsatisfiedRequirement(let lhsRequirement), .unsatisfiedRequirement(let rhsRequirement)):
+                return lhsRequirement == rhsRequirement
+            case (.invalidStatusCode(let lhsStatusCode), .invalidStatusCode(let rhsStatusCode)):
+                return lhsStatusCode == rhsStatusCode
+            case (.invalidDataType, .invalidDataType):
+                return true
+            case (.emptyResponseBody, .emptyResponseBody):
+                return true
+            default:
+                return false
             }
         }
     }

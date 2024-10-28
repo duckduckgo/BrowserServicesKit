@@ -1,5 +1,5 @@
 //
-//  OAuthCLientTests.swift
+//  MockLegacyTokenStorage.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -16,18 +16,14 @@
 //  limitations under the License.
 //
 
-import Testing
-@testable import Networking
+import Foundation
+import Networking
 
-struct OAuthCLientTest {
+public class MockLegacyTokenStorage: LegacyTokenStoring {
 
-    @Test func testCreateAccount() async throws {
-        // Write your test here and use APIs like `#expect(...)` to check expected conditions.
-
-        let client = OAuthClient()
-        let tokens = try await client.createAccount()
-
-        #expect(tokens != nil)
+    public init(token: String? = nil) {
+        self.token = token
     }
 
+    public var token: String? = nil
 }

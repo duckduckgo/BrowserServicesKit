@@ -116,24 +116,15 @@ public protocol OAuthService {
 public struct DefaultOAuthService: OAuthService {
 
     private let baseURL: URL
-    private let apiService: APIService
+    private let apiService: any APIService
 
     /// Default initialiser
     /// - Parameters:
     ///   - baseURL: The API protocol + host url, used for building all API requests' URL
-    public init(baseURL: URL, apiService: APIService) {
+    public init(baseURL: URL, apiService: any APIService) {
         self.baseURL = baseURL
         self.apiService = apiService
     }
-
-//    /// Initialiser for TESTING purposes only
-//    /// - Parameters:
-//    ///   - baseURL: The API base url, used for building all requests URL
-//    ///   - apiService: A custom apiService. Warning: Some AuthAPI endpoints response is a redirect that is handled in a very specific way. The default apiService uses a URLSession that handles this scenario correctly implementing a SessionDelegate, a custom one would brake this.
-//    internal init(baseURL: URL, apiService: APIService) {
-//        self.baseURL = baseURL
-//        self.apiService = apiService
-//    }
 
     /// Extract an header from the HTTP response
     /// - Parameters:

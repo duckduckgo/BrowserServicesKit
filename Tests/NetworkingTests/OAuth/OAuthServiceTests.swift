@@ -45,31 +45,31 @@ final class AuthServiceTests: XCTestCase {
         return DefaultAPIService(urlSession: urlSession)
     }
 
-    // MARK: - Authorise
+    // MARK: - REAL tests, useful for development and debugging but disabled for normal testing
 
-    func test_real_AuthoriseSuccess() async throws { // TODO: Disable
+    func disabled_test_real_AuthoriseSuccess() async throws {
         let authService = DefaultOAuthService(baseURL: baseURL, apiService: realAPISService)
         let codeChallenge = OAuthCodesGenerator.codeChallenge(codeVerifier: OAuthCodesGenerator.codeVerifier)!
         let result = try await authService.authorise(codeChallenge: codeChallenge)
         XCTAssertNotNil(result)
     }
 
-    func test_real_AuthoriseFailure() async throws { // TODO: Disable
+    func disabled_test_real_AuthoriseFailure() async throws {
         let authService = DefaultOAuthService(baseURL: baseURL, apiService: realAPISService)
         do {
             _ = try await authService.authorise(codeChallenge: "")
         } catch {
             switch error {
-            case OAuthServiceError.authAPIError(let code, let desc):
-                XCTAssertEqual(code, "invalid_authorization_request")
-                XCTAssertEqual(desc, "One or more of the required parameters are missing or any provided parameters have invalid values")
+            case OAuthServiceError.authAPIError(let code):
+                XCTAssertEqual(code.rawValue, "invalid_authorization_request")
+                XCTAssertEqual(code.description, "One or more of the required parameters are missing or any provided parameters have invalid values")
             default:
                 XCTFail("Wrong error")
             }
         }
     }
 
-    func test_real_GetJWTSigner() async throws { // TODO: Disable
+    func disabled_test_real_GetJWTSigner() async throws {
         let authService = DefaultOAuthService(baseURL: baseURL, apiService: realAPISService)
         let signer = try await authService.getJWTSigners()
         do {

@@ -31,7 +31,6 @@ final class APIServiceTests: XCTestCase {
     // MARK: - Real API calls, do not enable
 
     func disabled_testRealFull() async throws {
-//    func testRealFull() async throws {
         let request = APIRequestV2(url: HTTPURLResponse.testUrl,
                                    method: .post,
                                    queryItems: ["Query,Item1%Name": "Query,Item1%Value"],
@@ -49,7 +48,6 @@ final class APIServiceTests: XCTestCase {
     }
 
     func disabled_testRealCallJSON() async throws {
-//    func testRealCallJSON() async throws {
         let request = APIRequestV2(url: HTTPURLResponse.testUrl)!
         let apiService = DefaultAPIService()
         let result = try await apiService.fetch(request: request)
@@ -62,13 +60,14 @@ final class APIServiceTests: XCTestCase {
     }
 
     func disabled_testRealCallString() async throws {
-//    func testRealCallString() async throws {
         let request = APIRequestV2(url: HTTPURLResponse.testUrl)!
         let apiService = DefaultAPIService()
         let result = try await apiService.fetch(request: request)
 
         XCTAssertNotNil(result)
     }
+
+    // MARK: -
 
     func testQueryItems() async throws {
         let qItems = ["qName1": "qValue1",
@@ -216,9 +215,9 @@ final class APIServiceTests: XCTestCase {
     // MARK: - Retry
 
     func testRetry() async throws {
-        let request = APIRequestV2(url: HTTPURLResponse.testUrl, retryPolicy: APIRequestV2.RetryPolicy(maxRetries: 3, delay: 0))!
+        let request = APIRequestV2(url: HTTPURLResponse.testUrl, retryPolicy: APIRequestV2.RetryPolicy(maxRetries: 3))!
         let requestCountExpectation = expectation(description: "Request performed count")
-        requestCountExpectation.expectedFulfillmentCount = 3
+        requestCountExpectation.expectedFulfillmentCount = 4
 
         MockURLProtocol.requestHandler = { request in
             requestCountExpectation.fulfill()
@@ -226,9 +225,7 @@ final class APIServiceTests: XCTestCase {
         }
 
         let apiService = DefaultAPIService(urlSession: mockURLSession)
-        do {
-            _ = try await apiService.fetch(request: request)
-        }
+        _ = try? await apiService.fetch(request: request)
 
         await fulfillment(of: [requestCountExpectation], timeout: 1.0)
     }

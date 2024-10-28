@@ -1,5 +1,5 @@
 //
-//  Dictionary+URLQueryItem.swift
+//  MockTokenStorage.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -17,19 +17,13 @@
 //
 
 import Foundation
-import Common
+import Networking
 
-extension Dictionary where Key == String, Value == String {
+public class MockTokenStorage: TokensStoring {
 
-    public func toURLQueryItems(allowedReservedCharacters: CharacterSet? = nil) -> [URLQueryItem] {
-        return self.map {
-            if let allowedReservedCharacters {
-                URLQueryItem(percentEncodingName: $0.key,
-                             value: $0.value,
-                             withAllowedCharacters: allowedReservedCharacters)
-            } else {
-                URLQueryItem(name: $0.key, value: $0.value)
-            }
-        }
+    public init(tokensContainer: Networking.TokensContainer? = nil) {
+        self.tokensContainer = tokensContainer
     }
+
+    public var tokensContainer: Networking.TokensContainer? = nil
 }

@@ -21,6 +21,7 @@ import os.log
 
 public protocol APIService {
     typealias AuthorizationRefresherCallback = ((_: APIRequestV2) async throws -> String)
+    var authorizationRefresherCallback: AuthorizationRefresherCallback? { get set }
     func fetch(request: APIRequestV2) async throws -> APIResponseV2
 }
 
@@ -70,7 +71,9 @@ public class DefaultAPIService: APIService {
             request.failureRetryCount < retryPolicy.maxRetries {
             request.failureRetryCount += 1
 
-            try? await Task.sleep(interval: retryPolicy.delay)
+            if retryPolicy.delay > 0 {
+                try? await Task.sleep(interval: retryPolicy.delay)
+            }
 
             // Try again
             return try await fetch(request: request)

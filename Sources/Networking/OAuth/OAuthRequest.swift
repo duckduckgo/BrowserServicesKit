@@ -21,12 +21,12 @@ import os.log
 import Common
 
 /// Auth API v2 Endpoints: https://dub.duckduckgo.com/duckduckgo/ddg/blob/main/components/auth/docs/AuthAPIV2Documentation.md#auth-api-v2-endpoints
-struct OAuthRequest {
+public struct OAuthRequest {
 
-    let apiRequest: APIRequestV2
-    let httpSuccessCode: HTTPStatusCode
-    let httpErrorCodes: [HTTPStatusCode]
-    var url: URL {
+    public let apiRequest: APIRequestV2
+    public let httpSuccessCode: HTTPStatusCode
+    public let httpErrorCodes: [HTTPStatusCode]
+    public var url: URL {
         apiRequest.urlRequest.url!
     }
 
@@ -121,6 +121,8 @@ struct OAuthRequest {
     // MARK: Authorize
 
     static func authorize(baseURL: URL, codeChallenge: String) -> OAuthRequest? {
+        guard codeChallenge.isEmpty == false else { return nil }
+
         let path = "/api/auth/v2/authorize"
         let queryItems = [
             "response_type": "code",
@@ -141,14 +143,13 @@ struct OAuthRequest {
     // MARK: Create account
 
     static func createAccount(baseURL: URL, authSessionID: String) -> OAuthRequest? {
+        guard authSessionID.isEmpty == false else { return nil }
+
         let path = "/api/auth/v2/account/create"
         guard let domain = baseURL.host,
               let cookie = Self.ddgAuthSessionCookie(domain: domain, path: path, authSessionID: authSessionID)
         else { return nil }
 
-//        let headers = [
-//            HTTPHeaderKey.cookie: authSessionID
-//        ]
         guard let request = APIRequestV2(url: baseURL.appendingPathComponent(path),
                                          method: .post,
                                          headers: APIRequestV2.HeadersV2(cookies: [cookie])) else {
@@ -160,6 +161,9 @@ struct OAuthRequest {
     // MARK: Sent OTP
 
     static func requestOTP(baseURL: URL, authSessionID: String, emailAddress: String) -> OAuthRequest? {
+        guard authSessionID.isEmpty == false,
+              emailAddress.isEmpty == false else { return nil }
+
         let path = "/api/auth/v2/otp"
         let queryItems = [ "email": emailAddress ]
         guard let domain = baseURL.host,
@@ -177,6 +181,8 @@ struct OAuthRequest {
     // MARK: Login
 
     static func login(baseURL: URL, authSessionID: String, method: OAuthLoginMethod) -> OAuthRequest? {
+        guard authSessionID.isEmpty == false else { return nil }
+
         let path = "/api/auth/v2/login"
         var body: [String: String]
 
@@ -229,10 +235,15 @@ struct OAuthRequest {
     }
 
     // MARK: Access Token
-    // Note: The API has a single endpoint for both getting a new token and refreshing an old one, but here I'll split the endpoint in 2 different calls
+    // Note: The API has a single endpoint for both getting a new token and refreshing an old one, but here I'll split the endpoint in 2 different calls for clarity
     // https://dub.duckduckgo.com/duckduckgo/ddg/blob/main/components/auth/docs/AuthAPIV2Documentation.md#access-token
 
     static func getAccessToken(baseURL: URL, clientID: String, codeVerifier: String, code: String, redirectURI: String) -> OAuthRequest? {
+        guard clientID.isEmpty == false,
+              codeVerifier.isEmpty == false,
+              code.isEmpty == false,
+              redirectURI.isEmpty == false else { return nil }
+
         let path = "/api/auth/v2/token"
         let queryItems = [
             "grant_type": "authorization_code",
@@ -251,6 +262,9 @@ struct OAuthRequest {
     }
 
     static func refreshAccessToken(baseURL: URL, clientID: String, refreshToken: String) -> OAuthRequest? {
+        guard clientID.isEmpty == false,
+              refreshToken.isEmpty == false else { return nil }
+
         let path = "/api/auth/v2/token"
         let queryItems = [
             "grant_type": "refresh_token",
@@ -268,6 +282,8 @@ struct OAuthRequest {
     // MARK: Edit Account
 
     static func editAccount(baseURL: URL, accessToken: String, email: String?) -> OAuthRequest? {
+        guard accessToken.isEmpty == false else { return nil }
+
         let path = "/api/auth/v2/account/edit"
         var queryItems: [String: String] = [:]
         if let email {
@@ -285,6 +301,11 @@ struct OAuthRequest {
     }
 
     static func confirmEditAccount(baseURL: URL, accessToken: String, email: String, hash: String, otp: String) -> OAuthRequest? {
+        guard accessToken.isEmpty == false,
+              email.isEmpty == false,
+              hash.isEmpty == false,
+              otp.isEmpty == false else { return nil }
+
         let path = "/account/edit/confirm"
         let queryItems = [
             "email": email,
@@ -304,6 +325,8 @@ struct OAuthRequest {
     // MARK: Logout
 
     static func logout(baseURL: URL, accessToken: String) -> OAuthRequest? {
+        guard accessToken.isEmpty == false else { return nil }
+
         let path = "/api/auth/v2/logout"
         guard let request = APIRequestV2(url: baseURL.appendingPathComponent(path),
                                          method: .post,
@@ -316,6 +339,9 @@ struct OAuthRequest {
     // MARK: Exchange token
 
     static func exchangeToken(baseURL: URL, accessTokenV1: String, authSessionID: String) -> OAuthRequest? {
+        guard accessTokenV1.isEmpty == false,
+              authSessionID.isEmpty == false else { return nil }
+
         let path = "/api/auth/v2/exchange"
         guard let domain = baseURL.host,
               let cookie = Self.ddgAuthSessionCookie(domain: domain, path: path, authSessionID: authSessionID)

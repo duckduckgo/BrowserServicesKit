@@ -19,16 +19,27 @@
 import Foundation
 import Networking
 
-public struct MockAPIService: APIService {
+public class MockAPIService: APIService {
 
-    public var apiResponse: Result<APIResponseV2, Error>
+    public var authorizationRefresherCallback: AuthorizationRefresherCallback?
 
-    public func fetch(request: Networking.APIRequestV2) async throws -> APIResponseV2 {
-        switch apiResponse {
-        case .success(let result):
-            return result
-        case .failure(let error):
-            throw error
+    // Dictionary to store predefined responses for specific requests
+    private var mockResponses: [APIRequestV2: APIResponseV2] = [:]
+
+    public init() {}
+
+    // Function to set mock response for a given request
+    public func setResponse(for request: APIRequestV2, response: APIResponseV2) {
+        mockResponses[request] = response
+    }
+
+    // Function to fetch response for a given request
+    public func fetch(request: APIRequestV2) async throws -> APIResponseV2 {
+        if let response = mockResponses[request] {
+            return response
+        } else {
+            assertionFailure("Response not found for request: \(request.urlRequest.url!.absoluteString)")
+            throw APIRequestV2.Error.invalidResponse
         }
     }
 }
