@@ -62,6 +62,7 @@ public enum PrivacyFeature: String {
     case autocompleteTabs
     case networkProtection
     case aiChat
+    case contextualOnboarding
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
