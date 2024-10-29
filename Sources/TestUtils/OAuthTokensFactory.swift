@@ -68,15 +68,15 @@ public struct OAuthTokensFactory {
         )
     }
 
-    public static func makeValidTokensContainer() -> TokensContainer {
-        return TokensContainer(accessToken: "accessToken",
+    public static func makeValidTokenContainer() -> TokenContainer {
+        return TokenContainer(accessToken: "accessToken",
                                refreshToken: "refreshToken",
                                decodedAccessToken: OAuthTokensFactory.makeAccessToken(scope: "privacypro"),
                                decodedRefreshToken: OAuthTokensFactory.makeRefreshToken(scope: "refresh"))
     }
 
-    public static func makeExpiredTokensContainer() -> TokensContainer {
-        return TokensContainer(accessToken: "accessToken",
+    public static func makeExpiredTokenContainer() -> TokenContainer {
+        return TokenContainer(accessToken: "accessToken",
                                refreshToken: "refreshToken",
                                decodedAccessToken: OAuthTokensFactory.makeExpiredAccessToken(),
                                decodedRefreshToken: OAuthTokensFactory.makeRefreshToken(scope: "refresh"))

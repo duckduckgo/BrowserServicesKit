@@ -75,7 +75,7 @@ public final class DefaultStripePurchaseFlow: StripePurchaseFlow {
         Logger.subscription.log("Preparing subscription purchase")
         subscriptionEndpointService.clearSubscription()
         do {
-            let accessToken = try await subscriptionManager.getTokensContainer(policy: .createIfNeeded).accessToken
+            let accessToken = try await subscriptionManager.getTokenContainer(policy: .createIfNeeded).accessToken
             if let subscription = try? await subscriptionEndpointService.getSubscription(accessToken: accessToken),
                !subscription.isActive {
                 return .success(PurchaseUpdate.redirect(withToken: accessToken))

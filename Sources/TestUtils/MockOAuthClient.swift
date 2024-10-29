@@ -29,10 +29,10 @@ public class MockOAuthClient: OAuthClient {
 
     public var isUserAuthenticated: Bool = false
 
-    public var currentTokensContainer: Networking.TokensContainer?
+    public var currentTokenContainer: Networking.TokenContainer?
 
-    public var getTokensResponse: Result<Networking.TokensContainer, Error>?
-    public func getTokens(policy: Networking.TokensCachePolicy) async throws -> Networking.TokensContainer {
+    public var getTokensResponse: Result<Networking.TokenContainer, Error>?
+    public func getTokens(policy: Networking.TokensCachePolicy) async throws -> Networking.TokenContainer {
         switch getTokensResponse {
         case .success(let success):
             return success
@@ -43,8 +43,8 @@ public class MockOAuthClient: OAuthClient {
         }
     }
 
-    public var createAccountResponse: Result<Networking.TokensContainer, Error>?
-    public func createAccount() async throws -> Networking.TokensContainer {
+    public var createAccountResponse: Result<Networking.TokenContainer, Error>?
+    public func createAccount() async throws -> Networking.TokenContainer {
         switch createAccountResponse {
         case .success(let success):
             return success
@@ -74,8 +74,8 @@ public class MockOAuthClient: OAuthClient {
         }
     }
 
-    public var activateWithPlatformSignatureResponse: Result<Networking.TokensContainer, Error>?
-    public func activate(withPlatformSignature signature: String) async throws -> Networking.TokensContainer {
+    public var activateWithPlatformSignatureResponse: Result<Networking.TokenContainer, Error>?
+    public func activate(withPlatformSignature signature: String) async throws -> Networking.TokenContainer {
         switch  activateWithPlatformSignatureResponse {
         case .success(let success):
             return success
@@ -86,8 +86,8 @@ public class MockOAuthClient: OAuthClient {
         }
     }
 
-    public var refreshTokensResponse: Result<Networking.TokensContainer, Error>?
-    public func refreshTokens() async throws -> Networking.TokensContainer {
+    public var refreshTokensResponse: Result<Networking.TokenContainer, Error>?
+    public func refreshTokens() async throws -> Networking.TokenContainer {
         switch refreshTokensResponse {
         case .success(let success):
             return success
@@ -98,8 +98,8 @@ public class MockOAuthClient: OAuthClient {
         }
     }
 
-    public var exchangeAccessTokenV1Response: Result<Networking.TokensContainer, Error>?
-    public func exchange(accessTokenV1: String) async throws -> Networking.TokensContainer {
+    public var exchangeAccessTokenV1Response: Result<Networking.TokenContainer, Error>?
+    public func exchange(accessTokenV1: String) async throws -> Networking.TokenContainer {
         switch exchangeAccessTokenV1Response {
         case .success(let success):
             return success

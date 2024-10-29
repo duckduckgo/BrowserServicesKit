@@ -49,8 +49,8 @@ public protocol SubscriptionManager {
     var entitlements: [SubscriptionEntitlement] { get }
 
     func refreshAccount() async
-    func getTokensContainer(policy: TokensCachePolicy) async throws -> TokensContainer
-    func exchange(tokenV1: String) async throws -> TokensContainer
+    func getTokenContainer(policy: TokensCachePolicy) async throws -> TokenContainer
+    func exchange(tokenV1: String) async throws -> TokenContainer
 
     func signOut(skipNotification: Bool)
 }
@@ -136,25 +136,25 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
 
     public func refreshCachedSubscription(completion: @escaping (_ isSubscriptionActive: Bool) -> Void) {
         Task {
-            guard let tokensContainer = try? await oAuthClient.getTokens(policy: .localValid) else {
+            guard let tokenContainer = try? await oAuthClient.getTokens(policy: .localValid) else {
                 completion(false)
                 return
             }
             // Refetch and cache subscription
-            let subscription = try? await subscriptionEndpointService.getSubscription(accessToken: tokensContainer.accessToken, cachePolicy: .reloadIgnoringLocalCacheData)
+            let subscription = try? await subscriptionEndpointService.getSubscription(accessToken: tokenContainer.accessToken, cachePolicy: .reloadIgnoringLocalCacheData)
             completion(subscription?.isActive ?? false)
         }
     }
 
     public func currentSubscription(refresh: Bool) async throws -> PrivacyProSubscription {
-        let tokensContainer = try await oAuthClient.getTokens(policy: .localValid)
-        let subscription = try await subscriptionEndpointService.getSubscription(accessToken: tokensContainer.accessToken, cachePolicy: refresh ? .returnCacheDataElseLoad : .returnCacheDataDontLoad )
+        let tokenContainer = try await oAuthClient.getTokens(policy: .localValid)
+        let subscription = try await subscriptionEndpointService.getSubscription(accessToken: tokenContainer.accessToken, cachePolicy: refresh ? .returnCacheDataElseLoad : .returnCacheDataDontLoad )
         return subscription
     }
 
     public func getSubscriptionFrom(lastTransactionJWSRepresentation: String) async throws -> PrivacyProSubscription {
-        let tokensContainer = try await oAuthClient.activate(withPlatformSignature: lastTransactionJWSRepresentation)
-        return try await subscriptionEndpointService.getSubscription(accessToken: tokensContainer.accessToken, cachePolicy: .reloadIgnoringLocalCacheData)
+        let tokenContainer = try await oAuthClient.activate(withPlatformSignature: lastTransactionJWSRepresentation)
+        return try await subscriptionEndpointService.getSubscription(accessToken: tokenContainer.accessToken, cachePolicy: .reloadIgnoringLocalCacheData)
     }
 
     // MARK: - URLs
@@ -169,27 +169,27 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     }
 
     public var userEmail: String? {
-        return oAuthClient.currentTokensContainer?.decodedAccessToken.email
+        return oAuthClient.currentTokenContainer?.decodedAccessToken.email
     }
 
     public var entitlements: [SubscriptionEntitlement] {
-        return oAuthClient.currentTokensContainer?.decodedAccessToken.subscriptionEntitlements ?? []
+        return oAuthClient.currentTokenContainer?.decodedAccessToken.subscriptionEntitlements ?? []
     }
 
     public func refreshAccount() async {
         do {
-            _ = try await oAuthClient.refreshTokens()
+            _ = try await oAuthClient.getTokens(policy: .localForceRefresh)
             NotificationCenter.default.post(name: .entitlementsDidChange, object: self, userInfo: nil)
         } catch {
             Logger.subscription.error("Failed to refresh account: \(error.localizedDescription, privacy: .public)")
         }
     }
 
-    public func getTokensContainer(policy: TokensCachePolicy) async throws -> TokensContainer {
+    public func getTokenContainer(policy: TokensCachePolicy) async throws -> TokenContainer {
         try await oAuthClient.getTokens(policy: policy)
     }
 
-    public func exchange(tokenV1: String) async throws -> TokensContainer {
+    public func exchange(tokenV1: String) async throws -> TokenContainer {
         try await oAuthClient.exchange(accessTokenV1: tokenV1)
     }
 

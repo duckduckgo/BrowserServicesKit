@@ -22,9 +22,6 @@ import Common
 
 struct SubscriptionRequest {
     let apiRequest: APIRequestV2
-    var url: URL {
-        apiRequest.urlRequest.url!
-    }
 
     // MARK: Get subscription
 

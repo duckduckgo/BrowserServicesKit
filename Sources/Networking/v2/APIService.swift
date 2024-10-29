@@ -19,7 +19,7 @@
 import Foundation
 import os.log
 
-public protocol APIService {
+public protocol APIService { // TODO: see if make sense to extract auth protocol
     typealias AuthorizationRefresherCallback = ((_: APIRequestV2) async throws -> String)
     var authorizationRefresherCallback: AuthorizationRefresherCallback? { get set }
     func fetch(request: APIRequestV2) async throws -> APIResponseV2

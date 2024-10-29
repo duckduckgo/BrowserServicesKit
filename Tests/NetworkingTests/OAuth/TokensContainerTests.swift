@@ -1,5 +1,5 @@
 //
-//  TokensContainerTests.swift
+//  TokenContainerTests.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -21,7 +21,7 @@ import JWTKit
 @testable import Networking
 import TestUtils
 
-final class TokensContainerTests: XCTestCase {
+final class TokenContainerTests: XCTestCase {
 
     // Test expired access token
     func testExpiredAccessToken() {
@@ -81,19 +81,19 @@ final class TokensContainerTests: XCTestCase {
         XCTAssertFalse(token.hasEntitlement(.identityTheftRestoration), "Expected no entitlement for identityTheftRestoration.")
     }
 
-    // Test equatability of TokensContainer with same tokens but different fields
-    func testTokensContainerEquatabilitySameTokens() {
+    // Test equatability of TokenContainer with same tokens but different fields
+    func testTokenContainerEquatabilitySameTokens() {
         let accessToken = "same-access-token"
         let refreshToken = "same-refresh-token"
 
-        let container1 = TokensContainer(
+        let container1 = TokenContainer(
             accessToken: accessToken,
             refreshToken: refreshToken,
             decodedAccessToken: OAuthTokensFactory.makeAccessToken(scope: "privacypro"),
             decodedRefreshToken: OAuthTokensFactory.makeRefreshToken(scope: "refresh")
         )
 
-        let container2 = TokensContainer(
+        let container2 = TokenContainer(
             accessToken: accessToken,
             refreshToken: refreshToken,
             decodedAccessToken: OAuthTokensFactory.makeAccessToken(scope: "privacypro"),
@@ -103,12 +103,12 @@ final class TokensContainerTests: XCTestCase {
         XCTAssertEqual(container1, container2, "Expected containers with identical tokens to be equal.")
     }
 
-    // Test equatability of TokensContainer with same token values but different decoded content
-    func testTokensContainerEquatabilityDifferentContent() {
+    // Test equatability of TokenContainer with same token values but different decoded content
+    func testTokenContainerEquatabilityDifferentContent() {
         let accessToken = "same-access-token"
         let refreshToken = "same-refresh-token"
 
-        let container1 = TokensContainer(
+        let container1 = TokenContainer(
             accessToken: accessToken,
             refreshToken: refreshToken,
             decodedAccessToken: OAuthTokensFactory.makeAccessToken(scope: "privacypro"),
@@ -117,7 +117,7 @@ final class TokensContainerTests: XCTestCase {
 
         let modifiedAccessToken = OAuthTokensFactory.makeAccessToken(scope: "privacypro", email: "modified@example.com") // Changing a field in decoded token
 
-        let container2 = TokensContainer(
+        let container2 = TokenContainer(
             accessToken: accessToken,
             refreshToken: refreshToken,
             decodedAccessToken: modifiedAccessToken,

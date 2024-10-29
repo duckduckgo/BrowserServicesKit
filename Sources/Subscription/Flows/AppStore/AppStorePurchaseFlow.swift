@@ -75,7 +75,7 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
             case .failure(let error):
                 Logger.subscriptionAppStorePurchaseFlow.log("Failed to restore an account from a past purchase: \(error.localizedDescription, privacy: .public)")
                 do {
-                    let newAccountExternalID = try await subscriptionManager.getTokensContainer(policy: .createIfNeeded).decodedAccessToken.externalID
+                    let newAccountExternalID = try await subscriptionManager.getTokenContainer(policy: .createIfNeeded).decodedAccessToken.externalID
                     externalID = newAccountExternalID
                 } catch {
                     Logger.subscriptionStripePurchaseFlow.error("Failed to create a new account: \(error.localizedDescription, privacy: .public), the operation is unrecoverable")
@@ -115,7 +115,7 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
         subscriptionEndpointService.clearSubscription()
 
         do {
-            let accessToken = try await subscriptionManager.getTokensContainer(policy: .localValid).accessToken
+            let accessToken = try await subscriptionManager.getTokenContainer(policy: .localValid).accessToken
             do {
                 let confirmation = try await subscriptionEndpointService.confirmPurchase(accessToken: accessToken, signature: transactionJWS)
                 subscriptionEndpointService.updateCache(with: confirmation.subscription)
@@ -140,7 +140,7 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
             // Only return an externalID if the subscription is expired so to prevent creating multiple subscriptions in the same account
             if subscription.isActive == false,
                subscription.platform != .apple {
-                return try? await subscriptionManager.getTokensContainer(policy: .localValid).decodedAccessToken.externalID
+                return try? await subscriptionManager.getTokenContainer(policy: .localValid).decodedAccessToken.externalID
             }
             return nil
         } catch {

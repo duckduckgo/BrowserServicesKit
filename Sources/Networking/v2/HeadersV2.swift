@@ -20,6 +20,7 @@ import Foundation
 
 public extension APIRequestV2 {
 
+    /// All possible request content types
     enum ContentType: String, Codable {
         case json = "application/json"
         case xml = "application/xml"

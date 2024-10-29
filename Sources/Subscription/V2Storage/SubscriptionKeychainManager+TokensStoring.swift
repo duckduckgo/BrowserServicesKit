@@ -23,7 +23,7 @@ import os.log
 
 extension SubscriptionKeychainManager: TokensStoring {
 
-    public var tokensContainer: TokensContainer? {
+    public var tokenContainer: TokenContainer? {
         get {
             queue.sync {
                 guard let data = try? retrieveData(forField: .tokens) else {
@@ -38,7 +38,7 @@ extension SubscriptionKeychainManager: TokensStoring {
 
                 do {
                     guard let newValue else {
-                        Logger.subscription.log("removing TokensContainer")
+                        Logger.subscription.log("removing TokenContainer")
                         try strongSelf.deleteItem(forField: .tokens)
                         return
                     }
@@ -50,12 +50,12 @@ extension SubscriptionKeychainManager: TokensStoring {
                             try strongSelf.store(data: data, forField: .tokens)
                         }
                     } else {
-                        Logger.subscription.fault("Failed to encode TokensContainer")
-                        assertionFailure("Failed to encode TokensContainer")
+                        Logger.subscription.fault("Failed to encode TokenContainer")
+                        assertionFailure("Failed to encode TokenContainer")
                     }
                 } catch {
-                    Logger.subscription.fault("Failed to set TokensContainer: \(error, privacy: .public)")
-                    assertionFailure("Failed to set TokensContainer")
+                    Logger.subscription.fault("Failed to set TokenContainer: \(error, privacy: .public)")
+                    assertionFailure("Failed to set TokenContainer")
                 }
             }
         }

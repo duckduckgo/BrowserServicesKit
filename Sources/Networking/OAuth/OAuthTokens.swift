@@ -90,13 +90,13 @@ public struct EntitlementPayload: Codable {
     public let name: String // always `subscriber`
 }
 
-public struct TokensContainer: Codable, Equatable, CustomDebugStringConvertible {
-    public  let accessToken: String
+public struct TokenContainer: Codable, Equatable, CustomDebugStringConvertible {
+    public let accessToken: String
     public let refreshToken: String
     public let decodedAccessToken: JWTAccessToken
     public let decodedRefreshToken: JWTRefreshToken
 
-    public static func == (lhs: TokensContainer, rhs: TokensContainer) -> Bool {
+    public static func == (lhs: TokenContainer, rhs: TokenContainer) -> Bool {
         lhs.accessToken == rhs.accessToken && lhs.refreshToken == rhs.refreshToken
     }
 

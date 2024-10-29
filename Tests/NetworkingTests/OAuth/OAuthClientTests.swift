@@ -51,14 +51,14 @@ final class OAuthClientTests: XCTestCase {
     }
 
     func testUserAuthenticated() async throws {
-        tokenStorage.tokensContainer = OAuthTokensFactory.makeValidTokensContainer()
+        tokenStorage.tokenContainer = OAuthTokensFactory.makeValidTokenContainer()
         XCTAssertTrue(oAuthClient.isUserAuthenticated)
     }
 
-    func testCurrentTokensContainer() async throws {
-        XCTAssertNil(oAuthClient.currentTokensContainer)
-        tokenStorage.tokensContainer = OAuthTokensFactory.makeValidTokensContainer()
-        XCTAssertNotNil(oAuthClient.currentTokensContainer)
+    func testCurrentTokenContainer() async throws {
+        XCTAssertNil(oAuthClient.currentTokenContainer)
+        tokenStorage.tokenContainer = OAuthTokensFactory.makeValidTokenContainer()
+        XCTAssertNotNil(oAuthClient.currentTokenContainer)
     }
 
     // MARK: - Get tokens
@@ -69,14 +69,14 @@ final class OAuthClientTests: XCTestCase {
     }
 
     func testGetLocalTokenSuccess() async throws {
-        tokenStorage.tokensContainer = OAuthTokensFactory.makeValidTokensContainer()
+        tokenStorage.tokenContainer = OAuthTokensFactory.makeValidTokenContainer()
         let localContainer = try? await oAuthClient.getTokens(policy: .local)
         XCTAssertNotNil(localContainer)
         XCTAssertFalse(localContainer!.decodedAccessToken.isExpired())
     }
 
     func testGetLocalTokenSuccessExpired() async throws {
-        tokenStorage.tokensContainer = OAuthTokensFactory.makeExpiredTokensContainer()
+        tokenStorage.tokenContainer = OAuthTokensFactory.makeExpiredTokenContainer()
         let localContainer = try? await oAuthClient.getTokens(policy: .local)
         XCTAssertNotNil(localContainer)
         XCTAssertTrue(localContainer!.decodedAccessToken.isExpired())
@@ -89,7 +89,7 @@ final class OAuthClientTests: XCTestCase {
 
 
         // ask a fresh token, the local one is expired
-        tokenStorage.tokensContainer = OAuthTokensFactory.makeExpiredTokensContainer()
+        tokenStorage.tokenContainer = OAuthTokensFactory.makeExpiredTokenContainer()
         let localContainer = try? await oAuthClient.getTokens(policy: .localValid)
         XCTAssertNotNil(localContainer)
         XCTAssertFalse(localContainer!.decodedAccessToken.isExpired())
@@ -104,10 +104,10 @@ final class OAuthClientTests: XCTestCase {
      /// - `.localValid`: returns what's in the storage, refreshes it if needed. throws an error if no token is available
      /// - `.createIfNeeded`: Returns a tokens container with unexpired tokens, creates a new account if needed
      /// All options store new or refreshed tokens via the tokensStorage
-     func getTokens(policy: TokensCachePolicy) async throws -> TokensContainer
+     func getTokens(policy: TokensCachePolicy) async throws -> TokenContainer
 
      /// Create an account, store all tokens and return them
-     func createAccount() async throws -> TokensContainer
+     func createAccount() async throws -> TokenContainer
 
      // MARK: Activate
 
@@ -127,21 +127,21 @@ final class OAuthClientTests: XCTestCase {
      /// Activate the account with a platform signature
      /// - Parameter signature: The platform signature
      /// - Returns: A container of tokens
-     func activate(withPlatformSignature signature: String) async throws -> TokensContainer
+     func activate(withPlatformSignature signature: String) async throws -> TokenContainer
 
      // MARK: Refresh
 
      /// Refresh the tokens and store the refreshed tokens
      /// - Returns: A container of refreshed tokens
      @discardableResult
-     func refreshTokens() async throws -> TokensContainer
+     func refreshTokens() async throws -> TokenContainer
 
      // MARK: Exchange
 
      /// Exchange token v1 for tokens v2
      /// - Parameter accessTokenV1: The legacy auth token
-     /// - Returns: A TokensContainer with access and refresh tokens
-     func exchange(accessTokenV1: String) async throws -> TokensContainer
+     /// - Returns: A TokenContainer with access and refresh tokens
+     func exchange(accessTokenV1: String) async throws -> TokenContainer
 
      // MARK: Logout
 

@@ -33,22 +33,6 @@ public protocol OAuthService {
     /// - Throws: An error if account creation fails.
     func createAccount(authSessionID: String) async throws -> AuthorisationCode
 
-    /// Sends an OTP to the specified email address.
-    /// - Parameters:
-    ///   - authSessionID: The authentication session ID.
-    ///   - emailAddress: The email address to send the OTP to.
-    /// - Throws: An error if sending the OTP fails.
-    func requestOTP(authSessionID: String, emailAddress: String) async throws
-
-    /// Logs in a user with an OTP and auth session ID.
-    /// - Parameters:
-    ///   - otp: The One Time Password received from the user
-    ///   - authSessionID: The authentication session ID.
-    ///   - email: the user email where the otp will be received
-    /// - Returns: An OAuthRedirectionURI.
-    /// - Throws: An error if login fails.
-    func login(withOTP otp: String, authSessionID: String, email: String) async throws -> AuthorisationCode
-
     /// Logs in a user with a signature and auth session ID.
     /// - Parameters:
     ///   - signature: The platform signature
@@ -74,25 +58,6 @@ public protocol OAuthService {
     /// - Returns: An OAuthTokenResponse.
     /// - Throws: An error if token refresh fails.
     func refreshAccessToken(clientID: String, refreshToken: String) async throws -> OAuthTokenResponse
-
-    /// Edits the account email address.
-    /// - Parameters:
-    ///   - clientID: The client ID.
-    ///   - accessToken: The access token.
-    ///   - email: The new email address, or nil to remove the email.
-    /// - Returns: An EditAccountResponse.
-    /// - Throws: An error if the edit fails.
-    func editAccount(clientID: String, accessToken: String, email: String?) async throws -> EditAccountResponse
-
-    /// Confirms the edit of an account email address.
-    /// - Parameters:
-    ///   - accessToken: The access token.
-    ///   - email: The new email address.
-    ///   - hash: The hash used for confirmation.
-    ///   - otp: The one-time password.
-    /// - Returns: A ConfirmEditAccountResponse.
-    /// - Throws: An error if confirmation fails.
-    func confirmEditAccount(accessToken: String, email: String, hash: String, otp: String) async throws -> ConfirmEditAccountResponse
 
     /// Logs out the user using the provided access token.
     /// - Parameter accessToken: The access token.
@@ -227,7 +192,7 @@ public struct DefaultOAuthService: OAuthService {
         throw OAuthServiceError.invalidResponseCode(statusCode)
     }
 
-    // MARK: Request OTP
+    /* MARK: Request OTP
 
     public func requestOTP(authSessionID: String, emailAddress: String) async throws {
         try Task.checkCancellation()
@@ -266,6 +231,7 @@ public struct DefaultOAuthService: OAuthService {
         }
         throw OAuthServiceError.invalidResponseCode(statusCode)
     }
+     */
 
     public func login(withSignature signature: String, authSessionID: String) async throws -> AuthorisationCode {
         try Task.checkCancellation()
@@ -308,7 +274,7 @@ public struct DefaultOAuthService: OAuthService {
         return try await fetch(request: request)
     }
 
-    // MARK: Edit account
+    /* MARK: Edit account
 
     /// Edit an account email address
     /// - Parameters:
@@ -327,6 +293,7 @@ public struct DefaultOAuthService: OAuthService {
         }
         return try await fetch(request: request)
     }
+     */
 
     // MARK: Logout
 
@@ -374,7 +341,6 @@ public struct DefaultOAuthService: OAuthService {
         try signers.use(jwksJSON: response)
         return signers
     }
-
 }
 
 // MARK: - Requests' support models and types

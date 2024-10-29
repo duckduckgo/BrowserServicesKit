@@ -21,9 +21,9 @@ import Networking
 
 public class MockTokenStorage: TokensStoring {
 
-    public init(tokensContainer: Networking.TokensContainer? = nil) {
-        self.tokensContainer = tokensContainer
+    public init(tokenContainer: Networking.TokenContainer? = nil) {
+        self.tokenContainer = tokenContainer
     }
 
-    public var tokensContainer: Networking.TokensContainer? = nil
+    public var tokenContainer: Networking.TokenContainer? = nil
 }

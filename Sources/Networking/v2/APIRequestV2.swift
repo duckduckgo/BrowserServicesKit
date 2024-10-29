@@ -20,6 +20,8 @@ import Foundation
 
 public class APIRequestV2: Hashable, CustomDebugStringConvertible {
 
+    private(set) var urlRequest: URLRequest
+
     public struct RetryPolicy: Hashable, CustomDebugStringConvertible {
         public let maxRetries: Int
         public let delay: TimeInterval
@@ -42,9 +44,8 @@ public class APIRequestV2: Hashable, CustomDebugStringConvertible {
             hasher.combine(delay)
         }
     }
-
     public typealias QueryItems = [String: String]
-    public var urlRequest: URLRequest
+
     internal let timeoutInterval: TimeInterval
     internal let responseConstraints: [APIResponseConstraints]?
     internal let retryPolicy: RetryPolicy?
