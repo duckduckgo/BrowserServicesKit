@@ -40,6 +40,7 @@ public enum PrivacyFeature: String {
     case windowsDownloadLink
     case incontextSignup
     case newTabContinueSetUp
+    case newTabSearchField
     case dbp
     case sync
     case privacyDashboard
@@ -60,6 +61,8 @@ public enum PrivacyFeature: String {
     case marketplaceAdPostback
     case autocompleteTabs
     case networkProtection
+    case aiChat
+    case contextualOnboarding
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -84,6 +87,7 @@ public enum AutofillSubfeature: String, PrivacySubfeature {
     case onByDefault
     case onForExistingUsers
     case unknownUsernameCategorization
+    case credentialsImportPromotionForExistingUsers
 }
 
 public enum DBPSubfeature: String, Equatable, PrivacySubfeature {
@@ -94,6 +98,18 @@ public enum DBPSubfeature: String, Equatable, PrivacySubfeature {
     case waitlist
     case waitlistBetaActive
     case freemium
+}
+
+public enum AIChatSubfeature: String, Equatable, PrivacySubfeature {
+    public var parent: PrivacyFeature {
+        .aiChat
+    }
+
+    /// Displays the settings item for showing a shortcut in the Application Menu
+    case applicationMenuShortcut
+
+    /// Displays the settings item for showing a shortcut in the Toolbar
+    case toolbarShortcut
 }
 
 public enum NetworkProtectionSubfeature: String, Equatable, PrivacySubfeature {
@@ -123,7 +139,7 @@ public enum AutoconsentSubfeature: String, PrivacySubfeature {
     }
 
     case onByDefault
-    case filterlistExperiment
+    case filterlistExperiment2
 }
 
 public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {

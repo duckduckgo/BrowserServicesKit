@@ -64,7 +64,7 @@ public final class NetworkProtectionTunnelHealthStore {
                 return
             }
             userDefaults.set(newValue, forKey: Self.isHavingConnectivityIssuesKey)
-            Logger.networkProtectionConnectionTester.debug("Issues set to \(String(reflecting: newValue), privacy: .public)")
+            Logger.networkProtectionConnectionTester.log("Issues set to \(String(reflecting: newValue), privacy: .public)")
 #if os(macOS)
             postIssueChangeNotification(newValue: newValue)
 #endif

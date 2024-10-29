@@ -57,7 +57,8 @@ public extension WKFrameInfo {
         method_exchangeImplementations(originalRequestMethod, swizzledRequestMethod)
 
         // ignore `request` selector calls from `safeRequest` itself
-        ignoredRequestUsageSymbols.insert(callingSymbol())
+        let callingSymbol = callingSymbol(after: "addSafetyCheckForSafeRequestUsageOnce")
+        ignoredRequestUsageSymbols.insert(callingSymbol)
         // ignore `-[WKFrameInfo description]`
         ignoredRequestUsageSymbols.insert("-[WKFrameInfo description]")
     }()

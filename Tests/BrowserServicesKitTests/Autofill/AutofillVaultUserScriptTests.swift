@@ -46,7 +46,7 @@ class AutofillVaultUserScriptTests: XCTestCase {
         let sourceProvider = DefaultAutofillSourceProvider(privacyConfigurationManager: privacyConfig,
                                                            properties: properties,
                                                            isDebug: false)
-        return AutofillUserScript(scriptSourceProvider: sourceProvider, hostProvider: hostProvider, loginImportStateProvider: MockAutofillLoginImportStateProvider())
+        return AutofillUserScript(scriptSourceProvider: sourceProvider, hostProvider: hostProvider)
     }()
 
     let userContentController = WKUserContentController()
