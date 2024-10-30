@@ -529,7 +529,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 #endif
     }
 
-    open func loadVendorOptions(from provider: NETunnelProviderProtocol?) {
+    open func loadVendorOptions(from provider: NETunnelProviderProtocol?) throws {
         let vendorOptions = provider?.providerConfiguration
 
         loadRoutes(from: vendorOptions)
@@ -686,7 +686,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
         do {
             try load(options: startupOptions)
-            loadVendorOptions(from: tunnelProviderProtocol)
+            try loadVendorOptions(from: tunnelProviderProtocol)
 
             if (try? tokenStore.fetchToken()) == nil {
                 throw TunnelError.startingTunnelWithoutAuthToken
