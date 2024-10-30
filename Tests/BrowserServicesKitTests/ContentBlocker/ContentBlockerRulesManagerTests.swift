@@ -16,6 +16,9 @@
 //  limitations under the License.
 //
 
+// Tests are disabled on iOS due to WKWebView stability issues on the iOS 17.5+ simulator.
+#if os(macOS)
+
 import XCTest
 import TrackerRadarKit
 import BrowserServicesKit
@@ -1243,3 +1246,5 @@ extension ContentBlockerRulesManager {
     }
 
 }
+
+#endif
