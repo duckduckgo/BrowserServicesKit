@@ -26,7 +26,9 @@ extension SubscriptionKeychainManager: TokensStoring {
     public var tokenContainer: TokenContainer? {
         get {
             queue.sync {
+                Logger.subscriptionKeychain.log("Retrieving TokenContainer")
                 guard let data = try? retrieveData(forField: .tokens) else {
+                    Logger.subscriptionKeychain.log("TokenContainer not found")
                     return nil
                 }
                 return CodableHelper.decode(jsonData: data)
@@ -34,11 +36,12 @@ extension SubscriptionKeychainManager: TokensStoring {
         }
         set {
             queue.sync { [weak self] in
+                Logger.subscriptionKeychain.log("Setting TokenContainer")
                 guard let strongSelf = self else { return }
 
                 do {
                     guard let newValue else {
-                        Logger.subscription.log("removing TokenContainer")
+                        Logger.subscriptionKeychain.log("Removing TokenContainer")
                         try strongSelf.deleteItem(forField: .tokens)
                         return
                     }
@@ -50,11 +53,11 @@ extension SubscriptionKeychainManager: TokensStoring {
                             try strongSelf.store(data: data, forField: .tokens)
                         }
                     } else {
-                        Logger.subscription.fault("Failed to encode TokenContainer")
+                        Logger.subscriptionKeychain.fault("Failed to encode TokenContainer")
                         assertionFailure("Failed to encode TokenContainer")
                     }
                 } catch {
-                    Logger.subscription.fault("Failed to set TokenContainer: \(error, privacy: .public)")
+                    Logger.subscriptionKeychain.fault("Failed to set TokenContainer: \(error, privacy: .public)")
                     assertionFailure("Failed to set TokenContainer")
                 }
             }

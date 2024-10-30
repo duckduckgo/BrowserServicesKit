@@ -25,7 +25,7 @@ public protocol OAuthService {
     /// - Parameter codeChallenge: The code challenge for authorization.
     /// - Returns: An OAuthSessionID.
     /// - Throws: An error if the authorization fails.
-    func authorise(codeChallenge: String) async throws -> OAuthSessionID
+    func authorize(codeChallenge: String) async throws -> OAuthSessionID
 
     /// Creates a new account using the provided auth session ID.
     /// - Parameter authSessionID: The authentication session ID.
@@ -139,9 +139,9 @@ public struct DefaultOAuthService: OAuthService {
 
     // MARK: - API requests
 
-    // MARK: Authorise
+    // MARK: Authorize
 
-    public func authorise(codeChallenge: String) async throws -> OAuthSessionID {
+    public func authorize(codeChallenge: String) async throws -> OAuthSessionID {
         try Task.checkCancellation()
         guard let request = OAuthRequest.authorize(baseURL: baseURL, codeChallenge: codeChallenge) else {
             throw OAuthServiceError.invalidRequest
@@ -399,6 +399,13 @@ public struct OAuthTokenResponse: Decodable {
         self.refreshToken = try container.decode(String.self, forKey: .refreshToken)
         self.expiresIn = try container.decode(Double.self, forKey: .expiresIn)
         self.tokenType = try container.decode(String.self, forKey: .tokenType)
+    }
+
+    init(accessToken: String, refreshToken: String) {
+        self.accessToken = accessToken
+        self.refreshToken = refreshToken
+        self.expiresIn = 14400
+        self.tokenType = "Bearer"
     }
 }
 

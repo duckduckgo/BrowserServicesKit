@@ -106,7 +106,7 @@ public class APIRequestV2: Hashable, CustomDebugStringConvertible {
         Cache Policy: \(urlRequest.cachePolicy)
         Response Constraints: \(responseConstraints?.map { $0.rawValue } ?? [])
         Retry Policy: \(retryPolicy?.debugDescription ?? "None")
-        Retries counts: Refresh (\(authRefreshRetryCount), Failure (\(failureRetryCount))
+        Retries counts: Refresh \(authRefreshRetryCount), Failure \(failureRetryCount)
         """
     }
 

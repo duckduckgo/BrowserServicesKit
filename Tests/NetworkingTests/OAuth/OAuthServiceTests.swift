@@ -50,14 +50,14 @@ final class AuthServiceTests: XCTestCase {
     func disabled_test_real_AuthoriseSuccess() async throws {
         let authService = DefaultOAuthService(baseURL: baseURL, apiService: realAPISService)
         let codeChallenge = OAuthCodesGenerator.codeChallenge(codeVerifier: OAuthCodesGenerator.codeVerifier)!
-        let result = try await authService.authorise(codeChallenge: codeChallenge)
+        let result = try await authService.authorize(codeChallenge: codeChallenge)
         XCTAssertNotNil(result)
     }
 
     func disabled_test_real_AuthoriseFailure() async throws {
         let authService = DefaultOAuthService(baseURL: baseURL, apiService: realAPISService)
         do {
-            _ = try await authService.authorise(codeChallenge: "")
+            _ = try await authService.authorize(codeChallenge: "")
         } catch {
             switch error {
             case OAuthServiceError.authAPIError(let code):

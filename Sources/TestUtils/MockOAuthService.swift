@@ -24,9 +24,9 @@ public final class MockOAuthService: OAuthService {
 
     public init() {}
 
-    public var authoriseResponse: Result<Networking.OAuthSessionID, Error>?
-    public func authorise(codeChallenge: String) async throws -> Networking.OAuthSessionID {
-        switch authoriseResponse! {
+    public var authorizeResponse: Result<Networking.OAuthSessionID, Error>?
+    public func authorize(codeChallenge: String) async throws -> Networking.OAuthSessionID {
+        switch authorizeResponse! {
         case .success(let result):
             return result
         case .failure(let error):
@@ -36,24 +36,7 @@ public final class MockOAuthService: OAuthService {
 
     public var createAccountResponse: Result<Networking.AuthorisationCode, Error>?
     public func createAccount(authSessionID: String) async throws -> Networking.AuthorisationCode {
-        switch authoriseResponse! {
-        case .success(let result):
-            return result
-        case .failure(let error):
-            throw error
-        }
-    }
-
-    public var requestOTPResponseError: Error?
-    public func requestOTP(authSessionID: String, emailAddress: String) async throws {
-        if let requestOTPResponseError {
-            throw requestOTPResponseError
-        }
-    }
-
-    public var loginWithOTPResponse: Result<Networking.AuthorisationCode, Error>?
-    public func login(withOTP otp: String, authSessionID: String, email: String) async throws -> Networking.AuthorisationCode {
-        switch authoriseResponse! {
+        switch createAccountResponse! {
         case .success(let result):
             return result
         case .failure(let error):
@@ -63,7 +46,7 @@ public final class MockOAuthService: OAuthService {
 
     public var loginWithSignatureResponse: Result<Networking.AuthorisationCode, Error>?
     public func login(withSignature signature: String, authSessionID: String) async throws -> Networking.AuthorisationCode {
-        switch authoriseResponse! {
+        switch loginWithSignatureResponse! {
         case .success(let result):
             return result
         case .failure(let error):
@@ -84,26 +67,6 @@ public final class MockOAuthService: OAuthService {
     public var refreshAccessTokenResponse: Result<Networking.OAuthTokenResponse, Error>?
     public func refreshAccessToken(clientID: String, refreshToken: String) async throws -> Networking.OAuthTokenResponse {
         switch refreshAccessTokenResponse! {
-        case .success(let result):
-            return result
-        case .failure(let error):
-            throw error
-        }
-    }
-
-    public var editAccountResponse: Result<Networking.EditAccountResponse, Error>?
-    public func editAccount(clientID: String, accessToken: String, email: String?) async throws -> Networking.EditAccountResponse {
-        switch editAccountResponse! {
-        case .success(let result):
-            return result
-        case .failure(let error):
-            throw error
-        }
-    }
-
-    public var confirmEditAccountResponse: Result<Networking.ConfirmEditAccountResponse, Error>?
-    public func confirmEditAccount(accessToken: String, email: String, hash: String, otp: String) async throws -> Networking.ConfirmEditAccountResponse {
-        switch confirmEditAccountResponse! {
         case .success(let result):
             return result
         case .failure(let error):

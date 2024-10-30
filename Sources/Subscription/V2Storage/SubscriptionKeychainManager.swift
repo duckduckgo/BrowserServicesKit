@@ -18,6 +18,7 @@
 
 import Foundation
 import Security
+import os.log
 
 public class SubscriptionKeychainManager {
 
@@ -37,6 +38,7 @@ public class SubscriptionKeychainManager {
     }
 
     public func retrieveData(forField field: SubscriptionKeychainField, useDataProtectionKeychain: Bool = true) throws -> Data? {
+        Logger.subscriptionKeychain.debug("Retrieving data for field \(field.keyValue)")
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecMatchLimit as String: kSecMatchLimitOne,
@@ -62,6 +64,7 @@ public class SubscriptionKeychainManager {
     }
 
     public func store(data: Data, forField field: SubscriptionKeychainField, useDataProtectionKeychain: Bool = true) throws {
+        Logger.subscriptionKeychain.debug("Storing data for field \(field.keyValue)")
         let query = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrSynchronizable: false,
@@ -78,6 +81,7 @@ public class SubscriptionKeychainManager {
     }
 
     public func deleteItem(forField field: SubscriptionKeychainField, useDataProtectionKeychain: Bool = true) throws {
+        Logger.subscriptionKeychain.debug("Deleting data for field \(field.keyValue)")
         let query: [String: Any] = [
             kSecClass as String: kSecClassGenericPassword,
             kSecAttrService as String: field.keyValue,
@@ -91,6 +95,7 @@ public class SubscriptionKeychainManager {
     }
 
     public func updateData(_ data: Data, forField field: SubscriptionKeychainField) throws {
+        Logger.subscriptionKeychain.debug("Updating data for field \(field.keyValue)")
         let query = [
             kSecClass: kSecClassGenericPassword,
             kSecAttrSynchronizable: false,

@@ -113,24 +113,18 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
 
         // Clear subscription Cache
         subscriptionEndpointService.clearSubscription()
-
         do {
             let accessToken = try await subscriptionManager.getTokenContainer(policy: .localValid).accessToken
-            do {
-                let confirmation = try await subscriptionEndpointService.confirmPurchase(accessToken: accessToken, signature: transactionJWS)
-                subscriptionEndpointService.updateCache(with: confirmation.subscription)
+            let confirmation = try await subscriptionEndpointService.confirmPurchase(accessToken: accessToken, signature: transactionJWS)
+            subscriptionEndpointService.updateCache(with: confirmation.subscription)
 
-                // Refresh the token in order to get new entitlements
-                await subscriptionManager.refreshAccount()
+            // Refresh the token in order to get new entitlements
+            await subscriptionManager.refreshAccount()
 
-                return .success(PurchaseUpdate.completed)
-            } catch {
-                Logger.subscriptionAppStorePurchaseFlow.error("Purchase Failed: \(error)")
-                return .failure(.purchaseFailed(error))
-            }
+            return .success(PurchaseUpdate.completed)
         } catch {
             Logger.subscriptionAppStorePurchaseFlow.error("Purchase Failed: \(error)")
-            return .failure(AppStorePurchaseFlowError.accountCreationFailed(error))
+            return .failure(.purchaseFailed(error))
         }
     }
 

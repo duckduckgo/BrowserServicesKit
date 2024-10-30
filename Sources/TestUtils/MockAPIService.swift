@@ -17,7 +17,7 @@
 //
 
 import Foundation
-import Networking
+@testable import Networking
 
 public class MockAPIService: APIService {
 

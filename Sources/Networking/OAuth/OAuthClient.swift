@@ -265,7 +265,7 @@ final public class DefaultOAuthClient: OAuthClient {
     private func createAccount() async throws -> TokenContainer {
         Logger.OAuthClient.log("Creating new account")
         let (codeVerifier, codeChallenge) = try await getVerificationCodes()
-        let authSessionID = try await authService.authorise(codeChallenge: codeChallenge)
+        let authSessionID = try await authService.authorize(codeChallenge: codeChallenge)
         let authCode = try await authService.createAccount(authSessionID: authSessionID)
         let tokenContainer = try await getTokens(authCode: authCode, codeVerifier: codeVerifier)
         Logger.OAuthClient.log("New account created successfully")
@@ -303,7 +303,7 @@ final public class DefaultOAuthClient: OAuthClient {
     public func requestOTP(email: String) async throws -> (authSessionID: String, codeVerifier: String) {
         Logger.OAuthClient.log("Requesting OTP")
         let (codeVerifier, codeChallenge) = try await getVerificationCodes()
-        let authSessionID = try await authService.authorise(codeChallenge: codeChallenge)
+        let authSessionID = try await authService.authorize(codeChallenge: codeChallenge)
         try await authService.requestOTP(authSessionID: authSessionID, emailAddress: email)
         return (authSessionID, codeVerifier) // to be used in activate(withOTP or activate(withPlatformSignature
     }
@@ -318,7 +318,7 @@ final public class DefaultOAuthClient: OAuthClient {
     public func activate(withPlatformSignature signature: String) async throws -> TokenContainer {
         Logger.OAuthClient.log("Activating with platform signature")
         let (codeVerifier, codeChallenge) = try await getVerificationCodes()
-        let authSessionID = try await authService.authorise(codeChallenge: codeChallenge)
+        let authSessionID = try await authService.authorize(codeChallenge: codeChallenge)
         let authCode = try await authService.login(withSignature: signature, authSessionID: authSessionID)
         let tokens = try await getTokens(authCode: authCode, codeVerifier: codeVerifier)
         tokensStorage.tokenContainer = tokens
@@ -365,7 +365,7 @@ final public class DefaultOAuthClient: OAuthClient {
     public func exchange(accessTokenV1: String) async throws -> TokenContainer {
         Logger.OAuthClient.log("Exchanging access token V1 to V2")
         let (codeVerifier, codeChallenge) = try await getVerificationCodes()
-        let authSessionID = try await authService.authorise(codeChallenge: codeChallenge)
+        let authSessionID = try await authService.authorize(codeChallenge: codeChallenge)
         let authCode = try await authService.exchangeToken(accessTokenV1: accessTokenV1, authSessionID: authSessionID)
         let tokens = try await getTokens(authCode: authCode, codeVerifier: codeVerifier)
         return tokens

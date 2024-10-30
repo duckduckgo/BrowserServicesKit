@@ -178,6 +178,7 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
     // MARK: -
 
     public func confirmPurchase(accessToken: String, signature: String) async throws -> ConfirmPurchaseResponse {
+        Logger.subscriptionEndpointService.log("Confirming purchase")
         guard let request = SubscriptionRequest.confirmPurchase(baseURL: baseURL, accessToken: accessToken, signature: signature) else {
             throw SubscriptionEndpointServiceError.invalidRequest
         }
