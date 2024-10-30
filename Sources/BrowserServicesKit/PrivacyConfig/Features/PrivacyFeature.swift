@@ -184,8 +184,3 @@ public enum SyncPromotionSubfeature: String, PrivacySubfeature {
     case bookmarks
     case passwords
 }
-
-public enum AdAttributionReportingSubfeature: String, PrivacySubfeature {
-    public var parent: PrivacyFeature { .adAttributionReporting }
-    case includeToken
-}
