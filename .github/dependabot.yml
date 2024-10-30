@@ -7,3 +7,7 @@ updates:
     directory: "/" # Location of package manifests
     schedule:
       interval: "daily"
+  - package-ecosystem: "swift" # For Swift package updates
+    directory: "/" # Location of Package.swift file
+    schedule:
+      interval: "daily"
