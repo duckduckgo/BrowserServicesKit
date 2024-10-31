@@ -63,19 +63,17 @@ public final class SubscriptionCookieManager: SubscriptionCookieManaging {
         self.currentCookieStore = currentCookieStore
         self.eventMapping = eventMapping
         self.refreshTimeInterval = refreshTimeInterval
-    }
 
-    public func enableSettingSubscriptionCookie() {
-        isSettingSubscriptionCookieEnabled = true
         NotificationCenter.default.addObserver(self, selector: #selector(handleAccountDidSignIn), name: .accountDidSignIn, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(handleAccountDidSignOut), name: .accountDidSignOut, object: nil)
     }
 
+    public func enableSettingSubscriptionCookie() {
+        isSettingSubscriptionCookieEnabled = true
+    }
+
     public func disableSettingSubscriptionCookie() async {
         isSettingSubscriptionCookieEnabled = false
-        NotificationCenter.default.removeObserver(self, name: .accountDidSignIn, object: nil)
-        NotificationCenter.default.removeObserver(self, name: .accountDidSignOut, object: nil)
-
         if let cookieStore = await currentCookieStore(),
            let cookie = await cookieStore.fetchCurrentSubscriptionCookie() {
             await cookieStore.deleteCookie(cookie)
