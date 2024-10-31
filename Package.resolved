@@ -32,8 +32,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/GRDB.swift.git",
       "state" : {
-        "revision" : "4225b85c9a0c50544e413a1ea1e502c802b44b35",
-        "version" : "2.4.0"
+        "revision" : "c3cc998fc14efa356259e5d01d8910e82de080ad",
+        "version" : "6.6.0"
       }
     },
     {
