@@ -76,6 +76,7 @@ final class SubscriptionCookieManagerTests: XCTestCase {
         accountManager.accessToken = Constants.accessToken
 
         // When
+        subscriptionCookieManager.enableSettingSubscriptionCookie()
         NotificationCenter.default.post(name: .accountDidSignIn, object: self, userInfo: nil)
         try await Task.sleep(seconds: 0.1)
 
@@ -88,11 +89,12 @@ final class SubscriptionCookieManagerTests: XCTestCase {
         await ensureSubscriptionCookieIsInTheCookieStore()
 
         // When
+        subscriptionCookieManager.enableSettingSubscriptionCookie()
         NotificationCenter.default.post(name: .accountDidSignOut, object: self, userInfo: nil)
         try await Task.sleep(seconds: 0.1)
 
         // Then
-        await checkSubscriptionCookieIsNotPresent()
+        await checkSubscriptionCookieIsHasEmptyValue()
     }
 
     func testRefreshWhenSignedInButCookieIsMissing() async throws {
@@ -101,6 +103,7 @@ final class SubscriptionCookieManagerTests: XCTestCase {
         await ensureNoSubscriptionCookieInTheCookieStore()
 
         // When
+        subscriptionCookieManager.enableSettingSubscriptionCookie()
         await subscriptionCookieManager.refreshSubscriptionCookie()
         try await Task.sleep(seconds: 0.1)
 
@@ -114,11 +117,12 @@ final class SubscriptionCookieManagerTests: XCTestCase {
         await ensureSubscriptionCookieIsInTheCookieStore()
 
         // When
+        subscriptionCookieManager.enableSettingSubscriptionCookie()
         await subscriptionCookieManager.refreshSubscriptionCookie()
         try await Task.sleep(seconds: 0.1)
 
         // Then
-        await checkSubscriptionCookieIsNotPresent()
+        await checkSubscriptionCookieIsHasEmptyValue()
     }
 
     func testRefreshNotTriggeredTwiceWithinSetRefreshInterval() async throws {
@@ -127,6 +131,7 @@ final class SubscriptionCookieManagerTests: XCTestCase {
         let secondRefreshDate: Date?
 
         // When
+        subscriptionCookieManager.enableSettingSubscriptionCookie()
         await subscriptionCookieManager.refreshSubscriptionCookie()
         firstRefreshDate = subscriptionCookieManager.lastRefreshDate
 
@@ -145,6 +150,7 @@ final class SubscriptionCookieManagerTests: XCTestCase {
         let secondRefreshDate: Date?
 
         // When
+        subscriptionCookieManager.enableSettingSubscriptionCookie()
         await subscriptionCookieManager.refreshSubscriptionCookie()
         firstRefreshDate = subscriptionCookieManager.lastRefreshDate
 
@@ -186,9 +192,12 @@ final class SubscriptionCookieManagerTests: XCTestCase {
         XCTAssertEqual(subscriptionCookie.value, Constants.accessToken)
     }
 
-    private func checkSubscriptionCookieIsNotPresent() async {
-        let cookie = await cookieStore.fetchSubscriptionCookie()
-        XCTAssertNil(cookie)
+    private func checkSubscriptionCookieIsHasEmptyValue() async {
+        guard let subscriptionCookie = await cookieStore.fetchSubscriptionCookie() else {
+            XCTFail("No subscription cookie in the store")
+            return
+        }
+        XCTAssertEqual(subscriptionCookie.value, "")
     }
 
 }
@@ -213,6 +222,7 @@ class MockHTTPCookieStore: HTTPCookieStore {
     }
 
     func setCookie(_ cookie: HTTPCookie) async {
+        cookies.removeAll { $0.domain == cookie.domain }
         cookies.append(cookie)
     }
 
