@@ -19,7 +19,7 @@
 import Foundation
 import Network
 
-public enum AnyIPAddress: IPAddress, Hashable, CustomDebugStringConvertible, @unchecked Sendable {
+public enum AnyIPAddress: Hashable, CustomDebugStringConvertible, @unchecked Sendable {
     /// A host specified as an IPv4 address
     case ipv4(IPv4Address)
 
@@ -68,7 +68,7 @@ public enum AnyIPAddress: IPAddress, Hashable, CustomDebugStringConvertible, @un
         }
     }
 
-    private var ipAddress: IPAddress {
+    public var ipAddress: IPAddress {
         switch self {
         case .ipv4(let ip):
             return ip

@@ -34,6 +34,7 @@ public enum FailureRecoveryStep {
 protocol FailureRecoveryHandling {
     func attemptRecovery(
         to lastConnectedServer: NetworkProtectionServer,
+        excludeLocalNetworks: Bool,
         includedRoutes: [IPAddressRange],
         excludedRoutes: [IPAddressRange],
         dnsSettings: NetworkProtectionDNSSettings,
@@ -85,6 +86,7 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
 
     func attemptRecovery(
         to lastConnectedServer: NetworkProtectionServer,
+        excludeLocalNetworks: Bool,
         includedRoutes: [IPAddressRange],
         excludedRoutes: [IPAddressRange],
         dnsSettings: NetworkProtectionDNSSettings,
@@ -102,6 +104,7 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
             do {
                 let result = try await makeRecoveryAttempt(
                     to: lastConnectedServer,
+                    excludeLocalNetworks: excludeLocalNetworks,
                     includedRoutes: includedRoutes,
                     excludedRoutes: excludedRoutes,
                     dnsSettings: dnsSettings,
@@ -130,6 +133,7 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
 
     private func makeRecoveryAttempt(
         to lastConnectedServer: NetworkProtectionServer,
+        excludeLocalNetworks: Bool,
         includedRoutes: [IPAddressRange],
         excludedRoutes: [IPAddressRange],
         dnsSettings: NetworkProtectionDNSSettings,
@@ -140,6 +144,7 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
 
         configurationResult = try await deviceManager.generateTunnelConfiguration(
             resolvedSelectionMethod: serverSelectionMethod,
+            excludeLocalNetworks: excludeLocalNetworks,
             includedRoutes: includedRoutes,
             excludedRoutes: excludedRoutes,
             dnsSettings: dnsSettings,

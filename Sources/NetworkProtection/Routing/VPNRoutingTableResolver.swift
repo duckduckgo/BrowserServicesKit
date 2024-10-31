@@ -17,6 +17,8 @@
 //
 
 import Foundation
+import Network
+import os.log
 
 /// Owns the responsibility of defining the routing table for the VPN.
 ///
@@ -29,38 +31,72 @@ struct VPNRoutingTableResolver {
 
     private let baseExcludedRoutes: [IPAddressRange]
     private let baseIncludedRoutes: [IPAddressRange]
-    private let dnsSettings: NetworkProtectionDNSSettings
+    private let dnsServers: [DNSServer]
+    private let excludeLocalNetworks: Bool
     private let server: NetworkProtectionServer
 
-    init(baseIncludedRoutes: [IPAddressRange],
-         baseExcludedRoutes: [IPAddressRange],
-         server: NetworkProtectionServer,
-         dnsSettings: NetworkProtectionDNSSettings) {
+    init(server: NetworkProtectionServer,
+         dnsServers: [DNSServer],
+         excludeLocalNetworks: Bool,
+         baseIncludedRoutes: [IPAddressRange],
+         baseExcludedRoutes: [IPAddressRange]) {
 
         self.baseExcludedRoutes = baseExcludedRoutes
         self.baseIncludedRoutes = baseIncludedRoutes
-        self.dnsSettings = dnsSettings
+        self.dnsServers = dnsServers
+        self.excludeLocalNetworks = excludeLocalNetworks
         self.server = server
     }
 
     var excludedRoutes: [IPAddressRange] {
-        baseExcludedRoutes
+        var routes = baseExcludedRoutes + serverRoutes()
+
+        if excludeLocalNetworks {
+            Logger.networkProtection.log("🤌 Excluding local networks")
+            routes += localNetworkRanges
+        }
+
+        return routes
     }
 
     var includedRoutes: [IPAddressRange] {
-        baseIncludedRoutes + dnsRoutes()
+        var routes = baseIncludedRoutes + dnsRoutes()
+
+        if !excludeLocalNetworks {
+            Logger.networkProtection.log("🤌 Including local networks")
+            routes += localNetworkRanges
+        }
+
+        return routes
     }
 
-    // MARK: - Included Routes: Dynamic inclusions
+    // MARK: - Convenience
+
+    private var localNetworkRanges: [IPAddressRange] {
+        RoutingRange.localNetworkRanges.compactMap { entry in
+            switch entry {
+            case .section:
+                // Nothing to map
+                return nil
+            case .range(let range, _):
+                return range
+            }
+        }
+    }
+
+    // MARK: - Dynamic routes
+
+    private func serverRoutes() -> [IPAddressRange] {
+        server.serverInfo.ips.map { anyIP in
+            IPAddressRange(address: anyIP.ipAddress, networkPrefixLength: 32)
+        }
+    }
+
+    // MARK: - Included Routes
 
     private func dnsRoutes() -> [IPAddressRange] {
-        switch dnsSettings {
-        case .default:
-            [IPAddressRange(address: server.serverInfo.internalIP, networkPrefixLength: 32)]
-        case .custom(let serverIPs):
-            serverIPs.map { serverIP in
-                IPAddressRange(stringLiteral: serverIP)
-            }
+        dnsServers.map { server in
+            return IPAddressRange(address: server.address, networkPrefixLength: 32)
         }
     }
 }

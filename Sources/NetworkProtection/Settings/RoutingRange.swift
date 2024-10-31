@@ -49,12 +49,13 @@ public enum RoutingRange {
 
     public static let localNetworkRanges: [RoutingRange] = [
         .section("IPv4 - Local Network"),
+        .range("10.0.0.0/8"     /* 255.0.0.0   */),
         .range("172.16.0.0/12"  /* 255.240.0.0 */),
         .range("192.168.0.0/16" /* 255.255.0.0 */),
     ]
 
-    public static let privateNetworkRanges: [RoutingRange] = [
-        .section("IPv4 - Private Routes"),
+    public static let publicNetworkRanges: [RoutingRange] = [
+        .section("IPv4 - Public Routes"),
         .range("1.0.0.0/8"),
         .range("2.0.0.0/8"),
         .range("3.0.0.0/8"),

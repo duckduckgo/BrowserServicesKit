@@ -65,6 +65,7 @@ public protocol NetworkProtectionDeviceManagement {
     typealias GenerateTunnelConfigurationResult = (tunnelConfiguration: TunnelConfiguration, server: NetworkProtectionServer)
 
     func generateTunnelConfiguration(resolvedSelectionMethod: NetworkProtectionServerSelectionMethod,
+                                     excludeLocalNetworks: Bool,
                                      includedRoutes: [IPAddressRange],
                                      excludedRoutes: [IPAddressRange],
                                      dnsSettings: NetworkProtectionDNSSettings,
@@ -129,6 +130,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     /// 3. If the key already existed, look up the stored set of backend servers and check if the preferred server is registered. If not, register it, and return the tunnel configuration + server info.
     ///
     public func generateTunnelConfiguration(resolvedSelectionMethod: NetworkProtectionServerSelectionMethod,
+                                            excludeLocalNetworks: Bool,
                                             includedRoutes: [IPAddressRange],
                                             excludedRoutes: [IPAddressRange],
                                             dnsSettings: NetworkProtectionDNSSettings,
@@ -168,6 +170,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
         do {
             let configuration = try tunnelConfiguration(interfacePrivateKey: keyPair.privateKey,
                                                         server: selectedServer,
+                                                        excludeLocalNetworks: excludeLocalNetworks,
                                                         includedRoutes: includedRoutes,
                                                         excludedRoutes: excludedRoutes,
                                                         dnsSettings: dnsSettings,
@@ -259,6 +262,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
 
     func tunnelConfiguration(interfacePrivateKey: PrivateKey,
                              server: NetworkProtectionServer,
+                             excludeLocalNetworks: Bool,
                              includedRoutes: [IPAddressRange],
                              excludedRoutes: [IPAddressRange],
                              dnsSettings: NetworkProtectionDNSSettings,
@@ -282,21 +286,22 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
             throw NetworkProtectionError.couldNotGetInterfaceAddressRange
         }
 
-        let routingTableResolver = VPNRoutingTableResolver(
-            baseIncludedRoutes: includedRoutes,
-            baseExcludedRoutes: excludedRoutes,
-            server: server,
-            dnsSettings: dnsSettings)
-
         let dns: [DNSServer]
         switch dnsSettings {
         case .default:
-            dns = [DNSServer(address: server.serverInfo.internalIP)]
+            dns = [DNSServer(address: server.serverInfo.internalIP.ipAddress)]
         case .custom(let servers):
             dns = servers
                 .compactMap { IPv4Address($0) }
                 .map { DNSServer(address: $0) }
         }
+
+        let routingTableResolver = VPNRoutingTableResolver(
+            server: server,
+            dnsServers: dns,
+            excludeLocalNetworks: excludeLocalNetworks,
+            baseIncludedRoutes: includedRoutes,
+            baseExcludedRoutes: excludedRoutes)
 
         Logger.networkProtection.log("Routing table information:\nL Included Routes: \(routingTableResolver.includedRoutes, privacy: .public)\nL Excluded Routes: \(routingTableResolver.excludedRoutes, privacy: .public)")
 
@@ -307,7 +312,11 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
                                                dns: dns,
                                                isKillSwitchEnabled: isKillSwitchEnabled)
 
-        return TunnelConfiguration(name: "DuckDuckGo VPN", interface: interface, peers: [peerConfiguration])
+        let tunnelConfiguration = TunnelConfiguration(name: "DuckDuckGo VPN", interface: interface, peers: [peerConfiguration])
+
+        Logger.networkProtection.log("Tunnel configuration routing information:\nL Included Routes: \(tunnelConfiguration.interface.includedRoutes, privacy: .public)\nL Excluded Routes: \(tunnelConfiguration.interface.excludedRoutes, privacy: .public)")
+
+        return tunnelConfiguration
     }
 
     func peerConfiguration(serverPublicKey: PublicKey, serverEndpoint: Endpoint) -> PeerConfiguration {

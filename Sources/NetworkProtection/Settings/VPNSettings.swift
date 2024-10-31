@@ -423,9 +423,9 @@ public final class VPNSettings {
     public var excludedRoutes: [RoutingRange] {
         var ipv4Ranges = RoutingRange.alwaysExcludedIPv4Ranges
 
-        if excludeLocalNetworks {
+        /*if excludeLocalNetworks {
             ipv4Ranges += RoutingRange.localNetworkRanges
-        }
+        }*/
 
         return ipv4Ranges + RoutingRange.alwaysExcludedIPv6Ranges
     }
@@ -443,7 +443,13 @@ public final class VPNSettings {
     }
 
     public var includedRoutes: [RoutingRange] {
-        RoutingRange.privateNetworkRanges
+        var ipv4Ranges = RoutingRange.publicNetworkRanges
+
+        /*if !excludeLocalNetworks {
+            ipv4Ranges += RoutingRange.localNetworkRanges
+        }*/
+
+        return ipv4Ranges
     }
 
     public var includedRanges: [IPAddressRange] {

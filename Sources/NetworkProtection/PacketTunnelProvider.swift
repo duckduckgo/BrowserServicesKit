@@ -516,6 +516,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     private func load(options: StartupOptions) throws {
+        loadExcludeLocalNetworks(from: options)
         loadKeyValidity(from: options)
         loadSelectedEnvironment(from: options)
         loadSelectedServer(from: options)
@@ -529,6 +530,17 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     open func loadVendorOptions(from provider: NETunnelProviderProtocol?) throws {
         // no-op, but can be overridden by subclasses
+    }
+
+    private func loadExcludeLocalNetworks(from options: StartupOptions) {
+        switch options.excludeLocalNetworks {
+        case .set(let exclude):
+            settings.excludeLocalNetworks = exclude
+        case .useExisting:
+            break
+        case .reset:
+            settings.excludeLocalNetworks = true
+        }
     }
 
     private func loadKeyValidity(from options: StartupOptions) {
@@ -999,6 +1011,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         do {
             configurationResult = try await deviceManager.generateTunnelConfiguration(
                 resolvedSelectionMethod: resolvedServerSelectionMethod,
+                excludeLocalNetworks: settings.excludeLocalNetworks,
                 includedRoutes: includedRoutes,
                 excludedRoutes: excludedRoutes,
                 dnsSettings: dnsSettings,
@@ -1073,7 +1086,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         case .setExcludedRoutes:
             // No longer supported, will remove, but keeping the enum to prevent ABI issues
             completionHandler?(nil)
-        case .setIncludedRoutes(let includedRoutes):
+        case .setIncludedRoutes:
             // No longer supported, will remove, but keeping the enum to prevent ABI issues
             completionHandler?(nil)
         case .simulateTunnelFailure:
@@ -1456,6 +1469,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             }
             await self.failureRecoveryHandler.attemptRecovery(
                 to: server,
+                excludeLocalNetworks: protocolConfiguration.excludeLocalNetworks,
                 includedRoutes: self.settings.includedRanges,
                 excludedRoutes: self.settings.excludedRanges,
                 dnsSettings: self.settings.dnsSettings,
