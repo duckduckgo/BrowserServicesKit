@@ -77,8 +77,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/sync_crypto",
       "state" : {
-        "revision" : "2ab6ab6f0f96b259c14c2de3fc948935fc16ac78",
-        "version" : "0.2.0"
+        "revision" : "0c8bf3c0e75591bc366407b9d7a73a9fcfc7736f",
+        "version" : "0.3.0"
       }
     },
     {
