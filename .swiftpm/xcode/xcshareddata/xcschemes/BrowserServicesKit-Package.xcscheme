@@ -497,6 +497,48 @@
                ReferencedContainer = "container:">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "BrokenSitePrompt"
+               BuildableName = "BrokenSitePrompt"
+               BlueprintName = "BrokenSitePrompt"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "UserBehaviorMonitor"
+               BuildableName = "UserBehaviorMonitor"
+               BlueprintName = "UserBehaviorMonitor"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "PageRefreshMonitor"
+               BuildableName = "PageRefreshMonitor"
+               BlueprintName = "PageRefreshMonitor"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
@@ -743,6 +785,26 @@
                BlueprintIdentifier = "PhishingDetectionTests"
                BuildableName = "PhishingDetectionTests"
                BlueprintName = "PhishingDetectionTests"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "UserBehaviorMonitorTests"
+               BuildableName = "UserBehaviorMonitorTests"
+               BlueprintName = "UserBehaviorMonitorTests"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "PageRefreshMonitorTests"
+               BuildableName = "PageRefreshMonitorTests"
+               BlueprintName = "PageRefreshMonitorTests"
                ReferencedContainer = "container:">
             </BuildableReference>
          </TestableReference>
