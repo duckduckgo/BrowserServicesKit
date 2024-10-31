@@ -1,60 +1,77 @@
 //
-//  SubscriptionTokenKeychainStorage.swift
+//  SubscriptionTokenKeychainStorageV2.swift
+//  BrowserServicesKit
 //
-//  Copyright © 2024 DuckDuckGo. All rights reserved.
-//
-//  Licensed under the Apache License, Version 2.0 (the "License");
-//  you may not use this file except in compliance with the License.
-//  You may obtain a copy of the License at
-//
-//  http://www.apache.org/licenses/LICENSE-2.0
-//
-//  Unless required by applicable law or agreed to in writing, software
-//  distributed under the License is distributed on an "AS IS" BASIS,
-//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//  See the License for the specific language governing permissions and
-//  limitations under the License.
+//  Created by Federico Cappelli on 31/10/2024.
 //
 
 import Foundation
+import os.log
+import Networking
+import Common
 
-public final class SubscriptionTokenKeychainStorage: SubscriptionTokenStoring {
+public final class SubscriptionTokenKeychainStorageV2: TokenStoring {
 
     private let keychainType: KeychainType
+    internal let queue = DispatchQueue(label: "SubscriptionTokenKeychainStorageV2.queue")
 
     public init(keychainType: KeychainType = .dataProtection(.unspecified)) {
         self.keychainType = keychainType
     }
 
-    public func getAccessToken() throws -> String? {
-        try getString(forField: .accessToken)
-    }
+    public var tokenContainer: TokenContainer? {
+        get {
+            queue.sync {
+                Logger.subscriptionKeychain.log("Retrieving TokenContainer")
+                guard let data = try? retrieveData(forField: .tokens) else {
+                    Logger.subscriptionKeychain.log("TokenContainer not found")
+                    return nil
+                }
+                return CodableHelper.decode(jsonData: data)
+            }
+        }
+        set {
+            queue.sync { [weak self] in
+                Logger.subscriptionKeychain.log("Setting TokenContainer")
+                guard let strongSelf = self else { return }
 
-    public func store(accessToken: String) throws {
-        try set(string: accessToken, forField: .accessToken)
-    }
+                do {
+                    guard let newValue else {
+                        Logger.subscriptionKeychain.log("Removing TokenContainer")
+                        try strongSelf.deleteItem(forField: .tokens)
+                        return
+                    }
 
-    public func removeAccessToken() throws {
-        try deleteItem(forField: .accessToken)
+                    if let data = CodableHelper.encode(newValue) {
+                        try strongSelf.store(data: data, forField: .tokens)
+                    } else {
+                        Logger.subscriptionKeychain.fault("Failed to encode TokenContainer")
+                        assertionFailure("Failed to encode TokenContainer")
+                    }
+                } catch {
+                    Logger.subscriptionKeychain.fault("Failed to set TokenContainer: \(error, privacy: .public)")
+                    assertionFailure("Failed to set TokenContainer")
+                }
+            }
+        }
     }
 }
 
-private extension SubscriptionTokenKeychainStorage {
+extension SubscriptionTokenKeychainStorageV2 {
 
     /*
      Uses just kSecAttrService as the primary key, since we don't want to store
      multiple accounts/tokens at the same time
-    */
-    enum AccountKeychainField: String, CaseIterable {
-        case accessToken = "subscription.account.accessToken"
-        case testString = "subscription.account.testString"
+     */
+    enum SubscriptionKeychainField: String, CaseIterable {
+        case tokens = "subscription.v2.tokens"
 
         var keyValue: String {
             "com.duckduckgo" + "." + rawValue
         }
     }
 
-    func getString(forField field: AccountKeychainField) throws -> String? {
+    func getString(forField field: SubscriptionKeychainField) throws -> String? {
         guard let data = try retrieveData(forField: field) else {
             return nil
         }
@@ -66,7 +83,7 @@ private extension SubscriptionTokenKeychainStorage {
         }
     }
 
-    func retrieveData(forField field: AccountKeychainField) throws -> Data? {
+    func retrieveData(forField field: SubscriptionKeychainField) throws -> Data? {
         var query = defaultAttributes()
         query[kSecAttrService] = field.keyValue
         query[kSecMatchLimit] = kSecMatchLimitOne
@@ -88,7 +105,7 @@ private extension SubscriptionTokenKeychainStorage {
         }
     }
 
-    func set(string: String, forField field: AccountKeychainField) throws {
+    func set(string: String, forField field: SubscriptionKeychainField) throws {
         guard let stringData = string.data(using: .utf8) else {
             return
         }
@@ -96,7 +113,7 @@ private extension SubscriptionTokenKeychainStorage {
         try store(data: stringData, forField: field)
     }
 
-    func store(data: Data, forField field: AccountKeychainField) throws {
+    func store(data: Data, forField field: SubscriptionKeychainField) throws {
         var query = defaultAttributes()
         query[kSecAttrService] = field.keyValue
         query[kSecAttrAccessible] = kSecAttrAccessibleAfterFirstUnlock
@@ -118,19 +135,19 @@ private extension SubscriptionTokenKeychainStorage {
         }
     }
 
-    private func updateData(_ data: Data, forField field: AccountKeychainField) -> OSStatus {
+    private func updateData(_ data: Data, forField field: SubscriptionKeychainField) -> OSStatus {
         var query = defaultAttributes()
         query[kSecAttrService] = field.keyValue
 
         let newAttributes = [
-          kSecValueData: data,
-          kSecAttrAccessible: kSecAttrAccessibleAfterFirstUnlock
+            kSecValueData: data,
+            kSecAttrAccessible: kSecAttrAccessibleAfterFirstUnlock
         ] as [CFString: Any]
 
         return SecItemUpdate(query as CFDictionary, newAttributes as CFDictionary)
     }
 
-    func deleteItem(forField field: AccountKeychainField, useDataProtectionKeychain: Bool = true) throws {
+    func deleteItem(forField field: SubscriptionKeychainField, useDataProtectionKeychain: Bool = true) throws {
         let query = defaultAttributes()
 
         let status = SecItemDelete(query as CFDictionary)
@@ -147,36 +164,5 @@ private extension SubscriptionTokenKeychainStorage {
         ]
         attributes.merge(keychainType.queryAttributes()) { $1 }
         return attributes
-    }
-}
-
-public enum KeychainType {
-    case dataProtection(_ accessGroup: AccessGroup)
-    /// Uses the system keychain.
-    case system
-    case fileBased
-
-    public enum AccessGroup {
-        case unspecified
-        case named(_ name: String)
-    }
-
-    func queryAttributes() -> [CFString: Any] {
-        switch self {
-        case .dataProtection(let accessGroup):
-            switch accessGroup {
-            case .unspecified:
-                return [kSecUseDataProtectionKeychain: true]
-            case .named(let accessGroup):
-                return [
-                    kSecUseDataProtectionKeychain: true,
-                    kSecAttrAccessGroup: accessGroup
-                ]
-            }
-        case .system:
-            return [kSecUseDataProtectionKeychain: false]
-        case .fileBased:
-            return [kSecUseDataProtectionKeychain: false]
-        }
     }
 }

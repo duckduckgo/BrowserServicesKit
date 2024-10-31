@@ -40,7 +40,7 @@ public enum OAuthClientError: Error, LocalizedError {
 }
 
 /// Provides the locally stored tokens container
-public protocol TokensStoring {
+public protocol TokenStoring {
     var tokenContainer: TokenContainer? { get set }
 }
 
@@ -112,13 +112,13 @@ final public class DefaultOAuthClient: OAuthClient {
     // MARK: -
 
     private let authService: any OAuthService
-    public var tokensStorage: any TokensStoring
+    public var tokenStorage: any TokenStoring
     public var legacyTokenStorage: (any LegacyTokenStoring)?
 
-    public init(tokensStorage: any TokensStoring,
+    public init(tokensStorage: any TokenStoring,
                 legacyTokenStorage: (any LegacyTokenStoring)? = nil,
                 authService: OAuthService) {
-        self.tokensStorage = tokensStorage
+        self.tokenStorage = tokensStorage
         self.authService = authService
     }
 
@@ -159,11 +159,11 @@ final public class DefaultOAuthClient: OAuthClient {
     // MARK: - Public
 
     public var isUserAuthenticated: Bool {
-        tokensStorage.tokenContainer != nil
+        tokenStorage.tokenContainer != nil
     }
 
     public var currentTokenContainer: TokenContainer? {
-        tokensStorage.tokenContainer
+        tokenStorage.tokenContainer
     }
 
     /// Returns a tokens container based on the policy
@@ -178,7 +178,7 @@ final public class DefaultOAuthClient: OAuthClient {
         if let migratedTokenContainer = await migrateLegacyTokenIfNeeded() {
             localTokenContainer = migratedTokenContainer
         } else {
-            localTokenContainer = tokensStorage.tokenContainer
+            localTokenContainer = tokenStorage.tokenContainer
         }
 
         switch policy {
@@ -197,7 +197,7 @@ final public class DefaultOAuthClient: OAuthClient {
                 if localTokenContainer.decodedAccessToken.isExpired() {
                     Logger.OAuthClient.log("Local access token is expired, refreshing it")
                     let refreshedTokens = try await refreshTokens()
-                    tokensStorage.tokenContainer = refreshedTokens
+                    tokenStorage.tokenContainer = refreshedTokens
                     return refreshedTokens
                 } else {
                     return localTokenContainer
@@ -208,7 +208,7 @@ final public class DefaultOAuthClient: OAuthClient {
         case .localForceRefresh:
             Logger.OAuthClient.log("Getting local tokens and force refresh")
             let refreshedTokens = try await refreshTokens()
-            tokensStorage.tokenContainer = refreshedTokens
+            tokenStorage.tokenContainer = refreshedTokens
             return refreshedTokens
         case .createIfNeeded:
             Logger.OAuthClient.log("Getting tokens and creating a new account if needed")
@@ -218,7 +218,7 @@ final public class DefaultOAuthClient: OAuthClient {
                 if localTokenContainer.decodedAccessToken.isExpired() {
                     Logger.OAuthClient.log("Local access token is expired, refreshing it")
                     let refreshedTokens = try await refreshTokens()
-                    tokensStorage.tokenContainer = refreshedTokens
+                    tokenStorage.tokenContainer = refreshedTokens
                     return refreshedTokens
                 } else {
                     return localTokenContainer
@@ -228,7 +228,7 @@ final public class DefaultOAuthClient: OAuthClient {
                 // We don't have a token stored, create a new account
                 let tokens = try await createAccount()
                 // Save tokens
-                tokensStorage.tokenContainer = tokens
+                tokenStorage.tokenContainer = tokens
                 return tokens
             }
         }
@@ -250,7 +250,7 @@ final public class DefaultOAuthClient: OAuthClient {
             legacyTokenStorage.token = nil
 
             // Store new tokens
-            tokensStorage.tokenContainer = tokenContainer
+            tokenStorage.tokenContainer = tokenContainer
 
             return tokenContainer
         } catch {
@@ -321,7 +321,7 @@ final public class DefaultOAuthClient: OAuthClient {
         let authSessionID = try await authService.authorize(codeChallenge: codeChallenge)
         let authCode = try await authService.login(withSignature: signature, authSessionID: authSessionID)
         let tokens = try await getTokens(authCode: authCode, codeVerifier: codeVerifier)
-        tokensStorage.tokenContainer = tokens
+        tokenStorage.tokenContainer = tokens
         Logger.OAuthClient.log("Activation completed")
         return tokens
     }
@@ -330,7 +330,7 @@ final public class DefaultOAuthClient: OAuthClient {
 
     private func refreshTokens() async throws -> TokenContainer {
         Logger.OAuthClient.log("Refreshing tokens")
-        guard let refreshToken = tokensStorage.tokenContainer?.refreshToken else {
+        guard let refreshToken = tokenStorage.tokenContainer?.refreshToken else {
             throw OAuthClientError.missingRefreshToken
         }
 
@@ -375,7 +375,7 @@ final public class DefaultOAuthClient: OAuthClient {
 
     public func logout() async throws {
         Logger.OAuthClient.log("Logging out")
-        if let token = tokensStorage.tokenContainer?.accessToken {
+        if let token = tokenStorage.tokenContainer?.accessToken {
             try await authService.logout(accessToken: token)
         }
         removeLocalAccount()
@@ -383,7 +383,7 @@ final public class DefaultOAuthClient: OAuthClient {
 
     public func removeLocalAccount() {
         Logger.OAuthClient.log("Removing local account")
-        tokensStorage.tokenContainer = nil
+        tokenStorage.tokenContainer = nil
         legacyTokenStorage?.token = nil
     }
 

@@ -99,7 +99,8 @@ public actor NetworkProtectionServerStatusMonitor {
     // MARK: - Server Status Check
 
     private func checkServerStatus(for serverName: String) async -> Result<NetworkProtectionServerStatus, NetworkProtectionClientError> {
-        guard let accessToken = try? tokenStore.fetchToken() else {
+        guard let accessToken = tokenStore.fetchToken() else {
+            Logger.networkProtection.error("Failed to check server status due to lack of access token")
             assertionFailure("Failed to check server status due to lack of access token")
             return .failure(.invalidAuthToken)
         }

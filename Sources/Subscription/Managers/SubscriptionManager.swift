@@ -50,6 +50,7 @@ public protocol SubscriptionManager {
 
     func refreshAccount() async
     func getTokenContainer(policy: TokensCachePolicy) async throws -> TokenContainer
+    func getTokenContainerSynchronously(policy: TokensCachePolicy) -> TokenContainer?
     func exchange(tokenV1: String) async throws -> TokenContainer
 
     func signOut(skipNotification: Bool)
@@ -187,6 +188,18 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
 
     public func getTokenContainer(policy: TokensCachePolicy) async throws -> TokenContainer {
         try await oAuthClient.getTokens(policy: policy)
+    }
+
+    public func getTokenContainerSynchronously(policy: TokensCachePolicy) -> TokenContainer? {
+        Logger.subscription.debug("Fetching tokens synchronously")
+        let semaphore = DispatchSemaphore(value: 0)
+        var container: TokenContainer?
+        Task {
+            container = try? await oAuthClient.getTokens(policy: policy)
+            semaphore.signal()
+        }
+        semaphore.wait()
+        return container
     }
 
     public func exchange(tokenV1: String) async throws -> TokenContainer {

@@ -415,13 +415,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }()
 
-    private lazy var deviceManager: NetworkProtectionDeviceManagement = NetworkProtectionDeviceManager(
-        environment: self.settings.selectedEnvironment,
-        tokenStore: self.tokenStore,
-        keyStore: self.keyStore,
-        errorEvents: self.debugEvents
-    )
-
+    private lazy var deviceManager: NetworkProtectionDeviceManagement = NetworkProtectionDeviceManager(environment: self.settings.selectedEnvironment,
+                                                                                                       tokenStore: self.tokenStore,
+                                                                                                       keyStore: self.keyStore,
+                                                                                                       errorEvents: self.debugEvents)
     private lazy var tunnelFailureMonitor = NetworkProtectionTunnelFailureMonitor(handshakeReporter: adapter)
 
     public lazy var latencyMonitor = NetworkProtectionLatencyMonitor()
@@ -689,7 +686,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             try load(options: startupOptions)
             try loadVendorOptions(from: tunnelProviderProtocol)
 
-            if (try? tokenStore.fetchToken()) == nil {
+            if tokenStore.fetchToken() == nil {
                 throw TunnelError.startingTunnelWithoutAuthToken
             }
         } catch {
@@ -708,7 +705,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 providerEvents.fire(.tunnelStartAttempt(.failure(error)))
             }
 
-            Logger.networkProtection.log("🔴 Stopping VPN due to no auth token")
+            Logger.networkProtection.error("🔴 Stopping VPN due to no auth token")
             await attemptShutdownDueToRevokedAccess()
 
             throw error

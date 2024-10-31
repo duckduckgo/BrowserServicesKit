@@ -20,17 +20,15 @@ import Foundation
 import Common
 
 public protocol NetworkProtectionTokenStore {
+
     /// Store an auth token.
-    ///
     @available(iOS, deprecated, message: "[NetP Subscription] Use subscription access token instead")
     func store(_ token: String) throws
 
     /// Obtain the current auth token.
-    ///
-    func fetchToken() throws -> String?
+    func fetchToken() -> String?
 
     /// Delete the stored auth token.
-    ///
     @available(iOS, deprecated, message: "[NetP Subscription] Use subscription access token instead")
     func deleteToken() throws
 }
@@ -123,9 +121,8 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
 #else
 
 public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenStore {
-    private let accessTokenProvider: () -> String?
 
-    public static var authTokenPrefix: String { "ddg:" }
+    private let accessTokenProvider: () -> String?
 
     public init(accessTokenProvider: @escaping () -> String?) {
         self.accessTokenProvider = accessTokenProvider
@@ -135,8 +132,11 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
         assertionFailure("Unsupported operation")
     }
 
-    public func fetchToken() throws -> String? {
-        accessTokenProvider().map { makeToken(from: $0) }
+    public func fetchToken() -> String? {
+        guard let token = accessTokenProvider() else {
+            return nil
+        }
+        return makeToken(from: token)
     }
 
     public func deleteToken() throws {
@@ -144,7 +144,7 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
     }
 
     private func makeToken(from subscriptionAccessToken: String) -> String {
-        Self.authTokenPrefix + subscriptionAccessToken
+        "ddg:" + subscriptionAccessToken
     }
 }
 

@@ -1,5 +1,5 @@
 //
-//  AccountKeychainStorage+LegacyTokenStoring.swift
+//  SubscriptionTokenKeychainStorage+LegacyTokenStoring.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -19,12 +19,12 @@
 import Foundation
 import Networking
 
-extension AccountKeychainStorage: LegacyTokenStoring {
+extension SubscriptionTokenKeychainStorage: LegacyTokenStoring {
 
     public var token: String? {
         get {
             do {
-                return try getAuthToken()
+                return try getAccessToken()
             } catch {
                 assertionFailure("Failed to retrieve auth token: \(error)")
             }
@@ -33,10 +33,10 @@ extension AccountKeychainStorage: LegacyTokenStoring {
         set(newValue) {
             do {
                 guard let newValue else {
-                    try clearAuthenticationState()
+                    try removeAccessToken()
                     return
                 }
-                try set(string: newValue, forField: .authToken)
+                try store(accessToken: newValue)
             } catch {
                 assertionFailure("Failed set token: \(error)")
             }

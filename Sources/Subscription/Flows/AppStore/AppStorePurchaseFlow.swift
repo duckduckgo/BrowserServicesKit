@@ -61,7 +61,6 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
         Logger.subscriptionAppStorePurchaseFlow.log("Purchasing Subscription")
 
         var externalID: String?
-        // If the current account is a third party expired account, we want to purchase and attach subs to it
         if let existingExternalID = await getExpiredSubscriptionID() {
             Logger.subscriptionAppStorePurchaseFlow.log("External ID retrieved from expired subscription")
             externalID = existingExternalID
@@ -85,7 +84,7 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
         }
 
         guard let externalID else {
-            Logger.subscriptionAppStorePurchaseFlow.fault("Missing externalID, subscription purchase failed")
+            Logger.subscriptionAppStorePurchaseFlow.fault("Missing external ID, subscription purchase failed")
             return .failure(.internalError)
         }
 
@@ -114,7 +113,7 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
         // Clear subscription Cache
         subscriptionEndpointService.clearSubscription()
         do {
-            let accessToken = try await subscriptionManager.getTokenContainer(policy: .localValid).accessToken
+            let accessToken = try await subscriptionManager.getTokenContainer(policy: .createIfNeeded).accessToken
             let confirmation = try await subscriptionEndpointService.confirmPurchase(accessToken: accessToken, signature: transactionJWS)
             subscriptionEndpointService.updateCache(with: confirmation.subscription)
 
