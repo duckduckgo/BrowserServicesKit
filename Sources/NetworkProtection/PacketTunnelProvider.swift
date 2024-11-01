@@ -692,9 +692,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 throw TunnelError.startingTunnelWithoutAuthToken
             }
         } catch {
-            // Check that the error is valid and able to be re-thrown to the OS before shutting the tunnel down
-            let error = validated(error: error)
-
             if startupOptions.startupMethod == .automaticOnDemand {
                 // If the VPN was started by on-demand without the basic prerequisites for
                 // it to work we skip firing pixels.  This should only be possible if the
@@ -713,7 +710,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             Logger.networkProtection.log("🔴 Stopping VPN due to no auth token")
             await attemptShutdownDueToRevokedAccess()
 
-            throw error
+            // Check that the error is valid and able to be re-thrown to the OS before shutting the tunnel down
+            throw validated(error: error)
         }
 
         do {
@@ -726,9 +724,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
             providerEvents.fire(.tunnelStartAttempt(.success))
         } catch {
-            // Check that the error is valid and able to be re-thrown to the OS before shutting the tunnel down
-            let error = validated(error: error)
-
             if startupOptions.startupMethod == .automaticOnDemand {
                 // We add a delay when the VPN is started by
                 // on-demand and there's an error, to avoid frenetic ON/OFF
@@ -743,7 +738,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             self.knownFailureStore.lastKnownFailure = KnownFailure(error)
 
             providerEvents.fire(.tunnelStartAttempt(.failure(error)))
-            throw error
+            
+            // Check that the error is valid and able to be re-thrown to the OS before shutting the tunnel down
+            throw validated(error: error)
         }
     }
 
