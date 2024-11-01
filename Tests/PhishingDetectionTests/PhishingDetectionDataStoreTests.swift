@@ -87,7 +87,7 @@ class PhishingDetectionDataStoreTests: XCTestCase {
         XCTAssertEqual(actualHashPrefix, embeddedHashPrefix)
         XCTAssertEqual(actualRevision, 5)
     }
-    
+
     func testWhenEmbeddedRevisionOlderThanOnDisk_ThenDontLoadEmbedded() async {
         let encoder = JSONEncoder()
         // On Disk Data Setup
@@ -186,7 +186,7 @@ class PhishingDetectionDataStoreTests: XCTestCase {
         let decoder = JSONDecoder()
         if let storedFilterSet = try? decoder.decode(Set<Filter>.self, from: storedFilterSetData!),
            let storedHashPrefixes = try? decoder.decode(Set<String>.self, from: storedHashPrefixesData!) {
-            
+
             XCTAssertEqual(storedFilterSet, updatedFilterSet)
             XCTAssertEqual(storedHashPrefixes, updatedHashPrefixes)
         } else {
