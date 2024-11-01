@@ -692,6 +692,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 throw TunnelError.startingTunnelWithoutAuthToken
             }
         } catch {
+            // Check that the error is valid and able to be re-thrown to the OS before shutting the tunnel down
+            let error = validated(error: error)
+
             if startupOptions.startupMethod == .automaticOnDemand {
                 // If the VPN was started by on-demand without the basic prerequisites for
                 // it to work we skip firing pixels.  This should only be possible if the
@@ -723,6 +726,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
             providerEvents.fire(.tunnelStartAttempt(.success))
         } catch {
+            // Check that the error is valid and able to be re-thrown to the OS before shutting the tunnel down
+            let error = validated(error: error)
+
             if startupOptions.startupMethod == .automaticOnDemand {
                 // We add a delay when the VPN is started by
                 // on-demand and there's an error, to avoid frenetic ON/OFF
@@ -765,6 +771,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     private func startTunnel(onDemand: Bool) async throws {
         do {
+            throw ErrorThatCrashes.crash
+
             Logger.networkProtection.log("Generating tunnel config")
             Logger.networkProtection.log("Excluded ranges are: \(String(describing: self.settings.excludedRanges), privacy: .public)")
             Logger.networkProtection.log("Server selection method: \(self.currentServerSelectionMethod.debugDescription, privacy: .public)")
@@ -1813,6 +1821,56 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         snoozeJustEnded = true
         try? await startTunnel(onDemand: false)
         snoozeTimingStore.reset()
+    }
+
+    // MARK: - Error Validation
+
+    enum InvalidDiagnosticError: Error, CustomNSError {
+        case errorWithInvalidUnderlyingError(Error)
+
+        var errorCode: Int {
+            switch self {
+            case .errorWithInvalidUnderlyingError(let error):
+                return (error as NSError).code
+            }
+        }
+
+        var localizedDescription: String {
+            switch self {
+            case .errorWithInvalidUnderlyingError(let error):
+                return "Error '\(type(of: error))', message: \(error.localizedDescription)"
+            }
+        }
+
+        var errorUserInfo: [String: Any] {
+            switch self {
+            case .errorWithInvalidUnderlyingError(let error):
+                let newError = NSError(domain: (error as NSError).domain, code: (error as NSError).code)
+                return [NSUnderlyingErrorKey: newError]
+            }
+        }
+    }
+
+    /// Validates that an error object is correctly structured; i.e., only uses an `NSError` instances for its underlying error, etc.
+    private func validated(error: Error) -> Error {
+        if containsValidUnderlyingError(error) {
+            return error
+        } else {
+            return InvalidDiagnosticError.errorWithInvalidUnderlyingError(error)
+        }
+    }
+
+    private func containsValidUnderlyingError(_ error: Error) -> Bool {
+        let nsError = error as NSError
+
+        if let underlyingError = nsError.userInfo[NSUnderlyingErrorKey] as? Error {
+            return containsValidUnderlyingError(underlyingError)
+        } else if nsError.userInfo[NSUnderlyingErrorKey] != nil {
+            // If `NSUnderlyingErrorKey` exists but is not an `Error`, return false
+            return false
+        }
+
+        return true
     }
 
 }
