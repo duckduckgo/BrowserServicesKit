@@ -108,11 +108,15 @@ public final class SubscriptionManagerMock: SubscriptionManager {
 
     }
 
+    public func signOut() async {
+
+    }
+
     public func clearSubscriptionCache() {
 
     }
 
-    public func confirmPurchase(signature: String) async throws {
-
+    public func confirmPurchase(signature: String) async throws -> Subscription.PrivacyProSubscription {
+        throw OAuthClientError.missingTokens
     }
 }

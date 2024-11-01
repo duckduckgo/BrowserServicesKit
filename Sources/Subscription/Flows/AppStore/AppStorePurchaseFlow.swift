@@ -95,7 +95,7 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
         case .failure(let error):
             Logger.subscriptionAppStorePurchaseFlow.error("purchaseSubscription error: \(String(reflecting: error), privacy: .public)")
 
-            subscriptionManager.signOut()
+            await subscriptionManager.signOut()
 
             switch error {
             case .purchaseCancelledByUser:
@@ -111,7 +111,8 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
         Logger.subscriptionAppStorePurchaseFlow.log("Completing Subscription Purchase")
 
         // Clear subscription Cache
-        subscriptionManager.signOut()
+        await subscriptionManager.signOut()
+        
         do {
             let subscription = try await subscriptionManager.confirmPurchase(signature: transactionJWS)
             if subscription.isActive {
@@ -126,7 +127,6 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
             } else {
                 Logger.subscriptionAppStorePurchaseFlow.error("Subscription expired")
                 // Removing all traces of the subscription and the account
-                subscriptionManager.signOut()
                 return .failure(.purchaseFailed(AppStoreRestoreFlowError.subscriptionExpired))
             }
         } catch {

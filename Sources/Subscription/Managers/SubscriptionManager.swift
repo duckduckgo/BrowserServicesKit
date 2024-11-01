@@ -58,16 +58,10 @@ public protocol SubscriptionManager {
     func getTokenContainerSynchronously(policy: TokensCachePolicy) -> TokenContainer?
     func exchange(tokenV1: String) async throws -> TokenContainer
 
-    func signOut(skipNotification: Bool)
+//    func signOut(skipNotification: Bool)
+    func signOut() async
 
     func confirmPurchase(signature: String) async throws -> PrivacyProSubscription
-}
-
-public extension SubscriptionManager {
-
-    func signOut() {
-        signOut(skipNotification: false)
-    }
 }
 
 /// Single entry point for everything related to Subscription. This manager is disposable, every time something related to the environment changes this need to be recreated.
@@ -159,7 +153,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
         do {
             return try await subscriptionEndpointService.getSubscription(accessToken: tokenContainer.accessToken, cachePolicy: refresh ? .reloadIgnoringLocalCacheData : .returnCacheDataDontLoad )
         } catch SubscriptionEndpointServiceError.noData {
-            signOut()
+            await signOut()
             throw SubscriptionEndpointServiceError.noData
         }
     }
@@ -259,23 +253,19 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
         try await oAuthClient.exchange(accessTokenV1: tokenV1)
     }
 
-    public func signOut(skipNotification: Bool = false) {
-        Task {
-            do {
-                try await oAuthClient.logout()
-            } catch {
-                Logger.subscription.error("Failed to logout: \(error.localizedDescription, privacy: .public)")
-                return
-            }
+//    public func signOut(skipNotification: Bool = false) {
+//        Task {
+//            await signOut()
+//            if !skipNotification {
+//                NotificationCenter.default.post(name: .accountDidSignOut, object: self, userInfo: nil)
+//            }
+//        }
+//    }
 
-            Logger.subscription.log("Removing all traces of the subscription and auth tokens")
-            subscriptionEndpointService.clearSubscription()
-            oAuthClient.removeLocalAccount()
-
-            if !skipNotification {
-                NotificationCenter.default.post(name: .accountDidSignOut, object: self, userInfo: nil)
-            }
-        }
+    public func signOut() async {
+        Logger.subscription.log("Removing all traces of the subscription and auth tokens")
+        try? await oAuthClient.logout()
+        subscriptionEndpointService.clearSubscription()
     }
 
     public func confirmPurchase(signature: String) async throws -> PrivacyProSubscription {

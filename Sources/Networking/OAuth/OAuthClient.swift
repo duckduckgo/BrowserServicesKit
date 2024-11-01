@@ -199,7 +199,7 @@ final public class DefaultOAuthClient: OAuthClient {
                 Logger.OAuthClient.log("Local tokens found, expiry: \(localTokenContainer.decodedAccessToken.exp.value)")
                 if localTokenContainer.decodedAccessToken.isExpired() {
                     Logger.OAuthClient.log("Local access token is expired, refreshing it")
-                    let refreshedTokens = try await refreshTokens()
+                    let refreshedTokens = try await getTokens(policy: .localForceRefresh)
                     return refreshedTokens
                 } else {
                     return localTokenContainer
@@ -208,8 +208,25 @@ final public class DefaultOAuthClient: OAuthClient {
                 throw OAuthClientError.missingTokens
             }
         case .localForceRefresh:
-            Logger.OAuthClient.log("Getting local tokens and force refresh")
-            return try await refreshTokens()
+            Logger.OAuthClient.log("Forcing token refresh")
+            guard let refreshToken = localTokenContainer?.refreshToken else {
+                throw OAuthClientError.missingRefreshToken
+            }
+            do {
+                let refreshTokenResponse = try await authService.refreshAccessToken(clientID: Constants.clientID, refreshToken: refreshToken)
+                let refreshedTokens = try await decode(accessToken: refreshTokenResponse.accessToken, refreshToken: refreshTokenResponse.refreshToken)
+                Logger.OAuthClient.log("Tokens refreshed: \(refreshedTokens.debugDescription)")
+                tokenStorage.tokenContainer = refreshedTokens
+                return refreshedTokens
+            } catch OAuthServiceError.authAPIError(let code) {
+                if code == OAuthRequest.BodyErrorCode.invalidTokenRequest {
+                    Logger.OAuthClient.error("Failed to refresh token")
+                    throw OAuthClientError.deadToken
+                } else {
+                    Logger.OAuthClient.error("Failed to refresh token: \(code.rawValue, privacy: .public), \(code.description, privacy: .public)")
+                    throw OAuthServiceError.authAPIError(code: code)
+                }
+            }
         case .createIfNeeded:
             Logger.OAuthClient.log("Getting tokens and creating a new account if needed")
             if let localTokenContainer {
@@ -217,16 +234,13 @@ final public class DefaultOAuthClient: OAuthClient {
                 // An account existed before, recovering it and refreshing the tokens
                 if localTokenContainer.decodedAccessToken.isExpired() {
                     Logger.OAuthClient.log("Local access token is expired, refreshing it")
-                    let refreshedTokens = try await refreshTokens()
-                    return refreshedTokens
+                    return try await getTokens(policy: .localForceRefresh)
                 } else {
                     return localTokenContainer
                 }
             } else {
                 Logger.OAuthClient.log("Local token not found, creating a new account")
-                // We don't have a token stored, create a new account
                 let tokens = try await createAccount()
-                // Save tokens
                 tokenStorage.tokenContainer = tokens
                 return tokens
             }
@@ -327,31 +341,31 @@ final public class DefaultOAuthClient: OAuthClient {
 
     // MARK: Refresh
 
-    private func refreshTokens() async throws -> TokenContainer {
-        Logger.OAuthClient.log("Refreshing tokens")
-        guard let refreshToken = tokenStorage.tokenContainer?.refreshToken else {
-            throw OAuthClientError.missingRefreshToken
-        }
-
-        do {
-            let refreshTokenResponse = try await authService.refreshAccessToken(clientID: Constants.clientID, refreshToken: refreshToken)
-            let refreshedTokens = try await decode(accessToken: refreshTokenResponse.accessToken, refreshToken: refreshTokenResponse.refreshToken)
-            Logger.OAuthClient.log("Tokens refreshed: \(refreshedTokens.debugDescription)")
-            tokenStorage.tokenContainer = refreshedTokens
-            return refreshedTokens
-        } catch OAuthServiceError.authAPIError(let code) {
-            if code == OAuthRequest.BodyErrorCode.invalidTokenRequest {
-                Logger.OAuthClient.error("Failed to refresh token")
-                throw OAuthClientError.deadToken
-            } else {
-                Logger.OAuthClient.error("Failed to refresh token: \(code.rawValue, privacy: .public), \(code.description, privacy: .public)")
-                throw OAuthServiceError.authAPIError(code: code)
-            }
-        } catch {
-            Logger.OAuthClient.error("Failed to refresh token: \(error, privacy: .public)")
-            throw error
-        }
-    }
+//    private func refreshTokens() async throws -> TokenContainer {
+//        Logger.OAuthClient.log("Refreshing tokens")
+//        guard let refreshToken = tokenStorage.tokenContainer?.refreshToken else {
+//            throw OAuthClientError.missingRefreshToken
+//        }
+//
+//        do {
+//            let refreshTokenResponse = try await authService.refreshAccessToken(clientID: Constants.clientID, refreshToken: refreshToken)
+//            let refreshedTokens = try await decode(accessToken: refreshTokenResponse.accessToken, refreshToken: refreshTokenResponse.refreshToken)
+//            Logger.OAuthClient.log("Tokens refreshed: \(refreshedTokens.debugDescription)")
+//            tokenStorage.tokenContainer = refreshedTokens
+//            return refreshedTokens
+//        } catch OAuthServiceError.authAPIError(let code) {
+//            if code == OAuthRequest.BodyErrorCode.invalidTokenRequest {
+//                Logger.OAuthClient.error("Failed to refresh token")
+//                throw OAuthClientError.deadToken
+//            } else {
+//                Logger.OAuthClient.error("Failed to refresh token: \(code.rawValue, privacy: .public), \(code.description, privacy: .public)")
+//                throw OAuthServiceError.authAPIError(code: code)
+//            }
+//        } catch {
+//            Logger.OAuthClient.error("Failed to refresh token: \(error, privacy: .public)")
+//            throw error
+//        }
+//    }
 
     // MARK: Exchange V1 to V2 token
 
@@ -367,11 +381,13 @@ final public class DefaultOAuthClient: OAuthClient {
     // MARK: Logout
 
     public func logout() async throws {
-        Logger.OAuthClient.log("Logging out")
-        if let token = tokenStorage.tokenContainer?.accessToken {
-            try await authService.logout(accessToken: token)
-        }
+        let existingToken = tokenStorage.tokenContainer?.accessToken
         removeLocalAccount()
+
+        if let existingToken {
+            Logger.OAuthClient.log("Logging out")
+            try await authService.logout(accessToken: existingToken)
+        }
     }
 
     public func removeLocalAccount() {

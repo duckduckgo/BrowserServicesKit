@@ -24,7 +24,7 @@ import Common
 public final class SubscriptionTokenKeychainStorageV2: TokenStoring {
 
     private let keychainType: KeychainType
-    internal let queue = DispatchQueue(label: "SubscriptionTokenKeychainStorageV2.queue")
+    //    internal let queue = DispatchQueue(label: "SubscriptionTokenKeychainStorageV2.queue")
 
     public init(keychainType: KeychainType = .dataProtection(.unspecified)) {
         self.keychainType = keychainType
@@ -32,44 +32,44 @@ public final class SubscriptionTokenKeychainStorageV2: TokenStoring {
 
     public var tokenContainer: TokenContainer? {
         get {
-            queue.sync {
-                Logger.subscriptionKeychain.debug("Retrieving TokenContainer")
-                guard let data = try? retrieveData(forField: .tokens) else {
-                    Logger.subscriptionKeychain.debug("TokenContainer not found")
-                    return nil
-                }
-                return CodableHelper.decode(jsonData: data)
+            //            queue.sync {
+            Logger.subscriptionKeychain.debug("get TokenContainer")
+            guard let data = try? retrieveData(forField: .tokens) else {
+                Logger.subscriptionKeychain.debug("TokenContainer not found")
+                return nil
             }
+            return CodableHelper.decode(jsonData: data)
+            //            }
         }
         set {
-            queue.sync { [weak self] in
-                Logger.subscriptionKeychain.debug("Setting TokenContainer")
-                guard let strongSelf = self else { return }
+            //            queue.sync { [weak self] in
+            Logger.subscriptionKeychain.debug("set TokenContainer")
+            //                guard let strongSelf = self else { return }
 
-                do {
-                    guard let newValue else {
-                        Logger.subscriptionKeychain.debug("Removing TokenContainer")
-                        try strongSelf.deleteItem(forField: .tokens)
-                        return
-                    }
-
-                    if let data = CodableHelper.encode(newValue) {
-                        try strongSelf.store(data: data, forField: .tokens)
-                    } else {
-                        Logger.subscriptionKeychain.fault("Failed to encode TokenContainer")
-                        assertionFailure("Failed to encode TokenContainer")
-                    }
-                } catch {
-                    Logger.subscriptionKeychain.fault("Failed to set TokenContainer: \(error, privacy: .public)")
-                    assertionFailure("Failed to set TokenContainer")
+            do {
+                guard let newValue else {
+                    Logger.subscriptionKeychain.debug("remove TokenContainer")
+                    try self.deleteItem(forField: .tokens)
+                    return
                 }
+
+                if let data = CodableHelper.encode(newValue) {
+                    try self.store(data: data, forField: .tokens)
+                } else {
+                    Logger.subscriptionKeychain.fault("Failed to encode TokenContainer")
+                    assertionFailure("Failed to encode TokenContainer")
+                }
+            } catch {
+                Logger.subscriptionKeychain.fault("Failed to set TokenContainer: \(error, privacy: .public)")
+                assertionFailure("Failed to set TokenContainer")
             }
+            //            }
         }
     }
 }
 
 extension SubscriptionTokenKeychainStorageV2 {
-
+    
     /*
      Uses just kSecAttrService as the primary key, since we don't want to store
      multiple accounts/tokens at the same time
