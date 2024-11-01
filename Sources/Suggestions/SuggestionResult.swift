@@ -24,9 +24,9 @@ public struct SuggestionResult: Equatable {
         SuggestionResult(topHits: [], duckduckgoSuggestions: [], localSuggestions: [])
     }
 
-    public var topHits: [Suggestion]
-    public var duckduckgoSuggestions: [Suggestion]
-    public var localSuggestions: [Suggestion]
+    public let topHits: [Suggestion]
+    public let duckduckgoSuggestions: [Suggestion]
+    public let localSuggestions: [Suggestion]
 
     public init(topHits: [Suggestion],
                 duckduckgoSuggestions: [Suggestion],
