@@ -22,48 +22,44 @@ import Networking
 public class MockOAuthClient: OAuthClient {
 
     public init() {}
-
-    public enum Error: Swift.Error {
-        case missingMockedResponse
-    }
-
     public var isUserAuthenticated: Bool = false
-
     public var currentTokenContainer: Networking.TokenContainer?
 
-    public var getTokensResponse: Result<Networking.TokenContainer, Error>?
+    let missingResponseError = Networking.OAuthClientError.internalError("Missing mocked response")
+
+    public var getTokensResponse: Result<Networking.TokenContainer, Error>!
     public func getTokens(policy: Networking.TokensCachePolicy) async throws -> Networking.TokenContainer {
         switch getTokensResponse {
         case .success(let success):
             return success
         case .failure(let failure):
             throw failure
-        case nil:
-            throw MockOAuthClient.Error.missingMockedResponse
+        case .none:
+            throw missingResponseError
         }
     }
 
-    public var createAccountResponse: Result<Networking.TokenContainer, Error>?
+    public var createAccountResponse: Result<Networking.TokenContainer, Error>!
     public func createAccount() async throws -> Networking.TokenContainer {
         switch createAccountResponse {
         case .success(let success):
             return success
         case .failure(let failure):
             throw failure
-        case nil:
-            throw MockOAuthClient.Error.missingMockedResponse
+        case .none:
+            throw missingResponseError
         }
     }
 
-    public var requestOTPResponse: Result<(authSessionID: String, codeVerifier: String), Error>?
+    public var requestOTPResponse: Result<(authSessionID: String, codeVerifier: String), Error>!
     public func requestOTP(email: String) async throws -> (authSessionID: String, codeVerifier: String) {
         switch requestOTPResponse {
         case .success(let success):
             return success
         case .failure(let failure):
             throw failure
-        case nil:
-            throw MockOAuthClient.Error.missingMockedResponse
+        case .none:
+            throw missingResponseError
         }
     }
 
@@ -74,39 +70,39 @@ public class MockOAuthClient: OAuthClient {
         }
     }
 
-    public var activateWithPlatformSignatureResponse: Result<Networking.TokenContainer, Error>?
+    public var activateWithPlatformSignatureResponse: Result<Networking.TokenContainer, Error>!
     public func activate(withPlatformSignature signature: String) async throws -> Networking.TokenContainer {
         switch  activateWithPlatformSignatureResponse {
         case .success(let success):
             return success
         case .failure(let failure):
             throw failure
-        case nil:
-            throw MockOAuthClient.Error.missingMockedResponse
+        case .none:
+            throw missingResponseError
         }
     }
 
-    public var refreshTokensResponse: Result<Networking.TokenContainer, Error>?
+    public var refreshTokensResponse: Result<Networking.TokenContainer, Error>!
     public func refreshTokens() async throws -> Networking.TokenContainer {
         switch refreshTokensResponse {
         case .success(let success):
             return success
         case .failure(let failure):
             throw failure
-        case nil:
-            throw MockOAuthClient.Error.missingMockedResponse
+        case .none:
+            throw missingResponseError
         }
     }
 
-    public var exchangeAccessTokenV1Response: Result<Networking.TokenContainer, Error>?
+    public var exchangeAccessTokenV1Response: Result<Networking.TokenContainer, Error>!
     public func exchange(accessTokenV1: String) async throws -> Networking.TokenContainer {
         switch exchangeAccessTokenV1Response {
         case .success(let success):
             return success
         case .failure(let failure):
             throw failure
-        case nil:
-            throw MockOAuthClient.Error.missingMockedResponse
+        case .none:
+            throw missingResponseError
         }
     }
 
@@ -116,18 +112,18 @@ public class MockOAuthClient: OAuthClient {
             throw logoutError
         }
     }
-    
+
     public func removeLocalAccount() {}
 
-    public var changeAccountEmailResponse: Result<String, Error>?
+    public var changeAccountEmailResponse: Result<String, Error>!
     public func changeAccount(email: String?) async throws -> String {
         switch changeAccountEmailResponse {
         case .success(let success):
             return success
         case .failure(let failure):
             throw failure
-        case nil:
-            throw MockOAuthClient.Error.missingMockedResponse
+        case .none:
+            throw missingResponseError
         }
     }
 
@@ -137,6 +133,5 @@ public class MockOAuthClient: OAuthClient {
             throw confirmChangeAccountEmailError
         }
     }
-    
 
 }

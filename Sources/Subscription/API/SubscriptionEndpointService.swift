@@ -21,7 +21,7 @@ import Foundation
 import Networking
 import os.log
 
-public struct GetProductsItem: Decodable {
+public struct GetProductsItem: Codable, Equatable {
     public let productId: String
     public let productLabel: String
     public let billingPeriod: String
@@ -29,11 +29,11 @@ public struct GetProductsItem: Decodable {
     public let currency: String
 }
 
-public struct GetCustomerPortalURLResponse: Decodable {
+public struct GetCustomerPortalURLResponse: Codable, Equatable {
     public let customerPortalUrl: String
 }
 
-public struct ConfirmPurchaseResponse: Decodable {
+public struct ConfirmPurchaseResponse: Codable, Equatable {
     public let email: String?
     public let subscription: PrivacyProSubscription
 }
@@ -71,16 +71,24 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
 
     private let apiService: APIService
     private let baseURL: URL
-    private let subscriptionCache = UserDefaultsCache<PrivacyProSubscription>(key: UserDefaultsCacheKey.subscription, settings: UserDefaultsCacheSettings(defaultExpirationInterval: .minutes(20)))
+    private let subscriptionCache: UserDefaultsCache<PrivacyProSubscription>
 
-    public init(apiService: APIService, baseURL: URL) {
+    public init(apiService: APIService,
+                baseURL: URL,
+                subscriptionCache: UserDefaultsCache<PrivacyProSubscription> = UserDefaultsCache<PrivacyProSubscription>(key: UserDefaultsCacheKey.subscription, settings: UserDefaultsCacheSettings(defaultExpirationInterval: .minutes(20)))) {
         self.apiService = apiService
         self.baseURL = baseURL
+        self.subscriptionCache = subscriptionCache
     }
 
     // MARK: - Subscription fetching with caching
 
+    enum GetSubscriptionError: String, Decodable {
+        case noData = ""
+    }
+
     private func getRemoteSubscription(accessToken: String) async throws -> PrivacyProSubscription {
+
         Logger.subscriptionEndpointService.log("Requesting subscription details")
         guard let request = SubscriptionRequest.getSubscription(baseURL: baseURL, accessToken: accessToken) else {
             throw SubscriptionEndpointServiceError.invalidRequest
@@ -94,9 +102,17 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
             Logger.subscriptionEndpointService.log("Subscription details retrieved successfully: \(String(describing: subscription))")
             return subscription
         } else {
-            let error: String = try response.decodeBody()
-            Logger.subscriptionEndpointService.log("Failed to retrieve Subscription details: \(error)")
-            throw SubscriptionEndpointServiceError.invalidResponseCode(statusCode)
+            guard statusCode == .badRequest,
+                  let error: GetSubscriptionError = try response.decodeBody(),
+                  error == .noData else {
+                let bodyString: String = try response.decodeBody()
+                Logger.subscriptionEndpointService.log("Failed to retrieve Subscription details: \(bodyString)")
+                throw SubscriptionEndpointServiceError.invalidResponseCode(statusCode)
+            }
+
+            Logger.subscriptionEndpointService.log("No subscription found")
+            subscriptionCache.reset()
+            throw SubscriptionEndpointServiceError.noData
         }
     }
 
@@ -109,23 +125,13 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
 
         switch cachePolicy {
         case .reloadIgnoringLocalCacheData:
-            if let subscription = try? await getRemoteSubscription(accessToken: accessToken) {
-                subscriptionCache.set(subscription)
-                return subscription
-            } else {
-                throw SubscriptionEndpointServiceError.noData
-            }
+            return try await getRemoteSubscription(accessToken: accessToken)
 
         case .returnCacheDataElseLoad:
             if let cachedSubscription = subscriptionCache.get() {
                 return cachedSubscription
             } else {
-                if let subscription = try? await getRemoteSubscription(accessToken: accessToken) {
-                    subscriptionCache.set(subscription)
-                    return subscription
-                } else {
-                    throw SubscriptionEndpointServiceError.noData
-                }
+                return try await getRemoteSubscription(accessToken: accessToken)
             }
 
         case .returnCacheDataDontLoad:

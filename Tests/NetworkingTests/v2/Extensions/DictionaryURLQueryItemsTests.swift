@@ -111,4 +111,3 @@ final class DictionaryURLQueryItemsTests: XCTestCase {
         XCTAssertEqual(q2.value, "with#fragment")
     }
 }
-

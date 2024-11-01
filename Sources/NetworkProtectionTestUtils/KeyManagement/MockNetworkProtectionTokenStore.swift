@@ -21,9 +21,7 @@ import NetworkProtection
 
 public final class MockNetworkProtectionTokenStorage: NetworkProtectionTokenStore {
 
-    public init() {
-
-    }
+    public init() {}
 
     var spyToken: String?
     var storeError: Error?
@@ -37,7 +35,7 @@ public final class MockNetworkProtectionTokenStorage: NetworkProtectionTokenStor
 
     var stubFetchToken: String?
 
-    public func fetchToken() throws -> String? {
+    public func fetchToken() -> String? {
         return stubFetchToken
     }
 
@@ -48,7 +46,7 @@ public final class MockNetworkProtectionTokenStorage: NetworkProtectionTokenStor
     }
 
     public func fetchSubscriptionToken() throws -> String? {
-        try fetchToken()
+        fetchToken()
     }
 
 }

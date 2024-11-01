@@ -21,10 +21,10 @@ import Foundation
 public struct PrivacyProSubscription: Codable, Equatable, CustomDebugStringConvertible {
     public let productId: String
     public let name: String
-    public let billingPeriod: PrivacyProSubscription.BillingPeriod
+    public let billingPeriod: BillingPeriod
     public let startedAt: Date
     public let expiresOrRenewsAt: Date
-    public let platform: PrivacyProSubscription.Platform
+    public let platform: Platform
     public let status: Status
 
     public enum BillingPeriod: String, Codable {

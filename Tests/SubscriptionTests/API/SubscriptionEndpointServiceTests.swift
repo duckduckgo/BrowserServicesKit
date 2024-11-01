@@ -18,15 +18,244 @@
 
 import XCTest
 @testable import Subscription
+@testable import Networking
 import SubscriptionTestingUtilities
+import TestUtils
+import Common
 
+final class SubscriptionEndpointServiceTests: XCTestCase {
+    private var apiService: MockAPIService!
+    private var endpointService: DefaultSubscriptionEndpointService!
+    private let baseURL = URL(string: "https://api.example.com")!
+    private let disposableCache = UserDefaultsCache<PrivacyProSubscription>(key: UserDefaultsCacheKeyKest.subscriptionTest,
+                                                                            settings: UserDefaultsCacheSettings(defaultExpirationInterval: .minutes(20)))
+    private enum UserDefaultsCacheKeyKest: String, UserDefaultsCacheKeyStore {
+        case subscriptionTest = "com.duckduckgo.bsk.subscription.info.testing"
+    }
+    private var encoder: JSONEncoder!
+
+    override func setUp() {
+        super.setUp()
+        encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .millisecondsSince1970
+        apiService = MockAPIService()
+        endpointService = DefaultSubscriptionEndpointService(apiService: apiService,
+                                                             baseURL: baseURL,
+                                                             subscriptionCache: disposableCache)
+    }
+
+    override func tearDown() {
+        disposableCache.reset()
+        apiService = nil
+        endpointService = nil
+        super.tearDown()
+    }
+
+    // MARK: - Helpers
+
+    private func createSubscriptionResponseData() -> Data {
+        let date = Date(timeIntervalSince1970: 123456789)
+        let subscription = PrivacyProSubscription(
+            productId: "prod123",
+            name: "Pro Plan",
+            billingPeriod: .yearly,
+            startedAt: date,
+            expiresOrRenewsAt: date.addingTimeInterval(30 * 24 * 60 * 60),
+            platform: .apple,
+            status: .autoRenewable
+        )
+        return try! encoder.encode(subscription)
+    }
+
+    private func createAPIResponse(statusCode: Int, data: Data?) -> APIResponseV2 {
+        let response = HTTPURLResponse(
+            url: baseURL,
+            statusCode: statusCode,
+            httpVersion: nil,
+            headerFields: nil
+        )!
+        return APIResponseV2(data: data, httpResponse: response)
+    }
+
+    // MARK: - getSubscription Tests
+
+    func testGetSubscriptionReturnsCachedSubscription() async throws {
+        let date = Date(timeIntervalSince1970: 123456789)
+        let cachedSubscription = PrivacyProSubscription(
+            productId: "prod123",
+            name: "Pro Plan",
+            billingPeriod: .monthly,
+            startedAt: date,
+            expiresOrRenewsAt: date.addingTimeInterval(30 * 24 * 60 * 60),
+            platform: .google,
+            status: .autoRenewable
+        )
+        endpointService.updateCache(with: cachedSubscription)
+
+        let subscription = try await endpointService.getSubscription(accessToken: "token", cachePolicy: .returnCacheDataDontLoad)
+        XCTAssertEqual(subscription, cachedSubscription)
+    }
+
+    func testGetSubscriptionFetchesRemoteSubscriptionWhenNoCache() async throws {
+        let subscriptionData = createSubscriptionResponseData()
+        let apiResponse = createAPIResponse(statusCode: 200, data: subscriptionData)
+        let request = SubscriptionRequest.getSubscription(baseURL: baseURL, accessToken: "token")!.apiRequest
+
+        apiService.setResponse(for: request, response: apiResponse)
+
+        let subscription = try await endpointService.getSubscription(accessToken: "token", cachePolicy: .returnCacheDataElseLoad)
+        XCTAssertEqual(subscription.productId, "prod123")
+        XCTAssertEqual(subscription.name, "Pro Plan")
+        XCTAssertEqual(subscription.billingPeriod, .yearly)
+        XCTAssertEqual(subscription.platform, .apple)
+        XCTAssertEqual(subscription.status, .autoRenewable)
+    }
+
+    func testGetSubscriptionThrowsNoDataWhenNoCacheAndFetchFails() async {
+        do {
+            _ = try await endpointService.getSubscription(accessToken: "token", cachePolicy: .returnCacheDataDontLoad)
+            XCTFail("Expected noData error")
+        } catch SubscriptionEndpointServiceError.noData {
+            // Success
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
+    // MARK: - getProducts Tests
+
+    func testGetProductsReturnsListOfProducts() async throws {
+        let productItems = [
+            GetProductsItem(
+                productId: "prod1",
+                productLabel: "Product 1",
+                billingPeriod: "Monthly",
+                price: "9.99",
+                currency: "USD"
+            ),
+            GetProductsItem(
+                productId: "prod2",
+                productLabel: "Product 2",
+                billingPeriod: "Yearly",
+                price: "99.99",
+                currency: "USD"
+            )
+        ]
+        let productData = try encoder.encode(productItems)
+        let apiResponse = createAPIResponse(statusCode: 200, data: productData)
+        let request = SubscriptionRequest.getProducts(baseURL: baseURL)!.apiRequest
+
+        apiService.setResponse(for: request, response: apiResponse)
+
+        let products = try await endpointService.getProducts()
+        XCTAssertEqual(products, productItems)
+    }
+
+    func testGetProductsThrowsInvalidResponse() async {
+        do {
+            _ = try await endpointService.getProducts()
+            XCTFail("Expected invalidResponse error")
+        } catch Networking.APIRequestV2.Error.invalidResponse {
+            // Success
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
+    // MARK: - getCustomerPortalURL Tests
+
+    func testGetCustomerPortalURLReturnsCorrectURL() async throws {
+        let portalResponse = GetCustomerPortalURLResponse(customerPortalUrl: "https://portal.example.com")
+        let portalData = try encoder.encode(portalResponse)
+        let apiResponse = createAPIResponse(statusCode: 200, data: portalData)
+        let request = SubscriptionRequest.getCustomerPortalURL(baseURL: baseURL, accessToken: "token", externalID: "id")!.apiRequest
+
+        apiService.setResponse(for: request, response: apiResponse)
+
+        let customerPortalURL = try await endpointService.getCustomerPortalURL(accessToken: "token", externalID: "id")
+        XCTAssertEqual(customerPortalURL, portalResponse)
+    }
+
+    // MARK: - confirmPurchase Tests
+
+    func testConfirmPurchaseReturnsCorrectResponse() async throws {
+        let date = Date(timeIntervalSince1970: 123456789)
+        let confirmResponse = ConfirmPurchaseResponse(
+            email: "user@example.com",
+            subscription: PrivacyProSubscription(
+                productId: "prod123",
+                name: "Pro Plan",
+                billingPeriod: .monthly,
+                startedAt: date,
+                expiresOrRenewsAt: date.addingTimeInterval(30 * 24 * 60 * 60),
+                platform: .stripe,
+                status: .gracePeriod
+            )
+        )
+        let confirmData = try encoder.encode(confirmResponse)
+        let apiResponse = createAPIResponse(statusCode: 200, data: confirmData)
+        let request = SubscriptionRequest.confirmPurchase(baseURL: baseURL, accessToken: "token", signature: "signature")!.apiRequest
+
+        apiService.setResponse(for: request, response: apiResponse)
+
+        let purchaseResponse = try await endpointService.confirmPurchase(accessToken: "token", signature: "signature")
+        XCTAssertEqual(purchaseResponse.email, confirmResponse.email)
+        XCTAssertEqual(purchaseResponse.subscription, confirmResponse.subscription)
+    }
+
+    // MARK: - Cache Tests
+
+    func testUpdateCacheStoresSubscription() async throws {
+        let date = Date(timeIntervalSince1970: 123456789)
+        let subscription = PrivacyProSubscription(
+            productId: "prod123",
+            name: "Pro Plan",
+            billingPeriod: .monthly,
+            startedAt: date,
+            expiresOrRenewsAt: date.addingTimeInterval(30 * 24 * 60 * 60),
+            platform: .google,
+            status: .autoRenewable
+        )
+        endpointService.updateCache(with: subscription)
+
+        let cachedSubscription = try await endpointService.getSubscription(accessToken: "token", cachePolicy: .returnCacheDataDontLoad)
+        XCTAssertEqual(cachedSubscription, subscription)
+    }
+
+    func testClearSubscriptionRemovesCachedSubscription() async throws {
+        let date = Date(timeIntervalSince1970: 123456789)
+        let subscription = PrivacyProSubscription(
+            productId: "prod123",
+            name: "Pro Plan",
+            billingPeriod: .monthly,
+            startedAt: date,
+            expiresOrRenewsAt: date.addingTimeInterval(30 * 24 * 60 * 60),
+            platform: .apple,
+            status: .autoRenewable
+        )
+        endpointService.updateCache(with: subscription)
+
+        endpointService.clearSubscription()
+        do {
+            _ = try await endpointService.getSubscription(accessToken: "token", cachePolicy: .returnCacheDataDontLoad)
+        } catch SubscriptionEndpointServiceError.noData {
+            // Success
+        } catch {
+            XCTFail("Wrong error: \(error)")
+        }
+    }
+}
+
+
+
+/*
 final class SubscriptionEndpointServiceTests: XCTestCase {
 
     private struct Constants {
-        static let authToken = UUID().uuidString
-        static let accessToken = UUID().uuidString
-        static let externalID = UUID().uuidString
-        static let email = "dax@duck.com"
+//        static let tokenContainer = OAuthTokensFactory.makeValidTokenContainer()
+//        static let accessToken = UUID().uuidString
+//        static let externalID = UUID().uuidString
+//        static let email = "dax@duck.com"
 
         static let mostRecentTransactionJWS = "dGhpcyBpcyBub3QgYSByZWFsIEFw(...)cCBTdG9yZSB0cmFuc2FjdGlvbiBKV1M="
 
@@ -36,15 +265,15 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
 
         static let authorizationHeader = ["Authorization": "Bearer TOKEN"]
 
-        static let unknownServerError = APIServiceError.serverError(statusCode: 401, error: "unknown_error")
+//        static let unknownServerError = APIServiceError.serverError(statusCode: 401, error: "unknown_error")
     }
 
-    var apiService: APIServiceMock!
+    var apiService: MockAPIService!
     var subscriptionService: SubscriptionEndpointService!
 
     override func setUpWithError() throws {
-        apiService = APIServiceMock()
-        subscriptionService = DefaultSubscriptionEndpointService(currentServiceEnvironment: .staging, apiService: apiService)
+        apiService = MockAPIService()
+        subscriptionService = DefaultSubscriptionEndpointService(apiService: apiService, baseURL: URL(string: "https://something_tests.com")!)
     }
 
     override func tearDownWithError() throws {
@@ -362,3 +591,4 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
         }
     }
 }
+*/

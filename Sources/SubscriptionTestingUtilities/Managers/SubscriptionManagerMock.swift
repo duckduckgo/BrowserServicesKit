@@ -17,36 +17,102 @@
 //
 
 import Foundation
+import Networking
 @testable import Subscription
 
 public final class SubscriptionManagerMock: SubscriptionManager {
 
-    public var subscriptionEndpointService: SubscriptionEndpointService
-    let internalStorePurchaseManager: StorePurchaseManager
-    public static var storedEnvironment: SubscriptionEnvironment?
+    public init() {}
 
-    public static func loadEnvironmentFrom(userDefaults: UserDefaults) -> SubscriptionEnvironment? {
-        return storedEnvironment
+    public static var environment: Subscription.SubscriptionEnvironment?
+    public static func loadEnvironmentFrom(userDefaults: UserDefaults) -> Subscription.SubscriptionEnvironment? {
+        return environment
     }
 
-    public static func save(subscriptionEnvironment: SubscriptionEnvironment, userDefaults: UserDefaults) {
-        storedEnvironment = subscriptionEnvironment
+    public static func save(subscriptionEnvironment: Subscription.SubscriptionEnvironment, userDefaults: UserDefaults) {
+        environment = subscriptionEnvironment
     }
 
-    public var currentEnvironment: SubscriptionEnvironment
-    public var canPurchase: Bool = true
+    public var currentEnvironment: Subscription.SubscriptionEnvironment = .init(serviceEnvironment: .staging, purchasePlatform: .appStore)
 
-    public func storePurchaseManager() -> StorePurchaseManager {
-        internalStorePurchaseManager
+    public func loadInitialData() {
+
     }
 
     public func refreshCachedSubscription(completion: @escaping (Bool) -> Void) {
-        completion(true)
+
     }
 
-    public func url(for type: SubscriptionURL) -> URL {
-        type.subscriptionURL(environment: currentEnvironment.serviceEnvironment)
+    public var resultSubscription: Subscription.PrivacyProSubscription?
+    public func currentSubscription(refresh: Bool) async throws -> Subscription.PrivacyProSubscription {
+        guard let resultSubscription else {
+            throw OAuthClientError.missingTokens
+        }
+        return resultSubscription
     }
 
-    // MARK: -
+    public func getSubscriptionFrom(lastTransactionJWSRepresentation: String) async throws -> Subscription.PrivacyProSubscription {
+        guard let resultSubscription else {
+            throw OAuthClientError.missingTokens
+        }
+        return resultSubscription
+    }
+
+    public var canPurchase: Bool = true
+
+    var resultStorePurchaseManager: (any Subscription.StorePurchaseManager)?
+    public func storePurchaseManager() -> any Subscription.StorePurchaseManager {
+        return resultStorePurchaseManager!
+    }
+
+    public var resultURL: URL!
+    public func url(for type: Subscription.SubscriptionURL) -> URL {
+        return resultURL
+    }
+
+    public var customerPortalURL: URL?
+    public func getCustomerPortalURL() async throws -> URL {
+        guard let customerPortalURL else {
+            throw SubscriptionEndpointServiceError.noData
+        }
+        return customerPortalURL
+    }
+
+    public var isUserAuthenticated: Bool = false
+
+    public var userEmail: String?
+
+    public var entitlements: [Networking.SubscriptionEntitlement] = []
+
+    public var resultTokenContainer: Networking.TokenContainer?
+
+    public func getTokenContainer(policy: Networking.TokensCachePolicy) async throws -> Networking.TokenContainer {
+        guard let resultTokenContainer else {
+           throw OAuthClientError.missingTokens
+        }
+        return resultTokenContainer
+    }
+
+    public func getTokenContainerSynchronously(policy: Networking.TokensCachePolicy) -> Networking.TokenContainer? {
+        return resultTokenContainer
+    }
+
+    public func exchange(tokenV1: String) async throws -> Networking.TokenContainer {
+        guard let resultTokenContainer else {
+           throw OAuthClientError.missingTokens
+        }
+        return resultTokenContainer
+    }
+
+    public func signOut(skipNotification: Bool) {
+
+    }
+
+    public func clearSubscriptionCache() {
+
+    }
+
+    public func confirmPurchase(signature: String) async throws {
+
+    }
 }

@@ -38,6 +38,7 @@ public protocol NetworkProtectionTokenStore {
 /// Store an auth token for NetworkProtection on behalf of the user. This key is then used to authenticate requests for registration and server fetches from the Network Protection backend servers.
 /// Writing a new auth token will replace the old one.
 public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenStore {
+    
     private let keychainStore: NetworkProtectionKeychainStore
     private let errorEvents: EventMapping<NetworkProtectionError>?
     private let useAccessTokenProvider: Bool
@@ -66,7 +67,7 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
         self.useAccessTokenProvider = useAccessTokenProvider
         self.accessTokenProvider = accessTokenProvider
     }
-
+    
     public func store(_ token: String) throws {
         let data = token.data(using: .utf8)!
         do {
@@ -81,7 +82,7 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
         Self.authTokenPrefix + subscriptionAccessToken
     }
 
-    public func fetchToken() throws -> String? {
+    public func fetchToken() -> String? {
         if useAccessTokenProvider {
             return accessTokenProvider().map { makeToken(from: $0) }
         }
@@ -92,7 +93,7 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
             }
         } catch {
             handle(error)
-            throw error
+            return nil
         }
     }
 

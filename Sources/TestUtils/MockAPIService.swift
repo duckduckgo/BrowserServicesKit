@@ -38,7 +38,6 @@ public class MockAPIService: APIService {
         if let response = mockResponses[request] {
             return response
         } else {
-            assertionFailure("Response not found for request: \(request.urlRequest.url!.absoluteString)")
             throw APIRequestV2.Error.invalidResponse
         }
     }

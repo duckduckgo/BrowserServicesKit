@@ -24,6 +24,7 @@ public enum OAuthClientError: Error, LocalizedError {
     case missingTokens
     case missingRefreshToken
     case unauthenticated
+    case deadToken
 
     public var errorDescription: String? {
         switch self {
@@ -35,6 +36,8 @@ public enum OAuthClientError: Error, LocalizedError {
             return "No refresh token available, please re-authenticate"
         case .unauthenticated:
             return "The account is not authenticated, please re-authenticate"
+        case .deadToken:
+            return "The token can't be refreshed"
         }
     }
 }
@@ -197,7 +200,6 @@ final public class DefaultOAuthClient: OAuthClient {
                 if localTokenContainer.decodedAccessToken.isExpired() {
                     Logger.OAuthClient.log("Local access token is expired, refreshing it")
                     let refreshedTokens = try await refreshTokens()
-                    tokenStorage.tokenContainer = refreshedTokens
                     return refreshedTokens
                 } else {
                     return localTokenContainer
@@ -207,9 +209,7 @@ final public class DefaultOAuthClient: OAuthClient {
             }
         case .localForceRefresh:
             Logger.OAuthClient.log("Getting local tokens and force refresh")
-            let refreshedTokens = try await refreshTokens()
-            tokenStorage.tokenContainer = refreshedTokens
-            return refreshedTokens
+            return try await refreshTokens()
         case .createIfNeeded:
             Logger.OAuthClient.log("Getting tokens and creating a new account if needed")
             if let localTokenContainer {
@@ -218,7 +218,6 @@ final public class DefaultOAuthClient: OAuthClient {
                 if localTokenContainer.decodedAccessToken.isExpired() {
                     Logger.OAuthClient.log("Local access token is expired, refreshing it")
                     let refreshedTokens = try await refreshTokens()
-                    tokenStorage.tokenContainer = refreshedTokens
                     return refreshedTokens
                 } else {
                     return localTokenContainer
@@ -334,30 +333,24 @@ final public class DefaultOAuthClient: OAuthClient {
             throw OAuthClientError.missingRefreshToken
         }
 
-//        do {
+        do {
             let refreshTokenResponse = try await authService.refreshAccessToken(clientID: Constants.clientID, refreshToken: refreshToken)
             let refreshedTokens = try await decode(accessToken: refreshTokenResponse.accessToken, refreshToken: refreshTokenResponse.refreshToken)
             Logger.OAuthClient.log("Tokens refreshed: \(refreshedTokens.debugDescription)")
+            tokenStorage.tokenContainer = refreshedTokens
             return refreshedTokens
-//        } catch OAuthServiceError.authAPIError(let code) {
-//            // NOTE: If the client succeeds in making a refresh request but does not get the response, then the second refresh request will fail with `invalidTokenRequest` and the stored token will become unusable so the user will have to sign in again.
-//            if code == OAuthRequest.BodyErrorCode.invalidTokenRequest { // TODO: how do we handle this?
-//                Logger.OAuthClient.error("Failed to refresh token, logging out")
-//
-//                removeLocalAccount()
-//
-//                // Creating new account
-//                let tokens = try await createAccount()
-//                tokensStorage.tokenContainer = tokens
-//                return tokens
-//            } else {
-//                Logger.OAuthClient.error("Failed to refresh token: \(code.rawValue, privacy: .public), \(code.description, privacy: .public)")
-//                throw OAuthServiceError.authAPIError(code: code)
-//            }
-//        } catch {
-//            Logger.OAuthClient.error("Failed to refresh token: \(error, privacy: .public)")
-//            throw error
-//        }
+        } catch OAuthServiceError.authAPIError(let code) {
+            if code == OAuthRequest.BodyErrorCode.invalidTokenRequest {
+                Logger.OAuthClient.error("Failed to refresh token")
+                throw OAuthClientError.deadToken
+            } else {
+                Logger.OAuthClient.error("Failed to refresh token: \(code.rawValue, privacy: .public), \(code.description, privacy: .public)")
+                throw OAuthServiceError.authAPIError(code: code)
+            }
+        } catch {
+            Logger.OAuthClient.error("Failed to refresh token: \(error, privacy: .public)")
+            throw error
+        }
     }
 
     // MARK: Exchange V1 to V2 token

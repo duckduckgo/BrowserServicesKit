@@ -21,10 +21,13 @@ import Common
 import os.log
 import Networking
 
-public protocol SubscriptionManager {
+enum SubscriptionManagerError: Error {
+    case unsupportedSubscription
+    case tokenUnavailable
+    case confirmationHasInvalidSubscription
+}
 
-    // Dependencies
-    var subscriptionEndpointService: SubscriptionEndpointService { get }
+public protocol SubscriptionManager {
 
     // Environment
     static func loadEnvironmentFrom(userDefaults: UserDefaults) -> SubscriptionEnvironment?
@@ -39,21 +42,25 @@ public protocol SubscriptionManager {
     func currentSubscription(refresh: Bool) async throws -> PrivacyProSubscription
     func getSubscriptionFrom(lastTransactionJWSRepresentation: String) async throws -> PrivacyProSubscription
     var canPurchase: Bool { get }
+    func clearSubscriptionCache()
 
     @available(macOS 12.0, iOS 15.0, *) func storePurchaseManager() -> StorePurchaseManager
     func url(for type: SubscriptionURL) -> URL
+
+    func getCustomerPortalURL() async throws -> URL
 
     // User
     var isUserAuthenticated: Bool { get }
     var userEmail: String? { get }
     var entitlements: [SubscriptionEntitlement] { get }
 
-    func refreshAccount() async
-    func getTokenContainer(policy: TokensCachePolicy) async throws -> TokenContainer
+    @discardableResult func getTokenContainer(policy: TokensCachePolicy) async throws -> TokenContainer
     func getTokenContainerSynchronously(policy: TokensCachePolicy) -> TokenContainer?
     func exchange(tokenV1: String) async throws -> TokenContainer
 
     func signOut(skipNotification: Bool)
+
+    func confirmPurchase(signature: String) async throws -> PrivacyProSubscription
 }
 
 public extension SubscriptionManager {
@@ -68,7 +75,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
 
     private let oAuthClient: any OAuthClient
     private let _storePurchaseManager: StorePurchaseManager?
-    public let subscriptionEndpointService: SubscriptionEndpointService
+    private let subscriptionEndpointService: SubscriptionEndpointService
 
     public let currentEnvironment: SubscriptionEnvironment
     public private(set) var canPurchase: Bool = false
@@ -137,7 +144,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
 
     public func refreshCachedSubscription(completion: @escaping (_ isSubscriptionActive: Bool) -> Void) {
         Task {
-            guard let tokenContainer = try? await oAuthClient.getTokens(policy: .localValid) else {
+            guard let tokenContainer = try? await getTokenContainer(policy: .localValid) else {
                 completion(false)
                 return
             }
@@ -148,9 +155,13 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     }
 
     public func currentSubscription(refresh: Bool) async throws -> PrivacyProSubscription {
-        let tokenContainer = try await oAuthClient.getTokens(policy: .localValid)
-        let subscription = try await subscriptionEndpointService.getSubscription(accessToken: tokenContainer.accessToken, cachePolicy: refresh ? .returnCacheDataElseLoad : .returnCacheDataDontLoad )
-        return subscription
+        let tokenContainer = try await getTokenContainer(policy: .localValid)
+        do {
+            return try await subscriptionEndpointService.getSubscription(accessToken: tokenContainer.accessToken, cachePolicy: refresh ? .reloadIgnoringLocalCacheData : .returnCacheDataDontLoad )
+        } catch SubscriptionEndpointServiceError.noData {
+            signOut()
+            throw SubscriptionEndpointServiceError.noData
+        }
     }
 
     public func getSubscriptionFrom(lastTransactionJWSRepresentation: String) async throws -> PrivacyProSubscription {
@@ -158,10 +169,24 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
         return try await subscriptionEndpointService.getSubscription(accessToken: tokenContainer.accessToken, cachePolicy: .reloadIgnoringLocalCacheData)
     }
 
+    public func clearSubscriptionCache() {
+        subscriptionEndpointService.clearSubscription()
+    }
+
     // MARK: - URLs
 
     public func url(for type: SubscriptionURL) -> URL {
         type.subscriptionURL(environment: currentEnvironment.serviceEnvironment)
+    }
+
+    public func getCustomerPortalURL() async throws -> URL {
+        let tokenContainer = try await getTokenContainer(policy: .localValid)
+        // Get Stripe Customer Portal URL and update the model
+        let serviceResponse = try await subscriptionEndpointService.getCustomerPortalURL(accessToken: tokenContainer.accessToken, externalID: tokenContainer.decodedAccessToken.externalID)
+        guard let url = URL(string: serviceResponse.customerPortalUrl) else {
+            throw SubscriptionEndpointServiceError.noData
+        }
+        return url
     }
 
     // MARK: - User
@@ -177,17 +202,45 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
         return oAuthClient.currentTokenContainer?.decodedAccessToken.subscriptionEntitlements ?? []
     }
 
-    public func refreshAccount() async {
+    private func refreshAccount() async {
         do {
-            _ = try await oAuthClient.getTokens(policy: .localForceRefresh)
+            try await getTokenContainer(policy: .localForceRefresh)
             NotificationCenter.default.post(name: .entitlementsDidChange, object: self, userInfo: nil)
         } catch {
             Logger.subscription.error("Failed to refresh account: \(error.localizedDescription, privacy: .public)")
         }
     }
 
-    public func getTokenContainer(policy: TokensCachePolicy) async throws -> TokenContainer {
-        try await oAuthClient.getTokens(policy: policy)
+    @discardableResult public func getTokenContainer(policy: TokensCachePolicy) async throws -> TokenContainer {
+        do {
+            return try await oAuthClient.getTokens(policy: policy)
+        } catch(OAuthClientError.deadToken) {
+            return try await recoverDeadToken()
+        } catch {
+            throw error
+        }
+    }
+
+    /// If the client succeeds in making a refresh request but does not get the response, then the second refresh request will fail with `invalidTokenRequest` and the stored token will become unusable and un-refreshable.
+    /// - Returns: The recovered token container
+    private func recoverDeadToken() async throws -> TokenContainer {
+        Logger.subscription.log("Attempting to recover a dead token")
+        do {
+            let subscription = try await subscriptionEndpointService.getSubscription(accessToken: "some", cachePolicy: .returnCacheDataDontLoad)
+            switch subscription.platform {
+            case .apple:
+                Logger.subscription.log("Recovering Apple App Store subscription")
+                // TODO: how do we handle this?
+                throw SubscriptionManagerError.tokenUnavailable
+            case .stripe:
+                Logger.subscription.error("Trying to recover a Stripe subscription is unsupported")
+                throw SubscriptionManagerError.unsupportedSubscription
+            default:
+                throw SubscriptionManagerError.unsupportedSubscription
+            }
+        } catch {
+            throw SubscriptionManagerError.tokenUnavailable
+        }
     }
 
     public func getTokenContainerSynchronously(policy: TokensCachePolicy) -> TokenContainer? {
@@ -195,7 +248,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
         let semaphore = DispatchSemaphore(value: 0)
         var container: TokenContainer?
         Task {
-            container = try? await oAuthClient.getTokens(policy: policy)
+            container = try await getTokenContainer(policy: policy)
             semaphore.signal()
         }
         semaphore.wait()
@@ -225,4 +278,11 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
         }
     }
 
+    public func confirmPurchase(signature: String) async throws -> PrivacyProSubscription {
+        let accessToken = try await getTokenContainer(policy: .createIfNeeded).accessToken
+        let confirmation = try await subscriptionEndpointService.confirmPurchase(accessToken: accessToken, signature: signature)
+        let subscription = confirmation.subscription
+        subscriptionEndpointService.updateCache(with: subscription)
+        return subscription
+    }
 }

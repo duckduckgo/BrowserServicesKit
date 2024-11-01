@@ -25,5 +25,5 @@ public class MockLegacyTokenStorage: LegacyTokenStoring {
         self.token = token
     }
 
-    public var token: String? = nil
+    public var token: String?
 }

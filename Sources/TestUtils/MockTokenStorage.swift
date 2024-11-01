@@ -25,5 +25,5 @@ public class MockTokenStorage: TokenStoring {
         self.tokenContainer = tokenContainer
     }
 
-    public var tokenContainer: Networking.TokenContainer? = nil
+    public var tokenContainer: Networking.TokenContainer?
 }

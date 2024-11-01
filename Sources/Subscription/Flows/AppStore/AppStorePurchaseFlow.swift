@@ -42,17 +42,17 @@ public protocol AppStorePurchaseFlow {
 @available(macOS 12.0, iOS 15.0, *)
 public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
     private let subscriptionManager: any SubscriptionManager
-    private let subscriptionEndpointService: SubscriptionEndpointService
+//    private let subscriptionEndpointService: SubscriptionEndpointService
     private let storePurchaseManager: StorePurchaseManager
     private let appStoreRestoreFlow: AppStoreRestoreFlow
 
     public init(subscriptionManager: any SubscriptionManager,
-                subscriptionEndpointService: any SubscriptionEndpointService,
+//                subscriptionEndpointService: any SubscriptionEndpointService,
                 storePurchaseManager: any StorePurchaseManager,
                 appStoreRestoreFlow: any AppStoreRestoreFlow
     ) {
         self.subscriptionManager = subscriptionManager
-        self.subscriptionEndpointService = subscriptionEndpointService
+//        self.subscriptionEndpointService = subscriptionEndpointService
         self.storePurchaseManager = storePurchaseManager
         self.appStoreRestoreFlow = appStoreRestoreFlow
     }
@@ -111,20 +111,61 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
         Logger.subscriptionAppStorePurchaseFlow.log("Completing Subscription Purchase")
 
         // Clear subscription Cache
-        subscriptionEndpointService.clearSubscription()
+        subscriptionManager.signOut()
         do {
-            let accessToken = try await subscriptionManager.getTokenContainer(policy: .createIfNeeded).accessToken
-            let confirmation = try await subscriptionEndpointService.confirmPurchase(accessToken: accessToken, signature: transactionJWS)
-            subscriptionEndpointService.updateCache(with: confirmation.subscription)
-
-            // Refresh the token in order to get new entitlements
-            await subscriptionManager.refreshAccount()
-
-            return .success(PurchaseUpdate.completed)
+            let subscription = try await subscriptionManager.confirmPurchase(signature: transactionJWS)
+            if subscription.isActive {
+                return await refreshTokensUntilEntitlementsAvailable() ? .success(PurchaseUpdate.completed) : .failure(.missingEntitlements)
+//                let refreshedToken = try await subscriptionManager.getTokenContainer(policy: .localForceRefresh)
+//                if refreshedToken.decodedAccessToken.entitlements.isEmpty {
+//                    Logger.subscriptionAppStorePurchaseFlow.error("Missing entitlements")
+//                    return .failure(.missingEntitlements)
+//                } else {
+//                    return .success(PurchaseUpdate.completed)
+//                }
+            } else {
+                Logger.subscriptionAppStorePurchaseFlow.error("Subscription expired")
+                // Removing all traces of the subscription and the account
+                subscriptionManager.signOut()
+                return .failure(.purchaseFailed(AppStoreRestoreFlowError.subscriptionExpired))
+            }
         } catch {
             Logger.subscriptionAppStorePurchaseFlow.error("Purchase Failed: \(error)")
             return .failure(.purchaseFailed(error))
         }
+    }
+
+    func refreshTokensUntilEntitlementsAvailable() async -> Bool {
+        // Refresh token until entitlements are available
+        return await callWithRetries(retry: 5, wait: 2.0) {
+            guard let refreshedToken = try? await subscriptionManager.getTokenContainer(policy: .localForceRefresh) else {
+                return false
+            }
+            if refreshedToken.decodedAccessToken.entitlements.isEmpty {
+                Logger.subscriptionAppStorePurchaseFlow.error("Missing entitlements")
+                return false
+            } else {
+                return true
+            }
+        }
+    }
+
+    private func callWithRetries(retry retryCount: Int, wait waitTime: Double, conditionToCheck: () async -> Bool) async -> Bool {
+        var count = 0
+        var successful = false
+
+        repeat {
+            successful = await conditionToCheck()
+
+            if successful {
+                break
+            } else {
+                count += 1
+                try? await Task.sleep(interval: waitTime)
+            }
+        } while !successful && count < retryCount
+
+        return successful
     }
 
     private func getExpiredSubscriptionID() async -> String? {

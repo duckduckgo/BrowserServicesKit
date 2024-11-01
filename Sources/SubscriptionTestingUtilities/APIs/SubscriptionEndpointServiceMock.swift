@@ -21,6 +21,7 @@ import Subscription
 import Networking
 
 public final class SubscriptionEndpointServiceMock: SubscriptionEndpointService {
+
     public var getSubscriptionResult: Result<PrivacyProSubscription, SubscriptionEndpointServiceError>?
     public var getProductsResult: Result<[GetProductsItem], APIRequestV2.Error>?
     public var getCustomerPortalURLResult: Result<GetCustomerPortalURLResponse, APIRequestV2.Error>?
@@ -36,12 +37,23 @@ public final class SubscriptionEndpointServiceMock: SubscriptionEndpointService 
 
     public init() { }
 
-    public func updateCache(with subscription: PrivacyProSubscription) {
+    public func updateCache(with subscription: Subscription.PrivacyProSubscription) {
         onUpdateCache?(subscription)
         updateCacheWithSubscriptionCalled = true
     }
 
-    public func getSubscription(accessToken: String, cachePolicy: SubscriptionCachePolicy) async throws -> PrivacyProSubscription {
+    public func clearSubscription() {
+
+    }
+
+    public func getProducts() async throws -> [Subscription.GetProductsItem] {
+        switch getProductsResult! {
+        case .success(let result): return result
+        case .failure(let error): throw error
+        }
+    }
+
+    public func getSubscription(accessToken: String, cachePolicy: Subscription.SubscriptionCachePolicy) async throws -> Subscription.PrivacyProSubscription {
         getSubscriptionCalled = true
         onGetSubscription?(accessToken, cachePolicy)
         switch getSubscriptionResult! {
@@ -50,26 +62,14 @@ public final class SubscriptionEndpointServiceMock: SubscriptionEndpointService 
         }
     }
 
-    public func signOut() {
-        signOutCalled = true
-        onSignOut?()
-    }
-
-    public func getProducts() async throws -> [GetProductsItem] {
-        switch getProductsResult! {
-        case .success(let result): return result
-        case .failure(let error): throw error
-        }
-    }
-
-    public func getCustomerPortalURL(accessToken: String, externalID: String) async throws -> GetCustomerPortalURLResponse {
+    public func getCustomerPortalURL(accessToken: String, externalID: String) async throws -> Subscription.GetCustomerPortalURLResponse {
         switch getCustomerPortalURLResult! {
         case .success(let result): return result
         case .failure(let error): throw error
         }
     }
 
-    public func confirmPurchase(accessToken: String, signature: String) async throws -> ConfirmPurchaseResponse {
+    public func confirmPurchase(accessToken: String, signature: String) async throws -> Subscription.ConfirmPurchaseResponse {
         switch confirmPurchaseResult! {
         case .success(let result): return result
         case .failure(let error): throw error

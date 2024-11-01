@@ -615,6 +615,7 @@ let package = Package(
             dependencies: [
                 "Subscription",
                 "SubscriptionTestingUtilities",
+                "TestUtils",
             ]
         ),
         .testTarget(

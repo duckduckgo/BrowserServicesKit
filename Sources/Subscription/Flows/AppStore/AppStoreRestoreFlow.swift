@@ -56,14 +56,11 @@ public protocol AppStoreRestoreFlow {
 public final class DefaultAppStoreRestoreFlow: AppStoreRestoreFlow {
     private let subscriptionManager: SubscriptionManager
     private let storePurchaseManager: StorePurchaseManager
-    private let subscriptionEndpointService: SubscriptionEndpointService
 
     public init(subscriptionManager: SubscriptionManager,
-                storePurchaseManager: any StorePurchaseManager,
-                subscriptionEndpointService: any SubscriptionEndpointService) {
+                storePurchaseManager: any StorePurchaseManager) {
         self.subscriptionManager = subscriptionManager
         self.storePurchaseManager = storePurchaseManager
-        self.subscriptionEndpointService = subscriptionEndpointService
     }
 
     @discardableResult
@@ -71,7 +68,8 @@ public final class DefaultAppStoreRestoreFlow: AppStoreRestoreFlow {
         Logger.subscriptionAppStoreRestoreFlow.log("Restoring account from past purchase")
 
         // Clear subscription Cache
-        subscriptionEndpointService.clearSubscription()
+        subscriptionManager.clearSubscriptionCache()
+
         guard let lastTransactionJWSRepresentation = await storePurchaseManager.mostRecentTransaction() else {
             Logger.subscriptionAppStoreRestoreFlow.error("Missing last transaction")
             return .failure(.missingAccountOrTransactions)
