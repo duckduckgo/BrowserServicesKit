@@ -22,6 +22,9 @@ import os.log
 
 public protocol SubscriptionCookieManaging {
     init(subscriptionManager: SubscriptionManager, currentCookieStore: @MainActor @escaping () -> HTTPCookieStore?, eventMapping: EventMapping<SubscriptionCookieManagerEvent>)
+    func enableSettingSubscriptionCookie()
+    func disableSettingSubscriptionCookie() async
+
     func refreshSubscriptionCookie() async
     func resetLastRefreshDate()
 
@@ -30,7 +33,7 @@ public protocol SubscriptionCookieManaging {
 
 public final class SubscriptionCookieManager: SubscriptionCookieManaging {
 
-    public static let cookieDomain = ".duckduckgo.com"
+    public static let cookieDomain = "subscriptions.duckduckgo.com"
     public static let cookieName = "privacy_pro_access_token"
 
     private static let defaultRefreshTimeInterval: TimeInterval = .hours(4)
@@ -41,6 +44,7 @@ public final class SubscriptionCookieManager: SubscriptionCookieManaging {
 
     public private(set) var lastRefreshDate: Date?
     private let refreshTimeInterval: TimeInterval
+    private var isSettingSubscriptionCookieEnabled: Bool = false
 
     convenience nonisolated public required init(subscriptionManager: SubscriptionManager,
                                                  currentCookieStore: @MainActor @escaping () -> HTTPCookieStore?,
@@ -60,17 +64,28 @@ public final class SubscriptionCookieManager: SubscriptionCookieManaging {
         self.eventMapping = eventMapping
         self.refreshTimeInterval = refreshTimeInterval
 
-        registerForSubscriptionAccountManagerEvents()
-    }
-
-    private func registerForSubscriptionAccountManagerEvents() {
         NotificationCenter.default.addObserver(self, selector: #selector(handleAccountDidSignIn), name: .accountDidSignIn, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(handleAccountDidSignOut), name: .accountDidSignOut, object: nil)
     }
 
+    public func enableSettingSubscriptionCookie() {
+        isSettingSubscriptionCookieEnabled = true
+    }
+
+    public func disableSettingSubscriptionCookie() async {
+        isSettingSubscriptionCookieEnabled = false
+        if let cookieStore = await currentCookieStore(),
+           let cookie = await cookieStore.fetchCurrentSubscriptionCookie() {
+            await cookieStore.deleteCookie(cookie)
+        }
+    }
+
     @objc private func handleAccountDidSignIn() {
         Task {
-            guard let cookieStore = await currentCookieStore() else { return }
+            guard isSettingSubscriptionCookieEnabled,
+                  let cookieStore = await currentCookieStore()
+            else { return }
+
             guard let accessToken = subscriptionManager.accountManager.accessToken else {
                 Logger.subscription.error("[SubscriptionCookieManager] Handle .accountDidSignIn - can't set the cookie, token is missing")
                 eventMapping.fire(.errorHandlingAccountDidSignInTokenIsMissing)
@@ -89,21 +104,24 @@ public final class SubscriptionCookieManager: SubscriptionCookieManaging {
 
     @objc private func handleAccountDidSignOut() {
         Task {
-            guard let cookieStore = await currentCookieStore() else { return }
-            guard let subscriptionCookie = await cookieStore.fetchCurrentSubscriptionCookie() else {
-                Logger.subscription.error("[SubscriptionCookieManager] Handle .accountDidSignOut - can't delete the cookie, cookie is missing")
-                eventMapping.fire(.errorHandlingAccountDidSignOutCookieIsMissing)
-                return
-            }
+            guard isSettingSubscriptionCookieEnabled,
+                  let cookieStore = await currentCookieStore()
+            else { return }
             Logger.subscription.info("[SubscriptionCookieManager] Handle .accountDidSignOut - deleting cookie")
-            await cookieStore.deleteCookie(subscriptionCookie)
-            updateLastRefreshDateToNow()
+
+            do {
+                try await cookieStore.setEmptySubscriptionCookie()
+                updateLastRefreshDateToNow()
+            } catch {
+                eventMapping.fire(.failedToSetSubscriptionCookie)
+            }
         }
     }
 
     public func refreshSubscriptionCookie() async {
-        guard shouldRefreshSubscriptionCookie() else { return }
-        guard let cookieStore = await currentCookieStore() else { return }
+        guard isSettingSubscriptionCookieEnabled,
+              shouldRefreshSubscriptionCookie(),
+              let cookieStore = await currentCookieStore() else { return }
 
         Logger.subscription.info("[SubscriptionCookieManager] Refresh subscription cookie")
         updateLastRefreshDateToNow()
@@ -111,25 +129,22 @@ public final class SubscriptionCookieManager: SubscriptionCookieManaging {
         let accessToken: String? = subscriptionManager.accountManager.accessToken
         let subscriptionCookie = await cookieStore.fetchCurrentSubscriptionCookie()
 
-        if let accessToken {
-            if subscriptionCookie == nil || subscriptionCookie?.value != accessToken {
-                Logger.subscription.info("[SubscriptionCookieManager] Refresh: No cookie or one with different value")
-                do {
+        let noCookieOrWithUnexpectedValue = (accessToken ?? "") != subscriptionCookie?.value
+
+        do {
+            if noCookieOrWithUnexpectedValue {
+                Logger.subscription.info("[SubscriptionCookieManager] Refresh: No cookie or one with unexpected value")
+
+                if let accessToken {
                     try await cookieStore.setSubscriptionCookie(for: accessToken)
-                    eventMapping.fire(.subscriptionCookieRefreshedWithUpdate)
-                } catch {
-                    eventMapping.fire(.failedToSetSubscriptionCookie)
+                    eventMapping.fire(.subscriptionCookieRefreshedWithAccessToken)
+                } else {
+                    try await cookieStore.setEmptySubscriptionCookie()
+                    eventMapping.fire(.subscriptionCookieRefreshedWithEmptyValue)
                 }
-            } else {
-                Logger.subscription.info("[SubscriptionCookieManager] Refresh: Cookie exists and is up to date")
-                return
             }
-        } else {
-            if let subscriptionCookie {
-                Logger.subscription.info("[SubscriptionCookieManager] Refresh: No access token but old cookie exists, deleting it")
-                await cookieStore.deleteCookie(subscriptionCookie)
-                eventMapping.fire(.subscriptionCookieRefreshedWithDelete)
-            }
+        } catch {
+            eventMapping.fire(.failedToSetSubscriptionCookie)
         }
     }
 
@@ -159,6 +174,10 @@ private extension HTTPCookieStore {
 
     func fetchCurrentSubscriptionCookie() async -> HTTPCookie? {
         await allCookies().first { $0.domain == SubscriptionCookieManager.cookieDomain && $0.name == SubscriptionCookieManager.cookieName }
+    }
+
+    func setEmptySubscriptionCookie() async throws {
+        try await setSubscriptionCookie(for: "")
     }
 
     func setSubscriptionCookie(for token: String) async throws {

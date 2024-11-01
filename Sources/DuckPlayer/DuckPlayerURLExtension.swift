@@ -155,7 +155,7 @@ extension URL {
 
     public var isYoutube: Bool {
         guard let host else { return false }
-        return host == "m.youtube.com" || host == "youtube.com"
+        return host == "m.youtube.com" || host == "youtube.com" || host == "www.youtube.com"
     }
 
     public func addingWatchInYoutubeQueryParameter() -> URL? {
