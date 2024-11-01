@@ -711,7 +711,12 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             await attemptShutdownDueToRevokedAccess()
 
             // Check that the error is valid and able to be re-thrown to the OS before shutting the tunnel down
-            throw validated(error: error)
+            if let wrappedError = wrapped(error: error) {
+                providerEvents.fire(.malformedErrorDetected(error))
+                throw wrappedError
+            } else {
+                throw error
+            }
         }
 
         do {
@@ -740,7 +745,12 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             providerEvents.fire(.tunnelStartAttempt(.failure(error)))
 
             // Check that the error is valid and able to be re-thrown to the OS before shutting the tunnel down
-            throw validated(error: error)
+            if let wrappedError = wrapped(error: error) {
+                providerEvents.fire(.malformedErrorDetected(error))
+                throw wrappedError
+            } else {
+                throw error
+            }
         }
     }
 
@@ -1846,10 +1856,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
-    /// Validates that an error object is correctly structured; i.e., only uses an `NSError` instances for its underlying error, etc.
-    private func validated(error: Error) -> Error {
+    /// Wraps an error instance in a new error type in cases where it is malformed; i.e., doesn't use an `NSError` instance for its underlying error, etc.
+    private func wrapped(error: Error) -> Error? {
         if containsValidUnderlyingError(error) {
-            return error
+            return nil
         } else {
             return InvalidDiagnosticError.errorWithInvalidUnderlyingError(error)
         }
