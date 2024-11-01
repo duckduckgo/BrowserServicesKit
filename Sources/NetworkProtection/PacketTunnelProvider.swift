@@ -42,6 +42,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         case rekeyAttempt(_ step: RekeyAttemptStep)
         case failureRecoveryAttempt(_ step: FailureRecoveryStep)
         case serverMigrationAttempt(_ step: ServerMigrationAttemptStep)
+        case malformedErrorDetected(_ error: Error)
     }
 
     public enum AttemptStep: CustomDebugStringConvertible {
