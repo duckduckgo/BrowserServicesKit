@@ -55,7 +55,7 @@ let package = Package(
         .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "6.28.0"),
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
         .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
-        .package(url: "https://github.com/1024jp/GzipSwift.git", exact: "6.1.0")
+        .package(url: "https://github.com/1024jp/GzipSwift.git", exact: "6.0.1")
     ],
     targets: [
         .target(
