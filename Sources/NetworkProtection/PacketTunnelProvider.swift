@@ -738,7 +738,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             self.knownFailureStore.lastKnownFailure = KnownFailure(error)
 
             providerEvents.fire(.tunnelStartAttempt(.failure(error)))
-            
+
             // Check that the error is valid and able to be re-thrown to the OS before shutting the tunnel down
             throw validated(error: error)
         }
