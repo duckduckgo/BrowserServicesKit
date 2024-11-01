@@ -771,8 +771,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     private func startTunnel(onDemand: Bool) async throws {
         do {
-            throw ErrorThatCrashes.crash
-
             Logger.networkProtection.log("Generating tunnel config")
             Logger.networkProtection.log("Excluded ranges are: \(String(describing: self.settings.excludedRanges), privacy: .public)")
             Logger.networkProtection.log("Server selection method: \(self.currentServerSelectionMethod.debugDescription, privacy: .public)")
