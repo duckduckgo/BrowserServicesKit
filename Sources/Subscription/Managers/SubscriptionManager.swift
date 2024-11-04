@@ -208,7 +208,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     @discardableResult public func getTokenContainer(policy: TokensCachePolicy) async throws -> TokenContainer {
         do {
             return try await oAuthClient.getTokens(policy: policy)
-        } catch(OAuthClientError.deadToken) {
+        } catch OAuthClientError.deadToken {
             return try await recoverDeadToken()
         } catch {
             throw error
@@ -269,7 +269,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     }
 
     public func confirmPurchase(signature: String) async throws -> PrivacyProSubscription {
-        let accessToken = try await getTokenContainer(policy: .createIfNeeded).accessToken
+        let accessToken = try await getTokenContainer(policy: .localValid).accessToken
         let confirmation = try await subscriptionEndpointService.confirmPurchase(accessToken: accessToken, signature: signature)
         let subscription = confirmation.subscription
         subscriptionEndpointService.updateCache(with: subscription)

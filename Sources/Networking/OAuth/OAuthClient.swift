@@ -63,6 +63,19 @@ public enum TokensCachePolicy {
 
     /// Local refreshed, if doesn't exist create a new one
     case createIfNeeded
+
+    var description: String {
+        switch self {
+        case .local:
+            return "Local"
+        case .localValid:
+            return "Local valid"
+        case .localForceRefresh:
+            return "Local force refresh"
+        case .createIfNeeded:
+            return "Create if needed"
+        }
+    }
 }
 
 public protocol OAuthClient {
@@ -74,9 +87,10 @@ public protocol OAuthClient {
     var currentTokenContainer: TokenContainer? { get }
 
     /// Returns a tokens container based on the policy
-    /// - `.local`: returns what's in the storage, as it is, throws an error if no token is available
-    /// - `.localValid`: returns what's in the storage, refreshes it if needed. throws an error if no token is available
-    /// - `.createIfNeeded`: Returns a tokens container with unexpired tokens, creates a new account if needed
+    /// - `.local`: Returns what's in the storage, as it is, throws an error if no token is available
+    /// - `.localValid`: Returns what's in the storage, refreshes it if needed. throws an error if no token is available
+    /// -  `.localForceRefresh`: Returns what's in the storage but forces a refresh first. throws an error if no refresh token is available.
+    /// - `.createIfNeeded`: Returns what's in the storage, if the stored token is expired refreshes it, if not token is available creates a new account/token
     /// All options store new or refreshed tokens via the tokensStorage
     func getTokens(policy: TokensCachePolicy) async throws -> TokenContainer
 
@@ -169,14 +183,10 @@ final public class DefaultOAuthClient: OAuthClient {
         tokenStorage.tokenContainer
     }
 
-    /// Returns a tokens container based on the policy
-    /// - `.local`: returns what's in the storage, as it is, throws an error if no token is available
-    /// - `.localValid`: returns what's in the storage, refreshes it if needed. throws an error if no token is available
-    /// - `.createIfNeeded`: Returns a tokens container with unexpired tokens, creates a new account if needed
-    /// All options store new or refreshed tokens via the tokensStorage
     public func getTokens(policy: TokensCachePolicy) async throws -> TokenContainer {
-        let localTokenContainer: TokenContainer?
+        Logger.OAuthClient.log("Getting tokens: \(policy.description)")
 
+        let localTokenContainer: TokenContainer?
         // V1 to V2 tokens migration
         if let migratedTokenContainer = await migrateLegacyTokenIfNeeded() {
             localTokenContainer = migratedTokenContainer
@@ -186,7 +196,6 @@ final public class DefaultOAuthClient: OAuthClient {
 
         switch policy {
         case .local:
-            Logger.OAuthClient.log("Getting local tokens")
             if let localTokenContainer {
                 Logger.OAuthClient.log("Local tokens found, expiry: \(localTokenContainer.decodedAccessToken.exp.value)")
                 return localTokenContainer
@@ -194,7 +203,6 @@ final public class DefaultOAuthClient: OAuthClient {
                 throw OAuthClientError.missingTokens
             }
         case .localValid:
-            Logger.OAuthClient.log("Getting local tokens and refreshing them if needed")
             if let localTokenContainer {
                 Logger.OAuthClient.log("Local tokens found, expiry: \(localTokenContainer.decodedAccessToken.exp.value)")
                 if localTokenContainer.decodedAccessToken.isExpired() {
@@ -208,7 +216,6 @@ final public class DefaultOAuthClient: OAuthClient {
                 throw OAuthClientError.missingTokens
             }
         case .localForceRefresh:
-            Logger.OAuthClient.log("Forcing token refresh")
             guard let refreshToken = localTokenContainer?.refreshToken else {
                 throw OAuthClientError.missingRefreshToken
             }
@@ -218,27 +225,17 @@ final public class DefaultOAuthClient: OAuthClient {
                 Logger.OAuthClient.log("Tokens refreshed: \(refreshedTokens.debugDescription)")
                 tokenStorage.tokenContainer = refreshedTokens
                 return refreshedTokens
+            } catch OAuthServiceError.authAPIError(let code) where code == OAuthRequest.BodyErrorCode.invalidTokenRequest {
+                Logger.OAuthClient.error("Failed to refresh token")
+                throw OAuthClientError.deadToken
             } catch OAuthServiceError.authAPIError(let code) {
-                if code == OAuthRequest.BodyErrorCode.invalidTokenRequest {
-                    Logger.OAuthClient.error("Failed to refresh token")
-                    throw OAuthClientError.deadToken
-                } else {
-                    Logger.OAuthClient.error("Failed to refresh token: \(code.rawValue, privacy: .public), \(code.description, privacy: .public)")
-                    throw OAuthServiceError.authAPIError(code: code)
-                }
+                Logger.OAuthClient.error("Failed to refresh token: \(code.rawValue, privacy: .public), \(code.description, privacy: .public)")
+                throw OAuthServiceError.authAPIError(code: code)
             }
         case .createIfNeeded:
-            Logger.OAuthClient.log("Getting tokens and creating a new account if needed")
-            if let localTokenContainer {
-                Logger.OAuthClient.log("Local tokens found, expiry: \(localTokenContainer.decodedAccessToken.exp.value)")
-                // An account existed before, recovering it and refreshing the tokens
-                if localTokenContainer.decodedAccessToken.isExpired() {
-                    Logger.OAuthClient.log("Local access token is expired, refreshing it")
-                    return try await getTokens(policy: .localForceRefresh)
-                } else {
-                    return localTokenContainer
-                }
-            } else {
+            do {
+                return try await getTokens(policy: .localValid)
+            } catch {
                 Logger.OAuthClient.log("Local token not found, creating a new account")
                 let tokens = try await createAccount()
                 tokenStorage.tokenContainer = tokens

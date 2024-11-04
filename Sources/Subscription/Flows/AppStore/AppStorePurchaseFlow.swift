@@ -111,19 +111,22 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
         Logger.subscriptionAppStorePurchaseFlow.log("Completing Subscription Purchase")
 
         // Clear subscription Cache
-        await subscriptionManager.signOut()
-        
+//        await subscriptionManager.signOut()
+        subscriptionManager.clearSubscriptionCache()
+
         do {
             let subscription = try await subscriptionManager.confirmPurchase(signature: transactionJWS)
             if subscription.isActive {
-                return await refreshTokensUntilEntitlementsAvailable() ? .success(PurchaseUpdate.completed) : .failure(.missingEntitlements)
-//                let refreshedToken = try await subscriptionManager.getTokenContainer(policy: .localForceRefresh)
-//                if refreshedToken.decodedAccessToken.entitlements.isEmpty {
-//                    Logger.subscriptionAppStorePurchaseFlow.error("Missing entitlements")
-//                    return .failure(.missingEntitlements)
-//                } else {
-//                    return .success(PurchaseUpdate.completed)
-//                }
+
+                //                return await refreshTokensUntilEntitlementsAvailable() ? .success(PurchaseUpdate.completed) : .failure(.missingEntitlements)
+
+                let refreshedToken = try await subscriptionManager.getTokenContainer(policy: .localForceRefresh)
+                if refreshedToken.decodedAccessToken.entitlements.isEmpty {
+                    Logger.subscriptionAppStorePurchaseFlow.error("Missing entitlements")
+                    return .failure(.missingEntitlements)
+                } else {
+                    return .success(PurchaseUpdate.completed)
+                }
             } else {
                 Logger.subscriptionAppStorePurchaseFlow.error("Subscription expired")
                 // Removing all traces of the subscription and the account
@@ -172,7 +175,7 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
         do {
             let subscription = try await subscriptionManager.currentSubscription(refresh: true)
             // Only return an externalID if the subscription is expired so to prevent creating multiple subscriptions in the same account
-            if subscription.isActive == false,
+            if !subscription.isActive,
                subscription.platform != .apple {
                 return try? await subscriptionManager.getTokenContainer(policy: .localValid).decodedAccessToken.externalID
             }
