@@ -516,7 +516,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     private func load(options: StartupOptions) throws {
+#if NETP_SYSTEM_EXTENSION
         loadExcludeLocalNetworks(from: options)
+#endif
         loadKeyValidity(from: options)
         loadSelectedEnvironment(from: options)
         loadSelectedServer(from: options)
