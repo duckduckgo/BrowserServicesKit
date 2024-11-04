@@ -20,10 +20,9 @@ import Foundation
 
 public enum SubscriptionCookieManagerEvent {
     case errorHandlingAccountDidSignInTokenIsMissing
-    case errorHandlingAccountDidSignOutCookieIsMissing
 
-    case subscriptionCookieRefreshedWithUpdate
-    case subscriptionCookieRefreshedWithDelete
+    case subscriptionCookieRefreshedWithAccessToken
+    case subscriptionCookieRefreshedWithEmptyValue
 
     case failedToSetSubscriptionCookie
 }
