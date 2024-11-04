@@ -63,106 +63,174 @@ final class OAuthClientTests: XCTestCase {
 
     // MARK: - Get tokens
 
-    func testGetLocalTokenFail() async throws {
+    // MARK: Local
+
+    func testGetToken_Local_Fail() async throws {
         let localContainer = try? await oAuthClient.getTokens(policy: .local)
         XCTAssertNil(localContainer)
     }
 
-    func testGetLocalTokenSuccess() async throws {
+    func testGetToken_Local_Success() async throws {
         tokenStorage.tokenContainer = OAuthTokensFactory.makeValidTokenContainer()
+
         let localContainer = try? await oAuthClient.getTokens(policy: .local)
         XCTAssertNotNil(localContainer)
         XCTAssertFalse(localContainer!.decodedAccessToken.isExpired())
     }
 
-    func testGetLocalTokenSuccessExpired() async throws {
+    func testGetToken_Local_SuccessExpired() async throws {
         tokenStorage.tokenContainer = OAuthTokensFactory.makeExpiredTokenContainer()
+
         let localContainer = try? await oAuthClient.getTokens(policy: .local)
         XCTAssertNotNil(localContainer)
         XCTAssertTrue(localContainer!.decodedAccessToken.isExpired())
     }
 
-    func testGetLocalTokenRefreshButExpired() async throws {
-        // prepare mock service for token refresh
-        mockOAuthService.getJWTSignersResponse = .success(JWTSigners())
-        // Expired token
-        mockOAuthService.refreshAccessTokenResponse = .success( OAuthTokensFactory.makeExpiredOAuthTokenResponse())
+    // MARK: Local Valid
 
-        // ask a fresh token, the local one is expired
-        tokenStorage.tokenContainer = OAuthTokensFactory.makeExpiredTokenContainer()
-        let localContainer = try? await oAuthClient.getTokens(policy: .localValid)
-        XCTAssertNil(localContainer)
+    /// A valid local token exists
+    func testGetToken_localValid_local() async throws {
+
+        tokenStorage.tokenContainer = OAuthTokensFactory.makeValidTokenContainer()
+
+        let localContainer = try await oAuthClient.getTokens(policy: .localValid)
+        XCTAssertNotNil(localContainer.accessToken)
+        XCTAssertNotNil(localContainer.refreshToken)
+        XCTAssertNotNil(localContainer.decodedAccessToken)
+        XCTAssertNotNil(localContainer.decodedRefreshToken)
+        XCTAssertFalse(localContainer.decodedAccessToken.isExpired())
     }
 
-/*
- public protocol OAuthClient {
+    /// An expired local token exists and is refreshed successfully
+    func testGetToken_localValid_refreshSuccess() async throws {
 
+        mockOAuthService.getJWTSignersResponse = .success(JWTSigners())
+        mockOAuthService.refreshAccessTokenResponse = .success( OAuthTokensFactory.makeValidOAuthTokenResponse())
+        tokenStorage.tokenContainer = OAuthTokensFactory.makeExpiredTokenContainer()
 
-     /// Returns a tokens container based on the policy
-     /// - `.local`: returns what's in the storage, as it is, throws an error if no token is available
-     /// - `.localValid`: returns what's in the storage, refreshes it if needed. throws an error if no token is available
-     /// - `.createIfNeeded`: Returns a tokens container with unexpired tokens, creates a new account if needed
-     /// All options store new or refreshed tokens via the tokensStorage
-     func getTokens(policy: TokensCachePolicy) async throws -> TokenContainer
+        let localContainer = try await oAuthClient.getTokens(policy: .localValid)
+        XCTAssertNotNil(localContainer.accessToken)
+        XCTAssertNotNil(localContainer.refreshToken)
+        XCTAssertNotNil(localContainer.decodedAccessToken)
+        XCTAssertNotNil(localContainer.decodedRefreshToken)
+        XCTAssertFalse(localContainer.decodedAccessToken.isExpired())
+    }
 
-     /// Create an account, store all tokens and return them
-     func createAccount() async throws -> TokenContainer
+    /// An expired local token exists but refresh fails
+    func testGetToken_localValid_refreshFail() async throws {
 
-     // MARK: Activate
+        mockOAuthService.getJWTSignersResponse = .success(JWTSigners())
+        mockOAuthService.refreshAccessTokenResponse = .failure(OAuthServiceError.invalidResponseCode(HTTPStatusCode.gatewayTimeout))
+        tokenStorage.tokenContainer = OAuthTokensFactory.makeExpiredTokenContainer()
 
-     /// Request an OTP for the provided email
-     /// - Parameter email: The email to request the OTP for
-     /// - Returns: A tuple containing the authSessionID and codeVerifier
-     func requestOTP(email: String) async throws -> (authSessionID: String, codeVerifier: String)
+        do {
+            _ = try await oAuthClient.getTokens(policy: .localValid)
+            XCTFail("Error expected")
+        } catch {
+            XCTAssertEqual(error as? OAuthServiceError, .invalidResponseCode(HTTPStatusCode.gatewayTimeout))
+        }
+    }
 
-     /// Activate the account with an OTP
-     /// - Parameters:
-     ///   - otp: The OTP received via email
-     ///   - email: The email address
-     ///   - codeVerifier: The codeVerifier
-     ///   - authSessionID: The authentication session ID
-     func activate(withOTP otp: String, email: String, codeVerifier: String, authSessionID: String) async throws
+    // MARK: Force Refresh
 
-     /// Activate the account with a platform signature
-     /// - Parameter signature: The platform signature
-     /// - Returns: A container of tokens
-     func activate(withPlatformSignature signature: String) async throws -> TokenContainer
+    /// Local token is missing, refresh fails
+    func testGetToken_localForceRefresh_missingLocal() async throws {
+        do {
+            _ = try await oAuthClient.getTokens(policy: .localForceRefresh)
+            XCTFail("Error expected")
+        } catch {
+            XCTAssertEqual(error as? Networking.OAuthClientError, .missingRefreshToken)
+        }
+    }
 
-     // MARK: Refresh
+    /// An expired local token exists and is refreshed successfully
+    func testGetToken_localForceRefresh_success() async throws {
 
-     /// Refresh the tokens and store the refreshed tokens
-     /// - Returns: A container of refreshed tokens
-     @discardableResult
-     func refreshTokens() async throws -> TokenContainer
+        mockOAuthService.getJWTSignersResponse = .success(JWTSigners())
+        mockOAuthService.refreshAccessTokenResponse = .success( OAuthTokensFactory.makeValidOAuthTokenResponse())
+        tokenStorage.tokenContainer = OAuthTokensFactory.makeExpiredTokenContainer()
 
-     // MARK: Exchange
+        let localContainer = try await oAuthClient.getTokens(policy: .localForceRefresh)
+        XCTAssertNotNil(localContainer.accessToken)
+        XCTAssertNotNil(localContainer.refreshToken)
+        XCTAssertNotNil(localContainer.decodedAccessToken)
+        XCTAssertNotNil(localContainer.decodedRefreshToken)
+        XCTAssertFalse(localContainer.decodedAccessToken.isExpired())
+    }
 
-     /// Exchange token v1 for tokens v2
-     /// - Parameter accessTokenV1: The legacy auth token
-     /// - Returns: A TokenContainer with access and refresh tokens
-     func exchange(accessTokenV1: String) async throws -> TokenContainer
+    func testGetToken_localForceRefresh_refreshFail() async throws {
 
-     // MARK: Logout
+        mockOAuthService.getJWTSignersResponse = .success(JWTSigners())
+        mockOAuthService.refreshAccessTokenResponse = .failure(OAuthServiceError.invalidResponseCode(HTTPStatusCode.gatewayTimeout))
+        tokenStorage.tokenContainer = OAuthTokensFactory.makeExpiredTokenContainer()
 
-     /// Logout by invalidating the current access token
-     func logout() async throws
+        do {
+            _ = try await oAuthClient.getTokens(policy: .localForceRefresh)
+            XCTFail("Error expected")
+        } catch {
+            XCTAssertEqual(error as? OAuthServiceError, .invalidResponseCode(HTTPStatusCode.gatewayTimeout))
+        }
+    }
 
-     /// Remove the tokens container stored locally
-     func removeLocalAccount()
+    // MARK: Create if needed
 
-     // MARK: Edit account
+    func testGetToken_createIfNeeded_foundLocal() async throws {
+        tokenStorage.tokenContainer = OAuthTokensFactory.makeValidTokenContainer()
 
-     /// Change the email address of the account
-     /// - Parameter email: The new email address
-     /// - Returns: A hash string for verification
-     func changeAccount(email: String?) async throws -> String
+        let tokenContainer = try await oAuthClient.getTokens(policy: .createIfNeeded)
+        XCTAssertNotNil(tokenContainer.accessToken)
+        XCTAssertNotNil(tokenContainer.refreshToken)
+        XCTAssertNotNil(tokenContainer.decodedAccessToken)
+        XCTAssertNotNil(tokenContainer.decodedRefreshToken)
+        XCTAssertFalse(tokenContainer.decodedAccessToken.isExpired())
+    }
 
-     /// Confirm the change of email address
-     /// - Parameters:
-     ///   - email: The new email address
-     ///   - otp: The OTP received via email
-     ///   - hash: The hash for verification
-     func confirmChangeAccount(email: String, otp: String, hash: String) async throws
- }
- */
+    func testGetToken_createIfNeeded_missingLocal_createSuccess() async throws {
+        mockOAuthService.authorizeResponse = .success("auth_session_id")
+        mockOAuthService.createAccountResponse = .success("auth_code")
+        mockOAuthService.getAccessTokenResponse = .success(OAuthTokensFactory.makeValidOAuthTokenResponse())
+
+        let tokenContainer = try await oAuthClient.getTokens(policy: .createIfNeeded)
+        XCTAssertNotNil(tokenContainer.accessToken)
+        XCTAssertNotNil(tokenContainer.refreshToken)
+        XCTAssertNotNil(tokenContainer.decodedAccessToken)
+        XCTAssertNotNil(tokenContainer.decodedRefreshToken)
+        XCTAssertFalse(tokenContainer.decodedAccessToken.isExpired())
+    }
+
+    func testGetToken_createIfNeeded_missingLocal_createFail() async throws {
+        mockOAuthService.authorizeResponse = .failure(OAuthServiceError.invalidResponseCode(HTTPStatusCode.gatewayTimeout))
+
+        do {
+            _ = try await oAuthClient.getTokens(policy: .createIfNeeded)
+            XCTFail("Error expected")
+        } catch {
+            XCTAssertEqual(error as? OAuthServiceError, .invalidResponseCode(HTTPStatusCode.gatewayTimeout))
+        }
+    }
+
+    func testGetToken_createIfNeeded_missingLocal_createFail2() async throws {
+        mockOAuthService.authorizeResponse = .success("auth_session_id")
+        mockOAuthService.createAccountResponse = .failure(OAuthServiceError.invalidResponseCode(HTTPStatusCode.gatewayTimeout))
+
+        do {
+            _ = try await oAuthClient.getTokens(policy: .createIfNeeded)
+            XCTFail("Error expected")
+        } catch {
+            XCTAssertEqual(error as? OAuthServiceError, .invalidResponseCode(HTTPStatusCode.gatewayTimeout))
+        }
+    }
+
+    func testGetToken_createIfNeeded_missingLocal_createFail3() async throws {
+        mockOAuthService.authorizeResponse = .success("auth_session_id")
+        mockOAuthService.createAccountResponse = .success("auth_code")
+        mockOAuthService.getAccessTokenResponse = .failure(OAuthServiceError.invalidResponseCode(HTTPStatusCode.gatewayTimeout))
+
+        do {
+            _ = try await oAuthClient.getTokens(policy: .createIfNeeded)
+            XCTFail("Error expected")
+        } catch {
+            XCTAssertEqual(error as? OAuthServiceError, .invalidResponseCode(HTTPStatusCode.gatewayTimeout))
+        }
+    }
 }

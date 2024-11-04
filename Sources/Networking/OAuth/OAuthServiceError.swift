@@ -18,7 +18,7 @@
 
 import Foundation
 
-public enum OAuthServiceError: Error, LocalizedError {
+public enum OAuthServiceError: Error, LocalizedError, Equatable {
     case authAPIError(code: OAuthRequest.BodyErrorCode)
     case apiServiceError(Error)
     case invalidRequest
@@ -37,6 +37,23 @@ public enum OAuthServiceError: Error, LocalizedError {
             "Invalid API request response code: \(code.rawValue) - \(code.description)"
         case .missingResponseValue(let value):
             "The API response is missing \(value)"
+        }
+    }
+    
+    public static func == (lhs: OAuthServiceError, rhs: OAuthServiceError) -> Bool {
+        switch (lhs, rhs) {
+        case (.authAPIError(let lhsCode), .authAPIError(let rhsCode)):
+            return lhsCode == rhsCode
+        case (.apiServiceError(let lhsError), .apiServiceError(let rhsError)):
+            return lhsError.localizedDescription == rhsError.localizedDescription
+        case (.invalidRequest, .invalidRequest):
+            return true
+        case (.invalidResponseCode(let lhsCode), .invalidResponseCode(let rhsCode)):
+            return lhsCode == rhsCode
+        case (.missingResponseValue(let lhsValue), .missingResponseValue(let rhsValue)):
+            return lhsValue == rhsValue
+        default:
+            return false
         }
     }
 }

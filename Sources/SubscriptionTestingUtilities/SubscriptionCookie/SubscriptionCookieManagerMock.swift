@@ -18,35 +18,30 @@
 
 import Foundation
 import Common
-import Subscription
+@testable import Subscription
+import TestUtils
 
 public final class SubscriptionCookieManagerMock: SubscriptionCookieManaging {
 
     public var lastRefreshDate: Date?
 
-    public convenience init() {
-        let accountManager = AccountManagerMock()
-        let subscriptionService = DefaultSubscriptionEndpointService(currentServiceEnvironment: .production)
-        let authService = DefaultAuthEndpointService(currentServiceEnvironment: .production)
-        let storePurchaseManager = StorePurchaseManagerMock()
-        let subscriptionManager = SubscriptionManagerMock(accountManager: accountManager,
-                                                      subscriptionEndpointService: subscriptionService,
-                                                      authEndpointService: authService,
-                                                      storePurchaseManager: storePurchaseManager,
-                                                      currentEnvironment: SubscriptionEnvironment(serviceEnvironment: .production,
-                                                                                                  purchasePlatform: .appStore),
-                                                      canPurchase: true)
+//    public convenience init() {
+////        let baseURL = URL(string: "https://test.com")!
+////        let apiService = MockAPIService()
+////        let subscriptionService = DefaultSubscriptionEndpointService(apiService: apiService, baseURL: baseURL)
+////        let storePurchaseManager = StorePurchaseManagerMock()
+//        let subscriptionManager = SubscriptionManagerMock()
+//
+//        self.init(subscriptionManager: subscriptionManager,
+//                  currentCookieStore: { return nil },
+//                  eventMapping: MockSubscriptionCookieManagerEventPixelMapping())
+//    }
 
-        self.init(subscriptionManager: subscriptionManager,
-                  currentCookieStore: { return nil },
-                  eventMapping: MockSubscriptionCookieManagerEventPixelMapping())
-    }
-
-    public init(subscriptionManager: SubscriptionManager,
-                currentCookieStore: @MainActor @escaping () -> HTTPCookieStore?,
-                eventMapping: EventMapping<SubscriptionCookieManagerEvent>) {
-
-    }
+//    public init(subscriptionManager: SubscriptionManager,
+//                currentCookieStore: @MainActor @escaping () -> HTTPCookieStore?,
+//                eventMapping: EventMapping<SubscriptionCookieManagerEvent>) {
+//
+//    }
 
     public func enableSettingSubscriptionCookie() { }
     public func disableSettingSubscriptionCookie() async { }

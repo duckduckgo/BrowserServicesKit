@@ -25,7 +25,9 @@ public class MockOAuthClient: OAuthClient {
     public var isUserAuthenticated: Bool = false
     public var currentTokenContainer: Networking.TokenContainer?
 
-    let missingResponseError = Networking.OAuthClientError.internalError("Missing mocked response")
+    func missingResponseError(request: String) -> Error {
+        return Networking.OAuthClientError.internalError("Missing mocked response for \(request)")
+    }
 
     public var getTokensResponse: Result<Networking.TokenContainer, Error>!
     public func getTokens(policy: Networking.TokensCachePolicy) async throws -> Networking.TokenContainer {
@@ -35,7 +37,7 @@ public class MockOAuthClient: OAuthClient {
         case .failure(let failure):
             throw failure
         case .none:
-            throw missingResponseError
+            throw missingResponseError(request: #function)
         }
     }
 
@@ -47,7 +49,7 @@ public class MockOAuthClient: OAuthClient {
         case .failure(let failure):
             throw failure
         case .none:
-            throw missingResponseError
+            throw missingResponseError(request: #function)
         }
     }
 
@@ -59,7 +61,7 @@ public class MockOAuthClient: OAuthClient {
         case .failure(let failure):
             throw failure
         case .none:
-            throw missingResponseError
+            throw missingResponseError(request: #function)
         }
     }
 
@@ -78,7 +80,7 @@ public class MockOAuthClient: OAuthClient {
         case .failure(let failure):
             throw failure
         case .none:
-            throw missingResponseError
+            throw missingResponseError(request: #function)
         }
     }
 
@@ -90,7 +92,7 @@ public class MockOAuthClient: OAuthClient {
         case .failure(let failure):
             throw failure
         case .none:
-            throw missingResponseError
+            throw missingResponseError(request: #function)
         }
     }
 
@@ -102,7 +104,7 @@ public class MockOAuthClient: OAuthClient {
         case .failure(let failure):
             throw failure
         case .none:
-            throw missingResponseError
+            throw missingResponseError(request: #function)
         }
     }
 
@@ -123,7 +125,7 @@ public class MockOAuthClient: OAuthClient {
         case .failure(let failure):
             throw failure
         case .none:
-            throw missingResponseError
+            throw missingResponseError(request: #function)
         }
     }
 

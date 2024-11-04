@@ -1,5 +1,5 @@
 //
-//  EntitlementTests.swift
+//  SubscriptionEntitlementTests.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -24,7 +24,7 @@ import SubscriptionTestingUtilities
 final class SubscriptionEntitlementTests: XCTestCase {
 
     func testEquality() throws {
-        XCTAssertEqual(SubscriptionEntitlement.dataBrokerProtection,  SubscriptionEntitlement.dataBrokerProtection)
+        XCTAssertEqual(SubscriptionEntitlement.dataBrokerProtection, SubscriptionEntitlement.dataBrokerProtection)
         XCTAssertNotEqual(SubscriptionEntitlement.dataBrokerProtection, SubscriptionEntitlement.networkProtection)
     }
 

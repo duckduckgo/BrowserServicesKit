@@ -21,7 +21,6 @@ import Common
 import os.log
 
 public protocol SubscriptionCookieManaging {
-    init(subscriptionManager: SubscriptionManager, currentCookieStore: @MainActor @escaping () -> HTTPCookieStore?, eventMapping: EventMapping<SubscriptionCookieManagerEvent>)
     func enableSettingSubscriptionCookie()
     func disableSettingSubscriptionCookie() async
 
@@ -88,17 +87,15 @@ public final class SubscriptionCookieManager: SubscriptionCookieManaging {
 
             do {
                 let accessToken = try await subscriptionManager.getTokenContainer(policy: .localValid).accessToken
-
                 Logger.subscriptionCookieManager.info("Handle .accountDidSignIn - setting cookie")
-
                 try await cookieStore.setSubscriptionCookie(for: accessToken)
                 updateLastRefreshDateToNow()
+            } catch SubscriptionCookieManagerError.failedToCreateSubscriptionCookie {
+                eventMapping.fire(.failedToSetSubscriptionCookie)
             } catch {
                 Logger.subscriptionCookieManager.error("Handle .accountDidSignIn - can't set the cookie, token is missing")
                 eventMapping.fire(.errorHandlingAccountDidSignInTokenIsMissing)
                 return
-            } catch SubscriptionCookieManagerError.failedToCreateSubscriptionCookie {
-                eventMapping.fire(.failedToSetSubscriptionCookie)
             }
         }
     }

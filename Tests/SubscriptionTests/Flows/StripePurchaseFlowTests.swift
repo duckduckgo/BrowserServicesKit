@@ -16,11 +16,11 @@
 ////  limitations under the License.
 ////
 //
-//import XCTest
-//@testable import Subscription
-//import SubscriptionTestingUtilities
+// import XCTest
+// @testable import Subscription
+// import SubscriptionTestingUtilities
 //
-//final class StripePurchaseFlowTests: XCTestCase {
+// final class StripePurchaseFlowTests: XCTestCase {
 //
 //    private struct Constants {
 //        static let authToken = UUID().uuidString
@@ -250,4 +250,4 @@
 //        XCTAssertEqual(accountManager.accessToken, Constants.accessToken)
 //        XCTAssertEqual(accountManager.externalID, Constants.externalID)
 //    }
-//}
+// }

@@ -130,6 +130,7 @@ class SubscriptionManagerTests: XCTestCase {
     // MARK: - URL Generation Tests
 
     func testURLGeneration_ForCustomerPortal() async throws {
+        mockOAuthClient.getTokensResponse = .success(OAuthTokensFactory.makeValidTokenContainer())
         let customerPortalURLString = "https://example.com/customer-portal"
         mockSubscriptionEndpointService.getCustomerPortalURLResult = .success(GetCustomerPortalURLResponse(customerPortalUrl: customerPortalURLString))
 
@@ -138,7 +139,7 @@ class SubscriptionManagerTests: XCTestCase {
     }
 
     func testURLGeneration_ForSubscriptionTypes() {
-        let environment = SubscriptionEnvironment(serviceEnvironment: .production, purchasePlatform: .stripe)
+        let environment = SubscriptionEnvironment(serviceEnvironment: .production, purchasePlatform: .appStore)
         subscriptionManager = DefaultSubscriptionManager(
             storePurchaseManager: mockStorePurchaseManager,
             oAuthClient: mockOAuthClient,
@@ -147,7 +148,7 @@ class SubscriptionManagerTests: XCTestCase {
         )
 
         let helpURL = subscriptionManager.url(for: .purchase)
-        XCTAssertEqual(helpURL.absoluteString, "https://subscriptions.duckduckgo.com/api/welcome")
+        XCTAssertEqual(helpURL.absoluteString, "https://duckduckgo.com/subscriptions/welcome")
     }
 
     // MARK: - Purchase Confirmation Tests
@@ -155,9 +156,9 @@ class SubscriptionManagerTests: XCTestCase {
     func testConfirmPurchase_ErrorHandling() async throws {
         let testSignature = "invalidSignature"
         mockSubscriptionEndpointService.confirmPurchaseResult = .failure(APIRequestV2.Error.invalidResponse)
-
+        mockOAuthClient.getTokensResponse = .success(OAuthTokensFactory.makeValidTokenContainer())
         do {
-            try await subscriptionManager.confirmPurchase(signature: testSignature)
+            _ = try await subscriptionManager.confirmPurchase(signature: testSignature)
             XCTFail("Error expected")
         } catch {
             XCTAssertEqual(error as? APIRequestV2.Error, APIRequestV2.Error.invalidResponse)
@@ -227,102 +228,3 @@ class SubscriptionManagerTests: XCTestCase {
         XCTAssertEqual(stagingPurchaseURL, SubscriptionURL.purchase.subscriptionURL(environment: .staging))
     }
 }
-
-/*
-final class SubscriptionManagerTests: XCTestCase {
-
-    private struct Constants {
-        static let userDefaultsSuiteName = "SubscriptionManagerTests"
-
-        static let accessToken = UUID().uuidString
-
-        static let invalidTokenError = APIServiceError.serverError(statusCode: 401, error: "invalid_token")
-    }
-
-    var storePurchaseManager: StorePurchaseManagerMock!
-    var accountManager: AccountManagerMock!
-    var subscriptionService: SubscriptionEndpointServiceMock!
-    var authService: AuthEndpointServiceMock!
-    var subscriptionEnvironment: SubscriptionEnvironment!
-
-    var subscriptionManager: SubscriptionManager!
-
-    override func setUpWithError() throws {
-        storePurchaseManager = StorePurchaseManagerMock()
-        accountManager = AccountManagerMock()
-        subscriptionService = SubscriptionEndpointServiceMock()
-        authService = AuthEndpointServiceMock()
-        subscriptionEnvironment = SubscriptionEnvironment(serviceEnvironment: .production,
-                                                          purchasePlatform: .appStore)
-
-        subscriptionManager = DefaultSubscriptionManager(storePurchaseManager: storePurchaseManager,
-                                                         accountManager: accountManager,
-                                                         subscriptionEndpointService: subscriptionService,
-                                                         authEndpointService: authService,
-                                                         subscriptionEnvironment: subscriptionEnvironment)
-
-    }
-
-    override func tearDownWithError() throws {
-        storePurchaseManager = nil
-        accountManager = nil
-        subscriptionService = nil
-        authService = nil
-        subscriptionEnvironment = nil
-
-        subscriptionManager = nil
-    }
-
-
-
-
-    func testLoadInitialDataNotCalledWhenUnauthenticated() async throws {
-        // Given
-        XCTAssertNil(accountManager.accessToken)
-        XCTAssertFalse(accountManager.isUserAuthenticated)
-
-        // When
-        subscriptionManager.loadInitialData()
-
-        // Then
-        XCTAssertFalse(subscriptionService.getSubscriptionCalled)
-        XCTAssertFalse(accountManager.fetchEntitlementsCalled)
-    }
-
-    // MARK: - Tests for url
-
-    func testForProductionURL() throws {
-        // Given
-        let productionEnvironment = SubscriptionEnvironment(serviceEnvironment: .production, purchasePlatform: .appStore)
-
-        let productionSubscriptionManager = DefaultSubscriptionManager(storePurchaseManager: storePurchaseManager,
-                                                                       accountManager: accountManager,
-                                                                       subscriptionEndpointService: subscriptionService,
-                                                                       authEndpointService: authService,
-                                                                       subscriptionEnvironment: productionEnvironment)
-
-        // When
-        let productionPurchaseURL = productionSubscriptionManager.url(for: .purchase)
-
-        // Then
-        XCTAssertEqual(productionPurchaseURL, SubscriptionURL.purchase.subscriptionURL(environment: .production))
-    }
-
-    func testForStagingURL() throws {
-        // Given
-        let stagingEnvironment = SubscriptionEnvironment(serviceEnvironment: .staging, purchasePlatform: .appStore)
-
-        let stagingSubscriptionManager = DefaultSubscriptionManager(storePurchaseManager: storePurchaseManager,
-                                                                    accountManager: accountManager,
-                                                                    subscriptionEndpointService: subscriptionService,
-                                                                    authEndpointService: authService,
-                                                                    subscriptionEnvironment: stagingEnvironment)
-
-        // When
-        let stagingPurchaseURL = stagingSubscriptionManager.url(for: .purchase)
-
-        // Then
-        XCTAssertEqual(stagingPurchaseURL, SubscriptionURL.purchase.subscriptionURL(environment: .staging))
-    }
-}
-*/

@@ -19,6 +19,32 @@
 import Foundation
 import JWTKit
 
+/// Container for both access and refresh tokens
+///
+/// WARNING: Specialised for Privacy Pro Subscription, abstract for other use cases.
+///
+/// This is the object that should be stored in the keychain and used to make authenticated requests
+/// The decoded tokens are used to determine the user's entitlements
+/// The access token is used to make authenticated requests
+/// The refresh token is used to get a new access token when the current one expires
+public struct TokenContainer: Codable, Equatable, CustomDebugStringConvertible {
+    public let accessToken: String
+    public let refreshToken: String
+    public let decodedAccessToken: JWTAccessToken
+    public let decodedRefreshToken: JWTRefreshToken
+
+    public static func == (lhs: TokenContainer, rhs: TokenContainer) -> Bool {
+        lhs.accessToken == rhs.accessToken && lhs.refreshToken == rhs.refreshToken
+    }
+
+    public var debugDescription: String {
+        """
+        Access Token: \(decodedAccessToken)
+        Refresh Token: \(decodedRefreshToken)
+        """
+    }
+}
+
 public enum TokenPayloadError: Error {
     case invalidTokenScope
 }
@@ -54,6 +80,24 @@ public struct JWTAccessToken: JWTPayload {
     public var externalID: String {
         sub.value
     }
+
+#if DEBUG
+    static var mock: Self {
+        let now = Date()
+        return JWTAccessToken(exp: ExpirationClaim(value: now.addingTimeInterval(3600)),
+                              iat: IssuedAtClaim(value: now),
+                              sub: SubjectClaim(value: "test-subject"),
+                              aud: AudienceClaim(value: ["PrivacyPro"]),
+                              iss: IssuerClaim(value: "test-issuer"),
+                              jti: IDClaim(value: "test-id"),
+                              scope: "privacypro",
+                              api: "v2",
+                              email: nil,
+                              entitlements: [EntitlementPayload(product: .networkProtection, name: "subscriber"),
+                                             EntitlementPayload(product: .dataBrokerProtection, name: "subscriber"),
+                                             EntitlementPayload(product: .identityTheftRestoration, name: "subscriber")])
+    }
+#endif
 }
 
 public struct JWTRefreshToken: JWTPayload {
@@ -72,6 +116,20 @@ public struct JWTRefreshToken: JWTPayload {
             throw TokenPayloadError.invalidTokenScope
         }
     }
+
+#if DEBUG
+    static var mock: Self {
+        let now = Date()
+        return JWTRefreshToken(exp: ExpirationClaim(value: now.addingTimeInterval(3600)),
+                               iat: IssuedAtClaim(value: now),
+                               sub: SubjectClaim(value: "test-subject"),
+                               aud: AudienceClaim(value: ["PrivacyPro"]),
+                               iss: IssuerClaim(value: "test-issuer"),
+                               jti: IDClaim(value: "test-id"),
+                               scope: "privacypro",
+                               api: "v2")
+    }
+#endif
 }
 
 public enum SubscriptionEntitlement: String, Codable {
@@ -88,24 +146,6 @@ public enum SubscriptionEntitlement: String, Codable {
 public struct EntitlementPayload: Codable {
     public let product: SubscriptionEntitlement // Can expand in future
     public let name: String // always `subscriber`
-}
-
-public struct TokenContainer: Codable, Equatable, CustomDebugStringConvertible {
-    public let accessToken: String
-    public let refreshToken: String
-    public let decodedAccessToken: JWTAccessToken
-    public let decodedRefreshToken: JWTRefreshToken
-
-    public static func == (lhs: TokenContainer, rhs: TokenContainer) -> Bool {
-        lhs.accessToken == rhs.accessToken && lhs.refreshToken == rhs.refreshToken
-    }
-
-    public var debugDescription: String {
-        """
-        Access Token: \(decodedAccessToken)
-        Refresh Token: \(decodedRefreshToken)
-        """
-    }
 }
 
 public extension JWTAccessToken {

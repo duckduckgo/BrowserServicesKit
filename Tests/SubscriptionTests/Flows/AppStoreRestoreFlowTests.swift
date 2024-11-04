@@ -16,11 +16,11 @@
 ////  limitations under the License.
 ////
 //
-//import XCTest
-//@testable import Subscription
-//import SubscriptionTestingUtilities
+// import XCTest
+// @testable import Subscription
+// import SubscriptionTestingUtilities
 //
-//final class AppStoreRestoreFlowTests: XCTestCase {
+// final class AppStoreRestoreFlowTests: XCTestCase {
 //
 //    private struct Constants {
 //        static let authToken = UUID().uuidString
@@ -329,4 +329,4 @@
 //            XCTAssertFalse(accountManager.isUserAuthenticated)
 //        }
 //    }
-//}
+// }

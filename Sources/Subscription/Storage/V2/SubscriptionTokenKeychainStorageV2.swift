@@ -69,7 +69,7 @@ public final class SubscriptionTokenKeychainStorageV2: TokenStoring {
 }
 
 extension SubscriptionTokenKeychainStorageV2 {
-    
+
     /*
      Uses just kSecAttrService as the primary key, since we don't want to store
      multiple accounts/tokens at the same time

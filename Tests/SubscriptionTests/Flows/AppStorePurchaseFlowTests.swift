@@ -16,11 +16,11 @@
 ////  limitations under the License.
 ////
 //
-//import XCTest
-//@testable import Subscription
-//import SubscriptionTestingUtilities
+// import XCTest
+// @testable import Subscription
+// import SubscriptionTestingUtilities
 //
-//final class AppStorePurchaseFlowTests: XCTestCase {
+// final class AppStorePurchaseFlowTests: XCTestCase {
 //
 //    private struct Constants {
 //        static let authToken = UUID().uuidString
@@ -289,4 +289,4 @@
 //            XCTAssertEqual(error, .missingEntitlements)
 //        }
 //    }
-//}
+// }

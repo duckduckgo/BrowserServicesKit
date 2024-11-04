@@ -246,8 +246,6 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
     }
 }
 
-
-
 /*
 final class SubscriptionEndpointServiceTests: XCTestCase {
 

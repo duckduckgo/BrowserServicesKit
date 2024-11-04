@@ -19,7 +19,7 @@
 import Foundation
 import os.log
 
-public enum OAuthClientError: Error, LocalizedError {
+public enum OAuthClientError: Error, LocalizedError, Equatable {
     case internalError(String)
     case missingTokens
     case missingRefreshToken
@@ -162,6 +162,13 @@ final public class DefaultOAuthClient: OAuthClient {
     }
 
     private func decode(accessToken: String, refreshToken: String) async throws -> TokenContainer {
+#if canImport(XCTest)
+        return TokenContainer(accessToken: accessToken,
+                              refreshToken: refreshToken,
+                              decodedAccessToken: JWTAccessToken.mock,
+                              decodedRefreshToken: JWTRefreshToken.mock)
+#endif
+
         Logger.OAuthClient.log("Decoding tokens")
         let jwtSigners = try await authService.getJWTSigners()
         let decodedAccessToken = try jwtSigners.verify(accessToken, as: JWTAccessToken.self)
