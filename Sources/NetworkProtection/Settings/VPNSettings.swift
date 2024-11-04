@@ -272,6 +272,16 @@ public final class VPNSettings {
 
     // MARK: - Enforce Routes
 
+    public var enforceRoutesForceEnabledOnce: Bool {
+        get {
+            defaults.networkProtectionSettingEnforceRoutesForceEnabledOnce
+        }
+
+        set {
+            defaults.networkProtectionSettingEnforceRoutesForceEnabledOnce = newValue
+        }
+    }
+
     public var enforceRoutesPublisher: AnyPublisher<Bool, Never> {
         defaults.networkProtectionSettingEnforceRoutesPublisher
     }
