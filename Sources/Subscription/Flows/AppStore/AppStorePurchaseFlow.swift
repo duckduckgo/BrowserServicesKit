@@ -21,7 +21,7 @@ import StoreKit
 import os.log
 import Networking
 
-public enum AppStorePurchaseFlowError: Swift.Error {
+public enum AppStorePurchaseFlowError: Swift.Error, Equatable {
     case noProductsFound
     case activeSubscriptionAlreadyPresent
     case authenticatingWithTransactionFailed
@@ -30,6 +30,24 @@ public enum AppStorePurchaseFlowError: Swift.Error {
     case cancelledByUser
     case missingEntitlements
     case internalError
+
+    public static func == (lhs: AppStorePurchaseFlowError, rhs: AppStorePurchaseFlowError) -> Bool {
+        switch (lhs, rhs) {
+        case (.noProductsFound, .noProductsFound),
+            (.activeSubscriptionAlreadyPresent, .activeSubscriptionAlreadyPresent),
+            (.authenticatingWithTransactionFailed, .authenticatingWithTransactionFailed),
+            (.cancelledByUser, .cancelledByUser),
+            (.missingEntitlements, .missingEntitlements),
+            (.internalError, .internalError):
+            return true
+        case let (.accountCreationFailed(lhsError), .accountCreationFailed(rhsError)):
+            return lhsError.localizedDescription == rhsError.localizedDescription
+        case let (.purchaseFailed(lhsError), .purchaseFailed(rhsError)):
+            return lhsError.localizedDescription == rhsError.localizedDescription
+        default:
+            return false
+        }
+    }
 }
 
 @available(macOS 12.0, iOS 15.0, *)
@@ -42,17 +60,14 @@ public protocol AppStorePurchaseFlow {
 @available(macOS 12.0, iOS 15.0, *)
 public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
     private let subscriptionManager: any SubscriptionManager
-//    private let subscriptionEndpointService: SubscriptionEndpointService
     private let storePurchaseManager: StorePurchaseManager
     private let appStoreRestoreFlow: AppStoreRestoreFlow
 
     public init(subscriptionManager: any SubscriptionManager,
-//                subscriptionEndpointService: any SubscriptionEndpointService,
                 storePurchaseManager: any StorePurchaseManager,
                 appStoreRestoreFlow: any AppStoreRestoreFlow
     ) {
         self.subscriptionManager = subscriptionManager
-//        self.subscriptionEndpointService = subscriptionEndpointService
         self.storePurchaseManager = storePurchaseManager
         self.appStoreRestoreFlow = appStoreRestoreFlow
     }

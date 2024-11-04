@@ -46,7 +46,7 @@ public final class SubscriptionManagerMock: SubscriptionManager {
     public var resultSubscription: Subscription.PrivacyProSubscription?
     public func currentSubscription(refresh: Bool) async throws -> Subscription.PrivacyProSubscription {
         guard let resultSubscription else {
-            throw OAuthClientError.missingTokens
+            throw SubscriptionEndpointServiceError.noData
         }
         return resultSubscription
     }
@@ -116,7 +116,13 @@ public final class SubscriptionManagerMock: SubscriptionManager {
 
     }
 
+    public var confirmPurchaseResponse: Result<Subscription.PrivacyProSubscription, Error>?
     public func confirmPurchase(signature: String) async throws -> Subscription.PrivacyProSubscription {
-        throw OAuthClientError.missingTokens
+        switch confirmPurchaseResponse! {
+        case .success(let result):
+            return result
+        case .failure(let error):
+            throw error
+        }
     }
 }

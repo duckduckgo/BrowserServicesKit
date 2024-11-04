@@ -39,7 +39,7 @@ public enum OAuthServiceError: Error, LocalizedError, Equatable {
             "The API response is missing \(value)"
         }
     }
-    
+
     public static func == (lhs: OAuthServiceError, rhs: OAuthServiceError) -> Bool {
         switch (lhs, rhs) {
         case (.authAPIError(let lhsCode), .authAPIError(let rhsCode)):
