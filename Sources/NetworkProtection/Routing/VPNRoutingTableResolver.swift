@@ -43,73 +43,25 @@ struct VPNRoutingTableResolver {
     }
 
     var excludedRoutes: [IPAddressRange] {
-        var routes = alwaysExcludedIPv4Ranges + alwaysExcludedIPv6Ranges + serverRoutes()
+        var ranges = VPNRoutingRange.alwaysExcludedIPv4Range + VPNRoutingRange.alwaysExcludedIPv6Range + serverRoutes()
 
         if excludeLocalNetworks {
             Logger.networkProtection.log("🤌 Excluding local networks")
-            routes += localNetworkRanges
+            ranges += VPNRoutingRange.localNetworkRange
         }
 
-        return routes
+        return ranges
     }
 
     var includedRoutes: [IPAddressRange] {
-        var routes = publicNetworkRanges + dnsRoutes()
+        var routes = VPNRoutingRange.publicNetworkRange + dnsRoutes()
 
         if !excludeLocalNetworks {
             Logger.networkProtection.log("🤌 Including local networks")
-            routes += localNetworkRanges
+            routes += VPNRoutingRange.localNetworkRange
         }
 
         return routes
-    }
-
-    // MARK: - Convenience
-
-    private var alwaysExcludedIPv4Ranges: [IPAddressRange] {
-        RoutingRange.alwaysExcludedIPv4Ranges.compactMap { entry in
-            switch entry {
-            case .section:
-                return nil
-            case .range(let range, _):
-                return range
-            }
-        }
-    }
-
-    private var alwaysExcludedIPv6Ranges: [IPAddressRange] {
-        RoutingRange.alwaysExcludedIPv6Ranges.compactMap { entry in
-            switch entry {
-            case .section:
-                return nil
-            case .range(let range, _):
-                return range
-            }
-        }
-    }
-
-    private var localNetworkRanges: [IPAddressRange] {
-        RoutingRange.localNetworkRanges.compactMap { entry in
-            switch entry {
-            case .section:
-                // Nothing to map
-                return nil
-            case .range(let range, _):
-                return range
-            }
-        }
-    }
-
-    private var publicNetworkRanges: [IPAddressRange] {
-        RoutingRange.publicNetworkRanges.compactMap { entry in
-            switch entry {
-            case .section:
-                // Nothing to map
-                return nil
-            case .range(let range, _):
-                return range
-            }
-        }
     }
 
     // MARK: - Dynamic routes
