@@ -153,6 +153,7 @@ public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {
     case isLaunchedOverride
     case isLaunchedOverrideStripe
     case useUnifiedFeedback
+    case setAccessTokenCookieForSubscriptionDomains
 }
 
 public enum SslCertificatesSubfeature: String, PrivacySubfeature {
