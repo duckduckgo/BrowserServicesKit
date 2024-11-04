@@ -419,7 +419,7 @@ public final class VPNSettings {
     }
 
     // MARK: - Routes
-
+/*
     public var excludedRoutes: [RoutingRange] {
         var ipv4Ranges = RoutingRange.alwaysExcludedIPv4Ranges
 
@@ -462,7 +462,7 @@ public final class VPNSettings {
                 return range
             }
         }
-    }
+    }*/
 
     // MARK: - Disable Rekeying
 

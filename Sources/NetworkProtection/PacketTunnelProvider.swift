@@ -769,13 +769,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private func startTunnel(onDemand: Bool) async throws {
         do {
             Logger.networkProtection.log("Generating tunnel config")
-            Logger.networkProtection.log("Excluded ranges are: \(String(describing: self.settings.excludedRanges), privacy: .public)")
             Logger.networkProtection.log("Server selection method: \(self.currentServerSelectionMethod.debugDescription, privacy: .public)")
             Logger.networkProtection.log("DNS server: \(String(describing: self.settings.dnsSettings), privacy: .public)")
             let tunnelConfiguration = try await generateTunnelConfiguration(
                 serverSelectionMethod: currentServerSelectionMethod,
-                includedRoutes: settings.includedRanges,
-                excludedRoutes: settings.excludedRanges,
                 dnsSettings: settings.dnsSettings,
                 regenerateKey: true)
 
@@ -945,8 +942,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             case .selectServer(let serverSelectionMethod):
                 tunnelConfiguration = try await generateTunnelConfiguration(
                     serverSelectionMethod: serverSelectionMethod,
-                    includedRoutes: settings.includedRanges,
-                    excludedRoutes: settings.excludedRanges,
                     dnsSettings: settings.dnsSettings,
                     regenerateKey: regenerateKey)
 
@@ -1000,8 +995,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     @MainActor
     private func generateTunnelConfiguration(serverSelectionMethod: NetworkProtectionServerSelectionMethod,
-                                             includedRoutes: [IPAddressRange],
-                                             excludedRoutes: [IPAddressRange],
                                              dnsSettings: NetworkProtectionDNSSettings,
                                              regenerateKey: Bool) async throws -> TunnelConfiguration {
 
@@ -1012,10 +1005,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             configurationResult = try await deviceManager.generateTunnelConfiguration(
                 resolvedSelectionMethod: resolvedServerSelectionMethod,
                 excludeLocalNetworks: settings.excludeLocalNetworks,
-                includedRoutes: includedRoutes,
-                excludedRoutes: excludedRoutes,
                 dnsSettings: dnsSettings,
-                isKillSwitchEnabled: isKillSwitchEnabled,
                 regenerateKey: regenerateKey
             )
         } catch {
@@ -1030,7 +1020,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         self.lastSelectedServer = newSelectedServer
 
         Logger.networkProtection.log("⚪️ Generated tunnel configuration for server at location: \(newSelectedServer.serverInfo.serverLocation, privacy: .public) (preferred server is \(newSelectedServer.serverInfo.name, privacy: .public))")
-        Logger.networkProtection.log("Excluded routes: \(String(describing: excludedRoutes), privacy: .public)")
 
         return configurationResult.tunnelConfiguration
     }
@@ -1226,8 +1215,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private func handleRestartAdapter() async throws {
         let tunnelConfiguration = try await generateTunnelConfiguration(
             serverSelectionMethod: currentServerSelectionMethod,
-            includedRoutes: settings.includedRanges,
-            excludedRoutes: settings.excludedRanges,
             dnsSettings: settings.dnsSettings,
             regenerateKey: false)
 
@@ -1470,11 +1457,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             await self.failureRecoveryHandler.attemptRecovery(
                 to: server,
                 excludeLocalNetworks: protocolConfiguration.excludeLocalNetworks,
-                includedRoutes: self.settings.includedRanges,
-                excludedRoutes: self.settings.excludedRanges,
-                dnsSettings: self.settings.dnsSettings,
-                isKillSwitchEnabled: self.isKillSwitchEnabled
-            ) { [weak self] generateConfigResult in
+                dnsSettings: self.settings.dnsSettings) { [weak self] generateConfigResult in
+
                 try await self?.handleFailureRecoveryConfigUpdate(result: generateConfigResult)
                 self?.providerEvents.fire(.failureRecoveryAttempt(.completed(.unhealthy)))
             }
