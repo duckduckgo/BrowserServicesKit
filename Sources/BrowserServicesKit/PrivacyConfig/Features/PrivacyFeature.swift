@@ -63,6 +63,7 @@ public enum PrivacyFeature: String {
     case networkProtection
     case aiChat
     case contextualOnboarding
+    case adAttributionReporting
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
