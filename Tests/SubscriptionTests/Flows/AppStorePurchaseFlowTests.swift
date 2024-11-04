@@ -106,12 +106,9 @@ final class DefaultAppStorePurchaseFlowTests: XCTestCase {
     // MARK: - completeSubscriptionPurchase Tests
 
     func test_completeSubscriptionPurchase_withActiveSubscription_returnsSuccess() async {
-        subscriptionManagerMock.resultTokenContainer = TokenContainer(accessToken: "accessToken",
-                                                                      refreshToken: "refreshToken",
-                                                                      decodedAccessToken: JWTAccessToken.mock,
-                                                                      decodedRefreshToken: JWTRefreshToken.mock)
-        subscriptionManagerMock.resultTokenContainer = OAuthTokensFactory.makeValidTokenContainer()
+        subscriptionManagerMock.resultTokenContainer = OAuthTokensFactory.makeValidTokenContainerWithEntitlements()
         subscriptionManagerMock.resultSubscription = SubscriptionMockFactory.subscription
+        subscriptionManagerMock.confirmPurchaseResponse = .success(subscriptionManagerMock.resultSubscription!)
 
         let result = await sut.completeSubscriptionPurchase(with: "transactionJWS")
 
@@ -140,11 +137,21 @@ final class DefaultAppStorePurchaseFlowTests: XCTestCase {
 
     func test_completeSubscriptionPurchase_withConfirmPurchaseError_returnsPurchaseFailedError() async {
         subscriptionManagerMock.resultSubscription = SubscriptionMockFactory.subscription
-        subscriptionManagerMock.resultTokenContainer = nil // simulating error case in confirmPurchase
+        subscriptionManagerMock.resultTokenContainer = OAuthTokensFactory.makeValidTokenContainerWithEntitlements()
+        subscriptionManagerMock.confirmPurchaseResponse = .failure(OAuthServiceError.invalidResponseCode(HTTPStatusCode.badRequest))
 
         let result = await sut.completeSubscriptionPurchase(with: "transactionJWS")
-
-        XCTAssertEqual(result, .failure(.purchaseFailed(OAuthClientError.missingTokens)))
+        switch result {
+        case .success:
+            XCTFail("Unexpected success")
+        case .failure(let error):
+            switch error {
+            case .purchaseFailed(_):
+                break
+            default:
+                XCTFail("Unexpected error: \(error)")
+            }
+        }
     }
 }
 

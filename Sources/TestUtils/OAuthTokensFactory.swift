@@ -75,6 +75,13 @@ public struct OAuthTokensFactory {
                                decodedRefreshToken: OAuthTokensFactory.makeRefreshToken(scope: "refresh"))
     }
 
+    public static func makeValidTokenContainerWithEntitlements() -> TokenContainer {
+        return TokenContainer(accessToken: "accessToken",
+                              refreshToken: "refreshToken",
+                              decodedAccessToken: JWTAccessToken.mock,
+                              decodedRefreshToken: JWTRefreshToken.mock)
+    }
+
     public static func makeExpiredTokenContainer() -> TokenContainer {
         return TokenContainer(accessToken: "accessToken",
                                refreshToken: "refreshToken",

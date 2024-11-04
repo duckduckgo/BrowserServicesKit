@@ -125,16 +125,11 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
     public func completeSubscriptionPurchase(with transactionJWS: TransactionJWS) async -> Result<PurchaseUpdate, AppStorePurchaseFlowError> {
         Logger.subscriptionAppStorePurchaseFlow.log("Completing Subscription Purchase")
 
-        // Clear subscription Cache
-//        await subscriptionManager.signOut()
         subscriptionManager.clearSubscriptionCache()
 
         do {
             let subscription = try await subscriptionManager.confirmPurchase(signature: transactionJWS)
             if subscription.isActive {
-
-                //                return await refreshTokensUntilEntitlementsAvailable() ? .success(PurchaseUpdate.completed) : .failure(.missingEntitlements)
-
                 let refreshedToken = try await subscriptionManager.getTokenContainer(policy: .localForceRefresh)
                 if refreshedToken.decodedAccessToken.entitlements.isEmpty {
                     Logger.subscriptionAppStorePurchaseFlow.error("Missing entitlements")
@@ -150,21 +145,6 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
         } catch {
             Logger.subscriptionAppStorePurchaseFlow.error("Purchase Failed: \(error)")
             return .failure(.purchaseFailed(error))
-        }
-    }
-
-    func refreshTokensUntilEntitlementsAvailable() async -> Bool {
-        // Refresh token until entitlements are available
-        return await callWithRetries(retry: 5, wait: 2.0) {
-            guard let refreshedToken = try? await subscriptionManager.getTokenContainer(policy: .localForceRefresh) else {
-                return false
-            }
-            if refreshedToken.decodedAccessToken.entitlements.isEmpty {
-                Logger.subscriptionAppStorePurchaseFlow.error("Missing entitlements")
-                return false
-            } else {
-                return true
-            }
         }
     }
 

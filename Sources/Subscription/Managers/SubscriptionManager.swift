@@ -209,23 +209,22 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
         do {
             return try await oAuthClient.getTokens(policy: policy)
         } catch OAuthClientError.deadToken {
-            return try await recoverDeadToken()
+            return try await throwAppropriateDeadTokenError()
         } catch {
             throw error
         }
     }
 
     /// If the client succeeds in making a refresh request but does not get the response, then the second refresh request will fail with `invalidTokenRequest` and the stored token will become unusable and un-refreshable.
-    /// - Returns: The recovered token container
-    private func recoverDeadToken() async throws -> TokenContainer {
-        Logger.subscription.log("Attempting to recover a dead token")
+    private func throwAppropriateDeadTokenError() async throws -> TokenContainer {
+        Logger.subscription.log("Dead token detected")
         do {
             let subscription = try await subscriptionEndpointService.getSubscription(accessToken: "some", cachePolicy: .returnCacheDataDontLoad)
             switch subscription.platform {
             case .apple:
                 Logger.subscription.log("Recovering Apple App Store subscription")
                 // TODO: how do we handle this?
-                throw SubscriptionManagerError.tokenUnavailable
+                throw OAuthClientError.deadToken
             case .stripe:
                 Logger.subscription.error("Trying to recover a Stripe subscription is unsupported")
                 throw SubscriptionManagerError.unsupportedSubscription
