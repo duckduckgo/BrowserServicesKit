@@ -62,6 +62,7 @@ public enum PrivacyFeature: String {
     case autocompleteTabs
     case networkProtection
     case aiChat
+    case contextualOnboarding
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -151,6 +152,7 @@ public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {
     case isLaunchedOverride
     case isLaunchedOverrideStripe
     case useUnifiedFeedback
+    case setAccessTokenCookieForSubscriptionDomains
 }
 
 public enum SslCertificatesSubfeature: String, PrivacySubfeature {

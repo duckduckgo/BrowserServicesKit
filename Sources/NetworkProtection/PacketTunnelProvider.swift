@@ -42,6 +42,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         case rekeyAttempt(_ step: RekeyAttemptStep)
         case failureRecoveryAttempt(_ step: FailureRecoveryStep)
         case serverMigrationAttempt(_ step: ServerMigrationAttemptStep)
+        case malformedErrorDetected(_ error: Error)
     }
 
     public enum AttemptStep: CustomDebugStringConvertible {
@@ -708,7 +709,13 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             Logger.networkProtection.error("🔴 Stopping VPN due to no auth token")
             await attemptShutdownDueToRevokedAccess()
 
-            throw error
+            // Check that the error is valid and able to be re-thrown to the OS before shutting the tunnel down
+            if let wrappedError = wrapped(error: error) {
+                providerEvents.fire(.malformedErrorDetected(error))
+                throw wrappedError
+            } else {
+                throw error
+            }
         }
 
         do {
@@ -735,7 +742,14 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             self.knownFailureStore.lastKnownFailure = KnownFailure(error)
 
             providerEvents.fire(.tunnelStartAttempt(.failure(error)))
-            throw error
+
+            // Check that the error is valid and able to be re-thrown to the OS before shutting the tunnel down
+            if let wrappedError = wrapped(error: error) {
+                providerEvents.fire(.malformedErrorDetected(error))
+                throw wrappedError
+            } else {
+                throw error
+            }
         }
     }
 
@@ -1811,6 +1825,56 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         snoozeJustEnded = true
         try? await startTunnel(onDemand: false)
         snoozeTimingStore.reset()
+    }
+
+    // MARK: - Error Validation
+
+    enum InvalidDiagnosticError: Error, CustomNSError {
+        case errorWithInvalidUnderlyingError(Error)
+
+        var errorCode: Int {
+            switch self {
+            case .errorWithInvalidUnderlyingError(let error):
+                return (error as NSError).code
+            }
+        }
+
+        var localizedDescription: String {
+            switch self {
+            case .errorWithInvalidUnderlyingError(let error):
+                return "Error '\(type(of: error))', message: \(error.localizedDescription)"
+            }
+        }
+
+        var errorUserInfo: [String: Any] {
+            switch self {
+            case .errorWithInvalidUnderlyingError(let error):
+                let newError = NSError(domain: (error as NSError).domain, code: (error as NSError).code)
+                return [NSUnderlyingErrorKey: newError]
+            }
+        }
+    }
+
+    /// Wraps an error instance in a new error type in cases where it is malformed; i.e., doesn't use an `NSError` instance for its underlying error, etc.
+    private func wrapped(error: Error) -> Error? {
+        if containsValidUnderlyingError(error) {
+            return nil
+        } else {
+            return InvalidDiagnosticError.errorWithInvalidUnderlyingError(error)
+        }
+    }
+
+    private func containsValidUnderlyingError(_ error: Error) -> Bool {
+        let nsError = error as NSError
+
+        if let underlyingError = nsError.userInfo[NSUnderlyingErrorKey] as? Error {
+            return containsValidUnderlyingError(underlyingError)
+        } else if nsError.userInfo[NSUnderlyingErrorKey] != nil {
+            // If `NSUnderlyingErrorKey` exists but is not an `Error`, return false
+            return false
+        }
+
+        return true
     }
 
 }

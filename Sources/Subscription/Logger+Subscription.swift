@@ -27,4 +27,5 @@ public extension Logger {
     static var subscriptionEndpointService = { Logger(subsystem: "Subscription", category: "EndpointService") }()
     static var subscriptionStorePurchaseManager = { Logger(subsystem: "Subscription", category: "StorePurchaseManager") }()
     static var subscriptionKeychain = { Logger(subsystem: "Subscription", category: "KeyChain") }()
+    static var subscriptionCookieManager = { Logger(subsystem: "Subscription", category: "CookieManager") }()
 }
