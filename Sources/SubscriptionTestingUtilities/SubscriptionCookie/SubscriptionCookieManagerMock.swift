@@ -48,6 +48,8 @@ public final class SubscriptionCookieManagerMock: SubscriptionCookieManaging {
 
     }
 
+    public func enableSettingSubscriptionCookie() { }
+    public func disableSettingSubscriptionCookie() async { }
     public func refreshSubscriptionCookie() async { }
     public func resetLastRefreshDate() { }
 }
