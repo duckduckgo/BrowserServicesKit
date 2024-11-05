@@ -77,6 +77,18 @@ class SubscriptionManagerTests: XCTestCase {
             status: .expired
         )
         mockSubscriptionEndpointService.getSubscriptionResult = .success(expiredSubscription)
+        let expectation = self.expectation(description: "Dead token pixel called")
+
+        subscriptionManager = DefaultSubscriptionManager(
+            storePurchaseManager: mockStorePurchaseManager,
+            oAuthClient: mockOAuthClient,
+            subscriptionEndpointService: mockSubscriptionEndpointService,
+            subscriptionEnvironment: SubscriptionEnvironment(serviceEnvironment: .staging, purchasePlatform: .stripe),
+            pixelHandler: { type in
+                XCTAssertEqual(type, .deadToken)
+                expectation.fulfill()
+            }
+        )
 
         do {
             _ = try await subscriptionManager.getTokenContainer(policy: .localValid)
@@ -84,6 +96,8 @@ class SubscriptionManagerTests: XCTestCase {
         } catch {
             XCTAssertEqual(error as? SubscriptionManagerError, .tokenUnavailable)
         }
+
+        await fulfillment(of: [expectation], timeout: 1.0)
     }
 
     // MARK: - Subscription Status Tests

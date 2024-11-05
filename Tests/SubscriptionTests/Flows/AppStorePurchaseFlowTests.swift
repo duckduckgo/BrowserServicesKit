@@ -146,7 +146,7 @@ final class DefaultAppStorePurchaseFlowTests: XCTestCase {
             XCTFail("Unexpected success")
         case .failure(let error):
             switch error {
-            case .purchaseFailed(_):
+            case .purchaseFailed:
                 break
             default:
                 XCTFail("Unexpected error: \(error)")

@@ -183,9 +183,6 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
     }
 
     private func recoverSubscriptionFromDeadToken() async -> String? {
-
-        // TODO: SEND PIXEL
-
         Logger.subscriptionAppStorePurchaseFlow.log("Recovering Subscription From Dead Token")
 
         // Clear everything, the token is unrecoverable
