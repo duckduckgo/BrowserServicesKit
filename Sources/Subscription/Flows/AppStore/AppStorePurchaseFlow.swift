@@ -91,6 +91,12 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
                 do {
                     let newAccountExternalID = try await subscriptionManager.getTokenContainer(policy: .createIfNeeded).decodedAccessToken.externalID
                     externalID = newAccountExternalID
+                } catch OAuthClientError.deadToken {
+                    if let transactionJWS = await recoverSubscriptionFromDeadToken() {
+                        return .success(transactionJWS)
+                    } else {
+                        return .failure(.purchaseFailed(OAuthClientError.deadToken))
+                    }
                 } catch {
                     Logger.subscriptionStripePurchaseFlow.error("Failed to create a new account: \(error.localizedDescription, privacy: .public), the operation is unrecoverable")
                     return .failure(.internalError)
@@ -142,28 +148,17 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
                 // Removing all traces of the subscription and the account
                 return .failure(.purchaseFailed(AppStoreRestoreFlowError.subscriptionExpired))
             }
+        } catch OAuthClientError.deadToken {
+            let transactionJWS = await recoverSubscriptionFromDeadToken()
+            if transactionJWS != nil {
+                return .success(PurchaseUpdate.completed)
+            } else {
+                return .failure(.purchaseFailed(OAuthClientError.deadToken))
+            }
         } catch {
             Logger.subscriptionAppStorePurchaseFlow.error("Purchase Failed: \(error)")
             return .failure(.purchaseFailed(error))
         }
-    }
-
-    private func callWithRetries(retry retryCount: Int, wait waitTime: Double, conditionToCheck: () async -> Bool) async -> Bool {
-        var count = 0
-        var successful = false
-
-        repeat {
-            successful = await conditionToCheck()
-
-            if successful {
-                break
-            } else {
-                count += 1
-                try? await Task.sleep(interval: waitTime)
-            }
-        } while !successful && count < retryCount
-
-        return successful
     }
 
     private func getExpiredSubscriptionID() async -> String? {
@@ -172,10 +167,36 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
             // Only return an externalID if the subscription is expired so to prevent creating multiple subscriptions in the same account
             if !subscription.isActive,
                subscription.platform != .apple {
-                return try? await subscriptionManager.getTokenContainer(policy: .localValid).decodedAccessToken.externalID
+                return try await subscriptionManager.getTokenContainer(policy: .localValid).decodedAccessToken.externalID
             }
             return nil
+        } catch OAuthClientError.deadToken {
+            let transactionJWS = await recoverSubscriptionFromDeadToken()
+            if transactionJWS != nil {
+                return try? await subscriptionManager.getTokenContainer(policy: .localValid).decodedAccessToken.externalID
+            } else {
+                return nil
+            }
         } catch {
+            return nil
+        }
+    }
+
+    private func recoverSubscriptionFromDeadToken() async -> String? {
+
+        // TODO: SEND PIXEL
+
+        Logger.subscriptionAppStorePurchaseFlow.log("Recovering Subscription From Dead Token")
+
+        // Clear everything, the token is unrecoverable
+        await subscriptionManager.signOut()
+
+        switch await appStoreRestoreFlow.restoreAccountFromPastPurchase() {
+        case .success(let transactionJWS):
+            Logger.subscriptionAppStorePurchaseFlow.log("Subscription recovered")
+            return transactionJWS
+        case .failure(let error):
+            Logger.subscriptionAppStorePurchaseFlow.log("Failed to recover Apple subscription: \(error.localizedDescription, privacy: .public)")
             return nil
         }
     }

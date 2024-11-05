@@ -40,7 +40,8 @@ class SubscriptionManagerTests: XCTestCase {
             storePurchaseManager: mockStorePurchaseManager,
             oAuthClient: mockOAuthClient,
             subscriptionEndpointService: mockSubscriptionEndpointService,
-            subscriptionEnvironment: SubscriptionEnvironment(serviceEnvironment: .staging, purchasePlatform: .stripe)
+            subscriptionEnvironment: SubscriptionEnvironment(serviceEnvironment: .staging, purchasePlatform: .stripe),
+            pixelHandler: { _ in }
         )
     }
 
@@ -144,7 +145,8 @@ class SubscriptionManagerTests: XCTestCase {
             storePurchaseManager: mockStorePurchaseManager,
             oAuthClient: mockOAuthClient,
             subscriptionEndpointService: mockSubscriptionEndpointService,
-            subscriptionEnvironment: environment
+            subscriptionEnvironment: environment,
+            pixelHandler: { _ in }
         )
 
         let helpURL = subscriptionManager.url(for: .purchase)
@@ -200,7 +202,8 @@ class SubscriptionManagerTests: XCTestCase {
             storePurchaseManager: mockStorePurchaseManager,
             oAuthClient: mockOAuthClient,
             subscriptionEndpointService: mockSubscriptionEndpointService,
-            subscriptionEnvironment: productionEnvironment
+            subscriptionEnvironment: productionEnvironment,
+            pixelHandler: { _ in }
         )
 
         // When
@@ -218,7 +221,8 @@ class SubscriptionManagerTests: XCTestCase {
             storePurchaseManager: mockStorePurchaseManager,
             oAuthClient: mockOAuthClient,
             subscriptionEndpointService: mockSubscriptionEndpointService,
-            subscriptionEnvironment: stagingEnvironment
+            subscriptionEnvironment: stagingEnvironment,
+            pixelHandler: { _ in }
         )
 
         // When

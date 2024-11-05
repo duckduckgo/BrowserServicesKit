@@ -21,10 +21,13 @@ import Common
 import os.log
 import Networking
 
-enum SubscriptionManagerError: Error {
-    case unsupportedSubscription
+public enum SubscriptionManagerError: Error {
     case tokenUnavailable
     case confirmationHasInvalidSubscription
+}
+
+public enum SubscriptionPixelType {
+    case deadToken
 }
 
 public protocol SubscriptionManager {
@@ -42,7 +45,6 @@ public protocol SubscriptionManager {
     func currentSubscription(refresh: Bool) async throws -> PrivacyProSubscription
     func getSubscriptionFrom(lastTransactionJWSRepresentation: String) async throws -> PrivacyProSubscription
     var canPurchase: Bool { get }
-    func clearSubscriptionCache()
 
     @available(macOS 12.0, iOS 15.0, *) func storePurchaseManager() -> StorePurchaseManager
     func url(for type: SubscriptionURL) -> URL
@@ -54,14 +56,26 @@ public protocol SubscriptionManager {
     var userEmail: String? { get }
     var entitlements: [SubscriptionEntitlement] { get }
 
+    /// Get a token container accordingly to the policy
+    /// - Parameter policy: The policy that will be used to get the token, it effects the tokens source and validity
+    /// - Returns: The TokenContainer
+    /// - Throws: OAuthClientError.deadToken if the token is unrecoverable. SubscriptionEndpointServiceError.noData if the token is not available.
     @discardableResult func getTokenContainer(policy: TokensCachePolicy) async throws -> TokenContainer
+
     func getTokenContainerSynchronously(policy: TokensCachePolicy) -> TokenContainer?
     func exchange(tokenV1: String) async throws -> TokenContainer
 
-//    func signOut(skipNotification: Bool)
+    /// Sign out the user and clear all the tokens and subscription cache
     func signOut() async
+    func signOut(skipNotification: Bool) async
 
+    func clearSubscriptionCache()
+
+    /// Confirm a purchase with a platform signature
     func confirmPurchase(signature: String) async throws -> PrivacyProSubscription
+
+    // Pixels
+    typealias PixelHandler = (SubscriptionPixelType) -> Void
 }
 
 /// Single entry point for everything related to Subscription. This manager is disposable, every time something related to the environment changes this need to be recreated.
@@ -70,18 +84,20 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     private let oAuthClient: any OAuthClient
     private let _storePurchaseManager: StorePurchaseManager?
     private let subscriptionEndpointService: SubscriptionEndpointService
-
+    private let pixelHandler: PixelHandler
     public let currentEnvironment: SubscriptionEnvironment
     public private(set) var canPurchase: Bool = false
 
     public init(storePurchaseManager: StorePurchaseManager? = nil,
                 oAuthClient: any OAuthClient,
                 subscriptionEndpointService: SubscriptionEndpointService,
-                subscriptionEnvironment: SubscriptionEnvironment) {
+                subscriptionEnvironment: SubscriptionEnvironment,
+                pixelHandler: @escaping PixelHandler) {
         self._storePurchaseManager = storePurchaseManager
         self.oAuthClient = oAuthClient
         self.subscriptionEndpointService = subscriptionEndpointService
         self.currentEnvironment = subscriptionEnvironment
+        self.pixelHandler = pixelHandler
         switch currentEnvironment.purchasePlatform {
         case .appStore:
             if #available(macOS 12.0, iOS 15.0, *) {
@@ -217,19 +233,16 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
 
     /// If the client succeeds in making a refresh request but does not get the response, then the second refresh request will fail with `invalidTokenRequest` and the stored token will become unusable and un-refreshable.
     private func throwAppropriateDeadTokenError() async throws -> TokenContainer {
-        Logger.subscription.log("Dead token detected")
+        Logger.subscription.warning("Dead token detected")
         do {
-            let subscription = try await subscriptionEndpointService.getSubscription(accessToken: "some", cachePolicy: .returnCacheDataDontLoad)
+            let subscription = try await subscriptionEndpointService.getSubscription(accessToken: "", // Token is unused
+                                                                                     cachePolicy: .returnCacheDataDontLoad)
             switch subscription.platform {
             case .apple:
-                Logger.subscription.log("Recovering Apple App Store subscription")
-                // TODO: how do we handle this?
+                pixelHandler(.deadToken)
                 throw OAuthClientError.deadToken
-            case .stripe:
-                Logger.subscription.error("Trying to recover a Stripe subscription is unsupported")
-                throw SubscriptionManagerError.unsupportedSubscription
             default:
-                throw SubscriptionManagerError.unsupportedSubscription
+                throw SubscriptionManagerError.tokenUnavailable
             }
         } catch {
             throw SubscriptionManagerError.tokenUnavailable
@@ -252,19 +265,18 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
         try await oAuthClient.exchange(accessTokenV1: tokenV1)
     }
 
-//    public func signOut(skipNotification: Bool = false) {
-//        Task {
-//            await signOut()
-//            if !skipNotification {
-//                NotificationCenter.default.post(name: .accountDidSignOut, object: self, userInfo: nil)
-//            }
-//        }
-//    }
-
     public func signOut() async {
         Logger.subscription.log("Removing all traces of the subscription and auth tokens")
         try? await oAuthClient.logout()
         subscriptionEndpointService.clearSubscription()
+        NotificationCenter.default.post(name: .accountDidSignOut, object: self, userInfo: nil)
+    }
+
+    public func signOut(skipNotification: Bool) async {
+        await signOut()
+        if !skipNotification {
+            NotificationCenter.default.post(name: .accountDidSignOut, object: self, userInfo: nil)
+        }
     }
 
     public func confirmPurchase(signature: String) async throws -> PrivacyProSubscription {

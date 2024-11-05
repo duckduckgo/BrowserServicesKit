@@ -161,15 +161,18 @@ final public class DefaultOAuthClient: OAuthClient {
         return (codeVerifier, codeChallenge)
     }
 
+#if DEBUG
+    internal var testingDecodedTokenContainer: TokenContainer?
+#endif
     private func decode(accessToken: String, refreshToken: String) async throws -> TokenContainer {
-#if canImport(XCTest)
-        return TokenContainer(accessToken: accessToken,
-                              refreshToken: refreshToken,
-                              decodedAccessToken: JWTAccessToken.mock,
-                              decodedRefreshToken: JWTRefreshToken.mock)
+        Logger.OAuthClient.log("Decoding tokens")
+        
+#if DEBUG
+        if let testingDecodedTokenContainer {
+            return testingDecodedTokenContainer
+        }
 #endif
 
-        Logger.OAuthClient.log("Decoding tokens")
         let jwtSigners = try await authService.getJWTSigners()
         let decodedAccessToken = try jwtSigners.verify(accessToken, as: JWTAccessToken.self)
         let decodedRefreshToken = try jwtSigners.verify(refreshToken, as: JWTRefreshToken.self)

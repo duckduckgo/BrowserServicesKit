@@ -53,7 +53,7 @@ final class DefaultAppStorePurchaseFlowTests: XCTestCase {
     // MARK: - purchaseSubscription Tests
 
     func test_purchaseSubscription_withActiveSubscriptionAlreadyPresent_returnsError() async {
-        appStoreRestoreFlowMock.restoreAccountFromPastPurchaseResult = .success(())
+        appStoreRestoreFlowMock.restoreAccountFromPastPurchaseResult = .success("someTransactionJWS")
 
         let result = await sut.purchaseSubscription(with: "testSubscriptionID")
 

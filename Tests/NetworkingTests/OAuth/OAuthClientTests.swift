@@ -23,7 +23,7 @@ import JWTKit
 
 final class OAuthClientTests: XCTestCase {
 
-    var oAuthClient: (any OAuthClient)!
+    var oAuthClient: DefaultOAuthClient!
     var mockOAuthService: MockOAuthService!
     var tokenStorage: MockTokenStorage!
     var legacyTokenStorage: MockLegacyTokenStorage!
@@ -108,6 +108,11 @@ final class OAuthClientTests: XCTestCase {
         mockOAuthService.refreshAccessTokenResponse = .success( OAuthTokensFactory.makeValidOAuthTokenResponse())
         tokenStorage.tokenContainer = OAuthTokensFactory.makeExpiredTokenContainer()
 
+        oAuthClient.testingDecodedTokenContainer = TokenContainer(accessToken: "accessToken",
+                                                                  refreshToken: "refreshToken",
+                                                                  decodedAccessToken: JWTAccessToken.mock,
+                                                                  decodedRefreshToken: JWTRefreshToken.mock)
+
         let localContainer = try await oAuthClient.getTokens(policy: .localValid)
         XCTAssertNotNil(localContainer.accessToken)
         XCTAssertNotNil(localContainer.refreshToken)
@@ -150,6 +155,11 @@ final class OAuthClientTests: XCTestCase {
         mockOAuthService.refreshAccessTokenResponse = .success( OAuthTokensFactory.makeValidOAuthTokenResponse())
         tokenStorage.tokenContainer = OAuthTokensFactory.makeExpiredTokenContainer()
 
+        oAuthClient.testingDecodedTokenContainer = TokenContainer(accessToken: "accessToken",
+                                                                  refreshToken: "refreshToken",
+                                                                  decodedAccessToken: JWTAccessToken.mock,
+                                                                  decodedRefreshToken: JWTRefreshToken.mock)
+
         let localContainer = try await oAuthClient.getTokens(policy: .localForceRefresh)
         XCTAssertNotNil(localContainer.accessToken)
         XCTAssertNotNil(localContainer.refreshToken)
@@ -189,6 +199,11 @@ final class OAuthClientTests: XCTestCase {
         mockOAuthService.authorizeResponse = .success("auth_session_id")
         mockOAuthService.createAccountResponse = .success("auth_code")
         mockOAuthService.getAccessTokenResponse = .success(OAuthTokensFactory.makeValidOAuthTokenResponse())
+
+        oAuthClient.testingDecodedTokenContainer = TokenContainer(accessToken: "accessToken",
+                                                                  refreshToken: "refreshToken",
+                                                                  decodedAccessToken: JWTAccessToken.mock,
+                                                                  decodedRefreshToken: JWTRefreshToken.mock)
 
         let tokenContainer = try await oAuthClient.getTokens(policy: .createIfNeeded)
         XCTAssertNotNil(tokenContainer.accessToken)

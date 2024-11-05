@@ -94,7 +94,7 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
             await updatePurchasedProducts()
             await updateAvailableProducts()
         } catch {
-            Logger.subscription.error("[StorePurchaseManager] Error: \(String(reflecting: error), privacy: .public) (\(error.localizedDescription, privacy: .public))")
+            Logger.subscriptionStorePurchaseManager.error("[StorePurchaseManager] Error: \(String(reflecting: error), privacy: .public) (\(error.localizedDescription, privacy: .public))")
             throw error
         }
     }
@@ -104,7 +104,7 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
         let monthly = products.first(where: { $0.subscription?.subscriptionPeriod.unit == .month && $0.subscription?.subscriptionPeriod.value == 1 })
         let yearly = products.first(where: { $0.subscription?.subscriptionPeriod.unit == .year && $0.subscription?.subscriptionPeriod.value == 1 })
         guard let monthly, let yearly else {
-            Logger.subscription.error("[AppStorePurchaseFlow] No products found")
+            Logger.subscriptionStorePurchaseManager.error("[AppStorePurchaseFlow] No products found")
             return nil
         }
 
@@ -125,23 +125,23 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
 
     @MainActor
     public func updateAvailableProducts() async {
-        Logger.subscription.log("Update available products")
+        Logger.subscriptionStorePurchaseManager.log("Update available products")
 
         do {
             let availableProducts = try await Product.products(for: productIdentifiers)
-            Logger.subscription.log("\(availableProducts.count) products available")
+            Logger.subscriptionStorePurchaseManager.log("\(availableProducts.count) products available")
 
             if self.availableProducts != availableProducts {
                 self.availableProducts = availableProducts
             }
         } catch {
-            Logger.subscription.error("Failed to fetch available products: \(String(reflecting: error), privacy: .public)")
+            Logger.subscriptionStorePurchaseManager.error("Failed to fetch available products: \(String(reflecting: error), privacy: .public)")
         }
     }
 
     @MainActor
     public func updatePurchasedProducts() async {
-        Logger.subscription.log("Update purchased products")
+        Logger.subscriptionStorePurchaseManager.log("Update purchased products")
 
         var purchasedSubscriptions: [String] = []
 
@@ -157,10 +157,10 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
                 }
             }
         } catch {
-            Logger.subscription.error("Failed to update purchased products: \(String(reflecting: error), privacy: .public)")
+            Logger.subscriptionStorePurchaseManager.error("Failed to update purchased products: \(String(reflecting: error), privacy: .public)")
         }
 
-        Logger.subscription.log("UpdatePurchasedProducts fetched \(purchasedSubscriptions.count) active subscriptions")
+        Logger.subscriptionStorePurchaseManager.log("UpdatePurchasedProducts fetched \(purchasedSubscriptions.count) active subscriptions")
 
         if self.purchasedProductIDs != purchasedSubscriptions {
             self.purchasedProductIDs = purchasedSubscriptions
@@ -194,7 +194,7 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
 
         guard let product = availableProducts.first(where: { $0.id == identifier }) else { return .failure(StorePurchaseManagerError.productNotFound) }
 
-        Logger.subscription.info("Purchasing Subscription \(product.displayName, privacy: .public) (\(externalID, privacy: .public))")
+        Logger.subscriptionStorePurchaseManager.log("Purchasing Subscription \(product.displayName, privacy: .public) (\(externalID, privacy: .public))")
 
         purchaseQueue.append(product.id)
 
@@ -203,7 +203,7 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
         if let token = UUID(uuidString: externalID) {
             options.insert(.appAccountToken(token))
         } else {
-            Logger.subscription.error("[StorePurchaseManager] Error: Failed to create UUID")
+            Logger.subscriptionStorePurchaseManager.error("Failed to create UUID from \(externalID, privacy: .public)")
             return .failure(StorePurchaseManagerError.externalIDisNotAValidUUID)
         }
 
@@ -211,11 +211,11 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
         do {
             purchaseResult = try await product.purchase(options: options)
         } catch {
-            Logger.subscription.error("[StorePurchaseManager] Error: \(String(reflecting: error), privacy: .public)")
+            Logger.subscriptionStorePurchaseManager.error("Error: \(String(reflecting: error), privacy: .public)")
             return .failure(StorePurchaseManagerError.purchaseFailed)
         }
 
-        Logger.subscriptionStorePurchaseManager.log("purchaseSubscription complete")
+        Logger.subscriptionStorePurchaseManager.log("PurchaseSubscription complete")
 
         purchaseQueue.removeAll()
 
@@ -223,7 +223,7 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
         case let .success(verificationResult):
             switch verificationResult {
             case let .verified(transaction):
-                Logger.subscriptionStorePurchaseManager.log("purchaseSubscription result: success")
+                Logger.subscriptionStorePurchaseManager.log("PurchaseSubscription result: success")
                 // Successful purchase
                 await transaction.finish()
                 await self.updatePurchasedProducts()

@@ -86,7 +86,7 @@ public final class SubscriptionCookieManager: SubscriptionCookieManaging {
             else { return }
 
             do {
-                let accessToken = try await subscriptionManager.getTokenContainer(policy: .localValid).accessToken
+                let accessToken = try await subscriptionManager.getTokenContainer(policy: .local).accessToken
                 Logger.subscriptionCookieManager.info("Handle .accountDidSignIn - setting cookie")
                 try await cookieStore.setSubscriptionCookie(for: accessToken)
                 updateLastRefreshDateToNow()
@@ -124,7 +124,7 @@ public final class SubscriptionCookieManager: SubscriptionCookieManaging {
         Logger.subscriptionCookieManager.info("Refresh subscription cookie")
         updateLastRefreshDateToNow()
 
-        let accessToken: String? = try? await subscriptionManager.getTokenContainer(policy: .localValid).accessToken
+        let accessToken: String? = try? await subscriptionManager.getTokenContainer(policy: .local).accessToken
         let subscriptionCookie = await cookieStore.fetchCurrentSubscriptionCookie()
 
         let noCookieOrWithUnexpectedValue = (accessToken ?? "") != subscriptionCookie?.value

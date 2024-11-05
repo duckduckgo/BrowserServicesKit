@@ -49,7 +49,7 @@ public enum AppStoreRestoreFlowError: LocalizedError, Equatable {
 
 @available(macOS 12.0, iOS 15.0, *)
 public protocol AppStoreRestoreFlow {
-    @discardableResult func restoreAccountFromPastPurchase() async -> Result<Void, AppStoreRestoreFlowError>
+    @discardableResult func restoreAccountFromPastPurchase() async -> Result<String, AppStoreRestoreFlowError>
 }
 
 @available(macOS 12.0, iOS 15.0, *)
@@ -64,7 +64,7 @@ public final class DefaultAppStoreRestoreFlow: AppStoreRestoreFlow {
     }
 
     @discardableResult
-    public func restoreAccountFromPastPurchase() async -> Result<Void, AppStoreRestoreFlowError> {
+    public func restoreAccountFromPastPurchase() async -> Result<String, AppStoreRestoreFlowError> {
         Logger.subscriptionAppStoreRestoreFlow.log("Restoring account from past purchase")
 
         // Clear subscription Cache
@@ -78,7 +78,7 @@ public final class DefaultAppStoreRestoreFlow: AppStoreRestoreFlow {
         do {
             let subscription = try await subscriptionManager.getSubscriptionFrom(lastTransactionJWSRepresentation: lastTransactionJWSRepresentation)
             if subscription.isActive {
-                return .success(())
+                return .success(lastTransactionJWSRepresentation)
             } else {
                 Logger.subscriptionAppStoreRestoreFlow.error("Subscription expired")
 
