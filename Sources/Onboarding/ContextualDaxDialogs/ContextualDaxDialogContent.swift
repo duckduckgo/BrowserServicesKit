@@ -40,7 +40,7 @@ public struct ContextualDaxDialogContent: View {
     public let message: NSAttributedString
     let list: [ContextualOnboardingListItem]
     let listAction: ((_ item: ContextualOnboardingListItem) -> Void)?
-    let imageName: String?
+    let customView: AnyView?
     let customActionView: AnyView?
     let orientation: Orientation
 
@@ -54,7 +54,7 @@ public struct ContextualDaxDialogContent: View {
         messageFont: Font? = nil,
         list: [ContextualOnboardingListItem] = [],
         listAction: ((_: ContextualOnboardingListItem) -> Void)? = nil,
-        imageName: String? = nil,
+        customView: AnyView? = nil,
         customActionView: AnyView? = nil
     ) {
         self.title = title
@@ -63,7 +63,7 @@ public struct ContextualDaxDialogContent: View {
         self.messageFont = messageFont
         self.list = list
         self.listAction = listAction
-        self.imageName = imageName
+        self.customView = customView
         self.customActionView = customActionView
         self.orientation = orientation
 
@@ -75,8 +75,8 @@ public struct ContextualDaxDialogContent: View {
         if !list.isEmpty {
             itemsToAnimate.append(.list)
         }
-        if imageName != nil {
-            itemsToAnimate.append(.image)
+        if customView != nil {
+            itemsToAnimate.append(.customView)
         }
         if customActionView != nil {
             itemsToAnimate.append(.button)
@@ -124,8 +124,8 @@ public struct ContextualDaxDialogContent: View {
         VStack(alignment: .leading, spacing: 16) {
             listView
                 .visibility(nonTypingAnimatableItems.contains(.list) ? .visible : .invisible)
-            imageView
-                .visibility(nonTypingAnimatableItems.contains(.image) ? .visible : .invisible)
+            extraView
+                .visibility(nonTypingAnimatableItems.contains(.customView) ? .visible : .invisible)
             actionView
                 .visibility(nonTypingAnimatableItems.contains(.button) ? .visible : .invisible)
         }
@@ -166,13 +166,9 @@ public struct ContextualDaxDialogContent: View {
     }
 
     @ViewBuilder
-    private var imageView: some View {
-        if let imageName {
-            HStack {
-                Spacer()
-                Image(imageName)
-                Spacer()
-            }
+    private var extraView: some View {
+        if let customView {
+            customView
         }
     }
 
@@ -187,7 +183,7 @@ public struct ContextualDaxDialogContent: View {
         case title
         case message
         case list
-        case image
+        case customView
         case button
     }
 }
@@ -196,7 +192,7 @@ struct NonTypingAnimatableItems: OptionSet {
     let rawValue: Int
 
     static let list = NonTypingAnimatableItems(rawValue: 1 << 0)
-    static let image = NonTypingAnimatableItems(rawValue: 1 << 1)
+    static let customView = NonTypingAnimatableItems(rawValue: 1 << 1)
     static let button = NonTypingAnimatableItems(rawValue: 1 << 2)
 }
 
@@ -225,8 +221,8 @@ extension ContextualDaxDialogContent {
                     break
                 case .list:
                     nonTypingAnimatableItems.insert(.list)
-                case .image:
-                    nonTypingAnimatableItems.insert(.image)
+                case .customView:
+                    nonTypingAnimatableItems.insert(.customView)
                 case .button:
                     nonTypingAnimatableItems.insert(.button)
                 }
@@ -274,10 +270,18 @@ enum Metrics {
 
 #Preview("Intro Dialog - title, text, image and button") {
     let contextualText = NSMutableAttributedString(string: "Sabrina is the best\n\nBelieve me! ☝️")
+    let extraView = {
+        HStack {
+            Spacer()
+            Image("Sync-Desktop-New-128")
+            Spacer()
+        }
+    }()
+
     return ContextualDaxDialogContent(
         title: "Who is the best?",
         message: contextualText,
-        imageName: "Sync-Desktop-New-128",
+        customView: AnyView(extraView),
         customActionView: AnyView(Button("Got it!", action: {})))
     .padding()
     .preferredColorScheme(.light)
