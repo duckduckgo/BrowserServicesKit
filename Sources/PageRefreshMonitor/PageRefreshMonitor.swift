@@ -25,13 +25,9 @@ public extension Notification.Name {
 
 }
 
-public enum PageRefreshPattern: String {
+public enum PageRefreshEvent: String {
 
-    public enum Key {
-
-        public static let pattern = "com.duckduckgo.com.pageRefreshPattern.key"
-
-    }
+    public static let key = "com.duckduckgo.app.pageRefreshPattern.key"
 
     case twiceWithin12Seconds = "reload-twice-within-12-seconds"
     case threeTimesWithin20Seconds = "reload-three-times-within-20-seconds"
@@ -46,7 +42,22 @@ public protocol PageRefreshStoring {
 
 }
 
-public final class PageRefreshMonitor {
+public protocol PageRefreshMonitoring {
+
+    func register(for url: URL, date: Date)
+    func register(for url: URL)
+
+}
+
+public extension PageRefreshMonitoring {
+
+    func register(for url: URL) {
+        register(for: url, date: Date())
+    }
+
+}
+
+public final class PageRefreshMonitor: PageRefreshMonitoring {
 
     enum Action: Equatable {
 
@@ -55,10 +66,10 @@ public final class PageRefreshMonitor {
     }
 
     var lastRefreshedURL: URL?
-    private let eventMapping: EventMapping<PageRefreshPattern>
+    private let eventMapping: EventMapping<PageRefreshEvent>
     private var store: PageRefreshStoring
 
-    public init(eventMapping: EventMapping<PageRefreshPattern>,
+    public init(eventMapping: EventMapping<PageRefreshEvent>,
                 store: PageRefreshStoring) {
         self.eventMapping = eventMapping
         self.store = store
@@ -79,7 +90,7 @@ public final class PageRefreshMonitor {
         set { store.didRefreshCounter = newValue }
     }
 
-    public func handleRefreshAction(for url: URL, date: Date = Date()) {
+    public func register(for url: URL, date: Date = Date()) {
         resetIfURLChanged(to: url)
         fireEventIfActionOccurredRecently(within: 12.0, since: didRefreshTimestamp, eventToFire: .twiceWithin12Seconds)
         didRefreshTimestamp = date
@@ -93,12 +104,12 @@ public final class PageRefreshMonitor {
             didRefreshCounter = 0
         }
 
-        func fireEventIfActionOccurredRecently(within interval: Double = 30.0, since timestamp: Date?, eventToFire: PageRefreshPattern) {
+        func fireEventIfActionOccurredRecently(within interval: Double = 30.0, since timestamp: Date?, eventToFire: PageRefreshEvent) {
             if let timestamp = timestamp, date.timeIntervalSince(timestamp) < interval {
                 eventMapping.fire(eventToFire)
                 NotificationCenter.default.post(name: .pageRefreshDidMatchBrokenSiteCriteria,
                                                 object: self,
-                                                userInfo: [PageRefreshPattern.Key.pattern: eventToFire])
+                                                userInfo: [PageRefreshEvent.key: eventToFire])
             }
         }
     }

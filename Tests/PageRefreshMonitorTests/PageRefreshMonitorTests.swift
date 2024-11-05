@@ -21,15 +21,15 @@ import XCTest
 import Common
 @testable import PageRefreshMonitor
 
-final class MockPageRefreshPatternsMapping: EventMapping<PageRefreshPattern> {
+final class MockPageRefreshEventsMapping: EventMapping<PageRefreshEvent> {
 
-    init(captureEvent: @escaping (PageRefreshPattern) -> Void) {
+    init(captureEvent: @escaping (PageRefreshEvent) -> Void) {
         super.init { event, _, _, _ in
             captureEvent(event)
         }
     }
 
-    override init(mapping: @escaping EventMapping<PageRefreshPattern>.Mapping) {
+    override init(mapping: @escaping EventMapping<PageRefreshEvent>.Mapping) {
         fatalError("Use init()")
     }
 }
@@ -44,14 +44,14 @@ final class MockPageRefreshStore: PageRefreshStoring {
 
 final class PageRefreshMonitorTests: XCTestCase {
 
-    var eventMapping: MockPageRefreshPatternsMapping!
+    var eventMapping: MockPageRefreshEventsMapping!
     var monitor: PageRefreshMonitor!
-    var events: [PageRefreshPattern] = []
+    var events: [PageRefreshEvent] = []
 
     override func setUp() {
         super.setUp()
         events.removeAll()
-        eventMapping = MockPageRefreshPatternsMapping(captureEvent: { event in
+        eventMapping = MockPageRefreshEventsMapping(captureEvent: { event in
             self.events.append(event)
         })
         monitor = PageRefreshMonitor(eventMapping: eventMapping,
