@@ -86,7 +86,7 @@ final class PixelKitTests: XCTestCase {
             case .dailyEvent, .dailyEventWithoutParameters:
                 return .daily
             case .dailyAndContinuousEvent, .dailyAndContinuousEventWithoutParameters:
-                return .dailyAndCount
+                return .legacyDailyAndCount
             }
         }
     }

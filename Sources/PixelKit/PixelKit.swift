@@ -41,10 +41,10 @@ public final class PixelKit {
         /// Sent once per day. The last timestamp for this pixel is stored and compared to the current date. Pixels of this type will have `_d` appended to their name.
         case daily
 
-        /// Sent once per day with a `_d` suffix, in addition to every time it is called with a `_c` suffix.
+        /// [Legacy] Sent once per day with a `_d` suffix, in addition to every time it is called with a `_c` suffix.
         /// This means a pixel will get sent twice the first time it is called per-day, and subsequent calls that day will only send the `_c` variant.
         /// This is useful in situations where pixels receive spikes in volume, as the daily pixel can be used to determine how many users are actually affected.
-        case dailyAndCount
+        case legacyDailyAndCount
 
         fileprivate var description: String {
             switch self {
@@ -58,8 +58,8 @@ public final class PixelKit {
                 "Legacy Daily"
             case .daily:
                 "Daily"
-            case .dailyAndCount:
-                "Daily and Count"
+            case .legacyDailyAndCount:
+                "Legacy Daily and Count"
             }
         }
     }
@@ -233,7 +233,7 @@ public final class PixelKit {
             } else {
                 printDebugInfo(pixelName: pixelName + "_d", frequency: frequency, parameters: newParams, skipped: true)
             }
-        case .dailyAndCount:
+        case .legacyDailyAndCount:
             reportErrorIf(pixel: pixelName, endsWith: "_u")
             reportErrorIf(pixel: pixelName, endsWith: "_d") // Because is added automatically
             reportErrorIf(pixel: pixelName, endsWith: "_c") // Because is added automatically
