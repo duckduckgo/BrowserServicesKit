@@ -42,7 +42,14 @@ public class DDGSync: DDGSyncing {
     }
 
     public var account: SyncAccount? {
-        try? dependencies.secureStore.account()
+        do {
+            return try dependencies.secureStore.account()
+        } catch {
+            if let syncError = error as? SyncError {
+                dependencies.errorEvents.fire(syncError, error: syncError)
+            }
+            return nil
+        }
     }
 
     public var scheduler: Scheduling {
