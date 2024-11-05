@@ -23,26 +23,8 @@ import TestUtils
 
 public final class SubscriptionCookieManagerMock: SubscriptionCookieManaging {
 
-    public var lastRefreshDate: Date?
-
-//    public convenience init() {
-////        let baseURL = URL(string: "https://test.com")!
-////        let apiService = MockAPIService()
-////        let subscriptionService = DefaultSubscriptionEndpointService(apiService: apiService, baseURL: baseURL)
-////        let storePurchaseManager = StorePurchaseManagerMock()
-//        let subscriptionManager = SubscriptionManagerMock()
-//
-//        self.init(subscriptionManager: subscriptionManager,
-//                  currentCookieStore: { return nil },
-//                  eventMapping: MockSubscriptionCookieManagerEventPixelMapping())
-//    }
-
-//    public init(subscriptionManager: SubscriptionManager,
-//                currentCookieStore: @MainActor @escaping () -> HTTPCookieStore?,
-//                eventMapping: EventMapping<SubscriptionCookieManagerEvent>) {
-//
-//    }
-
+    public var lastRefreshDate: Date? = nil
+    public init() {}
     public func enableSettingSubscriptionCookie() { }
     public func disableSettingSubscriptionCookie() async { }
     public func refreshSubscriptionCookie() async { }

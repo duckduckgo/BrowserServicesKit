@@ -368,7 +368,9 @@ let package = Package(
         .target(
             name: "SubscriptionTestingUtilities",
             dependencies: [
-                "Subscription"
+                "Subscription",
+                "Common",
+                "TestUtils"
             ]
         ),
         .target(

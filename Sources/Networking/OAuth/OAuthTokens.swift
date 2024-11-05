@@ -80,24 +80,6 @@ public struct JWTAccessToken: JWTPayload {
     public var externalID: String {
         sub.value
     }
-
-#if DEBUG
-    static var mock: Self {
-        let now = Date()
-        return JWTAccessToken(exp: ExpirationClaim(value: now.addingTimeInterval(3600)),
-                              iat: IssuedAtClaim(value: now),
-                              sub: SubjectClaim(value: "test-subject"),
-                              aud: AudienceClaim(value: ["PrivacyPro"]),
-                              iss: IssuerClaim(value: "test-issuer"),
-                              jti: IDClaim(value: "test-id"),
-                              scope: "privacypro",
-                              api: "v2",
-                              email: nil,
-                              entitlements: [EntitlementPayload(product: .networkProtection, name: "subscriber"),
-                                             EntitlementPayload(product: .dataBrokerProtection, name: "subscriber"),
-                                             EntitlementPayload(product: .identityTheftRestoration, name: "subscriber")])
-    }
-#endif
 }
 
 public struct JWTRefreshToken: JWTPayload {
@@ -116,20 +98,6 @@ public struct JWTRefreshToken: JWTPayload {
             throw TokenPayloadError.invalidTokenScope
         }
     }
-
-#if DEBUG
-    static var mock: Self {
-        let now = Date()
-        return JWTRefreshToken(exp: ExpirationClaim(value: now.addingTimeInterval(3600)),
-                               iat: IssuedAtClaim(value: now),
-                               sub: SubjectClaim(value: "test-subject"),
-                               aud: AudienceClaim(value: ["PrivacyPro"]),
-                               iss: IssuerClaim(value: "test-issuer"),
-                               jti: IDClaim(value: "test-id"),
-                               scope: "privacypro",
-                               api: "v2")
-    }
-#endif
 }
 
 public enum SubscriptionEntitlement: String, Codable {

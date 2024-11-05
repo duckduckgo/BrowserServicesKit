@@ -98,3 +98,37 @@ public struct OAuthTokensFactory {
         return OAuthTokenResponse(accessToken: "**validaccesstoken**", refreshToken: "**validrefreshtoken**")
     }
 }
+
+public extension JWTAccessToken {
+
+    static var mock: Self {
+        let now = Date()
+        return JWTAccessToken(exp: ExpirationClaim(value: now.addingTimeInterval(3600)),
+                              iat: IssuedAtClaim(value: now),
+                              sub: SubjectClaim(value: "test-subject"),
+                              aud: AudienceClaim(value: ["PrivacyPro"]),
+                              iss: IssuerClaim(value: "test-issuer"),
+                              jti: IDClaim(value: "test-id"),
+                              scope: "privacypro",
+                              api: "v2",
+                              email: nil,
+                              entitlements: [EntitlementPayload(product: .networkProtection, name: "subscriber"),
+                                             EntitlementPayload(product: .dataBrokerProtection, name: "subscriber"),
+                                             EntitlementPayload(product: .identityTheftRestoration, name: "subscriber")])
+    }
+}
+
+public extension JWTRefreshToken {
+
+    static var mock: Self {
+        let now = Date()
+        return JWTRefreshToken(exp: ExpirationClaim(value: now.addingTimeInterval(3600)),
+                               iat: IssuedAtClaim(value: now),
+                               sub: SubjectClaim(value: "test-subject"),
+                               aud: AudienceClaim(value: ["PrivacyPro"]),
+                               iss: IssuerClaim(value: "test-issuer"),
+                               jti: IDClaim(value: "test-id"),
+                               scope: "privacypro",
+                               api: "v2")
+    }
+}

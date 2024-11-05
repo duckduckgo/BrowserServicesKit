@@ -25,7 +25,7 @@ public final class AppStoreRestoreFlowMock: AppStoreRestoreFlow {
 
     public init() { }
 
-    public func restoreAccountFromPastPurchase() async -> Result<String, AppStoreRestoreFlowError> {
+    @discardableResult public func restoreAccountFromPastPurchase() async -> Result<String, AppStoreRestoreFlowError> {
         restoreAccountFromPastPurchaseCalled = true
         return restoreAccountFromPastPurchaseResult!
     }

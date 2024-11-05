@@ -125,4 +125,13 @@ public final class SubscriptionManagerMock: SubscriptionManager {
             throw error
         }
     }
+
+    public func refreshAccount() async {}
+
+    public var confirmPurchaseError: Error?
+    public func confirmPurchase(signature: String) async throws {
+        if let confirmPurchaseError {
+            throw confirmPurchaseError
+        }
+    }
 }
