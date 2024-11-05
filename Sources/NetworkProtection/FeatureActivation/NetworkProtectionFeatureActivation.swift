@@ -28,10 +28,6 @@ public protocol NetworkProtectionFeatureActivation {
 extension NetworkProtectionKeychainTokenStore: NetworkProtectionFeatureActivation {
 
     public var isFeatureActivated: Bool {
-        do {
-            return try fetchToken() != nil
-        } catch {
-            return false
-        }
+        return fetchToken() != nil
     }
 }

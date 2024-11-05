@@ -91,6 +91,6 @@ public final class DefaultStripePurchaseFlow: StripePurchaseFlow {
     public func completeSubscriptionPurchase() async {
         Logger.subscriptionStripePurchaseFlow.log("Completing subscription purchase")
         subscriptionEndpointService.clearSubscription()
-        try? await subscriptionManager.getTokenContainer(policy: .localForceRefresh)
+        _ = try? await subscriptionManager.getTokenContainer(policy: .localForceRefresh)
     }
 }

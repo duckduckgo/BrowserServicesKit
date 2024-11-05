@@ -203,14 +203,12 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
     }
 
     private let decoder: JSONDecoder = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withFullDate, .withFullTime, .withFractionalSeconds]
-
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .custom({ decoder in
             let container = try decoder.singleValueContainer()
             let dateString = try container.decode(String.self)
-
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withFullDate, .withFullTime, .withFractionalSeconds]
             guard let date = formatter.date(from: dateString) else {
                 throw DecoderError.failedToDecode(key: container.codingPath.last?.stringValue ?? String(describing: container.codingPath))
             }

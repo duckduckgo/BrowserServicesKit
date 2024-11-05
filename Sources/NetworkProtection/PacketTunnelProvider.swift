@@ -604,13 +604,13 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private func loadAuthToken(from options: StartupOptions) throws {
         switch options.authToken {
         case .set(let newAuthToken):
-            if let currentAuthToken = try? tokenStore.fetchToken(), currentAuthToken == newAuthToken {
+            if let currentAuthToken = tokenStore.fetchToken(), currentAuthToken == newAuthToken {
                 return
             }
 
             try tokenStore.store(newAuthToken)
         case .useExisting:
-            guard try tokenStore.fetchToken() != nil else {
+            guard tokenStore.fetchToken() != nil else {
                 throw TunnelError.startingTunnelWithoutAuthToken
             }
         case .reset:
