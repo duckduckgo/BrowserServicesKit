@@ -46,6 +46,11 @@ public final class PixelKit {
         /// This is useful in situations where pixels receive spikes in volume, as the daily pixel can be used to determine how many users are actually affected.
         case legacyDailyAndCount
 
+        /// Sent once per day with a `_daily` suffix, in addition to every time it is called with a `_count` suffix.
+        /// This means a pixel will get sent twice the first time it is called per-day, and subsequent calls that day will only send the `_count` variant.
+        /// This is useful in situations where pixels receive spikes in volume, as the daily pixel can be used to determine how many users are actually affected.
+        case dailyAndCount
+
         fileprivate var description: String {
             switch self {
             case .standard:
@@ -60,6 +65,8 @@ public final class PixelKit {
                 "Daily"
             case .legacyDailyAndCount:
                 "Legacy Daily and Count"
+            case .dailyAndCount:
+                "Daily and Count"
             }
         }
     }
@@ -245,6 +252,18 @@ public final class PixelKit {
             }
 
             fireRequestWrapper(pixelName + "_c", headers, newParams, allowedQueryReservedCharacters, true, frequency, onComplete)
+        case .dailyAndCount:
+            reportErrorIf(pixel: pixelName, endsWith: "_u")
+            reportErrorIf(pixel: pixelName, endsWith: "_daily") // Because is added automatically
+            reportErrorIf(pixel: pixelName, endsWith: "_count") // Because is added automatically
+            if !pixelHasBeenFiredToday(pixelName) {
+                fireRequestWrapper(pixelName + "_daily", headers, newParams, allowedQueryReservedCharacters, true, frequency, onComplete)
+                updatePixelLastFireDate(pixelName: pixelName)
+            } else {
+                printDebugInfo(pixelName: pixelName + "_daily", frequency: frequency, parameters: newParams, skipped: true)
+            }
+
+            fireRequestWrapper(pixelName + "_count", headers, newParams, allowedQueryReservedCharacters, true, frequency, onComplete)
         }
     }
 
