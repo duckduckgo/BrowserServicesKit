@@ -23,7 +23,7 @@ import TestUtils
 
 public final class SubscriptionCookieManagerMock: SubscriptionCookieManaging {
 
-    public var lastRefreshDate: Date? = nil
+    public var lastRefreshDate: Date?
     public init() {}
     public func enableSettingSubscriptionCookie() { }
     public func disableSettingSubscriptionCookie() async { }
