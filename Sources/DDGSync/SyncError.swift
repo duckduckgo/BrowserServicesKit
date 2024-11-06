@@ -78,6 +78,10 @@ public enum SyncError: Error, Equatable {
         return "syncErrorMessage"
     }
 
+    var syncDetailErrorCode: String {
+        return "syncDetailErrorCode"
+    }
+
     public var errorParameters: [String: String] {
         switch self {
         case .noToken:
@@ -100,8 +104,9 @@ public enum SyncError: Error, Equatable {
             return [syncErrorString: "noFeaturesSpecified"]
         case .noResponseBody:
             return [syncErrorString: "noResponseBody"]
-        case .unexpectedStatusCode:
-            return [syncErrorString: "unexpectedStatusCode"]
+        case .unexpectedStatusCode(let errorCode):
+            return [syncErrorString: "unexpectedStatusCode",
+                syncDetailErrorCode: errorCode.description]
         case .unexpectedResponseBody:
             return [syncErrorString: "unexpectedResponseBody"]
         case .unableToEncodeRequestBody:
@@ -122,12 +127,15 @@ public enum SyncError: Error, Equatable {
             return [syncErrorString: "failedToOpenSealedBox"]
         case .failedToSealData:
             return [syncErrorString: "failedToSealData"]
-        case .failedToWriteSecureStore:
-            return [syncErrorString: "failedToWriteSecureStore"]
-        case .failedToReadSecureStore:
-            return [syncErrorString: "failedToReadSecureStore"]
-        case .failedToRemoveSecureStore:
-            return [syncErrorString: "failedToRemoveSecureStore"]
+        case .failedToWriteSecureStore(let osStatus):
+            return [syncErrorString: "failedToWriteSecureStore",
+                syncDetailErrorCode: osStatus.description]
+        case .failedToReadSecureStore(let osStatus):
+            return [syncErrorString: "failedToReadSecureStore",
+                syncDetailErrorCode: osStatus.description]
+        case .failedToRemoveSecureStore(let osStatus):
+            return [syncErrorString: "failedToRemoveSecureStore",
+                syncDetailErrorCode: osStatus.description]
         case .credentialsMetadataMissingBeforeFirstSync:
             return [syncErrorString: "credentialsMetadataMissingBeforeFirstSync"]
         case .receivedCredentialsWithoutUUID:
@@ -138,8 +146,9 @@ public enum SyncError: Error, Equatable {
             return [syncErrorString: "settingsMetadataNotPresent"]
         case .unauthenticatedWhileLoggedIn:
             return [syncErrorString: "unauthenticatedWhileLoggedIn"]
-        case .patchPayloadCompressionFailed:
-            return [syncErrorString: "patchPayloadCompressionFailed"]
+        case .patchPayloadCompressionFailed(let errorCode):
+            return [syncErrorString: "patchPayloadCompressionFailed",
+                syncDetailErrorCode: errorCode.description]
         }
     }
 }
