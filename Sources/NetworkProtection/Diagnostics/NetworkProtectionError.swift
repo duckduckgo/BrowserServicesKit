@@ -41,11 +41,6 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
     case failedToEncodeRegisterKeyRequest
     case failedToFetchRegisteredServers(Error?)
     case failedToParseRegisteredServersResponse(Error)
-    case failedToEncodeRedeemRequest
-    case invalidInviteCode
-    case failedToRedeemInviteCode(Error?)
-    case failedToRetrieveAuthToken(AuthenticationFailureResponse)
-    case failedToParseRedeemResponse(Error)
     case invalidAuthToken
     case serverListInconsistency
 
@@ -91,11 +86,6 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
         case .failedToEncodeRegisterKeyRequest: return 104
         case .failedToFetchRegisteredServers: return 105
         case .failedToParseRegisteredServersResponse: return 106
-        case .failedToEncodeRedeemRequest: return 107
-        case .invalidInviteCode: return 108
-        case .failedToRedeemInviteCode: return 109
-        case .failedToRetrieveAuthToken: return 110
-        case .failedToParseRedeemResponse: return 111
         case .invalidAuthToken: return 112
         case .serverListInconsistency: return 113
         case .failedToFetchServerStatus: return 114
@@ -130,9 +120,6 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
                 .couldNotGetPeerHostName,
                 .couldNotGetInterfaceAddressRange,
                 .failedToEncodeRegisterKeyRequest,
-                .failedToEncodeRedeemRequest,
-                .invalidInviteCode,
-                .failedToRetrieveAuthToken,
                 .invalidAuthToken,
                 .serverListInconsistency,
                 .failedToCastKeychainValueToData,
@@ -147,8 +134,7 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
                 .vpnAccessRevoked:
             return [:]
         case .failedToFetchServerList(let error),
-                .failedToFetchRegisteredServers(let error),
-                .failedToRedeemInviteCode(let error):
+                .failedToFetchRegisteredServers(let error):
             guard let error else {
                 return [:]
             }
@@ -160,7 +146,6 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
                 .failedToFetchLocationList(let error),
                 .failedToParseLocationListResponse(let error),
                 .failedToParseRegisteredServersResponse(let error),
-                .failedToParseRedeemResponse(let error),
                 .wireGuardSetNetworkSettings(let error),
                 .startWireGuardBackend(let error),
                 .setWireguardConfig(let error),
