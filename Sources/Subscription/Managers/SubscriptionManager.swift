@@ -251,15 +251,6 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
 
     public func getTokenContainerSynchronously(policy: TokensCachePolicy) -> TokenContainer? {
         Logger.subscription.debug("Fetching tokens synchronously")
-//        let semaphore = DispatchSemaphore(value: 0)
-//        var container: TokenContainer?
-//        Task {
-//            container = try await getTokenContainer(policy: policy)
-//            semaphore.signal()
-//        }
-//        semaphore.wait()
-//        return container
-
         let semaphore = DispatchSemaphore(value: 0)
 
         Task(priority: .high) {

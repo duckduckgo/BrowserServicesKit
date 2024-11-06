@@ -270,7 +270,8 @@ let package = Package(
         .target(
             name: "Networking",
             dependencies: [
-                .product(name: "JWTKit", package: "jwt-kit")
+                .product(name: "JWTKit", package: "jwt-kit"),
+                "Common"
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
