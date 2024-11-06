@@ -27,7 +27,7 @@ final class NetworkProtectionServerInfoTests: XCTestCase {
                                                      publicKey: "",
                                                      hostNames: [],
                                                      ips: [],
-                                                     internalIP: "10.11.12.1",
+                                                     internalIP: AnyIPAddress("10.11.12.1")!,
                                                      port: 42,
                                                      attributes: .init(city: "Amsterdam", country: "nl", state: "na"))
 
@@ -39,7 +39,7 @@ final class NetworkProtectionServerInfoTests: XCTestCase {
                                                      publicKey: "",
                                                      hostNames: [],
                                                      ips: [],
-                                                     internalIP: "10.11.12.1",
+                                                     internalIP: AnyIPAddress("10.11.12.1")!,
                                                      port: 42,
                                                      attributes: .init(city: "New York", country: "us", state: "ny"))
 

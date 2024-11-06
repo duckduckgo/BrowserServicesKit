@@ -32,8 +32,8 @@ extension NetworkProtectionServerInfo {
     static let mock = NetworkProtectionServerInfo(name: "Mock Server",
                                                   publicKey: "ovn9RpzUuvQ4XLQt6B3RKuEXGIxa5QpTnehjduZlcSE=",
                                                   hostNames: ["duckduckgo.com"],
-                                                  ips: ["192.168.1.1"],
-                                                  internalIP: "10.11.12.1",
+                                                  ips: [AnyIPAddress("192.168.1.1")!],
+                                                  internalIP: AnyIPAddress("10.11.12.1")!,
                                                   port: 443,
                                                   attributes: .init(city: "City", country: "Country", state: "State"))
 
@@ -41,15 +41,15 @@ extension NetworkProtectionServerInfo {
                                                           publicKey: "ovn9RpzUuvQ4XLQt6B3RKuEXGIxa5QpTnehjduZlcSE=",
                                                           hostNames: ["duckduckgo.com"],
                                                           ips: [],
-                                                          internalIP: "10.11.12.1",
+                                                          internalIP: AnyIPAddress("10.11.12.1")!,
                                                           port: 443,
                                                           attributes: .init(city: "City", country: "Country", state: "State"))
 
     static let ipAddressOnly = NetworkProtectionServerInfo(name: "Mock Server",
                                                            publicKey: "ovn9RpzUuvQ4XLQt6B3RKuEXGIxa5QpTnehjduZlcSE=",
                                                            hostNames: [],
-                                                           ips: ["192.168.1.1"],
-                                                           internalIP: "10.11.12.1",
+                                                           ips: [AnyIPAddress("192.168.1.1")!],
+                                                           internalIP: AnyIPAddress("10.11.12.1")!,
                                                            port: 443,
                                                            attributes: .init(city: "City", country: "Country", state: "State"))
 
@@ -57,8 +57,8 @@ extension NetworkProtectionServerInfo {
         NetworkProtectionServerInfo(name: name,
                                     publicKey: publicKey,
                                     hostNames: ["duckduckgo.com"],
-                                    ips: ["192.168.1.1"],
-                                    internalIP: "10.11.12.1",
+                                    ips: [AnyIPAddress("192.168.1.1")!],
+                                    internalIP: AnyIPAddress("10.11.12.1")!,
                                     port: 443,
                                     attributes: .init(city: "City", country: "Country", state: "State"))
     }

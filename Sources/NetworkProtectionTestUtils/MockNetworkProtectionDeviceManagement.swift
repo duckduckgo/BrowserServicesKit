@@ -25,7 +25,6 @@ public final class MockNetworkProtectionDeviceManagement: NetworkProtectionDevic
         case noStubSet
     }
 
-    // swiftlint:disable:next large_tuple
     public var spyGenerateTunnelConfiguration: (
         selectionMethod: NetworkProtection.NetworkProtectionServerSelectionMethod,
         excludeLocalNetworks: Bool,
