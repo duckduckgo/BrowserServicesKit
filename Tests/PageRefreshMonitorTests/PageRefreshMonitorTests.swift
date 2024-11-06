@@ -21,131 +21,100 @@ import XCTest
 import Common
 @testable import PageRefreshMonitor
 
-final class MockPageRefreshEventsMapping: EventMapping<PageRefreshEvent> {
-
-    init(captureEvent: @escaping (PageRefreshEvent) -> Void) {
-        super.init { event, _, _, _ in
-            captureEvent(event)
-        }
-    }
-
-    override init(mapping: @escaping EventMapping<PageRefreshEvent>.Mapping) {
-        fatalError("Use init()")
-    }
-}
-
 final class MockPageRefreshStore: PageRefreshStoring {
 
-    var didRefreshTimestamp: Date?
-    var didDoubleRefreshTimestamp: Date?
-    var didRefreshCounter: Int = 0
+    var refreshTimestamps: [Date] = []
 
 }
 
 final class PageRefreshMonitorTests: XCTestCase {
 
-    var eventMapping: MockPageRefreshEventsMapping!
     var monitor: PageRefreshMonitor!
-    var events: [PageRefreshEvent] = []
+    var detectionCount: Int = 0
 
     override func setUp() {
         super.setUp()
-        events.removeAll()
-        eventMapping = MockPageRefreshEventsMapping(captureEvent: { event in
-            self.events.append(event)
-        })
-        monitor = PageRefreshMonitor(eventMapping: eventMapping,
+        monitor = PageRefreshMonitor(onDidDetectRefreshPattern: { self.detectionCount += 1 },
                                      store: MockPageRefreshStore())
     }
 
-    // - MARK: Behavior testing
-    // Expecting events
+    // MARK: - Pattern Detection Tests
 
-    func testWhenUserRefreshesTwiceOnSameURLItSendsReloadTwiceEvent() {
+    func testDoesNotDetectEventWhenRefreshesAreFewerThanThree() {
         let url = URL(string: "https://example.com/pageA")!
-        monitor.handleRefreshAction(for: url)
-        monitor.handleRefreshAction(for: url)
-        XCTAssertEqual(events.count, 1)
-        XCTAssertEqual(events[0], .twiceWithin12Seconds)
+        monitor.register(for: url)
+        monitor.register(for: url)
+        XCTAssertEqual(detectionCount, 0)
     }
 
-    func testWhenUserRefreshesThreeTimesOnSameURLItSendsTwoReloadTwiceEvents() {
+    func testDetectsEventWhenThreeRefreshesOccurOnSameURL() {
         let url = URL(string: "https://example.com/pageA")!
-        monitor.handleRefreshAction(for: url)
-        monitor.handleRefreshAction(for: url)
-        monitor.handleRefreshAction(for: url)
-        XCTAssertEqual(events.count, 3)
-        XCTAssertEqual(events[0], .twiceWithin12Seconds)
-        XCTAssertEqual(events[1], .twiceWithin12Seconds)
+        monitor.register(for: url)
+        monitor.register(for: url)
+        monitor.register(for: url)
+        XCTAssertEqual(detectionCount, 1)
     }
 
-    func testWhenUserRefreshesThreeTimesOnSameURLItSendsReloadThreeTimesEvent() {
+    func testDetectsEventTwiceWhenSixRefreshesOccurOnSameURL() {
         let url = URL(string: "https://example.com/pageA")!
-        monitor.handleRefreshAction(for: url)
-        monitor.handleRefreshAction(for: url)
-        monitor.handleRefreshAction(for: url)
-        XCTAssertEqual(events.count, 3)
-        XCTAssertEqual(events[2], .threeTimesWithin20Seconds)
+        for _ in 1...6 {
+            monitor.register(for: url)
+        }
+        XCTAssertEqual(detectionCount, 2)
     }
 
-    // URL change
+    // MARK: - URL Change Handling
 
-    func testWhenUserRefreshesOnDifferentURLItResetsCounterSoNoEventIsBeingSent() {
+    func testResetsCounterOnURLChangeSoEventIsNotDetected() {
         let urlA = URL(string: "https://example.com/pageA")!
         let urlB = URL(string: "https://example.com/pageB")!
-        monitor.handleRefreshAction(for: urlA)
-        monitor.handleRefreshAction(for: urlB)
-        XCTAssertTrue(events.isEmpty)
+        monitor.register(for: urlA)
+        monitor.register(for: urlB)
+        monitor.register(for: urlA)
+        XCTAssertEqual(detectionCount, 0)
     }
 
-    func testWhenUserRefreshesOnDifferentURLItResetsCounterAndStartsTheNewCounterForNewPage() {
+    func testStartsNewCounterWhenURLChangesAndRegistersNewRefreshes() {
         let urlA = URL(string: "https://example.com/pageA")!
         let urlB = URL(string: "https://example.com/pageB")!
-        monitor.handleRefreshAction(for: urlA)
-        monitor.handleRefreshAction(for: urlB)
-        monitor.handleRefreshAction(for: urlB)
-        XCTAssertEqual(events.count, 1)
-        XCTAssertEqual(events[0], .twiceWithin12Seconds)
+        monitor.register(for: urlA)
+        monitor.register(for: urlA)
+        monitor.register(for: urlB)
+        XCTAssertEqual(detectionCount, 0)
+        monitor.register(for: urlB)
+        monitor.register(for: urlB)
+        XCTAssertEqual(detectionCount, 1)
     }
 
-    // Timed pixels
+    // MARK: - Timed Pattern Detection
 
-    func testReloadTwiceEventShouldNotSendEventIfSecondRefreshOnSameURLOccurredAfter12Seconds() {
+    func testDoesNotDetectEventIfThreeRefreshesOccurAfter20Seconds() {
         let url = URL(string: "https://example.com/pageA")!
         let date = Date()
-        monitor.handleRefreshAction(for: url, date: date)
-        monitor.handleRefreshAction(for: url, date: date + 13) // 13 seconds after the first event
-        XCTAssertTrue(events.isEmpty)
+        monitor.register(for: url, date: date)
+        monitor.register(for: url, date: date)
+        monitor.register(for: url, date: date + 21) // 21 seconds after the first event
+        XCTAssertEqual(detectionCount, 0)
     }
 
-    func testReloadTwiceEventShouldSendEventIfSecondRefreshOnSameURLOccurredBelow12Seconds() {
+    func testDetectsEventIfThreeRefreshesOccurWithin20Seconds() {
         let url = URL(string: "https://example.com/pageA")!
         let date = Date()
-        monitor.handleRefreshAction(for: url, date: date)
-        monitor.handleRefreshAction(for: url, date: date + 11) // 11 seconds after the first event
-        XCTAssertEqual(events.count, 1)
-        XCTAssertEqual(events[0], .twiceWithin12Seconds)
+        monitor.register(for: url, date: date)
+        monitor.register(for: url, date: date)
+        monitor.register(for: url, date: date + 19) // 19 seconds after the first event
+        XCTAssertEqual(detectionCount, 1)
     }
 
-    func testReloadThreeTimesEventShouldNotSendEventIfThreeRefreshesOnSameURLOccurredAfter20Seconds() {
+    func testDetectsEventIfRefreshesAreWithinOverall20SecondWindow() {
         let url = URL(string: "https://example.com/pageA")!
         let date = Date()
-        monitor.handleRefreshAction(for: url, date: date)
-        monitor.handleRefreshAction(for: url, date: date)
-        monitor.handleRefreshAction(for: url, date: date + 21) // 21 seconds after the first event
-        events.removeAll { $0 == .twiceWithin12Seconds } // remove events that are not being tested
-        XCTAssertTrue(events.isEmpty)
-    }
-
-    func testReloadThreeTimesEventShouldSendEventIfThreeRefreshesOnSameURLOccurredBelow20Seconds() {
-        let url = URL(string: "https://example.com/pageA")!
-        let date = Date()
-        monitor.handleRefreshAction(for: url, date: date)
-        monitor.handleRefreshAction(for: url, date: date)
-        monitor.handleRefreshAction(for: url, date: date + 19) // 19 seconds after the first event
-        events.removeAll { $0 == .twiceWithin12Seconds } // remove events that are not being tested
-        XCTAssertEqual(events.count, 1)
-        XCTAssertEqual(events[0], .threeTimesWithin20Seconds)
+        monitor.register(for: url, date: date)
+        monitor.register(for: url, date: date + 19) // 19 seconds after the first event
+        monitor.register(for: url, date: date + 21) // 21 seconds after the first event (2 seconds after second event)
+        XCTAssertEqual(detectionCount, 0)
+        monitor.register(for: url, date: date + 23) // 23 seconds after the first event (4 seconds after second event)
+        XCTAssertEqual(detectionCount, 1)
     }
 
 }

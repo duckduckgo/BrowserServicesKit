@@ -21,24 +21,13 @@ import Common
 
 public extension Notification.Name {
 
-    static let pageRefreshDidMatchBrokenSiteCriteria = Notification.Name("com.duckduckgo.app.pageRefreshDidMatchBrokenSiteCriteria")
-
-}
-
-public enum PageRefreshEvent: String {
-
-    public static let key = "com.duckduckgo.app.pageRefreshPattern.key"
-
-    case twiceWithin12Seconds = "reload-twice-within-12-seconds"
-    case threeTimesWithin20Seconds = "reload-three-times-within-20-seconds"
+    static let pageRefreshMonitorDidDetectRefreshPattern = Notification.Name("com.duckduckgo.app.pageRefreshMonitorDidDetectRefreshPattern")
 
 }
 
 public protocol PageRefreshStoring {
 
-    var didRefreshTimestamp: Date? { get set }
-    var didDoubleRefreshTimestamp: Date? { get set }
-    var didRefreshCounter: Int { get set }
+    var refreshTimestamps: [Date] { get set }
 
 }
 
@@ -57,68 +46,47 @@ public extension PageRefreshMonitoring {
 
 }
 
+/// Monitors page refresh events for a specific URL without storing URLs or any personally identifiable information.
+///
+/// Triggers `onDidDetectRefreshPattern` and posts a `pageRefreshMonitorDidDetectRefreshPattern` notification
+/// if three refreshes occur within a 20-second window.
 public final class PageRefreshMonitor: PageRefreshMonitoring {
 
-    enum Action: Equatable {
-
-        case refresh
-
-    }
-
-    var lastRefreshedURL: URL?
-    private let eventMapping: EventMapping<PageRefreshEvent>
+    private let onDidDetectRefreshPattern: () -> Void
     private var store: PageRefreshStoring
+    private var lastRefreshedURL: URL?
 
-    public init(eventMapping: EventMapping<PageRefreshEvent>,
+    public init(onDidDetectRefreshPattern: @escaping () -> Void,
                 store: PageRefreshStoring) {
-        self.eventMapping = eventMapping
+        self.onDidDetectRefreshPattern = onDidDetectRefreshPattern
         self.store = store
     }
 
-    var didRefreshTimestamp: Date? {
-        get { store.didRefreshTimestamp }
-        set { store.didRefreshTimestamp = newValue }
-    }
-
-    var didDoubleRefreshTimestamp: Date? {
-        get { store.didDoubleRefreshTimestamp }
-        set { store.didDoubleRefreshTimestamp = newValue }
-    }
-
-    var didRefreshCounter: Int {
-        get { store.didRefreshCounter }
-        set { store.didRefreshCounter = newValue }
+    var refreshTimestamps: [Date] {
+        get { store.refreshTimestamps }
+        set { store.refreshTimestamps = newValue }
     }
 
     public func register(for url: URL, date: Date = Date()) {
         resetIfURLChanged(to: url)
-        fireEventIfActionOccurredRecently(within: 12.0, since: didRefreshTimestamp, eventToFire: .twiceWithin12Seconds)
-        didRefreshTimestamp = date
 
-        if didRefreshCounter == 0 {
-            didDoubleRefreshTimestamp = date
-        }
-        didRefreshCounter += 1
-        if didRefreshCounter > 2 {
-            fireEventIfActionOccurredRecently(within: 20.0, since: didDoubleRefreshTimestamp, eventToFire: .threeTimesWithin20Seconds)
-            didRefreshCounter = 0
-        }
+        // Add the new refresh timestamp
+        refreshTimestamps.append(date)
 
-        func fireEventIfActionOccurredRecently(within interval: Double = 30.0, since timestamp: Date?, eventToFire: PageRefreshEvent) {
-            if let timestamp = timestamp, date.timeIntervalSince(timestamp) < interval {
-                eventMapping.fire(eventToFire)
-                NotificationCenter.default.post(name: .pageRefreshDidMatchBrokenSiteCriteria,
-                                                object: self,
-                                                userInfo: [PageRefreshEvent.key: eventToFire])
-            }
+        // Retain only timestamps within the last 20 seconds
+        refreshTimestamps = refreshTimestamps.filter { date.timeIntervalSince($0) < 20.0 }
+
+        // Trigger detection if three refreshes occurred within 20 seconds, then reset timestamps
+        if refreshTimestamps.count > 2 {
+            onDidDetectRefreshPattern()
+            NotificationCenter.default.post(name: .pageRefreshMonitorDidDetectRefreshPattern, object: self)
+            refreshTimestamps.removeAll() // Reset timestamps after detection
         }
     }
 
     private func resetIfURLChanged(to newURL: URL) {
         if lastRefreshedURL != newURL {
-            didRefreshCounter = 0
-            didRefreshTimestamp = nil
-            didDoubleRefreshTimestamp = nil
+            refreshTimestamps.removeAll()
             lastRefreshedURL = newURL
         }
     }
