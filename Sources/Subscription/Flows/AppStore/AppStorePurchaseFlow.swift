@@ -21,7 +21,7 @@ import StoreKit
 import os.log
 import Networking
 
-public enum AppStorePurchaseFlowError: Swift.Error, Equatable {
+public enum AppStorePurchaseFlowError: Swift.Error, Equatable, LocalizedError {
     case noProductsFound
     case activeSubscriptionAlreadyPresent
     case authenticatingWithTransactionFailed
@@ -30,6 +30,27 @@ public enum AppStorePurchaseFlowError: Swift.Error, Equatable {
     case cancelledByUser
     case missingEntitlements
     case internalError
+
+    public var errorDescription: String? {
+        switch self {
+        case .noProductsFound:
+            "No products found"
+        case .activeSubscriptionAlreadyPresent:
+            "An active subscription is already present"
+        case .authenticatingWithTransactionFailed:
+            "Authenticating with transaction failed"
+        case .accountCreationFailed(let subError):
+            "Account creation failed: \(subError.localizedDescription)"
+        case .purchaseFailed(let subError):
+            "Purchase failed: \(subError.localizedDescription)"
+        case .cancelledByUser:
+            "Purchase cancelled by user"
+        case .missingEntitlements:
+            "Missing entitlements"
+        case .internalError:
+            "Internal error"
+        }
+    }
 
     public static func == (lhs: AppStorePurchaseFlowError, rhs: AppStorePurchaseFlowError) -> Bool {
         switch (lhs, rhs) {
@@ -141,7 +162,7 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
                     Logger.subscriptionAppStorePurchaseFlow.error("Missing entitlements")
                     return .failure(.missingEntitlements)
                 } else {
-                    return .success(PurchaseUpdate.completed)
+                    return .success(.completed)
                 }
             } else {
                 Logger.subscriptionAppStorePurchaseFlow.error("Subscription expired")
@@ -151,7 +172,7 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
         } catch OAuthClientError.deadToken {
             let transactionJWS = await recoverSubscriptionFromDeadToken()
             if transactionJWS != nil {
-                return .success(PurchaseUpdate.completed)
+                return .success(.completed)
             } else {
                 return .failure(.purchaseFailed(OAuthClientError.deadToken))
             }

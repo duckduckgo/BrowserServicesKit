@@ -283,8 +283,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     public func confirmPurchase(signature: String) async throws -> PrivacyProSubscription {
         let accessToken = try await getTokenContainer(policy: .localValid).accessToken
         let confirmation = try await subscriptionEndpointService.confirmPurchase(accessToken: accessToken, signature: signature)
-        let subscription = confirmation.subscription
-        subscriptionEndpointService.updateCache(with: subscription)
-        return subscription
+        subscriptionEndpointService.updateCache(with: confirmation.subscription)
+        return confirmation.subscription
     }
 }
