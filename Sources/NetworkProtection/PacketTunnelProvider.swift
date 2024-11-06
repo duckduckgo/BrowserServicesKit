@@ -222,7 +222,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Tunnel Settings
 
-    private let settings: VPNSettings
+    public let settings: VPNSettings
 
     // MARK: - User Defaults
 
@@ -516,10 +516,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
-    private func load(options: StartupOptions) throws {
-#if NETP_SYSTEM_EXTENSION
-        loadExcludeLocalNetworks(from: options)
-#endif
+    open func load(options: StartupOptions) throws {
         loadKeyValidity(from: options)
         loadSelectedEnvironment(from: options)
         loadSelectedServer(from: options)
@@ -533,17 +530,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     open func loadVendorOptions(from provider: NETunnelProviderProtocol?) throws {
         // no-op, but can be overridden by subclasses
-    }
-
-    private func loadExcludeLocalNetworks(from options: StartupOptions) {
-        switch options.excludeLocalNetworks {
-        case .set(let exclude):
-            settings.excludeLocalNetworks = exclude
-        case .useExisting:
-            break
-        case .reset:
-            settings.excludeLocalNetworks = true
-        }
     }
 
     private func loadKeyValidity(from options: StartupOptions) {

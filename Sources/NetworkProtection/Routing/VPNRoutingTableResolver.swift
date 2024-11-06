@@ -46,7 +46,6 @@ struct VPNRoutingTableResolver {
         var ranges = VPNRoutingRange.alwaysExcludedIPv4Range + VPNRoutingRange.alwaysExcludedIPv6Range + serverRoutes()
 
         if excludeLocalNetworks {
-            Logger.networkProtection.log("🤌 Excluding local networks")
             ranges += VPNRoutingRange.localNetworkRange
         }
 
@@ -57,7 +56,6 @@ struct VPNRoutingTableResolver {
         var routes = VPNRoutingRange.publicNetworkRange + dnsRoutes()
 
         if !excludeLocalNetworks {
-            Logger.networkProtection.log("🤌 Including local networks")
             routes += VPNRoutingRange.localNetworkRange
         }
 

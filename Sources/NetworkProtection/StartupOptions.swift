@@ -21,7 +21,7 @@ import Common
 
 /// This class handles the proper parsing of the startup options for our tunnel.
 ///
-struct StartupOptions {
+public struct StartupOptions {
 
     enum StartupMethod: CustomDebugStringConvertible {
         /// Case started up manually from the main app.
@@ -53,7 +53,7 @@ struct StartupOptions {
     ///
     /// Since these options are stored, the logic can allow for
     ///
-    enum StoredOption<T: Equatable>: Equatable {
+    public enum StoredOption<T: Equatable>: Equatable {
         case set(_ value: T)
         case reset
         case useExisting
@@ -85,7 +85,7 @@ struct StartupOptions {
 
         // MARK: - Equatable
 
-        static func == (lhs: StartupOptions.StoredOption<T>, rhs: StartupOptions.StoredOption<T>) -> Bool {
+        public static func == (lhs: StartupOptions.StoredOption<T>, rhs: StartupOptions.StoredOption<T>) -> Bool {
             switch (lhs, rhs) {
             case (.reset, .reset):
                 return true
@@ -108,7 +108,7 @@ struct StartupOptions {
     let selectedServer: StoredOption<VPNSettings.SelectedServer>
     let selectedLocation: StoredOption<VPNSettings.SelectedLocation>
     let dnsSettings: StoredOption<NetworkProtectionDNSSettings>
-    let excludeLocalNetworks: StoredOption<Bool>
+    public let excludeLocalNetworks: StoredOption<Bool>
 #if os(macOS)
     let authToken: StoredOption<String>
 #endif
