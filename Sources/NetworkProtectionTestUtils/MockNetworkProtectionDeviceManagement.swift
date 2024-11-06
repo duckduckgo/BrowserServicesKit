@@ -20,6 +20,7 @@ import Foundation
 import NetworkProtection
 
 public final class MockNetworkProtectionDeviceManagement: NetworkProtectionDeviceManagement {
+
     enum MockError: Error {
         case noStubSet
     }
@@ -27,9 +28,8 @@ public final class MockNetworkProtectionDeviceManagement: NetworkProtectionDevic
     // swiftlint:disable:next large_tuple
     public var spyGenerateTunnelConfiguration: (
         selectionMethod: NetworkProtection.NetworkProtectionServerSelectionMethod,
-        includedRoutes: [NetworkProtection.IPAddressRange],
-        excludedRoutes: [NetworkProtection.IPAddressRange],
-        isKillSwitchEnabled: Bool,
+        excludeLocalNetworks: Bool,
+        dnsSettings: NetworkProtectionDNSSettings,
         regenerateKey: Bool
     )?
 
@@ -44,16 +44,13 @@ public final class MockNetworkProtectionDeviceManagement: NetworkProtectionDevic
 
     public func generateTunnelConfiguration(
         resolvedSelectionMethod: NetworkProtection.NetworkProtectionServerSelectionMethod,
-        includedRoutes: [NetworkProtection.IPAddressRange],
-        excludedRoutes: [NetworkProtection.IPAddressRange],
+        excludeLocalNetworks: Bool,
         dnsSettings: NetworkProtectionDNSSettings,
-        isKillSwitchEnabled: Bool,
         regenerateKey: Bool) async throws -> (tunnelConfiguration: NetworkProtection.TunnelConfiguration, server: NetworkProtection.NetworkProtectionServer) {
             spyGenerateTunnelConfiguration = (
                 selectionMethod: resolvedSelectionMethod,
-                includedRoutes: includedRoutes,
-                excludedRoutes: excludedRoutes,
-                isKillSwitchEnabled: isKillSwitchEnabled,
+                excludeLocalNetworks: excludeLocalNetworks,
+                dnsSettings: dnsSettings,
                 regenerateKey: regenerateKey
                 )
             if let stubGenerateTunnelConfiguration {
