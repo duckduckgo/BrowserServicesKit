@@ -41,8 +41,13 @@ public final class PixelKit {
         /// Sent once per day. The last timestamp for this pixel is stored and compared to the current date. Pixels of this type will have `_d` appended to their name.
         case daily
 
-        /// Sent once per day with a `_d` suffix, in addition to every time it is called with a `_c` suffix.
+        /// [Legacy] Sent once per day with a `_d` suffix, in addition to every time it is called with a `_c` suffix.
         /// This means a pixel will get sent twice the first time it is called per-day, and subsequent calls that day will only send the `_c` variant.
+        /// This is useful in situations where pixels receive spikes in volume, as the daily pixel can be used to determine how many users are actually affected.
+        case legacyDailyAndCount
+
+        /// Sent once per day with a `_daily` suffix, in addition to every time it is called with a `_count` suffix.
+        /// This means a pixel will get sent twice the first time it is called per-day, and subsequent calls that day will only send the `_count` variant.
         /// This is useful in situations where pixels receive spikes in volume, as the daily pixel can be used to determine how many users are actually affected.
         case dailyAndCount
 
@@ -58,6 +63,8 @@ public final class PixelKit {
                 "Legacy Daily"
             case .daily:
                 "Daily"
+            case .legacyDailyAndCount:
+                "Legacy Daily and Count"
             case .dailyAndCount:
                 "Daily and Count"
             }
@@ -233,7 +240,7 @@ public final class PixelKit {
             } else {
                 printDebugInfo(pixelName: pixelName + "_d", frequency: frequency, parameters: newParams, skipped: true)
             }
-        case .dailyAndCount:
+        case .legacyDailyAndCount:
             reportErrorIf(pixel: pixelName, endsWith: "_u")
             reportErrorIf(pixel: pixelName, endsWith: "_d") // Because is added automatically
             reportErrorIf(pixel: pixelName, endsWith: "_c") // Because is added automatically
@@ -245,6 +252,18 @@ public final class PixelKit {
             }
 
             fireRequestWrapper(pixelName + "_c", headers, newParams, allowedQueryReservedCharacters, true, frequency, onComplete)
+        case .dailyAndCount:
+            reportErrorIf(pixel: pixelName, endsWith: "_u")
+            reportErrorIf(pixel: pixelName, endsWith: "_daily") // Because is added automatically
+            reportErrorIf(pixel: pixelName, endsWith: "_count") // Because is added automatically
+            if !pixelHasBeenFiredToday(pixelName) {
+                fireRequestWrapper(pixelName + "_daily", headers, newParams, allowedQueryReservedCharacters, true, frequency, onComplete)
+                updatePixelLastFireDate(pixelName: pixelName)
+            } else {
+                printDebugInfo(pixelName: pixelName + "_daily", frequency: frequency, parameters: newParams, skipped: true)
+            }
+
+            fireRequestWrapper(pixelName + "_count", headers, newParams, allowedQueryReservedCharacters, true, frequency, onComplete)
         }
     }
 
