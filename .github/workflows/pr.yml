@@ -73,6 +73,7 @@ jobs:
           check_name: Test Report (macOS)
           report_paths: tests.xml
           require_tests: true
+          check_retries: true
 
       - name: Update Asana with failed unit tests
         if: always() # always run even if the previous step fails
