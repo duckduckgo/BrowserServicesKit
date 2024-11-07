@@ -409,10 +409,6 @@ let package = Package(
             dependencies: [
                 "Common"
             ],
-            resources: [
-                .copy("hashPrefixes.json"),
-                .copy("filterSet.json")
-            ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
             ]
@@ -635,8 +631,8 @@ let package = Package(
                 "PixelKit"
             ],
             resources: [
-                .copy("hashPrefixes.json"),
-                .copy("filterSet.json")
+                .copy("Resources/hashPrefixes.json"),
+                .copy("Resources/filterSet.json")
             ]
         ),
         .testTarget(
