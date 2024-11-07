@@ -884,7 +884,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     // MARK: - Tunnel Stop: Support Methods
 
-    /// Do not call this directly.  Call `stopTunnel(with:)` or `cancelTunnel(with:)` instead.
+    /// Do not call this directly, call `cancelTunnel(with:)` instead.
     ///
     @MainActor
     private func stopTunnel() async throws {
