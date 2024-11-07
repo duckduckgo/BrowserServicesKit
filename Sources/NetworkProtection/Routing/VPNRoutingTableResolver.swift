@@ -31,25 +31,20 @@ struct VPNRoutingTableResolver {
 
     private let dnsServers: [DNSServer]
     private let excludeLocalNetworks: Bool
-    private let server: NetworkProtectionServer
 
-    init(server: NetworkProtectionServer,
-         dnsServers: [DNSServer],
+    init(dnsServers: [DNSServer],
          excludeLocalNetworks: Bool) {
 
         self.dnsServers = dnsServers
         self.excludeLocalNetworks = excludeLocalNetworks
-        self.server = server
     }
 
     var excludedRoutes: [IPAddressRange] {
-        var ranges = VPNRoutingRange.alwaysExcludedIPv4Range + VPNRoutingRange.alwaysExcludedIPv6Range + serverRoutes()
-
-        if excludeLocalNetworks {
-            ranges += VPNRoutingRange.localNetworkRange
-        }
-
-        return ranges
+        // We currently don't define excluded routes, only included.  Our testing show that this
+        // is what works best.  Please see the task below for more technical details.
+        //
+        // Ref: https://app.asana.com/0/481882893211075/1208643192597095/f
+        return []
     }
 
     var includedRoutes: [IPAddressRange] {
@@ -60,14 +55,6 @@ struct VPNRoutingTableResolver {
         }
 
         return routes
-    }
-
-    // MARK: - Dynamic routes
-
-    private func serverRoutes() -> [IPAddressRange] {
-        server.serverInfo.ips.map { anyIP in
-            IPAddressRange(address: anyIP.ipAddress, networkPrefixLength: 32)
-        }
     }
 
     // MARK: - Included Routes

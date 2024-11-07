@@ -285,7 +285,6 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
         }
 
         let routingTableResolver = VPNRoutingTableResolver(
-            server: server,
             dnsServers: dns,
             excludeLocalNetworks: excludeLocalNetworks)
 
