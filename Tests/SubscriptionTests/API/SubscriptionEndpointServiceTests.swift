@@ -101,7 +101,7 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
         let apiResponse = createAPIResponse(statusCode: 200, data: subscriptionData)
         let request = SubscriptionRequest.getSubscription(baseURL: baseURL, accessToken: "token")!.apiRequest
 
-        apiService.setResponse(for: request, response: apiResponse)
+        apiService.setResponse(for: request.host, response: apiResponse)
 
         let subscription = try await endpointService.getSubscription(accessToken: "token", cachePolicy: .returnCacheDataElseLoad)
         XCTAssertEqual(subscription.productId, "prod123")
@@ -145,17 +145,20 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
         let apiResponse = createAPIResponse(statusCode: 200, data: productData)
         let request = SubscriptionRequest.getProducts(baseURL: baseURL)!.apiRequest
 
-        apiService.setResponse(for: request, response: apiResponse)
+        apiService.setResponse(for: request.host, response: apiResponse)
 
         let products = try await endpointService.getProducts()
         XCTAssertEqual(products, productItems)
     }
 
     func testGetProductsThrowsInvalidResponse() async {
+        let request = SubscriptionRequest.getProducts(baseURL: baseURL)!.apiRequest
+        let apiResponse = createAPIResponse(statusCode: 200, data: nil)
+        apiService.setResponse(for: request.host, response: apiResponse)
         do {
             _ = try await endpointService.getProducts()
             XCTFail("Expected invalidResponse error")
-        } catch Networking.APIRequestV2.Error.invalidResponse {
+        } catch Networking.APIRequestV2.Error.emptyResponseBody {
             // Success
         } catch {
             XCTFail("Unexpected error: \(error)")
@@ -170,7 +173,7 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
         let apiResponse = createAPIResponse(statusCode: 200, data: portalData)
         let request = SubscriptionRequest.getCustomerPortalURL(baseURL: baseURL, accessToken: "token", externalID: "id")!.apiRequest
 
-        apiService.setResponse(for: request, response: apiResponse)
+        apiService.setResponse(for: request.host, response: apiResponse)
 
         let customerPortalURL = try await endpointService.getCustomerPortalURL(accessToken: "token", externalID: "id")
         XCTAssertEqual(customerPortalURL, portalResponse)
@@ -196,7 +199,7 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
         let apiResponse = createAPIResponse(statusCode: 200, data: confirmData)
         let request = SubscriptionRequest.confirmPurchase(baseURL: baseURL, accessToken: "token", signature: "signature")!.apiRequest
 
-        apiService.setResponse(for: request, response: apiResponse)
+        apiService.setResponse(for: request.host, response: apiResponse)
 
         let purchaseResponse = try await endpointService.confirmPurchase(accessToken: "token", signature: "signature")
         XCTAssertEqual(purchaseResponse.email, confirmResponse.email)

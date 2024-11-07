@@ -134,7 +134,8 @@ public struct OAuthRequest {
         ]
         guard let request = APIRequestV2(url: baseURL.appendingPathComponent(path),
                                          method: .get,
-                                         queryItems: queryItems) else {
+                                         queryItems: queryItems,
+                                         retryPolicy: APIRequestV2.RetryPolicy(maxRetries: 3)) else {
             return nil
         }
         return OAuthRequest(apiRequest: request, httpSuccessCode: HTTPStatusCode.found)
@@ -152,7 +153,8 @@ public struct OAuthRequest {
 
         guard let request = APIRequestV2(url: baseURL.appendingPathComponent(path),
                                          method: .post,
-                                         headers: APIRequestV2.HeadersV2(cookies: [cookie])) else {
+                                         headers: APIRequestV2.HeadersV2(cookies: [cookie]),
+                                         retryPolicy: APIRequestV2.RetryPolicy(maxRetries: 3)) else {
             return nil
         }
         return OAuthRequest(apiRequest: request, httpSuccessCode: HTTPStatusCode.found)
@@ -160,6 +162,7 @@ public struct OAuthRequest {
 
     // MARK: Sent OTP
 
+    /// Unused in the current implementation
     static func requestOTP(baseURL: URL, authSessionID: String, emailAddress: String) -> OAuthRequest? {
         guard authSessionID.isEmpty == false,
               emailAddress.isEmpty == false else { return nil }
@@ -228,7 +231,8 @@ public struct OAuthRequest {
                                          method: .post,
                                          headers: APIRequestV2.HeadersV2(cookies: [cookie],
                                                                          contentType: .json),
-                                         body: jsonBody) else {
+                                         body: jsonBody,
+                                         retryPolicy: APIRequestV2.RetryPolicy(maxRetries: 3)) else {
             return nil
         }
         return OAuthRequest(apiRequest: request, httpSuccessCode: HTTPStatusCode.found)
@@ -254,7 +258,8 @@ public struct OAuthRequest {
         ]
         guard let request = APIRequestV2(url: baseURL.appendingPathComponent(path),
                                          method: .get,
-                                         queryItems: queryItems) else {
+                                         queryItems: queryItems,
+                                         retryPolicy: APIRequestV2.RetryPolicy(maxRetries: 3)) else {
             return nil
         }
 
@@ -273,7 +278,8 @@ public struct OAuthRequest {
         ]
         guard let request = APIRequestV2(url: baseURL.appendingPathComponent(path),
                                          method: .get,
-                                         queryItems: queryItems) else {
+                                         queryItems: queryItems,
+                                         retryPolicy: APIRequestV2.RetryPolicy(maxRetries: 3)) else {
             return nil
         }
         return OAuthRequest(apiRequest: request)
@@ -281,6 +287,7 @@ public struct OAuthRequest {
 
     // MARK: Edit Account
 
+    /// Unused in the current implementation
     static func editAccount(baseURL: URL, accessToken: String, email: String?) -> OAuthRequest? {
         guard accessToken.isEmpty == false else { return nil }
 
@@ -300,6 +307,7 @@ public struct OAuthRequest {
         return OAuthRequest(apiRequest: request, httpErrorCodes: [.unauthorized, .internalServerError])
     }
 
+    /// Unused in the current implementation
     static func confirmEditAccount(baseURL: URL, accessToken: String, email: String, hash: String, otp: String) -> OAuthRequest? {
         guard accessToken.isEmpty == false,
               email.isEmpty == false,
@@ -365,7 +373,9 @@ public struct OAuthRequest {
     static func jwks(baseURL: URL) -> OAuthRequest? {
         let path = "/api/auth/v2/.well-known/jwks.json"
 
-        guard let request = APIRequestV2(url: baseURL.appendingPathComponent(path), method: .get) else {
+        guard let request = APIRequestV2(url: baseURL.appendingPathComponent(path),
+                                         method: .get,
+                                         retryPolicy: APIRequestV2.RetryPolicy(maxRetries: 3)) else {
             return nil
         }
         return OAuthRequest(apiRequest: request,

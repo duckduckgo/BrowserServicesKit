@@ -17,27 +17,96 @@
 //
 
 import XCTest
+@testable import Subscription
+@testable import Networking
+import TestUtils
+import SubscriptionTestingUtilities
 
 final class PrivacyProSubscriptionIntegrationTests: XCTestCase {
 
+    var apiService: MockAPIService!
+    var tokenStorage: MockTokenStorage!
+    var legacyAccountStorage: MockLegacyTokenStorage!
+    var subscriptionManager: DefaultSubscriptionManager!
+    var appStorePurchaseFlow: DefaultAppStorePurchaseFlow!
+    var appStoreRestoreFlow: DefaultAppStoreRestoreFlow!
+
     override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
+
+        let subscriptionUserDefaults = UserDefaults(suiteName: "PrivacyProSubscriptionIntegrationTests")
+        let subscriptionEnvironment = SubscriptionEnvironment(serviceEnvironment: .staging, purchasePlatform: .appStore)
+
+//        let configuration = URLSessionConfiguration.default
+//        configuration.httpCookieStorage = nil
+//        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
+//        let urlSession = URLSession(configuration: configuration,
+//                                    delegate: SessionDelegate(),
+//                                    delegateQueue: nil)
+        apiService = MockAPIService()
+        let authService = DefaultOAuthService(baseURL: OAuthEnvironment.staging.url, apiService: apiService)
+
+        // keychain storage
+        tokenStorage = MockTokenStorage()
+        legacyAccountStorage = MockLegacyTokenStorage()
+
+        let authClient = DefaultOAuthClient(tokensStorage: tokenStorage,
+                                            legacyTokenStorage: legacyAccountStorage,
+                                            authService: authService)
+        apiService.authorizationRefresherCallback = { _ in
+            return "" // TODO: impl
+        }
+        let storePurchaseManager = DefaultStorePurchaseManager()
+        let subscriptionEndpointService = DefaultSubscriptionEndpointService(apiService: apiService,
+                                                                             baseURL: subscriptionEnvironment.serviceEnvironment.url)
+        let pixelHandler: SubscriptionManager.PixelHandler = { type in
+            // TODO: ?
+        }
+        subscriptionManager = DefaultSubscriptionManager(storePurchaseManager: storePurchaseManager,
+                                                         oAuthClient: authClient,
+                                                         subscriptionEndpointService: subscriptionEndpointService,
+                                                         subscriptionEnvironment: subscriptionEnvironment,
+                                                         pixelHandler: pixelHandler)
+
+        appStoreRestoreFlow = DefaultAppStoreRestoreFlow(subscriptionManager: subscriptionManager,
+                                                         storePurchaseManager: storePurchaseManager)
+
+        appStorePurchaseFlow = DefaultAppStorePurchaseFlow(subscriptionManager: subscriptionManager,
+                                                           storePurchaseManager: storePurchaseManager,
+                                                           appStoreRestoreFlow: appStoreRestoreFlow)
     }
 
     override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
+        apiService = nil
+        tokenStorage = nil
+        legacyAccountStorage = nil
+        subscriptionManager = nil
+        appStorePurchaseFlow = nil
+        appStoreRestoreFlow = nil
     }
 
-    func testExample() throws {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-        // Any test you write for XCTest can be annotated as throws and async.
-        // Mark your test throws to produce an unexpected failure when your test encounters an uncaught error.
-        // Mark your test async to allow awaiting for asynchronous code to complete. Check the results with assertions afterwards.
-    }
+    func testPurchaseSuccess() async throws {
 
-    func testPerformanceExample() throws {
-        // implement, mock only API calls
-    }
+        // configure mock API responses
 
+        APIRequestFactory.makeAuthoriseRequest(destinationMockAPIService: apiService, success: true)
+
+        // Buy subscription
+        let subscriptionSelectionID = ""
+        var purchaseTransactionJWS: String?
+        switch await appStorePurchaseFlow.purchaseSubscription(with: subscriptionSelectionID) {
+        case .success(let transactionJWS):
+            purchaseTransactionJWS = transactionJWS
+        case .failure(let error):
+            XCTFail("Purchase failed with error: \(error)")
+        }
+        XCTAssertNotNil(purchaseTransactionJWS)
+
+        switch await appStorePurchaseFlow.completeSubscriptionPurchase(with: purchaseTransactionJWS!) {
+        case .success:
+            break
+        case .failure(let error):
+            XCTFail("Purchase failed with error: \(error)")
+        }
+
+    }
 }
