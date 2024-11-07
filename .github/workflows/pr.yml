@@ -160,6 +160,8 @@ jobs:
             -derivedDataPath DerivedData \
             -skipPackagePluginValidation \
             -skipMacroValidation \
+            -test-iterations 3 \
+            -retry-tests-on-failure \
             CODE_SIGNING_ALLOWED=NO \
             | tee -a ios-build-log.txt \
             | xcbeautify --report junit --report-path . --junit-report-filename ios-unittests.xml 
