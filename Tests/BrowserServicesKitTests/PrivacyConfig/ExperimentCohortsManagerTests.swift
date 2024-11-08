@@ -262,5 +262,5 @@ final class ExperimentCohortsManagerTests: XCTestCase {
 }
 
 class MockExperimentDataStore: ExperimentsDataStoring {
-    var experiments: Experiments? = nil
+    var experiments: Experiments?
 }

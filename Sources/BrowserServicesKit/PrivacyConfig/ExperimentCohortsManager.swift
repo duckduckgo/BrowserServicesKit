@@ -54,7 +54,7 @@ protocol ExperimentCohortsManaging {
     func removeCohort(for subfeatureID: SubfeatureID)
 }
 
-class ExperimentCohortsManager: ExperimentCohortsManaging {
+final class ExperimentCohortsManager: ExperimentCohortsManaging {
 
     private var store: ExperimentsDataStoring
     private let queue = DispatchQueue(label: "com.experimentManager.queue")
