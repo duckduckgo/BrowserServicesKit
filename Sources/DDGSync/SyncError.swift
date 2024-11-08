@@ -212,7 +212,9 @@ extension SyncError: CustomNSError {
 
     public var errorUserInfo: [String: Any] {
         switch self {
-        case .failedToReadSecureStore(let status), .failedToWriteSecureStore(let status), .failedToRemoveSecureStore(let status):
+        case .failedToReadSecureStore(let status),
+                .failedToWriteSecureStore(let status),
+                .failedToRemoveSecureStore(let status):
             let underlyingError = NSError(domain: "secError", code: Int(status))
             return [NSUnderlyingErrorKey: underlyingError]
         default:
