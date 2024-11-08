@@ -124,7 +124,7 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
 
         do {
             let currentStorefrontCountryCode = await Storefront.current?.countryCode ?? ""
-            let applicableProductIdentifiers = StoreSubscriptionConfiguration.subscriptions.reduce([], { $0 + $1.identifiers(for: currentStorefrontCountryCode) })
+            let applicableProductIdentifiers = StoreSubscriptionConfiguration.subscriptionIdentifiers(for: currentStorefrontCountryCode)
 
             let availableProducts = try await Product.products(for: applicableProductIdentifiers)
             Logger.subscription.info("[StorePurchaseManager] updateAvailableProducts fetched \(availableProducts.count) products for \(currentStorefrontCountryCode)")

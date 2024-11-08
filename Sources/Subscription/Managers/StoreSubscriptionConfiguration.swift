@@ -17,6 +17,7 @@
 //
 
 import Foundation
+import Combine
 
 enum StoreSubscriptionConfiguration {
 
@@ -61,6 +62,14 @@ enum StoreSubscriptionConfiguration {
                                        .restOfWorld: ["tf.sandbox.subscription.1month.row",
                                                       "tf.sandbox.subscription.1year.row"]]),
     ]
+
+    static var allSubscriptionIdentifiers: [String] {
+        subscriptions.reduce([], { $0 + $1.allIdentifiers() })
+    }
+
+    static func subscriptionIdentifiers(for country: String) -> [String] {
+        subscriptions.reduce([], { $0 + $1.identifiers(for: country) })
+    }
 }
 
 struct StoreSubscriptionDefinition {
@@ -83,15 +92,4 @@ public typealias CountryCodeSet = [String]
 extension CountryCodeSet {
     static let usa = ["USA"]
     static let restOfWorld = ["POL", "CAN"] // TODO: Update set of countries (also in ASC)
-}
-
-extension Array where Element == StoreSubscriptionDefinition {
-
-    func allIdentifiers() -> [String] {
-        reduce([], { $0 + $1.allIdentifiers() })
-    }
-
-    func identifiers(for country: String) -> [String] {
-        reduce([], { $0 + $1.identifiers(for: country) })
-    }
 }
