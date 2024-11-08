@@ -42,24 +42,26 @@ protocol ExperimentCohortsManaging {
     /// Retrieves the enrollment date for the specified subfeature.
     /// - Parameter subfeatureID: The experiment subfeature for which the enrollment date is needed.
     /// - Returns: The `Date` of enrollment if one exists; otherwise, returns `nil`.
-    func enrolmentDate(for subfeatureID: SubfeatureID) -> Date?
+    func enrollmentDate(for subfeatureID: SubfeatureID) -> Date?
 
     /// Assigns a cohort to the given subfeature based on defined weights and saves it to UserDefaults.
     /// - Parameter subfeature: The experiment subfeature to assign a cohort for.
     /// - Returns: The name of the assigned cohort, or `nil` if no cohort could be assigned.
-    func assignCohort(for subfeature: ExperimentSubfeature) -> CohortID?
+    func assignCohort(to subfeature: ExperimentSubfeature) -> CohortID?
 
     /// Removes the assigned cohort data for the specified subfeature.
     /// - Parameter subfeature: The experiment subfeature for which the cohort data should be removed.
-    func removeCohort(for subfeatureID: SubfeatureID)
+    func removeCohort(from subfeatureID: SubfeatureID)
 }
 
 final class ExperimentCohortsManager: ExperimentCohortsManaging {
 
     private var store: ExperimentsDataStoring
-    private let queue = DispatchQueue(label: "com.experimentManager.queue")
     private let randomizer: (Range<Double>) -> Double
-    private let experimentsDataKey = "ExperimentsData"
+
+    var experiments: Experiments? {
+        store.experiments
+    }
 
     init(store: ExperimentsDataStoring = ExperimentsDataStore(), randomizer: @escaping (Range<Double>) -> Double) {
         self.store = store
@@ -67,16 +69,16 @@ final class ExperimentCohortsManager: ExperimentCohortsManaging {
     }
 
     func cohort(for subfeatureID: SubfeatureID) -> CohortID? {
-        guard let experiments = getExperimentData() else { return nil }
+        guard let experiments = experiments else { return nil }
         return experiments[subfeatureID]?.cohort
     }
 
-    func enrolmentDate(for subfeatureID: SubfeatureID) -> Date? {
-        guard let experiments = getExperimentData() else { return nil }
+    func enrollmentDate(for subfeatureID: SubfeatureID) -> Date? {
+        guard let experiments = experiments else { return nil }
         return experiments[subfeatureID]?.enrollmentDate
     }
 
-    func assignCohort(for subfeature: ExperimentSubfeature) -> CohortID? {
+    func assignCohort(to subfeature: ExperimentSubfeature) -> CohortID? {
         let cohorts = subfeature.cohorts
         let totalWeight = cohorts.reduce(0, { $0 + $1.weight })
         guard totalWeight > 0 else { return nil }
@@ -94,24 +96,20 @@ final class ExperimentCohortsManager: ExperimentCohortsManaging {
         return nil
     }
 
-    func removeCohort(for subfeatureID: SubfeatureID) {
-        guard var experiments = getExperimentData() else { return }
+    func removeCohort(from subfeatureID: SubfeatureID) {
+        guard var experiments = experiments else { return }
         experiments.removeValue(forKey: subfeatureID)
-        saveExperimentData(experiments)
+        saveExperiment(experiments)
     }
 
-    private func getExperimentData() -> Experiments? {
-        return store.experiments
-    }
-
-    private func saveExperimentData(_ experiments: Experiments) {
+    private func saveExperiment(_ experiments: Experiments) {
         store.experiments = experiments
     }
 
     private func saveCohort(_ cohort: CohortID, in experimentID: SubfeatureID) {
-        var experiments = getExperimentData() ?? Experiments()
+        var experiments = experiments ?? Experiments()
         let experimentData = ExperimentData(cohort: cohort, enrollmentDate: Date())
         experiments[experimentID] = experimentData
-        saveExperimentData(experiments)
+        saveExperiment(experiments)
     }
 }

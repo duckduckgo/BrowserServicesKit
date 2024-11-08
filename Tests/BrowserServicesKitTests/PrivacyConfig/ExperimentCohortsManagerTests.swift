@@ -72,13 +72,13 @@ final class ExperimentCohortsManagerTests: XCTestCase {
         XCTAssertEqual(result2, experimentData2.cohort)
     }
 
-    func testEnrolmentDateReturnsCorrectDateIfExists() {
+    func testEnrollmentDateReturnsCorrectDateIfExists() {
         // GIVEN
         mockStore.experiments = [subfeatureName1: experimentData1]
 
         // WHEN
-        let result1 = experimentCohortsManager.enrolmentDate(for: subfeatureName1)
-        let result2 = experimentCohortsManager.enrolmentDate(for: subfeatureName2)
+        let result1 = experimentCohortsManager.enrollmentDate(for: subfeatureName1)
+        let result2 = experimentCohortsManager.enrollmentDate(for: subfeatureName2)
 
         // THEN
         let timeDifference1 = abs(experimentData1.enrollmentDate.timeIntervalSince(result1 ?? Date()))
@@ -98,12 +98,12 @@ final class ExperimentCohortsManagerTests: XCTestCase {
         XCTAssertNil(result)
     }
 
-    func testEnrolmentDateReturnsNilIfDateDoesNotExist() {
+    func testEnrollmentDateReturnsNilIfDateDoesNotExist() {
         // GIVEN
         let subfeatureName = "TestSubfeature"
 
         // WHEN
-        let result = experimentCohortsManager.enrolmentDate(for: subfeatureName)
+        let result = experimentCohortsManager.enrollmentDate(for: subfeatureName)
 
         // THEN
         XCTAssertNil(result)
@@ -114,7 +114,7 @@ final class ExperimentCohortsManagerTests: XCTestCase {
         mockStore.experiments = [subfeatureName1: experimentData1]
 
         // WHEN
-        experimentCohortsManager.removeCohort(for: subfeatureName1)
+        experimentCohortsManager.removeCohort(from: subfeatureName1)
 
         // THEN
         let experiments = try XCTUnwrap(mockStore.experiments)
@@ -127,7 +127,7 @@ final class ExperimentCohortsManagerTests: XCTestCase {
         mockStore.experiments = expectedExperiments
 
         // WHEN
-        experimentCohortsManager.removeCohort(for: "someOtherSubfeature")
+        experimentCohortsManager.removeCohort(from: "someOtherSubfeature")
 
         // THEN
         XCTAssertEqual( mockStore.experiments, expectedExperiments)
@@ -138,7 +138,7 @@ final class ExperimentCohortsManagerTests: XCTestCase {
         let subfeature = ExperimentSubfeature(subfeatureID: subfeatureName1, cohorts: [])
 
         // WHEN
-        let result = experimentCohortsManager.assignCohort(for: subfeature)
+        let result = experimentCohortsManager.assignCohort(to: subfeature)
 
         // THEN
         XCTAssertNil(result)
@@ -155,7 +155,7 @@ final class ExperimentCohortsManagerTests: XCTestCase {
         let subfeature = ExperimentSubfeature(subfeatureID: subfeatureName1, cohorts: cohorts)
 
         // WHEN
-        let result = experimentCohortsManager.assignCohort(for: subfeature)
+        let result = experimentCohortsManager.assignCohort(to: subfeature)
 
         // THEN
         XCTAssertNil(result)
@@ -190,7 +190,7 @@ final class ExperimentCohortsManagerTests: XCTestCase {
             store: mockStore,
             randomizer: { _ in 0.0 }
         )
-        let resultStartOfCohort1 = experimentCohortsManager.assignCohort(for: subfeature)
+        let resultStartOfCohort1 = experimentCohortsManager.assignCohort(to: subfeature)
         XCTAssertEqual(resultStartOfCohort1, "Cohort1")
 
         // Test case where random value is at the end of Cohort1's range (0.9)
@@ -198,7 +198,7 @@ final class ExperimentCohortsManagerTests: XCTestCase {
             store: mockStore,
             randomizer: { _ in 0.9 }
         )
-        let resultEndOfCohort1 = experimentCohortsManager.assignCohort(for: subfeature)
+        let resultEndOfCohort1 = experimentCohortsManager.assignCohort(to: subfeature)
         XCTAssertEqual(resultEndOfCohort1, "Cohort1")
 
         // Test case where random value is at the start of Cohort2's range (1.00 to 4)
@@ -206,7 +206,7 @@ final class ExperimentCohortsManagerTests: XCTestCase {
             store: mockStore,
             randomizer: { _ in 1.00 }
         )
-        let resultStartOfCohort2 = experimentCohortsManager.assignCohort(for: subfeature)
+        let resultStartOfCohort2 = experimentCohortsManager.assignCohort(to: subfeature)
         XCTAssertEqual(resultStartOfCohort2, "Cohort2")
 
         // Test case where random value falls exactly within Cohort2's range (2.5)
@@ -214,7 +214,7 @@ final class ExperimentCohortsManagerTests: XCTestCase {
             store: mockStore,
             randomizer: { _ in 2.5 }
         )
-        let resultMiddleOfCohort2 = experimentCohortsManager.assignCohort(for: subfeature)
+        let resultMiddleOfCohort2 = experimentCohortsManager.assignCohort(to: subfeature)
         XCTAssertEqual(resultMiddleOfCohort2, "Cohort2")
 
         // Test case where random value is at the end of Cohort2's range (4)
@@ -222,7 +222,7 @@ final class ExperimentCohortsManagerTests: XCTestCase {
             store: mockStore,
             randomizer: { _ in 3.9 }
         )
-        let resultEndOfCohort2 = experimentCohortsManager.assignCohort(for: subfeature)
+        let resultEndOfCohort2 = experimentCohortsManager.assignCohort(to: subfeature)
         XCTAssertEqual(resultEndOfCohort2, "Cohort2")
     }
 
@@ -252,7 +252,7 @@ final class ExperimentCohortsManagerTests: XCTestCase {
             store: mockStore,
             randomizer: { range in Double.random(in: range)}
         )
-        let result = experimentCohortsManager.assignCohort(for: subfeature)
+        let result = experimentCohortsManager.assignCohort(to: subfeature)
 
         // THEN
         XCTAssertEqual(result, "Cohort1")

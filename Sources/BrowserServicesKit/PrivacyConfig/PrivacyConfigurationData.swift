@@ -42,12 +42,12 @@ public struct PrivacyConfigurationData {
 
         public init?(json: [String: Any]) {
             guard let name = json["name"] as? String,
-                  let weightValue = json["weight"] as? Int else {
+                  let weight = json["weight"] as? Int else {
                 return nil
             }
 
             self.name = name
-            self.weight = weightValue
+            self.weight = weight
         }
     }
     public let features: [FeatureName: PrivacyFeature]
