@@ -68,6 +68,8 @@ public enum SyncError: Error, Equatable {
     case unauthenticatedWhileLoggedIn
     case patchPayloadCompressionFailed(_ errorCode: Int)
 
+    case failedToReadUserDefaults
+
     public var isServerError: Bool {
         switch self {
         case .noResponseBody,
@@ -153,6 +155,8 @@ public enum SyncError: Error, Equatable {
             return [syncErrorString: "failedToRemoveAccount"]
         case .failedToDecodeSecureStoreData:
             return [syncErrorString: "failedToDecodeSecureStoreData"]
+        case .failedToReadUserDefaults:
+            return [syncErrorString: "failedToReadUserDefaults"]
         }
     }
 }
@@ -202,6 +206,7 @@ extension SyncError: CustomNSError {
         case .patchPayloadCompressionFailed: return 29
         case .failedToRemoveAccount: return 30
         case .failedToDecodeSecureStoreData: return 31
+        case .failedToReadUserDefaults: return 32
         }
     }
 
