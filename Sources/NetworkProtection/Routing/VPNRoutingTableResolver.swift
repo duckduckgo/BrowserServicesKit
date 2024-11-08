@@ -40,6 +40,10 @@ struct VPNRoutingTableResolver {
     }
 
     var excludedRoutes: [IPAddressRange] {
+        guard !excludeLocalNetworks else {
+            return VPNRoutingRange.localNetworkRange
+        }
+
         // We currently don't define excluded routes, only included.  Our testing show that this
         // is what works best.  Please see the task below for more technical details.
         //
