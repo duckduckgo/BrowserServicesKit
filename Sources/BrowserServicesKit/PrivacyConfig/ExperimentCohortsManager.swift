@@ -1,6 +1,5 @@
 //
 //  ExperimentCohortsManager.swift
-//  DuckDuckGo
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -127,4 +126,3 @@ struct ExperimentCohortsManager: ExperimentCohortsManaging {
         saveExperimentData(experiments)
     }
 }
-
