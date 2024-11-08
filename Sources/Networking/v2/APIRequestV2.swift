@@ -121,7 +121,10 @@ public class APIRequestV2: Hashable, CustomDebugStringConvertible {
     // MARK: Hashable Conformance
 
     public static func == (lhs: APIRequestV2, rhs: APIRequestV2) -> Bool {
-        lhs.urlRequest == rhs.urlRequest &&
+        let urlLhs = lhs.urlRequest.url?.pathComponents.joined(separator: "/")
+        let urlRhs = rhs.urlRequest.url?.pathComponents.joined(separator: "/")
+
+        return urlLhs == urlRhs &&
         lhs.timeoutInterval == rhs.timeoutInterval &&
         lhs.responseConstraints == rhs.responseConstraints &&
         lhs.retryPolicy == rhs.retryPolicy &&
@@ -130,7 +133,8 @@ public class APIRequestV2: Hashable, CustomDebugStringConvertible {
     }
 
     public func hash(into hasher: inout Hasher) {
-        hasher.combine(urlRequest)
+        let urlPath = urlRequest.url?.pathComponents.joined(separator: "/")
+        hasher.combine(urlPath)
         hasher.combine(timeoutInterval)
         hasher.combine(responseConstraints)
         hasher.combine(retryPolicy)

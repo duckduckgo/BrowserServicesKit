@@ -320,6 +320,7 @@ let package = Package(
             dependencies: [
                 "Networking",
                 "Persistence",
+                "Subscription"
             ]
         ),
         .target(

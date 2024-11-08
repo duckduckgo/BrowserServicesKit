@@ -30,18 +30,13 @@ final class PrivacyProSubscriptionIntegrationTests: XCTestCase {
     var subscriptionManager: DefaultSubscriptionManager!
     var appStorePurchaseFlow: DefaultAppStorePurchaseFlow!
     var appStoreRestoreFlow: DefaultAppStoreRestoreFlow!
+    var storePurchaseManager: StorePurchaseManagerMock!
+
+    let subscriptionSelectionID = "ios.subscription.1month"
 
     override func setUpWithError() throws {
 
-        let subscriptionUserDefaults = UserDefaults(suiteName: "PrivacyProSubscriptionIntegrationTests")
         let subscriptionEnvironment = SubscriptionEnvironment(serviceEnvironment: .staging, purchasePlatform: .appStore)
-
-//        let configuration = URLSessionConfiguration.default
-//        configuration.httpCookieStorage = nil
-//        configuration.requestCachePolicy = .reloadIgnoringLocalCacheData
-//        let urlSession = URLSession(configuration: configuration,
-//                                    delegate: SessionDelegate(),
-//                                    delegateQueue: nil)
         apiService = MockAPIService()
         let authService = DefaultOAuthService(baseURL: OAuthEnvironment.staging.url, apiService: apiService)
 
@@ -53,13 +48,13 @@ final class PrivacyProSubscriptionIntegrationTests: XCTestCase {
                                             legacyTokenStorage: legacyAccountStorage,
                                             authService: authService)
         apiService.authorizationRefresherCallback = { _ in
-            return "" // TODO: impl
+            return OAuthTokensFactory.makeValidTokenContainer().accessToken
         }
-        let storePurchaseManager = DefaultStorePurchaseManager()
+        storePurchaseManager = StorePurchaseManagerMock()
         let subscriptionEndpointService = DefaultSubscriptionEndpointService(apiService: apiService,
                                                                              baseURL: subscriptionEnvironment.serviceEnvironment.url)
         let pixelHandler: SubscriptionManager.PixelHandler = { type in
-            // TODO: ?
+            print("Pixel fired: \(type)")
         }
         subscriptionManager = DefaultSubscriptionManager(storePurchaseManager: storePurchaseManager,
                                                          oAuthClient: authClient,
@@ -87,11 +82,19 @@ final class PrivacyProSubscriptionIntegrationTests: XCTestCase {
     func testPurchaseSuccess() async throws {
 
         // configure mock API responses
+        APIMockResponseFactory.mockAuthoriseResponse(destinationMockAPIService: apiService, success: true)
+        APIMockResponseFactory.mockCreateAccountResponse(destinationMockAPIService: apiService, success: true)
+        APIMockResponseFactory.mockGetAccessTokenResponse(destinationMockAPIService: apiService, success: true)
+        APIMockResponseFactory.mockGetJWKS(destinationMockAPIService: apiService, success: true)
+        APIMockResponseFactory.mockConfirmPurchase(destinationMockAPIService: apiService, success: true)
 
-        APIRequestFactory.makeAuthoriseRequest(destinationMockAPIService: apiService, success: true)
+        (subscriptionManager.oAuthClient as! DefaultOAuthClient).testingDecodedTokenContainer = OAuthTokensFactory.makeValidTokenContainerWithEntitlements()
+
+        // configure mock store purchase manager responses
+        storePurchaseManager.purchaseSubscriptionResult = .success("purchaseTransactionJWS")
 
         // Buy subscription
-        let subscriptionSelectionID = ""
+
         var purchaseTransactionJWS: String?
         switch await appStorePurchaseFlow.purchaseSubscription(with: subscriptionSelectionID) {
         case .success(let transactionJWS):
@@ -107,6 +110,5 @@ final class PrivacyProSubscriptionIntegrationTests: XCTestCase {
         case .failure(let error):
             XCTFail("Purchase failed with error: \(error)")
         }
-
     }
 }

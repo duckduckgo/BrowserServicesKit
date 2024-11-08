@@ -162,7 +162,7 @@ final public class DefaultOAuthClient: OAuthClient {
     }
 
 #if DEBUG
-    internal var testingDecodedTokenContainer: TokenContainer?
+    var testingDecodedTokenContainer: TokenContainer?
 #endif
     private func decode(accessToken: String, refreshToken: String) async throws -> TokenContainer {
         Logger.OAuthClient.log("Decoding tokens")
