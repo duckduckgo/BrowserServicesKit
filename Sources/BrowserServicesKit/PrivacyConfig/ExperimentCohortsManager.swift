@@ -33,6 +33,11 @@ struct ExperimentData: Codable {
 
 typealias Experiments = [String: ExperimentData]
 
+protocol ExperimentDataStoring {
+    func data(forKey defaultName: String) -> Data?
+    func set(_ value: Any?, forKey defaultName: String)
+}
+
 protocol ExperimentCohortsManaging {
     /// Retrieves the cohort ID associated with the specified subfeature.
     /// - Parameter subfeature: The experiment subfeature for which the cohort ID is needed.
@@ -56,15 +61,15 @@ protocol ExperimentCohortsManaging {
 
 struct ExperimentCohortsManager: ExperimentCohortsManaging {
 
-    private let userDefaults: UserDefaults
+    private let store: ExperimentDataStoring
     private let decoder = JSONDecoder()
     private let encoder = JSONEncoder()
     private let queue = DispatchQueue(label: "com.experimentManager.queue")
-    private let experimentsDataKey = "ExperimentsData"
     private let randomizer: (Range<Double>) -> Double
+    private let experimentsDataKey = "ExperimentsData"
 
-    init(userDefaults: UserDefaults = UserDefaults.standard, randomizer: @escaping (Range<Double>) -> Double) {
-        self.userDefaults = userDefaults
+    init(store: ExperimentDataStoring = UserDefaults.standard, randomizer: @escaping (Range<Double>) -> Double) {
+        self.store = store
         self.randomizer = randomizer
         encoder.dateEncodingStrategy = .secondsSince1970
         decoder.dateDecodingStrategy = .secondsSince1970
@@ -106,7 +111,7 @@ struct ExperimentCohortsManager: ExperimentCohortsManaging {
 
     private func getExperimentData() -> Experiments? {
         queue.sync {
-            guard let savedData = userDefaults.data(forKey: experimentsDataKey) else { return nil }
+            guard let savedData = store.data(forKey: experimentsDataKey) else { return nil }
             return try? decoder.decode(Experiments.self, from: savedData)
         }
     }
@@ -114,7 +119,7 @@ struct ExperimentCohortsManager: ExperimentCohortsManaging {
     private func saveExperimentData(_ experiments: Experiments) {
         queue.sync {
             if let encodedData = try? encoder.encode(experiments) {
-                userDefaults.set(encodedData, forKey: experimentsDataKey)
+                store.set(encodedData, forKey: experimentsDataKey)
             }
         }
     }
@@ -126,3 +131,5 @@ struct ExperimentCohortsManager: ExperimentCohortsManaging {
         saveExperimentData(experiments)
     }
 }
+
+extension UserDefaults: ExperimentDataStoring {}

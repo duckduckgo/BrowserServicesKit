@@ -21,7 +21,7 @@ import XCTest
 
 final class ExperimentCohortsManagerTests: XCTestCase {
 
-    var mockUserDefaults: UserDefaults!
+    var mockStore: MockExperimentDataStore!
     var experimentCohortsManager: ExperimentCohortsManager!
 
     let subfeatureName1 = "TestSubfeature1"
@@ -40,11 +40,9 @@ final class ExperimentCohortsManagerTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        mockUserDefaults = UserDefaults(suiteName: "com.test.ExperimentCohortsManagerTests")
-        mockUserDefaults.removePersistentDomain(forName: "com.test.ExperimentCohortsManagerTests")
-
+        mockStore = MockExperimentDataStore()
         experimentCohortsManager = ExperimentCohortsManager(
-            userDefaults: mockUserDefaults,
+            store: mockStore,
             randomizer: { _ in 50.0 }
         )
 
@@ -56,8 +54,7 @@ final class ExperimentCohortsManagerTests: XCTestCase {
     }
 
     override func tearDown() {
-        mockUserDefaults.removePersistentDomain(forName: "com.test.ExperimentCohortsManagerTests")
-        mockUserDefaults = nil
+        mockStore = nil
         experimentCohortsManager = nil
         expectedDate1 = nil
         experimentData1 = nil
@@ -68,7 +65,7 @@ final class ExperimentCohortsManagerTests: XCTestCase {
 
     private func saveExperimentData(_ data: [String: ExperimentData]) {
         if let encodedData = try? encoder.encode(data) {
-            mockUserDefaults.set(encodedData, forKey: "ExperimentsData")
+            mockStore.dataToReturn = encodedData
         }
     }
 
@@ -125,14 +122,13 @@ final class ExperimentCohortsManagerTests: XCTestCase {
     func testRemoveCohortSuccessfullyRemovesData() {
         // GIVEN
         saveExperimentData([subfeatureName1: experimentData1])
-        let initialData = mockUserDefaults.data(forKey: "ExperimentsData")
-        XCTAssertNotNil(initialData, "Expected initial data to be saved in UserDefaults.")
 
         // WHEN
         experimentCohortsManager.removeCohort(for: subfeatureName1)
 
         // THEN
-        if let remainingData = mockUserDefaults.data(forKey: "ExperimentsData") {
+        
+        if let remainingData = mockStore.dataSaved {
             let decoder = JSONDecoder()
             let experiments = try? decoder.decode(Experiments.self, from: remainingData)
             XCTAssertNil(experiments?[subfeatureName1])
@@ -142,14 +138,12 @@ final class ExperimentCohortsManagerTests: XCTestCase {
     func testRemoveCohortDoesNothingIfSubfeatureDoesNotExist() {
         // GIVEN
         saveExperimentData([subfeatureName1: experimentData1, subfeatureName2: experimentData2])
-        let initialData = mockUserDefaults.data(forKey: "ExperimentsData")
-        XCTAssertNotNil(initialData, "Expected initial data to be saved in UserDefaults.")
 
         // WHEN
         experimentCohortsManager.removeCohort(for: "someOtherSubfeature")
 
         // THEN
-        if let remainingData = mockUserDefaults.data(forKey: "ExperimentsData") {
+        if let remainingData = mockStore.dataSaved {
             let decoder = JSONDecoder()
             let experiments = try? decoder.decode(Experiments.self, from: remainingData)
             XCTAssertNotNil(experiments?[subfeatureName1])
@@ -199,7 +193,7 @@ final class ExperimentCohortsManagerTests: XCTestCase {
 
         // Use a custom randomizer to verify the range
         experimentCohortsManager = ExperimentCohortsManager(
-            userDefaults: mockUserDefaults,
+            store: mockStore,
             randomizer: { range in
                 // Assert that the range lower bound is 0
                 XCTAssertEqual(range.lowerBound, 0.0)
@@ -211,7 +205,7 @@ final class ExperimentCohortsManagerTests: XCTestCase {
 
         // Test case where random value is at the very start of Cohort1's range (0)
         experimentCohortsManager = ExperimentCohortsManager(
-            userDefaults: mockUserDefaults,
+            store: mockStore,
             randomizer: { _ in 0.0 }
         )
         let resultStartOfCohort1 = experimentCohortsManager.assignCohort(for: subfeature)
@@ -219,7 +213,7 @@ final class ExperimentCohortsManagerTests: XCTestCase {
 
         // Test case where random value is at the end of Cohort1's range (0.9)
         experimentCohortsManager = ExperimentCohortsManager(
-            userDefaults: mockUserDefaults,
+            store: mockStore,
             randomizer: { _ in 0.9 }
         )
         let resultEndOfCohort1 = experimentCohortsManager.assignCohort(for: subfeature)
@@ -227,7 +221,7 @@ final class ExperimentCohortsManagerTests: XCTestCase {
 
         // Test case where random value is at the start of Cohort2's range (1.00 to 4)
         experimentCohortsManager = ExperimentCohortsManager(
-            userDefaults: mockUserDefaults,
+            store: mockStore,
             randomizer: { _ in 1.00 }
         )
         let resultStartOfCohort2 = experimentCohortsManager.assignCohort(for: subfeature)
@@ -235,7 +229,7 @@ final class ExperimentCohortsManagerTests: XCTestCase {
 
         // Test case where random value falls exactly within Cohort2's range (2.5)
         experimentCohortsManager = ExperimentCohortsManager(
-            userDefaults: mockUserDefaults,
+            store: mockStore,
             randomizer: { _ in 2.5 }
         )
         let resultMiddleOfCohort2 = experimentCohortsManager.assignCohort(for: subfeature)
@@ -243,14 +237,14 @@ final class ExperimentCohortsManagerTests: XCTestCase {
 
         // Test case where random value is at the end of Cohort2's range (4)
         experimentCohortsManager = ExperimentCohortsManager(
-            userDefaults: mockUserDefaults,
+            store: mockStore,
             randomizer: { _ in 3.9 }
         )
         let resultEndOfCohort2 = experimentCohortsManager.assignCohort(for: subfeature)
         XCTAssertEqual(resultEndOfCohort2, "Cohort2")
     }
 
-    func testAssignCohortWithSingleCohortAlwaysSelectsThatCohort() {
+    func testAssignCohortWithSingleCohortAlwaysSelectsThatCohort() throws {
         // GIVEN
         let jsonCohort1: [String: Any] = ["name": "Cohort1", "weight": 1]
         let cohorts = [
@@ -261,7 +255,7 @@ final class ExperimentCohortsManagerTests: XCTestCase {
 
         // Use a custom randomizer to verify the range
         experimentCohortsManager = ExperimentCohortsManager(
-            userDefaults: mockUserDefaults,
+            store: mockStore,
             randomizer: { range in
                 // Assert that the range lower bound is 0
                 XCTAssertEqual(range.lowerBound, 0.0)
@@ -273,13 +267,30 @@ final class ExperimentCohortsManagerTests: XCTestCase {
 
         // WHEN
         experimentCohortsManager = ExperimentCohortsManager(
-            userDefaults: mockUserDefaults,
+            store: mockStore,
             randomizer: { range in Double.random(in: range)}
         )
         let result = experimentCohortsManager.assignCohort(for: subfeature)
+        let savedData = try XCTUnwrap(mockStore.dataSaved)
 
         // THEN
         XCTAssertEqual(result, "Cohort1")
+        let decodedSavedData = try XCTUnwrap(JSONDecoder().decode(Experiments.self, from: savedData))
+        XCTAssertEqual(cohorts[0].name, decodedSavedData[subfeature.subfeatureID]?.cohort)
+    }
+
+}
+
+class MockExperimentDataStore: ExperimentDataStoring {
+    var dataToReturn: Data?
+    var dataSaved: Data?
+
+    func data(forKey defaultName: String) -> Data? {
+        dataToReturn
+    }
+    
+    func set(_ value: Any?, forKey defaultName: String) {
+        dataSaved = value as? Data
     }
 
 }
