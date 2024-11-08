@@ -127,7 +127,6 @@ final class ExperimentCohortsManagerTests: XCTestCase {
         experimentCohortsManager.removeCohort(for: subfeatureName1)
 
         // THEN
-        
         if let remainingData = mockStore.dataSaved {
             let decoder = JSONDecoder()
             let experiments = try? decoder.decode(Experiments.self, from: remainingData)
@@ -288,7 +287,7 @@ class MockExperimentDataStore: ExperimentDataStoring {
     func data(forKey defaultName: String) -> Data? {
         dataToReturn
     }
-    
+
     func set(_ value: Any?, forKey defaultName: String) {
         dataSaved = value as? Data
     }
