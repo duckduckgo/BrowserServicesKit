@@ -54,7 +54,6 @@ public enum PrivacyFeature: String {
     case brokenSitePrompt
     case remoteMessaging
     case additionalCampaignPixelParams
-    case backgroundAgentPixelTest
     case newTabPageImprovements
     case syncPromotion
     case autofillSurveys
@@ -63,6 +62,7 @@ public enum PrivacyFeature: String {
     case networkProtection
     case aiChat
     case contextualOnboarding
+    case adAttributionReporting
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -166,11 +166,6 @@ public enum DuckPlayerSubfeature: String, PrivacySubfeature {
     case autoplay
     case openInNewTab
     case enableDuckPlayer // iOS DuckPlayer rollout feature
-}
-
-public enum BackgroundAgentPixelTestSubfeature: String, PrivacySubfeature {
-    public var parent: PrivacyFeature { .backgroundAgentPixelTest }
-    case pixelTest
 }
 
 public enum PhishingDetectionSubfeature: String, PrivacySubfeature {
