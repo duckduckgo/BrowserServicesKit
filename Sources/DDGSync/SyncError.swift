@@ -20,11 +20,14 @@ import Foundation
 
 public enum SyncError: Error, Equatable {
 
-    public enum AccountRemovedReason: String {
-        case syncEnabledNotSetOnKeyValueStore
-        case userTurnedOffSync
-        case userDeletedAccount
-        case serverEnvironmentUpdated
+    public enum AccountRemovedReason: String, Equatable {
+        case authStateInactive = "auth-state-inactive"
+        case syncEnabledNotSetOnKeyValueStore = "not-set-on-key-value-store"
+        case notFoundInSecureStorage = "not-found-in-secure-storage"
+        case userTurnedOffSync = "user-turned-off"
+        case userDeletedAccount = "user-deleted-account"
+        case unauthenticatedRequest = "unauthenticated-request"
+        case serverEnvironmentUpdated = "server-environment-updated"
     }
 
     case noToken

@@ -126,8 +126,7 @@ public class DDGSync: DDGSyncing {
         }
         do {
             try await disconnect(deviceId: deviceId)
-            try removeAccount()
-            dependencies.errorEvents.fire(.accountRemoved(.userTurnedOffSync))
+            try removeAccount(reason: .userTurnedOffSync)
         } catch {
             try handleUnauthenticated(error)
         }
@@ -181,8 +180,7 @@ public class DDGSync: DDGSyncing {
 
         do {
             try await dependencies.account.deleteAccount(account)
-            try removeAccount()
-            dependencies.errorEvents.fire(.accountRemoved(.userDeletedAccount))
+            try removeAccount(reason: .userDeletedAccount)
         } catch {
             try handleUnauthenticated(error)
         }
@@ -196,8 +194,7 @@ public class DDGSync: DDGSyncing {
     }
 
     public func updateServerEnvironment(_ serverEnvironment: ServerEnvironment) {
-        try? removeAccount()
-        dependencies.errorEvents.fire(.accountRemoved(.userDeletedAccount))
+        try? removeAccount(reason: .serverEnvironmentUpdated)
         dependencies.updateServerEnvironment(serverEnvironment)
         authState = .initializing
         initializeIfNeeded()
@@ -247,8 +244,7 @@ public class DDGSync: DDGSyncing {
 
         guard let account else {
             do {
-                try removeAccount()
-                dependencies.errorEvents.fire(.accountRemoved(.syncEnabledNotSetOnKeyValueStore))
+                try removeAccount(reason: .notFoundInSecureStorage)
             } catch {
                 dependencies.errorEvents.fire(.failedToRemoveAccount, error: error)
             }
@@ -269,7 +265,7 @@ public class DDGSync: DDGSyncing {
         }
 
         guard account.state != .inactive else {
-            try removeAccount()
+            try removeAccount(reason: .authStateInactive)
             return
         }
 
@@ -337,7 +333,7 @@ public class DDGSync: DDGSyncing {
         self.syncQueue = syncQueue
     }
 
-    private func removeAccount() throws {
+    private func removeAccount(reason: SyncError.AccountRemovedReason) throws {
         dependencies.scheduler.isEnabled = false
         startSyncCancellable?.cancel()
         syncQueueCancellable?.cancel()
@@ -347,6 +343,7 @@ public class DDGSync: DDGSyncing {
         authState = .inactive
         try dependencies.secureStore.removeAccount()
         dependencies.keyValueStore.set(nil, forKey: Constants.syncEnabledKey)
+        dependencies.errorEvents.fire(.accountRemoved(reason))
     }
 
     private func handleUnauthenticated(_ error: Error) throws {
@@ -357,7 +354,7 @@ public class DDGSync: DDGSyncing {
         }
 
         do {
-            try removeAccount()
+            try removeAccount(reason: .unauthenticatedRequest)
             throw SyncError.unauthenticatedWhileLoggedIn
         } catch {
             Logger.sync.error("Failed to delete account upon unauthenticated server response: \(error.localizedDescription, privacy: .public)")
