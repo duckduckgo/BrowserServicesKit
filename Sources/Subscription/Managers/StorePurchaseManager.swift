@@ -56,12 +56,6 @@ public protocol StorePurchaseManager {
 @available(macOS 12.0, iOS 15.0, *)
 public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseManager {
 
-    let productIdentifiers = ["ios.subscription.1month", "ios.subscription.1year",
-                              "subscription.1month", "subscription.1year",
-                              "review.subscription.1month", "review.subscription.1year",
-                              "tf.sandbox.subscription.1month", "tf.sandbox.subscription.1year",
-                              "ddg.privacy.pro.monthly.renews.us", "ddg.privacy.pro.yearly.renews.us"]
-
     @Published public private(set) var availableProducts: [Product] = []
     @Published public private(set) var purchasedProductIDs: [String] = []
     @Published public private(set) var purchaseQueue: [String] = []
@@ -129,8 +123,11 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
         Logger.subscription.info("[StorePurchaseManager] updateAvailableProducts")
 
         do {
-            let availableProducts = try await Product.products(for: productIdentifiers)
-            Logger.subscription.info("[StorePurchaseManager] updateAvailableProducts fetched \(availableProducts.count) products")
+            let currentStorefrontCountryCode = await Storefront.current?.countryCode ?? ""
+            let applicableProductIdentifiers = StoreSubscriptionConfiguration.subscriptions.reduce([], { $0 + $1.identifiers(for: currentStorefrontCountryCode) })
+
+            let availableProducts = try await Product.products(for: applicableProductIdentifiers)
+            Logger.subscription.info("[StorePurchaseManager] updateAvailableProducts fetched \(availableProducts.count) products for \(currentStorefrontCountryCode)")
 
             if self.availableProducts != availableProducts {
                 self.availableProducts = availableProducts
