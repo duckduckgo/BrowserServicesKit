@@ -48,7 +48,6 @@ public enum PrivacyFeature: String {
     case performanceMetrics
     case privacyPro
     case sslCertificates
-    case brokenSiteReportExperiment
     case toggleReports
     case maliciousSiteProtection
     case brokenSitePrompt
