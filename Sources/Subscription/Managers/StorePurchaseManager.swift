@@ -56,6 +56,8 @@ public protocol StorePurchaseManager {
 @available(macOS 12.0, iOS 15.0, *)
 public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseManager {
 
+    private let storeSubscriptionConfiguration: StoreSubscriptionConfiguration
+
     @Published public private(set) var availableProducts: [Product] = []
     @Published public private(set) var purchasedProductIDs: [String] = []
     @Published public private(set) var purchaseQueue: [String] = []
@@ -65,6 +67,7 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
     private var storefrontChanges: Task<Void, Never>?
 
     public init() {
+        storeSubscriptionConfiguration = DefaultStoreSubscriptionConfiguration()
         transactionUpdates = observeTransactionUpdates()
         storefrontChanges = observeStorefrontChanges()
     }
@@ -124,7 +127,7 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
 
         do {
             let currentStorefrontCountryCode = await Storefront.current?.countryCode ?? ""
-            let applicableProductIdentifiers = StoreSubscriptionConfiguration.subscriptionIdentifiers(for: currentStorefrontCountryCode)
+            let applicableProductIdentifiers = storeSubscriptionConfiguration.subscriptionIdentifiers(for: currentStorefrontCountryCode)
 
             let availableProducts = try await Product.products(for: applicableProductIdentifiers)
             Logger.subscription.info("[StorePurchaseManager] updateAvailableProducts fetched \(availableProducts.count) products for \(currentStorefrontCountryCode)")
