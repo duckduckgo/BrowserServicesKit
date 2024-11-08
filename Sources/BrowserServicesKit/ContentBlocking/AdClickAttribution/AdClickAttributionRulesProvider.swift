@@ -155,7 +155,9 @@ public class AdClickAttributionRulesProvider: AdClickAttributionRulesProviding {
         // This is optimization: in case multiple tabs request same attribution at the same time, we will respond quickly.
         var matchingTasks = tasks.filter { $0 == attributionTask }
         tasks.removeAll(where: { $0 == attributionTask })
-        matchingTasks.append(attributionTask)
+
+        // Preserve order in which rules were requested
+        matchingTasks.insert(attributionTask, at: 0)
 
         Logger.contentBlocking.debug("Returning attribution rules for vendor  \(attributionTask.vendor) to \(matchingTasks.count, privacy: .public) caller(s)")
 
