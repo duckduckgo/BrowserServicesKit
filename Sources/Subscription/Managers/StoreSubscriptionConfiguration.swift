@@ -19,55 +19,68 @@
 import Foundation
 import Combine
 
-enum StoreSubscriptionConfiguration {
+protocol StoreSubscriptionConfiguration {
+    var allSubscriptionIdentifiers: [String] { get }
+    func subscriptionIdentifiers(for country: String) -> [String]
+}
 
-    static let subscriptions: [StoreSubscriptionDefinition] = [
-        // Production shared for iOS and macOS
-        .init(name: "DuckDuckGo Private Browser",
-              appIdentifier: "com.duckduckgo.mobile.ios",
-              environment: .production,
-              identifiersByCountries: [.usa: ["ddg.privacy.pro.monthly.renews.us",
-                                              "ddg.privacy.pro.yearly.renews.us"]]),
-        // iOS debug Alpha build
-        .init(name: "DuckDuckGo Alpha",
-              appIdentifier: "com.duckduckgo.mobile.ios.alpha",
-              environment: .staging,
-              identifiersByCountries: [.usa: ["ios.subscription.1month",
-                                              "ios.subscription.1year"],
-                                       .restOfWorld: ["ios.subscription.1month.row",
-                                                      "ios.subscription.1year.row"]]),
-        // macOS debug build
-        .init(name: "IAP debug - DDG for macOS",
-              appIdentifier: "com.duckduckgo.macos.browser.debug",
-              environment: .staging,
-              identifiersByCountries: [.usa: ["subscription.1month",
-                                              "subscription.1year"],
-                                       .restOfWorld: ["subscription.1month.row",
-                                                      "subscription.1year.row"]]),
-        // macOS review build
-        .init(name: "IAP review - DDG for macOS",
-              appIdentifier: "com.duckduckgo.macos.browser.review",
-              environment: .staging,
-              identifiersByCountries: [.usa: ["review.subscription.1month",
-                                              "review.subscription.1year"],
-                                       .restOfWorld: ["review.subscription.1month.row",
-                                                      "review.subscription.1year.row"]]),
+final class DefaultStoreSubscriptionConfiguration: StoreSubscriptionConfiguration {
 
-        // macOS TestFlight build
-        .init(name: "DuckDuckGo Sandbox Review",
-              appIdentifier: "com.duckduckgo.mobile.ios.review",
-              environment: .staging,
-              identifiersByCountries: [.usa: ["tf.sandbox.subscription.1month",
-                                              "tf.sandbox.subscription.1year"],
-                                       .restOfWorld: ["tf.sandbox.subscription.1month.row",
-                                                      "tf.sandbox.subscription.1year.row"]]),
-    ]
+    private let subscriptions: [StoreSubscriptionDefinition]
 
-    static var allSubscriptionIdentifiers: [String] {
+    convenience init() {
+        self.init(subscriptionDefinitions: [
+            // Production shared for iOS and macOS
+            .init(name: "DuckDuckGo Private Browser",
+                  appIdentifier: "com.duckduckgo.mobile.ios",
+                  environment: .production,
+                  identifiersByCountries: [.usa: ["ddg.privacy.pro.monthly.renews.us",
+                                                  "ddg.privacy.pro.yearly.renews.us"]]),
+            // iOS debug Alpha build
+            .init(name: "DuckDuckGo Alpha",
+                  appIdentifier: "com.duckduckgo.mobile.ios.alpha",
+                  environment: .staging,
+                  identifiersByCountries: [.usa: ["ios.subscription.1month",
+                                                  "ios.subscription.1year"],
+                                           .restOfWorld: ["ios.subscription.1month.row",
+                                                          "ios.subscription.1year.row"]]),
+            // macOS debug build
+            .init(name: "IAP debug - DDG for macOS",
+                  appIdentifier: "com.duckduckgo.macos.browser.debug",
+                  environment: .staging,
+                  identifiersByCountries: [.usa: ["subscription.1month",
+                                                  "subscription.1year"],
+                                           .restOfWorld: ["subscription.1month.row",
+                                                          "subscription.1year.row"]]),
+            // macOS review build
+            .init(name: "IAP review - DDG for macOS",
+                  appIdentifier: "com.duckduckgo.macos.browser.review",
+                  environment: .staging,
+                  identifiersByCountries: [.usa: ["review.subscription.1month",
+                                                  "review.subscription.1year"],
+                                           .restOfWorld: ["review.subscription.1month.row",
+                                                          "review.subscription.1year.row"]]),
+
+            // macOS TestFlight build
+            .init(name: "DuckDuckGo Sandbox Review",
+                  appIdentifier: "com.duckduckgo.mobile.ios.review",
+                  environment: .staging,
+                  identifiersByCountries: [.usa: ["tf.sandbox.subscription.1month",
+                                                  "tf.sandbox.subscription.1year"],
+                                           .restOfWorld: ["tf.sandbox.subscription.1month.row",
+                                                          "tf.sandbox.subscription.1year.row"]])
+        ])
+    }
+
+    init(subscriptionDefinitions: [StoreSubscriptionDefinition]) {
+        self.subscriptions = subscriptionDefinitions
+    }
+
+    var allSubscriptionIdentifiers: [String] {
         subscriptions.reduce([], { $0 + $1.allIdentifiers() })
     }
 
-    static func subscriptionIdentifiers(for country: String) -> [String] {
+    func subscriptionIdentifiers(for country: String) -> [String] {
         subscriptions.reduce([], { $0 + $1.identifiers(for: country) })
     }
 }
