@@ -78,9 +78,8 @@ public final class BrokenSitePromptLimiter {
         let settings = getSettingsFromConfig()
 
         resetDismissStreakIfNeeded(dismissStreakResetDays: settings.dismissStreakResetDays)
-        // TODO: Uncomment before merging -> this is just for review builds so it is easier to test
-//        guard toastDismissStreakCounter < settings.maxDismissStreak else { return false } // Don't show the toast if the user dismissed it more than `maxDismissStreak` times in a row
-//        guard !lastToastShownDate.isLessThan(daysAgo: settings.coolDownDays) else { return false } // Only show the toast once per `coolDownDays` days
+        guard toastDismissStreakCounter < settings.maxDismissStreak else { return false } // Don't show the toast if the user dismissed it more than `maxDismissStreak` times in a row
+        guard !lastToastShownDate.isLessThan(daysAgo: settings.coolDownDays) else { return false } // Only show the toast once per `coolDownDays` days
 
         return true
     }

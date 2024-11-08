@@ -131,10 +131,6 @@ public extension Date {
         return Calendar.current.isDate(self, inSameDayAs: otherDate)
     }
 
-    func isLessThan48HoursAgo() -> Bool {
-        self > Date().addingTimeInterval(-48 * 60 * 60)
-    }
-
     func isLessThan(daysAgo days: Int) -> Bool {
         self > Date().addingTimeInterval(Double(-days) * 24 * 60 * 60)
     }

@@ -1,6 +1,5 @@
 //
 //  BrokenSitePromptLimiterTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -36,9 +35,7 @@ final class BrokenSitePromptLimiterTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-
         (configManager.privacyConfig as? PrivacyConfigurationMock)?.enabledFeaturesForVersions[.brokenSitePrompt] = [AppVersionProvider().appVersion() ?? ""]
-        
         mockStore = MockBrokenSitePromptLimiterStore()
         brokenSiteLimiter = BrokenSitePromptLimiter(privacyConfigManager: configManager, store: mockStore)
     }
