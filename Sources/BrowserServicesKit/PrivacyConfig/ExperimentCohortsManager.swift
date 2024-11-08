@@ -80,7 +80,7 @@ final class ExperimentCohortsManager: ExperimentCohortsManaging {
 
     func assignCohort(to subfeature: ExperimentSubfeature) -> CohortID? {
         let cohorts = subfeature.cohorts
-        let totalWeight = cohorts.reduce(0, { $0 + $1.weight })
+        let totalWeight = cohorts.map(\.weight).reduce(0, +)
         guard totalWeight > 0 else { return nil }
 
         let randomValue = randomizer(0..<Double(totalWeight))
