@@ -22,7 +22,7 @@ final class PrivacyDashboardURLBuilder {
 
     enum Configuration {
 
-        case startScreen(entryPoint: PrivacyDashboardEntryPoint, variant: PrivacyDashboardVariant)
+        case startScreen(entryPoint: PrivacyDashboardEntryPoint)
         case segueToScreen(_ screen: Screen, entryPoint: PrivacyDashboardEntryPoint)
 
     }
@@ -38,21 +38,8 @@ final class PrivacyDashboardURLBuilder {
 
     func build() -> URL {
         url.addingScreenParameter(from: configuration)
-            .addingBreakageScreenParameterIfNeeded(from: configuration)
             .addingCategoryParameterIfNeeded(from: configuration)
             .addingOpenerParameterIfNeeded(from: configuration)
-    }
-
-}
-
-private extension PrivacyDashboardVariant {
-
-    var breakageScreen: BreakageScreen? {
-        switch self {
-        case .control: return nil
-        case .a: return .categorySelection
-        case .b: return .categoryTypeSelection
-        }
     }
 
 }
@@ -62,7 +49,6 @@ private extension URL {
     private enum Constant {
 
         static let screenKey = "screen"
-        static let breakageScreenKey = "breakageScreen"
         static let openerKey = "opener"
         static let categoryKey = "category"
 
@@ -74,30 +60,23 @@ private extension URL {
     func addingScreenParameter(from configuration: PrivacyDashboardURLBuilder.Configuration) -> URL {
         var screen: Screen
         switch configuration {
-        case .startScreen(let entryPoint, let variant):
-            screen = entryPoint.screen(for: variant)
+        case .startScreen(let entryPoint):
+            screen = entryPoint.screen
         case .segueToScreen(let destinationScreen, _):
             screen = destinationScreen
         }
         return appendingParameter(name: Constant.screenKey, value: screen.rawValue)
     }
 
-    func addingBreakageScreenParameterIfNeeded(from configuration: PrivacyDashboardURLBuilder.Configuration) -> URL {
-        if case .startScreen(_, let variant) = configuration, let breakageScreen = variant.breakageScreen?.rawValue {
-            return appendingParameter(name: Constant.breakageScreenKey, value: breakageScreen)
-        }
-        return self
-    }
-
     func addingCategoryParameterIfNeeded(from configuration: PrivacyDashboardURLBuilder.Configuration) -> URL {
-        if case .startScreen(let entryPoint, _) = configuration, case .afterTogglePrompt(let category, _) = entryPoint {
+        if case .startScreen(let entryPoint) = configuration, case .afterTogglePrompt(let category, _) = entryPoint {
             return appendingParameter(name: Constant.categoryKey, value: category)
         }
         return self
     }
 
     func addingOpenerParameterIfNeeded(from configuration: PrivacyDashboardURLBuilder.Configuration) -> URL {
-        if case .startScreen(let entryPoint, _) = configuration, case .toggleReport = entryPoint {
+        if case .startScreen(let entryPoint) = configuration, case .toggleReport = entryPoint {
             return appendingParameter(name: Constant.openerKey, value: Constant.menuScreenKey)
         }
         if case .segueToScreen(_, let entryPoint) = configuration, entryPoint == .dashboard {
