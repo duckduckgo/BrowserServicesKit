@@ -57,7 +57,7 @@ public enum SyncError: Error, Equatable {
     case failedToWriteSecureStore(status: OSStatus)
     case failedToReadSecureStore(status: OSStatus)
     case failedToRemoveSecureStore(status: OSStatus)
-    case failedToDecodeSecureStoreData
+    case failedToDecodeSecureStoreData(error: Error)
 
     case credentialsMetadataMissingBeforeFirstSync
     case receivedCredentialsWithoutUUID
@@ -212,6 +212,8 @@ extension SyncError: CustomNSError {
                 .failedToRemoveSecureStore(let status):
             let underlyingError = NSError(domain: "secError", code: Int(status))
             return [NSUnderlyingErrorKey: underlyingError]
+        case .failedToDecodeSecureStoreData(let error):
+            return [NSUnderlyingErrorKey: error]
         default:
             return [:]
         }
