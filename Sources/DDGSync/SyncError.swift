@@ -57,6 +57,7 @@ public enum SyncError: Error, Equatable {
     case failedToWriteSecureStore(status: OSStatus)
     case failedToReadSecureStore(status: OSStatus)
     case failedToRemoveSecureStore(status: OSStatus)
+    case failedToDecodeSecureStoreData
 
     case credentialsMetadataMissingBeforeFirstSync
     case receivedCredentialsWithoutUUID
@@ -150,6 +151,8 @@ public enum SyncError: Error, Equatable {
             return [syncErrorString: "patchPayloadCompressionFailed"]
         case .failedToRemoveAccount:
             return [syncErrorString: "failedToRemoveAccount"]
+        case .failedToDecodeSecureStoreData:
+            return [syncErrorString: "failedToDecodeSecureStoreData"]
         }
     }
 }
@@ -198,6 +201,7 @@ extension SyncError: CustomNSError {
         case .unauthenticatedWhileLoggedIn: return 28
         case .patchPayloadCompressionFailed: return 29
         case .failedToRemoveAccount: return 30
+        case .failedToDecodeSecureStoreData: return 31
         }
     }
 
