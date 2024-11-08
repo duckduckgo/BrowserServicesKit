@@ -1,0 +1,60 @@
+//
+//  ExperimentsDataStore.swift
+//
+//  Copyright © 2024 DuckDuckGo. All rights reserved.
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//  http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//
+
+import Foundation
+
+protocol ExperimentsDataStoring {
+    var experiments: Experiments? { get set }
+}
+
+protocol LocalDataStoring {
+    func data(forKey defaultName: String) -> Data?
+    func set(_ value: Any?, forKey defaultName: String)
+}
+
+struct ExperimentsDataStore: ExperimentsDataStoring {
+    private let localDataStoring: LocalDataStoring
+    private let experimentsDataKey = "ExperimentsData"
+    private let queue = DispatchQueue(label: "com.experimentManager.queue")
+    private let decoder = JSONDecoder()
+    private let encoder = JSONEncoder()
+
+    init(localDataStoring: LocalDataStoring = UserDefaults.standard) {
+        self.localDataStoring = localDataStoring
+        encoder.dateEncodingStrategy = .secondsSince1970
+        decoder.dateDecodingStrategy = .secondsSince1970
+    }
+
+    var experiments: Experiments? {
+        get {
+            queue.sync {
+                guard let savedData = localDataStoring.data(forKey: experimentsDataKey) else { return nil }
+                return try? decoder.decode(Experiments.self, from: savedData)
+            }
+        }
+        set {
+            queue.sync {
+                if let encodedData = try? encoder.encode(newValue) {
+                    localDataStoring.set(encodedData, forKey: experimentsDataKey)
+                }
+            }
+        }
+    }
+}
+
+extension UserDefaults: LocalDataStoring {}

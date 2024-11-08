@@ -25,11 +25,9 @@ final class ExperimentCohortsManagerTests: XCTestCase {
     var experimentCohortsManager: ExperimentCohortsManager!
 
     let subfeatureName1 = "TestSubfeature1"
-    var expectedDate1: Date!
     var experimentData1: ExperimentData!
 
     let subfeatureName2 = "TestSubfeature2"
-    var expectedDate2: Date!
     var experimentData2: ExperimentData!
 
     let encoder: JSONEncoder = {
@@ -46,32 +44,24 @@ final class ExperimentCohortsManagerTests: XCTestCase {
             randomizer: { _ in 50.0 }
         )
 
-        expectedDate1 = Date()
+        let expectedDate1 = Date()
         experimentData1 = ExperimentData(cohort: "TestCohort1", enrollmentDate: expectedDate1)
 
-        expectedDate2 = Date().addingTimeInterval(60) // Second subfeature with a different date
+        let expectedDate2 = Date().addingTimeInterval(60)
         experimentData2 = ExperimentData(cohort: "TestCohort2", enrollmentDate: expectedDate2)
     }
 
     override func tearDown() {
         mockStore = nil
         experimentCohortsManager = nil
-        expectedDate1 = nil
         experimentData1 = nil
-        expectedDate2 = nil
         experimentData2 = nil
         super.tearDown()
     }
 
-    private func saveExperimentData(_ data: [String: ExperimentData]) {
-        if let encodedData = try? encoder.encode(data) {
-            mockStore.dataToReturn = encodedData
-        }
-    }
-
     func testCohortReturnsCohortIDIfExistsForMultipleSubfeatures() {
         // GIVEN
-        saveExperimentData([subfeatureName1: experimentData1, subfeatureName2: experimentData2])
+        mockStore.experiments = [subfeatureName1: experimentData1, subfeatureName2: experimentData2]
 
         // WHEN
         let result1 = experimentCohortsManager.cohort(for: subfeatureName1)
@@ -84,14 +74,14 @@ final class ExperimentCohortsManagerTests: XCTestCase {
 
     func testEnrolmentDateReturnsCorrectDateIfExists() {
         // GIVEN
-        saveExperimentData([subfeatureName1: experimentData1])
+        mockStore.experiments = [subfeatureName1: experimentData1]
 
         // WHEN
         let result1 = experimentCohortsManager.enrolmentDate(for: subfeatureName1)
         let result2 = experimentCohortsManager.enrolmentDate(for: subfeatureName2)
 
         // THEN
-        let timeDifference1 = abs(expectedDate1.timeIntervalSince(result1 ?? Date()))
+        let timeDifference1 = abs(experimentData1.enrollmentDate.timeIntervalSince(result1 ?? Date()))
 
         XCTAssertLessThanOrEqual(timeDifference1, 1.0, "Expected enrollment date for subfeatureName1 to match at the second level")
         XCTAssertNil(result2)
@@ -119,35 +109,28 @@ final class ExperimentCohortsManagerTests: XCTestCase {
         XCTAssertNil(result)
     }
 
-    func testRemoveCohortSuccessfullyRemovesData() {
+    func testRemoveCohortSuccessfullyRemovesData() throws {
         // GIVEN
-        saveExperimentData([subfeatureName1: experimentData1])
+        mockStore.experiments = [subfeatureName1: experimentData1]
 
         // WHEN
         experimentCohortsManager.removeCohort(for: subfeatureName1)
 
         // THEN
-        if let remainingData = mockStore.dataSaved {
-            let decoder = JSONDecoder()
-            let experiments = try? decoder.decode(Experiments.self, from: remainingData)
-            XCTAssertNil(experiments?[subfeatureName1])
-        }
+        let experiments = try XCTUnwrap(mockStore.experiments)
+        XCTAssertTrue(experiments.isEmpty)
     }
 
     func testRemoveCohortDoesNothingIfSubfeatureDoesNotExist() {
         // GIVEN
-        saveExperimentData([subfeatureName1: experimentData1, subfeatureName2: experimentData2])
+        let expectedExperiments: Experiments = [subfeatureName1: experimentData1, subfeatureName2: experimentData2]
+        mockStore.experiments = expectedExperiments
 
         // WHEN
         experimentCohortsManager.removeCohort(for: "someOtherSubfeature")
 
         // THEN
-        if let remainingData = mockStore.dataSaved {
-            let decoder = JSONDecoder()
-            let experiments = try? decoder.decode(Experiments.self, from: remainingData)
-            XCTAssertNotNil(experiments?[subfeatureName1])
-            XCTAssertNotNil(experiments?[subfeatureName2])
-        }
+        XCTAssertEqual( mockStore.experiments, expectedExperiments)
     }
 
     func testAssignCohortReturnsNilIfNoCohorts() {
@@ -270,26 +253,14 @@ final class ExperimentCohortsManagerTests: XCTestCase {
             randomizer: { range in Double.random(in: range)}
         )
         let result = experimentCohortsManager.assignCohort(for: subfeature)
-        let savedData = try XCTUnwrap(mockStore.dataSaved)
 
         // THEN
         XCTAssertEqual(result, "Cohort1")
-        let decodedSavedData = try XCTUnwrap(JSONDecoder().decode(Experiments.self, from: savedData))
-        XCTAssertEqual(cohorts[0].name, decodedSavedData[subfeature.subfeatureID]?.cohort)
+        XCTAssertEqual(cohorts[0].name, mockStore.experiments?[subfeature.subfeatureID]?.cohort)
     }
 
 }
 
-class MockExperimentDataStore: ExperimentDataStoring {
-    var dataToReturn: Data?
-    var dataSaved: Data?
-
-    func data(forKey defaultName: String) -> Data? {
-        dataToReturn
-    }
-
-    func set(_ value: Any?, forKey defaultName: String) {
-        dataSaved = value as? Data
-    }
-
+class MockExperimentDataStore: ExperimentsDataStoring {
+    var experiments: Experiments? = nil
 }

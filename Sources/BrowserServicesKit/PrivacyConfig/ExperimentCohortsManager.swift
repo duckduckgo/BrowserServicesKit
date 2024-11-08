@@ -26,17 +26,12 @@ struct ExperimentSubfeature {
 typealias CohortID = String
 typealias SubfeatureID = String
 
-struct ExperimentData: Codable {
+struct ExperimentData: Codable, Equatable {
     let cohort: String
     let enrollmentDate: Date
 }
 
 typealias Experiments = [String: ExperimentData]
-
-protocol ExperimentDataStoring {
-    func data(forKey defaultName: String) -> Data?
-    func set(_ value: Any?, forKey defaultName: String)
-}
 
 protocol ExperimentCohortsManaging {
     /// Retrieves the cohort ID associated with the specified subfeature.
@@ -59,20 +54,16 @@ protocol ExperimentCohortsManaging {
     func removeCohort(for subfeatureID: SubfeatureID)
 }
 
-struct ExperimentCohortsManager: ExperimentCohortsManaging {
+class ExperimentCohortsManager: ExperimentCohortsManaging {
 
-    private let store: ExperimentDataStoring
-    private let decoder = JSONDecoder()
-    private let encoder = JSONEncoder()
+    private var store: ExperimentsDataStoring
     private let queue = DispatchQueue(label: "com.experimentManager.queue")
     private let randomizer: (Range<Double>) -> Double
     private let experimentsDataKey = "ExperimentsData"
 
-    init(store: ExperimentDataStoring = UserDefaults.standard, randomizer: @escaping (Range<Double>) -> Double) {
+    init(store: ExperimentsDataStoring = ExperimentsDataStore(), randomizer: @escaping (Range<Double>) -> Double) {
         self.store = store
         self.randomizer = randomizer
-        encoder.dateEncodingStrategy = .secondsSince1970
-        decoder.dateDecodingStrategy = .secondsSince1970
     }
 
     func cohort(for subfeatureID: SubfeatureID) -> CohortID? {
@@ -110,18 +101,11 @@ struct ExperimentCohortsManager: ExperimentCohortsManaging {
     }
 
     private func getExperimentData() -> Experiments? {
-        queue.sync {
-            guard let savedData = store.data(forKey: experimentsDataKey) else { return nil }
-            return try? decoder.decode(Experiments.self, from: savedData)
-        }
+        return store.experiments
     }
 
     private func saveExperimentData(_ experiments: Experiments) {
-        queue.sync {
-            if let encodedData = try? encoder.encode(experiments) {
-                store.set(encodedData, forKey: experimentsDataKey)
-            }
-        }
+        store.experiments = experiments
     }
 
     private func saveCohort(_ cohort: CohortID, in experimentID: SubfeatureID) {
@@ -131,5 +115,3 @@ struct ExperimentCohortsManager: ExperimentCohortsManaging {
         saveExperimentData(experiments)
     }
 }
-
-extension UserDefaults: ExperimentDataStoring {}
