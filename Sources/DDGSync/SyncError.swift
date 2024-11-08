@@ -20,11 +20,19 @@ import Foundation
 
 public enum SyncError: Error, Equatable {
 
+    public enum AccountRemovedReason: String {
+        case syncEnabledNotSetOnKeyValueStore
+        case userTurnedOffSync
+        case userDeletedAccount
+        case serverEnvironmentUpdated
+    }
+
     case noToken
 
     case failedToMigrate
     case failedToLoadAccount
     case failedToSetupEngine
+    case failedToRemoveAccount
 
     case failedToCreateAccountKeys(_ message: String)
     case accountNotFound
@@ -38,7 +46,7 @@ public enum SyncError: Error, Equatable {
     case unableToEncodeRequestBody(_ message: String)
     case unableToDecodeResponse(_ message: String)
     case invalidDataInResponse(_ message: String)
-    case accountRemoved
+    case accountRemoved(_ reason: AccountRemovedReason)
 
     case failedToEncryptValue(_ message: String)
     case failedToDecryptValue(_ message: String)
@@ -140,6 +148,8 @@ public enum SyncError: Error, Equatable {
             return [syncErrorString: "unauthenticatedWhileLoggedIn"]
         case .patchPayloadCompressionFailed:
             return [syncErrorString: "patchPayloadCompressionFailed"]
+        case .failedToRemoveAccount:
+            return [syncErrorString: "failedToRemoveAccount"]
         }
     }
 }
@@ -187,6 +197,7 @@ extension SyncError: CustomNSError {
         case .settingsMetadataNotPresent: return 27
         case .unauthenticatedWhileLoggedIn: return 28
         case .patchPayloadCompressionFailed: return 29
+        case .failedToRemoveAccount: return 30
         }
     }
 
