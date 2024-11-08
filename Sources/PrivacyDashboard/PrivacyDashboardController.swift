@@ -95,6 +95,12 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
     public func setup(for webView: WKWebView) {
         self.webView = webView
         webView.navigationDelegate = self
+        
+        if #available(iOS 16.4, macOS 13.3, *) {
+            webView.isInspectable = true
+        } else {
+            // Fallback on earlier versions
+        }
 
         setupPrivacyDashboardUserScript()
         loadStartScreen()
