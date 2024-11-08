@@ -70,13 +70,6 @@ public enum Screen: String, Decodable, CaseIterable {
 
 }
 
-public enum BreakageScreen: String, Decodable {
-
-    case categorySelection
-    case categoryTypeSelection
-
-}
-
 public struct ProtectionState: Decodable {
 
     public let isProtected: Bool
