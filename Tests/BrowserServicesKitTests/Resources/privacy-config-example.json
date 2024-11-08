@@ -170,7 +170,22 @@
                     "minSupportedVersion": "1.36.0"
                 },
                 "enabledSubfeature": {
-                    "state": "enabled"
+                    "state": "enabled",
+                    "description": "A description of the sub-feature",
+                    "cohorts": [
+                        {
+                            "name": "myExperimentControl",
+                            "weight": 1
+                        },
+                        {
+                            "name": "myExperimentBlue",
+                            "weight": 1
+                        },
+                        {
+                            "name": "myExperimentRed",
+                            "weight": 1
+                        }
+                    ]
                 },
                 "internalSubfeature": {
                     "state": "internal"
