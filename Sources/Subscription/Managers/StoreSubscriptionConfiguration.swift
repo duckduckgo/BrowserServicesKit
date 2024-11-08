@@ -87,9 +87,20 @@ struct StoreSubscriptionDefinition {
     }
 }
 
-public typealias CountryCodeSet = [String]
+enum CountryCodeSet {
+    case usa
+    case restOfWorld
 
-extension CountryCodeSet {
-    static let usa = ["USA"]
-    static let restOfWorld = ["POL", "CAN"] // TODO: Update set of countries (also in ASC)
+    var countryCodes: Set<String> {
+        switch self {
+        case .usa:
+            return Set(["USA"])
+        case .restOfWorld:
+            return Set(["POL", "CAN"]) // TODO: Update set of countries (also in ASC)
+        }
+    }
+
+    func contains(_ country: String) -> Bool {
+        countryCodes.contains(country.uppercased())
+    }
 }
