@@ -40,18 +40,13 @@ public enum PrivacyDashboardEntryPoint: Equatable {
     ///   - didToggleProtectionsFixIssue: A Boolean indicating whether toggling protections resolved the issue.
     case afterTogglePrompt(category: String, didToggleProtectionsFixIssue: Bool)
 
-    func screen(for variant: PrivacyDashboardVariant) -> Screen {
-        switch (self, variant) {
-        case (.dashboard, _): return .primaryScreen
-
-        case (.report, .control): return .breakageForm
-        case (.report, .a): return .categorySelection
-        case (.report, .b): return .categoryTypeSelection
-
-        case (.afterTogglePrompt, _): return .choiceBreakageForm
-
-        case (.prompt, _): return .promptBreakageForm
-        case (.toggleReport, _): return .toggleReport
+    var screen: Screen {
+        switch self {
+        case .dashboard: return .primaryScreen
+        case .report: return .breakageForm
+        case .afterTogglePrompt: return .choiceBreakageForm
+        case .prompt: return .promptBreakageForm
+        case .toggleReport: return .toggleReport
         }
     }
 

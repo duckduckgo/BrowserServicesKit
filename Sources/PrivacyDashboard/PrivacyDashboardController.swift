@@ -89,7 +89,6 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
 
     public private(set) weak var privacyInfo: PrivacyInfo?
     private let entryPoint: PrivacyDashboardEntryPoint
-    private let variant: PrivacyDashboardVariant
     private let eventMapping: EventMapping<PrivacyDashboardEvents>
 
     weak var webView: WKWebView?
@@ -103,12 +102,10 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
 
     public init(privacyInfo: PrivacyInfo?,
                 entryPoint: PrivacyDashboardEntryPoint,
-                variant: PrivacyDashboardVariant,
                 toggleReportingManager: ToggleReportingManaging,
                 eventMapping: EventMapping<PrivacyDashboardEvents>) {
         self.privacyInfo = privacyInfo
         self.entryPoint = entryPoint
-        self.variant = variant
         self.eventMapping = eventMapping
         self.toggleReportingManager = toggleReportingManager
         script = PrivacyDashboardUserScript()
@@ -373,7 +370,6 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
 
     func userScriptDidRequestShowReportBrokenSite(_ userScript: PrivacyDashboardUserScript) {
         eventMapping.fire(.reportBrokenSiteShown, parameters: [
-            PrivacyDashboardEvents.Parameters.variant: variant.rawValue,
             PrivacyDashboardEvents.Parameters.source: source.rawValue
         ])
         eventMapping.fire(.showReportBrokenSite)
@@ -384,7 +380,7 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     }
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestSubmitBrokenSiteReportWithCategory category: String, description: String) {
-        var parameters = [PrivacyDashboardEvents.Parameters.variant: variant.rawValue]
+        var parameters = [String: String]()
         if case let .afterTogglePrompt(_, didToggleProtectionsFixIssue) = entryPoint {
             parameters[PrivacyDashboardEvents.Parameters.didToggleProtectionsFixIssue] = didToggleProtectionsFixIssue.description
         }
@@ -418,7 +414,6 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectBreakageCategory category: String) {
         eventMapping.fire(.breakageCategorySelected, parameters: [
-            PrivacyDashboardEvents.Parameters.variant: variant.rawValue,
             PrivacyDashboardEvents.Parameters.category: category
         ])
         delegate?.privacyDashboardController(self, didSelectBreakageCategory: category)
