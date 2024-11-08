@@ -72,7 +72,6 @@ final class ExperimentCohortsManagerTests: XCTestCase {
         }
     }
 
-
     func testCohortReturnsCohortIDIfExistsForMultipleSubfeatures() {
         // GIVEN
         saveExperimentData([subfeatureName1: experimentData1, subfeatureName2: experimentData2])
