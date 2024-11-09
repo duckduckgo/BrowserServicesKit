@@ -43,7 +43,9 @@ let package = Package(
         .library(name: "SpecialErrorPages", targets: ["SpecialErrorPages"]),
         .library(name: "DuckPlayer", targets: ["DuckPlayer"]),
         .library(name: "PhishingDetection", targets: ["PhishingDetection"]),
-        .library(name: "Onboarding", targets: ["Onboarding"])
+        .library(name: "Onboarding", targets: ["Onboarding"]),
+        .library(name: "BrokenSitePrompt", targets: ["BrokenSitePrompt"]),
+        .library(name: "PageRefreshMonitor", targets: ["PageRefreshMonitor"]),
     ],
     dependencies: [
         .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "15.1.0"),
@@ -429,6 +431,24 @@ let package = Package(
                 .define("DEBUG", .when(configuration: .debug))
             ]
         ),
+        .target(
+            name: "BrokenSitePrompt",
+            dependencies: [
+                "BrowserServicesKit"
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
+            ]
+        ),
+        .target(
+            name: "PageRefreshMonitor",
+            dependencies: [
+                "BrowserServicesKit"
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
+            ]
+        ),
 
         // MARK: - Test Targets
         .testTarget(
@@ -649,6 +669,18 @@ let package = Package(
             name: "SpecialErrorPagesTests",
             dependencies: [
                 "SpecialErrorPages"
+            ]
+        ),
+        .testTarget(
+            name: "BrokenSitePromptTests",
+            dependencies: [
+                "BrokenSitePrompt"
+            ]
+        ),
+        .testTarget(
+            name: "PageRefreshMonitorTests",
+            dependencies: [
+                "PageRefreshMonitor"
             ]
         ),
     ],
