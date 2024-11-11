@@ -126,7 +126,7 @@ public class DDGSync: DDGSyncing {
         }
         do {
             try await disconnect(deviceId: deviceId)
-            try updateAccount(nil)
+            try removeAccount(reason: .userTurnedOffSync)
         } catch {
             try handleUnauthenticated(error)
         }
@@ -180,7 +180,7 @@ public class DDGSync: DDGSyncing {
 
         do {
             try await dependencies.account.deleteAccount(account)
-            try updateAccount(nil)
+            try removeAccount(reason: .userDeletedAccount)
         } catch {
             try handleUnauthenticated(error)
         }
@@ -194,7 +194,7 @@ public class DDGSync: DDGSyncing {
     }
 
     public func updateServerEnvironment(_ serverEnvironment: ServerEnvironment) {
-        try? updateAccount(nil)
+        try? removeAccount(reason: .serverEnvironmentUpdated)
         dependencies.updateServerEnvironment(serverEnvironment)
         authState = .initializing
         initializeIfNeeded()
@@ -227,11 +227,12 @@ public class DDGSync: DDGSyncing {
         let syncEnabled = dependencies.keyValueStore.object(forKey: Constants.syncEnabledKey) != nil
         guard syncEnabled else {
             try? dependencies.secureStore.removeAccount()
+            dependencies.errorEvents.fire(.accountRemoved(.syncEnabledNotSetOnKeyValueStore))
             authState = .inactive
             return
         }
 
-        var account: SyncAccount?
+        let account: SyncAccount?
         do {
             account = try dependencies.secureStore.account()
         } catch {
@@ -241,6 +242,15 @@ public class DDGSync: DDGSyncing {
 
         authState = account?.state ?? .inactive
 
+        guard let account else {
+            do {
+                try removeAccount(reason: .notFoundInSecureStorage)
+            } catch {
+                dependencies.errorEvents.fire(.failedToRemoveAccount, error: error)
+            }
+            return
+        }
+
         do {
             try updateAccount(account)
         } catch {
@@ -248,22 +258,14 @@ public class DDGSync: DDGSyncing {
         }
     }
 
-    private func updateAccount(_ account: SyncAccount? = nil) throws {
-        guard account?.state != .initializing else {
+    private func updateAccount(_ account: SyncAccount) throws {
+        guard account.state != .initializing else {
             assertionFailure("Sync has not been initialized properly")
             return
         }
 
-        guard var account, account.state != .inactive else {
-            dependencies.scheduler.isEnabled = false
-            startSyncCancellable?.cancel()
-            syncQueueCancellable?.cancel()
-            isDataSyncingFeatureFlagEnabledCancellable?.cancel()
-            try syncQueue?.dataProviders.forEach { try $0.deregisterFeature() }
-            syncQueue = nil
-            authState = .inactive
-            try dependencies.secureStore.removeAccount()
-            dependencies.keyValueStore.set(nil, forKey: Constants.syncEnabledKey)
+        guard account.state != .inactive else {
+            try removeAccount(reason: .authStateInactive)
             return
         }
 
@@ -274,9 +276,12 @@ public class DDGSync: DDGSyncing {
         try syncQueue.prepareDataModelsForSync(needsRemoteDataFetch: account.state == .addingNewDevice)
 
         if account.state != .active {
-            account = account.updatingState(.active)
+            let activatedAccount = account.updatingState(.active)
+            try dependencies.secureStore.persistAccount(activatedAccount)
+        } else {
+            try dependencies.secureStore.persistAccount(account)
         }
-        try dependencies.secureStore.persistAccount(account)
+
         authState = account.state
         dependencies.keyValueStore.set(true, forKey: Constants.syncEnabledKey)
 
@@ -328,6 +333,19 @@ public class DDGSync: DDGSyncing {
         self.syncQueue = syncQueue
     }
 
+    private func removeAccount(reason: SyncError.AccountRemovedReason) throws {
+        dependencies.scheduler.isEnabled = false
+        startSyncCancellable?.cancel()
+        syncQueueCancellable?.cancel()
+        isDataSyncingFeatureFlagEnabledCancellable?.cancel()
+        try syncQueue?.dataProviders.forEach { try $0.deregisterFeature() }
+        syncQueue = nil
+        authState = .inactive
+        try dependencies.secureStore.removeAccount()
+        dependencies.keyValueStore.set(nil, forKey: Constants.syncEnabledKey)
+        dependencies.errorEvents.fire(.accountRemoved(reason))
+    }
+
     private func handleUnauthenticated(_ error: Error) throws {
         guard let syncError = error as? SyncError,
               case .unexpectedStatusCode(let statusCode) = syncError,
@@ -336,7 +354,7 @@ public class DDGSync: DDGSyncing {
         }
 
         do {
-            try updateAccount(nil)
+            try removeAccount(reason: .unauthenticatedRequest)
             throw SyncError.unauthenticatedWhileLoggedIn
         } catch {
             Logger.sync.error("Failed to delete account upon unauthenticated server response: \(error.localizedDescription, privacy: .public)")
