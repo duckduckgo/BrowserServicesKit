@@ -1064,7 +1064,7 @@ class AppPrivacyConfigurationTests: XCTestCase {
                                                   locale: locale)
         let config = manager.privacyConfig
 
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving,  randomizer: mockRandom(in:)))
+        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, randomizer: mockRandom(in:)))
         XCTAssertEqual(config.stateFor(AutofillSubfeature.credentialsSaving), .disabled(.stillInRollout))
     }
 
@@ -1083,7 +1083,7 @@ class AppPrivacyConfigurationTests: XCTestCase {
                                                   locale: locale)
         let config = manager.privacyConfig
 
-        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving,  randomizer: mockRandom(in:)))
+        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, randomizer: mockRandom(in:)))
         XCTAssertEqual(config.stateFor(AutofillSubfeature.credentialsSaving), .enabled)
     }
 

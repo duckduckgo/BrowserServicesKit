@@ -191,7 +191,7 @@ public struct PrivacyConfigurationData {
             public let rollout: Rollout?
             public let cohorts: [Cohort]?
             public let targets: [Target]?
-            public let config: [String : String]?
+            public let config: [String: String]?
 
             public init?(json: [String: Any]) {
                 guard let state = json[CodingKeys.state.rawValue] as? String else {
