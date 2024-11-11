@@ -907,6 +907,186 @@ class AppPrivacyConfigurationTests: XCTestCase {
         XCTAssertEqual(configAfterUpdate.stateFor(AutofillSubfeature.credentialsSaving, randomizer: mockRandom(in:)), .disabled(.disabledInConfig))
     }
 
+    let exampleSubfeatureEnabledWithTarget =
+    """
+    {
+        "features": {
+            "autofill": {
+                "state": "enabled",
+                "exceptions": [],
+                "features": {
+                    "credentialsSaving": {
+                        "state": "enabled",
+                        "targets": [
+                            {
+                                "localeCountry": "US",
+                                "localeLanguage": "fr"
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    }
+    """.data(using: .utf8)!
+
+    func testWhenCheckingSubfeatureStateWithSubfeatureEnabledWhenTargetMatches_SubfeatureShouldBeEnabled() {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleSubfeatureEnabledWithTarget, etag: "test")
+        let mockInternalUserStore = MockInternalUserStoring()
+        let locale = Locale(identifier: "fr_US")
+
+        let manager = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore),
+                                                  locale: locale)
+        let config = manager.privacyConfig
+
+        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving))
+        XCTAssertEqual(config.stateFor(AutofillSubfeature.credentialsSaving), .enabled)
+    }
+
+    func testWhenCheckingSubfeatureStateWithSubfeatureEnabledWhenRegionDoesNotMatches_SubfeatureShouldBeDisabled() {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleSubfeatureEnabledWithTarget, etag: "test")
+        let mockInternalUserStore = MockInternalUserStoring()
+        let locale = Locale(identifier: "fr_FR")
+
+        let manager = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore),
+                                                  locale: locale)
+        let config = manager.privacyConfig
+
+        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving))
+        XCTAssertEqual(config.stateFor(AutofillSubfeature.credentialsSaving), .disabled(.targetDoesNotMatch))
+    }
+
+    func testWhenCheckingSubfeatureStateWithSubfeatureEnabledWhenLanguageDoesNotMatches_SubfeatureShouldBeDisabled() {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleSubfeatureEnabledWithTarget, etag: "test")
+        let mockInternalUserStore = MockInternalUserStoring()
+        let locale = Locale(identifier: "it_US")
+
+        let manager = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore),
+                                                  locale: locale)
+        let config = manager.privacyConfig
+
+        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving))
+        XCTAssertEqual(config.stateFor(AutofillSubfeature.credentialsSaving), .disabled(.targetDoesNotMatch))
+    }
+
+    let exampleSubfeatureDisabledWithTarget =
+    """
+    {
+        "features": {
+            "autofill": {
+                "state": "enabled",
+                "exceptions": [],
+                "features": {
+                    "credentialsSaving": {
+                        "state": "disabled",
+                        "targets": [
+                            {
+                                "localeCountry": "US",
+                                "localeLanguage": "fr"
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    }
+    """.data(using: .utf8)!
+
+    func testWhenCheckingSubfeatureStateWithSubfeatureDisabledWhenTargetMatches_SubfeatureShouldBeDisabled() {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleSubfeatureDisabledWithTarget, etag: "test")
+        let mockInternalUserStore = MockInternalUserStoring()
+        let locale = Locale(identifier: "fr_US")
+
+        let manager = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore),
+                                                  locale: locale)
+        let config = manager.privacyConfig
+
+        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving))
+        XCTAssertEqual(config.stateFor(AutofillSubfeature.credentialsSaving), .disabled(.disabledInConfig))
+    }
+
+    let exampleSubfeatureEnabledWithRolloutAndTarget =
+    """
+    {
+        "features": {
+            "autofill": {
+                "state": "enabled",
+                "exceptions": [],
+                "features": {
+                    "credentialsSaving": {
+                        "state": "enabled",
+                        "targets": [
+                            {
+                                "localeCountry": "US",
+                                "localeLanguage": "fr"
+                            }
+                        ],
+                        "rollout": {
+                            "steps": [{
+                                "percent": 5.0
+                            }]
+                        }
+                    }
+                }
+            }
+        }
+    }
+    """.data(using: .utf8)!
+
+    func testWhenCheckingSubfeatureStateWithSubfeatureEnabledAndTargetMatchesWhenNotInRollout_SubfeatureShouldBeDisabled() {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleSubfeatureEnabledWithRolloutAndTarget, etag: "test")
+        let mockInternalUserStore = MockInternalUserStoring()
+        let locale = Locale(identifier: "fr_US")
+        mockRandomValue = 7.0
+        clearRolloutData(feature: "autofill", subFeature: "credentialsSaving")
+
+        let manager = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore),
+                                                  locale: locale)
+        let config = manager.privacyConfig
+
+        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving,  randomizer: mockRandom(in:)))
+        XCTAssertEqual(config.stateFor(AutofillSubfeature.credentialsSaving), .disabled(.stillInRollout))
+    }
+
+    func testWhenCheckingSubfeatureStateWithSubfeatureEnabledAndTargetMatchesWhenInRollout_SubfeatureShouldBeEnabled() {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleSubfeatureEnabledWithRolloutAndTarget, etag: "test")
+        let mockInternalUserStore = MockInternalUserStoring()
+        let locale = Locale(identifier: "fr_US")
+        mockRandomValue = 2.0
+        clearRolloutData(feature: "autofill", subFeature: "credentialsSaving")
+
+        let manager = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore),
+                                                  locale: locale)
+        let config = manager.privacyConfig
+
+        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving,  randomizer: mockRandom(in:)))
+        XCTAssertEqual(config.stateFor(AutofillSubfeature.credentialsSaving), .enabled)
+    }
+
     let exampleEnabledSubfeatureWithRollout =
     """
     {

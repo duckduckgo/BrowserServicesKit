@@ -30,6 +30,7 @@ public enum PrivacyConfigurationFeatureDisabledReason: Equatable {
     case tooOldInstallation
     case limitedToInternalUsers
     case stillInRollout
+    case targetDoesNotMatch
 }
 
 public protocol PrivacyConfiguration {

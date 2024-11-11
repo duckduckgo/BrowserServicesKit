@@ -55,6 +55,7 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
     private let localProtection: DomainsProtectionStore
     private let errorReporting: EventMapping<ContentBlockerDebugEvents>?
     private let installDate: Date?
+    private let locale: Locale
 
     public let internalUserDecider: InternalUserDecider
 
@@ -110,12 +111,14 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
                 localProtection: DomainsProtectionStore,
                 errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil,
                 internalUserDecider: InternalUserDecider,
+                locale: Locale = Locale.current,
                 installDate: Date? = nil
     ) {
         self.embeddedDataProvider = embeddedDataProvider
         self.localProtection = localProtection
         self.errorReporting = errorReporting
         self.internalUserDecider = internalUserDecider
+        self.locale = locale
         self.installDate = installDate
 
         reload(etag: fetchedETag, data: fetchedData)
@@ -127,6 +130,7 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
                                            identifier: fetchedData.etag,
                                            localProtection: localProtection,
                                            internalUserDecider: internalUserDecider,
+                                           locale: locale,
                                            installDate: installDate)
         }
 
@@ -134,6 +138,7 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
                                        identifier: embeddedConfigData.etag,
                                        localProtection: localProtection,
                                        internalUserDecider: internalUserDecider,
+                                       locale: locale, 
                                        installDate: installDate)
     }
 

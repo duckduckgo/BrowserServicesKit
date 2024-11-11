@@ -33,6 +33,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     private let locallyUnprotected: DomainsProtectionStore
     private let internalUserDecider: InternalUserDecider
     private let userDefaults: UserDefaults
+    private let locale: Locale
     private let installDate: Date?
 
     public init(data: PrivacyConfigurationData,
@@ -40,12 +41,14 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
                 localProtection: DomainsProtectionStore,
                 internalUserDecider: InternalUserDecider,
                 userDefaults: UserDefaults = UserDefaults(),
+                locale: Locale = Locale.current,
                 installDate: Date? = nil) {
         self.data = data
         self.identifier = identifier
         self.locallyUnprotected = localProtection
         self.internalUserDecider = internalUserDecider
         self.userDefaults = userDefaults
+        self.locale = locale
         self.installDate = installDate
     }
 
@@ -193,9 +196,11 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
 
     public func stateFor(_ subfeature: any PrivacySubfeature, versionProvider: AppVersionProvider, randomizer: (Range<Double>) -> Double) -> PrivacyConfigurationFeatureState {
 
+        // Check parent feature state
         let parentState = stateFor(featureKey: subfeature.parent, versionProvider: versionProvider)
         guard case .enabled = parentState else { return parentState }
 
+        // Check sub-feature state
         let subfeatures = subfeatures(for: subfeature.parent)
         let subfeatureData = subfeatures[subfeature.rawValue]
 
@@ -210,6 +215,12 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         default: return .disabled(.disabledInConfig)
         }
 
+        // Check Targets
+        // It should not be wrapped in an array and will be removed at some point
+        if let target = subfeatureData?.targets?.first, !matchTarget(target: target){
+            return .disabled(.targetDoesNotMatch)
+        }
+
         // Handle Rollouts
         if let rollout = subfeatureData?.rollout,
            !isRolloutEnabled(subfeature: subfeature, rolloutSteps: rollout.steps, randomizer: randomizer) {
@@ -217,6 +228,11 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         }
 
         return .enabled
+    }
+
+    private func matchTarget(target: PrivacyConfigurationData.PrivacyFeature.Feature.Target) -> Bool{
+        return target.localeCountry == locale.regionCode &&
+            target.localeLanguage == locale.languageCode
     }
 
     private func subfeatures(for feature: PrivacyFeature) -> PrivacyConfigurationData.PrivacyFeature.Features {

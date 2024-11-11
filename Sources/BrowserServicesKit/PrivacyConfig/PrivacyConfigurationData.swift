@@ -136,6 +136,8 @@ public struct PrivacyConfigurationData {
                 case minSupportedVersion
                 case rollout
                 case cohorts
+                case targets
+                case config
             }
 
             public struct Rollout: Hashable {
@@ -169,10 +171,27 @@ public struct PrivacyConfigurationData {
                 }
             }
 
+            public struct Target {
+                enum CodingKeys: String {
+                    case localeCountry
+                    case localeLanguage
+                }
+
+                public let localeCountry: String
+                public let localeLanguage: String
+
+                public init(json: [String: Any]) {
+                    self.localeCountry = json[CodingKeys.localeCountry.rawValue] as? String ?? ""
+                    self.localeLanguage = json[CodingKeys.localeLanguage.rawValue] as? String ?? ""
+                }
+            }
+
             public let state: FeatureState
             public let minSupportedVersion: FeatureSupportedVersion?
             public let rollout: Rollout?
             public let cohorts: [Cohort]?
+            public let targets: [Target]?
+            public let config: [String : String]?
 
             public init?(json: [String: Any]) {
                 guard let state = json[CodingKeys.state.rawValue] as? String else {
@@ -190,9 +209,21 @@ public struct PrivacyConfigurationData {
 
                 if let cohortData = json[CodingKeys.cohorts.rawValue] as? [[String: Any]] {
                     let parsedCohorts = cohortData.compactMap { Cohort(json: $0) }
-                    self.cohorts = parsedCohorts.isEmpty ? nil : parsedCohorts
+                    cohorts = parsedCohorts.isEmpty ? nil : parsedCohorts
                 } else {
-                    self.cohorts = nil
+                    cohorts = nil
+                }
+
+                if let targetData = json[CodingKeys.targets.rawValue] as? [[String: Any]] {
+                    targets = targetData.compactMap { Target(json: $0) }
+                } else {
+                    targets = nil
+                }
+
+                if let configData = json[CodingKeys.config.rawValue] as? [String: String] {
+                    config = configData
+                } else {
+                    config = nil
                 }
             }
         }
