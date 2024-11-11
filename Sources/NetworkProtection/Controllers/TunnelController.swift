@@ -33,6 +33,10 @@ public protocol TunnelController {
     ///
     func stop() async
 
+    /// Sends a command to the adapter
+    ///
+    func command(_ command: VPNCommand) async throws
+
     /// Whether the tunnel is connected
     ///
     var isConnected: Bool { get async }

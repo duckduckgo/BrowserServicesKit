@@ -418,30 +418,6 @@ public final class VPNSettings {
         }
     }
 
-    // MARK: - Routes
-
-    public var excludedRoutes: [RoutingRange] {
-        var ipv4Ranges = RoutingRange.alwaysExcludedIPv4Ranges
-
-        if excludeLocalNetworks {
-            ipv4Ranges += RoutingRange.localNetworkRanges
-        }
-
-        return ipv4Ranges + RoutingRange.alwaysExcludedIPv6Ranges
-    }
-
-    public var excludedRanges: [IPAddressRange] {
-        excludedRoutes.compactMap { entry in
-            switch entry {
-            case .section:
-                // Nothing to map
-                return nil
-            case .range(let range, _):
-                return range
-            }
-        }
-    }
-
     // MARK: - Disable Rekeying
 
     public var disableRekeyingPublisher: AnyPublisher<Bool, Never> {
