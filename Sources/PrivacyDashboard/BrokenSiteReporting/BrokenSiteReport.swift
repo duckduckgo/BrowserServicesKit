@@ -39,8 +39,8 @@ public struct BrokenSiteReport {
         case onProtectionsOffMenu
         /// From the privacy dashboard's on protections toggle off
         case onProtectionsOffDashboard
-        /// From the 'Site Not Working?' prompt that appears on various events
-        case prompt(String)
+        /// From the 'Site Not Working?' prompt that appears after user refreshes 3 times within 20 sec window
+        case prompt
         /// From the prompt that appears after user toggled off protections which asks if it helped
         case afterTogglePrompt
 
@@ -50,7 +50,7 @@ public struct BrokenSiteReport {
             case .dashboard: return "dashboard"
             case .onProtectionsOffMenu: return "on_protections_off_menu"
             case .onProtectionsOffDashboard: return "on_protections_off_dashboard_main"
-            case .prompt(let event): return event
+            case .prompt: return "reload-three-times-within-20-seconds" // previously multiple events were under this; now there's only one
             case .afterTogglePrompt: return "after_toggle_prompt"
             }
         }
