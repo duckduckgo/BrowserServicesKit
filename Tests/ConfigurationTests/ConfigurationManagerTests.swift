@@ -65,7 +65,7 @@ final class MockConfigurationManager: DefaultConfigurationManager {
     }
 }
 
-struct MockDependencyProvider {
+final class MockDependencyProvider {
     var privacyConfigEtag: String?
     var privacyConfigData: Data?
 }
@@ -178,8 +178,16 @@ final class ConfigurationManagerTests: XCTestCase {
         await fulfillment(of: [e], timeout: 2)
 
         XCTAssertNotNil(MockURLProtocol.lastRequest)
-        XCTAssertEqual(managerA.dependencyProvider.privacyConfigData, configData)
-        XCTAssertEqual(managerA.dependencyProvider.privacyConfigEtag, HTTPURLResponse.testEtag)
+
+        let configDataExpectation = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            return managerA.dependencyProvider.privacyConfigData == configData
+        }, object: .none)
+
+        let configEtagExpectation = XCTNSPredicateExpectation(predicate: NSPredicate { _, _ in
+            return managerA.dependencyProvider.privacyConfigEtag == HTTPURLResponse.testEtag
+        }, object: .none)
+
+        await fulfillment(of: [configDataExpectation, configEtagExpectation], timeout: 5)
 
         MockURLProtocol.lastRequest = nil
         MockURLProtocol.requestHandler = { _ in (HTTPURLResponse.notModified, nil) }
