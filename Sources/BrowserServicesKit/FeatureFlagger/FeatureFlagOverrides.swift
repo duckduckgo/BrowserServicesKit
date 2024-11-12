@@ -77,6 +77,13 @@ public final class FeatureFlagOverrides {
         self.actionHandler = actionHandler
     }
 
+    public func override<Flag: FeatureFlagProtocol>(for featureFlag: Flag) -> Bool? {
+        guard featureFlag.supportsLocalOverriding else {
+            return nil
+        }
+        return persistor.value(for: featureFlag)
+    }
+
     public func toggleOverride<Flag: FeatureFlagProtocol>(for featureFlag: Flag) {
         guard featureFlag.supportsLocalOverriding else {
             return
@@ -87,22 +94,19 @@ public final class FeatureFlagOverrides {
         actionHandler.flagDidChange(featureFlag, isEnabled: newValue)
     }
 
-    public func override<Flag: FeatureFlagProtocol>(for featureFlag: Flag) -> Bool? {
-        guard featureFlag.supportsLocalOverriding else {
-            return nil
+    public func clearOverride<Flag: FeatureFlagProtocol>(for featureFlag: Flag) {
+        guard let override = override(for: featureFlag) else {
+            return
         }
-        return persistor.value(for: featureFlag)
+        persistor.set(nil, for: featureFlag)
+        if let defaultValue = featureFlagger?.isFeatureOn(forProvider: featureFlag), defaultValue != override {
+            actionHandler.flagDidChange(featureFlag, isEnabled: defaultValue)
+        }
     }
 
     public func clearAllOverrides<Flag: FeatureFlagProtocol>(for flagType: Flag.Type) {
         flagType.allCases.forEach { flag in
-            guard let override = override(for: flag) else {
-                return
-            }
-            persistor.set(nil, for: flag)
-            if let defaultValue = featureFlagger?.isFeatureOn(forProvider: flag), defaultValue != override {
-                actionHandler.flagDidChange(flag, isEnabled: defaultValue)
-            }
+            clearOverride(for: flag)
         }
     }
 }
