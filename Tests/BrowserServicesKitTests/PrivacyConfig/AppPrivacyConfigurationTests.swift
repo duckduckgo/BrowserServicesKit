@@ -981,6 +981,93 @@ class AppPrivacyConfigurationTests: XCTestCase {
         XCTAssertEqual(config.stateFor(AutofillSubfeature.credentialsSaving), .disabled(.targetDoesNotMatch))
     }
 
+    let exampleSubfeatureEnabledWithTargetOnlyLanguage =
+    """
+    {
+        "features": {
+            "autofill": {
+                "state": "enabled",
+                "exceptions": [],
+                "features": {
+                    "credentialsSaving": {
+                        "state": "enabled",
+                        "targets": [
+                            {
+                                "localeLanguage": "it"
+                            },
+                            {
+                                "localeLanguage": "fr"
+                            },
+                            {
+                                "localeCountry": "GB"
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    }
+    """.data(using: .utf8)!
+
+    func testWhenCheckingSubfeatureStateWithSubfeatureEnabledWhenTargetMatchesOneOfTheTargets_SubfeatureShouldBeEnabledOtherwiseNot() {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: exampleSubfeatureEnabledWithTargetOnlyLanguage, etag: "test")
+        let mockInternalUserStore = MockInternalUserStoring()
+        let locale = Locale(identifier: "fr_US")
+
+        let manager = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore),
+                                                  locale: locale)
+        let config = manager.privacyConfig
+
+        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving))
+        XCTAssertEqual(config.stateFor(AutofillSubfeature.credentialsSaving), .enabled)
+
+        let locale2 = Locale(identifier: "it_IT")
+
+        let manager2 = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore),
+                                                  locale: locale2)
+
+        let config2 = manager2.privacyConfig
+
+        XCTAssertTrue(config2.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving))
+        XCTAssertEqual(config2.stateFor(AutofillSubfeature.credentialsSaving), .enabled)
+
+        let locale3 = Locale(identifier: "en_US")
+
+        let manager3 = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore),
+                                                  locale: locale3)
+
+        let config3 = manager3.privacyConfig
+
+        XCTAssertFalse(config3.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving))
+        XCTAssertNotEqual(config3.stateFor(AutofillSubfeature.credentialsSaving), .enabled)
+
+        let locale4 = Locale(identifier: "en_UK")
+
+        let manager4 = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                  internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore),
+                                                  locale: locale4)
+
+        let config4 = manager4.privacyConfig
+
+        XCTAssertTrue(config4.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving))
+        XCTAssertEqual(config4.stateFor(AutofillSubfeature.credentialsSaving), .enabled)
+    }
+
     let exampleSubfeatureDisabledWithTarget =
     """
     {

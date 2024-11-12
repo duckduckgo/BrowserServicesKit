@@ -217,7 +217,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
 
         // Check Targets
         // It should not be wrapped in an array and will be removed at some point
-        if let target = subfeatureData?.targets?.first, !matchTarget(target: target){
+        if let targets = subfeatureData?.targets, !matchTargets(targets: targets){
             return .disabled(.targetDoesNotMatch)
         }
 
@@ -230,9 +230,14 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         return .enabled
     }
 
-    private func matchTarget(target: PrivacyConfigurationData.PrivacyFeature.Feature.Target) -> Bool{
-        return target.localeCountry == locale.regionCode &&
-            target.localeLanguage == locale.languageCode
+    private func matchTargets(targets: [PrivacyConfigurationData.PrivacyFeature.Feature.Target]) -> Bool {
+        for target in targets {
+            if (target.localeCountry == nil || target.localeCountry == locale.regionCode) &&
+                (target.localeLanguage == nil || target.localeLanguage == locale.languageCode) {
+                return true
+            }
+        }
+        return false
     }
 
     private func subfeatures(for feature: PrivacyFeature) -> PrivacyConfigurationData.PrivacyFeature.Features {
