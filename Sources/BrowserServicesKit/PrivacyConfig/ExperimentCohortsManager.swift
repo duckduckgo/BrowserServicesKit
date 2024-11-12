@@ -37,21 +37,21 @@ protocol ExperimentCohortsManaging {
     /// Retrieves the cohort ID associated with the specified subfeature.
     /// - Parameter subfeature: The experiment subfeature for which the cohort ID is needed.
     /// - Returns: The cohort ID as a `String` if one exists; otherwise, returns `nil`.
-    func cohort(for subfeatureID: SubfeatureID) async -> CohortID?
+    func cohort(for subfeatureID: SubfeatureID) -> CohortID?
 
     /// Retrieves the enrollment date for the specified subfeature.
     /// - Parameter subfeatureID: The experiment subfeature for which the enrollment date is needed.
     /// - Returns: The `Date` of enrollment if one exists; otherwise, returns `nil`.
-    func enrollmentDate(for subfeatureID: SubfeatureID) async -> Date?
+    func enrollmentDate(for subfeatureID: SubfeatureID) -> Date?
 
     /// Assigns a cohort to the given subfeature based on defined weights and saves it to UserDefaults.
     /// - Parameter subfeature: The experiment subfeature to assign a cohort for.
     /// - Returns: The name of the assigned cohort, or `nil` if no cohort could be assigned.
-    func assignCohort(to subfeature: ExperimentSubfeature) async -> CohortID?
+    func assignCohort(to subfeature: ExperimentSubfeature) -> CohortID?
 
     /// Removes the assigned cohort data for the specified subfeature.
     /// - Parameter subfeature: The experiment subfeature for which the cohort data should be removed.
-    func removeCohort(from subfeatureID: SubfeatureID) async
+    func removeCohort(from subfeatureID: SubfeatureID)
 }
 
 final class ExperimentCohortsManager: ExperimentCohortsManaging {
@@ -59,22 +59,26 @@ final class ExperimentCohortsManager: ExperimentCohortsManaging {
     private var store: ExperimentsDataStoring
     private let randomizer: (Range<Double>) -> Double
 
+    var experiments: Experiments? {
+        store.experiments
+    }
+
     init(store: ExperimentsDataStoring = ExperimentsDataStore(), randomizer: @escaping (Range<Double>) -> Double) {
         self.store = store
         self.randomizer = randomizer
     }
 
-    func cohort(for subfeatureID: SubfeatureID) async -> CohortID? {
-        guard let experiments = await store.getExperiments() else { return nil }
+    func cohort(for subfeatureID: SubfeatureID) -> CohortID? {
+        guard let experiments = experiments else { return nil }
         return experiments[subfeatureID]?.cohort
     }
 
-    func enrollmentDate(for subfeatureID: SubfeatureID) async -> Date? {
-        guard let experiments = await store.getExperiments() else { return nil }
+    func enrollmentDate(for subfeatureID: SubfeatureID) -> Date? {
+        guard let experiments = experiments else { return nil }
         return experiments[subfeatureID]?.enrollmentDate
     }
 
-    func assignCohort(to subfeature: ExperimentSubfeature) async -> CohortID? {
+    func assignCohort(to subfeature: ExperimentSubfeature) -> CohortID? {
         let cohorts = subfeature.cohorts
         let totalWeight = cohorts.map(\.weight).reduce(0, +)
         guard totalWeight > 0 else { return nil }
@@ -85,23 +89,27 @@ final class ExperimentCohortsManager: ExperimentCohortsManaging {
         for cohort in cohorts {
             cumulativeWeight += Double(cohort.weight)
             if randomValue < cumulativeWeight {
-                await saveCohort(cohort.name, in: subfeature.subfeatureID)
+                saveCohort(cohort.name, in: subfeature.subfeatureID)
                 return cohort.name
             }
         }
         return nil
     }
 
-    func removeCohort(from subfeatureID: SubfeatureID) async {
-        guard var experiments = await store.getExperiments() else { return }
+    func removeCohort(from subfeatureID: SubfeatureID) {
+        guard var experiments = experiments else { return }
         experiments.removeValue(forKey: subfeatureID)
-        await store.setExperiments(experiments)
+        saveExperiment(experiments)
     }
 
-    private func saveCohort(_ cohort: CohortID, in experimentID: SubfeatureID) async {
-        var experiments = await store.getExperiments() ?? Experiments()
+    private func saveExperiment(_ experiments: Experiments) {
+        store.experiments = experiments
+    }
+
+    private func saveCohort(_ cohort: CohortID, in experimentID: SubfeatureID) {
+        var experiments = experiments ?? Experiments()
         let experimentData = ExperimentData(cohort: cohort, enrollmentDate: Date())
         experiments[experimentID] = experimentData
-        await store.setExperiments(experiments)
+        saveExperiment(experiments)
     }
 }

@@ -45,7 +45,7 @@ final class ExperimentsDataStoreTests: XCTestCase {
         super.tearDown()
     }
 
-    func testExperimentsGetReturnsDecodedExperiments() async {
+    func testExperimentsGetReturnsDecodedExperiments() {
         // GIVEN
         let experimentData1 = ExperimentData(cohort: "TestCohort1", enrollmentDate: Date())
         let experimentData2 = ExperimentData(cohort: "TestCohort2", enrollmentDate: Date())
@@ -57,7 +57,7 @@ final class ExperimentsDataStoreTests: XCTestCase {
         mockDataStore.data = encodedData
 
         // WHEN
-        let result = await experimentsDataStore.getExperiments()
+        let result = experimentsDataStore.experiments
 
         // THEN
         let timeDifference1 = abs(experimentData1.enrollmentDate.timeIntervalSince(result?[subfeatureName1]?.enrollmentDate ?? Date()))
@@ -69,14 +69,14 @@ final class ExperimentsDataStoreTests: XCTestCase {
         XCTAssertLessThanOrEqual(timeDifference2, 1.0)
     }
 
-    func testExperimentsSetEncodesAndStoresData() async throws {
+    func testExperimentsSetEncodesAndStoresData() throws {
         // GIVEN
         let experimentData1 = ExperimentData(cohort: "TestCohort1", enrollmentDate: Date())
         let experimentData2 = ExperimentData(cohort: "TestCohort2", enrollmentDate: Date())
         let experiments = [subfeatureName1: experimentData1, subfeatureName2: experimentData2]
 
         // WHEN
-        await experimentsDataStore.setExperiments(experiments)
+        experimentsDataStore.experiments = experiments
 
         // THEN
         let storedData = try XCTUnwrap(mockDataStore.data)
