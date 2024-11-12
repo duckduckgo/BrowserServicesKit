@@ -28,8 +28,8 @@ public protocol FeatureFlagger {
 }
 
 public class DefaultFeatureFlagger: FeatureFlagger {
-    private let internalUserDecider: InternalUserDecider
-    private let privacyConfigManager: PrivacyConfigurationManaging
+    public let internalUserDecider: InternalUserDecider
+    public let privacyConfigManager: PrivacyConfigurationManaging
 
     public init(internalUserDecider: InternalUserDecider, privacyConfigManager: PrivacyConfigurationManaging) {
         self.internalUserDecider = internalUserDecider
