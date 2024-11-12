@@ -54,23 +54,17 @@ final class FailureRecoveryHandlerTests: XCTestCase {
     func testAttemptRecovery_callsDeviceManagerWithExpectedValues() async {
         let expectedServerName = "expectedServerName"
         let server = NetworkProtectionServer.registeredServer(named: expectedServerName)
-        let expectedIncludedRoutes: [IPAddressRange] = ["1.2.3.4/5"]
-        let expectedExcludedRoutes: [IPAddressRange] = ["10.9.8.7/6"]
-        let expectedKillSwitchEnabledValue = false
+        let expectedExcludeLocalNetworks = false
         await failureRecoveryHandler.attemptRecovery(
             to: server,
-            includedRoutes: expectedIncludedRoutes,
-            excludedRoutes: expectedExcludedRoutes,
-            dnsSettings: .default,
-            isKillSwitchEnabled: expectedKillSwitchEnabledValue
+            excludeLocalNetworks: expectedExcludeLocalNetworks,
+            dnsSettings: .default
         ) {_ in }
         guard let spyGenerateTunnelConfiguration = deviceManager.spyGenerateTunnelConfiguration else {
             XCTFail("attemptRecovery not called")
             return
         }
-        XCTAssertEqual(spyGenerateTunnelConfiguration.includedRoutes, expectedIncludedRoutes)
-        XCTAssertEqual(spyGenerateTunnelConfiguration.excludedRoutes, expectedExcludedRoutes)
-        XCTAssertEqual(spyGenerateTunnelConfiguration.isKillSwitchEnabled, expectedKillSwitchEnabledValue)
+        XCTAssertEqual(spyGenerateTunnelConfiguration.excludeLocalNetworks, expectedExcludeLocalNetworks)
 
         guard case .failureRecovery(let serverName) = spyGenerateTunnelConfiguration.selectionMethod else {
             XCTFail("Expected selectionMethod to equal failureRecover. Got \(spyGenerateTunnelConfiguration.selectionMethod)")
@@ -127,10 +121,8 @@ final class FailureRecoveryHandlerTests: XCTestCase {
         )
         await failureRecoveryHandler.attemptRecovery(
             to: .mockRegisteredServer,
-            includedRoutes: [],
-            excludedRoutes: [],
-            dnsSettings: .default,
-            isKillSwitchEnabled: false
+            excludeLocalNetworks: false,
+            dnsSettings: .default
         ) {_ in }
 
         XCTAssertEqual(startedCount, 1)
@@ -314,10 +306,8 @@ final class FailureRecoveryHandlerTests: XCTestCase {
         deviceManager.stubGenerateTunnelConfigurationError = NetworkProtectionError.noServerRegistrationInfo
         await failureRecoveryHandler.attemptRecovery(
             to: .mockRegisteredServer,
-            includedRoutes: [],
-            excludedRoutes: [],
-            dnsSettings: .default,
-            isKillSwitchEnabled: false
+            excludeLocalNetworks: false,
+            dnsSettings: .default
         ) {_ in }
     }
 
@@ -332,10 +322,8 @@ final class FailureRecoveryHandlerTests: XCTestCase {
 
         await failureRecoveryHandler.attemptRecovery(
             to: .mockRegisteredServer,
-            includedRoutes: [],
-            excludedRoutes: [],
-            dnsSettings: .default,
-            isKillSwitchEnabled: false
+            excludeLocalNetworks: false,
+            dnsSettings: .default
         ) { _ in
             let underlyingError = NSError(domain: "test", code: 1)
             throw WireGuardAdapterError.startWireGuardBackend(underlyingError)
@@ -354,7 +342,7 @@ final class FailureRecoveryHandlerTests: XCTestCase {
 
         var newConfigResult: NetworkProtectionDeviceManagement.GenerateTunnelConfigurationResult?
 
-        await failureRecoveryHandler.attemptRecovery(to: lastServer, includedRoutes: [], excludedRoutes: [], dnsSettings: .default, isKillSwitchEnabled: true) { configResult in
+        await failureRecoveryHandler.attemptRecovery(to: lastServer, excludeLocalNetworks: false, dnsSettings: .default) { configResult in
             newConfigResult = configResult
         }
         return newConfigResult

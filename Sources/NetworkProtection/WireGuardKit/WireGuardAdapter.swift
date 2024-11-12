@@ -344,6 +344,8 @@ public class WireGuardAdapter {
                 let (wgConfig, resolutionResults) = settingsGenerator.uapiConfiguration()
                 self.logEndpointResolutionResults(resolutionResults)
 
+                Logger.networkProtection.debug("UAPI configuration is \(String(reflecting: wgConfig), privacy: .public)")
+
                 self.state = .started(
                     try self.startWireGuardBackend(wgConfig: wgConfig),
                     settingsGenerator
@@ -435,12 +437,17 @@ public class WireGuardAdapter {
 
             do {
                 let settingsGenerator = try self.makeSettingsGenerator(with: tunnelConfiguration)
-                try self.setNetworkSettings(settingsGenerator.generateNetworkSettings())
+                let settings = settingsGenerator.generateNetworkSettings()
+
+                Logger.networkProtection.debug("Updating network settings: \(String(reflecting: settings), privacy: .public)")
+                try self.setNetworkSettings(settings)
 
                 switch self.state {
                 case .started(let handle, _):
                     let (wgConfig, resolutionResults) = settingsGenerator.uapiConfiguration()
                     self.logEndpointResolutionResults(resolutionResults)
+
+                    Logger.networkProtection.debug("UAPI configuration is \(String(reflecting: wgConfig), privacy: .public)")
 
                     let result = self.wireGuardInterface.setConfig(handle: handle, config: wgConfig)
 
@@ -503,6 +510,13 @@ public class WireGuardAdapter {
     /// - Throws: an error of type `WireGuardAdapterError`.
     /// - Returns: `PacketTunnelSettingsGenerator`.
     private func setNetworkSettings(_ networkSettings: NEPacketTunnelNetworkSettings?) throws {
+
+        guard let packetTunnelProvider else {
+            // If there's no packet tunnel provider it means the tunnel is either shut down
+            // or shutting down.
+            return
+        }
+
         var systemError: Error?
         let condition = NSCondition()
 
@@ -510,7 +524,7 @@ public class WireGuardAdapter {
         condition.lock()
         defer { condition.unlock() }
 
-        self.packetTunnelProvider?.setTunnelNetworkSettings(networkSettings) { error in
+        packetTunnelProvider.setTunnelNetworkSettings(networkSettings) { error in
             systemError = error
             condition.signal()
         }
