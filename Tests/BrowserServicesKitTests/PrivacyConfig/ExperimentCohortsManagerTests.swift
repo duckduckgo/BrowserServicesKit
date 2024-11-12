@@ -265,10 +265,10 @@ class MockExperimentDataStore: ExperimentsDataStoring {
     func getExperiments() async -> BrowserServicesKit.Experiments? {
         return experiments
     }
-
+    
     func setExperiments(_ experiments: BrowserServicesKit.Experiments?) async {
         self.experiments = experiments
     }
-
+    
     var experiments: Experiments?
 }
