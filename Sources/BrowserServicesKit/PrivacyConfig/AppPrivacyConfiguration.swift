@@ -231,13 +231,10 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     }
 
     private func matchTargets(targets: [PrivacyConfigurationData.PrivacyFeature.Feature.Target]) -> Bool {
-        for target in targets {
-            if (target.localeCountry == nil || target.localeCountry == locale.regionCode) &&
-                (target.localeLanguage == nil || target.localeLanguage == locale.languageCode) {
-                return true
-            }
+        return targets.contains { target in
+            (target.localeCountry == nil || target.localeCountry == locale.regionCode) &&
+            (target.localeLanguage == nil || target.localeLanguage == locale.languageCode)
         }
-        return false
     }
 
     private func subfeatures(for feature: PrivacyFeature) -> PrivacyConfigurationData.PrivacyFeature.Features {
