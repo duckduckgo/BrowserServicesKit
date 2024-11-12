@@ -21,7 +21,7 @@ import Common
 
 /// This class handles the proper parsing of the startup options for our tunnel.
 ///
-struct StartupOptions {
+public struct StartupOptions {
 
     enum StartupMethod: CustomDebugStringConvertible {
         /// Case started up manually from the main app.
@@ -53,7 +53,7 @@ struct StartupOptions {
     ///
     /// Since these options are stored, the logic can allow for
     ///
-    enum StoredOption<T: Equatable>: Equatable {
+    public enum StoredOption<T: Equatable>: Equatable {
         case set(_ value: T)
         case reset
         case useExisting
@@ -85,7 +85,7 @@ struct StartupOptions {
 
         // MARK: - Equatable
 
-        static func == (lhs: StartupOptions.StoredOption<T>, rhs: StartupOptions.StoredOption<T>) -> Bool {
+        public static func == (lhs: StartupOptions.StoredOption<T>, rhs: StartupOptions.StoredOption<T>) -> Bool {
             switch (lhs, rhs) {
             case (.reset, .reset):
                 return true
@@ -108,6 +108,7 @@ struct StartupOptions {
     let selectedServer: StoredOption<VPNSettings.SelectedServer>
     let selectedLocation: StoredOption<VPNSettings.SelectedLocation>
     let dnsSettings: StoredOption<NetworkProtectionDNSSettings>
+    public let excludeLocalNetworks: StoredOption<Bool>
 #if os(macOS)
     let authToken: StoredOption<String>
 #endif
@@ -140,6 +141,7 @@ struct StartupOptions {
         selectedServer = Self.readSelectedServer(from: options, resetIfNil: resetStoredOptionsIfNil)
         selectedLocation = Self.readSelectedLocation(from: options, resetIfNil: resetStoredOptionsIfNil)
         dnsSettings = Self.readDNSSettings(from: options, resetIfNil: resetStoredOptionsIfNil)
+        excludeLocalNetworks = Self.readExcludeLocalNetworks(from: options, resetIfNil: resetStoredOptionsIfNil)
     }
 
     var description: String {
@@ -154,7 +156,8 @@ struct StartupOptions {
             selectedServer: \(self.selectedServer.description),
             selectedLocation: \(self.selectedLocation.description),
             dnsSettings: \(self.dnsSettings.description),
-            enableTester: \(self.enableTester)
+            enableTester: \(self.enableTester),
+            excludeLocalNetworks: \(self.excludeLocalNetworks)
         )
         """
     }
@@ -233,6 +236,16 @@ struct StartupOptions {
     private static func readEnableTester(from options: [String: Any], resetIfNil: Bool) -> StoredOption<Bool> {
         StoredOption(resetIfNil: resetIfNil) {
             guard let value = options[NetworkProtectionOptionKey.connectionTesterEnabled] as? Bool else {
+                return nil
+            }
+
+            return value
+        }
+    }
+
+    private static func readExcludeLocalNetworks(from options: [String: Any], resetIfNil: Bool) -> StoredOption<Bool> {
+        StoredOption(resetIfNil: resetIfNil) {
+            guard let value = options[NetworkProtectionOptionKey.excludeLocalNetworks] as? Bool else {
                 return nil
             }
 

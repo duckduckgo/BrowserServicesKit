@@ -43,7 +43,9 @@ let package = Package(
         .library(name: "SpecialErrorPages", targets: ["SpecialErrorPages"]),
         .library(name: "DuckPlayer", targets: ["DuckPlayer"]),
         .library(name: "PhishingDetection", targets: ["PhishingDetection"]),
-        .library(name: "Onboarding", targets: ["Onboarding"])
+        .library(name: "Onboarding", targets: ["Onboarding"]),
+        .library(name: "BrokenSitePrompt", targets: ["BrokenSitePrompt"]),
+        .library(name: "PageRefreshMonitor", targets: ["PageRefreshMonitor"]),
     ],
     dependencies: [
         .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "15.1.0"),
@@ -51,8 +53,8 @@ let package = Package(
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "3.0.0"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.3.0"),
         .package(url: "https://github.com/gumob/PunycodeSwift.git", exact: "3.0.0"),
+        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "6.32.0"),
         .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "7.1.1"),
-        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "6.29.0"),
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
         .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
         .package(url: "https://github.com/1024jp/GzipSwift.git", exact: "6.0.1")
@@ -425,6 +427,24 @@ let package = Package(
                 .define("DEBUG", .when(configuration: .debug))
             ]
         ),
+        .target(
+            name: "BrokenSitePrompt",
+            dependencies: [
+                "BrowserServicesKit"
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
+            ]
+        ),
+        .target(
+            name: "PageRefreshMonitor",
+            dependencies: [
+                "BrowserServicesKit"
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
+            ]
+        ),
 
         // MARK: - Test Targets
         .testTarget(
@@ -645,6 +665,18 @@ let package = Package(
             name: "SpecialErrorPagesTests",
             dependencies: [
                 "SpecialErrorPages"
+            ]
+        ),
+        .testTarget(
+            name: "BrokenSitePromptTests",
+            dependencies: [
+                "BrokenSitePrompt"
+            ]
+        ),
+        .testTarget(
+            name: "PageRefreshMonitorTests",
+            dependencies: [
+                "PageRefreshMonitor"
             ]
         ),
     ],
