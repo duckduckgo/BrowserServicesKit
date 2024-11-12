@@ -65,7 +65,11 @@ struct SecureStorage: SecureStoring {
         }
 
         if let data = item as? Data {
-            return try JSONDecoder.snakeCaseKeys.decode(SyncAccount.self, from: data)
+            do {
+                return try JSONDecoder.snakeCaseKeys.decode(SyncAccount.self, from: data)
+            } catch {
+                throw SyncError.failedToDecodeSecureStoreData(error: error as NSError)
+            }
         }
 
         return nil

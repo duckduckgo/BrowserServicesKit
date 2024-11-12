@@ -126,4 +126,13 @@ public extension Date {
         addingTimeInterval(timeInterval)
     }
 
+    func isSameDay(_ otherDate: Date?) -> Bool {
+        guard let otherDate = otherDate else { return false }
+        return Calendar.current.isDate(self, inSameDayAs: otherDate)
+    }
+
+    func isLessThan(daysAgo days: Int) -> Bool {
+        self > Date().addingTimeInterval(Double(-days) * 24 * 60 * 60)
+    }
+
 }

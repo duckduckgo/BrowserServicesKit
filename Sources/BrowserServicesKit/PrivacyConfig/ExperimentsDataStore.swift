@@ -33,7 +33,6 @@ struct ExperimentsDataStore: ExperimentsDataStoring {
         static let experimentsDataKey = "ExperimentsData"
     }
     private let localDataStoring: LocalDataStoring
-    private let queue = DispatchQueue(label: "com.experimentManager.queue")
     private let decoder = JSONDecoder()
     private let encoder = JSONEncoder()
 
@@ -45,16 +44,12 @@ struct ExperimentsDataStore: ExperimentsDataStoring {
 
     var experiments: Experiments? {
         get {
-            queue.sync {
-                guard let savedData = localDataStoring.data(forKey: Constants.experimentsDataKey) else { return nil }
-                return try? decoder.decode(Experiments.self, from: savedData)
-            }
+            guard let savedData = localDataStoring.data(forKey: Constants.experimentsDataKey) else { return nil }
+            return try? decoder.decode(Experiments.self, from: savedData)
         }
         set {
-            queue.sync {
-                if let encodedData = try? encoder.encode(newValue) {
-                    localDataStoring.set(encodedData, forKey: Constants.experimentsDataKey)
-                }
+            if let encodedData = try? encoder.encode(newValue) {
+                localDataStoring.set(encodedData, forKey: Constants.experimentsDataKey)
             }
         }
     }
