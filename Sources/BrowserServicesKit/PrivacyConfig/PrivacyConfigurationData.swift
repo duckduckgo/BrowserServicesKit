@@ -36,6 +36,20 @@ public struct PrivacyConfigurationData {
         static public let enabled = "enabled"
     }
 
+    public struct Cohort {
+        public let name: String
+        public let weight: Int
+
+        public init?(json: [String: Any]) {
+            guard let name = json["name"] as? String,
+                  let weight = json["weight"] as? Int else {
+                return nil
+            }
+
+            self.name = name
+            self.weight = weight
+        }
+    }
     public let features: [FeatureName: PrivacyFeature]
     public let trackerAllowlist: TrackerAllowlist
     public let unprotectedTemporary: [ExceptionEntry]
@@ -121,6 +135,7 @@ public struct PrivacyConfigurationData {
                 case state
                 case minSupportedVersion
                 case rollout
+                case cohorts
             }
 
             public struct Rollout: Hashable {
@@ -157,6 +172,7 @@ public struct PrivacyConfigurationData {
             public let state: FeatureState
             public let minSupportedVersion: FeatureSupportedVersion?
             public let rollout: Rollout?
+            public let cohorts: [Cohort]?
 
             public init?(json: [String: Any]) {
                 guard let state = json[CodingKeys.state.rawValue] as? String else {
@@ -170,6 +186,13 @@ public struct PrivacyConfigurationData {
                     self.rollout = Rollout(json: rollout)
                 } else {
                     self.rollout = nil
+                }
+
+                if let cohortData = json[CodingKeys.cohorts.rawValue] as? [[String: Any]] {
+                    let parsedCohorts = cohortData.compactMap { Cohort(json: $0) }
+                    cohorts = parsedCohorts.isEmpty ? nil : parsedCohorts
+                } else {
+                    cohorts = nil
                 }
             }
         }
