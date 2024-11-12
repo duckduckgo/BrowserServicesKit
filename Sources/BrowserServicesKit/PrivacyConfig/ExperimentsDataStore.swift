@@ -33,28 +33,23 @@ struct ExperimentsDataStore: ExperimentsDataStoring {
         static let experimentsDataKey = "ExperimentsData"
     }
     private let localDataStoring: LocalDataStoring
-    private let queue = DispatchQueue(label: "com.experimentManager.queue")
     private let decoder = JSONDecoder()
     private let encoder = JSONEncoder()
-
+    
     init(localDataStoring: LocalDataStoring = UserDefaults.standard) {
         self.localDataStoring = localDataStoring
         encoder.dateEncodingStrategy = .secondsSince1970
         decoder.dateDecodingStrategy = .secondsSince1970
     }
-
+    
     var experiments: Experiments? {
         get {
-            queue.sync {
-                guard let savedData = localDataStoring.data(forKey: Constants.experimentsDataKey) else { return nil }
-                return try? decoder.decode(Experiments.self, from: savedData)
-            }
+            guard let savedData = localDataStoring.data(forKey: Constants.experimentsDataKey) else { return nil }
+            return try? decoder.decode(Experiments.self, from: savedData)
         }
         set {
-            queue.sync {
-                if let encodedData = try? encoder.encode(newValue) {
-                    localDataStoring.set(encodedData, forKey: Constants.experimentsDataKey)
-                }
+            if let encodedData = try? encoder.encode(newValue) {
+                localDataStoring.set(encodedData, forKey: Constants.experimentsDataKey)
             }
         }
     }
