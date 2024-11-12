@@ -31,6 +31,7 @@ public enum PrivacyConfigurationFeatureDisabledReason: Equatable {
     case limitedToInternalUsers
     case stillInRollout
     case targetDoesNotMatch
+    case experimentCohortDoesNotMatch
 }
 
 public protocol PrivacyConfiguration {
@@ -57,8 +58,8 @@ public protocol PrivacyConfiguration {
     func isEnabled(featureKey: PrivacyFeature, versionProvider: AppVersionProvider) -> Bool
     func stateFor(featureKey: PrivacyFeature, versionProvider: AppVersionProvider) -> PrivacyConfigurationFeatureState
 
-    func isSubfeatureEnabled(_ subfeature: any PrivacySubfeature, versionProvider: AppVersionProvider, randomizer: (Range<Double>) -> Double) -> Bool
-    func stateFor(_ subfeature: any PrivacySubfeature, versionProvider: AppVersionProvider, randomizer: (Range<Double>) -> Double) -> PrivacyConfigurationFeatureState
+    func isSubfeatureEnabled(_ subfeature: any PrivacySubfeature, cohortID: CohortID?, versionProvider: AppVersionProvider, randomizer: (Range<Double>) -> Double) -> Bool
+    func stateFor(_ subfeature: any PrivacySubfeature, cohortID: CohortID?, versionProvider: AppVersionProvider, randomizer: (Range<Double>) -> Double) -> PrivacyConfigurationFeatureState
 
     /// Domains for which given PrivacyFeature is disabled.
     ///
@@ -114,11 +115,11 @@ public extension PrivacyConfiguration {
         return stateFor(featureKey: featureKey, versionProvider: AppVersionProvider())
     }
 
-    func isSubfeatureEnabled(_ subfeature: any PrivacySubfeature, randomizer: (Range<Double>) -> Double = Double.random(in:)) -> Bool {
-        return isSubfeatureEnabled(subfeature, versionProvider: AppVersionProvider(), randomizer: randomizer)
+    func isSubfeatureEnabled(_ subfeature: any PrivacySubfeature, cohortID: CohortID? = nil, randomizer: (Range<Double>) -> Double = Double.random(in:)) -> Bool {
+        return isSubfeatureEnabled(subfeature, cohortID: cohortID, versionProvider: AppVersionProvider(), randomizer: randomizer)
     }
 
-    func stateFor(_ subfeature: any PrivacySubfeature, randomizer: (Range<Double>) -> Double = Double.random(in:)) -> PrivacyConfigurationFeatureState {
-        return stateFor(subfeature, versionProvider: AppVersionProvider(), randomizer: randomizer)
+    func stateFor(_ subfeature: any PrivacySubfeature, cohortID: CohortID? = nil, randomizer: (Range<Double>) -> Double = Double.random(in:)) -> PrivacyConfigurationFeatureState {
+        return stateFor(subfeature, cohortID: cohortID, versionProvider: AppVersionProvider(), randomizer: randomizer)
     }
 }

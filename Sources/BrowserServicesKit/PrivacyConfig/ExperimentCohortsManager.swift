@@ -18,22 +18,22 @@
 
 import Foundation
 
-struct ExperimentSubfeature {
+public struct ExperimentSubfeature {
     let subfeatureID: SubfeatureID
     let cohorts: [PrivacyConfigurationData.Cohort]
 }
 
-typealias CohortID = String
-typealias SubfeatureID = String
+public typealias CohortID = String
+public typealias SubfeatureID = String
 
-struct ExperimentData: Codable, Equatable {
+public struct ExperimentData: Codable, Equatable {
     let cohort: String
     let enrollmentDate: Date
 }
 
-typealias Experiments = [String: ExperimentData]
+public typealias Experiments = [String: ExperimentData]
 
-protocol ExperimentCohortsManaging {
+public protocol ExperimentCohortsManaging {
     /// Retrieves the cohort ID associated with the specified subfeature.
     /// - Parameter subfeature: The experiment subfeature for which the cohort ID is needed.
     /// - Returns: The cohort ID as a `String` if one exists; otherwise, returns `nil`.
@@ -54,7 +54,7 @@ protocol ExperimentCohortsManaging {
     func removeCohort(from subfeatureID: SubfeatureID)
 }
 
-final class ExperimentCohortsManager: ExperimentCohortsManaging {
+public final class ExperimentCohortsManager: ExperimentCohortsManaging {
 
     private var store: ExperimentsDataStoring
     private let randomizer: (Range<Double>) -> Double
@@ -63,22 +63,23 @@ final class ExperimentCohortsManager: ExperimentCohortsManaging {
         store.experiments
     }
 
-    init(store: ExperimentsDataStoring = ExperimentsDataStore(), randomizer: @escaping (Range<Double>) -> Double) {
+    public init(store: ExperimentsDataStoring = ExperimentsDataStore(), 
+         randomizer: @escaping (Range<Double>) -> Double = Double.random(in:)) {
         self.store = store
         self.randomizer = randomizer
     }
 
-    func cohort(for subfeatureID: SubfeatureID) -> CohortID? {
+    public func cohort(for subfeatureID: SubfeatureID) -> CohortID? {
         guard let experiments = experiments else { return nil }
         return experiments[subfeatureID]?.cohort
     }
 
-    func enrollmentDate(for subfeatureID: SubfeatureID) -> Date? {
+    public func enrollmentDate(for subfeatureID: SubfeatureID) -> Date? {
         guard let experiments = experiments else { return nil }
         return experiments[subfeatureID]?.enrollmentDate
     }
 
-    func assignCohort(to subfeature: ExperimentSubfeature) -> CohortID? {
+    public func assignCohort(to subfeature: ExperimentSubfeature) -> CohortID? {
         let cohorts = subfeature.cohorts
         let totalWeight = cohorts.map(\.weight).reduce(0, +)
         guard totalWeight > 0 else { return nil }
@@ -96,7 +97,7 @@ final class ExperimentCohortsManager: ExperimentCohortsManaging {
         return nil
     }
 
-    func removeCohort(from subfeatureID: SubfeatureID) {
+    public func removeCohort(from subfeatureID: SubfeatureID) {
         guard var experiments = experiments else { return }
         experiments.removeValue(forKey: subfeatureID)
         saveExperiment(experiments)

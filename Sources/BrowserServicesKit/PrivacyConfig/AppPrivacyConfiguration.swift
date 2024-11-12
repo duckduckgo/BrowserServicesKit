@@ -34,6 +34,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     private let internalUserDecider: InternalUserDecider
     private let userDefaults: UserDefaults
     private let locale: Locale
+    private let experimentManager: ExperimentCohortsManaging
     private let installDate: Date?
 
     public init(data: PrivacyConfigurationData,
@@ -42,6 +43,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
                 internalUserDecider: InternalUserDecider,
                 userDefaults: UserDefaults = UserDefaults(),
                 locale: Locale = Locale.current,
+                experimentManager: ExperimentCohortsManaging = ExperimentCohortsManager(),
                 installDate: Date? = nil) {
         self.data = data
         self.identifier = identifier
@@ -49,6 +51,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         self.internalUserDecider = internalUserDecider
         self.userDefaults = userDefaults
         self.locale = locale
+        self.experimentManager = experimentManager
         self.installDate = installDate
     }
 
@@ -183,10 +186,11 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     }
 
     public func isSubfeatureEnabled(_ subfeature: any PrivacySubfeature,
+                                    cohortID: CohortID?,
                                     versionProvider: AppVersionProvider,
                                     randomizer: (Range<Double>) -> Double) -> Bool {
-
-        switch stateFor(subfeature, versionProvider: versionProvider, randomizer: randomizer) {
+        
+        switch stateFor(subfeature, cohortID: cohortID, versionProvider: versionProvider, randomizer: randomizer) {
         case .enabled:
             return true
         case .disabled:
@@ -194,18 +198,26 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         }
     }
 
-    public func stateFor(_ subfeature: any PrivacySubfeature, versionProvider: AppVersionProvider, randomizer: (Range<Double>) -> Double) -> PrivacyConfigurationFeatureState {
+    private func isParentFeatureEnabed(_ subfeature: any PrivacySubfeature, versionProvider: AppVersionProvider) -> PrivacyConfigurationFeatureState {
+        return  stateFor(featureKey: subfeature.parent, versionProvider: versionProvider)
+    }
 
-        // Check parent feature state
+    public func stateFor(_ subfeature: any PrivacySubfeature, 
+                         cohortID: CohortID?,
+                         versionProvider: AppVersionProvider,
+                         randomizer: (Range<Double>) -> Double) -> PrivacyConfigurationFeatureState {
+
+        // Step 1: Check parent feature state
         let parentState = stateFor(featureKey: subfeature.parent, versionProvider: versionProvider)
         guard case .enabled = parentState else { return parentState }
 
-        // Check sub-feature state
+        // Step 2: Retrieve subfeature data and check version
         let subfeatures = subfeatures(for: subfeature.parent)
         let subfeatureData = subfeatures[subfeature.rawValue]
 
         let satisfiesMinVersion = satisfiesMinVersion(subfeatureData?.minSupportedVersion, versionProvider: versionProvider)
 
+        // Step 3: Check sub-feature state
         switch subfeatureData?.state {
         case PrivacyConfigurationData.State.enabled:
             guard satisfiesMinVersion else { return .disabled(.appVersionNotSupported) }
@@ -215,6 +227,48 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         default: return .disabled(.disabledInConfig)
         }
 
+        // Step 4: Check if a cohort was passed in the func
+        // If no corhort passed check for Target and Rollout
+        guard let passedCohort = cohortID else {
+            return checkTargetAndRollouts(subfeatureData, subfeature: subfeature, randomizer: randomizer)
+        }
+
+        // Step 5: Verify there are cohorts in the subfeature data
+        // If not remove cohort (in case it was previously assigned)
+        // and check for Target and Rollout
+        guard let cohorts = subfeatureData?.cohorts else {
+            experimentManager.removeCohort(from: subfeature.rawValue)
+            return checkTargetAndRollouts(subfeatureData, subfeature: subfeature, randomizer: randomizer)
+        }
+
+        // Step 6: Verify there the cohorts in the subfeature contain the cohort passed in the func
+        // If not remove cohort (in case it was previously assigned) before proceeding
+        if !cohorts.contains(where: { $0.name == passedCohort
+        }) {
+            experimentManager.removeCohort(from: subfeature.rawValue)
+        }
+
+        // Step 7: Check if a cohort was already assigned
+        // If so check if it matches the one passed in the func and return .enable or disabled accordingly
+        if let assignedCohort = experimentManager.cohort(for: subfeature.rawValue) {
+            return (assignedCohort == passedCohort) ? .enabled : .disabled(.experimentCohortDoesNotMatch)
+        }
+
+        // Step 8: check Target and Rollout
+        // if disabled return .disabled otherwise continue
+        let targetAndRolloutState = checkTargetAndRollouts(subfeatureData, subfeature: subfeature, randomizer: randomizer)
+        if targetAndRolloutState != .enabled {
+            return targetAndRolloutState
+        }
+
+        // Step 9: Assign cohort and check if they match
+        let newAssignedCohort = experimentManager.assignCohort(to: ExperimentSubfeature(subfeatureID: subfeature.rawValue, cohorts: cohorts))
+        return (newAssignedCohort == passedCohort) ? .enabled : .disabled(.experimentCohortDoesNotMatch)
+    }
+
+    private func checkTargetAndRollouts(_ subfeatureData: PrivacyConfigurationData.PrivacyFeature.Feature?,
+                                        subfeature: any PrivacySubfeature,
+                                        randomizer: (Range<Double>) -> Double) -> PrivacyConfigurationFeatureState {
         // Check Targets
         // It should not be wrapped in an array and will be removed at some point
         if let target = subfeatureData?.targets?.first, !matchTarget(target: target){
@@ -229,6 +283,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
 
         return .enabled
     }
+
 
     private func matchTarget(target: PrivacyConfigurationData.PrivacyFeature.Feature.Target) -> Bool{
         return target.localeCountry == locale.regionCode &&

@@ -18,16 +18,16 @@
 
 import Foundation
 
-protocol ExperimentsDataStoring {
+public protocol ExperimentsDataStoring {
     var experiments: Experiments? { get set }
 }
 
-protocol LocalDataStoring {
+public protocol LocalDataStoring {
     func data(forKey defaultName: String) -> Data?
     func set(_ value: Any?, forKey defaultName: String)
 }
 
-struct ExperimentsDataStore: ExperimentsDataStoring {
+public struct ExperimentsDataStore: ExperimentsDataStoring {
 
     private enum Constants {
         static let experimentsDataKey = "ExperimentsData"
@@ -37,13 +37,13 @@ struct ExperimentsDataStore: ExperimentsDataStoring {
     private let decoder = JSONDecoder()
     private let encoder = JSONEncoder()
 
-    init(localDataStoring: LocalDataStoring = UserDefaults.standard) {
+    public init(localDataStoring: LocalDataStoring = UserDefaults.standard) {
         self.localDataStoring = localDataStoring
         encoder.dateEncodingStrategy = .secondsSince1970
         decoder.dateDecodingStrategy = .secondsSince1970
     }
 
-    var experiments: Experiments? {
+    public var experiments: Experiments? {
         get {
             queue.sync {
                 guard let savedData = localDataStoring.data(forKey: Constants.experimentsDataKey) else { return nil }

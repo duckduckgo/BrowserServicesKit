@@ -586,13 +586,13 @@ class AppPrivacyConfigurationTests: XCTestCase {
         let config = manager.privacyConfig
 
         let oldVersionProvider = MockAppVersionProvider(appVersion: "1.35.0")
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, versionProvider: oldVersionProvider, randomizer: Double.random(in:)))
-        XCTAssertEqual(config.stateFor(AutofillSubfeature.credentialsSaving, versionProvider: oldVersionProvider, randomizer: Double.random(in:)), .disabled(.appVersionNotSupported))
+        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: nil, versionProvider: oldVersionProvider, randomizer: Double.random(in:)))
+        XCTAssertEqual(config.stateFor(AutofillSubfeature.credentialsSaving, cohortID: nil, versionProvider: oldVersionProvider, randomizer: Double.random(in:)), .disabled(.appVersionNotSupported))
         let currentVersionProvider = MockAppVersionProvider(appVersion: "1.36.0")
-        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, versionProvider: currentVersionProvider, randomizer: Double.random(in:)))
+        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: nil, versionProvider: currentVersionProvider, randomizer: Double.random(in:)))
         XCTAssertEqual(config.stateFor(AutofillSubfeature.credentialsSaving), .enabled)
         let futureVersionProvider = MockAppVersionProvider(appVersion: "2.16.0")
-        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, versionProvider: futureVersionProvider, randomizer: Double.random(in:)))
+        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: nil, versionProvider: futureVersionProvider, randomizer: Double.random(in:)))
         XCTAssertEqual(config.stateFor(AutofillSubfeature.credentialsSaving), .enabled)
     }
 
@@ -661,12 +661,12 @@ class AppPrivacyConfigurationTests: XCTestCase {
 
         let oldVersionProvider = MockAppVersionProvider(appVersion: "1.35.0")
         XCTAssertFalse(config.isEnabled(featureKey: .autofill, versionProvider: oldVersionProvider))
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, versionProvider: oldVersionProvider, randomizer: Double.random(in:)))
-        XCTAssertEqual(config.stateFor(AutofillSubfeature.credentialsSaving, versionProvider: oldVersionProvider, randomizer: Double.random(in:)), .disabled(.appVersionNotSupported))
+        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: nil, versionProvider: oldVersionProvider, randomizer: Double.random(in:)))
+        XCTAssertEqual(config.stateFor(AutofillSubfeature.credentialsSaving, cohortID: nil, versionProvider: oldVersionProvider, randomizer: Double.random(in:)), .disabled(.appVersionNotSupported))
 
         let currentVersionProvider = MockAppVersionProvider(appVersion: "1.36.0")
         XCTAssertTrue(config.isEnabled(featureKey: .autofill, versionProvider: currentVersionProvider))
-        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, versionProvider: currentVersionProvider, randomizer: Double.random(in:)))
+        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: nil, versionProvider: currentVersionProvider, randomizer: Double.random(in:)))
         XCTAssertEqual(config.stateFor(AutofillSubfeature.credentialsSaving), .enabled)
     }
 
