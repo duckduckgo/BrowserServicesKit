@@ -333,7 +333,7 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         atbEntry = ""
 #endif
         let js = """
-                     const json = {
+                     window.onGetToggleReportOptionsResponse({
                          "data": [
                              {
                                  "id": "siteUrl",
@@ -358,8 +358,7 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
                              {"id": "userRefreshCount"},
                              {"id": "locale"},
                          ]
-                     }
-                     window.onGetToggleReportOptionsResponse(json);
+                     });
                      """
         evaluate(js: js, in: webView)
     }
