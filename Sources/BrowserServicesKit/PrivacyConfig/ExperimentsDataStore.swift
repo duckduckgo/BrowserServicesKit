@@ -35,13 +35,13 @@ struct ExperimentsDataStore: ExperimentsDataStoring {
     private let localDataStoring: LocalDataStoring
     private let decoder = JSONDecoder()
     private let encoder = JSONEncoder()
-    
+
     init(localDataStoring: LocalDataStoring = UserDefaults.standard) {
         self.localDataStoring = localDataStoring
         encoder.dateEncodingStrategy = .secondsSince1970
         decoder.dateDecodingStrategy = .secondsSince1970
     }
-    
+
     var experiments: Experiments? {
         get {
             guard let savedData = localDataStoring.data(forKey: Constants.experimentsDataKey) else { return nil }
