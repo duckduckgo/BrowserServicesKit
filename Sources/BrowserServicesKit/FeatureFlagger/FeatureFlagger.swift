@@ -18,48 +18,9 @@
 
 import Foundation
 
-public protocol FeatureFlagger {
-
-/// Called from app features to determine whether a given feature is enabled.
-///
-/// `forProvider: F` takes a FeatureFlag type defined by the respective app which defines from what source it should be toggled
-/// see `FeatureFlagSourceProviding` comments below for more details
-    func isFeatureOn<F: FeatureFlagSourceProviding>(forProvider: F) -> Bool
-}
-
-public class DefaultFeatureFlagger: FeatureFlagger {
-    public let internalUserDecider: InternalUserDecider
-    public let privacyConfigManager: PrivacyConfigurationManaging
-
-    public init(internalUserDecider: InternalUserDecider, privacyConfigManager: PrivacyConfigurationManaging) {
-        self.internalUserDecider = internalUserDecider
-        self.privacyConfigManager = privacyConfigManager
-    }
-
-    public func isFeatureOn<F: FeatureFlagSourceProviding>(forProvider provider: F) -> Bool {
-        switch provider.source {
-        case .disabled:
-            return false
-        case .internalOnly:
-            return internalUserDecider.isInternalUser
-        case .remoteDevelopment(let featureType):
-            guard internalUserDecider.isInternalUser else {
-                return false
-            }
-            return isEnabled(featureType)
-        case .remoteReleasable(let featureType):
-            return isEnabled(featureType)
-        }
-    }
-
-    private func isEnabled(_ featureType: PrivacyConfigFeatureLevel) -> Bool {
-        switch featureType {
-        case .feature(let feature):
-            return privacyConfigManager.privacyConfig.isEnabled(featureKey: feature)
-        case .subfeature(let subfeature):
-            return privacyConfigManager.privacyConfig.isSubfeatureEnabled(subfeature)
-        }
-    }
+public protocol FeatureFlagProtocol: CaseIterable, FeatureFlagSourceProviding {
+    var rawValue: String { get }
+    var supportsLocalOverriding: Bool { get }
 }
 
 /// To be implemented by the FeatureFlag enum type in the respective app. The source corresponds to
@@ -110,4 +71,58 @@ public enum PrivacyConfigFeatureLevel {
 
     /// Corresponds to a given subfeature of a privacy config feature
     case subfeature(any PrivacySubfeature)
+}
+
+public protocol FeatureFlagger: AnyObject {
+    var internalUserDecider: InternalUserDecider { get }
+    var localOverrides: FeatureFlagOverrides? { get }
+
+    /// Called from app features to determine whether a given feature is enabled.
+    ///
+    /// `forProvider: Flag` takes a FeatureFlag type defined by the respective app which defines from what source it should be toggled
+    /// see `FeatureFlagSourceProviding` comments below for more details
+    func isFeatureOn<Flag: FeatureFlagProtocol>(forProvider flag: Flag) -> Bool
+}
+
+public class DefaultFeatureFlagger: FeatureFlagger {
+
+    public let internalUserDecider: InternalUserDecider
+    public let privacyConfigManager: PrivacyConfigurationManaging
+    public let localOverrides: FeatureFlagOverrides?
+
+    public init(
+        internalUserDecider: InternalUserDecider,
+        privacyConfigManager: PrivacyConfigurationManaging,
+        localOverrides: FeatureFlagOverrides? = nil
+    ) {
+        self.internalUserDecider = internalUserDecider
+        self.privacyConfigManager = privacyConfigManager
+        self.localOverrides = localOverrides
+        localOverrides?.featureFlagger = self
+    }
+
+    public func isFeatureOn<Flag: FeatureFlagSourceProviding>(forProvider provider: Flag) -> Bool {
+        switch provider.source {
+        case .disabled:
+            return false
+        case .internalOnly:
+            return internalUserDecider.isInternalUser
+        case .remoteDevelopment(let featureType):
+            guard internalUserDecider.isInternalUser else {
+                return false
+            }
+            return isEnabled(featureType)
+        case .remoteReleasable(let featureType):
+            return isEnabled(featureType)
+        }
+    }
+
+    private func isEnabled(_ featureType: PrivacyConfigFeatureLevel) -> Bool {
+        switch featureType {
+        case .feature(let feature):
+            return privacyConfigManager.privacyConfig.isEnabled(featureKey: feature)
+        case .subfeature(let subfeature):
+            return privacyConfigManager.privacyConfig.isSubfeatureEnabled(subfeature)
+        }
+    }
 }
