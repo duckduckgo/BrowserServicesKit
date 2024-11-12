@@ -190,9 +190,9 @@ public struct PrivacyConfigurationData {
 
                 if let cohortData = json[CodingKeys.cohorts.rawValue] as? [[String: Any]] {
                     let parsedCohorts = cohortData.compactMap { Cohort(json: $0) }
-                    self.cohorts = parsedCohorts.isEmpty ? nil : parsedCohorts
+                    cohorts = parsedCohorts.isEmpty ? nil : parsedCohorts
                 } else {
-                    self.cohorts = nil
+                    cohorts = nil
                 }
             }
         }
