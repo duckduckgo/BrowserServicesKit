@@ -19,7 +19,8 @@
 import Foundation
 
 protocol ExperimentsDataStoring {
-    var experiments: Experiments? { get set }
+    func getExperiments() async -> Experiments?
+    func setExperiments(_ experiments: Experiments?) async
 }
 
 protocol LocalDataStoring {
@@ -27,7 +28,7 @@ protocol LocalDataStoring {
     func set(_ value: Any?, forKey defaultName: String)
 }
 
-struct ExperimentsDataStore: ExperimentsDataStoring {
+actor ExperimentsDataStore: ExperimentsDataStoring {
 
     private enum Constants {
         static let experimentsDataKey = "ExperimentsData"
@@ -43,19 +44,14 @@ struct ExperimentsDataStore: ExperimentsDataStoring {
         decoder.dateDecodingStrategy = .secondsSince1970
     }
 
-    var experiments: Experiments? {
-        get {
-            queue.sync {
-                guard let savedData = localDataStoring.data(forKey: Constants.experimentsDataKey) else { return nil }
-                return try? decoder.decode(Experiments.self, from: savedData)
-            }
-        }
-        set {
-            queue.sync {
-                if let encodedData = try? encoder.encode(newValue) {
-                    localDataStoring.set(encodedData, forKey: Constants.experimentsDataKey)
-                }
-            }
+    func getExperiments() async -> Experiments? {
+        guard let savedData = localDataStoring.data(forKey: Constants.experimentsDataKey) else { return nil }
+        return try? decoder.decode(Experiments.self, from: savedData)
+    }
+
+    func setExperiments(_ experiments: Experiments?) async {
+        if let encodedData = try? encoder.encode(experiments) {
+            localDataStoring.set(encodedData, forKey: Constants.experimentsDataKey)
         }
     }
 }

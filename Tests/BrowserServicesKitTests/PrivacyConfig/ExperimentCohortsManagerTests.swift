@@ -59,26 +59,26 @@ final class ExperimentCohortsManagerTests: XCTestCase {
         super.tearDown()
     }
 
-    func testCohortReturnsCohortIDIfExistsForMultipleSubfeatures() {
+    func testCohortReturnsCohortIDIfExistsForMultipleSubfeatures() async {
         // GIVEN
         mockStore.experiments = [subfeatureName1: experimentData1, subfeatureName2: experimentData2]
 
         // WHEN
-        let result1 = experimentCohortsManager.cohort(for: subfeatureName1)
-        let result2 = experimentCohortsManager.cohort(for: subfeatureName2)
+        let result1 = await experimentCohortsManager.cohort(for: subfeatureName1)
+        let result2 = await experimentCohortsManager.cohort(for: subfeatureName2)
 
         // THEN
         XCTAssertEqual(result1, experimentData1.cohort)
         XCTAssertEqual(result2, experimentData2.cohort)
     }
 
-    func testEnrollmentDateReturnsCorrectDateIfExists() {
+    func testEnrollmentDateReturnsCorrectDateIfExists() async {
         // GIVEN
         mockStore.experiments = [subfeatureName1: experimentData1]
 
         // WHEN
-        let result1 = experimentCohortsManager.enrollmentDate(for: subfeatureName1)
-        let result2 = experimentCohortsManager.enrollmentDate(for: subfeatureName2)
+        let result1 = await experimentCohortsManager.enrollmentDate(for: subfeatureName1)
+        let result2 = await experimentCohortsManager.enrollmentDate(for: subfeatureName2)
 
         // THEN
         let timeDifference1 = abs(experimentData1.enrollmentDate.timeIntervalSince(result1 ?? Date()))
@@ -87,64 +87,64 @@ final class ExperimentCohortsManagerTests: XCTestCase {
         XCTAssertNil(result2)
     }
 
-    func testCohortReturnsNilIfCohortDoesNotExist() {
+    func testCohortReturnsNilIfCohortDoesNotExist() async {
         // GIVEN
         let subfeatureName = "TestSubfeature"
 
         // WHEN
-        let result = experimentCohortsManager.cohort(for: subfeatureName)
+        let result = await experimentCohortsManager.cohort(for: subfeatureName)
 
         // THEN
         XCTAssertNil(result)
     }
 
-    func testEnrollmentDateReturnsNilIfDateDoesNotExist() {
+    func testEnrollmentDateReturnsNilIfDateDoesNotExist() async {
         // GIVEN
         let subfeatureName = "TestSubfeature"
 
         // WHEN
-        let result = experimentCohortsManager.enrollmentDate(for: subfeatureName)
+        let result = await experimentCohortsManager.enrollmentDate(for: subfeatureName)
 
         // THEN
         XCTAssertNil(result)
     }
 
-    func testRemoveCohortSuccessfullyRemovesData() throws {
+    func testRemoveCohortSuccessfullyRemovesData() async throws {
         // GIVEN
         mockStore.experiments = [subfeatureName1: experimentData1]
 
         // WHEN
-        experimentCohortsManager.removeCohort(from: subfeatureName1)
+        await experimentCohortsManager.removeCohort(from: subfeatureName1)
 
         // THEN
         let experiments = try XCTUnwrap(mockStore.experiments)
         XCTAssertTrue(experiments.isEmpty)
     }
 
-    func testRemoveCohortDoesNothingIfSubfeatureDoesNotExist() {
+    func testRemoveCohortDoesNothingIfSubfeatureDoesNotExist() async {
         // GIVEN
         let expectedExperiments: Experiments = [subfeatureName1: experimentData1, subfeatureName2: experimentData2]
         mockStore.experiments = expectedExperiments
 
         // WHEN
-        experimentCohortsManager.removeCohort(from: "someOtherSubfeature")
+        await experimentCohortsManager.removeCohort(from: "someOtherSubfeature")
 
         // THEN
         XCTAssertEqual( mockStore.experiments, expectedExperiments)
     }
 
-    func testAssignCohortReturnsNilIfNoCohorts() {
+    func testAssignCohortReturnsNilIfNoCohorts() async {
         // GIVEN
         let subfeature = ExperimentSubfeature(subfeatureID: subfeatureName1, cohorts: [])
 
         // WHEN
-        let result = experimentCohortsManager.assignCohort(to: subfeature)
+        let result = await experimentCohortsManager.assignCohort(to: subfeature)
 
         // THEN
         XCTAssertNil(result)
     }
 
-    func testAssignCohortReturnsNilIfAllWeightsAreZero() {
+    func testAssignCohortReturnsNilIfAllWeightsAreZero() async {
         // GIVEN
         let jsonCohort1: [String: Any] = ["name": "TestCohort", "weight": 0]
         let jsonCohort2: [String: Any] = ["name": "TestCohort", "weight": 0]
@@ -155,13 +155,13 @@ final class ExperimentCohortsManagerTests: XCTestCase {
         let subfeature = ExperimentSubfeature(subfeatureID: subfeatureName1, cohorts: cohorts)
 
         // WHEN
-        let result = experimentCohortsManager.assignCohort(to: subfeature)
+        let result = await experimentCohortsManager.assignCohort(to: subfeature)
 
         // THEN
         XCTAssertNil(result)
     }
 
-    func testAssignCohortSelectsCorrectCohortBasedOnWeight() {
+    func testAssignCohortSelectsCorrectCohortBasedOnWeight() async {
         // Cohort1 has weight 1, Cohort2 has weight 3
         // Total weight is 1 + 3 = 4
         let jsonCohort1: [String: Any] = ["name": "Cohort1", "weight": 1]
@@ -190,7 +190,7 @@ final class ExperimentCohortsManagerTests: XCTestCase {
             store: mockStore,
             randomizer: { _ in 0.0 }
         )
-        let resultStartOfCohort1 = experimentCohortsManager.assignCohort(to: subfeature)
+        let resultStartOfCohort1 = await experimentCohortsManager.assignCohort(to: subfeature)
         XCTAssertEqual(resultStartOfCohort1, "Cohort1")
 
         // Test case where random value is at the end of Cohort1's range (0.9)
@@ -198,7 +198,7 @@ final class ExperimentCohortsManagerTests: XCTestCase {
             store: mockStore,
             randomizer: { _ in 0.9 }
         )
-        let resultEndOfCohort1 = experimentCohortsManager.assignCohort(to: subfeature)
+        let resultEndOfCohort1 = await experimentCohortsManager.assignCohort(to: subfeature)
         XCTAssertEqual(resultEndOfCohort1, "Cohort1")
 
         // Test case where random value is at the start of Cohort2's range (1.00 to 4)
@@ -206,7 +206,7 @@ final class ExperimentCohortsManagerTests: XCTestCase {
             store: mockStore,
             randomizer: { _ in 1.00 }
         )
-        let resultStartOfCohort2 = experimentCohortsManager.assignCohort(to: subfeature)
+        let resultStartOfCohort2 = await experimentCohortsManager.assignCohort(to: subfeature)
         XCTAssertEqual(resultStartOfCohort2, "Cohort2")
 
         // Test case where random value falls exactly within Cohort2's range (2.5)
@@ -214,7 +214,7 @@ final class ExperimentCohortsManagerTests: XCTestCase {
             store: mockStore,
             randomizer: { _ in 2.5 }
         )
-        let resultMiddleOfCohort2 = experimentCohortsManager.assignCohort(to: subfeature)
+        let resultMiddleOfCohort2 = await experimentCohortsManager.assignCohort(to: subfeature)
         XCTAssertEqual(resultMiddleOfCohort2, "Cohort2")
 
         // Test case where random value is at the end of Cohort2's range (4)
@@ -222,11 +222,11 @@ final class ExperimentCohortsManagerTests: XCTestCase {
             store: mockStore,
             randomizer: { _ in 3.9 }
         )
-        let resultEndOfCohort2 = experimentCohortsManager.assignCohort(to: subfeature)
+        let resultEndOfCohort2 = await experimentCohortsManager.assignCohort(to: subfeature)
         XCTAssertEqual(resultEndOfCohort2, "Cohort2")
     }
 
-    func testAssignCohortWithSingleCohortAlwaysSelectsThatCohort() throws {
+    func testAssignCohortWithSingleCohortAlwaysSelectsThatCohort() async throws {
         // GIVEN
         let jsonCohort1: [String: Any] = ["name": "Cohort1", "weight": 1]
         let cohorts = [
@@ -252,7 +252,7 @@ final class ExperimentCohortsManagerTests: XCTestCase {
             store: mockStore,
             randomizer: { range in Double.random(in: range)}
         )
-        let result = experimentCohortsManager.assignCohort(to: subfeature)
+        let result = await experimentCohortsManager.assignCohort(to: subfeature)
 
         // THEN
         XCTAssertEqual(result, "Cohort1")
@@ -262,5 +262,13 @@ final class ExperimentCohortsManagerTests: XCTestCase {
 }
 
 class MockExperimentDataStore: ExperimentsDataStoring {
+    func getExperiments() async -> BrowserServicesKit.Experiments? {
+        return experiments
+    }
+    
+    func setExperiments(_ experiments: BrowserServicesKit.Experiments?) async {
+        self.experiments = experiments
+    }
+    
     var experiments: Experiments?
 }
