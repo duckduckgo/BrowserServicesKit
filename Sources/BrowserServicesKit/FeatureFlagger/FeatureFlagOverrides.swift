@@ -38,6 +38,10 @@ public struct FeatureFlagOverridesUserDefaultsPersistor: FeatureFlagOverridesPer
 
     public let keyValueStore: KeyValueStoring
 
+    public init(keyValueStore: KeyValueStoring) {
+        self.keyValueStore = keyValueStore
+    }
+
     public func value<Flag: FeatureFlagProtocol>(for flag: Flag) -> Bool? {
         let key = key(for: flag)
         return keyValueStore.object(forKey: key) as? Bool
@@ -90,7 +94,10 @@ public protocol FeatureFlagOverriding: AnyObject {
     /// Returns the current override for a feature flag, or `nil` if override is not set.
     func override<Flag: FeatureFlagProtocol>(for featureFlag: Flag) -> Bool?
 
-    /// Toggles override for a feature flag, or sets it to `true` if not currently present.
+    /// Toggles override for a feature flag.
+    ///
+    /// If override is not currently present, it sets the override to the opposite of the current flag value.
+    ///
     func toggleOverride<Flag: FeatureFlagProtocol>(for featureFlag: Flag)
 
     /// Clears override for a feature flag.
@@ -142,7 +149,7 @@ public final class FeatureFlagOverrides: FeatureFlagOverriding {
         guard featureFlag.supportsLocalOverriding else {
             return
         }
-        let currentValue = persistor.value(for: featureFlag) ?? false
+        let currentValue = persistor.value(for: featureFlag) ?? currentValue(for: featureFlag) ?? false
         let newValue = !currentValue
         persistor.set(newValue, for: featureFlag)
         actionHandler.flagDidChange(featureFlag, isEnabled: newValue)
@@ -153,7 +160,7 @@ public final class FeatureFlagOverrides: FeatureFlagOverriding {
             return
         }
         persistor.set(nil, for: featureFlag)
-        if let defaultValue = featureFlagger?.isFeatureOn(forProvider: featureFlag), defaultValue != override {
+        if let defaultValue = currentValue(for: featureFlag), defaultValue != override {
             actionHandler.flagDidChange(featureFlag, isEnabled: defaultValue)
         }
     }
@@ -162,5 +169,9 @@ public final class FeatureFlagOverrides: FeatureFlagOverriding {
         flagType.allCases.forEach { flag in
             clearOverride(for: flag)
         }
+    }
+
+    private func currentValue<Flag: FeatureFlagProtocol>(for featureFlag: Flag) -> Bool? {
+        featureFlagger?.isFeatureOn(for: featureFlag, allowOverride: true)
     }
 }

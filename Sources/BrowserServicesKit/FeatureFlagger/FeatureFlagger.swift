@@ -98,9 +98,12 @@ public protocol FeatureFlagger: AnyObject {
 
     /// Called from app features to determine whether a given feature is enabled.
     ///
-    /// `forProvider: Flag` takes a FeatureFlag type defined by the respective app which defines from what source it should be toggled
-    /// see `FeatureFlagSourceProviding` comments below for more details
-    func isFeatureOn<Flag: FeatureFlagProtocol>(forProvider flag: Flag) -> Bool
+    /// Feature Flag's `source` is checked to determine if the flag should be toggled.
+    /// If feature flagger provides overrides mechanism (`localOverrides` is not `nil`)
+    /// and the user is internal, local overrides is checked first and if present,
+    /// returned as flag value.
+    ///
+    func isFeatureOn<Flag: FeatureFlagProtocol>(for featureFlag: Flag, allowOverride: Bool) -> Bool
 }
 
 public class DefaultFeatureFlagger: FeatureFlagger {
@@ -111,17 +114,35 @@ public class DefaultFeatureFlagger: FeatureFlagger {
 
     public init(
         internalUserDecider: InternalUserDecider,
+        privacyConfigManager: PrivacyConfigurationManaging
+    ) {
+        self.internalUserDecider = internalUserDecider
+        self.privacyConfigManager = privacyConfigManager
+        self.localOverrides = nil
+    }
+
+    public init<Flag: FeatureFlagProtocol>(
+        internalUserDecider: InternalUserDecider,
         privacyConfigManager: PrivacyConfigurationManaging,
-        localOverrides: FeatureFlagOverriding? = nil
+        localOverrides: FeatureFlagOverriding,
+        for: Flag.Type
     ) {
         self.internalUserDecider = internalUserDecider
         self.privacyConfigManager = privacyConfigManager
         self.localOverrides = localOverrides
-        localOverrides?.featureFlagger = self
+        localOverrides.featureFlagger = self
+
+        // Clear all overrides if not an internal user
+        if !internalUserDecider.isInternalUser {
+            localOverrides.clearAllOverrides(for: Flag.self)
+        }
     }
 
-    public func isFeatureOn<Flag: FeatureFlagProtocol>(forProvider provider: Flag) -> Bool {
-        switch provider.source {
+    public func isFeatureOn<Flag: FeatureFlagProtocol>(for featureFlag: Flag, allowOverride: Bool = true) -> Bool {
+        if allowOverride, internalUserDecider.isInternalUser, let localOverride = localOverrides?.override(for: featureFlag) {
+            return localOverride
+        }
+        switch featureFlag.source {
         case .disabled:
             return false
         case .internalOnly:
