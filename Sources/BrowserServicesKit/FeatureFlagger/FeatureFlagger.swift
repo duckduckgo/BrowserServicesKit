@@ -103,7 +103,23 @@ public protocol FeatureFlagger: AnyObject {
     /// and the user is internal, local overrides is checked first and if present,
     /// returned as flag value.
     ///
+    /// > Note: Setting `allowOverride` to `false` skips checking local overrides. This can be used
+    ///   when the non-overridden feature flag value is required.
+    ///
     func isFeatureOn<Flag: FeatureFlagProtocol>(_ featureFlag: Flag, allowOverride: Bool) -> Bool
+}
+
+public extension FeatureFlagger {
+    /// Called from app features to determine whether a given feature is enabled.
+    ///
+    /// Feature Flag's `source` is checked to determine if the flag should be toggled.
+    /// If feature flagger provides overrides mechanism (`localOverrides` is not `nil`)
+    /// and the user is internal, local overrides is checked first and if present,
+    /// returned as flag value.
+    ///
+    func isFeatureOn<Flag: FeatureFlagProtocol>(_ featureFlag: Flag) -> Bool {
+        isFeatureOn(featureFlag, allowOverride: true)
+    }
 }
 
 public class DefaultFeatureFlagger: FeatureFlagger {
@@ -138,7 +154,7 @@ public class DefaultFeatureFlagger: FeatureFlagger {
         }
     }
 
-    public func isFeatureOn<Flag: FeatureFlagProtocol>(_ featureFlag: Flag, allowOverride: Bool = true) -> Bool {
+    public func isFeatureOn<Flag: FeatureFlagProtocol>(_ featureFlag: Flag, allowOverride: Bool) -> Bool {
         if allowOverride, internalUserDecider.isInternalUser, let localOverride = localOverrides?.override(for: featureFlag) {
             return localOverride
         }
