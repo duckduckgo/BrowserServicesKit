@@ -25,13 +25,13 @@ public protocol FeatureFlagLocalOverridesPersistor {
     ///
     /// If there's no override, this function should return `nil`.
     ///
-    func value<Flag: FeatureFlagProtocol>(for flag: Flag) -> Bool?
+    func value<Flag: FeatureFlagDescribing>(for flag: Flag) -> Bool?
 
     /// Set new override for the feature flag.
     ///
     /// Flag can be overridden to `true` or `false`. Setting `nil` clears the override.
     ///
-    func set<Flag: FeatureFlagProtocol>(_ value: Bool?, for flag: Flag)
+    func set<Flag: FeatureFlagDescribing>(_ value: Bool?, for flag: Flag)
 }
 
 public struct FeatureFlagLocalOverridesUserDefaultsPersistor: FeatureFlagLocalOverridesPersistor {
@@ -42,12 +42,12 @@ public struct FeatureFlagLocalOverridesUserDefaultsPersistor: FeatureFlagLocalOv
         self.keyValueStore = keyValueStore
     }
 
-    public func value<Flag: FeatureFlagProtocol>(for flag: Flag) -> Bool? {
+    public func value<Flag: FeatureFlagDescribing>(for flag: Flag) -> Bool? {
         let key = key(for: flag)
         return keyValueStore.object(forKey: key) as? Bool
     }
 
-    public func set<Flag: FeatureFlagProtocol>(_ value: Bool?, for flag: Flag) {
+    public func set<Flag: FeatureFlagDescribing>(_ value: Bool?, for flag: Flag) {
         let key = key(for: flag)
         keyValueStore.set(value, forKey: key)
     }
@@ -56,7 +56,7 @@ public struct FeatureFlagLocalOverridesUserDefaultsPersistor: FeatureFlagLocalOv
     ///
     /// It uses camel case to allow inter-process User Defaults KVO.
     ///
-    private func key<Flag: FeatureFlagProtocol>(for flag: Flag) -> String {
+    private func key<Flag: FeatureFlagDescribing>(for flag: Flag) -> String {
         return "localOverride\(flag.rawValue.capitalizedFirstLetter)"
     }
 }
@@ -75,7 +75,7 @@ public protocol FeatureFlagLocalOverridesHandler {
     ///
     /// It can be implemented by client apps to react to changes to feature flag
     /// value in runtime, caused by adjusting its local override.
-    func flagDidChange<Flag: FeatureFlagProtocol>(_ featureFlag: Flag, isEnabled: Bool)
+    func flagDidChange<Flag: FeatureFlagDescribing>(_ featureFlag: Flag, isEnabled: Bool)
 }
 
 /// This protocol defines the interface for feature flag overriding mechanism.
@@ -92,26 +92,26 @@ public protocol FeatureFlagLocalOverriding: AnyObject {
     var featureFlagger: FeatureFlagger? { get set }
 
     /// Returns the current override for a feature flag, or `nil` if override is not set.
-    func override<Flag: FeatureFlagProtocol>(for featureFlag: Flag) -> Bool?
+    func override<Flag: FeatureFlagDescribing>(for featureFlag: Flag) -> Bool?
 
     /// Toggles override for a feature flag.
     ///
     /// If override is not currently present, it sets the override to the opposite of the current flag value.
     ///
-    func toggleOverride<Flag: FeatureFlagProtocol>(for featureFlag: Flag)
+    func toggleOverride<Flag: FeatureFlagDescribing>(for featureFlag: Flag)
 
     /// Clears override for a feature flag.
     ///
     /// Calls `FeatureFlagLocalOverridesHandler.flagDidChange` if the effective flag value
     /// changes as a result of clearing the override.
     ///
-    func clearOverride<Flag: FeatureFlagProtocol>(for featureFlag: Flag)
+    func clearOverride<Flag: FeatureFlagDescribing>(for featureFlag: Flag)
 
     /// Clears overrides for all feature flags.
     ///
     /// This function calls `clearOverride(for:)` for each flag.
     ///
-    func clearAllOverrides<Flag: FeatureFlagProtocol>(for flagType: Flag.Type)
+    func clearAllOverrides<Flag: FeatureFlagDescribing>(for flagType: Flag.Type)
 }
 
 public final class FeatureFlagLocalOverrides: FeatureFlagLocalOverriding {
@@ -138,14 +138,14 @@ public final class FeatureFlagLocalOverrides: FeatureFlagLocalOverriding {
         self.actionHandler = actionHandler
     }
 
-    public func override<Flag: FeatureFlagProtocol>(for featureFlag: Flag) -> Bool? {
+    public func override<Flag: FeatureFlagDescribing>(for featureFlag: Flag) -> Bool? {
         guard featureFlag.supportsLocalOverriding else {
             return nil
         }
         return persistor.value(for: featureFlag)
     }
 
-    public func toggleOverride<Flag: FeatureFlagProtocol>(for featureFlag: Flag) {
+    public func toggleOverride<Flag: FeatureFlagDescribing>(for featureFlag: Flag) {
         guard featureFlag.supportsLocalOverriding else {
             return
         }
@@ -155,7 +155,7 @@ public final class FeatureFlagLocalOverrides: FeatureFlagLocalOverriding {
         actionHandler.flagDidChange(featureFlag, isEnabled: newValue)
     }
 
-    public func clearOverride<Flag: FeatureFlagProtocol>(for featureFlag: Flag) {
+    public func clearOverride<Flag: FeatureFlagDescribing>(for featureFlag: Flag) {
         guard let override = override(for: featureFlag) else {
             return
         }
@@ -165,13 +165,13 @@ public final class FeatureFlagLocalOverrides: FeatureFlagLocalOverriding {
         }
     }
 
-    public func clearAllOverrides<Flag: FeatureFlagProtocol>(for flagType: Flag.Type) {
+    public func clearAllOverrides<Flag: FeatureFlagDescribing>(for flagType: Flag.Type) {
         flagType.allCases.forEach { flag in
             clearOverride(for: flag)
         }
     }
 
-    private func currentValue<Flag: FeatureFlagProtocol>(for featureFlag: Flag) -> Bool? {
+    private func currentValue<Flag: FeatureFlagDescribing>(for featureFlag: Flag) -> Bool? {
         featureFlagger?.isFeatureOn(for: featureFlag, allowOverride: true)
     }
 }

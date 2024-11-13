@@ -27,7 +27,7 @@ final class CapturingFeatureFlagLocalOverridesHandler: FeatureFlagLocalOverrides
     }
     var calls: [Parameters] = []
 
-    func flagDidChange<Flag: FeatureFlagProtocol>(_ featureFlag: Flag, isEnabled: Bool) {
+    func flagDidChange<Flag: FeatureFlagDescribing>(_ featureFlag: Flag, isEnabled: Bool) {
         calls.append(.init(rawValue: featureFlag.rawValue, isEnabled: isEnabled))
     }
 }

@@ -22,7 +22,7 @@ import Foundation
 ///
 /// It should be implemented by the feature flag type in client apps.
 ///
-public protocol FeatureFlagProtocol: CaseIterable {
+public protocol FeatureFlagDescribing: CaseIterable {
 
     /// Returns a string representation of the flag, suitable for persisting the flag state to disk.
     var rawValue: String { get }
@@ -43,7 +43,7 @@ public protocol FeatureFlagProtocol: CaseIterable {
     /// Example client implementation:
     ///
     /// ```
-    /// public enum FeatureFlag: FeatureFlagProtocol {
+    /// public enum FeatureFlag: FeatureFlagDescribing {
     ///    case sync
     ///    case autofill
     ///    case cookieConsent
@@ -106,7 +106,7 @@ public protocol FeatureFlagger: AnyObject {
     /// > Note: Setting `allowOverride` to `false` skips checking local overrides. This can be used
     ///   when the non-overridden feature flag value is required.
     ///
-    func isFeatureOn<Flag: FeatureFlagProtocol>(for featureFlag: Flag, allowOverride: Bool) -> Bool
+    func isFeatureOn<Flag: FeatureFlagDescribing>(for featureFlag: Flag, allowOverride: Bool) -> Bool
 }
 
 public extension FeatureFlagger {
@@ -117,7 +117,7 @@ public extension FeatureFlagger {
     /// and the user is internal, local overrides is checked first and if present,
     /// returned as flag value.
     ///
-    func isFeatureOn<Flag: FeatureFlagProtocol>(for featureFlag: Flag) -> Bool {
+    func isFeatureOn<Flag: FeatureFlagDescribing>(for featureFlag: Flag) -> Bool {
         isFeatureOn(for: featureFlag, allowOverride: true)
     }
 }
@@ -137,7 +137,7 @@ public class DefaultFeatureFlagger: FeatureFlagger {
         self.localOverrides = nil
     }
 
-    public init<Flag: FeatureFlagProtocol>(
+    public init<Flag: FeatureFlagDescribing>(
         internalUserDecider: InternalUserDecider,
         privacyConfigManager: PrivacyConfigurationManaging,
         localOverrides: FeatureFlagLocalOverriding,
@@ -154,7 +154,7 @@ public class DefaultFeatureFlagger: FeatureFlagger {
         }
     }
 
-    public func isFeatureOn<Flag: FeatureFlagProtocol>(for featureFlag: Flag, allowOverride: Bool) -> Bool {
+    public func isFeatureOn<Flag: FeatureFlagDescribing>(for featureFlag: Flag, allowOverride: Bool) -> Bool {
         if allowOverride, internalUserDecider.isInternalUser, let localOverride = localOverrides?.override(for: featureFlag) {
             return localOverride
         }

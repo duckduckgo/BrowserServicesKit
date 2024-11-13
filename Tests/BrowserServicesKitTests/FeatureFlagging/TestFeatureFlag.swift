@@ -18,7 +18,7 @@
 
 import BrowserServicesKit
 
-enum TestFeatureFlag: String, FeatureFlagProtocol {
+enum TestFeatureFlag: String, FeatureFlagDescribing {
     case nonOverridableFlag
     case overridableFlagDisabledByDefault
     case overridableFlagEnabledByDefault

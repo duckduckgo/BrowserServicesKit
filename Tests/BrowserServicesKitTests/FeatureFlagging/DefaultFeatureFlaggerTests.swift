@@ -21,29 +21,29 @@ import TestUtils
 import XCTest
 
 final class CapturingFeatureFlagOverriding: FeatureFlagLocalOverriding {
-    var overrideCalls: [any FeatureFlagProtocol] = []
-    var toggleOverideCalls: [any FeatureFlagProtocol] = []
-    var clearOverrideCalls: [any FeatureFlagProtocol] = []
+    var overrideCalls: [any FeatureFlagDescribing] = []
+    var toggleOverideCalls: [any FeatureFlagDescribing] = []
+    var clearOverrideCalls: [any FeatureFlagDescribing] = []
     var clearAllOverrideCallCount: Int = 0
 
-    var override: (any FeatureFlagProtocol) -> Bool? = { _ in nil }
+    var override: (any FeatureFlagDescribing) -> Bool? = { _ in nil }
 
     weak var featureFlagger: FeatureFlagger?
 
-    func override<Flag: FeatureFlagProtocol>(for featureFlag: Flag) -> Bool? {
+    func override<Flag: FeatureFlagDescribing>(for featureFlag: Flag) -> Bool? {
         overrideCalls.append(featureFlag)
         return override(featureFlag)
     }
 
-    func toggleOverride<Flag: FeatureFlagProtocol>(for featureFlag: Flag) {
+    func toggleOverride<Flag: FeatureFlagDescribing>(for featureFlag: Flag) {
         toggleOverideCalls.append(featureFlag)
     }
 
-    func clearOverride<Flag: FeatureFlagProtocol>(for featureFlag: Flag) {
+    func clearOverride<Flag: FeatureFlagDescribing>(for featureFlag: Flag) {
         clearOverrideCalls.append(featureFlag)
     }
 
-    func clearAllOverrides<Flag: FeatureFlagProtocol>(for flagType: Flag.Type) {
+    func clearAllOverrides<Flag: FeatureFlagDescribing>(for flagType: Flag.Type) {
         clearAllOverrideCallCount += 1
     }
 }
@@ -227,7 +227,7 @@ final class DefaultFeatureFlaggerTests: XCTestCase {
 
     private func assertFeatureFlagger(with embeddedData: Data,
                                       willReturn bool: Bool,
-                                      for sourceProvider: any FeatureFlagProtocol,
+                                      for sourceProvider: any FeatureFlagDescribing,
                                       file: StaticString = #file,
                                       line: UInt = #line) {
         let featureFlagger = createFeatureFlagger(withMockedConfigData: embeddedData)
@@ -235,7 +235,7 @@ final class DefaultFeatureFlaggerTests: XCTestCase {
     }
 }
 
-extension FeatureFlagSource: FeatureFlagProtocol {
+extension FeatureFlagSource: FeatureFlagDescribing {
     public static let allCases: [FeatureFlagSource]  = []
     public var supportsLocalOverriding: Bool { false }
     public var rawValue: String { "rawValue" }
