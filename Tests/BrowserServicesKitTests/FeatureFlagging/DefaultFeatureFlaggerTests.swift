@@ -64,22 +64,22 @@ final class DefaultFeatureFlaggerTests: XCTestCase {
 
     func testWhenDisabled_sourceDisabled_returnsFalse() {
         let featureFlagger = createFeatureFlagger()
-        XCTAssertFalse(featureFlagger.isFeatureOn(for: FeatureFlagSource.disabled))
+        XCTAssertFalse(featureFlagger.isFeatureOn(FeatureFlagSource.disabled))
     }
 
     func testWhenInternalOnly_returnsIsInternalUserValue() {
         let featureFlagger = createFeatureFlagger()
         internalUserDeciderStore.isInternalUser = false
-        XCTAssertFalse(featureFlagger.isFeatureOn(for: FeatureFlagSource.internalOnly))
+        XCTAssertFalse(featureFlagger.isFeatureOn(FeatureFlagSource.internalOnly))
         internalUserDeciderStore.isInternalUser = true
-        XCTAssertTrue(featureFlagger.isFeatureOn(for: FeatureFlagSource.internalOnly))
+        XCTAssertTrue(featureFlagger.isFeatureOn(FeatureFlagSource.internalOnly))
     }
 
     func testWhenRemoteDevelopment_isNOTInternalUser_returnsFalse() {
         internalUserDeciderStore.isInternalUser = false
         let embeddedData = Self.embeddedConfig(autofillState: "enabled")
         let featureFlagger = createFeatureFlagger(withMockedConfigData: embeddedData)
-        XCTAssertFalse(featureFlagger.isFeatureOn(for: FeatureFlagSource.remoteDevelopment(.feature(.autofill))))
+        XCTAssertFalse(featureFlagger.isFeatureOn(FeatureFlagSource.remoteDevelopment(.feature(.autofill))))
     }
 
     func testWhenRemoteDevelopment_isInternalUser_whenFeature_returnsPrivacyConfigValue() {
@@ -153,7 +153,7 @@ final class DefaultFeatureFlaggerTests: XCTestCase {
 
         overrides.override = { _ in return true }
 
-        XCTAssertTrue(featureFlagger.isFeatureOn(for: TestFeatureFlag.overridableFlagDisabledByDefault))
+        XCTAssertTrue(featureFlagger.isFeatureOn(TestFeatureFlag.overridableFlagDisabledByDefault))
         XCTAssertEqual(overrides.overrideCalls.count, 1)
         XCTAssertEqual(try XCTUnwrap(overrides.overrideCalls.first as? TestFeatureFlag), .overridableFlagDisabledByDefault)
     }
@@ -162,7 +162,7 @@ final class DefaultFeatureFlaggerTests: XCTestCase {
         let featureFlagger = createFeatureFlaggerWithLocalOverrides()
         internalUserDeciderStore.isInternalUser = true
 
-        XCTAssertFalse(featureFlagger.isFeatureOn(for: TestFeatureFlag.overridableFlagDisabledByDefault, allowOverride: false))
+        XCTAssertFalse(featureFlagger.isFeatureOn(TestFeatureFlag.overridableFlagDisabledByDefault, allowOverride: false))
         XCTAssertTrue(overrides.overrideCalls.isEmpty)
     }
 
@@ -170,7 +170,7 @@ final class DefaultFeatureFlaggerTests: XCTestCase {
         let featureFlagger = createFeatureFlaggerWithLocalOverrides()
         internalUserDeciderStore.isInternalUser = false
 
-        XCTAssertFalse(featureFlagger.isFeatureOn(for: TestFeatureFlag.overridableFlagDisabledByDefault))
+        XCTAssertFalse(featureFlagger.isFeatureOn(TestFeatureFlag.overridableFlagDisabledByDefault))
         XCTAssertTrue(overrides.overrideCalls.isEmpty)
     }
 
@@ -231,7 +231,7 @@ final class DefaultFeatureFlaggerTests: XCTestCase {
                                       file: StaticString = #file,
                                       line: UInt = #line) {
         let featureFlagger = createFeatureFlagger(withMockedConfigData: embeddedData)
-        XCTAssertEqual(featureFlagger.isFeatureOn(for: sourceProvider), bool, file: file, line: line)
+        XCTAssertEqual(featureFlagger.isFeatureOn(sourceProvider), bool, file: file, line: line)
     }
 }
 

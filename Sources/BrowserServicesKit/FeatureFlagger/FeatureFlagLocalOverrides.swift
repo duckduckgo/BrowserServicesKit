@@ -172,6 +172,6 @@ public final class FeatureFlagLocalOverrides: FeatureFlagLocalOverriding {
     }
 
     private func currentValue<Flag: FeatureFlagProtocol>(for featureFlag: Flag) -> Bool? {
-        featureFlagger?.isFeatureOn(for: featureFlag, allowOverride: true)
+        featureFlagger?.isFeatureOn(featureFlag, allowOverride: true)
     }
 }

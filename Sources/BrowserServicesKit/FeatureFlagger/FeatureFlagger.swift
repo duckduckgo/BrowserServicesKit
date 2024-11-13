@@ -103,7 +103,7 @@ public protocol FeatureFlagger: AnyObject {
     /// and the user is internal, local overrides is checked first and if present,
     /// returned as flag value.
     ///
-    func isFeatureOn<Flag: FeatureFlagProtocol>(for featureFlag: Flag, allowOverride: Bool) -> Bool
+    func isFeatureOn<Flag: FeatureFlagProtocol>(_ featureFlag: Flag, allowOverride: Bool) -> Bool
 }
 
 public class DefaultFeatureFlagger: FeatureFlagger {
@@ -138,7 +138,7 @@ public class DefaultFeatureFlagger: FeatureFlagger {
         }
     }
 
-    public func isFeatureOn<Flag: FeatureFlagProtocol>(for featureFlag: Flag, allowOverride: Bool = true) -> Bool {
+    public func isFeatureOn<Flag: FeatureFlagProtocol>(_ featureFlag: Flag, allowOverride: Bool = true) -> Bool {
         if allowOverride, internalUserDecider.isInternalUser, let localOverride = localOverrides?.override(for: featureFlag) {
             return localOverride
         }
