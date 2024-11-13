@@ -19,10 +19,6 @@
 import Foundation
 
 public enum SubscriptionFeatureName: String, CaseIterable {
-    case privateBrowsing = "private-browsing"
-    case privateSearch = "private-search"
-    case emailProtection = "email-protection"
-    case appTrackingProtection = "app-tracking-protection"
     case vpn = "vpn"
     case personalInformationRemoval = "personal-information-removal"
     case identityTheftRestoration = "identity-theft-restoration"
