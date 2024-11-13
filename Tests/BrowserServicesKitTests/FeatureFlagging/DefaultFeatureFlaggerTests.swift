@@ -29,20 +29,20 @@ final class CapturingFeatureFlagOverriding: FeatureFlagLocalOverriding {
     var override: (any FeatureFlagProtocol) -> Bool? = { _ in nil }
 
     weak var featureFlagger: FeatureFlagger?
-    
+
     func override<Flag: FeatureFlagProtocol>(for featureFlag: Flag) -> Bool? {
         overrideCalls.append(featureFlag)
         return override(featureFlag)
     }
-    
+
     func toggleOverride<Flag: FeatureFlagProtocol>(for featureFlag: Flag) {
         toggleOverideCalls.append(featureFlag)
     }
-    
+
     func clearOverride<Flag: FeatureFlagProtocol>(for featureFlag: Flag) {
         clearOverrideCalls.append(featureFlag)
     }
-    
+
     func clearAllOverrides<Flag: FeatureFlagProtocol>(for flagType: Flag.Type) {
         clearAllOverrideCallCount += 1
     }
