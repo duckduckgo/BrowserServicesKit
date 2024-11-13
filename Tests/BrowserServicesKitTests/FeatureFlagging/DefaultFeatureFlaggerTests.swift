@@ -142,7 +142,7 @@ final class DefaultFeatureFlaggerTests: XCTestCase {
 
     private func assertFeatureFlagger(with embeddedData: Data,
                                       willReturn bool: Bool,
-                                      for sourceProvider: FeatureFlagSourceProviding,
+                                      for sourceProvider: any FeatureFlagProtocol,
                                       file: StaticString = #file,
                                       line: UInt = #line) {
         let featureFlagger = createFeatureFlagger(withMockedConfigData: embeddedData)
@@ -150,6 +150,9 @@ final class DefaultFeatureFlaggerTests: XCTestCase {
     }
 }
 
-extension FeatureFlagSource: FeatureFlagSourceProviding {
+extension FeatureFlagSource: FeatureFlagProtocol {
+    public static let allCases: [FeatureFlagSource]  = []
+    public var supportsLocalOverriding: Bool { false }
+    public var rawValue: String { "rawValue" }
     public var source: FeatureFlagSource { self }
 }

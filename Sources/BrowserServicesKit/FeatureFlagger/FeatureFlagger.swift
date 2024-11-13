@@ -88,6 +88,12 @@ public enum PrivacyConfigFeatureLevel {
 
 public protocol FeatureFlagger: AnyObject {
     var internalUserDecider: InternalUserDecider { get }
+
+    /// Local feature flag overriding mechanism.
+    ///
+    /// This property is optional and if kept as `nil`, local overrides
+    /// are not in use. Local overrides are only ever considered if a user
+    /// is internal user.
     var localOverrides: FeatureFlagOverriding? { get }
 
     /// Called from app features to determine whether a given feature is enabled.
