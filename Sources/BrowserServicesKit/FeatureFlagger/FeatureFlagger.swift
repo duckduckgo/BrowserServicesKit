@@ -18,36 +18,49 @@
 
 import Foundation
 
-public protocol FeatureFlagProtocol: CaseIterable, FeatureFlagSourceProviding {
-    var rawValue: String { get }
-    var supportsLocalOverriding: Bool { get }
-}
+/// This protocol defines a common interface for feature flags managed by FeatureFlagger.
+///
+/// It should be implemented by the feature flag type in client apps.
+///
+public protocol FeatureFlagProtocol: CaseIterable {
 
-/// To be implemented by the FeatureFlag enum type in the respective app. The source corresponds to
-/// where the final value should come from.
-///
-/// Example:
-///
-/// ```
-/// public enum FeatureFlag: FeatureFlagSourceProviding {
-///    case sync
-///    case autofill
-///    case cookieConsent
-///    case duckPlayer
-///
-///    var source: FeatureFlagSource {
-///        case .sync:
-///            return .disabled
-///        case .cookieConsent:
-///            return .internalOnly
-///        case .credentialsAutofill:
-///            return .remoteDevelopment(.subfeature(AutofillSubfeature.credentialsAutofill))
-///        case .duckPlayer:
-///            return .remoteReleasable(.feature(.duckPlayer))
-///    }
-/// }
-/// ```
-public protocol FeatureFlagSourceProviding {
+    /// Returns a string representation of the flag, suitable for persisting the flag state to disk.
+    var rawValue: String { get }
+
+    /// Return `true` here if a flag can be locally overridden.
+    ///
+    /// Local overriding mechanism requires passing `FeatureFlagOverriding` instance to
+    /// the `FeatureFlagger`. Then it will handle all feature flags that return `true` for
+    /// this property.
+    ///
+    /// > Note: Local feature flag overriding is gated by the internal user flag and has no effect
+    ///   as long as internal user flag is off.
+    var supportsLocalOverriding: Bool { get }
+
+    /// Defines the source of the feature flag, which corresponds to
+    /// where the final flag value should come from.
+    ///
+    /// Example client implementation:
+    ///
+    /// ```
+    /// public enum FeatureFlag: FeatureFlagProtocol {
+    ///    case sync
+    ///    case autofill
+    ///    case cookieConsent
+    ///    case duckPlayer
+    ///
+    ///    var source: FeatureFlagSource {
+    ///        case .sync:
+    ///            return .disabled
+    ///        case .cookieConsent:
+    ///            return .internalOnly
+    ///        case .credentialsAutofill:
+    ///            return .remoteDevelopment(.subfeature(AutofillSubfeature.credentialsAutofill))
+    ///        case .duckPlayer:
+    ///            return .remoteReleasable(.feature(.duckPlayer))
+    ///    }
+    /// }
+    /// ```
     var source: FeatureFlagSource { get }
 }
 
@@ -75,7 +88,7 @@ public enum PrivacyConfigFeatureLevel {
 
 public protocol FeatureFlagger: AnyObject {
     var internalUserDecider: InternalUserDecider { get }
-    var localOverrides: FeatureFlagOverrides? { get }
+    var localOverrides: FeatureFlagOverriding? { get }
 
     /// Called from app features to determine whether a given feature is enabled.
     ///
@@ -88,12 +101,12 @@ public class DefaultFeatureFlagger: FeatureFlagger {
 
     public let internalUserDecider: InternalUserDecider
     public let privacyConfigManager: PrivacyConfigurationManaging
-    public let localOverrides: FeatureFlagOverrides?
+    public let localOverrides: FeatureFlagOverriding?
 
     public init(
         internalUserDecider: InternalUserDecider,
         privacyConfigManager: PrivacyConfigurationManaging,
-        localOverrides: FeatureFlagOverrides? = nil
+        localOverrides: FeatureFlagOverriding? = nil
     ) {
         self.internalUserDecider = internalUserDecider
         self.privacyConfigManager = privacyConfigManager
@@ -101,7 +114,7 @@ public class DefaultFeatureFlagger: FeatureFlagger {
         localOverrides?.featureFlagger = self
     }
 
-    public func isFeatureOn<Flag: FeatureFlagSourceProviding>(forProvider provider: Flag) -> Bool {
+    public func isFeatureOn<Flag: FeatureFlagProtocol>(forProvider provider: Flag) -> Bool {
         switch provider.source {
         case .disabled:
             return false

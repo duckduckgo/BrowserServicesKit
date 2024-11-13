@@ -19,8 +19,18 @@
 import Foundation
 import Persistence
 
+/// This protocol defines persistence layer for feature flag overrides.
 public protocol FeatureFlagOverridesPersistor {
+    /// Return value for the flag override.
+    ///
+    /// If there's no override, this function should return `nil`.
+    ///
     func value<Flag: FeatureFlagProtocol>(for flag: Flag) -> Bool?
+
+    /// Set new override for the feature flag.
+    ///
+    /// Flag can be overridden to `true` or `false`. Setting `nil` clears the override.
+    ///
     func set<Flag: FeatureFlagProtocol>(_ value: Bool?, for flag: Flag)
 }
 
@@ -38,6 +48,10 @@ public struct FeatureFlagOverridesUserDefaultsPersistor: FeatureFlagOverridesPer
         keyValueStore.set(value, forKey: key)
     }
 
+    /// This function returns the User Defaults key for a feature flag override.
+    ///
+    /// It uses camel case to allow inter-process User Defaults KVO.
+    ///
     private func key<Flag: FeatureFlagProtocol>(for flag: Flag) -> String {
         return "localOverride\(flag.rawValue.capitalizedFirstLetter)"
     }
@@ -49,15 +63,55 @@ private extension String {
     }
 }
 
+/// This protocol defines the callback that can be used to reacting to feature flag changes.
 public protocol FeatureFlagOverridesHandler {
+
+    /// This function is called whenever an effective value of a feature flag
+    /// changes as a result of adding or removing a local override.
+    ///
+    /// It can be implemented by client apps to react to changes to feature flag
+    /// value in runtime, caused by adjusting its local override.
     func flagDidChange<Flag: FeatureFlagProtocol>(_ featureFlag: Flag, isEnabled: Bool)
 }
 
-public final class FeatureFlagOverrides {
+/// This protocol defines the interface for feature flag overriding mechanism.
+///
+/// All flag overrides APIs only have effect if flag has `supportsLocalOverriding` set to `true`.
+///
+public protocol FeatureFlagOverriding: AnyObject {
+
+    /// Handle to the feature flagged.
+    ///
+    /// It's used to query current, non-overriden state of a feature flag to
+    /// decide about calling `FeatureFlagOverridesHandler.flagDidChange`
+    /// upon clearing an override.
+    var featureFlagger: FeatureFlagger? { get set }
+
+    /// Returns the current override for a feature flag, or `nil` if override is not set.
+    func override<Flag: FeatureFlagProtocol>(for featureFlag: Flag) -> Bool?
+
+    /// Toggles override for a feature flag, or sets it to `true` if not currently present.
+    func toggleOverride<Flag: FeatureFlagProtocol>(for featureFlag: Flag)
+
+    /// Clears override for a feature flag.
+    ///
+    /// Calls `FeatureFlagOverridesHandler.flagDidChange` if the effective flag value
+    /// changes as a result of clearing the override.
+    ///
+    func clearOverride<Flag: FeatureFlagProtocol>(for featureFlag: Flag)
+
+    /// Clears overrides for all feature flags.
+    ///
+    /// This function calls `clearOverride(for:)` for each flag.
+    ///
+    func clearAllOverrides<Flag: FeatureFlagProtocol>(for flagType: Flag.Type)
+}
+
+public final class FeatureFlagOverrides: FeatureFlagOverriding {
 
     private var persistor: FeatureFlagOverridesPersistor
     private var actionHandler: FeatureFlagOverridesHandler
-    weak var featureFlagger: FeatureFlagger?
+    public weak var featureFlagger: FeatureFlagger?
 
     public convenience init(
         keyValueStore: KeyValueStoring,
