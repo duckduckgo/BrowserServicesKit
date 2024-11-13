@@ -1,5 +1,5 @@
 //
-//  FeatureFlagOverrides.swift
+//  FeatureFlagLocalOverrides.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -20,7 +20,7 @@ import Foundation
 import Persistence
 
 /// This protocol defines persistence layer for feature flag overrides.
-public protocol FeatureFlagOverridesPersistor {
+public protocol FeatureFlagLocalOverridesPersistor {
     /// Return value for the flag override.
     ///
     /// If there's no override, this function should return `nil`.
@@ -34,7 +34,7 @@ public protocol FeatureFlagOverridesPersistor {
     func set<Flag: FeatureFlagProtocol>(_ value: Bool?, for flag: Flag)
 }
 
-public struct FeatureFlagOverridesUserDefaultsPersistor: FeatureFlagOverridesPersistor {
+public struct FeatureFlagLocalOverridesUserDefaultsPersistor: FeatureFlagLocalOverridesPersistor {
 
     public let keyValueStore: KeyValueStoring
 
@@ -68,7 +68,7 @@ private extension String {
 }
 
 /// This protocol defines the callback that can be used to reacting to feature flag changes.
-public protocol FeatureFlagOverridesHandler {
+public protocol FeatureFlagLocalOverridesHandler {
 
     /// This function is called whenever an effective value of a feature flag
     /// changes as a result of adding or removing a local override.
@@ -82,12 +82,12 @@ public protocol FeatureFlagOverridesHandler {
 ///
 /// All flag overrides APIs only have effect if flag has `supportsLocalOverriding` set to `true`.
 ///
-public protocol FeatureFlagOverriding: AnyObject {
+public protocol FeatureFlagLocalOverriding: AnyObject {
 
     /// Handle to the feature flagged.
     ///
     /// It's used to query current, non-overriden state of a feature flag to
-    /// decide about calling `FeatureFlagOverridesHandler.flagDidChange`
+    /// decide about calling `FeatureFlagLocalOverridesHandler.flagDidChange`
     /// upon clearing an override.
     var featureFlagger: FeatureFlagger? { get set }
 
@@ -102,7 +102,7 @@ public protocol FeatureFlagOverriding: AnyObject {
 
     /// Clears override for a feature flag.
     ///
-    /// Calls `FeatureFlagOverridesHandler.flagDidChange` if the effective flag value
+    /// Calls `FeatureFlagLocalOverridesHandler.flagDidChange` if the effective flag value
     /// changes as a result of clearing the override.
     ///
     func clearOverride<Flag: FeatureFlagProtocol>(for featureFlag: Flag)
@@ -114,25 +114,25 @@ public protocol FeatureFlagOverriding: AnyObject {
     func clearAllOverrides<Flag: FeatureFlagProtocol>(for flagType: Flag.Type)
 }
 
-public final class FeatureFlagOverrides: FeatureFlagOverriding {
+public final class FeatureFlagLocalOverrides: FeatureFlagLocalOverriding {
 
-    private var persistor: FeatureFlagOverridesPersistor
-    private var actionHandler: FeatureFlagOverridesHandler
+    private var persistor: FeatureFlagLocalOverridesPersistor
+    private var actionHandler: FeatureFlagLocalOverridesHandler
     public weak var featureFlagger: FeatureFlagger?
 
     public convenience init(
         keyValueStore: KeyValueStoring,
-        actionHandler: FeatureFlagOverridesHandler
+        actionHandler: FeatureFlagLocalOverridesHandler
     ) {
         self.init(
-            persistor: FeatureFlagOverridesUserDefaultsPersistor(keyValueStore: keyValueStore),
+            persistor: FeatureFlagLocalOverridesUserDefaultsPersistor(keyValueStore: keyValueStore),
             actionHandler: actionHandler
         )
     }
 
     public init(
-        persistor: FeatureFlagOverridesPersistor,
-        actionHandler: FeatureFlagOverridesHandler
+        persistor: FeatureFlagLocalOverridesPersistor,
+        actionHandler: FeatureFlagLocalOverridesHandler
     ) {
         self.persistor = persistor
         self.actionHandler = actionHandler

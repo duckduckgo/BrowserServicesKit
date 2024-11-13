@@ -94,7 +94,7 @@ public protocol FeatureFlagger: AnyObject {
     /// This property is optional and if kept as `nil`, local overrides
     /// are not in use. Local overrides are only ever considered if a user
     /// is internal user.
-    var localOverrides: FeatureFlagOverriding? { get }
+    var localOverrides: FeatureFlagLocalOverriding? { get }
 
     /// Called from app features to determine whether a given feature is enabled.
     ///
@@ -110,7 +110,7 @@ public class DefaultFeatureFlagger: FeatureFlagger {
 
     public let internalUserDecider: InternalUserDecider
     public let privacyConfigManager: PrivacyConfigurationManaging
-    public let localOverrides: FeatureFlagOverriding?
+    public let localOverrides: FeatureFlagLocalOverriding?
 
     public init(
         internalUserDecider: InternalUserDecider,
@@ -124,7 +124,7 @@ public class DefaultFeatureFlagger: FeatureFlagger {
     public init<Flag: FeatureFlagProtocol>(
         internalUserDecider: InternalUserDecider,
         privacyConfigManager: PrivacyConfigurationManaging,
-        localOverrides: FeatureFlagOverriding,
+        localOverrides: FeatureFlagLocalOverriding,
         for: Flag.Type
     ) {
         self.internalUserDecider = internalUserDecider

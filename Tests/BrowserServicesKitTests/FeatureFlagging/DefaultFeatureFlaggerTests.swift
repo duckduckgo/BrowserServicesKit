@@ -20,7 +20,7 @@ import BrowserServicesKit
 import TestUtils
 import XCTest
 
-final class CapturingFeatureFlagOverriding: FeatureFlagOverriding {
+final class CapturingFeatureFlagOverriding: FeatureFlagLocalOverriding {
     var overrideCalls: [any FeatureFlagProtocol] = []
     var toggleOverideCalls: [any FeatureFlagProtocol] = []
     var clearOverrideCalls: [any FeatureFlagProtocol] = []
@@ -143,7 +143,7 @@ final class DefaultFeatureFlaggerTests: XCTestCase {
 
     func testWhenFeatureFlaggerIsInitializedWithLocalOverridesAndUserIsNotInternalThenAllFlagsAreCleared() throws {
         internalUserDeciderStore.isInternalUser = false
-        let featureFlagger = createFeatureFlaggerWithLocalOverrides()
+        _ = createFeatureFlaggerWithLocalOverrides()
         XCTAssertEqual(overrides.clearAllOverrideCallCount, 1)
     }
 

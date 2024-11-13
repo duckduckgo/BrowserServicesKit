@@ -1,5 +1,5 @@
 //
-//  FeatureFlagOverridesTests.swift
+//  FeatureFlagLocalOverridesTests.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -20,7 +20,7 @@ import BrowserServicesKit
 import TestUtils
 import XCTest
 
-final class CapturingFeatureFlagOverridesHandler: FeatureFlagOverridesHandler {
+final class CapturingFeatureFlagLocalOverridesHandler: FeatureFlagLocalOverridesHandler {
     struct Parameters: Equatable {
         let rawValue: String
         let isEnabled: Bool
@@ -32,11 +32,11 @@ final class CapturingFeatureFlagOverridesHandler: FeatureFlagOverridesHandler {
     }
 }
 
-final class FeatureFlagOverridesTests: XCTestCase {
+final class FeatureFlagLocalOverridesTests: XCTestCase {
     var internalUserDeciderStore: MockInternalUserStoring!
     var keyValueStore: MockKeyValueStore!
-    var actionHandler: CapturingFeatureFlagOverridesHandler!
-    var overrides: FeatureFlagOverrides!
+    var actionHandler: CapturingFeatureFlagLocalOverridesHandler!
+    var overrides: FeatureFlagLocalOverrides!
     var featureFlagger: FeatureFlagger!
 
     override func setUp() {
@@ -49,9 +49,9 @@ final class FeatureFlagOverridesTests: XCTestCase {
         featureFlagger = DefaultFeatureFlagger(internalUserDecider: internalUserDecider, privacyConfigManager: privacyConfigManager)
 
         keyValueStore = MockKeyValueStore()
-        actionHandler = CapturingFeatureFlagOverridesHandler()
-        overrides = FeatureFlagOverrides(
-            persistor: FeatureFlagOverridesUserDefaultsPersistor(keyValueStore: keyValueStore),
+        actionHandler = CapturingFeatureFlagLocalOverridesHandler()
+        overrides = FeatureFlagLocalOverrides(
+            persistor: FeatureFlagLocalOverridesUserDefaultsPersistor(keyValueStore: keyValueStore),
             actionHandler: actionHandler
         )
         overrides.featureFlagger = featureFlagger
