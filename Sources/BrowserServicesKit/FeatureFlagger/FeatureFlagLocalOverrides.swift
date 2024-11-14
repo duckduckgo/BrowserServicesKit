@@ -84,12 +84,15 @@ public protocol FeatureFlagLocalOverridesHandler {
 ///
 public protocol FeatureFlagLocalOverriding: AnyObject {
 
-    /// Handle to the feature flagged.
+    /// Handle to the feature flagger.
     ///
     /// It's used to query current, non-overriden state of a feature flag to
     /// decide about calling `FeatureFlagLocalOverridesHandler.flagDidChange`
     /// upon clearing an override.
     var featureFlagger: FeatureFlagger? { get set }
+
+    /// The action handler responding to feature flag changes.
+    var actionHandler: FeatureFlagLocalOverridesHandler { get }
 
     /// Returns the current override for a feature flag, or `nil` if override is not set.
     func override<Flag: FeatureFlagDescribing>(for featureFlag: Flag) -> Bool?
@@ -116,9 +119,9 @@ public protocol FeatureFlagLocalOverriding: AnyObject {
 
 public final class FeatureFlagLocalOverrides: FeatureFlagLocalOverriding {
 
-    private var persistor: FeatureFlagLocalOverridesPersistor
-    private var actionHandler: FeatureFlagLocalOverridesHandler
+    public let actionHandler: FeatureFlagLocalOverridesHandler
     public weak var featureFlagger: FeatureFlagger?
+    private let persistor: FeatureFlagLocalOverridesPersistor
 
     public convenience init(
         keyValueStore: KeyValueStoring,

@@ -21,6 +21,7 @@ import TestUtils
 import XCTest
 
 final class CapturingFeatureFlagOverriding: FeatureFlagLocalOverriding {
+
     var overrideCalls: [any FeatureFlagDescribing] = []
     var toggleOverideCalls: [any FeatureFlagDescribing] = []
     var clearOverrideCalls: [any FeatureFlagDescribing] = []
@@ -28,6 +29,7 @@ final class CapturingFeatureFlagOverriding: FeatureFlagLocalOverriding {
 
     var override: (any FeatureFlagDescribing) -> Bool? = { _ in nil }
 
+    var actionHandler: any FeatureFlagLocalOverridesHandler = CapturingFeatureFlagLocalOverridesHandler()
     weak var featureFlagger: FeatureFlagger?
 
     func override<Flag: FeatureFlagDescribing>(for featureFlag: Flag) -> Bool? {
