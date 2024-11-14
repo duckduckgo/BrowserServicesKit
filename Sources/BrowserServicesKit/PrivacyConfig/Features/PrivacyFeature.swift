@@ -121,6 +121,10 @@ public enum NetworkProtectionSubfeature: String, Equatable, PrivacySubfeature {
     /// Display user tips for Network Protection
     /// https://app.asana.com/0/72649045549333/1208231259093710/f
     case userTips
+
+    /// Enforce routes for the VPN to fix TunnelVision
+    /// https://app.asana.com/0/72649045549333/1208617860225199/f
+    case enforceRoutes
 }
 
 public enum SyncSubfeature: String, PrivacySubfeature {
@@ -140,7 +144,7 @@ public enum AutoconsentSubfeature: String, PrivacySubfeature {
     }
 
     case onByDefault
-    case filterlistExperiment2
+    case filterlist
 }
 
 public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {
