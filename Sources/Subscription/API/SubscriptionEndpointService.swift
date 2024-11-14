@@ -27,6 +27,10 @@ public struct GetProductsItem: Decodable {
     public let currency: String
 }
 
+public struct GetSubscriptionFeaturesResponse: Decodable {
+    public let features: [Entitlement.ProductName]
+}
+
 public struct GetCustomerPortalURLResponse: Decodable {
     public let customerPortalUrl: String
 }
@@ -47,6 +51,7 @@ public protocol SubscriptionEndpointService {
     func getSubscription(accessToken: String, cachePolicy: APICachePolicy) async -> Result<Subscription, SubscriptionServiceError>
     func signOut()
     func getProducts() async -> Result<[GetProductsItem], APIServiceError>
+    func getSubscriptionFeatures(for subscriptionID: String) async -> Result<GetSubscriptionFeaturesResponse, APIServiceError>
     func getCustomerPortalURL(accessToken: String, externalID: String) async -> Result<GetCustomerPortalURLResponse, APIServiceError>
     func confirmPurchase(accessToken: String, signature: String) async -> Result<ConfirmPurchaseResponse, APIServiceError>
 }
@@ -133,6 +138,12 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
 
     public func getProducts() async -> Result<[GetProductsItem], APIServiceError> {
         await apiService.executeAPICall(method: "GET", endpoint: "products", headers: nil, body: nil)
+    }
+
+    // MARK: -
+
+    public func getSubscriptionFeatures(for subscriptionID: String) async -> Result<GetSubscriptionFeaturesResponse, APIServiceError> {
+        await apiService.executeAPICall(method: "GET", endpoint: "products/\(subscriptionID)/features", headers: nil, body: nil)
     }
 
     // MARK: -
