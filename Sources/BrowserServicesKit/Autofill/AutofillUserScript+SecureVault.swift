@@ -748,7 +748,6 @@ extension AutofillUserScript {
                 if !credentials.isEmpty {
                     self?.passwordImportDelegate?.autofillUserScriptDidFinishImportWithImportedCredentialForCurrentDomain()
                 }
-                replyHandler(nil)
             })
         }
     }

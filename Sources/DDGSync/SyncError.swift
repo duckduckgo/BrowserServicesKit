@@ -20,11 +20,22 @@ import Foundation
 
 public enum SyncError: Error, Equatable {
 
+    public enum AccountRemovedReason: String, Equatable {
+        case authStateInactive = "auth-state-inactive"
+        case syncEnabledNotSetOnKeyValueStore = "not-set-on-key-value-store"
+        case notFoundInSecureStorage = "not-found-in-secure-storage"
+        case userTurnedOffSync = "user-turned-off"
+        case userDeletedAccount = "user-deleted-account"
+        case unauthenticatedRequest = "unauthenticated-request"
+        case serverEnvironmentUpdated = "server-environment-updated"
+    }
+
     case noToken
 
     case failedToMigrate
     case failedToLoadAccount
     case failedToSetupEngine
+    case failedToRemoveAccount
 
     case failedToCreateAccountKeys(_ message: String)
     case accountNotFound
@@ -38,7 +49,7 @@ public enum SyncError: Error, Equatable {
     case unableToEncodeRequestBody(_ message: String)
     case unableToDecodeResponse(_ message: String)
     case invalidDataInResponse(_ message: String)
-    case accountRemoved
+    case accountRemoved(_ reason: AccountRemovedReason)
 
     case failedToEncryptValue(_ message: String)
     case failedToDecryptValue(_ message: String)
@@ -49,6 +60,7 @@ public enum SyncError: Error, Equatable {
     case failedToWriteSecureStore(status: OSStatus)
     case failedToReadSecureStore(status: OSStatus)
     case failedToRemoveSecureStore(status: OSStatus)
+    case failedToDecodeSecureStoreData(error: NSError)
 
     case credentialsMetadataMissingBeforeFirstSync
     case receivedCredentialsWithoutUUID
@@ -140,6 +152,10 @@ public enum SyncError: Error, Equatable {
             return [syncErrorString: "unauthenticatedWhileLoggedIn"]
         case .patchPayloadCompressionFailed:
             return [syncErrorString: "patchPayloadCompressionFailed"]
+        case .failedToRemoveAccount:
+            return [syncErrorString: "failedToRemoveAccount"]
+        case .failedToDecodeSecureStoreData:
+            return [syncErrorString: "failedToDecodeSecureStoreData"]
         }
     }
 }
@@ -187,14 +203,20 @@ extension SyncError: CustomNSError {
         case .settingsMetadataNotPresent: return 27
         case .unauthenticatedWhileLoggedIn: return 28
         case .patchPayloadCompressionFailed: return 29
+        case .failedToRemoveAccount: return 30
+        case .failedToDecodeSecureStoreData: return 31
         }
     }
 
     public var errorUserInfo: [String: Any] {
         switch self {
-        case .failedToReadSecureStore(let status), .failedToWriteSecureStore(let status), .failedToRemoveSecureStore(let status):
+        case .failedToReadSecureStore(let status),
+                .failedToWriteSecureStore(let status),
+                .failedToRemoveSecureStore(let status):
             let underlyingError = NSError(domain: "secError", code: Int(status))
             return [NSUnderlyingErrorKey: underlyingError]
+        case .failedToDecodeSecureStoreData(let error):
+            return [NSUnderlyingErrorKey: error]
         default:
             return [:]
         }
