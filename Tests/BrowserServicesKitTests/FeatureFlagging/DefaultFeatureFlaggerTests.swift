@@ -29,7 +29,7 @@ final class CapturingFeatureFlagOverriding: FeatureFlagLocalOverriding {
 
     var override: (any FeatureFlagDescribing) -> Bool? = { _ in nil }
 
-    var actionHandler: any FeatureFlagLocalOverridesHandler = CapturingFeatureFlagLocalOverridesHandler()
+    var actionHandler: any FeatureFlagLocalOverridesHandling = CapturingFeatureFlagLocalOverridesHandler()
     weak var featureFlagger: FeatureFlagger?
 
     func override<Flag: FeatureFlagDescribing>(for featureFlag: Flag) -> Bool? {

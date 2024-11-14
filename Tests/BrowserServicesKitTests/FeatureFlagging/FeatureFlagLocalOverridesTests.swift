@@ -20,7 +20,7 @@ import BrowserServicesKit
 import TestUtils
 import XCTest
 
-final class CapturingFeatureFlagLocalOverridesHandler: FeatureFlagLocalOverridesHandler {
+final class CapturingFeatureFlagLocalOverridesHandler: FeatureFlagLocalOverridesHandling {
     struct Parameters: Equatable {
         let rawValue: String
         let isEnabled: Bool

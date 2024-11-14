@@ -20,7 +20,7 @@ import Foundation
 import Persistence
 
 /// This protocol defines persistence layer for feature flag overrides.
-public protocol FeatureFlagLocalOverridesPersistor {
+public protocol FeatureFlagLocalOverridesPersisting {
     /// Return value for the flag override.
     ///
     /// If there's no override, this function should return `nil`.
@@ -34,7 +34,7 @@ public protocol FeatureFlagLocalOverridesPersistor {
     func set<Flag: FeatureFlagDescribing>(_ value: Bool?, for flag: Flag)
 }
 
-public struct FeatureFlagLocalOverridesUserDefaultsPersistor: FeatureFlagLocalOverridesPersistor {
+public struct FeatureFlagLocalOverridesUserDefaultsPersistor: FeatureFlagLocalOverridesPersisting {
 
     public let keyValueStore: KeyValueStoring
 
@@ -54,7 +54,7 @@ public struct FeatureFlagLocalOverridesUserDefaultsPersistor: FeatureFlagLocalOv
 
     /// This function returns the User Defaults key for a feature flag override.
     ///
-    /// It uses camel case to allow inter-process User Defaults KVO.
+    /// It uses camel case to simplify inter-process User Defaults KVO.
     ///
     private func key<Flag: FeatureFlagDescribing>(for flag: Flag) -> String {
         return "localOverride\(flag.rawValue.capitalizedFirstLetter)"
@@ -68,7 +68,7 @@ private extension String {
 }
 
 /// This protocol defines the callback that can be used to reacting to feature flag changes.
-public protocol FeatureFlagLocalOverridesHandler {
+public protocol FeatureFlagLocalOverridesHandling {
 
     /// This function is called whenever an effective value of a feature flag
     /// changes as a result of adding or removing a local override.
@@ -87,12 +87,12 @@ public protocol FeatureFlagLocalOverriding: AnyObject {
     /// Handle to the feature flagger.
     ///
     /// It's used to query current, non-overriden state of a feature flag to
-    /// decide about calling `FeatureFlagLocalOverridesHandler.flagDidChange`
+    /// decide about calling `FeatureFlagLocalOverridesHandling.flagDidChange`
     /// upon clearing an override.
     var featureFlagger: FeatureFlagger? { get set }
 
     /// The action handler responding to feature flag changes.
-    var actionHandler: FeatureFlagLocalOverridesHandler { get }
+    var actionHandler: FeatureFlagLocalOverridesHandling { get }
 
     /// Returns the current override for a feature flag, or `nil` if override is not set.
     func override<Flag: FeatureFlagDescribing>(for featureFlag: Flag) -> Bool?
@@ -105,7 +105,7 @@ public protocol FeatureFlagLocalOverriding: AnyObject {
 
     /// Clears override for a feature flag.
     ///
-    /// Calls `FeatureFlagLocalOverridesHandler.flagDidChange` if the effective flag value
+    /// Calls `FeatureFlagLocalOverridesHandling.flagDidChange` if the effective flag value
     /// changes as a result of clearing the override.
     ///
     func clearOverride<Flag: FeatureFlagDescribing>(for featureFlag: Flag)
@@ -119,13 +119,13 @@ public protocol FeatureFlagLocalOverriding: AnyObject {
 
 public final class FeatureFlagLocalOverrides: FeatureFlagLocalOverriding {
 
-    public let actionHandler: FeatureFlagLocalOverridesHandler
+    public let actionHandler: FeatureFlagLocalOverridesHandling
     public weak var featureFlagger: FeatureFlagger?
-    private let persistor: FeatureFlagLocalOverridesPersistor
+    private let persistor: FeatureFlagLocalOverridesPersisting
 
     public convenience init(
         keyValueStore: KeyValueStoring,
-        actionHandler: FeatureFlagLocalOverridesHandler
+        actionHandler: FeatureFlagLocalOverridesHandling
     ) {
         self.init(
             persistor: FeatureFlagLocalOverridesUserDefaultsPersistor(keyValueStore: keyValueStore),
@@ -134,8 +134,8 @@ public final class FeatureFlagLocalOverrides: FeatureFlagLocalOverriding {
     }
 
     public init(
-        persistor: FeatureFlagLocalOverridesPersistor,
-        actionHandler: FeatureFlagLocalOverridesHandler
+        persistor: FeatureFlagLocalOverridesPersisting,
+        actionHandler: FeatureFlagLocalOverridesHandling
     ) {
         self.persistor = persistor
         self.actionHandler = actionHandler
