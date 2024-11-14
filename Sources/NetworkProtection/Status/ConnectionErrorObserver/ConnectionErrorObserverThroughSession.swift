@@ -82,9 +82,7 @@ public class ConnectionErrorObserverThroughSession: ConnectionErrorObserver {
 
     private func handleStatusChangeNotification(_ notification: Notification) {
         do {
-            guard let session = ConnectionSessionUtilities.session(from: notification),
-                session.status == .disconnected else {
-
+            guard let session = ConnectionSessionUtilities.session(from: notification), session.status == .disconnected else {
                 return
             }
 
@@ -97,9 +95,23 @@ public class ConnectionErrorObserverThroughSession: ConnectionErrorObserver {
     // MARK: - Obtaining the NetP VPN status
 
     private func updateTunnelErrorMessage(session: NETunnelProviderSession) throws {
+#if os(iOS)
+        if #available(iOS 16.0, *) {
+            session.fetchLastDisconnectError { [weak self] error in
+                guard error?.localizedDescription != self?.subject.value else { return }
+                self?.subject.send(error?.localizedDescription)
+            }
+        } else {
+            try session.sendProviderMessage(.getLastErrorMessage) { [weak self] (errorMessage: ExtensionMessageString?) in
+                guard errorMessage?.value != self?.subject.value else { return }
+                self?.subject.send(errorMessage?.value)
+            }
+        }
+#else
         try session.sendProviderMessage(.getLastErrorMessage) { [weak self] (errorMessage: ExtensionMessageString?) in
             guard errorMessage?.value != self?.subject.value else { return }
             self?.subject.send(errorMessage?.value)
         }
+#endif
     }
 }

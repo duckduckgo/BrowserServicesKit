@@ -144,9 +144,20 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                     .simulateTunnelFailureError,
                     .vpnAccessRevoked,
                     .appRequestedCancellation:
-                return [:]
+                if let description = self.errorDescription {
+                    return [NSLocalizedDescriptionKey: description]
+                } else {
+                    return [:]
+                }
             case .couldNotGenerateTunnelConfiguration(let underlyingError):
-                return [NSUnderlyingErrorKey: underlyingError]
+                if let description = self.errorDescription {
+                    return [
+                        NSLocalizedDescriptionKey: description,
+                        NSUnderlyingErrorKey: underlyingError
+                    ]
+                } else {
+                    return [NSUnderlyingErrorKey: underlyingError]
+                }
             }
         }
 
