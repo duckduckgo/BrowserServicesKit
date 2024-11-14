@@ -177,12 +177,12 @@ public struct PrivacyConfigurationData {
                     case localeLanguage
                 }
 
-                public let localeCountry: String
-                public let localeLanguage: String
+                public let localeCountry: String?
+                public let localeLanguage: String?
 
                 public init(json: [String: Any]) {
-                    self.localeCountry = json[CodingKeys.localeCountry.rawValue] as? String ?? ""
-                    self.localeLanguage = json[CodingKeys.localeLanguage.rawValue] as? String ?? ""
+                    self.localeCountry = json[CodingKeys.localeCountry.rawValue] as? String
+                    self.localeLanguage = json[CodingKeys.localeLanguage.rawValue] as? String
                 }
             }
 

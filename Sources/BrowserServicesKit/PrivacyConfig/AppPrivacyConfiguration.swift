@@ -36,6 +36,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     private let locale: Locale
     private let experimentManager: ExperimentCohortsManaging
     private let installDate: Date?
+    private let experimentManagerQueue = DispatchQueue(label: "com.experimentManager.queue")
 
     public init(data: PrivacyConfigurationData,
                 identifier: String,
@@ -198,96 +199,110 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         }
     }
 
-    private func isParentFeatureEnabed(_ subfeature: any PrivacySubfeature, versionProvider: AppVersionProvider) -> PrivacyConfigurationFeatureState {
-        return  stateFor(featureKey: subfeature.parent, versionProvider: versionProvider)
+    public func stateFor(experiment: ExperimentData,
+                         parentID: String,
+                         cohortID: CohortID?,
+                         versionProvider: AppVersionProvider,
+                         randomizer: (Range<Double>) -> Double) -> PrivacyConfigurationFeatureState {
+        let parentFeature = PrivacyFeature(rawValue: parentID)!
+        let parentState = stateFor(featureKey: parentFeature, versionProvider: versionProvider)
+        guard case .enabled = parentState else { return parentState }
+        let subfeatures = subfeatures(for: parentFeature)
+        let subfeatureData = subfeatures[subfeatureID]
+        subfeatureData.
+
+    }
+
+    public func getAllActiveExperiments() -> Experiments {
+
     }
 
     public func stateFor(_ subfeature: any PrivacySubfeature, 
                          cohortID: CohortID?,
                          versionProvider: AppVersionProvider,
                          randomizer: (Range<Double>) -> Double) -> PrivacyConfigurationFeatureState {
+        return experimentManagerQueue.sync {
+            // Step 1: Check parent feature state
+            let parentState = stateFor(featureKey: subfeature.parent, versionProvider: versionProvider)
+            guard case .enabled = parentState else { return parentState }
+            
+            // Step 2: Retrieve subfeature data and check version
+            let subfeatures = subfeatures(for: subfeature.parent)
+            let subfeatureData = subfeatures[subfeature.rawValue]
+            
+            let satisfiesMinVersion = satisfiesMinVersion(subfeatureData?.minSupportedVersion, versionProvider: versionProvider)
+            
+            // Step 3: Check sub-feature state
+            switch subfeatureData?.state {
+            case PrivacyConfigurationData.State.enabled:
+                guard satisfiesMinVersion else { return .disabled(.appVersionNotSupported) }
+            case PrivacyConfigurationData.State.internal:
+                guard internalUserDecider.isInternalUser else { return .disabled(.limitedToInternalUsers) }
+                guard satisfiesMinVersion else { return .disabled(.appVersionNotSupported) }
+            default: return .disabled(.disabledInConfig)
+            }
 
-        // Step 1: Check parent feature state
-        let parentState = stateFor(featureKey: subfeature.parent, versionProvider: versionProvider)
-        guard case .enabled = parentState else { return parentState }
+            // // Step 4: Handle Rollouts
+            if let rollout = subfeatureData?.rollout,
+               !isRolloutEnabled(subfeature: subfeature, rolloutSteps: rollout.steps, randomizer: randomizer) {
+                return .disabled(.stillInRollout)
+            }
 
-        // Step 2: Retrieve subfeature data and check version
-        let subfeatures = subfeatures(for: subfeature.parent)
-        let subfeatureData = subfeatures[subfeature.rawValue]
-
-        let satisfiesMinVersion = satisfiesMinVersion(subfeatureData?.minSupportedVersion, versionProvider: versionProvider)
-
-        // Step 3: Check sub-feature state
-        switch subfeatureData?.state {
-        case PrivacyConfigurationData.State.enabled:
-            guard satisfiesMinVersion else { return .disabled(.appVersionNotSupported) }
-        case PrivacyConfigurationData.State.internal:
-            guard internalUserDecider.isInternalUser else { return .disabled(.limitedToInternalUsers) }
-            guard satisfiesMinVersion else { return .disabled(.appVersionNotSupported) }
-        default: return .disabled(.disabledInConfig)
+            // Step 5: Check if a cohort was passed in the func
+            // If no corhort passed check for Target and Rollout
+            guard let passedCohort = cohortID else {
+                return checkTargets(subfeatureData)
+            }
+            
+            // Step 6: Verify there are cohorts in the subfeature data
+            // If not remove cohort (in case it was previously assigned)
+            // and check for Target and Rollout
+            guard let cohorts = subfeatureData?.cohorts else {
+                experimentManager.removeCohort(from: subfeature.rawValue)
+                return .disabled(.experimentCohortDoesNotMatch)
+            }
+            
+            // Step 7: Verify there the cohorts in the subfeature contain the cohort passed in the func
+            // If not remove cohort (in case it was previously assigned) before proceeding
+            if !cohorts.contains(where: { $0.name == passedCohort
+            }) {
+                experimentManager.removeCohort(from: subfeature.rawValue)
+            }
+            
+            // Step 8: Check if a cohort was already assigned
+            // If so check if it matches the one passed in the func and return .enable or disabled accordingly
+            if let assignedCohort = experimentManager.cohort(for: subfeature.rawValue) {
+                return (assignedCohort == passedCohort) ? .enabled : .disabled(.experimentCohortDoesNotMatch)
+            }
+            
+            // Step 9: check Target and Rollout
+            // if disabled return .disabled otherwise continue
+            let targetsState = checkTargets(subfeatureData)
+            if targetsState != .enabled {
+                return targetsState
+            }
+            
+            // Step 10: Assign cohort and check if they match
+            let newAssignedCohort = experimentManager.assignCohort(to: ExperimentSubfeature(parentID: subfeature.parent.rawValue, subfeatureID: subfeature.rawValue, cohorts: cohorts))
+            return (newAssignedCohort == passedCohort) ? .enabled : .disabled(.experimentCohortDoesNotMatch)
         }
-
-        // Step 4: Check if a cohort was passed in the func
-        // If no corhort passed check for Target and Rollout
-        guard let passedCohort = cohortID else {
-            return checkTargetAndRollouts(subfeatureData, subfeature: subfeature, randomizer: randomizer)
-        }
-
-        // Step 5: Verify there are cohorts in the subfeature data
-        // If not remove cohort (in case it was previously assigned)
-        // and check for Target and Rollout
-        guard let cohorts = subfeatureData?.cohorts else {
-            experimentManager.removeCohort(from: subfeature.rawValue)
-            return checkTargetAndRollouts(subfeatureData, subfeature: subfeature, randomizer: randomizer)
-        }
-
-        // Step 6: Verify there the cohorts in the subfeature contain the cohort passed in the func
-        // If not remove cohort (in case it was previously assigned) before proceeding
-        if !cohorts.contains(where: { $0.name == passedCohort
-        }) {
-            experimentManager.removeCohort(from: subfeature.rawValue)
-        }
-
-        // Step 7: Check if a cohort was already assigned
-        // If so check if it matches the one passed in the func and return .enable or disabled accordingly
-        if let assignedCohort = experimentManager.cohort(for: subfeature.rawValue) {
-            return (assignedCohort == passedCohort) ? .enabled : .disabled(.experimentCohortDoesNotMatch)
-        }
-
-        // Step 8: check Target and Rollout
-        // if disabled return .disabled otherwise continue
-        let targetAndRolloutState = checkTargetAndRollouts(subfeatureData, subfeature: subfeature, randomizer: randomizer)
-        if targetAndRolloutState != .enabled {
-            return targetAndRolloutState
-        }
-
-        // Step 9: Assign cohort and check if they match
-        let newAssignedCohort = experimentManager.assignCohort(to: ExperimentSubfeature(subfeatureID: subfeature.rawValue, cohorts: cohorts))
-        return (newAssignedCohort == passedCohort) ? .enabled : .disabled(.experimentCohortDoesNotMatch)
     }
 
-    private func checkTargetAndRollouts(_ subfeatureData: PrivacyConfigurationData.PrivacyFeature.Feature?,
-                                        subfeature: any PrivacySubfeature,
-                                        randomizer: (Range<Double>) -> Double) -> PrivacyConfigurationFeatureState {
+    private func checkTargets(_ subfeatureData: PrivacyConfigurationData.PrivacyFeature.Feature?) -> PrivacyConfigurationFeatureState {
         // Check Targets
-        // It should not be wrapped in an array and will be removed at some point
-        if let target = subfeatureData?.targets?.first, !matchTarget(target: target){
+        if let targets = subfeatureData?.targets, !matchTargets(targets: targets){
             return .disabled(.targetDoesNotMatch)
-        }
-
-        // Handle Rollouts
-        if let rollout = subfeatureData?.rollout,
-           !isRolloutEnabled(subfeature: subfeature, rolloutSteps: rollout.steps, randomizer: randomizer) {
-            return .disabled(.stillInRollout)
         }
 
         return .enabled
     }
 
 
-    private func matchTarget(target: PrivacyConfigurationData.PrivacyFeature.Feature.Target) -> Bool{
-        return target.localeCountry == locale.regionCode &&
-            target.localeLanguage == locale.languageCode
+    private func matchTargets(targets: [PrivacyConfigurationData.PrivacyFeature.Feature.Target]) -> Bool {
+        return targets.contains { target in
+            (target.localeCountry == nil || target.localeCountry == locale.regionCode) &&
+            (target.localeLanguage == nil || target.localeLanguage == locale.languageCode)
+        }
     }
 
     private func subfeatures(for feature: PrivacyFeature) -> PrivacyConfigurationData.PrivacyFeature.Features {

@@ -45,10 +45,10 @@ final class ExperimentCohortsManagerTests: XCTestCase {
         )
 
         let expectedDate1 = Date()
-        experimentData1 = ExperimentData(cohort: "TestCohort1", enrollmentDate: expectedDate1)
+        experimentData1 = ExperimentData(parentID: "TestParent", cohort: "TestCohort1", enrollmentDate: expectedDate1)
 
         let expectedDate2 = Date().addingTimeInterval(60)
-        experimentData2 = ExperimentData(cohort: "TestCohort2", enrollmentDate: expectedDate2)
+        experimentData2 = ExperimentData(parentID: "TestParent", cohort: "TestCohort2", enrollmentDate: expectedDate2)
     }
 
     override func tearDown() {
@@ -135,7 +135,7 @@ final class ExperimentCohortsManagerTests: XCTestCase {
 
     func testAssignCohortReturnsNilIfNoCohorts() {
         // GIVEN
-        let subfeature = ExperimentSubfeature(subfeatureID: subfeatureName1, cohorts: [])
+        let subfeature = ExperimentSubfeature(parentID: "parent", subfeatureID: subfeatureName1, cohorts: [])
 
         // WHEN
         let result = experimentCohortsManager.assignCohort(to: subfeature)
@@ -152,7 +152,7 @@ final class ExperimentCohortsManagerTests: XCTestCase {
             PrivacyConfigurationData.Cohort(json: jsonCohort1)!,
             PrivacyConfigurationData.Cohort(json: jsonCohort2)!
         ]
-        let subfeature = ExperimentSubfeature(subfeatureID: subfeatureName1, cohorts: cohorts)
+        let subfeature = ExperimentSubfeature(parentID: "parent", subfeatureID: subfeatureName1, cohorts: cohorts)
 
         // WHEN
         let result = experimentCohortsManager.assignCohort(to: subfeature)
@@ -170,7 +170,7 @@ final class ExperimentCohortsManagerTests: XCTestCase {
             PrivacyConfigurationData.Cohort(json: jsonCohort1)!,
             PrivacyConfigurationData.Cohort(json: jsonCohort2)!
         ]
-        let subfeature = ExperimentSubfeature(subfeatureID: subfeatureName1, cohorts: cohorts)
+        let subfeature = ExperimentSubfeature(parentID: "parent", subfeatureID: subfeatureName1, cohorts: cohorts)
         let expectedTotalWeight = 4.0
 
         // Use a custom randomizer to verify the range
@@ -232,7 +232,7 @@ final class ExperimentCohortsManagerTests: XCTestCase {
         let cohorts = [
             PrivacyConfigurationData.Cohort(json: jsonCohort1)!
         ]
-        let subfeature = ExperimentSubfeature(subfeatureID: subfeatureName1, cohorts: cohorts)
+        let subfeature = ExperimentSubfeature(parentID: "parent", subfeatureID: subfeatureName1, cohorts: cohorts)
         let expectedTotalWeight = 1.0
 
         // Use a custom randomizer to verify the range

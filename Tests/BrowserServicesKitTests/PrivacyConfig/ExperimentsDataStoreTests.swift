@@ -47,8 +47,8 @@ final class ExperimentsDataStoreTests: XCTestCase {
 
     func testExperimentsGetReturnsDecodedExperiments() {
         // GIVEN
-        let experimentData1 = ExperimentData(cohort: "TestCohort1", enrollmentDate: Date())
-        let experimentData2 = ExperimentData(cohort: "TestCohort2", enrollmentDate: Date())
+        let experimentData1 = ExperimentData(parentID: "parent", cohort: "TestCohort1", enrollmentDate: Date())
+        let experimentData2 = ExperimentData(parentID: "parent", cohort: "TestCohort2", enrollmentDate: Date())
         let experiments = [subfeatureName1: experimentData1, subfeatureName2: experimentData2]
 
         let encoder = JSONEncoder()
@@ -71,8 +71,8 @@ final class ExperimentsDataStoreTests: XCTestCase {
 
     func testExperimentsSetEncodesAndStoresData() throws {
         // GIVEN
-        let experimentData1 = ExperimentData(cohort: "TestCohort1", enrollmentDate: Date())
-        let experimentData2 = ExperimentData(cohort: "TestCohort2", enrollmentDate: Date())
+        let experimentData1 = ExperimentData(parentID: "parent", cohort: "TestCohort1", enrollmentDate: Date())
+        let experimentData2 = ExperimentData(parentID: "parent", cohort: "TestCohort2", enrollmentDate: Date())
         let experiments = [subfeatureName1: experimentData1, subfeatureName2: experimentData2]
 
         // WHEN

@@ -19,16 +19,19 @@
 import Foundation
 
 public struct ExperimentSubfeature {
+    let parentID: ParentFeatureID
     let subfeatureID: SubfeatureID
     let cohorts: [PrivacyConfigurationData.Cohort]
 }
 
 public typealias CohortID = String
 public typealias SubfeatureID = String
+public typealias ParentFeatureID = String
 
 public struct ExperimentData: Codable, Equatable {
-    let cohort: String
-    let enrollmentDate: Date
+    public let parentID: String
+    public let cohort: String
+    public let enrollmentDate: Date
 }
 
 public typealias Experiments = [String: ExperimentData]
@@ -90,7 +93,7 @@ public final class ExperimentCohortsManager: ExperimentCohortsManaging {
         for cohort in cohorts {
             cumulativeWeight += Double(cohort.weight)
             if randomValue < cumulativeWeight {
-                saveCohort(cohort.name, in: subfeature.subfeatureID)
+                saveCohort(cohort.name, in: subfeature.subfeatureID, parentID: subfeature.parentID)
                 return cohort.name
             }
         }
@@ -107,9 +110,9 @@ public final class ExperimentCohortsManager: ExperimentCohortsManaging {
         store.experiments = experiments
     }
 
-    private func saveCohort(_ cohort: CohortID, in experimentID: SubfeatureID) {
+    private func saveCohort(_ cohort: CohortID, in experimentID: SubfeatureID, parentID: ParentFeatureID) {
         var experiments = experiments ?? Experiments()
-        let experimentData = ExperimentData(cohort: cohort, enrollmentDate: Date())
+        let experimentData = ExperimentData(parentID: parentID, cohort: cohort, enrollmentDate: Date())
         experiments[experimentID] = experimentData
         saveExperiment(experiments)
     }
