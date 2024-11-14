@@ -199,23 +199,23 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         }
     }
 
-    public func stateFor(experiment: ExperimentData,
-                         parentID: String,
-                         cohortID: CohortID?,
-                         versionProvider: AppVersionProvider,
-                         randomizer: (Range<Double>) -> Double) -> PrivacyConfigurationFeatureState {
-        let parentFeature = PrivacyFeature(rawValue: parentID)!
-        let parentState = stateFor(featureKey: parentFeature, versionProvider: versionProvider)
-        guard case .enabled = parentState else { return parentState }
-        let subfeatures = subfeatures(for: parentFeature)
-        let subfeatureData = subfeatures[subfeatureID]
-        subfeatureData.
+//    public func stateFor(experiment: ExperimentData,
+//                         parentID: String,
+//                         cohortID: CohortID?,
+//                         versionProvider: AppVersionProvider,
+//                         randomizer: (Range<Double>) -> Double) -> PrivacyConfigurationFeatureState {
+//        let parentFeature = PrivacyFeature(rawValue: parentID)!
+//        let parentState = stateFor(featureKey: parentFeature, versionProvider: versionProvider)
+//        guard case .enabled = parentState else { return parentState }
+//        let subfeatures = subfeatures(for: parentFeature)
+//        let subfeatureData = subfeatures[subfeatureID]
+//        subfeatureData.
+//
+//    }
 
-    }
-
-    public func getAllActiveExperiments() -> Experiments {
-
-    }
+//    public func getAllActiveExperiments() -> Experiments {
+//
+//    }
 
     public func stateFor(_ subfeature: any PrivacySubfeature, 
                          cohortID: CohortID?,

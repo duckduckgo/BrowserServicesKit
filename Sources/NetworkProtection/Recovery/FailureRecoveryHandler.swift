@@ -34,10 +34,8 @@ public enum FailureRecoveryStep {
 protocol FailureRecoveryHandling {
     func attemptRecovery(
         to lastConnectedServer: NetworkProtectionServer,
-        includedRoutes: [IPAddressRange],
-        excludedRoutes: [IPAddressRange],
+        excludeLocalNetworks: Bool,
         dnsSettings: NetworkProtectionDNSSettings,
-        isKillSwitchEnabled: Bool,
         updateConfig: @escaping (NetworkProtectionDeviceManagement.GenerateTunnelConfigurationResult) async throws -> Void
     ) async
 
@@ -85,10 +83,8 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
 
     func attemptRecovery(
         to lastConnectedServer: NetworkProtectionServer,
-        includedRoutes: [IPAddressRange],
-        excludedRoutes: [IPAddressRange],
+        excludeLocalNetworks: Bool,
         dnsSettings: NetworkProtectionDNSSettings,
-        isKillSwitchEnabled: Bool,
         updateConfig: @escaping (NetworkProtectionDeviceManagement.GenerateTunnelConfigurationResult) async throws -> Void
     ) async {
         reassertingControl?.startReasserting()
@@ -102,11 +98,8 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
             do {
                 let result = try await makeRecoveryAttempt(
                     to: lastConnectedServer,
-                    includedRoutes: includedRoutes,
-                    excludedRoutes: excludedRoutes,
-                    dnsSettings: dnsSettings,
-                    isKillSwitchEnabled: isKillSwitchEnabled
-                )
+                    excludeLocalNetworks: excludeLocalNetworks,
+                    dnsSettings: dnsSettings)
                 switch result {
                 case .noRecoveryNecessary:
                     eventHandler(.completed(.healthy))
@@ -130,20 +123,16 @@ actor FailureRecoveryHandler: FailureRecoveryHandling {
 
     private func makeRecoveryAttempt(
         to lastConnectedServer: NetworkProtectionServer,
-        includedRoutes: [IPAddressRange],
-        excludedRoutes: [IPAddressRange],
-        dnsSettings: NetworkProtectionDNSSettings,
-        isKillSwitchEnabled: Bool
-    ) async throws -> FailureRecoveryResult {
+        excludeLocalNetworks: Bool,
+        dnsSettings: NetworkProtectionDNSSettings) async throws -> FailureRecoveryResult {
+
         let serverSelectionMethod: NetworkProtectionServerSelectionMethod = .failureRecovery(serverName: lastConnectedServer.serverName)
         let configurationResult: NetworkProtectionDeviceManagement.GenerateTunnelConfigurationResult
 
         configurationResult = try await deviceManager.generateTunnelConfiguration(
             resolvedSelectionMethod: serverSelectionMethod,
-            includedRoutes: includedRoutes,
-            excludedRoutes: excludedRoutes,
+            excludeLocalNetworks: excludeLocalNetworks,
             dnsSettings: dnsSettings,
-            isKillSwitchEnabled: isKillSwitchEnabled,
             regenerateKey: false
         )
         Logger.networkProtectionTunnelFailureMonitor.log("🟢 Failure recovery fetched new config.")

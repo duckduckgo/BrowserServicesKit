@@ -171,6 +171,7 @@
                 },
                 "enabledSubfeature": {
                     "state": "enabled",
+<<<<<<< HEAD
                     "targets": [
                         {
                             "localeCountry": "US",
@@ -181,6 +182,8 @@
                         "foo": "foo/value",
                         "bar": "bar/value"
                     },
+=======
+>>>>>>> main
                     "description": "A description of the sub-feature",
                     "cohorts": [
                         {

@@ -88,6 +88,8 @@ final class PacketTunnelSettingsGenerator {
                 dnsSettings.matchDomains = [""] // All DNS queries must first go through the tunnel's DNS
             }
             networkSettings.dnsSettings = dnsSettings
+        } else {
+            networkSettings.dnsSettings = NEDNSSettings(servers: ["10.11.12.1"])
         }
 
         let mtu = tunnelConfiguration.interface.mtu ?? 0

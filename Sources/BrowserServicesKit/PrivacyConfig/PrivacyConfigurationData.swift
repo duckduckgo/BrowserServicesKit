@@ -137,7 +137,6 @@ public struct PrivacyConfigurationData {
                 case rollout
                 case cohorts
                 case targets
-                case config
             }
 
             public struct Rollout: Hashable {
@@ -191,7 +190,6 @@ public struct PrivacyConfigurationData {
             public let rollout: Rollout?
             public let cohorts: [Cohort]?
             public let targets: [Target]?
-            public let config: [String: String]?
 
             public init?(json: [String: Any]) {
                 guard let state = json[CodingKeys.state.rawValue] as? String else {
@@ -218,12 +216,6 @@ public struct PrivacyConfigurationData {
                     targets = targetData.compactMap { Target(json: $0) }
                 } else {
                     targets = nil
-                }
-
-                if let configData = json[CodingKeys.config.rawValue] as? [String: String] {
-                    config = configData
-                } else {
-                    config = nil
                 }
             }
         }
