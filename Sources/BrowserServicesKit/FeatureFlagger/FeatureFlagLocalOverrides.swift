@@ -16,6 +16,7 @@
 //  limitations under the License.
 //
 
+import Combine
 import Foundation
 import Persistence
 
@@ -76,6 +77,25 @@ public protocol FeatureFlagLocalOverridesHandling {
     /// It can be implemented by client apps to react to changes to feature flag
     /// value in runtime, caused by adjusting its local override.
     func flagDidChange<Flag: FeatureFlagDescribing>(_ featureFlag: Flag, isEnabled: Bool)
+}
+
+/// `FeatureFlagLocalOverridesHandling` implementation providing Combine publisher for flag changes.
+///
+/// It can be used by client apps if a more sophisticated handler isn't needed.
+///
+public struct FeatureFlagOverridesPublishingHandler<F: FeatureFlagDescribing>: FeatureFlagLocalOverridesHandling {
+
+    public let flagDidChangePublisher: AnyPublisher<(F, Bool), Never>
+    private let flagDidChangeSubject = PassthroughSubject<(F, Bool), Never>()
+
+    public init() {
+        flagDidChangePublisher = flagDidChangeSubject.eraseToAnyPublisher()
+    }
+
+    public func flagDidChange<Flag: FeatureFlagDescribing>(_ featureFlag: Flag, isEnabled: Bool) {
+        guard let flag = featureFlag as? F else { return }
+        flagDidChangeSubject.send((flag, isEnabled))
+    }
 }
 
 /// This protocol defines the interface for feature flag overriding mechanism.
