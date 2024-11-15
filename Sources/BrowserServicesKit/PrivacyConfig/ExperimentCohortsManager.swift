@@ -71,7 +71,7 @@ public class ExperimentCohortsManager: ExperimentCohortsManaging {
         }
     }
 
-    public init(store: ExperimentsDataStoring, randomizer: @escaping (Range<Double>) -> Double = Double.random(in:)) {
+    public init(store: ExperimentsDataStoring = ExperimentsDataStore(), randomizer: @escaping (Range<Double>) -> Double = Double.random(in:)) {
         self.store = store
         self.randomizer = randomizer
     }

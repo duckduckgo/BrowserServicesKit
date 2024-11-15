@@ -44,7 +44,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
                 internalUserDecider: InternalUserDecider,
                 userDefaults: UserDefaults = UserDefaults(),
                 locale: Locale = Locale.current,
-                experimentManager: ExperimentCohortsManaging,
+                experimentManager: ExperimentCohortsManaging = ExperimentCohortsManager(),
                 installDate: Date? = nil) {
         self.data = data
         self.identifier = identifier
