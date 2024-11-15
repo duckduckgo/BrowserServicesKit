@@ -709,6 +709,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 try? await Task.sleep(interval: .seconds(2))
                 throw wrappedError
             } else {
+                // Wait for the provider to complete its pixel request.
+                try? await Task.sleep(interval: .seconds(2))
                 throw error
             }
         }
