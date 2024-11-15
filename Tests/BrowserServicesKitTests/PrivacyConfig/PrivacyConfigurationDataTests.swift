@@ -70,6 +70,7 @@ class PrivacyConfigurationDataTests: XCTestCase {
             XCTAssertEqual(subfeatures["enabledSubfeature"]?.cohorts?[0].weight, 1)
             XCTAssertEqual(subfeatures["enabledSubfeature"]?.targets?[0].localeCountry, "US")
             XCTAssertEqual(subfeatures["enabledSubfeature"]?.targets?[0].localeLanguage, "fr")
+            XCTAssertEqual(subfeatures["enabledSubfeature"]?.settings, "{\"foo\":\"foo\\/value\",\"bar\":\"bar\\/value\"}")
             XCTAssertEqual(subfeatures["internalSubfeature"]?.state, "internal")
         } else {
             XCTFail("Could not parse subfeatures")

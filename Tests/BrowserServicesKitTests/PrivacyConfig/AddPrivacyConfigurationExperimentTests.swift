@@ -18,7 +18,7 @@
 //
 
 import XCTest
-import BrowserServicesKit
+@testable import BrowserServicesKit
 
 final class AddPrivacyConfigurationExperimentTests: XCTestCase {
 
@@ -198,6 +198,79 @@ final class AddPrivacyConfigurationExperimentTests: XCTestCase {
         XCTAssertTrue(mockStore.experiments?.isEmpty ?? false)
         XCTAssertNil(experimentManager.cohort(for: subfeatureName))
         XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving))
+    }
+
+    func testRemoveAssignedCohortsRemotelyRemovesAssignedCohortAndTriesToReassign() {
+        featureJson =
+        """
+        {
+            "features": {
+                "autofill": {
+                    "state": "enabled",
+                    "exceptions": [],
+                    "features": {
+                        "credentialsSaving": {
+                            "state": "enabled",
+                            "minSupportedVersion": 2,
+                             "cohorts": [
+                                 {
+                                     "name": "control",
+                                     "weight": 1
+                                 },
+                                 {
+                                     "name": "blue",
+                                     "weight": 0
+                                 }
+                              ]
+                        }
+                    }
+                }
+            }
+        }
+        """.data(using: .utf8)!
+        manager.reload(etag: "2", data: featureJson)
+        var config = manager.privacyConfig
+
+        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "control"))
+        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "blue"))
+        XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
+        XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "control")
+
+        // remove blue cohort
+        featureJson =
+        """
+        {
+            "features": {
+                "autofill": {
+                    "state": "enabled",
+                    "exceptions": [],
+                    "features": {
+                        "credentialsSaving": {
+                            "state": "enabled",
+                            "minSupportedVersion": 2,
+                             "cohorts": [
+                                {
+                                    "name": "red",
+                                    "weight": 1
+                                },
+                                {
+                                    "name": "blue",
+                                    "weight": 0
+                                }
+                              ]
+                        }
+                    }
+                }
+            }
+        }
+        """.data(using: .utf8)!
+        manager.reload(etag: "2", data: featureJson)
+        config = manager.privacyConfig
+
+        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "red"))
+        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "blue"))
+        XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
+        XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "red")
     }
 
     func testDisablingFeatureDisablesCohort() {
@@ -625,7 +698,7 @@ final class AddPrivacyConfigurationExperimentTests: XCTestCase {
         }
         """.data(using: .utf8)!
         manager.reload(etag: "", data: featureJson)
-        var config = manager.privacyConfig
+        let config = manager.privacyConfig
 
         XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving))
         XCTAssertTrue(mockStore.experiments?.isEmpty ?? true)
@@ -741,6 +814,130 @@ final class AddPrivacyConfigurationExperimentTests: XCTestCase {
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "control")
 
     }
+
+    func testCohortEnabledAndStopEnrollmentAndRhenRollBack() {
+        featureJson =
+            """
+            {
+                "features": {
+                    "autofill": {
+                        "state": "enabled",
+                        "exceptions": [],
+                        "features": {
+                            "credentialsSaving": {
+                                "state": "enabled",
+                                "minSupportedVersion": 2,
+                                "targets": [
+                                    {
+                                        "localeCountry": "US"
+                                    }
+                                ],
+                                "cohorts": [
+                                    {
+                                        "name": "control",
+                                        "weight": 1
+                                    },
+                                    {
+                                        "name": "blue",
+                                        "weight": 0
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+            """.data(using: .utf8)!
+        manager.reload(etag: "foo", data: featureJson)
+        var config = manager.privacyConfig
+
+        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving))
+        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "control"))
+        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "blue"))
+        XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
+        XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "control")
+
+        // Stop enrollment, should keep assigned cohorts
+        featureJson =
+            """
+            {
+                "features": {
+                    "autofill": {
+                        "state": "enabled",
+                        "exceptions": [],
+                        "features": {
+                            "credentialsSaving": {
+                                "state": "enabled",
+                                "minSupportedVersion": 2,
+                                "targets": [
+                                    {
+                                        "localeCountry": "US"
+                                    }
+                                ],
+                                "cohorts": [
+                                    {
+                                        "name": "control",
+                                        "weight": 0
+                                    },
+                                    {
+                                        "name": "blue",
+                                        "weight": 1
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+            """.data(using: .utf8)!
+        manager.reload(etag: "foo", data: featureJson)
+        config = manager.privacyConfig
+
+        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving))
+        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "control"))
+        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "blue"))
+        XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
+        XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "control")
+
+        // remove control, should re-allocate to blue
+        featureJson =
+            """
+            {
+                "features": {
+                    "autofill": {
+                        "state": "enabled",
+                        "exceptions": [],
+                        "features": {
+                            "credentialsSaving": {
+                                "state": "enabled",
+                                "minSupportedVersion": 2,
+                                "targets": [
+                                    {
+                                        "localeCountry": "US"
+                                    }
+                                ],
+                                "cohorts": [
+                                    {
+                                        "name": "blue",
+                                        "weight": 1
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+            """.data(using: .utf8)!
+        manager.reload(etag: "foo", data: featureJson)
+        config = manager.privacyConfig
+
+        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving))
+        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "control"))
+        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "blue"))
+        XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
+        XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "blue")
+    }
+
 
     func clearRolloutData(feature: String, subFeature: String) {
         UserDefaults().set(nil, forKey: "config.\(feature).\(subFeature).enabled")

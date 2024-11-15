@@ -197,7 +197,7 @@ final class WebKitTestHelper {
         return AppPrivacyConfiguration(data: privacyData,
                                        identifier: "",
                                        localProtection: localProtection,
-                                       internalUserDecider: DefaultInternalUserDecider())
+                                       internalUserDecider: DefaultInternalUserDecider(), experimentManager: MockExperimentCohortsManager())
     }
 
     static func prepareContentBlockingRules(trackerData: TrackerData,
@@ -224,4 +224,14 @@ final class WebKitTestHelper {
             }
         }
     }
+}
+
+class MockExperimentCohortsManager: ExperimentCohortsManaging {
+    var experiments: BrowserServicesKit.Experiments?
+
+    func cohort(for experiment: BrowserServicesKit.ExperimentSubfeature, assignIfEnabled: Bool) -> (cohortID: BrowserServicesKit.CohortID?, didAttemptAssignment: Bool) {
+        return (nil, true)
+    }
+
+
 }

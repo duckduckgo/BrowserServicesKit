@@ -21,6 +21,11 @@ import XCTest
 
 final class ExperimentCohortsManagerTests: XCTestCase {
 
+    let cohort1 = PrivacyConfigurationData.Cohort(json: ["name": "Cohort1", "weight": 1])!
+    let cohort2 = PrivacyConfigurationData.Cohort(json: ["name": "Cohort2", "weight": 0])!
+    let cohort3 = PrivacyConfigurationData.Cohort(json: ["name": "Cohort3", "weight": 2])!
+    let cohort4 = PrivacyConfigurationData.Cohort(json: ["name": "Cohort4", "weight": 0])!
+
     var mockStore: MockExperimentDataStore!
     var experimentCohortsManager: ExperimentCohortsManager!
 
@@ -29,6 +34,12 @@ final class ExperimentCohortsManagerTests: XCTestCase {
 
     let subfeatureName2 = "TestSubfeature2"
     var experimentData2: ExperimentData!
+
+    let subfeatureName3 = "TestSubfeature3"
+    var experimentData3: ExperimentData!
+
+    let subfeatureName4 = "TestSubfeature4"
+    var experimentData4: ExperimentData!
 
     let encoder: JSONEncoder = {
         let encoder = JSONEncoder()
@@ -40,15 +51,20 @@ final class ExperimentCohortsManagerTests: XCTestCase {
         super.setUp()
         mockStore = MockExperimentDataStore()
         experimentCohortsManager = ExperimentCohortsManager(
-            store: mockStore,
-            randomizer: { _ in 50.0 }
+            store: mockStore
         )
 
         let expectedDate1 = Date()
-        experimentData1 = ExperimentData(parentID: "TestParent", cohort: "TestCohort1", enrollmentDate: expectedDate1)
+        experimentData1 = ExperimentData(parentID: "TestParent", cohort: cohort1.name, enrollmentDate: expectedDate1)
 
         let expectedDate2 = Date().addingTimeInterval(60)
-        experimentData2 = ExperimentData(parentID: "TestParent", cohort: "TestCohort2", enrollmentDate: expectedDate2)
+        experimentData2 = ExperimentData(parentID: "TestParent", cohort: cohort2.name, enrollmentDate: expectedDate2)
+
+        let expectedDate3 = Date()
+        experimentData3 = ExperimentData(parentID: "TestParent", cohort: cohort3.name, enrollmentDate: expectedDate3)
+
+        let expectedDate4 = Date().addingTimeInterval(60)
+        experimentData4 = ExperimentData(parentID: "TestParent", cohort: cohort4.name, enrollmentDate: expectedDate4)
     }
 
     override func tearDown() {
@@ -59,206 +75,117 @@ final class ExperimentCohortsManagerTests: XCTestCase {
         super.tearDown()
     }
 
+    func testExperimentReturnAssignedExperiments() {
+        // GIVEN
+        mockStore.experiments = [subfeatureName1: experimentData1, subfeatureName2: experimentData2]
+
+        // WHEN
+        let experiments = experimentCohortsManager.experiments
+
+        // THEN
+        XCTAssertEqual(experiments?.count, 2)
+        XCTAssertEqual(experiments?[subfeatureName1], experimentData1)
+        XCTAssertEqual(experiments?[subfeatureName2], experimentData2)
+        XCTAssertNil(experiments?[subfeatureName3])
+    }
+
     func testCohortReturnsCohortIDIfExistsForMultipleSubfeatures() {
         // GIVEN
         mockStore.experiments = [subfeatureName1: experimentData1, subfeatureName2: experimentData2]
 
         // WHEN
-        let result1 = experimentCohortsManager.cohort(for: subfeatureName1)
-        let result2 = experimentCohortsManager.cohort(for: subfeatureName2)
+        let result1 = experimentCohortsManager.cohort(for: ExperimentSubfeature(parentID: experimentData1.parentID, subfeatureID: subfeatureName1, cohorts: [cohort1, cohort2]), assignIfEnabled: false).cohortID
+        let result2 = experimentCohortsManager.cohort(for: ExperimentSubfeature(parentID: experimentData2.parentID, subfeatureID: subfeatureName2, cohorts: [cohort2, cohort3]), assignIfEnabled: false).cohortID
 
         // THEN
         XCTAssertEqual(result1, experimentData1.cohort)
         XCTAssertEqual(result2, experimentData2.cohort)
     }
 
-    func testEnrollmentDateReturnsCorrectDateIfExists() {
+    func testCohortAssignIfEnabledWhenNoCohortExists() {
+        // GIVEN
+        mockStore.experiments = [:]
+        let cohorts = [cohort1, cohort2]
+        let experiment = ExperimentSubfeature(parentID: experimentData1.parentID, subfeatureID: subfeatureName1, cohorts: cohorts)
+
+        // WHEN
+        let result = experimentCohortsManager.cohort(for: experiment, assignIfEnabled: true)
+
+        // THEN
+        XCTAssertNotNil(result.cohortID)
+        XCTAssertTrue(result.didAttemptAssignment)
+        XCTAssertEqual(result.cohortID, experimentData1.cohort)
+    }
+
+    func testCohortDoesNotAssignIfAssignIfEnabledIsFalse() {
+        // GIVEN
+        mockStore.experiments = [:]
+        let cohorts = [cohort1, cohort2]
+        let experiment = ExperimentSubfeature(parentID: experimentData1.parentID, subfeatureID: subfeatureName1, cohorts: cohorts)
+
+        // WHEN
+        let result = experimentCohortsManager.cohort(for: experiment, assignIfEnabled: false)
+
+        // THEN
+        XCTAssertNil(result.cohortID)
+        XCTAssertTrue(result.didAttemptAssignment)
+    }
+
+    func testCohortDoesNotAssignIfAssignIfEnabledIsTrueButNoCohortsAvailable() {
+        // GIVEN
+        mockStore.experiments = [:]
+        let experiment = ExperimentSubfeature(parentID: "TestParent", subfeatureID: "NonExistentSubfeature", cohorts: [])
+
+        // WHEN
+        let result = experimentCohortsManager.cohort(for: experiment, assignIfEnabled: true)
+
+        // THEN
+        XCTAssertNil(result.cohortID)
+        XCTAssertTrue(result.didAttemptAssignment)
+    }
+
+    func testCohortReassignsCohortIfAssignedCohortDoesNotExistAndAssignIfEnabledIsTrue() {
         // GIVEN
         mockStore.experiments = [subfeatureName1: experimentData1]
 
         // WHEN
-        let result1 = experimentCohortsManager.enrollmentDate(for: subfeatureName1)
-        let result2 = experimentCohortsManager.enrollmentDate(for: subfeatureName2)
+        let result1 = experimentCohortsManager.cohort(for: ExperimentSubfeature(parentID: experimentData1.parentID, subfeatureID: subfeatureName1, cohorts: [cohort2, cohort3]), assignIfEnabled: true).cohortID
 
         // THEN
-        let timeDifference1 = abs(experimentData1.enrollmentDate.timeIntervalSince(result1 ?? Date()))
-
-        XCTAssertLessThanOrEqual(timeDifference1, 1.0, "Expected enrollment date for subfeatureName1 to match at the second level")
-        XCTAssertNil(result2)
+        XCTAssertEqual(result1, experimentData3.cohort)
     }
 
-    func testCohortReturnsNilIfCohortDoesNotExist() {
-        // GIVEN
-        let subfeatureName = "TestSubfeature"
-
-        // WHEN
-        let result = experimentCohortsManager.cohort(for: subfeatureName)
-
-        // THEN
-        XCTAssertNil(result)
-    }
-
-    func testEnrollmentDateReturnsNilIfDateDoesNotExist() {
-        // GIVEN
-        let subfeatureName = "TestSubfeature"
-
-        // WHEN
-        let result = experimentCohortsManager.enrollmentDate(for: subfeatureName)
-
-        // THEN
-        XCTAssertNil(result)
-    }
-
-    func testRemoveCohortSuccessfullyRemovesData() throws {
+    func testCohortDoesNotReassignsCohortIfAssignedCohortDoesNotExistAndAssignIfEnabledIsTrue() {
         // GIVEN
         mockStore.experiments = [subfeatureName1: experimentData1]
 
         // WHEN
-        experimentCohortsManager.removeCohort(from: subfeatureName1)
+        let result1 = experimentCohortsManager.cohort(for: ExperimentSubfeature(parentID: experimentData1.parentID, subfeatureID: subfeatureName1, cohorts: [cohort2, cohort3]), assignIfEnabled: false).cohortID
 
         // THEN
-        let experiments = try XCTUnwrap(mockStore.experiments)
-        XCTAssertTrue(experiments.isEmpty)
+        XCTAssertNil(result1)
     }
 
-    func testRemoveCohortDoesNothingIfSubfeatureDoesNotExist() {
+    func testCohortAssignsBasedOnWeight() {
         // GIVEN
-        let expectedExperiments: Experiments = [subfeatureName1: experimentData1, subfeatureName2: experimentData2]
-        mockStore.experiments = expectedExperiments
+        let experiment = ExperimentSubfeature(parentID: experimentData3.parentID, subfeatureID: subfeatureName3, cohorts: [cohort3, cohort4])
 
-        // WHEN
-        experimentCohortsManager.removeCohort(from: "someOtherSubfeature")
+        let randomizer: (Range<Double>) -> Double = { range in
+            return 1.5
+        }
 
-        // THEN
-        XCTAssertEqual( mockStore.experiments, expectedExperiments)
-    }
-
-    func testAssignCohortReturnsNilIfNoCohorts() {
-        // GIVEN
-        let subfeature = ExperimentSubfeature(parentID: "parent", subfeatureID: subfeatureName1, cohorts: [])
-
-        // WHEN
-        let result = experimentCohortsManager.assignCohort(to: subfeature)
-
-        // THEN
-        XCTAssertNil(result)
-    }
-
-    func testAssignCohortReturnsNilIfAllWeightsAreZero() {
-        // GIVEN
-        let jsonCohort1: [String: Any] = ["name": "TestCohort", "weight": 0]
-        let jsonCohort2: [String: Any] = ["name": "TestCohort", "weight": 0]
-        let cohorts = [
-            PrivacyConfigurationData.Cohort(json: jsonCohort1)!,
-            PrivacyConfigurationData.Cohort(json: jsonCohort2)!
-        ]
-        let subfeature = ExperimentSubfeature(parentID: "parent", subfeatureID: subfeatureName1, cohorts: cohorts)
-
-        // WHEN
-        let result = experimentCohortsManager.assignCohort(to: subfeature)
-
-        // THEN
-        XCTAssertNil(result)
-    }
-
-    func testAssignCohortSelectsCorrectCohortBasedOnWeight() {
-        // Cohort1 has weight 1, Cohort2 has weight 3
-        // Total weight is 1 + 3 = 4
-        let jsonCohort1: [String: Any] = ["name": "Cohort1", "weight": 1]
-        let jsonCohort2: [String: Any] = ["name": "Cohort2", "weight": 3]
-        let cohorts = [
-            PrivacyConfigurationData.Cohort(json: jsonCohort1)!,
-            PrivacyConfigurationData.Cohort(json: jsonCohort2)!
-        ]
-        let subfeature = ExperimentSubfeature(parentID: "parent", subfeatureID: subfeatureName1, cohorts: cohorts)
-        let expectedTotalWeight = 4.0
-
-        // Use a custom randomizer to verify the range
         experimentCohortsManager = ExperimentCohortsManager(
             store: mockStore,
-            randomizer: { range in
-                // Assert that the range lower bound is 0
-                XCTAssertEqual(range.lowerBound, 0.0)
-                // Assert that the range upper bound is the total weight
-                XCTAssertEqual(range.upperBound, expectedTotalWeight)
-                return 0.0
-            }
-        )
-
-        // Test case where random value is at the very start of Cohort1's range (0)
-        experimentCohortsManager = ExperimentCohortsManager(
-            store: mockStore,
-            randomizer: { _ in 0.0 }
-        )
-        let resultStartOfCohort1 = experimentCohortsManager.assignCohort(to: subfeature)
-        XCTAssertEqual(resultStartOfCohort1, "Cohort1")
-
-        // Test case where random value is at the end of Cohort1's range (0.9)
-        experimentCohortsManager = ExperimentCohortsManager(
-            store: mockStore,
-            randomizer: { _ in 0.9 }
-        )
-        let resultEndOfCohort1 = experimentCohortsManager.assignCohort(to: subfeature)
-        XCTAssertEqual(resultEndOfCohort1, "Cohort1")
-
-        // Test case where random value is at the start of Cohort2's range (1.00 to 4)
-        experimentCohortsManager = ExperimentCohortsManager(
-            store: mockStore,
-            randomizer: { _ in 1.00 }
-        )
-        let resultStartOfCohort2 = experimentCohortsManager.assignCohort(to: subfeature)
-        XCTAssertEqual(resultStartOfCohort2, "Cohort2")
-
-        // Test case where random value falls exactly within Cohort2's range (2.5)
-        experimentCohortsManager = ExperimentCohortsManager(
-            store: mockStore,
-            randomizer: { _ in 2.5 }
-        )
-        let resultMiddleOfCohort2 = experimentCohortsManager.assignCohort(to: subfeature)
-        XCTAssertEqual(resultMiddleOfCohort2, "Cohort2")
-
-        // Test case where random value is at the end of Cohort2's range (4)
-        experimentCohortsManager = ExperimentCohortsManager(
-            store: mockStore,
-            randomizer: { _ in 3.9 }
-        )
-        let resultEndOfCohort2 = experimentCohortsManager.assignCohort(to: subfeature)
-        XCTAssertEqual(resultEndOfCohort2, "Cohort2")
-    }
-
-    func testAssignCohortWithSingleCohortAlwaysSelectsThatCohort() throws {
-        // GIVEN
-        let jsonCohort1: [String: Any] = ["name": "Cohort1", "weight": 1]
-        let cohorts = [
-            PrivacyConfigurationData.Cohort(json: jsonCohort1)!
-        ]
-        let subfeature = ExperimentSubfeature(parentID: "parent", subfeatureID: subfeatureName1, cohorts: cohorts)
-        let expectedTotalWeight = 1.0
-
-        // Use a custom randomizer to verify the range
-        experimentCohortsManager = ExperimentCohortsManager(
-            store: mockStore,
-            randomizer: { range in
-                // Assert that the range lower bound is 0
-                XCTAssertEqual(range.lowerBound, 0.0)
-                // Assert that the range upper bound is the total weight
-                XCTAssertEqual(range.upperBound, expectedTotalWeight)
-                return 0.0
-            }
+            randomizer: randomizer
         )
 
         // WHEN
-        experimentCohortsManager = ExperimentCohortsManager(
-            store: mockStore,
-            randomizer: { range in Double.random(in: range)}
-        )
-        let result = experimentCohortsManager.assignCohort(to: subfeature)
+        let result = experimentCohortsManager.cohort(for: experiment, assignIfEnabled: true)
 
         // THEN
-        XCTAssertEqual(result, "Cohort1")
-        XCTAssertEqual(cohorts[0].name, mockStore.experiments?[subfeature.subfeatureID]?.cohort)
+        XCTAssertEqual(result.cohortID, experimentData3.cohort)
+        XCTAssertTrue(result.didAttemptAssignment)
     }
-
 }
 
 class MockExperimentDataStore: ExperimentsDataStoring {

@@ -104,6 +104,10 @@ public protocol PrivacyConfiguration {
     func userEnabledProtection(forDomain: String)
     /// Adds given domain to locally unprotected list.
     func userDisabledProtection(forDomain: String)
+
+    /// Gives the list of all the active experiments an user is enrolled in
+    func getAllActiveExperiments(versionProvider: AppVersionProvider,
+                                 randomizer: (Range<Double>) -> Double) -> Experiments
 }
 
 public extension PrivacyConfiguration {
@@ -121,5 +125,9 @@ public extension PrivacyConfiguration {
 
     func stateFor(_ subfeature: any PrivacySubfeature, cohortID: CohortID? = nil, randomizer: (Range<Double>) -> Double = Double.random(in:)) -> PrivacyConfigurationFeatureState {
         return stateFor(subfeature, cohortID: cohortID, versionProvider: AppVersionProvider(), randomizer: randomizer)
+    }
+
+    func getAllActiveExperiments(versionProvider: AppVersionProvider = AppVersionProvider(), randomizer: (Range<Double>) -> Double = Double.random(in:)) -> Experiments {
+        return getAllActiveExperiments(versionProvider: versionProvider, randomizer: randomizer)
     }
 }

@@ -171,19 +171,16 @@
                 },
                 "enabledSubfeature": {
                     "state": "enabled",
-<<<<<<< HEAD
                     "targets": [
                         {
                             "localeCountry": "US",
                             "localeLanguage": "fr"
                         }
                     ],
-                    "config": {
+                    "settings": {
                         "foo": "foo/value",
                         "bar": "bar/value"
                     },
-=======
->>>>>>> main
                     "description": "A description of the sub-feature",
                     "cohorts": [
                         {

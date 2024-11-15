@@ -113,7 +113,7 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
                 errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil,
                 internalUserDecider: InternalUserDecider,
                 locale: Locale = Locale.current,
-                experimentCohortManager: ExperimentCohortsManaging = ExperimentCohortsManager(),
+                experimentCohortManager: ExperimentCohortsManaging = ExperimentCohortsManager(store: ExperimentsDataStore()),
                 installDate: Date? = nil
     ) {
         self.embeddedDataProvider = embeddedDataProvider
