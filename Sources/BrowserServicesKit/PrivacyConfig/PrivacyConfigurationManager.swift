@@ -142,7 +142,7 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
                                        identifier: embeddedConfigData.etag,
                                        localProtection: localProtection,
                                        internalUserDecider: internalUserDecider,
-                                       locale: locale, 
+                                       locale: locale,
                                        experimentManager: experimentCohortManager,
                                        installDate: installDate)
     }

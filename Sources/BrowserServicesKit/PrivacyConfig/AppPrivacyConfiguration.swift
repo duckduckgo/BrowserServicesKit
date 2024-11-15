@@ -191,7 +191,6 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
                                     cohortID: CohortID?,
                                     versionProvider: AppVersionProvider,
                                     randomizer: (Range<Double>) -> Double) -> Bool {
-        
         switch stateFor(subfeature, cohortID: cohortID, versionProvider: versionProvider, randomizer: randomizer) {
         case .enabled:
             return true

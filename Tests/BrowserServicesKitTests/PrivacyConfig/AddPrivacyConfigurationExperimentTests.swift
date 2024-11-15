@@ -1,6 +1,5 @@
 //
 //  AddPrivacyConfigurationExperimentTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -31,7 +30,6 @@ final class AddPrivacyConfigurationExperimentTests: XCTestCase {
 
     let subfeatureName = "credentialsSaving"
 
-
     override func setUp() {
         locale = Locale(identifier: "fr_US")
         mockEmbeddedData = MockEmbeddedDataProvider(data: featureJson, etag: "test")
@@ -43,7 +41,7 @@ final class AddPrivacyConfigurationExperimentTests: XCTestCase {
                                               embeddedDataProvider: mockEmbeddedData,
                                               localProtection: MockDomainsProtectionStore(),
                                               internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore),
-                                              locale: locale, 
+                                              locale: locale,
                                               experimentCohortManager: experimentManager)
     }
 
@@ -54,7 +52,6 @@ final class AddPrivacyConfigurationExperimentTests: XCTestCase {
         experimentManager = nil
         manager = nil
     }
-
 
     func testCohortOnlyAssignedWhenCallingStateForSubfeature() {
         featureJson =
@@ -937,7 +934,6 @@ final class AddPrivacyConfigurationExperimentTests: XCTestCase {
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "blue")
     }
-
 
     func clearRolloutData(feature: String, subFeature: String) {
         UserDefaults().set(nil, forKey: "config.\(feature).\(subFeature).enabled")
