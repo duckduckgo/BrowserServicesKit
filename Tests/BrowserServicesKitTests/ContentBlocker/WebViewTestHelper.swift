@@ -197,7 +197,7 @@ final class WebKitTestHelper {
         return AppPrivacyConfiguration(data: privacyData,
                                        identifier: "",
                                        localProtection: localProtection,
-                                       internalUserDecider: DefaultInternalUserDecider(), 
+                                       internalUserDecider: DefaultInternalUserDecider(),
                                        experimentManager: MockExperimentCohortsManager())
     }
 

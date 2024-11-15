@@ -199,7 +199,6 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         }
     }
 
-
     public func getAllActiveExperiments(versionProvider: AppVersionProvider,
                                         randomizer: (Range<Double>) -> Double) -> Experiments {
         Self.experimentManagerQueue.sync {
@@ -234,7 +233,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
                 return .disabled(.featureMissing)
             }
 
-            return stateFor(parentFeature: subfeature.parent, 
+            return stateFor(parentFeature: subfeature.parent,
                             subfeatureData: subfeatureData,
                             subfeatureID: subfeature.rawValue,
                             cohortID: cohortID,
@@ -296,9 +295,9 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     // Tries to assign if matching target
     // Check if cohort assigned and matches passed cohort
     private func checkCohortState(_ subfeatureData: PrivacyConfigurationData.PrivacyFeature.Feature,
-                                   passedCohort: CohortID?,
-                                   assignCohortEnabled: Bool,
-                                   subfeatureID: SubfeatureID,
+                                  passedCohort: CohortID?,
+                                  assignCohortEnabled: Bool,
+                                  subfeatureID: SubfeatureID,
                                   parentFeature: PrivacyFeature) -> PrivacyConfigurationFeatureState {
         let cohorts = subfeatureData.cohorts ?? []
         let targetsState = checkTargets(subfeatureData)
