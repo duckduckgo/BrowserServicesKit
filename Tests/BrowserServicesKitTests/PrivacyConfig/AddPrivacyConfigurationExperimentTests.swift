@@ -943,4 +943,288 @@ final class AddPrivacyConfigurationExperimentTests: XCTestCase {
         UserDefaults().set(nil, forKey: "config.\(feature).\(subFeature).enabled")
         UserDefaults().set(nil, forKey: "config.\(feature).\(subFeature).lastRolloutCount")
     }
+
+    func testAllActiveExperimentsEmptyIfNoAssignedExperiment() {
+        featureJson =
+            """
+            {
+                "features": {
+                    "autofill": {
+                        "state": "enabled",
+                        "exceptions": [],
+                        "features": {
+                            "credentialsSaving": {
+                                "state": "enabled",
+                                "minSupportedVersion": 2,
+                                "targets": [
+                                    {
+                                        "localeCountry": "US"
+                                    }
+                                ],
+                                "cohorts": [
+                                    {
+                                        "name": "control",
+                                        "weight": 1
+                                    },
+                                    {
+                                        "name": "blue",
+                                        "weight": 0
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+            """.data(using: .utf8)!
+        manager.reload(etag: "foo", data: featureJson)
+        let config = manager.privacyConfig
+
+        let activeExperiments = config.getAllActiveExperiments()
+        XCTAssertTrue(activeExperiments.isEmpty)
+        XCTAssertNil(mockStore.experiments)
+    }
+
+    func testAllActiveExperimentsReturnsOnlyActiveExperiments() {
+        var featureJson =
+            """
+            {
+                "features": {
+                    "autofill": {
+                        "state": "enabled",
+                        "exceptions": [],
+                        "features": {
+                            "credentialsSaving": {
+                                "state": "enabled",
+                                "minSupportedVersion": 2,
+                                "targets": [
+                                    {
+                                        "localeCountry": "US"
+                                    }
+                                ],
+                                "cohorts": [
+                                    {
+                                        "name": "control",
+                                        "weight": 1
+                                    },
+                                    {
+                                        "name": "blue",
+                                        "weight": 0
+                                    }
+                                ]
+                            },
+                            "inlineIconCredentials": {
+                                "state": "enabled",
+                                "minSupportedVersion": 1,
+                                "targets": [
+                                    {
+                                        "localeCountry": "US"
+                                    }
+                                ],
+                                "cohorts": [
+                                    {
+                                        "name": "control",
+                                        "weight": 0
+                                    },
+                                    {
+                                        "name": "green",
+                                        "weight": 1
+                                    }
+                                ]
+                            },
+                            "accessCredentialManagement": {
+                                "state": "enabled",
+                                "minSupportedVersion": 3,
+                                "targets": [
+                                    {
+                                        "localeCountry": "CA"
+                                    }
+                                ],
+                                "cohorts": [
+                                    {
+                                        "name": "control",
+                                        "weight": 1
+                                    },
+                                    {
+                                        "name": "green",
+                                        "weight": 0
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+            """.data(using: .utf8)!
+
+        manager.reload(etag: "foo", data: featureJson)
+        var config = manager.privacyConfig
+
+        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "control"))
+        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.inlineIconCredentials, cohortID: "green"))
+        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.accessCredentialManagement, cohortID: "control"))
+        XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
+        XCTAssertEqual(experimentManager.cohort(for: AutofillSubfeature.credentialsSaving.rawValue), "control")
+        XCTAssertEqual(experimentManager.cohort(for: AutofillSubfeature.inlineIconCredentials.rawValue), "green")
+        XCTAssertNil(experimentManager.cohort(for: AutofillSubfeature.accessCredentialManagement.rawValue))
+        XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
+
+        var activeExperiments = config.getAllActiveExperiments()
+        XCTAssertEqual(activeExperiments.count, 2)
+        XCTAssertEqual(activeExperiments[AutofillSubfeature.credentialsSaving.rawValue]?.cohort, "control")
+        XCTAssertEqual(activeExperiments[AutofillSubfeature.inlineIconCredentials.rawValue]?.cohort, "green")
+        XCTAssertNil(activeExperiments[AutofillSubfeature.accessCredentialManagement.rawValue])
+
+        // When an assigned cohort is removed it's not part of active experiments
+        featureJson =
+            """
+            {
+                "features": {
+                    "autofill": {
+                        "state": "enabled",
+                        "exceptions": [],
+                        "features": {
+                            "credentialsSaving": {
+                                "state": "enabled",
+                                "minSupportedVersion": 2,
+                                "targets": [
+                                    {
+                                        "localeCountry": "US"
+                                    }
+                                ],
+                                "cohorts": [
+                                    {
+                                        "name": "blue",
+                                        "weight": 1
+                                    }
+                                ]
+                            },
+                            "inlineIconCredentials": {
+                                "state": "enabled",
+                                "minSupportedVersion": 1,
+                                "targets": [
+                                    {
+                                        "localeCountry": "US"
+                                    }
+                                ],
+                                "cohorts": [
+                                    {
+                                        "name": "control",
+                                        "weight": 0
+                                    },
+                                    {
+                                        "name": "green",
+                                        "weight": 1
+                                    }
+                                ]
+                            },
+                            "accessCredentialManagement": {
+                                "state": "enabled",
+                                "minSupportedVersion": 3,
+                                "targets": [
+                                    {
+                                        "localeCountry": "CA"
+                                    }
+                                ],
+                                "cohorts": [
+                                    {
+                                        "name": "control",
+                                        "weight": 1
+                                    },
+                                    {
+                                        "name": "green",
+                                        "weight": 0
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+            """.data(using: .utf8)!
+
+        manager.reload(etag: "foo", data: featureJson)
+        config = manager.privacyConfig
+
+        activeExperiments = config.getAllActiveExperiments()
+        XCTAssertEqual(activeExperiments.count, 1)
+        XCTAssertNil(activeExperiments[AutofillSubfeature.credentialsSaving.rawValue])
+        XCTAssertEqual(activeExperiments[AutofillSubfeature.inlineIconCredentials.rawValue]?.cohort, "green")
+        XCTAssertNil(activeExperiments[AutofillSubfeature.accessCredentialManagement.rawValue])
+
+        // When feature disabled an assigned cohort it's not part of active experiments
+        featureJson =
+            """
+            {
+                "features": {
+                    "autofill": {
+                        "state": "enabled",
+                        "exceptions": [],
+                        "features": {
+                            "credentialsSaving": {
+                                "state": "enabled",
+                                "minSupportedVersion": 2,
+                                "targets": [
+                                    {
+                                        "localeCountry": "US"
+                                    }
+                                ],
+                                "cohorts": [
+                                    {
+                                        "name": "blue",
+                                        "weight": 1
+                                    }
+                                ]
+                            },
+                            "inlineIconCredentials": {
+                                "state": "disabled",
+                                "minSupportedVersion": 1,
+                                "targets": [
+                                    {
+                                        "localeCountry": "US"
+                                    }
+                                ],
+                                "cohorts": [
+                                    {
+                                        "name": "control",
+                                        "weight": 0
+                                    },
+                                    {
+                                        "name": "green",
+                                        "weight": 1
+                                    }
+                                ]
+                            },
+                            "accessCredentialManagement": {
+                                "state": "enabled",
+                                "minSupportedVersion": 3,
+                                "targets": [
+                                    {
+                                        "localeCountry": "CA"
+                                    }
+                                ],
+                                "cohorts": [
+                                    {
+                                        "name": "control",
+                                        "weight": 1
+                                    },
+                                    {
+                                        "name": "green",
+                                        "weight": 0
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+            """.data(using: .utf8)!
+
+        manager.reload(etag: "foo", data: featureJson)
+        config = manager.privacyConfig
+
+        activeExperiments = config.getAllActiveExperiments()
+        XCTAssertTrue(activeExperiments.isEmpty)
+    }
+
 }
