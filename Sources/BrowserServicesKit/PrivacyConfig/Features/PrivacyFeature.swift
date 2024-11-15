@@ -62,6 +62,7 @@ public enum PrivacyFeature: String, CaseIterable {
     case networkProtection
     case aiChat
     case contextualOnboarding
+    case textZoom
     case adAttributionReporting
 }
 

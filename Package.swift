@@ -49,7 +49,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "15.1.0"),
-        .package(url: "https://github.com/duckduckgo/GRDB.swift.git", exact: "2.4.0"),
+        .package(url: "https://github.com/duckduckgo/GRDB.swift.git", exact: "2.4.2"),
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "3.0.0"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.3.0"),
         .package(url: "https://github.com/gumob/PunycodeSwift.git", exact: "3.0.0"),
@@ -411,10 +411,6 @@ let package = Package(
             dependencies: [
                 "Common"
             ],
-            resources: [
-                .copy("hashPrefixes.json"),
-                .copy("filterSet.json")
-            ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
             ]
@@ -655,8 +651,8 @@ let package = Package(
                 "PixelKit"
             ],
             resources: [
-                .copy("hashPrefixes.json"),
-                .copy("filterSet.json")
+                .copy("Resources/hashPrefixes.json"),
+                .copy("Resources/filterSet.json")
             ]
         ),
         .testTarget(
