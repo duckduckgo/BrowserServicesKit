@@ -158,10 +158,10 @@ public enum NetworkProtectionError: LocalizedError, CustomNSError {
         }
     }
 
-    public var errorDescription: String? {
-        // This is probably not the most elegant error to show to a user but
-        // it's a great way to get detailed reports for those cases we haven't
-        // provided good descriptions for yet.
-        return "NetworkProtectionError.\(String(describing: self))"
-    }
+//    public var errorDescription: String? {
+//        // This is probably not the most elegant error to show to a user but
+//        // it's a great way to get detailed reports for those cases we haven't
+//        // provided good descriptions for yet.
+//        return "NetworkProtectionError.\(String(describing: self))"
+//    }
 }
