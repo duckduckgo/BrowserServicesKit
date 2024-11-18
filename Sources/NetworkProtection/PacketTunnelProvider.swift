@@ -695,8 +695,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             } else {
                 // If the VPN was started manually without the basic prerequisites we always
                 // want to know as this should not be possible.
-                providerEvents.fire(.tunnelStartAttempt(.begin))
-                providerEvents.fire(.tunnelStartAttempt(.failure(error)))
+                try? await providerEvents.asyncFire(.tunnelStartAttempt(.begin))
+                try? await providerEvents.asyncFire(.tunnelStartAttempt(.failure(error)))
             }
 
             Logger.networkProtection.log("🔴 Stopping VPN due to no auth token")
@@ -704,13 +704,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
             // Check that the error is valid and able to be re-thrown to the OS before shutting the tunnel down
             if let wrappedError = wrapped(error: error) {
-                // Wait for the provider to complete its pixel request.
-                providerEvents.fire(.malformedErrorDetected(error))
-                try? await Task.sleep(interval: .seconds(2))
+                try? await providerEvents.asyncFire(.malformedErrorDetected(error))
                 throw wrappedError
             } else {
-                // Wait for the provider to complete its pixel request.
-                try? await Task.sleep(interval: .seconds(2))
                 throw error
             }
         }
@@ -738,17 +734,13 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             self.connectionStatus = .disconnected
             self.knownFailureStore.lastKnownFailure = KnownFailure(error)
 
-            providerEvents.fire(.tunnelStartAttempt(.failure(error)))
+            try? await providerEvents.asyncFire(.tunnelStartAttempt(.failure(error)))
 
             // Check that the error is valid and able to be re-thrown to the OS before shutting the tunnel down
             if let wrappedError = wrapped(error: error) {
-                // Wait for the provider to complete its pixel request.
-                providerEvents.fire(.malformedErrorDetected(error))
-                try? await Task.sleep(interval: .seconds(2))
+                try? await providerEvents.asyncFire(.malformedErrorDetected(error))
                 throw wrappedError
             } else {
-                // Wait for the provider to complete its pixel request.
-                try? await Task.sleep(interval: .seconds(2))
                 throw error
             }
         }
