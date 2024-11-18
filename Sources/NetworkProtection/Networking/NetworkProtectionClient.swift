@@ -27,7 +27,7 @@ protocol NetworkProtectionClient {
     func register(authToken: String, requestBody: RegisterKeyRequestBody) async -> Result<[NetworkProtectionServer], NetworkProtectionClientError>
 }
 
-public enum NetworkProtectionClientError: CustomNSError, NetworkProtectionErrorConvertible {
+public enum NetworkProtectionClientError: LocalizedError, CustomNSError, NetworkProtectionErrorConvertible {
     case failedToFetchLocationList(Error)
     case failedToParseLocationListResponse(Error)
     case failedToFetchServerList(Error)
@@ -39,6 +39,22 @@ public enum NetworkProtectionClientError: CustomNSError, NetworkProtectionErrorC
     case failedToParseRegisteredServersResponse(Error)
     case invalidAuthToken
     case accessDenied
+
+    public var errorDescription: String? {
+        switch self {
+        case .failedToFetchLocationList(let error): return "Failed to fetch location list: \(error.localizedDescription)"
+        case .failedToParseLocationListResponse(let error): return "Failed to parse location response: \(error.localizedDescription)"
+        case .failedToFetchServerList(let error): return "Failed to fetch server list: \(error.localizedDescription)"
+        case .failedToParseServerListResponse(let error): return "Failed to parse server list response: \(error.localizedDescription)"
+        case .failedToFetchServerStatus(let error): return "Failed to fetch server status: \(error.localizedDescription)"
+        case .failedToParseServerStatusResponse(let error): return "Failed to parse server status response: \(error.localizedDescription)"
+        case .failedToEncodeRegisterKeyRequest: return "Failed to encode registration request"
+        case .failedToFetchRegisteredServers(let error): return "Failed to fetch registered servers: \(error.localizedDescription)"
+        case .failedToParseRegisteredServersResponse: return "Failed to parse registration response"
+        case .invalidAuthToken: return "Invalid auth token"
+        case .accessDenied: return "VPN subscription expired"
+        }
+    }
 
     var networkProtectionError: NetworkProtectionError {
         switch self {
@@ -82,11 +98,22 @@ public enum NetworkProtectionClientError: CustomNSError, NetworkProtectionErrorC
                 .failedToParseRegisteredServersResponse(let error),
                 .failedToFetchServerStatus(let error),
                 .failedToParseServerStatusResponse(let error):
-            return [NSUnderlyingErrorKey: error as NSError]
+            if let description = self.errorDescription {
+                return [
+                    NSLocalizedDescriptionKey: description,
+                    NSUnderlyingErrorKey: error as NSError
+                ]
+            } else {
+                return [NSUnderlyingErrorKey: error as NSError]
+            }
         case .failedToEncodeRegisterKeyRequest,
                 .invalidAuthToken,
                 .accessDenied:
-            return [:]
+            if let description = self.errorDescription {
+                return [NSLocalizedDescriptionKey: description]
+            } else {
+                return [:]
+            }
         }
     }
 }
