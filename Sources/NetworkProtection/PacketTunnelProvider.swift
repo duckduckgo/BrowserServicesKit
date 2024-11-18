@@ -700,7 +700,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             }
 
             Logger.networkProtection.log("🔴 Stopping VPN due to no auth token")
-            await attemptShutdownDueToRevokedAccess()
+            self.cancelTunnelWithError(TunnelError.vpnAccessRevoked)
 
             // Check that the error is valid and able to be re-thrown to the OS before shutting the tunnel down
             if let wrappedError = wrapped(error: error) {
