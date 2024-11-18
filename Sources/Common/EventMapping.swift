@@ -30,20 +30,7 @@ open class EventMapping<Event> {
         eventMapper = mapping
     }
 
-    @available(*, renamed: "fire(_:error:parameters:)")
     public func fire(_ event: Event, error: Error? = nil, parameters: [String: String]? = nil, onComplete: @escaping (Error?) -> Void = {_ in }) {
         eventMapper(event, error, parameters, onComplete)
-    }
-
-    public func asyncFire(_ event: Event, error: Error? = nil, parameters: [String: String]? = nil) async throws {
-        return try await withCheckedThrowingContinuation { continuation in
-            fire(event, error: error, parameters: parameters) { error in
-                if let error = error {
-                    continuation.resume(throwing: error)
-                    return
-                }
-                continuation.resume(returning: ())
-            }
-        }
     }
 }
