@@ -43,8 +43,10 @@ public protocol SubscriptionManager {
     // Subscription
     func refreshCachedSubscription(completion: @escaping (_ isSubscriptionActive: Bool) -> Void)
     func currentSubscription(refresh: Bool) async throws -> PrivacyProSubscription
+    func getSubscription(cachePolicy: SubscriptionCachePolicy) async throws -> PrivacyProSubscription
     func getSubscriptionFrom(lastTransactionJWSRepresentation: String) async throws -> PrivacyProSubscription
     var canPurchase: Bool { get }
+    func getProducts() async throws -> [GetProductsItem]
 
     @available(macOS 12.0, iOS 15.0, *) func storePurchaseManager() -> StorePurchaseManager
     func url(for type: SubscriptionURL) -> URL
@@ -54,7 +56,10 @@ public protocol SubscriptionManager {
     // User
     var isUserAuthenticated: Bool { get }
     var userEmail: String? { get }
+
+    // Entitlements
     var entitlements: [SubscriptionEntitlement] { get }
+    func isEntitlementActive(_ entitlement: SubscriptionEntitlement) -> Bool
 
     /// Get a token container accordingly to the policy
     /// - Parameter policy: The policy that will be used to get the token, it effects the tokens source and validity
@@ -81,7 +86,7 @@ public protocol SubscriptionManager {
 /// Single entry point for everything related to Subscription. This manager is disposable, every time something related to the environment changes this need to be recreated.
 public final class DefaultSubscriptionManager: SubscriptionManager {
 
-    let oAuthClient: any OAuthClient
+    public let oAuthClient: any OAuthClient
     private let _storePurchaseManager: StorePurchaseManager?
     private let subscriptionEndpointService: SubscriptionEndpointService
     private let pixelHandler: PixelHandler
@@ -174,9 +179,23 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
         }
     }
 
+    public func getSubscription(cachePolicy: SubscriptionCachePolicy) async throws -> PrivacyProSubscription {
+        let tokenContainer = try await getTokenContainer(policy: .localValid)
+        do {
+            return try await subscriptionEndpointService.getSubscription(accessToken: tokenContainer.accessToken, cachePolicy: cachePolicy)
+        } catch SubscriptionEndpointServiceError.noData {
+            await signOut()
+            throw SubscriptionEndpointServiceError.noData
+        }
+    }
+
     public func getSubscriptionFrom(lastTransactionJWSRepresentation: String) async throws -> PrivacyProSubscription {
         let tokenContainer = try await oAuthClient.activate(withPlatformSignature: lastTransactionJWSRepresentation)
         return try await subscriptionEndpointService.getSubscription(accessToken: tokenContainer.accessToken, cachePolicy: .reloadIgnoringLocalCacheData)
+    }
+
+    public func getProducts() async throws -> [GetProductsItem] {
+        try await subscriptionEndpointService.getProducts()
     }
 
     public func clearSubscriptionCache() {
@@ -210,6 +229,10 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
 
     public var entitlements: [SubscriptionEntitlement] {
         return oAuthClient.currentTokenContainer?.decodedAccessToken.subscriptionEntitlements ?? []
+    }
+
+    public func isEntitlementActive(_ entitlement: SubscriptionEntitlement) -> Bool {
+        entitlements.contains(entitlement)
     }
 
     private func refreshAccount() async {

@@ -34,18 +34,15 @@ public protocol StripePurchaseFlow {
 
 public final class DefaultStripePurchaseFlow: StripePurchaseFlow {
     private let subscriptionManager: SubscriptionManager
-    private let subscriptionEndpointService: SubscriptionEndpointService
 
-    public init(subscriptionManager: SubscriptionManager,
-                subscriptionEndpointService: any SubscriptionEndpointService) {
+    public init(subscriptionManager: SubscriptionManager) {
         self.subscriptionManager = subscriptionManager
-        self.subscriptionEndpointService = subscriptionEndpointService
     }
 
     public func subscriptionOptions() async -> Result<SubscriptionOptions, StripePurchaseFlowError> {
         Logger.subscriptionStripePurchaseFlow.log("Getting subscription options")
 
-        guard let products = try? await subscriptionEndpointService.getProducts(), !products.isEmpty else {
+        guard let products = try? await subscriptionManager.getProducts(), !products.isEmpty else {
             Logger.subscriptionStripePurchaseFlow.error("Failed to obtain products")
             return .failure(.noProductsFound)
         }
@@ -73,12 +70,12 @@ public final class DefaultStripePurchaseFlow: StripePurchaseFlow {
     public func prepareSubscriptionPurchase(emailAccessToken: String?) async -> Result<PurchaseUpdate, StripePurchaseFlowError> {
 
         Logger.subscription.log("Preparing subscription purchase")
-        subscriptionEndpointService.clearSubscription()
+        subscriptionManager.clearSubscriptionCache()
         do {
-            let accessToken = try await subscriptionManager.getTokenContainer(policy: .createIfNeeded).accessToken
-            if let subscription = try? await subscriptionEndpointService.getSubscription(accessToken: accessToken),
-               !subscription.isActive {
-                return .success(PurchaseUpdate.redirect(withToken: accessToken))
+            let subscription = try await subscriptionManager.getSubscription(cachePolicy: .reloadIgnoringLocalCacheData)
+            if !subscription.isActive {
+                let tokenContainer = try await subscriptionManager.getTokenContainer(policy: .local)
+                return .success(PurchaseUpdate.redirect(withToken: tokenContainer.accessToken))
             } else {
                 return .success(PurchaseUpdate.redirect(withToken: ""))
             }
@@ -90,7 +87,7 @@ public final class DefaultStripePurchaseFlow: StripePurchaseFlow {
 
     public func completeSubscriptionPurchase() async {
         Logger.subscriptionStripePurchaseFlow.log("Completing subscription purchase")
-        subscriptionEndpointService.clearSubscription()
+        subscriptionManager.clearSubscriptionCache()
         _ = try? await subscriptionManager.getTokenContainer(policy: .localForceRefresh)
     }
 }
