@@ -16,11 +16,43 @@
 //  limitations under the License.
 //
 
-import XCTest
 import BrowserServicesKit
+import TestUtils
+import XCTest
+
+final class CapturingFeatureFlagOverriding: FeatureFlagLocalOverriding {
+
+    var overrideCalls: [any FeatureFlagDescribing] = []
+    var toggleOverideCalls: [any FeatureFlagDescribing] = []
+    var clearOverrideCalls: [any FeatureFlagDescribing] = []
+    var clearAllOverrideCallCount: Int = 0
+
+    var override: (any FeatureFlagDescribing) -> Bool? = { _ in nil }
+
+    var actionHandler: any FeatureFlagLocalOverridesHandling = CapturingFeatureFlagLocalOverridesHandler()
+    weak var featureFlagger: FeatureFlagger?
+
+    func override<Flag: FeatureFlagDescribing>(for featureFlag: Flag) -> Bool? {
+        overrideCalls.append(featureFlag)
+        return override(featureFlag)
+    }
+
+    func toggleOverride<Flag: FeatureFlagDescribing>(for featureFlag: Flag) {
+        toggleOverideCalls.append(featureFlag)
+    }
+
+    func clearOverride<Flag: FeatureFlagDescribing>(for featureFlag: Flag) {
+        clearOverrideCalls.append(featureFlag)
+    }
+
+    func clearAllOverrides<Flag: FeatureFlagDescribing>(for flagType: Flag.Type) {
+        clearAllOverrideCallCount += 1
+    }
+}
 
 final class DefaultFeatureFlaggerTests: XCTestCase {
     var internalUserDeciderStore: MockInternalUserStoring!
+    var overrides: CapturingFeatureFlagOverriding!
 
     override func setUp() {
         super.setUp()
@@ -34,22 +66,22 @@ final class DefaultFeatureFlaggerTests: XCTestCase {
 
     func testWhenDisabled_sourceDisabled_returnsFalse() {
         let featureFlagger = createFeatureFlagger()
-        XCTAssertFalse(featureFlagger.isFeatureOn(forProvider: FeatureFlagSource.disabled))
+        XCTAssertFalse(featureFlagger.isFeatureOn(for: FeatureFlagSource.disabled))
     }
 
     func testWhenInternalOnly_returnsIsInternalUserValue() {
         let featureFlagger = createFeatureFlagger()
         internalUserDeciderStore.isInternalUser = false
-        XCTAssertFalse(featureFlagger.isFeatureOn(forProvider: FeatureFlagSource.internalOnly))
+        XCTAssertFalse(featureFlagger.isFeatureOn(for: FeatureFlagSource.internalOnly))
         internalUserDeciderStore.isInternalUser = true
-        XCTAssertTrue(featureFlagger.isFeatureOn(forProvider: FeatureFlagSource.internalOnly))
+        XCTAssertTrue(featureFlagger.isFeatureOn(for: FeatureFlagSource.internalOnly))
     }
 
     func testWhenRemoteDevelopment_isNOTInternalUser_returnsFalse() {
         internalUserDeciderStore.isInternalUser = false
         let embeddedData = Self.embeddedConfig(autofillState: "enabled")
         let featureFlagger = createFeatureFlagger(withMockedConfigData: embeddedData)
-        XCTAssertFalse(featureFlagger.isFeatureOn(forProvider: FeatureFlagSource.remoteDevelopment(.feature(.autofill))))
+        XCTAssertFalse(featureFlagger.isFeatureOn(for: FeatureFlagSource.remoteDevelopment(.feature(.autofill))))
     }
 
     func testWhenRemoteDevelopment_isInternalUser_whenFeature_returnsPrivacyConfigValue() {
@@ -109,6 +141,43 @@ final class DefaultFeatureFlaggerTests: XCTestCase {
         assertFeatureFlagger(with: embeddedData, willReturn: false, for: sourceProvider)
     }
 
+    // MARK: - Overrides
+
+    func testWhenFeatureFlaggerIsInitializedWithLocalOverridesAndUserIsNotInternalThenAllFlagsAreCleared() throws {
+        internalUserDeciderStore.isInternalUser = false
+        _ = createFeatureFlaggerWithLocalOverrides()
+        XCTAssertEqual(overrides.clearAllOverrideCallCount, 1)
+    }
+
+    func testWhenLocalOverridesIsSetUpAndUserIsInternalThenLocalOverrideTakesPrecedenceWhenCheckingFlagValue() throws {
+        let featureFlagger = createFeatureFlaggerWithLocalOverrides()
+        internalUserDeciderStore.isInternalUser = true
+
+        overrides.override = { _ in return true }
+
+        XCTAssertTrue(featureFlagger.isFeatureOn(for: TestFeatureFlag.overridableFlagDisabledByDefault))
+        XCTAssertEqual(overrides.overrideCalls.count, 1)
+        XCTAssertEqual(try XCTUnwrap(overrides.overrideCalls.first as? TestFeatureFlag), .overridableFlagDisabledByDefault)
+    }
+
+    func testWhenLocalOverridesIsSetUpAndUserIsInternalAndAllowOverrideIsFalseThenLocalOverrideIsNotCheckedWhenCheckingFlagValue() throws {
+        let featureFlagger = createFeatureFlaggerWithLocalOverrides()
+        internalUserDeciderStore.isInternalUser = true
+
+        XCTAssertFalse(featureFlagger.isFeatureOn(for: TestFeatureFlag.overridableFlagDisabledByDefault, allowOverride: false))
+        XCTAssertTrue(overrides.overrideCalls.isEmpty)
+    }
+
+    func testWhenLocalOverridesIsSetUpAndUserIsNotInternalThenLocalOverrideIsNotCheckedWhenCheckingFlagValue() throws {
+        let featureFlagger = createFeatureFlaggerWithLocalOverrides()
+        internalUserDeciderStore.isInternalUser = false
+
+        XCTAssertFalse(featureFlagger.isFeatureOn(for: TestFeatureFlag.overridableFlagDisabledByDefault))
+        XCTAssertTrue(overrides.overrideCalls.isEmpty)
+    }
+
+    // MARK: - Helpers
+
     private func createFeatureFlagger(withMockedConfigData data: Data = DefaultFeatureFlaggerTests.embeddedConfig()) -> DefaultFeatureFlagger {
         let mockEmbeddedData = MockEmbeddedDataProvider(data: data, etag: "embeddedConfigETag")
         let manager = PrivacyConfigurationManager(fetchedETag: nil,
@@ -118,6 +187,24 @@ final class DefaultFeatureFlaggerTests: XCTestCase {
                                                  internalUserDecider: DefaultInternalUserDecider())
         let internalUserDecider = DefaultInternalUserDecider(store: internalUserDeciderStore)
         return DefaultFeatureFlagger(internalUserDecider: internalUserDecider, privacyConfigManager: manager)
+    }
+
+    private func createFeatureFlaggerWithLocalOverrides(withMockedConfigData data: Data = DefaultFeatureFlaggerTests.embeddedConfig()) -> DefaultFeatureFlagger {
+        let mockEmbeddedData = MockEmbeddedDataProvider(data: data, etag: "embeddedConfigETag")
+        let manager = PrivacyConfigurationManager(fetchedETag: nil,
+                                                  fetchedData: nil,
+                                                  embeddedDataProvider: mockEmbeddedData,
+                                                  localProtection: MockDomainsProtectionStore(),
+                                                 internalUserDecider: DefaultInternalUserDecider())
+        let internalUserDecider = DefaultInternalUserDecider(store: internalUserDeciderStore)
+
+        overrides = CapturingFeatureFlagOverriding()
+        return DefaultFeatureFlagger(
+            internalUserDecider: internalUserDecider,
+            privacyConfigManager: manager,
+            localOverrides: overrides,
+            for: TestFeatureFlag.self
+        )
     }
 
     private static func embeddedConfig(autofillState: String = "enabled",
@@ -142,14 +229,17 @@ final class DefaultFeatureFlaggerTests: XCTestCase {
 
     private func assertFeatureFlagger(with embeddedData: Data,
                                       willReturn bool: Bool,
-                                      for sourceProvider: FeatureFlagSourceProviding,
+                                      for sourceProvider: any FeatureFlagDescribing,
                                       file: StaticString = #file,
                                       line: UInt = #line) {
         let featureFlagger = createFeatureFlagger(withMockedConfigData: embeddedData)
-        XCTAssertEqual(featureFlagger.isFeatureOn(forProvider: sourceProvider), bool, file: file, line: line)
+        XCTAssertEqual(featureFlagger.isFeatureOn(for: sourceProvider), bool, file: file, line: line)
     }
 }
 
-extension FeatureFlagSource: FeatureFlagSourceProviding {
+extension FeatureFlagSource: FeatureFlagDescribing {
+    public static let allCases: [FeatureFlagSource]  = []
+    public var supportsLocalOverriding: Bool { false }
+    public var rawValue: String { "rawValue" }
     public var source: FeatureFlagSource { self }
 }
