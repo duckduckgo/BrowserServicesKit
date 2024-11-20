@@ -57,6 +57,7 @@ public protocol StorePurchaseManager {
 public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseManager {
 
     private let storeSubscriptionConfiguration: StoreSubscriptionConfiguration
+    private let subscriptionFeatureMappingCache: SubscriptionFeatureMappingCache
 
     @Published public private(set) var availableProducts: [Product] = []
     @Published public private(set) var purchasedProductIDs: [String] = []
@@ -66,8 +67,9 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
     private var transactionUpdates: Task<Void, Never>?
     private var storefrontChanges: Task<Void, Never>?
 
-    public init() {
-        storeSubscriptionConfiguration = DefaultStoreSubscriptionConfiguration()
+    public init(subscriptionFeatureMappingCache: SubscriptionFeatureMappingCache) {
+        self.storeSubscriptionConfiguration = DefaultStoreSubscriptionConfiguration()
+        self.subscriptionFeatureMappingCache = subscriptionFeatureMappingCache
         transactionUpdates = observeTransactionUpdates()
         storefrontChanges = observeStorefrontChanges()
     }
@@ -106,16 +108,24 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
             return nil
         }
 
-        let options = [SubscriptionOption(id: monthly.id, cost: .init(displayPrice: monthly.displayPrice, recurrence: "monthly")),
-                       SubscriptionOption(id: yearly.id, cost: .init(displayPrice: yearly.displayPrice, recurrence: "yearly"))]
-        let features = SubscriptionFeatureName.allCases.map { SubscriptionFeature(name: $0.rawValue) }
-        let platform: SubscriptionPlatformName
-
+        let platform: SubscriptionPlatformName = {
 #if os(iOS)
-        platform = .ios
+           .ios
 #else
-        platform = .macos
+           .macos
 #endif
+        }()
+
+        let options = [SubscriptionOption(id: monthly.id,
+                                          cost: .init(displayPrice: monthly.displayPrice, recurrence: "monthly")),
+                       SubscriptionOption(id: yearly.id,
+                                          cost: .init(displayPrice: yearly.displayPrice, recurrence: "yearly"))]
+
+        // TODO: Calculate subscription features based on ProductNames
+//        let features = SubscriptionFeatureName.allCases.map { SubscriptionFeature(name: $0.rawValue) }
+        let features: [SubscriptionFeature] = await subscriptionFeatureMappingCache.subscriptionFeatures(for: monthly.id).compactMap { SubscriptionFeature(from: $0) }
+
+
         return SubscriptionOptions(platform: platform.rawValue,
                                    options: options,
                                    features: features)
@@ -134,6 +144,11 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
 
             if self.availableProducts != availableProducts {
                 self.availableProducts = availableProducts
+
+                // Update cached subscription features mapping
+                for id in availableProducts.compactMap({ $0.id }) {
+                    _ = await subscriptionFeatureMappingCache.subscriptionFeatures(for: id)
+                }
             }
         } catch {
             Logger.subscription.error("[StorePurchaseManager] Error: \(String(reflecting: error), privacy: .public)")

@@ -24,6 +24,7 @@ public protocol SubscriptionManager {
     var accountManager: AccountManager { get }
     var subscriptionEndpointService: SubscriptionEndpointService { get }
     var authEndpointService: AuthEndpointService { get }
+    var subscriptionFeatureMappingCache: SubscriptionFeatureMappingCache { get }
 
     // Environment
     static func loadEnvironmentFrom(userDefaults: UserDefaults) -> SubscriptionEnvironment?
@@ -43,6 +44,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     public let accountManager: AccountManager
     public let subscriptionEndpointService: SubscriptionEndpointService
     public let authEndpointService: AuthEndpointService
+    public let subscriptionFeatureMappingCache: SubscriptionFeatureMappingCache
     public let currentEnvironment: SubscriptionEnvironment
     public private(set) var canPurchase: Bool = false
 
@@ -50,11 +52,13 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
                 accountManager: AccountManager,
                 subscriptionEndpointService: SubscriptionEndpointService,
                 authEndpointService: AuthEndpointService,
+                subscriptionFeatureMappingCache: SubscriptionFeatureMappingCache,
                 subscriptionEnvironment: SubscriptionEnvironment) {
         self._storePurchaseManager = storePurchaseManager
         self.accountManager = accountManager
         self.subscriptionEndpointService = subscriptionEndpointService
         self.authEndpointService = authEndpointService
+        self.subscriptionFeatureMappingCache = subscriptionFeatureMappingCache
         self.currentEnvironment = subscriptionEnvironment
         switch currentEnvironment.purchasePlatform {
         case .appStore:
