@@ -76,6 +76,7 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
     public var isBurnerWindow: Bool = false
 
     public var sessionKey: String?
+    public var messageSecret: String?
 
     public weak var emailDelegate: AutofillEmailDelegate?
     public weak var vaultDelegate: AutofillSecureVaultDelegate?
