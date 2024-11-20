@@ -153,10 +153,13 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
             if !self.lookupCompiledRules() {
                 if let lastCompiledRules = lastCompiledRulesStore?.rules, !lastCompiledRules.isEmpty {
                     self.fetchLastCompiledRules(with: lastCompiledRules)
+                    self.errorReporting?.fire(.contentBlockingFetchRulesSucceeded)
                 } else {
                     self.errorReporting?.fire(.contentBlockingLookupAndFetchFailed)
                     self.startCompilationProcess()
                 }
+            } else {
+                self.errorReporting?.fire(.contentBlockingLookupRulesSucceeded)
             }
         }
     }
@@ -252,8 +255,6 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
         if let result = initialCompilationTask.result {
             let rules = result.map(Rules.init(compilationResult:))
             Logger.contentBlocking.debug("🟩 Found \(rules.count, privacy: .public) rules")
-            
-            self.errorReporting?.fire(.contentBlockingLookupRulesSucceeded)
             applyRules(rules)
             return true
         }
@@ -278,7 +279,6 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
         mutex.wait()
 
         if let rules = initialCompilationTask.getFetchedRules() {
-            self.errorReporting?.fire(.contentBlockingFetchRulesSucceeded)
             applyRules(rules)
         } else {
             lock.lock()
