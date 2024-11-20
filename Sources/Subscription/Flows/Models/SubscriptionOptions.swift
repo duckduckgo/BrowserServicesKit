@@ -47,3 +47,22 @@ struct SubscriptionOptionCost: Encodable, Equatable {
 public struct SubscriptionFeature: Encodable, Equatable {
     let name: String
 }
+
+// TODO: To be removed as we will use ProductNames on FE as well
+public extension SubscriptionFeature {
+    init?(from productName: Entitlement.ProductName) {
+        switch productName {
+        case .networkProtection:
+            name = SubscriptionFeatureName.vpn.rawValue
+        case .dataBrokerProtection:
+            name = SubscriptionFeatureName.personalInformationRemoval.rawValue
+        case .identityTheftRestoration:
+            name = SubscriptionFeatureName.identityTheftRestoration.rawValue
+        case .identityTheftRestorationGlobal:
+            // TODO: Needs to be updated when we have updated SubscriptionFeatureName
+            name = SubscriptionFeatureName.identityTheftRestoration.rawValue
+        default:
+            return nil
+        }
+    }
+}
