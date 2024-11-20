@@ -158,7 +158,7 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
             let subscription = try await subscriptionManager.confirmPurchase(signature: transactionJWS)
             if subscription.isActive {
                 let refreshedToken = try await subscriptionManager.getTokenContainer(policy: .localForceRefresh)
-                if refreshedToken.decodedAccessToken.entitlements.isEmpty {
+                if refreshedToken.decodedAccessToken.subscriptionEntitlements.isEmpty {
                     Logger.subscriptionAppStorePurchaseFlow.error("Missing entitlements")
                     return .failure(.missingEntitlements)
                 } else {

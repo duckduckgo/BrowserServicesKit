@@ -59,7 +59,7 @@ public struct JWTAccessToken: JWTPayload {
     public let scope: String
     public let api: String // always v2
     public let email: String?
-    public let entitlements: [EntitlementPayload]
+    let entitlements: [EntitlementPayload]
 
     public func verify(using signer: JWTKit.JWTSigner) throws {
         try self.exp.verifyNotExpired()

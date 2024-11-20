@@ -42,7 +42,7 @@ public final class NetworkProtectionKeychainTokenStore: NetworkProtectionTokenSt
     private let keychainStore: NetworkProtectionKeychainStore
     private let errorEvents: EventMapping<NetworkProtectionError>?
     private let useAccessTokenProvider: Bool
-    public typealias AccessTokenProvider = () -> String?
+    public typealias AccessTokenProvider = () async -> String?
     private let accessTokenProvider: AccessTokenProvider
 
     public static var authTokenPrefix: String { "ddg:" }

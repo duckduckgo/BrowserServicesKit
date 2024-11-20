@@ -86,7 +86,7 @@ public protocol SubscriptionManager {
 /// Single entry point for everything related to Subscription. This manager is disposable, every time something related to the environment changes this need to be recreated.
 public final class DefaultSubscriptionManager: SubscriptionManager {
 
-    public let oAuthClient: any OAuthClient
+    private let oAuthClient: any OAuthClient
     private let _storePurchaseManager: StorePurchaseManager?
     private let subscriptionEndpointService: SubscriptionEndpointService
     private let pixelHandler: PixelHandler
@@ -238,7 +238,6 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     private func refreshAccount() async {
         do {
             try await getTokenContainer(policy: .localForceRefresh)
-            NotificationCenter.default.post(name: .entitlementsDidChange, object: self, userInfo: nil)
         } catch {
             Logger.subscription.error("Failed to refresh account: \(error.localizedDescription, privacy: .public)")
         }
@@ -246,7 +245,21 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
 
     @discardableResult public func getTokenContainer(policy: TokensCachePolicy) async throws -> TokenContainer {
         do {
-            return try await oAuthClient.getTokens(policy: policy)
+            let referenceCachedTokenContainer = try? await oAuthClient.getTokens(policy: .local)
+            let referenceCachedEntitlements = referenceCachedTokenContainer?.decodedAccessToken.subscriptionEntitlements
+            let resultTokenContainer = try await oAuthClient.getTokens(policy: policy)
+            let newEntitlements = resultTokenContainer.decodedAccessToken.subscriptionEntitlements
+
+            // Send notification when entitlements change
+            if referenceCachedEntitlements != newEntitlements {
+                NotificationCenter.default.post(name: .entitlementsDidChange, object: self, userInfo: [UserDefaultsCacheKey.subscriptionEntitlements: newEntitlements])
+            }
+
+            if referenceCachedTokenContainer == nil { // new login
+                NotificationCenter.default.post(name: .accountDidSignIn, object: self, userInfo: nil)
+            }
+
+            return resultTokenContainer
         } catch OAuthClientError.deadToken {
             return try await throwAppropriateDeadTokenError()
         } catch {
