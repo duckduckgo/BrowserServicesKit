@@ -319,9 +319,6 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     }
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didChangeProtectionState protectionState: ProtectionState) {
-        if protectionState.eventOrigin.screen == .choiceToggle {
-            eventMapping.fire(.toggleProtectionOff)
-        }
         if shouldSegueToToggleReportScreen(with: protectionState) {
             segueToToggleReportScreen(with: protectionState)
         } else {
@@ -393,16 +390,7 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
         toggleReportingFlow?.userScriptDidSelectReportAction(shouldSendReport: shouldSendReport)
     }
 
-    // MARK: - Experiment flows (soon to be removed)
-
-    func userScript(_ userScript: PrivacyDashboardUserScript, didSelectOverallCategory category: String) {
-        eventMapping.fire(.overallCategorySelected, parameters: [PrivacyDashboardEvents.Parameters.category: category])
-    }
-
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectBreakageCategory category: String) {
-        eventMapping.fire(.breakageCategorySelected, parameters: [
-            PrivacyDashboardEvents.Parameters.category: category
-        ])
         delegate?.privacyDashboardController(self, didSelectBreakageCategory: category)
     }
 
@@ -412,10 +400,6 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
 
     func userScriptDidRequestShowNativeFeedback(_ userScript: PrivacyDashboardUserScript) {
         delegate?.privacyDashboardControllerDidRequestShowGeneralFeedback(self)
-    }
-
-    func userScriptDidSkipTogglingStep(_ userScript: PrivacyDashboardUserScript) {
-        eventMapping.fire(.skipToggleStep)
     }
 
 }
