@@ -31,10 +31,6 @@ public enum PrivacyDashboardEvents {
     case showReportBrokenSite
 
     case reportBrokenSiteShown
-    case breakageCategorySelected
     case reportBrokenSiteSent
-    case overallCategorySelected
-    case skipToggleStep
-    case toggleProtectionOff
 
 }
