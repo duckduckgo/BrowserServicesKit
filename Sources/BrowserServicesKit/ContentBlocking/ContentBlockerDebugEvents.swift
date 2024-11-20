@@ -48,4 +48,7 @@ public enum ContentBlockerDebugEvents {
 
     case contentBlockingCompilationTime
 
+    case contentBlockingLookupRulesSucceeded
+    case contentBlockingFetchRulesSucceeded
+    case contentBlockingLookupAndFetchFailed
 }
