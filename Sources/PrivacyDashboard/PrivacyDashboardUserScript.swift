@@ -41,11 +41,9 @@ protocol PrivacyDashboardUserScriptDelegate: AnyObject {
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectReportAction shouldSendReport: Bool)
 
     // Experiment flows
-    func userScript(_ userScript: PrivacyDashboardUserScript, didSelectOverallCategory category: String)
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectBreakageCategory category: String)
     func userScriptDidRequestShowAlertForMissingDescription(_ userScript: PrivacyDashboardUserScript)
     func userScriptDidRequestShowNativeFeedback(_ userScript: PrivacyDashboardUserScript)
-    func userScriptDidSkipTogglingStep(_ userScript: PrivacyDashboardUserScript)
 
 }
 
@@ -279,16 +277,6 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         delegate?.userScript(self, didSelectReportAction: false)
     }
 
-    private func handleSelectOverallCategory(message: WKScriptMessage) {
-        guard let dict = message.body as? [String: Any],
-              let category = dict["category"] as? String
-        else {
-            assertionFailure("handleSelectOverallCategory: expected { category: String }")
-            return
-        }
-        delegate?.userScript(self, didSelectOverallCategory: category)
-    }
-
     private func handleSelectBreakageCategory(message: WKScriptMessage) {
         guard let dict = message.body as? [String: Any],
               let category = dict["category"] as? String
@@ -313,14 +301,9 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             return
         }
 
-        if telemetrySpan.attributes.name == "categoryTypeSelected" {
-            let category = telemetrySpan.attributes.value ?? ""
-            delegate?.userScript(self, didSelectOverallCategory: category)
-        } else if telemetrySpan.attributes.name == "categorySelected" {
+        if telemetrySpan.attributes.name == "categorySelected" {
             let category = telemetrySpan.attributes.value ?? ""
             delegate?.userScript(self, didSelectBreakageCategory: category)
-        } else if telemetrySpan.attributes.name == "toggleSkipped" {
-            delegate?.userScriptDidSkipTogglingStep(self)
         }
 
     }
