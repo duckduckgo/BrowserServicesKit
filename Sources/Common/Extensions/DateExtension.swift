@@ -135,4 +135,8 @@ public extension Date {
         self > Date().addingTimeInterval(Double(-days) * 24 * 60 * 60)
     }
 
+    func isLessThan(minutesAgo minutes: Int) -> Bool {
+        self > Date().addingTimeInterval(Double(-minutes) * 60)
+    }
+
 }
