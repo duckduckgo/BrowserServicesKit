@@ -53,7 +53,6 @@ final class PrivacyDashboardDelegateMock: PrivacyDashboardControllerDelegate {
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
                                     didRequestSubmitBrokenSiteReportWithCategory category: String,
                                     description: String) {}
-    func privacyDashboardControllerDidRequestShowAlertForMissingDescription(_ privacyDashboardController: PrivacyDashboardController) {}
     func privacyDashboardControllerDidRequestShowGeneralFeedback(_ privacyDashboardController: PrivacyDashboardController) {}
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController, didSetHeight height: Int) {}
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
