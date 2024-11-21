@@ -40,10 +40,10 @@ public final class DefaultSubscriptionFeatureMappingCache: SubscriptionFeatureMa
         let features: [Entitlement.ProductName]
 
         if let subscriptionFeatures = currentSubscriptionFeatureMapping[subscriptionIdentifier] {
-            Logger.subscription.debug("[SubscriptionFeatureMappingCache] - got features")
+            Logger.subscription.debug("[SubscriptionFeatureMappingCache] - got cached features")
             features = subscriptionFeatures
         } else if let subscriptionFeatures = await fetchRemoteFeatures(for: subscriptionIdentifier) {
-            Logger.subscription.debug("[SubscriptionFeatureMappingCache] - fetching features")
+            Logger.subscription.debug("[SubscriptionFeatureMappingCache] - fetching features from BE API")
             features = subscriptionFeatures
             updateCachedFeatureMapping(with: subscriptionFeatures, for: subscriptionIdentifier)
         } else {
@@ -63,7 +63,7 @@ public final class DefaultSubscriptionFeatureMappingCache: SubscriptionFeatureMa
         if let cachedFeatureMapping {
             Logger.subscription.debug("[SubscriptionFeatureMappingCache] -- got cachedFeatureMapping")
             featureMapping = cachedFeatureMapping
-        } else if let storedFeatureMapping = fetchStoredFeatureMapping() {
+        } else if let storedFeatureMapping {
             Logger.subscription.debug("[SubscriptionFeatureMappingCache] -- have to fetchStoredFeatureMapping")
             featureMapping = storedFeatureMapping
             updateCachedFeatureMapping(to: featureMapping)
@@ -89,18 +89,32 @@ public final class DefaultSubscriptionFeatureMappingCache: SubscriptionFeatureMa
         updatedFeatureMapping[subscriptionIdentifier] = features
 
         self.cachedFeatureMapping = updatedFeatureMapping
-        storeFeatureMapping(updatedFeatureMapping)
+        self.storedFeatureMapping = updatedFeatureMapping
     }
 
     // MARK: - Stored subscription feature mapping
 
-    private func fetchStoredFeatureMapping() -> SubscriptionFeatureMapping? {
-        // fetch feature mapping from the user defaults
-        return nil
-    }
+    static private let subscriptionFeatureMappingKey = "com.duckduckgo.subscription.featuremapping"
 
-    private func storeFeatureMapping(_ featureMapping: SubscriptionFeatureMapping) {
-        // save featureMapping to user defaults
+    dynamic var storedFeatureMapping: SubscriptionFeatureMapping? {
+        get {
+            guard let data = userDefaults.data(forKey: Self.subscriptionFeatureMappingKey) else { return nil }
+            do {
+                return try JSONDecoder().decode(SubscriptionFeatureMapping?.self, from: data)
+            } catch {
+                assertionFailure("Errored while decoding feature mapping")
+                return nil
+            }
+        }
+
+        set {
+            do {
+                let data = try JSONEncoder().encode(newValue)
+                userDefaults.set(data, forKey: Self.subscriptionFeatureMappingKey)
+            } catch {
+                assertionFailure("Errored while encoding feature mapping")
+            }
+        }
     }
 
     // MARK: - Remote subscription feature mapping
