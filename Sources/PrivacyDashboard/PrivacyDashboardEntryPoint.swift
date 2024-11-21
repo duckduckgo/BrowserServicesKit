@@ -34,18 +34,10 @@ public enum PrivacyDashboardEntryPoint: Equatable {
     /// This is currently only available on iOS.
     case prompt(String)
 
-    /// The experimental after toggle prompt screen, presented in variant B.
-    /// After the user toggles off protection, this prompt asks if the action helped and allows the user to report their experience.
-    /// - Parameters:
-    ///   - category: The category of the issue reported by the user.
-    ///   - didToggleProtectionsFixIssue: A Boolean indicating whether toggling protections resolved the issue.
-    case afterTogglePrompt(category: String, didToggleProtectionsFixIssue: Bool)
-
     var screen: Screen {
         switch self {
         case .dashboard: return .primaryScreen
         case .report: return .breakageForm
-        case .afterTogglePrompt: return .choiceBreakageForm
         case .prompt: return .promptBreakageForm
         case .toggleReport: return .toggleReport
         }
@@ -57,8 +49,7 @@ public enum PrivacyDashboardEntryPoint: Equatable {
             (.dashboard, .dashboard),
             (.report, .report),
             (.toggleReport, .toggleReport),
-            (.prompt, .prompt),
-            (.afterTogglePrompt, .afterTogglePrompt):
+            (.prompt, .prompt):
             return true
         default:
             return false

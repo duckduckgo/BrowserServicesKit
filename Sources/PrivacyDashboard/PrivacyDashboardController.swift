@@ -40,8 +40,6 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
                                     didRequestOpenSettings target: PrivacyDashboardOpenSettingsTarget)
     func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
-                                    didSelectBreakageCategory category: String)
-    func privacyDashboardController(_ privacyDashboardController: PrivacyDashboardController,
                                     didRequestSubmitBrokenSiteReportWithCategory category: String,
                                     description: String)
     func privacyDashboardControllerDidRequestShowAlertForMissingDescription(_ privacyDashboardController: PrivacyDashboardController)
@@ -165,7 +163,6 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
         case .dashboard: source = .dashboard
         case .prompt(let event): source = .prompt(event)
         case .toggleReport: source = .onProtectionsOffMenu
-        case .afterTogglePrompt: source = .afterTogglePrompt
         }
         if let toggleReportingSource = toggleReportingFlow?.entryPoint.source {
             source = toggleReportingSource
@@ -364,11 +361,7 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     }
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestSubmitBrokenSiteReportWithCategory category: String, description: String) {
-        var parameters = [String: String]()
-        if case let .afterTogglePrompt(_, didToggleProtectionsFixIssue) = entryPoint {
-            parameters[PrivacyDashboardEvents.Parameters.didToggleProtectionsFixIssue] = didToggleProtectionsFixIssue.description
-        }
-        eventMapping.fire(.reportBrokenSiteSent, parameters: parameters)
+        eventMapping.fire(.reportBrokenSiteSent)
         delegate?.privacyDashboardController(self, didRequestSubmitBrokenSiteReportWithCategory: category, description: description)
     }
 
@@ -388,10 +381,6 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectReportAction shouldSendReport: Bool) {
         toggleReportingFlow?.userScriptDidSelectReportAction(shouldSendReport: shouldSendReport)
-    }
-
-    func userScript(_ userScript: PrivacyDashboardUserScript, didSelectBreakageCategory category: String) {
-        delegate?.privacyDashboardController(self, didSelectBreakageCategory: category)
     }
 
     func userScriptDidRequestShowNativeFeedback(_ userScript: PrivacyDashboardUserScript) {
