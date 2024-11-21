@@ -31,9 +31,12 @@ public final class PixelKit {
         /// [Legacy] Used in Pixel.fire(...) as .unique but without the `_u` requirement in the name
         case legacyInitial
 
-        /// Sent only once ever. The timestamp for this pixel is stored. 
+        /// Sent only once ever (based on pixel name only.) The timestamp for this pixel is stored.
         /// Note: This is the only pixel that MUST end with `_u`, Name for pixels of this type must end with if it doesn't an assertion is fired.
         case unique
+
+        /// Sent only once ever (based on pixel name AND parameters). The timestamp for this pixel is stored.
+        case uniqueIncludingParameters
 
         /// [Legacy] Used in Pixel.fire(...) as .daily but without the `_d` automatically added to the name
         case legacyDaily
@@ -67,6 +70,8 @@ public final class PixelKit {
                 "Legacy Daily and Count"
             case .dailyAndCount:
                 "Daily and Count"
+            case .uniqueIncludingParameters:
+                "Unique Including Parameters"
             }
         }
     }
@@ -219,6 +224,14 @@ public final class PixelKit {
             if !pixelHasBeenFiredEver(pixelName) {
                 fireRequestWrapper(pixelName, headers, newParams, allowedQueryReservedCharacters, true, frequency, onComplete)
                 updatePixelLastFireDate(pixelName: pixelName)
+            } else {
+                printDebugInfo(pixelName: pixelName, frequency: frequency, parameters: newParams, skipped: true)
+            }
+        case .uniqueIncludingParameters:
+            let pixelNameAndParams = pixelName + newParams.description
+            if !pixelHasBeenFiredEver(pixelNameAndParams) {
+                fireRequestWrapper(pixelName, headers, newParams, allowedQueryReservedCharacters, true, frequency, onComplete)
+                updatePixelLastFireDate(pixelName: pixelNameAndParams)
             } else {
                 printDebugInfo(pixelName: pixelName, frequency: frequency, parameters: newParams, skipped: true)
             }

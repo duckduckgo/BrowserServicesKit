@@ -74,7 +74,8 @@ class AdClickAttributionFeatureTests: XCTestCase {
                                                  fetchedData: nil,
                                                  embeddedDataProvider: dataProvider,
                                                  localProtection: MockDomainsProtectionStore(),
-                                                 internalUserDecider: DefaultInternalUserDecider())
+                                                 internalUserDecider: DefaultInternalUserDecider(),
+                                                 reportExperimentCohortAssignment: { _, _ in })
 
         let feature = AdClickAttributionFeature(with: config)
 

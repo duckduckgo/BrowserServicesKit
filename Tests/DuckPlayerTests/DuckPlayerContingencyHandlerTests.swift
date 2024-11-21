@@ -30,7 +30,8 @@ final class DuckPlayerContingencyHandlerTests: XCTestCase {
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore(),
-                                                  internalUserDecider: DefaultInternalUserDecider())
+                                                  internalUserDecider: DefaultInternalUserDecider(),
+                                                  reportExperimentCohortAssignment: {_, _ in })
 
         let handler = DefaultDuckPlayerContingencyHandler(privacyConfigurationManager: manager)
         XCTAssertTrue(handler.shouldDisplayContingencyMessage)
@@ -44,7 +45,8 @@ final class DuckPlayerContingencyHandlerTests: XCTestCase {
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore(),
-                                                  internalUserDecider: DefaultInternalUserDecider())
+                                                  internalUserDecider: DefaultInternalUserDecider(),
+                                                  reportExperimentCohortAssignment: { _, _ in })
 
         let handler = DefaultDuckPlayerContingencyHandler(privacyConfigurationManager: manager)
         XCTAssertFalse(handler.shouldDisplayContingencyMessage)
@@ -58,7 +60,8 @@ final class DuckPlayerContingencyHandlerTests: XCTestCase {
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore(),
-                                                  internalUserDecider: DefaultInternalUserDecider())
+                                                  internalUserDecider: DefaultInternalUserDecider(),
+                                                  reportExperimentCohortAssignment: { _, _ in })
 
         let handler = DefaultDuckPlayerContingencyHandler(privacyConfigurationManager: manager)
         XCTAssertFalse(handler.shouldDisplayContingencyMessage)
@@ -72,7 +75,8 @@ final class DuckPlayerContingencyHandlerTests: XCTestCase {
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore(),
-                                                  internalUserDecider: DefaultInternalUserDecider())
+                                                  internalUserDecider: DefaultInternalUserDecider(),
+                                                  reportExperimentCohortAssignment: { _, _ in })
 
         let handler = DefaultDuckPlayerContingencyHandler(privacyConfigurationManager: manager)
         XCTAssertFalse(handler.shouldDisplayContingencyMessage)
@@ -86,7 +90,8 @@ final class DuckPlayerContingencyHandlerTests: XCTestCase {
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore(),
-                                                  internalUserDecider: DefaultInternalUserDecider())
+                                                  internalUserDecider: DefaultInternalUserDecider(),
+                                                  reportExperimentCohortAssignment: { _, _ in })
 
         let handler = DefaultDuckPlayerContingencyHandler(privacyConfigurationManager: manager)
         XCTAssertEqual(handler.learnMoreURL, URL(string: MockConfig.learnMoreURL))
@@ -99,7 +104,8 @@ final class DuckPlayerContingencyHandlerTests: XCTestCase {
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore(),
-                                                  internalUserDecider: DefaultInternalUserDecider())
+                                                  internalUserDecider: DefaultInternalUserDecider(),
+                                                  reportExperimentCohortAssignment: { _, _ in })
 
         let handler = DefaultDuckPlayerContingencyHandler(privacyConfigurationManager: manager)
         XCTAssertNil(handler.learnMoreURL)

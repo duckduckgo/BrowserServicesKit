@@ -212,7 +212,8 @@ final class SubscriptionFeatureAvailabilityTests: XCTestCase {
 }
 
 class MockPrivacyConfiguration: PrivacyConfiguration {
-
+    var delegate: (any PrivacyConfigurationDelegate)?
+    
     func isEnabled(featureKey: PrivacyFeature, versionProvider: AppVersionProvider) -> Bool { true }
 
     func stateFor(featureKey: BrowserServicesKit.PrivacyFeature, versionProvider: BrowserServicesKit.AppVersionProvider) -> BrowserServicesKit.PrivacyConfigurationFeatureState {

@@ -177,14 +177,15 @@ final class DefaultFeatureFlaggerTests: XCTestCase {
     }
 
     // MARK: - Helpers
-
+    
     private func createFeatureFlagger(withMockedConfigData data: Data = DefaultFeatureFlaggerTests.embeddedConfig()) -> DefaultFeatureFlagger {
         let mockEmbeddedData = MockEmbeddedDataProvider(data: data, etag: "embeddedConfigETag")
         let manager = PrivacyConfigurationManager(fetchedETag: nil,
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore(),
-                                                 internalUserDecider: DefaultInternalUserDecider())
+                                                  internalUserDecider: DefaultInternalUserDecider(),
+                                                  reportExperimentCohortAssignment: { _, _ in })
         let internalUserDecider = DefaultInternalUserDecider(store: internalUserDeciderStore)
         return DefaultFeatureFlagger(internalUserDecider: internalUserDecider, privacyConfigManager: manager)
     }
@@ -195,7 +196,8 @@ final class DefaultFeatureFlaggerTests: XCTestCase {
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore(),
-                                                 internalUserDecider: DefaultInternalUserDecider())
+                                                  internalUserDecider: DefaultInternalUserDecider(),
+                                                  reportExperimentCohortAssignment: { _, _ in })
         let internalUserDecider = DefaultInternalUserDecider(store: internalUserDeciderStore)
 
         overrides = CapturingFeatureFlagOverriding()

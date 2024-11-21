@@ -59,7 +59,8 @@ final class URLParameterTests: XCTestCase {
                                            fetchedData: nil,
                                            embeddedDataProvider: embeddedDataProvider,
                                            localProtection: localProtection,
-                                           internalUserDecider: DefaultInternalUserDecider())
+                                           internalUserDecider: DefaultInternalUserDecider(),
+                                           reportExperimentCohortAssignment: { _, _ in })
     }
 
     private lazy var urlParamTestSuite: URLParamRefTests = {

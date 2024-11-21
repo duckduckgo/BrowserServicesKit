@@ -27,6 +27,8 @@ final class AddPrivacyConfigurationExperimentTests: XCTestCase {
     var experimentManager: ExperimentCohortsManager!
     var manager: PrivacyConfigurationManager!
     var locale: Locale!
+    var assignedCohort: CohortID?
+    var assignedExperiment: SubfeatureID?
 
     let subfeatureName = "credentialsSaving"
 
@@ -42,7 +44,11 @@ final class AddPrivacyConfigurationExperimentTests: XCTestCase {
                                               localProtection: MockDomainsProtectionStore(),
                                               internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore),
                                               locale: locale,
-                                              experimentCohortManager: experimentManager)
+                                              experimentCohortManager: experimentManager,
+                                              reportExperimentCohortAssignment: { [weak self] (cohort: CohortID, subfeatureID: SubfeatureID) in
+            self?.assignedCohort = cohort
+            self?.assignedExperiment = subfeatureID
+        })
     }
 
     override func tearDown() {
@@ -1223,4 +1229,44 @@ final class AddPrivacyConfigurationExperimentTests: XCTestCase {
         XCTAssertTrue(activeExperiments.isEmpty)
     }
 
+    func testOnAssignmentReportAssignmentFunctionCalled() {
+        featureJson =
+            """
+            {
+                "features": {
+                    "autofill": {
+                        "state": "enabled",
+                        "exceptions": [],
+                        "features": {
+                            "credentialsSaving": {
+                                "state": "enabled",
+                                "minSupportedVersion": 2,
+                                "targets": [
+                                    {
+                                        "localeCountry": "US"
+                                    }
+                                ],
+                                "cohorts": [
+                                    {
+                                        "name": "control",
+                                        "weight": 1
+                                    },
+                                    {
+                                        "name": "blue",
+                                        "weight": 0
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                }
+            }
+            """.data(using: .utf8)!
+        manager.reload(etag: "foo", data: featureJson)
+        let config = manager.privacyConfig
+
+        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "control"))
+        XCTAssertEqual(self.assignedCohort, "control")
+        XCTAssertEqual(self.assignedExperiment, "credentialsSaving")
+    }
 }

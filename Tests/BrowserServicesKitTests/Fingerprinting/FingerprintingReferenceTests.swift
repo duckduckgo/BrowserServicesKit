@@ -62,7 +62,8 @@ final class FingerprintingReferenceTests: XCTestCase {
                                            fetchedData: nil,
                                            embeddedDataProvider: embeddedDataProvider,
                                            localProtection: localProtection,
-                                           internalUserDecider: DefaultInternalUserDecider())
+                                           internalUserDecider: DefaultInternalUserDecider(),
+                                           reportExperimentCohortAssignment: { _, _ in })
     }()
 
     override func tearDown() {

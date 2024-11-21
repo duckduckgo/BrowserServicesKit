@@ -72,7 +72,8 @@ final class AmpMatchingTests: XCTestCase {
                                            fetchedData: nil,
                                            embeddedDataProvider: embeddedDataProvider,
                                            localProtection: localProtection,
-                                           internalUserDecider: DefaultInternalUserDecider())
+                                           internalUserDecider: DefaultInternalUserDecider(),
+                                           reportExperimentCohortAssignment: { _, _ in })
     }
 
     private var contentBlockingManager: ContentBlockerRulesManager {

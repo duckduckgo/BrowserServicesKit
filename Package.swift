@@ -44,6 +44,7 @@ let package = Package(
         .library(name: "DuckPlayer", targets: ["DuckPlayer"]),
         .library(name: "PhishingDetection", targets: ["PhishingDetection"]),
         .library(name: "Onboarding", targets: ["Onboarding"]),
+        .library(name: "PixelExperimentKit", targets: ["PixelExperimentKit"]),
         .library(name: "BrokenSitePrompt", targets: ["BrokenSitePrompt"]),
         .library(name: "PageRefreshMonitor", targets: ["PageRefreshMonitor"]),
     ],
@@ -428,6 +429,19 @@ let package = Package(
             ]
         ),
         .target(
+            name: "PixelExperimentKit",
+            dependencies: [
+                "PixelKit",
+                "BrowserServicesKit"
+            ],
+            resources: [
+                .process("Resources")
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
+            ]
+        ),
+        .target(
             name: "BrokenSitePrompt",
             dependencies: [
                 "BrowserServicesKit"
@@ -659,6 +673,12 @@ let package = Package(
             name: "OnboardingTests",
             dependencies: [
                 "Onboarding"
+            ]
+        ),
+        .testTarget(
+            name: "PixelExperimentKitTests",
+            dependencies: [
+                "PixelExperimentKit"
             ]
         ),
         .testTarget(

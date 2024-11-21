@@ -87,7 +87,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore(),
-                                                  internalUserDecider: DefaultInternalUserDecider())
+                                                  internalUserDecider: DefaultInternalUserDecider(),
+                                                  reportExperimentCohortAssignment: {_,_ in })
 
         XCTAssertEqual(manager.embeddedConfigData.etag, mockEmbeddedData.embeddedDataEtag)
         XCTAssertEqual(manager.reload(etag: nil, data: nil), PrivacyConfigurationManager.ReloadResult.embedded)
@@ -112,7 +113,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
                                                   fetchedData: downloadedConfig,
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore(),
-                                                  internalUserDecider: DefaultInternalUserDecider())
+                                                  internalUserDecider: DefaultInternalUserDecider(),
+                                                  reportExperimentCohortAssignment: {_, _ in})
 
         XCTAssertEqual(manager.embeddedConfigData.etag, mockEmbeddedData.embeddedDataEtag)
         XCTAssertEqual(manager.fetchedConfigData?.etag, downloadedConfigETag)
@@ -135,7 +137,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore(),
-                                                  internalUserDecider: DefaultInternalUserDecider())
+                                                  internalUserDecider: DefaultInternalUserDecider(),
+                                                  reportExperimentCohortAssignment: {_, _ in})
 
         XCTAssertEqual(manager.embeddedConfigData.etag, mockEmbeddedData.embeddedDataEtag)
         XCTAssertNil(manager.fetchedConfigData)
@@ -160,7 +163,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
                                                   fetchedData: corruptedConfig,
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore(),
-                                                  internalUserDecider: DefaultInternalUserDecider())
+                                                  internalUserDecider: DefaultInternalUserDecider(),
+                                                  reportExperimentCohortAssignment: {_, _ in})
 
         XCTAssertEqual(manager.embeddedConfigData.etag, mockEmbeddedData.embeddedDataEtag)
         XCTAssertNil(manager.fetchedConfigData)
@@ -188,7 +192,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore(),
-                                                  internalUserDecider: DefaultInternalUserDecider())
+                                                  internalUserDecider: DefaultInternalUserDecider(),
+                                                  reportExperimentCohortAssignment: {_, _ in})
 
         XCTAssertEqual(manager.embeddedConfigData.etag, mockEmbeddedData.embeddedDataEtag)
         XCTAssertNil(manager.fetchedConfigData)
@@ -219,7 +224,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
                                                   fetchedData: corruptedConfig,
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: mockProtectionStore,
-                                                  internalUserDecider: DefaultInternalUserDecider())
+                                                  internalUserDecider: DefaultInternalUserDecider(),
+                                                  reportExperimentCohortAssignment: {_, _ in})
 
         XCTAssertEqual(manager.embeddedConfigData.etag, mockEmbeddedData.embeddedDataEtag)
         XCTAssertNil(manager.fetchedConfigData)
@@ -241,7 +247,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
                                                   fetchedData: corruptedConfig,
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: mockProtectionStore,
-                                                  internalUserDecider: DefaultInternalUserDecider())
+                                                  internalUserDecider: DefaultInternalUserDecider(),
+                                                  reportExperimentCohortAssignment: {_, _ in})
 
         XCTAssertEqual(manager.embeddedConfigData.etag, mockEmbeddedData.embeddedDataEtag)
         XCTAssertNil(manager.fetchedConfigData)
@@ -289,7 +296,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: mockProtectionStore,
-                                                  internalUserDecider: DefaultInternalUserDecider())
+                                                  internalUserDecider: DefaultInternalUserDecider(),
+                                                  reportExperimentCohortAssignment: {_, _ in})
 
         XCTAssertEqual(manager.embeddedConfigData.etag, mockEmbeddedData.embeddedDataEtag)
         XCTAssertNil(manager.fetchedConfigData)
@@ -346,7 +354,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: mockProtectionStore,
-                                                  internalUserDecider: DefaultInternalUserDecider())
+                                                  internalUserDecider: DefaultInternalUserDecider(),
+                                                  reportExperimentCohortAssignment: {_, _ in})
 
         let config = manager.privacyConfig
 
@@ -419,7 +428,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
                                            embeddedDataProvider: mockEmbeddedData,
                                            localProtection: mockProtectionStore,
                                            internalUserDecider: DefaultInternalUserDecider(),
-                                           installDate: installDate).privacyConfig
+                                           installDate: installDate,
+                                           reportExperimentCohortAssignment: {_, _ in}).privacyConfig
     }
 
     func testInstalledDaysCheckReturnsCorrectly() {
@@ -502,7 +512,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore(),
-                                                  internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore))
+                                                  internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore),
+                                                  reportExperimentCohortAssignment: {_, _ in})
         let config = manager.privacyConfig
 
         mockInternalUserStore.isInternalUser = true
@@ -546,7 +557,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore(),
-                                                  internalUserDecider: DefaultInternalUserDecider())
+                                                  internalUserDecider: DefaultInternalUserDecider(),
+                                                  reportExperimentCohortAssignment: {_, _ in})
 
         let config = manager.privacyConfig
 
@@ -564,7 +576,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore(),
-                                                  internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore))
+                                                  internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore),
+                                                  reportExperimentCohortAssignment: {_, _ in})
         let config = manager.privacyConfig
 
         mockInternalUserStore.isInternalUser = true
@@ -581,7 +594,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore(),
-                                                  internalUserDecider: DefaultInternalUserDecider())
+                                                  internalUserDecider: DefaultInternalUserDecider(),
+                                                  reportExperimentCohortAssignment: {_, _ in})
 
         let config = manager.privacyConfig
 
@@ -620,7 +634,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore(),
-                                                  internalUserDecider: DefaultInternalUserDecider())
+                                                  internalUserDecider: DefaultInternalUserDecider(),
+                                                  reportExperimentCohortAssignment: {_, _ in})
 
         let config = manager.privacyConfig
 
@@ -655,7 +670,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore(),
-                                                  internalUserDecider: DefaultInternalUserDecider())
+                                                  internalUserDecider: DefaultInternalUserDecider(),
+                                                  reportExperimentCohortAssignment: {_, _ in})
 
         let config = manager.privacyConfig
 
@@ -709,7 +725,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore(),
-                                                  internalUserDecider: DefaultInternalUserDecider())
+                                                  internalUserDecider: DefaultInternalUserDecider(),
+                                                  reportExperimentCohortAssignment: {_, _ in})
 
         let config = manager.privacyConfig
 
@@ -784,7 +801,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore(),
-                                                  internalUserDecider: DefaultInternalUserDecider())
+                                                  internalUserDecider: DefaultInternalUserDecider(),
+                                                  reportExperimentCohortAssignment: {_, _ in})
 
         let config = manager.privacyConfig
 
@@ -819,7 +837,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore(),
-                                                  internalUserDecider: DefaultInternalUserDecider())
+                                                  internalUserDecider: DefaultInternalUserDecider(),
+                                                  reportExperimentCohortAssignment: {_, _ in})
 
         let config = manager.privacyConfig
 
@@ -846,7 +865,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore(),
-                                                  internalUserDecider: DefaultInternalUserDecider())
+                                                  internalUserDecider: DefaultInternalUserDecider(),
+                                                  reportExperimentCohortAssignment: {_, _ in})
 
         let config = manager.privacyConfig
 
@@ -861,7 +881,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore(),
-                                                  internalUserDecider: DefaultInternalUserDecider())
+                                                  internalUserDecider: DefaultInternalUserDecider(),
+                                                  reportExperimentCohortAssignment: {_, _ in})
 
         let config = manager.privacyConfig
 
@@ -875,7 +896,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore(),
-                                                  internalUserDecider: DefaultInternalUserDecider())
+                                                  internalUserDecider: DefaultInternalUserDecider(),
+                                                  reportExperimentCohortAssignment: {_, _ in})
 
         let config = manager.privacyConfig
 
@@ -890,7 +912,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore(),
-                                                  internalUserDecider: DefaultInternalUserDecider())
+                                                  internalUserDecider: DefaultInternalUserDecider(),
+                                                  reportExperimentCohortAssignment: {_, _ in})
 
         let config = manager.privacyConfig
 
@@ -940,7 +963,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore(),
                                                   internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore),
-                                                  locale: locale)
+                                                  locale: locale,
+                                                  reportExperimentCohortAssignment: {_, _ in})
         let config = manager.privacyConfig
 
         XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving))
@@ -957,7 +981,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore(),
                                                   internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore),
-                                                  locale: locale)
+                                                  locale: locale,
+                                                  reportExperimentCohortAssignment: {_, _ in})
         let config = manager.privacyConfig
 
         XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving))
@@ -974,7 +999,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore(),
                                                   internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore),
-                                                  locale: locale)
+                                                  locale: locale,
+                                                  reportExperimentCohortAssignment: {_, _ in})
         let config = manager.privacyConfig
 
         XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving))
@@ -1014,7 +1040,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore(),
                                                   internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore),
-                                                  locale: locale)
+                                                  locale: locale,
+                                                  reportExperimentCohortAssignment: {_, _ in})
         let config = manager.privacyConfig
 
         XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving))
@@ -1061,7 +1088,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore(),
                                                   internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore),
-                                                  locale: locale)
+                                                  locale: locale,
+                                                  reportExperimentCohortAssignment: {_, _ in})
         let config = manager.privacyConfig
 
         XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, randomizer: mockRandom(in:)))
@@ -1080,7 +1108,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore(),
                                                   internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore),
-                                                  locale: locale)
+                                                  locale: locale,
+                                                  reportExperimentCohortAssignment: {_, _ in})
         let config = manager.privacyConfig
 
         XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, randomizer: mockRandom(in:)))
@@ -1168,7 +1197,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore(),
-                                                  internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore))
+                                                  internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore),
+                                                  reportExperimentCohortAssignment: {_, _ in})
         let config = manager.privacyConfig
 
         XCTAssertFalse(config.trackerAllowlist.entries.isEmpty)
@@ -1182,7 +1212,8 @@ class AppPrivacyConfigurationTests: XCTestCase {
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore(),
-                                                  internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore))
+                                                  internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore),
+                                                  reportExperimentCohortAssignment: {_, _ in})
         let config = manager.privacyConfig
 
         XCTAssert(config.trackerAllowlist.entries.isEmpty)

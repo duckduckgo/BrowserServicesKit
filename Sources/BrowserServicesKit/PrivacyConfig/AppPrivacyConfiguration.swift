@@ -19,7 +19,7 @@
 import Foundation
 import Common
 
-public struct AppPrivacyConfiguration: PrivacyConfiguration {
+public class AppPrivacyConfiguration: PrivacyConfiguration {
 
     private enum Constants {
         static let enabledKey = "enabled"
@@ -38,6 +38,8 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     private let installDate: Date?
     static let experimentManagerQueue = DispatchQueue(label: "com.experimentManager.queue")
 
+    weak public var delegate: PrivacyConfigurationDelegate?
+
     public init(data: PrivacyConfigurationData,
                 identifier: String,
                 localProtection: DomainsProtectionStore,
@@ -45,6 +47,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
                 userDefaults: UserDefaults = UserDefaults(),
                 locale: Locale = Locale.current,
                 experimentManager: ExperimentCohortsManaging = ExperimentCohortsManager(),
+                delegate: PrivacyConfigurationDelegate? = nil,
                 installDate: Date? = nil) {
         self.data = data
         self.identifier = identifier
@@ -53,6 +56,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         self.userDefaults = userDefaults
         self.locale = locale
         self.experimentManager = experimentManager
+        self.delegate = delegate
         self.installDate = installDate
     }
 
@@ -305,6 +309,9 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         let assignedCohortResponse = experimentManager.cohort(for: ExperimentSubfeature(parentID: parentFeature.rawValue, subfeatureID: subfeatureID, cohorts: cohorts), assignIfEnabled: assignIfEnabled)
         let possibleDisabledReason: PrivacyConfigurationFeatureDisabledReason = assignedCohortResponse.didAttemptAssignment &&  targetsState != .enabled ? .targetDoesNotMatch : .experimentCohortDoesNotMatch
         if let assignedCohort = assignedCohortResponse.cohortID {
+            if assignedCohortResponse.didAttemptAssignment  {
+                delegate?.didAssignCohort(assignedCohort, to: subfeatureID)
+            }
             return (assignedCohort == passedCohort) ? .enabled : .disabled(possibleDisabledReason)
         } else {
             return .disabled(possibleDisabledReason)

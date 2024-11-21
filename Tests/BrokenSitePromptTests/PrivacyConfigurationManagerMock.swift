@@ -21,6 +21,7 @@ import BrowserServicesKit
 import Combine
 
 class PrivacyConfigurationMock: PrivacyConfiguration {
+    var delegate: (any BrowserServicesKit.PrivacyConfigurationDelegate)?
 
     var identifier: String = "id"
     var version: String? = "123456789"
