@@ -89,7 +89,7 @@ struct StoreSubscriptionDefinition {
     var name: String
     var appIdentifier: String
     var environment: SubscriptionEnvironment.ServiceEnvironment
-    var identifiersByCountries: [CountryCodeSet: [String]]
+    var identifiersByCountries: [SubscriptionRegion: [String]]
 
     func allIdentifiers() -> [String] {
         identifiersByCountries.values.flatMap { $0 }
@@ -100,7 +100,7 @@ struct StoreSubscriptionDefinition {
     }
 }
 
-enum CountryCodeSet {
+public enum SubscriptionRegion: CaseIterable {
     case usa
     case restOfWorld
 
@@ -115,5 +115,9 @@ enum CountryCodeSet {
 
     func contains(_ country: String) -> Bool {
         countryCodes.contains(country.uppercased())
+    }
+
+    static func matchingRegion(for countryCode: String) -> Self? {
+        Self.allCases.first { $0.countryCodes.contains(countryCode) }
     }
 }
