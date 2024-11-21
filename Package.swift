@@ -43,11 +43,13 @@ let package = Package(
         .library(name: "SpecialErrorPages", targets: ["SpecialErrorPages"]),
         .library(name: "DuckPlayer", targets: ["DuckPlayer"]),
         .library(name: "PhishingDetection", targets: ["PhishingDetection"]),
-        .library(name: "Onboarding", targets: ["Onboarding"])
+        .library(name: "Onboarding", targets: ["Onboarding"]),
+        .library(name: "BrokenSitePrompt", targets: ["BrokenSitePrompt"]),
+        .library(name: "PageRefreshMonitor", targets: ["PageRefreshMonitor"]),
     ],
     dependencies: [
         .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "15.1.0"),
-        .package(url: "https://github.com/duckduckgo/GRDB.swift.git", exact: "2.4.0"),
+        .package(url: "https://github.com/duckduckgo/GRDB.swift.git", exact: "2.4.2"),
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "3.0.0"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.3.0"),
         .package(url: "https://github.com/gumob/PunycodeSwift.git", exact: "3.0.0"),
@@ -409,10 +411,6 @@ let package = Package(
             dependencies: [
                 "Common"
             ],
-            resources: [
-                .copy("hashPrefixes.json"),
-                .copy("filterSet.json")
-            ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
             ]
@@ -424,6 +422,24 @@ let package = Package(
             ],
             resources: [
                 .process("Resources")
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
+            ]
+        ),
+        .target(
+            name: "BrokenSitePrompt",
+            dependencies: [
+                "BrowserServicesKit"
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
+            ]
+        ),
+        .target(
+            name: "PageRefreshMonitor",
+            dependencies: [
+                "BrowserServicesKit"
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
@@ -635,8 +651,8 @@ let package = Package(
                 "PixelKit"
             ],
             resources: [
-                .copy("hashPrefixes.json"),
-                .copy("filterSet.json")
+                .copy("Resources/hashPrefixes.json"),
+                .copy("Resources/filterSet.json")
             ]
         ),
         .testTarget(
@@ -649,6 +665,18 @@ let package = Package(
             name: "SpecialErrorPagesTests",
             dependencies: [
                 "SpecialErrorPages"
+            ]
+        ),
+        .testTarget(
+            name: "BrokenSitePromptTests",
+            dependencies: [
+                "BrokenSitePrompt"
+            ]
+        ),
+        .testTarget(
+            name: "PageRefreshMonitorTests",
+            dependencies: [
+                "PageRefreshMonitor"
             ]
         ),
     ],

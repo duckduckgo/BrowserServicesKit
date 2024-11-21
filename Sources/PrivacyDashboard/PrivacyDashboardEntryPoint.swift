@@ -30,9 +30,8 @@ public enum PrivacyDashboardEntryPoint: Equatable {
     /// This is only available on iOS, as macOS does not have an option to disable protection outside of the dashboard.
     case toggleReport(completionHandler: (Bool) -> Void)
 
-    /// The prompt report screen, which is triggered whenever the user taps report from the toast popup for refreshes
-    /// This is currently only available on iOS.
-    case prompt(String)
+    /// The prompt report screen, which is triggered whenever the user taps report from the toast 'Site not working?"
+    case prompt
 
     var screen: Screen {
         switch self {

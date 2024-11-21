@@ -161,7 +161,7 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
         switch entryPoint {
         case .report: source = .appMenu
         case .dashboard: source = .dashboard
-        case .prompt(let event): source = .prompt(event)
+        case .prompt: source = .prompt
         case .toggleReport: source = .onProtectionsOffMenu
         }
         if let toggleReportingSource = toggleReportingFlow?.entryPoint.source {

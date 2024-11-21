@@ -16,6 +16,9 @@
 //  limitations under the License.
 //
 
+// Tests are disabled on iOS due to WKWebView stability issues on the iOS 17.5+ simulator.
+#if os(macOS)
+
 import XCTest
 import BrowserServicesKit
 import os.log
@@ -168,6 +171,7 @@ final class GPCReferenceTests: XCTestCase {
 
         let properties = ContentScopeProperties(gpcEnabled: gpcEnabled,
                                                 sessionKey: UUID().uuidString,
+                                                messageSecret: UUID().uuidString,
                                                 featureToggles: ContentScopeFeatureToggles.allTogglesOn)
 
         let contentScopeScript = ContentScopeUserScript(privacyManager,
@@ -235,3 +239,5 @@ struct GpcJavaScriptAPITest: Codable {
     let exceptPlatforms: [String]
     let frameURL: String?
 }
+
+#endif

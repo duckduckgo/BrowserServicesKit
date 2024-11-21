@@ -16,6 +16,9 @@
 //  limitations under the License.
 //
 
+// Tests are disabled on iOS due to WKWebView stability issues on the iOS 17.5+ simulator.
+#if os(macOS)
+
 import BrowserServicesKit
 import Common
 import TrackerRadarKit
@@ -569,3 +572,5 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
         self.wait(for: [websiteLoaded], timeout: 30)
     }
 }
+
+#endif
