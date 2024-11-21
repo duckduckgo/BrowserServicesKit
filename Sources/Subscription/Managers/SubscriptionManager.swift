@@ -36,6 +36,7 @@ public protocol SubscriptionManager {
     func loadInitialData()
     func refreshCachedSubscriptionAndEntitlements(completion: @escaping (_ isSubscriptionActive: Bool) -> Void)
     func url(for type: SubscriptionURL) -> URL
+    func currentSubscriptionFeatures() async -> [Entitlement.ProductName]
 }
 
 /// Single entry point for everything related to Subscription. This manager is disposable, every time something related to the environment changes this need to be recreated.
@@ -150,5 +151,18 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
 
     public func url(for type: SubscriptionURL) -> URL {
         type.subscriptionURL(environment: currentEnvironment.serviceEnvironment)
+    }
+
+    // MARK: - Current subscription's features
+
+    public func currentSubscriptionFeatures() async -> [Entitlement.ProductName] {
+        guard let token = accountManager.accessToken else { return [] }
+
+        switch await subscriptionEndpointService.getSubscription(accessToken: token, cachePolicy: .returnCacheDataElseLoad) {
+        case .success(let subscription):
+            return await subscriptionFeatureMappingCache.subscriptionFeatures(for: subscription.productId)
+        case .failure:
+            return []
+        }
     }
 }
