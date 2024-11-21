@@ -152,10 +152,13 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
 
             if !self.lookupCompiledRules() {
                 if let lastCompiledRules = lastCompiledRulesStore?.rules, !lastCompiledRules.isEmpty {
-                    self.fetchLastCompiledRules(with: lastCompiledRules)
-                    self.errorReporting?.fire(.contentBlockingFetchRulesSucceeded)
+                    if(self.fetchLastCompiledRules(with: lastCompiledRules)) {
+                        self.errorReporting?.fire(.contentBlockingFetchLRCSucceeded)
+                    } else {
+                        self.errorReporting?.fire(.contentBlockingNoMatchInLRC)
+                    }
                 } else {
-                    self.errorReporting?.fire(.contentBlockingLookupAndFetchFailed)
+                    self.errorReporting?.fire(.contentBlockingLRCMissing)
                     self.startCompilationProcess()
                 }
             } else {
@@ -265,7 +268,7 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
      Go through source managers and check if there are already compiled rules in the WebKit rule cache.
      Returns true if rules were found, false otherwise.
      */
-    private func fetchLastCompiledRules(with lastCompiledRules: [LastCompiledRules]) {
+    private func fetchLastCompiledRules(with lastCompiledRules: [LastCompiledRules]) -> Bool {
         Logger.contentBlocking.debug("Fetch last compiled rules: \(lastCompiledRules.count, privacy: .public)")
 
         let initialCompilationTask = LastCompiledRulesLookupTask(sourceRules: rulesSource.contentBlockerRulesLists,
@@ -278,7 +281,9 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
         // We want to confine Compilation work to WorkQueue, so we wait to come back from async Task
         mutex.wait()
 
-        if let rules = initialCompilationTask.getFetchedRules() {
+        let rulesFound = initialCompilationTask.getFetchedRules()
+        
+        if let rules = rulesFound {
             applyRules(rules)
         } else {
             lock.lock()
@@ -288,6 +293,8 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
 
         // No matter if rules were found or not, we need to schedule recompilation, after all
         scheduleCompilation()
+        
+        return rulesFound != nil
     }
 
     private func prepareSourceManagers() {
@@ -381,6 +388,9 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
                                                                                                 unprotectedSitesHash: nil))
             }
 
+            // if task is main tds task, extract time and iteration count from the result and fire the pixel
+            //can result be a struct? can we add fields to compliatiotask instead?
+            //can we sen dpixels from compialtion task?
             changes[task.rulesList.name] = diff
             return rules
         }

@@ -219,7 +219,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
             } else if case .contentBlockingCompilationTime = event {
                 XCTAssertNotNil(params?["compilationTime"])
                 compilationTimeExp.fulfill()
-            } else if case .contentBlockingLookupAndFetchFailed = event {
+            } else if case .contentBlockingLRCMissing = event {
                 lookupAndFetchExp.fulfill()
             } else {
                 XCTFail("Unexpected event: \(event)")
@@ -272,7 +272,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
 
             } else if case .contentBlockingCompilationTime = event {
                 XCTAssertNotNil(params?["compilationTime"])
-            } else if case .contentBlockingLookupAndFetchFailed = event {
+            } else if case .contentBlockingLRCMissing = event {
                 lookupAndFetchExp.fulfill()
             } else {
                 XCTFail("Unexpected event: \(event)")
@@ -565,7 +565,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
             } else if case .contentBlockingCompilationTime = event {
                 XCTAssertNotNil(params?["compilationTime"])
                 errorExp.fulfill()
-            } else if case .contentBlockingLookupAndFetchFailed = event {
+            } else if case .contentBlockingLRCMissing = event {
                 lookupAndFetchExp.fulfill()
             } else {
                 XCTFail("Unexpected event: \(event)")
@@ -650,7 +650,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
             } else if case .contentBlockingCompilationTime = event {
                 XCTAssertNotNil(params?["compilationTime"])
                 errorExp.fulfill()
-            } else if case .contentBlockingLookupAndFetchFailed = event {
+            } else if case .contentBlockingLRCMissing = event {
                 lookupAndFetchExp.fulfill()
             } else
             {
