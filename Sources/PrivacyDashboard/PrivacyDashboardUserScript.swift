@@ -41,7 +41,6 @@ protocol PrivacyDashboardUserScriptDelegate: AnyObject {
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectReportAction shouldSendReport: Bool)
 
     // Experiment flows
-    func userScript(_ userScript: PrivacyDashboardUserScript, didSelectBreakageCategory category: String)
     func userScriptDidRequestShowNativeFeedback(_ userScript: PrivacyDashboardUserScript)
 
 }
@@ -105,7 +104,6 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
 
     enum MessageNames: String, CaseIterable {
 
-        case privacyDashboardTelemetrySpan
         case privacyDashboardSetProtection
         case privacyDashboardSetSize
         case privacyDashboardClose
@@ -164,8 +162,6 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             handleDoNotSendToggleReport()
         case .privacyDashboardShowNativeFeedback:
             handleShowNativeFeedback()
-        case .privacyDashboardTelemetrySpan:
-            handleTelemetrySpan(message: message)
         }
     }
 
@@ -273,31 +269,8 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         delegate?.userScript(self, didSelectReportAction: false)
     }
 
-    private func handleSelectBreakageCategory(message: WKScriptMessage) {
-        guard let dict = message.body as? [String: Any],
-              let category = dict["category"] as? String
-        else {
-            assertionFailure("handleSelectBreakageCategory: expected { category: String }")
-            return
-        }
-        delegate?.userScript(self, didSelectBreakageCategory: category)
-    }
-
     private func handleShowNativeFeedback() {
         delegate?.userScriptDidRequestShowNativeFeedback(self)
-    }
-
-    private func handleTelemetrySpan(message: WKScriptMessage) {
-        guard let telemetrySpan: TelemetrySpan = DecodableHelper.decode(from: message.messageBody) else {
-            assertionFailure("privacyDashboardTelemetrySpan: expected TelemetrySpan")
-            return
-        }
-
-        if telemetrySpan.attributes.name == "categorySelected" {
-            let category = telemetrySpan.attributes.value ?? ""
-            delegate?.userScript(self, didSelectBreakageCategory: category)
-        }
-
     }
 
     // MARK: - Calls to script's JS API
