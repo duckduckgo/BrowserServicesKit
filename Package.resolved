@@ -50,8 +50,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/privacy-dashboard",
       "state" : {
-        "branch" : "mgurgel/improved-breakage-form",
-        "revision" : "239f6670460456fda11acff7c2c58a03352d5953"
+        "branch" : "pr-releases/pr-196",
+        "revision" : "1df1ac004fc26b67717e99253923a8c9e5bc635b"
       }
     },
     {
