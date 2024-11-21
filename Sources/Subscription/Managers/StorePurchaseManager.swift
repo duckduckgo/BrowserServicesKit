@@ -41,6 +41,7 @@ public protocol StorePurchaseManager {
     var purchasedProductIDs: [String] { get }
     var purchaseQueue: [String] { get }
     var areProductsAvailable: Bool { get }
+    var currentStorefrontRegion: SubscriptionRegion { get }
 
     @MainActor func syncAppleIDAccount() async throws
     @MainActor func updateAvailableProducts() async
@@ -64,6 +65,7 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
     @Published public private(set) var purchaseQueue: [String] = []
 
     public var areProductsAvailable: Bool { !availableProducts.isEmpty }
+    public private(set) var currentStorefrontRegion: SubscriptionRegion = .usa
     private var transactionUpdates: Task<Void, Never>?
     private var storefrontChanges: Task<Void, Never>?
 
@@ -137,6 +139,8 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
 
         do {
             let currentStorefrontCountryCode = await Storefront.current?.countryCode ?? ""
+            self.currentStorefrontRegion = SubscriptionRegion.matchingRegion(for: currentStorefrontCountryCode) ?? .usa
+
             let applicableProductIdentifiers = storeSubscriptionConfiguration.subscriptionIdentifiers(for: currentStorefrontCountryCode)
 
             let availableProducts = try await Product.products(for: applicableProductIdentifiers)
