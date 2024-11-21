@@ -38,7 +38,6 @@ final class PrivacyDashboardURLBuilder {
 
     func build() -> URL {
         url.addingScreenParameter(from: configuration)
-            .addingCategoryParameterIfNeeded(from: configuration)
             .addingOpenerParameterIfNeeded(from: configuration)
     }
 
@@ -66,13 +65,6 @@ private extension URL {
             screen = destinationScreen
         }
         return appendingParameter(name: Constant.screenKey, value: screen.rawValue)
-    }
-
-    func addingCategoryParameterIfNeeded(from configuration: PrivacyDashboardURLBuilder.Configuration) -> URL {
-        if case .startScreen(let entryPoint) = configuration, case .afterTogglePrompt(let category, _) = entryPoint {
-            return appendingParameter(name: Constant.categoryKey, value: category)
-        }
-        return self
     }
 
     func addingOpenerParameterIfNeeded(from configuration: PrivacyDashboardURLBuilder.Configuration) -> URL {
