@@ -394,10 +394,6 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
         delegate?.privacyDashboardController(self, didSelectBreakageCategory: category)
     }
 
-    func userScriptDidRequestShowAlertForMissingDescription(_ userScript: PrivacyDashboardUserScript) {
-        delegate?.privacyDashboardControllerDidRequestShowAlertForMissingDescription(self)
-    }
-
     func userScriptDidRequestShowNativeFeedback(_ userScript: PrivacyDashboardUserScript) {
         delegate?.privacyDashboardControllerDidRequestShowGeneralFeedback(self)
     }

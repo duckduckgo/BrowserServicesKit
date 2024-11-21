@@ -41,7 +41,6 @@ protocol PrivacyDashboardUserScriptDelegate: AnyObject {
 
     // Experiment flows
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectBreakageCategory category: String)
-    func userScriptDidRequestShowAlertForMissingDescription(_ userScript: PrivacyDashboardUserScript)
     func userScriptDidRequestShowNativeFeedback(_ userScript: PrivacyDashboardUserScript)
 
 }
@@ -118,7 +117,6 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         case privacyDashboardGetToggleReportOptions
         case privacyDashboardSendToggleReport
         case privacyDashboardRejectToggleReport
-        case privacyDashboardShowAlertForMissingDescription
         case privacyDashboardShowNativeFeedback
 
     }
@@ -163,8 +161,6 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             handleSendToggleReport()
         case .privacyDashboardRejectToggleReport:
             handleDoNotSendToggleReport()
-        case .privacyDashboardShowAlertForMissingDescription:
-            handleShowAlertForMissingDescription()
         case .privacyDashboardShowNativeFeedback:
             handleShowNativeFeedback()
         case .privacyDashboardTelemetrySpan:
@@ -284,10 +280,6 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             return
         }
         delegate?.userScript(self, didSelectBreakageCategory: category)
-    }
-
-    private func handleShowAlertForMissingDescription() {
-        delegate?.userScriptDidRequestShowAlertForMissingDescription(self)
     }
 
     private func handleShowNativeFeedback() {
