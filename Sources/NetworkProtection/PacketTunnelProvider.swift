@@ -691,7 +691,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 // expired.  In either case it should be enough to record the manual failures
                 // for these prerequisited to avoid flooding our metrics.
                 providerEvents.fire(.tunnelStartOnDemandWithoutAccessToken)
-                try await Task.sleep(interval: .seconds(15))
+                try? await Task.sleep(interval: .seconds(15))
             } else {
                 // If the VPN was started manually without the basic prerequisites we always
                 // want to know as this should not be possible.
@@ -704,9 +704,13 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
             // Check that the error is valid and able to be re-thrown to the OS before shutting the tunnel down
             if let wrappedError = wrapped(error: error) {
+                // Wait for the provider to complete its pixel request.
                 providerEvents.fire(.malformedErrorDetected(error))
+                try? await Task.sleep(interval: .seconds(2))
                 throw wrappedError
             } else {
+                // Wait for the provider to complete its pixel request.
+                try? await Task.sleep(interval: .seconds(2))
                 throw error
             }
         }
@@ -725,7 +729,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 // We add a delay when the VPN is started by
                 // on-demand and there's an error, to avoid frenetic ON/OFF
                 // cycling.
-                try await Task.sleep(interval: .seconds(15))
+                try? await Task.sleep(interval: .seconds(15))
             }
 
             let errorDescription = (error as? LocalizedError)?.localizedDescription ?? String(describing: error)
@@ -738,9 +742,13 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
             // Check that the error is valid and able to be re-thrown to the OS before shutting the tunnel down
             if let wrappedError = wrapped(error: error) {
+                // Wait for the provider to complete its pixel request.
                 providerEvents.fire(.malformedErrorDetected(error))
+                try? await Task.sleep(interval: .seconds(2))
                 throw wrappedError
             } else {
+                // Wait for the provider to complete its pixel request.
+                try? await Task.sleep(interval: .seconds(2))
                 throw error
             }
         }
