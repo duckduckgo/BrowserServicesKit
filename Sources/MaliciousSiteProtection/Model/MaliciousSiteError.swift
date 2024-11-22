@@ -18,7 +18,7 @@
 
 import Foundation
 
-public struct MaliciousSiteError: Error {
+public struct MaliciousSiteError: Error, Equatable {
 
     public enum Code: Int {
         case phishing = 1
