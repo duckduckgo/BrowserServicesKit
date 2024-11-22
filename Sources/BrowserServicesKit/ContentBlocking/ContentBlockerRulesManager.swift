@@ -282,9 +282,9 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
         mutex.wait()
 
         let rulesFound = initialCompilationTask.getFetchedRules()
-
-        if let rules = rulesFound {
-            applyRules(rules)
+        
+        if let rulesFound {
+            applyRules(rulesFound)
         } else {
             lock.lock()
             state = .idle
