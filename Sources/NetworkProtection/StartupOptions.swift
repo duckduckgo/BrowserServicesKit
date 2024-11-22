@@ -19,6 +19,7 @@
 import Foundation
 import Common
 import Networking
+import os.log
 
 /// This class handles the proper parsing of the startup options for our tunnel.
 ///
@@ -168,7 +169,13 @@ public struct StartupOptions {
 #if os(macOS)
     private static func readAuthToken(from options: [String: Any], resetIfNil: Bool) -> StoredOption<TokenContainer> {
         StoredOption(resetIfNil: resetIfNil) {
-            return options[NetworkProtectionOptionKey.tokenContainer] as? TokenContainer
+            guard let tokeContainerData = options[NetworkProtectionOptionKey.tokenContainer] as? NSData,
+                  let tokenContainer = try? TokenContainer(with: tokeContainerData) else {
+                Logger.networkProtection.fault("Failed to retrieve the TokenContainer from options")
+                assertionFailure("Failed to retrieve the TokenContainer from options")
+                return nil
+            }
+            return tokenContainer
         }
     }
 #endif

@@ -27,21 +27,38 @@ import JWTKit
 /// The decoded tokens are used to determine the user's entitlements
 /// The access token is used to make authenticated requests
 /// The refresh token is used to get a new access token when the current one expires
-public struct TokenContainer: Codable, Equatable, CustomDebugStringConvertible {
+public struct TokenContainer: Codable {
     public let accessToken: String
     public let refreshToken: String
     public let decodedAccessToken: JWTAccessToken
     public let decodedRefreshToken: JWTRefreshToken
+}
+
+extension TokenContainer: Equatable {
 
     public static func == (lhs: TokenContainer, rhs: TokenContainer) -> Bool {
         lhs.accessToken == rhs.accessToken && lhs.refreshToken == rhs.refreshToken
     }
+}
+
+extension TokenContainer: CustomDebugStringConvertible {
 
     public var debugDescription: String {
         """
         Access Token: \(decodedAccessToken)
         Refresh Token: \(decodedRefreshToken)
         """
+    }
+}
+
+extension TokenContainer {
+
+    public var data: NSData? {
+        return try? JSONEncoder().encode(self) as NSData
+    }
+
+    public init(with data: NSData) throws {
+        self = try JSONDecoder().decode(TokenContainer.self, from: data as Data)
     }
 }
 

@@ -523,7 +523,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         loadDNSSettings(from: options)
         loadTesterEnabled(from: options)
 #if os(macOS)
-            try await loadAuthToken(from: options) // Note: the auth token is loaded here
+            try await loadAuthToken(from: options)
 #endif
     }
 
