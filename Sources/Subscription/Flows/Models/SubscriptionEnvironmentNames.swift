@@ -18,12 +18,6 @@
 
 import Foundation
 
-public enum SubscriptionFeatureName: String, CaseIterable {
-    case vpn = "vpn"
-    case personalInformationRemoval = "personal-information-removal"
-    case identityTheftRestoration = "identity-theft-restoration"
-}
-
 public enum SubscriptionPlatformName: String {
     case ios
     case macos
