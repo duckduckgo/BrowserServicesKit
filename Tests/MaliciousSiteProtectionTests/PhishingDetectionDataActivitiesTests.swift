@@ -27,7 +27,7 @@ class PhishingDetectionDataActivitiesTests: XCTestCase {
     override func setUp() {
         super.setUp()
         mockUpdateManager = MockPhishingDetectionUpdateManager()
-        activities = PhishingDetectionDataActivities(hashPrefixInterval: 1, filterSetInterval: 1, phishingDetectionDataProvider: MockMaliciousSiteProtectionEmbeddedDataProvider(), updateManager: mockUpdateManager)
+        activities = PhishingDetectionDataActivities(hashPrefixInterval: 1, filterSetInterval: 1, updateManager: mockUpdateManager)
     }
 
     func testUpdateHashPrefixesAndFilterSetRuns() async {
