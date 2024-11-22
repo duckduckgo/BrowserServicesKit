@@ -63,7 +63,7 @@ extension MaliciousSiteError: LocalizedError {
         switch code {
         case .phishing:
             return "Phishing detected"
-         case .malware:
+        case .malware:
              return "Malware detected"
         }
     }

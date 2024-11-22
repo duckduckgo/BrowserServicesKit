@@ -1,5 +1,5 @@
 //
-//  MaliciousSiteDataManager.swift
+//  DataManager.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
