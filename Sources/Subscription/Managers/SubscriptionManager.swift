@@ -22,7 +22,7 @@ import os.log
 import Networking
 
 public enum SubscriptionManagerError: Error {
-    case tokenUnavailable
+    case tokenUnavailable(error: Error?)
     case confirmationHasInvalidSubscription
 }
 
@@ -30,7 +30,44 @@ public enum SubscriptionPixelType {
     case deadToken
 }
 
-public protocol SubscriptionManager {
+// TODO: list notifications fired and why
+/// The sole entity responsible of obtaining, storing and refreshing an OAuth Token
+public protocol SubscriptionTokenProvider {
+
+    /// Get a token container accordingly to the policy
+    /// - Parameter policy: The policy that will be used to get the token, it effects the tokens source and validity
+    /// - Returns: The TokenContainer
+    /// - Throws: OAuthClientError.deadToken if the token is unrecoverable. SubscriptionEndpointServiceError.noData if the token is not available.
+    @discardableResult
+    func getTokenContainer(policy: TokensCachePolicy) async throws -> TokenContainer
+
+    /// Get a token container synchronously accordingly to the policy
+    /// - Parameter policy: The policy that will be used to get the token, it effects the tokens source and validity
+    /// - Returns: The TokenContainer, nil in case of error
+    func getTokenContainerSynchronously(policy: TokensCachePolicy) -> TokenContainer?
+
+    /// Exchange access token v1 for a access token v2
+    /// - Parameter tokenV1: The Auth v1 access token
+    /// - Returns: An auth v2 TokenContainer
+    func exchange(tokenV1: String) async throws -> TokenContainer
+
+    /// Used only from the Mac Packet Tunnel Provider when a token is received during configuration
+    func adopt(tokenContainer: TokenContainer) async throws
+}
+
+/// Provider of the Subscription entitlements
+public protocol SubscriptionEntitlementsProvider {
+
+    func getEntitlements(forceRefresh: Bool) async throws -> [SubscriptionEntitlement]
+
+    /// Get the cached subscription entitlements
+    var currentEntitlements: [SubscriptionEntitlement] { get }
+
+    /// Get the cached entitlements and check if a specific one is present
+    func isEntitlementActive(_ entitlement: SubscriptionEntitlement) -> Bool
+}
+
+public protocol SubscriptionManager: SubscriptionTokenProvider, SubscriptionEntitlementsProvider {
 
     // Environment
     static func loadEnvironmentFrom(userDefaults: UserDefaults) -> SubscriptionEnvironment?
@@ -57,19 +94,6 @@ public protocol SubscriptionManager {
     var isUserAuthenticated: Bool { get }
     var userEmail: String? { get }
 
-    // Entitlements
-    var entitlements: [SubscriptionEntitlement] { get }
-    func isEntitlementActive(_ entitlement: SubscriptionEntitlement) -> Bool
-
-    /// Get a token container accordingly to the policy
-    /// - Parameter policy: The policy that will be used to get the token, it effects the tokens source and validity
-    /// - Returns: The TokenContainer
-    /// - Throws: OAuthClientError.deadToken if the token is unrecoverable. SubscriptionEndpointServiceError.noData if the token is not available.
-    @discardableResult func getTokenContainer(policy: TokensCachePolicy) async throws -> TokenContainer
-
-    func getTokenContainerSynchronously(policy: TokensCachePolicy) -> TokenContainer?
-    func exchange(tokenV1: String) async throws -> TokenContainer
-
     /// Sign out the user and clear all the tokens and subscription cache
     func signOut() async
     func signOut(skipNotification: Bool) async
@@ -86,7 +110,7 @@ public protocol SubscriptionManager {
 /// Single entry point for everything related to Subscription. This manager is disposable, every time something related to the environment changes this need to be recreated.
 public final class DefaultSubscriptionManager: SubscriptionManager {
 
-    private let oAuthClient: any OAuthClient
+    private var oAuthClient: any OAuthClient
     private let _storePurchaseManager: StorePurchaseManager?
     private let subscriptionEndpointService: SubscriptionEndpointService
     private let pixelHandler: PixelHandler
@@ -227,12 +251,17 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
         return oAuthClient.currentTokenContainer?.decodedAccessToken.email
     }
 
-    public var entitlements: [SubscriptionEntitlement] {
+    public func getEntitlements(forceRefresh: Bool) async throws -> [SubscriptionEntitlement] {
+        let tokenContainer = try await getTokenContainer(policy: forceRefresh ? .localForceRefresh : .localValid)
+        return tokenContainer.decodedAccessToken.subscriptionEntitlements
+    }
+
+    public var currentEntitlements: [SubscriptionEntitlement] {
         return oAuthClient.currentTokenContainer?.decodedAccessToken.subscriptionEntitlements ?? []
     }
 
     public func isEntitlementActive(_ entitlement: SubscriptionEntitlement) -> Bool {
-        entitlements.contains(entitlement)
+        currentEntitlements.contains(entitlement)
     }
 
     private func refreshAccount() async {
@@ -245,6 +274,8 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
 
     @discardableResult public func getTokenContainer(policy: TokensCachePolicy) async throws -> TokenContainer {
         do {
+            Logger.subscription.debug("Get tokens \(policy.description, privacy: .public)")
+
             let referenceCachedTokenContainer = try? await oAuthClient.getTokens(policy: .local)
             let referenceCachedEntitlements = referenceCachedTokenContainer?.decodedAccessToken.subscriptionEntitlements
             let resultTokenContainer = try await oAuthClient.getTokens(policy: policy)
@@ -258,12 +289,11 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
             if referenceCachedTokenContainer == nil { // new login
                 NotificationCenter.default.post(name: .accountDidSignIn, object: self, userInfo: nil)
             }
-
             return resultTokenContainer
         } catch OAuthClientError.deadToken {
             return try await throwAppropriateDeadTokenError()
         } catch {
-            throw error
+            throw SubscriptionManagerError.tokenUnavailable(error: error)
         }
     }
 
@@ -278,10 +308,10 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
                 pixelHandler(.deadToken)
                 throw OAuthClientError.deadToken
             default:
-                throw SubscriptionManagerError.tokenUnavailable
+                throw SubscriptionManagerError.tokenUnavailable(error: nil)
             }
         } catch {
-            throw SubscriptionManagerError.tokenUnavailable
+            throw SubscriptionManagerError.tokenUnavailable(error: error)
         }
     }
 
@@ -299,7 +329,13 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     }
 
     public func exchange(tokenV1: String) async throws -> TokenContainer {
-        try await oAuthClient.exchange(accessTokenV1: tokenV1)
+        let tokenContainer = try await oAuthClient.exchange(accessTokenV1: tokenV1)
+        NotificationCenter.default.post(name: .accountDidSignIn, object: self, userInfo: nil) // TODO: move all the notifications down to the storage?
+        return tokenContainer
+    }
+
+    public func adopt(tokenContainer: TokenContainer) async throws {
+        oAuthClient.currentTokenContainer = tokenContainer
     }
 
     public func signOut() async {

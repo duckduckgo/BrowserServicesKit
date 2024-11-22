@@ -25,7 +25,7 @@ public enum NetworkProtectionOptionKey {
     public static let selectedLocation = "selectedLocation"
     public static let dnsSettings = "dnsSettings"
     public static let excludeLocalNetworks = "excludeLocalNetworks"
-    public static let authToken = "authToken"
+    public static let tokenContainer = "tokenContainer"
     public static let isOnDemand = "is-on-demand"
     public static let activationAttemptId = "activationAttemptId"
     public static let tunnelFailureSimulation = "tunnelFailureSimulation"

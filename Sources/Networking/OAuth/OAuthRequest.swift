@@ -364,7 +364,7 @@ public struct OAuthRequest {
         }
         return OAuthRequest(apiRequest: request,
                             httpSuccessCode: .found,
-                            httpErrorCodes: [.unauthorized, .internalServerError])
+                            httpErrorCodes: [.badRequest, .internalServerError])
     }
 
     // MARK: JWKs

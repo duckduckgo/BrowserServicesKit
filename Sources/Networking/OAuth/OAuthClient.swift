@@ -64,7 +64,7 @@ public enum TokensCachePolicy {
     /// Local refreshed, if doesn't exist create a new one
     case createIfNeeded
 
-    var description: String {
+    public var description: String {
         switch self {
         case .local:
             return "Local"
@@ -84,7 +84,7 @@ public protocol OAuthClient {
 
     var isUserAuthenticated: Bool { get }
 
-    var currentTokenContainer: TokenContainer? { get }
+    var currentTokenContainer: TokenContainer? { get set }
 
     /// Returns a tokens container based on the policy
     /// - `.local`: Returns what's in the storage, as it is, throws an error if no token is available
@@ -129,7 +129,7 @@ final public class DefaultOAuthClient: OAuthClient {
     // MARK: -
 
     private let authService: any OAuthService
-    public var tokenStorage: any TokenStoring
+    private var tokenStorage: any TokenStoring
     public var legacyTokenStorage: (any LegacyTokenStoring)?
 
     public init(tokensStorage: any TokenStoring,
@@ -190,12 +190,15 @@ final public class DefaultOAuthClient: OAuthClient {
     }
 
     public var currentTokenContainer: TokenContainer? {
-        tokenStorage.tokenContainer
+        get  {
+            tokenStorage.tokenContainer
+        }
+        set {
+            tokenStorage.tokenContainer = newValue
+        }
     }
 
     public func getTokens(policy: TokensCachePolicy) async throws -> TokenContainer {
-        Logger.OAuthClient.log("Getting tokens: \(policy.description)")
-
         let localTokenContainer: TokenContainer?
         // V1 to V2 tokens migration
         if let migratedTokenContainer = await migrateLegacyTokenIfNeeded() {
@@ -210,6 +213,7 @@ final public class DefaultOAuthClient: OAuthClient {
                 Logger.OAuthClient.log("Local tokens found, expiry: \(localTokenContainer.decodedAccessToken.exp.value)")
                 return localTokenContainer
             } else {
+                Logger.OAuthClient.log("Tokens not found")
                 throw OAuthClientError.missingTokens
             }
         case .localValid:
@@ -223,10 +227,12 @@ final public class DefaultOAuthClient: OAuthClient {
                     return localTokenContainer
                 }
             } else {
+                Logger.OAuthClient.log("Tokens not found")
                 throw OAuthClientError.missingTokens
             }
         case .localForceRefresh:
             guard let refreshToken = localTokenContainer?.refreshToken else {
+                Logger.OAuthClient.log("Refresh token not found")
                 throw OAuthClientError.missingRefreshToken
             }
             do {
@@ -381,8 +387,9 @@ final public class DefaultOAuthClient: OAuthClient {
         let (codeVerifier, codeChallenge) = try await getVerificationCodes()
         let authSessionID = try await authService.authorize(codeChallenge: codeChallenge)
         let authCode = try await authService.exchangeToken(accessTokenV1: accessTokenV1, authSessionID: authSessionID)
-        let tokens = try await getTokens(authCode: authCode, codeVerifier: codeVerifier)
-        return tokens
+        let tokenContainer = try await getTokens(authCode: authCode, codeVerifier: codeVerifier)
+        tokenStorage.tokenContainer = tokenContainer
+        return tokenContainer
     }
 
     // MARK: Logout

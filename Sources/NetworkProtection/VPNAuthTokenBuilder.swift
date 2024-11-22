@@ -1,5 +1,5 @@
 //
-//  NetworkProtectionFeatureActivation.swift
+//  VPNAuthTokenBuilder.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -17,17 +17,13 @@
 //
 
 import Foundation
+import Subscription
+import Networking
 
-public protocol NetworkProtectionFeatureActivation {
+struct VPNAuthTokenBuilder {
 
-    /// Has the invite code flow been completed and an oAuth token stored?
-    ///
-    var isFeatureActivated: Bool { get }
-}
-
-extension NetworkProtectionKeychainTokenStore: NetworkProtectionFeatureActivation {
-
-    public var isFeatureActivated: Bool {
-        return fetchToken() != nil
+    static func getVPNAuthToken(from tokenProvider: SubscriptionTokenProvider, policy: TokensCachePolicy) async throws -> String {
+        let token = try await tokenProvider.getTokenContainer(policy: .localValid).accessToken
+        return "ddg:\(token)"
     }
 }

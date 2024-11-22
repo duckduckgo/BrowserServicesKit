@@ -319,7 +319,14 @@ public struct DefaultOAuthService: OAuthService {
 
         let statusCode = response.httpResponse.httpStatus
         if statusCode == request.httpSuccessCode {
-            return try extract(header: HTTPHeaderKey.location, from: response.httpResponse)
+            let redirectURI = try extract(header: HTTPHeaderKey.location, from: response.httpResponse)
+            // Extract the code from the URL query params, example: com.duckduckgo:/authcb?code=NgNj...ozv
+            guard let authCode = URLComponents(string: redirectURI)?.queryItems?.first(where: { queryItem in
+                queryItem.name == "code"
+            })?.value else {
+                throw OAuthServiceError.missingResponseValue("Authorization Code in redirect URI")
+            }
+            return authCode
         } else if request.httpErrorCodes.contains(statusCode) {
             try throwError(forResponse: response, request: request)
         }

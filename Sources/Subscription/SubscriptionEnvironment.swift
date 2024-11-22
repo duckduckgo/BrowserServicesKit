@@ -44,4 +44,8 @@ public struct SubscriptionEnvironment: Codable {
         self.serviceEnvironment = serviceEnvironment
         self.purchasePlatform = purchasePlatform
     }
+
+    public var description: String {
+        "ServiceEnvironment: \(serviceEnvironment.rawValue), PurchasePlatform: \(purchasePlatform.rawValue)"
+    }
 }

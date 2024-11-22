@@ -18,6 +18,7 @@
 
 import Foundation
 import Common
+import Subscription
 
 public enum NetworkProtectionLocationListCachePolicy {
     case returnCacheElseLoad
@@ -36,24 +37,24 @@ final public class NetworkProtectionLocationListCompositeRepository: NetworkProt
     @MainActor private static var cacheTimestamp = Date()
     private static let cacheValidity = TimeInterval(60) // Refreshes at most once per minute
     private let client: NetworkProtectionClient
-    private let tokenStore: NetworkProtectionTokenStore
+    private let tokenProvider: any SubscriptionTokenProvider
     private let errorEvents: EventMapping<NetworkProtectionError>
 
     convenience public init(environment: VPNSettings.SelectedEnvironment,
-                            tokenStore: NetworkProtectionTokenStore,
+                            tokenProvider: any SubscriptionTokenProvider,
                             errorEvents: EventMapping<NetworkProtectionError>) {
         self.init(
             client: NetworkProtectionBackendClient(environment: environment),
-            tokenStore: tokenStore,
+            tokenProvider: tokenProvider,
             errorEvents: errorEvents
         )
     }
 
     init(client: NetworkProtectionClient,
-         tokenStore: NetworkProtectionTokenStore,
+         tokenProvider: any SubscriptionTokenProvider,
          errorEvents: EventMapping<NetworkProtectionError>) {
         self.client = client
-        self.tokenStore = tokenStore
+        self.tokenProvider = tokenProvider
         self.errorEvents = errorEvents
     }
 
@@ -87,9 +88,7 @@ final public class NetworkProtectionLocationListCompositeRepository: NetworkProt
     @discardableResult
     func fetchLocationListFromRemote() async throws -> [NetworkProtectionLocation] {
         do {
-            guard let authToken = tokenStore.fetchToken() else {
-                throw NetworkProtectionError.noAuthTokenFound
-            }
+            let authToken = try await VPNAuthTokenBuilder.getVPNAuthToken(from: tokenProvider, policy: .localValid)
             Self.locationList = try await client.getLocations(authToken: authToken).get()
             Self.cacheTimestamp = Date()
         } catch let error as NetworkProtectionErrorConvertible {

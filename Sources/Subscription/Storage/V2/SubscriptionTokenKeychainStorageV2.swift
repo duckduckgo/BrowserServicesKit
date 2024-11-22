@@ -33,7 +33,7 @@ public final class SubscriptionTokenKeychainStorageV2: TokenStoring {
     public var tokenContainer: TokenContainer? {
         get {
             //            queue.sync {
-            Logger.subscriptionKeychain.debug("get TokenContainer")
+//            Logger.subscriptionKeychain.debug("get TokenContainer")
             guard let data = try? retrieveData(forField: .tokens) else {
                 Logger.subscriptionKeychain.debug("TokenContainer not found")
                 return nil
@@ -43,7 +43,7 @@ public final class SubscriptionTokenKeychainStorageV2: TokenStoring {
         }
         set {
             //            queue.sync { [weak self] in
-            Logger.subscriptionKeychain.debug("set TokenContainer")
+//            Logger.subscriptionKeychain.debug("set TokenContainer")
             //                guard let strongSelf = self else { return }
 
             do {

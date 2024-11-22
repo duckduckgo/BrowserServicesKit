@@ -68,21 +68,35 @@ public final class DefaultStripePurchaseFlow: StripePurchaseFlow {
     }
 
     public func prepareSubscriptionPurchase(emailAccessToken: String?) async -> Result<PurchaseUpdate, StripePurchaseFlowError> {
-
         Logger.subscription.log("Preparing subscription purchase")
+
         subscriptionManager.clearSubscriptionCache()
-        do {
-            let subscription = try await subscriptionManager.getSubscription(cachePolicy: .reloadIgnoringLocalCacheData)
-            if !subscription.isActive {
-                let tokenContainer = try await subscriptionManager.getTokenContainer(policy: .local)
+
+        if subscriptionManager.isUserAuthenticated {
+            if let subscriptionExpired = await isSubscriptionExpired(),
+               subscriptionExpired == true,
+               let tokenContainer = try? await subscriptionManager.getTokenContainer(policy: .localValid) {
                 return .success(PurchaseUpdate.redirect(withToken: tokenContainer.accessToken))
             } else {
                 return .success(PurchaseUpdate.redirect(withToken: ""))
             }
-        } catch {
-            Logger.subscriptionStripePurchaseFlow.error("Account creation failed: \(error.localizedDescription, privacy: .public)")
-            return .failure(.accountCreationFailed)
+        } else {
+            do {
+                // Create account
+                let tokenContainer = try await subscriptionManager.getTokenContainer(policy: .createIfNeeded)
+                return .success(PurchaseUpdate.redirect(withToken: tokenContainer.accessToken))
+            } catch {
+                Logger.subscriptionStripePurchaseFlow.error("Account creation failed: \(error.localizedDescription, privacy: .public)")
+                return .failure(.accountCreationFailed)
+            }
         }
+    }
+
+    private func isSubscriptionExpired() async -> Bool? {
+        guard let subscription = try? await subscriptionManager.getSubscription(cachePolicy: .reloadIgnoringLocalCacheData) else {
+            return nil
+        }
+        return !subscription.isActive
     }
 
     public func completeSubscriptionPurchase() async {

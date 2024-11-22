@@ -20,6 +20,7 @@ import Foundation
 import Common
 import NetworkExtension
 import os.log
+import Subscription
 
 public enum NetworkProtectionServerSelectionMethod: CustomDebugStringConvertible {
     public var debugDescription: String {
@@ -73,27 +74,27 @@ public protocol NetworkProtectionDeviceManagement {
 
 public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     private let networkClient: NetworkProtectionClient
-    private let tokenStore: NetworkProtectionTokenStore
+    private let tokenProvider: any SubscriptionTokenProvider
     private let keyStore: NetworkProtectionKeyStore
 
     private let errorEvents: EventMapping<NetworkProtectionError>?
 
     public init(environment: VPNSettings.SelectedEnvironment,
-                tokenStore: NetworkProtectionTokenStore,
+                tokenProvider: any SubscriptionTokenProvider,
                 keyStore: NetworkProtectionKeyStore,
                 errorEvents: EventMapping<NetworkProtectionError>?) {
         self.init(networkClient: NetworkProtectionBackendClient(environment: environment),
-                  tokenStore: tokenStore,
+                  tokenProvider: tokenProvider,
                   keyStore: keyStore,
                   errorEvents: errorEvents)
     }
 
     init(networkClient: NetworkProtectionClient,
-         tokenStore: NetworkProtectionTokenStore,
+         tokenProvider: any SubscriptionTokenProvider,
          keyStore: NetworkProtectionKeyStore,
          errorEvents: EventMapping<NetworkProtectionError>?) {
         self.networkClient = networkClient
-        self.tokenStore = tokenStore
+        self.tokenProvider = tokenProvider
         self.keyStore = keyStore
         self.errorEvents = errorEvents
     }
@@ -102,9 +103,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     /// This method will return the remote server list if available, or the local server list if there was a problem with the service call.
     ///
     public func refreshServerList() async throws -> [NetworkProtectionServer] {
-        guard let token = tokenStore.fetchToken() else {
-            throw NetworkProtectionError.noAuthTokenFound
-        }
+        let token = try await VPNAuthTokenBuilder.getVPNAuthToken(from: tokenProvider, policy: .localValid)
         let result = await networkClient.getServers(authToken: token)
         let completeServerList: [NetworkProtectionServer]
 
@@ -189,7 +188,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
                           selectionMethod: NetworkProtectionServerSelectionMethod) async throws -> (server: NetworkProtectionServer,
                                                                                                     newExpiration: Date?) {
 
-        guard let token = tokenStore.fetchToken() else { throw NetworkProtectionError.noAuthTokenFound }
+        let token = try await VPNAuthTokenBuilder.getVPNAuthToken(from: tokenProvider, policy: .localValid)
 
         let serverSelection: RegisterServerSelection
         let excludedServerName: String?
@@ -313,11 +312,11 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     }
 
     private func handle(clientError: NetworkProtectionClientError) {
-#if os(macOS)
-        if case .invalidAuthToken = clientError {
-            try? tokenStore.deleteToken()
-        }
-#endif
+//#if os(macOS)
+//        if case .invalidAuthToken = clientError {
+//            try? tokenStore.deleteToken()
+//        }
+//#endif
         errorEvents?.fire(clientError.networkProtectionError)
     }
 
