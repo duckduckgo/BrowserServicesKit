@@ -19,7 +19,7 @@
 import Foundation
 
 public struct SubscriptionOptions: Encodable, Equatable {
-    let platform: String
+    let platform: SubscriptionPlatformName
     let options: [SubscriptionOption]
     let features: [SubscriptionFeature]
 
@@ -33,7 +33,7 @@ public struct SubscriptionOptions: Encodable, Equatable {
 #else
         platform = .macos
 #endif
-        return SubscriptionOptions(platform: platform.rawValue, options: [], features: features)
+        return SubscriptionOptions(platform: platform, options: [], features: features)
     }
 
     public func withoutPurchaseOptions() -> Self {
@@ -41,7 +41,7 @@ public struct SubscriptionOptions: Encodable, Equatable {
     }
 }
 
-public enum SubscriptionPlatformName: String {
+public enum SubscriptionPlatformName: String, Encodable {
     case ios
     case macos
     case stripe

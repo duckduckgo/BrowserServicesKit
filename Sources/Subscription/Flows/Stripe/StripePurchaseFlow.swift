@@ -75,7 +75,7 @@ public final class DefaultStripePurchaseFlow: StripePurchaseFlow {
                         SubscriptionFeature(name: .dataBrokerProtection),
                         SubscriptionFeature(name: .identityTheftRestoration)]
 
-        return .success(SubscriptionOptions(platform: SubscriptionPlatformName.stripe.rawValue,
+        return .success(SubscriptionOptions(platform: SubscriptionPlatformName.stripe,
                                             options: options,
                                             features: features))
     }

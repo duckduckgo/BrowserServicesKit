@@ -126,7 +126,7 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
         // TODO: Should also sum up features from monthly and yearly
         let features: [SubscriptionFeature] = await subscriptionFeatureMappingCache.subscriptionFeatures(for: monthly.id).compactMap { SubscriptionFeature(name: $0) }
 
-        return SubscriptionOptions(platform: platform.rawValue,
+        return SubscriptionOptions(platform: platform,
                                    options: options,
                                    features: features)
     }
