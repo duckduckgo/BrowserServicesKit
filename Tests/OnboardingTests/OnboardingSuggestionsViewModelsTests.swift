@@ -147,11 +147,11 @@ class CapturingOnboardingNavigationDelegate: OnboardingNavigationDelegate {
     var suggestedSearchQuery: String?
     var urlToNavigateTo: URL?
 
-    func searchFor(_ query: String) {
+    func searchFromOnboarding(for query: String) {
         suggestedSearchQuery = query
     }
 
-    func navigateTo(url: URL) {
+    func navigateFromOnboarding(to url: URL) {
         urlToNavigateTo = url
     }
 }

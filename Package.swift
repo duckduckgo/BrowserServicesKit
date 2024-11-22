@@ -249,6 +249,7 @@ let package = Package(
                 "ContentBlocking",
                 "Persistence",
                 "BrowserServicesKit",
+                "MaliciousSiteProtection",
                 .product(name: "PrivacyDashboardResources", package: "privacy-dashboard")
             ],
             path: "Sources/PrivacyDashboard",
