@@ -127,6 +127,8 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
 //        let features = SubscriptionFeatureName.allCases.map { SubscriptionFeature(name: $0.rawValue) }
         let features: [SubscriptionFeature] = await subscriptionFeatureMappingCache.subscriptionFeatures(for: monthly.id).compactMap { SubscriptionFeature(from: $0) }
 
+        // When we have FE support we can use this
+//        let features: [SubscriptionFeature] = await subscriptionFeatureMappingCache.subscriptionFeatures(for: monthly.id).compactMap { SubscriptionFeature(name: $0.rawValue) }
 
         return SubscriptionOptions(platform: platform.rawValue,
                                    options: options,
