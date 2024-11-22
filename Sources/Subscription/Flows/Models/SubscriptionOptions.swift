@@ -22,8 +22,11 @@ public struct SubscriptionOptions: Encodable, Equatable {
     let platform: String
     let options: [SubscriptionOption]
     let features: [SubscriptionFeature]
+
     public static var empty: SubscriptionOptions {
-        let features = SubscriptionFeatureName.allCases.map { SubscriptionFeature(name: $0.rawValue) }
+        let features = [SubscriptionFeature(name: .networkProtection),
+                        SubscriptionFeature(name: .dataBrokerProtection),
+                        SubscriptionFeature(name: .identityTheftRestoration)]
         let platform: SubscriptionPlatformName
 #if os(iOS)
         platform = .ios
@@ -31,6 +34,10 @@ public struct SubscriptionOptions: Encodable, Equatable {
         platform = .macos
 #endif
         return SubscriptionOptions(platform: platform.rawValue, options: [], features: features)
+    }
+
+    public func withoutPurchaseOptions() -> Self {
+        SubscriptionOptions(platform: platform, options: [], features: features)
     }
 }
 
@@ -45,24 +52,5 @@ struct SubscriptionOptionCost: Encodable, Equatable {
 }
 
 public struct SubscriptionFeature: Encodable, Equatable {
-    let name: String
-}
-
-// TODO: To be removed as we will use ProductNames on FE as well
-public extension SubscriptionFeature {
-    init?(from productName: Entitlement.ProductName) {
-        switch productName {
-        case .networkProtection:
-            name = SubscriptionFeatureName.vpn.rawValue
-        case .dataBrokerProtection:
-            name = SubscriptionFeatureName.personalInformationRemoval.rawValue
-        case .identityTheftRestoration:
-            name = SubscriptionFeatureName.identityTheftRestoration.rawValue
-        case .identityTheftRestorationGlobal:
-            // TODO: Needs to be updated when we have updated SubscriptionFeatureName
-            name = SubscriptionFeatureName.identityTheftRestoration.rawValue
-        default:
-            return nil
-        }
-    }
+    let name: Entitlement.ProductName
 }
