@@ -41,6 +41,12 @@ public struct SubscriptionOptions: Encodable, Equatable {
     }
 }
 
+public enum SubscriptionPlatformName: String {
+    case ios
+    case macos
+    case stripe
+}
+
 public struct SubscriptionOption: Encodable, Equatable {
     let id: String
     let cost: SubscriptionOptionCost
