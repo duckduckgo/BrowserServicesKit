@@ -152,7 +152,7 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
 
             if !self.lookupCompiledRules() {
                 if let lastCompiledRules = lastCompiledRulesStore?.rules, !lastCompiledRules.isEmpty {
-                    if(self.fetchLastCompiledRules(with: lastCompiledRules)) {
+                    if self.fetchLastCompiledRules(with: lastCompiledRules) {
                         self.errorReporting?.fire(.contentBlockingFetchLRCSucceeded)
                     } else {
                         self.errorReporting?.fire(.contentBlockingNoMatchInLRC)
@@ -282,7 +282,7 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
         mutex.wait()
 
         let rulesFound = initialCompilationTask.getFetchedRules()
-        
+
         if let rules = rulesFound {
             applyRules(rules)
         } else {
@@ -293,7 +293,7 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
 
         // No matter if rules were found or not, we need to schedule recompilation, after all
         scheduleCompilation()
-        
+
         return rulesFound != nil
     }
 
@@ -389,8 +389,8 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
             }
 
             // if task is main tds task, extract time and iteration count from the result and fire the pixel
-            //can result be a struct? can we add fields to compliatiotask instead?
-            //can we sen dpixels from compialtion task?
+            // can result be a struct? can we add fields to compliatiotask instead?
+            // can we sen dpixels from compialtion task?
             changes[task.rulesList.name] = diff
             return rules
         }

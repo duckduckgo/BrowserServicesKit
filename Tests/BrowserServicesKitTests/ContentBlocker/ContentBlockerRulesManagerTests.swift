@@ -203,7 +203,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
 
         let errorExp = expectation(description: "No error reported")
         errorExp.isInverted = true
-  
+
         let lookupAndFetchExp =  expectation(description: "Look and Fetch rules failed")
         let compilationTimeExp = expectation(description: "Compilation Time reported")
         let errorHandler = EventMapping<ContentBlockerDebugEvents> { event, _, params, _ in
@@ -547,7 +547,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
 
         let errorExp = expectation(description: "Error reported")
         errorExp.expectedFulfillmentCount = 5
-        
+
         let lookupAndFetchExp =  expectation(description: "Look and Fetch rules failed")
 
         var errorEvents = [ContentBlockerDebugEvents.Component]()
