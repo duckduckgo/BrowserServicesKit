@@ -1,5 +1,5 @@
 //
-//  PhishingDetectionEvents.swift
+//  Event.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -26,7 +26,7 @@ public extension PixelKit {
     }
 }
 
-public enum PhishingDetectionEvents: PixelKitEventV2 {
+public enum Event: PixelKitEventV2 {
     case errorPageShown(clientSideHit: Bool)
     case visitSite
     case iframeLoaded

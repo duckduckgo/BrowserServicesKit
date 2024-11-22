@@ -1,5 +1,5 @@
 //
-//  PhishingDetectionUpdateManagerMock.swift
+//  MockMaliciousSiteProtectionDataManager.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -17,27 +17,28 @@
 //
 
 import Foundation
-import PhishingDetection
+import MaliciousSiteProtection
 
-public class MockPhishingDetectionUpdateManager: PhishingDetectionUpdateManaging {
-    var didUpdateFilterSet = false
-    var didUpdateHashPrefixes = false
-    var completionHandler: (() -> Void)?
+public class MockMaliciousSiteProtectionDataManager: MaliciousSiteProtection.DataManaging {
+    public var filterSet: Set<Filter>
+    public var hashPrefixes: Set<String>
+    public var currentRevision: Int
 
-    public func updateFilterSet() async {
-        didUpdateFilterSet = true
-        checkCompletion()
+    public init() {
+        filterSet = Set()
+        hashPrefixes = Set()
+        currentRevision = 0
     }
 
-    public func updateHashPrefixes() async {
-        didUpdateHashPrefixes = true
-        checkCompletion()
+    public func saveFilterSet(set: Set<MaliciousSiteProtection.Filter>) {
+        filterSet = set
     }
 
-    private func checkCompletion() {
-        if didUpdateFilterSet && didUpdateHashPrefixes {
-            completionHandler?()
-        }
+    public func saveHashPrefixes(set: Set<String>) {
+        hashPrefixes = set
     }
 
+    public func saveRevision(_ revision: Int) {
+        currentRevision = revision
+    }
 }

@@ -1,7 +1,7 @@
 //
-//  PhishingDetector.swift
+//  MaliciousSiteDetector.swift
 //
-//  Copyright © 2023 DuckDuckGo. All rights reserved.
+//  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -16,49 +16,28 @@
 //  limitations under the License.
 //
 
-import Foundation
-import CryptoKit
 import Common
-import WebKit
+import CryptoKit
+import Foundation
 
-public enum PhishingDetectionError: CustomNSError {
-    case detected
-
-    public static let errorDomain: String = "PhishingDetectionError"
-
-    public var errorCode: Int {
-        switch self {
-        case .detected:
-            return 1331
-        }
-    }
-
-    public var errorUserInfo: [String: Any] {
-        switch self {
-        case .detected:
-            return [NSLocalizedDescriptionKey: "Phishing detected"]
-        }
-    }
-
-    public var rawValue: Int {
-        return self.errorCode
-    }
+public protocol MaliciousSiteDetecting {
+    func evaluate(_ url: URL) async -> ThreatKind?
 }
 
-public protocol PhishingDetecting {
-    func isMalicious(url: URL) async -> Bool
-}
+public final class MaliciousSiteDetector: MaliciousSiteDetecting {
+    // for easier Xcode symbol navigation
+    typealias PhishingDetector = MaliciousSiteDetector
+    typealias MalwareDetector = MaliciousSiteDetector
 
-public class PhishingDetector: PhishingDetecting {
     let hashPrefixStoreLength: Int = 8
     let hashPrefixParamLength: Int = 4
-    let apiClient: PhishingDetectionClientProtocol
-    let dataStore: PhishingDetectionDataSaving
-    let eventMapping: EventMapping<PhishingDetectionEvents>
+    let apiClient: APIClientProtocol
+    let dataManager: DataManaging
+    let eventMapping: EventMapping<Event>
 
-    public init(apiClient: PhishingDetectionClientProtocol, dataStore: PhishingDetectionDataSaving, eventMapping: EventMapping<PhishingDetectionEvents>) {
+    public init(apiClient: APIClientProtocol = APIClient(), dataManager: DataManaging, eventMapping: EventMapping<Event>) {
         self.apiClient = apiClient
-        self.dataStore = dataStore
+        self.dataManager = dataManager
         self.eventMapping = eventMapping
     }
 
@@ -67,7 +46,7 @@ public class PhishingDetector: PhishingDetecting {
     }
 
     private func inFilterSet(hash: String) -> Set<Filter> {
-        return Set(dataStore.filterSet.filter { $0.hashValue == hash })
+        return Set(dataManager.filterSet.filter { $0.hash == hash })
     }
 
     private func matchesUrl(hash: String, regexPattern: String, url: URL, hostnameHash: String) -> Bool {
@@ -92,8 +71,8 @@ public class PhishingDetector: PhishingDetecting {
     private func checkLocalFilters(canonicalHost: String, canonicalUrl: URL) -> Bool {
         let hostnameHash = generateHashPrefix(for: canonicalHost, length: Int.max)
         let filterHit = inFilterSet(hash: hostnameHash)
-        for filter in filterHit where matchesUrl(hash: filter.hashValue, regexPattern: filter.regex, url: canonicalUrl, hostnameHash: hostnameHash) {
-            eventMapping.fire(PhishingDetectionEvents.errorPageShown(clientSideHit: true))
+        for filter in filterHit where matchesUrl(hash: filter.hash, regexPattern: filter.regex, url: canonicalUrl, hostnameHash: hostnameHash) {
+            eventMapping.fire(.errorPageShown(clientSideHit: true))
             return true
         }
         return false
@@ -104,27 +83,29 @@ public class PhishingDetector: PhishingDetecting {
         let matches = await fetchMatches(hashPrefix: hashPrefixParam)
         let hostnameHash = generateHashPrefix(for: canonicalHost, length: Int.max)
         for match in matches where matchesUrl(hash: match.hash, regexPattern: match.regex, url: canonicalUrl, hostnameHash: hostnameHash) {
-            eventMapping.fire(PhishingDetectionEvents.errorPageShown(clientSideHit: false))
+            eventMapping.fire(.errorPageShown(clientSideHit: false))
             return true
         }
         return false
     }
 
-    public func isMalicious(url: URL) async -> Bool {
-        guard let canonicalHost = url.canonicalHost(), let canonicalUrl = url.canonicalURL() else { return false }
+    public func evaluate(_ url: URL) async -> ThreatKind? {
+        guard let canonicalHost = url.canonicalHost(), let canonicalUrl = url.canonicalURL() else { return .none }
 
-        let hashPrefix = generateHashPrefix(for: canonicalHost, length: hashPrefixStoreLength)
-        if dataStore.hashPrefixes.contains(hashPrefix) {
-            // Check local filterSet first
-            if checkLocalFilters(canonicalHost: canonicalHost, canonicalUrl: canonicalUrl) {
-                return true
-            }
-            // If nothing found, hit the API to get matches
-            if await checkApiMatches(canonicalHost: canonicalHost, canonicalUrl: canonicalUrl) {
-                return true
+        for threatKind in ThreatKind.allCases {
+            let hashPrefix = generateHashPrefix(for: canonicalHost, length: hashPrefixStoreLength)
+            if dataManager.hashPrefixes.contains(hashPrefix) {
+                // Check local filterSet first
+                if checkLocalFilters(canonicalHost: canonicalHost, canonicalUrl: canonicalUrl) {
+                    return threatKind
+                }
+                // If nothing found, hit the API to get matches
+                if await checkApiMatches(canonicalHost: canonicalHost, canonicalUrl: canonicalUrl) {
+                    return threatKind
+                }
             }
         }
 
-        return false
+        return .none
     }
 }

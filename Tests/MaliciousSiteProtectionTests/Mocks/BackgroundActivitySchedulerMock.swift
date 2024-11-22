@@ -17,8 +17,8 @@
 //
 
 import Foundation
-import PhishingDetection
-
+import MaliciousSiteProtection
+// TODO: to be dropped
 actor MockBackgroundActivityScheduler: BackgroundActivityScheduling {
     var startCalled = false
     var stopCalled = false

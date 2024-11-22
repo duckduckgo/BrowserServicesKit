@@ -1,5 +1,5 @@
 //
-//  PhishingDetectionDataProvider.swift
+//  EmbeddedDataProvider.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -21,18 +21,18 @@ import CryptoKit
 import Common
 import os
 
-public protocol PhishingDetectionDataProviding {
+public protocol EmbeddedDataProviding {
     var embeddedRevision: Int { get }
     func loadEmbeddedFilterSet() -> Set<Filter>
     func loadEmbeddedHashPrefixes() -> Set<String>
 }
 
-public class PhishingDetectionDataProvider: PhishingDetectionDataProviding {
-    public private(set) var embeddedRevision: Int
-    var embeddedFilterSetURL: URL
-    var embeddedFilterSetDataSHA: String
-    var embeddedHashPrefixURL: URL
-    var embeddedHashPrefixDataSHA: String
+public struct EmbeddedDataProvider: EmbeddedDataProviding {
+    public let embeddedRevision: Int
+    private let embeddedFilterSetURL: URL
+    private let embeddedFilterSetDataSHA: String
+    private let embeddedHashPrefixURL: URL
+    private let embeddedHashPrefixDataSHA: String
 
     public init(revision: Int, filterSetURL: URL, filterSetDataSHA: String, hashPrefixURL: URL, hashPrefixDataSHA: String) {
         embeddedFilterSetURL = filterSetURL
@@ -58,8 +58,7 @@ public class PhishingDetectionDataProvider: PhishingDetectionDataProviding {
              let filterSetData = try loadData(from: embeddedFilterSetURL, expectedSHA: embeddedFilterSetDataSHA)
              return try JSONDecoder().decode(Set<Filter>.self, from: filterSetData)
          } catch {
-             Logger.phishingDetectionDataProvider.error("🔴 Error: SHA mismatch for filterSet JSON file. Expected \(self.embeddedFilterSetDataSHA)")
-             return []
+             fatalError("🔴 Error: SHA mismatch for filterSet JSON file. Expected \(self.embeddedFilterSetDataSHA)")
          }
      }
 
@@ -68,8 +67,7 @@ public class PhishingDetectionDataProvider: PhishingDetectionDataProviding {
             let hashPrefixData = try loadData(from: embeddedHashPrefixURL, expectedSHA: embeddedHashPrefixDataSHA)
             return try JSONDecoder().decode(Set<String>.self, from: hashPrefixData)
         } catch {
-            Logger.phishingDetectionDataProvider.error("🔴 Error: SHA mismatch for hashPrefixes JSON file. Expected \(self.embeddedHashPrefixDataSHA)")
-            return []
+            fatalError("🔴 Error: SHA mismatch for hashPrefixes JSON file. Expected \(self.embeddedHashPrefixDataSHA)")
         }
     }
 }

@@ -1,7 +1,7 @@
 //
-//  PhishingDetectionUpdateManager.swift
+//  UpdateManager.swift
 //
-//  Copyright © 2023 DuckDuckGo. All rights reserved.
+//  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -20,18 +20,18 @@ import Foundation
 import Common
 import os
 
-public protocol PhishingDetectionUpdateManaging {
+public protocol UpdateManaging {
     func updateFilterSet() async
     func updateHashPrefixes() async
 }
 
-public class PhishingDetectionUpdateManager: PhishingDetectionUpdateManaging {
-    var apiClient: PhishingDetectionClientProtocol
-    var dataStore: PhishingDetectionDataSaving
+public struct UpdateManager: UpdateManaging {
+    private let apiClient: APIClientProtocol
+    private let dataManager: DataManaging
 
-    public init(client: PhishingDetectionClientProtocol, dataStore: PhishingDetectionDataSaving) {
-        self.apiClient = client
-        self.dataStore = dataStore
+    public init(apiClient: APIClientProtocol, dataManager: DataManaging) {
+        self.apiClient = apiClient
+        self.dataManager = dataManager
     }
 
     private func updateSet<T: Hashable>(
@@ -54,30 +54,30 @@ public class PhishingDetectionUpdateManager: PhishingDetectionUpdateManaging {
     }
 
     public func updateFilterSet() async {
-        let response = await apiClient.getFilterSet(revision: dataStore.currentRevision)
+        let response = await apiClient.getFilterSet(revision: dataManager.currentRevision)
         updateSet(
-            currentSet: dataStore.filterSet,
+            currentSet: dataManager.filterSet,
             insert: response.insert,
             delete: response.delete,
             replace: response.replace
         ) { newSet in
-            self.dataStore.saveFilterSet(set: newSet)
+            self.dataManager.saveFilterSet(set: newSet)
         }
-        dataStore.saveRevision(response.revision)
-        Logger.phishingDetectionUpdateManager.debug("filterSet updated to revision \(self.dataStore.currentRevision)")
+        dataManager.saveRevision(response.revision)
+        Logger.updateManager.debug("filterSet updated to revision \(self.dataManager.currentRevision)")
     }
 
     public func updateHashPrefixes() async {
-        let response = await apiClient.getHashPrefixes(revision: dataStore.currentRevision)
+        let response = await apiClient.getHashPrefixes(revision: dataManager.currentRevision)
         updateSet(
-            currentSet: dataStore.hashPrefixes,
+            currentSet: dataManager.hashPrefixes,
             insert: response.insert,
             delete: response.delete,
             replace: response.replace
         ) { newSet in
-            self.dataStore.saveHashPrefixes(set: newSet)
+            self.dataManager.saveHashPrefixes(set: newSet)
         }
-        dataStore.saveRevision(response.revision)
-        Logger.phishingDetectionUpdateManager.debug("hashPrefixes updated to revision \(self.dataStore.currentRevision)")
+        dataManager.saveRevision(response.revision)
+        Logger.updateManager.debug("hashPrefixes updated to revision \(self.dataManager.currentRevision)")
     }
 }

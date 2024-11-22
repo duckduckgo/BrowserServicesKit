@@ -1,5 +1,5 @@
 //
-//  EventMappingMock.swift
+//  MockEventMapping.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -15,13 +15,14 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
-import Foundation
+
 import Common
-import PhishingDetection
+import Foundation
+import MaliciousSiteProtection
 import PixelKit
 
-public class MockEventMapping: EventMapping<PhishingDetectionEvents> {
-    static var events: [PhishingDetectionEvents] = []
+public class MockEventMapping: EventMapping<MaliciousSiteProtection.Event> {
+    static var events: [MaliciousSiteProtection.Event] = []
     static var clientSideHitParam: String?
     static var errorParam: Error?
 
@@ -39,7 +40,7 @@ public class MockEventMapping: EventMapping<PhishingDetectionEvents> {
         }
     }
 
-    override init(mapping: @escaping EventMapping<PhishingDetectionEvents>.Mapping) {
+    override init(mapping: @escaping EventMapping<MaliciousSiteProtection.Event>.Mapping) {
         fatalError("Use init()")
     }
 }

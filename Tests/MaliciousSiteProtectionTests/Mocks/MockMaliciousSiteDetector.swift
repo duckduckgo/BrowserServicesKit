@@ -1,5 +1,5 @@
 //
-//  PhishingDetectorMock.swift
+//  MockMaliciousSiteDetector.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -17,14 +17,14 @@
 //
 
 import Foundation
-import PhishingDetection
+import MaliciousSiteProtection
 
-public class MockPhishingDetector: PhishingDetecting {
-    private var mockClient: PhishingDetectionClientProtocol
+public class MockMaliciousSiteDetector: MaliciousSiteDetecting {
+    private var mockClient: MaliciousSiteProtection.APIClientProtocol
     public var didCallIsMalicious: Bool = false
 
     init() {
-        self.mockClient = MockPhishingDetectionClient()
+        self.mockClient = MockMaliciousSiteProtectionAPIClient()
     }
 
     public func getMatches(hashPrefix: String) async -> Set<Match> {
@@ -32,7 +32,7 @@ public class MockPhishingDetector: PhishingDetecting {
         return Set(matches)
     }
 
-    public func isMalicious(url: URL) async -> Bool {
-        return url.absoluteString.contains("malicious")
+    public func evaluate(_ url: URL) async -> ThreatKind? {
+        return url.absoluteString.contains("malicious") ? .phishing : nil
     }
 }

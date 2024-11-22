@@ -1,5 +1,5 @@
 //
-//  PhishingDetectionClientTests.swift
+//  MaliciousSiteProtectionAPIClientTests.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -17,17 +17,17 @@
 //
 import Foundation
 import XCTest
-@testable import PhishingDetection
+@testable import MaliciousSiteProtection
 
-final class PhishingDetectionAPIClientTests: XCTestCase {
+final class MaliciousSiteProtectionAPIClientTests: XCTestCase {
 
     var mockSession: MockURLSession!
-    var client: PhishingDetectionAPIClient!
+    var client: MaliciousSiteProtection.APIClient!
 
     override func setUp() {
         super.setUp()
         mockSession = MockURLSession()
-        client = PhishingDetectionAPIClient(environment: .staging, session: mockSession)
+        client = .init(environment: .staging, session: mockSession)
     }
 
     override func tearDown() {
@@ -38,9 +38,9 @@ final class PhishingDetectionAPIClientTests: XCTestCase {
 
     func testGetFilterSetSuccess() async {
         // Given
-        let insertFilter = Filter(hashValue: "a379a6f6eeafb9a55e378c118034e2751e682fab9f2d30ab13d2125586ce1947", regex: ".")
-        let deleteFilter = Filter(hashValue: "6a929cd0b3ba4677eaedf1b2bdaf3ff89281cca94f688c83103bc9a676aea46d", regex: "(?i)^https?\\:\\/\\/[\\w\\-\\.]+(?:\\:(?:80|443))?")
-        let expectedResponse = FilterSetResponse(insert: [insertFilter], delete: [deleteFilter], revision: 1, replace: false)
+        let insertFilter = Filter(hash: "a379a6f6eeafb9a55e378c118034e2751e682fab9f2d30ab13d2125586ce1947", regex: ".")
+        let deleteFilter = Filter(hash: "6a929cd0b3ba4677eaedf1b2bdaf3ff89281cca94f688c83103bc9a676aea46d", regex: "(?i)^https?\\:\\/\\/[\\w\\-\\.]+(?:\\:(?:80|443))?")
+        let expectedResponse = APIClient.FiltersChangeSetResponse(insert: [insertFilter], delete: [deleteFilter], revision: 1, replace: false)
         mockSession.data = try? JSONEncoder().encode(expectedResponse)
         mockSession.response = HTTPURLResponse(url: client.filterSetURL, statusCode: 200, httpVersion: nil, headerFields: nil)
 
@@ -53,7 +53,7 @@ final class PhishingDetectionAPIClientTests: XCTestCase {
 
     func testGetHashPrefixesSuccess() async {
         // Given
-        let expectedResponse = HashPrefixResponse(insert: ["abc"], delete: ["def"], revision: 1, replace: false)
+        let expectedResponse = APIClient.HashPrefixesChangeSetResponse(insert: ["abc"], delete: ["def"], revision: 1, replace: false)
         mockSession.data = try? JSONEncoder().encode(expectedResponse)
         mockSession.response = HTTPURLResponse(url: client.hashPrefixURL, statusCode: 200, httpVersion: nil, headerFields: nil)
 
@@ -66,7 +66,7 @@ final class PhishingDetectionAPIClientTests: XCTestCase {
 
     func testGetMatchesSuccess() async {
         // Given
-        let expectedResponse = MatchResponse(matches: [Match(hostname: "example.com", url: "https://example.com/test", regex: ".", hash: "a379a6f6eeafb9a55e378c118034e2751e682fab9f2d30ab13d2125586ce1947")])
+        let expectedResponse = APIClient.MatchResponse(matches: [Match(hostname: "example.com", url: "https://example.com/test", regex: ".", hash: "a379a6f6eeafb9a55e378c118034e2751e682fab9f2d30ab13d2125586ce1947", category: nil)])
         mockSession.data = try? JSONEncoder().encode(expectedResponse)
         mockSession.response = HTTPURLResponse(url: client.matchesURL, statusCode: 200, httpVersion: nil, headerFields: nil)
 
@@ -85,7 +85,7 @@ final class PhishingDetectionAPIClientTests: XCTestCase {
         let response = await client.getFilterSet(revision: invalidRevision)
 
         // Then
-        XCTAssertEqual(response, FilterSetResponse(insert: [], delete: [], revision: invalidRevision, replace: false))
+        XCTAssertEqual(response, .init(insert: [], delete: [], revision: invalidRevision, replace: false))
     }
 
     func testGetHashPrefixesInvalidURL() async {
@@ -96,7 +96,7 @@ final class PhishingDetectionAPIClientTests: XCTestCase {
         let response = await client.getHashPrefixes(revision: invalidRevision)
 
         // Then
-        XCTAssertEqual(response, HashPrefixResponse(insert: [], delete: [], revision: invalidRevision, replace: false))
+        XCTAssertEqual(response, .init(insert: [], delete: [], revision: invalidRevision, replace: false))
     }
 
     func testGetMatchesInvalidURL() async {

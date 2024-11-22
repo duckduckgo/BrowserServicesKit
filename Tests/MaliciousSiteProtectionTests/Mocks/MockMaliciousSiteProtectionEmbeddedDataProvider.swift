@@ -1,5 +1,5 @@
 //
-//  PhishingDetectionDataProviderMock.swift
+//  MockMaliciousSiteProtectionEmbeddedDataProvider.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -17,14 +17,14 @@
 //
 
 import Foundation
-import PhishingDetection
+import MaliciousSiteProtection
 
-public class MockPhishingDetectionDataProvider: PhishingDetectionDataProviding {
+public class MockMaliciousSiteProtectionEmbeddedDataProvider: MaliciousSiteProtection.EmbeddedDataProviding {
     public var embeddedRevision: Int = 65
     var loadHashPrefixesCalled: Bool = false
     var loadFilterSetCalled: Bool = true
     var hashPrefixes: Set<String> = ["aabb"]
-    var filterSet: Set<Filter> = [Filter(hashValue: "dummyhash", regex: "dummyregex")]
+    var filterSet: Set<Filter> = [Filter(hash: "dummyhash", regex: "dummyregex")]
 
     public func shouldReturnFilterSet(set: Set<Filter>) {
         self.filterSet = set

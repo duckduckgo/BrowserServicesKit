@@ -1,7 +1,7 @@
 //
-//  PhishingDetectionClient.swift
+//  APIClient.swift
 //
-//  Copyright © 2023 DuckDuckGo. All rights reserved.
+//  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -16,45 +16,14 @@
 //  limitations under the License.
 //
 
-import Foundation
 import Common
+import Foundation
 import os
+import Networking
 
-public struct HashPrefixResponse: Codable, Equatable {
-    public var insert: [String]
-    public var delete: [String]
-    public var revision: Int
-    public var replace: Bool
-
-    public init(insert: [String], delete: [String], revision: Int, replace: Bool) {
-        self.insert = insert
-        self.delete = delete
-        self.revision = revision
-        self.replace = replace
-    }
-}
-
-public struct FilterSetResponse: Codable, Equatable {
-    public var insert: [Filter]
-    public var delete: [Filter]
-    public var revision: Int
-    public var replace: Bool
-
-    public init(insert: [Filter], delete: [Filter], revision: Int, replace: Bool) {
-        self.insert = insert
-        self.delete = delete
-        self.revision = revision
-        self.replace = replace
-    }
-}
-
-public struct MatchResponse: Codable, Equatable {
-    public var matches: [Match]
-}
-
-public protocol PhishingDetectionClientProtocol {
-    func getFilterSet(revision: Int) async -> FilterSetResponse
-    func getHashPrefixes(revision: Int) async -> HashPrefixResponse
+public protocol APIClientProtocol {
+    func getFilterSet(revision: Int) async -> APIClient.FiltersChangeSetResponse
+    func getHashPrefixes(revision: Int) async -> APIClient.HashPrefixesChangeSetResponse
     func getMatches(hashPrefix: String) async -> [Match]
 }
 
@@ -70,7 +39,7 @@ extension URLSessionProtocol {
     }
 }
 
-public class PhishingDetectionAPIClient: PhishingDetectionClientProtocol {
+public struct APIClient: APIClientProtocol {
 
     public enum Environment {
         case production
@@ -113,20 +82,20 @@ public class PhishingDetectionAPIClient: PhishingDetectionClientProtocol {
         self.session = session
     }
 
-    public func getFilterSet(revision: Int) async -> FilterSetResponse {
+    public func getFilterSet(revision: Int) async -> FiltersChangeSetResponse {
         guard let url = createURL(for: .filterSet, revision: revision) else {
             logDebug("🔸 Invalid filterSet revision URL: \(revision)")
-            return FilterSetResponse(insert: [], delete: [], revision: revision, replace: false)
+            return FiltersChangeSetResponse(insert: [], delete: [], revision: revision, replace: false)
         }
-        return await fetch(url: url, responseType: FilterSetResponse.self) ?? FilterSetResponse(insert: [], delete: [], revision: revision, replace: false)
+        return await fetch(url: url, responseType: FiltersChangeSetResponse.self) ?? FiltersChangeSetResponse(insert: [], delete: [], revision: revision, replace: false)
     }
 
-    public func getHashPrefixes(revision: Int) async -> HashPrefixResponse {
+    public func getHashPrefixes(revision: Int) async -> HashPrefixesChangeSetResponse {
         guard let url = createURL(for: .hashPrefix, revision: revision) else {
             logDebug("🔸 Invalid hashPrefix revision URL: \(revision)")
-            return HashPrefixResponse(insert: [], delete: [], revision: revision, replace: false)
+            return HashPrefixesChangeSetResponse(insert: [], delete: [], revision: revision, replace: false)
         }
-        return await fetch(url: url, responseType: HashPrefixResponse.self) ?? HashPrefixResponse(insert: [], delete: [], revision: revision, replace: false)
+        return await fetch(url: url, responseType: HashPrefixesChangeSetResponse.self) ?? HashPrefixesChangeSetResponse(insert: [], delete: [], revision: revision, replace: false)
     }
 
     public func getMatches(hashPrefix: String) async -> [Match] {
@@ -140,10 +109,10 @@ public class PhishingDetectionAPIClient: PhishingDetectionClientProtocol {
 }
 
 // MARK: Private Methods
-extension PhishingDetectionAPIClient {
+extension APIClient {
 
     private func logDebug(_ message: String) {
-        Logger.phishingDetectionClient.debug("\(message)")
+        Logger.api.debug("\(message)")
     }
 
     private func createURL(for path: Constants.APIPath, revision: Int? = nil, queryItems: [URLQueryItem]? = nil) -> URL? {

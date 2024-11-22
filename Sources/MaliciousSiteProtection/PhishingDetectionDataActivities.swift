@@ -24,7 +24,7 @@ public protocol BackgroundActivityScheduling: Actor {
     func start()
     func stop()
 }
-
+// TODO: to be dropped
 actor BackgroundActivityScheduler: BackgroundActivityScheduling {
 
     private var task: Task<Void, Never>?
@@ -71,9 +71,7 @@ public class PhishingDetectionDataActivities: PhishingDetectionDataActivityHandl
     private var schedulers: [BackgroundActivityScheduler]
     private var running: Bool = false
 
-    var dataProvider: PhishingDetectionDataProviding
-
-    public init(hashPrefixInterval: TimeInterval = 20 * 60, filterSetInterval: TimeInterval = 12 * 60 * 60, phishingDetectionDataProvider: PhishingDetectionDataProviding, updateManager: PhishingDetectionUpdateManaging) {
+    public init(hashPrefixInterval: TimeInterval = 20 * 60, filterSetInterval: TimeInterval = 12 * 60 * 60, updateManager: UpdateManaging) {
         let hashPrefixScheduler = BackgroundActivityScheduler(
             interval: hashPrefixInterval,
             identifier: "hashPrefixes.update",
@@ -85,7 +83,6 @@ public class PhishingDetectionDataActivities: PhishingDetectionDataActivityHandl
             activity: { await updateManager.updateFilterSet() }
         )
         self.schedulers = [hashPrefixScheduler, filterSetScheduler]
-        self.dataProvider = phishingDetectionDataProvider
     }
 
     public func start() {

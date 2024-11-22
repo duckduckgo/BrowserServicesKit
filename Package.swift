@@ -42,7 +42,7 @@ let package = Package(
         .library(name: "PixelKitTestingUtilities", targets: ["PixelKitTestingUtilities"]),
         .library(name: "SpecialErrorPages", targets: ["SpecialErrorPages"]),
         .library(name: "DuckPlayer", targets: ["DuckPlayer"]),
-        .library(name: "PhishingDetection", targets: ["PhishingDetection"]),
+        .library(name: "MaliciousSiteProtection", targets: ["MaliciousSiteProtection"]),
         .library(name: "Onboarding", targets: ["Onboarding"]),
         .library(name: "BrokenSitePrompt", targets: ["BrokenSitePrompt"]),
         .library(name: "PageRefreshMonitor", targets: ["PageRefreshMonitor"]),
@@ -407,9 +407,12 @@ let package = Package(
             ]
         ),
         .target(
-            name: "PhishingDetection",
+            name: "MaliciousSiteProtection",
             dependencies: [
-                "Common"
+                "Common",
+                "Networking",
+                "SpecialErrorPages",
+                "PixelKit",
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
@@ -645,14 +648,13 @@ let package = Package(
         ),
 
         .testTarget(
-            name: "PhishingDetectionTests",
+            name: "MaliciousSiteProtectionTests",
             dependencies: [
-                "PhishingDetection",
-                "PixelKit"
+                "MaliciousSiteProtection",
             ],
             resources: [
-                .copy("Resources/hashPrefixes.json"),
-                .copy("Resources/filterSet.json")
+                .copy("Resources/phishingHashPrefixes.json"),
+                .copy("Resources/phishingFilterSet.json"),
             ]
         ),
         .testTarget(

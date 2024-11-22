@@ -18,8 +18,8 @@
 
 import Foundation
 import XCTest
-@testable import PhishingDetection
-
+@testable import MaliciousSiteProtection
+// TODO: to be dropped
 class PhishingDetectionDataActivitiesTests: XCTestCase {
     var mockUpdateManager: MockPhishingDetectionUpdateManager!
     var activities: PhishingDetectionDataActivities!
@@ -27,7 +27,7 @@ class PhishingDetectionDataActivitiesTests: XCTestCase {
     override func setUp() {
         super.setUp()
         mockUpdateManager = MockPhishingDetectionUpdateManager()
-        activities = PhishingDetectionDataActivities(hashPrefixInterval: 1, filterSetInterval: 1, phishingDetectionDataProvider: MockPhishingDetectionDataProvider(), updateManager: mockUpdateManager)
+        activities = PhishingDetectionDataActivities(hashPrefixInterval: 1, filterSetInterval: 1, phishingDetectionDataProvider: MockMaliciousSiteProtectionEmbeddedDataProvider(), updateManager: mockUpdateManager)
     }
 
     func testUpdateHashPrefixesAndFilterSetRuns() async {

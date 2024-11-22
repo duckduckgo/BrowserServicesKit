@@ -17,7 +17,7 @@
 //
 import Foundation
 import XCTest
-@testable import PhishingDetection
+@testable import MaliciousSiteProtection
 
 class BackgroundActivitySchedulerTests: XCTestCase {
     var scheduler: BackgroundActivityScheduler!

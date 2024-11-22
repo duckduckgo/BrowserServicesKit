@@ -1,5 +1,5 @@
 //
-//  PhishingDetectionURLTests.swift
+//  MaliciousSiteProtectionURLTests.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -18,9 +18,10 @@
 
 import Foundation
 import XCTest
-@testable import PhishingDetection
 
-class PhishingDetectionURLTests: XCTestCase {
+@testable import MaliciousSiteProtection
+
+class MaliciousSiteProtectionURLTests: XCTestCase {
 
     let testURLs = [
         "http://www.example.com/security/badware/phishing.html#frags",
