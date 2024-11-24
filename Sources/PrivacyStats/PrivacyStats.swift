@@ -55,7 +55,7 @@ public final class PrivacyStats: PrivacyStatsCollecting {
     public private(set) var topCompanies: Set<String> = []
 
     @Published public private(set) var currentStats: [String: Int] = [:] // current pack
-    public var currentStatsPublisher: AnyPublisher<[String : Int], Never> {
+    public var currentStatsPublisher: AnyPublisher<[String: Int], Never> {
         $currentStats.dropFirst().eraseToAnyPublisher()
     }
 
@@ -93,8 +93,8 @@ public final class PrivacyStats: PrivacyStatsCollecting {
 
     public func commitChanges() {
         context.performAndWait {
+            currentStatsObject?.blockedTrackersDictionary = currentStats
             do {
-                currentStatsObject?.blockedTrackersDictionary = currentStats
                 try context.save()
                 Logger.privacyStats.debug("Saved stats \(String(reflecting: self.currentTimestamp)) \(self.currentStats)")
             } catch {
@@ -112,6 +112,7 @@ public final class PrivacyStats: PrivacyStatsCollecting {
         }()
         if !isCacheValid {
             refresh7DayCache()
+            deleteOldEntries()
         }
         return cached7DayStats.merging(currentStats, uniquingKeysWith: +).filter { topCompanies.contains($0.key) }
     }
@@ -123,7 +124,20 @@ public final class PrivacyStats: PrivacyStatsCollecting {
         }
     }
 
-    // swiftlint:disable:next force_cast
+    private func deleteOldEntries() {
+        context.performAndWait {
+            PrivacyStatsUtils.deleteOutdatedStats(in: context)
+            if context.hasChanges {
+                do {
+                    try context.save()
+                    Logger.privacyStats.debug("Deleted outdated entries")
+                } catch {
+                    Logger.privacyStats.error("Save error: \(error)")
+                }
+            }
+        }
+    }
+
     public init(databaseProvider: PrivacyStatsDatabaseProviding, trackerDataProvider: TrackerDataProviding) {
         self.db = databaseProvider.initializeDatabase()
         self.context = db.makeContext(concurrencyType: .privateQueueConcurrencyType, name: "PrivacyStats")

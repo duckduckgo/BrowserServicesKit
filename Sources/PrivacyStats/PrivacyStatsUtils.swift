@@ -47,7 +47,7 @@ final class PrivacyStatsUtils {
     static func loadStats(from startDate: Date, to endDate: Date, in context: NSManagedObjectContext) -> [String: Int] {
         let request = PrivacyStatsEntity.fetchRequest()
         request.predicate = NSPredicate(
-            format: "%K >= %@ AND %K < %@",
+            format: "%K > %@ AND %K < %@",
             #keyPath(PrivacyStatsEntity.timestamp),
             startDate as NSDate,
             #keyPath(PrivacyStatsEntity.timestamp),
@@ -59,5 +59,14 @@ final class PrivacyStatsUtils {
         return statsObjects.reduce(into: [String: Int]()) { partialResult, stats in
             partialResult.merge(stats.blockedTrackersDictionary, uniquingKeysWith: +)
         }
+    }
+
+    static func deleteOutdatedStats(olderThan date: Date = Date(), in context: NSManagedObjectContext) {
+        let thisHour = date.startOfHour
+        let oldestValidTimestamp = thisHour.daysAgo(7)
+
+        let request = PrivacyStatsEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "%K <= %@", #keyPath(PrivacyStatsEntity.timestamp), oldestValidTimestamp as NSDate)
+        context.deleteAll(matching: request)
     }
 }
