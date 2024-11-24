@@ -112,6 +112,7 @@ final class AccountManagerTests: XCTestCase {
 
     func testStoreAccount() async throws {
         // Given
+
         let notificationExpectation = expectation(forNotification: .accountDidSignIn, object: accountManager, handler: nil)
 
         // When

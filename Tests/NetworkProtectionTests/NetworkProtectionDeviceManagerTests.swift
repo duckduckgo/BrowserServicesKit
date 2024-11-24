@@ -212,10 +212,8 @@ extension NetworkProtectionDeviceManager {
                                      regenerateKey: Bool) async throws -> NetworkProtectionDeviceManager.GenerateTunnelConfigurationResult {
         try await generateTunnelConfiguration(
             resolvedSelectionMethod: selectionMethod,
-            includedRoutes: [],
-            excludedRoutes: [],
+            excludeLocalNetworks: false,
             dnsSettings: .default,
-            isKillSwitchEnabled: false,
             regenerateKey: regenerateKey
         )
     }

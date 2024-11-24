@@ -54,7 +54,6 @@ public enum PrivacyFeature: String {
     case brokenSitePrompt
     case remoteMessaging
     case additionalCampaignPixelParams
-    case backgroundAgentPixelTest
     case newTabPageImprovements
     case syncPromotion
     case autofillSurveys
@@ -62,6 +61,9 @@ public enum PrivacyFeature: String {
     case autocompleteTabs
     case networkProtection
     case aiChat
+    case contextualOnboarding
+    case textZoom
+    case adAttributionReporting
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -119,6 +121,10 @@ public enum NetworkProtectionSubfeature: String, Equatable, PrivacySubfeature {
     /// Display user tips for Network Protection
     /// https://app.asana.com/0/72649045549333/1208231259093710/f
     case userTips
+
+    /// Enforce routes for the VPN to fix TunnelVision
+    /// https://app.asana.com/0/72649045549333/1208617860225199/f
+    case enforceRoutes
 }
 
 public enum SyncSubfeature: String, PrivacySubfeature {
@@ -138,7 +144,7 @@ public enum AutoconsentSubfeature: String, PrivacySubfeature {
     }
 
     case onByDefault
-    case filterlistExperiment2
+    case filterlist
 }
 
 public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {
@@ -151,6 +157,7 @@ public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {
     case isLaunchedOverride
     case isLaunchedOverrideStripe
     case useUnifiedFeedback
+    case setAccessTokenCookieForSubscriptionDomains
 }
 
 public enum SslCertificatesSubfeature: String, PrivacySubfeature {
@@ -164,11 +171,6 @@ public enum DuckPlayerSubfeature: String, PrivacySubfeature {
     case autoplay
     case openInNewTab
     case enableDuckPlayer // iOS DuckPlayer rollout feature
-}
-
-public enum BackgroundAgentPixelTestSubfeature: String, PrivacySubfeature {
-    public var parent: PrivacyFeature { .backgroundAgentPixelTest }
-    case pixelTest
 }
 
 public enum PhishingDetectionSubfeature: String, PrivacySubfeature {
