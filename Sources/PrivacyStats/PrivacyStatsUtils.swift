@@ -36,4 +36,28 @@ final class PrivacyStatsUtils {
         }
         return statsObject!
     }
+
+    static func load7DayStats(until date: Date = Date(), in context: NSManagedObjectContext) -> [String: Int] {
+        let lastTimestamp = date.startOfHour
+        let firstTimestamp = lastTimestamp.daysAgo(7)
+
+        return loadStats(from: firstTimestamp, to: lastTimestamp, in: context)
+    }
+
+    static func loadStats(from startDate: Date, to endDate: Date, in context: NSManagedObjectContext) -> [String: Int] {
+        let request = PrivacyStatsEntity.fetchRequest()
+        request.predicate = NSPredicate(
+            format: "%K >= %@ AND %K < %@",
+            #keyPath(PrivacyStatsEntity.timestamp),
+            startDate as NSDate,
+            #keyPath(PrivacyStatsEntity.timestamp),
+            endDate as NSDate
+        )
+        request.returnsObjectsAsFaults = false
+
+        let statsObjects = (try? context.fetch(request)) ?? []
+        return statsObjects.reduce(into: [String: Int]()) { partialResult, stats in
+            partialResult.merge(stats.blockedTrackersDictionary, uniquingKeysWith: +)
+        }
+    }
 }

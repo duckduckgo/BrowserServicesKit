@@ -36,6 +36,10 @@ public protocol PrivacyStatsCollecting {
     func commitChanges()
     var topCompanies: Set<String> { get }
     var currentStats: [String: Int] { get }
+
+    var currentStatsPublisher: AnyPublisher<[String: Int], Never> { get }
+
+    func fetchPrivacyStats() -> [String: Int]
 }
 
 public protocol TrackerDataProviding {
@@ -49,16 +53,25 @@ public final class PrivacyStats: PrivacyStatsCollecting {
 
     public let trackerDataProvider: TrackerDataProviding
     public private(set) var topCompanies: Set<String> = []
-    public private(set) var currentStats: [String: Int] = [:]
+
+    @Published public private(set) var currentStats: [String: Int] = [:] // current pack
+    public var currentStatsPublisher: AnyPublisher<[String : Int], Never> {
+        $currentStats.dropFirst().eraseToAnyPublisher()
+    }
 
     private var cancellables: Set<AnyCancellable> = []
     private let db: CoreDataDatabase
     private let context: NSManagedObjectContext
+
+    // current pack timestamp
     private var currentTimestamp: Date?
     private var currentStatsObject: PrivacyStatsEntity?
     private let currentStatsLock = NSLock()
 
     private var commitTimer: Timer?
+
+    private var cached7DayStats: [String: Int] = [:]
+    private var cached7DayStatsLastFetchTimestamp: Date?
 
     public func recordBlockedTracker(_ name: String) {
         currentStatsLock.withLock {
@@ -87,6 +100,26 @@ public final class PrivacyStats: PrivacyStatsCollecting {
             } catch {
                 Logger.privacyStats.error("Save error: \(error)")
             }
+        }
+    }
+
+    public func fetchPrivacyStats() -> [String: Int] {
+        let isCacheValid: Bool = {
+            guard let cached7DayStatsLastFetchTimestamp else {
+                return false
+            }
+            return Date.isSameHour(Date(), cached7DayStatsLastFetchTimestamp)
+        }()
+        if !isCacheValid {
+            refresh7DayCache()
+        }
+        return cached7DayStats.merging(currentStats, uniquingKeysWith: +).filter { topCompanies.contains($0.key) }
+    }
+
+    private func refresh7DayCache() {
+        context.performAndWait {
+            cached7DayStats = PrivacyStatsUtils.load7DayStats(in: context)
+            cached7DayStatsLastFetchTimestamp = Date()
         }
     }
 

@@ -54,6 +54,10 @@ public extension Date {
         return Calendar.current.isDate(date1, inSameDayAs: date2)
     }
 
+    static func isSameHour(_ date1: Date, _ date2: Date) -> Bool {
+        return Calendar.current.isDate(date1, equalTo: date2, toGranularity: .hour)
+    }
+
     static var startOfDayTomorrow: Date {
         let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: Date())!
         return Calendar.current.startOfDay(for: tomorrow)
@@ -70,6 +74,10 @@ public extension Date {
     var startOfHour: Date {
         let dateComponents = Calendar.current.dateComponents([.year, .month, .day, .hour, .timeZone], from: self)
         return Calendar.current.date(from: dateComponents)!
+    }
+
+    func daysAgo(_ days: Int) -> Date {
+        return Calendar.current.date(byAdding: .day, value: -days, to: self)!
     }
 
     static var startOfMinuteNow: Date {
