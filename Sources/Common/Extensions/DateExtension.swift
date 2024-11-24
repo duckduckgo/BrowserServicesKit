@@ -64,7 +64,12 @@ public extension Date {
     }
 
     var startOfDay: Date {
-        return  Calendar.current.startOfDay(for: self)
+        return Calendar.current.startOfDay(for: self)
+    }
+
+    var startOfHour: Date {
+        let dateComponents = Calendar.current.dateComponents([.year, .month, .day, .hour, .timeZone], from: self)
+        return Calendar.current.date(from: dateComponents)!
     }
 
     static var startOfMinuteNow: Date {

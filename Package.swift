@@ -46,6 +46,7 @@ let package = Package(
         .library(name: "Onboarding", targets: ["Onboarding"]),
         .library(name: "BrokenSitePrompt", targets: ["BrokenSitePrompt"]),
         .library(name: "PageRefreshMonitor", targets: ["PageRefreshMonitor"]),
+        .library(name: "PrivacyStats", targets: ["PrivacyStats"]),
     ],
     dependencies: [
         .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "15.1.0"),
@@ -440,6 +441,19 @@ let package = Package(
             name: "PageRefreshMonitor",
             dependencies: [
                 "BrowserServicesKit"
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
+            ]
+        ),
+        .target(
+            name: "PrivacyStats",
+            dependencies: [
+                "Common",
+                "Persistence"
+            ],
+            resources: [
+                .process("PrivacyStats.xcdatamodeld")
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
