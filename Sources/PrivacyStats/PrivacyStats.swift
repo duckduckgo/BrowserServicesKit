@@ -33,7 +33,6 @@ public protocol PrivacyStatsDatabaseProviding {
 
 public protocol PrivacyStatsCollecting {
     func recordBlockedTracker(_ name: String)
-    func commitChanges()
     var topCompanies: Set<String> { get }
     var currentStats: [String: Int] { get }
 
@@ -76,7 +75,7 @@ public final class PrivacyStats: PrivacyStatsCollecting {
     public func recordBlockedTracker(_ name: String) {
         currentStatsLock.withLock {
             let timestamp = Date().startOfHour
-            if timestamp.startOfHour != currentTimestamp {
+            if timestamp != currentTimestamp {
                 commitChanges()
                 createNewStatsObject(for: timestamp)
             }
@@ -91,7 +90,7 @@ public final class PrivacyStats: PrivacyStatsCollecting {
         }
     }
 
-    public func commitChanges() {
+    private func commitChanges() {
         context.performAndWait {
             currentStatsObject?.blockedTrackersDictionary = currentStats
             do {
@@ -125,11 +124,11 @@ public final class PrivacyStats: PrivacyStatsCollecting {
     }
 
     private func deleteOldEntries() {
-        context.performAndWait {
-            PrivacyStatsUtils.deleteOutdatedStats(in: context)
-            if context.hasChanges {
+        context.perform {
+            PrivacyStatsUtils.deleteOutdatedStats(in: self.context)
+            if self.context.hasChanges {
                 do {
-                    try context.save()
+                    try self.context.save()
                     Logger.privacyStats.debug("Deleted outdated entries")
                 } catch {
                     Logger.privacyStats.error("Save error: \(error)")
@@ -179,11 +178,11 @@ public final class PrivacyStats: PrivacyStatsCollecting {
     }
 
     private func loadCurrentStats() {
-        currentStatsLock.withLock {
-            context.performAndWait {
-                currentStatsObject = PrivacyStatsUtils.loadStats(in: context)
-                currentStats = currentStatsObject?.blockedTrackersDictionary ?? [:]
-                currentTimestamp = currentStatsObject?.timestamp
+        context.perform {
+            self.currentStatsObject = PrivacyStatsUtils.loadStats(in: self.context)
+            self.currentStatsLock.withLock {
+                self.currentStats = self.currentStatsObject?.blockedTrackersDictionary ?? [:]
+                self.currentTimestamp = self.currentStatsObject?.timestamp
                 Logger.privacyStats.debug("Loaded stats \(String(reflecting: self.currentTimestamp)) \(self.currentStats)")
             }
         }
@@ -198,6 +197,8 @@ public final class PrivacyStats: PrivacyStatsCollecting {
     }
 
     @objc private func applicationWillTerminate(_: Notification) {
-        commitChanges()
+        currentStatsLock.withLock {
+            commitChanges()
+        }
     }
 }
