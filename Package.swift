@@ -450,7 +450,8 @@ let package = Package(
             name: "PrivacyStats",
             dependencies: [
                 "Common",
-                "Persistence"
+                "Persistence",
+                "TrackerRadarKit"
             ],
             resources: [
                 .process("PrivacyStats.xcdatamodeld")

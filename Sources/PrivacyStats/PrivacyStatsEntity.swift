@@ -37,35 +37,10 @@ public class PrivacyStatsEntity: NSManagedObject {
         self.init(entity: PrivacyStatsEntity.entity(in: moc), insertInto: moc)
     }
 
-    public static func make(name: String, timestamp: Date = Date(), context: NSManagedObjectContext) -> PrivacyStatsEntity {
+    public static func make(timestamp: Date = Date(), context: NSManagedObjectContext) -> PrivacyStatsEntity {
         let object = PrivacyStatsEntity(context: context)
         object.blockedTrackersDictionary = [:]
         object.timestamp = timestamp.startOfHour
         return object
-    }
-
-    public override func validateForInsert() throws {
-        try super.validateForInsert()
-        try validate()
-    }
-
-    public override func validateForUpdate() throws {
-        try super.validateForUpdate()
-        try validate()
-    }
-}
-
-// MARK: Validation
-extension PrivacyStatsEntity {
-
-    func validate() throws {
-        try validateFavoritesFolder()
-    }
-
-    func validateFavoritesFolder() throws {
-        let uuids = Set(favoriteFoldersSet.compactMap(\.uuid))
-        guard uuids.isSubset(of: Constants.favoriteFoldersIDs) else {
-            throw Error.invalidFavoritesFolder
-        }
     }
 }
