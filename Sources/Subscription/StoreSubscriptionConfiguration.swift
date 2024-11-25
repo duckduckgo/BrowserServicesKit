@@ -103,13 +103,17 @@ struct StoreSubscriptionDefinition {
 public enum SubscriptionRegion: CaseIterable {
     case usa
     case restOfWorld
-
+    
+    /// Country codes as used by StoreKit, in the ISO 3166-1 Alpha-3 country code representation
+    /// .restOfWorld defined based on https://app.asana.com/0/1208524871249522/1208571752166956/f
     var countryCodes: Set<String> {
         switch self {
         case .usa:
             return Set(["USA"])
         case .restOfWorld:
-            return Set(["POL", "CAN"]) // TODO: Update set of countries (also in ASC)
+            return Set(["CAN", "GBR", "AUT", "DEU", "NLD", "POL", "SWE",
+                        "BEL", "BGR", "HRV ", "CYP", "CZE", "DNK", "EST", "FIN", "FRA", "GRC", "HUN", "IRL", "ITA", "LVA", "LTU", "LUX", "MLT", "PRT",
+                        "ROU", "SVK", "SVN", "ESP"])
         }
     }
 
