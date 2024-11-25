@@ -24,7 +24,6 @@ public protocol BackgroundActivityScheduling: Actor {
     func start()
     func stop()
 }
-// TODO: to be dropped
 actor BackgroundActivityScheduler: BackgroundActivityScheduling {
 
     private var task: Task<Void, Never>?

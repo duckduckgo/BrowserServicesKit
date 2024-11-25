@@ -19,7 +19,7 @@
 import Foundation
 import XCTest
 @testable import MaliciousSiteProtection
-// TODO: to be dropped
+
 class PhishingDetectionDataActivitiesTests: XCTestCase {
     var mockUpdateManager: MockPhishingDetectionUpdateManager!
     var activities: PhishingDetectionDataActivities!
