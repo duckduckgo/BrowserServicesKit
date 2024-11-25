@@ -388,9 +388,6 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
                                                                                                 unprotectedSitesHash: nil))
             }
 
-            // if task is main tds task, extract time and iteration count from the result and fire the pixel
-            // can result be a struct? can we add fields to compliatiotask instead?
-            // can we sen dpixels from compialtion task?
             changes[task.rulesList.name] = diff
             return rules
         }
