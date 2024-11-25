@@ -49,18 +49,23 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     public let currentEnvironment: SubscriptionEnvironment
     public private(set) var canPurchase: Bool = false
 
+    private let subscriptionFeatureFlagger: FeatureFlaggerMapping<SubscriptionFeatureFlags>
+    
     public init(storePurchaseManager: StorePurchaseManager? = nil,
                 accountManager: AccountManager,
                 subscriptionEndpointService: SubscriptionEndpointService,
                 authEndpointService: AuthEndpointService,
                 subscriptionFeatureMappingCache: SubscriptionFeatureMappingCache,
-                subscriptionEnvironment: SubscriptionEnvironment) {
+                subscriptionEnvironment: SubscriptionEnvironment,
+                subscriptionFeatureFlagger: FeatureFlaggerMapping<SubscriptionFeatureFlags>) {
         self._storePurchaseManager = storePurchaseManager
         self.accountManager = accountManager
         self.subscriptionEndpointService = subscriptionEndpointService
         self.authEndpointService = authEndpointService
         self.subscriptionFeatureMappingCache = subscriptionFeatureMappingCache
         self.currentEnvironment = subscriptionEnvironment
+        self.subscriptionFeatureFlagger = subscriptionFeatureFlagger
+
         switch currentEnvironment.purchasePlatform {
         case .appStore:
             if #available(macOS 12.0, iOS 15.0, *) {
