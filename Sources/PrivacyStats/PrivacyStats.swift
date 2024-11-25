@@ -32,18 +32,61 @@ public protocol PrivacyStatsDatabaseProviding {
 }
 
 public protocol PrivacyStatsCollecting {
-    func recordBlockedTracker(_ name: String)
+    func recordBlockedTracker(_ name: String) async
     var topCompanies: Set<String> { get }
-    var currentStats: [String: Int] { get }
 
-    var currentStatsPublisher: AnyPublisher<[String: Int], Never> { get }
-
-    func fetchPrivacyStats() -> [String: Int]
+    var currentStatsUpdatePublisher: AnyPublisher<Void, Never> { get }
+    func fetchPrivacyStats() async -> [String: Int]
 }
 
 public protocol TrackerDataProviding {
     var trackerData: TrackerData { get }
     var trackerDataUpdatesPublisher: AnyPublisher<Void, Never> { get }
+}
+
+actor CurrentStats {
+    private(set) var timestamp: Date?
+    private(set) var trackers: [String: Int] = [:]
+    private(set) lazy var commitChangesPublisher: AnyPublisher<([String: Int], Date), Never> = commitChangesSubject.eraseToAnyPublisher()
+
+    private let commitChangesSubject = PassthroughSubject<([String: Int], Date), Never>()
+    private var commitTask: Task<Void, Never>?
+
+    func set(_ trackers: [String: Int], for timestamp: Date) {
+        self.timestamp = timestamp
+        self.trackers = trackers
+    }
+
+    func recordBlockedTracker(_ name: String) {
+
+        let currentTimestamp = Date().startOfHour
+        if let timestamp, currentTimestamp != timestamp {
+            commitChangesSubject.send((trackers, timestamp))
+            resetStats(andSet: currentTimestamp)
+        }
+
+        let count = trackers[name] ?? 0
+        trackers[name] = count + 1
+
+        commitTask?.cancel()
+        commitTask = Task {
+            do {
+                try await Task.sleep(nanoseconds: 1000000000)
+
+                if let timestamp = self.timestamp {
+                    Logger.privacyStats.debug("Storing trackers state")
+                    commitChangesSubject.send((trackers, timestamp))
+                }
+            } catch {
+                // commit task got cancelled
+            }
+        }
+    }
+
+    private func resetStats(andSet newTimestamp: Date) {
+        timestamp = newTimestamp
+        trackers = [:]
+    }
 }
 
 public final class PrivacyStats: PrivacyStatsCollecting {
@@ -52,94 +95,28 @@ public final class PrivacyStats: PrivacyStatsCollecting {
 
     public let trackerDataProvider: TrackerDataProviding
     public private(set) var topCompanies: Set<String> = []
-
-    @Published public private(set) var currentStats: [String: Int] = [:] // current pack
-    public var currentStatsPublisher: AnyPublisher<[String: Int], Never> {
-        $currentStats.dropFirst().eraseToAnyPublisher()
-    }
-
     private var cancellables: Set<AnyCancellable> = []
     private let db: CoreDataDatabase
     private let context: NSManagedObjectContext
 
+    public let currentStatsUpdatePublisher: AnyPublisher<Void, Never>
+
+    private let currentStatsUpdateSubject = PassthroughSubject<Void, Never>()
+
     // current pack timestamp
-    private var currentTimestamp: Date?
     private var currentStatsObject: PrivacyStatsEntity?
-    private let currentStatsLock = NSLock()
+    private var currentStatsActor: CurrentStats
 
     private var commitTimer: Timer?
 
     private var cached7DayStats: [String: Int] = [:]
     private var cached7DayStatsLastFetchTimestamp: Date?
 
-    public func recordBlockedTracker(_ name: String) {
-        currentStatsLock.withLock {
-            let timestamp = Date().startOfHour
-            if timestamp != currentTimestamp {
-                commitChanges()
-                createNewStatsObject(for: timestamp)
-            }
-
-            let count = currentStats[name] ?? 0
-            currentStats[name] = count + 1
-
-            commitTimer?.invalidate()
-            commitTimer = Timer.scheduledTimer(withTimeInterval: .seconds(1), repeats: false, block: { [weak self] _ in
-                self?.commitChanges()
-            })
-        }
-    }
-
-    private func commitChanges() {
-        context.performAndWait {
-            currentStatsObject?.blockedTrackersDictionary = currentStats
-            do {
-                try context.save()
-                Logger.privacyStats.debug("Saved stats \(String(reflecting: self.currentTimestamp)) \(self.currentStats)")
-            } catch {
-                Logger.privacyStats.error("Save error: \(error)")
-            }
-        }
-    }
-
-    public func fetchPrivacyStats() -> [String: Int] {
-        let isCacheValid: Bool = {
-            guard let cached7DayStatsLastFetchTimestamp else {
-                return false
-            }
-            return Date.isSameHour(Date(), cached7DayStatsLastFetchTimestamp)
-        }()
-        if !isCacheValid {
-            refresh7DayCache()
-            deleteOldEntries()
-        }
-        return cached7DayStats.merging(currentStats, uniquingKeysWith: +).filter { topCompanies.contains($0.key) }
-    }
-
-    private func refresh7DayCache() {
-        context.performAndWait {
-            cached7DayStats = PrivacyStatsUtils.load7DayStats(in: context)
-            cached7DayStatsLastFetchTimestamp = Date()
-        }
-    }
-
-    private func deleteOldEntries() {
-        context.perform {
-            PrivacyStatsUtils.deleteOutdatedStats(in: self.context)
-            if self.context.hasChanges {
-                do {
-                    try self.context.save()
-                    Logger.privacyStats.debug("Deleted outdated entries")
-                } catch {
-                    Logger.privacyStats.error("Save error: \(error)")
-                }
-            }
-        }
-    }
-
     public init(databaseProvider: PrivacyStatsDatabaseProviding, trackerDataProvider: TrackerDataProviding) {
         self.db = databaseProvider.initializeDatabase()
         self.context = db.makeContext(concurrencyType: .privateQueueConcurrencyType, name: "PrivacyStats")
+        self.currentStatsActor = CurrentStats()
+        currentStatsUpdatePublisher = currentStatsUpdateSubject.eraseToAnyPublisher()
 
         self.trackerDataProvider = trackerDataProvider
         trackerDataProvider.trackerDataUpdatesPublisher
@@ -147,8 +124,18 @@ public final class PrivacyStats: PrivacyStatsCollecting {
                 self?.refreshTopCompanies()
             }
             .store(in: &cancellables)
+
         refreshTopCompanies()
-        loadCurrentStats()
+        Task {
+            await loadCurrentStats()
+            await currentStatsActor.commitChangesPublisher
+                .sink { [weak self] stats, timestamp in
+                    Task {
+                        await self?.commitChanges(stats, timestamp: timestamp)
+                    }
+                }
+                .store(in: &cancellables)
+        }
 
 #if os(iOS)
         let notificationName = UIApplication.willTerminateNotification
@@ -157,6 +144,92 @@ public final class PrivacyStats: PrivacyStatsCollecting {
 #endif
 
         NotificationCenter.default.addObserver(self, selector: #selector(applicationWillTerminate(_:)), name: notificationName, object: nil)
+    }
+
+    public func recordBlockedTracker(_ name: String) async {
+        await currentStatsActor.recordBlockedTracker(name)
+    }
+
+    private func commitChanges(_ trackers: [String: Int], timestamp: Date) async {
+        await withCheckedContinuation { continuation in
+            context.perform { [weak self] in
+                guard let self else {
+                    continuation.resume()
+                    return
+                }
+                if let currentStatsObject, timestamp != currentStatsObject.timestamp {
+                    self.currentStatsObject = PrivacyStatsEntity.make(timestamp: timestamp, context: context)
+                }
+
+                currentStatsObject?.blockedTrackersDictionary = trackers
+                guard context.hasChanges else {
+                    continuation.resume()
+                    return
+                }
+
+                do {
+                    try context.save()
+                    Logger.privacyStats.debug("Saved stats \(timestamp) \(trackers)")
+                    currentStatsUpdateSubject.send()
+                } catch {
+                    Logger.privacyStats.error("Save error: \(error)")
+                }
+                continuation.resume()
+            }
+        }
+    }
+
+    public func fetchPrivacyStats() async -> [String: Int] {
+        let isCacheValid: Bool = {
+            guard let cached7DayStatsLastFetchTimestamp else {
+                return false
+            }
+            return Date.isSameHour(Date(), cached7DayStatsLastFetchTimestamp)
+        }()
+        if !isCacheValid {
+            await refresh7DayCache()
+            Task {
+                await deleteOldEntries()
+            }
+        }
+        let currentStats = await currentStatsActor.trackers
+        return cached7DayStats.merging(currentStats, uniquingKeysWith: +)
+    }
+
+    private func refresh7DayCache() async {
+        await withCheckedContinuation { continuation in
+            context.perform { [weak self] in
+                guard let self else {
+                    continuation.resume()
+                    return
+                }
+                cached7DayStats = PrivacyStatsUtils.load7DayStats(in: context)
+                cached7DayStatsLastFetchTimestamp = Date()
+                continuation.resume()
+            }
+        }
+    }
+
+    private func deleteOldEntries() async {
+        await withCheckedContinuation { continuation in
+            context.perform { [weak self] in
+                guard let self else {
+                    continuation.resume()
+                    return
+                }
+
+                PrivacyStatsUtils.deleteOutdatedStats(in: context)
+                if context.hasChanges {
+                    do {
+                        try context.save()
+                        Logger.privacyStats.debug("Deleted outdated entries")
+                    } catch {
+                        Logger.privacyStats.error("Save error: \(error)")
+                    }
+                }
+                continuation.resume()
+            }
+        }
     }
 
     private func refreshTopCompanies() {
@@ -177,28 +250,33 @@ public final class PrivacyStats: PrivacyStatsCollecting {
         topCompanies = Set(topTrackersArray)
     }
 
-    private func loadCurrentStats() {
-        context.perform {
-            self.currentStatsObject = PrivacyStatsUtils.loadStats(in: self.context)
-            self.currentStatsLock.withLock {
-                self.currentStats = self.currentStatsObject?.blockedTrackersDictionary ?? [:]
-                self.currentTimestamp = self.currentStatsObject?.timestamp
-                Logger.privacyStats.debug("Loaded stats \(String(reflecting: self.currentTimestamp)) \(self.currentStats)")
+    private func loadCurrentStats() async {
+        let result = await withCheckedContinuation { (continuation: CheckedContinuation<([String: Int], Date)?, Never>) in
+            context.perform { [weak self] in
+                guard let self else {
+                    continuation.resume(returning: nil)
+                    return
+                }
+                let privacyStatsEntity = PrivacyStatsUtils.loadStats(in: context)
+                currentStatsObject = privacyStatsEntity
+                Logger.privacyStats.debug("Loaded stats \(privacyStatsEntity.timestamp) \(privacyStatsEntity.blockedTrackersDictionary)")
+                continuation.resume(returning: (privacyStatsEntity.blockedTrackersDictionary, privacyStatsEntity.timestamp))
             }
         }
-    }
-
-    private func createNewStatsObject(for timestamp: Date) {
-        context.performAndWait {
-            currentStatsObject = PrivacyStatsEntity.make(timestamp: timestamp, context: context)
+        if let (blockedTrackersDictionary, timestamp) = result {
+            await currentStatsActor.set(blockedTrackersDictionary, for: timestamp)
         }
-        currentStats = [:]
-        currentTimestamp = timestamp
     }
 
     @objc private func applicationWillTerminate(_: Notification) {
-        currentStatsLock.withLock {
-            commitChanges()
+        let condition = RunLoop.ResumeCondition()
+        Task {
+            if let timestamp = await currentStatsActor.timestamp {
+                await commitChanges(await currentStatsActor.trackers, timestamp: timestamp)
+            }
+            condition.resolve()
         }
+        // Run the loop until changes are saved
+        RunLoop.current.run(until: condition)
     }
 }
