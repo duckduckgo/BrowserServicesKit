@@ -380,7 +380,8 @@ extension URL {
     }
 
     public func appending(percentEncodedQueryItems: [URLQueryItem]) -> URL {
-        guard var components = URLComponents(url: self, resolvingAgainstBaseURL: true) else { return self }
+        guard !percentEncodedQueryItems.isEmpty,
+              var components = URLComponents(url: self, resolvingAgainstBaseURL: true) else { return self }
 
         var existingPercentEncodedQueryItems = components.percentEncodedQueryItems ?? [URLQueryItem]()
         existingPercentEncodedQueryItems.append(contentsOf: percentEncodedQueryItems)
