@@ -68,7 +68,7 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
                 XCTFail("Unexpected event: \(event)")
             }
         }
-        
+
         let cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
                                               exceptionsSource: mockExceptionsSource,
                                               lastCompiledRulesStore: mockLastCompiledRulesStore,
@@ -118,7 +118,6 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
         rulesUpdateListener.onRulesUpdated = { rules in
             exp.fulfill()
             if exp.currentFulfillmentCount == 1 { // finished compilation after first installation
-               
                 let errorHandler = EventMapping<ContentBlockerDebugEvents> { event, _, params, _ in
                     if case .contentBlockingFetchLRCSucceeded = event {
                         XCTFail("Should  not fetch LRC")
@@ -130,7 +129,7 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
                         XCTFail("Unexpected event: \(event)")
                     }
                 }
-                
+
                 _ = ContentBlockerRulesManager(rulesSource: mockRulesSource,
                                                exceptionsSource: mockExceptionsSource,
                                                lastCompiledRulesStore: mockLastCompiledRulesStore,
@@ -179,7 +178,7 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
         mockLastCompiledRulesStore.onRulesSet = {
             expCache.fulfill()
         }
-        
+
         // simulate the rules have been compiled in the past so the WKContentRuleListStore contains it
         _ = ContentBlockerRulesManager(rulesSource: mockRulesSource,
                                        exceptionsSource: mockExceptionsSource,
@@ -220,7 +219,7 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
                 XCTFail("Unexpected event: \(event)")
             }
         }
-        
+
         _ = ContentBlockerRulesManager(rulesSource: mockRulesSource,
                                        exceptionsSource: mockExceptionsSource,
                                        lastCompiledRulesStore: mockLastCompiledRulesStore,
@@ -269,7 +268,6 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
         rulesUpdateListener.onRulesUpdated = { _ in
             expOld.fulfill()
 
-
             let errorHandler = EventMapping<ContentBlockerDebugEvents> { event, _, params, _ in
                 if case .contentBlockingFetchLRCSucceeded = event {
                     lookupAndFetchExp.fulfill()
@@ -279,7 +277,7 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
                     XCTFail("Unexpected event: \(event)")
                 }
             }
-            
+
             _ = ContentBlockerRulesManager(rulesSource: mockUpdatedRulesSource,
                                            exceptionsSource: mockExceptionsSource,
                                            lastCompiledRulesStore: mockLastCompiledRulesStore,
@@ -297,7 +295,7 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
         let expRecompiled = CountedFulfillmentTestExpectation(description: "New Rules Compiled")
         rulesUpdateListener.onRulesUpdated = { _ in
             expRecompiled.fulfill()
-            
+
             if expRecompiled.currentFulfillmentCount == 1 { // finished compilation after cold start (using last compiled rules)
 
                 mockLastCompiledRulesStore.onRulesGet = {}
