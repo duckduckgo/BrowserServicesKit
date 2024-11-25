@@ -425,8 +425,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     public lazy var entitlementMonitor = NetworkProtectionEntitlementMonitor()
     public lazy var serverStatusMonitor = NetworkProtectionServerStatusMonitor(
         networkClient: NetworkProtectionBackendClient(environment: self.settings.selectedEnvironment),
-        tokenProvider: self.tokenProvider
-    )
+        tokenProvider: self.tokenProvider)
 
     private var lastTestFailed = false
     private let bandwidthAnalyzer = NetworkProtectionConnectionBandwidthAnalyzer()
@@ -607,9 +606,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             // See discussion https://app.asana.com/0/1199230911884351/1208785842165508/f
             _ = try await VPNAuthTokenBuilder.getVPNAuthToken(from: tokenProvider, policy: .localForceRefresh)
         default:
-            assertionFailure("Unsupported action: \(options.tokenContainer)")
-            Logger.networkProtection.fault("Failed to load token container")
-            throw TunnelError.startingTunnelWithoutAuthToken
+            Logger.networkProtection.log("Token container not in the startup options")
         }
     }
 #endif
@@ -661,12 +658,12 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     @MainActor
     open override func startTunnel(options: [String: NSObject]? = nil) async throws {
-
+        Logger.networkProtection.log("Starting tunnel...")
         // It's important to have this as soon as possible since it helps setup PixelKit
         prepareToConnect(using: tunnelProviderProtocol)
 
         let startupOptions = StartupOptions(options: options ?? [:])
-        Logger.networkProtection.log("Starting tunnel with options: \(startupOptions.description, privacy: .public)")
+        Logger.networkProtection.log("... with options: \(startupOptions.description, privacy: .public)")
 
         // Reset snooze if the VPN is restarting.
         self.snoozeTimingStore.reset()
@@ -774,6 +771,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             try await startTunnel(with: tunnelConfiguration, onDemand: onDemand)
             Logger.networkProtection.log("Done generating tunnel config")
         } catch {
+            Logger.networkProtection.error("Failed to start tunnel on demand: \(error.localizedDescription, privacy: .public)")
             controllerErrorStore.lastErrorMessage = error.localizedDescription
             throw error
         }

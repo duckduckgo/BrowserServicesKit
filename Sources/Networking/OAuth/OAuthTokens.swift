@@ -66,7 +66,7 @@ public enum TokenPayloadError: Error {
     case invalidTokenScope
 }
 
-public struct JWTAccessToken: JWTPayload {
+public struct JWTAccessToken: JWTPayload, Equatable {
     public let exp: ExpirationClaim
     public let iat: IssuedAtClaim
     public let sub: SubjectClaim
@@ -99,7 +99,7 @@ public struct JWTAccessToken: JWTPayload {
     }
 }
 
-public struct JWTRefreshToken: JWTPayload {
+public struct JWTRefreshToken: JWTPayload, Equatable {
     public let exp: ExpirationClaim
     public let iat: IssuedAtClaim
     public let sub: SubjectClaim
@@ -117,7 +117,7 @@ public struct JWTRefreshToken: JWTPayload {
     }
 }
 
-public enum SubscriptionEntitlement: String, Codable {
+public enum SubscriptionEntitlement: String, Codable, Equatable {
     case networkProtection = "Network Protection"
     case dataBrokerProtection = "Data Broker Protection"
     case identityTheftRestoration = "Identity Theft Restoration"
@@ -128,7 +128,7 @@ public enum SubscriptionEntitlement: String, Codable {
     }
 }
 
-public struct EntitlementPayload: Codable {
+public struct EntitlementPayload: Codable, Equatable {
     public let product: SubscriptionEntitlement // Can expand in future
     public let name: String // always `subscriber`
 }

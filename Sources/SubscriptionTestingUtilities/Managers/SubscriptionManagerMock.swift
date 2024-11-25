@@ -21,7 +21,6 @@ import Networking
 @testable import Subscription
 
 public final class SubscriptionManagerMock: SubscriptionManager {
-
     public init() {}
 
     public static var environment: Subscription.SubscriptionEnvironment?
@@ -133,5 +132,38 @@ public final class SubscriptionManagerMock: SubscriptionManager {
         if let confirmPurchaseError {
             throw confirmPurchaseError
         }
+    }
+
+    public func getSubscription(cachePolicy: Subscription.SubscriptionCachePolicy) async throws -> Subscription.PrivacyProSubscription {
+        guard let resultSubscription else {
+            throw SubscriptionEndpointServiceError.noData
+        }
+        return resultSubscription
+    }
+
+    public var productsResponse: Result<[Subscription.GetProductsItem], Error>?
+    public func getProducts() async throws -> [Subscription.GetProductsItem] {
+        switch productsResponse! {
+        case .success(let result):
+            return result
+        case .failure(let error):
+            throw error
+        }
+    }
+
+    public func adopt(tokenContainer: Networking.TokenContainer) async throws {
+        self.resultTokenContainer = tokenContainer
+    }
+
+    public func getEntitlements(forceRefresh: Bool) async throws -> [Networking.SubscriptionEntitlement] {
+        return entitlements
+    }
+
+    public var currentEntitlements: [Networking.SubscriptionEntitlement] {
+        entitlements
+    }
+
+    public func isEntitlementActive(_ entitlement: Networking.SubscriptionEntitlement) -> Bool {
+        return entitlements.contains(entitlement)
     }
 }

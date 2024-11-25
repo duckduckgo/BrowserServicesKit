@@ -610,6 +610,7 @@ let package = Package(
             dependencies: [
                 "NetworkProtection",
                 "NetworkProtectionTestUtils",
+                "TestUtils",
             ],
             resources: [
                 .copy("Resources/servers-original-endpoint.json"),

@@ -94,7 +94,7 @@ class SubscriptionManagerTests: XCTestCase {
             _ = try await subscriptionManager.getTokenContainer(policy: .localValid)
             XCTFail("Error expected")
         } catch {
-            XCTAssertEqual(error as? SubscriptionManagerError, .tokenUnavailable)
+            XCTAssertEqual(error as? SubscriptionManagerError, SubscriptionManagerError.tokenUnavailable(error: nil))
         }
 
         await fulfillment(of: [expectation], timeout: 1.0)

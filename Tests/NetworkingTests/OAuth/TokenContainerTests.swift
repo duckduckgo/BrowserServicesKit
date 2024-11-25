@@ -126,4 +126,14 @@ final class TokenContainerTests: XCTestCase {
 
         XCTAssertEqual(container1, container2, "Expected containers with identical tokens but different decoded content to be equal.")
     }
+
+    func testEncodeDecodeData() throws {
+        let container = OAuthTokensFactory.makeValidTokenContainer()
+        let tokenContainer = try TokenContainer(with: container.data!)
+        XCTAssertEqual(container, tokenContainer, "Expected decoded token container to be equal to original.")
+        XCTAssertEqual(container.accessToken, tokenContainer.accessToken)
+        XCTAssertEqual(container.refreshToken, tokenContainer.refreshToken)
+        XCTAssertEqual(container.decodedAccessToken, tokenContainer.decodedAccessToken)
+        XCTAssertEqual(container.decodedRefreshToken, tokenContainer.decodedRefreshToken)
+    }
 }

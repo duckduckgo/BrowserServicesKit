@@ -135,7 +135,7 @@ public struct StartupOptions {
 
         let resetStoredOptionsIfNil = startupMethod == .manualByMainApp
 #if os(macOS)
-        tokenContainer = Self.readAuthToken(from: options, resetIfNil: resetStoredOptionsIfNil)
+        tokenContainer = Self.readAuthToken(from: options, resetIfNil: false)
 #endif
         enableTester = Self.readEnableTester(from: options, resetIfNil: resetStoredOptionsIfNil)
         keyValidity = Self.readKeyValidity(from: options, resetIfNil: resetStoredOptionsIfNil)
@@ -159,7 +159,8 @@ public struct StartupOptions {
             selectedLocation: \(self.selectedLocation.description),
             dnsSettings: \(self.dnsSettings.description),
             enableTester: \(self.enableTester),
-            excludeLocalNetworks: \(self.excludeLocalNetworks)
+            excludeLocalNetworks: \(self.excludeLocalNetworks),
+            tokeContainer: \(self.tokenContainer.description)
         )
         """
     }
@@ -169,10 +170,9 @@ public struct StartupOptions {
 #if os(macOS)
     private static func readAuthToken(from options: [String: Any], resetIfNil: Bool) -> StoredOption<TokenContainer> {
         StoredOption(resetIfNil: resetIfNil) {
-            guard let tokeContainerData = options[NetworkProtectionOptionKey.tokenContainer] as? NSData,
-                  let tokenContainer = try? TokenContainer(with: tokeContainerData) else {
-                Logger.networkProtection.fault("Failed to retrieve the TokenContainer from options")
-                assertionFailure("Failed to retrieve the TokenContainer from options")
+            guard let data = options[NetworkProtectionOptionKey.tokenContainer] as? NSData,
+                  let tokenContainer = try? TokenContainer(with: data) else {
+                Logger.networkProtection.error("`tokenContainer` is missing or invalid")
                 return nil
             }
             return tokenContainer

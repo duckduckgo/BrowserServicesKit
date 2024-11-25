@@ -20,9 +20,12 @@ import Foundation
 import XCTest
 @testable import NetworkProtection
 @testable import NetworkProtectionTestUtils
+@testable import Networking
+@testable import Subscription
+import TestUtils
 
 final class NetworkProtectionDeviceManagerTests: XCTestCase {
-    var tokenStore: NetworkProtectionTokenStoreMock!
+    var tokenProvider: MockSubscriptionTokenProvider!
     var keyStore: NetworkProtectionKeyStoreMock!
     var networkClient: MockNetworkProtectionClient!
     var temporaryURL: URL!
@@ -30,22 +33,22 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        tokenStore = NetworkProtectionTokenStoreMock()
-        tokenStore.token = "initialtoken"
+        tokenProvider = MockSubscriptionTokenProvider()
+        tokenProvider.tokenResult = .success(OAuthTokensFactory.makeValidTokenContainer())
         keyStore = NetworkProtectionKeyStoreMock()
         networkClient = MockNetworkProtectionClient()
         temporaryURL = temporaryFileURL()
 
         manager = NetworkProtectionDeviceManager(
             networkClient: networkClient,
-            tokenStore: tokenStore,
+            tokenProvider:  tokenProvider,
             keyStore: keyStore,
             errorEvents: nil
         )
     }
 
     override func tearDown() {
-        tokenStore = nil
+        tokenProvider = nil
         keyStore = nil
         temporaryURL = nil
         manager = nil
@@ -108,25 +111,10 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
         XCTAssertEqual(networkClient.spyRegister?.requestBody.server, server.serverName)
     }
 
-    func testWhenGeneratingTunnelConfig_storedAuthTokenIsInvalidOnGettingServers_deletesToken() async {
+    func testWhenGeneratingTunnelConfig_storedAuthTokenIsInvalidOnGettingServers_deletesToken() async throws {
         _ = NetworkProtectionServer.mockRegisteredServer
         networkClient.stubRegister = .failure(.invalidAuthToken)
-
-        XCTAssertNotNil(tokenStore.token)
-
-        _ = try? await manager.generateTunnelConfiguration(selectionMethod: .automatic, regenerateKey: false)
-
-        XCTAssertNil(tokenStore.token)
-    }
-
-    func testWhenGeneratingTunnelConfig_storedAuthTokenIsInvalidOnRegisteringServer_deletesToken() async {
-        networkClient.stubRegister = .failure(.invalidAuthToken)
-
-        XCTAssertNotNil(tokenStore.token)
-
-        _ = try? await manager.generateTunnelConfiguration(selectionMethod: .automatic, regenerateKey: false)
-
-        XCTAssertNil(tokenStore.token)
+        _ = try await manager.generateTunnelConfiguration(selectionMethod: .automatic, regenerateKey: false)
     }
 
     func testDecodingServers() throws {

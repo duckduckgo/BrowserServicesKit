@@ -21,9 +21,20 @@ import Common
 import os.log
 import Networking
 
-public enum SubscriptionManagerError: Error {
+public enum SubscriptionManagerError: Error, Equatable {
     case tokenUnavailable(error: Error?)
     case confirmationHasInvalidSubscription
+
+    public static func == (lhs: SubscriptionManagerError, rhs: SubscriptionManagerError) -> Bool {
+        switch (lhs, rhs) {
+        case (.tokenUnavailable(let lhsError), .tokenUnavailable(let rhsError)):
+            return lhsError?.localizedDescription == rhsError?.localizedDescription
+        case (.confirmationHasInvalidSubscription, .confirmationHasInvalidSubscription):
+            return true
+        default:
+            return false
+        }
+    }
 }
 
 public enum SubscriptionPixelType {
@@ -110,7 +121,7 @@ public protocol SubscriptionManager: SubscriptionTokenProvider, SubscriptionEnti
 /// Single entry point for everything related to Subscription. This manager is disposable, every time something related to the environment changes this need to be recreated.
 public final class DefaultSubscriptionManager: SubscriptionManager {
 
-    private var oAuthClient: any OAuthClient
+    var oAuthClient: any OAuthClient
     private let _storePurchaseManager: StorePurchaseManager?
     private let subscriptionEndpointService: SubscriptionEndpointService
     private let pixelHandler: PixelHandler
