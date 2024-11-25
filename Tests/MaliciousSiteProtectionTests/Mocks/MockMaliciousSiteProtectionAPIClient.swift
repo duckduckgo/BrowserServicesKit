@@ -65,7 +65,7 @@ public class MockMaliciousSiteProtectionAPIClient: MaliciousSiteProtection.APICl
         ], revision: 4, replace: false)
     ]
 
-    public func load<Request>(_ requestConfig: Request) async throws -> Request.ResponseType where Request : APIRequestProtocol {
+    public func load<Request>(_ requestConfig: Request) async throws -> Request.ResponseType where Request: APIRequestProtocol {
         switch requestConfig.requestType {
         case .hashPrefixSet(let configuration):
             return _hashPrefixesChangeSet(for: configuration.threatKind, revision: configuration.revision ?? 0) as! Request.ResponseType

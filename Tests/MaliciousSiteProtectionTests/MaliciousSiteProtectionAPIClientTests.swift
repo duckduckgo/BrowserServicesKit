@@ -124,7 +124,6 @@ final class MaliciousSiteProtectionAPIClientTests: XCTestCase {
         }
     }
 
-
     func testWhenMatchesRequestFails_ErrorThrown() async throws {
         // Given
         let invalidHashPrefix = ""
@@ -142,4 +141,3 @@ final class MaliciousSiteProtectionAPIClientTests: XCTestCase {
     }
 
 }
-
