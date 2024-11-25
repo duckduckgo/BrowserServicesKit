@@ -47,10 +47,13 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     public let authEndpointService: AuthEndpointService
     public let subscriptionFeatureMappingCache: SubscriptionFeatureMappingCache
     public let currentEnvironment: SubscriptionEnvironment
-    public private(set) var canPurchase: Bool = false
+
+    public var canPurchase: Bool {
+        _storePurchaseManager?.areProductsAvailable ?? false
+    }
 
     private let subscriptionFeatureFlagger: FeatureFlaggerMapping<SubscriptionFeatureFlags>
-    
+
     public init(storePurchaseManager: StorePurchaseManager? = nil,
                 accountManager: AccountManager,
                 subscriptionEndpointService: SubscriptionEndpointService,
@@ -108,7 +111,6 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     @available(macOS 12.0, iOS 15.0, *) private func setupForAppStore() {
         Task {
             await storePurchaseManager().updateAvailableProducts()
-            canPurchase = storePurchaseManager().areProductsAvailable
         }
     }
 
