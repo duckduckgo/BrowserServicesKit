@@ -48,10 +48,6 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     public let subscriptionFeatureMappingCache: SubscriptionFeatureMappingCache
     public let currentEnvironment: SubscriptionEnvironment
 
-    public var canPurchase: Bool {
-        _storePurchaseManager?.areProductsAvailable ?? false
-    }
-
     private let subscriptionFeatureFlagger: FeatureFlaggerMapping<SubscriptionFeatureFlags>
 
     public init(storePurchaseManager: StorePurchaseManager? = nil,
@@ -78,6 +74,21 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
             }
         case .stripe:
             break
+        }
+    }
+
+    public var canPurchase: Bool {
+        guard let storePurchaseManager = _storePurchaseManager else { return false }
+
+        switch storePurchaseManager.currentStorefrontRegion {
+        case .usa:
+            return storePurchaseManager.areProductsAvailable
+        case .restOfWorld:
+            if subscriptionFeatureFlagger.isFeatureOn(.isLaunchedROW) || subscriptionFeatureFlagger.isFeatureOn(.isLaunchedROWOverride) {
+                return storePurchaseManager.areProductsAvailable
+            } else {
+                return false
+            }
         }
     }
 
