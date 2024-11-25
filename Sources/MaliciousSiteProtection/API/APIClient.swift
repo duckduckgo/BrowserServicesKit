@@ -18,129 +18,119 @@
 
 import Common
 import Foundation
-import os
 import Networking
 
 public protocol APIClientProtocol {
-    func getFilterSet(revision: Int) async -> APIClient.FiltersChangeSetResponse
-    func getHashPrefixes(revision: Int) async -> APIClient.HashPrefixesChangeSetResponse
-    func getMatches(hashPrefix: String) async -> [Match]
+    func load<Request: APIRequestProtocol>(_ requestConfig: Request) async throws -> Request.ResponseType
 }
 
-public protocol URLSessionProtocol {
-    func data(for request: URLRequest) async throws -> (Data, URLResponse)
+public extension APIClientProtocol where Self == APIClient {
+    static var production: APIClientProtocol { APIClient(environment: .production) }
+    static var staging: APIClientProtocol { APIClient(environment: .staging) }
 }
 
-extension URLSession: URLSessionProtocol {}
+public protocol APIClientEnvironment {
+    func headers(for request: APIClient.Request) -> APIRequestV2.HeadersV2
+    func url(for request: APIClient.Request) -> URL
+}
 
-extension URLSessionProtocol {
-    public static var defaultSession: URLSessionProtocol {
-        return URLSession.shared
+public extension APIClient {
+    enum DefaultEnvironment: APIClientEnvironment {
+
+        case production
+        case staging
+        case dev
+
+        var endpoint: URL {
+            switch self {
+            case .production: URL(string: "https://duckduckgo.com/api/protection/")!
+            case .staging: URL(string: "https://staging.duckduckgo.com/api/protection/")!
+            case .dev: URL(string: "https://4842-20-93-28-24.ngrok-free.app/api/protection/")!
+            }
+        }
+
+        var defaultHeaders: APIRequestV2.HeadersV2 {
+            .init(userAgent: APIRequest.Headers.userAgent)
+        }
+
+        enum APIPath {
+            static let filterSet = "filterSet"
+            static let hashPrefix = "hashPrefix"
+            static let matches = "matches"
+        }
+
+        enum QueryParameter {
+            static let category = "category"
+            static let revision = "revision"
+            static let hashPrefix = "hashPrefix"
+        }
+
+        public func url(for request: APIClient.Request) -> URL {
+            switch request {
+            case .hashPrefixSet(let configuration):
+                endpoint.appendingPathComponent(APIPath.hashPrefix).appendingParameters([
+                    QueryParameter.category: configuration.threatKind.rawValue,
+                    QueryParameter.revision: (configuration.revision ?? 0).description,
+                ])
+            case .filterSet(let configuration):
+                endpoint.appendingPathComponent(APIPath.filterSet).appendingParameters([
+                    QueryParameter.category: configuration.threatKind.rawValue,
+                    QueryParameter.revision: (configuration.revision ?? 0).description,
+                ])
+            case .matches(let configuration):
+                endpoint.appendingPathComponent(APIPath.matches).appendingParameter(name: QueryParameter.hashPrefix, value: configuration.hashPrefix)
+            }
+        }
+
+        public func headers(for request: APIClient.Request) -> APIRequestV2.HeadersV2 {
+            defaultHeaders
+        }
     }
+
 }
 
 public struct APIClient: APIClientProtocol {
 
-    public enum Environment {
-        case production
-        case staging
+    let environment: APIClientEnvironment
+    private let service: APIService
+
+    public init(environment: Self.DefaultEnvironment = .production, service: APIService = DefaultAPIService(urlSession: .shared)) {
+        self.init(environment: environment as APIClientEnvironment, service: service)
     }
 
-    enum Constants {
-        static let productionEndpoint = URL(string: "https://duckduckgo.com/api/protection/")!
-        static let stagingEndpoint = URL(string: "https://staging.duckduckgo.com/api/protection/")!
-        enum APIPath: String {
-            case filterSet
-            case hashPrefix
-            case matches
-        }
+    public init(environment: APIClientEnvironment, service: APIService) {
+        self.environment = environment
+        self.service = service
     }
 
-    private let endpointURL: URL
-    private let session: URLSessionProtocol!
-    private var headers: [String: String]? = [:]
+    public func load<Request: APIRequestProtocol>(_ requestConfig: Request) async throws -> Request.ResponseType {
+        let requestType = requestConfig.requestType
+        let headers = environment.headers(for: requestType)
+        let url = environment.url(for: requestType)
 
-    var filterSetURL: URL {
-        endpointURL.appendingPathComponent(Constants.APIPath.filterSet.rawValue)
+        let apiRequest = APIRequestV2(url: url, method: .get, headers: headers)
+        let response = try await service.fetch(request: apiRequest)
+        let result: Request.ResponseType = try response.decodeBody()
+
+        return result
     }
 
-    var hashPrefixURL: URL {
-        endpointURL.appendingPathComponent(Constants.APIPath.hashPrefix.rawValue)
-    }
-
-    var matchesURL: URL {
-        endpointURL.appendingPathComponent(Constants.APIPath.matches.rawValue)
-    }
-
-    public init(environment: Environment = .production, session: URLSessionProtocol = URLSession.defaultSession) {
-        switch environment {
-        case .production:
-            endpointURL = Constants.productionEndpoint
-        case .staging:
-            endpointURL = Constants.stagingEndpoint
-        }
-        self.session = session
-    }
-
-    public func getFilterSet(revision: Int) async -> FiltersChangeSetResponse {
-        guard let url = createURL(for: .filterSet, revision: revision) else {
-            logDebug("🔸 Invalid filterSet revision URL: \(revision)")
-            return FiltersChangeSetResponse(insert: [], delete: [], revision: revision, replace: false)
-        }
-        return await fetch(url: url, responseType: FiltersChangeSetResponse.self) ?? FiltersChangeSetResponse(insert: [], delete: [], revision: revision, replace: false)
-    }
-
-    public func getHashPrefixes(revision: Int) async -> HashPrefixesChangeSetResponse {
-        guard let url = createURL(for: .hashPrefix, revision: revision) else {
-            logDebug("🔸 Invalid hashPrefix revision URL: \(revision)")
-            return HashPrefixesChangeSetResponse(insert: [], delete: [], revision: revision, replace: false)
-        }
-        return await fetch(url: url, responseType: HashPrefixesChangeSetResponse.self) ?? HashPrefixesChangeSetResponse(insert: [], delete: [], revision: revision, replace: false)
-    }
-
-    public func getMatches(hashPrefix: String) async -> [Match] {
-        let queryItems = [URLQueryItem(name: "hashPrefix", value: hashPrefix)]
-        guard let url = createURL(for: .matches, queryItems: queryItems) else {
-            logDebug("🔸 Invalid matches URL: \(hashPrefix)")
-            return []
-        }
-        return await fetch(url: url, responseType: MatchResponse.self)?.matches ?? []
-    }
 }
 
-// MARK: Private Methods
-extension APIClient {
-
-    private func logDebug(_ message: String) {
-        Logger.api.debug("\(message)")
+// MARK: - Convenience
+extension APIClientProtocol {
+    public func filtersChangeSet(for threatKind: ThreatKind, revision: Int) async throws -> APIClient.Response.FiltersChangeSet {
+        let result = try await load(.filterSet(threatKind: threatKind, revision: revision))
+        return result
     }
 
-    private func createURL(for path: Constants.APIPath, revision: Int? = nil, queryItems: [URLQueryItem]? = nil) -> URL? {
-        // Start with the base URL and append the path component
-        var urlComponents = URLComponents(url: endpointURL.appendingPathComponent(path.rawValue), resolvingAgainstBaseURL: true)
-        var items = queryItems ?? []
-        if let revision = revision, revision > 0 {
-            items.append(URLQueryItem(name: "revision", value: String(revision)))
-        }
-        urlComponents?.queryItems = items.isEmpty ? nil : items
-        return urlComponents?.url
+    public func hashPrefixesChangeSet(for threatKind: ThreatKind, revision: Int) async throws -> APIClient.Response.HashPrefixesChangeSet {
+        let result = try await load(.hashPrefixes(threatKind: threatKind, revision: revision))
+        return result
     }
 
-    private func fetch<T: Decodable>(url: URL, responseType: T.Type) async -> T? {
-        var request = URLRequest(url: url)
-        request.httpMethod = "GET"
-        request.allHTTPHeaderFields = headers
-
-        do {
-            let (data, _) = try await session.data(for: request)
-            if let response = try? JSONDecoder().decode(responseType, from: data) {
-                return response
-            } else {
-                logDebug("🔸 Failed to decode response for \(String(describing: responseType)): \(data)")
-            }
-        } catch {
-            logDebug("🔴 Failed to load \(String(describing: responseType)) data: \(error)")
-        }
-        return nil
+    public func matches(forHashPrefix hashPrefix: String) async throws -> APIClient.Response.Matches {
+        let result = try await load(.matches(hashPrefix: hashPrefix))
+        return result
     }
 }

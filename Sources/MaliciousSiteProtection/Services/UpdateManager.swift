@@ -54,30 +54,42 @@ public struct UpdateManager: UpdateManaging {
     }
 
     public func updateFilterSet() async {
-        let response = await apiClient.getFilterSet(revision: dataManager.currentRevision)
+        let changeSet: APIClient.Response.FiltersChangeSet
+        do {
+            changeSet = try await apiClient.filtersChangeSet(for: .phishing, revision: dataManager.currentRevision)
+        } catch {
+            Logger.updateManager.error("error fetching filter set: \(error)")
+            return
+        }
         updateSet(
             currentSet: dataManager.filterSet,
-            insert: response.insert,
-            delete: response.delete,
-            replace: response.replace
+            insert: changeSet.insert,
+            delete: changeSet.delete,
+            replace: changeSet.replace
         ) { newSet in
             self.dataManager.saveFilterSet(set: newSet)
         }
-        dataManager.saveRevision(response.revision)
+        dataManager.saveRevision(changeSet.revision)
         Logger.updateManager.debug("filterSet updated to revision \(self.dataManager.currentRevision)")
     }
 
     public func updateHashPrefixes() async {
-        let response = await apiClient.getHashPrefixes(revision: dataManager.currentRevision)
+        let changeSet: APIClient.Response.HashPrefixesChangeSet
+        do {
+            changeSet = try await apiClient.hashPrefixesChangeSet(for: .phishing, revision: dataManager.currentRevision)
+        } catch {
+            Logger.updateManager.error("error fetching hash prefixes: \(error)")
+            return
+        }
         updateSet(
             currentSet: dataManager.hashPrefixes,
-            insert: response.insert,
-            delete: response.delete,
-            replace: response.replace
+            insert: changeSet.insert,
+            delete: changeSet.delete,
+            replace: changeSet.replace
         ) { newSet in
             self.dataManager.saveHashPrefixes(set: newSet)
         }
-        dataManager.saveRevision(response.revision)
+        dataManager.saveRevision(changeSet.revision)
         Logger.updateManager.debug("hashPrefixes updated to revision \(self.dataManager.currentRevision)")
     }
 }

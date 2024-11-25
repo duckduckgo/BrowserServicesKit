@@ -20,8 +20,13 @@ import Foundation
 import os.log
 
 public struct APIResponseV2 {
-    let data: Data?
-    let httpResponse: HTTPURLResponse
+    public let data: Data?
+    public let httpResponse: HTTPURLResponse
+
+    public init(data: Data?, httpResponse: HTTPURLResponse) {
+        self.data = data
+        self.httpResponse = httpResponse
+    }
 }
 
 public extension APIResponseV2 {

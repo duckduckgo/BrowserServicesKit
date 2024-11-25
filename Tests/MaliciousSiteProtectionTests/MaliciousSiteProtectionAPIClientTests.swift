@@ -16,110 +16,130 @@
 //  limitations under the License.
 //
 import Foundation
+import Networking
+import TestUtils
 import XCTest
+
 @testable import MaliciousSiteProtection
 
 final class MaliciousSiteProtectionAPIClientTests: XCTestCase {
 
-    var mockSession: MockURLSession!
+    var mockService: MockAPIService!
     var client: MaliciousSiteProtection.APIClient!
 
     override func setUp() {
         super.setUp()
-        mockSession = MockURLSession()
-        client = .init(environment: .staging, session: mockSession)
+        mockService = MockAPIService()
+        client = .init(environment: .staging, service: mockService)
     }
 
     override func tearDown() {
-        mockSession = nil
+        mockService = nil
         client = nil
         super.tearDown()
     }
 
-    func testGetFilterSetSuccess() async {
+    func testWhenPhishingFilterSetRequestedAndSucceeds_ChangeSetIsReturned() async throws {
         // Given
         let insertFilter = Filter(hash: "a379a6f6eeafb9a55e378c118034e2751e682fab9f2d30ab13d2125586ce1947", regex: ".")
         let deleteFilter = Filter(hash: "6a929cd0b3ba4677eaedf1b2bdaf3ff89281cca94f688c83103bc9a676aea46d", regex: "(?i)^https?\\:\\/\\/[\\w\\-\\.]+(?:\\:(?:80|443))?")
-        let expectedResponse = APIClient.FiltersChangeSetResponse(insert: [insertFilter], delete: [deleteFilter], revision: 1, replace: false)
-        mockSession.data = try? JSONEncoder().encode(expectedResponse)
-        mockSession.response = HTTPURLResponse(url: client.filterSetURL, statusCode: 200, httpVersion: nil, headerFields: nil)
+        let expectedResponse = APIClient.Response.FiltersChangeSet(insert: [insertFilter], delete: [deleteFilter], revision: 666, replace: false)
+        mockService.requestHandler = { [unowned self] in
+            XCTAssertEqual($0.urlRequest.url, client.environment.url(for: .filterSet(.init(threatKind: .phishing, revision: 666))))
+            let data = try? JSONEncoder().encode(expectedResponse)
+            let response = HTTPURLResponse(url: $0.urlRequest.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            return .success(.init(data: data, httpResponse: response))
+        }
 
         // When
-        let response = await client.getFilterSet(revision: 1)
+        let response = try await client.filtersChangeSet(for: .phishing, revision: 666)
 
         // Then
         XCTAssertEqual(response, expectedResponse)
     }
 
-    func testGetHashPrefixesSuccess() async {
+    func testWhenHashPrefixesRequestedAndSucceeds_ChangeSetIsReturned() async throws {
         // Given
-        let expectedResponse = APIClient.HashPrefixesChangeSetResponse(insert: ["abc"], delete: ["def"], revision: 1, replace: false)
-        mockSession.data = try? JSONEncoder().encode(expectedResponse)
-        mockSession.response = HTTPURLResponse(url: client.hashPrefixURL, statusCode: 200, httpVersion: nil, headerFields: nil)
+        let expectedResponse = APIClient.Response.HashPrefixesChangeSet(insert: ["abc"], delete: ["def"], revision: 1, replace: false)
+        mockService.requestHandler = { [unowned self] in
+            XCTAssertEqual($0.urlRequest.url, client.environment.url(for: .hashPrefixSet(.init(threatKind: .phishing, revision: 1))))
+            let data = try? JSONEncoder().encode(expectedResponse)
+            let response = HTTPURLResponse(url: $0.urlRequest.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            return .success(.init(data: data, httpResponse: response))
+        }
 
         // When
-        let response = await client.getHashPrefixes(revision: 1)
+        let response = try await client.hashPrefixesChangeSet(for: .phishing, revision: 1)
 
         // Then
         XCTAssertEqual(response, expectedResponse)
     }
 
-    func testGetMatchesSuccess() async {
+    func testWhenMatchesRequestedAndSucceeds_MatchesAreReturned() async throws {
         // Given
-        let expectedResponse = APIClient.MatchResponse(matches: [Match(hostname: "example.com", url: "https://example.com/test", regex: ".", hash: "a379a6f6eeafb9a55e378c118034e2751e682fab9f2d30ab13d2125586ce1947", category: nil)])
-        mockSession.data = try? JSONEncoder().encode(expectedResponse)
-        mockSession.response = HTTPURLResponse(url: client.matchesURL, statusCode: 200, httpVersion: nil, headerFields: nil)
+        let expectedResponse = APIClient.Response.Matches(matches: [Match(hostname: "example.com", url: "https://example.com/test", regex: ".", hash: "a379a6f6eeafb9a55e378c118034e2751e682fab9f2d30ab13d2125586ce1947", category: nil)])
+        mockService.requestHandler = { [unowned self] in
+            XCTAssertEqual($0.urlRequest.url, client.environment.url(for: .matches(.init(hashPrefix: "abc"))))
+            let data = try? JSONEncoder().encode(expectedResponse)
+            let response = HTTPURLResponse(url: $0.urlRequest.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+            return .success(.init(data: data, httpResponse: response))
+        }
 
         // When
-        let response = await client.getMatches(hashPrefix: "abc")
+        let response = try await client.matches(forHashPrefix: "abc")
 
         // Then
-        XCTAssertEqual(response, expectedResponse.matches)
+        XCTAssertEqual(response.matches, expectedResponse.matches)
     }
 
-    func testGetFilterSetInvalidURL() async {
-        // Given
-        let invalidRevision = -1
-
-        // When
-        let response = await client.getFilterSet(revision: invalidRevision)
-
-        // Then
-        XCTAssertEqual(response, .init(insert: [], delete: [], revision: invalidRevision, replace: false))
-    }
-
-    func testGetHashPrefixesInvalidURL() async {
+    func testWhenHashPrefixesRequestFails_ErrorThrown() async throws {
         // Given
         let invalidRevision = -1
+        mockService.requestHandler = {
+            // Simulate a failure or invalid request
+            let response = HTTPURLResponse(url: $0.urlRequest.url!, statusCode: 400, httpVersion: nil, headerFields: nil)!
+            return .success(.init(data: nil, httpResponse: response))
+        }
 
-        // When
-        let response = await client.getHashPrefixes(revision: invalidRevision)
-
-        // Then
-        XCTAssertEqual(response, .init(insert: [], delete: [], revision: invalidRevision, replace: false))
+        do {
+        let response = try await client.hashPrefixesChangeSet(for: .phishing, revision: invalidRevision)
+            XCTFail("Unexpected \(response) expected throw")
+        } catch {
+        }
     }
 
-    func testGetMatchesInvalidURL() async {
+    func testWhenFilterSetRequestFails_ErrorThrown() async throws {
+        // Given
+        let invalidRevision = -1
+        mockService.requestHandler = {
+            // Simulate a failure or invalid request
+            let response = HTTPURLResponse(url: $0.urlRequest.url!, statusCode: 400, httpVersion: nil, headerFields: nil)!
+            return .success(.init(data: nil, httpResponse: response))
+        }
+
+        do {
+        let response = try await client.hashPrefixesChangeSet(for: .phishing, revision: invalidRevision)
+            XCTFail("Unexpected \(response) expected throw")
+        } catch {
+        }
+    }
+
+
+    func testWhenMatchesRequestFails_ErrorThrown() async throws {
         // Given
         let invalidHashPrefix = ""
-
-        // When
-        let response = await client.getMatches(hashPrefix: invalidHashPrefix)
-
-        // Then
-        XCTAssertTrue(response.isEmpty)
-    }
-}
-
-class MockURLSession: URLSessionProtocol {
-    var data: Data?
-    var response: URLResponse?
-    var error: Error?
-
-    func data(for request: URLRequest) async throws -> (Data, URLResponse) {
-        if let error = error {
-            throw error
+        mockService.requestHandler = {
+            // Simulate a failure or invalid request
+            let response = HTTPURLResponse(url: $0.urlRequest.url!, statusCode: 400, httpVersion: nil, headerFields: nil)!
+            return .success(.init(data: nil, httpResponse: response))
         }
-        return (data ?? Data(), response ?? URLResponse())
+
+        do {
+            let response = try await client.matches(forHashPrefix: invalidHashPrefix)
+            XCTFail("Unexpected \(response) expected throw")
+        } catch {
+        }
     }
+
 }
+

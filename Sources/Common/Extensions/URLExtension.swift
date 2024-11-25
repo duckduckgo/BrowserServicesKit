@@ -354,22 +354,24 @@ extension URL {
 
     // MARK: - Parameters
 
+    @_disfavoredOverload // prefer ordered KeyValuePairs collection when `parameters` passed as a Dictionary literal to preserve order.
     public func appendingParameters<QueryParams: Collection>(_ parameters: QueryParams, allowedReservedCharacters: CharacterSet? = nil) -> URL
     where QueryParams.Element == (key: String, value: String) {
+        let result = self.appending(percentEncodedQueryItems: parameters.map { name, value in
+            URLQueryItem(percentEncodingName: name, value: value, withAllowedCharacters: allowedReservedCharacters)
+        })
+        return result
+    }
 
-        return parameters.reduce(self) { partialResult, parameter in
-            partialResult.appendingParameter(
-                name: parameter.key,
-                value: parameter.value,
-                allowedReservedCharacters: allowedReservedCharacters
-            )
-        }
+    public func appendingParameters(_ parameters: KeyValuePairs<String, String>, allowedReservedCharacters: CharacterSet? = nil) -> URL {
+        let result = self.appending(percentEncodedQueryItems: parameters.map { name, value in
+            URLQueryItem(percentEncodingName: name, value: value, withAllowedCharacters: allowedReservedCharacters)
+        })
+        return result
     }
 
     public func appendingParameter(name: String, value: String, allowedReservedCharacters: CharacterSet? = nil) -> URL {
-        let queryItem = URLQueryItem(percentEncodingName: name,
-                                     value: value,
-                                     withAllowedCharacters: allowedReservedCharacters)
+        let queryItem = URLQueryItem(percentEncodingName: name, value: value, withAllowedCharacters: allowedReservedCharacters)
         return self.appending(percentEncodedQueryItem: queryItem)
     }
 
@@ -383,8 +385,9 @@ extension URL {
         var existingPercentEncodedQueryItems = components.percentEncodedQueryItems ?? [URLQueryItem]()
         existingPercentEncodedQueryItems.append(contentsOf: percentEncodedQueryItems)
         components.percentEncodedQueryItems = existingPercentEncodedQueryItems
+        let result = components.url ?? self
 
-        return components.url ?? self
+        return result
     }
 
     public func getQueryItems() -> [URLQueryItem]? {

@@ -41,10 +41,6 @@ public final class MaliciousSiteDetector: MaliciousSiteDetecting {
         self.eventMapping = eventMapping
     }
 
-    private func getMatches(hashPrefix: String) async -> Set<Match> {
-        return Set(await apiClient.getMatches(hashPrefix: hashPrefix))
-    }
-
     private func inFilterSet(hash: String) -> Set<Filter> {
         return Set(dataManager.filterSet.filter { $0.hash == hash })
     }
@@ -65,7 +61,13 @@ public final class MaliciousSiteDetector: MaliciousSiteDetecting {
     }
 
     private func fetchMatches(hashPrefix: String) async -> [Match] {
-        return await apiClient.getMatches(hashPrefix: hashPrefix)
+        do {
+            let response = try await apiClient.matches(forHashPrefix: hashPrefix)
+            return response.matches
+        } catch {
+            Logger.api.error("Failed to fetch matches for hash prefix: \(hashPrefix): \(error.localizedDescription)")
+            return []
+        }
     }
 
     private func checkLocalFilters(canonicalHost: String, canonicalUrl: URL) -> Bool {

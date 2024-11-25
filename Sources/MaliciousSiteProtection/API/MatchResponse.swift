@@ -20,6 +20,10 @@ extension APIClient {
 
     public struct MatchResponse: Codable, Equatable {
         public var matches: [Match]
+
+        public init(matches: [Match]) {
+            self.matches = matches
+        }
     }
 
 }
