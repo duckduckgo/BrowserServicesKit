@@ -37,6 +37,7 @@ public protocol PrivacyStatsCollecting {
 
     var currentStatsUpdatePublisher: AnyPublisher<Void, Never> { get }
     func fetchPrivacyStats() async -> [String: Int]
+    func clearPrivacyStats() async
 }
 
 public protocol TrackerDataProviding {
@@ -55,6 +56,10 @@ actor CurrentStats {
     func set(_ trackers: [String: Int], for timestamp: Date) {
         self.timestamp = timestamp
         self.trackers = trackers
+    }
+
+    func resetStats() {
+        self.trackers = [:]
     }
 
     func recordBlockedTracker(_ name: String) {
@@ -194,6 +199,26 @@ public final class PrivacyStats: PrivacyStatsCollecting {
         }
         let currentStats = await currentStatsActor.trackers
         return cached7DayStats.merging(currentStats, uniquingKeysWith: +)
+    }
+
+    public func clearPrivacyStats() async {
+        await withCheckedContinuation { continuation in
+            context.perform { [weak self] in
+                guard let self else {
+                    continuation.resume()
+                    return
+                }
+                PrivacyStatsUtils.deleteAllStats(in: context)
+                do {
+                    try context.save()
+                    Logger.privacyStats.debug("Deleted outdated entries")
+                } catch {
+                    Logger.privacyStats.error("Save error: \(error)")
+                }
+                continuation.resume()
+            }
+        }
+        await currentStatsActor.resetStats()
     }
 
     private func refresh7DayCache() async {

@@ -19,6 +19,7 @@
 import Common
 import CoreData
 import Foundation
+import Persistence
 
 final class PrivacyStatsUtils {
 
@@ -68,5 +69,9 @@ final class PrivacyStatsUtils {
         let request = PrivacyStatsEntity.fetchRequest()
         request.predicate = NSPredicate(format: "%K <= %@", #keyPath(PrivacyStatsEntity.timestamp), oldestValidTimestamp as NSDate)
         context.deleteAll(matching: request)
+    }
+
+    static func deleteAllStats(in context: NSManagedObjectContext) {
+        context.deleteAll(matching: PrivacyStatsEntity.fetchRequest())
     }
 }
