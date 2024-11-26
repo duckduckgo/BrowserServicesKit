@@ -32,6 +32,10 @@ extension APIClient {
             self.revision = revision
             self.replace = replace
         }
+
+        public var isEmpty: Bool {
+            insert.isEmpty && delete.isEmpty
+        }
     }
 
     public enum Response {

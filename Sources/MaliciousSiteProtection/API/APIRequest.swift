@@ -22,6 +22,9 @@ public protocol APIRequestProtocol {
     associatedtype ResponseType: Decodable
     var requestType: APIClient.Request { get }
 }
+public protocol MaliciousSiteDataChangeSetAPIRequestProtocol: APIRequestProtocol {
+    init(threatKind: ThreatKind, revision: Int?)
+}
 
 public extension APIClient {
     enum Request {
@@ -31,11 +34,16 @@ public extension APIClient {
     }
 }
 public extension APIClient.Request {
-    struct HashPrefixes: APIRequestProtocol {
+    struct HashPrefixes: MaliciousSiteDataChangeSetAPIRequestProtocol {
         public typealias ResponseType = APIClient.Response.HashPrefixesChangeSet
 
         public let threatKind: ThreatKind
         public let revision: Int?
+
+        public init(threatKind: ThreatKind, revision: Int?) {
+            self.threatKind = threatKind
+            self.revision = revision
+        }
 
         public var requestType: APIClient.Request {
             .hashPrefixSet(self)
@@ -49,11 +57,16 @@ extension APIRequestProtocol where Self == APIClient.Request.HashPrefixes {
 }
 
 public extension APIClient.Request {
-    struct FilterSet: APIRequestProtocol {
+    struct FilterSet: MaliciousSiteDataChangeSetAPIRequestProtocol {
         public typealias ResponseType = APIClient.Response.FiltersChangeSet
 
         public let threatKind: ThreatKind
         public let revision: Int?
+
+        public init(threatKind: ThreatKind, revision: Int?) {
+            self.threatKind = threatKind
+            self.revision = revision
+        }
 
         public var requestType: APIClient.Request {
             .filterSet(self)

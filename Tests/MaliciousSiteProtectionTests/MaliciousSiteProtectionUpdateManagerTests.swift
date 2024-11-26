@@ -27,40 +27,36 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
     var apiClient: MaliciousSiteProtection.APIClientProtocol!
 
     override func setUp() async throws {
-        try await super.setUp()
         apiClient = MockMaliciousSiteProtectionAPIClient()
         dataManager = MockMaliciousSiteProtectionDataManager()
         updateManager = MaliciousSiteProtection.UpdateManager(apiClient: apiClient, dataManager: dataManager)
-        dataManager.saveRevision(0)
-        await updateManager.updateFilterSet()
-        await updateManager.updateHashPrefixes()
     }
 
     override func tearDown() {
         updateManager = nil
         dataManager = nil
         apiClient = nil
-        super.tearDown()
     }
 
     func testUpdateHashPrefixes() async {
         await updateManager.updateHashPrefixes()
-        XCTAssertFalse(dataManager.hashPrefixes.isEmpty, "Hash prefixes should not be empty after update.")
-        XCTAssertEqual(dataManager.hashPrefixes, [
+        let dataSet = await dataManager.dataSet(for: .hashPrefixes(threatKind: .phishing))
+        XCTAssertEqual(dataSet, HashPrefixSet(revision: 1, items: [
             "aa00bb11",
             "bb00cc11",
             "cc00dd11",
             "dd00ee11",
             "a379a6f6"
-        ])
+        ]))
     }
 
     func testUpdateFilterSet() async {
         await updateManager.updateFilterSet()
-        XCTAssertEqual(dataManager.filterSet, [
+        let dataSet = await dataManager.dataSet(for: .filterSet(threatKind: .phishing))
+        XCTAssertEqual(dataSet, FilterDictionary(revision: 1, items: [
             Filter(hash: "testhash1", regex: ".*example.*"),
             Filter(hash: "testhash2", regex: ".*test.*")
-        ])
+        ]))
     }
 
     func testRevision1AddsAndDeletesData() async {
@@ -75,19 +71,27 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
             "93e2435e"
         ]
 
-        // Save revision and update the filter set and hash prefixes
-        dataManager.saveRevision(1)
+        // revision 0 -> 1
         await updateManager.updateFilterSet()
         await updateManager.updateHashPrefixes()
 
-        XCTAssertEqual(dataManager.filterSet, expectedFilterSet, "Filter set should match the expected set after update.")
-        XCTAssertEqual(dataManager.hashPrefixes, expectedHashPrefixes, "Hash prefixes should match the expected set after update.")
+        // revision 1 -> 2
+        await updateManager.updateFilterSet()
+        await updateManager.updateHashPrefixes()
+
+        let hashPrefixes = await dataManager.dataSet(for: .hashPrefixes(threatKind: .phishing))
+        let filterSet = await dataManager.dataSet(for: .filterSet(threatKind: .phishing))
+
+        XCTAssertEqual(hashPrefixes, HashPrefixSet(revision: 2, items: expectedHashPrefixes), "Hash prefixes should match the expected set after update.")
+        XCTAssertEqual(filterSet, FilterDictionary(revision: 2, items: expectedFilterSet), "Filter set should match the expected set after update.")
     }
 
     func testRevision2AddsAndDeletesData() async {
         let expectedFilterSet: Set<Filter> = [
             Filter(hash: "testhash4", regex: ".*test.*"),
-            Filter(hash: "testhash1", regex: ".*example.*")
+            Filter(hash: "testhash2", regex: ".*test1.*"),
+            Filter(hash: "testhash1", regex: ".*example.*"),
+            Filter(hash: "testhash3", regex: ".*test3.*"),
         ]
         let expectedHashPrefixes: Set<String> = [
             "aa00bb11",
@@ -98,46 +102,99 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
         ]
 
         // Save revision and update the filter set and hash prefixes
-        dataManager.saveRevision(2)
+        await dataManager.store(FilterDictionary(revision: 2, items: [
+            Filter(hash: "testhash1", regex: ".*example.*"),
+            Filter(hash: "testhash2", regex: ".*test.*"),
+            Filter(hash: "testhash2", regex: ".*test1.*"),
+            Filter(hash: "testhash3", regex: ".*test3.*"),
+        ]), for: .filterSet(threatKind: .phishing))
+        await dataManager.store(HashPrefixSet(revision: 2, items: [
+            "aa00bb11",
+            "bb00cc11",
+            "cc00dd11",
+            "dd00ee11",
+            "a379a6f6"
+        ]), for: .hashPrefixes(threatKind: .phishing))
+
         await updateManager.updateFilterSet()
         await updateManager.updateHashPrefixes()
 
-        XCTAssertEqual(dataManager.filterSet, expectedFilterSet, "Filter set should match the expected set after update.")
-        XCTAssertEqual(dataManager.hashPrefixes, expectedHashPrefixes, "Hash prefixes should match the expected set after update.")
+        let hashPrefixes = await dataManager.dataSet(for: .hashPrefixes(threatKind: .phishing))
+        let filterSet = await dataManager.dataSet(for: .filterSet(threatKind: .phishing))
+
+        XCTAssertEqual(hashPrefixes, HashPrefixSet(revision: 3, items: expectedHashPrefixes), "Hash prefixes should match the expected set after update.")
+        XCTAssertEqual(filterSet, FilterDictionary(revision: 3, items: expectedFilterSet), "Filter set should match the expected set after update.")
     }
 
     func testRevision3AddsAndDeletesNothing() async {
-        let expectedFilterSet = dataManager.filterSet
-        let expectedHashPrefixes = dataManager.hashPrefixes
+        let expectedFilterSet: Set<Filter> = []
+        let expectedHashPrefixes: Set<String> = []
 
         // Save revision and update the filter set and hash prefixes
-        dataManager.saveRevision(3)
+        await dataManager.store(FilterDictionary(revision: 3, items: []), for: .filterSet(threatKind: .phishing))
+        await dataManager.store(HashPrefixSet(revision: 3, items: []), for: .hashPrefixes(threatKind: .phishing))
+
         await updateManager.updateFilterSet()
         await updateManager.updateHashPrefixes()
 
-        XCTAssertEqual(dataManager.filterSet, expectedFilterSet, "Filter set should match the expected set after update.")
-        XCTAssertEqual(dataManager.hashPrefixes, expectedHashPrefixes, "Hash prefixes should match the expected set after update.")
+        let hashPrefixes = await dataManager.dataSet(for: .hashPrefixes(threatKind: .phishing))
+        let filterSet = await dataManager.dataSet(for: .filterSet(threatKind: .phishing))
+
+        XCTAssertEqual(hashPrefixes, HashPrefixSet(revision: 3, items: expectedHashPrefixes), "Hash prefixes should match the expected set after update.")
+        XCTAssertEqual(filterSet, FilterDictionary(revision: 3, items: expectedFilterSet), "Filter set should match the expected set after update.")
     }
 
     func testRevision4AddsAndDeletesData() async {
         let expectedFilterSet: Set<Filter> = [
-            Filter(hash: "testhash2", regex: ".*test.*"),
-            Filter(hash: "testhash1", regex: ".*example.*"),
             Filter(hash: "testhash5", regex: ".*test.*")
         ]
         let expectedHashPrefixes: Set<String> = [
             "a379a6f6",
-            "dd00ee11",
-            "cc00dd11",
-            "bb00cc11"
         ]
 
         // Save revision and update the filter set and hash prefixes
-        dataManager.saveRevision(4)
+        await dataManager.store(FilterDictionary(revision: 4, items: []), for: .filterSet(threatKind: .phishing))
+        await dataManager.store(HashPrefixSet(revision: 4, items: []), for: .hashPrefixes(threatKind: .phishing))
+
         await updateManager.updateFilterSet()
         await updateManager.updateHashPrefixes()
 
-        XCTAssertEqual(dataManager.filterSet, expectedFilterSet, "Filter set should match the expected set after update.")
-        XCTAssertEqual(dataManager.hashPrefixes, expectedHashPrefixes, "Hash prefixes should match the expected set after update.")
+        let hashPrefixes = await dataManager.dataSet(for: .hashPrefixes(threatKind: .phishing))
+        let filterSet = await dataManager.dataSet(for: .filterSet(threatKind: .phishing))
+
+        XCTAssertEqual(hashPrefixes, HashPrefixSet(revision: 5, items: expectedHashPrefixes), "Hash prefixes should match the expected set after update.")
+        XCTAssertEqual(filterSet, FilterDictionary(revision: 5, items: expectedFilterSet), "Filter set should match the expected set after update.")
     }
+
+    func testRevision5replacesData() async {
+        let expectedFilterSet: Set<Filter> = [
+            Filter(hash: "testhash6", regex: ".*test6.*")
+        ]
+        let expectedHashPrefixes: Set<String> = [
+            "aa55aa55"
+        ]
+
+        // Save revision and update the filter set and hash prefixes
+        await dataManager.store(FilterDictionary(revision: 5, items: [
+            Filter(hash: "testhash2", regex: ".*test.*"),
+            Filter(hash: "testhash1", regex: ".*example.*"),
+            Filter(hash: "testhash5", regex: ".*test.*")
+        ]), for: .filterSet(threatKind: .phishing))
+        await dataManager.store(HashPrefixSet(revision: 5, items: [
+            "a379a6f6",
+            "dd00ee11",
+            "cc00dd11",
+            "bb00cc11"
+        ]), for: .hashPrefixes(threatKind: .phishing))
+
+        await updateManager.updateFilterSet()
+        await updateManager.updateHashPrefixes()
+
+        let hashPrefixes = await dataManager.dataSet(for: .hashPrefixes(threatKind: .phishing))
+        let filterSet = await dataManager.dataSet(for: .filterSet(threatKind: .phishing))
+
+        XCTAssertEqual(hashPrefixes, HashPrefixSet(revision: 6, items: expectedHashPrefixes), "Hash prefixes should match the expected set after update.")
+        XCTAssertEqual(filterSet, FilterDictionary(revision: 6, items: expectedFilterSet), "Filter set should match the expected set after update.")
+    }
+
 }

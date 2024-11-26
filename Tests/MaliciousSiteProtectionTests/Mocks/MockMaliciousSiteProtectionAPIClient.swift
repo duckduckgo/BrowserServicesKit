@@ -27,22 +27,27 @@ public class MockMaliciousSiteProtectionAPIClient: MaliciousSiteProtection.APICl
         0: .init(insert: [
             Filter(hash: "testhash1", regex: ".*example.*"),
             Filter(hash: "testhash2", regex: ".*test.*")
-        ], delete: [], revision: 0, replace: true),
+        ], delete: [], revision: 1, replace: false),
         1: .init(insert: [
             Filter(hash: "testhash3", regex: ".*test.*")
         ], delete: [
             Filter(hash: "testhash1", regex: ".*example.*"),
-        ], revision: 1, replace: false),
+        ], revision: 2, replace: false),
         2: .init(insert: [
             Filter(hash: "testhash4", regex: ".*test.*")
         ], delete: [
             Filter(hash: "testhash2", regex: ".*test.*"),
-        ], revision: 2, replace: false),
+        ], revision: 3, replace: false),
         4: .init(insert: [
             Filter(hash: "testhash5", regex: ".*test.*")
         ], delete: [
             Filter(hash: "testhash3", regex: ".*test.*"),
-        ], revision: 4, replace: false)
+        ], revision: 5, replace: false),
+        5: .init(insert: [
+            Filter(hash: "testhash6", regex: ".*test6.*")
+        ], delete: [
+            Filter(hash: "testhash3", regex: ".*test.*"),
+        ], revision: 6, replace: true),
     ]
 
     private var hashPrefixRevisions: [Int: APIClient.Response.HashPrefixesChangeSet] = [
@@ -52,17 +57,20 @@ public class MockMaliciousSiteProtectionAPIClient: MaliciousSiteProtection.APICl
             "cc00dd11",
             "dd00ee11",
             "a379a6f6"
-        ], delete: [], revision: 0, replace: true),
+        ], delete: [], revision: 1, replace: false),
         1: .init(insert: ["93e2435e"], delete: [
             "cc00dd11",
             "dd00ee11",
-        ], revision: 1, replace: false),
+        ], revision: 2, replace: false),
         2: .init(insert: ["c0be0d0a6"], delete: [
             "bb00cc11",
-        ], revision: 2, replace: false),
+        ], revision: 3, replace: false),
         4: .init(insert: ["a379a6f6"], delete: [
             "aa00bb11",
-        ], revision: 4, replace: false)
+        ], revision: 5, replace: false),
+        5: .init(insert: ["aa55aa55"], delete: [
+            "ffgghhzz",
+        ], revision: 6, replace: true),
     ]
 
     public func load<Request>(_ requestConfig: Request) async throws -> Request.ResponseType where Request: APIRequestProtocol {
@@ -87,7 +95,7 @@ public class MockMaliciousSiteProtectionAPIClient: MaliciousSiteProtection.APICl
 
     func _matches(forHashPrefix hashPrefix: String) -> APIClient.Response.Matches {
         .init(matches: [
-            Match(hostname: "example.com", url: "https://example.com/mal", regex: ".", hash: "a379a6f6eeafb9a55e378c118034e2751e682fab9f2d30ab13d2125586ce1947", category: nil),
+            Match(hostname: "example.com", url: "https://example.com/mal", regex: ".*", hash: "a379a6f6eeafb9a55e378c118034e2751e682fab9f2d30ab13d2125586ce1947", category: nil),
             Match(hostname: "test.com", url: "https://test.com/mal", regex: ".*test.*", hash: "aa00bb11aa00cc11bb00cc11", category: nil)
         ])
     }

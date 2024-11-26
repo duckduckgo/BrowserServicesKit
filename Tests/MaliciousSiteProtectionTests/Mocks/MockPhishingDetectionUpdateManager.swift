@@ -20,9 +20,17 @@ import Foundation
 import MaliciousSiteProtection
 
 public class MockPhishingDetectionUpdateManager: MaliciousSiteProtection.UpdateManaging {
+    
     var didUpdateFilterSet = false
     var didUpdateHashPrefixes = false
     var completionHandler: (() -> Void)?
+
+    public func updateData(for key: some MaliciousSiteProtection.MaliciousSiteDataKeyProtocol) async {
+        switch key.dataType {
+        case .filterSet: await updateFilterSet()
+        case .hashPrefixSet: await updateHashPrefixes()
+        }
+    }
 
     public func updateFilterSet() async {
         didUpdateFilterSet = true

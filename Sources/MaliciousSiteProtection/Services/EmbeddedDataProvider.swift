@@ -18,56 +18,35 @@
 
 import Foundation
 import CryptoKit
-import Common
-import os
 
 public protocol EmbeddedDataProviding {
-    var embeddedRevision: Int { get }
-    func loadEmbeddedFilterSet() -> Set<Filter>
-    func loadEmbeddedHashPrefixes() -> Set<String>
+    func revision(for dataType: DataManager.StoredDataType) -> Int
+    func url(for dataType: DataManager.StoredDataType) -> URL
+    func hash(for dataType: DataManager.StoredDataType) -> String
+
+    func loadDataSet<DataKey: MaliciousSiteDataKeyProtocol>(for key: DataKey) -> DataKey.EmbeddedDataSetType
 }
 
-public struct EmbeddedDataProvider: EmbeddedDataProviding {
-    public let embeddedRevision: Int
-    private let embeddedFilterSetURL: URL
-    private let embeddedFilterSetDataSHA: String
-    private let embeddedHashPrefixURL: URL
-    private let embeddedHashPrefixDataSHA: String
+extension EmbeddedDataProviding {
 
-    public init(revision: Int, filterSetURL: URL, filterSetDataSHA: String, hashPrefixURL: URL, hashPrefixDataSHA: String) {
-        embeddedFilterSetURL = filterSetURL
-        embeddedFilterSetDataSHA = filterSetDataSHA
-        embeddedHashPrefixURL = hashPrefixURL
-        embeddedHashPrefixDataSHA = hashPrefixDataSHA
-        embeddedRevision = revision
-    }
-
-    private func loadData(from url: URL, expectedSHA: String) throws -> Data {
-        let data = try Data(contentsOf: url)
-        let sha256 = SHA256.hash(data: data)
-        let hashString = sha256.compactMap { String(format: "%02x", $0) }.joined()
-
-        guard hashString == expectedSHA else {
-            throw NSError(domain: "PhishingDetectionDataProvider", code: 1001, userInfo: [NSLocalizedDescriptionKey: "SHA mismatch"])
-        }
-        return data
-    }
-
-    public func loadEmbeddedFilterSet() -> Set<Filter> {
-         do {
-             let filterSetData = try loadData(from: embeddedFilterSetURL, expectedSHA: embeddedFilterSetDataSHA)
-             return try JSONDecoder().decode(Set<Filter>.self, from: filterSetData)
-         } catch {
-             fatalError("🔴 Error: SHA mismatch for filterSet JSON file. Expected \(self.embeddedFilterSetDataSHA)")
-         }
-     }
-
-    public func loadEmbeddedHashPrefixes() -> Set<String> {
+    public func loadDataSet<DataKey: MaliciousSiteDataKeyProtocol>(for key: DataKey) -> DataKey.EmbeddedDataSetType {
+        let dataType = key.dataType
+        let url = url(for: dataType)
+        let data: Data
         do {
-            let hashPrefixData = try loadData(from: embeddedHashPrefixURL, expectedSHA: embeddedHashPrefixDataSHA)
-            return try JSONDecoder().decode(Set<String>.self, from: hashPrefixData)
+            data = try Data(contentsOf: url)
+#if DEBUG
+            assert(data.sha256 == hash(for: dataType), "SHA mismatch for \(url.path)")
+#endif
         } catch {
-            fatalError("🔴 Error: SHA mismatch for hashPrefixes JSON file. Expected \(self.embeddedHashPrefixDataSHA)")
+            fatalError("Could not load embedded data set at \(url.path): \(error)")
+        }
+        do {
+            let result = try JSONDecoder().decode(DataKey.EmbeddedDataSetType.self, from: data)
+            return result
+        } catch {
+            fatalError("Could not decode embedded data set at \(url.path): \(error)")
         }
     }
+
 }

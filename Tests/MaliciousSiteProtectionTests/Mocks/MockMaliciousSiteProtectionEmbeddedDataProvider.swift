@@ -23,25 +23,30 @@ public class MockMaliciousSiteProtectionEmbeddedDataProvider: MaliciousSiteProte
     public var embeddedRevision: Int = 65
     var loadHashPrefixesCalled: Bool = false
     var loadFilterSetCalled: Bool = true
-    var hashPrefixes: Set<String> = ["aabb"]
-    var filterSet: Set<Filter> = [Filter(hash: "dummyhash", regex: "dummyregex")]
+    var hashPrefixes = Set(["aabb"])
+    var filterSet = Set([Filter(hash: "dummyhash", regex: "dummyregex")])
 
-    public func shouldReturnFilterSet(set: Set<Filter>) {
-        self.filterSet = set
+    public func revision(for detectionKind: MaliciousSiteProtection.DataManager.StoredDataType) -> Int {
+        embeddedRevision
+    }
+    
+    public func url(for detectionKind: MaliciousSiteProtection.DataManager.StoredDataType) -> URL {
+        URL.empty
+    }
+    
+    public func hash(for detectionKind: MaliciousSiteProtection.DataManager.StoredDataType) -> String {
+        ""
     }
 
-    public func shouldReturnHashPrefixes(set: Set<String>) {
-        self.hashPrefixes = set
-    }
-
-    public func loadEmbeddedFilterSet() -> Set<Filter> {
-        self.loadHashPrefixesCalled = true
-        return self.filterSet
-    }
-
-    public func loadEmbeddedHashPrefixes() -> Set<String> {
-        self.loadFilterSetCalled = true
-        return self.hashPrefixes
+    public func loadDataSet<DataKey>(for key: DataKey) -> DataKey.EmbeddedDataSetType where DataKey : MaliciousSiteDataKeyProtocol {
+        switch key.dataType {
+        case .filterSet:
+            self.loadFilterSetCalled = true
+            return Array(filterSet) as! DataKey.EmbeddedDataSetType
+        case .hashPrefixSet:
+            self.loadHashPrefixesCalled = true
+            return Array(hashPrefixes) as! DataKey.EmbeddedDataSetType
+        }
     }
 
 }

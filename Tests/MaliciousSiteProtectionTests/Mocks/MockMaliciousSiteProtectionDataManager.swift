@@ -20,25 +20,14 @@ import Foundation
 import MaliciousSiteProtection
 
 public class MockMaliciousSiteProtectionDataManager: MaliciousSiteProtection.DataManaging {
-    public var filterSet: Set<Filter>
-    public var hashPrefixes: Set<String>
-    public var currentRevision: Int
+    var store = [MaliciousSiteProtection.DataManager.StoredDataType: Any]()
 
-    public init() {
-        filterSet = Set()
-        hashPrefixes = Set()
-        currentRevision = 0
+    public func dataSet<DataKey>(for key: DataKey) async -> DataKey.DataSetType where DataKey : MaliciousSiteProtection.MaliciousSiteDataKeyProtocol {
+        store[key.dataType] as? DataKey.DataSetType ?? .init(revision: 0, items: [])
     }
 
-    public func saveFilterSet(set: Set<MaliciousSiteProtection.Filter>) {
-        filterSet = set
+    public func store<DataKey>(_ dataSet: DataKey.DataSetType, for key: DataKey) async where DataKey : MaliciousSiteProtection.MaliciousSiteDataKeyProtocol {
+        store[key.dataType] = dataSet
     }
 
-    public func saveHashPrefixes(set: Set<String>) {
-        hashPrefixes = set
-    }
-
-    public func saveRevision(_ revision: Int) {
-        currentRevision = revision
-    }
 }

@@ -21,6 +21,8 @@ import Common
 import os
 
 public protocol UpdateManaging {
+    func updateData(for key: some MaliciousSiteDataKeyProtocol) async
+
     func updateFilterSet() async
     func updateHashPrefixes() async
 }
@@ -34,62 +36,39 @@ public struct UpdateManager: UpdateManaging {
         self.dataManager = dataManager
     }
 
-    private func updateSet<T: Hashable>(
-        currentSet: Set<T>,
-        insert: [T],
-        delete: [T],
-        replace: Bool,
-        saveSet: (Set<T>) -> Void
-    ) {
-        var newSet = currentSet
+    public func updateData<DataKey: MaliciousSiteDataKeyProtocol>(for key: DataKey) async {
+        // load currently stored data set
+        var dataSet = await dataManager.dataSet(for: key)
+        let oldRevision = dataSet.revision
 
-        if replace {
-            newSet = Set(insert)
-        } else {
-            newSet.formUnion(insert)
-            newSet.subtract(delete)
-        }
-
-        saveSet(newSet)
-    }
-
-    public func updateFilterSet() async {
-        let changeSet: APIClient.Response.FiltersChangeSet
+        // get change set from current revision from API
+        let changeSet: APIClient.ChangeSetResponse<DataKey.DataSetType.Element>
         do {
-            changeSet = try await apiClient.filtersChangeSet(for: .phishing, revision: dataManager.currentRevision)
+            let request = DataKey.DataSetType.APIRequestType(threatKind: key.threatKind, revision: oldRevision)
+            changeSet = try await apiClient.load(request)
         } catch {
             Logger.updateManager.error("error fetching filter set: \(error)")
             return
         }
-        updateSet(
-            currentSet: dataManager.filterSet,
-            insert: changeSet.insert,
-            delete: changeSet.delete,
-            replace: changeSet.replace
-        ) { newSet in
-            self.dataManager.saveFilterSet(set: newSet)
+        guard !changeSet.isEmpty || changeSet.revision != dataSet.revision else {
+            Logger.updateManager.debug("no changes to filter set")
+            return
         }
-        dataManager.saveRevision(changeSet.revision)
-        Logger.updateManager.debug("filterSet updated to revision \(self.dataManager.currentRevision)")
+
+        // apply changes
+        dataSet.apply(changeSet)
+
+        // store back
+        await self.dataManager.store(dataSet, for: key)
+        Logger.updateManager.debug("\(type(of: key)).\(key.threatKind) updated from rev.\(oldRevision) to rev.\(dataSet.revision)")
+    }
+
+    public func updateFilterSet() async {
+        await updateData(for: .filterSet(threatKind: .phishing))
     }
 
     public func updateHashPrefixes() async {
-        let changeSet: APIClient.Response.HashPrefixesChangeSet
-        do {
-            changeSet = try await apiClient.hashPrefixesChangeSet(for: .phishing, revision: dataManager.currentRevision)
-        } catch {
-            Logger.updateManager.error("error fetching hash prefixes: \(error)")
-            return
-        }
-        updateSet(
-            currentSet: dataManager.hashPrefixes,
-            insert: changeSet.insert,
-            delete: changeSet.delete,
-            replace: changeSet.replace
-        ) { newSet in
-            self.dataManager.saveHashPrefixes(set: newSet)
-        }
-        dataManager.saveRevision(changeSet.revision)
-        Logger.updateManager.debug("hashPrefixes updated to revision \(self.dataManager.currentRevision)")
+        await updateData(for: .hashPrefixes(threatKind: .phishing))
     }
+
 }
