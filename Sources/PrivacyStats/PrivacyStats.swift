@@ -58,10 +58,6 @@ actor CurrentStats {
         self.trackers = trackers
     }
 
-    func resetStats() {
-        self.trackers = [:]
-    }
-
     func recordBlockedTracker(_ name: String) {
 
         let currentTimestamp = Date().startOfHour
@@ -209,7 +205,6 @@ public final class PrivacyStats: PrivacyStatsCollecting {
                     return
                 }
                 PrivacyStatsUtils.deleteAllStats(in: context)
-                currentStatsObject = nil
                 do {
                     try context.save()
                     Logger.privacyStats.debug("Deleted outdated entries")
@@ -219,7 +214,7 @@ public final class PrivacyStats: PrivacyStatsCollecting {
                 continuation.resume()
             }
         }
-        await currentStatsActor.resetStats()
+        await loadCurrentStats()
     }
 
     private func refresh7DayCache() async {
