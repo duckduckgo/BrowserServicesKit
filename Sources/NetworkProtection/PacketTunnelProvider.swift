@@ -663,7 +663,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         prepareToConnect(using: tunnelProviderProtocol)
 
         let startupOptions = StartupOptions(options: options ?? [:])
-        Logger.networkProtection.log("... with options: \(startupOptions.description, privacy: .public)")
+        Logger.networkProtection.log("...with options: \(startupOptions.description, privacy: .public)")
 
         // Reset snooze if the VPN is restarting.
         self.snoozeTimingStore.reset()

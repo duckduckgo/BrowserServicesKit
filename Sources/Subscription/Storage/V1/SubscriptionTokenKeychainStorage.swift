@@ -17,6 +17,7 @@
 //
 
 import Foundation
+import Common
 
 public final class SubscriptionTokenKeychainStorage: SubscriptionTokenStoring {
 

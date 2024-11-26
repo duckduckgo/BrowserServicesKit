@@ -24,7 +24,6 @@ import Common
 public final class SubscriptionTokenKeychainStorageV2: TokenStoring {
 
     private let keychainType: KeychainType
-    //    internal let queue = DispatchQueue(label: "SubscriptionTokenKeychainStorageV2.queue")
 
     public init(keychainType: KeychainType = .dataProtection(.unspecified)) {
         self.keychainType = keychainType
@@ -32,20 +31,15 @@ public final class SubscriptionTokenKeychainStorageV2: TokenStoring {
 
     public var tokenContainer: TokenContainer? {
         get {
-            //            queue.sync {
 //            Logger.subscriptionKeychain.debug("get TokenContainer")
             guard let data = try? retrieveData(forField: .tokens) else {
                 Logger.subscriptionKeychain.debug("TokenContainer not found")
                 return nil
             }
             return CodableHelper.decode(jsonData: data)
-            //            }
         }
         set {
-            //            queue.sync { [weak self] in
 //            Logger.subscriptionKeychain.debug("set TokenContainer")
-            //                guard let strongSelf = self else { return }
-
             do {
                 guard let newValue else {
                     Logger.subscriptionKeychain.debug("remove TokenContainer")
@@ -63,7 +57,6 @@ public final class SubscriptionTokenKeychainStorageV2: TokenStoring {
                 Logger.subscriptionKeychain.fault("Failed to set TokenContainer: \(error, privacy: .public)")
                 assertionFailure("Failed to set TokenContainer")
             }
-            //            }
         }
     }
 }

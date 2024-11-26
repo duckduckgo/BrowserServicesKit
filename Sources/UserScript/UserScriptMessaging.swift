@@ -218,7 +218,7 @@ public final class UserScriptMessageBroker: NSObject {
             /// As far as the client is concerned, a `notification` is fire-and-forget
         case .notify(let handler, let notification):
             do {
-                _=try await handler(notification.params, original)
+                _ = try await handler(notification.params, original)
             } catch {
                 Logger.general.error("UserScriptMessaging: unhandled exception \(error.localizedDescription, privacy: .public)")
             }

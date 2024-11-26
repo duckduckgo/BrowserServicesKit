@@ -1,7 +1,7 @@
 //
 //  KeychainType.swift
 //
-//  Copyright © 2023 DuckDuckGo. All rights reserved.
+//  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -18,21 +18,18 @@
 
 import Foundation
 
-/// A convenience enum to unify the logic for selecting the right keychain through the query attributes.
-///
 public enum KeychainType {
     case dataProtection(_ accessGroup: AccessGroup)
-
     /// Uses the system keychain.
-    ///
     case system
+    case fileBased
 
     public enum AccessGroup {
         case unspecified
         case named(_ name: String)
     }
 
-    func queryAttributes() -> [CFString: Any] {
+    public func queryAttributes() -> [CFString: Any] {
         switch self {
         case .dataProtection(let accessGroup):
             switch accessGroup {
@@ -45,6 +42,8 @@ public enum KeychainType {
                 ]
             }
         case .system:
+            return [kSecUseDataProtectionKeychain: false]
+        case .fileBased:
             return [kSecUseDataProtectionKeychain: false]
         }
     }
