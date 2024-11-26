@@ -285,35 +285,34 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
                                            errorReporting: errorHandler)
         }
 
-        wait(for: [expOld, lookupAndFetchExp], timeout: 15.0)
+        wait(for: [expOld], timeout: 15.0)
 
         let expLastCompiledFetched = CountedFulfillmentTestExpectation(description: "Last compiled fetched")
         mockLastCompiledRulesStore.onRulesGet = {
             expLastCompiledFetched.fulfill()
         }
 
-        let expRecompiled = CountedFulfillmentTestExpectation(description: "New Rules Compiled")
-        rulesUpdateListener.onRulesUpdated = { _ in
-            expRecompiled.fulfill()
+            let expRecompiled = CountedFulfillmentTestExpectation(description: "New Rules Compiled")
+            rulesUpdateListener.onRulesUpdated = { _ in
+                expRecompiled.fulfill()
 
-            if expRecompiled.currentFulfillmentCount == 1 { // finished compilation after cold start (using last compiled rules)
-
-                mockLastCompiledRulesStore.onRulesGet = {}
-                XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.etag, oldEtag)
-                XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.name, mockRulesSource.ruleListName)
-                XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.trackerData, mockRulesSource.trackerData?.tds)
-                XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.identifier, oldIdentifier)
-            } else if expRecompiled.currentFulfillmentCount == 2 { // finished recompilation of rules due to changed tds
-                XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.etag, updatedEtag)
-                XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.name, mockRulesSource.ruleListName)
-                XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.trackerData, mockRulesSource.trackerData?.tds)
-                XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.identifier, newIdentifier)
+                if expRecompiled.currentFulfillmentCount == 1 { // finished compilation after cold start (using last compiled rules)
+                    mockLastCompiledRulesStore.onRulesGet = {}
+                    XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.etag, oldEtag)
+                    XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.name, mockRulesSource.ruleListName)
+                    XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.trackerData, mockRulesSource.trackerData?.tds)
+                    XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.identifier, oldIdentifier)
+                } else if expRecompiled.currentFulfillmentCount == 2 { // finished recompilation of rules due to changed tds
+                    XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.etag, updatedEtag)
+                    XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.name, mockRulesSource.ruleListName)
+                    XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.trackerData, mockRulesSource.trackerData?.tds)
+                    XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.identifier, newIdentifier)
+                }
             }
 
-        }
+        wait(for: [expLastCompiledFetched, expRecompiled, lookupAndFetchExp], timeout: 15.0)
 
-        wait(for: [expLastCompiledFetched, expRecompiled], timeout: 15.0)
-    }
+        }
 
     struct MockLastCompiledRules: LastCompiledRules {
 
