@@ -209,6 +209,7 @@ public final class PrivacyStats: PrivacyStatsCollecting {
                     return
                 }
                 PrivacyStatsUtils.deleteAllStats(in: context)
+                currentStatsObject = nil
                 do {
                     try context.save()
                     Logger.privacyStats.debug("Deleted outdated entries")
