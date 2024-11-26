@@ -138,6 +138,8 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
         self.subscriptionEndpointService = subscriptionEndpointService
         self.currentEnvironment = subscriptionEnvironment
         self.pixelHandler = pixelHandler
+
+#if !NETP_SYSTEM_EXTENSION
         switch currentEnvironment.purchasePlatform {
         case .appStore:
             if #available(macOS 12.0, iOS 15.0, *) {
@@ -148,6 +150,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
         case .stripe:
             break
         }
+#endif
     }
 
     @available(macOS 12.0, iOS 15.0, *)
@@ -175,7 +178,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
         }
     }
 
-    // MARK: - Environment, ex SubscriptionPurchaseEnvironment
+    // MARK: - Environment
 
     @available(macOS 12.0, iOS 15.0, *) private func setupForAppStore() {
         Task {

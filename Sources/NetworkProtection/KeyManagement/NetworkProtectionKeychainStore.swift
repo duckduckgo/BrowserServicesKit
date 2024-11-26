@@ -56,6 +56,7 @@ final class NetworkProtectionKeychainStore {
     // MARK: - Keychain Interaction
 
     func readData(named name: String) throws -> Data? {
+        Logger.networkProtectionKeyManagement.debug("Reading key \(name, privacy: .public) from keychain")
         var query = defaultAttributes()
         query[kSecAttrAccount] = name
         query[kSecReturnData] = true
@@ -79,6 +80,7 @@ final class NetworkProtectionKeychainStore {
     }
 
     func writeData(_ data: Data, named name: String) throws {
+        Logger.networkProtectionKeyManagement.debug("Writing key \(name, privacy: .public) to keychain")
         var query = defaultAttributes()
         query[kSecAttrAccount] = name
         query[kSecAttrAccessible] = kSecAttrAccessibleAfterFirstUnlock
@@ -101,6 +103,7 @@ final class NetworkProtectionKeychainStore {
     }
 
     private func updateData(_ data: Data, named name: String) -> OSStatus {
+        Logger.networkProtectionKeyManagement.debug("Updating key \(name, privacy: .public) in keychain")
         var query = defaultAttributes()
         query[kSecAttrAccount] = name
 
@@ -113,11 +116,14 @@ final class NetworkProtectionKeychainStore {
     }
 
     func deleteAll() throws {
+        Logger.networkProtectionKeyManagement.debug("Deleting all keys from keychain")
         var query = defaultAttributes()
-#if os(macOS)
+#if false
         // This line causes the delete to error with status -50 on iOS. Needs investigation but, for now, just delete the first item
         // https://app.asana.com/0/1203512625915051/1205009181378521
         query[kSecMatchLimit] = kSecMatchLimitAll
+
+        // Turns out this is creating issues in macOS too firing a NetworkProtectionError.keychainDeleteError(status: -67701) errSecInvalidRecord
 #endif
 
         let status = SecItemDelete(query as CFDictionary)
@@ -125,6 +131,7 @@ final class NetworkProtectionKeychainStore {
         case errSecItemNotFound, errSecSuccess:
             break
         default:
+            Logger.networkProtectionKeyManagement.error("🔴 Failed to delete all keys, SecItemDelete status \(String(describing: status), privacy: .public)")
             throw NetworkProtectionKeychainStoreError.keychainDeleteError(status: status)
         }
     }
