@@ -49,6 +49,13 @@ public extension DataManager {
             }
         }
 
+        public var threatKind: ThreatKind {
+            switch self {
+            case .hashPrefixSet(let key): key.threatKind
+            case .filterSet(let key): key.threatKind
+            }
+        }
+
         public static var allCases: [DataManager.StoredDataType] {
             ThreatKind.allCases.map { threatKind in
                 Kind.allCases.map { dataKind in

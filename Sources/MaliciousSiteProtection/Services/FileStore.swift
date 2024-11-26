@@ -24,10 +24,10 @@ public protocol FileStoring {
     func read(from filename: String) -> Data?
 }
 
-struct FileStore: FileStoring, CustomDebugStringConvertible {
+public struct FileStore: FileStoring, CustomDebugStringConvertible {
     private let dataStoreURL: URL
 
-    init(dataStoreURL: URL) {
+    public init(dataStoreURL: URL) {
         self.dataStoreURL = dataStoreURL
         createDirectoryIfNeeded()
     }
@@ -61,7 +61,7 @@ struct FileStore: FileStoring, CustomDebugStringConvertible {
         }
     }
 
-    var debugDescription: String {
+    public var debugDescription: String {
         return "<\(type(of: self)) - \"\(dataStoreURL.path)\">"
     }
 }
