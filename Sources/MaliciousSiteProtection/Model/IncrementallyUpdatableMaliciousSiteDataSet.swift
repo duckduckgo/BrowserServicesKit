@@ -16,7 +16,7 @@
 //  limitations under the License.
 //
 
-public protocol IncrementallyUpdatableMaliciousSiteDataSet: Codable {
+public protocol IncrementallyUpdatableMaliciousSiteDataSet: Codable, Equatable {
     /// Set Element Type (Hash Prefix or Filter)
     associatedtype Element: Codable, Hashable
     associatedtype APIRequestType: MaliciousSiteDataChangeSetAPIRequestProtocol, APIRequestProtocol where APIRequestType.ResponseType == APIClient.ChangeSetResponse<Element>

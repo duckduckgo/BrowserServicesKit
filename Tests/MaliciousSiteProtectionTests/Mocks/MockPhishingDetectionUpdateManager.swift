@@ -23,6 +23,7 @@ public class MockPhishingDetectionUpdateManager: MaliciousSiteProtection.UpdateM
     
     var didUpdateFilterSet = false
     var didUpdateHashPrefixes = false
+    var startPeriodicUpdatesCalled = false
     var completionHandler: (() -> Void)?
 
     public func updateData(for key: some MaliciousSiteProtection.MaliciousSiteDataKeyProtocol) async {
@@ -48,4 +49,8 @@ public class MockPhishingDetectionUpdateManager: MaliciousSiteProtection.UpdateM
         }
     }
 
+    public func startPeriodicUpdates() -> Task<Void, any Error> {
+        startPeriodicUpdatesCalled = true
+        return Task {}
+    }
 }

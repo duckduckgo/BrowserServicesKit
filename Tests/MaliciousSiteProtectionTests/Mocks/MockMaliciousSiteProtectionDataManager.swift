@@ -16,17 +16,24 @@
 //  limitations under the License.
 //
 
+import Combine
 import Foundation
 import MaliciousSiteProtection
 
-public class MockMaliciousSiteProtectionDataManager: MaliciousSiteProtection.DataManaging {
-    var store = [MaliciousSiteProtection.DataManager.StoredDataType: Any]()
-
-    public func dataSet<DataKey>(for key: DataKey) async -> DataKey.DataSetType where DataKey : MaliciousSiteProtection.MaliciousSiteDataKeyProtocol {
-        store[key.dataType] as? DataKey.DataSetType ?? .init(revision: 0, items: [])
+public actor MockMaliciousSiteProtectionDataManager: MaliciousSiteProtection.DataManaging {
+    
+    @Published var store = [MaliciousSiteProtection.DataManager.StoredDataType: Any]()
+    func publisher<DataKey>(for key: DataKey) -> AnyPublisher<DataKey.DataSetType, Never> where DataKey: MaliciousSiteProtection.MaliciousSiteDataKeyProtocol {
+        $store.map { $0[key.dataType] as? DataKey.DataSetType ?? .init(revision: 0, items: []) }
+            .removeDuplicates()
+            .eraseToAnyPublisher()
     }
 
-    public func store<DataKey>(_ dataSet: DataKey.DataSetType, for key: DataKey) async where DataKey : MaliciousSiteProtection.MaliciousSiteDataKeyProtocol {
+    public func dataSet<DataKey>(for key: DataKey) -> DataKey.DataSetType where DataKey: MaliciousSiteProtection.MaliciousSiteDataKeyProtocol {
+        return store[key.dataType] as? DataKey.DataSetType ?? .init(revision: 0, items: [])
+    }
+
+    public func store<DataKey>(_ dataSet: DataKey.DataSetType, for key: DataKey) where DataKey: MaliciousSiteProtection.MaliciousSiteDataKeyProtocol {
         store[key.dataType] = dataSet
     }
 

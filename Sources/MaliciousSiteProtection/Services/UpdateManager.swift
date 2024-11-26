@@ -22,18 +22,23 @@ import os
 
 public protocol UpdateManaging {
     func updateData(for key: some MaliciousSiteDataKeyProtocol) async
-
-    func updateFilterSet() async
-    func updateHashPrefixes() async
+    func startPeriodicUpdates() -> Task<Void, Error>
 }
 
 public struct UpdateManager: UpdateManaging {
+
     private let apiClient: APIClientProtocol
     private let dataManager: DataManaging
 
-    public init(apiClient: APIClientProtocol, dataManager: DataManaging) {
+    public typealias UpdateIntervalProvider = (DataManager.StoredDataType) -> TimeInterval?
+    private let updateIntervalProvider: UpdateIntervalProvider
+    private let sleeper: Sleeper
+
+    public init(apiClient: APIClientProtocol, dataManager: DataManaging, sleeper: Sleeper = .default, updateIntervalProvider: @escaping UpdateIntervalProvider) {
         self.apiClient = apiClient
         self.dataManager = dataManager
+        self.updateIntervalProvider = updateIntervalProvider
+        self.sleeper = sleeper
     }
 
     public func updateData<DataKey: MaliciousSiteDataKeyProtocol>(for key: DataKey) async {
@@ -63,12 +68,25 @@ public struct UpdateManager: UpdateManaging {
         Logger.updateManager.debug("\(type(of: key)).\(key.threatKind) updated from rev.\(oldRevision) to rev.\(dataSet.revision)")
     }
 
-    public func updateFilterSet() async {
-        await updateData(for: .filterSet(threatKind: .phishing))
-    }
+    public func startPeriodicUpdates() -> Task<Void, any Error> {
+        Task.detached {
+            // run update jobs in background for every data type
+            try await withThrowingTaskGroup(of: Never.self) { group -> Void in
+                for dataType in DataManager.StoredDataType.allCases {
+                    // get update interval from provider
+                    guard let updateInterval = updateIntervalProvider(dataType) else { continue }
+                    assert(updateInterval > 0)
 
-    public func updateHashPrefixes() async {
-        await updateData(for: .hashPrefixes(threatKind: .phishing))
+                    group.addTask {
+                        // run periodically until the parent task is cancelled
+                        try await performPeriodicJob(interval: updateInterval, sleeper: sleeper) {
+                            await self.updateData(for: dataType.dataKey)
+                        }
+                    }
+                }
+                for try await _ in group {}
+            }
+        }
     }
 
 }
