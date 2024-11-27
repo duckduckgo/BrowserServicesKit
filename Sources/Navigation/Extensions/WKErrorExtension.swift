@@ -37,6 +37,10 @@ extension WKError {
         code.rawValue == NSURLErrorServerCertificateUntrusted && _nsError.domain == NSURLErrorDomain
     }
 
+    public var isWebContentProcessTerminated: Bool {
+        code == .webContentProcessTerminated && _nsError is WKError
+    }
+
 }
 
 extension WKError {
