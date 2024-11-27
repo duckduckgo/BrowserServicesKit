@@ -108,7 +108,7 @@ final class SpecialErrorPageUserScriptTests: XCTestCase {
     @MainActor
     func test_WhenHandlerForInitialSetUpCalled_AndIsEnabledTrue_ThenRightParameterReturned() async {
         // GIVEN
-        let expectedData = SpecialErrorData(kind: .ssl, errorType: "some error type", domain: "someDomain")
+        let expectedData = SpecialErrorData.ssl(type: .invalid, domain: "someDomain", eTldPlus1: nil)
         var encodable: Encodable?
         userScript.isEnabled = true
         delegate.errorData = expectedData

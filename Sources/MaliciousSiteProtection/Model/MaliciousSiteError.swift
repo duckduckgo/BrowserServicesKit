@@ -22,7 +22,7 @@ public struct MaliciousSiteError: Error, Equatable {
 
     public enum Code: Int {
         case phishing = 1
-        case malware = 2
+        // case malware = 2
     }
     public let code: Code
     public let failingUrl: URL
@@ -70,8 +70,8 @@ extension MaliciousSiteError: LocalizedError {
         switch code {
         case .phishing:
             return "Phishing detected"
-        case .malware:
-             return "Malware detected"
+        // case .malware:
+        //      return "Malware detected"
         }
     }
 
