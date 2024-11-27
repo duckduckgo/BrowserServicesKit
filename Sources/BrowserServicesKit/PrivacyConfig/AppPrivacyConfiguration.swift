@@ -34,7 +34,6 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     private let internalUserDecider: InternalUserDecider
     private let userDefaults: UserDefaults
     private let locale: Locale
-    private let experimentManager: ExperimentCohortsManaging
     private let installDate: Date?
     static let experimentManagerQueue = DispatchQueue(label: "com.experimentManager.queue")
 
@@ -44,7 +43,6 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
                 internalUserDecider: InternalUserDecider,
                 userDefaults: UserDefaults = UserDefaults(),
                 locale: Locale = Locale.current,
-                experimentManager: ExperimentCohortsManaging = ExperimentCohortsManager(),
                 installDate: Date? = nil) {
         self.data = data
         self.identifier = identifier
@@ -52,7 +50,6 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         self.internalUserDecider = internalUserDecider
         self.userDefaults = userDefaults
         self.locale = locale
-        self.experimentManager = experimentManager
         self.installDate = installDate
     }
 
@@ -188,10 +185,9 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     }
 
     public func isSubfeatureEnabled(_ subfeature: any PrivacySubfeature,
-                                    cohortID: CohortID?,
                                     versionProvider: AppVersionProvider,
                                     randomizer: (Range<Double>) -> Double) -> Bool {
-        switch stateFor(subfeature, cohortID: cohortID, versionProvider: versionProvider, randomizer: randomizer) {
+        switch stateFor(subfeature, versionProvider: versionProvider, randomizer: randomizer) {
         case .enabled:
             return true
         case .disabled:
@@ -199,54 +195,19 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         }
     }
 
-    public func getAllActiveExperiments(versionProvider: AppVersionProvider,
-                                        randomizer: (Range<Double>) -> Double) -> Experiments {
-        Self.experimentManagerQueue.sync {
-               guard let assignedExperiments = experimentManager.experiments else { return [:] }
-               return assignedExperiments.filter { key, value in
-                   stateFor(subfeatureID: key, experimentData: value, versionProvider: versionProvider, randomizer: randomizer) == .enabled
-               }
-           }
-    }
-
-    private func stateFor(subfeatureID: SubfeatureID, experimentData: ExperimentData, versionProvider: AppVersionProvider,
-                          randomizer: (Range<Double>) -> Double) -> PrivacyConfigurationFeatureState {
-        guard let parentFeature = PrivacyFeature(rawValue: experimentData.parentID),
-              let subfeatureData = subfeatures(for: parentFeature)[subfeatureID] else {
-            return .disabled(.featureMissing)
-        }
-        return stateFor(parentFeature: parentFeature,
-                        subfeatureData: subfeatureData,
-                        subfeatureID: subfeatureID,
-                        cohortID: experimentData.cohort,
-                        assignCohortEnabled: false,
-                        versionProvider: versionProvider,
-                        randomizer: randomizer)
-    }
-
     public func stateFor(_ subfeature: any PrivacySubfeature,
-                         cohortID: CohortID?,
                          versionProvider: AppVersionProvider,
                          randomizer: (Range<Double>) -> Double) -> PrivacyConfigurationFeatureState {
-        Self.experimentManagerQueue.sync {
-            guard let subfeatureData = subfeatures(for: subfeature.parent)[subfeature.rawValue] else {
-                return .disabled(.featureMissing)
-            }
-
-            return stateFor(parentFeature: subfeature.parent,
-                            subfeatureData: subfeatureData,
-                            subfeatureID: subfeature.rawValue,
-                            cohortID: cohortID,
-                            versionProvider: versionProvider,
-                            randomizer: randomizer)
+        guard let subfeatureData = subfeatures(for: subfeature.parent)[subfeature.rawValue] else {
+            return .disabled(.featureMissing)
         }
+
+        return stateFor(subfeatureID: subfeature.rawValue, subfeatureData: subfeatureData, parentFeature: subfeature.parent, versionProvider: versionProvider, randomizer: randomizer)
     }
 
-    private func stateFor(parentFeature: PrivacyFeature,
+    private func stateFor(subfeatureID: SubfeatureID,
                           subfeatureData: PrivacyConfigurationData.PrivacyFeature.Feature,
-                          subfeatureID: SubfeatureID,
-                          cohortID: CohortID?,
-                          assignCohortEnabled: Bool = true,
+                          parentFeature: PrivacyFeature,
                           versionProvider: AppVersionProvider,
                           randomizer: (Range<Double>) -> Double) -> PrivacyConfigurationFeatureState {
         // Step 1: Check parent feature state
@@ -272,43 +233,8 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
             return .disabled(.stillInRollout)
         }
 
-        // Step 5: Check if a cohort was passed in the func
-        // If no corhort passed check for Target and Rollout
-        guard let passedCohort = cohortID else {
-            return checkTargets(subfeatureData)
-        }
-
-        // Step 5: Cohort handling
-        // Check if cohort assigned and matches passed cohort
-        // If cohort not assigned
-        // Tries to assign if matching target
-        // Check if cohort assigned and matches passed cohort
-        return checkCohortState(subfeatureData,
-                         passedCohort: passedCohort,
-                         assignCohortEnabled: assignCohortEnabled,
-                         subfeatureID: subfeatureID,
-                         parentFeature: parentFeature)
-    }
-
-    // Check if cohort assigned and matches passed cohort
-    // If cohort not assigned
-    // Tries to assign if matching target
-    // Check if cohort assigned and matches passed cohort
-    private func checkCohortState(_ subfeatureData: PrivacyConfigurationData.PrivacyFeature.Feature,
-                                  passedCohort: CohortID?,
-                                  assignCohortEnabled: Bool,
-                                  subfeatureID: SubfeatureID,
-                                  parentFeature: PrivacyFeature) -> PrivacyConfigurationFeatureState {
-        let cohorts = subfeatureData.cohorts ?? []
-        let targetsState = checkTargets(subfeatureData)
-        let assignIfEnabled = assignCohortEnabled && targetsState == .enabled
-        let assignedCohortResponse = experimentManager.cohort(for: ExperimentSubfeature(parentID: parentFeature.rawValue, subfeatureID: subfeatureID, cohorts: cohorts), assignIfEnabled: assignIfEnabled)
-        let possibleDisabledReason: PrivacyConfigurationFeatureDisabledReason = assignedCohortResponse.didAttemptAssignment &&  targetsState != .enabled ? .targetDoesNotMatch : .experimentCohortDoesNotMatch
-        if let assignedCohort = assignedCohortResponse.cohortID {
-            return (assignedCohort == passedCohort) ? .enabled : .disabled(possibleDisabledReason)
-        } else {
-            return .disabled(possibleDisabledReason)
-        }
+        // Step 5: Check Targets
+        return checkTargets(subfeatureData)
     }
 
     private func checkTargets(_ subfeatureData: PrivacyConfigurationData.PrivacyFeature.Feature?) -> PrivacyConfigurationFeatureState {
@@ -320,7 +246,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     }
 
     private func matchTargets(targets: [PrivacyConfigurationData.PrivacyFeature.Feature.Target]) -> Bool {
-        return targets.contains { target in
+        targets.contains { target in
             (target.localeCountry == nil || target.localeCountry == locale.regionCode) &&
             (target.localeLanguage == nil || target.localeLanguage == locale.languageCode)
         }
@@ -354,7 +280,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         guard let domain = domain else { return true }
 
         return !isTempUnprotected(domain: domain) && !isUserUnprotected(domain: domain) &&
-            !isInExceptionList(domain: domain, forFeature: .contentBlocking)
+        !isInExceptionList(domain: domain, forFeature: .contentBlocking)
     }
 
     public func isUserUnprotected(domain: String?) -> Bool {
@@ -404,7 +330,26 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     public func userDisabledProtection(forDomain domain: String) {
         locallyUnprotected.disableProtection(forDomain: domain.punycodeEncodedHostname.lowercased())
     }
+    
+}
 
+extension AppPrivacyConfiguration {
+
+    public func stateFor(subfeatureID: SubfeatureID, parentFeatureID: ParentFeatureID, versionProvider: AppVersionProvider,
+                         randomizer: (Range<Double>) -> Double) -> PrivacyConfigurationFeatureState {
+        guard let parentFeature = PrivacyFeature(rawValue: parentFeatureID) else { return .disabled(.featureMissing) }
+        guard let subfeatureData = subfeatures(for: parentFeature)[subfeatureID] else { return .disabled(.featureMissing) }
+        return stateFor(subfeatureID: subfeatureID, subfeatureData: subfeatureData, parentFeature: parentFeature, versionProvider: versionProvider, randomizer: randomizer)
+    }
+
+    public func cohorts(for subfeature: any PrivacySubfeature) -> [PrivacyConfigurationData.Cohort]? {
+        subfeatures(for: subfeature.parent)[subfeature.rawValue]?.cohorts
+    }
+
+    public func cohorts(subfeatureID: SubfeatureID, parentFeatureID: ParentFeatureID) -> [PrivacyConfigurationData.Cohort]? {
+        guard let parentFeature = PrivacyFeature(rawValue: parentFeatureID) else { return nil }
+        return subfeatures(for: parentFeature)[subfeatureID]?.cohorts
+    }
 }
 
 extension Array where Element == String {

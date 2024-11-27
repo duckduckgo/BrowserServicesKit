@@ -134,7 +134,6 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
                                            localProtection: localProtection,
                                            internalUserDecider: internalUserDecider,
                                            locale: locale,
-                                           experimentManager: experimentCohortManager,
                                            installDate: installDate)
         }
 
@@ -143,7 +142,6 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
                                        localProtection: localProtection,
                                        internalUserDecider: internalUserDecider,
                                        locale: locale,
-                                       experimentManager: experimentCohortManager,
                                        installDate: installDate)
     }
 

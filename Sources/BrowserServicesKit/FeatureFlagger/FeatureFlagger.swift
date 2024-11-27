@@ -18,6 +18,8 @@
 
 import Foundation
 
+public protocol CohortEnum: RawRepresentable, CaseIterable where RawValue == String {}
+
 /// This protocol defines a common interface for feature flags managed by FeatureFlagger.
 ///
 /// It should be implemented by the feature flag type in client apps.
@@ -53,7 +55,7 @@ public protocol FeatureFlagDescribing: CaseIterable {
     ///        case .sync:
     ///            return .disabled
     ///        case .cookieConsent:
-    ///            return .internalOnly
+    ///            return .internalOnly()
     ///        case .credentialsAutofill:
     ///            return .remoteDevelopment(.subfeature(AutofillSubfeature.credentialsAutofill))
     ///        case .duckPlayer:
@@ -64,12 +66,51 @@ public protocol FeatureFlagDescribing: CaseIterable {
     var source: FeatureFlagSource { get }
 }
 
+/// This protocol defines a common interface for experiment feature flags managed by FeatureFlagger.
+///
+/// It should be implemented by the feature flag type in client apps.
+///
+public protocol FeatureFlagExperimentDescribing {
+
+    /// Returns a string representation of the flag
+    var rawValue: String { get }
+
+    /// Defines the source of the experiment feature flag, which corresponds to
+    /// where the final flag value should come from.
+    ///
+    /// Example client implementation:
+    ///
+    /// ```
+    /// public enum FeatureFlag: FeatureFlagDescribing {
+    ///    case sync
+    ///    case autofill
+    ///    case cookieConsent
+    ///    case duckPlayer
+    ///
+    ///    var source: FeatureFlagSource {
+    ///        case .sync:
+    ///            return .disabled
+    ///        case .cookieConsent:
+    ///            return .internalOnly(cohort)
+    ///        case .credentialsAutofill:
+    ///            return .remoteDevelopment(.subfeature(AutofillSubfeature.credentialsAutofill))
+    ///        case .duckPlayer:
+    ///            return .remoteReleasable(.feature(.duckPlayer))
+    ///    }
+    /// }
+    /// ```
+    var source: FeatureFlagSource { get }
+
+
+    associatedtype Cohort: CohortEnum
+}
+
 public enum FeatureFlagSource {
     /// Completely disabled in all configurations
     case disabled
 
     /// Enabled for internal users only. Cannot be toggled remotely
-    case internalOnly
+    case internalOnly((any CohortEnum)? = nil)
 
     /// Toggled remotely using PrivacyConfiguration but only for internal users. Otherwise, disabled.
     case remoteDevelopment(PrivacyConfigFeatureLevel)
@@ -107,6 +148,62 @@ public protocol FeatureFlagger: AnyObject {
     ///   when the non-overridden feature flag value is required.
     ///
     func isFeatureOn<Flag: FeatureFlagDescribing>(for featureFlag: Flag, allowOverride: Bool) -> Bool
+
+    /// Resolves the cohort for a subfeature if the subfeature is enabled.
+    ///
+    /// This method checks the state of the subfeature in the `PrivacyConfiguration`. If the subfeature
+    /// is enabled or disabled due to a target mismatch, it resolves the cohort using the `ExperimentManager`.
+    ///
+    /// - Parameter subfeature: A subfeature conforming to `PrivacySubfeature`.
+    ///
+    /// - Returns: The `CohortID` associated with the subfeature if enabled, or `nil` otherwise.
+    ///
+    /// - Behavior:
+    ///   - If the subfeature state is `.enabled`:
+    ///     - Resolves and assigns a cohort using `resolveCohort(isAssignCohortEnabled: true)`.
+    ///   - If the subfeature state is `.disabled(.targetDoesNotMatch)`:
+    ///     - Resolves the cohort without assigning a new one (`isAssignCohortEnabled: false`).
+    ///   - For other states: Returns `nil`.
+    ///
+    func getCohortIfEnabled(_ subfeature: any PrivacySubfeature) -> CohortID?
+
+    /// Retrieves the cohort for a feature flag if the feature is enabled.
+    ///
+    /// This method determines the source of the feature flag and evaluates its eligibility based on
+    /// the user's internal status and the privacy configuration. It supports different sources, such as
+    /// disabled features, internal-only features, and remotely toggled features.
+    ///
+    /// - Parameter featureFlag: A feature flag conforming to `FeatureFlagDescribing`.
+    ///
+    /// - Returns: The `CohortID` associated with the feature flag, or `nil` if the feature is disabled or
+    ///   does not meet the eligibility criteria.
+    ///
+    /// - Behavior:
+    ///   - For `.disabled`: Returns `nil`.
+    ///   - For `.internalOnly`: Returns the cohort if the user is an internal user.
+    ///   - For `.remoteDevelopment` and `.remoteReleasable`:
+    ///     - If the feature is a subfeature, resolves its cohort using `getCohortIfEnabled(_ subfeature:)`.
+    ///     - Returns `nil` if the user is not eligible.
+    ///
+    func getCohortIfEnabled<Flag: FeatureFlagExperimentDescribing>(for featureFlag: Flag) -> (any CohortEnum)?
+
+    /// Retrieves all active experiments currently assigned to the user.
+    ///
+    /// This method iterates over the experiments stored in the `ExperimentManager` and checks their state
+    /// against the current `PrivacyConfiguration`. If an experiment's state is enabled or disabled due to
+    /// a target mismatch, and its assigned cohort matches the resolved cohort, it is considered active.
+    ///
+    /// - Returns: A dictionary of active experiments where the key is the experiment's subfeature ID,
+    ///   and the value is the associated `ExperimentData`.
+    ///
+    /// - Behavior:
+    ///   1. Fetches all enrolled experiments from the `ExperimentManager`.
+    ///   2. For each experiment:
+    ///      - Retrieves its state from the `PrivacyConfiguration`.
+    ///      - Validates its assigned cohort using `resolveCohort` in the `ExperimentManager`.
+    ///   3. If the experiment passes validation, it is added to the result dictionary.
+    ///
+    func getAllActiveExperiments() -> Experiments
 }
 
 public extension FeatureFlagger {
@@ -126,14 +223,17 @@ public class DefaultFeatureFlagger: FeatureFlagger {
 
     public let internalUserDecider: InternalUserDecider
     public let privacyConfigManager: PrivacyConfigurationManaging
+    private let experimentManager: ExperimentCohortsManaging?
     public let localOverrides: FeatureFlagLocalOverriding?
 
     public init(
         internalUserDecider: InternalUserDecider,
-        privacyConfigManager: PrivacyConfigurationManaging
+        privacyConfigManager: PrivacyConfigurationManaging,
+        experimentManager: ExperimentCohortsManaging?
     ) {
         self.internalUserDecider = internalUserDecider
         self.privacyConfigManager = privacyConfigManager
+        self.experimentManager = experimentManager
         self.localOverrides = nil
     }
 
@@ -141,11 +241,13 @@ public class DefaultFeatureFlagger: FeatureFlagger {
         internalUserDecider: InternalUserDecider,
         privacyConfigManager: PrivacyConfigurationManaging,
         localOverrides: FeatureFlagLocalOverriding,
+        experimentManager: ExperimentCohortsManaging?,
         for: Flag.Type
     ) {
         self.internalUserDecider = internalUserDecider
         self.privacyConfigManager = privacyConfigManager
         self.localOverrides = localOverrides
+        self.experimentManager = experimentManager
         localOverrides.featureFlagger = self
 
         // Clear all overrides if not an internal user
@@ -170,6 +272,61 @@ public class DefaultFeatureFlagger: FeatureFlagger {
             return isEnabled(featureType)
         case .remoteReleasable(let featureType):
             return isEnabled(featureType)
+        }
+    }
+
+    public func getAllActiveExperiments() -> Experiments {
+        var activeExperiments = [String: ExperimentData]()
+        guard let enrolledExperiments = experimentManager?.experiments else { return activeExperiments }
+        let config = privacyConfigManager.privacyConfig
+
+        for (subfeatureID, experimentData) in enrolledExperiments {
+            let state = config.stateFor(subfeatureID: subfeatureID, parentFeatureID: experimentData.parentID)
+            guard state == .enabled || state == .disabled(.targetDoesNotMatch) else { continue }
+            let cohorts = config.cohorts(subfeatureID: subfeatureID, parentFeatureID: experimentData.parentID) ?? []
+            let experimentSubfeature = ExperimentSubfeature(parentID: experimentData.parentID, subfeatureID: subfeatureID, cohorts: cohorts)
+
+            if experimentManager?.resolveCohort(for: experimentSubfeature, isAssignCohortEnabled: false) == experimentData.cohortID {
+                activeExperiments[subfeatureID] = experimentData
+            }
+        }
+
+        return activeExperiments
+    }
+    
+    public func getCohortIfEnabled<Flag: FeatureFlagExperimentDescribing>(for featureFlag: Flag) -> (any CohortEnum)? {
+        switch featureFlag.source {
+        case .disabled:
+            return nil
+        case .internalOnly(let cohort):
+            return cohort
+        case .remoteDevelopment(_) where !internalUserDecider.isInternalUser:
+            return nil
+        case .remoteReleasable(let featureType),
+                .remoteDevelopment(let featureType) where internalUserDecider.isInternalUser:
+            if case .subfeature(let subfeature) = featureType {
+                if let resolvedCohortID = getCohortIfEnabled(subfeature) {
+                    return Flag.Cohort.allCases.first { return $0.rawValue == resolvedCohortID }
+                }
+            }
+            return nil
+        default:
+            return nil
+        }
+    }
+
+    public func getCohortIfEnabled(_ subfeature: any PrivacySubfeature) -> CohortID? {
+        let config = privacyConfigManager.privacyConfig
+        let featureState = config.stateFor(subfeature)
+        let cohorts = config.cohorts(for: subfeature)
+        let experiment = ExperimentSubfeature(parentID: subfeature.parent.rawValue, subfeatureID: subfeature.rawValue, cohorts: cohorts ?? [])
+        switch featureState {
+            case .enabled:
+            return experimentManager?.resolveCohort(for: experiment, isAssignCohortEnabled: true)
+        case .disabled(.targetDoesNotMatch):
+            return experimentManager?.resolveCohort(for: experiment, isAssignCohortEnabled: false)
+        default:
+            return nil
         }
     }
 

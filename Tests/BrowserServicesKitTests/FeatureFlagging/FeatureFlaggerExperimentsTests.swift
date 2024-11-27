@@ -1,5 +1,5 @@
 //
-//  AddPrivacyConfigurationExperimentTests.swift
+//  FeatureFlaggerExperimentsTests.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -19,7 +19,7 @@
 import XCTest
 @testable import BrowserServicesKit
 
-final class AddPrivacyConfigurationExperimentTests: XCTestCase {
+final class FeatureFlaggerExperimentsTests: XCTestCase {
 
     var featureJson: Data = "{}".data(using: .utf8)!
     var mockEmbeddedData: MockEmbeddedDataProvider!
@@ -27,6 +27,7 @@ final class AddPrivacyConfigurationExperimentTests: XCTestCase {
     var experimentManager: ExperimentCohortsManager!
     var manager: PrivacyConfigurationManager!
     var locale: Locale!
+    var featureFlagger: FeatureFlagger!
 
     let subfeatureName = "credentialsSaving"
 
@@ -43,6 +44,7 @@ final class AddPrivacyConfigurationExperimentTests: XCTestCase {
                                               internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore),
                                               locale: locale,
                                               experimentCohortManager: experimentManager)
+        featureFlagger = DefaultFeatureFlagger(internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore), privacyConfigManager: manager, experimentManager: experimentManager)
     }
 
     override func tearDown() {
@@ -84,19 +86,18 @@ final class AddPrivacyConfigurationExperimentTests: XCTestCase {
         manager.reload(etag: "", data: featureJson)
         let config = manager.privacyConfig
 
-        // we haven't called isEnabled yet, so cohorts should not be yet assigned
+        // we haven't called getCohortIfEnabled yet, so cohorts should not be yet assigned
         XCTAssertNil(mockStore.experiments)
         XCTAssertNil(experimentManager.cohort(for: subfeatureName))
 
-        // we call isEnabled() without cohort, cohort should not be assigned either
+        // we call isSubfeatureEnabled() hould not be assigned either
         XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving))
         XCTAssertEqual(config.stateFor(AutofillSubfeature.credentialsSaving), .enabled)
         XCTAssertNil(mockStore.experiments)
         XCTAssertNil(experimentManager.cohort(for: subfeatureName))
 
-        // we call isEnabled(cohort), then we should assign cohort
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "blue"))
-        XCTAssertEqual(config.stateFor(AutofillSubfeature.credentialsSaving, cohortID: "blue"), .disabled(.experimentCohortDoesNotMatch))
+        // we call getCohortIfEnabled(cohort), then we should assign cohort
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving), "control")
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "control")
     }
@@ -132,8 +133,7 @@ final class AddPrivacyConfigurationExperimentTests: XCTestCase {
         manager.reload(etag: "", data: featureJson)
         var config = manager.privacyConfig
 
-        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "control"))
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "blue"))
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving), "control")
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "control")
 
@@ -164,8 +164,7 @@ final class AddPrivacyConfigurationExperimentTests: XCTestCase {
         manager.reload(etag: "", data: featureJson)
         config = manager.privacyConfig
 
-        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "control"))
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "blue"))
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving), "control")
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "control")
 
@@ -190,8 +189,7 @@ final class AddPrivacyConfigurationExperimentTests: XCTestCase {
         manager.reload(etag: "", data: featureJson)
         config = manager.privacyConfig
 
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "control"))
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "blue"))
+        XCTAssertNil(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving))
         XCTAssertTrue(mockStore.experiments?.isEmpty ?? false)
         XCTAssertNil(experimentManager.cohort(for: subfeatureName))
         XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving))
@@ -226,10 +224,8 @@ final class AddPrivacyConfigurationExperimentTests: XCTestCase {
         }
         """.data(using: .utf8)!
         manager.reload(etag: "2", data: featureJson)
-        var config = manager.privacyConfig
 
-        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "control"))
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "blue"))
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving), "control")
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "control")
 
@@ -262,19 +258,15 @@ final class AddPrivacyConfigurationExperimentTests: XCTestCase {
         }
         """.data(using: .utf8)!
         manager.reload(etag: "2", data: featureJson)
-        config = manager.privacyConfig
 
-        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "red"))
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "blue"))
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving), "red")
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "red")
     }
 
     func testDisablingFeatureDisablesCohort() {
         // Initially subfeature for both cohorts is disabled
-        var config = manager.privacyConfig
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "control"))
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "blue"))
+        XCTAssertNil(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving))
         XCTAssertNil(mockStore.experiments)
         XCTAssertNil(experimentManager.cohort(for: subfeatureName))
 
@@ -307,10 +299,8 @@ final class AddPrivacyConfigurationExperimentTests: XCTestCase {
         }
         """.data(using: .utf8)!
         manager.reload(etag: "", data: featureJson)
-        config = manager.privacyConfig
 
-        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "control"))
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "blue"))
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving), "control")
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "control")
 
@@ -343,10 +333,8 @@ final class AddPrivacyConfigurationExperimentTests: XCTestCase {
         }
         """.data(using: .utf8)!
         manager.reload(etag: "", data: featureJson)
-        config = manager.privacyConfig
 
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "control"))
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "blue"))
+        XCTAssertNil(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving))
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "control")
 
@@ -379,10 +367,8 @@ final class AddPrivacyConfigurationExperimentTests: XCTestCase {
         }
         """.data(using: .utf8)!
         manager.reload(etag: "", data: featureJson)
-        config = manager.privacyConfig
 
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "control"))
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "blue"))
+        XCTAssertNil(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving))
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "control")
     }
@@ -423,32 +409,24 @@ final class AddPrivacyConfigurationExperimentTests: XCTestCase {
             """.data(using: .utf8)!
         }
         manager.reload(etag: "", data: featureJson(country: "FR", language: "fr"))
-        var config = manager.privacyConfig
 
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "control"))
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "blue"))
+        XCTAssertNil(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving))
         XCTAssertNil(mockStore.experiments)
         XCTAssertNil(experimentManager.cohort(for: subfeatureName))
 
         manager.reload(etag: "", data: featureJson(country: "US", language: "en"))
-        config = manager.privacyConfig
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "control"))
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "blue"))
+        XCTAssertNil(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving))
         XCTAssertNil(mockStore.experiments)
         XCTAssertNil(experimentManager.cohort(for: subfeatureName))
 
         manager.reload(etag: "", data: featureJson(country: "US", language: "fr"))
-        config = manager.privacyConfig
-        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "control"))
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "blue"))
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving), "control")
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "control")
 
         // once cohort is assigned, changing targets shall not affect feature state
         manager.reload(etag: "", data: featureJson(country: "IT", language: "it"))
-        config = manager.privacyConfig
-        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "control"))
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "blue"))
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving), "control")
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "control")
 
@@ -475,18 +453,14 @@ final class AddPrivacyConfigurationExperimentTests: XCTestCase {
         }
         """.data(using: .utf8)!
         manager.reload(etag: "", data: featureJson2)
-        config = manager.privacyConfig
 
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "control"))
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "blue"))
+        XCTAssertNil(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving))
         XCTAssertTrue(mockStore.experiments?.isEmpty ?? false)
         XCTAssertNil(experimentManager.cohort(for: subfeatureName))
 
         // re-populate experiment to re-assign new cohort, should not be assigned as it has wrong targets
         manager.reload(etag: "", data: featureJson(country: "IT", language: "it"))
-        config = manager.privacyConfig
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "control"))
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "blue"))
+        XCTAssertNil(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving))
         XCTAssertTrue(mockStore.experiments?.isEmpty ?? false)
         XCTAssertNil(experimentManager.cohort(for: subfeatureName))
     }
@@ -525,10 +499,8 @@ final class AddPrivacyConfigurationExperimentTests: XCTestCase {
         }
         """.data(using: .utf8)!
         manager.reload(etag: "", data: featureJson)
-        var config = manager.privacyConfig
 
-        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "control"))
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "blue"))
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving), "control")
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "control")
 
@@ -566,10 +538,8 @@ final class AddPrivacyConfigurationExperimentTests: XCTestCase {
         }
         """.data(using: .utf8)!
         manager.reload(etag: "", data: featureJson)
-        config = manager.privacyConfig
 
-        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "control"))
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "blue"))
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving), "control")
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "control")
 
@@ -607,10 +577,8 @@ final class AddPrivacyConfigurationExperimentTests: XCTestCase {
         }
         """.data(using: .utf8)!
         manager.reload(etag: "", data: featureJson)
-        config = manager.privacyConfig
 
-        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "control"))
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "blue"))
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving), "control")
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "control")
 
@@ -652,10 +620,8 @@ final class AddPrivacyConfigurationExperimentTests: XCTestCase {
         }
         """.data(using: .utf8)!
         manager.reload(etag: "", data: featureJson)
-        config = manager.privacyConfig
 
-        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "control"))
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "blue"))
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving), "control")
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "control")
 
@@ -701,7 +667,7 @@ final class AddPrivacyConfigurationExperimentTests: XCTestCase {
         XCTAssertTrue(mockStore.experiments?.isEmpty ?? true)
         XCTAssertNil(experimentManager.cohort(for: subfeatureName), "control")
 
-        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "control"))
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving), "control")
         let currentTime = Date().timeIntervalSince1970
         let enrollmentTime = mockStore.experiments?[subfeatureName]?.enrollmentDate.timeIntervalSince1970
 
@@ -757,8 +723,7 @@ final class AddPrivacyConfigurationExperimentTests: XCTestCase {
         clearRolloutData(feature: "autofill", subFeature: "credentialsSaving")
 
         XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving))
-        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "control"))
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "blue"))
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving), "control")
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "control")
 
@@ -805,8 +770,7 @@ final class AddPrivacyConfigurationExperimentTests: XCTestCase {
         config = manager.privacyConfig
 
         XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving))
-        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "control"))
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "blue"))
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving), "control")
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "control")
 
@@ -849,8 +813,7 @@ final class AddPrivacyConfigurationExperimentTests: XCTestCase {
         var config = manager.privacyConfig
 
         XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving))
-        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "control"))
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "blue"))
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving), "control")
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "control")
 
@@ -891,8 +854,7 @@ final class AddPrivacyConfigurationExperimentTests: XCTestCase {
         config = manager.privacyConfig
 
         XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving))
-        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "control"))
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "blue"))
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving), "control")
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "control")
 
@@ -929,13 +891,12 @@ final class AddPrivacyConfigurationExperimentTests: XCTestCase {
         config = manager.privacyConfig
 
         XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving))
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "control"))
-        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "blue"))
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving), "blue")
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "blue")
     }
 
-    func clearRolloutData(feature: String, subFeature: String) {
+    private func clearRolloutData(feature: String, subFeature: String) {
         UserDefaults().set(nil, forKey: "config.\(feature).\(subFeature).enabled")
         UserDefaults().set(nil, forKey: "config.\(feature).\(subFeature).lastRolloutCount")
     }
@@ -976,7 +937,7 @@ final class AddPrivacyConfigurationExperimentTests: XCTestCase {
         manager.reload(etag: "foo", data: featureJson)
         let config = manager.privacyConfig
 
-        let activeExperiments = config.getAllActiveExperiments()
+        let activeExperiments = featureFlagger.getAllActiveExperiments()
         XCTAssertTrue(activeExperiments.isEmpty)
         XCTAssertNil(mockStore.experiments)
     }
@@ -1054,21 +1015,21 @@ final class AddPrivacyConfigurationExperimentTests: XCTestCase {
             """.data(using: .utf8)!
 
         manager.reload(etag: "foo", data: featureJson)
-        var config = manager.privacyConfig
 
-        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "control"))
-        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.inlineIconCredentials, cohortID: "green"))
-        XCTAssertFalse(config.isSubfeatureEnabled(AutofillSubfeature.accessCredentialManagement, cohortID: "control"))
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving), "control")
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.inlineIconCredentials), "green")
+        XCTAssertNil(featureFlagger.getCohortIfEnabled(AutofillSubfeature.accessCredentialManagement))
+
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: AutofillSubfeature.credentialsSaving.rawValue), "control")
         XCTAssertEqual(experimentManager.cohort(for: AutofillSubfeature.inlineIconCredentials.rawValue), "green")
         XCTAssertNil(experimentManager.cohort(for: AutofillSubfeature.accessCredentialManagement.rawValue))
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
 
-        var activeExperiments = config.getAllActiveExperiments()
+        var activeExperiments = featureFlagger.getAllActiveExperiments()
         XCTAssertEqual(activeExperiments.count, 2)
-        XCTAssertEqual(activeExperiments[AutofillSubfeature.credentialsSaving.rawValue]?.cohort, "control")
-        XCTAssertEqual(activeExperiments[AutofillSubfeature.inlineIconCredentials.rawValue]?.cohort, "green")
+        XCTAssertEqual(activeExperiments[AutofillSubfeature.credentialsSaving.rawValue]?.cohortID, "control")
+        XCTAssertEqual(activeExperiments[AutofillSubfeature.inlineIconCredentials.rawValue]?.cohortID, "green")
         XCTAssertNil(activeExperiments[AutofillSubfeature.accessCredentialManagement.rawValue])
 
         // When an assigned cohort is removed it's not part of active experiments
@@ -1140,12 +1101,11 @@ final class AddPrivacyConfigurationExperimentTests: XCTestCase {
             """.data(using: .utf8)!
 
         manager.reload(etag: "foo", data: featureJson)
-        config = manager.privacyConfig
 
-        activeExperiments = config.getAllActiveExperiments()
+        activeExperiments = featureFlagger.getAllActiveExperiments()
         XCTAssertEqual(activeExperiments.count, 1)
         XCTAssertNil(activeExperiments[AutofillSubfeature.credentialsSaving.rawValue])
-        XCTAssertEqual(activeExperiments[AutofillSubfeature.inlineIconCredentials.rawValue]?.cohort, "green")
+        XCTAssertEqual(activeExperiments[AutofillSubfeature.inlineIconCredentials.rawValue]?.cohortID, "green")
         XCTAssertNil(activeExperiments[AutofillSubfeature.accessCredentialManagement.rawValue])
 
         // When feature disabled an assigned cohort it's not part of active experiments
@@ -1217,9 +1177,8 @@ final class AddPrivacyConfigurationExperimentTests: XCTestCase {
             """.data(using: .utf8)!
 
         manager.reload(etag: "foo", data: featureJson)
-        config = manager.privacyConfig
 
-        activeExperiments = config.getAllActiveExperiments()
+        activeExperiments = featureFlagger.getAllActiveExperiments()
         XCTAssertTrue(activeExperiments.isEmpty)
     }
 
