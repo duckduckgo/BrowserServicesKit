@@ -102,7 +102,8 @@ public final class MaliciousSiteDetector: MaliciousSiteDetecting {
             let match = await checkApiMatches(canonicalHost: canonicalHost, canonicalUrl: canonicalUrl)
             if let match {
                 eventMapping.fire(.errorPageShown(clientSideHit: false))
-                return match.category.map(ThreatKind.init) ?? threatKind
+                let threatKind = match.category.map(ThreatKind.init) ?? threatKind
+                return threatKind
             }
 
             // the API detects both phishing and malware so if it didn‘t find any matches it‘s safe to return early.
