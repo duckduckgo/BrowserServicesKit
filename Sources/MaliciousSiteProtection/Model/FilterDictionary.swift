@@ -53,7 +53,7 @@ public struct FilterDictionary: Codable, Equatable {
             withUnsafeMutablePointer(to: &filters[filter.hash]) { item in
                 item.pointee?.remove(filter.regex)
                 if item.pointee?.isEmpty == true {
-                    item.pointee = nil // TODO: Validate deallocation
+                    item.pointee = nil
                 }
             }
         }
