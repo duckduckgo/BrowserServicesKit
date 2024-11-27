@@ -23,7 +23,11 @@ import Persistence
 
 final class PrivacyStatsUtils {
 
-    static func loadStats(for date: Date = Date(), in context: NSManagedObjectContext) -> PrivacyStatsPackEntity {
+    static func loadCurrentPack(in context: NSManagedObjectContext) -> PrivacyStatsPackEntity {
+        loadPack(for: Date(), in: context)
+    }
+
+    static func loadPack(for date: Date, in context: NSManagedObjectContext) -> PrivacyStatsPackEntity {
         let timestamp = date.startOfHour
 
         let request = PrivacyStatsPackEntity.fetchRequest()
@@ -62,7 +66,7 @@ final class PrivacyStatsUtils {
         }
     }
 
-    static func deleteOutdatedStats(olderThan date: Date = Date(), in context: NSManagedObjectContext) {
+    static func deleteOutdatedPacks(olderThan date: Date = Date(), in context: NSManagedObjectContext) {
         let thisHour = date.startOfHour
         let oldestValidTimestamp = thisHour.daysAgo(7)
 

@@ -82,7 +82,7 @@ public final class PrivacyStats: PrivacyStatsCollecting {
 
         refreshTopCompanies()
         Task {
-            await loadCurrentStats()
+            await loadCurrentPack()
             await currentStatsActor.commitChangesPublisher
                 .sink { [weak self] pack in
                     Task {
@@ -112,8 +112,12 @@ public final class PrivacyStats: PrivacyStatsCollecting {
                     continuation.resume()
                     return
                 }
-                if let currentStatsObject, pack.timestamp != currentStatsObject.timestamp {
-                    self.currentStatsObject = PrivacyStatsPackEntity.make(timestamp: pack.timestamp, context: context)
+                if let currentStatsObject {
+                    if pack.timestamp != currentStatsObject.timestamp {
+                        self.currentStatsObject = PrivacyStatsPackEntity.make(timestamp: pack.timestamp, context: context)
+                    }
+                } else {
+                    currentStatsObject = PrivacyStatsPackEntity.make(timestamp: pack.timestamp, context: context)
                 }
 
                 currentStatsObject?.blockedTrackersDictionary = pack.trackers
@@ -148,7 +152,7 @@ public final class PrivacyStats: PrivacyStatsCollecting {
             }
         }
         let currentPack = await currentStatsActor.pack
-        return cached7DayStats.merging(currentPack?.trackers ?? [:], uniquingKeysWith: +)
+        return cached7DayStats.merging(currentPack.trackers, uniquingKeysWith: +)
     }
 
     public func clearPrivacyStats() async {
@@ -168,7 +172,7 @@ public final class PrivacyStats: PrivacyStatsCollecting {
                 continuation.resume()
             }
         }
-        await loadCurrentStats()
+        await loadCurrentPack()
     }
 
     private func refresh7DayCache() async {
@@ -193,7 +197,7 @@ public final class PrivacyStats: PrivacyStatsCollecting {
                     return
                 }
 
-                PrivacyStatsUtils.deleteOutdatedStats(in: context)
+                PrivacyStatsUtils.deleteOutdatedPacks(in: context)
                 if context.hasChanges {
                     do {
                         try context.save()
@@ -225,30 +229,28 @@ public final class PrivacyStats: PrivacyStatsCollecting {
         topCompanies = Set(topTrackersArray)
     }
 
-    private func loadCurrentStats() async {
-        let result = await withCheckedContinuation { (continuation: CheckedContinuation<([String: Int], Date)?, Never>) in
+    private func loadCurrentPack() async {
+        let currentPack = await withCheckedContinuation { (continuation: CheckedContinuation<PrivacyStatsPack?, Never>) in
             context.perform { [weak self] in
                 guard let self else {
                     continuation.resume(returning: nil)
                     return
                 }
-                let privacyStatsEntity = PrivacyStatsUtils.loadStats(in: context)
-                currentStatsObject = privacyStatsEntity
-                Logger.privacyStats.debug("Loaded stats \(privacyStatsEntity.timestamp) \(privacyStatsEntity.blockedTrackersDictionary)")
-                continuation.resume(returning: (privacyStatsEntity.blockedTrackersDictionary, privacyStatsEntity.timestamp))
+                let privacyStatsPackEntity = PrivacyStatsUtils.loadCurrentPack(in: context)
+                currentStatsObject = privacyStatsPackEntity
+                Logger.privacyStats.debug("Loaded stats \(privacyStatsPackEntity.timestamp) \(privacyStatsPackEntity.blockedTrackersDictionary)")
+                continuation.resume(returning: .init(privacyStatsPackEntity))
             }
         }
-        if let (blockedTrackersDictionary, timestamp) = result {
-            await currentStatsActor.set(blockedTrackersDictionary, for: timestamp)
+        if let currentPack {
+            await currentStatsActor.updatePack(currentPack)
         }
     }
 
     @objc private func applicationWillTerminate(_: Notification) {
         let condition = RunLoop.ResumeCondition()
         Task {
-            if let pack = await currentStatsActor.pack {
-                await commitChanges(pack)
-            }
+            await commitChanges(currentStatsActor.pack)
             condition.resolve()
         }
         // Run the loop until changes are saved

@@ -21,42 +21,54 @@ import Combine
 import Foundation
 import os.log
 
-struct PrivacyStatsPack {
+struct PrivacyStatsPack: Sendable {
     let timestamp: Date
     var trackers: [String: Int]
+
+    init(timestamp: Date, trackers: [String: Int]) {
+        self.timestamp = timestamp
+        self.trackers = trackers
+    }
+
+    init(_ packEntity: PrivacyStatsPackEntity) {
+        timestamp = packEntity.timestamp
+        trackers = packEntity.blockedTrackersDictionary
+    }
 }
 
 actor CurrentPack {
-    private(set) var pack: PrivacyStatsPack?
+    var pack: PrivacyStatsPack
     private(set) lazy var commitChangesPublisher: AnyPublisher<PrivacyStatsPack, Never> = commitChangesSubject.eraseToAnyPublisher()
 
     private let commitChangesSubject = PassthroughSubject<PrivacyStatsPack, Never>()
     private var commitTask: Task<Void, Never>?
 
-    func set(_ trackers: [String: Int], for timestamp: Date) {
-        pack = .init(timestamp: timestamp, trackers: trackers)
+    init() {
+        pack = .init(timestamp: .currentTimestamp, trackers: [:])
+    }
+
+    func updatePack(_ pack: PrivacyStatsPack) {
+        self.pack = pack
     }
 
     func recordBlockedTracker(_ name: String) {
 
-        let currentTimestamp = Date().startOfHour
-        if let pack, currentTimestamp != pack.timestamp {
+        let currentTimestamp = Date.currentTimestamp
+        if currentTimestamp != pack.timestamp {
             commitChangesSubject.send(pack)
             resetStats(andSet: currentTimestamp)
         }
 
-        let count = pack?.trackers[name] ?? 0
-        pack?.trackers[name] = count + 1
+        let count = pack.trackers[name] ?? 0
+        pack.trackers[name] = count + 1
 
         commitTask?.cancel()
         commitTask = Task {
             do {
                 try await Task.sleep(nanoseconds: 1000000000)
 
-                if let pack {
-                    Logger.privacyStats.debug("Storing trackers state")
-                    commitChangesSubject.send(pack)
-                }
+                Logger.privacyStats.debug("Storing trackers state")
+                commitChangesSubject.send(pack)
             } catch {
                 // commit task got cancelled
             }
@@ -65,5 +77,11 @@ actor CurrentPack {
 
     private func resetStats(andSet newTimestamp: Date) {
         pack = PrivacyStatsPack(timestamp: newTimestamp, trackers: [:])
+    }
+}
+
+private extension Date {
+    static var currentTimestamp: Date {
+        Date().startOfHour
     }
 }
