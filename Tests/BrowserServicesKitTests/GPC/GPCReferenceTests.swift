@@ -171,6 +171,7 @@ final class GPCReferenceTests: XCTestCase {
 
         let properties = ContentScopeProperties(gpcEnabled: gpcEnabled,
                                                 sessionKey: UUID().uuidString,
+                                                messageSecret: UUID().uuidString,
                                                 featureToggles: ContentScopeFeatureToggles.allTogglesOn)
 
         let contentScopeScript = ContentScopeUserScript(privacyManager,
