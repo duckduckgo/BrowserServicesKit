@@ -38,7 +38,7 @@ public struct FilterDictionary: Codable, Equatable {
     /// ```
     public var filters: [String: Set<String>]
 
-    init(revision: Int, filters: [String: Set<String>]) {
+    public init(revision: Int, filters: [String: Set<String>]) {
         self.filters = filters
         self.revision = revision
     }
@@ -53,7 +53,7 @@ public struct FilterDictionary: Codable, Equatable {
             withUnsafeMutablePointer(to: &filters[filter.hash]) { item in
                 item.pointee?.remove(filter.regex)
                 if item.pointee?.isEmpty == true {
-                    item.pointee = nil // TODO: Validate deallocation
+                    item.pointee = nil
                 }
             }
         }
