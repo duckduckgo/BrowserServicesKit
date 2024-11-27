@@ -73,16 +73,18 @@ public final class PrivacyStats: PrivacyStatsCollecting {
             }
             .store(in: &cancellables)
 
+        currentPack.commitChangesPublisher
+            .sink { [weak self] pack in
+                Task {
+                    await self?.commitChanges(pack)
+                }
+            }
+            .store(in: &cancellables)
+
         refreshTopCompanies()
+
         Task {
             await loadCurrentPack()
-            await currentPack.commitChangesPublisher
-                .sink { [weak self] pack in
-                    Task {
-                        await self?.commitChanges(pack)
-                    }
-                }
-                .store(in: &cancellables)
         }
 
 #if os(iOS)

@@ -32,9 +32,9 @@ struct PrivacyStatsPack: Sendable {
 
 actor CurrentPack {
     var pack: PrivacyStatsPack
-    private(set) lazy var commitChangesPublisher: AnyPublisher<PrivacyStatsPack, Never> = commitChangesSubject.eraseToAnyPublisher()
+    nonisolated private(set) lazy var commitChangesPublisher: AnyPublisher<PrivacyStatsPack, Never> = commitChangesSubject.eraseToAnyPublisher()
 
-    private let commitChangesSubject = PassthroughSubject<PrivacyStatsPack, Never>()
+    nonisolated private let commitChangesSubject = PassthroughSubject<PrivacyStatsPack, Never>()
     private var commitTask: Task<Void, Never>?
 
     init() {
