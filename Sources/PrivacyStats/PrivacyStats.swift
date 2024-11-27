@@ -98,38 +98,6 @@ public final class PrivacyStats: PrivacyStatsCollecting {
         await currentPack.recordBlockedTracker(name)
     }
 
-    private func commitChanges(_ pack: PrivacyStatsPack) async {
-        await withCheckedContinuation { continuation in
-            context.perform { [weak self] in
-                guard let self else {
-                    continuation.resume()
-                    return
-                }
-
-                let statsObjects = PrivacyStatsUtils.fetchOrInsertCurrentPacks(for: Set(pack.trackers.keys), in: context)
-                statsObjects.forEach { stats in
-                    if let count = pack.trackers[stats.companyName] {
-                        stats.count = count
-                    }
-                }
-
-                guard context.hasChanges else {
-                    continuation.resume()
-                    return
-                }
-
-                do {
-                    try context.save()
-                    Logger.privacyStats.debug("Saved stats \(pack.timestamp) \(pack.trackers)")
-                    statsUpdateSubject.send()
-                } catch {
-                    Logger.privacyStats.error("Save error: \(error)")
-                }
-                continuation.resume()
-            }
-        }
-    }
-
     public func fetchPrivacyStats() async -> [String: Int64] {
         return await withCheckedContinuation { continuation in
             context.perform { [weak self] in
@@ -161,6 +129,40 @@ public final class PrivacyStats: PrivacyStatsCollecting {
             }
         }
         await loadCurrentPack()
+    }
+
+    // MARK: - Private
+
+    private func commitChanges(_ pack: PrivacyStatsPack) async {
+        await withCheckedContinuation { continuation in
+            context.perform { [weak self] in
+                guard let self else {
+                    continuation.resume()
+                    return
+                }
+
+                let statsObjects = PrivacyStatsUtils.fetchOrInsertCurrentPacks(for: Set(pack.trackers.keys), in: context)
+                statsObjects.forEach { stats in
+                    if let count = pack.trackers[stats.companyName] {
+                        stats.count = count
+                    }
+                }
+
+                guard context.hasChanges else {
+                    continuation.resume()
+                    return
+                }
+
+                do {
+                    try context.save()
+                    Logger.privacyStats.debug("Saved stats \(pack.timestamp) \(pack.trackers)")
+                    statsUpdateSubject.send()
+                } catch {
+                    Logger.privacyStats.error("Save error: \(error)")
+                }
+                continuation.resume()
+            }
+        }
     }
 
     private func deleteOldEntries() async {
