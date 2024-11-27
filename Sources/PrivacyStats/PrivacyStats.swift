@@ -51,24 +51,22 @@ public final class PrivacyStats: PrivacyStatsCollecting {
 
     public let trackerDataProvider: TrackerDataProviding
     public private(set) var topCompanies: Set<String> = []
-    private var cancellables: Set<AnyCancellable> = []
+    public let statsUpdatePublisher: AnyPublisher<Void, Never>
+
     private let db: CoreDataDatabase
     private let context: NSManagedObjectContext
-
-    public let statsUpdatePublisher: AnyPublisher<Void, Never>
     private let statsUpdateSubject = PassthroughSubject<Void, Never>()
-
-    private var currentStatsActor: CurrentPack
-
-    private var commitTimer: Timer?
+    private var currentPack: CurrentPack
+    private var cancellables: Set<AnyCancellable> = []
 
     public init(databaseProvider: PrivacyStatsDatabaseProviding, trackerDataProvider: TrackerDataProviding) {
+        self.trackerDataProvider = trackerDataProvider
         self.db = databaseProvider.initializeDatabase()
         self.context = db.makeContext(concurrencyType: .privateQueueConcurrencyType, name: "PrivacyStats")
-        self.currentStatsActor = CurrentPack()
+
+        currentPack = CurrentPack()
         statsUpdatePublisher = statsUpdateSubject.eraseToAnyPublisher()
 
-        self.trackerDataProvider = trackerDataProvider
         trackerDataProvider.trackerDataUpdatesPublisher
             .sink { [weak self] in
                 self?.refreshTopCompanies()
@@ -78,7 +76,7 @@ public final class PrivacyStats: PrivacyStatsCollecting {
         refreshTopCompanies()
         Task {
             await loadCurrentPack()
-            await currentStatsActor.commitChangesPublisher
+            await currentPack.commitChangesPublisher
                 .sink { [weak self] pack in
                     Task {
                         await self?.commitChanges(pack)
@@ -97,7 +95,7 @@ public final class PrivacyStats: PrivacyStatsCollecting {
     }
 
     public func recordBlockedTracker(_ name: String) async {
-        await currentStatsActor.recordBlockedTracker(name)
+        await currentPack.recordBlockedTracker(name)
     }
 
     private func commitChanges(_ pack: PrivacyStatsPack) async {
@@ -206,7 +204,7 @@ public final class PrivacyStats: PrivacyStatsCollecting {
     }
 
     private func loadCurrentPack() async {
-        let currentPack = await withCheckedContinuation { (continuation: CheckedContinuation<PrivacyStatsPack?, Never>) in
+        let pack = await withCheckedContinuation { (continuation: CheckedContinuation<PrivacyStatsPack?, Never>) in
             context.perform { [weak self] in
                 guard let self else {
                     continuation.resume(returning: nil)
@@ -217,15 +215,15 @@ public final class PrivacyStats: PrivacyStatsCollecting {
                 continuation.resume(returning: currentPack)
             }
         }
-        if let currentPack {
-            await currentStatsActor.updatePack(currentPack)
+        if let pack {
+            await currentPack.updatePack(pack)
         }
     }
 
     @objc private func applicationWillTerminate(_: Notification) {
         let condition = RunLoop.ResumeCondition()
         Task {
-            await commitChanges(currentStatsActor.pack)
+            await commitChanges(currentPack.pack)
             condition.resolve()
         }
         // Run the loop until changes are saved
