@@ -694,6 +694,13 @@ let package = Package(
                 "PageRefreshMonitor"
             ]
         ),
+        .testTarget(
+            name: "PrivacyStatsTests",
+            dependencies: [
+                "PrivacyStats",
+                "TestUtils",
+            ]
+        ),
     ],
     cxxLanguageStandard: .cxx11
 )
