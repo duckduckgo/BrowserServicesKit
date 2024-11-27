@@ -41,7 +41,7 @@ public enum SSLErrorType: String, Encodable {
 
 extension WKError {
     public var sslErrorType: SSLErrorType? {
-        guard let errorCode = self.userInfo[SSLErrorCodeKeySSLErrorCodeKey] as? Int else { return nil }
+        guard let errorCode = self.userInfo[SSLErrorCodeKey] as? Int else { return nil }
         let sslErrorType = SSLErrorType(errorCode: errorCode)
         return sslErrorType
     }
