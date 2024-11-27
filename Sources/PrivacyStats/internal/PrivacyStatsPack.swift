@@ -39,7 +39,7 @@ actor CurrentPack {
     private var commitTask: Task<Void, Never>?
 
     init() {
-        pack = .init(timestamp: .currentTimestamp, trackers: [:])
+        pack = .init(timestamp: Date().privacyStatsPackTimestamp, trackers: [:])
     }
 
     func updatePack(_ pack: PrivacyStatsPack) {
@@ -48,7 +48,7 @@ actor CurrentPack {
 
     func recordBlockedTracker(_ name: String) {
 
-        let currentTimestamp = Date.currentTimestamp
+        let currentTimestamp = Date().privacyStatsPackTimestamp
         if currentTimestamp != pack.timestamp {
             commitChangesSubject.send(pack)
             resetStats(andSet: currentTimestamp)
@@ -72,11 +72,5 @@ actor CurrentPack {
 
     private func resetStats(andSet newTimestamp: Date) {
         pack = PrivacyStatsPack(timestamp: newTimestamp, trackers: [:])
-    }
-}
-
-private extension Date {
-    static var currentTimestamp: Date {
-        Date().startOfHour
     }
 }

@@ -24,7 +24,7 @@ import Persistence
 final class PrivacyStatsUtils {
 
     static func fetchCurrentPackStats(in context: NSManagedObjectContext) -> PrivacyStatsPack {
-        let timestamp = Date().startOfHour
+        let timestamp = Date().privacyStatsPackTimestamp
         let request = DailyBlockedTrackersEntity.fetchRequest()
         request.predicate = NSPredicate(format: "%K == %@", #keyPath(DailyBlockedTrackersEntity.timestamp), timestamp as NSDate)
         request.returnsObjectsAsFaults = false
@@ -40,11 +40,7 @@ final class PrivacyStatsUtils {
     }
 
     static func fetchOrInsertCurrentPacks(for companyNames: Set<String>, in context: NSManagedObjectContext) -> [DailyBlockedTrackersEntity] {
-        fetchOrInsertPacks(for: Date(), companyNames: companyNames, in: context)
-    }
-
-    static func fetchOrInsertPacks(for date: Date, companyNames: Set<String>, in context: NSManagedObjectContext) -> [DailyBlockedTrackersEntity] {
-        let timestamp = date.startOfHour
+        let timestamp = Date().privacyStatsPackTimestamp
 
         let request = DailyBlockedTrackersEntity.fetchRequest()
         request.predicate = NSPredicate(format: "%K == %@ AND %K in %@",
@@ -56,23 +52,18 @@ final class PrivacyStatsUtils {
         let missingCompanyNames = companyNames.subtracting(statsObjects.map(\.companyName))
 
         for companyName in missingCompanyNames {
-            statsObjects.append(DailyBlockedTrackersEntity.make(timestamp: date, companyName: companyName, context: context))
+            statsObjects.append(DailyBlockedTrackersEntity.make(timestamp: timestamp, companyName: companyName, context: context))
         }
         return statsObjects
     }
 
-    static func load7DayStats(until date: Date = Date(), in context: NSManagedObjectContext) -> [String: Int64] {
-        let lastTimestamp = date.startOfHour
-        let firstTimestamp = lastTimestamp.daysAgo(6)
+    static func load7DayStats(in context: NSManagedObjectContext) -> [String: Int64] {
+        let startDate = Date().privacyStatsOldestPackTimestamp
 
-        return loadStats(since: firstTimestamp, in: context)
-    }
-
-    static func loadStats(since date: Date, in context: NSManagedObjectContext) -> [String: Int64] {
         let request = NSFetchRequest<NSFetchRequestResult>(entityName: "DailyBlockedTrackersEntity")
 
         // Predicate to filter by date range
-        request.predicate = NSPredicate(format: "%K >= %@", #keyPath(DailyBlockedTrackersEntity.timestamp), date as NSDate)
+        request.predicate = NSPredicate(format: "%K >= %@", #keyPath(DailyBlockedTrackersEntity.timestamp), startDate as NSDate)
 
         // Expression description for the sum of count
         let countExpression = NSExpression(forKeyPath: #keyPath(DailyBlockedTrackersEntity.count))
@@ -101,7 +92,7 @@ final class PrivacyStatsUtils {
     }
 
     static func deleteOutdatedPacks(olderThan date: Date = Date(), in context: NSManagedObjectContext) {
-        let thisHour = date.startOfHour
+        let thisHour = date.privacyStatsPackTimestamp
         let oldestValidTimestamp = thisHour.daysAgo(7)
 
         let request = DailyBlockedTrackersEntity.fetchRequest()

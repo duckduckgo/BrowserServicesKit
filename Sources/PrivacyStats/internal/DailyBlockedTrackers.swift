@@ -40,7 +40,7 @@ final class DailyBlockedTrackersEntity: NSManagedObject {
 
     static func make(timestamp: Date = Date(), companyName: String, context: NSManagedObjectContext) -> DailyBlockedTrackersEntity {
         let object = DailyBlockedTrackersEntity(context: context)
-        object.timestamp = timestamp.startOfHour
+        object.timestamp = timestamp.privacyStatsPackTimestamp
         object.companyName = companyName
         return object
     }
