@@ -159,8 +159,7 @@ public struct StartupOptions {
             selectedLocation: \(self.selectedLocation.description),
             dnsSettings: \(self.dnsSettings.description),
             enableTester: \(self.enableTester),
-            excludeLocalNetworks: \(self.excludeLocalNetworks),
-            tokeContainer: \(self.tokenContainer.description)
+            excludeLocalNetworks: \(self.excludeLocalNetworks)
         )
         """
     }

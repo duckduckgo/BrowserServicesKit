@@ -79,7 +79,9 @@ public final class SubscriptionManagerMock: SubscriptionManager {
 
     public var isUserAuthenticated: Bool = false
 
-    public var userEmail: String?
+    public var userEmail: String? {
+        resultTokenContainer?.decodedAccessToken.email
+    }
 
     public var entitlements: [Networking.SubscriptionEntitlement] = []
 
@@ -96,11 +98,13 @@ public final class SubscriptionManagerMock: SubscriptionManager {
         return resultTokenContainer
     }
 
+    public var resultExchangeTokenContainer: Networking.TokenContainer?
     public func exchange(tokenV1: String) async throws -> Networking.TokenContainer {
-        guard let resultTokenContainer else {
+        guard let resultExchangeTokenContainer else {
            throw OAuthClientError.missingTokens
         }
-        return resultTokenContainer
+        resultTokenContainer = resultExchangeTokenContainer
+        return resultExchangeTokenContainer
     }
 
     public func signOut(skipNotification: Bool) {
