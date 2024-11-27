@@ -1,5 +1,5 @@
 //
-//  PrivacyStatsEntity.swift
+//  PrivacyStatsPackEntity.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -19,26 +19,26 @@
 import Common
 import CoreData
 
-@objc(PrivacyStatsEntity)
-public class PrivacyStatsEntity: NSManagedObject {
+@objc(PrivacyStatsPackEntity)
+public class PrivacyStatsPackEntity: NSManagedObject {
 
-    @nonobjc public class func fetchRequest() -> NSFetchRequest<PrivacyStatsEntity> {
-        return NSFetchRequest<PrivacyStatsEntity>(entityName: "PrivacyStatsEntity")
+    @nonobjc public class func fetchRequest() -> NSFetchRequest<PrivacyStatsPackEntity> {
+        return NSFetchRequest<PrivacyStatsPackEntity>(entityName: "PrivacyStatsPackEntity")
     }
 
     public class func entity(in context: NSManagedObjectContext) -> NSEntityDescription {
-        return NSEntityDescription.entity(forEntityName: "PrivacyStatsEntity", in: context)!
+        return NSEntityDescription.entity(forEntityName: "PrivacyStatsPackEntity", in: context)!
     }
 
     @NSManaged public var blockedTrackersDictionary: [String: Int]
     @NSManaged public var timestamp: Date
 
     public convenience init(context moc: NSManagedObjectContext) {
-        self.init(entity: PrivacyStatsEntity.entity(in: moc), insertInto: moc)
+        self.init(entity: PrivacyStatsPackEntity.entity(in: moc), insertInto: moc)
     }
 
-    public static func make(timestamp: Date = Date(), context: NSManagedObjectContext) -> PrivacyStatsEntity {
-        let object = PrivacyStatsEntity(context: context)
+    public static func make(timestamp: Date = Date(), context: NSManagedObjectContext) -> PrivacyStatsPackEntity {
+        let object = PrivacyStatsPackEntity(context: context)
         object.blockedTrackersDictionary = [:]
         object.timestamp = timestamp.startOfHour
         return object

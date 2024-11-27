@@ -23,17 +23,17 @@ import Persistence
 
 final class PrivacyStatsUtils {
 
-    static func loadStats(for date: Date = Date(), in context: NSManagedObjectContext) -> PrivacyStatsEntity {
+    static func loadStats(for date: Date = Date(), in context: NSManagedObjectContext) -> PrivacyStatsPackEntity {
         let timestamp = date.startOfHour
 
-        let request = PrivacyStatsEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "%K == %@", #keyPath(PrivacyStatsEntity.timestamp), timestamp as NSDate)
+        let request = PrivacyStatsPackEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "%K == %@", #keyPath(PrivacyStatsPackEntity.timestamp), timestamp as NSDate)
         request.fetchLimit = 1
         request.returnsObjectsAsFaults = false
 
         var statsObject = ((try? context.fetch(request)) ?? []).first
         if statsObject == nil {
-            statsObject = PrivacyStatsEntity.make(timestamp: date, context: context)
+            statsObject = PrivacyStatsPackEntity.make(timestamp: date, context: context)
         }
         return statsObject!
     }
@@ -46,12 +46,12 @@ final class PrivacyStatsUtils {
     }
 
     static func loadStats(from startDate: Date, to endDate: Date, in context: NSManagedObjectContext) -> [String: Int] {
-        let request = PrivacyStatsEntity.fetchRequest()
+        let request = PrivacyStatsPackEntity.fetchRequest()
         request.predicate = NSPredicate(
             format: "%K > %@ AND %K < %@",
-            #keyPath(PrivacyStatsEntity.timestamp),
+            #keyPath(PrivacyStatsPackEntity.timestamp),
             startDate as NSDate,
-            #keyPath(PrivacyStatsEntity.timestamp),
+            #keyPath(PrivacyStatsPackEntity.timestamp),
             endDate as NSDate
         )
         request.returnsObjectsAsFaults = false
@@ -66,12 +66,12 @@ final class PrivacyStatsUtils {
         let thisHour = date.startOfHour
         let oldestValidTimestamp = thisHour.daysAgo(7)
 
-        let request = PrivacyStatsEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "%K <= %@", #keyPath(PrivacyStatsEntity.timestamp), oldestValidTimestamp as NSDate)
+        let request = PrivacyStatsPackEntity.fetchRequest()
+        request.predicate = NSPredicate(format: "%K <= %@", #keyPath(PrivacyStatsPackEntity.timestamp), oldestValidTimestamp as NSDate)
         context.deleteAll(matching: request)
     }
 
     static func deleteAllStats(in context: NSManagedObjectContext) {
-        context.deleteAll(matching: PrivacyStatsEntity.fetchRequest())
+        context.deleteAll(matching: PrivacyStatsPackEntity.fetchRequest())
     }
 }
