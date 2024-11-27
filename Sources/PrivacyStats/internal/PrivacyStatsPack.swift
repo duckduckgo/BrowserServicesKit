@@ -32,13 +32,15 @@ struct PrivacyStatsPack: Sendable {
 
 actor CurrentPack {
     var pack: PrivacyStatsPack
-    nonisolated private(set) lazy var commitChangesPublisher: AnyPublisher<PrivacyStatsPack, Never> = commitChangesSubject.eraseToAnyPublisher()
 
+    nonisolated private(set) lazy var commitChangesPublisher: AnyPublisher<PrivacyStatsPack, Never> = commitChangesSubject.eraseToAnyPublisher()
     nonisolated private let commitChangesSubject = PassthroughSubject<PrivacyStatsPack, Never>()
+
     private var commitTask: Task<Void, Never>?
 
-    init() {
-        pack = .init(timestamp: Date().privacyStatsPackTimestamp, trackers: [:])
+    init(pack: PrivacyStatsPack) {
+        self.pack = pack
+//        pack = .init(timestamp: Date().privacyStatsPackTimestamp, trackers: [:])
     }
 
     func updatePack(_ pack: PrivacyStatsPack) {
@@ -59,7 +61,7 @@ actor CurrentPack {
         commitTask?.cancel()
         commitTask = Task {
             do {
-                try await Task.sleep(nanoseconds: 1000000000)
+                try await Task.sleep(nanoseconds: 1_000_000_000)
 
                 Logger.privacyStats.debug("Storing trackers state")
                 commitChangesSubject.send(pack)

@@ -34,14 +34,19 @@ final class DailyBlockedTrackersEntity: NSManagedObject {
     @NSManaged var count: Int64
     @NSManaged var timestamp: Date
 
-    convenience init(context moc: NSManagedObjectContext) {
+    private override init(entity: NSEntityDescription, insertInto context: NSManagedObjectContext?) {
+        super.init(entity: entity, insertInto: context)
+    }
+
+    private convenience init(context moc: NSManagedObjectContext) {
         self.init(entity: DailyBlockedTrackersEntity.entity(in: moc), insertInto: moc)
     }
 
-    static func make(timestamp: Date = Date(), companyName: String, context: NSManagedObjectContext) -> DailyBlockedTrackersEntity {
+    static func make(timestamp: Date = Date(), companyName: String, count: Int64 = 0, context: NSManagedObjectContext) -> DailyBlockedTrackersEntity {
         let object = DailyBlockedTrackersEntity(context: context)
         object.timestamp = timestamp.privacyStatsPackTimestamp
         object.companyName = companyName
+        object.count = count
         return object
     }
 }

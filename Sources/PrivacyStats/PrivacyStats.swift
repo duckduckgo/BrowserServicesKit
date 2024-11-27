@@ -33,47 +33,32 @@ public protocol PrivacyStatsDatabaseProviding {
 
 public protocol PrivacyStatsCollecting {
     func recordBlockedTracker(_ name: String) async
-    var topCompanies: Set<String> { get }
 
     var statsUpdatePublisher: AnyPublisher<Void, Never> { get }
     func fetchPrivacyStats() async -> [String: Int64]
     func clearPrivacyStats() async
 }
 
-public protocol TrackerDataProviding {
-    var trackerData: TrackerData { get }
-    var trackerDataUpdatesPublisher: AnyPublisher<Void, Never> { get }
-}
-
 public final class PrivacyStats: PrivacyStatsCollecting {
 
     public static let bundle = Bundle.module
 
-    public let trackerDataProvider: TrackerDataProviding
-    public private(set) var topCompanies: Set<String> = []
     public let statsUpdatePublisher: AnyPublisher<Void, Never>
 
     private let db: CoreDataDatabase
     private let context: NSManagedObjectContext
+    private var currentPack: CurrentPack?
     private let statsUpdateSubject = PassthroughSubject<Void, Never>()
-    private var currentPack: CurrentPack
     private var cancellables: Set<AnyCancellable> = []
 
-    public init(databaseProvider: PrivacyStatsDatabaseProviding, trackerDataProvider: TrackerDataProviding) {
-        self.trackerDataProvider = trackerDataProvider
+    public init(databaseProvider: PrivacyStatsDatabaseProviding) {
         self.db = databaseProvider.initializeDatabase()
         self.context = db.makeContext(concurrencyType: .privateQueueConcurrencyType, name: "PrivacyStats")
 
-        currentPack = CurrentPack()
         statsUpdatePublisher = statsUpdateSubject.eraseToAnyPublisher()
+        currentPack = .init(pack: initializeCurrentPack())
 
-        trackerDataProvider.trackerDataUpdatesPublisher
-            .sink { [weak self] in
-                self?.refreshTopCompanies()
-            }
-            .store(in: &cancellables)
-
-        currentPack.commitChangesPublisher
+        currentPack?.commitChangesPublisher
             .sink { [weak self] pack in
                 Task {
                     await self?.commitChanges(pack)
@@ -81,23 +66,17 @@ public final class PrivacyStats: PrivacyStatsCollecting {
             }
             .store(in: &cancellables)
 
-        refreshTopCompanies()
-
-        Task {
-            await loadCurrentPack()
-        }
-
 #if os(iOS)
         let notificationName = UIApplication.willTerminateNotification
 #elseif os(macOS)
         let notificationName = NSApplication.willTerminateNotification
 #endif
-
         NotificationCenter.default.addObserver(self, selector: #selector(applicationWillTerminate(_:)), name: notificationName, object: nil)
+
     }
 
     public func recordBlockedTracker(_ name: String) async {
-        await currentPack.recordBlockedTracker(name)
+        await currentPack?.recordBlockedTracker(name)
     }
 
     public func fetchPrivacyStats() async -> [String: Int64] {
@@ -189,24 +168,6 @@ public final class PrivacyStats: PrivacyStatsCollecting {
         }
     }
 
-    private func refreshTopCompanies() {
-        struct TrackerWithPrevalence {
-            let name: String
-            let prevalence: Double
-        }
-
-        let trackers: [TrackerWithPrevalence] = trackerDataProvider.trackerData.entities.values.compactMap { entity in
-            guard let displayName = entity.displayName, let prevalence = entity.prevalence else {
-                return nil
-            }
-            return TrackerWithPrevalence(name: displayName, prevalence: prevalence)
-        }
-
-        let topTrackersArray = trackers.sorted(by: { $0.prevalence > $1.prevalence }).prefix(100).map(\.name)
-        Logger.privacyStats.debug("top tracker companies: \(topTrackersArray)")
-        topCompanies = Set(topTrackersArray)
-    }
-
     private func loadCurrentPack() async {
         let pack = await withCheckedContinuation { (continuation: CheckedContinuation<PrivacyStatsPack?, Never>) in
             context.perform { [weak self] in
@@ -220,14 +181,26 @@ public final class PrivacyStats: PrivacyStatsCollecting {
             }
         }
         if let pack {
-            await currentPack.updatePack(pack)
+            await currentPack?.updatePack(pack)
         }
+    }
+
+    private func initializeCurrentPack() -> PrivacyStatsPack {
+        var pack: PrivacyStatsPack?
+        context.performAndWait {
+            let currentPack = PrivacyStatsUtils.fetchCurrentPackStats(in: context)
+            Logger.privacyStats.debug("Loaded stats \(currentPack.timestamp) \(currentPack.trackers)")
+            pack = currentPack
+        }
+        return pack ?? PrivacyStatsPack(timestamp: Date().privacyStatsPackTimestamp)
     }
 
     @objc private func applicationWillTerminate(_: Notification) {
         let condition = RunLoop.ResumeCondition()
         Task {
-            await commitChanges(currentPack.pack)
+            if let pack = await currentPack?.pack {
+                await commitChanges(pack)
+            }
             condition.resolve()
         }
         // Run the loop until changes are saved
