@@ -23,16 +23,11 @@ import os.log
 
 struct PrivacyStatsPack: Sendable {
     let timestamp: Date
-    var trackers: [String: Int]
+    var trackers: [String: Int64]
 
-    init(timestamp: Date, trackers: [String: Int]) {
+    init(timestamp: Date, trackers: [String: Int64] = [:]) {
         self.timestamp = timestamp
         self.trackers = trackers
-    }
-
-    init(_ packEntity: PrivacyStatsPackEntity) {
-        timestamp = packEntity.timestamp
-        trackers = packEntity.blockedTrackersDictionary
     }
 }
 

@@ -36,7 +36,7 @@ public protocol PrivacyStatsCollecting {
     var topCompanies: Set<String> { get }
 
     var statsUpdatePublisher: AnyPublisher<Void, Never> { get }
-    func fetchPrivacyStats() async -> [String: Int]
+    func fetchPrivacyStats() async -> [String: Int64]
     func clearPrivacyStats() async
 }
 
@@ -58,13 +58,11 @@ public final class PrivacyStats: PrivacyStatsCollecting {
     public let statsUpdatePublisher: AnyPublisher<Void, Never>
     private let statsUpdateSubject = PassthroughSubject<Void, Never>()
 
-    // current pack timestamp
-    private var currentStatsObject: PrivacyStatsPackEntity?
     private var currentStatsActor: CurrentPack
 
     private var commitTimer: Timer?
 
-    private var cached7DayStats: [String: Int] = [:]
+    private var cached7DayStats: [String: Int64] = [:]
     private var cached7DayStatsLastFetchTimestamp: Date?
 
     public init(databaseProvider: PrivacyStatsDatabaseProviding, trackerDataProvider: TrackerDataProviding) {
@@ -82,7 +80,7 @@ public final class PrivacyStats: PrivacyStatsCollecting {
 
         refreshTopCompanies()
         Task {
-            await loadCurrentPack()
+            await loadCurrentPacks()
             await currentStatsActor.commitChangesPublisher
                 .sink { [weak self] pack in
                     Task {
@@ -112,15 +110,14 @@ public final class PrivacyStats: PrivacyStatsCollecting {
                     continuation.resume()
                     return
                 }
-                if let currentStatsObject {
-                    if pack.timestamp != currentStatsObject.timestamp {
-                        self.currentStatsObject = PrivacyStatsPackEntity.make(timestamp: pack.timestamp, context: context)
+
+                let statsObjects = PrivacyStatsUtils.fetchOrInsertCurrentPacks(for: Set(pack.trackers.keys), in: context)
+                statsObjects.forEach { stats in
+                    if let count = pack.trackers[stats.companyName] {
+                        stats.count += count
                     }
-                } else {
-                    currentStatsObject = PrivacyStatsPackEntity.make(timestamp: pack.timestamp, context: context)
                 }
 
-                currentStatsObject?.blockedTrackersDictionary = pack.trackers
                 guard context.hasChanges else {
                     continuation.resume()
                     return
@@ -138,7 +135,7 @@ public final class PrivacyStats: PrivacyStatsCollecting {
         }
     }
 
-    public func fetchPrivacyStats() async -> [String: Int] {
+    public func fetchPrivacyStats() async -> [String: Int64] {
         let isCacheValid: Bool = {
             guard let cached7DayStatsLastFetchTimestamp else {
                 return false
@@ -172,7 +169,7 @@ public final class PrivacyStats: PrivacyStatsCollecting {
                 continuation.resume()
             }
         }
-        await loadCurrentPack()
+        await loadCurrentPacks()
     }
 
     private func refresh7DayCache() async {
@@ -229,17 +226,16 @@ public final class PrivacyStats: PrivacyStatsCollecting {
         topCompanies = Set(topTrackersArray)
     }
 
-    private func loadCurrentPack() async {
+    private func loadCurrentPacks() async {
         let currentPack = await withCheckedContinuation { (continuation: CheckedContinuation<PrivacyStatsPack?, Never>) in
             context.perform { [weak self] in
                 guard let self else {
                     continuation.resume(returning: nil)
                     return
                 }
-                let privacyStatsPackEntity = PrivacyStatsUtils.loadCurrentPack(in: context)
-                currentStatsObject = privacyStatsPackEntity
-                Logger.privacyStats.debug("Loaded stats \(privacyStatsPackEntity.timestamp) \(privacyStatsPackEntity.blockedTrackersDictionary)")
-                continuation.resume(returning: .init(privacyStatsPackEntity))
+                let currentPack = PrivacyStatsUtils.fetchCurrentPackStats(in: context)
+                Logger.privacyStats.debug("Loaded stats \(currentPack.timestamp) \(currentPack.trackers)")
+                continuation.resume(returning: currentPack)
             }
         }
         if let currentPack {
