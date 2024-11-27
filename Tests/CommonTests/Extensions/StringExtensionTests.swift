@@ -16,8 +16,10 @@
 //  limitations under the License.
 //
 
+import CryptoKit
 import Foundation
 import XCTest
+
 @testable import Common
 
 final class StringExtensionTests: XCTestCase {
@@ -368,6 +370,15 @@ final class StringExtensionTests: XCTestCase {
         for hostname in invalidHostnames {
             XCTAssertFalse(hostname.isValidHost, "\(hostname) should NOT be a valid host")
         }
+    }
+
+    func testSha256() {
+        let string = "Hello, World! This is a test string."
+        let hash = string.sha256
+        let expected = "3c2b805ab0038afb0629e1d598ae73e0caabb69de03e96762977d34e8ba428bf"
+        let expectedSHA256 = SHA256.hash(data: Data(string.utf8)).map { String(format: "%02hhx", $0) }.joined()
+        XCTAssertEqual(hash, expected)
+        XCTAssertEqual(hash, expectedSHA256)
     }
 
 }

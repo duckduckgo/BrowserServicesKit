@@ -46,23 +46,17 @@ public final class MaliciousSiteDetector: MaliciousSiteDetecting {
         self.eventMapping = eventMapping
     }
 
-    private func generateHashPrefix(for canonicalHost: String, length: Int) -> String {
-        let hostnameHash = SHA256.hash(data: Data(canonicalHost.utf8)).map { String(format: "%02hhx", $0) }.joined()
-        return String(hostnameHash.prefix(length))
-    }
-
-    private func checkLocalFilters(canonicalHost: String, canonicalUrl: URL, for threatKind: ThreatKind) async -> Bool {
+    private func checkLocalFilters(hostHash: String, canonicalUrl: URL, for threatKind: ThreatKind) async -> Bool {
         let filterSet = await dataManager.dataSet(for: .filterSet(threatKind: threatKind))
-        let hostnameHash = generateHashPrefix(for: canonicalHost, length: Int.max)
-        let matchesLocalFilters = filterSet[hostnameHash]?.contains(where: { regex in
+        let matchesLocalFilters = filterSet[hostHash]?.contains(where: { regex in
             canonicalUrl.absoluteString.matches(pattern: regex)
         }) ?? false
 
         return matchesLocalFilters
     }
 
-    private func checkApiMatches(canonicalHost: String, canonicalUrl: URL) async -> Match? {
-        let hashPrefixParam = generateHashPrefix(for: canonicalHost, length: Constants.hashPrefixParamLength)
+    private func checkApiMatches(hostHash: String, canonicalUrl: URL) async -> Match? {
+        let hashPrefixParam = String(hostHash.prefix(Constants.hashPrefixParamLength))
         let matches: [Match]
         do {
             matches = try await apiClient.matches(forHashPrefix: hashPrefixParam).matches
@@ -72,7 +66,7 @@ public final class MaliciousSiteDetector: MaliciousSiteDetecting {
         }
 
         if let match = matches.first(where: { match in
-            canonicalUrl.absoluteString.matches(pattern: match.regex)
+            match.hash == hostHash && canonicalUrl.absoluteString.matches(pattern: match.regex)
         }) {
             return match
         }
@@ -86,20 +80,21 @@ public final class MaliciousSiteDetector: MaliciousSiteDetecting {
         guard let canonicalHost = url.canonicalHost(),
               let canonicalUrl = url.canonicalURL() else { return .none }
 
-        let hashPrefix = generateHashPrefix(for: canonicalHost, length: Constants.hashPrefixStoreLength)
+        let hostHash = canonicalHost.sha256
+        let hashPrefix = String(hostHash.prefix(Constants.hashPrefixStoreLength))
 
         for threatKind in ThreatKind.allCases /* phishing, malware.. */ {
             let hashPrefixes = await dataManager.dataSet(for: .hashPrefixes(threatKind: threatKind))
             guard hashPrefixes.contains(hashPrefix) else { continue }
 
             // Check local filterSet first
-            if await checkLocalFilters(canonicalHost: canonicalHost, canonicalUrl: canonicalUrl, for: threatKind) {
+            if await checkLocalFilters(hostHash: hostHash, canonicalUrl: canonicalUrl, for: threatKind) {
                 eventMapping.fire(.errorPageShown(clientSideHit: true))
                 return threatKind
             }
 
             // If nothing found, hit the API to get matches
-            let match = await checkApiMatches(canonicalHost: canonicalHost, canonicalUrl: canonicalUrl)
+            let match = await checkApiMatches(hostHash: hostHash, canonicalUrl: canonicalUrl)
             if let match {
                 eventMapping.fire(.errorPageShown(clientSideHit: false))
                 let threatKind = match.category.map(ThreatKind.init) ?? threatKind
