@@ -17,23 +17,11 @@
 //
 
 import Foundation
-import SpecialErrorPages
 
-public enum ThreatKind: String, CaseIterable, CustomStringConvertible {
+public enum ThreatKind: String, CaseIterable, Codable, CustomStringConvertible {
     public var description: String { rawValue }
 
     case phishing
     // case malware
-
-}
-
-public extension ThreatKind {
-
-    var errorPageType: SpecialErrorKind {
-        switch self {
-        // case .malware: .malware
-        case .phishing: .phishing
-        }
-    }
 
 }

@@ -265,12 +265,7 @@ extension PrivacyDashboardController: WKNavigationDelegate {
             .receive(on: DispatchQueue.main )
             .sink(receiveValue: { [weak self] detectedThreatKind in
                 guard let self, let webView else { return }
-                for threatKind in MaliciousSiteProtection.ThreatKind.allCases {
-                    switch threatKind {
-                    case .phishing:
-                        script.setIsPhishing(detectedThreatKind == threatKind, webView: webView)
-                    }
-                }
+                script.setMaliciousSiteDetectedThreatKind(detectedThreatKind, webView: webView)
             })
             .store(in: &cancellables)
     }

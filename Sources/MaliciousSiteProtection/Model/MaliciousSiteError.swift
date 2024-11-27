@@ -43,6 +43,13 @@ public struct MaliciousSiteError: Error, Equatable {
         self.init(code: code, failingUrl: failingUrl)
     }
 
+    public var threatKind: ThreatKind {
+        switch code {
+        case .phishing: .phishing
+        // case .malware: .malware
+        }
+    }
+
 }
 
 extension MaliciousSiteError: _ObjectiveCBridgeableError {

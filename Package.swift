@@ -392,7 +392,8 @@ let package = Package(
             dependencies: [
                 "Common",
                 "UserScript",
-                "BrowserServicesKit"
+                "BrowserServicesKit",
+                "MaliciousSiteProtection",
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
@@ -413,7 +414,6 @@ let package = Package(
             dependencies: [
                 "Common",
                 "Networking",
-                "SpecialErrorPages",
                 "PixelKit",
             ],
             swiftSettings: [

@@ -17,34 +17,30 @@
 //
 
 import Foundation
+import WebKit
 
-public enum SSLErrorType: String {
+public enum SSLErrorType: String, Encodable {
 
     case expired
-    case wrongHost
     case selfSigned
+    case wrongHost
     case invalid
 
-    public static func forErrorCode(_ errorCode: Int) -> Self {
-        switch Int32(errorCode) {
-        case errSSLCertExpired:
-            return .expired
-        case errSSLHostNameMismatch:
-            return .wrongHost
-        case errSSLXCertChainInvalid:
-            return .selfSigned
-        default:
-            return .invalid
+    init(errorCode: Int) {
+        self = switch Int32(errorCode) {
+        case errSSLCertExpired: .expired
+        case errSSLXCertChainInvalid: .selfSigned
+        case errSSLHostNameMismatch: .wrongHost
+        default: .invalid
         }
     }
 
-    public var rawParameter: String {
-        switch self {
-        case .expired: return "expired"
-        case .wrongHost: return "wrong_host"
-        case .selfSigned: return "self_signed"
-        case .invalid: return "generic"
-        }
-    }
+}
 
+extension WKError {
+    public var sslErrorType: SSLErrorType? {
+        guard let errorCode = self.userInfo["_kCFStreamErrorCodeKey"] as? Int else { return nil }
+        let sslErrorType = SSLErrorType(errorCode: errorCode)
+        return sslErrorType
+    }
 }

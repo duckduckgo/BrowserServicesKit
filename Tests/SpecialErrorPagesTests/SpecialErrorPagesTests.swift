@@ -1,5 +1,5 @@
 //
-//  SpecialErrorPagesTest.swift
+//  SpecialErrorPagesTests.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -191,11 +191,11 @@ class CapturingSpecialErrorPageUserScriptDelegate: SpecialErrorPageUserScriptDel
     var visitSiteCalled = false
     var advancedInfoPresentedCalled = false
 
-    func leaveSite() {
+    func leaveSiteAction() {
         leaveSiteCalled = true
     }
 
-    func visitSite() {
+    func visitSiteAction() {
         visitSiteCalled = true
     }
 
