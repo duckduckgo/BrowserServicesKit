@@ -77,7 +77,7 @@ public final class PrivacyStats: PrivacyStatsCollecting {
 
         refreshTopCompanies()
         Task {
-            await loadCurrentPacks()
+            await loadCurrentPack()
             await currentStatsActor.commitChangesPublisher
                 .sink { [weak self] pack in
                     Task {
@@ -162,7 +162,7 @@ public final class PrivacyStats: PrivacyStatsCollecting {
                 continuation.resume()
             }
         }
-        await loadCurrentPacks()
+        await loadCurrentPack()
     }
 
     private func deleteOldEntries() async {
@@ -205,7 +205,7 @@ public final class PrivacyStats: PrivacyStatsCollecting {
         topCompanies = Set(topTrackersArray)
     }
 
-    private func loadCurrentPacks() async {
+    private func loadCurrentPack() async {
         let currentPack = await withCheckedContinuation { (continuation: CheckedContinuation<PrivacyStatsPack?, Never>) in
             context.perform { [weak self] in
                 guard let self else {
