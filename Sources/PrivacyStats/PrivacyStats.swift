@@ -62,9 +62,6 @@ public final class PrivacyStats: PrivacyStatsCollecting {
 
     private var commitTimer: Timer?
 
-    private var cached7DayStats: [String: Int64] = [:]
-    private var cached7DayStatsLastFetchTimestamp: Date?
-
     public init(databaseProvider: PrivacyStatsDatabaseProviding, trackerDataProvider: TrackerDataProviding) {
         self.db = databaseProvider.initializeDatabase()
         self.context = db.makeContext(concurrencyType: .privateQueueConcurrencyType, name: "PrivacyStats")
@@ -114,7 +111,7 @@ public final class PrivacyStats: PrivacyStatsCollecting {
                 let statsObjects = PrivacyStatsUtils.fetchOrInsertCurrentPacks(for: Set(pack.trackers.keys), in: context)
                 statsObjects.forEach { stats in
                     if let count = pack.trackers[stats.companyName] {
-                        stats.count += count
+                        stats.count = count
                     }
                 }
 
@@ -136,20 +133,16 @@ public final class PrivacyStats: PrivacyStatsCollecting {
     }
 
     public func fetchPrivacyStats() async -> [String: Int64] {
-        let isCacheValid: Bool = {
-            guard let cached7DayStatsLastFetchTimestamp else {
-                return false
-            }
-            return Date.isSameHour(Date(), cached7DayStatsLastFetchTimestamp)
-        }()
-        if !isCacheValid {
-            await refresh7DayCache()
-            Task {
-                await deleteOldEntries()
+        return await withCheckedContinuation { continuation in
+            context.perform { [weak self] in
+                guard let self else {
+                    continuation.resume(returning: [:])
+                    return
+                }
+                let stats = PrivacyStatsUtils.load7DayStats(in: context)
+                continuation.resume(returning: stats)
             }
         }
-        let currentPack = await currentStatsActor.pack
-        return cached7DayStats.merging(currentPack.trackers, uniquingKeysWith: +)
     }
 
     public func clearPrivacyStats() async {
@@ -170,20 +163,6 @@ public final class PrivacyStats: PrivacyStatsCollecting {
             }
         }
         await loadCurrentPacks()
-    }
-
-    private func refresh7DayCache() async {
-        await withCheckedContinuation { continuation in
-            context.perform { [weak self] in
-                guard let self else {
-                    continuation.resume()
-                    return
-                }
-                cached7DayStats = PrivacyStatsUtils.load7DayStats(in: context)
-                cached7DayStatsLastFetchTimestamp = Date()
-                continuation.resume()
-            }
-        }
     }
 
     private func deleteOldEntries() async {

@@ -63,20 +63,16 @@ final class PrivacyStatsUtils {
 
     static func load7DayStats(until date: Date = Date(), in context: NSManagedObjectContext) -> [String: Int64] {
         let lastTimestamp = date.startOfHour
-        let firstTimestamp = lastTimestamp.daysAgo(7)
+        let firstTimestamp = lastTimestamp.daysAgo(6)
 
-        return loadStats2(from: firstTimestamp, to: lastTimestamp, in: context)
+        return loadStats(since: firstTimestamp, in: context)
     }
 
-    static func loadStats2(from startDate: Date, to endDate: Date, in context: NSManagedObjectContext) -> [String: Int64] {
+    static func loadStats(since date: Date, in context: NSManagedObjectContext) -> [String: Int64] {
         let request = NSFetchRequest<NSFetchRequestResult>(entityName: "DailyBlockedTrackersEntity")
 
         // Predicate to filter by date range
-        request.predicate = NSPredicate(
-            format: "%K > %@ AND %K < %@",
-            #keyPath(DailyBlockedTrackersEntity.timestamp), startDate as NSDate,
-            #keyPath(DailyBlockedTrackersEntity.timestamp), endDate as NSDate
-        )
+        request.predicate = NSPredicate(format: "%K >= %@", #keyPath(DailyBlockedTrackersEntity.timestamp), date as NSDate)
 
         // Expression description for the sum of count
         let countExpression = NSExpression(forKeyPath: #keyPath(DailyBlockedTrackersEntity.count))
