@@ -38,7 +38,7 @@ public struct FilterDictionary: Codable, Equatable {
     /// ```
     public var filters: [String: Set<String>]
 
-    init(revision: Int, filters: [String: Set<String>]) {
+    public init(revision: Int, filters: [String: Set<String>]) {
         self.filters = filters
         self.revision = revision
     }

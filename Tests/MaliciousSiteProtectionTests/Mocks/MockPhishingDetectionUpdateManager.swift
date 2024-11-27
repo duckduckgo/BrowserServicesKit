@@ -20,7 +20,7 @@ import Foundation
 import MaliciousSiteProtection
 
 public class MockPhishingDetectionUpdateManager: MaliciousSiteProtection.UpdateManaging {
-    
+
     var didUpdateFilterSet = false
     var didUpdateHashPrefixes = false
     var startPeriodicUpdatesCalled = false
