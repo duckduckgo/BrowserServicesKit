@@ -66,8 +66,6 @@ public protocol ExperimentCohortsManaging {
     ///      - Cohort assignment is probabilistic, determined by the cohort weights.
     ///
     func resolveCohort(for experiment: ExperimentSubfeature, isAssignCohortEnabled: Bool) -> CohortID?
-
-
 }
 
 public class ExperimentCohortsManager: ExperimentCohortsManaging {

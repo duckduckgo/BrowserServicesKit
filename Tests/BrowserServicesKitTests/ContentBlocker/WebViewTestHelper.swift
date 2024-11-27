@@ -227,9 +227,9 @@ final class WebKitTestHelper {
 }
 
 class MockExperimentCohortsManager: ExperimentCohortsManaging {
-    func resolveCohort(for experiment: BrowserServicesKit.ExperimentSubfeature, isAssignCohortEnabled: Bool) -> BrowserServicesKit.CohortID? {
+    func resolveCohort(for experiment: ExperimentSubfeature, isAssignCohortEnabled: Bool) -> CohortID? {
         return nil
     }
-    
-    var experiments: BrowserServicesKit.Experiments?
+
+    var experiments: Experiments?
 }

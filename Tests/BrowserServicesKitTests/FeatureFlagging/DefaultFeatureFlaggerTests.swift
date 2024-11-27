@@ -266,7 +266,6 @@ final class DefaultFeatureFlaggerTests: XCTestCase {
         XCTAssertNil(cohort)
     }
 
-
     // MARK: - Overrides
 
     func testWhenFeatureFlaggerIsInitializedWithLocalOverridesAndUserIsNotInternalThenAllFlagsAreCleared() throws {
@@ -373,13 +372,12 @@ extension FeatureFlagSource: FeatureFlagDescribing {
 
 class MockExperimentManager: ExperimentCohortsManaging {
     var cohortToReturn: CohortID?
-    var experiments: BrowserServicesKit.Experiments? = nil
+    var experiments: BrowserServicesKit.Experiments?
 
     func resolveCohort(for experiment: BrowserServicesKit.ExperimentSubfeature, isAssignCohortEnabled: Bool) -> CohortID? {
         return cohortToReturn
     }
 }
-
 
 struct FakeExperimentFlag: FeatureFlagExperimentDescribing {
     typealias Cohort = AutofillCohorts

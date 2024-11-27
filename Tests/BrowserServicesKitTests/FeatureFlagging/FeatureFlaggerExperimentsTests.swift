@@ -42,8 +42,7 @@ final class FeatureFlaggerExperimentsTests: XCTestCase {
                                               embeddedDataProvider: mockEmbeddedData,
                                               localProtection: MockDomainsProtectionStore(),
                                               internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore),
-                                              locale: locale,
-                                              experimentCohortManager: experimentManager)
+                                              locale: locale)
         featureFlagger = DefaultFeatureFlagger(internalUserDecider: DefaultInternalUserDecider(store: mockInternalUserStore), privacyConfigManager: manager, experimentManager: experimentManager)
     }
 
@@ -935,7 +934,6 @@ final class FeatureFlaggerExperimentsTests: XCTestCase {
             }
             """.data(using: .utf8)!
         manager.reload(etag: "foo", data: featureJson)
-        let config = manager.privacyConfig
 
         let activeExperiments = featureFlagger.getAllActiveExperiments()
         XCTAssertTrue(activeExperiments.isEmpty)

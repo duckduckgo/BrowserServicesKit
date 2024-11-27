@@ -56,7 +56,6 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
     private let errorReporting: EventMapping<ContentBlockerDebugEvents>?
     private let installDate: Date?
     private let locale: Locale
-    private let experimentCohortManager: ExperimentCohortsManaging
 
     public let internalUserDecider: InternalUserDecider
 
@@ -113,14 +112,12 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
                 errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil,
                 internalUserDecider: InternalUserDecider,
                 locale: Locale = Locale.current,
-                experimentCohortManager: ExperimentCohortsManaging = ExperimentCohortsManager(store: ExperimentsDataStore()),
                 installDate: Date? = nil
     ) {
         self.embeddedDataProvider = embeddedDataProvider
         self.localProtection = localProtection
         self.errorReporting = errorReporting
         self.internalUserDecider = internalUserDecider
-        self.experimentCohortManager = experimentCohortManager
         self.locale = locale
         self.installDate = installDate
 

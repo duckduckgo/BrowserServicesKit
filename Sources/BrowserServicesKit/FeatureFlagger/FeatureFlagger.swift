@@ -101,7 +101,27 @@ public protocol FeatureFlagExperimentDescribing {
     /// ```
     var source: FeatureFlagSource { get }
 
-
+    /// Represents the possible groups or variants within an experiment.
+        ///
+        /// The `Cohort` type is used to define user groups or test variations for feature
+        /// experimentation. Each cohort typically corresponds to a specific behavior or configuration
+        /// applied to a subset of users. For example, in an A/B test, you might define cohorts such as
+        /// `control` and `treatment`.
+        ///
+        /// Each cohort must conform to the `CohortEnum` protocol, which ensures that the cohort type
+        /// is an `enum` with `String` raw values and provides access to all possible cases
+        /// through `CaseIterable`.
+        ///
+        /// Example:
+        /// ```
+        /// public enum AutofillCohorts: String, CohortEnum {
+        ///     case control
+        ///     case treatment
+        /// }
+        /// ```
+        ///
+        /// The `Cohort` type allows dynamic resolution of cohorts by their raw `String` value,
+        /// making it easy to map user configurations to specific cohort groups.
     associatedtype Cohort: CohortEnum
 }
 
@@ -290,17 +310,16 @@ public class DefaultFeatureFlagger: FeatureFlagger {
                 activeExperiments[subfeatureID] = experimentData
             }
         }
-
         return activeExperiments
     }
-    
+
     public func getCohortIfEnabled<Flag: FeatureFlagExperimentDescribing>(for featureFlag: Flag) -> (any CohortEnum)? {
         switch featureFlag.source {
         case .disabled:
             return nil
         case .internalOnly(let cohort):
             return cohort
-        case .remoteDevelopment(_) where !internalUserDecider.isInternalUser:
+        case .remoteDevelopment where !internalUserDecider.isInternalUser:
             return nil
         case .remoteReleasable(let featureType),
                 .remoteDevelopment(let featureType) where internalUserDecider.isInternalUser:
@@ -321,7 +340,7 @@ public class DefaultFeatureFlagger: FeatureFlagger {
         let cohorts = config.cohorts(for: subfeature)
         let experiment = ExperimentSubfeature(parentID: subfeature.parent.rawValue, subfeatureID: subfeature.rawValue, cohorts: cohorts ?? [])
         switch featureState {
-            case .enabled:
+        case .enabled:
             return experimentManager?.resolveCohort(for: experiment, isAssignCohortEnabled: true)
         case .disabled(.targetDoesNotMatch):
             return experimentManager?.resolveCohort(for: experiment, isAssignCohortEnabled: false)

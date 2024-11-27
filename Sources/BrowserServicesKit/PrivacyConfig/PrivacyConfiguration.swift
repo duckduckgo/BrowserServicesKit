@@ -105,9 +105,12 @@ public protocol PrivacyConfiguration {
     /// Adds given domain to locally unprotected list.
     func userDisabledProtection(forDomain: String)
 
+    // APIs used for Exmpriments
     func stateFor(subfeatureID: SubfeatureID, parentFeatureID: ParentFeatureID, versionProvider: AppVersionProvider,
                          randomizer: (Range<Double>) -> Double) -> PrivacyConfigurationFeatureState
+
     func cohorts(for subfeature: any PrivacySubfeature) -> [PrivacyConfigurationData.Cohort]?
+
     func cohorts(subfeatureID: SubfeatureID, parentFeatureID: ParentFeatureID) -> [PrivacyConfigurationData.Cohort]?
 }
 
