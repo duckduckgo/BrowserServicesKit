@@ -266,7 +266,8 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
 
                 }
             case .partialSave:
-                let partialAccount = SecureVaultModels.WebsiteAccount(username: data.credentials?.username, domain: domain)
+                let username = data.credentials?.username ?? data.identity?.emailAddress
+                let partialAccount = SecureVaultModels.WebsiteAccount(username: username, domain: domain)
                 partialAccountsManager.store(partialAccount: partialAccount, for: domain)
                 return
             case .none, .userInitiated, .autoprompt: break
