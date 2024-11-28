@@ -103,18 +103,6 @@ final class CurrentPackTests: XCTestCase {
 
     // MARK: - Helpers
 
-    func waitForCommitChangesEvent() async -> PrivacyStatsPack? {
-        let expectation = self.expectation(description: "commitChanges")
-        var pack: PrivacyStatsPack?
-        let cancellable = currentPack.commitChangesPublisher.sink { value in
-            pack = value
-            expectation.fulfill()
-        }
-        await fulfillment(of: [expectation], timeout: 1)
-        cancellable.cancel()
-        return pack
-    }
-
     /**
      * Sets up Combine subscription, then calls the provided block and then waits
      * for the specific time before cancelling the subscription.
@@ -122,11 +110,7 @@ final class CurrentPackTests: XCTestCase {
      */
     func waitForCommitChangesEvents(for nanoseconds: UInt64, _ block: () async -> Void) async throws -> [PrivacyStatsPack] {
         var packs: [PrivacyStatsPack] = []
-        let cancellable = currentPack.commitChangesPublisher
-            .sink { value in
-                packs.append(value)
-                print("APPEND \(value.timestamp)")
-            }
+        let cancellable = currentPack.commitChangesPublisher.sink { packs.append($0) }
 
         await block()
 
