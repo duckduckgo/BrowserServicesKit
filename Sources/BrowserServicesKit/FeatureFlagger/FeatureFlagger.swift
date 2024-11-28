@@ -18,7 +18,7 @@
 
 import Foundation
 
-public protocol CohortEnum: RawRepresentable, CaseIterable where RawValue == String {}
+public protocol FlagCohort: RawRepresentable, CaseIterable where RawValue == CohortID {}
 
 /// This protocol defines a common interface for feature flags managed by FeatureFlagger.
 ///
@@ -122,7 +122,7 @@ public protocol FeatureFlagExperimentDescribing {
         ///
         /// The `Cohort` type allows dynamic resolution of cohorts by their raw `String` value,
         /// making it easy to map user configurations to specific cohort groups.
-    associatedtype Cohort: CohortEnum
+    associatedtype CohortType: FlagCohort
 }
 
 public enum FeatureFlagSource {
@@ -130,7 +130,7 @@ public enum FeatureFlagSource {
     case disabled
 
     /// Enabled for internal users only. Cannot be toggled remotely
-    case internalOnly((any CohortEnum)? = nil)
+    case internalOnly((any FlagCohort)? = nil)
 
     /// Toggled remotely using PrivacyConfiguration but only for internal users. Otherwise, disabled.
     case remoteDevelopment(PrivacyConfigFeatureLevel)
@@ -169,24 +169,6 @@ public protocol FeatureFlagger: AnyObject {
     ///
     func isFeatureOn<Flag: FeatureFlagDescribing>(for featureFlag: Flag, allowOverride: Bool) -> Bool
 
-    /// Resolves the cohort for a subfeature if the subfeature is enabled.
-    ///
-    /// This method checks the state of the subfeature in the `PrivacyConfiguration`. If the subfeature
-    /// is enabled or disabled due to a target mismatch, it resolves the cohort using the `ExperimentManager`.
-    ///
-    /// - Parameter subfeature: A subfeature conforming to `PrivacySubfeature`.
-    ///
-    /// - Returns: The `CohortID` associated with the subfeature if enabled, or `nil` otherwise.
-    ///
-    /// - Behavior:
-    ///   - If the subfeature state is `.enabled`:
-    ///     - Resolves and assigns a cohort using `resolveCohort(isAssignCohortEnabled: true)`.
-    ///   - If the subfeature state is `.disabled(.targetDoesNotMatch)`:
-    ///     - Resolves the cohort without assigning a new one (`isAssignCohortEnabled: false`).
-    ///   - For other states: Returns `nil`.
-    ///
-    func getCohortIfEnabled(_ subfeature: any PrivacySubfeature) -> CohortID?
-
     /// Retrieves the cohort for a feature flag if the feature is enabled.
     ///
     /// This method determines the source of the feature flag and evaluates its eligibility based on
@@ -205,7 +187,7 @@ public protocol FeatureFlagger: AnyObject {
     ///     - If the feature is a subfeature, resolves its cohort using `getCohortIfEnabled(_ subfeature:)`.
     ///     - Returns `nil` if the user is not eligible.
     ///
-    func getCohortIfEnabled<Flag: FeatureFlagExperimentDescribing>(for featureFlag: Flag) -> (any CohortEnum)?
+    func getCohortIfEnabled<Flag: FeatureFlagExperimentDescribing>(for featureFlag: Flag) -> (any FlagCohort)?
 
     /// Retrieves all active experiments currently assigned to the user.
     ///
@@ -313,7 +295,7 @@ public class DefaultFeatureFlagger: FeatureFlagger {
         return activeExperiments
     }
 
-    public func getCohortIfEnabled<Flag: FeatureFlagExperimentDescribing>(for featureFlag: Flag) -> (any CohortEnum)? {
+    public func getCohortIfEnabled<Flag: FeatureFlagExperimentDescribing>(for featureFlag: Flag) -> (any FlagCohort)? {
         switch featureFlag.source {
         case .disabled:
             return nil
@@ -325,7 +307,7 @@ public class DefaultFeatureFlagger: FeatureFlagger {
                 .remoteDevelopment(let featureType) where internalUserDecider.isInternalUser:
             if case .subfeature(let subfeature) = featureType {
                 if let resolvedCohortID = getCohortIfEnabled(subfeature) {
-                    return Flag.Cohort.allCases.first { return $0.rawValue == resolvedCohortID }
+                    return Flag.CohortType.allCases.first { return $0.rawValue == resolvedCohortID }
                 }
             }
             return nil
@@ -334,7 +316,7 @@ public class DefaultFeatureFlagger: FeatureFlagger {
         }
     }
 
-    public func getCohortIfEnabled(_ subfeature: any PrivacySubfeature) -> CohortID? {
+    private func getCohortIfEnabled(_ subfeature: any PrivacySubfeature) -> CohortID? {
         let config = privacyConfigManager.privacyConfig
         let featureState = config.stateFor(subfeature)
         let cohorts = config.cohorts(for: subfeature)

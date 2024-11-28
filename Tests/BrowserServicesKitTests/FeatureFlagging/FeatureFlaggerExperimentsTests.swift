@@ -19,6 +19,51 @@
 import XCTest
 @testable import BrowserServicesKit
 
+struct CredentialsSavingFlag: FeatureFlagExperimentDescribing {
+
+    typealias CohortType = Cohort
+
+    var rawValue = "credentialSaving"
+
+    var source: FeatureFlagSource = .remoteReleasable(.subfeature(AutofillSubfeature.credentialsSaving))
+
+    enum Cohort: String, FlagCohort {
+        case control
+        case blue
+        case red
+    }
+}
+
+struct InlineIconCredentialsFlag: FeatureFlagExperimentDescribing {
+
+    typealias CohortType = Cohort
+
+    var rawValue = "inlineIconCredentials"
+
+    var source: FeatureFlagSource = .remoteReleasable(.subfeature(AutofillSubfeature.inlineIconCredentials))
+
+    enum Cohort: String, FlagCohort {
+        case control
+        case blue
+        case green
+    }
+}
+
+struct AccessCredentialManagementFlag: FeatureFlagExperimentDescribing {
+
+    typealias CohortType = Cohort
+
+    var rawValue = "accessCredentialManagement"
+
+    var source: FeatureFlagSource = .remoteReleasable(.subfeature(AutofillSubfeature.accessCredentialManagement))
+
+    enum Cohort: String, FlagCohort {
+        case control
+        case blue
+        case green
+    }
+}
+
 final class FeatureFlaggerExperimentsTests: XCTestCase {
 
     var featureJson: Data = "{}".data(using: .utf8)!
@@ -96,7 +141,7 @@ final class FeatureFlaggerExperimentsTests: XCTestCase {
         XCTAssertNil(experimentManager.cohort(for: subfeatureName))
 
         // we call getCohortIfEnabled(cohort), then we should assign cohort
-        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving), "control")
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(for: CredentialsSavingFlag())?.rawValue, CredentialsSavingFlag.CohortType.control.rawValue)
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "control")
     }
@@ -132,7 +177,7 @@ final class FeatureFlaggerExperimentsTests: XCTestCase {
         manager.reload(etag: "", data: featureJson)
         var config = manager.privacyConfig
 
-        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving), "control")
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(for: CredentialsSavingFlag())?.rawValue, CredentialsSavingFlag.CohortType.control.rawValue)
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "control")
 
@@ -163,7 +208,7 @@ final class FeatureFlaggerExperimentsTests: XCTestCase {
         manager.reload(etag: "", data: featureJson)
         config = manager.privacyConfig
 
-        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving), "control")
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(for: CredentialsSavingFlag())?.rawValue, CredentialsSavingFlag.CohortType.control.rawValue)
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "control")
 
@@ -188,7 +233,7 @@ final class FeatureFlaggerExperimentsTests: XCTestCase {
         manager.reload(etag: "", data: featureJson)
         config = manager.privacyConfig
 
-        XCTAssertNil(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving))
+        XCTAssertNil(featureFlagger.getCohortIfEnabled(for: CredentialsSavingFlag()))
         XCTAssertTrue(mockStore.experiments?.isEmpty ?? false)
         XCTAssertNil(experimentManager.cohort(for: subfeatureName))
         XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving))
@@ -224,7 +269,7 @@ final class FeatureFlaggerExperimentsTests: XCTestCase {
         """.data(using: .utf8)!
         manager.reload(etag: "2", data: featureJson)
 
-        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving), "control")
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(for: CredentialsSavingFlag())?.rawValue, CredentialsSavingFlag.CohortType.control.rawValue)
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "control")
 
@@ -258,14 +303,14 @@ final class FeatureFlaggerExperimentsTests: XCTestCase {
         """.data(using: .utf8)!
         manager.reload(etag: "2", data: featureJson)
 
-        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving), "red")
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(for: CredentialsSavingFlag())?.rawValue, CredentialsSavingFlag.CohortType.red.rawValue)
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "red")
     }
 
     func testDisablingFeatureDisablesCohort() {
         // Initially subfeature for both cohorts is disabled
-        XCTAssertNil(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving))
+        XCTAssertNil(featureFlagger.getCohortIfEnabled(for: CredentialsSavingFlag()))
         XCTAssertNil(mockStore.experiments)
         XCTAssertNil(experimentManager.cohort(for: subfeatureName))
 
@@ -299,7 +344,7 @@ final class FeatureFlaggerExperimentsTests: XCTestCase {
         """.data(using: .utf8)!
         manager.reload(etag: "", data: featureJson)
 
-        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving), "control")
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(for: CredentialsSavingFlag())?.rawValue, CredentialsSavingFlag.CohortType.control.rawValue)
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "control")
 
@@ -333,7 +378,7 @@ final class FeatureFlaggerExperimentsTests: XCTestCase {
         """.data(using: .utf8)!
         manager.reload(etag: "", data: featureJson)
 
-        XCTAssertNil(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving))
+        XCTAssertNil(featureFlagger.getCohortIfEnabled(for: CredentialsSavingFlag()))
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "control")
 
@@ -367,7 +412,7 @@ final class FeatureFlaggerExperimentsTests: XCTestCase {
         """.data(using: .utf8)!
         manager.reload(etag: "", data: featureJson)
 
-        XCTAssertNil(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving))
+        XCTAssertNil(featureFlagger.getCohortIfEnabled(for: CredentialsSavingFlag()))
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "control")
     }
@@ -409,23 +454,23 @@ final class FeatureFlaggerExperimentsTests: XCTestCase {
         }
         manager.reload(etag: "", data: featureJson(country: "FR", language: "fr"))
 
-        XCTAssertNil(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving))
+        XCTAssertNil(featureFlagger.getCohortIfEnabled(for: CredentialsSavingFlag()))
         XCTAssertNil(mockStore.experiments)
         XCTAssertNil(experimentManager.cohort(for: subfeatureName))
 
         manager.reload(etag: "", data: featureJson(country: "US", language: "en"))
-        XCTAssertNil(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving))
+        XCTAssertNil(featureFlagger.getCohortIfEnabled(for: CredentialsSavingFlag()))
         XCTAssertNil(mockStore.experiments)
         XCTAssertNil(experimentManager.cohort(for: subfeatureName))
 
         manager.reload(etag: "", data: featureJson(country: "US", language: "fr"))
-        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving), "control")
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(for: CredentialsSavingFlag())?.rawValue, CredentialsSavingFlag.CohortType.control.rawValue)
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "control")
 
         // once cohort is assigned, changing targets shall not affect feature state
         manager.reload(etag: "", data: featureJson(country: "IT", language: "it"))
-        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving), "control")
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(for: CredentialsSavingFlag())?.rawValue, CredentialsSavingFlag.CohortType.control.rawValue)
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "control")
 
@@ -453,13 +498,13 @@ final class FeatureFlaggerExperimentsTests: XCTestCase {
         """.data(using: .utf8)!
         manager.reload(etag: "", data: featureJson2)
 
-        XCTAssertNil(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving))
+        XCTAssertNil(featureFlagger.getCohortIfEnabled(for: CredentialsSavingFlag()))
         XCTAssertTrue(mockStore.experiments?.isEmpty ?? false)
         XCTAssertNil(experimentManager.cohort(for: subfeatureName))
 
         // re-populate experiment to re-assign new cohort, should not be assigned as it has wrong targets
         manager.reload(etag: "", data: featureJson(country: "IT", language: "it"))
-        XCTAssertNil(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving))
+        XCTAssertNil(featureFlagger.getCohortIfEnabled(for: CredentialsSavingFlag()))
         XCTAssertTrue(mockStore.experiments?.isEmpty ?? false)
         XCTAssertNil(experimentManager.cohort(for: subfeatureName))
     }
@@ -499,7 +544,7 @@ final class FeatureFlaggerExperimentsTests: XCTestCase {
         """.data(using: .utf8)!
         manager.reload(etag: "", data: featureJson)
 
-        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving), "control")
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(for: CredentialsSavingFlag())?.rawValue, CredentialsSavingFlag.CohortType.control.rawValue)
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "control")
 
@@ -538,7 +583,7 @@ final class FeatureFlaggerExperimentsTests: XCTestCase {
         """.data(using: .utf8)!
         manager.reload(etag: "", data: featureJson)
 
-        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving), "control")
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(for: CredentialsSavingFlag())?.rawValue, CredentialsSavingFlag.CohortType.control.rawValue)
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "control")
 
@@ -577,7 +622,7 @@ final class FeatureFlaggerExperimentsTests: XCTestCase {
         """.data(using: .utf8)!
         manager.reload(etag: "", data: featureJson)
 
-        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving), "control")
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(for: CredentialsSavingFlag())?.rawValue, CredentialsSavingFlag.CohortType.control.rawValue)
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "control")
 
@@ -620,7 +665,7 @@ final class FeatureFlaggerExperimentsTests: XCTestCase {
         """.data(using: .utf8)!
         manager.reload(etag: "", data: featureJson)
 
-        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving), "control")
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(for: CredentialsSavingFlag())?.rawValue, CredentialsSavingFlag.CohortType.control.rawValue)
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "control")
 
@@ -666,7 +711,7 @@ final class FeatureFlaggerExperimentsTests: XCTestCase {
         XCTAssertTrue(mockStore.experiments?.isEmpty ?? true)
         XCTAssertNil(experimentManager.cohort(for: subfeatureName), "control")
 
-        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving), "control")
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(for: CredentialsSavingFlag())?.rawValue, CredentialsSavingFlag.CohortType.control.rawValue)
         let currentTime = Date().timeIntervalSince1970
         let enrollmentTime = mockStore.experiments?[subfeatureName]?.enrollmentDate.timeIntervalSince1970
 
@@ -722,7 +767,7 @@ final class FeatureFlaggerExperimentsTests: XCTestCase {
         clearRolloutData(feature: "autofill", subFeature: "credentialsSaving")
 
         XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving))
-        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving), "control")
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(for: CredentialsSavingFlag())?.rawValue, CredentialsSavingFlag.CohortType.control.rawValue)
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "control")
 
@@ -769,7 +814,7 @@ final class FeatureFlaggerExperimentsTests: XCTestCase {
         config = manager.privacyConfig
 
         XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving))
-        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving), "control")
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(for: CredentialsSavingFlag())?.rawValue, CredentialsSavingFlag.CohortType.control.rawValue)
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "control")
 
@@ -812,7 +857,7 @@ final class FeatureFlaggerExperimentsTests: XCTestCase {
         var config = manager.privacyConfig
 
         XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving))
-        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving), "control")
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(for: CredentialsSavingFlag())?.rawValue, CredentialsSavingFlag.CohortType.control.rawValue)
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "control")
 
@@ -853,7 +898,7 @@ final class FeatureFlaggerExperimentsTests: XCTestCase {
         config = manager.privacyConfig
 
         XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving))
-        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving), "control")
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(for: CredentialsSavingFlag())?.rawValue, CredentialsSavingFlag.CohortType.control.rawValue)
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "control")
 
@@ -890,7 +935,7 @@ final class FeatureFlaggerExperimentsTests: XCTestCase {
         config = manager.privacyConfig
 
         XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving))
-        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving), "blue")
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(for: CredentialsSavingFlag())?.rawValue, CredentialsSavingFlag.CohortType.blue.rawValue)
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: subfeatureName), "blue")
     }
@@ -1014,9 +1059,9 @@ final class FeatureFlaggerExperimentsTests: XCTestCase {
 
         manager.reload(etag: "foo", data: featureJson)
 
-        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.credentialsSaving), "control")
-        XCTAssertEqual(featureFlagger.getCohortIfEnabled(AutofillSubfeature.inlineIconCredentials), "green")
-        XCTAssertNil(featureFlagger.getCohortIfEnabled(AutofillSubfeature.accessCredentialManagement))
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(for: CredentialsSavingFlag())?.rawValue, CredentialsSavingFlag.Cohort.control.rawValue)
+        XCTAssertEqual(featureFlagger.getCohortIfEnabled(for: InlineIconCredentialsFlag())?.rawValue, InlineIconCredentialsFlag.Cohort.green.rawValue)
+        XCTAssertNil(featureFlagger.getCohortIfEnabled(for: AccessCredentialManagementFlag()))
 
         XCTAssertFalse(mockStore.experiments?.isEmpty ?? true)
         XCTAssertEqual(experimentManager.cohort(for: AutofillSubfeature.credentialsSaving.rawValue), "control")
