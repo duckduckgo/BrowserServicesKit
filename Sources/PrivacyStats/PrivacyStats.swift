@@ -17,6 +17,7 @@
 //
 
 import Combine
+import Common
 import Foundation
 import os.log
 import Persistence
@@ -39,6 +40,42 @@ public protocol PrivacyStatsCollecting {
     func clearPrivacyStats() async
 }
 
+/**
+ * Errors that may be reported by `PrivacyStats`.
+ */
+public enum PrivacyStatsError: CustomNSError {
+    case failedToFetchPrivacyStatsSummary(Error)
+    case failedToStorePrivacyStats(Error)
+    case failedToClearPrivacyStats(Error)
+    case failedToLoadCurrentPrivacyStats(Error)
+
+    public static let errorDomain: String = "PrivacyStatsError"
+
+    public var errorCode: Int {
+        switch self {
+        case .failedToFetchPrivacyStatsSummary:
+            return 1
+        case .failedToStorePrivacyStats:
+            return 2
+        case .failedToClearPrivacyStats:
+            return 3
+        case .failedToLoadCurrentPrivacyStats:
+            return 4
+        }
+    }
+
+    public var underlyingError: Error {
+        switch self {
+        case .failedToFetchPrivacyStatsSummary(let error),
+                .failedToStorePrivacyStats(let error),
+                .failedToClearPrivacyStats(let error),
+                .failedToLoadCurrentPrivacyStats(let error):
+            return error
+        }
+    }
+}
+
+
 public final class PrivacyStats: PrivacyStatsCollecting {
 
     public static let bundle = Bundle.module
@@ -51,9 +88,12 @@ public final class PrivacyStats: PrivacyStatsCollecting {
     private let statsUpdateSubject = PassthroughSubject<Void, Never>()
     private var cancellables: Set<AnyCancellable> = []
 
-    public init(databaseProvider: PrivacyStatsDatabaseProviding) {
+    private let errorEvents: EventMapping<PrivacyStatsError>?
+
+    public init(databaseProvider: PrivacyStatsDatabaseProviding, errorEvents: EventMapping<PrivacyStatsError>? = nil) {
         self.db = databaseProvider.initializeDatabase()
         self.context = db.makeContext(concurrencyType: .privateQueueConcurrencyType, name: "PrivacyStats")
+        self.errorEvents = errorEvents
 
         statsUpdatePublisher = statsUpdateSubject.eraseToAnyPublisher()
         currentPack = .init(pack: initializeCurrentPack())
@@ -86,8 +126,13 @@ public final class PrivacyStats: PrivacyStatsCollecting {
                     continuation.resume(returning: [:])
                     return
                 }
-                let stats = PrivacyStatsUtils.load7DayStats(in: context)
-                continuation.resume(returning: stats)
+                do {
+                    let stats = try PrivacyStatsUtils.load7DayStats(in: context)
+                    continuation.resume(returning: stats)
+                } catch {
+                    errorEvents?.fire(.failedToFetchPrivacyStatsSummary(error))
+                    continuation.resume(returning: [:])
+                }
             }
         }
     }
@@ -105,6 +150,7 @@ public final class PrivacyStats: PrivacyStatsCollecting {
                     Logger.privacyStats.debug("Deleted outdated entries")
                 } catch {
                     Logger.privacyStats.error("Save error: \(error)")
+                    errorEvents?.fire(.failedToFetchPrivacyStatsSummary(error))
                 }
                 continuation.resume()
             }
@@ -122,24 +168,25 @@ public final class PrivacyStats: PrivacyStatsCollecting {
                     return
                 }
 
-                let statsObjects = PrivacyStatsUtils.fetchOrInsertCurrentStats(for: Set(pack.trackers.keys), in: context)
-                statsObjects.forEach { stats in
-                    if let count = pack.trackers[stats.companyName] {
-                        stats.count = count
-                    }
-                }
-
-                guard context.hasChanges else {
-                    continuation.resume()
-                    return
-                }
-
                 do {
+                    let statsObjects = try PrivacyStatsUtils.fetchOrInsertCurrentStats(for: Set(pack.trackers.keys), in: context)
+                    statsObjects.forEach { stats in
+                        if let count = pack.trackers[stats.companyName] {
+                            stats.count = count
+                        }
+                    }
+
+                    guard context.hasChanges else {
+                        continuation.resume()
+                        return
+                    }
+
                     try context.save()
                     Logger.privacyStats.debug("Saved stats \(pack.timestamp) \(pack.trackers)")
                     statsUpdateSubject.send()
                 } catch {
                     Logger.privacyStats.error("Save error: \(error)")
+                    errorEvents?.fire(.failedToStorePrivacyStats(error))
                 }
                 continuation.resume()
             }
@@ -161,6 +208,7 @@ public final class PrivacyStats: PrivacyStatsCollecting {
                         Logger.privacyStats.debug("Deleted outdated entries")
                     } catch {
                         Logger.privacyStats.error("Save error: \(error)")
+                        errorEvents?.fire(.failedToClearPrivacyStats(error))
                     }
                 }
                 continuation.resume()
@@ -176,9 +224,14 @@ public final class PrivacyStats: PrivacyStatsCollecting {
                     return
                 }
                 let timestamp = Date().privacyStatsPackTimestamp
-                let currentDayStats = PrivacyStatsUtils.loadCurrentDayStats(in: context)
-                Logger.privacyStats.debug("Loaded stats \(timestamp) \(currentDayStats)")
-                continuation.resume(returning: PrivacyStatsPack(timestamp: timestamp, trackers: currentDayStats))
+                do {
+                    let currentDayStats = try PrivacyStatsUtils.loadCurrentDayStats(in: context)
+                    Logger.privacyStats.debug("Loaded stats \(timestamp) \(currentDayStats)")
+                    continuation.resume(returning: PrivacyStatsPack(timestamp: timestamp, trackers: currentDayStats))
+                } catch {
+                    Logger.privacyStats.error("Faild to load current stats: \(error)")
+                    errorEvents?.fire(.failedToLoadCurrentPrivacyStats(error))
+                }
             }
         }
         if let pack {
@@ -190,9 +243,14 @@ public final class PrivacyStats: PrivacyStatsCollecting {
         var pack: PrivacyStatsPack?
         context.performAndWait {
             let timestamp = Date().privacyStatsPackTimestamp
-            let currentDayStats = PrivacyStatsUtils.loadCurrentDayStats(in: context)
-            Logger.privacyStats.debug("Loaded stats \(timestamp) \(currentDayStats)")
-            pack = PrivacyStatsPack(timestamp: timestamp, trackers: currentDayStats)
+            do {
+                let currentDayStats = try PrivacyStatsUtils.loadCurrentDayStats(in: context)
+                Logger.privacyStats.debug("Loaded stats \(timestamp) \(currentDayStats)")
+                pack = PrivacyStatsPack(timestamp: timestamp, trackers: currentDayStats)
+            } catch {
+                Logger.privacyStats.error("Faild to load current stats: \(error)")
+                errorEvents?.fire(.failedToLoadCurrentPrivacyStats(error))
+            }
         }
         return pack ?? PrivacyStatsPack(timestamp: Date().privacyStatsPackTimestamp)
     }

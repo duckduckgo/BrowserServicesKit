@@ -34,7 +34,7 @@ final class PrivacyStatsUtils {
      * > Note: `current stats` refer to stats objects that are active on a given day, i.e. their
      *   timestamp's day matches current day.
      */
-    static func fetchOrInsertCurrentStats(for companyNames: Set<String>, in context: NSManagedObjectContext) -> [DailyBlockedTrackersEntity] {
+    static func fetchOrInsertCurrentStats(for companyNames: Set<String>, in context: NSManagedObjectContext) throws -> [DailyBlockedTrackersEntity] {
         let timestamp = Date().privacyStatsPackTimestamp
 
         let request = DailyBlockedTrackersEntity.fetchRequest()
@@ -43,7 +43,7 @@ final class PrivacyStatsUtils {
                                         #keyPath(DailyBlockedTrackersEntity.companyName), companyNames)
         request.returnsObjectsAsFaults = false
 
-        var statsObjects = (try? context.fetch(request)) ?? []
+        var statsObjects = try context.fetch(request)
         let missingCompanyNames = companyNames.subtracting(statsObjects.map(\.companyName))
 
         for companyName in missingCompanyNames {
@@ -55,20 +55,20 @@ final class PrivacyStatsUtils {
     /**
      * Returns a dictionary representation of blocked trackers counts grouped by company name for the current day.
      */
-    static func loadCurrentDayStats(in context: NSManagedObjectContext) -> [String: Int64] {
+    static func loadCurrentDayStats(in context: NSManagedObjectContext) throws -> [String: Int64] {
         let startDate = Date().privacyStatsPackTimestamp
-        return loadBlockedTrackerStats(since: startDate, in: context)
+        return try loadBlockedTrackersStats(since: startDate, in: context)
     }
 
     /**
      * Returns a dictionary representation of blocked trackers counts grouped by company name for past 7 days.
      */
-    static func load7DayStats(in context: NSManagedObjectContext) -> [String: Int64] {
+    static func load7DayStats(in context: NSManagedObjectContext) throws -> [String: Int64] {
         let startDate = Date().privacyStatsOldestPackTimestamp
-        return loadBlockedTrackerStats(since: startDate, in: context)
+        return try loadBlockedTrackersStats(since: startDate, in: context)
     }
 
-    private static func loadBlockedTrackerStats(since startDate: Date, in context: NSManagedObjectContext) -> [String: Int64] {
+    private static func loadBlockedTrackersStats(since startDate: Date, in context: NSManagedObjectContext) throws -> [String: Int64] {
         let request = NSFetchRequest<NSFetchRequestResult>(entityName: "DailyBlockedTrackersEntity")
         request.predicate = NSPredicate(format: "%K >= %@", #keyPath(DailyBlockedTrackersEntity.timestamp), startDate as NSDate)
 
@@ -86,7 +86,7 @@ final class PrivacyStatsUtils {
         request.propertiesToFetch = [#keyPath(DailyBlockedTrackersEntity.companyName), sumExpressionDescription]
         request.resultType = .dictionaryResultType
 
-        let results = ((try? context.fetch(request)) as? [[String: Any]]) ?? []
+        let results = (try context.fetch(request) as? [[String: Any]]) ?? []
 
         let groupedResults = results.reduce(into: [String: Int64]()) { partialResult, result in
             if let companyName = result[#keyPath(DailyBlockedTrackersEntity.companyName)] as? String,
