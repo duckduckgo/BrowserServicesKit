@@ -114,9 +114,9 @@ struct StoreSubscriptionDefinition {
 public enum SubscriptionRegion: CaseIterable {
     case usa
     case restOfWorld
-    
+
     /// Country codes as used by StoreKit, in the ISO 3166-1 Alpha-3 country code representation
-    /// .restOfWorld defined based on https://app.asana.com/0/1208524871249522/1208571752166956/f
+    /// For .restOfWorld definiton see https://app.asana.com/0/1208524871249522/1208571752166956/f
     var countryCodes: Set<String> {
         switch self {
         case .usa:

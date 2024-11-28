@@ -1,6 +1,5 @@
 //
 //  SubscriptionFeatureMappingCacheMock.swift
-//  DuckDuckGo
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -25,7 +24,7 @@ public final class SubscriptionFeatureMappingCacheMock: SubscriptionFeatureMappi
     public var mapping: [String: [Entitlement.ProductName]] = [:]
 
     public init() { }
-    
+
     public func subscriptionFeatures(for subscriptionIdentifier: String) async -> [Entitlement.ProductName] {
         return mapping[subscriptionIdentifier] ?? []
     }
