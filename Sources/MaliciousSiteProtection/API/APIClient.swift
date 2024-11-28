@@ -39,7 +39,6 @@ public extension APIClient {
 
         case production
         case staging
-        case dev
 
         var endpoint: URL {
             switch self {
