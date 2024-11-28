@@ -72,6 +72,8 @@ final class PrivacyStatsUtils {
         let request = NSFetchRequest<NSFetchRequestResult>(entityName: "DailyBlockedTrackersEntity")
         request.predicate = NSPredicate(format: "%K >= %@", #keyPath(DailyBlockedTrackersEntity.timestamp), startDate as NSDate)
 
+        let companyNameKey = #keyPath(DailyBlockedTrackersEntity.companyName)
+
         // Expression description for the sum of count
         let countExpression = NSExpression(forKeyPath: #keyPath(DailyBlockedTrackersEntity.count))
         let sumExpression = NSExpression(forFunction: "sum:", arguments: [countExpression])
@@ -81,16 +83,14 @@ final class PrivacyStatsUtils {
         sumExpressionDescription.expression = sumExpression
         sumExpressionDescription.expressionResultType = .integer64AttributeType
 
-        // Configure the fetch request for aggregation
-        request.propertiesToGroupBy = [#keyPath(DailyBlockedTrackersEntity.companyName)]
-        request.propertiesToFetch = [#keyPath(DailyBlockedTrackersEntity.companyName), sumExpressionDescription]
+        request.propertiesToGroupBy = [companyNameKey]
+        request.propertiesToFetch = [companyNameKey, sumExpressionDescription]
         request.resultType = .dictionaryResultType
 
         let results = (try context.fetch(request) as? [[String: Any]]) ?? []
 
         let groupedResults = results.reduce(into: [String: Int64]()) { partialResult, result in
-            if let companyName = result[#keyPath(DailyBlockedTrackersEntity.companyName)] as? String,
-               let totalCount = result["totalCount"] as? Int64 {
+            if let companyName = result[companyNameKey] as? String, let totalCount = result["totalCount"] as? Int64, totalCount > 0 {
                 partialResult[companyName] = totalCount
             }
         }

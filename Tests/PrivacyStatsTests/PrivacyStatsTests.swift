@@ -22,30 +22,6 @@ import TrackerRadarKit
 import XCTest
 @testable import PrivacyStats
 
-final class TestPrivacyStatsDatabaseProvider: PrivacyStatsDatabaseProviding {
-    let databaseName: String
-    var database: CoreDataDatabase!
-    var location: URL!
-
-    init(databaseName: String) {
-        self.databaseName = databaseName
-    }
-
-    func initializeDatabase() -> CoreDataDatabase {
-        location = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-        let model = CoreDataDatabase.loadModel(from: PrivacyStats.bundle, named: "PrivacyStats")!
-        database = CoreDataDatabase(name: databaseName, containerLocation: location, model: model)
-        database.loadStore()
-        return database
-    }
-
-    func tearDownDatabase() {
-        try? database.tearDown(deleteStores: true)
-        database = nil
-        try? FileManager.default.removeItem(at: location)
-    }
-}
-
 final class PrivacyStatsTests: XCTestCase {
     var databaseProvider: TestPrivacyStatsDatabaseProvider!
     var privacyStats: PrivacyStats!
@@ -53,6 +29,10 @@ final class PrivacyStatsTests: XCTestCase {
     override func setUp() async throws {
         databaseProvider = TestPrivacyStatsDatabaseProvider(databaseName: type(of: self).description())
         privacyStats = PrivacyStats(databaseProvider: databaseProvider)
+    }
+
+    override func tearDown() async throws {
+        databaseProvider.tearDownDatabase()
     }
 
     // MARK: - fetchPrivacyStats
@@ -63,7 +43,7 @@ final class PrivacyStatsTests: XCTestCase {
     }
 
     func testThatFetchPrivacyStatsReturnsAllCompanies() async throws {
-        try addObjects { context in
+        try databaseProvider.addObjects { context in
             [
                 DailyBlockedTrackersEntity.make(companyName: "A", count: 10, context: context),
                 DailyBlockedTrackersEntity.make(companyName: "B", count: 5, context: context),
@@ -77,7 +57,7 @@ final class PrivacyStatsTests: XCTestCase {
     }
 
     func testThatFetchPrivacyStatsReturnsSumOfCompanyEntriesForPast7Days() async throws {
-        try addObjects { context in
+        try databaseProvider.addObjects { context in
             let date = Date()
 
             return [
@@ -96,7 +76,7 @@ final class PrivacyStatsTests: XCTestCase {
     }
 
     func testThatFetchPrivacyStatsDiscardsEntriesOlderThan7Days() async throws {
-        try addObjects { context in
+        try databaseProvider.addObjects { context in
             let date = Date()
 
             return [
@@ -173,7 +153,7 @@ final class PrivacyStatsTests: XCTestCase {
     // MARK: - clearPrivacyStats
 
     func testWhenClearPrivacyStatsIsCalledThenFetchPrivacyStatsIsEmpty() async throws {
-        try addObjects { context in
+        try databaseProvider.addObjects { context in
             let date = Date()
 
             return [
@@ -212,17 +192,5 @@ final class PrivacyStatsTests: XCTestCase {
         let cancellable = privacyStats.statsUpdatePublisher.sink { expectation.fulfill() }
         await fulfillment(of: [expectation])
         cancellable.cancel()
-    }
-
-    func addObjects(_ objects: (NSManagedObjectContext) -> [DailyBlockedTrackersEntity], file: StaticString = #file, line: UInt = #line) throws {
-        let context = databaseProvider.database.makeContext(concurrencyType: .privateQueueConcurrencyType)
-        context.performAndWait {
-            _ = objects(context)
-            do {
-                try context.save()
-            } catch {
-                XCTFail("save failed: \(error)", file: file, line: line)
-            }
-        }
     }
 }
