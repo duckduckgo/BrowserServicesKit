@@ -17,7 +17,7 @@
 //
 
 import Foundation
-import Networking
+@testable import Networking
 @testable import Subscription
 
 public final class SubscriptionManagerMock: SubscriptionManager {
@@ -77,13 +77,17 @@ public final class SubscriptionManagerMock: SubscriptionManager {
         return customerPortalURL
     }
 
-    public var isUserAuthenticated: Bool = false
+    public var isUserAuthenticated: Bool {
+        resultTokenContainer != nil
+    }
 
     public var userEmail: String? {
         resultTokenContainer?.decodedAccessToken.email
     }
 
-    public var entitlements: [Networking.SubscriptionEntitlement] = []
+    public var entitlements: [Networking.SubscriptionEntitlement] {
+        resultTokenContainer?.decodedAccessToken.subscriptionEntitlements ?? []
+    }
 
     public var resultTokenContainer: Networking.TokenContainer?
 
