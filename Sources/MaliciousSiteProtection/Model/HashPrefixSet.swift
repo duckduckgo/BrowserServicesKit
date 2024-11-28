@@ -18,21 +18,22 @@
 
 import Foundation
 
-public struct HashPrefixSet: Codable, Equatable {
+/// Structure storing a Set of hash prefixes ["6fe1e7c8","1d760415",...] and a revision of the set.
+struct HashPrefixSet: Codable, Equatable {
 
-    public var revision: Int
-    public var set: Set<Element>
+    var revision: Int
+    var set: Set<Element>
 
-    public init(revision: Int, items: some Sequence<Element>) {
+    init(revision: Int, items: some Sequence<Element>) {
         self.revision = revision
         self.set = Set(items)
     }
 
-    public mutating func subtract<Seq: Sequence>(_ itemsToDelete: Seq) where Seq.Element == String {
+    mutating func subtract<Seq: Sequence>(_ itemsToDelete: Seq) where Seq.Element == String {
         set.subtract(itemsToDelete)
     }
 
-    public mutating func formUnion<Seq: Sequence>(_ itemsToAdd: Seq) where Seq.Element == String {
+    mutating func formUnion<Seq: Sequence>(_ itemsToAdd: Seq) where Seq.Element == String {
         set.formUnion(itemsToAdd)
     }
 

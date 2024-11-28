@@ -60,16 +60,16 @@ class MaliciousSiteProtectionDataManagerTests: XCTestCase {
 
     func testWhenNoDataSavedThenProviderDataReturned() async {
         clearDatasets()
-        let expectedFilerSet = Set([Filter(hash: "some", regex: "some")])
-        let expectedFilerDict = FilterDictionary(revision: 65, items: expectedFilerSet)
+        let expectedFilterSet = Set([Filter(hash: "some", regex: "some")])
+        let expectedFilterDict = FilterDictionary(revision: 65, items: expectedFilterSet)
         let expectedHashPrefix = Set(["sassa"])
-        embeddedDataProvider.filterSet = expectedFilerSet
+        embeddedDataProvider.filterSet = expectedFilterSet
         embeddedDataProvider.hashPrefixes = expectedHashPrefix
 
         let actualFilterSet = await dataManager.dataSet(for: .filterSet(threatKind: .phishing))
         let actualHashPrefix = await dataManager.dataSet(for: .hashPrefixes(threatKind: .phishing))
 
-        XCTAssertEqual(actualFilterSet, expectedFilerDict)
+        XCTAssertEqual(actualFilterSet, expectedFilterDict)
         XCTAssertEqual(actualHashPrefix.set, expectedHashPrefix)
     }
 

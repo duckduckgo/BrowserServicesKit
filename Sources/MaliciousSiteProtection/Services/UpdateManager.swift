@@ -20,36 +20,41 @@ import Foundation
 import Common
 import os
 
-public protocol UpdateManaging {
-    func updateData(for key: some MaliciousSiteDataKeyProtocol) async
+protocol UpdateManaging {
+    func updateData(for key: some MaliciousSiteDataKey) async
+
     func startPeriodicUpdates() -> Task<Void, Error>
 }
 
 public struct UpdateManager: UpdateManaging {
 
-    private let apiClient: APIClientProtocol
+    private let apiClient: APIClient.Mockable
     private let dataManager: DataManaging
 
     public typealias UpdateIntervalProvider = (DataManager.StoredDataType) -> TimeInterval?
     private let updateIntervalProvider: UpdateIntervalProvider
     private let sleeper: Sleeper
 
-    public init(apiClient: APIClientProtocol, dataManager: DataManaging, sleeper: Sleeper = .default, updateIntervalProvider: @escaping UpdateIntervalProvider) {
+    public init(apiEnvironment: APIClientEnvironment, dataManager: DataManager, updateIntervalProvider: @escaping UpdateIntervalProvider) {
+        self.init(apiClient: APIClient(environment: apiEnvironment), dataManager: dataManager, updateIntervalProvider: updateIntervalProvider)
+    }
+
+    init(apiClient: APIClient.Mockable, dataManager: DataManaging, sleeper: Sleeper = .default, updateIntervalProvider: @escaping UpdateIntervalProvider) {
         self.apiClient = apiClient
         self.dataManager = dataManager
         self.updateIntervalProvider = updateIntervalProvider
         self.sleeper = sleeper
     }
 
-    public func updateData<DataKey: MaliciousSiteDataKeyProtocol>(for key: DataKey) async {
+    func updateData<DataKey: MaliciousSiteDataKey>(for key: DataKey) async {
         // load currently stored data set
         var dataSet = await dataManager.dataSet(for: key)
         let oldRevision = dataSet.revision
 
         // get change set from current revision from API
-        let changeSet: APIClient.ChangeSetResponse<DataKey.DataSetType.Element>
+        let changeSet: APIClient.ChangeSetResponse<DataKey.DataSet.Element>
         do {
-            let request = DataKey.DataSetType.APIRequestType(threatKind: key.threatKind, revision: oldRevision)
+            let request = DataKey.DataSet.APIRequest(threatKind: key.threatKind, revision: oldRevision)
             changeSet = try await apiClient.load(request)
         } catch {
             Logger.updateManager.error("error fetching filter set: \(error)")

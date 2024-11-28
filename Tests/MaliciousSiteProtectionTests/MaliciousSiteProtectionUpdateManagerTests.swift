@@ -27,7 +27,7 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
 
     var updateManager: MaliciousSiteProtection.UpdateManager!
     var dataManager: MockMaliciousSiteProtectionDataManager!
-    var apiClient: MockMaliciousSiteProtectionAPIClient!
+    var apiClient: MaliciousSiteProtection.APIClient.Mockable!
     var updateIntervalProvider: UpdateManager.UpdateIntervalProvider!
     var clock: TestClock<Duration>!
     var willSleep: ((TimeInterval) -> Void)?

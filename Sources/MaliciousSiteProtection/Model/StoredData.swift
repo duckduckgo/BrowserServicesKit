@@ -18,9 +18,9 @@
 
 import Foundation
 
-public protocol MaliciousSiteDataKeyProtocol: Hashable {
-    associatedtype EmbeddedDataSetType: Decodable
-    associatedtype DataSetType: IncrementallyUpdatableMaliciousSiteDataSet, LoadableFromEmbeddedData<EmbeddedDataSetType>
+protocol MaliciousSiteDataKey: Hashable {
+    associatedtype EmbeddedDataSet: Decodable
+    associatedtype DataSet: IncrementallyUpdatableDataSet, LoadableFromEmbeddedData<EmbeddedDataSet>
 
     var dataType: DataManager.StoredDataType { get }
     var threatKind: ThreatKind { get }
@@ -42,7 +42,7 @@ public extension DataManager {
             }
         }
 
-        var dataKey: any MaliciousSiteDataKeyProtocol {
+        var dataKey: any MaliciousSiteDataKey {
             switch self {
             case .hashPrefixSet(let key): key
             case .filterSet(let key): key
@@ -70,34 +70,34 @@ public extension DataManager {
 }
 
 public extension DataManager.StoredDataType {
-    struct HashPrefixes: MaliciousSiteDataKeyProtocol {
-        public typealias DataSetType = HashPrefixSet
+    struct HashPrefixes: MaliciousSiteDataKey {
+        typealias DataSet = HashPrefixSet
 
-        public let threatKind: ThreatKind
+        let threatKind: ThreatKind
 
-        public var dataType: DataManager.StoredDataType {
+        var dataType: DataManager.StoredDataType {
             .hashPrefixSet(self)
         }
     }
 }
-extension MaliciousSiteDataKeyProtocol where Self == DataManager.StoredDataType.HashPrefixes {
+extension MaliciousSiteDataKey where Self == DataManager.StoredDataType.HashPrefixes {
     static func hashPrefixes(threatKind: ThreatKind) -> Self {
         .init(threatKind: threatKind)
     }
 }
 
 public extension DataManager.StoredDataType {
-    struct FilterSet: MaliciousSiteDataKeyProtocol {
-        public typealias DataSetType = FilterDictionary
+    struct FilterSet: MaliciousSiteDataKey {
+        typealias DataSet = FilterDictionary
 
-        public let threatKind: ThreatKind
+        let threatKind: ThreatKind
 
-        public var dataType: DataManager.StoredDataType {
+        var dataType: DataManager.StoredDataType {
             .filterSet(self)
         }
     }
 }
-extension MaliciousSiteDataKeyProtocol where Self == DataManager.StoredDataType.FilterSet {
+extension MaliciousSiteDataKey where Self == DataManager.StoredDataType.FilterSet {
     static func filterSet(threatKind: ThreatKind) -> Self {
         .init(threatKind: threatKind)
     }
