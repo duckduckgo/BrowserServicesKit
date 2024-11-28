@@ -379,7 +379,7 @@ class MockExperimentManager: ExperimentCohortsManaging {
     }
 }
 
-fileprivate struct FakeExperimentFlag: FeatureFlagExperimentDescribing {
+private struct FakeExperimentFlag: FeatureFlagExperimentDescribing {
     typealias CohortType = AutofillCohort
 
     var rawValue: String = "fake-experiment"
@@ -387,7 +387,7 @@ fileprivate struct FakeExperimentFlag: FeatureFlagExperimentDescribing {
     var source: FeatureFlagSource
 }
 
-fileprivate enum AutofillCohort: String, FlagCohort {
+private enum AutofillCohort: String, FlagCohort {
     case control
     case blue
 }
