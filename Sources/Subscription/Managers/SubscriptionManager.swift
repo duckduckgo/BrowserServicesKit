@@ -41,7 +41,6 @@ public enum SubscriptionPixelType {
     case deadToken
 }
 
-// TODO: list notifications fired and why
 /// The sole entity responsible of obtaining, storing and refreshing an OAuth Token
 public protocol SubscriptionTokenProvider {
 
@@ -344,7 +343,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
 
     public func exchange(tokenV1: String) async throws -> TokenContainer {
         let tokenContainer = try await oAuthClient.exchange(accessTokenV1: tokenV1)
-        NotificationCenter.default.post(name: .accountDidSignIn, object: self, userInfo: nil) // TODO: move all the notifications down to the storage?
+        NotificationCenter.default.post(name: .accountDidSignIn, object: self, userInfo: nil) // move all the notifications down to the storage?
         return tokenContainer
     }
 

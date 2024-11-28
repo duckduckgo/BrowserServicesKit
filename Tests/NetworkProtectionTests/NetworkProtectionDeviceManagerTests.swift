@@ -41,7 +41,7 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
 
         manager = NetworkProtectionDeviceManager(
             networkClient: networkClient,
-            tokenProvider:  tokenProvider,
+            tokenProvider: tokenProvider,
             keyStore: keyStore,
             errorEvents: nil
         )

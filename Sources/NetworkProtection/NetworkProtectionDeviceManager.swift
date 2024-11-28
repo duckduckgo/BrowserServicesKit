@@ -312,11 +312,11 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     }
 
     private func handle(clientError: NetworkProtectionClientError) {
-//#if os(macOS)
+// #if os(macOS)
 //        if case .invalidAuthToken = clientError {
 //            try? tokenStore.deleteToken()
 //        }
-//#endif
+// #endif
         errorEvents?.fire(clientError.networkProtectionError)
     }
 

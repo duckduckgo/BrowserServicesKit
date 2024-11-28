@@ -59,7 +59,7 @@ public final class SubscriptionManagerMock: SubscriptionManager {
 
     public var canPurchase: Bool = true
 
-    var resultStorePurchaseManager: (any Subscription.StorePurchaseManager)?
+    public var resultStorePurchaseManager: (any Subscription.StorePurchaseManager)?
     public func storePurchaseManager() -> any Subscription.StorePurchaseManager {
         return resultStorePurchaseManager!
     }

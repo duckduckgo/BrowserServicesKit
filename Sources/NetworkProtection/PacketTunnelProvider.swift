@@ -1567,9 +1567,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     @MainActor
     private func attemptShutdownDueToRevokedAccess() async {
         let cancelTunnel = {
-//#if os(macOS)
+// #if os(macOS)
 //            try? self.tokenStore.deleteToken()
-//#endif
+// #endif
             self.cancelTunnelWithError(TunnelError.vpnAccessRevoked)
         }
 
