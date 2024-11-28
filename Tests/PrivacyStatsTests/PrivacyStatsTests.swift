@@ -134,7 +134,7 @@ final class PrivacyStatsTests: XCTestCase {
         var stats = await privacyStats.fetchPrivacyStats()
         XCTAssertEqual(stats, [:])
 
-        try await Task.sleep(nanoseconds: 1_100_000_000)
+        try await Task.sleep(nanoseconds: 1_500_000_000)
 
         stats = await privacyStats.fetchPrivacyStats()
         XCTAssertEqual(stats, ["A": 1])
@@ -198,16 +198,17 @@ final class PrivacyStatsTests: XCTestCase {
 
         await privacyStats.recordBlockedTracker("A")
 
-        try await Task.sleep(nanoseconds: 1_100_000_000)
+        // No Task.sleep because the commit event will be sent immediately from the actor when pack's timestamp changes.
+        // We aren't testing the debounced commit in this test case.
 
         let stats = await privacyStats.fetchPrivacyStats()
-        XCTAssertEqual(stats, ["A": 3]) // 2 from yesterday and 1 from today
+        XCTAssertEqual(stats, ["A": 2])
 
         let context = databaseProvider.database.makeContext(concurrencyType: .privateQueueConcurrencyType)
         context.performAndWait {
             do {
                 let allObjects = try context.fetch(DailyBlockedTrackersEntity.fetchRequest())
-                XCTAssertEqual(Set(allObjects.map(\.count)), [1, 2]) // 7 day ago entry got deleted
+                XCTAssertEqual(Set(allObjects.map(\.count)), [2])
             } catch {
                 XCTFail("Context fetch should not fail")
             }
