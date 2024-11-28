@@ -198,10 +198,10 @@ final class PrivacyStatsTests: XCTestCase {
 
         await privacyStats.recordBlockedTracker("A")
 
-        // No Task.sleep because the commit event will be sent immediately from the actor when pack's timestamp changes.
+        // No waiting here because the first commit event will be sent immediately from the actor when pack's timestamp changes.
         // We aren't testing the debounced commit in this test case.
 
-        let stats = await privacyStats.fetchPrivacyStats()
+        var stats = await privacyStats.fetchPrivacyStats()
         XCTAssertEqual(stats, ["A": 2])
 
         let context = databaseProvider.database.makeContext(concurrencyType: .privateQueueConcurrencyType)
@@ -213,6 +213,10 @@ final class PrivacyStatsTests: XCTestCase {
                 XCTFail("Context fetch should not fail")
             }
         }
+
+        await waitForStatsUpdateEvent()
+        stats = await privacyStats.fetchPrivacyStats()
+        XCTAssertEqual(stats, ["A": 3])
     }
 
     // MARK: - clearPrivacyStats

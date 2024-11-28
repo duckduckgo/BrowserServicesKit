@@ -178,10 +178,13 @@ public final class PrivacyStats: PrivacyStatsCollecting {
     private func commitChanges(_ pack: PrivacyStatsPack) async {
         await withCheckedContinuation { continuation in
             context.perform { [weak self] in
-                guard let self, context.persistentStoreCoordinator?.persistentStores.isEmpty == false else {
+                guard let self else {
                     continuation.resume()
                     return
                 }
+
+                // Check if the pack we're currently storing is from a previous day.
+                let isCurrentDayPack = pack.timestamp == Date.currentPrivacyStatsPackTimestamp
 
                 do {
                     let statsObjects = try PrivacyStatsUtils.fetchOrInsertCurrentStats(for: Set(pack.trackers.keys), in: context)
@@ -191,9 +194,8 @@ public final class PrivacyStats: PrivacyStatsCollecting {
                         }
                     }
 
-                    // Delete outdated packs if the pack we're storing is from a previous day.
-                    // This means that it's a new day and we may have outdated packs.
-                    if pack.timestamp < Date.currentPrivacyStatsPackTimestamp {
+                    // When storing a pack from a previous day, we may have outdated packs, so delete them as needed.
+                    if !isCurrentDayPack {
                         PrivacyStatsUtils.deleteOutdatedPacks(in: context)
                     }
 
@@ -204,7 +206,12 @@ public final class PrivacyStats: PrivacyStatsCollecting {
 
                     try context.save()
                     Logger.privacyStats.debug("Saved stats \(pack.timestamp) \(pack.trackers)")
-                    statsUpdateSubject.send()
+
+                    // Only emit update event when saving current-day pack. For previous-day pack,
+                    // a follow-up commit event will come and we'll emit the update then.
+                    if isCurrentDayPack {
+                        statsUpdateSubject.send()
+                    }
                 } catch {
                     Logger.privacyStats.error("Save error: \(error)")
                     errorEvents?.fire(.failedToStorePrivacyStats(error))

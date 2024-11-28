@@ -76,24 +76,36 @@ actor CurrentPack {
         let currentTimestamp = Date.currentPrivacyStatsPackTimestamp
         if currentTimestamp != pack.timestamp {
             Logger.privacyStats.debug("New timestamp detected, storing trackers state and creating new pack")
-            commitChangesSubject.send(pack)
+            notifyChanges(for: pack, immediately: true)
             resetStats(andSet: currentTimestamp)
         }
 
         let count = pack.trackers[companyName] ?? 0
         pack.trackers[companyName] = count + 1
 
-        commitTask?.cancel()
-        commitTask = Task {
-            do {
-                // Note that this doesn't always sleep for the full debounce time, but the sleep is interrupted
-                // as soon as the task gets cancelled.
-                try await Task.sleep(nanoseconds: commitDebounce)
+        notifyChanges(for: pack, immediately: false)
+    }
 
-                Logger.privacyStats.debug("Storing trackers state")
-                commitChangesSubject.send(pack)
-            } catch {
-                // Commit task got cancelled
+    private func notifyChanges(for pack: PrivacyStatsPack, immediately shouldPublishImmediately: Bool) {
+        commitTask?.cancel()
+
+        if shouldPublishImmediately {
+
+            commitChangesSubject.send(pack)
+
+        } else {
+
+            commitTask = Task {
+                do {
+                    // Note that this doesn't always sleep for the full debounce time, but the sleep is interrupted
+                    // as soon as the task gets cancelled.
+                    try await Task.sleep(nanoseconds: commitDebounce)
+
+                    Logger.privacyStats.debug("Storing trackers state")
+                    commitChangesSubject.send(pack)
+                } catch {
+                    // Commit task got cancelled
+                }
             }
         }
     }
