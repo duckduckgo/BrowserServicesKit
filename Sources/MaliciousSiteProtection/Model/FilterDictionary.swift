@@ -50,6 +50,21 @@ public struct FilterDictionary: Codable, Equatable {
 
     public mutating func subtract<Seq: Sequence>(_ itemsToDelete: Seq) where Seq.Element == Filter {
         for filter in itemsToDelete {
+            // Remove the filter from the Set stored in the Dictionary by hash used as a key.
+            // If the Set becomes empty – remove the Set value from the Dictionary.
+            //
+            // The following code is equivalent to this one but without the Set value being copied
+            // or key being searched multiple times:
+            /*
+             if var filterSet = self.filters[filter.hash] {
+                filterSet.remove(filter.regex)
+                if filterSet.isEmpty {
+                    self.filters[filter.hash] = nil
+                } else {
+                    self.filters[filter.hash] = filterSet
+                }
+             }
+            */
             withUnsafeMutablePointer(to: &filters[filter.hash]) { item in
                 item.pointee?.remove(filter.regex)
                 if item.pointee?.isEmpty == true {
