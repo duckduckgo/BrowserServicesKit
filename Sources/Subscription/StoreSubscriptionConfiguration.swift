@@ -36,7 +36,9 @@ final class DefaultStoreSubscriptionConfiguration: StoreSubscriptionConfiguratio
                   appIdentifier: "com.duckduckgo.mobile.ios",
                   environment: .production,
                   identifiersByRegion: [.usa: ["ddg.privacy.pro.monthly.renews.us",
-                                               "ddg.privacy.pro.yearly.renews.us"]]),
+                                               "ddg.privacy.pro.yearly.renews.us"],
+                                        .restOfWorld: ["ddg.privacy.pro.monthly.renews.row",
+                                                       "ddg.privacy.pro.yearly.renews.row"]]),
             // iOS debug Alpha build
             .init(name: "DuckDuckGo Alpha",
                   appIdentifier: "com.duckduckgo.mobile.ios.alpha",
