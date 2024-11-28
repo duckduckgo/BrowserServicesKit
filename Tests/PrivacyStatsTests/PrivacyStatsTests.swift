@@ -31,14 +31,9 @@ final class TestPrivacyStatsDatabaseProvider: PrivacyStatsDatabaseProviding {
         self.databaseName = databaseName
     }
 
-    func initializeDatabase() -> CoreDataDatabase? {
+    func initializeDatabase() -> CoreDataDatabase {
         location = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
-
-        let bundle = PrivacyStats.bundle
-        guard let model = CoreDataDatabase.loadModel(from: bundle, named: "PrivacyStats") else {
-            XCTFail("Failed to load model")
-            return nil
-        }
+        let model = CoreDataDatabase.loadModel(from: PrivacyStats.bundle, named: "PrivacyStats")!
         database = CoreDataDatabase(name: databaseName, containerLocation: location, model: model)
         database.loadStore()
         return database
@@ -51,23 +46,13 @@ final class TestPrivacyStatsDatabaseProvider: PrivacyStatsDatabaseProviding {
     }
 }
 
-final class MockTrackerDataProvider: TrackerDataProviding {
-    var trackerData: TrackerData = .init(trackers: [:], entities: [:], domains: [:], cnames: [:])
-
-    lazy var trackerDataUpdatesPublisher: AnyPublisher<Void, Never> = trackerDataUpdatesSubject.eraseToAnyPublisher()
-    var trackerDataUpdatesSubject = PassthroughSubject<Void, Never>()
-
-}
-
 final class PrivacyStatsTests: XCTestCase {
     var databaseProvider: TestPrivacyStatsDatabaseProvider!
-    var trackerDataProvider: MockTrackerDataProvider!
     var privacyStats: PrivacyStats!
 
     override func setUp() async throws {
         databaseProvider = TestPrivacyStatsDatabaseProvider(databaseName: type(of: self).description())
-        trackerDataProvider = MockTrackerDataProvider()
-        privacyStats = PrivacyStats(databaseProvider: databaseProvider, trackerDataProvider: trackerDataProvider)
+        privacyStats = PrivacyStats(databaseProvider: databaseProvider)
     }
 
     // MARK: - fetchPrivacyStats
@@ -130,16 +115,104 @@ final class PrivacyStatsTests: XCTestCase {
 
     // MARK: - recordBlockedTracker
 
-    func testRecordBlockedTrackerCausesDatabaseSave() async throws {
+    func testThatCallingRecordBlockedTrackerCausesDatabaseSaveAfterDelay() async throws {
         await privacyStats.recordBlockedTracker("A")
+
+        var stats = await privacyStats.fetchPrivacyStats()
+        XCTAssertEqual(stats, [:])
 
         try await Task.sleep(nanoseconds: 1_100_000_000)
 
-        let stats = await privacyStats.fetchPrivacyStats()
+        stats = await privacyStats.fetchPrivacyStats()
         XCTAssertEqual(stats, ["A": 1])
     }
 
+    func testThatStatsUpdatePublisherIsCalledAfterDatabaseSave() async throws {
+        await privacyStats.recordBlockedTracker("A")
+
+        await waitForStatsUpdateEvent()
+
+        var stats = await privacyStats.fetchPrivacyStats()
+        XCTAssertEqual(stats, ["A": 1])
+
+        await privacyStats.recordBlockedTracker("B")
+
+        await waitForStatsUpdateEvent()
+
+        stats = await privacyStats.fetchPrivacyStats()
+        XCTAssertEqual(stats, ["A": 1, "B": 1])
+    }
+
+    func testWhenMultipleTrackersAreReportedInQuickSuccessionThenOnlyOneStatsUpdateEventIsReported() async throws {
+        await withTaskGroup(of: Void.self) { group in
+            (0..<5).forEach { _ in
+                group.addTask {
+                    await self.privacyStats.recordBlockedTracker("A")
+                }
+            }
+            (0..<10).forEach { _ in
+                group.addTask {
+                    await self.privacyStats.recordBlockedTracker("B")
+                }
+            }
+            (0..<3).forEach { _ in
+                group.addTask {
+                    await self.privacyStats.recordBlockedTracker("C")
+                }
+            }
+        }
+
+        // We have limited testing possibilities here, so let's just await the first stats update event
+        // and verify that all trackers are reported by privacy stats.
+        await waitForStatsUpdateEvent()
+
+        let stats = await privacyStats.fetchPrivacyStats()
+        XCTAssertEqual(stats, ["A": 5, "B": 10, "C": 3])
+    }
+
+    // MARK: - clearPrivacyStats
+
+    func testWhenClearPrivacyStatsIsCalledThenFetchPrivacyStatsIsEmpty() async throws {
+        try addObjects { context in
+            let date = Date()
+
+            return [
+                DailyBlockedTrackersEntity.make(timestamp: date, companyName: "A", count: 1, context: context),
+                DailyBlockedTrackersEntity.make(timestamp: date.daysAgo(1), companyName: "A", count: 2, context: context),
+                DailyBlockedTrackersEntity.make(timestamp: date.daysAgo(7), companyName: "A", count: 10, context: context),
+                DailyBlockedTrackersEntity.make(timestamp: date.daysAgo(10), companyName: "A", count: 10, context: context),
+                DailyBlockedTrackersEntity.make(timestamp: date.daysAgo(20), companyName: "A", count: 10, context: context),
+                DailyBlockedTrackersEntity.make(timestamp: date.daysAgo(500), companyName: "A", count: 10, context: context),
+            ]
+        }
+
+        var stats = await privacyStats.fetchPrivacyStats()
+        XCTAssertFalse(stats.isEmpty)
+
+        await privacyStats.clearPrivacyStats()
+
+        stats = await privacyStats.fetchPrivacyStats()
+        XCTAssertTrue(stats.isEmpty)
+
+        let context = databaseProvider.database.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        context.performAndWait {
+            do {
+                let allObjects = try context.fetch(DailyBlockedTrackersEntity.fetchRequest())
+                XCTAssertTrue(allObjects.isEmpty)
+            } catch {
+                XCTFail("fetch failed: \(error)")
+            }
+        }
+    }
+
     // MARK: - Helpers
+
+    func waitForStatsUpdateEvent(file: StaticString = #file, line: UInt = #line) async {
+        let expectation = self.expectation(description: "statsUpdate")
+        let cancellable = privacyStats.statsUpdatePublisher.sink { expectation.fulfill() }
+        await fulfillment(of: [expectation])
+        cancellable.cancel()
+    }
 
     func addObjects(_ objects: (NSManagedObjectContext) -> [DailyBlockedTrackersEntity], file: StaticString = #file, line: UInt = #line) throws {
         let context = databaseProvider.database.makeContext(concurrencyType: .privateQueueConcurrencyType)

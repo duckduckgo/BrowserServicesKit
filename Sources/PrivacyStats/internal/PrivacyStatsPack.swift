@@ -40,7 +40,6 @@ actor CurrentPack {
 
     init(pack: PrivacyStatsPack) {
         self.pack = pack
-//        pack = .init(timestamp: Date().privacyStatsPackTimestamp, trackers: [:])
     }
 
     func updatePack(_ pack: PrivacyStatsPack) {

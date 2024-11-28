@@ -175,7 +175,7 @@ public final class PrivacyStats: PrivacyStatsCollecting {
                     continuation.resume(returning: nil)
                     return
                 }
-                let currentPack = PrivacyStatsUtils.fetchCurrentPackStats(in: context)
+                let currentPack = PrivacyStatsUtils.fetchCurrentStatsPack(in: context)
                 Logger.privacyStats.debug("Loaded stats \(currentPack.timestamp) \(currentPack.trackers)")
                 continuation.resume(returning: currentPack)
             }
@@ -188,7 +188,7 @@ public final class PrivacyStats: PrivacyStatsCollecting {
     private func initializeCurrentPack() -> PrivacyStatsPack {
         var pack: PrivacyStatsPack?
         context.performAndWait {
-            let currentPack = PrivacyStatsUtils.fetchCurrentPackStats(in: context)
+            let currentPack = PrivacyStatsUtils.fetchCurrentStatsPack(in: context)
             Logger.privacyStats.debug("Loaded stats \(currentPack.timestamp) \(currentPack.trackers)")
             pack = currentPack
         }

@@ -23,7 +23,7 @@ import Persistence
 
 final class PrivacyStatsUtils {
 
-    static func fetchCurrentPackStats(in context: NSManagedObjectContext) -> PrivacyStatsPack {
+    static func fetchCurrentStatsPack(in context: NSManagedObjectContext) -> PrivacyStatsPack {
         let timestamp = Date().privacyStatsPackTimestamp
         let request = DailyBlockedTrackersEntity.fetchRequest()
         request.predicate = NSPredicate(format: "%K == %@", #keyPath(DailyBlockedTrackersEntity.timestamp), timestamp as NSDate)
