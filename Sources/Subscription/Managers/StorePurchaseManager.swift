@@ -59,6 +59,7 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
 
     private let storeSubscriptionConfiguration: StoreSubscriptionConfiguration
     private let subscriptionFeatureMappingCache: SubscriptionFeatureMappingCache
+    private let subscriptionFeatureFlagger: FeatureFlaggerMapping<SubscriptionFeatureFlags>?
 
     @Published public private(set) var availableProducts: [Product] = []
     @Published public private(set) var purchasedProductIDs: [String] = []
@@ -69,9 +70,11 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
     private var transactionUpdates: Task<Void, Never>?
     private var storefrontChanges: Task<Void, Never>?
 
-    public init(subscriptionFeatureMappingCache: SubscriptionFeatureMappingCache) {
+    public init(subscriptionFeatureMappingCache: SubscriptionFeatureMappingCache,
+                subscriptionFeatureFlagger: FeatureFlaggerMapping<SubscriptionFeatureFlags>? = nil) {
         self.storeSubscriptionConfiguration = DefaultStoreSubscriptionConfiguration()
         self.subscriptionFeatureMappingCache = subscriptionFeatureMappingCache
+        self.subscriptionFeatureFlagger = subscriptionFeatureFlagger
         transactionUpdates = observeTransactionUpdates()
         storefrontChanges = observeStorefrontChanges()
     }
@@ -135,9 +138,19 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
         Logger.subscription.info("[StorePurchaseManager] updateAvailableProducts")
 
         do {
-            let currentStorefrontCountryCode = await Storefront.current?.countryCode ?? ""
-            self.currentStorefrontRegion = SubscriptionRegion.matchingRegion(for: currentStorefrontCountryCode) ?? .usa
+            // TODO: gate old functionality without launch flag
 
+            let currentStorefrontCountryCode: String
+
+            if let subscriptionFeatureFlagger, subscriptionFeatureFlagger.isFeatureOn(.usePrivacyProUSARegionOverride) {
+                currentStorefrontCountryCode = "USA"
+            } else if let subscriptionFeatureFlagger, subscriptionFeatureFlagger.isFeatureOn(.usePrivacyProROWRegionOverride) {
+                currentStorefrontCountryCode = "POL"
+            } else {
+                currentStorefrontCountryCode = await Storefront.current?.countryCode ?? "" // TODO: Should we add default fallback here?
+            }
+
+            self.currentStorefrontRegion = SubscriptionRegion.matchingRegion(for: currentStorefrontCountryCode) ?? .usa // TODO: What about current region if we lack storefront?
             let applicableProductIdentifiers = storeSubscriptionConfiguration.subscriptionIdentifiers(for: currentStorefrontCountryCode)
 
             let availableProducts = try await Product.products(for: applicableProductIdentifiers)
@@ -307,6 +320,39 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
                 Logger.subscription.info("[StorePurchaseManager] observeStorefrontChanges: \(result.countryCode)")
                 await self?.updatePurchasedProducts()
                 await self?.updateAvailableProducts()
+            }
+        }
+    }
+}
+
+public extension UserDefaults {
+
+    enum Constants {
+        static let storefrontRegionOverrideKey = "Subscription.debug.storefrontRegionOverride"
+        static let usaValue = "usa"
+        static let rowValue = "row"
+    }
+
+    dynamic var storefrontRegionOverride: SubscriptionRegion? {
+        get {
+            switch string(forKey: Constants.storefrontRegionOverrideKey) {
+            case "usa":
+                return .usa
+            case "row":
+                return .restOfWorld
+            default:
+                return nil
+            }
+        }
+
+        set {
+            switch newValue {
+            case .usa:
+                set(Constants.usaValue, forKey: Constants.storefrontRegionOverrideKey)
+            case .restOfWorld:
+                set(Constants.rowValue, forKey: Constants.storefrontRegionOverrideKey)
+            default:
+                removeObject(forKey: Constants.storefrontRegionOverrideKey)
             }
         }
     }
