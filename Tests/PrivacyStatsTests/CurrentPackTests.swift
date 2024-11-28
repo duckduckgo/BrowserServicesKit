@@ -25,7 +25,7 @@ final class CurrentPackTests: XCTestCase {
     var currentPack: CurrentPack!
 
     override func setUp() async throws {
-        currentPack = CurrentPack(pack: .init(timestamp: Date().privacyStatsPackTimestamp), commitDebounce: 10_000_000)
+        currentPack = CurrentPack(pack: .init(timestamp: Date.currentPrivacyStatsPackTimestamp), commitDebounce: 10_000_000)
     }
 
     func testThatRecordBlockedTrackerUpdatesThePack() async {
@@ -70,7 +70,7 @@ final class CurrentPackTests: XCTestCase {
     }
 
     func testWhenCurrentPackIsOldThenRecordBlockedTrackerSendsCommitEventAndCreatesNewPack() async throws {
-        let oldTimestamp = Date().privacyStatsPackTimestamp.daysAgo(1)
+        let oldTimestamp = Date.currentPrivacyStatsPackTimestamp.daysAgo(1)
         let pack = PrivacyStatsPack(
             timestamp: oldTimestamp,
             trackers: ["A": 100, "B": 50, "C": 400]
@@ -86,11 +86,11 @@ final class CurrentPackTests: XCTestCase {
         let oldPack = try XCTUnwrap(packs.first)
         XCTAssertEqual(oldPack, pack)
         let newPack = try XCTUnwrap(packs.last)
-        XCTAssertEqual(newPack, PrivacyStatsPack(timestamp: Date().privacyStatsPackTimestamp, trackers: ["A": 1]))
+        XCTAssertEqual(newPack, PrivacyStatsPack(timestamp: Date.currentPrivacyStatsPackTimestamp, trackers: ["A": 1]))
     }
 
     func testThatResetPackClearsAllRecordedTrackersAndSetsCurrentTimestamp() async {
-        let oldTimestamp = Date().privacyStatsPackTimestamp.daysAgo(1)
+        let oldTimestamp = Date.currentPrivacyStatsPackTimestamp.daysAgo(1)
         let pack = PrivacyStatsPack(
             timestamp: oldTimestamp,
             trackers: ["A": 100, "B": 50, "C": 400]
@@ -100,7 +100,7 @@ final class CurrentPackTests: XCTestCase {
         await currentPack.resetPack()
 
         let packAfterReset = await currentPack.pack
-        XCTAssertEqual(packAfterReset, PrivacyStatsPack(timestamp: Date().privacyStatsPackTimestamp, trackers: [:]))
+        XCTAssertEqual(packAfterReset, PrivacyStatsPack(timestamp: Date.currentPrivacyStatsPackTimestamp, trackers: [:]))
     }
 
     // MARK: - Helpers

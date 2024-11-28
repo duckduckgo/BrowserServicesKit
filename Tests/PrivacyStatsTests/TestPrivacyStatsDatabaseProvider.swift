@@ -30,9 +30,16 @@ final class TestPrivacyStatsDatabaseProvider: PrivacyStatsDatabaseProviding {
         self.databaseName = databaseName
     }
 
+    init(databaseName: String, location: URL) {
+        self.databaseName = databaseName
+        self.location = location
+    }
+
     @discardableResult
     func initializeDatabase() -> CoreDataDatabase {
-        location = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        if location == nil {
+            location = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        }
         let model = CoreDataDatabase.loadModel(from: PrivacyStats.bundle, named: "PrivacyStats")!
         database = CoreDataDatabase(name: databaseName, containerLocation: location, model: model)
         database.loadStore()

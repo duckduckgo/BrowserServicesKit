@@ -35,6 +35,39 @@ final class PrivacyStatsTests: XCTestCase {
         databaseProvider.tearDownDatabase()
     }
 
+    // MARK: - initializer
+
+    func testThatOutdatedTrackerStatsAreDeletedUponInitialization() async throws {
+        try databaseProvider.addObjects { context in
+            let date = Date()
+
+            return [
+                DailyBlockedTrackersEntity.make(timestamp: date, companyName: "A", count: 1, context: context),
+                DailyBlockedTrackersEntity.make(timestamp: date.daysAgo(1), companyName: "A", count: 2, context: context),
+                DailyBlockedTrackersEntity.make(timestamp: date.daysAgo(6), companyName: "A", count: 7, context: context),
+                DailyBlockedTrackersEntity.make(timestamp: date.daysAgo(7), companyName: "A", count: 100, context: context),
+                DailyBlockedTrackersEntity.make(timestamp: date.daysAgo(8), companyName: "A", count: 100, context: context)
+            ]
+        }
+
+        // recreate database provider with existing location so that the existing database is persisted in the initializer
+        databaseProvider = TestPrivacyStatsDatabaseProvider(databaseName: type(of: self).description(), location: databaseProvider.location)
+        privacyStats = PrivacyStats(databaseProvider: databaseProvider)
+
+        let stats = await privacyStats.fetchPrivacyStats()
+        XCTAssertEqual(stats, ["A": 10])
+
+        let context = databaseProvider.database.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        context.performAndWait {
+            do {
+                let allObjects = try context.fetch(DailyBlockedTrackersEntity.fetchRequest())
+                XCTAssertEqual(Set(allObjects.map(\.count)), [1, 2, 7])
+            } catch {
+                XCTFail("Context fetch should not fail")
+            }
+        }
+    }
+
     // MARK: - fetchPrivacyStats
 
     func testThatPrivacyStatsAreFetched() async throws {
@@ -148,6 +181,37 @@ final class PrivacyStatsTests: XCTestCase {
 
         let stats = await privacyStats.fetchPrivacyStats()
         XCTAssertEqual(stats, ["A": 5, "B": 10, "C": 3])
+    }
+
+    func testThatCallingRecordBlockedTrackerWithNextDayTimestampCausesDeletingOldEntriesFromDatabase() async throws {
+        try databaseProvider.addObjects { context in
+            let date = Date()
+            return [
+                DailyBlockedTrackersEntity.make(timestamp: date.daysAgo(1), companyName: "A", count: 2, context: context),
+                DailyBlockedTrackersEntity.make(timestamp: date.daysAgo(7), companyName: "A", count: 100, context: context),
+            ]
+        }
+
+        // recreate database provider with existing location so that the existing database is persisted in the initializer
+        databaseProvider = TestPrivacyStatsDatabaseProvider(databaseName: type(of: self).description(), location: databaseProvider.location)
+        privacyStats = PrivacyStats(databaseProvider: databaseProvider)
+
+        await privacyStats.recordBlockedTracker("A")
+
+        try await Task.sleep(nanoseconds: 1_100_000_000)
+
+        let stats = await privacyStats.fetchPrivacyStats()
+        XCTAssertEqual(stats, ["A": 3]) // 2 from yesterday and 1 from today
+
+        let context = databaseProvider.database.makeContext(concurrencyType: .privateQueueConcurrencyType)
+        context.performAndWait {
+            do {
+                let allObjects = try context.fetch(DailyBlockedTrackersEntity.fetchRequest())
+                XCTAssertEqual(Set(allObjects.map(\.count)), [1, 2]) // 7 day ago entry got deleted
+            } catch {
+                XCTFail("Context fetch should not fail")
+            }
+        }
     }
 
     // MARK: - clearPrivacyStats

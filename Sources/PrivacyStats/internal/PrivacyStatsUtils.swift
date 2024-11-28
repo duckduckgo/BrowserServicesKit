@@ -35,7 +35,7 @@ final class PrivacyStatsUtils {
      *   timestamp's day matches current day.
      */
     static func fetchOrInsertCurrentStats(for companyNames: Set<String>, in context: NSManagedObjectContext) throws -> [DailyBlockedTrackersEntity] {
-        let timestamp = Date().privacyStatsPackTimestamp
+        let timestamp = Date.currentPrivacyStatsPackTimestamp
 
         let request = DailyBlockedTrackersEntity.fetchRequest()
         request.predicate = NSPredicate(format: "%K == %@ AND %K in %@",
@@ -56,7 +56,7 @@ final class PrivacyStatsUtils {
      * Returns a dictionary representation of blocked trackers counts grouped by company name for the current day.
      */
     static func loadCurrentDayStats(in context: NSManagedObjectContext) throws -> [String: Int64] {
-        let startDate = Date().privacyStatsPackTimestamp
+        let startDate = Date.currentPrivacyStatsPackTimestamp
         return try loadBlockedTrackersStats(since: startDate, in: context)
     }
 

@@ -22,6 +22,15 @@ import Foundation
 extension Date {
 
     /**
+     * Returns privacy stats pack timestamp for the current date.
+     *
+     * See `privacyStatsPackTimestamp`.
+     */
+    static var currentPrivacyStatsPackTimestamp: Date {
+        Date().privacyStatsPackTimestamp
+    }
+
+    /**
      * Returns a valid timestamp for `DailyBlockedTrackersEntity` instance matching the sender.
      *
      * Blocked trackers are packed by day so the timestap of the pack must be the exact start of a day.

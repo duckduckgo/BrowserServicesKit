@@ -34,7 +34,6 @@ import UIKit
 public enum PrivacyStatsError: CustomNSError {
     case failedToFetchPrivacyStatsSummary(Error)
     case failedToStorePrivacyStats(Error)
-    case failedToClearPrivacyStats(Error)
     case failedToLoadCurrentPrivacyStats(Error)
 
     public static let errorDomain: String = "PrivacyStatsError"
@@ -45,10 +44,8 @@ public enum PrivacyStatsError: CustomNSError {
             return 1
         case .failedToStorePrivacyStats:
             return 2
-        case .failedToClearPrivacyStats:
-            return 3
         case .failedToLoadCurrentPrivacyStats:
-            return 4
+            return 3
         }
     }
 
@@ -56,7 +53,6 @@ public enum PrivacyStatsError: CustomNSError {
         switch self {
         case .failedToFetchPrivacyStatsSummary(let error),
                 .failedToStorePrivacyStats(let error),
-                .failedToClearPrivacyStats(let error),
                 .failedToLoadCurrentPrivacyStats(let error):
             return error
         }
@@ -175,6 +171,12 @@ public final class PrivacyStats: PrivacyStatsCollecting {
                         }
                     }
 
+                    // Delete outdated packs if the pack we're storing is from a previous day.
+                    // This means that it's a new day and we may have outdated packs.
+                    if pack.timestamp < Date.currentPrivacyStatsPackTimestamp {
+                        PrivacyStatsUtils.deleteOutdatedPacks(in: context)
+                    }
+
                     guard context.hasChanges else {
                         continuation.resume()
                         return
@@ -192,43 +194,23 @@ public final class PrivacyStats: PrivacyStatsCollecting {
         }
     }
 
-    private func deleteOldEntries() async {
-        await withCheckedContinuation { continuation in
-            context.perform { [weak self] in
-                guard let self else {
-                    continuation.resume()
-                    return
-                }
-
-                PrivacyStatsUtils.deleteOutdatedPacks(in: context)
-                if context.hasChanges {
-                    do {
-                        try context.save()
-                        Logger.privacyStats.debug("Deleted outdated entries")
-                    } catch {
-                        Logger.privacyStats.error("Save error: \(error)")
-                        errorEvents?.fire(.failedToClearPrivacyStats(error))
-                    }
-                }
-                continuation.resume()
-            }
-        }
-    }
-
     private func initializeCurrentPack() -> PrivacyStatsPack {
         var pack: PrivacyStatsPack?
         context.performAndWait {
-            let timestamp = Date().privacyStatsPackTimestamp
+            let timestamp = Date.currentPrivacyStatsPackTimestamp
             do {
                 let currentDayStats = try PrivacyStatsUtils.loadCurrentDayStats(in: context)
                 Logger.privacyStats.debug("Loaded stats \(timestamp) \(currentDayStats)")
                 pack = PrivacyStatsPack(timestamp: timestamp, trackers: currentDayStats)
+
+                PrivacyStatsUtils.deleteOutdatedPacks(in: context)
+                try context.save()
             } catch {
                 Logger.privacyStats.error("Faild to load current stats: \(error)")
                 errorEvents?.fire(.failedToLoadCurrentPrivacyStats(error))
             }
         }
-        return pack ?? PrivacyStatsPack(timestamp: Date().privacyStatsPackTimestamp)
+        return pack ?? PrivacyStatsPack(timestamp: Date.currentPrivacyStatsPackTimestamp)
     }
 
     @objc private func applicationWillTerminate(_: Notification) {

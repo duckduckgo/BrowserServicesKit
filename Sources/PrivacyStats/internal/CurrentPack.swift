@@ -56,7 +56,7 @@ actor CurrentPack {
      * It sets a new empty pack with the current timestamp.
      */
     func resetPack() {
-        resetStats(andSet: Date().privacyStatsPackTimestamp)
+        resetStats(andSet: Date.currentPrivacyStatsPackTimestamp)
     }
 
     /**
@@ -70,7 +70,7 @@ actor CurrentPack {
      */
     func recordBlockedTracker(_ companyName: String) {
 
-        let currentTimestamp = Date().privacyStatsPackTimestamp
+        let currentTimestamp = Date.currentPrivacyStatsPackTimestamp
         if currentTimestamp != pack.timestamp {
             Logger.privacyStats.debug("New timestamp detected, storing trackers state and creating new pack")
             commitChangesSubject.send(pack)

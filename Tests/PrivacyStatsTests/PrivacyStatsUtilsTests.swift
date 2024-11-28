@@ -40,7 +40,7 @@ final class PrivacyStatsUtilsTests: XCTestCase {
     func testWhenThereAreNoObjectsForCompaniesThenFetchOrInsertCurrentStatsInsertsNewObjects() {
         let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
         context.performAndWait {
-            let currentPackTimestamp = Date().privacyStatsPackTimestamp
+            let currentPackTimestamp = Date.currentPrivacyStatsPackTimestamp
             let companyNames: Set<String> = ["A", "B", "C", "D"]
 
             var returnedEntities: [DailyBlockedTrackersEntity] = []
