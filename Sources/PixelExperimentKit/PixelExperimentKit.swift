@@ -72,7 +72,7 @@ extension PixelKit {
     ///   - subfeatureID: Identifier for the subfeature associated with the experiment.
     ///   - experiment: Data about the experiment like cohort and enrollment date
     public static func fireExperimentEnrollmentPixel(subfeatureID: SubfeatureID, experiment: ExperimentData) {
-        let eventName = "\(Self.Constants.enrollmentEventPrefix)_\(subfeatureID)_\(experiment.cohort)"
+        let eventName = "\(Self.Constants.enrollmentEventPrefix)_\(subfeatureID)_\(experiment.cohortID)"
         let event = ExperimentEvent(name: eventName, parameters: [Self.Constants.enrollmentDateKey: experiment.enrollmentDate.toYYYYMMDDInET()])
         ExperimentConfig.fireFunction(event, .uniqueIncludingParameters, false)
     }

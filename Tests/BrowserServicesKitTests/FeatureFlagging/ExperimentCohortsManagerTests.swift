@@ -55,16 +55,16 @@ final class ExperimentCohortsManagerTests: XCTestCase {
         )
 
         let expectedDate1 = Date()
-        experimentData1 = ExperimentData(parentID: "TestParent", cohort: cohort1.name, enrollmentDate: expectedDate1)
+        experimentData1 = ExperimentData(parentID: "TestParent", cohortID: cohort1.name, enrollmentDate: expectedDate1)
 
         let expectedDate2 = Date().addingTimeInterval(60)
-        experimentData2 = ExperimentData(parentID: "TestParent", cohort: cohort2.name, enrollmentDate: expectedDate2)
+        experimentData2 = ExperimentData(parentID: "TestParent", cohortID: cohort2.name, enrollmentDate: expectedDate2)
 
         let expectedDate3 = Date()
-        experimentData3 = ExperimentData(parentID: "TestParent", cohort: cohort3.name, enrollmentDate: expectedDate3)
+        experimentData3 = ExperimentData(parentID: "TestParent", cohortID: cohort3.name, enrollmentDate: expectedDate3)
 
         let expectedDate4 = Date().addingTimeInterval(60)
-        experimentData4 = ExperimentData(parentID: "TestParent", cohort: cohort4.name, enrollmentDate: expectedDate4)
+        experimentData4 = ExperimentData(parentID: "TestParent", cohortID: cohort4.name, enrollmentDate: expectedDate4)
     }
 
     override func tearDown() {
@@ -94,12 +94,12 @@ final class ExperimentCohortsManagerTests: XCTestCase {
         mockStore.experiments = [subfeatureName1: experimentData1, subfeatureName2: experimentData2]
 
         // WHEN
-        let result1 = experimentCohortsManager.cohort(for: ExperimentSubfeature(parentID: experimentData1.parentID, subfeatureID: subfeatureName1, cohorts: [cohort1, cohort2]), assignIfEnabled: false).cohortID
-        let result2 = experimentCohortsManager.cohort(for: ExperimentSubfeature(parentID: experimentData2.parentID, subfeatureID: subfeatureName2, cohorts: [cohort2, cohort3]), assignIfEnabled: false).cohortID
+        let result1 = experimentCohortsManager.resolveCohort(for: ExperimentSubfeature(parentID: experimentData1.parentID, subfeatureID: subfeatureName1, cohorts: [cohort1, cohort2]), allowCohortReassignment: false)
+        let result2 = experimentCohortsManager.resolveCohort(for: ExperimentSubfeature(parentID: experimentData2.parentID, subfeatureID: subfeatureName2, cohorts: [cohort2, cohort3]), allowCohortReassignment: false)
 
         // THEN
-        XCTAssertEqual(result1, experimentData1.cohort)
-        XCTAssertEqual(result2, experimentData2.cohort)
+        XCTAssertEqual(result1, experimentData1.cohortID)
+        XCTAssertEqual(result2, experimentData2.cohortID)
     }
 
     func testCohortAssignIfEnabledWhenNoCohortExists() {
@@ -109,12 +109,11 @@ final class ExperimentCohortsManagerTests: XCTestCase {
         let experiment = ExperimentSubfeature(parentID: experimentData1.parentID, subfeatureID: subfeatureName1, cohorts: cohorts)
 
         // WHEN
-        let result = experimentCohortsManager.cohort(for: experiment, assignIfEnabled: true)
+        let result = experimentCohortsManager.resolveCohort(for: experiment, allowCohortReassignment: true)
 
         // THEN
-        XCTAssertNotNil(result.cohortID)
-        XCTAssertTrue(result.didAttemptAssignment)
-        XCTAssertEqual(result.cohortID, experimentData1.cohort)
+        XCTAssertNotNil(result)
+        XCTAssertEqual(result, experimentData1.cohortID)
     }
 
     func testCohortDoesNotAssignIfAssignIfEnabledIsFalse() {
@@ -124,11 +123,10 @@ final class ExperimentCohortsManagerTests: XCTestCase {
         let experiment = ExperimentSubfeature(parentID: experimentData1.parentID, subfeatureID: subfeatureName1, cohorts: cohorts)
 
         // WHEN
-        let result = experimentCohortsManager.cohort(for: experiment, assignIfEnabled: false)
+        let result = experimentCohortsManager.resolveCohort(for: experiment, allowCohortReassignment: false)
 
         // THEN
-        XCTAssertNil(result.cohortID)
-        XCTAssertTrue(result.didAttemptAssignment)
+        XCTAssertNil(result)
     }
 
     func testCohortDoesNotAssignIfAssignIfEnabledIsTrueButNoCohortsAvailable() {
@@ -137,11 +135,10 @@ final class ExperimentCohortsManagerTests: XCTestCase {
         let experiment = ExperimentSubfeature(parentID: "TestParent", subfeatureID: "NonExistentSubfeature", cohorts: [])
 
         // WHEN
-        let result = experimentCohortsManager.cohort(for: experiment, assignIfEnabled: true)
+        let result = experimentCohortsManager.resolveCohort(for: experiment, allowCohortReassignment: true)
 
         // THEN
-        XCTAssertNil(result.cohortID)
-        XCTAssertTrue(result.didAttemptAssignment)
+        XCTAssertNil(result)
     }
 
     func testCohortReassignsCohortIfAssignedCohortDoesNotExistAndAssignIfEnabledIsTrue() {
@@ -149,10 +146,10 @@ final class ExperimentCohortsManagerTests: XCTestCase {
         mockStore.experiments = [subfeatureName1: experimentData1]
 
         // WHEN
-        let result1 = experimentCohortsManager.cohort(for: ExperimentSubfeature(parentID: experimentData1.parentID, subfeatureID: subfeatureName1, cohorts: [cohort2, cohort3]), assignIfEnabled: true).cohortID
+        let result1 = experimentCohortsManager.resolveCohort(for: ExperimentSubfeature(parentID: experimentData1.parentID, subfeatureID: subfeatureName1, cohorts: [cohort2, cohort3]), allowCohortReassignment: true)
 
         // THEN
-        XCTAssertEqual(result1, experimentData3.cohort)
+        XCTAssertEqual(result1, experimentData3.cohortID)
     }
 
     func testCohortDoesNotReassignsCohortIfAssignedCohortDoesNotExistAndAssignIfEnabledIsTrue() {
@@ -160,7 +157,7 @@ final class ExperimentCohortsManagerTests: XCTestCase {
         mockStore.experiments = [subfeatureName1: experimentData1]
 
         // WHEN
-        let result1 = experimentCohortsManager.cohort(for: ExperimentSubfeature(parentID: experimentData1.parentID, subfeatureID: subfeatureName1, cohorts: [cohort2, cohort3]), assignIfEnabled: false).cohortID
+        let result1 = experimentCohortsManager.resolveCohort(for: ExperimentSubfeature(parentID: experimentData1.parentID, subfeatureID: subfeatureName1, cohorts: [cohort2, cohort3]), allowCohortReassignment: false)
 
         // THEN
         XCTAssertNil(result1)
@@ -180,11 +177,10 @@ final class ExperimentCohortsManagerTests: XCTestCase {
         )
 
         // WHEN
-        let result = experimentCohortsManager.cohort(for: experiment, assignIfEnabled: true)
+        let result = experimentCohortsManager.resolveCohort(for: experiment, allowCohortReassignment: true)
 
         // THEN
-        XCTAssertEqual(result.cohortID, experimentData3.cohort)
-        XCTAssertTrue(result.didAttemptAssignment)
+        XCTAssertEqual(result, experimentData3.cohortID)
     }
 }
 

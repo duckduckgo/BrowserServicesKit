@@ -224,6 +224,7 @@ final class FingerprintingReferenceTests: XCTestCase {
 
         let contentScopeProperties = ContentScopeProperties(gpcEnabled: false,
                                                             sessionKey: UUID().uuidString,
+                                                            messageSecret: UUID().uuidString,
                                                             featureToggles: configFeatureToggle)
 
         let contentScopeScript = ContentScopeUserScript(self.privacyManager,

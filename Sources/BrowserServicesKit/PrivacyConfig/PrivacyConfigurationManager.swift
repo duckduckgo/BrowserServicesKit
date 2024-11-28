@@ -60,11 +60,8 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
     private let errorReporting: EventMapping<ContentBlockerDebugEvents>?
     private let installDate: Date?
     private let locale: Locale
-    private let experimentCohortManager: ExperimentCohortsManaging
 
     public let internalUserDecider: InternalUserDecider
-
-    private let reportExperimentCohortAssignment: (_ cohortID: CohortID, _ SubfeatureID: SubfeatureID) -> Void
 
     private let updatesSubject = PassthroughSubject<Void, Never>()
     public var updatesPublisher: AnyPublisher<Void, Never> {
@@ -119,18 +116,14 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
                 errorReporting: EventMapping<ContentBlockerDebugEvents>? = nil,
                 internalUserDecider: InternalUserDecider,
                 locale: Locale = Locale.current,
-                experimentCohortManager: ExperimentCohortsManaging = ExperimentCohortsManager(store: ExperimentsDataStore()),
-                installDate: Date? = nil,
-                reportExperimentCohortAssignment: @escaping (_ cohortID: CohortID, _ SubfeatureID: SubfeatureID) -> Void
+                installDate: Date? = nil
     ) {
         self.embeddedDataProvider = embeddedDataProvider
         self.localProtection = localProtection
         self.errorReporting = errorReporting
         self.internalUserDecider = internalUserDecider
-        self.experimentCohortManager = experimentCohortManager
         self.locale = locale
         self.installDate = installDate
-        self.reportExperimentCohortAssignment = reportExperimentCohortAssignment
 
         reload(etag: fetchedETag, data: fetchedData)
     }
@@ -142,8 +135,6 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
                                            localProtection: localProtection,
                                            internalUserDecider: internalUserDecider,
                                            locale: locale,
-                                           experimentManager: experimentCohortManager,
-                                           delegate: self,
                                            installDate: installDate)
         }
 
@@ -152,8 +143,6 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
                                        localProtection: localProtection,
                                        internalUserDecider: internalUserDecider,
                                        locale: locale,
-                                       experimentManager: experimentCohortManager,
-                                       delegate: self,
                                        installDate: installDate)
     }
 
@@ -189,11 +178,5 @@ public class PrivacyConfigurationManager: PrivacyConfigurationManaging {
         }
 
         return result
-    }
-}
-
-extension PrivacyConfigurationManager: PrivacyConfigurationDelegate {
-    public func didAssignCohort(_ cohort: CohortID, to experiment: SubfeatureID) {
-        reportExperimentCohortAssignment(cohort, experiment)
     }
 }

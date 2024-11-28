@@ -29,32 +29,43 @@ public typealias SubfeatureID = String
 public typealias ParentFeatureID = String
 
 public struct ExperimentData: Codable, Equatable {
-    public let parentID: String
-    public let cohort: String
+    public let parentID: ParentFeatureID
+    public let cohortID: CohortID
     public let enrollmentDate: Date
 }
 
 public typealias Experiments = [String: ExperimentData]
 
 public protocol ExperimentCohortsManaging {
-    /// Retrieves all the experiments a user is enrolled into
+    /// Retrieves all the experiments a user is enrolled in
     var experiments: Experiments? { get }
 
-    /// Retrieves the assigned cohort for a given experiment subfeature, or attempts to assign a new cohort if none is currently assigned
-    /// and `assignIfEnabled` is set to true. If a cohort is already assigned but does not match any valid cohorts for the experiment,
-    /// the cohort will be removed.
+    /// Resolves the cohort for a given experiment subfeature.
+    ///
+    /// This method determines whether the user is currently assigned to a valid cohort
+    /// for the specified experiment. If the assigned cohort is valid (i.e., it matches
+    /// one of the experiment's defined cohorts), the method returns the assigned cohort.
+    /// Otherwise, the invalid cohort is removed, and a new cohort is assigned if
+    /// `allowCohortReassignment` is `true`.
     ///
     /// - Parameters:
-    ///   - experiment: The `ExperimentSubfeature` for which to retrieve, assign, or remove a cohort. This subfeature includes
-    ///     relevant identifiers and potential cohorts that may be assigned.
-    ///   - assignIfEnabled: A Boolean value that determines whether a new cohort should be assigned if none is currently assigned.
-    ///     If `true`, the function will attempt to assign a cohort from the available options; otherwise, it will only check for existing assignments.
+    ///   - experiment: The `ExperimentSubfeature` representing the experiment and its associated cohorts.
+    ///   - allowCohortReassignment: A Boolean value indicating whether cohort assignment is allowed
+    ///     if the user is not already assigned to a valid cohort.
     ///
-    /// - Returns: A tuple containing:
-    ///   - `cohortID`: The identifier of the assigned cohort if one exists, or `nil` if no cohort was assigned, if assignment failed, or if the cohort was removed.
-    ///   - `didAttemptAssignment`: A Boolean indicating whether an assignment attempt was made. This will be `true` if `assignIfEnabled`
-    ///     is `true` and no cohort was previously assigned, and `false` otherwise.
-    func cohort(for experiment: ExperimentSubfeature, assignIfEnabled: Bool) -> (cohortID: CohortID?, didAttemptAssignment: Bool)
+    /// - Returns: The valid `CohortID` assigned to the user for the experiment, or `nil`
+    ///   if no valid cohort exists and `allowCohortReassignment` is `false`.
+    ///
+    /// - Behavior:
+    ///   1. Retrieves the currently assigned cohort for the experiment using the `subfeatureID`.
+    ///   2. Validates if the assigned cohort exists within the experiment's cohort list:
+    ///      - If valid, the assigned cohort is returned.
+    ///      - If invalid, the cohort is removed from storage.
+    ///   3. If cohort assignment is enabled (`allowCohortReassignment` is `true`), a new cohort
+    ///      is assigned based on the experiment's cohort weights and saved in storage.
+    ///      - Cohort assignment is probabilistic, determined by the cohort weights.
+    ///
+    func resolveCohort(for experiment: ExperimentSubfeature, allowCohortReassignment: Bool) -> CohortID?
 }
 
 public class ExperimentCohortsManager: ExperimentCohortsManaging {
@@ -76,18 +87,20 @@ public class ExperimentCohortsManager: ExperimentCohortsManaging {
         self.randomizer = randomizer
     }
 
-    public func cohort(for experiment: ExperimentSubfeature, assignIfEnabled: Bool) -> (cohortID: CohortID?, didAttemptAssignment: Bool) {
+    public func resolveCohort(for experiment: ExperimentSubfeature, allowCohortReassignment: Bool) -> CohortID? {
         queue.sync {
             let assignedCohort = cohort(for: experiment.subfeatureID)
             if experiment.cohorts.contains(where: { $0.name == assignedCohort }) {
-                return (assignedCohort, false)
-            } else {
-                removeCohort(from: experiment.subfeatureID)
+                return assignedCohort
             }
-
-            return assignIfEnabled ? (assignCohort(to: experiment), true) : (nil, true)
+            removeCohort(from: experiment.subfeatureID)
+            return allowCohortReassignment ? assignCohort(to: experiment) : nil
         }
     }
+}
+
+// MARK: Helper functions
+extension ExperimentCohortsManager {
 
     private func assignCohort(to subfeature: ExperimentSubfeature) -> CohortID? {
         let cohorts = subfeature.cohorts
@@ -109,10 +122,10 @@ public class ExperimentCohortsManager: ExperimentCohortsManaging {
 
     func cohort(for subfeatureID: SubfeatureID) -> CohortID? {
         guard let experiments = store.experiments else { return nil }
-        return experiments[subfeatureID]?.cohort
+        return experiments[subfeatureID]?.cohortID
     }
 
-    private  func enrollmentDate(for subfeatureID: SubfeatureID) -> Date? {
+    private func enrollmentDate(for subfeatureID: SubfeatureID) -> Date? {
         guard let experiments = store.experiments else { return nil }
         return experiments[subfeatureID]?.enrollmentDate
     }
@@ -125,9 +138,8 @@ public class ExperimentCohortsManager: ExperimentCohortsManaging {
 
     private func saveCohort(_ cohort: CohortID, in experimentID: SubfeatureID, parentID: ParentFeatureID) {
         var experiments = store.experiments ?? Experiments()
-        let experimentData = ExperimentData(parentID: parentID, cohort: cohort, enrollmentDate: Date())
+        let experimentData = ExperimentData(parentID: parentID, cohortID: cohort, enrollmentDate: Date())
         experiments[experimentID] = experimentData
         store.experiments = experiments
     }
-
 }

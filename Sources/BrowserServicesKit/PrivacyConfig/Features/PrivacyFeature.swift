@@ -19,7 +19,7 @@
 import Foundation
 
 /// Features whose `rawValue` should be the key to access their corresponding `PrivacyConfigurationData.PrivacyFeature` object
-public enum PrivacyFeature: String, CaseIterable {
+public enum PrivacyFeature: String {
     case contentBlocking
     case duckPlayer
     case fingerprintingTemporaryStorage

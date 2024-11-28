@@ -60,8 +60,8 @@ public protocol PrivacyConfiguration {
     func isEnabled(featureKey: PrivacyFeature, versionProvider: AppVersionProvider) -> Bool
     func stateFor(featureKey: PrivacyFeature, versionProvider: AppVersionProvider) -> PrivacyConfigurationFeatureState
 
-    func isSubfeatureEnabled(_ subfeature: any PrivacySubfeature, cohortID: CohortID?, versionProvider: AppVersionProvider, randomizer: (Range<Double>) -> Double) -> Bool
-    func stateFor(_ subfeature: any PrivacySubfeature, cohortID: CohortID?, versionProvider: AppVersionProvider, randomizer: (Range<Double>) -> Double) -> PrivacyConfigurationFeatureState
+    func isSubfeatureEnabled(_ subfeature: any PrivacySubfeature, versionProvider: AppVersionProvider, randomizer: (Range<Double>) -> Double) -> Bool
+    func stateFor(_ subfeature: any PrivacySubfeature, versionProvider: AppVersionProvider, randomizer: (Range<Double>) -> Double) -> PrivacyConfigurationFeatureState
 
     /// Domains for which given PrivacyFeature is disabled.
     ///
@@ -107,9 +107,12 @@ public protocol PrivacyConfiguration {
     /// Adds given domain to locally unprotected list.
     func userDisabledProtection(forDomain: String)
 
-    /// Gives the list of all the active experiments an user is enrolled in
-    func getAllActiveExperiments(versionProvider: AppVersionProvider,
-                                 randomizer: (Range<Double>) -> Double) -> Experiments
+    // APIs used for Experiments
+    func stateFor(subfeatureID: SubfeatureID, parentFeatureID: ParentFeatureID, versionProvider: AppVersionProvider, randomizer: (Range<Double>) -> Double) -> PrivacyConfigurationFeatureState
+
+    func cohorts(for subfeature: any PrivacySubfeature) -> [PrivacyConfigurationData.Cohort]?
+
+    func cohorts(subfeatureID: SubfeatureID, parentFeatureID: ParentFeatureID) -> [PrivacyConfigurationData.Cohort]?
 }
 
 public extension PrivacyConfiguration {
@@ -121,15 +124,16 @@ public extension PrivacyConfiguration {
         return stateFor(featureKey: featureKey, versionProvider: AppVersionProvider())
     }
 
-    func isSubfeatureEnabled(_ subfeature: any PrivacySubfeature, cohortID: CohortID? = nil, randomizer: (Range<Double>) -> Double = Double.random(in:)) -> Bool {
-        return isSubfeatureEnabled(subfeature, cohortID: cohortID, versionProvider: AppVersionProvider(), randomizer: randomizer)
+    func isSubfeatureEnabled(_ subfeature: any PrivacySubfeature, randomizer: (Range<Double>) -> Double = Double.random(in:)) -> Bool {
+        return isSubfeatureEnabled(subfeature, versionProvider: AppVersionProvider(), randomizer: randomizer)
     }
 
-    func stateFor(_ subfeature: any PrivacySubfeature, cohortID: CohortID? = nil, randomizer: (Range<Double>) -> Double = Double.random(in:)) -> PrivacyConfigurationFeatureState {
-        return stateFor(subfeature, cohortID: cohortID, versionProvider: AppVersionProvider(), randomizer: randomizer)
+    func stateFor(_ subfeature: any PrivacySubfeature, randomizer: (Range<Double>) -> Double = Double.random(in:)) -> PrivacyConfigurationFeatureState {
+        return stateFor(subfeature, versionProvider: AppVersionProvider(), randomizer: randomizer)
     }
 
-    func getAllActiveExperiments(versionProvider: AppVersionProvider = AppVersionProvider(), randomizer: (Range<Double>) -> Double = Double.random(in:)) -> Experiments {
-        return getAllActiveExperiments(versionProvider: versionProvider, randomizer: randomizer)
+    func stateFor(subfeatureID: SubfeatureID, parentFeatureID: ParentFeatureID, randomizer: (Range<Double>) -> Double = Double.random(in:)) -> PrivacyConfigurationFeatureState {
+        return stateFor(subfeatureID: subfeatureID, parentFeatureID: parentFeatureID, versionProvider: AppVersionProvider(), randomizer: randomizer)
     }
+
 }
