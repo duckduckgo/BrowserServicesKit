@@ -45,7 +45,6 @@ public extension APIClient {
             switch self {
             case .production: URL(string: "https://duckduckgo.com/api/protection/")!
             case .staging: URL(string: "https://staging.duckduckgo.com/api/protection/")!
-            case .dev: URL(string: "https://4842-20-93-28-24.ngrok-free.app/api/protection/")!
             }
         }
 
