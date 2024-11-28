@@ -16,29 +16,25 @@
 //  limitations under the License.
 //
 
+import Combine
 import Foundation
-import MaliciousSiteProtection
+@testable import MaliciousSiteProtection
 
-public class MockMaliciousSiteProtectionDataManager: MaliciousSiteProtection.DataManaging {
-    public var filterSet: Set<Filter>
-    public var hashPrefixes: Set<String>
-    public var currentRevision: Int
+actor MockMaliciousSiteProtectionDataManager: MaliciousSiteProtection.DataManaging {
 
-    public init() {
-        filterSet = Set()
-        hashPrefixes = Set()
-        currentRevision = 0
+    @Published var store = [MaliciousSiteProtection.DataManager.StoredDataType: Any]()
+    func publisher<DataKey>(for key: DataKey) -> AnyPublisher<DataKey.DataSet, Never> where DataKey: MaliciousSiteProtection.MaliciousSiteDataKey {
+        $store.map { $0[key.dataType] as? DataKey.DataSet ?? .init(revision: 0, items: []) }
+            .removeDuplicates()
+            .eraseToAnyPublisher()
     }
 
-    public func saveFilterSet(set: Set<MaliciousSiteProtection.Filter>) {
-        filterSet = set
+    public func dataSet<DataKey>(for key: DataKey) -> DataKey.DataSet where DataKey: MaliciousSiteProtection.MaliciousSiteDataKey {
+        return store[key.dataType] as? DataKey.DataSet ?? .init(revision: 0, items: [])
     }
 
-    public func saveHashPrefixes(set: Set<String>) {
-        hashPrefixes = set
+    func store<DataKey>(_ dataSet: DataKey.DataSet, for key: DataKey) async where DataKey: MaliciousSiteProtection.MaliciousSiteDataKey {
+        store[key.dataType] = dataSet
     }
 
-    public func saveRevision(_ revision: Int) {
-        currentRevision = revision
-    }
 }

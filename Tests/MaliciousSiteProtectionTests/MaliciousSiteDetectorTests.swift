@@ -27,26 +27,24 @@ class MaliciousSiteDetectorTests: XCTestCase {
     private var mockEventMapping: MockEventMapping!
     private var detector: MaliciousSiteDetector!
 
-    override func setUp() {
-        super.setUp()
+    override func setUp() async throws {
         mockAPIClient = MockMaliciousSiteProtectionAPIClient()
         mockDataManager = MockMaliciousSiteProtectionDataManager()
         mockEventMapping = MockEventMapping()
         detector = MaliciousSiteDetector(apiClient: mockAPIClient, dataManager: mockDataManager, eventMapping: mockEventMapping)
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         mockAPIClient = nil
         mockDataManager = nil
         mockEventMapping = nil
         detector = nil
-        super.tearDown()
     }
 
     func testIsMaliciousWithLocalFilterHit() async {
         let filter = Filter(hash: "255a8a793097aeea1f06a19c08cde28db0eb34c660c6e4e7480c9525d034b16d", regex: ".*malicious.*")
-        mockDataManager.filterSet = Set([filter])
-        mockDataManager.hashPrefixes = Set(["255a8a79"])
+        await mockDataManager.store(FilterDictionary(revision: 0, items: [filter]), for: .filterSet(threatKind: .phishing))
+        await mockDataManager.store(HashPrefixSet(revision: 0, items: ["255a8a79"]), for: .hashPrefixes(threatKind: .phishing))
 
         let url = URL(string: "https://malicious.com/")!
 
@@ -56,8 +54,8 @@ class MaliciousSiteDetectorTests: XCTestCase {
     }
 
     func testIsMaliciousWithApiMatch() async {
-        mockDataManager.filterSet = Set()
-        mockDataManager.hashPrefixes = ["a379a6f6"]
+        await mockDataManager.store(FilterDictionary(revision: 0, items: []), for: .filterSet(threatKind: .phishing))
+        await mockDataManager.store(HashPrefixSet(revision: 0, items: ["a379a6f6"]), for: .hashPrefixes(threatKind: .phishing))
 
         let url = URL(string: "https://example.com/mal")!
 
@@ -68,8 +66,8 @@ class MaliciousSiteDetectorTests: XCTestCase {
 
     func testIsMaliciousWithHashPrefixMatch() async {
         let filter = Filter(hash: "notamatch", regex: ".*malicious.*")
-        mockDataManager.filterSet = [filter]
-        mockDataManager.hashPrefixes = ["4c64eb24"] // matches safe.com
+        await mockDataManager.store(FilterDictionary(revision: 0, items: [filter]), for: .filterSet(threatKind: .phishing))
+        await mockDataManager.store(HashPrefixSet(revision: 0, items: ["4c64eb24" /* matches safe.com */]), for: .hashPrefixes(threatKind: .phishing))
 
         let url = URL(string: "https://safe.com")!
 
@@ -81,8 +79,8 @@ class MaliciousSiteDetectorTests: XCTestCase {
     func testIsMaliciousWithFullHashMatch() async {
         // 4c64eb2468bcd3e113b37167e6b819aeccf550f974a6082ef17fb74ca68e823b
         let filter = Filter(hash: "4c64eb2468bcd3e113b37167e6b819aeccf550f974a6082ef17fb74ca68e823b", regex: "https://safe.com/maliciousURI")
-        mockDataManager.filterSet = [filter]
-        mockDataManager.hashPrefixes = ["4c64eb24"]
+        await mockDataManager.store(FilterDictionary(revision: 0, items: [filter]), for: .filterSet(threatKind: .phishing))
+        await mockDataManager.store(HashPrefixSet(revision: 0, items: ["4c64eb24"]), for: .hashPrefixes(threatKind: .phishing))
 
         let url = URL(string: "https://safe.com")!
 
@@ -93,8 +91,8 @@ class MaliciousSiteDetectorTests: XCTestCase {
 
     func testIsMaliciousWithNoHashPrefixMatch() async {
         let filter = Filter(hash: "testHash", regex: ".*malicious.*")
-        mockDataManager.filterSet = [filter]
-        mockDataManager.hashPrefixes = ["testPrefix"]
+        await mockDataManager.store(FilterDictionary(revision: 0, items: [filter]), for: .filterSet(threatKind: .phishing))
+        await mockDataManager.store(HashPrefixSet(revision: 0, items: ["testPrefix"]), for: .hashPrefixes(threatKind: .phishing))
 
         let url = URL(string: "https://safe.com")!
 

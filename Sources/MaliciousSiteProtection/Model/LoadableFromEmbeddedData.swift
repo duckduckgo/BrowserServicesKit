@@ -1,5 +1,5 @@
 //
-//  BackgroundActivitySchedulerMock.swift
+//  LoadableFromEmbeddedData.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -16,19 +16,19 @@
 //  limitations under the License.
 //
 
-import Foundation
-import MaliciousSiteProtection
-actor MockBackgroundActivityScheduler: BackgroundActivityScheduling {
-    var startCalled = false
-    var stopCalled = false
-    var interval: TimeInterval = 1
-    var identifier: String = "test"
+public protocol LoadableFromEmbeddedData<EmbeddedDataSet> {
+    /// Set Element Type (Hash Prefix or Filter)
+    associatedtype Element
+    /// Decoded data type stored in the embedded json file
+    associatedtype EmbeddedDataSet: Decodable, Sequence where EmbeddedDataSet.Element == Self.Element
 
-    func start() {
-        startCalled = true
-    }
+    init(revision: Int, items: some Sequence<Element>)
+}
 
-    func stop() {
-        stopCalled = true
-    }
+extension HashPrefixSet: LoadableFromEmbeddedData {
+    public typealias EmbeddedDataSet = [String]
+}
+
+extension FilterDictionary: LoadableFromEmbeddedData {
+    public typealias EmbeddedDataSet = [Filter]
 }

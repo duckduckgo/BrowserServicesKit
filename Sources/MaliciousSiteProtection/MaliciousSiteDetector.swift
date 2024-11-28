@@ -21,93 +21,109 @@ import CryptoKit
 import Foundation
 
 public protocol MaliciousSiteDetecting {
+    /// Evaluates the given URL to determine its malicious category (e.g., phishing, malware).
+    /// - Parameter url: The URL to evaluate.
+    /// - Returns: An optional `ThreatKind` indicating the type of threat, or `.none` if no threat is detected.
     func evaluate(_ url: URL) async -> ThreatKind?
 }
 
+/// Class responsible for detecting malicious sites by evaluating URLs against local filters and an external API.
+/// entry point: `func evaluate(_: URL) async -> ThreatKind?`
 public final class MaliciousSiteDetector: MaliciousSiteDetecting {
-    // for easier Xcode symbol navigation
+    // Type aliases for easier symbol navigation in Xcode.
     typealias PhishingDetector = MaliciousSiteDetector
     typealias MalwareDetector = MaliciousSiteDetector
 
-    let hashPrefixStoreLength: Int = 8
-    let hashPrefixParamLength: Int = 4
-    let apiClient: APIClientProtocol
-    let dataManager: DataManaging
-    let eventMapping: EventMapping<Event>
+    private enum Constants {
+        static let hashPrefixStoreLength: Int = 8
+        static let hashPrefixParamLength: Int = 4
+    }
 
-    public init(apiClient: APIClientProtocol = APIClient(), dataManager: DataManaging, eventMapping: EventMapping<Event>) {
+    private let apiClient: APIClient.Mockable
+    private let dataManager: DataManaging
+    private let eventMapping: EventMapping<Event>
+
+    public convenience init(apiEnvironment: APIClientEnvironment, dataManager: DataManager, eventMapping: EventMapping<Event>) {
+        self.init(apiClient: APIClient(environment: apiEnvironment), dataManager: dataManager, eventMapping: eventMapping)
+    }
+
+    init(apiClient: APIClient.Mockable, dataManager: DataManaging, eventMapping: EventMapping<Event>) {
         self.apiClient = apiClient
         self.dataManager = dataManager
         self.eventMapping = eventMapping
     }
 
-    private func inFilterSet(hash: String) -> Set<Filter> {
-        return Set(dataManager.filterSet.filter { $0.hash == hash })
+    private func checkLocalFilters(hostHash: String, canonicalUrl: URL, for threatKind: ThreatKind) async -> Bool {
+        let filterSet = await dataManager.dataSet(for: .filterSet(threatKind: threatKind))
+        let matchesLocalFilters = filterSet[hostHash]?.contains(where: { regex in
+            canonicalUrl.absoluteString.matches(pattern: regex)
+        }) ?? false
+
+        return matchesLocalFilters
     }
 
-    private func matchesUrl(hash: String, regexPattern: String, url: URL, hostnameHash: String) -> Bool {
-        if hash == hostnameHash,
-           let regex = try? NSRegularExpression(pattern: regexPattern, options: []) {
-            let urlString = url.absoluteString
-            let range = NSRange(location: 0, length: urlString.utf16.count)
-            return regex.firstMatch(in: urlString, options: [], range: range) != nil
-        }
-        return false
-    }
-
-    private func generateHashPrefix(for canonicalHost: String, length: Int) -> String {
-        let hostnameHash = SHA256.hash(data: Data(canonicalHost.utf8)).map { String(format: "%02hhx", $0) }.joined()
-        return String(hostnameHash.prefix(length))
-    }
-
-    private func fetchMatches(hashPrefix: String) async -> [Match] {
+    private func checkApiMatches(hostHash: String, canonicalUrl: URL) async -> Match? {
+        let hashPrefixParam = String(hostHash.prefix(Constants.hashPrefixParamLength))
+        let matches: [Match]
         do {
-            let response = try await apiClient.matches(forHashPrefix: hashPrefix)
-            return response.matches
+            matches = try await apiClient.matches(forHashPrefix: hashPrefixParam).matches
         } catch {
-            Logger.api.error("Failed to fetch matches for hash prefix: \(hashPrefix): \(error.localizedDescription)")
-            return []
+            Logger.general.error("Error fetching matches from API: \(error)")
+            return nil
         }
+
+        if let match = matches.first(where: { match in
+            match.hash == hostHash && canonicalUrl.absoluteString.matches(pattern: match.regex)
+        }) {
+            return match
+        }
+        return nil
     }
 
-    private func checkLocalFilters(canonicalHost: String, canonicalUrl: URL) -> Bool {
-        let hostnameHash = generateHashPrefix(for: canonicalHost, length: Int.max)
-        let filterHit = inFilterSet(hash: hostnameHash)
-        for filter in filterHit where matchesUrl(hash: filter.hash, regexPattern: filter.regex, url: canonicalUrl, hostnameHash: hostnameHash) {
-            eventMapping.fire(.errorPageShown(clientSideHit: true))
-            return true
-        }
-        return false
-    }
-
-    private func checkApiMatches(canonicalHost: String, canonicalUrl: URL) async -> Bool {
-        let hashPrefixParam = generateHashPrefix(for: canonicalHost, length: hashPrefixParamLength)
-        let matches = await fetchMatches(hashPrefix: hashPrefixParam)
-        let hostnameHash = generateHashPrefix(for: canonicalHost, length: Int.max)
-        for match in matches where matchesUrl(hash: match.hash, regexPattern: match.regex, url: canonicalUrl, hostnameHash: hostnameHash) {
-            eventMapping.fire(.errorPageShown(clientSideHit: false))
-            return true
-        }
-        return false
-    }
-
+    /// Evaluates the given URL to determine its malicious category (e.g., phishing, malware).
     public func evaluate(_ url: URL) async -> ThreatKind? {
-        guard let canonicalHost = url.canonicalHost(), let canonicalUrl = url.canonicalURL() else { return .none }
+        guard let canonicalHost = url.canonicalHost(),
+              let canonicalUrl = url.canonicalURL() else { return .none }
 
-        for threatKind in ThreatKind.allCases {
-            let hashPrefix = generateHashPrefix(for: canonicalHost, length: hashPrefixStoreLength)
-            if dataManager.hashPrefixes.contains(hashPrefix) {
-                // Check local filterSet first
-                if checkLocalFilters(canonicalHost: canonicalHost, canonicalUrl: canonicalUrl) {
-                    return threatKind
-                }
-                // If nothing found, hit the API to get matches
-                if await checkApiMatches(canonicalHost: canonicalHost, canonicalUrl: canonicalUrl) {
-                    return threatKind
-                }
+        let hostHash = canonicalHost.sha256
+        let hashPrefix = String(hostHash.prefix(Constants.hashPrefixStoreLength))
+
+        // 1. Check for matching hash prefixes.
+        // The hash prefix list serves as a representation of the entire database:
+        // every malicious website will have a hash prefix that it collides with.
+        var hashPrefixMatchingThreatKinds = [ThreatKind]()
+        for threatKind in ThreatKind.allCases { // e.g., phishing, malware, etc.
+            let hashPrefixes = await dataManager.dataSet(for: .hashPrefixes(threatKind: threatKind))
+            if hashPrefixes.contains(hashPrefix) {
+                hashPrefixMatchingThreatKinds.append(threatKind)
             }
+        }
+
+        // Return no threats if no matching hash prefixes are found in the database.
+        guard !hashPrefixMatchingThreatKinds.isEmpty else { return .none }
+
+        // 2. Check local Filter Sets.
+        // The filter set acts as a local cache of some database entries, containing
+        // the 5000 most common threats (or those most likely to collide with daily
+        // browsing behaviors, based on Clickhouse's top 10k, ranked by Netcraft's risk rating).
+        for threatKind in hashPrefixMatchingThreatKinds {
+            let matches = await checkLocalFilters(hostHash: hostHash, canonicalUrl: canonicalUrl, for: threatKind)
+            if matches {
+                eventMapping.fire(.errorPageShown(clientSideHit: true, threatKind: threatKind))
+                return threatKind
+            }
+        }
+
+        // 3. If no locally cached filters matched, we will still make a request to the API
+        // to check for potential matches on our backend.
+        let match = await checkApiMatches(hostHash: hostHash, canonicalUrl: canonicalUrl)
+        if let match {
+            let threatKind = match.category.flatMap(ThreatKind.init) ?? hashPrefixMatchingThreatKinds[0]
+            eventMapping.fire(.errorPageShown(clientSideHit: false, threatKind: threatKind))
+            return threatKind
         }
 
         return .none
     }
+
 }

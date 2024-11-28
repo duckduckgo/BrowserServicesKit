@@ -20,22 +20,15 @@ import Foundation
 import os
 
 public protocol FileStoring {
-    func write(data: Data, to filename: String)
+    @discardableResult func write(data: Data, to filename: String) -> Bool
     func read(from filename: String) -> Data?
 }
 
-public struct FileStore: FileStoring {
+public struct FileStore: FileStoring, CustomDebugStringConvertible {
     private let dataStoreURL: URL
 
-    public init() {
-        let dataStoreDirectory: URL
-        do {
-            dataStoreDirectory = try FileManager.default.url(for: .applicationSupportDirectory, in: .userDomainMask, appropriateFor: nil, create: true)
-        } catch {
-            Logger.dataManager.error("Error accessing application support directory: \(error.localizedDescription)")
-            dataStoreDirectory = FileManager.default.temporaryDirectory
-        }
-        dataStoreURL = dataStoreDirectory.appendingPathComponent(Bundle.main.bundleIdentifier!, isDirectory: true)
+    public init(dataStoreURL: URL) {
+        self.dataStoreURL = dataStoreURL
         createDirectoryIfNeeded()
     }
 
@@ -47,12 +40,14 @@ public struct FileStore: FileStoring {
         }
     }
 
-    public func write(data: Data, to filename: String) {
+    public func write(data: Data, to filename: String) -> Bool {
         let fileURL = dataStoreURL.appendingPathComponent(filename)
         do {
             try data.write(to: fileURL)
+            return true
         } catch {
             Logger.dataManager.error("Error writing to directory: \(error.localizedDescription)")
+            return false
         }
     }
 
@@ -64,5 +59,9 @@ public struct FileStore: FileStoring {
             Logger.dataManager.error("Error accessing application support directory: \(error)")
             return nil
         }
+    }
+
+    public var debugDescription: String {
+        return "<\(type(of: self)) - \"\(dataStoreURL.path)\">"
     }
 }

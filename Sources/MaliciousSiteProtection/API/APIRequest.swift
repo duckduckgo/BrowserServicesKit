@@ -18,66 +18,88 @@
 
 import Foundation
 
-public protocol APIRequestProtocol {
-    associatedtype ResponseType: Decodable
-    var requestType: APIClient.Request { get }
+// Enumerated request type to delegate URLs forming to an API environment instance
+public enum APIRequestType {
+    case hashPrefixSet(APIRequestType.HashPrefixes)
+    case filterSet(APIRequestType.FilterSet)
+    case matches(APIRequestType.Matches)
 }
 
-public extension APIClient {
-    enum Request {
-        case hashPrefixSet(HashPrefixes)
-        case filterSet(FilterSet)
-        case matches(Matches)
+extension APIClient {
+    // Protocol for defining typed requests with a specific response type.
+    protocol Request {
+        associatedtype Response: Decodable // Strongly-typed response type
+        var requestType: APIRequestType { get } // Enumerated type of request being made
+    }
+
+    // Protocol for requests that modify a set of malicious site detection data
+    // (returning insertions/removals along with the updated revision)
+    protocol ChangeSetRequest: Request {
+        init(threatKind: ThreatKind, revision: Int?)
     }
 }
-public extension APIClient.Request {
-    struct HashPrefixes: APIRequestProtocol {
-        public typealias ResponseType = APIClient.Response.HashPrefixesChangeSet
 
-        public let threatKind: ThreatKind
-        public let revision: Int?
+public extension APIRequestType {
+    struct HashPrefixes: APIClient.ChangeSetRequest {
+        typealias Response = APIClient.Response.HashPrefixesChangeSet
 
-        public var requestType: APIClient.Request {
+        let threatKind: ThreatKind
+        let revision: Int?
+
+        init(threatKind: ThreatKind, revision: Int?) {
+            self.threatKind = threatKind
+            self.revision = revision
+        }
+
+        var requestType: APIRequestType {
             .hashPrefixSet(self)
         }
     }
 }
-extension APIRequestProtocol where Self == APIClient.Request.HashPrefixes {
+/// extension to call generic `load(_: some Request)` method like this: `load(.hashPrefixes(…))`
+extension APIClient.Request where Self == APIRequestType.HashPrefixes {
     static func hashPrefixes(threatKind: ThreatKind, revision: Int?) -> Self {
         .init(threatKind: threatKind, revision: revision)
     }
 }
 
-public extension APIClient.Request {
-    struct FilterSet: APIRequestProtocol {
-        public typealias ResponseType = APIClient.Response.FiltersChangeSet
+public extension APIRequestType {
+    struct FilterSet: APIClient.ChangeSetRequest {
+        typealias Response = APIClient.Response.FiltersChangeSet
 
-        public let threatKind: ThreatKind
-        public let revision: Int?
+        let threatKind: ThreatKind
+        let revision: Int?
 
-        public var requestType: APIClient.Request {
+        init(threatKind: ThreatKind, revision: Int?) {
+            self.threatKind = threatKind
+            self.revision = revision
+        }
+
+        var requestType: APIRequestType {
             .filterSet(self)
         }
     }
 }
-extension APIRequestProtocol where Self == APIClient.Request.FilterSet {
+/// extension to call generic `load(_: some Request)` method like this: `load(.filterSet(…))`
+extension APIClient.Request where Self == APIRequestType.FilterSet {
     static func filterSet(threatKind: ThreatKind, revision: Int?) -> Self {
         .init(threatKind: threatKind, revision: revision)
     }
 }
 
-public extension APIClient.Request {
-    struct Matches: APIRequestProtocol {
-        public typealias ResponseType = APIClient.Response.Matches
+public extension APIRequestType {
+    struct Matches: APIClient.Request {
+        typealias Response = APIClient.Response.Matches
 
-        public let hashPrefix: String
+        let hashPrefix: String
 
-        public var requestType: APIClient.Request {
+        var requestType: APIRequestType {
             .matches(self)
         }
     }
 }
-extension APIRequestProtocol where Self == APIClient.Request.Matches {
+/// extension to call generic `load(_: some Request)` method like this: `load(.matches(…))`
+extension APIClient.Request where Self == APIRequestType.Matches {
     static func matches(hashPrefix: String) -> Self {
         .init(hashPrefix: hashPrefix)
     }
