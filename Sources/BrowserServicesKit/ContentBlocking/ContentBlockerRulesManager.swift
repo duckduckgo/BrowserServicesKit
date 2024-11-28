@@ -152,10 +152,17 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
 
             if !self.lookupCompiledRules() {
                 if let lastCompiledRules = lastCompiledRulesStore?.rules, !lastCompiledRules.isEmpty {
-                    self.fetchLastCompiledRules(with: lastCompiledRules)
+                    if self.fetchLastCompiledRules(with: lastCompiledRules) {
+                        self.errorReporting?.fire(.contentBlockingFetchLRCSucceeded)
+                    } else {
+                        self.errorReporting?.fire(.contentBlockingNoMatchInLRC)
+                    }
                 } else {
+                    self.errorReporting?.fire(.contentBlockingLRCMissing)
                     self.startCompilationProcess()
                 }
+            } else {
+                self.errorReporting?.fire(.contentBlockingLookupRulesSucceeded)
             }
         }
     }
@@ -261,7 +268,7 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
      Go through source managers and check if there are already compiled rules in the WebKit rule cache.
      Returns true if rules were found, false otherwise.
      */
-    private func fetchLastCompiledRules(with lastCompiledRules: [LastCompiledRules]) {
+    private func fetchLastCompiledRules(with lastCompiledRules: [LastCompiledRules]) -> Bool {
         Logger.contentBlocking.debug("Fetch last compiled rules: \(lastCompiledRules.count, privacy: .public)")
 
         let initialCompilationTask = LastCompiledRulesLookupTask(sourceRules: rulesSource.contentBlockerRulesLists,
@@ -274,8 +281,10 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
         // We want to confine Compilation work to WorkQueue, so we wait to come back from async Task
         mutex.wait()
 
-        if let rules = initialCompilationTask.getFetchedRules() {
-            applyRules(rules)
+        let rulesFound = initialCompilationTask.getFetchedRules()
+
+        if let rulesFound {
+            applyRules(rulesFound)
         } else {
             lock.lock()
             state = .idle
@@ -284,6 +293,8 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
 
         // No matter if rules were found or not, we need to schedule recompilation, after all
         scheduleCompilation()
+
+        return rulesFound != nil
     }
 
     private func prepareSourceManagers() {

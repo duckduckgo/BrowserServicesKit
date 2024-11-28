@@ -48,4 +48,8 @@ public enum ContentBlockerDebugEvents {
 
     case contentBlockingCompilationTime
 
+    case contentBlockingLookupRulesSucceeded
+    case contentBlockingFetchLRCSucceeded
+    case contentBlockingLRCMissing
+    case contentBlockingNoMatchInLRC
 }
