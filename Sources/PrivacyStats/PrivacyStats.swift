@@ -122,7 +122,7 @@ public final class PrivacyStats: PrivacyStatsCollecting {
                     return
                 }
 
-                let statsObjects = PrivacyStatsUtils.fetchOrInsertCurrentPacks(for: Set(pack.trackers.keys), in: context)
+                let statsObjects = PrivacyStatsUtils.fetchOrInsertCurrentStats(for: Set(pack.trackers.keys), in: context)
                 statsObjects.forEach { stats in
                     if let count = pack.trackers[stats.companyName] {
                         stats.count = count
@@ -175,9 +175,10 @@ public final class PrivacyStats: PrivacyStatsCollecting {
                     continuation.resume(returning: nil)
                     return
                 }
-                let currentPack = PrivacyStatsUtils.fetchCurrentStatsPack(in: context)
-                Logger.privacyStats.debug("Loaded stats \(currentPack.timestamp) \(currentPack.trackers)")
-                continuation.resume(returning: currentPack)
+                let timestamp = Date().privacyStatsPackTimestamp
+                let currentDayStats = PrivacyStatsUtils.loadCurrentDayStats(in: context)
+                Logger.privacyStats.debug("Loaded stats \(timestamp) \(currentDayStats)")
+                continuation.resume(returning: PrivacyStatsPack(timestamp: timestamp, trackers: currentDayStats))
             }
         }
         if let pack {
@@ -188,9 +189,10 @@ public final class PrivacyStats: PrivacyStatsCollecting {
     private func initializeCurrentPack() -> PrivacyStatsPack {
         var pack: PrivacyStatsPack?
         context.performAndWait {
-            let currentPack = PrivacyStatsUtils.fetchCurrentStatsPack(in: context)
-            Logger.privacyStats.debug("Loaded stats \(currentPack.timestamp) \(currentPack.trackers)")
-            pack = currentPack
+            let timestamp = Date().privacyStatsPackTimestamp
+            let currentDayStats = PrivacyStatsUtils.loadCurrentDayStats(in: context)
+            Logger.privacyStats.debug("Loaded stats \(timestamp) \(currentDayStats)")
+            pack = PrivacyStatsPack(timestamp: timestamp, trackers: currentDayStats)
         }
         return pack ?? PrivacyStatsPack(timestamp: Date().privacyStatsPackTimestamp)
     }

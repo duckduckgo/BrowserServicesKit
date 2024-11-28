@@ -23,23 +23,18 @@ import Persistence
 
 final class PrivacyStatsUtils {
 
-    static func fetchCurrentStatsPack(in context: NSManagedObjectContext) -> PrivacyStatsPack {
-        let timestamp = Date().privacyStatsPackTimestamp
-        let request = DailyBlockedTrackersEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "%K == %@", #keyPath(DailyBlockedTrackersEntity.timestamp), timestamp as NSDate)
-        request.returnsObjectsAsFaults = false
-
-        let statsObjects = (try? context.fetch(request)) ?? []
-
-        var pack = PrivacyStatsPack(timestamp: timestamp, trackers: [:])
-        statsObjects.forEach { object in
-            pack.trackers[object.companyName] = object.count
-        }
-
-        return pack
-    }
-
-    static func fetchOrInsertCurrentPacks(for companyNames: Set<String>, in context: NSManagedObjectContext) -> [DailyBlockedTrackersEntity] {
+    /**
+     * Returns objects corresponding to current stats for companies specified by `companyNames`.
+     *
+     * If an object doesn't exist (no trackers for a given company were reported on a given day)
+     * then a new object for that company is inserted into the context and returned.
+     * If a user opens the app for the first time on a given day, the database will not contain
+     * any records for that day and this function will only insert new objects.
+     *
+     * > Note: `current stats` refer to stats objects that are active on a given day, i.e. their
+     *   timestamp's day matches current day.
+     */
+    static func fetchOrInsertCurrentStats(for companyNames: Set<String>, in context: NSManagedObjectContext) -> [DailyBlockedTrackersEntity] {
         let timestamp = Date().privacyStatsPackTimestamp
 
         let request = DailyBlockedTrackersEntity.fetchRequest()
@@ -57,12 +52,24 @@ final class PrivacyStatsUtils {
         return statsObjects
     }
 
+    /**
+     * Returns a dictionary representation of blocked trackers counts grouped by company name for the current day.
+     */
+    static func loadCurrentDayStats(in context: NSManagedObjectContext) -> [String: Int64] {
+        let startDate = Date().privacyStatsPackTimestamp
+        return loadBlockedTrackerStats(since: startDate, in: context)
+    }
+
+    /**
+     * Returns a dictionary representation of blocked trackers counts grouped by company name for past 7 days.
+     */
     static func load7DayStats(in context: NSManagedObjectContext) -> [String: Int64] {
         let startDate = Date().privacyStatsOldestPackTimestamp
+        return loadBlockedTrackerStats(since: startDate, in: context)
+    }
 
+    private static func loadBlockedTrackerStats(since startDate: Date, in context: NSManagedObjectContext) -> [String: Int64] {
         let request = NSFetchRequest<NSFetchRequestResult>(entityName: "DailyBlockedTrackersEntity")
-
-        // Predicate to filter by date range
         request.predicate = NSPredicate(format: "%K >= %@", #keyPath(DailyBlockedTrackersEntity.timestamp), startDate as NSDate)
 
         // Expression description for the sum of count
@@ -91,15 +98,20 @@ final class PrivacyStatsUtils {
         return groupedResults
     }
 
-    static func deleteOutdatedPacks(olderThan date: Date = Date(), in context: NSManagedObjectContext) {
-        let thisHour = date.privacyStatsPackTimestamp
-        let oldestValidTimestamp = thisHour.daysAgo(7)
+    /**
+     * Deletes stats older than 7 days for all companies.
+     */
+    static func deleteOutdatedPacks(in context: NSManagedObjectContext) {
+        let oldestValidTimestamp = Date().privacyStatsOldestPackTimestamp
 
         let request = DailyBlockedTrackersEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "%K <= %@", #keyPath(DailyBlockedTrackersEntity.timestamp), oldestValidTimestamp as NSDate)
+        request.predicate = NSPredicate(format: "%K < %@", #keyPath(DailyBlockedTrackersEntity.timestamp), oldestValidTimestamp as NSDate)
         context.deleteAll(matching: request)
     }
 
+    /**
+     * Deletes all stats entries in the database.
+     */
     static func deleteAllStats(in context: NSManagedObjectContext) {
         context.deleteAll(matching: DailyBlockedTrackersEntity.fetchRequest())
     }
