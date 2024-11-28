@@ -76,7 +76,7 @@ public struct UpdateManager: UpdateManaging {
     public func startPeriodicUpdates() -> Task<Void, any Error> {
         Task.detached {
             // run update jobs in background for every data type
-            try await withThrowingTaskGroup(of: Never.self) { group -> Void in
+            try await withThrowingTaskGroup(of: Never.self) { group in
                 for dataType in DataManager.StoredDataType.allCases {
                     // get update interval from provider
                     guard let updateInterval = updateIntervalProvider(dataType) else { continue }
