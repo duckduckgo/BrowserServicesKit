@@ -651,6 +651,7 @@ let package = Package(
         .testTarget(
             name: "MaliciousSiteProtectionTests",
             dependencies: [
+                "TestUtils",
                 "MaliciousSiteProtection",
             ],
             resources: [

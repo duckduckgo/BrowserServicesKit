@@ -34,7 +34,10 @@ extension APIClient {
         }
     }
 
-    public typealias FiltersChangeSetResponse = ChangeSetResponse<Filter>
-    public typealias HashPrefixesChangeSetResponse = ChangeSetResponse<String>
+    public enum Response {
+        public typealias FiltersChangeSet = ChangeSetResponse<Filter>
+        public typealias HashPrefixesChangeSet = ChangeSetResponse<String>
+        public typealias Matches = MatchResponse
+    }
 
 }
