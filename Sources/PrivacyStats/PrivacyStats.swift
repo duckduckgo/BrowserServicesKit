@@ -178,7 +178,7 @@ public final class PrivacyStats: PrivacyStatsCollecting {
     private func commitChanges(_ pack: PrivacyStatsPack) async {
         await withCheckedContinuation { continuation in
             context.perform { [weak self] in
-                guard let self else {
+                guard let self, context.persistentStoreCoordinator?.persistentStores.isEmpty == false else {
                     continuation.resume()
                     return
                 }
