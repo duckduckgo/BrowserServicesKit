@@ -138,23 +138,28 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
         Logger.subscription.info("[StorePurchaseManager] updateAvailableProducts")
 
         do {
-            // TODO: gate old functionality without launch flag
+            let storefrontCountryCode: String?
+            let storefrontRegion: SubscriptionRegion
 
-            let currentStorefrontCountryCode: String
+            if let featureFlagger = subscriptionFeatureFlagger, (featureFlagger.isFeatureOn(.isLaunchedROW) || featureFlagger.isFeatureOn(.isLaunchedROWOverride)) {
+                if let subscriptionFeatureFlagger, subscriptionFeatureFlagger.isFeatureOn(.usePrivacyProUSARegionOverride) {
+                    storefrontCountryCode = "USA"
+                } else if let subscriptionFeatureFlagger, subscriptionFeatureFlagger.isFeatureOn(.usePrivacyProROWRegionOverride) {
+                    storefrontCountryCode = "POL"
+                } else {
+                    storefrontCountryCode = await Storefront.current?.countryCode
+                }
 
-            if let subscriptionFeatureFlagger, subscriptionFeatureFlagger.isFeatureOn(.usePrivacyProUSARegionOverride) {
-                currentStorefrontCountryCode = "USA"
-            } else if let subscriptionFeatureFlagger, subscriptionFeatureFlagger.isFeatureOn(.usePrivacyProROWRegionOverride) {
-                currentStorefrontCountryCode = "POL"
+                storefrontRegion = SubscriptionRegion.matchingRegion(for: storefrontCountryCode ?? "USA") ?? .usa // Fallback to USA
             } else {
-                currentStorefrontCountryCode = await Storefront.current?.countryCode ?? "" // TODO: Should we add default fallback here?
+                storefrontCountryCode = "USA"
+                storefrontRegion = .usa
             }
 
-            self.currentStorefrontRegion = SubscriptionRegion.matchingRegion(for: currentStorefrontCountryCode) ?? .usa // TODO: What about current region if we lack storefront?
-            let applicableProductIdentifiers = storeSubscriptionConfiguration.subscriptionIdentifiers(for: currentStorefrontCountryCode)
-
+            self.currentStorefrontRegion = storefrontRegion
+            let applicableProductIdentifiers = storeSubscriptionConfiguration.subscriptionIdentifiers(for: storefrontRegion)
             let availableProducts = try await Product.products(for: applicableProductIdentifiers)
-            Logger.subscription.info("[StorePurchaseManager] updateAvailableProducts fetched \(availableProducts.count) products for \(currentStorefrontCountryCode)")
+            Logger.subscription.info("[StorePurchaseManager] updateAvailableProducts fetched \(availableProducts.count) products for \(storefrontCountryCode ?? "<nil>", privacy: .public)")
 
             if self.availableProducts != availableProducts {
                 self.availableProducts = availableProducts
