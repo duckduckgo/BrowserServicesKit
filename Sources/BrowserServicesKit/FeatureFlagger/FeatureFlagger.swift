@@ -278,8 +278,8 @@ public class DefaultFeatureFlagger: FeatureFlagger {
     }
 
     public func getAllActiveExperiments() -> Experiments {
+        guard let enrolledExperiments = experimentManager?.experiments else { return [:] }
         var activeExperiments = [String: ExperimentData]()
-        guard let enrolledExperiments = experimentManager?.experiments else { return activeExperiments }
         let config = privacyConfigManager.privacyConfig
 
         for (subfeatureID, experimentData) in enrolledExperiments {
@@ -288,7 +288,7 @@ public class DefaultFeatureFlagger: FeatureFlagger {
             let cohorts = config.cohorts(subfeatureID: subfeatureID, parentFeatureID: experimentData.parentID) ?? []
             let experimentSubfeature = ExperimentSubfeature(parentID: experimentData.parentID, subfeatureID: subfeatureID, cohorts: cohorts)
 
-            if experimentManager?.resolveCohort(for: experimentSubfeature, isAssignCohortEnabled: false) == experimentData.cohortID {
+            if experimentManager?.resolveCohort(for: experimentSubfeature, allowCohortReassignment: false) == experimentData.cohortID {
                 activeExperiments[subfeatureID] = experimentData
             }
         }
@@ -301,8 +301,6 @@ public class DefaultFeatureFlagger: FeatureFlagger {
             return nil
         case .internalOnly(let cohort):
             return cohort
-        case .remoteDevelopment where !internalUserDecider.isInternalUser:
-            return nil
         case .remoteReleasable(let featureType),
                 .remoteDevelopment(let featureType) where internalUserDecider.isInternalUser:
             if case .subfeature(let subfeature) = featureType {
@@ -323,9 +321,9 @@ public class DefaultFeatureFlagger: FeatureFlagger {
         let experiment = ExperimentSubfeature(parentID: subfeature.parent.rawValue, subfeatureID: subfeature.rawValue, cohorts: cohorts ?? [])
         switch featureState {
         case .enabled:
-            return experimentManager?.resolveCohort(for: experiment, isAssignCohortEnabled: true)
+            return experimentManager?.resolveCohort(for: experiment, allowCohortReassignment: true)
         case .disabled(.targetDoesNotMatch):
-            return experimentManager?.resolveCohort(for: experiment, isAssignCohortEnabled: false)
+            return experimentManager?.resolveCohort(for: experiment, allowCohortReassignment: false)
         default:
             return nil
         }

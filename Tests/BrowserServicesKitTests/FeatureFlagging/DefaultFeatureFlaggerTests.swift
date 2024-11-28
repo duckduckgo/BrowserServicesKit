@@ -374,7 +374,7 @@ class MockExperimentManager: ExperimentCohortsManaging {
     var cohortToReturn: CohortID?
     var experiments: BrowserServicesKit.Experiments?
 
-    func resolveCohort(for experiment: BrowserServicesKit.ExperimentSubfeature, isAssignCohortEnabled: Bool) -> CohortID? {
+    func resolveCohort(for experiment: BrowserServicesKit.ExperimentSubfeature, allowCohortReassignment: Bool) -> CohortID? {
         return cohortToReturn
     }
 }
