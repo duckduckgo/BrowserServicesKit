@@ -1,6 +1,5 @@
 //
 //  CurrentPackTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -76,7 +75,6 @@ final class CurrentPackTests: XCTestCase {
             trackers: ["A": 100, "B": 50, "C": 400]
         )
         currentPack = CurrentPack(pack: pack, commitDebounce: 10_000_000)
-
 
         let packs = try await waitForCommitChangesEvents(for: 100_000_000) {
             await currentPack.recordBlockedTracker("A")

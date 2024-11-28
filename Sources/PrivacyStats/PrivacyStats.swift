@@ -59,15 +59,41 @@ public enum PrivacyStatsError: CustomNSError {
     }
 }
 
+/**
+ * This protocol describes database provider consumed by `PrivacyStats`.
+ */
 public protocol PrivacyStatsDatabaseProviding {
     func initializeDatabase() -> CoreDataDatabase
 }
 
+/**
+ * This protocol describes `PrivacyStats` interface.
+ */
 public protocol PrivacyStatsCollecting {
+
+    /**
+     * Record a tracker for a given `companyName`.
+     *
+     * `PrivacyStats` implementation calls the actor under the hood,
+     * and as such it can safely be called on multiple threads concurrently.
+     */
     func recordBlockedTracker(_ name: String) async
 
+    /**
+     * Publisher emitting values whenever updated privacy stats were persisted to disk.
+     */
     var statsUpdatePublisher: AnyPublisher<Void, Never> { get }
+
+    /**
+     * This function fetches privacy stats in a dictionary format
+     * with keys being company names and values being total number
+     * of tracking attempts blocked in past 7 days.
+     */
     func fetchPrivacyStats() async -> [String: Int64]
+
+    /**
+     * This function clears all blocked tracker stats from the database.
+     */
     func clearPrivacyStats() async
 }
 
@@ -101,17 +127,11 @@ public final class PrivacyStats: PrivacyStatsCollecting {
             }
             .store(in: &cancellables)
 
-#if os(iOS)
-        let notificationName = UIApplication.willTerminateNotification
-#elseif os(macOS)
-        let notificationName = NSApplication.willTerminateNotification
-#endif
-        NotificationCenter.default.addObserver(self, selector: #selector(applicationWillTerminate(_:)), name: notificationName, object: nil)
-
+        subscribeToAppTermination()
     }
 
-    public func recordBlockedTracker(_ name: String) async {
-        await currentPack?.recordBlockedTracker(name)
+    public func recordBlockedTracker(_ companyName: String) async {
+        await currentPack?.recordBlockedTracker(companyName)
     }
 
     public func fetchPrivacyStats() async -> [String: Int64] {
@@ -194,6 +214,11 @@ public final class PrivacyStats: PrivacyStatsCollecting {
         }
     }
 
+    /**
+     * This function is only called in the initializer. It performs a blocking call to the database
+     * to spare us the hassle of declaring the initializer async or spawning tasks from within the
+     * initializer without being able to await them, thus making testing trickier.
+     */
     private func initializeCurrentPack() -> PrivacyStatsPack {
         var pack: PrivacyStatsPack?
         context.performAndWait {
@@ -211,6 +236,15 @@ public final class PrivacyStats: PrivacyStatsCollecting {
             }
         }
         return pack ?? PrivacyStatsPack(timestamp: Date.currentPrivacyStatsPackTimestamp)
+    }
+
+    private func subscribeToAppTermination() {
+#if os(iOS)
+        let notificationName = UIApplication.willTerminateNotification
+#elseif os(macOS)
+        let notificationName = NSApplication.willTerminateNotification
+#endif
+        NotificationCenter.default.addObserver(self, selector: #selector(applicationWillTerminate(_:)), name: notificationName, object: nil)
     }
 
     @objc private func applicationWillTerminate(_: Notification) {
