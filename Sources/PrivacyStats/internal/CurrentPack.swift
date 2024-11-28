@@ -49,6 +49,10 @@ actor CurrentPack {
         self.commitDebounce = commitDebounce
     }
 
+    deinit {
+        commitTask?.cancel()
+    }
+
     /**
      * This function is used when clearing app data, to clear any stats cached in memory.
      *
