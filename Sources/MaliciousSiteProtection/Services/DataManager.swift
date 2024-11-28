@@ -20,8 +20,8 @@ import Foundation
 import os
 
 public protocol DataManaging {
-    func dataSet<DataKey: MaliciousSiteDataKeyProtocol>(for key: DataKey) async -> DataKey.DataSetType
-    func store<DataKey: MaliciousSiteDataKeyProtocol>(_ dataSet: DataKey.DataSetType, for key: DataKey) async
+    func dataSet<DataKey: MaliciousSiteDataKey>(for key: DataKey) async -> DataKey.DataSet
+    func store<DataKey: MaliciousSiteDataKey>(_ dataSet: DataKey.DataSet, for key: DataKey) async
 }
 
 public actor DataManager: DataManaging {
@@ -40,10 +40,10 @@ public actor DataManager: DataManaging {
         self.fileNameProvider = fileNameProvider
     }
 
-    public func dataSet<DataKey: MaliciousSiteDataKeyProtocol>(for key: DataKey) -> DataKey.DataSetType {
+    public func dataSet<DataKey: MaliciousSiteDataKey>(for key: DataKey) -> DataKey.DataSet {
         let dataType = key.dataType
         // return cached dataSet if available
-        if let data = store[key.dataType] as? DataKey.DataSetType {
+        if let data = store[key.dataType] as? DataKey.DataSet {
             return data
         }
 
@@ -61,14 +61,14 @@ public actor DataManager: DataManaging {
         return dataSet
     }
 
-    private func readStoredDataSet<DataKey: MaliciousSiteDataKeyProtocol>(for key: DataKey) -> DataKey.DataSetType? {
+    private func readStoredDataSet<DataKey: MaliciousSiteDataKey>(for key: DataKey) -> DataKey.DataSet? {
         let dataType = key.dataType
         let fileName = fileNameProvider(dataType)
         guard let data = fileStore.read(from: fileName) else { return nil }
 
-        let storedDataSet: DataKey.DataSetType
+        let storedDataSet: DataKey.DataSet
         do {
-            storedDataSet = try JSONDecoder().decode(DataKey.DataSetType.self, from: data)
+            storedDataSet = try JSONDecoder().decode(DataKey.DataSet.self, from: data)
         } catch {
             Logger.dataManager.error("Error decoding \(fileName): \(error.localizedDescription)")
             return nil
@@ -84,7 +84,7 @@ public actor DataManager: DataManaging {
         return storedDataSet
     }
 
-    public func store<DataKey: MaliciousSiteDataKeyProtocol>(_ dataSet: DataKey.DataSetType, for key: DataKey) {
+    public func store<DataKey: MaliciousSiteDataKey>(_ dataSet: DataKey.DataSet, for key: DataKey) {
         let dataType = key.dataType
         let fileName = fileNameProvider(dataType)
         self.store[dataType] = dataSet

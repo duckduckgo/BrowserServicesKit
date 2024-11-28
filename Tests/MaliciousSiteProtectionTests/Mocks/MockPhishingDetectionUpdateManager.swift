@@ -25,7 +25,7 @@ public class MockPhishingDetectionUpdateManager: MaliciousSiteProtection.UpdateM
     var didUpdateHashPrefixes = false
     var completionHandler: (() -> Void)?
 
-    public func updateData(for key: some MaliciousSiteProtection.MaliciousSiteDataKeyProtocol) async {
+    public func updateData(for key: some MaliciousSiteProtection.MaliciousSiteDataKey) async {
         switch key.dataType {
         case .filterSet: await updateFilterSet()
         case .hashPrefixSet: await updateHashPrefixes()

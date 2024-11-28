@@ -24,12 +24,12 @@ public protocol EmbeddedDataProviding {
     func url(for dataType: DataManager.StoredDataType) -> URL
     func hash(for dataType: DataManager.StoredDataType) -> String
 
-    func loadDataSet<DataKey: MaliciousSiteDataKeyProtocol>(for key: DataKey) -> DataKey.EmbeddedDataSetType
+    func loadDataSet<DataKey: MaliciousSiteDataKey>(for key: DataKey) -> DataKey.EmbeddedDataSet
 }
 
 extension EmbeddedDataProviding {
 
-    public func loadDataSet<DataKey: MaliciousSiteDataKeyProtocol>(for key: DataKey) -> DataKey.EmbeddedDataSetType {
+    public func loadDataSet<DataKey: MaliciousSiteDataKey>(for key: DataKey) -> DataKey.EmbeddedDataSet {
         let dataType = key.dataType
         let url = url(for: dataType)
         let data: Data
@@ -42,7 +42,7 @@ extension EmbeddedDataProviding {
             fatalError("Could not load embedded data set at \(url.path): \(error)")
         }
         do {
-            let result = try JSONDecoder().decode(DataKey.EmbeddedDataSetType.self, from: data)
+            let result = try JSONDecoder().decode(DataKey.EmbeddedDataSet.self, from: data)
             return result
         } catch {
             fatalError("Could not decode embedded data set at \(url.path): \(error)")

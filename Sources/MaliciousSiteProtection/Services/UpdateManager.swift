@@ -21,7 +21,7 @@ import Common
 import os
 
 public protocol UpdateManaging {
-    func updateData(for key: some MaliciousSiteDataKeyProtocol) async
+    func updateData(for key: some MaliciousSiteDataKey) async
 
     func updateFilterSet() async
     func updateHashPrefixes() async
@@ -36,15 +36,15 @@ public struct UpdateManager: UpdateManaging {
         self.dataManager = dataManager
     }
 
-    public func updateData<DataKey: MaliciousSiteDataKeyProtocol>(for key: DataKey) async {
+    public func updateData<DataKey: MaliciousSiteDataKey>(for key: DataKey) async {
         // load currently stored data set
         var dataSet = await dataManager.dataSet(for: key)
         let oldRevision = dataSet.revision
 
         // get change set from current revision from API
-        let changeSet: APIClient.ChangeSetResponse<DataKey.DataSetType.Element>
+        let changeSet: APIClient.ChangeSetResponse<DataKey.DataSet.Element>
         do {
-            let request = DataKey.DataSetType.APIRequestType(threatKind: key.threatKind, revision: oldRevision)
+            let request = DataKey.DataSet.APIRequest(threatKind: key.threatKind, revision: oldRevision)
             changeSet = try await apiClient.load(request)
         } catch {
             Logger.updateManager.error("error fetching filter set: \(error)")

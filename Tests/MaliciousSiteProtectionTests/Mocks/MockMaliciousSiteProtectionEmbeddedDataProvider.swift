@@ -38,14 +38,14 @@ public class MockMaliciousSiteProtectionEmbeddedDataProvider: MaliciousSiteProte
         ""
     }
 
-    public func loadDataSet<DataKey>(for key: DataKey) -> DataKey.EmbeddedDataSetType where DataKey : MaliciousSiteDataKeyProtocol {
+    public func loadDataSet<DataKey>(for key: DataKey) -> DataKey.EmbeddedDataSet where DataKey : MaliciousSiteDataKey {
         switch key.dataType {
         case .filterSet:
             self.loadFilterSetCalled = true
-            return Array(filterSet) as! DataKey.EmbeddedDataSetType
+            return Array(filterSet) as! DataKey.EmbeddedDataSet
         case .hashPrefixSet:
             self.loadHashPrefixesCalled = true
-            return Array(hashPrefixes) as! DataKey.EmbeddedDataSetType
+            return Array(hashPrefixes) as! DataKey.EmbeddedDataSet
         }
     }
 

@@ -19,7 +19,8 @@
 public protocol IncrementallyUpdatableMaliciousSiteDataSet: Codable {
     /// Set Element Type (Hash Prefix or Filter)
     associatedtype Element: Codable, Hashable
-    associatedtype APIRequestType: MaliciousSiteDataChangeSetAPIRequestProtocol, APIRequestProtocol where APIRequestType.ResponseType == APIClient.ChangeSetResponse<Element>
+    /// API Request type used to fetch updates for the data set
+    associatedtype APIRequest: MaliciousSiteDataChangeSetAPIRequestProtocol, APIRequestProtocol where APIRequest.ResponseType == APIClient.ChangeSetResponse<Element>
 
     var revision: Int { get set }
 
@@ -46,16 +47,16 @@ extension IncrementallyUpdatableMaliciousSiteDataSet {
 
 extension HashPrefixSet: IncrementallyUpdatableMaliciousSiteDataSet {
     public typealias Element = String
-    public typealias APIRequestType = APIClient.Request.HashPrefixes
+    public typealias APIRequest = APIClient.Request.HashPrefixes
 
-    public static func apiRequest(for threatKind: ThreatKind, revision: Int) -> APIRequestType {
+    public static func apiRequest(for threatKind: ThreatKind, revision: Int) -> APIRequest {
         .hashPrefixes(threatKind: threatKind, revision: revision)
     }
 }
 
 extension FilterDictionary: IncrementallyUpdatableMaliciousSiteDataSet {
     public typealias Element = Filter
-    public typealias APIRequestType = APIClient.Request.FilterSet
+    public typealias APIRequest = APIClient.Request.FilterSet
 
     public init(revision: Int, items: some Sequence<Filter>) {
         let filtersDictionary = items.reduce(into: [String: Set<String>]()) { result, filter in
@@ -64,7 +65,7 @@ extension FilterDictionary: IncrementallyUpdatableMaliciousSiteDataSet {
         self.init(revision: revision, filters: filtersDictionary)
     }
 
-    public static func apiRequest(for threatKind: ThreatKind, revision: Int) -> APIRequestType {
+    public static func apiRequest(for threatKind: ThreatKind, revision: Int) -> APIRequest {
         .filterSet(threatKind: threatKind, revision: revision)
     }
 }

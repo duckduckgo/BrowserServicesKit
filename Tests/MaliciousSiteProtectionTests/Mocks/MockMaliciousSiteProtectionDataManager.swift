@@ -22,11 +22,11 @@ import MaliciousSiteProtection
 public class MockMaliciousSiteProtectionDataManager: MaliciousSiteProtection.DataManaging {
     var store = [MaliciousSiteProtection.DataManager.StoredDataType: Any]()
 
-    public func dataSet<DataKey>(for key: DataKey) async -> DataKey.DataSetType where DataKey : MaliciousSiteProtection.MaliciousSiteDataKeyProtocol {
-        store[key.dataType] as? DataKey.DataSetType ?? .init(revision: 0, items: [])
+    public func dataSet<DataKey>(for key: DataKey) async -> DataKey.DataSet where DataKey : MaliciousSiteProtection.MaliciousSiteDataKey {
+        store[key.dataType] as? DataKey.DataSet ?? .init(revision: 0, items: [])
     }
 
-    public func store<DataKey>(_ dataSet: DataKey.DataSetType, for key: DataKey) async where DataKey : MaliciousSiteProtection.MaliciousSiteDataKeyProtocol {
+    public func store<DataKey>(_ dataSet: DataKey.DataSet, for key: DataKey) async where DataKey : MaliciousSiteProtection.MaliciousSiteDataKey {
         store[key.dataType] = dataSet
     }
 
