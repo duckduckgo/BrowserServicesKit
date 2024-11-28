@@ -114,9 +114,13 @@ public final class SubscriptionManagerMock: SubscriptionManager {
     public func signOut(skipNotification: Bool) {
 
     }
-
+    
     public func signOut() async {
+        resultTokenContainer = nil
+    }
 
+    public func removeTokenContainer() {
+        resultTokenContainer = nil
     }
 
     public func clearSubscriptionCache() {

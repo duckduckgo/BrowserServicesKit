@@ -20,8 +20,7 @@ import Foundation
 import Networking
 import Subscription
 
-public struct MockSubscriptionTokenProvider: SubscriptionTokenProvider {
-
+public class MockSubscriptionTokenProvider: SubscriptionTokenProvider {
     public var tokenResult: Result<Networking.TokenContainer, Error>?
 
     public func getTokenContainer(policy: Networking.TokensCachePolicy) async throws -> Networking.TokenContainer {
@@ -43,7 +42,7 @@ public struct MockSubscriptionTokenProvider: SubscriptionTokenProvider {
         switch tokenResult {
         case .success(let result):
             return result
-        case .failure(let error):
+        case .failure:
             return nil
         }
     }
@@ -65,10 +64,14 @@ public struct MockSubscriptionTokenProvider: SubscriptionTokenProvider {
             throw OAuthClientError.missingTokens
         }
         switch tokenResult {
-        case .success(let result):
+        case .success:
             return
         case .failure(let error):
             throw error
         }
+    }
+
+    public func removeTokenContainer() {
+        tokenResult = nil
     }
 }

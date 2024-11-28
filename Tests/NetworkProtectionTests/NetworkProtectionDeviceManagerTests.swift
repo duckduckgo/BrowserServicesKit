@@ -114,7 +114,13 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
     func testWhenGeneratingTunnelConfig_storedAuthTokenIsInvalidOnGettingServers_deletesToken() async throws {
         _ = NetworkProtectionServer.mockRegisteredServer
         networkClient.stubRegister = .failure(.invalidAuthToken)
-        _ = try await manager.generateTunnelConfiguration(selectionMethod: .automatic, regenerateKey: false)
+
+        tokenProvider.tokenResult = .success(OAuthTokensFactory.makeValidTokenContainerWithEntitlements())
+
+        _ = try? await manager.generateTunnelConfiguration(selectionMethod: .automatic, regenerateKey: false)
+
+        let tokens = try? await tokenProvider.getTokenContainer(policy: .local)
+        XCTAssertNil(tokens)
     }
 
     func testDecodingServers() throws {
@@ -198,12 +204,10 @@ extension NetworkProtectionDeviceManager {
 
     func generateTunnelConfiguration(selectionMethod: NetworkProtectionServerSelectionMethod,
                                      regenerateKey: Bool) async throws -> NetworkProtectionDeviceManager.GenerateTunnelConfigurationResult {
-        try await generateTunnelConfiguration(
-            resolvedSelectionMethod: selectionMethod,
-            excludeLocalNetworks: false,
-            dnsSettings: .default,
-            regenerateKey: regenerateKey
-        )
+        try await generateTunnelConfiguration(resolvedSelectionMethod: selectionMethod,
+                                              excludeLocalNetworks: false,
+                                              dnsSettings: .default,
+                                              regenerateKey: regenerateKey)
     }
 
 }

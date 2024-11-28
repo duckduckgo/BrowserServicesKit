@@ -135,7 +135,7 @@ public struct StartupOptions {
 
         let resetStoredOptionsIfNil = startupMethod == .manualByMainApp
 #if os(macOS)
-        tokenContainer = Self.readAuthToken(from: options, resetIfNil: false)
+        tokenContainer = Self.readAuthToken(from: options, resetIfNil: resetStoredOptionsIfNil)
 #endif
         enableTester = Self.readEnableTester(from: options, resetIfNil: resetStoredOptionsIfNil)
         keyValidity = Self.readKeyValidity(from: options, resetIfNil: resetStoredOptionsIfNil)

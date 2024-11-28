@@ -19,6 +19,7 @@
 import Foundation
 import Common
 import Subscription
+import Networking
 
 public enum NetworkProtectionLocationListCachePolicy {
     case returnCacheElseLoad
@@ -97,6 +98,10 @@ final public class NetworkProtectionLocationListCompositeRepository: NetworkProt
         } catch let error as NetworkProtectionError {
             errorEvents.fire(error)
             throw error
+        } catch Networking.OAuthClientError.missingTokens {
+            let newError = NetworkProtectionError.noAuthTokenFound
+            errorEvents.fire(newError)
+            throw newError
         } catch {
             let unhandledError = NetworkProtectionError.unhandledError(function: #function, line: #line, error: error)
             errorEvents.fire(unhandledError)

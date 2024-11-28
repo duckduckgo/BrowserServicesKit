@@ -63,6 +63,9 @@ public protocol SubscriptionTokenProvider {
 
     /// Used only from the Mac Packet Tunnel Provider when a token is received during configuration
     func adopt(tokenContainer: TokenContainer) async throws
+
+    /// Remove the stored token container
+    func removeTokenContainer()
 }
 
 /// Provider of the Subscription entitlements
@@ -349,6 +352,10 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
 
     public func adopt(tokenContainer: TokenContainer) async throws {
         oAuthClient.currentTokenContainer = tokenContainer
+    }
+
+    public func removeTokenContainer() {
+        oAuthClient.removeLocalAccount()
     }
 
     public func signOut() async {

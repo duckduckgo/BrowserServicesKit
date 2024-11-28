@@ -93,11 +93,13 @@ class SubscriptionManagerTests: XCTestCase {
         do {
             _ = try await subscriptionManager.getTokenContainer(policy: .localValid)
             XCTFail("Error expected")
+        } catch SubscriptionManagerError.tokenUnavailable {
+            // Expected error
         } catch {
-            XCTAssertEqual(error as? SubscriptionManagerError, SubscriptionManagerError.tokenUnavailable(error: nil))
+            XCTFail("Unexpected error: \(error)")
         }
 
-        await fulfillment(of: [expectation], timeout: 1.0)
+        await fulfillment(of: [expectation], timeout: 0.1)
     }
 
     // MARK: - Subscription Status Tests
@@ -119,7 +121,7 @@ class SubscriptionManagerTests: XCTestCase {
             XCTAssertTrue(isActive)
             expectation.fulfill()
         }
-        wait(for: [expectation], timeout: 1.0)
+        wait(for: [expectation], timeout: 0.1)
     }
 
     func testRefreshCachedSubscription_ExpiredSubscription() {
@@ -139,7 +141,7 @@ class SubscriptionManagerTests: XCTestCase {
             XCTAssertFalse(isActive)
             expectation.fulfill()
         }
-        wait(for: [expectation], timeout: 1.0)
+        wait(for: [expectation], timeout: 0.1)
     }
 
     // MARK: - URL Generation Tests

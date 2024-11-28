@@ -60,10 +60,10 @@ class NetworkProtectionLocationListCompositeRepositoryTests: XCTestCase {
             ])
         ]
         client.stubGetLocations = .success(expectedList)
-        let tokenContainer = OAuthTokensFactory.makeValidTokenContainer()
+        let tokenContainer = OAuthTokensFactory.makeValidTokenContainerWithEntitlements()
         tokenProvider.tokenResult = .success(tokenContainer)
         let locations = try await repository.fetchLocationList()
-        XCTAssertEqual(tokenContainer.accessToken, client.spyGetLocationsAuthToken)
+        XCTAssertEqual("ddg:\(tokenContainer.accessToken)", client.spyGetLocationsAuthToken)
         XCTAssertEqual(expectedList, locations)
     }
 
