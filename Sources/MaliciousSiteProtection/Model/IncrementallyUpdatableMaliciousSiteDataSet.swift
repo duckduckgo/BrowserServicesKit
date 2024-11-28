@@ -20,7 +20,7 @@ public protocol IncrementallyUpdatableMaliciousSiteDataSet: Codable {
     /// Set Element Type (Hash Prefix or Filter)
     associatedtype Element: Codable, Hashable
     /// API Request type used to fetch updates for the data set
-    associatedtype APIRequest: MaliciousSiteDataChangeSetAPIRequestProtocol, APIRequestProtocol where APIRequest.ResponseType == APIClient.ChangeSetResponse<Element>
+    associatedtype APIRequest: ThreatDataChangeSetAPIRequest where APIRequest.Response == APIClient.ChangeSetResponse<Element>
 
     var revision: Int { get set }
 

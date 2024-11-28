@@ -18,11 +18,11 @@
 
 import Foundation
 
-public protocol APIRequestProtocol {
-    associatedtype ResponseType: Decodable
+public protocol APIRequest {
+    associatedtype Response: Decodable
     var requestType: APIClient.Request { get }
 }
-public protocol MaliciousSiteDataChangeSetAPIRequestProtocol: APIRequestProtocol {
+public protocol ThreatDataChangeSetAPIRequest: APIRequest {
     init(threatKind: ThreatKind, revision: Int?)
 }
 
@@ -34,8 +34,8 @@ public extension APIClient {
     }
 }
 public extension APIClient.Request {
-    struct HashPrefixes: MaliciousSiteDataChangeSetAPIRequestProtocol {
-        public typealias ResponseType = APIClient.Response.HashPrefixesChangeSet
+    struct HashPrefixes: ThreatDataChangeSetAPIRequest {
+        public typealias Response = APIClient.Response.HashPrefixesChangeSet
 
         public let threatKind: ThreatKind
         public let revision: Int?
@@ -50,15 +50,15 @@ public extension APIClient.Request {
         }
     }
 }
-extension APIRequestProtocol where Self == APIClient.Request.HashPrefixes {
+extension APIRequest where Self == APIClient.Request.HashPrefixes {
     static func hashPrefixes(threatKind: ThreatKind, revision: Int?) -> Self {
         .init(threatKind: threatKind, revision: revision)
     }
 }
 
 public extension APIClient.Request {
-    struct FilterSet: MaliciousSiteDataChangeSetAPIRequestProtocol {
-        public typealias ResponseType = APIClient.Response.FiltersChangeSet
+    struct FilterSet: ThreatDataChangeSetAPIRequest {
+        public typealias Response = APIClient.Response.FiltersChangeSet
 
         public let threatKind: ThreatKind
         public let revision: Int?
@@ -73,15 +73,15 @@ public extension APIClient.Request {
         }
     }
 }
-extension APIRequestProtocol where Self == APIClient.Request.FilterSet {
+extension APIRequest where Self == APIClient.Request.FilterSet {
     static func filterSet(threatKind: ThreatKind, revision: Int?) -> Self {
         .init(threatKind: threatKind, revision: revision)
     }
 }
 
 public extension APIClient.Request {
-    struct Matches: APIRequestProtocol {
-        public typealias ResponseType = APIClient.Response.Matches
+    struct Matches: APIRequest {
+        public typealias Response = APIClient.Response.Matches
 
         public let hashPrefix: String
 
@@ -90,7 +90,7 @@ public extension APIClient.Request {
         }
     }
 }
-extension APIRequestProtocol where Self == APIClient.Request.Matches {
+extension APIRequest where Self == APIClient.Request.Matches {
     static func matches(hashPrefix: String) -> Self {
         .init(hashPrefix: hashPrefix)
     }

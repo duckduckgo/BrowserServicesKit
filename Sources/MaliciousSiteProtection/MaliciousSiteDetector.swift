@@ -21,6 +21,9 @@ import CryptoKit
 import Foundation
 
 public protocol MaliciousSiteDetecting {
+    /// Evaluates the given URL to determine its threat level.
+    /// - Parameter url: The URL to evaluate.
+    /// - Returns: An optional ThreatKind indicating the type of threat, or nil if no threat is detected.
     func evaluate(_ url: URL) async -> ThreatKind?
 }
 
@@ -74,8 +77,6 @@ public final class MaliciousSiteDetector: MaliciousSiteDetecting {
     }
 
     /// Evaluates the given URL to determine its threat level.
-    /// - Parameter url: The URL to evaluate.
-    /// - Returns: An optional ThreatKind indicating the type of threat, or nil if no threat is detected.
     public func evaluate(_ url: URL) async -> ThreatKind? {
         guard let canonicalHost = url.canonicalHost(),
               let canonicalUrl = url.canonicalURL() else { return .none }

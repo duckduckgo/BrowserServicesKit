@@ -21,7 +21,7 @@ import Foundation
 import Networking
 
 public protocol APIClientProtocol {
-    func load<Request: APIRequestProtocol>(_ requestConfig: Request) async throws -> Request.ResponseType
+    func load<Request: APIRequest>(_ requestConfig: Request) async throws -> Request.Response
 }
 
 public extension APIClientProtocol where Self == APIClient {
@@ -50,7 +50,7 @@ public extension APIClient {
         }
 
         var defaultHeaders: APIRequestV2.HeadersV2 {
-            .init(userAgent: APIRequest.Headers.userAgent)
+            .init(userAgent: Networking.APIRequest.Headers.userAgent)
         }
 
         enum APIPath {
@@ -103,14 +103,14 @@ public struct APIClient: APIClientProtocol {
         self.service = service
     }
 
-    public func load<Request: APIRequestProtocol>(_ requestConfig: Request) async throws -> Request.ResponseType {
+    public func load<Request: APIRequest>(_ requestConfig: Request) async throws -> Request.Response {
         let requestType = requestConfig.requestType
         let headers = environment.headers(for: requestType)
         let url = environment.url(for: requestType)
 
         let apiRequest = APIRequestV2(url: url, method: .get, headers: headers)
         let response = try await service.fetch(request: apiRequest)
-        let result: Request.ResponseType = try response.decodeBody()
+        let result: Request.Response = try response.decodeBody()
 
         return result
     }
