@@ -18,22 +18,22 @@
 
 import Combine
 import Foundation
-import MaliciousSiteProtection
+@testable import MaliciousSiteProtection
 
-public actor MockMaliciousSiteProtectionDataManager: MaliciousSiteProtection.DataManaging {
+actor MockMaliciousSiteProtectionDataManager: MaliciousSiteProtection.DataManaging {
 
     @Published var store = [MaliciousSiteProtection.DataManager.StoredDataType: Any]()
-    func publisher<DataKey>(for key: DataKey) -> AnyPublisher<DataKey.DataSetType, Never> where DataKey: MaliciousSiteProtection.MaliciousSiteDataKeyProtocol {
-        $store.map { $0[key.dataType] as? DataKey.DataSetType ?? .init(revision: 0, items: []) }
+    func publisher<DataKey>(for key: DataKey) -> AnyPublisher<DataKey.DataSet, Never> where DataKey: MaliciousSiteProtection.MaliciousSiteDataKey {
+        $store.map { $0[key.dataType] as? DataKey.DataSet ?? .init(revision: 0, items: []) }
             .removeDuplicates()
             .eraseToAnyPublisher()
     }
 
-    public func dataSet<DataKey>(for key: DataKey) -> DataKey.DataSetType where DataKey: MaliciousSiteProtection.MaliciousSiteDataKeyProtocol {
-        return store[key.dataType] as? DataKey.DataSetType ?? .init(revision: 0, items: [])
+    public func dataSet<DataKey>(for key: DataKey) -> DataKey.DataSet where DataKey: MaliciousSiteProtection.MaliciousSiteDataKey {
+        return store[key.dataType] as? DataKey.DataSet ?? .init(revision: 0, items: [])
     }
 
-    public func store<DataKey>(_ dataSet: DataKey.DataSetType, for key: DataKey) where DataKey: MaliciousSiteProtection.MaliciousSiteDataKeyProtocol {
+    func store<DataKey>(_ dataSet: DataKey.DataSet, for key: DataKey) async where DataKey: MaliciousSiteProtection.MaliciousSiteDataKey {
         store[key.dataType] = dataSet
     }
 

@@ -1,5 +1,5 @@
 //
-//  LoadableFromEmbeddedData.swift
+//  SpecialErrorPageHTMLTemplate.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -16,19 +16,23 @@
 //  limitations under the License.
 //
 
-public protocol LoadableFromEmbeddedData<EmbeddedDataSet> {
-    /// Set Element Type (Hash Prefix or Filter)
-    associatedtype Element
-    /// Decoded data type stored in the embedded json file
-    associatedtype EmbeddedDataSet: Decodable, Sequence where EmbeddedDataSet.Element == Self.Element
+import Foundation
+import ContentScopeScripts
+import WebKit
+import Common
 
-    init(revision: Int, items: some Sequence<Element>)
-}
+public struct SpecialErrorPageHTMLTemplate {
 
-extension HashPrefixSet: LoadableFromEmbeddedData {
-    public typealias EmbeddedDataSet = [String]
-}
+    public static var htmlFromTemplate: String {
+        guard let file = ContentScopeScripts.Bundle.path(forResource: "index", ofType: "html", inDirectory: "pages/special-error") else {
+            assertionFailure("HTML template not found")
+            return ""
+        }
+        guard let html = try? String(contentsOfFile: file) else {
+            assertionFailure("Should be able to load template")
+            return ""
+        }
+        return html
+    }
 
-extension FilterDictionary: LoadableFromEmbeddedData {
-    public typealias EmbeddedDataSet = [Filter]
 }

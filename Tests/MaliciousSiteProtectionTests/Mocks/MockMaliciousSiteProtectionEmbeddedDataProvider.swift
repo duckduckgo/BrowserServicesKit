@@ -17,20 +17,20 @@
 //
 
 import Foundation
-import MaliciousSiteProtection
+@testable import MaliciousSiteProtection
 
-public class MockMaliciousSiteProtectionEmbeddedDataProvider: MaliciousSiteProtection.EmbeddedDataProviding {
-    public var embeddedRevision: Int = 65
+class MockMaliciousSiteProtectionEmbeddedDataProvider: MaliciousSiteProtection.EmbeddedDataProviding {
+    var embeddedRevision: Int = 65
     var loadHashPrefixesCalled: Bool = false
     var loadFilterSetCalled: Bool = true
     var hashPrefixes = Set(["aabb"])
     var filterSet = Set([Filter(hash: "dummyhash", regex: "dummyregex")])
 
-    public func revision(for detectionKind: MaliciousSiteProtection.DataManager.StoredDataType) -> Int {
+    func revision(for detectionKind: MaliciousSiteProtection.DataManager.StoredDataType) -> Int {
         embeddedRevision
     }
 
-    public func url(for detectionKind: MaliciousSiteProtection.DataManager.StoredDataType) -> URL {
+    func url(for detectionKind: MaliciousSiteProtection.DataManager.StoredDataType) -> URL {
         URL.empty
     }
 
@@ -38,14 +38,14 @@ public class MockMaliciousSiteProtectionEmbeddedDataProvider: MaliciousSiteProte
         ""
     }
 
-    public func loadDataSet<DataKey>(for key: DataKey) -> DataKey.EmbeddedDataSetType where DataKey: MaliciousSiteDataKeyProtocol {
+    func loadDataSet<DataKey>(for key: DataKey) -> DataKey.EmbeddedDataSet where DataKey: MaliciousSiteDataKey {
         switch key.dataType {
         case .filterSet:
             self.loadFilterSetCalled = true
-            return Array(filterSet) as! DataKey.EmbeddedDataSetType
+            return Array(filterSet) as! DataKey.EmbeddedDataSet
         case .hashPrefixSet:
             self.loadHashPrefixesCalled = true
-            return Array(hashPrefixes) as! DataKey.EmbeddedDataSetType
+            return Array(hashPrefixes) as! DataKey.EmbeddedDataSet
         }
     }
 

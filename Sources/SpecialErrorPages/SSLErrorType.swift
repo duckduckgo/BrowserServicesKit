@@ -28,8 +28,8 @@ public enum SSLErrorType: String, Encodable {
     case wrongHost
     case invalid
 
-    init(errorCode: Int) {
-        self = switch Int32(errorCode) {
+    init(errorCode: Int32) {
+        self = switch errorCode {
         case errSSLCertExpired: .expired
         case errSSLXCertChainInvalid: .selfSigned
         case errSSLHostNameMismatch: .wrongHost
@@ -37,11 +37,25 @@ public enum SSLErrorType: String, Encodable {
         }
     }
 
+    public var pixelParameter: String {
+        switch self {
+        case .expired: return "expired"
+        case .wrongHost: return "wrong_host"
+        case .selfSigned: return "self_signed"
+        case .invalid: return "generic"
+        }
+    }
+
 }
 
 extension WKError {
     public var sslErrorType: SSLErrorType? {
-        guard let errorCode = self.userInfo[SSLErrorCodeKey] as? Int else { return nil }
+        _nsError.sslErrorType
+    }
+}
+extension NSError {
+    public var sslErrorType: SSLErrorType? {
+        guard let errorCode = self.userInfo[SSLErrorCodeKey] as? Int32 else { return nil }
         let sslErrorType = SSLErrorType(errorCode: errorCode)
         return sslErrorType
     }

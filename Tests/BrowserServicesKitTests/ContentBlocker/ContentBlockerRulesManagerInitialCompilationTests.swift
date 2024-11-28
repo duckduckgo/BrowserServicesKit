@@ -24,6 +24,7 @@ import TrackerRadarKit
 import BrowserServicesKit
 import WebKit
 import XCTest
+import Common
 
 final class CountedFulfillmentTestExpectation: XCTestExpectation, @unchecked Sendable {
     private(set) var currentFulfillmentCount: Int = 0
@@ -57,12 +58,24 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
             expStore.fulfill()
         }
 
+        let lookupAndFetchExp =  self.expectation(description: "LRC should be missing")
+        let errorHandler = EventMapping<ContentBlockerDebugEvents> { event, _, params, _ in
+            if case .contentBlockingLRCMissing = event {
+                lookupAndFetchExp.fulfill()
+            } else if case .contentBlockingCompilationTime = event {
+                XCTAssertNotNil(params?["compilationTime"])
+            } else {
+                XCTFail("Unexpected event: \(event)")
+            }
+        }
+
         let cbrm = ContentBlockerRulesManager(rulesSource: mockRulesSource,
                                               exceptionsSource: mockExceptionsSource,
                                               lastCompiledRulesStore: mockLastCompiledRulesStore,
-                                              updateListener: rulesUpdateListener)
+                                              updateListener: rulesUpdateListener,
+                                              errorReporting: errorHandler)
 
-        wait(for: [exp, expStore], timeout: 15.0)
+        wait(for: [exp, expStore, lookupAndFetchExp], timeout: 15.0)
 
         XCTAssertNotNil(mockLastCompiledRulesStore.rules)
         XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.etag, mockRulesSource.trackerData?.etag)
@@ -93,6 +106,8 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
             XCTFail("Should use rules cached by WebKit")
         }
 
+        let lookupAndFetchExp =  self.expectation(description: "Should not fetch LRC")
+
         // simulate the rules have been compiled in the past so the WKContentRuleListStore contains it
         _ = ContentBlockerRulesManager(rulesSource: mockRulesSource,
                                        exceptionsSource: mockExceptionsSource,
@@ -103,15 +118,28 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
         rulesUpdateListener.onRulesUpdated = { rules in
             exp.fulfill()
             if exp.currentFulfillmentCount == 1 { // finished compilation after first installation
+                let errorHandler = EventMapping<ContentBlockerDebugEvents> { event, _, params, _ in
+                    if case .contentBlockingFetchLRCSucceeded = event {
+                        XCTFail("Should  not fetch LRC")
+                    } else if case .contentBlockingLookupRulesSucceeded = event {
+                        lookupAndFetchExp.fulfill()
+                    } else if case .contentBlockingCompilationTime = event {
+                        XCTAssertNotNil(params?["compilationTime"])
+                    } else {
+                        XCTFail("Unexpected event: \(event)")
+                    }
+                }
+
                 _ = ContentBlockerRulesManager(rulesSource: mockRulesSource,
                                                exceptionsSource: mockExceptionsSource,
                                                lastCompiledRulesStore: mockLastCompiledRulesStore,
-                                               updateListener: self.rulesUpdateListener)
+                                               updateListener: self.rulesUpdateListener,
+                                               errorReporting: errorHandler)
             }
             assertRules(rules)
         }
 
-        wait(for: [exp], timeout: 15.0)
+        wait(for: [exp, lookupAndFetchExp], timeout: 15.0)
 
         func assertRules(_ rules: [ContentBlockerRulesManager.Rules]) {
             guard let rules = rules.first else { XCTFail("Couldn't get rules"); return }
@@ -178,12 +206,27 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
             XCTAssertEqual(newListName, rules.name)
         }
 
+        let lookupAndFetchExp =  self.expectation(description: "Should  not fetch LRC")
+
+        let errorHandler = EventMapping<ContentBlockerDebugEvents> { event, _, params, _ in
+            if case .contentBlockingFetchLRCSucceeded = event {
+                XCTFail("Should  not fetch LRC")
+            } else if case .contentBlockingNoMatchInLRC = event {
+                lookupAndFetchExp.fulfill()
+            } else if case .contentBlockingCompilationTime = event {
+                XCTAssertNotNil(params?["compilationTime"])
+            } else {
+                XCTFail("Unexpected event: \(event)")
+            }
+        }
+
         _ = ContentBlockerRulesManager(rulesSource: mockRulesSource,
                                        exceptionsSource: mockExceptionsSource,
                                        lastCompiledRulesStore: mockLastCompiledRulesStore,
-                                       updateListener: rulesUpdateListener)
+                                       updateListener: rulesUpdateListener,
+                                       errorReporting: errorHandler)
 
-        wait(for: [expCacheLookup, expNext], timeout: 15.0)
+        wait(for: [expCacheLookup, expNext, lookupAndFetchExp], timeout: 15.0)
     }
 
     func testInitialCompilation_WhenThereAreChangesToTDS_ShouldBuildRulesUsingLastCompiledRulesAndScheduleRecompilationWithNewSource() {
@@ -220,14 +263,26 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
                                        exceptionsSource: mockExceptionsSource,
                                        updateListener: rulesUpdateListener)
 
+        let lookupAndFetchExp =  self.expectation(description: "Fetch LRC succeeded")
         let expOld = CountedFulfillmentTestExpectation(description: "Old Rules Compiled")
         rulesUpdateListener.onRulesUpdated = { _ in
             expOld.fulfill()
 
+            let errorHandler = EventMapping<ContentBlockerDebugEvents> { event, _, params, _ in
+                if case .contentBlockingFetchLRCSucceeded = event {
+                    lookupAndFetchExp.fulfill()
+                } else if case .contentBlockingCompilationTime = event {
+                    XCTAssertNotNil(params?["compilationTime"])
+                } else {
+                    XCTFail("Unexpected event: \(event)")
+                }
+            }
+
             _ = ContentBlockerRulesManager(rulesSource: mockUpdatedRulesSource,
                                            exceptionsSource: mockExceptionsSource,
                                            lastCompiledRulesStore: mockLastCompiledRulesStore,
-                                           updateListener: self.rulesUpdateListener)
+                                           updateListener: self.rulesUpdateListener,
+                                           errorReporting: errorHandler)
         }
 
         wait(for: [expOld], timeout: 15.0)
@@ -237,27 +292,27 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
             expLastCompiledFetched.fulfill()
         }
 
-        let expRecompiled = CountedFulfillmentTestExpectation(description: "New Rules Compiled")
-        rulesUpdateListener.onRulesUpdated = { _ in
-            expRecompiled.fulfill()
+            let expRecompiled = CountedFulfillmentTestExpectation(description: "New Rules Compiled")
+            rulesUpdateListener.onRulesUpdated = { _ in
+                expRecompiled.fulfill()
+
+                if expRecompiled.currentFulfillmentCount == 1 { // finished compilation after cold start (using last compiled rules)
+                    mockLastCompiledRulesStore.onRulesGet = {}
+                    XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.etag, oldEtag)
+                    XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.name, mockRulesSource.ruleListName)
+                    XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.trackerData, mockRulesSource.trackerData?.tds)
+                    XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.identifier, oldIdentifier)
+                } else if expRecompiled.currentFulfillmentCount == 2 { // finished recompilation of rules due to changed tds
+                    XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.etag, updatedEtag)
+                    XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.name, mockRulesSource.ruleListName)
+                    XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.trackerData, mockRulesSource.trackerData?.tds)
+                    XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.identifier, newIdentifier)
+                }
+            }
+
+        wait(for: [expLastCompiledFetched, expRecompiled, lookupAndFetchExp], timeout: 15.0)
+
         }
-
-        if expRecompiled.currentFulfillmentCount == 1 { // finished compilation after cold start (using last compiled rules)
-
-            mockLastCompiledRulesStore.onRulesGet = {}
-            XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.etag, oldEtag)
-            XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.name, mockRulesSource.ruleListName)
-            XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.trackerData, mockRulesSource.trackerData?.tds)
-            XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.identifier, oldIdentifier)
-        } else if expRecompiled.currentFulfillmentCount == 2 { // finished recompilation of rules due to changed tds
-            XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.etag, updatedEtag)
-            XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.name, mockRulesSource.ruleListName)
-            XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.trackerData, mockRulesSource.trackerData?.tds)
-            XCTAssertEqual(mockLastCompiledRulesStore.rules.first?.identifier, newIdentifier)
-        }
-
-        wait(for: [expLastCompiledFetched, expRecompiled], timeout: 15.0)
-    }
 
     struct MockLastCompiledRules: LastCompiledRules {
 

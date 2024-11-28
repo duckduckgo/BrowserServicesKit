@@ -17,33 +17,33 @@
 //
 
 import Foundation
-import MaliciousSiteProtection
+@testable import MaliciousSiteProtection
 
-public class MockPhishingDetectionUpdateManager: MaliciousSiteProtection.UpdateManaging {
+class MockPhishingDetectionUpdateManager: MaliciousSiteProtection.UpdateManaging {
 
     var didUpdateFilterSet = false
     var didUpdateHashPrefixes = false
     var startPeriodicUpdatesCalled = false
     var completionHandler: (() -> Void)?
 
-    public func updateData(for key: some MaliciousSiteProtection.MaliciousSiteDataKeyProtocol) async {
+    func updateData(for key: some MaliciousSiteProtection.MaliciousSiteDataKey) async {
         switch key.dataType {
         case .filterSet: await updateFilterSet()
         case .hashPrefixSet: await updateHashPrefixes()
         }
     }
 
-    public func updateFilterSet() async {
+    func updateFilterSet() async {
         didUpdateFilterSet = true
         checkCompletion()
     }
 
-    public func updateHashPrefixes() async {
+    func updateHashPrefixes() async {
         didUpdateHashPrefixes = true
         checkCompletion()
     }
 
-    private func checkCompletion() {
+    func checkCompletion() {
         if didUpdateFilterSet && didUpdateHashPrefixes {
             completionHandler?()
         }
