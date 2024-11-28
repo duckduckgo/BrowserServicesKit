@@ -21,10 +21,21 @@ import Foundation
 
 extension Date {
 
+    /**
+     * Returns a valid timestamp for `DailyBlockedTrackersEntity` instance matching the sender.
+     *
+     * Blocked trackers are packed by day so the timestap of the pack must be the exact start of a day.
+     */
     var privacyStatsPackTimestamp: Date {
         startOfDay
     }
 
+    /**
+     * Returns the oldest valid timestamp for `DailyBlockedTrackersEntity` instance matching the sender.
+     *
+     * Privacy Stats only keeps track of 7 days worth of tracking history, so the oldest timestamp is
+     * beginning of the day 6 days ago.
+     */
     var privacyStatsOldestPackTimestamp: Date {
         privacyStatsPackTimestamp.daysAgo(6)
     }

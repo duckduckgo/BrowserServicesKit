@@ -1,5 +1,5 @@
 //
-//  DailyBlockedTrackers.swift
+//  DailyBlockedTrackersEntity.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //

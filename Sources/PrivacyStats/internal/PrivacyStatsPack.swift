@@ -16,61 +16,17 @@
 //  limitations under the License.
 //
 
-import Combine
 import Foundation
-import os.log
 
-struct PrivacyStatsPack: Sendable {
+/**
+ * This struct keeps track of the summary of blocked trackers for a single unit of time (1 day).
+ */
+struct PrivacyStatsPack: Equatable {
     let timestamp: Date
     var trackers: [String: Int64]
 
     init(timestamp: Date, trackers: [String: Int64] = [:]) {
         self.timestamp = timestamp
         self.trackers = trackers
-    }
-}
-
-actor CurrentPack {
-    var pack: PrivacyStatsPack
-
-    nonisolated private(set) lazy var commitChangesPublisher: AnyPublisher<PrivacyStatsPack, Never> = commitChangesSubject.eraseToAnyPublisher()
-    nonisolated private let commitChangesSubject = PassthroughSubject<PrivacyStatsPack, Never>()
-
-    private var commitTask: Task<Void, Never>?
-
-    init(pack: PrivacyStatsPack) {
-        self.pack = pack
-    }
-
-    func updatePack(_ pack: PrivacyStatsPack) {
-        self.pack = pack
-    }
-
-    func recordBlockedTracker(_ name: String) {
-
-        let currentTimestamp = Date().privacyStatsPackTimestamp
-        if currentTimestamp != pack.timestamp {
-            commitChangesSubject.send(pack)
-            resetStats(andSet: currentTimestamp)
-        }
-
-        let count = pack.trackers[name] ?? 0
-        pack.trackers[name] = count + 1
-
-        commitTask?.cancel()
-        commitTask = Task {
-            do {
-                try await Task.sleep(nanoseconds: 1_000_000_000)
-
-                Logger.privacyStats.debug("Storing trackers state")
-                commitChangesSubject.send(pack)
-            } catch {
-                // commit task got cancelled
-            }
-        }
-    }
-
-    private func resetStats(andSet newTimestamp: Date) {
-        pack = PrivacyStatsPack(timestamp: newTimestamp, trackers: [:])
     }
 }

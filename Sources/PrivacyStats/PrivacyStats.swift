@@ -28,18 +28,6 @@ import AppKit
 import UIKit
 #endif
 
-public protocol PrivacyStatsDatabaseProviding {
-    func initializeDatabase() -> CoreDataDatabase
-}
-
-public protocol PrivacyStatsCollecting {
-    func recordBlockedTracker(_ name: String) async
-
-    var statsUpdatePublisher: AnyPublisher<Void, Never> { get }
-    func fetchPrivacyStats() async -> [String: Int64]
-    func clearPrivacyStats() async
-}
-
 /**
  * Errors that may be reported by `PrivacyStats`.
  */
@@ -75,6 +63,17 @@ public enum PrivacyStatsError: CustomNSError {
     }
 }
 
+public protocol PrivacyStatsDatabaseProviding {
+    func initializeDatabase() -> CoreDataDatabase
+}
+
+public protocol PrivacyStatsCollecting {
+    func recordBlockedTracker(_ name: String) async
+
+    var statsUpdatePublisher: AnyPublisher<Void, Never> { get }
+    func fetchPrivacyStats() async -> [String: Int64]
+    func clearPrivacyStats() async
+}
 
 public final class PrivacyStats: PrivacyStatsCollecting {
 
@@ -155,7 +154,7 @@ public final class PrivacyStats: PrivacyStatsCollecting {
                 continuation.resume()
             }
         }
-        await loadCurrentPack()
+        await currentPack?.resetPack()
     }
 
     // MARK: - Private
@@ -213,29 +212,6 @@ public final class PrivacyStats: PrivacyStatsCollecting {
                 }
                 continuation.resume()
             }
-        }
-    }
-
-    private func loadCurrentPack() async {
-        let pack = await withCheckedContinuation { (continuation: CheckedContinuation<PrivacyStatsPack?, Never>) in
-            context.perform { [weak self] in
-                guard let self else {
-                    continuation.resume(returning: nil)
-                    return
-                }
-                let timestamp = Date().privacyStatsPackTimestamp
-                do {
-                    let currentDayStats = try PrivacyStatsUtils.loadCurrentDayStats(in: context)
-                    Logger.privacyStats.debug("Loaded stats \(timestamp) \(currentDayStats)")
-                    continuation.resume(returning: PrivacyStatsPack(timestamp: timestamp, trackers: currentDayStats))
-                } catch {
-                    Logger.privacyStats.error("Faild to load current stats: \(error)")
-                    errorEvents?.fire(.failedToLoadCurrentPrivacyStats(error))
-                }
-            }
-        }
-        if let pack {
-            await currentPack?.updatePack(pack)
         }
     }
 

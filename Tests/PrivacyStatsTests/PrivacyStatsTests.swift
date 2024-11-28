@@ -190,7 +190,7 @@ final class PrivacyStatsTests: XCTestCase {
     func waitForStatsUpdateEvent(file: StaticString = #file, line: UInt = #line) async {
         let expectation = self.expectation(description: "statsUpdate")
         let cancellable = privacyStats.statsUpdatePublisher.sink { expectation.fulfill() }
-        await fulfillment(of: [expectation])
+        await fulfillment(of: [expectation], timeout: 2)
         cancellable.cancel()
     }
 }

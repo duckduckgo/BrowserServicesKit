@@ -341,7 +341,6 @@ final class PrivacyStatsUtilsTests: XCTestCase {
 
         context.performAndWait {
             PrivacyStatsUtils.deleteAllStats(in: context)
-
             XCTAssertEqual(context.deletedObjects.count, 5)
         }
     }
