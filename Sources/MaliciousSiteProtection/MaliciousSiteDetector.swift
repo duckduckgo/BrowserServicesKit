@@ -102,7 +102,7 @@ public final class MaliciousSiteDetector: MaliciousSiteDetecting {
             }
 
             // the API detects both phishing and malware so if it didn‘t find any matches it‘s safe to return early.
-            return nil
+            // return nil // TODO: Uncomment this when malware detection is deployed on the backend
         }
 
         return .none
