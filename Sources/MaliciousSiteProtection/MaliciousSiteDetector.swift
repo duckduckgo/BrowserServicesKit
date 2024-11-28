@@ -39,11 +39,15 @@ public final class MaliciousSiteDetector: MaliciousSiteDetecting {
         static let hashPrefixParamLength: Int = 4
     }
 
-    private let apiClient: APIClientProtocol
+    private let apiClient: APIClient.Mockable
     private let dataManager: DataManaging
     private let eventMapping: EventMapping<Event>
 
-    public init(apiClient: APIClientProtocol = APIClient(), dataManager: DataManaging, eventMapping: EventMapping<Event>) {
+    public convenience init(apiEnvironment: APIClientEnvironment, dataManager: DataManager, eventMapping: EventMapping<Event>) {
+        self.init(apiClient: APIClient(environment: apiEnvironment), dataManager: dataManager, eventMapping: eventMapping)
+    }
+
+    init(apiClient: APIClient.Mockable, dataManager: DataManaging, eventMapping: EventMapping<Event>) {
         self.apiClient = apiClient
         self.dataManager = dataManager
         self.eventMapping = eventMapping

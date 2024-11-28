@@ -18,9 +18,9 @@
 
 import Foundation
 
-public protocol MaliciousSiteDataKey: Hashable {
+protocol MaliciousSiteDataKey: Hashable {
     associatedtype EmbeddedDataSet: Decodable
-    associatedtype DataSet: IncrementallyUpdatableMaliciousSiteDataSet, LoadableFromEmbeddedData<EmbeddedDataSet>
+    associatedtype DataSet: IncrementallyUpdatableDataSet, LoadableFromEmbeddedData<EmbeddedDataSet>
 
     var dataType: DataManager.StoredDataType { get }
     var threatKind: ThreatKind { get }
@@ -71,11 +71,11 @@ public extension DataManager {
 
 public extension DataManager.StoredDataType {
     struct HashPrefixes: MaliciousSiteDataKey {
-        public typealias DataSet = HashPrefixSet
+        typealias DataSet = HashPrefixSet
 
-        public let threatKind: ThreatKind
+        let threatKind: ThreatKind
 
-        public var dataType: DataManager.StoredDataType {
+        var dataType: DataManager.StoredDataType {
             .hashPrefixSet(self)
         }
     }
@@ -88,11 +88,11 @@ extension MaliciousSiteDataKey where Self == DataManager.StoredDataType.HashPref
 
 public extension DataManager.StoredDataType {
     struct FilterSet: MaliciousSiteDataKey {
-        public typealias DataSet = FilterDictionary
+        typealias DataSet = FilterDictionary
 
-        public let threatKind: ThreatKind
+        let threatKind: ThreatKind
 
-        public var dataType: DataManager.StoredDataType {
+        var dataType: DataManager.StoredDataType {
             .filterSet(self)
         }
     }

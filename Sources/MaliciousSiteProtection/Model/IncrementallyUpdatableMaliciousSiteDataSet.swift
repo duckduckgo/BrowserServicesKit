@@ -1,5 +1,5 @@
 //
-//  IncrementallyUpdatableMaliciousSiteDataSet.swift
+//  IncrementallyUpdatableDataSet.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -16,11 +16,11 @@
 //  limitations under the License.
 //
 
-public protocol IncrementallyUpdatableMaliciousSiteDataSet: Codable {
+protocol IncrementallyUpdatableDataSet: Codable {
     /// Set Element Type (Hash Prefix or Filter)
     associatedtype Element: Codable, Hashable
     /// API Request type used to fetch updates for the data set
-    associatedtype APIRequest: ThreatDataChangeSetAPIRequest where APIRequest.Response == APIClient.ChangeSetResponse<Element>
+    associatedtype APIRequest: APIClient.ChangeSetRequest where APIRequest.Response == APIClient.ChangeSetResponse<Element>
 
     var revision: Int { get set }
 
@@ -33,8 +33,8 @@ public protocol IncrementallyUpdatableMaliciousSiteDataSet: Codable {
     mutating func apply(_ changeSet: APIClient.ChangeSetResponse<Element>)
 }
 
-extension IncrementallyUpdatableMaliciousSiteDataSet {
-    public mutating func apply(_ changeSet: APIClient.ChangeSetResponse<Element>) {
+extension IncrementallyUpdatableDataSet {
+    mutating func apply(_ changeSet: APIClient.ChangeSetResponse<Element>) {
         if changeSet.replace {
             self = .init(revision: changeSet.revision, items: changeSet.insert)
         } else {
@@ -45,27 +45,27 @@ extension IncrementallyUpdatableMaliciousSiteDataSet {
     }
 }
 
-extension HashPrefixSet: IncrementallyUpdatableMaliciousSiteDataSet {
-    public typealias Element = String
-    public typealias APIRequest = APIClient.Request.HashPrefixes
+extension HashPrefixSet: IncrementallyUpdatableDataSet {
+    typealias Element = String
+    typealias APIRequest = APIRequestType.HashPrefixes
 
-    public static func apiRequest(for threatKind: ThreatKind, revision: Int) -> APIRequest {
+    static func apiRequest(for threatKind: ThreatKind, revision: Int) -> APIRequest {
         .hashPrefixes(threatKind: threatKind, revision: revision)
     }
 }
 
-extension FilterDictionary: IncrementallyUpdatableMaliciousSiteDataSet {
-    public typealias Element = Filter
-    public typealias APIRequest = APIClient.Request.FilterSet
+extension FilterDictionary: IncrementallyUpdatableDataSet {
+    typealias Element = Filter
+    typealias APIRequest = APIRequestType.FilterSet
 
-    public init(revision: Int, items: some Sequence<Filter>) {
+    init(revision: Int, items: some Sequence<Filter>) {
         let filtersDictionary = items.reduce(into: [String: Set<String>]()) { result, filter in
             result[filter.hash, default: []].insert(filter.regex)
         }
         self.init(revision: revision, filters: filtersDictionary)
     }
 
-    public static func apiRequest(for threatKind: ThreatKind, revision: Int) -> APIRequest {
+    static func apiRequest(for threatKind: ThreatKind, revision: Int) -> APIRequest {
         .filterSet(threatKind: threatKind, revision: revision)
     }
 }

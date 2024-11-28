@@ -70,7 +70,11 @@ public class PhishingDetectionDataActivities: PhishingDetectionDataActivityHandl
     private var schedulers: [BackgroundActivityScheduler]
     private var running: Bool = false
 
-    public init(hashPrefixInterval: TimeInterval = 20 * 60, filterSetInterval: TimeInterval = 12 * 60 * 60, updateManager: UpdateManaging) {
+    public convenience init(hashPrefixInterval: TimeInterval = 20 * 60, filterSetInterval: TimeInterval = 12 * 60 * 60, updateManager: UpdateManager) {
+        self.init(hashPrefixInterval: hashPrefixInterval, filterSetInterval: filterSetInterval, updateManager: updateManager)
+    }
+
+    init(hashPrefixInterval: TimeInterval = 20 * 60, filterSetInterval: TimeInterval = 12 * 60 * 60, updateManager: UpdateManaging) {
         let hashPrefixScheduler = BackgroundActivityScheduler(
             interval: hashPrefixInterval,
             identifier: "hashPrefixes.update",

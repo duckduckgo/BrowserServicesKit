@@ -19,7 +19,7 @@
 import Foundation
 import os
 
-public protocol DataManaging {
+protocol DataManaging {
     func dataSet<DataKey: MaliciousSiteDataKey>(for key: DataKey) async -> DataKey.DataSet
     func store<DataKey: MaliciousSiteDataKey>(_ dataSet: DataKey.DataSet, for key: DataKey) async
 }
@@ -40,7 +40,7 @@ public actor DataManager: DataManaging {
         self.fileNameProvider = fileNameProvider
     }
 
-    public func dataSet<DataKey: MaliciousSiteDataKey>(for key: DataKey) -> DataKey.DataSet {
+    func dataSet<DataKey: MaliciousSiteDataKey>(for key: DataKey) -> DataKey.DataSet {
         let dataType = key.dataType
         // return cached dataSet if available
         if let data = store[key.dataType] as? DataKey.DataSet {
@@ -84,7 +84,7 @@ public actor DataManager: DataManaging {
         return storedDataSet
     }
 
-    public func store<DataKey: MaliciousSiteDataKey>(_ dataSet: DataKey.DataSet, for key: DataKey) {
+    func store<DataKey: MaliciousSiteDataKey>(_ dataSet: DataKey.DataSet, for key: DataKey) {
         let dataType = key.dataType
         let fileName = fileNameProvider(dataType)
         self.store[dataType] = dataSet

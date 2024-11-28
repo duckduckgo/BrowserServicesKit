@@ -17,13 +17,13 @@
 //
 
 import Foundation
-import MaliciousSiteProtection
+@testable import MaliciousSiteProtection
 
-public class MockMaliciousSiteProtectionAPIClient: MaliciousSiteProtection.APIClientProtocol {
-    public var updateHashPrefixesWasCalled: Bool = false
-    public var updateFilterSetsWasCalled: Bool = false
+class MockMaliciousSiteProtectionAPIClient: MaliciousSiteProtection.APIClient.Mockable {
+    var updateHashPrefixesWasCalled: Bool = false
+    var updateFilterSetsWasCalled: Bool = false
 
-    private var filterRevisions: [Int: APIClient.Response.FiltersChangeSet] = [
+    var filterRevisions: [Int: APIClient.Response.FiltersChangeSet] = [
         0: .init(insert: [
             Filter(hash: "testhash1", regex: ".*example.*"),
             Filter(hash: "testhash2", regex: ".*test.*")
@@ -73,14 +73,14 @@ public class MockMaliciousSiteProtectionAPIClient: MaliciousSiteProtection.APICl
         ], revision: 6, replace: true),
     ]
 
-    public func load<Request>(_ requestConfig: Request) async throws -> Request.ResponseType where Request: APIRequestProtocol {
+    func load<Request>(_ requestConfig: Request) async throws -> Request.Response where Request : APIClient.Request {
         switch requestConfig.requestType {
         case .hashPrefixSet(let configuration):
-            return _hashPrefixesChangeSet(for: configuration.threatKind, revision: configuration.revision ?? 0) as! Request.ResponseType
+            return _hashPrefixesChangeSet(for: configuration.threatKind, revision: configuration.revision ?? 0) as! Request.Response
         case .filterSet(let configuration):
-            return _filtersChangeSet(for: configuration.threatKind, revision: configuration.revision ?? 0) as! Request.ResponseType
+            return _filtersChangeSet(for: configuration.threatKind, revision: configuration.revision ?? 0) as! Request.Response
         case .matches(let configuration):
-            return _matches(forHashPrefix: configuration.hashPrefix) as! Request.ResponseType
+            return _matches(forHashPrefix: configuration.hashPrefix) as! Request.Response
         }
     }
     func _filtersChangeSet(for threatKind: MaliciousSiteProtection.ThreatKind, revision: Int) -> MaliciousSiteProtection.APIClient.Response.FiltersChangeSet {

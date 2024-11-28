@@ -18,10 +18,10 @@
 
 import Foundation
 
-public struct FilterDictionary: Codable, Equatable {
+struct FilterDictionary: Codable, Equatable {
 
     /// Filter set revision
-    public var revision: Int
+    var revision: Int
 
     /// [Hash: [RegEx]] mapping
     ///
@@ -36,9 +36,9 @@ public struct FilterDictionary: Codable, Equatable {
     ///     ...
     /// }
     /// ```
-    public var filters: [String: Set<String>]
+    var filters: [String: Set<String>]
 
-    public init(revision: Int, filters: [String: Set<String>]) {
+    init(revision: Int, filters: [String: Set<String>]) {
         self.filters = filters
         self.revision = revision
     }
@@ -48,7 +48,7 @@ public struct FilterDictionary: Codable, Equatable {
         filters[hash]
     }
 
-    public mutating func subtract<Seq: Sequence>(_ itemsToDelete: Seq) where Seq.Element == Filter {
+    mutating func subtract<Seq: Sequence>(_ itemsToDelete: Seq) where Seq.Element == Filter {
         for filter in itemsToDelete {
             // Remove the filter from the Set stored in the Dictionary by hash used as a key.
             // If the Set becomes empty – remove the Set value from the Dictionary.
@@ -74,7 +74,7 @@ public struct FilterDictionary: Codable, Equatable {
         }
     }
 
-    public mutating func formUnion<Seq: Sequence>(_ itemsToAdd: Seq) where Seq.Element == Filter {
+    mutating func formUnion<Seq: Sequence>(_ itemsToAdd: Seq) where Seq.Element == Filter {
         for filter in itemsToAdd {
             filters[filter.hash, default: []].insert(filter.regex)
         }

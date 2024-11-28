@@ -20,7 +20,7 @@ import Foundation
 import Common
 import os
 
-public protocol UpdateManaging {
+protocol UpdateManaging {
     func updateData(for key: some MaliciousSiteDataKey) async
 
     func updateFilterSet() async
@@ -28,15 +28,19 @@ public protocol UpdateManaging {
 }
 
 public struct UpdateManager: UpdateManaging {
-    private let apiClient: APIClientProtocol
+    private let apiClient: APIClient.Mockable
     private let dataManager: DataManaging
 
-    public init(apiClient: APIClientProtocol, dataManager: DataManaging) {
+    public init(apiEnvironment: APIClientEnvironment, dataManager: DataManager) {
+        self.init(apiClient: APIClient(environment: apiEnvironment), dataManager: dataManager)
+    }
+
+    init(apiClient: APIClient.Mockable, dataManager: DataManaging) {
         self.apiClient = apiClient
         self.dataManager = dataManager
     }
 
-    public func updateData<DataKey: MaliciousSiteDataKey>(for key: DataKey) async {
+    func updateData<DataKey: MaliciousSiteDataKey>(for key: DataKey) async {
         // load currently stored data set
         var dataSet = await dataManager.dataSet(for: key)
         let oldRevision = dataSet.revision

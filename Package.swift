@@ -644,7 +644,8 @@ let package = Package(
         .testTarget(
             name: "DuckPlayerTests",
             dependencies: [
-                "DuckPlayer"
+                "DuckPlayer",
+                "BrowserServicesKitTestsUtils",
             ]
         ),
 

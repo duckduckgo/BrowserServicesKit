@@ -24,17 +24,17 @@ public protocol EmbeddedDataProviding {
     func url(for dataType: DataManager.StoredDataType) -> URL
     func hash(for dataType: DataManager.StoredDataType) -> String
 
-    func loadDataSet<DataKey: MaliciousSiteDataKey>(for key: DataKey) -> DataKey.EmbeddedDataSet
+    func data(withContentsOf url: URL) throws -> Data
 }
 
 extension EmbeddedDataProviding {
 
-    public func loadDataSet<DataKey: MaliciousSiteDataKey>(for key: DataKey) -> DataKey.EmbeddedDataSet {
+    func loadDataSet<DataKey: MaliciousSiteDataKey>(for key: DataKey) -> DataKey.EmbeddedDataSet {
         let dataType = key.dataType
         let url = url(for: dataType)
         let data: Data
         do {
-            data = try Data(contentsOf: url)
+            data = try self.data(withContentsOf: url)
 #if DEBUG
             assert(data.sha256 == hash(for: dataType), "SHA mismatch for \(url.path)")
 #endif
@@ -47,6 +47,10 @@ extension EmbeddedDataProviding {
         } catch {
             fatalError("Could not decode embedded data set at \(url.path): \(error)")
         }
+    }
+
+    public func data(withContentsOf url: URL) throws -> Data {
+        try Data(contentsOf: url)
     }
 
 }

@@ -24,7 +24,7 @@ import XCTest
 class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
     var updateManager: MaliciousSiteProtection.UpdateManager!
     var dataManager: MaliciousSiteProtection.DataManaging!
-    var apiClient: MaliciousSiteProtection.APIClientProtocol!
+    var apiClient: MaliciousSiteProtection.APIClient.Mockable!
 
     override func setUp() async throws {
         apiClient = MockMaliciousSiteProtectionAPIClient()
