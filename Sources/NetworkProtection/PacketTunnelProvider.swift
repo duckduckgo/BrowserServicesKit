@@ -887,6 +887,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     @MainActor
     private func stopTunnel() async throws {
         connectionStatus = .disconnecting
+
         await stopMonitors()
         try await stopAdapter()
     }
@@ -895,10 +896,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private func stopAdapter() async throws {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             adapter.stop { [weak self] error in
-                if let self {
-                    self.handleAdapterStopped()
-                }
-
                 if let error {
                     self?.debugEvents.fire(error.networkProtectionError)
 
@@ -1418,11 +1415,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         // and is being fixed, so we want to test the connection immediately.
         let testImmediately = startReason == .reconnected || startReason == .onDemand
         try await startMonitors(testImmediately: testImmediately)
-    }
-
-    @MainActor
-    public func handleAdapterStopped() {
-        connectionStatus = .disconnected
     }
 
     // MARK: - Monitors
