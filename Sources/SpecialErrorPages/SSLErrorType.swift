@@ -37,9 +37,23 @@ public enum SSLErrorType: String, Encodable {
         }
     }
 
+    public var pixelParameter: String {
+        switch self {
+        case .expired: return "expired"
+        case .wrongHost: return "wrong_host"
+        case .selfSigned: return "self_signed"
+        case .invalid: return "generic"
+        }
+    }
+
 }
 
 extension WKError {
+    public var sslErrorType: SSLErrorType? {
+        _nsError.sslErrorType
+    }
+}
+extension NSError {
     public var sslErrorType: SSLErrorType? {
         guard let errorCode = self.userInfo[SSLErrorCodeKey] as? Int else { return nil }
         let sslErrorType = SSLErrorType(errorCode: errorCode)
