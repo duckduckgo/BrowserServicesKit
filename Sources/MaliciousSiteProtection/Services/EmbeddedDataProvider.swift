@@ -39,13 +39,13 @@ extension EmbeddedDataProviding {
             assert(data.sha256 == hash(for: dataType), "SHA mismatch for \(url.path)")
 #endif
         } catch {
-            fatalError("Could not load embedded data set at \(url.path): \(error)")
+            fatalError("\(self): Could not load embedded data set at “\(url)”: \(error)")
         }
         do {
             let result = try JSONDecoder().decode(DataKey.EmbeddedDataSetType.self, from: data)
             return result
         } catch {
-            fatalError("Could not decode embedded data set at \(url.path): \(error)")
+            fatalError("\(self): Could not decode embedded data set at “\(url)”: \(error)")
         }
     }
 
