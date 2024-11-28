@@ -20,8 +20,8 @@ import Foundation
 @testable import MaliciousSiteProtection
 
 class MockMaliciousSiteProtectionAPIClient: MaliciousSiteProtection.APIClient.Mockable {
-    var updateHashPrefixesWasCalled: Bool = false
-    var updateFilterSetsWasCalled: Bool = false
+    var updateHashPrefixesCalled: ((Int) -> Void)?
+    var updateFilterSetsCalled: ((Int) -> Void)?
 
     var filterRevisions: [Int: APIClient.Response.FiltersChangeSet] = [
         0: .init(insert: [
@@ -84,12 +84,12 @@ class MockMaliciousSiteProtectionAPIClient: MaliciousSiteProtection.APIClient.Mo
         }
     }
     func _filtersChangeSet(for threatKind: MaliciousSiteProtection.ThreatKind, revision: Int) -> MaliciousSiteProtection.APIClient.Response.FiltersChangeSet {
-        updateFilterSetsWasCalled = true
+        updateFilterSetsCalled?(revision)
         return filterRevisions[revision] ?? .init(insert: [], delete: [], revision: revision, replace: false)
     }
 
     func _hashPrefixesChangeSet(for threatKind: MaliciousSiteProtection.ThreatKind, revision: Int) -> MaliciousSiteProtection.APIClient.Response.HashPrefixesChangeSet {
-        updateHashPrefixesWasCalled = true
+        updateHashPrefixesCalled?(revision)
         return hashPrefixRevisions[revision] ?? .init(insert: [], delete: [], revision: revision, replace: false)
     }
 

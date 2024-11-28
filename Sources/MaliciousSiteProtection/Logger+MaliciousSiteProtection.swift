@@ -25,7 +25,6 @@ public extension os.Logger {
         public static var api = os.Logger(subsystem: "MSP", category: "API")
         public static var dataManager = os.Logger(subsystem: "MSP", category: "DataManager")
         public static var updateManager = os.Logger(subsystem: "MSP", category: "UpdateManager")
-        static var phishingDetectionTasks = os.Logger(subsystem: "MSP", category: "BackgroundActivities")
     }
 }
 

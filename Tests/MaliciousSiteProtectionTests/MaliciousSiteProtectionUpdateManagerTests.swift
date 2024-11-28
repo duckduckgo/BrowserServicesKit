@@ -16,30 +16,47 @@
 //  limitations under the License.
 //
 
+import Clocks
+import Common
 import Foundation
 import XCTest
 
 @testable import MaliciousSiteProtection
 
 class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
+
     var updateManager: MaliciousSiteProtection.UpdateManager!
-    var dataManager: MaliciousSiteProtection.DataManaging!
+    var dataManager: MockMaliciousSiteProtectionDataManager!
     var apiClient: MaliciousSiteProtection.APIClient.Mockable!
+    var updateIntervalProvider: UpdateManager.UpdateIntervalProvider!
+    var clock: TestClock<Duration>!
+    var willSleep: ((TimeInterval) -> Void)?
+    var updateTask: Task<Void, Error>?
 
     override func setUp() async throws {
         apiClient = MockMaliciousSiteProtectionAPIClient()
         dataManager = MockMaliciousSiteProtectionDataManager()
-        updateManager = MaliciousSiteProtection.UpdateManager(apiClient: apiClient, dataManager: dataManager)
+        clock = TestClock()
+
+        let clockSleeper = Sleeper(clock: clock)
+        let reportingSleeper = Sleeper {
+            self.willSleep?($0)
+            try await clockSleeper.sleep(for: $0)
+        }
+
+        updateManager = MaliciousSiteProtection.UpdateManager(apiClient: apiClient, dataManager: dataManager, sleeper: reportingSleeper, updateIntervalProvider: { self.updateIntervalProvider($0) })
     }
 
-    override func tearDown() {
+    override func tearDown() async throws {
         updateManager = nil
         dataManager = nil
         apiClient = nil
+        updateIntervalProvider = nil
+        updateTask?.cancel()
     }
 
     func testUpdateHashPrefixes() async {
-        await updateManager.updateHashPrefixes()
+        await updateManager.updateData(for: .hashPrefixes(threatKind: .phishing))
         let dataSet = await dataManager.dataSet(for: .hashPrefixes(threatKind: .phishing))
         XCTAssertEqual(dataSet, HashPrefixSet(revision: 1, items: [
             "aa00bb11",
@@ -51,7 +68,7 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
     }
 
     func testUpdateFilterSet() async {
-        await updateManager.updateFilterSet()
+        await updateManager.updateData(for: .filterSet(threatKind: .phishing))
         let dataSet = await dataManager.dataSet(for: .filterSet(threatKind: .phishing))
         XCTAssertEqual(dataSet, FilterDictionary(revision: 1, items: [
             Filter(hash: "testhash1", regex: ".*example.*"),
@@ -72,12 +89,12 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
         ]
 
         // revision 0 -> 1
-        await updateManager.updateFilterSet()
-        await updateManager.updateHashPrefixes()
+        await updateManager.updateData(for: .filterSet(threatKind: .phishing))
+        await updateManager.updateData(for: .hashPrefixes(threatKind: .phishing))
 
         // revision 1 -> 2
-        await updateManager.updateFilterSet()
-        await updateManager.updateHashPrefixes()
+        await updateManager.updateData(for: .filterSet(threatKind: .phishing))
+        await updateManager.updateData(for: .hashPrefixes(threatKind: .phishing))
 
         let hashPrefixes = await dataManager.dataSet(for: .hashPrefixes(threatKind: .phishing))
         let filterSet = await dataManager.dataSet(for: .filterSet(threatKind: .phishing))
@@ -116,8 +133,8 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
             "a379a6f6"
         ]), for: .hashPrefixes(threatKind: .phishing))
 
-        await updateManager.updateFilterSet()
-        await updateManager.updateHashPrefixes()
+        await updateManager.updateData(for: .filterSet(threatKind: .phishing))
+        await updateManager.updateData(for: .hashPrefixes(threatKind: .phishing))
 
         let hashPrefixes = await dataManager.dataSet(for: .hashPrefixes(threatKind: .phishing))
         let filterSet = await dataManager.dataSet(for: .filterSet(threatKind: .phishing))
@@ -134,8 +151,8 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
         await dataManager.store(FilterDictionary(revision: 3, items: []), for: .filterSet(threatKind: .phishing))
         await dataManager.store(HashPrefixSet(revision: 3, items: []), for: .hashPrefixes(threatKind: .phishing))
 
-        await updateManager.updateFilterSet()
-        await updateManager.updateHashPrefixes()
+        await updateManager.updateData(for: .filterSet(threatKind: .phishing))
+        await updateManager.updateData(for: .hashPrefixes(threatKind: .phishing))
 
         let hashPrefixes = await dataManager.dataSet(for: .hashPrefixes(threatKind: .phishing))
         let filterSet = await dataManager.dataSet(for: .filterSet(threatKind: .phishing))
@@ -156,8 +173,8 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
         await dataManager.store(FilterDictionary(revision: 4, items: []), for: .filterSet(threatKind: .phishing))
         await dataManager.store(HashPrefixSet(revision: 4, items: []), for: .hashPrefixes(threatKind: .phishing))
 
-        await updateManager.updateFilterSet()
-        await updateManager.updateHashPrefixes()
+        await updateManager.updateData(for: .filterSet(threatKind: .phishing))
+        await updateManager.updateData(for: .hashPrefixes(threatKind: .phishing))
 
         let hashPrefixes = await dataManager.dataSet(for: .hashPrefixes(threatKind: .phishing))
         let filterSet = await dataManager.dataSet(for: .filterSet(threatKind: .phishing))
@@ -187,14 +204,189 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
             "bb00cc11"
         ]), for: .hashPrefixes(threatKind: .phishing))
 
-        await updateManager.updateFilterSet()
-        await updateManager.updateHashPrefixes()
+        await updateManager.updateData(for: .filterSet(threatKind: .phishing))
+        await updateManager.updateData(for: .hashPrefixes(threatKind: .phishing))
 
         let hashPrefixes = await dataManager.dataSet(for: .hashPrefixes(threatKind: .phishing))
         let filterSet = await dataManager.dataSet(for: .filterSet(threatKind: .phishing))
 
         XCTAssertEqual(hashPrefixes, HashPrefixSet(revision: 6, items: expectedHashPrefixes), "Hash prefixes should match the expected set after update.")
         XCTAssertEqual(filterSet, FilterDictionary(revision: 6, items: expectedFilterSet), "Filter set should match the expected set after update.")
+    }
+
+    func testWhenPeriodicUpdatesStart_dataSetsAreUpdated() async throws {
+        self.updateIntervalProvider = { _ in 1 }
+
+        let eHashPrefixesUpdated = expectation(description: "Hash prefixes updated")
+        let c1 = await dataManager.publisher(for: .hashPrefixes(threatKind: .phishing)).dropFirst().sink { data in
+            eHashPrefixesUpdated.fulfill()
+        }
+        let eFilterSetUpdated = expectation(description: "Filter set updated")
+        let c2 = await dataManager.publisher(for: .filterSet(threatKind: .phishing)).dropFirst().sink { data in
+            eFilterSetUpdated.fulfill()
+        }
+
+        updateTask = updateManager.startPeriodicUpdates()
+        await Task.megaYield(count: 10)
+
+        // expect initial update run instantly
+        await fulfillment(of: [eHashPrefixesUpdated, eFilterSetUpdated], timeout: 1)
+
+        withExtendedLifetime((c1, c2)) {}
+    }
+
+    func testWhenPeriodicUpdatesAreEnabled_dataSetsAreUpdatedContinuously() async throws {
+        // Start periodic updates
+        self.updateIntervalProvider = { dataType in
+            switch dataType {
+            case .filterSet: return 2
+            case .hashPrefixSet: return 1
+            }
+        }
+
+        let hashPrefixUpdateExpectations = [
+            XCTestExpectation(description: "Hash prefixes rev.1 update received"),
+            XCTestExpectation(description: "Hash prefixes rev.2 update received"),
+            XCTestExpectation(description: "Hash prefixes rev.3 update received"),
+        ]
+        let filterSetUpdateExpectations = [
+            XCTestExpectation(description: "Filter set rev.1 update received"),
+            XCTestExpectation(description: "Filter set rev.2 update received"),
+            XCTestExpectation(description: "Filter set rev.3 update received"),
+        ]
+        let hashPrefixSleepExpectations = [
+            XCTestExpectation(description: "HP Will Sleep 1"),
+            XCTestExpectation(description: "HP Will Sleep 2"),
+            XCTestExpectation(description: "HP Will Sleep 3"),
+        ]
+        let filterSetSleepExpectations = [
+            XCTestExpectation(description: "FS Will Sleep 1"),
+            XCTestExpectation(description: "FS Will Sleep 2"),
+            XCTestExpectation(description: "FS Will Sleep 3"),
+        ]
+
+        let c1 = await dataManager.publisher(for: .hashPrefixes(threatKind: .phishing)).dropFirst().sink { data in
+            hashPrefixUpdateExpectations[data.revision - 1].fulfill()
+        }
+        let c2 = await dataManager.publisher(for: .filterSet(threatKind: .phishing)).dropFirst().sink { data in
+            filterSetUpdateExpectations[data.revision - 1].fulfill()
+        }
+        var hashPrefixSleepIndex = 0
+        var filterSetSleepIndex = 0
+        self.willSleep = { interval in
+            if interval == 1 {
+                hashPrefixSleepExpectations[safe: hashPrefixSleepIndex]?.fulfill()
+                hashPrefixSleepIndex += 1
+            } else {
+                filterSetSleepExpectations[safe: filterSetSleepIndex]?.fulfill()
+                filterSetSleepIndex += 1
+            }
+        }
+
+        // expect initial hashPrefixes update run instantly
+        updateTask = updateManager.startPeriodicUpdates()
+        await fulfillment(of: [hashPrefixUpdateExpectations[0], hashPrefixSleepExpectations[0], filterSetUpdateExpectations[0], filterSetSleepExpectations[0]], timeout: 1)
+
+        // Advance the clock by 1 seconds
+        await self.clock.advance(by: .seconds(1))
+        // expect to receive v.2 update for hashPrefixes
+        await fulfillment(of: [hashPrefixUpdateExpectations[1], hashPrefixSleepExpectations[1]], timeout: 1)
+
+        // Advance the clock by 1 seconds
+        await self.clock.advance(by: .seconds(1))
+        // expect to receive v.3 update for hashPrefixes and v.2 update for filterSet
+        await fulfillment(of: [hashPrefixUpdateExpectations[2], hashPrefixSleepExpectations[2], filterSetUpdateExpectations[1], filterSetSleepExpectations[1]], timeout: 1)        //
+
+        // Advance the clock by 1 seconds
+        await self.clock.advance(by: .seconds(2))
+        // expect to receive v.3 update for filterSet and no update for hashPrefixes (no v.3 updates in the mock)
+        await fulfillment(of: [filterSetUpdateExpectations[2], filterSetSleepExpectations[2]], timeout: 1)        //
+
+        withExtendedLifetime((c1, c2)) {}
+    }
+
+    func testWhenPeriodicUpdatesAreDisabled_noDataSetsAreUpdated() async throws {
+        // Start periodic updates
+        self.updateIntervalProvider = { dataType in
+            switch dataType {
+            case .filterSet: return nil // Set update interval to nil for FilterSet
+            case .hashPrefixSet: return 1
+            }
+        }
+
+        let expectations = [
+            XCTestExpectation(description: "Hash prefixes rev.1 update received"),
+            XCTestExpectation(description: "Hash prefixes rev.2 update received"),
+            XCTestExpectation(description: "Hash prefixes rev.3 update received"),
+        ]
+        let c1 = await dataManager.publisher(for: .hashPrefixes(threatKind: .phishing)).dropFirst().sink { data in
+            expectations[data.revision - 1].fulfill()
+        }
+        // data for FilterSet should not be updated
+        let c2 = await dataManager.publisher(for: .filterSet(threatKind: .phishing)).dropFirst().sink { data in
+            XCTFail("Unexpected filter set update received: \(data)")
+        }
+        // synchronize Task threads to advance the Test Clock when the updated Task is sleeping,
+        // otherwise we‘ll eventually advance the clock before the sleep and get hung.
+        var sleepIndex = 0
+        let sleepExpectations = [
+            XCTestExpectation(description: "Will Sleep 1"),
+            XCTestExpectation(description: "Will Sleep 2"),
+            XCTestExpectation(description: "Will Sleep 3"),
+        ]
+        self.willSleep = { _ in
+            sleepExpectations[sleepIndex].fulfill()
+            sleepIndex += 1
+        }
+
+        // expect initial hashPrefixes update run instantly
+        updateTask = updateManager.startPeriodicUpdates()
+        await fulfillment(of: [expectations[0], sleepExpectations[0]], timeout: 1)
+
+        // Advance the clock by 1 seconds
+        await self.clock.advance(by: .seconds(1))
+        // expect to receive v.2 update for hashPrefixes
+        await fulfillment(of: [expectations[1], sleepExpectations[1]], timeout: 1)
+
+        // Advance the clock by 1 seconds
+        await self.clock.advance(by: .seconds(1))
+        // expect to receive v.3 update for hashPrefixes
+        await fulfillment(of: [expectations[2], sleepExpectations[2]], timeout: 1)
+
+        withExtendedLifetime((c1, c2)) {}
+    }
+
+    func testWhenPeriodicUpdatesAreCancelled_noFurtherUpdatesReceived() async throws {
+        // Start periodic updates
+        self.updateIntervalProvider = { _ in 1 }
+        updateTask = updateManager.startPeriodicUpdates()
+
+        // Wait for the initial update
+        try await withTimeout(1) { [self] in
+            for await _ in await dataManager.publisher(for: .filterSet(threatKind: .phishing)).first(where: { $0.revision == 1 }).values {}
+            for await _ in await dataManager.publisher(for: .filterSet(threatKind: .phishing)).first(where: { $0.revision == 1 }).values {}
+        }
+
+        // Cancel the update task
+        updateTask!.cancel()
+
+        // Reset expectations for further updates
+        let c = await dataManager.$store.dropFirst().sink { data in
+            XCTFail("Unexpected data update received: \(data)")
+        }
+
+        // Advance the clock to check for further updates
+        await self.clock.advance(by: .seconds(2))
+        await clock.run()
+        await Task.megaYield(count: 10)
+
+        // Verify that the data sets have not been updated further
+        let hashPrefixes = await dataManager.dataSet(for: .hashPrefixes(threatKind: .phishing))
+        let filterSet = await dataManager.dataSet(for: .filterSet(threatKind: .phishing))
+        XCTAssertEqual(hashPrefixes.revision, 1) // Expecting revision to remain 1
+        XCTAssertEqual(filterSet.revision, 1) // Expecting revision to remain 1
+
+        withExtendedLifetime(c) {}
     }
 
 }

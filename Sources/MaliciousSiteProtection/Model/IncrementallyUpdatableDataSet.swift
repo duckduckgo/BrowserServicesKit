@@ -16,7 +16,7 @@
 //  limitations under the License.
 //
 
-protocol IncrementallyUpdatableDataSet: Codable {
+protocol IncrementallyUpdatableDataSet: Codable, Equatable {
     /// Set Element Type (Hash Prefix or Filter)
     associatedtype Element: Codable, Hashable
     /// API Request type used to fetch updates for the data set
