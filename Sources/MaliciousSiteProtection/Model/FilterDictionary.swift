@@ -38,11 +38,6 @@ struct FilterDictionary: Codable, Equatable {
     /// ```
     var filters: [String: Set<String>]
 
-    init(revision: Int, filters: [String: Set<String>]) {
-        self.filters = filters
-        self.revision = revision
-    }
-
     /// Subscript to access regex patterns by SHA256 host name hash
     subscript(hash: String) -> Set<String>? {
         filters[hash]

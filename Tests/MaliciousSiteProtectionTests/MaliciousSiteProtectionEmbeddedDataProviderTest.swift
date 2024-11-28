@@ -35,7 +35,7 @@ class MaliciousSiteProtectionEmbeddedDataProviderTest: XCTestCase {
                 Bundle.module.url(forResource: "\(key.threatKind)HashPrefixes", withExtension: "json")!
             }
         }
-        
+
         func hash(for dataType: MaliciousSiteProtection.DataManager.StoredDataType) -> String {
             switch dataType {
             case .filterSet(let key):

@@ -107,8 +107,9 @@ public final class MaliciousSiteDetector: MaliciousSiteDetecting {
         // the 5000 most common threats (or those most likely to collide with daily
         // browsing behaviors, based on Clickhouse's top 10k, ranked by Netcraft's risk rating).
         for threatKind in hashPrefixMatchingThreatKinds {
-            if await checkLocalFilters(hostHash: hostHash, canonicalUrl: canonicalUrl, for: threatKind) {
-                eventMapping.fire(.errorPageShown(clientSideHit: true))
+            let matches = await checkLocalFilters(hostHash: hostHash, canonicalUrl: canonicalUrl, for: threatKind)
+            if matches {
+                eventMapping.fire(.errorPageShown(clientSideHit: true, threatKind: threatKind))
                 return threatKind
             }
         }
@@ -117,12 +118,12 @@ public final class MaliciousSiteDetector: MaliciousSiteDetecting {
         // to check for potential matches on our backend.
         let match = await checkApiMatches(hostHash: hostHash, canonicalUrl: canonicalUrl)
         if let match {
-            eventMapping.fire(.errorPageShown(clientSideHit: false))
-            return match.category.map(ThreatKind.init) ?? hashPrefixMatchingThreatKinds[0]
+            let threatKind = match.category.flatMap(ThreatKind.init) ?? hashPrefixMatchingThreatKinds[0]
+            eventMapping.fire(.errorPageShown(clientSideHit: false, threatKind: threatKind))
+            return threatKind
         }
 
         return .none
     }
-
 
 }

@@ -71,7 +71,7 @@ public class PhishingDetectionDataActivities: PhishingDetectionDataActivityHandl
     private var running: Bool = false
 
     public convenience init(hashPrefixInterval: TimeInterval = 20 * 60, filterSetInterval: TimeInterval = 12 * 60 * 60, updateManager: UpdateManager) {
-        self.init(hashPrefixInterval: hashPrefixInterval, filterSetInterval: filterSetInterval, updateManager: updateManager)
+        self.init(hashPrefixInterval: hashPrefixInterval, filterSetInterval: filterSetInterval, updateManager: updateManager as UpdateManaging)
     }
 
     init(hashPrefixInterval: TimeInterval = 20 * 60, filterSetInterval: TimeInterval = 12 * 60 * 60, updateManager: UpdateManaging) {

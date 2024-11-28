@@ -29,16 +29,16 @@ class MockMaliciousSiteProtectionEmbeddedDataProvider: MaliciousSiteProtection.E
     func revision(for detectionKind: MaliciousSiteProtection.DataManager.StoredDataType) -> Int {
         embeddedRevision
     }
-    
+
     func url(for detectionKind: MaliciousSiteProtection.DataManager.StoredDataType) -> URL {
         URL.empty
     }
-    
+
     func hash(for detectionKind: MaliciousSiteProtection.DataManager.StoredDataType) -> String {
         ""
     }
 
-    func loadDataSet<DataKey>(for key: DataKey) -> DataKey.EmbeddedDataSet where DataKey : MaliciousSiteDataKey {
+    func loadDataSet<DataKey>(for key: DataKey) -> DataKey.EmbeddedDataSet where DataKey: MaliciousSiteDataKey {
         switch key.dataType {
         case .filterSet:
             self.loadFilterSetCalled = true

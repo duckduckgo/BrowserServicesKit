@@ -20,7 +20,7 @@ import Foundation
 @testable import MaliciousSiteProtection
 
 class MockPhishingDetectionUpdateManager: MaliciousSiteProtection.UpdateManaging {
-    
+
     var didUpdateFilterSet = false
     var didUpdateHashPrefixes = false
     var completionHandler: (() -> Void)?
