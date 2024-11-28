@@ -22,7 +22,7 @@ import Foundation
 extension Date {
 
     var privacyStatsPackTimestamp: Date {
-        startOfHour
+        startOfDay
     }
 
     var privacyStatsOldestPackTimestamp: Date {

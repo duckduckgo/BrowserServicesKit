@@ -71,11 +71,6 @@ public extension Date {
         return Calendar.current.startOfDay(for: self)
     }
 
-    var startOfHour: Date {
-        let dateComponents = Calendar.current.dateComponents([.year, .month, .day, .hour, .timeZone], from: self)
-        return Calendar.current.date(from: dateComponents)!
-    }
-
     func daysAgo(_ days: Int) -> Date {
         return Calendar.current.date(byAdding: .day, value: -days, to: self)!
     }
