@@ -27,7 +27,7 @@ public extension PixelKit {
 }
 
 public enum Event: PixelKitEventV2 {
-    case errorPageShown(clientSideHit: Bool)
+    case errorPageShown(clientSideHit: Bool, threatKind: ThreatKind)
     case visitSite
     case iframeLoaded
     case updateTaskFailed48h(error: Error?)
@@ -50,7 +50,7 @@ public enum Event: PixelKitEventV2 {
 
     public var parameters: [String: String]? {
         switch self {
-        case .errorPageShown(let clientSideHit):
+        case .errorPageShown(let clientSideHit, threatKind: _):
             return [PixelKit.Parameters.clientSideHit: String(clientSideHit)]
         case .visitSite:
             return [:]

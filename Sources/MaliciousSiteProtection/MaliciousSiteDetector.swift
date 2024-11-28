@@ -21,6 +21,9 @@ import CryptoKit
 import Foundation
 
 public protocol MaliciousSiteDetecting {
+    /// Evaluates the given URL to determine its malicious category (e.g., phishing, malware).
+    /// - Parameter url: The URL to evaluate.
+    /// - Returns: An optional `ThreatKind` indicating the type of threat, or `.none` if no threat is detected.
     func evaluate(_ url: URL) async -> ThreatKind?
 }
 
@@ -36,11 +39,15 @@ public final class MaliciousSiteDetector: MaliciousSiteDetecting {
         static let hashPrefixParamLength: Int = 4
     }
 
-    private let apiClient: APIClientProtocol
+    private let apiClient: APIClient.Mockable
     private let dataManager: DataManaging
     private let eventMapping: EventMapping<Event>
 
-    public init(apiClient: APIClientProtocol = APIClient(), dataManager: DataManaging, eventMapping: EventMapping<Event>) {
+    public convenience init(apiEnvironment: APIClientEnvironment, dataManager: DataManager, eventMapping: EventMapping<Event>) {
+        self.init(apiClient: APIClient(environment: apiEnvironment), dataManager: dataManager, eventMapping: eventMapping)
+    }
+
+    init(apiClient: APIClient.Mockable, dataManager: DataManaging, eventMapping: EventMapping<Event>) {
         self.apiClient = apiClient
         self.dataManager = dataManager
         self.eventMapping = eventMapping
@@ -73,9 +80,7 @@ public final class MaliciousSiteDetector: MaliciousSiteDetecting {
         return nil
     }
 
-    /// Evaluates the given URL to determine its threat level.
-    /// - Parameter url: The URL to evaluate.
-    /// - Returns: An optional ThreatKind indicating the type of threat, or nil if no threat is detected.
+    /// Evaluates the given URL to determine its malicious category (e.g., phishing, malware).
     public func evaluate(_ url: URL) async -> ThreatKind? {
         guard let canonicalHost = url.canonicalHost(),
               let canonicalUrl = url.canonicalURL() else { return .none }
@@ -83,25 +88,39 @@ public final class MaliciousSiteDetector: MaliciousSiteDetecting {
         let hostHash = canonicalHost.sha256
         let hashPrefix = String(hostHash.prefix(Constants.hashPrefixStoreLength))
 
-        for threatKind in ThreatKind.allCases /* phishing, malware.. */ {
+        // 1. Check for matching hash prefixes.
+        // The hash prefix list serves as a representation of the entire database:
+        // every malicious website will have a hash prefix that it collides with.
+        var hashPrefixMatchingThreatKinds = [ThreatKind]()
+        for threatKind in ThreatKind.allCases { // e.g., phishing, malware, etc.
             let hashPrefixes = await dataManager.dataSet(for: .hashPrefixes(threatKind: threatKind))
-            guard hashPrefixes.contains(hashPrefix) else { continue }
+            if hashPrefixes.contains(hashPrefix) {
+                hashPrefixMatchingThreatKinds.append(threatKind)
+            }
+        }
 
-            // Check local filterSet first
-            if await checkLocalFilters(hostHash: hostHash, canonicalUrl: canonicalUrl, for: threatKind) {
-                eventMapping.fire(.errorPageShown(clientSideHit: true))
+        // Return no threats if no matching hash prefixes are found in the database.
+        guard !hashPrefixMatchingThreatKinds.isEmpty else { return .none }
+
+        // 2. Check local Filter Sets.
+        // The filter set acts as a local cache of some database entries, containing
+        // the 5000 most common threats (or those most likely to collide with daily
+        // browsing behaviors, based on Clickhouse's top 10k, ranked by Netcraft's risk rating).
+        for threatKind in hashPrefixMatchingThreatKinds {
+            let matches = await checkLocalFilters(hostHash: hostHash, canonicalUrl: canonicalUrl, for: threatKind)
+            if matches {
+                eventMapping.fire(.errorPageShown(clientSideHit: true, threatKind: threatKind))
                 return threatKind
             }
+        }
 
-            // If nothing found, hit the API to get matches
-            let match = await checkApiMatches(hostHash: hostHash, canonicalUrl: canonicalUrl)
-            if let match {
-                eventMapping.fire(.errorPageShown(clientSideHit: false))
-                return match.category.map(ThreatKind.init) ?? threatKind
-            }
-
-            // the API detects both phishing and malware so if it didn‘t find any matches it‘s safe to return early.
-            return nil
+        // 3. If no locally cached filters matched, we will still make a request to the API
+        // to check for potential matches on our backend.
+        let match = await checkApiMatches(hostHash: hostHash, canonicalUrl: canonicalUrl)
+        if let match {
+            let threatKind = match.category.flatMap(ThreatKind.init) ?? hashPrefixMatchingThreatKinds[0]
+            eventMapping.fire(.errorPageShown(clientSideHit: false, threatKind: threatKind))
+            return threatKind
         }
 
         return .none

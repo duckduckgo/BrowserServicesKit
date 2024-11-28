@@ -30,7 +30,7 @@ final class MaliciousSiteProtectionAPIClientTests: XCTestCase {
     override func setUp() {
         super.setUp()
         mockService = MockAPIService()
-        client = .init(environment: .staging, service: mockService)
+        client = .init(environment: MaliciousSiteDetector.APIEnvironment.staging, service: mockService)
     }
 
     override func tearDown() {

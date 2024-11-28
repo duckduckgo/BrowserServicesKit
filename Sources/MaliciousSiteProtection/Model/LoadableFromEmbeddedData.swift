@@ -16,19 +16,19 @@
 //  limitations under the License.
 //
 
-public protocol LoadableFromEmbeddedData<EmbeddedDataSetType> {
+public protocol LoadableFromEmbeddedData<EmbeddedDataSet> {
     /// Set Element Type (Hash Prefix or Filter)
     associatedtype Element
     /// Decoded data type stored in the embedded json file
-    associatedtype EmbeddedDataSetType: Decodable, Sequence where EmbeddedDataSetType.Element == Self.Element
+    associatedtype EmbeddedDataSet: Decodable, Sequence where EmbeddedDataSet.Element == Self.Element
 
     init(revision: Int, items: some Sequence<Element>)
 }
 
 extension HashPrefixSet: LoadableFromEmbeddedData {
-    public typealias EmbeddedDataSetType = [String]
+    public typealias EmbeddedDataSet = [String]
 }
 
 extension FilterDictionary: LoadableFromEmbeddedData {
-    public typealias EmbeddedDataSetType = [Filter]
+    public typealias EmbeddedDataSet = [Filter]
 }

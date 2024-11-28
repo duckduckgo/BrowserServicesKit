@@ -18,10 +18,10 @@
 
 import Foundation
 
-public struct FilterDictionary: Codable, Equatable {
+struct FilterDictionary: Codable, Equatable {
 
     /// Filter set revision
-    public var revision: Int
+    var revision: Int
 
     /// [Hash: [RegEx]] mapping
     ///
@@ -36,20 +36,30 @@ public struct FilterDictionary: Codable, Equatable {
     ///     ...
     /// }
     /// ```
-    public var filters: [String: Set<String>]
-
-    public init(revision: Int, filters: [String: Set<String>]) {
-        self.filters = filters
-        self.revision = revision
-    }
+    var filters: [String: Set<String>]
 
     /// Subscript to access regex patterns by SHA256 host name hash
     subscript(hash: String) -> Set<String>? {
         filters[hash]
     }
 
-    public mutating func subtract<Seq: Sequence>(_ itemsToDelete: Seq) where Seq.Element == Filter {
+    mutating func subtract<Seq: Sequence>(_ itemsToDelete: Seq) where Seq.Element == Filter {
         for filter in itemsToDelete {
+            // Remove the filter from the Set stored in the Dictionary by hash used as a key.
+            // If the Set becomes empty – remove the Set value from the Dictionary.
+            //
+            // The following code is equivalent to this one but without the Set value being copied
+            // or key being searched multiple times:
+            /*
+             if var filterSet = self.filters[filter.hash] {
+                filterSet.remove(filter.regex)
+                if filterSet.isEmpty {
+                    self.filters[filter.hash] = nil
+                } else {
+                    self.filters[filter.hash] = filterSet
+                }
+             }
+            */
             withUnsafeMutablePointer(to: &filters[filter.hash]) { item in
                 item.pointee?.remove(filter.regex)
                 if item.pointee?.isEmpty == true {
@@ -59,7 +69,7 @@ public struct FilterDictionary: Codable, Equatable {
         }
     }
 
-    public mutating func formUnion<Seq: Sequence>(_ itemsToAdd: Seq) where Seq.Element == Filter {
+    mutating func formUnion<Seq: Sequence>(_ itemsToAdd: Seq) where Seq.Element == Filter {
         for filter in itemsToAdd {
             filters[filter.hash, default: []].insert(filter.regex)
         }

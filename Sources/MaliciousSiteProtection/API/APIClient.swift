@@ -20,37 +20,34 @@ import Common
 import Foundation
 import Networking
 
-public protocol APIClientProtocol {
-    func load<Request: APIRequestProtocol>(_ requestConfig: Request) async throws -> Request.ResponseType
+extension APIClient {
+    // used internally for testing
+    protocol Mockable {
+        func load<Request: APIClient.Request>(_ requestConfig: Request) async throws -> Request.Response
+    }
 }
-
-public extension APIClientProtocol where Self == APIClient {
-    static var production: APIClientProtocol { APIClient(environment: .production) }
-    static var staging: APIClientProtocol { APIClient(environment: .staging) }
-}
+extension APIClient: APIClient.Mockable {}
 
 public protocol APIClientEnvironment {
-    func headers(for request: APIClient.Request) -> APIRequestV2.HeadersV2
-    func url(for request: APIClient.Request) -> URL
+    func headers(for requestType: APIRequestType) -> APIRequestV2.HeadersV2
+    func url(for requestType: APIRequestType) -> URL
 }
 
-public extension APIClient {
-    enum DefaultEnvironment: APIClientEnvironment {
+public extension MaliciousSiteDetector {
+    enum APIEnvironment: APIClientEnvironment {
 
         case production
         case staging
-        case dev
 
         var endpoint: URL {
             switch self {
             case .production: URL(string: "https://duckduckgo.com/api/protection/")!
             case .staging: URL(string: "https://staging.duckduckgo.com/api/protection/")!
-            case .dev: URL(string: "https://4842-20-93-28-24.ngrok-free.app/api/protection/")!
             }
         }
 
         var defaultHeaders: APIRequestV2.HeadersV2 {
-            .init(userAgent: APIRequest.Headers.userAgent)
+            .init(userAgent: Networking.APIRequest.Headers.userAgent)
         }
 
         enum APIPath {
@@ -65,8 +62,8 @@ public extension APIClient {
             static let hashPrefix = "hashPrefix"
         }
 
-        public func url(for request: APIClient.Request) -> URL {
-            switch request {
+        public func url(for requestType: APIRequestType) -> URL {
+            switch requestType {
             case .hashPrefixSet(let configuration):
                 endpoint.appendingPathComponent(APIPath.hashPrefix).appendingParameters([
                     QueryParameter.category: configuration.threatKind.rawValue,
@@ -82,35 +79,31 @@ public extension APIClient {
             }
         }
 
-        public func headers(for request: APIClient.Request) -> APIRequestV2.HeadersV2 {
+        public func headers(for requestType: APIRequestType) -> APIRequestV2.HeadersV2 {
             defaultHeaders
         }
     }
 
 }
 
-public struct APIClient: APIClientProtocol {
+struct APIClient {
 
     let environment: APIClientEnvironment
     private let service: APIService
 
-    public init(environment: Self.DefaultEnvironment = .production, service: APIService = DefaultAPIService(urlSession: .shared)) {
-        self.init(environment: environment as APIClientEnvironment, service: service)
-    }
-
-    public init(environment: APIClientEnvironment, service: APIService) {
+    init(environment: APIClientEnvironment, service: APIService = DefaultAPIService(urlSession: .shared)) {
         self.environment = environment
         self.service = service
     }
 
-    public func load<Request: APIRequestProtocol>(_ requestConfig: Request) async throws -> Request.ResponseType {
+    func load<R: Request>(_ requestConfig: R) async throws -> R.Response {
         let requestType = requestConfig.requestType
         let headers = environment.headers(for: requestType)
         let url = environment.url(for: requestType)
 
         let apiRequest = APIRequestV2(url: url, method: .get, headers: headers)
         let response = try await service.fetch(request: apiRequest)
-        let result: Request.ResponseType = try response.decodeBody()
+        let result: R.Response = try response.decodeBody()
 
         return result
     }
@@ -118,18 +111,18 @@ public struct APIClient: APIClientProtocol {
 }
 
 // MARK: - Convenience
-extension APIClientProtocol {
-    public func filtersChangeSet(for threatKind: ThreatKind, revision: Int) async throws -> APIClient.Response.FiltersChangeSet {
+extension APIClient.Mockable {
+    func filtersChangeSet(for threatKind: ThreatKind, revision: Int) async throws -> APIClient.Response.FiltersChangeSet {
         let result = try await load(.filterSet(threatKind: threatKind, revision: revision))
         return result
     }
 
-    public func hashPrefixesChangeSet(for threatKind: ThreatKind, revision: Int) async throws -> APIClient.Response.HashPrefixesChangeSet {
+    func hashPrefixesChangeSet(for threatKind: ThreatKind, revision: Int) async throws -> APIClient.Response.HashPrefixesChangeSet {
         let result = try await load(.hashPrefixes(threatKind: threatKind, revision: revision))
         return result
     }
 
-    public func matches(forHashPrefix hashPrefix: String) async throws -> APIClient.Response.Matches {
+    func matches(forHashPrefix hashPrefix: String) async throws -> APIClient.Response.Matches {
         let result = try await load(.matches(hashPrefix: hashPrefix))
         return result
     }
