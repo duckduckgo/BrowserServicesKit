@@ -126,7 +126,14 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
                        SubscriptionOption(id: yearly.id,
                                           cost: .init(displayPrice: yearly.displayPrice, recurrence: "yearly"))]
 
-        let features: [SubscriptionFeature] = await subscriptionFeatureMappingCache.subscriptionFeatures(for: monthly.id).compactMap { SubscriptionFeature(name: $0) }
+        let features: [SubscriptionFeature]
+
+        if let featureFlagger = subscriptionFeatureFlagger, featureFlagger.isFeatureOn(.isLaunchedROW) || featureFlagger.isFeatureOn(.isLaunchedROWOverride) {
+            features = await subscriptionFeatureMappingCache.subscriptionFeatures(for: monthly.id).compactMap { SubscriptionFeature(name: $0) }
+        } else {
+            let allFeatures: [Entitlement.ProductName] = [.networkProtection, .dataBrokerProtection, .identityTheftRestoration]
+            features = allFeatures.compactMap { SubscriptionFeature(name: $0) }
+        }
 
         return SubscriptionOptions(platform: platform,
                                    options: options,
