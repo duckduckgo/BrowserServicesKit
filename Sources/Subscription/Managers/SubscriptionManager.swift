@@ -176,11 +176,15 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     public func currentSubscriptionFeatures() async -> [Entitlement.ProductName] {
         guard let token = accountManager.accessToken else { return [] }
 
-        switch await subscriptionEndpointService.getSubscription(accessToken: token, cachePolicy: .returnCacheDataElseLoad) {
-        case .success(let subscription):
-            return await subscriptionFeatureMappingCache.subscriptionFeatures(for: subscription.productId)
-        case .failure:
-            return []
+        if subscriptionFeatureFlagger.isFeatureOn(.isLaunchedROW) || subscriptionFeatureFlagger.isFeatureOn(.isLaunchedROWOverride) {
+            switch await subscriptionEndpointService.getSubscription(accessToken: token, cachePolicy: .returnCacheDataElseLoad) {
+            case .success(let subscription):
+                return await subscriptionFeatureMappingCache.subscriptionFeatures(for: subscription.productId)
+            case .failure:
+                return []
+            }
+        } else {
+            return [.networkProtection, .dataBrokerProtection, .identityTheftRestoration]
         }
     }
 }
