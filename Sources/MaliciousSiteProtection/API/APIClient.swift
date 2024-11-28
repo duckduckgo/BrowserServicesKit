@@ -85,7 +85,7 @@ public extension APIClient {
             defaultHeaders
         }
 
-        public func timeout(for request: APIClient.Request) -> URL {
+        public func timeout(for request: APIClient.Request) -> TimeInterval {
             switch request {
             case .hashPrefixSet, .filterSet: 60
             //  This could block navigation so we should favour navigation loading if the backend is degraded.
