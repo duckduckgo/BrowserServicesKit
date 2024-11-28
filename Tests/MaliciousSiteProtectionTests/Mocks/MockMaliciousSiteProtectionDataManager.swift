@@ -21,7 +21,7 @@ import Foundation
 @testable import MaliciousSiteProtection
 
 actor MockMaliciousSiteProtectionDataManager: MaliciousSiteProtection.DataManaging {
-    
+
     @Published var store = [MaliciousSiteProtection.DataManager.StoredDataType: Any]()
     func publisher<DataKey>(for key: DataKey) -> AnyPublisher<DataKey.DataSet, Never> where DataKey: MaliciousSiteProtection.MaliciousSiteDataKey {
         $store.map { $0[key.dataType] as? DataKey.DataSet ?? .init(revision: 0, items: []) }
