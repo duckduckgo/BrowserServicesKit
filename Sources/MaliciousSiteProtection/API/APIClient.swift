@@ -32,6 +32,7 @@ public extension APIClientProtocol where Self == APIClient {
 public protocol APIClientEnvironment {
     func headers(for request: APIClient.Request) -> APIRequestV2.HeadersV2
     func url(for request: APIClient.Request) -> URL
+    func timeout(for request: APIClient.Request) -> TimeInterval
 }
 
 public extension APIClient {
@@ -85,6 +86,15 @@ public extension APIClient {
         public func headers(for request: APIClient.Request) -> APIRequestV2.HeadersV2 {
             defaultHeaders
         }
+
+        public func timeout(for request: APIClient.Request) -> URL {
+            switch request {
+            case .hashPrefixSet, .filterSet: 60
+            //  This could block navigation so we should favour navigation loading if the backend is degraded.
+            // On Android we're looking at a maximum 1 second timeout for this request.
+            case .matches: 1
+            }
+        }
     }
 
 }
@@ -107,8 +117,9 @@ public struct APIClient: APIClientProtocol {
         let requestType = requestConfig.requestType
         let headers = environment.headers(for: requestType)
         let url = environment.url(for: requestType)
+        let timeout = environment.timeout(for: requestType)
 
-        let apiRequest = APIRequestV2(url: url, method: .get, headers: headers)
+        let apiRequest = APIRequestV2(url: url, method: .get, headers: headers, timeoutInterval: timeout)
         let response = try await service.fetch(request: apiRequest)
         let result: Request.ResponseType = try response.decodeBody()
 
