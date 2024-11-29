@@ -91,6 +91,14 @@ struct APIClient {
     let environment: APIClientEnvironment
     private let service: APIService
 
+    struct APIError: Error, LocalizedError {
+        var underlyingError: Error
+        var extraInfo: String
+        var errorDescription: String? {
+            "\(underlyingError) \(extraInfo)"
+        }
+    }
+
     init(environment: APIClientEnvironment, service: APIService = DefaultAPIService(urlSession: .shared)) {
         self.environment = environment
         self.service = service
@@ -102,8 +110,18 @@ struct APIClient {
         let url = environment.url(for: requestType)
 
         let apiRequest = APIRequestV2(url: url, method: .get, headers: headers)
-        let response = try await service.fetch(request: apiRequest)
-        let result: R.Response = try response.decodeBody()
+        let response: APIResponseV2
+        do {
+            response = try await service.fetch(request: apiRequest)
+        } catch {
+            throw APIError(underlyingError: error, extraInfo: "\(url.absoluteString)")
+        }
+        let result: R.Response
+        do {
+            result = try response.decodeBody()
+        } catch {
+            throw APIError(underlyingError: error, extraInfo: "\(url.absoluteString): \(String(data: response.data ?? Data(), encoding: .utf8) ?? "<nil>")")
+        }
 
         return result
     }
