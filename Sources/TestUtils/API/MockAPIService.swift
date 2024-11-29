@@ -25,21 +25,24 @@ public class MockAPIService: APIService {
 
     // Dictionary to store predefined responses for specific requests
     private var mockResponses: [APIRequestV2: APIResponseV2] = [:]
+    private var mockResponsesByURL: [URL: APIResponseV2] = [:]
 
     public init() {}
 
-    // Function to set mock response for a given request
     public func set(response: APIResponseV2, forRequest request: APIRequestV2) {
         mockResponses[request] = response
     }
 
+    public func set(response: APIResponseV2, forRequestURL url: URL) {
+        mockResponsesByURL[url] = response
+    }
+
     // Function to fetch response for a given request
     public func fetch(request: APIRequestV2) async throws -> APIResponseV2 {
-        guard let mockResponse = mockResponses[request] else {
-            assertionFailure("Missing mock for \(request.urlRequest.url!.pathComponents.joined(separator: "/"))")
-            exit(0)
+        if let response = mockResponses[request] {
+            return response
         }
-        return mockResponse
+        return mockResponsesByURL[request.urlRequest.url!]!
     }
 }
 

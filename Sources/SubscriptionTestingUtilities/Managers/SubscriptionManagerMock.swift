@@ -34,13 +34,9 @@ public final class SubscriptionManagerMock: SubscriptionManager {
 
     public var currentEnvironment: Subscription.SubscriptionEnvironment = .init(serviceEnvironment: .staging, purchasePlatform: .appStore)
 
-    public func loadInitialData() {
+    public func loadInitialData() {}
 
-    }
-
-    public func refreshCachedSubscription(completion: @escaping (Bool) -> Void) {
-
-    }
+    public func refreshCachedSubscription(completion: @escaping (Bool) -> Void) {}
 
     public var resultSubscription: Subscription.PrivacyProSubscription?
     public func currentSubscription(refresh: Bool) async throws -> Subscription.PrivacyProSubscription {
@@ -90,12 +86,21 @@ public final class SubscriptionManagerMock: SubscriptionManager {
     }
 
     public var resultTokenContainer: Networking.TokenContainer?
-
+    public var resultCreateAccountTokenContainer: Networking.TokenContainer?
     public func getTokenContainer(policy: Networking.TokensCachePolicy) async throws -> Networking.TokenContainer {
-        guard let resultTokenContainer else {
-           throw OAuthClientError.missingTokens
+        switch policy {
+        case .local, .localValid, .localForceRefresh:
+            guard let resultTokenContainer else {
+                throw OAuthClientError.missingTokens
+            }
+            return resultTokenContainer
+        case .createIfNeeded:
+            guard let resultCreateAccountTokenContainer else {
+                throw OAuthClientError.missingTokens
+            }
+            resultTokenContainer = resultCreateAccountTokenContainer
+            return resultCreateAccountTokenContainer
         }
-        return resultTokenContainer
     }
 
     public func getTokenContainerSynchronously(policy: Networking.TokensCachePolicy) -> Networking.TokenContainer? {

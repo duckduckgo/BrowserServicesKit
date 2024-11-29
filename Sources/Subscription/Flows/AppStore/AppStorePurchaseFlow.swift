@@ -118,6 +118,9 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
                     } else {
                         return .failure(.purchaseFailed(OAuthClientError.deadToken))
                     }
+                } catch Networking.OAuthClientError.missingTokens {
+                    Logger.subscriptionStripePurchaseFlow.error("Failed to create a new account: \(error.localizedDescription, privacy: .public)")
+                    return .failure(.accountCreationFailed(error))
                 } catch {
                     Logger.subscriptionStripePurchaseFlow.error("Failed to create a new account: \(error.localizedDescription, privacy: .public), the operation is unrecoverable")
                     return .failure(.internalError)
