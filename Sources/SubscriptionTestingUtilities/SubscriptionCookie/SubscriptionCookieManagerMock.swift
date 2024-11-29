@@ -29,13 +29,15 @@ public final class SubscriptionCookieManagerMock: SubscriptionCookieManaging {
         let subscriptionService = DefaultSubscriptionEndpointService(currentServiceEnvironment: .production)
         let authService = DefaultAuthEndpointService(currentServiceEnvironment: .production)
         let storePurchaseManager = StorePurchaseManagerMock()
+        let subscriptionFeatureMappingCache = SubscriptionFeatureMappingCacheMock()
         let subscriptionManager = SubscriptionManagerMock(accountManager: accountManager,
                                                       subscriptionEndpointService: subscriptionService,
                                                       authEndpointService: authService,
                                                       storePurchaseManager: storePurchaseManager,
                                                       currentEnvironment: SubscriptionEnvironment(serviceEnvironment: .production,
                                                                                                   purchasePlatform: .appStore),
-                                                      canPurchase: true)
+                                                      canPurchase: true,
+                                                          subscriptionFeatureMappingCache: subscriptionFeatureMappingCache)
 
         self.init(subscriptionManager: subscriptionManager,
                   currentCookieStore: { return nil },

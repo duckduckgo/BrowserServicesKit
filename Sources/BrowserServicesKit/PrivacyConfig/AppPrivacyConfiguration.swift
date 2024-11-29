@@ -37,8 +37,6 @@ public class AppPrivacyConfiguration: PrivacyConfiguration {
     private let installDate: Date?
     static let experimentManagerQueue = DispatchQueue(label: "com.experimentManager.queue")
 
-    weak public var delegate: PrivacyConfigurationDelegate?
-
     public init(data: PrivacyConfigurationData,
                 identifier: String,
                 localProtection: DomainsProtectionStore,
