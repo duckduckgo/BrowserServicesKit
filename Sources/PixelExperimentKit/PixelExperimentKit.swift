@@ -26,12 +26,6 @@ struct ExperimentEvent: PixelKitEvent {
     var parameters: [String : String]?
 }
 
-public protocol ExperimentActionPixelStore {
-    func removeObject(forKey defaultName: String)
-    func integer(forKey defaultName: String) -> Int
-    func set(_ value: Int, forKey defaultName: String)
-}
-
 extension PixelKit {
 
     struct Constants {
@@ -48,7 +42,7 @@ extension PixelKit {
     // Static property to hold shared dependencies
     struct ExperimentConfig {
         static var featureFlagger: FeatureFlagger?
-        static var store: ExperimentActionPixelStore = UserDefaults.standard
+        static var store: ExperimentActionPixelManaging = ExperimentActionPixelManager()
         static var fireFunction: (PixelKitEvent, PixelKit.Frequency, Bool) -> Void = { event, frequency, includeAppVersion in
             fire(event, frequency: frequency, includeAppVersionParameter: includeAppVersion)
         }
@@ -57,7 +51,7 @@ extension PixelKit {
     // Setup method to initialize dependencies
     public static func configureExperimentKit(
         featureFlagger: FeatureFlagger,
-        store: ExperimentActionPixelStore = UserDefaults.standard,
+        store: ExperimentActionPixelManaging = ExperimentActionPixelManager(),
         fire: @escaping (PixelKitEvent, PixelKit.Frequency, Bool) -> Void = { event, frequency, includeAppVersion in
             fire(event, frequency: frequency, includeAppVersionParameter: includeAppVersion)
         }
@@ -119,7 +113,7 @@ extension PixelKit {
             return
         }
         featureFlagger.getAllActiveExperiments().forEach { experiment in
-            fireExperimentPixelsfor(
+            fireExperimentPixelsFor(
                 experiment.key,
                 experimentData: experiment.value,
                 metric: Self.Constants.searchMetricValue,
@@ -148,7 +142,7 @@ extension PixelKit {
             return
         }
         featureFlagger.getAllActiveExperiments().forEach { experiment in
-            fireExperimentPixelsfor(
+            fireExperimentPixelsFor(
                 experiment.key,
                 experimentData: experiment.value,
                 metric: Self.Constants.appUseMetricValue,
@@ -157,7 +151,7 @@ extension PixelKit {
         }
     }
 
-    private static func fireExperimentPixelsfor(
+    private static func fireExperimentPixelsFor(
         _ experiment: SubfeatureID,
         experimentData: ExperimentData,
         metric: String,
@@ -191,8 +185,6 @@ extension PixelKit {
         // Check if user is in conversion window
         // if not don't send pixel and remove related action from the store
         guard isUserInConversionWindow(conversionWindowDays, enrollmentDate: experimentData.enrollmentDate) else {
-            print(eventStoreKey)
-            ExperimentConfig.store.removeObject(forKey: eventStoreKey)
             return
         }
 
@@ -202,9 +194,7 @@ extension PixelKit {
         // if not increase the count of the action
         // if value is not a number send the pixel
         if let numberOfAction = Int(value), numberOfAction > 1 {
-            let actualActionNumber = ExperimentConfig.store.integer(forKey: eventStoreKey) + 1
-            ExperimentConfig.store.set(actualActionNumber, forKey: eventStoreKey)
-            if actualActionNumber >= numberOfAction {
+            if ExperimentConfig.store.incrementAndCheck(forKey: eventStoreKey, threshold: numberOfAction) {
                 ExperimentConfig.fireFunction(event, .uniqueByNameAndParameters, false)
             }
         } else {
@@ -228,8 +218,6 @@ extension PixelKit {
         return currentDate >= normalizedStart && currentDate <= normalizedEnd
     }
 }
-
-extension UserDefaults: ExperimentActionPixelStore {}
 
 extension Date {
     public func toYYYYMMDDInET() -> String {

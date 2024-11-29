@@ -35,7 +35,7 @@ final class PixelExperimentKitTests: XCTestCase {
         super.setUp()
         mockPixelStore = MockExperimentActionPixelStore()
         mockFeatureFlagger = MockFeatureFlagger()
-        PixelKit.configureExperimentKit(featureFlagger: mockFeatureFlagger, store: mockPixelStore, fire: { event, frequency, includeAppVersion in
+        PixelKit.configureExperimentKit(featureFlagger: mockFeatureFlagger, store: ExperimentActionPixelManager(store: mockPixelStore), fire: { event, frequency, includeAppVersion in
             self.firedEvent.append(event)
             self.firedFrequency.append(frequency)
             self.firedIncludeAppVersion.append(includeAppVersion)
@@ -220,8 +220,6 @@ final class PixelExperimentKitTests: XCTestCase {
             "enrollmentDate": enrollmentDate.toYYYYMMDDInET()
         ]
         let eventStoreKey = expectedEventName + "_" + expectedParameters.toString()
-        print(eventStoreKey)
-        mockPixelStore.store = [eventStoreKey: 2]
 
         // WHEN
         PixelKit.fireExperimentPixel(for: subfeatureID, metric: "someMetric", conversionWindowDays: conversionWindow, value: value)
@@ -231,7 +229,6 @@ final class PixelExperimentKitTests: XCTestCase {
         XCTAssertTrue(firedFrequency.isEmpty)
         XCTAssertTrue(firedIncludeAppVersion.isEmpty)
         print(mockPixelStore.store)
-        XCTAssertEqual(mockPixelStore.store.count, 0)
     }
 
     func testFireSearchExperimentPixels_WithMultipleExperiments() {
@@ -364,6 +361,7 @@ final class PixelExperimentKitTests: XCTestCase {
 
 
 class MockExperimentActionPixelStore: ExperimentActionPixelStore {
+    
     var store: [String: Int] = [:]
 
     func removeObject(forKey defaultName: String) {
