@@ -221,6 +221,12 @@ final class PrivacyStatsTests: XCTestCase {
 
     // MARK: - clearPrivacyStats
 
+    func testThatClearPrivacyStatsTriggersUpdatesPublisher() async throws {
+        try await waitForStatsUpdateEvents(for: 1, count: 1) {
+            await privacyStats.clearPrivacyStats()
+        }
+    }
+
     func testWhenClearPrivacyStatsIsCalledThenFetchPrivacyStatsIsEmpty() async throws {
         try databaseProvider.addObjects { context in
             let date = Date()
@@ -290,6 +296,22 @@ final class PrivacyStatsTests: XCTestCase {
         let expectation = self.expectation(description: "statsUpdate")
         let cancellable = privacyStats.statsUpdatePublisher.sink { expectation.fulfill() }
         await fulfillment(of: [expectation], timeout: 2)
+        cancellable.cancel()
+    }
+
+    /**
+     * Sets up an expectation with the fulfillment count specified by `count` parameter,
+     * then sets up Combine subscription, then calls the provided block and waits
+     * for time specified by `duration` before cancelling the subscription.
+     */
+    func waitForStatsUpdateEvents(for duration: TimeInterval, count: Int, _ block: () async -> Void) async throws {
+        let expectation = self.expectation(description: "statsUpdate")
+        expectation.expectedFulfillmentCount = count
+        let cancellable = privacyStats.statsUpdatePublisher.sink { expectation.fulfill() }
+
+        await block()
+
+        await fulfillment(of: [expectation], timeout: duration)
         cancellable.cancel()
     }
 }

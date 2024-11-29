@@ -171,6 +171,7 @@ public final class PrivacyStats: PrivacyStatsCollecting {
             }
         }
         await currentPack.resetPack()
+        statsUpdateSubject.send()
     }
 
     public func handleAppTermination() async {
