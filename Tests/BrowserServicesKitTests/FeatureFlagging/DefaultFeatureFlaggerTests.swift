@@ -302,7 +302,7 @@ final class DefaultFeatureFlaggerTests: XCTestCase {
     }
 
     // MARK: - Helpers
-    
+
     private func createFeatureFlagger(withMockedConfigData data: Data = DefaultFeatureFlaggerTests.embeddedConfig()) -> DefaultFeatureFlagger {
         let mockEmbeddedData = MockEmbeddedDataProvider(data: data, etag: "embeddedConfigETag")
         let manager = PrivacyConfigurationManager(fetchedETag: nil,

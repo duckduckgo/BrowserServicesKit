@@ -212,7 +212,7 @@ final class SubscriptionFeatureAvailabilityTests: XCTestCase {
 }
 
 class MockPrivacyConfiguration: PrivacyConfiguration {
-    
+
     func isEnabled(featureKey: PrivacyFeature, versionProvider: AppVersionProvider) -> Bool { true }
 
     func stateFor(featureKey: BrowserServicesKit.PrivacyFeature, versionProvider: BrowserServicesKit.AppVersionProvider) -> BrowserServicesKit.PrivacyConfigurationFeatureState {

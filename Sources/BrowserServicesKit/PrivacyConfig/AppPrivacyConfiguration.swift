@@ -19,7 +19,7 @@
 import Foundation
 import Common
 
-public struct AppPrivacyConfiguration: PrivacyConfiguration {    
+public struct AppPrivacyConfiguration: PrivacyConfiguration {
 
     private enum Constants {
         static let enabledKey = "enabled"

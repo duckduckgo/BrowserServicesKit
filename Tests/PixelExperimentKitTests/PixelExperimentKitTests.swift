@@ -221,7 +221,7 @@ final class PixelExperimentKitTests: XCTestCase {
         ]
         let eventStoreKey = expectedEventName + "_" + expectedParameters.escapedString()
         print(eventStoreKey)
-        mockPixelStore.store = [eventStoreKey : 2]
+        mockPixelStore.store = [eventStoreKey: 2]
 
         // WHEN
         PixelKit.fireExperimentPixel(for: subfeatureID, metric: "someMetric", conversionWindowDays: conversionWindow, value: value)
@@ -385,7 +385,7 @@ class MockFeatureFlagger: FeatureFlagger {
 
     var localOverrides: (any BrowserServicesKit.FeatureFlagLocalOverriding)?
     
-    func getCohortIfEnabled<Flag>(for featureFlag: Flag) -> (any FlagCohort)? where Flag : FeatureFlagExperimentDescribing {
+    func getCohortIfEnabled<Flag>(for featureFlag: Flag) -> (any FlagCohort)? where Flag: FeatureFlagExperimentDescribing {
         return nil
     }
     
@@ -393,7 +393,7 @@ class MockFeatureFlagger: FeatureFlagger {
         return experiments
     }
 
-    func isFeatureOn<Flag>(for featureFlag: Flag, allowOverride: Bool) -> Bool where Flag : FeatureFlagDescribing {
+    func isFeatureOn<Flag>(for featureFlag: Flag, allowOverride: Bool) -> Bool where Flag: FeatureFlagDescribing {
         return false
     }
 }
