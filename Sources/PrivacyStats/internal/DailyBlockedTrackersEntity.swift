@@ -26,11 +26,11 @@ final class DailyBlockedTrackersEntity: NSManagedObject {
     }
 
     @nonobjc class func fetchRequest() -> NSFetchRequest<DailyBlockedTrackersEntity> {
-        return NSFetchRequest<DailyBlockedTrackersEntity>(entityName: Const.entityName)
+        NSFetchRequest<DailyBlockedTrackersEntity>(entityName: Const.entityName)
     }
 
     class func entity(in context: NSManagedObjectContext) -> NSEntityDescription {
-        return NSEntityDescription.entity(forEntityName: Const.entityName, in: context)!
+        NSEntityDescription.entity(forEntityName: Const.entityName, in: context)!
     }
 
     @NSManaged var companyName: String
