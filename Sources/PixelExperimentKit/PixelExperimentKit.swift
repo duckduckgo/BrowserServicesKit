@@ -47,7 +47,7 @@ extension PixelKit {
 
     // Static property to hold shared dependencies
     struct ExperimentConfig {
-        static var privacyConfigManager: PrivacyConfigurationManager?
+        static var featureFlagger: FeatureFlagger?
         static var store: ExperimentActionPixelStore = UserDefaults.standard
         static var fireFunction: (PixelKitEvent, PixelKit.Frequency, Bool) -> Void = { event, frequency, includeAppVersion in
             fire(event, frequency: frequency, includeAppVersionParameter: includeAppVersion)
@@ -56,13 +56,13 @@ extension PixelKit {
 
     // Setup method to initialize dependencies
     public static func configureExperimentKit(
-        privacyConfigManager: PrivacyConfigurationManager,
+        featureFlagger: FeatureFlagger,
         store: ExperimentActionPixelStore = UserDefaults.standard,
         fire: @escaping (PixelKitEvent, PixelKit.Frequency, Bool) -> Void = { event, frequency, includeAppVersion in
             fire(event, frequency: frequency, includeAppVersionParameter: includeAppVersion)
         }
     ) {
-        ExperimentConfig.privacyConfigManager = privacyConfigManager
+        ExperimentConfig.featureFlagger = featureFlagger
         ExperimentConfig.store = store
         ExperimentConfig.fireFunction = fire
     }
@@ -90,11 +90,11 @@ extension PixelKit {
     /// 3. Tracks actions performed and sends the pixel once the target value is reached (if applicable).
     public static func fireExperimentPixel(for subfeatureID: SubfeatureID, metric: String, conversionWindowDays: ClosedRange<Int>, value: String) {
         // Check is active experiment for user
-        guard let privacyConfigManager = ExperimentConfig.privacyConfigManager else {
-            assertionFailure("PrivacyConfigurationManager is not configured")
+        guard let featureFlagger = ExperimentConfig.featureFlagger else {
+            assertionFailure("PixelKit is not configured for experiments")
             return
         }
-        guard let experimentData = privacyConfigManager.privacyConfig.getAllActiveExperiments()[subfeatureID] else { return }
+        guard let experimentData = featureFlagger.getAllActiveExperiments()[subfeatureID] else { return }
 
         Self.fireExperimentPixelForActiveExperiment(subfeatureID, experimentData: experimentData, metric: metric, conversionWindowDays: conversionWindowDays, value: value)
     }
@@ -114,11 +114,11 @@ extension PixelKit {
             21: [5...7, 8...15],
             30: [5...7, 8...15]
         ]
-        guard let privacyConfigManager = ExperimentConfig.privacyConfigManager else {
-            assertionFailure("PrivacyConfigurationManager is not configured")
+        guard let featureFlagger = ExperimentConfig.featureFlagger else {
+            assertionFailure("PixelKit is not configured for experiments")
             return
         }
-        privacyConfigManager.privacyConfig.getAllActiveExperiments().forEach { experiment in
+        featureFlagger.getAllActiveExperiments().forEach { experiment in
             fireExperimentPixelsfor(
                 experiment.key,
                 experimentData: experiment.value,
@@ -143,11 +143,11 @@ extension PixelKit {
             21: [5...7, 8...15],
             30: [5...7, 8...15]
         ]
-        guard let privacyConfigManager = ExperimentConfig.privacyConfigManager else {
-            assertionFailure("PrivacyConfigurationManager is not configured")
+        guard let featureFlagger = ExperimentConfig.featureFlagger else {
+            assertionFailure("PixelKit is not configured for experiments")
             return
         }
-        privacyConfigManager.privacyConfig.getAllActiveExperiments().forEach { experiment in
+        featureFlagger.getAllActiveExperiments().forEach { experiment in
             fireExperimentPixelsfor(
                 experiment.key,
                 experimentData: experiment.value,
@@ -178,7 +178,7 @@ extension PixelKit {
 
     private static func fireExperimentPixelForActiveExperiment(_ subfeatureID: SubfeatureID, experimentData: ExperimentData,metric: String, conversionWindowDays: ClosedRange<Int>, value: String) {
         // Set parameters, event name, store key
-        let eventName = "\(Self.Constants.metricsEventPrefix)_\(subfeatureID)_\(experimentData.cohort)"
+        let eventName = "\(Self.Constants.metricsEventPrefix)_\(subfeatureID)_\(experimentData.cohortID)"
         let parameters: [String: String] = [
             Self.Constants.metricKey: metric,
             Self.Constants.conversionWindowDaysKey: "\(conversionWindowDays.lowerBound.description)-\(conversionWindowDays.upperBound.description)",
@@ -201,11 +201,10 @@ extension PixelKit {
         // if not increase the count of the action
         // if value is not a number send the pixel
         if let numberOfAction = Int(value), numberOfAction > 1 {
-            let actualActionNumber = ExperimentConfig.store.integer(forKey: eventStoreKey)
+            let actualActionNumber = ExperimentConfig.store.integer(forKey: eventStoreKey) + 1
+            ExperimentConfig.store.set(actualActionNumber, forKey: eventStoreKey)
             if actualActionNumber >= numberOfAction {
                 ExperimentConfig.fireFunction(event, .uniqueIncludingParameters, false)
-            } else {
-                ExperimentConfig.store.set(actualActionNumber + 1, forKey: eventStoreKey)
             }
         } else {
             ExperimentConfig.fireFunction(event, .uniqueIncludingParameters, false)
@@ -213,9 +212,19 @@ extension PixelKit {
     }
 
     private static func isUserInConversionWindow(_ conversionWindowDays: ClosedRange<Int>, enrollmentDate: Date) -> Bool {
-        guard let startOfWindowDate = enrollmentDate.addDays(conversionWindowDays.lowerBound) else { return false }
-        guard let endOfWindowDate = enrollmentDate.addDays(conversionWindowDays.upperBound) else { return false }
-        return Date() >= startOfWindowDate && Date() <= endOfWindowDate
+        let calendar = Calendar.current
+        guard let startOfWindowDate = enrollmentDate.addDays(conversionWindowDays.lowerBound),
+              let endOfWindowDate = enrollmentDate.addDays(conversionWindowDays.upperBound) else {
+            return false
+        }
+
+        // Normalize dates to the start of the day
+        let normalizedStart = calendar.startOfDay(for: startOfWindowDate)
+        let normalizedEnd = calendar.startOfDay(for: endOfWindowDate)
+        let currentDate = calendar.startOfDay(for: Date())
+
+        // Check if the current date falls within the normalized range
+        return currentDate >= normalizedStart && currentDate <= normalizedEnd
     }
 }
 

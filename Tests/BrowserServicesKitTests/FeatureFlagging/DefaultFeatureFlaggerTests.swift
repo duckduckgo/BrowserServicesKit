@@ -309,8 +309,7 @@ final class DefaultFeatureFlaggerTests: XCTestCase {
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore(),
-                                                  internalUserDecider: DefaultInternalUserDecider(),
-                                                  reportExperimentCohortAssignment: { _, _ in })
+                                                  internalUserDecider: DefaultInternalUserDecider())
         let internalUserDecider = DefaultInternalUserDecider(store: internalUserDeciderStore)
         return DefaultFeatureFlagger(internalUserDecider: internalUserDecider, privacyConfigManager: manager, experimentManager: experimentManager)
     }
@@ -321,8 +320,7 @@ final class DefaultFeatureFlaggerTests: XCTestCase {
                                                   fetchedData: nil,
                                                   embeddedDataProvider: mockEmbeddedData,
                                                   localProtection: MockDomainsProtectionStore(),
-                                                  internalUserDecider: DefaultInternalUserDecider(),
-                                                  reportExperimentCohortAssignment: { _, _ in })
+                                                  internalUserDecider: DefaultInternalUserDecider())
         let internalUserDecider = DefaultInternalUserDecider(store: internalUserDeciderStore)
 
         overrides = CapturingFeatureFlagOverriding()

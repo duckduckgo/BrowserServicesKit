@@ -48,8 +48,7 @@ final class GPCReferenceTests: XCTestCase {
                                            fetchedData: nil,
                                            embeddedDataProvider: embeddedDataProvider,
                                            localProtection: localProtection,
-                                           internalUserDecider: DefaultInternalUserDecider(),
-                                           reportExperimentCohortAssignment: { _, _ in })
+                                           internalUserDecider: DefaultInternalUserDecider())
     }
 
     func testGPCHeader() throws {

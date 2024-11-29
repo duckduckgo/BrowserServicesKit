@@ -1225,44 +1225,4 @@ final class FeatureFlaggerExperimentsTests: XCTestCase {
         XCTAssertTrue(activeExperiments.isEmpty)
     }
 
-    func testOnAssignmentReportAssignmentFunctionCalled() {
-        featureJson =
-            """
-            {
-                "features": {
-                    "autofill": {
-                        "state": "enabled",
-                        "exceptions": [],
-                        "features": {
-                            "credentialsSaving": {
-                                "state": "enabled",
-                                "minSupportedVersion": 2,
-                                "targets": [
-                                    {
-                                        "localeCountry": "US"
-                                    }
-                                ],
-                                "cohorts": [
-                                    {
-                                        "name": "control",
-                                        "weight": 1
-                                    },
-                                    {
-                                        "name": "blue",
-                                        "weight": 0
-                                    }
-                                ]
-                            }
-                        }
-                    }
-                }
-            }
-            """.data(using: .utf8)!
-        manager.reload(etag: "foo", data: featureJson)
-        let config = manager.privacyConfig
-
-        XCTAssertTrue(config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, cohortID: "control"))
-        XCTAssertEqual(self.assignedCohort, "control")
-        XCTAssertEqual(self.assignedExperiment, "credentialsSaving")
-    }
 }
