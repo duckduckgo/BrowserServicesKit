@@ -72,7 +72,7 @@ public extension Date {
     }
 
     func daysAgo(_ days: Int) -> Date {
-        return Calendar.current.date(byAdding: .day, value: -days, to: self)!
+        Calendar.current.date(byAdding: .day, value: -days, to: self)!
     }
 
     static var startOfMinuteNow: Date {
