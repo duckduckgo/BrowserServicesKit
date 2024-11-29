@@ -21,13 +21,16 @@ import CoreData
 
 @objc(DailyBlockedTrackersEntity)
 final class DailyBlockedTrackersEntity: NSManagedObject {
+    enum Const {
+        static let entityName = "DailyBlockedTrackersEntity"
+    }
 
     @nonobjc class func fetchRequest() -> NSFetchRequest<DailyBlockedTrackersEntity> {
-        return NSFetchRequest<DailyBlockedTrackersEntity>(entityName: "DailyBlockedTrackersEntity")
+        return NSFetchRequest<DailyBlockedTrackersEntity>(entityName: Const.entityName)
     }
 
     class func entity(in context: NSManagedObjectContext) -> NSEntityDescription {
-        return NSEntityDescription.entity(forEntityName: "DailyBlockedTrackersEntity", in: context)!
+        return NSEntityDescription.entity(forEntityName: Const.entityName, in: context)!
     }
 
     @NSManaged var companyName: String
