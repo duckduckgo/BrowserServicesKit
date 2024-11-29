@@ -18,23 +18,22 @@
 
 import Foundation
 
+public typealias CohortID = String
+public typealias SubfeatureID = String
+public typealias ParentFeatureID = String
+public typealias Experiments = [String: ExperimentData]
+
 public struct ExperimentSubfeature {
     let parentID: ParentFeatureID
     let subfeatureID: SubfeatureID
     let cohorts: [PrivacyConfigurationData.Cohort]
 }
 
-public typealias CohortID = String
-public typealias SubfeatureID = String
-public typealias ParentFeatureID = String
-
 public struct ExperimentData: Codable, Equatable {
     public let parentID: ParentFeatureID
     public let cohortID: CohortID
     public let enrollmentDate: Date
 }
-
-public typealias Experiments = [String: ExperimentData]
 
 public protocol ExperimentCohortsManaging {
     /// Retrieves all the experiments a user is enrolled in
