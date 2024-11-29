@@ -30,6 +30,7 @@ extension APIClient {
     protocol Request {
         associatedtype Response: Decodable // Strongly-typed response type
         var requestType: APIRequestType { get } // Enumerated type of request being made
+        var timeout: TimeInterval? { get }
     }
 
     // Protocol for requests that modify a set of malicious site detection data
@@ -37,6 +38,9 @@ extension APIClient {
     protocol ChangeSetRequest: Request {
         init(threatKind: ThreatKind, revision: Int?)
     }
+}
+extension APIClient.Request {
+    var timeout: TimeInterval? { nil }
 }
 
 public extension APIRequestType {
@@ -96,6 +100,8 @@ public extension APIRequestType {
         var requestType: APIRequestType {
             .matches(self)
         }
+
+        var timeout: TimeInterval? { 1 }
     }
 }
 /// extension to call generic `load(_: some Request)` method like this: `load(.matches(…))`
