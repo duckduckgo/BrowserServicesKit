@@ -24,6 +24,7 @@ public protocol SubscriptionManager {
     var accountManager: AccountManager { get }
     var subscriptionEndpointService: SubscriptionEndpointService { get }
     var authEndpointService: AuthEndpointService { get }
+    var subscriptionFeatureMappingCache: SubscriptionFeatureMappingCache { get }
 
     // Environment
     static func loadEnvironmentFrom(userDefaults: UserDefaults) -> SubscriptionEnvironment?
@@ -35,6 +36,7 @@ public protocol SubscriptionManager {
     func loadInitialData()
     func refreshCachedSubscriptionAndEntitlements(completion: @escaping (_ isSubscriptionActive: Bool) -> Void)
     func url(for type: SubscriptionURL) -> URL
+    func currentSubscriptionFeatures() async -> [Entitlement.ProductName]
 }
 
 /// Single entry point for everything related to Subscription. This manager is disposable, every time something related to the environment changes this need to be recreated.
@@ -43,19 +45,26 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     public let accountManager: AccountManager
     public let subscriptionEndpointService: SubscriptionEndpointService
     public let authEndpointService: AuthEndpointService
+    public let subscriptionFeatureMappingCache: SubscriptionFeatureMappingCache
     public let currentEnvironment: SubscriptionEnvironment
-    public private(set) var canPurchase: Bool = false
+
+    private let subscriptionFeatureFlagger: FeatureFlaggerMapping<SubscriptionFeatureFlags>
 
     public init(storePurchaseManager: StorePurchaseManager? = nil,
                 accountManager: AccountManager,
                 subscriptionEndpointService: SubscriptionEndpointService,
                 authEndpointService: AuthEndpointService,
-                subscriptionEnvironment: SubscriptionEnvironment) {
+                subscriptionFeatureMappingCache: SubscriptionFeatureMappingCache,
+                subscriptionEnvironment: SubscriptionEnvironment,
+                subscriptionFeatureFlagger: FeatureFlaggerMapping<SubscriptionFeatureFlags>) {
         self._storePurchaseManager = storePurchaseManager
         self.accountManager = accountManager
         self.subscriptionEndpointService = subscriptionEndpointService
         self.authEndpointService = authEndpointService
+        self.subscriptionFeatureMappingCache = subscriptionFeatureMappingCache
         self.currentEnvironment = subscriptionEnvironment
+        self.subscriptionFeatureFlagger = subscriptionFeatureFlagger
+
         switch currentEnvironment.purchasePlatform {
         case .appStore:
             if #available(macOS 12.0, iOS 15.0, *) {
@@ -65,6 +74,21 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
             }
         case .stripe:
             break
+        }
+    }
+
+    public var canPurchase: Bool {
+        guard let storePurchaseManager = _storePurchaseManager else { return false }
+
+        switch storePurchaseManager.currentStorefrontRegion {
+        case .usa:
+            return storePurchaseManager.areProductsAvailable
+        case .restOfWorld:
+            if subscriptionFeatureFlagger.isFeatureOn(.isLaunchedROW) || subscriptionFeatureFlagger.isFeatureOn(.isLaunchedROWOverride) {
+                return storePurchaseManager.areProductsAvailable
+            } else {
+                return false
+            }
         }
     }
 
@@ -98,7 +122,6 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     @available(macOS 12.0, iOS 15.0, *) private func setupForAppStore() {
         Task {
             await storePurchaseManager().updateAvailableProducts()
-            canPurchase = storePurchaseManager().areProductsAvailable
         }
     }
 
@@ -146,5 +169,22 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
 
     public func url(for type: SubscriptionURL) -> URL {
         type.subscriptionURL(environment: currentEnvironment.serviceEnvironment)
+    }
+
+    // MARK: - Current subscription's features
+
+    public func currentSubscriptionFeatures() async -> [Entitlement.ProductName] {
+        guard let token = accountManager.accessToken else { return [] }
+
+        if subscriptionFeatureFlagger.isFeatureOn(.isLaunchedROW) || subscriptionFeatureFlagger.isFeatureOn(.isLaunchedROWOverride) {
+            switch await subscriptionEndpointService.getSubscription(accessToken: token, cachePolicy: .returnCacheDataElseLoad) {
+            case .success(let subscription):
+                return await subscriptionFeatureMappingCache.subscriptionFeatures(for: subscription.productId)
+            case .failure:
+                return []
+            }
+        } else {
+            return [.networkProtection, .dataBrokerProtection, .identityTheftRestoration]
+        }
     }
 }

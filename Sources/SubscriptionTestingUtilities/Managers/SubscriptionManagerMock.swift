@@ -23,6 +23,7 @@ public final class SubscriptionManagerMock: SubscriptionManager {
     public var accountManager: AccountManager
     public var subscriptionEndpointService: SubscriptionEndpointService
     public var authEndpointService: AuthEndpointService
+    public var subscriptionFeatureMappingCache: SubscriptionFeatureMappingCache
 
     public static var storedEnvironment: SubscriptionEnvironment?
     public static func loadEnvironmentFrom(userDefaults: UserDefaults) -> SubscriptionEnvironment? {
@@ -52,18 +53,24 @@ public final class SubscriptionManagerMock: SubscriptionManager {
         type.subscriptionURL(environment: currentEnvironment.serviceEnvironment)
     }
 
+    public func currentSubscriptionFeatures() async -> [Entitlement.ProductName] {
+        return []
+    }
+
     public init(accountManager: AccountManager,
                 subscriptionEndpointService: SubscriptionEndpointService,
                 authEndpointService: AuthEndpointService,
                 storePurchaseManager: StorePurchaseManager,
                 currentEnvironment: SubscriptionEnvironment,
-                canPurchase: Bool) {
+                canPurchase: Bool,
+                subscriptionFeatureMappingCache: SubscriptionFeatureMappingCache) {
         self.accountManager = accountManager
         self.subscriptionEndpointService = subscriptionEndpointService
         self.authEndpointService = authEndpointService
         self.internalStorePurchaseManager = storePurchaseManager
         self.currentEnvironment = currentEnvironment
         self.canPurchase = canPurchase
+        self.subscriptionFeatureMappingCache = subscriptionFeatureMappingCache
     }
 
     // MARK: -

@@ -136,6 +136,8 @@ public struct PrivacyConfigurationData {
                 case minSupportedVersion
                 case rollout
                 case cohorts
+                case targets
+                case settings
             }
 
             public struct Rollout: Hashable {
@@ -169,10 +171,27 @@ public struct PrivacyConfigurationData {
                 }
             }
 
+            public struct Target {
+                enum CodingKeys: String {
+                    case localeCountry
+                    case localeLanguage
+                }
+
+                public let localeCountry: String?
+                public let localeLanguage: String?
+
+                public init(json: [String: Any]) {
+                    self.localeCountry = json[CodingKeys.localeCountry.rawValue] as? String
+                    self.localeLanguage = json[CodingKeys.localeLanguage.rawValue] as? String
+                }
+            }
+
             public let state: FeatureState
             public let minSupportedVersion: FeatureSupportedVersion?
             public let rollout: Rollout?
             public let cohorts: [Cohort]?
+            public let targets: [Target]?
+            public let settings: String?
 
             public init?(json: [String: Any]) {
                 guard let state = json[CodingKeys.state.rawValue] as? String else {
@@ -193,6 +212,19 @@ public struct PrivacyConfigurationData {
                     cohorts = parsedCohorts.isEmpty ? nil : parsedCohorts
                 } else {
                     cohorts = nil
+                }
+
+                if let targetData = json[CodingKeys.targets.rawValue] as? [[String: Any]] {
+                    targets = targetData.compactMap { Target(json: $0) }
+                } else {
+                    targets = nil
+                }
+
+                if let settingsData = json[CodingKeys.settings.rawValue] {
+                    let jsonData = try? JSONSerialization.data(withJSONObject: settingsData, options: [])
+                    settings = jsonData != nil ? String(data: jsonData!, encoding: .utf8) : nil
+                } else {
+                    settings = nil
                 }
             }
         }

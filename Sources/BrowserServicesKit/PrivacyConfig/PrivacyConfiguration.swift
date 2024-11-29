@@ -30,6 +30,8 @@ public enum PrivacyConfigurationFeatureDisabledReason: Equatable {
     case tooOldInstallation
     case limitedToInternalUsers
     case stillInRollout
+    case targetDoesNotMatch
+    case experimentCohortDoesNotMatch
 }
 
 public protocol PrivacyConfiguration {
@@ -102,6 +104,13 @@ public protocol PrivacyConfiguration {
     func userEnabledProtection(forDomain: String)
     /// Adds given domain to locally unprotected list.
     func userDisabledProtection(forDomain: String)
+
+    // APIs used for Experiments
+    func stateFor(subfeatureID: SubfeatureID, parentFeatureID: ParentFeatureID, versionProvider: AppVersionProvider, randomizer: (Range<Double>) -> Double) -> PrivacyConfigurationFeatureState
+
+    func cohorts(for subfeature: any PrivacySubfeature) -> [PrivacyConfigurationData.Cohort]?
+
+    func cohorts(subfeatureID: SubfeatureID, parentFeatureID: ParentFeatureID) -> [PrivacyConfigurationData.Cohort]?
 }
 
 public extension PrivacyConfiguration {
@@ -120,4 +129,9 @@ public extension PrivacyConfiguration {
     func stateFor(_ subfeature: any PrivacySubfeature, randomizer: (Range<Double>) -> Double = Double.random(in:)) -> PrivacyConfigurationFeatureState {
         return stateFor(subfeature, versionProvider: AppVersionProvider(), randomizer: randomizer)
     }
+
+    func stateFor(subfeatureID: SubfeatureID, parentFeatureID: ParentFeatureID, randomizer: (Range<Double>) -> Double = Double.random(in:)) -> PrivacyConfigurationFeatureState {
+        return stateFor(subfeatureID: subfeatureID, parentFeatureID: parentFeatureID, versionProvider: AppVersionProvider(), randomizer: randomizer)
+    }
+
 }
