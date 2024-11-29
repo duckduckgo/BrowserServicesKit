@@ -20,10 +20,6 @@ import Foundation
 import Combine
 import Common
 
-public protocol PrivacyConfigurationDelegate: AnyObject {
-    func didAssignCohort(_ cohort: CohortID, to experiment: SubfeatureID)
-}
-
 public protocol EmbeddedDataProvider {
 
     var embeddedDataEtag: String { get }

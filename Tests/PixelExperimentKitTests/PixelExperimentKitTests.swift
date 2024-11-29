@@ -294,7 +294,69 @@ final class PixelExperimentKitTests: XCTestCase {
                 $0.name == "experiment_metrics_\(subfeatureID2)_\(cohort2)"
             }
         )
+    }
 
+    func testFireAppRetentionExperimentPixels_WithMultipleExperiments() {
+        // GIVEN
+        let subfeatureID1 = "credentialsSaving"
+        let cohort1 = "control"
+        let enrollmentDate1 = Date().addingTimeInterval(-6 * 24 * 60 * 60) // 6 days ago
+        let experimentData1 = ExperimentData(parentID: "autofill", cohortID: cohort1, enrollmentDate: enrollmentDate1)
+
+        let subfeatureID2 = "inlineIconCredentials"
+        let cohort2 = "test"
+        let enrollmentDate2 = Date().addingTimeInterval(-10 * 24 * 60 * 60) // 10 days ago
+        let experimentData2 = ExperimentData(parentID: "autofill", cohortID: cohort2, enrollmentDate: enrollmentDate2)
+
+        mockFeatureFlagger.experiments = [
+            subfeatureID1: experimentData1,
+            subfeatureID2: experimentData2
+        ]
+
+        // WHEN
+        PixelKit.fireAppRetentionExperimentPixels()
+
+        // THEN
+        // Verify pixel for the first experiment
+        XCTAssertTrue(
+            firedEvent.contains {
+                $0.name == "experiment_metrics_\(subfeatureID1)_\(cohort1)"
+            }
+        )
+        XCTAssertTrue(
+            firedEvent.contains {
+                $0.parameters?[PixelKit.Constants.metricKey] == PixelKit.Constants.appUseMetricValue
+            }
+        )
+        XCTAssertTrue(
+            firedEvent.contains {
+                $0.parameters?[PixelKit.Constants.conversionWindowDaysKey] == "5-7"
+            }
+        )
+        XCTAssertTrue(
+            firedEvent.contains {
+                $0.parameters?[PixelKit.Constants.conversionWindowDaysKey] == "6-6"
+            }
+        )
+
+
+        // Verify no pixel fired for the second experiment (outside conversion window)
+        XCTAssertNotNil(mockPixelStore.store)
+        XCTAssertFalse(
+            firedEvent.contains {
+                $0.name == "experiment_metrics_\(subfeatureID2)_\(cohort2)"
+            }
+        )
+
+        // Verify no pixel fired that after 4 reps second experiment pixel is sent(outside conversion window)
+        PixelKit.fireAppRetentionExperimentPixels()
+        PixelKit.fireAppRetentionExperimentPixels()
+        PixelKit.fireAppRetentionExperimentPixels()
+        XCTAssertTrue(
+            firedEvent.contains {
+                $0.name == "experiment_metrics_\(subfeatureID2)_\(cohort2)"
+            }
+        )
     }
 
 }

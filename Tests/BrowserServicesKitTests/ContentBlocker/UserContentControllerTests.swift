@@ -311,7 +311,6 @@ class PrivacyConfigurationManagerMock: PrivacyConfigurationManaging {
 }
 
 class PrivacyConfigurationMock: PrivacyConfiguration {
-    var delegate: (any PrivacyConfigurationDelegate)?
 
     func isEnabled(featureKey: PrivacyFeature, versionProvider: AppVersionProvider) -> Bool { true }
 

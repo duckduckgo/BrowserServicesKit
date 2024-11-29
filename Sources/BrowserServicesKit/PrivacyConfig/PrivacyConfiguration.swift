@@ -55,8 +55,6 @@ public protocol PrivacyConfiguration {
     /// Trackers that has been allow listed because of site breakage
     var trackerAllowlist: PrivacyConfigurationData.TrackerAllowlist { get }
 
-    var delegate: PrivacyConfigurationDelegate? { get set }
-
     func isEnabled(featureKey: PrivacyFeature, versionProvider: AppVersionProvider) -> Bool
     func stateFor(featureKey: PrivacyFeature, versionProvider: AppVersionProvider) -> PrivacyConfigurationFeatureState
 
