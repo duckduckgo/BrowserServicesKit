@@ -225,3 +225,11 @@ final class WebKitTestHelper {
         }
     }
 }
+
+class MockExperimentCohortsManager: ExperimentCohortsManaging {
+    func resolveCohort(for experiment: ExperimentSubfeature, allowCohortReassignment: Bool) -> CohortID? {
+        return nil
+    }
+
+    var experiments: Experiments?
+}

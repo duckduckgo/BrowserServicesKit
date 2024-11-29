@@ -47,8 +47,8 @@ final class ExperimentsDataStoreTests: XCTestCase {
 
     func testExperimentsGetReturnsDecodedExperiments() {
         // GIVEN
-        let experimentData1 = ExperimentData(cohort: "TestCohort1", enrollmentDate: Date())
-        let experimentData2 = ExperimentData(cohort: "TestCohort2", enrollmentDate: Date())
+        let experimentData1 = ExperimentData(parentID: "parent", cohortID: "TestCohort1", enrollmentDate: Date())
+        let experimentData2 = ExperimentData(parentID: "parent", cohortID: "TestCohort2", enrollmentDate: Date())
         let experiments = [subfeatureName1: experimentData1, subfeatureName2: experimentData2]
 
         let encoder = JSONEncoder()
@@ -62,17 +62,17 @@ final class ExperimentsDataStoreTests: XCTestCase {
         // THEN
         let timeDifference1 = abs(experimentData1.enrollmentDate.timeIntervalSince(result?[subfeatureName1]?.enrollmentDate ?? Date()))
         let timeDifference2 = abs(experimentData2.enrollmentDate.timeIntervalSince(result?[subfeatureName2]?.enrollmentDate ?? Date()))
-        XCTAssertEqual(result?[subfeatureName1]?.cohort, experimentData1.cohort)
+        XCTAssertEqual(result?[subfeatureName1]?.cohortID, experimentData1.cohortID)
         XCTAssertLessThanOrEqual(timeDifference1, 1.0)
 
-        XCTAssertEqual(result?[subfeatureName2]?.cohort, experimentData2.cohort)
+        XCTAssertEqual(result?[subfeatureName2]?.cohortID, experimentData2.cohortID)
         XCTAssertLessThanOrEqual(timeDifference2, 1.0)
     }
 
     func testExperimentsSetEncodesAndStoresData() throws {
         // GIVEN
-        let experimentData1 = ExperimentData(cohort: "TestCohort1", enrollmentDate: Date())
-        let experimentData2 = ExperimentData(cohort: "TestCohort2", enrollmentDate: Date())
+        let experimentData1 = ExperimentData(parentID: "parent", cohortID: "TestCohort1", enrollmentDate: Date())
+        let experimentData2 = ExperimentData(parentID: "parent2", cohortID: "TestCohort2", enrollmentDate: Date())
         let experiments = [subfeatureName1: experimentData1, subfeatureName2: experimentData2]
 
         // WHEN
@@ -85,9 +85,11 @@ final class ExperimentsDataStoreTests: XCTestCase {
         let decodedExperiments = try? decoder.decode(Experiments.self, from: storedData)
         let timeDifference1 = abs(experimentData1.enrollmentDate.timeIntervalSince(decodedExperiments?[subfeatureName1]?.enrollmentDate ?? Date()))
         let timeDifference2 = abs(experimentData2.enrollmentDate.timeIntervalSince(decodedExperiments?[subfeatureName2]?.enrollmentDate ?? Date()))
-        XCTAssertEqual(decodedExperiments?[subfeatureName1]?.cohort, experimentData1.cohort)
+        XCTAssertEqual(decodedExperiments?[subfeatureName1]?.cohortID, experimentData1.cohortID)
+        XCTAssertEqual(decodedExperiments?[subfeatureName1]?.parentID, experimentData1.parentID)
         XCTAssertLessThanOrEqual(timeDifference1, 1.0)
-        XCTAssertEqual(decodedExperiments?[subfeatureName2]?.cohort, experimentData2.cohort)
+        XCTAssertEqual(decodedExperiments?[subfeatureName2]?.cohortID, experimentData2.cohortID)
+        XCTAssertEqual(decodedExperiments?[subfeatureName2]?.parentID, experimentData2.parentID)
         XCTAssertLessThanOrEqual(timeDifference2, 1.0)
     }
 }
