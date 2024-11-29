@@ -109,7 +109,7 @@ public final class PrivacyStats: PrivacyStatsCollecting {
 
     private let db: CoreDataDatabase
     private let context: NSManagedObjectContext
-    private lazy var currentPack: CurrentPack = .init(pack: initializeCurrentPack())
+    private let currentPack: CurrentPack
     private let statsUpdateSubject = PassthroughSubject<Void, Never>()
     private var cancellables: Set<AnyCancellable> = []
 
@@ -119,7 +119,7 @@ public final class PrivacyStats: PrivacyStatsCollecting {
         self.db = databaseProvider.initializeDatabase()
         self.context = db.makeContext(concurrencyType: .privateQueueConcurrencyType, name: "PrivacyStats")
         self.errorEvents = errorEvents
-
+        self.currentPack = .init(pack: Self.initializeCurrentPack(in: context, errorEvents: errorEvents))
         statsUpdatePublisher = statsUpdateSubject.eraseToAnyPublisher()
 
         currentPack.commitChangesPublisher
@@ -229,7 +229,7 @@ public final class PrivacyStats: PrivacyStatsCollecting {
      * to spare us the hassle of declaring the initializer async or spawning tasks from within the
      * initializer without being able to await them, thus making testing trickier.
      */
-    private func initializeCurrentPack() -> PrivacyStatsPack {
+    private static func initializeCurrentPack(in context: NSManagedObjectContext, errorEvents: EventMapping<PrivacyStatsError>?) -> PrivacyStatsPack {
         var pack: PrivacyStatsPack?
         context.performAndWait {
             let timestamp = Date.currentPrivacyStatsPackTimestamp
