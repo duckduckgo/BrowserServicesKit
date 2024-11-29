@@ -70,7 +70,7 @@ public protocol PrivacyStatsCollecting {
     /**
      * Record a tracker for a given `companyName`.
      *
-     * `PrivacyStats` implementation calls the actor under the hood,
+     * `PrivacyStats` implementation calls the `CurrentPack` actor under the hood,
      * and as such it can safely be called on multiple threads concurrently.
      */
     func recordBlockedTracker(_ name: String) async
