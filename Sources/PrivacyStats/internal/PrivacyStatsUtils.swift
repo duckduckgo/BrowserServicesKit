@@ -69,7 +69,7 @@ final class PrivacyStatsUtils {
     }
 
     private static func loadBlockedTrackersStats(since startDate: Date, in context: NSManagedObjectContext) throws -> [String: Int64] {
-        let request = NSFetchRequest<NSFetchRequestResult>(entityName: "DailyBlockedTrackersEntity")
+        let request = NSFetchRequest<NSFetchRequestResult>(entityName: DailyBlockedTrackersEntity.Const.entityName)
         request.predicate = NSPredicate(format: "%K >= %@", #keyPath(DailyBlockedTrackersEntity.timestamp), startDate as NSDate)
 
         let companyNameKey = #keyPath(DailyBlockedTrackersEntity.companyName)
@@ -101,18 +101,21 @@ final class PrivacyStatsUtils {
     /**
      * Deletes stats older than 7 days for all companies.
      */
-    static func deleteOutdatedPacks(in context: NSManagedObjectContext) {
+    static func deleteOutdatedPacks(in context: NSManagedObjectContext) throws {
         let oldestValidTimestamp = Date().privacyStatsOldestPackTimestamp
 
-        let request = DailyBlockedTrackersEntity.fetchRequest()
-        request.predicate = NSPredicate(format: "%K < %@", #keyPath(DailyBlockedTrackersEntity.timestamp), oldestValidTimestamp as NSDate)
-        context.deleteAll(matching: request)
+        let fetchRequest = NSFetchRequest<NSFetchRequestResult>(entityName: DailyBlockedTrackersEntity.Const.entityName)
+        fetchRequest.predicate = NSPredicate(format: "%K < %@", #keyPath(DailyBlockedTrackersEntity.timestamp), oldestValidTimestamp as NSDate)
+        let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
+
+        try context.execute(deleteRequest)
     }
 
     /**
      * Deletes all stats entries in the database.
      */
-    static func deleteAllStats(in context: NSManagedObjectContext) {
-        context.deleteAll(matching: DailyBlockedTrackersEntity.fetchRequest())
+    static func deleteAllStats(in context: NSManagedObjectContext) throws {
+        let deleteRequest = NSBatchDeleteRequest(fetchRequest: DailyBlockedTrackersEntity.fetchRequest())
+        try context.execute(deleteRequest)
     }
 }

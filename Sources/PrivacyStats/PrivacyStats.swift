@@ -159,9 +159,8 @@ public final class PrivacyStats: PrivacyStatsCollecting {
                     continuation.resume()
                     return
                 }
-                PrivacyStatsUtils.deleteAllStats(in: context)
                 do {
-                    try context.save()
+                    try PrivacyStatsUtils.deleteAllStats(in: context)
                     Logger.privacyStats.debug("Deleted outdated entries")
                 } catch {
                     Logger.privacyStats.error("Save error: \(error)")
@@ -196,7 +195,7 @@ public final class PrivacyStats: PrivacyStatsCollecting {
 
                     // When storing a pack from a previous day, we may have outdated packs, so delete them as needed.
                     if !isCurrentDayPack {
-                        PrivacyStatsUtils.deleteOutdatedPacks(in: context)
+                        try PrivacyStatsUtils.deleteOutdatedPacks(in: context)
                     }
 
                     guard context.hasChanges else {
@@ -235,8 +234,7 @@ public final class PrivacyStats: PrivacyStatsCollecting {
                 Logger.privacyStats.debug("Loaded stats \(timestamp) \(currentDayStats)")
                 pack = PrivacyStatsPack(timestamp: timestamp, trackers: currentDayStats)
 
-                PrivacyStatsUtils.deleteOutdatedPacks(in: context)
-                try context.save()
+                try PrivacyStatsUtils.deleteOutdatedPacks(in: context)
             } catch {
                 Logger.privacyStats.error("Faild to load current stats: \(error)")
                 errorEvents?.fire(.failedToLoadCurrentPrivacyStats(error))

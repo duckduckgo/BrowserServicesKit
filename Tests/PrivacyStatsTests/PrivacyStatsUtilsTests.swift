@@ -293,12 +293,14 @@ final class PrivacyStatsUtilsTests: XCTestCase {
         let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         context.performAndWait {
-            PrivacyStatsUtils.deleteOutdatedPacks(in: context)
+            do {
+                try PrivacyStatsUtils.deleteOutdatedPacks(in: context)
 
-            let deletedObjects = context.deletedObjects.compactMap { $0 as? DailyBlockedTrackersEntity }
-
-            XCTAssertEqual(deletedObjects.count, 3)
-            XCTAssertEqual(Set(deletedObjects.map(\.count)), [4, 5, 6])
+                let allObjects = try context.fetch(DailyBlockedTrackersEntity.fetchRequest())
+                XCTAssertEqual(Set(allObjects.map(\.count)), [1, 2, 3])
+            } catch {
+                XCTFail("Should not throw")
+            }
         }
     }
 
@@ -316,8 +318,14 @@ final class PrivacyStatsUtilsTests: XCTestCase {
         let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         context.performAndWait {
-            PrivacyStatsUtils.deleteOutdatedPacks(in: context)
-            XCTAssertFalse(context.hasChanges)
+            do {
+                try PrivacyStatsUtils.deleteOutdatedPacks(in: context)
+
+                let allObjects = try context.fetch(DailyBlockedTrackersEntity.fetchRequest())
+                XCTAssertEqual(allObjects.count, 3)
+            } catch {
+                XCTFail("Should not throw")
+            }
         }
     }
 
@@ -339,8 +347,14 @@ final class PrivacyStatsUtilsTests: XCTestCase {
         let context = database.makeContext(concurrencyType: .privateQueueConcurrencyType)
 
         context.performAndWait {
-            PrivacyStatsUtils.deleteAllStats(in: context)
-            XCTAssertEqual(context.deletedObjects.count, 5)
+            do {
+                try PrivacyStatsUtils.deleteAllStats(in: context)
+
+                let allObjects = try context.fetch(DailyBlockedTrackersEntity.fetchRequest())
+                XCTAssertTrue(allObjects.isEmpty)
+            } catch {
+                XCTFail("Should not throw")
+            }
         }
     }
 }
