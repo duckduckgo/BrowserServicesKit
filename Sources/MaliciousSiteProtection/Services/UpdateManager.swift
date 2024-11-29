@@ -80,7 +80,10 @@ public struct UpdateManager: UpdateManaging {
                 for dataType in DataManager.StoredDataType.allCases {
                     // get update interval from provider
                     guard let updateInterval = updateIntervalProvider(dataType) else { continue }
-                    assert(updateInterval > 0)
+                    guard updateInterval > 0 else {
+                        assertionFailure("Update interval for \(dataType) must be positive")
+                        continue
+                    }
 
                     group.addTask {
                         // run periodically until the parent task is cancelled
