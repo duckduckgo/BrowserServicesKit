@@ -42,7 +42,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         case rekeyAttempt(_ step: RekeyAttemptStep)
         case failureRecoveryAttempt(_ step: FailureRecoveryStep)
         case serverMigrationAttempt(_ step: ServerMigrationAttemptStep)
-        case malformedErrorDetected(_ error: Error)
     }
 
     public enum AttemptStep: CustomDebugStringConvertible {
@@ -705,7 +704,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             // Check that the error is valid and able to be re-thrown to the OS before shutting the tunnel down
             if let wrappedError = wrapped(error: error) {
                 // Wait for the provider to complete its pixel request.
-                providerEvents.fire(.malformedErrorDetected(error))
                 try? await Task.sleep(interval: .seconds(2))
                 throw wrappedError
             } else {
@@ -743,7 +741,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             // Check that the error is valid and able to be re-thrown to the OS before shutting the tunnel down
             if let wrappedError = wrapped(error: error) {
                 // Wait for the provider to complete its pixel request.
-                providerEvents.fire(.malformedErrorDetected(error))
                 try? await Task.sleep(interval: .seconds(2))
                 throw wrappedError
             } else {
