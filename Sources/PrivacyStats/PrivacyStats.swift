@@ -109,7 +109,7 @@ public final class PrivacyStats: PrivacyStatsCollecting {
 
     private let db: CoreDataDatabase
     private let context: NSManagedObjectContext
-    private var currentPack: CurrentPack?
+    private lazy var currentPack: CurrentPack = .init(pack: initializeCurrentPack())
     private let statsUpdateSubject = PassthroughSubject<Void, Never>()
     private var cancellables: Set<AnyCancellable> = []
 
@@ -121,9 +121,8 @@ public final class PrivacyStats: PrivacyStatsCollecting {
         self.errorEvents = errorEvents
 
         statsUpdatePublisher = statsUpdateSubject.eraseToAnyPublisher()
-        currentPack = .init(pack: initializeCurrentPack())
 
-        currentPack?.commitChangesPublisher
+        currentPack.commitChangesPublisher
             .sink { [weak self] pack in
                 Task {
                     await self?.commitChanges(pack)
@@ -133,7 +132,7 @@ public final class PrivacyStats: PrivacyStatsCollecting {
     }
 
     public func recordBlockedTracker(_ companyName: String) async {
-        await currentPack?.recordBlockedTracker(companyName)
+        await currentPack.recordBlockedTracker(companyName)
     }
 
     public func fetchPrivacyStats() async -> [String: Int64] {
@@ -171,13 +170,11 @@ public final class PrivacyStats: PrivacyStatsCollecting {
                 continuation.resume()
             }
         }
-        await currentPack?.resetPack()
+        await currentPack.resetPack()
     }
 
     public func handleAppTermination() async {
-        if let pack = await currentPack?.pack {
-            await commitChanges(pack)
-        }
+        await commitChanges(currentPack.pack)
     }
 
     // MARK: - Private
@@ -242,7 +239,7 @@ public final class PrivacyStats: PrivacyStatsCollecting {
 
                 try PrivacyStatsUtils.deleteOutdatedPacks(in: context)
             } catch {
-                Logger.privacyStats.error("Faild to load current stats: \(error)")
+                Logger.privacyStats.error("Failed to load current stats: \(error)")
                 errorEvents?.fire(.failedToLoadCurrentPrivacyStats(error))
             }
         }
