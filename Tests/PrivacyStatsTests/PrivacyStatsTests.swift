@@ -254,6 +254,36 @@ final class PrivacyStatsTests: XCTestCase {
         }
     }
 
+    // MARK: - handleAppTermination
+
+    func testThatHandleAppTerminationSavesCurrentPack() async throws {
+        let context = databaseProvider.database.makeContext(concurrencyType: .privateQueueConcurrencyType)
+
+        context.performAndWait {
+            do {
+                let allObjects = try context.fetch(DailyBlockedTrackersEntity.fetchRequest())
+                XCTAssertTrue(allObjects.isEmpty)
+            } catch {
+                XCTFail("fetch failed: \(error)")
+            }
+        }
+        await privacyStats.recordBlockedTracker("A")
+        await privacyStats.handleAppTermination()
+
+        context.performAndWait {
+            do {
+                let allObjects = try context.fetch(DailyBlockedTrackersEntity.fetchRequest())
+                XCTAssertEqual(allObjects.count, 1)
+            } catch {
+                XCTFail("fetch failed: \(error)")
+            }
+        }
+
+        await waitForStatsUpdateEvent()
+        let stats = await privacyStats.fetchPrivacyStats()
+        XCTAssertEqual(stats, ["A": 1])
+    }
+
     // MARK: - Helpers
 
     func waitForStatsUpdateEvent(file: StaticString = #file, line: UInt = #line) async {

@@ -18,15 +18,11 @@
 
 import Combine
 import Common
+import CoreData
 import Foundation
 import os.log
 import Persistence
 import TrackerRadarKit
-#if os(macOS)
-import AppKit
-#elseif os(iOS)
-import UIKit
-#endif
 
 /**
  * Errors that may be reported by `PrivacyStats`.
@@ -95,6 +91,14 @@ public protocol PrivacyStatsCollecting {
      * This function clears all blocked tracker stats from the database.
      */
     func clearPrivacyStats() async
+
+    /**
+     * This function saves all pending changes to the persistent storage.
+     *
+     * It should only be used in response to app termination because otherwise
+     * the `PrivacyStats` object schedules persisting internally.
+     */
+    func handleAppTermination() async
 }
 
 public final class PrivacyStats: PrivacyStatsCollecting {
@@ -126,8 +130,6 @@ public final class PrivacyStats: PrivacyStatsCollecting {
                 }
             }
             .store(in: &cancellables)
-
-        subscribeToAppTermination()
     }
 
     public func recordBlockedTracker(_ companyName: String) async {
@@ -170,6 +172,12 @@ public final class PrivacyStats: PrivacyStatsCollecting {
             }
         }
         await currentPack?.resetPack()
+    }
+
+    public func handleAppTermination() async {
+        if let pack = await currentPack?.pack {
+            await commitChanges(pack)
+        }
     }
 
     // MARK: - Private
@@ -241,26 +249,5 @@ public final class PrivacyStats: PrivacyStatsCollecting {
             }
         }
         return pack ?? PrivacyStatsPack(timestamp: Date.currentPrivacyStatsPackTimestamp)
-    }
-
-    private func subscribeToAppTermination() {
-#if os(iOS)
-        let notificationName = UIApplication.willTerminateNotification
-#elseif os(macOS)
-        let notificationName = NSApplication.willTerminateNotification
-#endif
-        NotificationCenter.default.addObserver(self, selector: #selector(applicationWillTerminate(_:)), name: notificationName, object: nil)
-    }
-
-    @objc private func applicationWillTerminate(_: Notification) {
-        let condition = RunLoop.ResumeCondition()
-        Task {
-            if let pack = await currentPack?.pack {
-                await commitChanges(pack)
-            }
-            condition.resolve()
-        }
-        // Run the loop until changes are saved
-        RunLoop.current.run(until: condition)
     }
 }
