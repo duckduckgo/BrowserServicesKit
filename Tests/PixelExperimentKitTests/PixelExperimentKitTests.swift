@@ -230,6 +230,7 @@ final class PixelExperimentKitTests: XCTestCase {
         XCTAssertTrue(firedEvent.isEmpty)
         XCTAssertTrue(firedFrequency.isEmpty)
         XCTAssertTrue(firedIncludeAppVersion.isEmpty)
+        print(mockPixelStore.store)
         XCTAssertEqual(mockPixelStore.store.count, 0)
     }
 

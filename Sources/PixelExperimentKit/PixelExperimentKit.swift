@@ -186,11 +186,12 @@ extension PixelKit {
             Self.Constants.enrollmentDateKey: experimentData.enrollmentDate.toYYYYMMDDInET()
         ]
         let event = ExperimentEvent(name: eventName, parameters: parameters)
-        let eventStoreKey = eventName + "_" + parameters.description
+        let eventStoreKey = eventName + "_" + parameters.toString()
 
         // Check if user is in conversion window
         // if not don't send pixel and remove related action from the store
         guard isUserInConversionWindow(conversionWindowDays, enrollmentDate: experimentData.enrollmentDate) else {
+            print(eventStoreKey)
             ExperimentConfig.store.removeObject(forKey: eventStoreKey)
             return
         }

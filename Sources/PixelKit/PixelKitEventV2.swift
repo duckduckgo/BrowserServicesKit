@@ -43,28 +43,6 @@ public protocol PixelFiring {
 
     func fire(_ event: PixelKitEventV2,
               frequency: PixelKit.Frequency)
-
-    static func fire(_ event: PixelKitEvent,
-                     frequency: PixelKit.Frequency,
-                     withHeaders headers: [String: String],
-                     withAdditionalParameters parameters: [String: String]?,
-                     withError error: Error?,
-                     allowedQueryReservedCharacters: CharacterSet?,
-                     includeAppVersionParameter: Bool,
-                     onComplete: (Bool, Error?) -> Void)
-}
-
-extension PixelFiring {
-    public static func fire(_ event: PixelKitEvent,
-                            frequency: PixelKit.Frequency = .standard,
-                            withHeaders headers: [String: String] = [:],
-                            withAdditionalParameters parameters: [String: String]? = nil,
-                            withError error: Error? = nil,
-                            allowedQueryReservedCharacters: CharacterSet? = nil,
-                            includeAppVersionParameter: Bool = true,
-                            onComplete: (Bool, Error?) -> Void = { _, _ in }) {
-        return fire(event, frequency: frequency, withHeaders: headers, withAdditionalParameters: parameters, withError: error, allowedQueryReservedCharacters: allowedQueryReservedCharacters, includeAppVersionParameter: includeAppVersionParameter, onComplete: onComplete)
-    }
 }
 
 extension PixelKit: PixelFiring {
