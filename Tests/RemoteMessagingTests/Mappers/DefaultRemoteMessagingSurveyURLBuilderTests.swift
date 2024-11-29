@@ -64,6 +64,14 @@ class DefaultRemoteMessagingSurveyURLBuilderTests: XCTestCase {
         XCTAssertEqual(finalURL.absoluteString, "https://duckduckgo.com?vpn_first_used=10&vpn_last_used=5")
     }
 
+    func testAddingParametersToURLThatAlreadyHasThem() {
+        let builder = buildRemoteMessagingSurveyURLBuilder(vpnDaysSinceActivation: 10, vpnDaysSinceLastActive: 5)
+        let baseURL = URL(string: "https://duckduckgo.com?param=test")!
+        let finalURL = builder.add(parameters: [.vpnFirstUsed, .vpnLastUsed], to: baseURL)
+
+        XCTAssertEqual(finalURL.absoluteString, "https://duckduckgo.com?param=test&vpn_first_used=10&vpn_last_used=5")
+    }
+
     private func buildRemoteMessagingSurveyURLBuilder(
         atb: String = "v123-4",
         variant: String = "var",
