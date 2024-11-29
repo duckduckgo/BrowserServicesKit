@@ -67,12 +67,22 @@ final class DefaultAppStorePurchaseFlowTests: XCTestCase {
         let result = await sut.purchaseSubscription(with: "testSubscriptionID")
 
         XCTAssertTrue(appStoreRestoreFlowMock.restoreAccountFromPastPurchaseCalled)
-        XCTAssertEqual(result, .failure(.internalError))
+        switch result {
+        case .success:
+            XCTFail("Unexpected success")
+        case .failure(let error):
+            switch error {
+            case AppStorePurchaseFlowError.accountCreationFailed:
+                break
+            default:
+                XCTFail("Unexpected error: \(error)")
+            }
+        }
     }
 
     func test_purchaseSubscription_successfulPurchase_returnsTransactionJWS() async {
         appStoreRestoreFlowMock.restoreAccountFromPastPurchaseResult = .failure(AppStoreRestoreFlowError.missingAccountOrTransactions)
-        subscriptionManagerMock.resultTokenContainer = OAuthTokensFactory.makeValidTokenContainer()
+        subscriptionManagerMock.resultCreateAccountTokenContainer = OAuthTokensFactory.makeValidTokenContainerWithEntitlements()
         storePurchaseManagerMock.purchaseSubscriptionResult = .success("transactionJWS")
 
         let result = await sut.purchaseSubscription(with: "testSubscriptionID")
@@ -84,7 +94,7 @@ final class DefaultAppStorePurchaseFlowTests: XCTestCase {
     func test_purchaseSubscription_purchaseCancelledByUser_returnsCancelledError() async {
         appStoreRestoreFlowMock.restoreAccountFromPastPurchaseResult = .failure(AppStoreRestoreFlowError.missingAccountOrTransactions)
         storePurchaseManagerMock.purchaseSubscriptionResult = .failure(StorePurchaseManagerError.purchaseCancelledByUser)
-        subscriptionManagerMock.resultTokenContainer = OAuthTokensFactory.makeValidTokenContainer()
+        subscriptionManagerMock.resultCreateAccountTokenContainer = OAuthTokensFactory.makeValidTokenContainerWithEntitlements()
         subscriptionManagerMock.resultSubscription = SubscriptionMockFactory.subscription
 
         let result = await sut.purchaseSubscription(with: "testSubscriptionID")
@@ -95,7 +105,7 @@ final class DefaultAppStorePurchaseFlowTests: XCTestCase {
     func test_purchaseSubscription_purchaseFailed_returnsPurchaseFailedError() async {
         appStoreRestoreFlowMock.restoreAccountFromPastPurchaseResult = .failure(AppStoreRestoreFlowError.missingAccountOrTransactions)
         storePurchaseManagerMock.purchaseSubscriptionResult = .failure(StorePurchaseManagerError.purchaseFailed)
-        subscriptionManagerMock.resultTokenContainer = OAuthTokensFactory.makeValidTokenContainer()
+        subscriptionManagerMock.resultCreateAccountTokenContainer = OAuthTokensFactory.makeValidTokenContainerWithEntitlements()
         subscriptionManagerMock.resultSubscription = SubscriptionMockFactory.subscription
 
         let result = await sut.purchaseSubscription(with: "testSubscriptionID")

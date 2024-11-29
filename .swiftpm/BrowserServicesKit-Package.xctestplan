@@ -25,6 +25,7 @@
       }
     },
     {
+      "parallelizable" : true,
       "target" : {
         "containerPath" : "container:",
         "identifier" : "BrowserServicesKitTests",
@@ -32,6 +33,7 @@
       }
     },
     {
+      "parallelizable" : true,
       "target" : {
         "containerPath" : "container:",
         "identifier" : "CommonTests",
@@ -39,6 +41,7 @@
       }
     },
     {
+      "parallelizable" : true,
       "target" : {
         "containerPath" : "container:",
         "identifier" : "ConfigurationTests",
@@ -46,6 +49,7 @@
       }
     },
     {
+      "parallelizable" : true,
       "target" : {
         "containerPath" : "container:",
         "identifier" : "CrashesTests",
@@ -53,6 +57,7 @@
       }
     },
     {
+      "parallelizable" : true,
       "target" : {
         "containerPath" : "container:",
         "identifier" : "DDGSyncCryptoTests",
@@ -60,6 +65,7 @@
       }
     },
     {
+      "parallelizable" : true,
       "target" : {
         "containerPath" : "container:",
         "identifier" : "DDGSyncTests",
@@ -67,6 +73,7 @@
       }
     },
     {
+      "parallelizable" : true,
       "target" : {
         "containerPath" : "container:",
         "identifier" : "HistoryTests",
@@ -81,6 +88,7 @@
       }
     },
     {
+      "parallelizable" : true,
       "target" : {
         "containerPath" : "container:",
         "identifier" : "NetworkProtectionTests",
@@ -88,6 +96,7 @@
       }
     },
     {
+      "parallelizable" : true,
       "target" : {
         "containerPath" : "container:",
         "identifier" : "NetworkingTests",
@@ -95,6 +104,7 @@
       }
     },
     {
+      "parallelizable" : true,
       "target" : {
         "containerPath" : "container:",
         "identifier" : "PersistenceTests",
@@ -102,6 +112,7 @@
       }
     },
     {
+      "parallelizable" : true,
       "target" : {
         "containerPath" : "container:",
         "identifier" : "PixelKitTests",
@@ -109,6 +120,7 @@
       }
     },
     {
+      "parallelizable" : true,
       "target" : {
         "containerPath" : "container:",
         "identifier" : "PrivacyDashboardTests",
@@ -116,6 +128,7 @@
       }
     },
     {
+      "parallelizable" : true,
       "target" : {
         "containerPath" : "container:",
         "identifier" : "RemoteMessagingTests",
@@ -123,6 +136,7 @@
       }
     },
     {
+      "parallelizable" : true,
       "target" : {
         "containerPath" : "container:",
         "identifier" : "SecureStorageTests",
@@ -130,6 +144,7 @@
       }
     },
     {
+      "parallelizable" : true,
       "target" : {
         "containerPath" : "container:",
         "identifier" : "SubscriptionTests",
@@ -137,6 +152,7 @@
       }
     },
     {
+      "parallelizable" : true,
       "target" : {
         "containerPath" : "container:",
         "identifier" : "SuggestionsTests",
@@ -144,6 +160,7 @@
       }
     },
     {
+      "parallelizable" : true,
       "target" : {
         "containerPath" : "container:",
         "identifier" : "SyncDataProvidersTests",
@@ -151,6 +168,7 @@
       }
     },
     {
+      "parallelizable" : true,
       "target" : {
         "containerPath" : "container:",
         "identifier" : "UserScriptTests",
@@ -158,6 +176,7 @@
       }
     },
     {
+      "parallelizable" : true,
       "target" : {
         "containerPath" : "container:",
         "identifier" : "DuckPlayerTests",
@@ -165,6 +184,7 @@
       }
     },
     {
+      "parallelizable" : true,
       "target" : {
         "containerPath" : "container:",
         "identifier" : "OnboardingTests",
@@ -172,6 +192,7 @@
       }
     },
     {
+      "parallelizable" : true,
       "target" : {
         "containerPath" : "container:",
         "identifier" : "SpecialErrorPagesTests",
@@ -179,6 +200,7 @@
       }
     },
     {
+      "parallelizable" : true,
       "target" : {
         "containerPath" : "container:",
         "identifier" : "PhishingDetectionTests",
@@ -186,13 +208,7 @@
       }
     },
     {
-      "target" : {
-        "containerPath" : "container:",
-        "identifier" : "UserBehaviorMonitorTests",
-        "name" : "UserBehaviorMonitorTests"
-      }
-    },
-    {
+      "parallelizable" : true,
       "target" : {
         "containerPath" : "container:",
         "identifier" : "PageRefreshMonitorTests",
@@ -200,6 +216,7 @@
       }
     },
     {
+      "parallelizable" : true,
       "target" : {
         "containerPath" : "container:",
         "identifier" : "BrokenSitePromptTests",
