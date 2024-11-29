@@ -19,6 +19,7 @@
 import Common
 import CryptoKit
 import Foundation
+import Networking
 
 public protocol MaliciousSiteDetecting {
     /// Evaluates the given URL to determine its malicious category (e.g., phishing, malware).
@@ -43,8 +44,8 @@ public final class MaliciousSiteDetector: MaliciousSiteDetecting {
     private let dataManager: DataManaging
     private let eventMapping: EventMapping<Event>
 
-    public convenience init(apiEnvironment: APIClientEnvironment, dataManager: DataManager, eventMapping: EventMapping<Event>) {
-        self.init(apiClient: APIClient(environment: apiEnvironment), dataManager: dataManager, eventMapping: eventMapping)
+    public convenience init(apiEnvironment: APIClientEnvironment, service: APIService = DefaultAPIService(urlSession: .shared), dataManager: DataManager, eventMapping: EventMapping<Event>) {
+        self.init(apiClient: APIClient(environment: apiEnvironment, service: service), dataManager: dataManager, eventMapping: eventMapping)
     }
 
     init(apiClient: APIClient.Mockable, dataManager: DataManaging, eventMapping: EventMapping<Event>) {
