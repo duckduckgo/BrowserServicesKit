@@ -36,7 +36,7 @@ public final class PixelKit {
         case unique
 
         /// Sent only once ever (based on pixel name AND parameters). The timestamp for this pixel is stored.
-        case uniqueIncludingParameters
+        case uniqueByNameAndParameters
 
         /// [Legacy] Used in Pixel.fire(...) as .daily but without the `_d` automatically added to the name
         case legacyDaily
@@ -70,8 +70,8 @@ public final class PixelKit {
                 "Legacy Daily and Count"
             case .dailyAndCount:
                 "Daily and Count"
-            case .uniqueIncludingParameters:
-                "Unique Including Parameters"
+            case .uniqueByNameAndParameters:
+                "Unique By Name And Parameters"
             }
         }
     }
@@ -227,8 +227,8 @@ public final class PixelKit {
             } else {
                 printDebugInfo(pixelName: pixelName, frequency: frequency, parameters: newParams, skipped: true)
             }
-        case .uniqueIncludingParameters:
-            let pixelNameAndParams = pixelName + newParams.description
+        case .uniqueByNameAndParameters:
+            let pixelNameAndParams = pixelName + newParams.toString()
             if !pixelHasBeenFiredEver(pixelNameAndParams) {
                 fireRequestWrapper(pixelName, headers, newParams, allowedQueryReservedCharacters, true, frequency, onComplete)
                 updatePixelLastFireDate(pixelName: pixelNameAndParams)

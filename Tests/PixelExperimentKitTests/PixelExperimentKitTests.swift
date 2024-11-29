@@ -65,7 +65,7 @@ final class PixelExperimentKitTests: XCTestCase {
         // THEN
         XCTAssertEqual(firedEvent[0].name, expectedEventName)
         XCTAssertEqual(firedEvent[0].parameters, expectedParameters)
-        XCTAssertEqual(firedFrequency[0], .uniqueIncludingParameters)
+        XCTAssertEqual(firedFrequency[0], .uniqueByNameAndParameters)
         XCTAssertFalse(firedIncludeAppVersion[0])
     }
 
@@ -93,7 +93,7 @@ final class PixelExperimentKitTests: XCTestCase {
         // THEN
         XCTAssertEqual(firedEvent[0].name, expectedEventName)
         XCTAssertEqual(firedEvent[0].parameters, expectedParameters)
-        XCTAssertEqual(firedFrequency[0], .uniqueIncludingParameters)
+        XCTAssertEqual(firedFrequency[0], .uniqueByNameAndParameters)
         XCTAssertFalse(firedIncludeAppVersion[0])
     }
 
@@ -120,7 +120,7 @@ final class PixelExperimentKitTests: XCTestCase {
         // THEN
         XCTAssertEqual(firedEvent[0].name, expectedEventName)
         XCTAssertEqual(firedEvent[0].parameters, expectedParameters)
-        XCTAssertEqual(firedFrequency[0], .uniqueIncludingParameters)
+        XCTAssertEqual(firedFrequency[0], .uniqueByNameAndParameters)
         XCTAssertFalse(firedIncludeAppVersion[0])
     }
 
@@ -159,7 +159,7 @@ final class PixelExperimentKitTests: XCTestCase {
         // THEN
         XCTAssertEqual(firedEvent[0].name, expectedEventName)
         XCTAssertEqual(firedEvent[0].parameters, expectedParameters)
-        XCTAssertEqual(firedFrequency[0], .uniqueIncludingParameters)
+        XCTAssertEqual(firedFrequency[0], .uniqueByNameAndParameters)
         XCTAssertFalse(firedIncludeAppVersion[0])
     }
 
@@ -219,7 +219,7 @@ final class PixelExperimentKitTests: XCTestCase {
             "value": value,
             "enrollmentDate": enrollmentDate.toYYYYMMDDInET()
         ]
-        let eventStoreKey = expectedEventName + "_" + expectedParameters.escapedString()
+        let eventStoreKey = expectedEventName + "_" + expectedParameters.toString()
         print(eventStoreKey)
         mockPixelStore.store = [eventStoreKey: 2]
 

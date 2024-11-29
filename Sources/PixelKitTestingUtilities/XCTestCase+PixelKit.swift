@@ -161,7 +161,7 @@ public extension XCTestCase {
         case .dailyAndCount:
             expectedPixelNames.append(originalName.appending("_daily"))
             expectedPixelNames.append(originalName.appending("_count"))
-        case .uniqueIncludingParameters:
+        case .uniqueByNameAndParameters:
             expectedPixelNames.append(originalName)
         }
         return expectedPixelNames

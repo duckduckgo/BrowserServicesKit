@@ -74,7 +74,7 @@ extension PixelKit {
     public static func fireExperimentEnrollmentPixel(subfeatureID: SubfeatureID, experiment: ExperimentData) {
         let eventName = "\(Self.Constants.enrollmentEventPrefix)_\(subfeatureID)_\(experiment.cohortID)"
         let event = ExperimentEvent(name: eventName, parameters: [Self.Constants.enrollmentDateKey: experiment.enrollmentDate.toYYYYMMDDInET()])
-        ExperimentConfig.fireFunction(event, .uniqueIncludingParameters, false)
+        ExperimentConfig.fireFunction(event, .uniqueByNameAndParameters, false)
     }
 
     /// Fires a pixel for a specific action in an experiment, based on conversion window and value thresholds (if value is a number).
@@ -186,7 +186,7 @@ extension PixelKit {
             Self.Constants.enrollmentDateKey: experimentData.enrollmentDate.toYYYYMMDDInET()
         ]
         let event = ExperimentEvent(name: eventName, parameters: parameters)
-        let eventStoreKey = eventName + "_" + parameters.escapedString()
+        let eventStoreKey = eventName + "_" + parameters.description
 
         // Check if user is in conversion window
         // if not don't send pixel and remove related action from the store
@@ -204,10 +204,10 @@ extension PixelKit {
             let actualActionNumber = ExperimentConfig.store.integer(forKey: eventStoreKey) + 1
             ExperimentConfig.store.set(actualActionNumber, forKey: eventStoreKey)
             if actualActionNumber >= numberOfAction {
-                ExperimentConfig.fireFunction(event, .uniqueIncludingParameters, false)
+                ExperimentConfig.fireFunction(event, .uniqueByNameAndParameters, false)
             }
         } else {
-            ExperimentConfig.fireFunction(event, .uniqueIncludingParameters, false)
+            ExperimentConfig.fireFunction(event, .uniqueByNameAndParameters, false)
         }
     }
 
@@ -225,14 +225,6 @@ extension PixelKit {
 
         // Check if the current date falls within the normalized range
         return currentDate >= normalizedStart && currentDate <= normalizedEnd
-    }
-}
-
-extension Dictionary where Key: Comparable {
-    func escapedString(pairSeparator: String = ":", entrySeparator: String = ",") -> String {
-        return self.sorted { $0.key < $1.key }
-            .map { "\("\($0.key)".replacingOccurrences(of: entrySeparator, with: "\\\(entrySeparator)"))\(pairSeparator)\("\($0.value)".replacingOccurrences(of: entrySeparator, with: "\\\(entrySeparator)"))" }
-            .joined(separator: entrySeparator)
     }
 }
 
