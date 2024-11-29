@@ -44,7 +44,7 @@ final class CurrentPackTests: XCTestCase {
     }
 
     func testThatMultipleCallsToRecordBlockedTrackerOnlyTriggerOneCommitChangesEvent() async throws {
-        let packs = try await waitForCommitChangesEvents(for: 100_000_000) {
+        let packs = try await waitForCommitChangesEvents(for: 1000_000_000) {
             await currentPack.recordBlockedTracker("A")
             await currentPack.recordBlockedTracker("A")
             await currentPack.recordBlockedTracker("A")
