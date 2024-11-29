@@ -176,7 +176,6 @@ public enum DuckPlayerSubfeature: String, PrivacySubfeature {
 public enum MaliciousSiteProtectionSubfeature: String, PrivacySubfeature {
     public var parent: PrivacyFeature { .maliciousSiteProtection }
     case allowErrorPage
-    case allowPreferencesToggle
 }
 
 public enum SyncPromotionSubfeature: String, PrivacySubfeature {
