@@ -54,10 +54,6 @@ public extension Date {
         return Calendar.current.isDate(date1, inSameDayAs: date2)
     }
 
-    static func isSameHour(_ date1: Date, _ date2: Date) -> Bool {
-        return Calendar.current.isDate(date1, equalTo: date2, toGranularity: .hour)
-    }
-
     static var startOfDayTomorrow: Date {
         let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: Date())!
         return Calendar.current.startOfDay(for: tomorrow)
