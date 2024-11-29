@@ -19,33 +19,62 @@
 import Foundation
 @testable import MaliciousSiteProtection
 
-class MockMaliciousSiteProtectionEmbeddedDataProvider: MaliciousSiteProtection.EmbeddedDataProviding {
+final class MockMaliciousSiteProtectionEmbeddedDataProvider: MaliciousSiteProtection.EmbeddedDataProviding {
     var embeddedRevision: Int = 65
     var loadHashPrefixesCalled: Bool = false
     var loadFilterSetCalled: Bool = true
-    var hashPrefixes = Set(["aabb"])
-    var filterSet = Set([Filter(hash: "dummyhash", regex: "dummyregex")])
+    var hashPrefixes: Set<String> = [] {
+        didSet {
+            hashPrefixesData = try! JSONEncoder().encode(hashPrefixes)
+        }
+    }
+    var hashPrefixesData: Data!
+
+    var filterSet: Set<Filter> = [] {
+        didSet {
+            filterSetData = try! JSONEncoder().encode(filterSet)
+        }
+    }
+    var filterSetData: Data!
+
+    init() {
+        hashPrefixes = Set(["aabb"])
+        filterSet = Set([Filter(hash: "dummyhash", regex: "dummyregex")])
+    }
 
     func revision(for detectionKind: MaliciousSiteProtection.DataManager.StoredDataType) -> Int {
         embeddedRevision
     }
 
-    func url(for detectionKind: MaliciousSiteProtection.DataManager.StoredDataType) -> URL {
-        URL.empty
-    }
-
-    public func hash(for detectionKind: MaliciousSiteProtection.DataManager.StoredDataType) -> String {
-        ""
-    }
-
-    func loadDataSet<DataKey>(for key: DataKey) -> DataKey.EmbeddedDataSet where DataKey: MaliciousSiteDataKey {
-        switch key.dataType {
+    func url(for dataType: MaliciousSiteProtection.DataManager.StoredDataType) -> URL {
+        switch dataType {
         case .filterSet:
             self.loadFilterSetCalled = true
-            return Array(filterSet) as! DataKey.EmbeddedDataSet
+            return URL(string: "filterSet")!
         case .hashPrefixSet:
             self.loadHashPrefixesCalled = true
-            return Array(hashPrefixes) as! DataKey.EmbeddedDataSet
+            return URL(string: "hashPrefixSet")!
+        }
+    }
+
+    func hash(for dataType: MaliciousSiteProtection.DataManager.StoredDataType) -> String {
+        let url = url(for: dataType)
+        let data = try! data(withContentsOf: url)
+        let sha = data.sha256
+        return sha
+    }
+
+    func data(withContentsOf url: URL) throws -> Data {
+        let data: Data
+        switch url.absoluteString {
+        case "filterSet":
+            self.loadFilterSetCalled = true
+            return filterSetData
+        case "hashPrefixSet":
+            self.loadHashPrefixesCalled = true
+            return hashPrefixesData
+        default:
+            fatalError("Unexpected url \(url.absoluteString)")
         }
     }
 
