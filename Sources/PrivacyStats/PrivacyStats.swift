@@ -201,11 +201,6 @@ public final class PrivacyStats: PrivacyStatsCollecting {
                         }
                     }
 
-                    // When storing a pack from a previous day, we may have outdated packs, so delete them as needed.
-                    if !isCurrentDayPack {
-                        try PrivacyStatsUtils.deleteOutdatedPacks(in: context)
-                    }
-
                     guard context.hasChanges else {
                         continuation.resume()
                         return
@@ -214,10 +209,13 @@ public final class PrivacyStats: PrivacyStatsCollecting {
                     try context.save()
                     Logger.privacyStats.debug("Saved stats \(pack.timestamp) \(pack.trackers)")
 
-                    // Only emit update event when saving current-day pack. For previous-day pack,
-                    // a follow-up commit event will come and we'll emit the update then.
                     if isCurrentDayPack {
+                        // Only emit update event when saving current-day pack. For previous-day pack,
+                        // a follow-up commit event will come and we'll emit the update then.
                         statsUpdateSubject.send()
+                    } else {
+                        // When storing a pack from a previous day, we may have outdated packs, so delete them as needed.
+                        try PrivacyStatsUtils.deleteOutdatedPacks(in: context)
                     }
                 } catch {
                     Logger.privacyStats.error("Save error: \(error)")

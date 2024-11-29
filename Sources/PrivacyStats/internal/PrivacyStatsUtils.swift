@@ -109,6 +109,7 @@ final class PrivacyStatsUtils {
         let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
 
         try context.execute(deleteRequest)
+        context.reset()
     }
 
     /**
@@ -117,5 +118,6 @@ final class PrivacyStatsUtils {
     static func deleteAllStats(in context: NSManagedObjectContext) throws {
         let deleteRequest = NSBatchDeleteRequest(fetchRequest: DailyBlockedTrackersEntity.fetchRequest())
         try context.execute(deleteRequest)
+        context.reset()
     }
 }
