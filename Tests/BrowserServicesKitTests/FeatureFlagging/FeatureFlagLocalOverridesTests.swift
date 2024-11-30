@@ -46,7 +46,7 @@ final class FeatureFlagLocalOverridesTests: XCTestCase {
         let internalUserDecider = DefaultInternalUserDecider(store: internalUserDeciderStore)
         let privacyConfig = MockPrivacyConfiguration()
         let privacyConfigManager = MockPrivacyConfigurationManager(privacyConfig: privacyConfig, internalUserDecider: internalUserDecider)
-        featureFlagger = DefaultFeatureFlagger(internalUserDecider: internalUserDecider, privacyConfigManager: privacyConfigManager)
+        featureFlagger = DefaultFeatureFlagger(internalUserDecider: internalUserDecider, privacyConfigManager: privacyConfigManager, experimentManager: nil)
 
         keyValueStore = MockKeyValueStore()
         actionHandler = CapturingFeatureFlagLocalOverridesHandler()

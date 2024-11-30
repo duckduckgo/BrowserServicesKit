@@ -22,6 +22,7 @@ import Subscription
 public final class SubscriptionEndpointServiceMock: SubscriptionEndpointService {
     public var getSubscriptionResult: Result<Subscription, SubscriptionServiceError>?
     public var getProductsResult: Result<[GetProductsItem], APIServiceError>?
+    public var getSubscriptionFeaturesResult: Result<GetSubscriptionFeaturesResponse, APIServiceError>?
     public var getCustomerPortalURLResult: Result<GetCustomerPortalURLResponse, APIServiceError>?
     public var confirmPurchaseResult: Result<ConfirmPurchaseResponse, APIServiceError>?
 
@@ -53,6 +54,10 @@ public final class SubscriptionEndpointServiceMock: SubscriptionEndpointService 
 
     public func getProducts() async -> Result<[GetProductsItem], APIServiceError> {
         getProductsResult!
+    }
+
+    public func getSubscriptionFeatures(for subscriptionID: String) async -> Result<GetSubscriptionFeaturesResponse, APIServiceError> {
+        getSubscriptionFeaturesResult!
     }
 
     public func getCustomerPortalURL(accessToken: String, externalID: String) async -> Result<GetCustomerPortalURLResponse, APIServiceError> {
