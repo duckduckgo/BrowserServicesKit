@@ -19,7 +19,13 @@
 import Foundation
 import MetricKit
 
-public final class CrashReportSender {
+public protocol CrashReportSending {
+    init(platform: CrashCollectionPlatform)
+    func send(_ crashReportData: Data) async
+}
+
+// By conforming to a protocol, we can sub in mocks more easily
+public final class CrashReportSender: CrashReportSending {
 
     static let reportServiceUrl = URL(string: "https://duckduckgo.com/crash.js")!
     public let platform: CrashCollectionPlatform
@@ -28,6 +34,7 @@ public final class CrashReportSender {
         self.platform = platform
     }
 
+    // Should start returning the respnose body, and to take in the cohort id
     public func send(_ crashReportData: Data) async {
         var request = URLRequest(url: Self.reportServiceUrl)
         request.setValue("text/plain", forHTTPHeaderField: "Content-Type")
@@ -36,11 +43,34 @@ public final class CrashReportSender {
         request.httpBody = crashReportData
 
         do {
-            _ = try await session.data(for: request)
+            Logger.general.debug("CrashReportSender: Awaiting session data")
+            let (_, repsonse) = try await session.data(for: request)
+            if let response = repsonse as? HTTPURLResponse {
+                Logger.general.debug("CrashReportSender: Received HTTP response code: \(response.statusCode)")
+                if response.statusCode == 200 {
+                    response.allHeaderFields.forEach { print("\($0.key): \($0.value)") }
+                } else {
+                    assertionFailure("CrashReportSender: Failed to send the crash report: \(response.statusCode)")
+                }
+            }
         } catch {
             assertionFailure("CrashReportSender: Failed to send the crash report")
         }
     }
 
     private let session = URLSession(configuration: .ephemeral)
+    
+    static let crashReportCohortIDKey = "CrashReportSender.crashReportCohortID"
+    var crashReportCohortID: String? {
+        get {
+            if let crcid = UserDefaults().string(forKey: CrashReportSender.crashReportCohortIDKey) {
+                return crcid
+            } else {
+                return nil
+            }
+        }
+        set {
+            UserDefaults().setValue(newValue, forKey: CrashReportSender.crashReportCohortIDKey)
+        }
+    }
 }

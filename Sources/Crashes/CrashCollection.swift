@@ -18,6 +18,7 @@
 
 import Foundation
 import MetricKit
+import Persistence
 
 public enum CrashCollectionPlatform {
     case iOS, macOS, macOSAppStore
@@ -38,9 +39,10 @@ public enum CrashCollectionPlatform {
 @available(iOS 13, macOS 12, *)
 public final class CrashCollection {
 
-    public init(platform: CrashCollectionPlatform) {
-        crashHandler = CrashHandler()
-        crashSender = CrashReportSender(platform: platform)
+    public init(crashReportSender: CrashReportSending, crashCollectionStorage: KeyValueStoring = UserDefaults()) {
+        self.crashHandler = CrashHandler()
+        self.crashSender = crashReportSender
+        self.crashCollectionStorage = crashCollectionStorage
     }
 
     public func start(didFindCrashReports: @escaping (_ pixelParameters: [[String: String]], _ payloads: [Data], _ uploadReports: @escaping () -> Void) -> Void) {
@@ -173,16 +175,17 @@ public final class CrashCollection {
 
     var isFirstCrash: Bool {
         get {
-            UserDefaults().object(forKey: Const.firstCrashKey) as? Bool ?? true
+            crashCollectionStorage.object(forKey: Const.firstCrashKey) as? Bool ?? true
         }
 
         set {
-            UserDefaults().set(newValue, forKey: Const.firstCrashKey)
+            crashCollectionStorage.set(newValue, forKey: Const.firstCrashKey)
         }
     }
 
     let crashHandler: CrashHandler
-    let crashSender: CrashReportSender
+    let crashSender: CrashReportSending
+    let crashCollectionStorage: KeyValueStoring
 
     enum Const {
         static let firstCrashKey = "CrashCollection.first"

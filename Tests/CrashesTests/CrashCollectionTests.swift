@@ -19,21 +19,13 @@
 @testable import Crashes
 import MetricKit
 import XCTest
+import Persistence
+import TestUtils
 
 class CrashCollectionTests: XCTestCase {
 
-    override func setUp() {
-        super.setUp()
-        clearUserDefaults()
-    }
-
-    override func tearDown() {
-        super.tearDown()
-        clearUserDefaults()
-    }
-
     func testFirstCrashFlagSent() {
-        let crashCollection = CrashCollection(platform: .iOS)
+        let crashCollection = CrashCollection(crashReportSender: CrashReportSender(platform: .iOS), crashCollectionStorage:  MockKeyValueStore())
         // 2 pixels with first = true attached
         XCTAssertTrue(crashCollection.isFirstCrash)
         crashCollection.start { pixelParameters, _, _ in
@@ -50,7 +42,7 @@ class CrashCollectionTests: XCTestCase {
     }
 
     func testSubsequentPixelsDontSendFirstFlag() {
-        let crashCollection = CrashCollection(platform: .iOS)
+        let crashCollection = CrashCollection(crashReportSender: CrashReportSender(platform: .iOS), crashCollectionStorage:  MockKeyValueStore())
         // 2 pixels with no first parameter
         crashCollection.isFirstCrash = false
         crashCollection.start { pixelParameters, _, _ in
@@ -64,10 +56,6 @@ class CrashCollectionTests: XCTestCase {
             ])
         ])
         XCTAssertFalse(crashCollection.isFirstCrash)
-    }
-
-    private func clearUserDefaults() {
-        UserDefaults().removeObject(forKey: CrashCollection.Const.firstCrashKey)
     }
 }
 
