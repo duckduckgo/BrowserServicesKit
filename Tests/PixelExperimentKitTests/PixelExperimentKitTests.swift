@@ -27,6 +27,7 @@ final class PixelExperimentKitTests: XCTestCase {
     var featureJson: Data = "{}".data(using: .utf8)!
     var mockPixelStore: MockExperimentActionPixelStore!
     var mockFeatureFlagger: MockFeatureFlagger!
+    var firedEventSet = Set<String>()
     var firedEvent = [PixelKitEvent]()
     var firedFrequency = [PixelKit.Frequency]()
     var firedIncludeAppVersion = [Bool]()
@@ -36,6 +37,7 @@ final class PixelExperimentKitTests: XCTestCase {
         mockPixelStore = MockExperimentActionPixelStore()
         mockFeatureFlagger = MockFeatureFlagger()
         PixelKit.configureExperimentKit(featureFlagger: mockFeatureFlagger, store: ExperimentActionPixelManager(store: mockPixelStore), fire: { event, frequency, includeAppVersion in
+            self.firedEventSet.insert(event.name + "_" + (event.parameters?.toString() ?? ""))
             self.firedEvent.append(event)
             self.firedFrequency.append(frequency)
             self.firedIncludeAppVersion.append(includeAppVersion)
@@ -95,13 +97,14 @@ final class PixelExperimentKitTests: XCTestCase {
         XCTAssertEqual(firedEvent[0].parameters, expectedParameters)
         XCTAssertEqual(firedFrequency[0], .uniqueByNameAndParameters)
         XCTAssertFalse(firedIncludeAppVersion[0])
+        XCTAssertEqual(mockPixelStore.store.count, 0)
     }
 
     func testFireExperimentPixel_WithValidExperimentAndConversionWindowAndValue1() {
         // GIVEN
         let subfeatureID = "credentialsSaving"
         let cohort = "control"
-        let enrollmentDate = Date().addingTimeInterval(-5 * 24 * 60 * 60) // 5 days ago
+        let enrollmentDate = Date().addingTimeInterval(-3 * 24 * 60 * 60) // 5 days ago
         let conversionWindow = 3...7
         let value = "1"
         let expectedEventName = "experiment_metrics_\(subfeatureID)_\(cohort)"
@@ -122,13 +125,14 @@ final class PixelExperimentKitTests: XCTestCase {
         XCTAssertEqual(firedEvent[0].parameters, expectedParameters)
         XCTAssertEqual(firedFrequency[0], .uniqueByNameAndParameters)
         XCTAssertFalse(firedIncludeAppVersion[0])
+        XCTAssertEqual(mockPixelStore.store.count, 0)
     }
 
     func testFireExperimentPixel_WithValidExperimentAndConversionWindowAndValueN() {
         // GIVEN
         let subfeatureID = "credentialsSaving"
         let cohort = "control"
-        let enrollmentDate = Date().addingTimeInterval(-5 * 24 * 60 * 60) // 5 days ago
+        let enrollmentDate = Date().addingTimeInterval(-7 * 24 * 60 * 60) // 5 days ago
         let conversionWindow = 3...7
         let randomNumber = Int.random(in: 1...100)
         let value = "\(randomNumber)"
@@ -161,6 +165,7 @@ final class PixelExperimentKitTests: XCTestCase {
         XCTAssertEqual(firedEvent[0].parameters, expectedParameters)
         XCTAssertEqual(firedFrequency[0], .uniqueByNameAndParameters)
         XCTAssertFalse(firedIncludeAppVersion[0])
+        XCTAssertEqual(mockPixelStore.store.count, 0)
     }
 
     func testFireExperimentPixel_WithInvalidExperimentAndValidConversionWindowAndValue1() {
@@ -185,8 +190,7 @@ final class PixelExperimentKitTests: XCTestCase {
         // GIVEN
         let subfeatureID = "credentialsSaving"
         let cohort = "control"
-        let enrollmentDate = Date().addingTimeInterval(-5 * 24 * 60 * 60) // 5 days ago
-        print(enrollmentDate)
+        let enrollmentDate = Date().addingTimeInterval(-7 * 24 * 60 * 60) // 7 days ago
         let conversionWindow = 8...11
         let value = "3"
         let experimentData = ExperimentData(parentID: "autofill", cohortID: cohort, enrollmentDate: enrollmentDate)
@@ -206,7 +210,7 @@ final class PixelExperimentKitTests: XCTestCase {
         // GIVEN
         let subfeatureID = "credentialsSaving"
         let cohort = "control"
-        let enrollmentDate = Date().addingTimeInterval(-6 * 24 * 60 * 60) // 5 days ago
+        let enrollmentDate = Date().addingTimeInterval(-6 * 24 * 60 * 60) // 6 days ago
         print(enrollmentDate)
         let conversionWindow = 3...5
         let value = "3"
@@ -220,6 +224,7 @@ final class PixelExperimentKitTests: XCTestCase {
             "enrollmentDate": enrollmentDate.toYYYYMMDDInET()
         ]
         let eventStoreKey = expectedEventName + "_" + expectedParameters.toString()
+        mockPixelStore.store = [eventStoreKey: 2]
 
         // WHEN
         PixelKit.fireExperimentPixel(for: subfeatureID, metric: "someMetric", conversionWindowDays: conversionWindow, value: value)
@@ -228,7 +233,145 @@ final class PixelExperimentKitTests: XCTestCase {
         XCTAssertTrue(firedEvent.isEmpty)
         XCTAssertTrue(firedFrequency.isEmpty)
         XCTAssertTrue(firedIncludeAppVersion.isEmpty)
-        print(mockPixelStore.store)
+        XCTAssertEqual(mockPixelStore.store.count, 0)
+    }
+
+    func testFireSearchExperimentPixels_WithValue1() {
+        let subfeatureID = "credentialsSaving"
+        let cohort = "control"
+        let enrollmentDate0 = Date()
+        let enrollmentDate1 = Date().addingTimeInterval(-1 * 24 * 60 * 60) // 1 days ago
+        let enrollmentDate2 = Date().addingTimeInterval(-2 * 24 * 60 * 60) // 2 days ago
+        let enrollmentDate3 = Date().addingTimeInterval(-3 * 24 * 60 * 60) // 3 days ago
+        let enrollmentDate4 = Date().addingTimeInterval(-4 * 24 * 60 * 60) // 4 days ago
+        let enrollmentDate5 = Date().addingTimeInterval(-5 * 24 * 60 * 60) // 5 days ago
+        let enrollmentDate6 = Date().addingTimeInterval(-6 * 24 * 60 * 60) // 6 days ago
+        let enrollmentDate7 = Date().addingTimeInterval(-7 * 24 * 60 * 60) // 7 days ago
+        let enrollmentDate8 = Date().addingTimeInterval(-8 * 24 * 60 * 60) // 8 days ago
+        let experimentData0 = ExperimentData(parentID: "autofill", cohortID: cohort, enrollmentDate: enrollmentDate0)
+        let experimentData1 = ExperimentData(parentID: "autofill", cohortID: cohort, enrollmentDate: enrollmentDate1)
+        let experimentData2 = ExperimentData(parentID: "autofill", cohortID: cohort, enrollmentDate: enrollmentDate2)
+        let experimentData3 = ExperimentData(parentID: "autofill", cohortID: cohort, enrollmentDate: enrollmentDate3)
+        let experimentData4 = ExperimentData(parentID: "autofill", cohortID: cohort, enrollmentDate: enrollmentDate4)
+        let experimentData5 = ExperimentData(parentID: "autofill", cohortID: cohort, enrollmentDate: enrollmentDate5)
+        let experimentData6 = ExperimentData(parentID: "autofill", cohortID: cohort, enrollmentDate: enrollmentDate6)
+        let experimentData7 = ExperimentData(parentID: "autofill", cohortID: cohort, enrollmentDate: enrollmentDate7)
+        let experimentData8 = ExperimentData(parentID: "autofill", cohortID: cohort, enrollmentDate: enrollmentDate8)
+
+        mockFeatureFlagger.experiments = [subfeatureID: experimentData0]
+        PixelKit.fireSearchExperimentPixels()
+        XCTAssertEqual(firedEvent.count, 1) // Fires 1 0-0
+        clearEvents()
+
+        mockFeatureFlagger.experiments = [subfeatureID: experimentData1]
+        PixelKit.fireSearchExperimentPixels()
+        XCTAssertEqual(firedEvent.count, 1) // Fires 1 1-1
+        clearEvents()
+
+        mockFeatureFlagger.experiments = [subfeatureID: experimentData2]
+        PixelKit.fireSearchExperimentPixels()
+        XCTAssertEqual(firedEvent.count, 1) // Fires 1 2-2
+        clearEvents()
+
+        mockFeatureFlagger.experiments = [subfeatureID: experimentData3]
+        PixelKit.fireSearchExperimentPixels()
+        XCTAssertEqual(firedEvent.count, 1) // Fires 1 3-3
+        clearEvents()
+
+        mockFeatureFlagger.experiments = [subfeatureID: experimentData4]
+        PixelKit.fireSearchExperimentPixels()
+        XCTAssertEqual(firedEvent.count, 1) // Fires 1 4-4
+        clearEvents()
+
+        mockFeatureFlagger.experiments = [subfeatureID: experimentData5]
+        PixelKit.fireSearchExperimentPixels()
+        XCTAssertEqual(firedEvent.count, 2) // Fires 1 5-5 and 1 5-7
+        clearEvents()
+
+        mockFeatureFlagger.experiments = [subfeatureID: experimentData6]
+        PixelKit.fireSearchExperimentPixels()
+        XCTAssertEqual(firedEvent.count, 2) // Fires 1 6-6 and 1 5-7
+        clearEvents()
+
+        mockFeatureFlagger.experiments = [subfeatureID: experimentData7]
+        PixelKit.fireSearchExperimentPixels()
+        XCTAssertEqual(firedEvent.count, 2) // Fires 1 7-7 and 1 5-7
+        clearEvents()
+
+        mockFeatureFlagger.experiments = [subfeatureID: experimentData8]
+        PixelKit.fireSearchExperimentPixels()
+        XCTAssertEqual(firedEvent.count, 0) // Nothing
+    }
+
+    func testFireSearchExperimentPixels_WithValue4() {
+        let subfeatureID = "credentialsSaving"
+        let cohort = "control"
+        let enrollmentDate4 = Date().addingTimeInterval(-4 * 24 * 60 * 60) // 4 days ago
+        let enrollmentDate5 = Date().addingTimeInterval(-5 * 24 * 60 * 60) // 5 days ago
+        let enrollmentDate7 = Date().addingTimeInterval(-7 * 24 * 60 * 60) // 7 days ago
+        let enrollmentDate8 = Date().addingTimeInterval(-8 * 24 * 60 * 60) // 8 days ago
+        let enrollmentDate15 = Date().addingTimeInterval(-15 * 24 * 60 * 60) // 15 days ago
+        let enrollmentDate16 = Date().addingTimeInterval(-16 * 24 * 60 * 60) // 16 days ago
+        let experimentData4 = ExperimentData(parentID: "autofill", cohortID: cohort, enrollmentDate: enrollmentDate4)
+        let experimentData5 = ExperimentData(parentID: "autofill", cohortID: cohort, enrollmentDate: enrollmentDate5)
+        let experimentData7 = ExperimentData(parentID: "autofill", cohortID: cohort, enrollmentDate: enrollmentDate7)
+        let experimentData8 = ExperimentData(parentID: "autofill", cohortID: cohort, enrollmentDate: enrollmentDate8)
+        let experimentData15 = ExperimentData(parentID: "autofill", cohortID: cohort, enrollmentDate: enrollmentDate15)
+        let experimentData16 = ExperimentData(parentID: "autofill", cohortID: cohort, enrollmentDate: enrollmentDate16)
+
+        mockFeatureFlagger.experiments = [subfeatureID: experimentData4]
+        PixelKit.fireSearchExperimentPixels() // Fires 1 4-4
+        PixelKit.fireSearchExperimentPixels() // Nothing
+        PixelKit.fireSearchExperimentPixels() // Nothing
+        XCTAssertEqual(firedEventSet.count, 1)
+        PixelKit.fireSearchExperimentPixels() // Nothing
+        XCTAssertEqual(firedEventSet.count, 1)
+        clearEvents()
+
+        mockFeatureFlagger.experiments = [subfeatureID: experimentData5]
+        PixelKit.fireSearchExperimentPixels() // Fires 1 5-5 + 1 5-7
+        PixelKit.fireSearchExperimentPixels() // Nothing
+        PixelKit.fireSearchExperimentPixels() // Nothing
+        XCTAssertEqual(firedEventSet.count, 2)
+        PixelKit.fireSearchExperimentPixels() // Fires + 4 5-7
+        XCTAssertEqual(firedEventSet.count, 3)
+        clearEvents()
+
+        mockFeatureFlagger.experiments = [subfeatureID: experimentData7]
+        PixelKit.fireSearchExperimentPixels() // Fires 1 7-7 + 1 5-7
+        PixelKit.fireSearchExperimentPixels() // Nothing
+        PixelKit.fireSearchExperimentPixels() // Nothing
+        XCTAssertEqual(firedEventSet.count, 2)
+        PixelKit.fireSearchExperimentPixels() // Fires + 4 5-7
+        XCTAssertEqual(firedEventSet.count, 3)
+        clearEvents()
+
+        mockFeatureFlagger.experiments = [subfeatureID: experimentData8]
+        PixelKit.fireSearchExperimentPixels() // Nothing
+        PixelKit.fireSearchExperimentPixels() // Nothing
+        PixelKit.fireSearchExperimentPixels() // Nothing
+        XCTAssertEqual(firedEventSet.count, 0)
+        PixelKit.fireSearchExperimentPixels() // Fires 4 8-15
+        XCTAssertEqual(firedEventSet.count, 1)
+        clearEvents()
+
+        mockFeatureFlagger.experiments = [subfeatureID: experimentData15]
+        PixelKit.fireSearchExperimentPixels() // Nothing
+        PixelKit.fireSearchExperimentPixels() // Nothing
+        PixelKit.fireSearchExperimentPixels() // Nothing
+        XCTAssertEqual(firedEventSet.count, 0)
+        PixelKit.fireSearchExperimentPixels() // Fires 4 8-15
+        XCTAssertEqual(firedEventSet.count, 1)
+        clearEvents()
+
+        mockFeatureFlagger.experiments = [subfeatureID: experimentData16]
+        PixelKit.fireSearchExperimentPixels() // Nothing
+        PixelKit.fireSearchExperimentPixels() // Nothing
+        PixelKit.fireSearchExperimentPixels() // Nothing
+        XCTAssertEqual(firedEventSet.count, 0)
+        PixelKit.fireSearchExperimentPixels() // Nothing
+        XCTAssertEqual(firedEventSet.count, 0)
+        clearEvents()
     }
 
     func testFireSearchExperimentPixels_WithMultipleExperiments() {
@@ -355,6 +498,13 @@ final class PixelExperimentKitTests: XCTestCase {
                 $0.name == "experiment_metrics_\(subfeatureID2)_\(cohort2)"
             }
         )
+    }
+
+    private func clearEvents() {
+        firedEvent = []
+        firedEventSet = []
+        firedFrequency = []
+        firedIncludeAppVersion = []
     }
 
 }
