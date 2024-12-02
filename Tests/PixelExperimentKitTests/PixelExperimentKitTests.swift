@@ -1,6 +1,5 @@
 //
 //  PixelExperimentKitTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -417,7 +416,6 @@ final class PixelExperimentKitTests: XCTestCase {
             }
         )
 
-
         // Verify no pixel fired for the second experiment (outside conversion window)
         XCTAssertNotNil(mockPixelStore.store)
         XCTAssertFalse(
@@ -480,7 +478,6 @@ final class PixelExperimentKitTests: XCTestCase {
             }
         )
 
-
         // Verify no pixel fired for the second experiment (outside conversion window)
         XCTAssertNotNil(mockPixelStore.store)
         XCTAssertFalse(
@@ -509,9 +506,8 @@ final class PixelExperimentKitTests: XCTestCase {
 
 }
 
-
 class MockExperimentActionPixelStore: ExperimentActionPixelStore {
-    
+
     var store: [String: Int] = [:]
 
     func removeObject(forKey defaultName: String) {
@@ -533,11 +529,11 @@ class MockFeatureFlagger: FeatureFlagger {
     var internalUserDecider: any InternalUserDecider = MockInternalUserDecider()
 
     var localOverrides: (any BrowserServicesKit.FeatureFlagLocalOverriding)?
-    
+
     func getCohortIfEnabled<Flag>(for featureFlag: Flag) -> (any FlagCohort)? where Flag: FeatureFlagExperimentDescribing {
         return nil
     }
-    
+
     func getAllActiveExperiments() -> Experiments {
         return experiments
     }

@@ -23,7 +23,7 @@ import Foundation
 
 struct ExperimentEvent: PixelKitEvent {
     var name: String
-    var parameters: [String : String]?
+    var parameters: [String: String]?
 }
 
 extension PixelKit {
@@ -170,7 +170,7 @@ extension PixelKit {
         }
     }
 
-    private static func fireExperimentPixelForActiveExperiment(_ subfeatureID: SubfeatureID, experimentData: ExperimentData,metric: String, conversionWindowDays: ClosedRange<Int>, value: String) {
+    private static func fireExperimentPixelForActiveExperiment(_ subfeatureID: SubfeatureID, experimentData: ExperimentData, metric: String, conversionWindowDays: ClosedRange<Int>, value: String) {
         // Set parameters, event name, store key
         let eventName = "\(Self.Constants.metricsEventPrefix)_\(subfeatureID)_\(experimentData.cohortID)"
         let parameters: [String: String] = [
