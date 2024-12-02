@@ -1,6 +1,5 @@
 //
 //  Disctionary+PixelKit.swift
-//  DuckDuckGo
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -16,6 +15,7 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
+
 
 public extension Dictionary where Key: Comparable {
     func toString(pairSeparator: String = ":", entrySeparator: String = ",") -> String {
