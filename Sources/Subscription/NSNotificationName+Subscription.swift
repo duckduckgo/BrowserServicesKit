@@ -20,10 +20,6 @@ import Foundation
 
 public extension NSNotification.Name {
 
-    static let openPrivateBrowsing = Notification.Name("com.duckduckgo.subscription.open.private-browsing")
-    static let openPrivateSearch = Notification.Name("com.duckduckgo.subscription.open.private-search")
-    static let openEmailProtection = Notification.Name("com.duckduckgo.subscription.open.email-protection")
-    static let openAppTrackingProtection = Notification.Name("com.duckduckgo.subscription.open.app-tracking-protection")
     static let openVPN = Notification.Name("com.duckduckgo.subscription.open.vpn")
     static let openPersonalInformationRemoval = Notification.Name("com.duckduckgo.subscription.open.personal-information-removal")
     static let openIdentityTheftRestoration = Notification.Name("com.duckduckgo.subscription.open.identity-theft-restoration")
