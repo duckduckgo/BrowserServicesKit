@@ -21,21 +21,21 @@ import Subscription
 import Networking
 
 public final class SubscriptionEndpointServiceMock: SubscriptionEndpointService {
-    
+
     public var onSignOut: (() -> Void)?
     public var signOutCalled: Bool = false
-    
+
     public init() { }
-    
+
     public var updateCacheWithSubscriptionCalled: Bool = false
     public var onUpdateCache: ((PrivacyProSubscription) -> Void)?
     public func updateCache(with subscription: Subscription.PrivacyProSubscription) {
         onUpdateCache?(subscription)
         updateCacheWithSubscriptionCalled = true
     }
-    
+
     public func clearSubscription() {}
-    
+
     public var getProductsResult: Result<[GetProductsItem], APIRequestV2.Error>?
     public func getProducts() async throws -> [Subscription.GetProductsItem] {
         switch getProductsResult! {
@@ -43,7 +43,7 @@ public final class SubscriptionEndpointServiceMock: SubscriptionEndpointService 
         case .failure(let error): throw error
         }
     }
-    
+
     public var getSubscriptionCalled: Bool = false
     public var onGetSubscription: ((String, SubscriptionCachePolicy) -> Void)?
     public var getSubscriptionResult: Result<PrivacyProSubscription, SubscriptionEndpointServiceError>?
@@ -55,7 +55,7 @@ public final class SubscriptionEndpointServiceMock: SubscriptionEndpointService 
         case .failure(let error): throw error
         }
     }
-    
+
     public var getCustomerPortalURLResult: Result<GetCustomerPortalURLResponse, APIRequestV2.Error>?
     public func getCustomerPortalURL(accessToken: String, externalID: String) async throws -> Subscription.GetCustomerPortalURLResponse {
         switch getCustomerPortalURLResult! {
@@ -63,7 +63,7 @@ public final class SubscriptionEndpointServiceMock: SubscriptionEndpointService 
         case .failure(let error): throw error
         }
     }
-    
+
     public var confirmPurchaseResult: Result<ConfirmPurchaseResponse, APIRequestV2.Error>?
     public func confirmPurchase(accessToken: String, signature: String) async throws -> Subscription.ConfirmPurchaseResponse {
         switch confirmPurchaseResult! {
@@ -71,7 +71,7 @@ public final class SubscriptionEndpointServiceMock: SubscriptionEndpointService 
         case .failure(let error): throw error
         }
     }
-    
+
     public var getSubscriptionFeaturesResult: Result<Subscription.GetSubscriptionFeaturesResponse, Error>?
     public func getSubscriptionFeatures(for subscriptionID: String) async throws -> Subscription.GetSubscriptionFeaturesResponse {
         switch getSubscriptionFeaturesResult! {
