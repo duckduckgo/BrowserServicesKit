@@ -16,8 +16,9 @@
 //  limitations under the License.
 //
 
-import Foundation
 import Common
+import Foundation
+import Networking
 import os
 
 protocol UpdateManaging {
@@ -35,8 +36,8 @@ public struct UpdateManager: UpdateManaging {
     private let updateIntervalProvider: UpdateIntervalProvider
     private let sleeper: Sleeper
 
-    public init(apiEnvironment: APIClientEnvironment, dataManager: DataManager, updateIntervalProvider: @escaping UpdateIntervalProvider) {
-        self.init(apiClient: APIClient(environment: apiEnvironment), dataManager: dataManager, updateIntervalProvider: updateIntervalProvider)
+    public init(apiEnvironment: APIClientEnvironment, service: APIService = DefaultAPIService(urlSession: .shared), dataManager: DataManager, updateIntervalProvider: @escaping UpdateIntervalProvider) {
+        self.init(apiClient: APIClient(environment: apiEnvironment, service: service), dataManager: dataManager, updateIntervalProvider: updateIntervalProvider)
     }
 
     init(apiClient: APIClient.Mockable, dataManager: DataManaging, sleeper: Sleeper = .default, updateIntervalProvider: @escaping UpdateIntervalProvider) {
@@ -80,7 +81,10 @@ public struct UpdateManager: UpdateManaging {
                 for dataType in DataManager.StoredDataType.allCases {
                     // get update interval from provider
                     guard let updateInterval = updateIntervalProvider(dataType) else { continue }
-                    assert(updateInterval > 0)
+                    guard updateInterval > 0 else {
+                        assertionFailure("Update interval for \(dataType) must be positive")
+                        continue
+                    }
 
                     group.addTask {
                         // run periodically until the parent task is cancelled

@@ -101,7 +101,7 @@ struct APIClient {
         let headers = environment.headers(for: requestType)
         let url = environment.url(for: requestType)
 
-        let apiRequest = APIRequestV2(url: url, method: .get, headers: headers)
+        let apiRequest = APIRequestV2(url: url, method: .get, headers: headers, timeoutInterval: requestConfig.timeout ?? 60)
         let response = try await service.fetch(request: apiRequest)
         let result: R.Response = try response.decodeBody()
 
