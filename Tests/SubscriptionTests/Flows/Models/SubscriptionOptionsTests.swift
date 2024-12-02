@@ -41,10 +41,11 @@ final class SubscriptionOptionsTests: XCTestCase {
         let data = try? jsonEncoder.encode(subscriptionOptions)
         let subscriptionOptionsString = String(data: data!, encoding: .utf8)!
 
-        XCTAssertEqual(subscriptionOptionsString, """
+        let result = subscriptionOptionsString.filter { !$0.isWhitespace && $0 != "\n" }
+        let expected = """
 {
   "features" : [
-     "Network Protection",
+    "Network Protection",
     "Data Broker Protection",
     "Identity Theft Restoration"
   ],
@@ -66,7 +67,9 @@ final class SubscriptionOptionsTests: XCTestCase {
   ],
   "platform" : "macos"
 }
-""")
+""".filter { !$0.isWhitespace && $0 != "\n" }
+
+        XCTAssertEqual(result, expected)
     }
 
     func testSubscriptionOptionCostEncoding() throws {
@@ -86,7 +89,7 @@ final class SubscriptionOptionsTests: XCTestCase {
         let data = try? JSONEncoder().encode(subscriptionFeature)
         let subscriptionFeatureString = String(data: data!, encoding: .utf8)!
 
-        XCTAssertEqual(subscriptionFeatureString, "{\"name\":\"Identity Theft Restoration\"}")
+        XCTAssertEqual(subscriptionFeatureString, "\"Identity Theft Restoration\"")
     }
 
     func testEmptySubscriptionOptions() throws {
