@@ -24,6 +24,7 @@ public enum RemoteMessagingSurveyActionParameter: String, CaseIterable {
     case atbVariant = "var"
     case daysInstalled = "delta"
     case hardwareModel = "mo"
+    case locale = "locale"
     case osVersion = "osv"
     case privacyProStatus = "ppro_status"
     case privacyProPlatform = "ppro_platform"

@@ -64,7 +64,11 @@ public extension Date {
     }
 
     var startOfDay: Date {
-        return  Calendar.current.startOfDay(for: self)
+        return Calendar.current.startOfDay(for: self)
+    }
+
+    func daysAgo(_ days: Int) -> Date {
+        Calendar.current.date(byAdding: .day, value: -days, to: self)!
     }
 
     static var startOfMinuteNow: Date {
