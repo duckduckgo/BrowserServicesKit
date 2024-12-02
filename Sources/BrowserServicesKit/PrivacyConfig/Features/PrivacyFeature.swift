@@ -166,6 +166,7 @@ public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {
     case setAccessTokenCookieForSubscriptionDomains
     case isLaunchedROW
     case isLaunchedROWOverride
+    case freeTrials
 }
 
 public enum SslCertificatesSubfeature: String, PrivacySubfeature {
