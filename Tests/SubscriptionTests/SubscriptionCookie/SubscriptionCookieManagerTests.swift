@@ -33,6 +33,7 @@ final class SubscriptionCookieManagerTests: XCTestCase {
     var authService: AuthEndpointServiceMock!
     var storePurchaseManager: StorePurchaseManagerMock!
     var subscriptionEnvironment: SubscriptionEnvironment!
+    var subscriptionFeatureMappingCache: SubscriptionFeatureMappingCacheMock!
     var subscriptionManager: SubscriptionManagerMock!
 
     var cookieStore: HTTPCookieStore!
@@ -45,13 +46,15 @@ final class SubscriptionCookieManagerTests: XCTestCase {
         storePurchaseManager = StorePurchaseManagerMock()
         subscriptionEnvironment = SubscriptionEnvironment(serviceEnvironment: .production,
                                                            purchasePlatform: .appStore)
+        subscriptionFeatureMappingCache = SubscriptionFeatureMappingCacheMock()
 
         subscriptionManager = SubscriptionManagerMock(accountManager: accountManager,
                                                       subscriptionEndpointService: subscriptionService,
                                                       authEndpointService: authService,
                                                       storePurchaseManager: storePurchaseManager,
                                                       currentEnvironment: subscriptionEnvironment,
-                                                      canPurchase: true)
+                                                      canPurchase: true,
+                                                      subscriptionFeatureMappingCache: subscriptionFeatureMappingCache)
         cookieStore = MockHTTPCookieStore()
 
         subscriptionCookieManager = SubscriptionCookieManager(subscriptionManager: subscriptionManager,
