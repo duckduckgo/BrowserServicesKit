@@ -180,42 +180,43 @@ extension PixelKit {
             Self.Constants.enrollmentDateKey: experimentData.enrollmentDate.toYYYYMMDDInET()
         ]
         let event = ExperimentEvent(name: eventName, parameters: parameters)
-        let eventStoreKey = eventName + "_" + parameters.toString()
+        let eventStoreKey = "\(eventName)_\(parameters.toString())"
 
-        // Check if user is in conversion window
-        // if not don't send pixel and remove related action from the store
-        guard isUserInConversionWindow(conversionWindowDays, enrollmentDate: experimentData.enrollmentDate) else {
-            return
-        }
+        // Determine if the user is within the conversion window
+        let isInWindow = isUserInConversionWindow(conversionWindowDays, enrollmentDate: experimentData.enrollmentDate)
 
         // Check if value is a number
-        // if so check if the action for the given experiment and parameter has been performed a number of time >= than the required
-        // if so send the pixel
-        // if not increase the count of the action
-        // if value is not a number send the pixel
         if let numberOfAction = Int(value), numberOfAction > 1 {
-            if ExperimentConfig.store.incrementAndCheck(forKey: eventStoreKey, threshold: numberOfAction) {
+            // Increment or remove based on conversion window status
+            let shouldSendPixel = ExperimentConfig.store.incrementAndCheckThreshold(
+                forKey: eventStoreKey,
+                threshold: numberOfAction,
+                isInWindow: isInWindow
+            )
+
+            // Send the pixel only if conditions are met
+            if shouldSendPixel {
                 ExperimentConfig.fireFunction(event, .uniqueByNameAndParameters, false)
             }
-        } else {
+        } else if isInWindow {
+            // If value is not a number, send the pixel only if within the window
             ExperimentConfig.fireFunction(event, .uniqueByNameAndParameters, false)
         }
     }
 
-    private static func isUserInConversionWindow(_ conversionWindowDays: ClosedRange<Int>, enrollmentDate: Date) -> Bool {
+    private static func isUserInConversionWindow(
+        _ conversionWindowRange: ClosedRange<Int>,
+        enrollmentDate: Date
+    ) -> Bool {
         let calendar = Calendar.current
-        guard let startOfWindowDate = enrollmentDate.addDays(conversionWindowDays.lowerBound),
-              let endOfWindowDate = enrollmentDate.addDays(conversionWindowDays.upperBound) else {
+        guard let startOfWindow = enrollmentDate.addDays(conversionWindowRange.lowerBound),
+              let endOfWindow = enrollmentDate.addDays(conversionWindowRange.upperBound) else {
             return false
         }
 
-        // Normalize dates to the start of the day
-        let normalizedStart = calendar.startOfDay(for: startOfWindowDate)
-        let normalizedEnd = calendar.startOfDay(for: endOfWindowDate)
         let currentDate = calendar.startOfDay(for: Date())
-
-        // Check if the current date falls within the normalized range
-        return currentDate >= normalizedStart && currentDate <= normalizedEnd
+        return currentDate >= calendar.startOfDay(for: startOfWindow) &&
+        currentDate <= calendar.startOfDay(for: endOfWindow)
     }
 }
 

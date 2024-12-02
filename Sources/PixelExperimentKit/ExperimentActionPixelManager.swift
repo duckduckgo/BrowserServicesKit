@@ -26,7 +26,7 @@ public protocol ExperimentActionPixelStore {
  }
 
 public protocol ExperimentActionPixelManaging {
-    func incrementAndCheck(forKey key: String, threshold: Int) -> Bool
+    func incrementAndCheckThreshold(forKey key: String, threshold: Int, isInWindow: Bool) -> Bool
 }
 
 public struct ExperimentActionPixelManager: ExperimentActionPixelManaging {
@@ -37,12 +37,20 @@ public struct ExperimentActionPixelManager: ExperimentActionPixelManaging {
         self.store = store
     }
 
-    public func incrementAndCheck(forKey key: String, threshold: Int) -> Bool {
+    public func incrementAndCheckThreshold(forKey key: String, threshold: Int, isInWindow: Bool) -> Bool {
         syncQueue.sync {
+            // Remove the key if is not in window
+            guard isInWindow else {
+                store.removeObject(forKey: key)
+                return false
+            }
+
+            // Increment the current count
             let currentCount = store.integer(forKey: key)
             let newCount = currentCount + 1
             store.set(newCount, forKey: key)
 
+            // Check if the threshold is exceeded
             if newCount >= threshold {
                 store.removeObject(forKey: key)
                 return true
@@ -50,6 +58,7 @@ public struct ExperimentActionPixelManager: ExperimentActionPixelManaging {
             return false
         }
     }
+
 }
 
 extension UserDefaults: ExperimentActionPixelStore {}
