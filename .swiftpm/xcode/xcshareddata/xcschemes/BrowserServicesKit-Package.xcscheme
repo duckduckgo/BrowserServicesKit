@@ -550,6 +550,9 @@
                BlueprintIdentifier = "PixelExperimentKit"
                BuildableName = "PixelExperimentKit"
                BlueprintName = "PixelExperimentKit"
+               BlueprintIdentifier = "PrivacyStats"
+               BuildableName = "PrivacyStats"
+               BlueprintName = "PrivacyStats"
                ReferencedContainer = "container:">
             </BuildableReference>
          </BuildActionEntry>
@@ -839,6 +842,9 @@
                BlueprintIdentifier = "PixelExperimentKitTests"
                BuildableName = "PixelExperimentKitTests"
                BlueprintName = "PixelExperimentKitTests"
+               BlueprintIdentifier = "PrivacyStatsTests"
+               BuildableName = "PrivacyStatsTests"
+               BlueprintName = "PrivacyStatsTests"
                ReferencedContainer = "container:">
             </BuildableReference>
          </TestableReference>
