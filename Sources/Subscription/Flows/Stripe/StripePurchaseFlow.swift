@@ -63,8 +63,12 @@ public final class DefaultStripePurchaseFlow: StripePurchaseFlow {
             return SubscriptionOption(id: $0.productId, cost: cost)
         }
 
-        let features = SubscriptionFeatureName.allCases.map { SubscriptionFeature(name: $0.rawValue) }
-        return .success(SubscriptionOptions(platform: SubscriptionPlatformName.stripe.rawValue, options: options, features: features))
+        let features: [SubscriptionEntitlement] = [.networkProtection,
+                                                  .dataBrokerProtection,
+                                                  .identityTheftRestoration]
+        return .success(SubscriptionOptions(platform: SubscriptionPlatformName.stripe,
+                                                    options: options,
+                                                    features: features))
     }
 
     public func prepareSubscriptionPurchase(emailAccessToken: String?) async -> Result<PurchaseUpdate, StripePurchaseFlowError> {

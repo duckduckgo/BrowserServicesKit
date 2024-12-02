@@ -121,6 +121,7 @@ public enum SubscriptionEntitlement: String, Codable, Equatable {
     case networkProtection = "Network Protection"
     case dataBrokerProtection = "Data Broker Protection"
     case identityTheftRestoration = "Identity Theft Restoration"
+    case identityTheftRestorationGlobal = "Global Identity Theft Restoration"
     case unknown
 
     public init(from decoder: Decoder) throws {

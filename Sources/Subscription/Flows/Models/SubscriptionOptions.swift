@@ -17,21 +17,35 @@
 //
 
 import Foundation
+import Networking
 
 public struct SubscriptionOptions: Encodable, Equatable {
-    let platform: String
+    let platform: SubscriptionPlatformName
     let options: [SubscriptionOption]
-    let features: [SubscriptionFeature]
+    let features: [SubscriptionEntitlement]
+
     public static var empty: SubscriptionOptions {
-        let features = SubscriptionFeatureName.allCases.map { SubscriptionFeature(name: $0.rawValue) }
+        let features: [SubscriptionEntitlement] = [.networkProtection,
+                                                   .dataBrokerProtection,
+                                                   .identityTheftRestoration]
         let platform: SubscriptionPlatformName
 #if os(iOS)
         platform = .ios
 #else
         platform = .macos
 #endif
-        return SubscriptionOptions(platform: platform.rawValue, options: [], features: features)
+        return SubscriptionOptions(platform: platform, options: [], features: features)
     }
+
+    public func withoutPurchaseOptions() -> Self {
+        SubscriptionOptions(platform: platform, options: [], features: features)
+    }
+}
+
+public enum SubscriptionPlatformName: String, Encodable {
+    case ios
+    case macos
+    case stripe
 }
 
 public struct SubscriptionOption: Encodable, Equatable {
@@ -42,8 +56,4 @@ public struct SubscriptionOption: Encodable, Equatable {
 struct SubscriptionOptionCost: Encodable, Equatable {
     let displayPrice: String
     let recurrence: String
-}
-
-public struct SubscriptionFeature: Encodable, Equatable {
-    let name: String
 }

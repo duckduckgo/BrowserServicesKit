@@ -67,12 +67,14 @@
         // Then
         switch result {
         case .success(let success):
-            XCTAssertEqual(success.platform, SubscriptionPlatformName.stripe.rawValue)
+            XCTAssertEqual(success.platform, SubscriptionPlatformName.stripe)
             XCTAssertEqual(success.options.count, SubscriptionMockFactory.productsItems.count)
-            XCTAssertEqual(success.features.count, SubscriptionFeatureName.allCases.count)
+            XCTAssertEqual(success.features.count, 3)
+            let allFeatures = [Entitlement.ProductName.networkProtection, Entitlement.ProductName.dataBrokerProtection, Entitlement.ProductName.identityTheftRestoration]
             let allNames = success.features.compactMap({ feature in feature.name})
-            for name in SubscriptionFeatureName.allCases {
-                XCTAssertTrue(allNames.contains(name.rawValue))
+
+            for feature in allFeatures {
+                XCTAssertTrue(allNames.contains(feature))
             }
         case .failure(let error):
             XCTFail("Unexpected failure: \(error)")

@@ -38,6 +38,10 @@ public struct ConfirmPurchaseResponse: Codable, Equatable {
     public let subscription: PrivacyProSubscription
 }
 
+public struct GetSubscriptionFeaturesResponse: Decodable {
+    public let features: [SubscriptionEntitlement]
+}
+
 public enum SubscriptionEndpointServiceError: Error {
     case noData
     case invalidRequest
@@ -55,6 +59,7 @@ public protocol SubscriptionEndpointService {
     func getSubscription(accessToken: String, cachePolicy: SubscriptionCachePolicy) async throws -> PrivacyProSubscription
     func clearSubscription()
     func getProducts() async throws -> [GetProductsItem]
+    func getSubscriptionFeatures(for subscriptionID: String) async throws -> GetSubscriptionFeaturesResponse
     func getCustomerPortalURL(accessToken: String, externalID: String) async throws -> GetCustomerPortalURLResponse
     func confirmPurchase(accessToken: String, signature: String) async throws -> ConfirmPurchaseResponse
 }
@@ -186,6 +191,21 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
     public func confirmPurchase(accessToken: String, signature: String) async throws -> ConfirmPurchaseResponse {
         Logger.subscriptionEndpointService.log("Confirming purchase")
         guard let request = SubscriptionRequest.confirmPurchase(baseURL: baseURL, accessToken: accessToken, signature: signature) else {
+            throw SubscriptionEndpointServiceError.invalidRequest
+        }
+        let response = try await apiService.fetch(request: request.apiRequest)
+        let statusCode = response.httpResponse.httpStatus
+        if statusCode.isSuccess {
+            Logger.subscriptionEndpointService.log("\(#function) request completed")
+            return try response.decodeBody()
+        } else {
+            throw SubscriptionEndpointServiceError.invalidResponseCode(statusCode)
+        }
+    }
+
+    public func getSubscriptionFeatures(for subscriptionID: String) async throws -> GetSubscriptionFeaturesResponse {
+        Logger.subscriptionEndpointService.log("Getting subscription features")
+        guard let request = SubscriptionRequest.subscriptionFeatures(baseURL: baseURL, subscriptionID: subscriptionID) else {
             throw SubscriptionEndpointServiceError.invalidRequest
         }
         let response = try await apiService.fetch(request: request.apiRequest)

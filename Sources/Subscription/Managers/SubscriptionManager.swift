@@ -82,6 +82,8 @@ public protocol SubscriptionEntitlementsProvider {
 
 public protocol SubscriptionManager: SubscriptionTokenProvider, SubscriptionEntitlementsProvider {
 
+//    var subscriptionFeatureMappingCache: SubscriptionFeatureMappingCache { get }
+
     // Environment
     static func loadEnvironmentFrom(userDefaults: UserDefaults) -> SubscriptionEnvironment?
     static func save(subscriptionEnvironment: SubscriptionEnvironment, userDefaults: UserDefaults)
@@ -127,19 +129,25 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     private let _storePurchaseManager: StorePurchaseManager?
     private let subscriptionEndpointService: SubscriptionEndpointService
     private let pixelHandler: PixelHandler
+    public let subscriptionFeatureMappingCache: SubscriptionFeatureMappingCache
     public let currentEnvironment: SubscriptionEnvironment
-    public private(set) var canPurchase: Bool = false
+
+    private let subscriptionFeatureFlagger: FeatureFlaggerMapping<SubscriptionFeatureFlags>?
 
     public init(storePurchaseManager: StorePurchaseManager? = nil,
                 oAuthClient: any OAuthClient,
                 subscriptionEndpointService: SubscriptionEndpointService,
+                subscriptionFeatureMappingCache: SubscriptionFeatureMappingCache,
                 subscriptionEnvironment: SubscriptionEnvironment,
+                subscriptionFeatureFlagger: FeatureFlaggerMapping<SubscriptionFeatureFlags>?,
                 pixelHandler: @escaping PixelHandler) {
         self._storePurchaseManager = storePurchaseManager
         self.oAuthClient = oAuthClient
         self.subscriptionEndpointService = subscriptionEndpointService
         self.currentEnvironment = subscriptionEnvironment
         self.pixelHandler = pixelHandler
+        self.subscriptionFeatureMappingCache = subscriptionFeatureMappingCache
+        self.subscriptionFeatureFlagger = subscriptionFeatureFlagger
 
 #if !NETP_SYSTEM_EXTENSION
         switch currentEnvironment.purchasePlatform {
@@ -153,6 +161,22 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
             break
         }
 #endif
+    }
+
+    public var canPurchase: Bool {
+        guard let storePurchaseManager = _storePurchaseManager else { return false }
+
+        switch storePurchaseManager.currentStorefrontRegion {
+        case .usa:
+            return storePurchaseManager.areProductsAvailable
+        case .restOfWorld:
+            if let subscriptionFeatureFlagger,
+               subscriptionFeatureFlagger.isFeatureOn(.isLaunchedROW) || subscriptionFeatureFlagger.isFeatureOn(.isLaunchedROWOverride) {
+                return storePurchaseManager.areProductsAvailable
+            } else {
+                return false
+            }
+        }
     }
 
     @available(macOS 12.0, iOS 15.0, *)
@@ -185,7 +209,6 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     @available(macOS 12.0, iOS 15.0, *) private func setupForAppStore() {
         Task {
             await storePurchaseManager().updateAvailableProducts()
-            canPurchase = storePurchaseManager().areProductsAvailable
         }
     }
 
@@ -267,18 +290,46 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
         return oAuthClient.currentTokenContainer?.decodedAccessToken.email
     }
 
+    // MARK: - Entitlements
+
     public func getEntitlements(forceRefresh: Bool) async throws -> [SubscriptionEntitlement] {
-        let tokenContainer = try await getTokenContainer(policy: forceRefresh ? .localForceRefresh : .localValid)
-        return tokenContainer.decodedAccessToken.subscriptionEntitlements
+        if forceRefresh {
+            await refreshAccount()
+        }
+        return currentEntitlements
     }
 
     public var currentEntitlements: [SubscriptionEntitlement] {
-        return oAuthClient.currentTokenContainer?.decodedAccessToken.subscriptionEntitlements ?? []
+        if let subscriptionFeatureFlagger,
+           subscriptionFeatureFlagger.isFeatureOn(.isLaunchedROW) || subscriptionFeatureFlagger.isFeatureOn(.isLaunchedROWOverride) {
+            return oAuthClient.currentTokenContainer?.decodedAccessToken.subscriptionEntitlements ?? []
+        } else {
+            return [.networkProtection, .dataBrokerProtection, .identityTheftRestoration]
+        }
     }
+
+    /*
+     public func currentSubscriptionFeatures() async -> [Entitlement.ProductName] {
+         guard let token = accountManager.accessToken else { return [] }
+
+         if subscriptionFeatureFlagger.isFeatureOn(.isLaunchedROW) || subscriptionFeatureFlagger.isFeatureOn(.isLaunchedROWOverride) {
+             switch await subscriptionEndpointService.getSubscription(accessToken: token, cachePolicy: .returnCacheDataElseLoad) {
+             case .success(let subscription):
+                 return await subscriptionFeatureMappingCache.subscriptionFeatures(for: subscription.productId)
+             case .failure:
+                 return []
+             }
+         } else {
+             return [.networkProtection, .dataBrokerProtection, .identityTheftRestoration]
+         }
+     }
+     */
 
     public func isEntitlementActive(_ entitlement: SubscriptionEntitlement) -> Bool {
         currentEntitlements.contains(entitlement)
     }
+
+    // MARK: -
 
     private func refreshAccount() async {
         do {

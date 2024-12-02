@@ -73,4 +73,13 @@ struct SubscriptionRequest {
         }
         return SubscriptionRequest(apiRequest: request)
     }
+
+    static func subscriptionFeatures(baseURL: URL, subscriptionID: String) -> SubscriptionRequest? {
+        let path = "/products/\(subscriptionID)/features"
+        guard let request = APIRequestV2(url: baseURL.appendingPathComponent(path),
+                                         method: .get) else {
+            return nil
+        }
+        return SubscriptionRequest(apiRequest: request)
+    }
 }

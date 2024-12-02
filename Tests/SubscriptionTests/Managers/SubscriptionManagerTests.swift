@@ -24,10 +24,12 @@ import TestUtils
 
 class SubscriptionManagerTests: XCTestCase {
 
-    private var subscriptionManager: DefaultSubscriptionManager!
-    private var mockOAuthClient: MockOAuthClient!
-    private var mockSubscriptionEndpointService: SubscriptionEndpointServiceMock!
-    private var mockStorePurchaseManager: StorePurchaseManagerMock!
+    var subscriptionManager: DefaultSubscriptionManager!
+    var mockOAuthClient: MockOAuthClient!
+    var mockSubscriptionEndpointService: SubscriptionEndpointServiceMock!
+    var mockStorePurchaseManager: StorePurchaseManagerMock!
+    var subscriptionFeatureMappingCache: SubscriptionFeatureMappingCacheMock!
+    var subscriptionFeatureFlagger: FeatureFlaggerMapping<SubscriptionFeatureFlags>!
 
     override func setUp() {
         super.setUp()
@@ -35,12 +37,16 @@ class SubscriptionManagerTests: XCTestCase {
         mockOAuthClient = MockOAuthClient()
         mockSubscriptionEndpointService = SubscriptionEndpointServiceMock()
         mockStorePurchaseManager = StorePurchaseManagerMock()
+        subscriptionFeatureMappingCache = SubscriptionFeatureMappingCacheMock()
+        subscriptionFeatureFlagger = FeatureFlaggerMapping<SubscriptionFeatureFlags>(mapping: { $0.defaultState })
 
         subscriptionManager = DefaultSubscriptionManager(
             storePurchaseManager: mockStorePurchaseManager,
             oAuthClient: mockOAuthClient,
             subscriptionEndpointService: mockSubscriptionEndpointService,
+            subscriptionFeatureMappingCache: subscriptionFeatureMappingCache,
             subscriptionEnvironment: SubscriptionEnvironment(serviceEnvironment: .staging, purchasePlatform: .stripe),
+            subscriptionFeatureFlagger: subscriptionFeatureFlagger,
             pixelHandler: { _ in }
         )
     }
@@ -78,12 +84,13 @@ class SubscriptionManagerTests: XCTestCase {
         )
         mockSubscriptionEndpointService.getSubscriptionResult = .success(expiredSubscription)
         let expectation = self.expectation(description: "Dead token pixel called")
-
         subscriptionManager = DefaultSubscriptionManager(
             storePurchaseManager: mockStorePurchaseManager,
             oAuthClient: mockOAuthClient,
             subscriptionEndpointService: mockSubscriptionEndpointService,
+            subscriptionFeatureMappingCache: subscriptionFeatureMappingCache,
             subscriptionEnvironment: SubscriptionEnvironment(serviceEnvironment: .staging, purchasePlatform: .stripe),
+            subscriptionFeatureFlagger: subscriptionFeatureFlagger,
             pixelHandler: { type in
                 XCTAssertEqual(type, .deadToken)
                 expectation.fulfill()
@@ -161,7 +168,9 @@ class SubscriptionManagerTests: XCTestCase {
             storePurchaseManager: mockStorePurchaseManager,
             oAuthClient: mockOAuthClient,
             subscriptionEndpointService: mockSubscriptionEndpointService,
+            subscriptionFeatureMappingCache: subscriptionFeatureMappingCache,
             subscriptionEnvironment: environment,
+            subscriptionFeatureFlagger: subscriptionFeatureFlagger,
             pixelHandler: { _ in }
         )
 
@@ -218,7 +227,9 @@ class SubscriptionManagerTests: XCTestCase {
             storePurchaseManager: mockStorePurchaseManager,
             oAuthClient: mockOAuthClient,
             subscriptionEndpointService: mockSubscriptionEndpointService,
+            subscriptionFeatureMappingCache: subscriptionFeatureMappingCache,
             subscriptionEnvironment: productionEnvironment,
+            subscriptionFeatureFlagger: subscriptionFeatureFlagger,
             pixelHandler: { _ in }
         )
 
@@ -237,7 +248,9 @@ class SubscriptionManagerTests: XCTestCase {
             storePurchaseManager: mockStorePurchaseManager,
             oAuthClient: mockOAuthClient,
             subscriptionEndpointService: mockSubscriptionEndpointService,
+            subscriptionFeatureMappingCache: subscriptionFeatureMappingCache,
             subscriptionEnvironment: stagingEnvironment,
+            subscriptionFeatureFlagger: subscriptionFeatureFlagger,
             pixelHandler: { _ in }
         )
 

@@ -21,38 +21,32 @@ import Subscription
 import Networking
 
 public final class SubscriptionEndpointServiceMock: SubscriptionEndpointService {
-
-    public var getSubscriptionResult: Result<PrivacyProSubscription, SubscriptionEndpointServiceError>?
-    public var getProductsResult: Result<[GetProductsItem], APIRequestV2.Error>?
-    public var getCustomerPortalURLResult: Result<GetCustomerPortalURLResponse, APIRequestV2.Error>?
-    public var confirmPurchaseResult: Result<ConfirmPurchaseResponse, APIRequestV2.Error>?
-
-    public var onUpdateCache: ((PrivacyProSubscription) -> Void)?
-    public var onGetSubscription: ((String, SubscriptionCachePolicy) -> Void)?
+    
     public var onSignOut: (() -> Void)?
-
-    public var updateCacheWithSubscriptionCalled: Bool = false
-    public var getSubscriptionCalled: Bool = false
     public var signOutCalled: Bool = false
-
+    
     public init() { }
-
+    
+    public var updateCacheWithSubscriptionCalled: Bool = false
+    public var onUpdateCache: ((PrivacyProSubscription) -> Void)?
     public func updateCache(with subscription: Subscription.PrivacyProSubscription) {
         onUpdateCache?(subscription)
         updateCacheWithSubscriptionCalled = true
     }
-
-    public func clearSubscription() {
-
-    }
-
+    
+    public func clearSubscription() {}
+    
+    public var getProductsResult: Result<[GetProductsItem], APIRequestV2.Error>?
     public func getProducts() async throws -> [Subscription.GetProductsItem] {
         switch getProductsResult! {
         case .success(let result): return result
         case .failure(let error): throw error
         }
     }
-
+    
+    public var getSubscriptionCalled: Bool = false
+    public var onGetSubscription: ((String, SubscriptionCachePolicy) -> Void)?
+    public var getSubscriptionResult: Result<PrivacyProSubscription, SubscriptionEndpointServiceError>?
     public func getSubscription(accessToken: String, cachePolicy: Subscription.SubscriptionCachePolicy) async throws -> Subscription.PrivacyProSubscription {
         getSubscriptionCalled = true
         onGetSubscription?(accessToken, cachePolicy)
@@ -61,16 +55,26 @@ public final class SubscriptionEndpointServiceMock: SubscriptionEndpointService 
         case .failure(let error): throw error
         }
     }
-
+    
+    public var getCustomerPortalURLResult: Result<GetCustomerPortalURLResponse, APIRequestV2.Error>?
     public func getCustomerPortalURL(accessToken: String, externalID: String) async throws -> Subscription.GetCustomerPortalURLResponse {
         switch getCustomerPortalURLResult! {
         case .success(let result): return result
         case .failure(let error): throw error
         }
     }
-
+    
+    public var confirmPurchaseResult: Result<ConfirmPurchaseResponse, APIRequestV2.Error>?
     public func confirmPurchase(accessToken: String, signature: String) async throws -> Subscription.ConfirmPurchaseResponse {
         switch confirmPurchaseResult! {
+        case .success(let result): return result
+        case .failure(let error): throw error
+        }
+    }
+    
+    public var getSubscriptionFeaturesResult: Result<Subscription.GetSubscriptionFeaturesResponse, Error>?
+    public func getSubscriptionFeatures(for subscriptionID: String) async throws -> Subscription.GetSubscriptionFeaturesResponse {
+        switch getSubscriptionFeaturesResult! {
         case .success(let result): return result
         case .failure(let error): throw error
         }

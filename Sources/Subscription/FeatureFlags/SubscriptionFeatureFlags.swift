@@ -1,5 +1,5 @@
 //
-//  SubscriptionEnvironmentNames.swift
+//  SubscriptionFeatureFlags.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -18,18 +18,21 @@
 
 import Foundation
 
-public enum SubscriptionFeatureName: String, CaseIterable {
-    case privateBrowsing = "private-browsing"
-    case privateSearch = "private-search"
-    case emailProtection = "email-protection"
-    case appTrackingProtection = "app-tracking-protection"
-    case vpn = "vpn"
-    case personalInformationRemoval = "personal-information-removal"
-    case identityTheftRestoration = "identity-theft-restoration"
+public enum SubscriptionFeatureFlags {
+    case isLaunchedROW
+    case isLaunchedROWOverride
+    case usePrivacyProUSARegionOverride
+    case usePrivacyProROWRegionOverride
 }
 
-public enum SubscriptionPlatformName: String {
-    case ios
-    case macos
-    case stripe
+public extension SubscriptionFeatureFlags {
+
+    var defaultState: Bool {
+        switch self {
+        case .isLaunchedROW, .isLaunchedROWOverride:
+            return true
+        case .usePrivacyProUSARegionOverride, .usePrivacyProROWRegionOverride:
+            return false
+        }
+    }
 }

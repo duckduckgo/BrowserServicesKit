@@ -19,6 +19,7 @@
 import Foundation
 import StoreKit
 import os.log
+import Networking
 
 public enum StoreError: Error {
     case failedVerification
@@ -41,6 +42,7 @@ public protocol StorePurchaseManager {
     var purchasedProductIDs: [String] { get }
     var purchaseQueue: [String] { get }
     var areProductsAvailable: Bool { get }
+    var currentStorefrontRegion: SubscriptionRegion { get }
 
     @MainActor func syncAppleIDAccount() async throws
     @MainActor func updateAvailableProducts() async
@@ -56,21 +58,24 @@ public protocol StorePurchaseManager {
 @available(macOS 12.0, iOS 15.0, *)
 public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseManager {
 
-    let productIdentifiers = ["ios.subscription.1month", "ios.subscription.1year",
-                              "subscription.1month", "subscription.1year",
-                              "review.subscription.1month", "review.subscription.1year",
-                              "tf.sandbox.subscription.1month", "tf.sandbox.subscription.1year",
-                              "ddg.privacy.pro.monthly.renews.us", "ddg.privacy.pro.yearly.renews.us"]
+    private let storeSubscriptionConfiguration: StoreSubscriptionConfiguration
+    private let subscriptionFeatureMappingCache: SubscriptionFeatureMappingCache
+    private let subscriptionFeatureFlagger: FeatureFlaggerMapping<SubscriptionFeatureFlags>?
 
     @Published public private(set) var availableProducts: [Product] = []
     @Published public private(set) var purchasedProductIDs: [String] = []
     @Published public private(set) var purchaseQueue: [String] = []
 
     public var areProductsAvailable: Bool { !availableProducts.isEmpty }
+    public private(set) var currentStorefrontRegion: SubscriptionRegion = .usa
     private var transactionUpdates: Task<Void, Never>?
     private var storefrontChanges: Task<Void, Never>?
 
-    public init() {
+    public init(subscriptionFeatureMappingCache: SubscriptionFeatureMappingCache,
+                subscriptionFeatureFlagger: FeatureFlaggerMapping<SubscriptionFeatureFlags>? = nil) {
+        self.storeSubscriptionConfiguration = DefaultStoreSubscriptionConfiguration()
+        self.subscriptionFeatureMappingCache = subscriptionFeatureMappingCache
+        self.subscriptionFeatureFlagger = subscriptionFeatureFlagger
         transactionUpdates = observeTransactionUpdates()
         storefrontChanges = observeStorefrontChanges()
     }
@@ -108,17 +113,23 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
             return nil
         }
 
+        let platform: SubscriptionPlatformName = {
+#if os(iOS)
+           .ios
+#else
+           .macos
+#endif
+        }()
+
         let options = [SubscriptionOption(id: monthly.id, cost: .init(displayPrice: monthly.displayPrice, recurrence: "monthly")),
                        SubscriptionOption(id: yearly.id, cost: .init(displayPrice: yearly.displayPrice, recurrence: "yearly"))]
-        let features = SubscriptionFeatureName.allCases.map { SubscriptionFeature(name: $0.rawValue) }
-        let platform: SubscriptionPlatformName
-
-#if os(iOS)
-        platform = .ios
-#else
-        platform = .macos
-#endif
-        return SubscriptionOptions(platform: platform.rawValue,
+        let features: [SubscriptionEntitlement]
+        if let featureFlagger = subscriptionFeatureFlagger, featureFlagger.isFeatureOn(.isLaunchedROW) || featureFlagger.isFeatureOn(.isLaunchedROWOverride) {
+            features = await subscriptionFeatureMappingCache.subscriptionFeatures(for: monthly.id)
+        } else {
+            features = [.networkProtection, .dataBrokerProtection, .identityTheftRestoration]
+        }
+        return SubscriptionOptions(platform: platform,
                                    options: options,
                                    features: features)
     }
@@ -128,11 +139,36 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
         Logger.subscriptionStorePurchaseManager.log("Update available products")
 
         do {
-            let availableProducts = try await Product.products(for: productIdentifiers)
-            Logger.subscriptionStorePurchaseManager.log("\(availableProducts.count) products available")
+            let storefrontCountryCode: String?
+            let storefrontRegion: SubscriptionRegion
+
+            if let featureFlagger = subscriptionFeatureFlagger, featureFlagger.isFeatureOn(.isLaunchedROW) || featureFlagger.isFeatureOn(.isLaunchedROWOverride) {
+                if let subscriptionFeatureFlagger, subscriptionFeatureFlagger.isFeatureOn(.usePrivacyProUSARegionOverride) {
+                    storefrontCountryCode = "USA"
+                } else if let subscriptionFeatureFlagger, subscriptionFeatureFlagger.isFeatureOn(.usePrivacyProROWRegionOverride) {
+                    storefrontCountryCode = "POL"
+                } else {
+                    storefrontCountryCode = await Storefront.current?.countryCode
+                }
+
+                storefrontRegion = SubscriptionRegion.matchingRegion(for: storefrontCountryCode ?? "USA") ?? .usa // Fallback to USA
+            } else {
+                storefrontCountryCode = "USA"
+                storefrontRegion = .usa
+            }
+
+            self.currentStorefrontRegion = storefrontRegion
+            let applicableProductIdentifiers = storeSubscriptionConfiguration.subscriptionIdentifiers(for: storefrontRegion)
+            let availableProducts = try await Product.products(for: applicableProductIdentifiers)
+            Logger.subscription.info("[StorePurchaseManager] updateAvailableProducts fetched \(availableProducts.count) products for \(storefrontCountryCode ?? "<nil>", privacy: .public)")
 
             if self.availableProducts != availableProducts {
                 self.availableProducts = availableProducts
+
+                // Update cached subscription features mapping
+                for id in availableProducts.compactMap({ $0.id }) {
+                    _ = await subscriptionFeatureMappingCache.subscriptionFeatures(for: id)
+                }
             }
         } catch {
             Logger.subscriptionStorePurchaseManager.error("Failed to fetch available products: \(String(reflecting: error), privacy: .public)")
@@ -282,6 +318,39 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
                 Logger.subscriptionStorePurchaseManager.log("observeStorefrontChanges: \(result.countryCode)")
                 await self?.updatePurchasedProducts()
                 await self?.updateAvailableProducts()
+            }
+        }
+    }
+}
+
+public extension UserDefaults {
+
+    enum Constants {
+        static let storefrontRegionOverrideKey = "Subscription.debug.storefrontRegionOverride"
+        static let usaValue = "usa"
+        static let rowValue = "row"
+    }
+
+    dynamic var storefrontRegionOverride: SubscriptionRegion? {
+        get {
+            switch string(forKey: Constants.storefrontRegionOverrideKey) {
+            case "usa":
+                return .usa
+            case "row":
+                return .restOfWorld
+            default:
+                return nil
+            }
+        }
+
+        set {
+            switch newValue {
+            case .usa:
+                set(Constants.usaValue, forKey: Constants.storefrontRegionOverrideKey)
+            case .restOfWorld:
+                set(Constants.rowValue, forKey: Constants.storefrontRegionOverrideKey)
+            default:
+                removeObject(forKey: Constants.storefrontRegionOverrideKey)
             }
         }
     }
