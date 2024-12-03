@@ -172,9 +172,12 @@ extension PixelKit {
     private static func fireExperimentPixelForActiveExperiment(_ subfeatureID: SubfeatureID, experimentData: ExperimentData, metric: String, conversionWindowDays: ClosedRange<Int>, value: String) {
         // Set parameters, event name, store key
         let eventName = "\(Self.Constants.metricsEventPrefix)_\(subfeatureID)_\(experimentData.cohortID)"
+        let conversionWindowValue = (conversionWindowDays.lowerBound != conversionWindowDays.upperBound) ?
+        "\(conversionWindowDays.lowerBound)-\(conversionWindowDays.upperBound)" :
+        "\(conversionWindowDays.lowerBound)"
         let parameters: [String: String] = [
             Self.Constants.metricKey: metric,
-            Self.Constants.conversionWindowDaysKey: "\(conversionWindowDays.lowerBound.description)-\(conversionWindowDays.upperBound.description)",
+            Self.Constants.conversionWindowDaysKey: conversionWindowValue,
             Self.Constants.valueKey: value,
             Self.Constants.enrollmentDateKey: experimentData.enrollmentDate.toYYYYMMDDInET()
         ]
