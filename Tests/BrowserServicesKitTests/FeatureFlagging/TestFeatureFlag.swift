@@ -35,11 +35,11 @@ enum TestFeatureFlag: String, FeatureFlagDescribing {
     var source: FeatureFlagSource {
         switch self {
         case .nonOverridableFlag:
-            return .internalOnly
+            return .internalOnly()
         case .overridableFlagDisabledByDefault:
             return .disabled
         case .overridableFlagEnabledByDefault:
-            return .internalOnly
+            return .internalOnly()
         }
     }
 }

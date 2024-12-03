@@ -42,7 +42,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         case rekeyAttempt(_ step: RekeyAttemptStep)
         case failureRecoveryAttempt(_ step: FailureRecoveryStep)
         case serverMigrationAttempt(_ step: ServerMigrationAttemptStep)
-        case malformedErrorDetected(_ error: Error)
     }
 
     public enum AttemptStep: CustomDebugStringConvertible {
@@ -705,7 +704,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             // Check that the error is valid and able to be re-thrown to the OS before shutting the tunnel down
             if let wrappedError = wrapped(error: error) {
                 // Wait for the provider to complete its pixel request.
-                providerEvents.fire(.malformedErrorDetected(error))
                 try? await Task.sleep(interval: .seconds(2))
                 throw wrappedError
             } else {
@@ -743,7 +741,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             // Check that the error is valid and able to be re-thrown to the OS before shutting the tunnel down
             if let wrappedError = wrapped(error: error) {
                 // Wait for the provider to complete its pixel request.
-                providerEvents.fire(.malformedErrorDetected(error))
                 try? await Task.sleep(interval: .seconds(2))
                 throw wrappedError
             } else {
@@ -887,6 +884,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     @MainActor
     private func stopTunnel() async throws {
         connectionStatus = .disconnecting
+
         await stopMonitors()
         try await stopAdapter()
     }
@@ -895,10 +893,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private func stopAdapter() async throws {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             adapter.stop { [weak self] error in
-                if let self {
-                    self.handleAdapterStopped()
-                }
-
                 if let error {
                     self?.debugEvents.fire(error.networkProtectionError)
 
@@ -1418,11 +1412,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         // and is being fixed, so we want to test the connection immediately.
         let testImmediately = startReason == .reconnected || startReason == .onDemand
         try await startMonitors(testImmediately: testImmediately)
-    }
-
-    @MainActor
-    public func handleAdapterStopped() {
-        connectionStatus = .disconnected
     }
 
     // MARK: - Monitors
