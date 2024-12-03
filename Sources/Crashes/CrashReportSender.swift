@@ -21,7 +21,12 @@ import MetricKit
 
 public protocol CrashReportSending {
     init(platform: CrashCollectionPlatform)
-    func send(_ crashReportData: Data) async
+    func send(_ crashReportData: Data, crcid: String?) async -> Result<Data?, Error>
+    func send(_ crashReportData: Data, crcid: String?, completion: @escaping (Result<Data?, Error>) -> Void)
+}
+
+enum CrashReportSenderError: Error {
+    case invalidResponse
 }
 
 // By conforming to a protocol, we can sub in mocks more easily
@@ -29,36 +34,51 @@ public final class CrashReportSender: CrashReportSending {
 
     static let reportServiceUrl = URL(string: "https://duckduckgo.com/crash.js")!
     public let platform: CrashCollectionPlatform
+    
+    private let session = URLSession(configuration: .ephemeral)
 
     public init(platform: CrashCollectionPlatform) {
         self.platform = platform
     }
 
-    // Should start returning the respnose body, and to take in the cohort id
-    public func send(_ crashReportData: Data) async {
+    public func send(_ crashReportData: Data, crcid: String?, completion: @escaping (Result<Data?, Error>) -> Void) {
         var request = URLRequest(url: Self.reportServiceUrl)
         request.setValue("text/plain", forHTTPHeaderField: "Content-Type")
         request.setValue(platform.userAgent, forHTTPHeaderField: "User-Agent")
         request.httpMethod = "POST"
         request.httpBody = crashReportData
-
-        do {
-            Logger.general.debug("CrashReportSender: Awaiting session data")
-            let (_, repsonse) = try await session.data(for: request)
-            if let response = repsonse as? HTTPURLResponse {
+        
+        Logger.general.debug("CrashReportSender: Awaiting session data")
+        let task = session.dataTask(with: request) { data, response, error in
+            if let response = response as? HTTPURLResponse {
                 Logger.general.debug("CrashReportSender: Received HTTP response code: \(response.statusCode)")
                 if response.statusCode == 200 {
                     response.allHeaderFields.forEach { print("\($0.key): \($0.value)") }
                 } else {
                     assertionFailure("CrashReportSender: Failed to send the crash report: \(response.statusCode)")
                 }
+                
+                if let data {
+                    completion(.success(data))
+                } else if let error {
+                    completion(.failure(error))
+                } else {
+                    completion(.failure(CrashReportSenderError.invalidResponse))
+                }
+            } else {
+                    completion(.failure(CrashReportSenderError.invalidResponse))
             }
-        } catch {
-            assertionFailure("CrashReportSender: Failed to send the crash report")
+        }
+        task.resume()
+    }
+    
+    public func send(_ crashReportData: Data, crcid: String?) async -> Result<Data?, Error> {
+        await withCheckedContinuation { continuation in
+            send(crashReportData, crcid: crcid) { result in
+                continuation.resume(returning: (result))
+            }
         }
     }
-
-    private let session = URLSession(configuration: .ephemeral)
     
     static let crashReportCohortIDKey = "CrashReportSender.crashReportCohortID"
     var crashReportCohortID: String? {

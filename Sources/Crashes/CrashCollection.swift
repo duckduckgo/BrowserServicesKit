@@ -57,7 +57,11 @@ public final class CrashCollection {
     ///   - didFindCrashReports: callback called after payload preprocessing is finished.
     ///     Provides processed JSON data to be presented to the user and Pixel parameters to fire a crash Pixel.
     ///     `uploadReports` callback is used when the user accepts uploading the crash report and starts crash upload to the server.
-    public func start(process: @escaping ([MXDiagnosticPayload]) -> [Data], didFindCrashReports: @escaping (_ pixelParameters: [[String: String]], _ payloads: [Data], _ uploadReports: @escaping () -> Void) -> Void) {
+    public func start(process: @escaping ([MXDiagnosticPayload]) -> [Data],
+                      didFindCrashReports: @escaping (_ pixelParameters: [[String: String]],
+                                                      _ payloads: [Data],
+                                                      _ uploadReports: @escaping () -> Void) -> Void,
+                      didFinishHandlingResponse: @escaping (() -> Void) = {}) {
         let first = isFirstCrash
         isFirstCrash = false
 
@@ -82,8 +86,18 @@ public final class CrashCollection {
             didFindCrashReports(pixelParameters, processedData) {
                 Task {
                     for payload in processedData {
-                        await self.crashSender.send(payload)
+                        let crcid = self.crashCollectionStorage.object(forKey: Const.crcidKey) as? String
+                        let result =  await self.crashSender.send(payload, crcid: crcid)
+                        // TODO: Logic for handling response here
+                        switch result {
+                        case .success(let success):
+                            let receivedCRCID = "faked" // Pull from data (decode json)
+                            self.crashCollectionStorage.set(receivedCRCID, forKey: Const.crcidKey)
+                        case .failure(let failure):
+                            // TODO: ?
+                        }
                     }
+                    didFinishHandlingResponse()
                 }
             }
         }
@@ -189,5 +203,6 @@ public final class CrashCollection {
 
     enum Const {
         static let firstCrashKey = "CrashCollection.first"
+        static let crcidKey = "CrashCollection.crcid"
     }
 }

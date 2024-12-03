@@ -19,11 +19,11 @@
 import Foundation
 import Persistence
 
-public class MockKeyValueStore: KeyValueStoring {
+public class MockKeyValueStore: NSObject, KeyValueStoring {
 
     public var store = [String: Any?]()
 
-    public init() { }
+    public override init() { }
 
     public func object(forKey defaultName: String) -> Any? {
         return store[defaultName] as Any?

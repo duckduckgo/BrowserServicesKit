@@ -57,6 +57,35 @@ class CrashCollectionTests: XCTestCase {
         ])
         XCTAssertFalse(crashCollection.isFirstCrash)
     }
+    
+    func testCRCIsReceivedAndUpdated()
+    {
+        let expectedCRCID = "Test CRCID Value"
+        let store = MockKeyValueStore()
+        
+        let crashCollection = CrashCollection(crashReportSender: MockCrashReportSender(platform: .iOS), crashCollectionStorage: store)
+        
+        let expectation = self.expectation(description: "Crash collection response")
+        
+        crashCollection.start(process: {_ in
+            return ["json-data".data(using: .utf8)!]
+        }) { pixelParameters, payloads, uploadReports in
+            uploadReports()
+        } didFinishHandlingResponse: {
+            expectation.fulfill()
+        }
+
+        crashCollection.crashHandler.didReceive([
+            MockPayload(mockCrashes: [
+                MXCrashDiagnostic(),
+                MXCrashDiagnostic()
+            ])
+        ])
+        
+        self.wait(for: [expectation], timeout: 5)
+        
+        XCTAssertEqual(store.object(forKey: CrashCollection.Const.crcidKey) as? String, expectedCRCID)
+    }
 }
 
 class MockPayload: MXDiagnosticPayload {
@@ -75,5 +104,26 @@ class MockPayload: MXDiagnosticPayload {
     override var crashDiagnostics: [MXCrashDiagnostic]? {
         return mockCrashes
     }
+}
 
+class MockCrashReportSender: CrashReportSending {
+    
+    let platform: CrashCollectionPlatform
+    
+    required init(platform: CrashCollectionPlatform) {
+        self.platform = platform
+        
+    }
+    
+    func send(_ crashReportData: Data, crcid: String?, completion: @escaping (Result<Data?, Error>) -> Void) {
+        completion(.success(nil)) // TODO: Pass some data?
+    }
+    
+    func send(_ crashReportData: Data, crcid: String?) async -> Result<Data?, Error> {
+        await withCheckedContinuation { continuation in
+            send(crashReportData, crcid: crcid) { result in
+                continuation.resume(returning: result)
+            }
+        }
+    }
 }
