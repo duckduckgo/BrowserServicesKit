@@ -295,7 +295,11 @@ fileprivate extension Bundle {
 
     var appGroupName: String {
         guard let appGroup = object(forInfoDictionaryKey: Bundle.vaultAppGroupName) as? String else {
+            #if DEBUG && os(iOS)
+            return "com.duckduckgo.vault.test"
+            #else
             fatalError("Info.plist is missing \(Bundle.vaultAppGroupName)")
+            #endif
         }
         return appGroup
     }
