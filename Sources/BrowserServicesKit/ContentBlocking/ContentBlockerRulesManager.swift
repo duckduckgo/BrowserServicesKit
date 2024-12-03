@@ -388,10 +388,10 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
 
             if let compilationTime = result.compilationTime {
                 
-                //todo: map broken sources to iteration count
+                // todo: map broken sources to iteration count
                 let iteration = task.sourceManager.brokenSources
-                
-                //todo: need to change this to the updated format with time range and iteration
+
+                // todo: need to change this to the updated format with time range and iteration
                 self.errorReporting?.fire(.contentBlockingCompilationTime, parameters: ["compilationTime": String(compilationTime)])
             }
 

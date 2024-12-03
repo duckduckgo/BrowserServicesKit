@@ -30,7 +30,7 @@ extension ContentBlockerRulesManager {
      */
     internal class CompilationTask {
         typealias Completion = (_ task: CompilationTask, _ success: Bool) -> Void
-        
+
         let workQueue: DispatchQueue
         let rulesList: ContentBlockerRulesList
         let sourceManager: ContentBlockerRulesSourceManager
@@ -55,7 +55,7 @@ extension ContentBlockerRulesManager {
                     completionHandler(self, false)
                     return
                 }
-                
+
                 self.compilationStartTime = CACurrentMediaTime()
 
                 guard !ignoreCache else {
@@ -70,7 +70,7 @@ extension ContentBlockerRulesManager {
                 DispatchQueue.main.async {
                     let identifier = model.rulesIdentifier.stringValue
                     Logger.contentBlocking.debug("Lookup CBR with \(identifier, privacy: .public)")
-                    //Todo: how do we exclude this case from compilation time where the result is returned from cache
+                    // Todo: how do we exclude this case from compilation time where the result is returned from cache
                     WKContentRuleListStore.default()?.lookUpContentRuleList(forIdentifier: identifier) { ruleList, _ in
                         if let ruleList = ruleList {
                             Logger.contentBlocking.log("🟢 CBR loaded from cache: \(self.rulesList.name, privacy: .public)")

@@ -24,12 +24,12 @@ extension ContentBlockerRulesManager {
 
     final class LookupRulesTask {
 
-        //This type has been overloaded multiple times, I'm collapsing them all into CompilationResult type
-        //typealias LookupResult = (compiledRulesList: WKContentRuleList, model: ContentBlockerRulesSourceModel)
+        // This type has been overloaded multiple times, I'm collapsing them all into CompilationResult type
+        // typealias LookupResult = (compiledRulesList: WKContentRuleList, model: ContentBlockerRulesSourceModel)
 
         private let sourceManagers: [ContentBlockerRulesSourceManager]
 
-        ////todo: how to get around calling this compilation result when in lookuptask?
+        // todo: how to get around naming this compilation result when in lookuptask?
         public private(set) var result: [CompilationResult]?
 
         init(sourceManagers: [ContentBlockerRulesSourceManager]) {
