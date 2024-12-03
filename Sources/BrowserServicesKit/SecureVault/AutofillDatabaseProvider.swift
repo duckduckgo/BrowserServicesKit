@@ -1450,7 +1450,11 @@ private extension Bundle {
     var appGroupPrefix: String {
         let groupIdPrefixKey = "DuckDuckGoGroupIdentifierPrefix"
         guard let groupIdPrefix = Bundle.main.object(forInfoDictionaryKey: groupIdPrefixKey) as? String else {
+            #if DEBUG && os(iOS)
+            return "group.com.duckduckgo.test"
+            #else
             fatalError("Info.plist must contain a \"\(groupIdPrefixKey)\" entry with a string value")
+            #endif
         }
         return groupIdPrefix
     }
