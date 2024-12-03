@@ -16,8 +16,8 @@
 //  limitations under the License.
 //
 
-import CryptoKit
 import Foundation
+import CryptoKit
 
 public protocol EmbeddedDataProviding {
     func revision(for dataType: DataManager.StoredDataType) -> Int

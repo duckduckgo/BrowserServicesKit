@@ -17,7 +17,6 @@
 //
 
 import Foundation
-
 @testable import MaliciousSiteProtection
 
 final class MockMaliciousSiteProtectionEmbeddedDataProvider: MaliciousSiteProtection.EmbeddedDataProviding {
