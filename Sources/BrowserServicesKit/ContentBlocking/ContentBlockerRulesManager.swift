@@ -79,7 +79,7 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
             self.identifier = identifier
         }
 
-        internal init(compilationResult: (compiledRulesList: WKContentRuleList, model: ContentBlockerRulesSourceModel)) {
+        internal init(compilationResult: CompilationResult) {
             let surrogateTDS = ContentBlockerRulesManager.extractSurrogates(from: compilationResult.model.tds)
             let encodedData = try? JSONEncoder().encode(surrogateTDS)
             let encodedTrackerData = String(data: encodedData!, encoding: .utf8)!
@@ -130,7 +130,6 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
     public var sourceManagers = [String: ContentBlockerRulesSourceManager]()
 
     private var currentTasks = [CompilationTask]()
-    private var compilationStartTime: TimeInterval?
 
     private let workQueue = DispatchQueue(label: "ContentBlockerManagerQueue", qos: .userInitiated)
 
@@ -229,7 +228,6 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
         }
 
         state = .recompiling(currentTokens: [token])
-        compilationStartTime = compilationStartTime ?? CACurrentMediaTime()
         lock.unlock()
         return true
     }
@@ -388,6 +386,15 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
                                                                                                 unprotectedSitesHash: nil))
             }
 
+            if let compilationTime = result.compilationTime {
+                
+                //todo: map broken sources to iteration count
+                let iteration = task.sourceManager.brokenSources
+                
+                //todo: need to change this to the updated format with time range and iteration
+                self.errorReporting?.fire(.contentBlockingCompilationTime, parameters: ["compilationTime": String(compilationTime)])
+            }
+
             changes[task.rulesList.name] = diff
             return rules
         }
@@ -404,7 +411,6 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
         _currentRules = rules
 
         let completionTokens: [CompletionToken]
-        let compilationTime = compilationStartTime.map { start in CACurrentMediaTime() - start }
         switch state {
         case .recompilingAndScheduled(let currentTokens, let pendingTokens):
             // New work has been scheduled - prepare for execution.
@@ -414,12 +420,10 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
 
             completionTokens = currentTokens
             state = .recompiling(currentTokens: pendingTokens)
-            compilationStartTime = CACurrentMediaTime()
 
         case .recompiling(let currentTokens):
             completionTokens = currentTokens
             state = .idle
-            compilationStartTime = nil
 
         case .idle:
             assertionFailure("Unexpected state")
@@ -432,10 +436,6 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
         updatesSubject.send(UpdateEvent(rules: rules, changes: changes, completionTokens: completionTokens))
 
         DispatchQueue.main.async {
-            if let compilationTime = compilationTime {
-                self.errorReporting?.fire(.contentBlockingCompilationTime, parameters: ["compilationTime": String(compilationTime)])
-            }
-
             self.cleanup(currentIdentifiers: currentIdentifiers)
         }
     }

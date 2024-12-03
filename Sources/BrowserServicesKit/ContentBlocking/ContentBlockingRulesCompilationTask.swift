@@ -23,18 +23,21 @@ import TrackerRadarKit
 import os.log
 
 extension ContentBlockerRulesManager {
+    typealias CompilationResult = (compiledRulesList: WKContentRuleList, model: ContentBlockerRulesSourceModel, compilationTime: TimeInterval?)
 
     /**
      Encapsulates compilation steps for a single Task
      */
     internal class CompilationTask {
         typealias Completion = (_ task: CompilationTask, _ success: Bool) -> Void
+        
         let workQueue: DispatchQueue
         let rulesList: ContentBlockerRulesList
         let sourceManager: ContentBlockerRulesSourceManager
         var isCompleted: Bool { result != nil || compilationImpossible }
         private(set) var compilationImpossible = false
-        private(set) var result: (compiledRulesList: WKContentRuleList, model: ContentBlockerRulesSourceModel)?
+        private(set) var result: CompilationResult?
+        private(set) var compilationStartTime: TimeInterval?
 
         init(workQueue: DispatchQueue,
              rulesList: ContentBlockerRulesList,
@@ -52,6 +55,8 @@ extension ContentBlockerRulesManager {
                     completionHandler(self, false)
                     return
                 }
+                
+                self.compilationStartTime = CACurrentMediaTime()
 
                 guard !ignoreCache else {
                     Logger.contentBlocking.log("❗️ ignoring cache")
@@ -65,6 +70,7 @@ extension ContentBlockerRulesManager {
                 DispatchQueue.main.async {
                     let identifier = model.rulesIdentifier.stringValue
                     Logger.contentBlocking.debug("Lookup CBR with \(identifier, privacy: .public)")
+                    //Todo: how do we exclude this case from compilation time where the result is returned from cache
                     WKContentRuleListStore.default()?.lookUpContentRuleList(forIdentifier: identifier) { ruleList, _ in
                         if let ruleList = ruleList {
                             Logger.contentBlocking.log("🟢 CBR loaded from cache: \(self.rulesList.name, privacy: .public)")
@@ -83,7 +89,9 @@ extension ContentBlockerRulesManager {
                                           model: ContentBlockerRulesSourceModel,
                                           completionHandler: @escaping Completion) {
             workQueue.async {
-                self.result = (compiledRulesList, model)
+                let compilationTime = self.compilationStartTime.map { start in CACurrentMediaTime() - start }
+
+                self.result = (compiledRulesList, model, compilationTime)
                 completionHandler(self, true)
             }
         }
