@@ -19,12 +19,16 @@
 import Foundation
 import Networking
 
-public struct MockAPIService: APIService {
+public class MockAPIService: APIService {
 
-    public var apiResponse: Result<APIResponseV2, Error>
+    public var requestHandler: ((APIRequestV2) -> Result<APIResponseV2, Error>)!
 
-    public func fetch(request: Networking.APIRequestV2) async throws -> APIResponseV2 {
-        switch apiResponse {
+    public init(requestHandler: ((APIRequestV2) -> Result<APIResponseV2, Error>)? = nil) {
+        self.requestHandler = requestHandler
+    }
+
+    public func fetch(request: APIRequestV2) async throws -> APIResponseV2 {
+        switch requestHandler!(request) {
         case .success(let result):
             return result
         case .failure(let error):

@@ -43,8 +43,7 @@ public final class SpecialPagesUserScript: NSObject, UserScript, UserScriptMessa
 @available(macOS 11.0, iOS 14.0, *)
 extension SpecialPagesUserScript: WKScriptMessageHandlerWithReply {
     @MainActor
-    public func userContentController(_ userContentController: WKUserContentController,
-                                      didReceive message: WKScriptMessage) async -> (Any?, String?) {
+    public func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) async -> (Any?, String?) {
         let action = broker.messageHandlerFor(message)
         do {
             let json = try await broker.execute(action: action, original: message)

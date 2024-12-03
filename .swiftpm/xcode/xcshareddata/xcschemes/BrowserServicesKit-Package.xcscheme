@@ -491,9 +491,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "PhishingDetection"
-               BuildableName = "PhishingDetection"
-               BlueprintName = "PhishingDetection"
+               BlueprintIdentifier = "MaliciousSiteProtection"
+               BuildableName = "MaliciousSiteProtection"
+               BlueprintName = "MaliciousSiteProtection"
                ReferencedContainer = "container:">
             </BuildableReference>
          </BuildActionEntry>
@@ -799,9 +799,9 @@
             skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "PhishingDetectionTests"
-               BuildableName = "PhishingDetectionTests"
-               BlueprintName = "PhishingDetectionTests"
+               BlueprintIdentifier = "MaliciousSiteProtectionTests"
+               BuildableName = "MaliciousSiteProtectionTests"
+               BlueprintName = "MaliciousSiteProtectionTests"
                ReferencedContainer = "container:">
             </BuildableReference>
          </TestableReference>

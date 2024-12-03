@@ -41,21 +41,18 @@ final class APIRequestV2Tests: XCTestCase {
                                       cachePolicy: cachePolicy,
                                       responseConstraints: constraints)
 
-        guard let urlRequest = apiRequest?.urlRequest else {
-            XCTFail("Nil URLRequest")
-            return
-        }
+        let urlRequest = apiRequest.urlRequest
         XCTAssertEqual(urlRequest.url?.host(), url.host())
         XCTAssertEqual(urlRequest.httpMethod, method.rawValue)
 
         let urlComponents = URLComponents(string: urlRequest.url!.absoluteString)!
-        XCTAssertTrue(urlComponents.queryItems!.contains(queryItems.toURLQueryItems()))
+        XCTAssertTrue(urlComponents.queryItems!.contains(URLQueryItem(name: "key", value: "value")))
 
         XCTAssertEqual(urlRequest.allHTTPHeaderFields, headers.httpHeaders)
         XCTAssertEqual(urlRequest.httpBody, body)
-        XCTAssertEqual(apiRequest?.timeoutInterval, timeoutInterval)
+        XCTAssertEqual(apiRequest.timeoutInterval, timeoutInterval)
         XCTAssertEqual(urlRequest.cachePolicy, cachePolicy)
-        XCTAssertEqual(apiRequest?.responseConstraints, constraints)
+        XCTAssertEqual(apiRequest.responseConstraints, constraints)
     }
 
     func testURLRequestGeneration() {
@@ -75,16 +72,16 @@ final class APIRequestV2Tests: XCTestCase {
                                       timeoutInterval: timeoutInterval,
                                       cachePolicy: cachePolicy)
 
-        let urlComponents = URLComponents(string: apiRequest!.urlRequest.url!.absoluteString)!
-        XCTAssertTrue(urlComponents.queryItems!.contains(queryItems.toURLQueryItems()))
+        let urlComponents = URLComponents(string: apiRequest.urlRequest.url!.absoluteString)!
+        XCTAssertTrue(urlComponents.queryItems!.contains(URLQueryItem(name: "key", value: "value")))
 
         XCTAssertNotNil(apiRequest)
-        XCTAssertEqual(apiRequest?.urlRequest.url?.absoluteString, "https://www.example.com?key=value")
-        XCTAssertEqual(apiRequest?.urlRequest.httpMethod, method.rawValue)
-        XCTAssertEqual(apiRequest?.urlRequest.allHTTPHeaderFields, headers.httpHeaders)
-        XCTAssertEqual(apiRequest?.urlRequest.httpBody, body)
-        XCTAssertEqual(apiRequest?.urlRequest.timeoutInterval, timeoutInterval)
-        XCTAssertEqual(apiRequest?.urlRequest.cachePolicy, cachePolicy)
+        XCTAssertEqual(apiRequest.urlRequest.url?.absoluteString, "https://www.example.com?key=value")
+        XCTAssertEqual(apiRequest.urlRequest.httpMethod, method.rawValue)
+        XCTAssertEqual(apiRequest.urlRequest.allHTTPHeaderFields, headers.httpHeaders)
+        XCTAssertEqual(apiRequest.urlRequest.httpBody, body)
+        XCTAssertEqual(apiRequest.urlRequest.timeoutInterval, timeoutInterval)
+        XCTAssertEqual(apiRequest.urlRequest.cachePolicy, cachePolicy)
     }
 
     func testDefaultValues() {
@@ -92,16 +89,13 @@ final class APIRequestV2Tests: XCTestCase {
         let apiRequest = APIRequestV2(url: url)
         let headers = APIRequestV2.HeadersV2()
 
-        guard let urlRequest = apiRequest?.urlRequest else {
-            XCTFail("Nil URLRequest")
-            return
-        }
+        let urlRequest = apiRequest.urlRequest
         XCTAssertEqual(urlRequest.httpMethod, HTTPRequestMethod.get.rawValue)
         XCTAssertEqual(urlRequest.timeoutInterval, 60.0)
         XCTAssertEqual(headers.httpHeaders, urlRequest.allHTTPHeaderFields)
         XCTAssertNil(urlRequest.httpBody)
         XCTAssertEqual(urlRequest.cachePolicy.rawValue, 0)
-        XCTAssertNil(apiRequest?.responseConstraints)
+        XCTAssertNil(apiRequest.responseConstraints)
     }
 
     func testAllowedQueryReservedCharacters() {
@@ -112,9 +106,10 @@ final class APIRequestV2Tests: XCTestCase {
                                       queryItems: queryItems,
                                       allowedQueryReservedCharacters: CharacterSet(charactersIn: ","))
 
-        let urlString = apiRequest!.urlRequest.url!.absoluteString
-        XCTAssertTrue(urlString == "https://www.example.com?k%2523e,y=val%2523ue")
+        let urlString = apiRequest.urlRequest.url!.absoluteString
+        XCTAssertEqual(urlString, "https://www.example.com?k%23e,y=val%23ue")
+
         let urlComponents = URLComponents(string: urlString)!
-        XCTAssertTrue(urlComponents.queryItems?.count == 1)
+        XCTAssertEqual(urlComponents.queryItems?.count, 1)
     }
 }

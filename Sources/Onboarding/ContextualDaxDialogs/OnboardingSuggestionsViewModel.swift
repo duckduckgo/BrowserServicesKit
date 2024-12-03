@@ -19,8 +19,8 @@
 import Foundation
 
 public protocol OnboardingNavigationDelegate: AnyObject {
-    func searchFor(_ query: String)
-    func navigateTo(url: URL)
+    func searchFromOnboarding(for query: String)
+    func navigateFromOnboarding(to url: URL)
 }
 
 public protocol OnboardingSearchSuggestionsPixelReporting {
@@ -52,7 +52,7 @@ public struct OnboardingSearchSuggestionsViewModel {
 
     public func listItemPressed(_ item: ContextualOnboardingListItem) {
         pixelReporter.trackSearchSuggetionOptionTapped()
-        delegate?.searchFor(item.title)
+        delegate?.searchFromOnboarding(for: item.title)
     }
 }
 
@@ -82,6 +82,6 @@ public struct OnboardingSiteSuggestionsViewModel {
     public func listItemPressed(_ item: ContextualOnboardingListItem) {
         guard let url = URL(string: item.title) else { return }
         pixelReporter.trackSiteSuggetionOptionTapped()
-        delegate?.navigateTo(url: url)
+        delegate?.navigateFromOnboarding(to: url)
     }
 }

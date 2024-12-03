@@ -26,7 +26,7 @@ import WebKit
 import XCTest
 import Common
 
-final class CountedFulfillmentTestExpectation: XCTestExpectation {
+final class CountedFulfillmentTestExpectation: XCTestExpectation, @unchecked Sendable {
     private(set) var currentFulfillmentCount: Int = 0
 
     override func fulfill() {
