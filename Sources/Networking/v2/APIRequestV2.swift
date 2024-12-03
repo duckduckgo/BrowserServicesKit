@@ -16,11 +16,10 @@
 //  limitations under the License.
 //
 
+import Common
 import Foundation
 
 public struct APIRequestV2: CustomDebugStringConvertible {
-
-    public typealias QueryItems = [String: String]
 
     let timeoutInterval: TimeInterval
     let responseConstraints: [APIResponseConstraints]?
@@ -37,25 +36,25 @@ public struct APIRequestV2: CustomDebugStringConvertible {
     ///   - cachePolicy: The request cache policy, default is `.useProtocolCachePolicy`
     ///   - responseRequirements: The response requirements
     ///   - allowedQueryReservedCharacters: The characters in this character set will not be URL encoded in the query parameters
-    public init?(url: URL,
-                 method: HTTPRequestMethod = .get,
-                 queryItems: QueryItems? = nil,
-                 headers: APIRequestV2.HeadersV2? = APIRequestV2.HeadersV2(),
-                 body: Data? = nil,
-                 timeoutInterval: TimeInterval = 60.0,
-                 cachePolicy: URLRequest.CachePolicy? = nil,
-                 responseConstraints: [APIResponseConstraints]? = nil,
-                 allowedQueryReservedCharacters: CharacterSet? = nil) {
+    public init<QueryParams: Collection>(
+        url: URL,
+        method: HTTPRequestMethod = .get,
+        queryItems: QueryParams?,
+        headers: APIRequestV2.HeadersV2? = APIRequestV2.HeadersV2(),
+        body: Data? = nil,
+        timeoutInterval: TimeInterval = 60.0,
+        cachePolicy: URLRequest.CachePolicy? = nil,
+        responseConstraints: [APIResponseConstraints]? = nil,
+        allowedQueryReservedCharacters: CharacterSet? = nil
+    ) where QueryParams.Element == (key: String, value: String) {
+
         self.timeoutInterval = timeoutInterval
         self.responseConstraints = responseConstraints
 
-        // Generate URL request
-        guard var urlComps = URLComponents(url: url, resolvingAgainstBaseURL: true) else {
-            return nil
-        }
-        urlComps.queryItems = queryItems?.toURLQueryItems(allowedReservedCharacters: allowedQueryReservedCharacters)
-        guard let finalURL = urlComps.url else {
-            return nil
+        let finalURL = if let queryItems {
+            url.appendingParameters(queryItems, allowedReservedCharacters: allowedQueryReservedCharacters)
+        } else {
+            url
         }
         var request = URLRequest(url: finalURL, timeoutInterval: timeoutInterval)
         request.allHTTPHeaderFields = headers?.httpHeaders
@@ -65,6 +64,19 @@ public struct APIRequestV2: CustomDebugStringConvertible {
             request.cachePolicy = cachePolicy
         }
         self.urlRequest = request
+    }
+
+    public init(
+        url: URL,
+        method: HTTPRequestMethod = .get,
+        headers: APIRequestV2.HeadersV2? = APIRequestV2.HeadersV2(),
+        body: Data? = nil,
+        timeoutInterval: TimeInterval = 60.0,
+        cachePolicy: URLRequest.CachePolicy? = nil,
+        responseConstraints: [APIResponseConstraints]? = nil,
+        allowedQueryReservedCharacters: CharacterSet? = nil
+    ) {
+        self.init(url: url, method: method, queryItems: [String: String]?.none, headers: headers, body: body, timeoutInterval: timeoutInterval, cachePolicy: cachePolicy, responseConstraints: responseConstraints, allowedQueryReservedCharacters: allowedQueryReservedCharacters)
     }
 
     public var debugDescription: String {
