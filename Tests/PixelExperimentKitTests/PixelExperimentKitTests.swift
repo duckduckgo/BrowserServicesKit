@@ -81,7 +81,7 @@ final class PixelExperimentKitTests: XCTestCase {
         let expectedEventName = "experiment_metrics_\(subfeatureID)_\(cohort)"
         let expectedParameters = [
             "metric": "someMetric",
-            "conversionWindowDays": "3-3",
+            "conversionWindowDays": "3",
             "value": value,
             "enrollmentDate": enrollmentDate.toYYYYMMDDInET()
         ]
@@ -412,7 +412,7 @@ final class PixelExperimentKitTests: XCTestCase {
         )
         XCTAssertTrue(
             firedEvent.contains {
-                $0.parameters?[PixelKit.Constants.conversionWindowDaysKey] == "6-6"
+                $0.parameters?[PixelKit.Constants.conversionWindowDaysKey] == "6"
             }
         )
 
@@ -474,7 +474,7 @@ final class PixelExperimentKitTests: XCTestCase {
         )
         XCTAssertTrue(
             firedEvent.contains {
-                $0.parameters?[PixelKit.Constants.conversionWindowDaysKey] == "6-6"
+                $0.parameters?[PixelKit.Constants.conversionWindowDaysKey] == "6"
             }
         )
 
