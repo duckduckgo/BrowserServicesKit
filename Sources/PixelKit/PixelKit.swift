@@ -195,7 +195,18 @@ public final class PixelKit {
 
         var headers = headers ?? defaultHeaders
         headers[Header.moreInfo] = "See " + Self.duckDuckGoMorePrivacyInfo.absoluteString
-        headers[Header.client] = "macOS"
+        if let source {
+            switch source {
+            case Source.iOS.rawValue:
+                headers[Header.client] = "iOS"
+            case Source.iPadOS.rawValue:
+                headers[Header.client] = "iPadOS"
+            case Source.macDMG.rawValue, Source.macStore.rawValue:
+                headers[Header.client] = "macOS"
+            default:
+                break
+            }
+        }
 
         // The event name can't contain `.`
         reportErrorIf(pixel: pixelName, contains: ".")
@@ -395,7 +406,19 @@ public final class PixelKit {
             // Special kind of pixel event that don't follow the standard naming conventions
             return nonStandardEvent.name
         } else {
-            return "m_mac_\(event.name)"
+            if let source {
+                switch source {
+                case Source.iOS.rawValue:
+                    return "m_ios_\(event.name)"
+                case Source.iPadOS.rawValue:
+                    return "m_ipad_\(event.name)"
+                case Source.macDMG.rawValue, Source.macStore.rawValue:
+                    return "m_mac_\(event.name)"
+                default:
+                    break
+                }
+            }
+            return event.name
         }
     }
 
