@@ -19,6 +19,7 @@
 import Foundation
 import MetricKit
 import Persistence
+import os.log
 
 public enum CrashCollectionPlatform {
     case iOS, macOS, macOSAppStore
@@ -88,13 +89,18 @@ public final class CrashCollection {
                     for payload in processedData {
                         let crcid = self.crashCollectionStorage.object(forKey: Const.crcidKey) as? String
                         let result =  await self.crashSender.send(payload, crcid: crcid)
-                        // TODO: Logic for handling response here
-                        switch result {
-                        case .success(let success):
-                            let receivedCRCID = "faked" // Pull from data (decode json)
-                            self.crashCollectionStorage.set(receivedCRCID, forKey: Const.crcidKey)
+
+                        switch result.result {
+                        case .success:
+                            Logger.general.debug("Successfully sent crash report")
+                            if let receivedCRCID = result.response?.allHeaderFields[Const.crcidHTTPHeaderKey] as? String {
+                                self.crashCollectionStorage.set(receivedCRCID, forKey: Const.crcidKey)
+                            } else {
+                                Logger.general.debug("No value found for header: \(Const.crcidKey), clearing local crcid value")
+                                self.crashCollectionStorage.removeObject(forKey: Const.crcidKey)
+                            }
                         case .failure(let failure):
-                            // TODO: ?
+                            Logger.general.debug("Failed to send crash report: \(failure)")
                         }
                     }
                     didFinishHandlingResponse()
@@ -204,5 +210,6 @@ public final class CrashCollection {
     enum Const {
         static let firstCrashKey = "CrashCollection.first"
         static let crcidKey = "CrashCollection.crcid"
+        static let crcidHTTPHeaderKey = "x-crcid"   // TODO: Settle on final value
     }
 }
