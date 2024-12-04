@@ -373,10 +373,11 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
                 Logger.contentBlocking.debug("Failed to complete task \(task.rulesList.name, privacy: .public)")
                 return nil
             }
+            
             let rules = Rules(compilationResult: result)
 
             let diff: ContentBlockerRulesIdentifier.Difference
-            if let id = _currentRules.first(where: {$0.name == task.rulesList.name })?.identifier {
+            if let id = _currentRules.first(where: { $0.name == task.rulesList.name })?.identifier {
                 diff = id.compare(with: result.model.rulesIdentifier)
             } else {
                 diff = result.model.rulesIdentifier.compare(with: ContentBlockerRulesIdentifier(name: task.rulesList.name,
@@ -386,14 +387,12 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
                                                                                                 unprotectedSitesHash: nil))
             }
 
-            if let compilationTime = result.compilationTime {
-                
-                // todo: map broken sources to iteration count
-                let iteration = task.sourceManager.brokenSources
-
-                // todo: need to change this to the updated format with time range and iteration
-                self.errorReporting?.fire(.contentBlockingCompilationTime, parameters: ["compilationTime": String(compilationTime)])
-            }
+            
+//            if let compilationTime = result.compilationTime {
+//
+//                // todo: need to change this to the updated format with time range and iteration
+//                self.errorReporting?.fire(.contentBlockingCompilationTime, parameters: ["compilationTime": String(compilationTime)])
+//            }
 
             changes[task.rulesList.name] = diff
             return rules

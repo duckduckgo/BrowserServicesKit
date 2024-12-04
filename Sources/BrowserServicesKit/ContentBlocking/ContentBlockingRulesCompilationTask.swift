@@ -23,8 +23,25 @@ import TrackerRadarKit
 import os.log
 
 extension ContentBlockerRulesManager {
-    typealias CompilationResult = (compiledRulesList: WKContentRuleList, model: ContentBlockerRulesSourceModel, compilationTime: TimeInterval?)
-
+    
+    internal struct CompilationResult {
+        let compiledRulesList: WKContentRuleList
+        let model: ContentBlockerRulesSourceModel
+        let resultType: ResultType
+        let performanceInfo: PerformanceInfo? 
+        
+        struct PerformanceInfo {
+            let compilationTime: TimeInterval?
+            let iterationCount: Int?
+        }
+        
+        enum ResultType {
+            case cacheLookup
+            case rulesCompilation
+        }
+    }
+    
+    
     /**
      Encapsulates compilation steps for a single Task
      */
@@ -74,7 +91,10 @@ extension ContentBlockerRulesManager {
                     WKContentRuleListStore.default()?.lookUpContentRuleList(forIdentifier: identifier) { ruleList, _ in
                         if let ruleList = ruleList {
                             Logger.contentBlocking.log("🟢 CBR loaded from cache: \(self.rulesList.name, privacy: .public)")
-                            self.compilationSucceeded(with: ruleList, model: model, completionHandler: completionHandler)
+                            self.compilationSucceeded(with: ruleList,
+                                                      model: model,
+                                                      resultType: .cacheLookup,
+                                                      completionHandler: completionHandler)
                         } else {
                             self.workQueue.async {
                                 self.compile(model: model, completionHandler: completionHandler)
@@ -87,11 +107,14 @@ extension ContentBlockerRulesManager {
 
         private func compilationSucceeded(with compiledRulesList: WKContentRuleList,
                                           model: ContentBlockerRulesSourceModel,
+                                          resultType: CompilationResult.ResultType,
                                           completionHandler: @escaping Completion) {
+            
+            self.result = self.getCompilationResult(ruleList: compiledRulesList,
+                                                    model: model,
+                                                    resultType: resultType)
+            
             workQueue.async {
-                let compilationTime = self.compilationStartTime.map { start in CACurrentMediaTime() - start }
-
-                self.result = (compiledRulesList, model, compilationTime)
                 completionHandler(self, true)
             }
         }
@@ -139,7 +162,10 @@ extension ContentBlockerRulesManager {
 
                     if let ruleList = ruleList {
                         Logger.contentBlocking.log("🟢 CBR compilation for \(self.rulesList.name, privacy: .public) succeeded")
-                        self.compilationSucceeded(with: ruleList, model: model, completionHandler: completionHandler)
+                        self.compilationSucceeded(with: ruleList,
+                                                  model: model,
+                                                  resultType: .rulesCompilation,
+                                                  completionHandler: completionHandler)
                     } else if let error = error {
                         self.compilationFailed(for: model, with: error, completionHandler: completionHandler)
                     } else {
@@ -148,6 +174,35 @@ extension ContentBlockerRulesManager {
                 }
             }
         }
+        
+        func getCompilationResult(ruleList: WKContentRuleList,
+                                  model: ContentBlockerRulesSourceModel,
+                                  resultType: CompilationResult.ResultType) -> CompilationResult {
+            let compilationTime = self.compilationStartTime.map { start in CACurrentMediaTime() - start }
+            let perfInfo = CompilationResult.PerformanceInfo(compilationTime: compilationTime, iterationCount: getCompilationIterationCount())
+
+            return CompilationResult(compiledRulesList: ruleList,
+                                            model: model,
+                                            resultType: resultType,
+                                     performanceInfo: perfInfo)
+            
+        }
+        
+        func getCompilationIterationCount() -> Int {
+            guard let brokenSources = sourceManager.brokenSources else {
+                return 0
+            }
+                
+            let identifiers = [
+                brokenSources.allowListIdentifier,
+                brokenSources.tempListIdentifier,
+                brokenSources.unprotectedSitesIdentifier,
+                brokenSources.tdsIdentifier
+            ]
+
+            return identifiers.compactMap { $0 }.count
+        }
+
     }
 
 }

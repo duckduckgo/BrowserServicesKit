@@ -29,7 +29,6 @@ extension ContentBlockerRulesManager {
 
         private let sourceManagers: [ContentBlockerRulesSourceManager]
 
-        // todo: how to get around naming this compilation result when in lookuptask?
         public private(set) var result: [CompilationResult]?
 
         init(sourceManagers: [ContentBlockerRulesSourceManager]) {
@@ -51,7 +50,10 @@ extension ContentBlockerRulesManager {
                     throw WKError(.contentRuleListStoreLookUpFailed)
                 }
 
-                result.append((ruleList, model, nil))
+                result.append(CompilationResult(compiledRulesList: ruleList,
+                                                model: model,
+                                                resultType: .cacheLookup,
+                                                performanceInfo: nil))
             }
             self.result = result
         }
