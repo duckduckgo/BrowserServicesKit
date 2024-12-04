@@ -159,10 +159,12 @@ class CrashCollectionTests: XCTestCase {
     }
     
     func testCRCIDIsSentToServer() {
-        // TODO: Can we inspect the HTTP request?
+        // TODO: Requires ability to inspect outbound HTTP request
     }
-        
-    // TODO: Is it possible to test multiple sends in rapid succession and ensure we complete one request to crash.js at a time?
+    
+    func testMultipleCrashReportCallsExecuteSequentialyAndUpdateCRCIDCorrectly() {
+        // TODO: Requires ability to inspect outbound HTTP request
+    }
 }
 
 class MockPayload: MXDiagnosticPayload {
