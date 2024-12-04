@@ -82,7 +82,7 @@ final class PixelKitTests: XCTestCase {
             case .testEvent, .testEventWithoutParameters, .nameWithDot:
                 return .standard
             case .uniqueEvent:
-                return .unique
+                return .uniqueByName
             case .dailyEvent, .dailyEventWithoutParameters:
                 return .daily
             case .dailyAndContinuousEvent, .dailyAndContinuousEventWithoutParameters:
@@ -397,19 +397,19 @@ final class PixelKitTests: XCTestCase {
         }
 
         // Run test
-        pixelKit.fire(event, frequency: .unique) // Fired
+        pixelKit.fire(event, frequency: .uniqueByName) // Fired
         timeMachine.travel(by: .hour, value: 2)
-        pixelKit.fire(event, frequency: .unique) // Skipped (already fired)
+        pixelKit.fire(event, frequency: .uniqueByName) // Skipped (already fired)
 
         timeMachine.travel(by: .day, value: 1)
         timeMachine.travel(by: .hour, value: 2)
-        pixelKit.fire(event, frequency: .unique) // Skipped (already fired)
+        pixelKit.fire(event, frequency: .uniqueByName) // Skipped (already fired)
 
         timeMachine.travel(by: .hour, value: 10)
-        pixelKit.fire(event, frequency: .unique) // Skipped (already fired)
+        pixelKit.fire(event, frequency: .uniqueByName) // Skipped (already fired)
 
         timeMachine.travel(by: .day, value: 1)
-        pixelKit.fire(event, frequency: .unique) // Skipped (already fired)
+        pixelKit.fire(event, frequency: .uniqueByName) // Skipped (already fired)
 
         // Wait for expectations to be fulfilled
         wait(for: [fireCallbackCalled], timeout: 0.5)

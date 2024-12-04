@@ -547,12 +547,23 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "PixelExperimentKit"
-               BuildableName = "PixelExperimentKit"
-               BlueprintName = "PixelExperimentKit"
                BlueprintIdentifier = "PrivacyStats"
                BuildableName = "PrivacyStats"
                BlueprintName = "PrivacyStats"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "PixelExperimentKit"
+               BuildableName = "PixelExperimentKit"
+               BlueprintName = "PixelExperimentKit"
                ReferencedContainer = "container:">
             </BuildableReference>
          </BuildActionEntry>
@@ -839,12 +850,19 @@
             skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "PixelExperimentKitTests"
-               BuildableName = "PixelExperimentKitTests"
-               BlueprintName = "PixelExperimentKitTests"
                BlueprintIdentifier = "PrivacyStatsTests"
                BuildableName = "PrivacyStatsTests"
                BlueprintName = "PrivacyStatsTests"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "PixelExperimentKitTests"
+               BuildableName = "PixelExperimentKitTests"
+               BlueprintName = "PixelExperimentKitTests"
                ReferencedContainer = "container:">
             </BuildableReference>
          </TestableReference>

@@ -1,5 +1,5 @@
 //
-//  ExperimentActionPixelManager.swift
+//  ExperimentEventTracker.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -24,11 +24,24 @@ public protocol ExperimentActionPixelStore {
      func set(_ value: Int, forKey defaultName: String)
  }
 
-public protocol ExperimentActionPixelManaging {
+public protocol ExperimentEventTracking {
+    /// Increments the count for a given event key and checks if the threshold has been exceeded.
+    ///
+    /// This method performs the following actions:
+    /// 1. If the `isInWindow` parameter is `false`, it removes the stored count for the key and returns `false`.
+    /// 2. If `isInWindow` is `true`, it increments the count for the key.
+    /// 3. If the updated count meets or exceeds the specified `threshold`, the stored count is removed, and the method returns `true`.
+    /// 4. If the updated count does not meet the threshold, it updates the count and returns `false`.
+    ///
+    /// - Parameters:
+    ///   - key: The key used to store and retrieve the count.
+    ///   - threshold: The count threshold that triggers a return of `true`.
+    ///   - isInWindow: A flag indicating if the count should be considered (e.g., within a time window).
+    /// - Returns: `true` if the threshold is exceeded and the count is reset, otherwise `false`.
     func incrementAndCheckThreshold(forKey key: String, threshold: Int, isInWindow: Bool) -> Bool
 }
 
-public struct ExperimentActionPixelManager: ExperimentActionPixelManaging {
+public struct ExperimentEventTracker: ExperimentEventTracking {
     let store: ExperimentActionPixelStore
     private let syncQueue = DispatchQueue(label: "com.pixelkit.experimentActionSyncQueue")
 

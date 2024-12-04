@@ -33,7 +33,7 @@ public final class PixelKit {
 
         /// Sent only once ever (based on pixel name only.) The timestamp for this pixel is stored.
         /// Note: This is the only pixel that MUST end with `_u`, Name for pixels of this type must end with if it doesn't an assertion is fired.
-        case unique
+        case uniqueByName
 
         /// Sent only once ever (based on pixel name AND parameters). The timestamp for this pixel is stored.
         case uniqueByNameAndParameters
@@ -60,7 +60,7 @@ public final class PixelKit {
                 "Standard"
             case .legacyInitial:
                 "Legacy Initial"
-            case .unique:
+            case .uniqueByName:
                 "Unique"
             case .legacyDaily:
                 "Legacy Daily"
@@ -216,7 +216,7 @@ public final class PixelKit {
             handleStandardFrequency(pixelName, headers, newParams, allowedQueryReservedCharacters, onComplete)
         case .legacyInitial:
             handleLegacyInitial(pixelName, headers, newParams, allowedQueryReservedCharacters, onComplete)
-        case .unique:
+        case .uniqueByName:
             handleUnique(pixelName, headers, newParams, allowedQueryReservedCharacters, onComplete)
         case .uniqueByNameAndParameters:
             handleUniqueByNameAndParameters(pixelName, headers, newParams, allowedQueryReservedCharacters, onComplete)
@@ -268,10 +268,10 @@ public final class PixelKit {
             return
         }
         if !pixelHasBeenFiredEver(pixelName) {
-            fireRequestWrapper(pixelName, headers, newParams, allowedQueryReservedCharacters, true, .unique, onComplete)
+            fireRequestWrapper(pixelName, headers, newParams, allowedQueryReservedCharacters, true, .uniqueByName, onComplete)
             updatePixelLastFireDate(pixelName: pixelName)
         } else {
-            printDebugInfo(pixelName: pixelName, frequency: .unique, parameters: newParams, skipped: true)
+            printDebugInfo(pixelName: pixelName, frequency: .uniqueByName, parameters: newParams, skipped: true)
         }
     }
 
@@ -437,7 +437,7 @@ public final class PixelKit {
             if frequency == .daily, pixelHasBeenFiredToday(pixelName) {
                 onComplete(false, nil)
                 return
-            } else if frequency == .unique, pixelHasBeenFiredEver(pixelName) {
+            } else if frequency == .uniqueByName, pixelHasBeenFiredEver(pixelName) {
                 onComplete(false, nil)
                 return
             }

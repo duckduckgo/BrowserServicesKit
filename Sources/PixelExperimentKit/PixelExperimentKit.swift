@@ -41,7 +41,7 @@ extension PixelKit {
     // Static property to hold shared dependencies
     struct ExperimentConfig {
         static var featureFlagger: FeatureFlagger?
-        static var store: ExperimentActionPixelManaging = ExperimentActionPixelManager()
+        static var eventTracker: ExperimentEventTracking = ExperimentEventTracker()
         static var fireFunction: (PixelKitEvent, PixelKit.Frequency, Bool) -> Void = { event, frequency, includeAppVersion in
             fire(event, frequency: frequency, includeAppVersionParameter: includeAppVersion)
         }
@@ -50,13 +50,13 @@ extension PixelKit {
     // Setup method to initialize dependencies
     public static func configureExperimentKit(
         featureFlagger: FeatureFlagger,
-        store: ExperimentActionPixelManaging = ExperimentActionPixelManager(),
+        eventTracker: ExperimentEventTracking = ExperimentEventTracker(),
         fire: @escaping (PixelKitEvent, PixelKit.Frequency, Bool) -> Void = { event, frequency, includeAppVersion in
             fire(event, frequency: frequency, includeAppVersionParameter: includeAppVersion)
         }
     ) {
         ExperimentConfig.featureFlagger = featureFlagger
-        ExperimentConfig.store = store
+        ExperimentConfig.eventTracker = eventTracker
         ExperimentConfig.fireFunction = fire
     }
 
@@ -65,8 +65,8 @@ extension PixelKit {
     ///   - subfeatureID: Identifier for the subfeature associated with the experiment.
     ///   - experiment: Data about the experiment like cohort and enrollment date
     public static func fireExperimentEnrollmentPixel(subfeatureID: SubfeatureID, experiment: ExperimentData) {
-        let eventName = "\(Self.Constants.enrollmentEventPrefix)_\(subfeatureID)_\(experiment.cohortID)"
-        let event = ExperimentEvent(name: eventName, parameters: [Self.Constants.enrollmentDateKey: experiment.enrollmentDate.toYYYYMMDDInET()])
+        let eventName = "\(Constants.enrollmentEventPrefix)_\(subfeatureID)_\(experiment.cohortID)"
+        let event = ExperimentEvent(name: eventName, parameters: [Constants.enrollmentDateKey: experiment.enrollmentDate.toYYYYMMDDInET()])
         ExperimentConfig.fireFunction(event, .uniqueByNameAndParameters, false)
     }
 
@@ -89,7 +89,7 @@ extension PixelKit {
         }
         guard let experimentData = featureFlagger.getAllActiveExperiments()[subfeatureID] else { return }
 
-        Self.fireExperimentPixelForActiveExperiment(subfeatureID, experimentData: experimentData, metric: metric, conversionWindowDays: conversionWindowDays, value: value)
+        fireExperimentPixelForActiveExperiment(subfeatureID, experimentData: experimentData, metric: metric, conversionWindowDays: conversionWindowDays, value: value)
     }
 
     /// Fires search-related experiment pixels for all active experiments.
@@ -112,10 +112,10 @@ extension PixelKit {
             return
         }
         featureFlagger.getAllActiveExperiments().forEach { experiment in
-            fireExperimentPixelsFor(
+            fireExperimentPixels(for:
                 experiment.key,
                 experimentData: experiment.value,
-                metric: Self.Constants.searchMetricValue,
+                metric: Constants.searchMetricValue,
                 valueConversionDictionary: valueConversionDictionary
             )
         }
@@ -141,17 +141,17 @@ extension PixelKit {
             return
         }
         featureFlagger.getAllActiveExperiments().forEach { experiment in
-            fireExperimentPixelsFor(
-                experiment.key,
+            fireExperimentPixels(
+                for: experiment.key,
                 experimentData: experiment.value,
-                metric: Self.Constants.appUseMetricValue,
+                metric: Constants.appUseMetricValue,
                 valueConversionDictionary: valueConversionDictionary
             )
         }
     }
 
-    private static func fireExperimentPixelsFor(
-        _ experiment: SubfeatureID,
+    private static func fireExperimentPixels(
+        for experiment: SubfeatureID,
         experimentData: ExperimentData,
         metric: String,
         valueConversionDictionary: [Int: [ClosedRange<Int>]]
@@ -171,15 +171,15 @@ extension PixelKit {
 
     private static func fireExperimentPixelForActiveExperiment(_ subfeatureID: SubfeatureID, experimentData: ExperimentData, metric: String, conversionWindowDays: ClosedRange<Int>, value: String) {
         // Set parameters, event name, store key
-        let eventName = "\(Self.Constants.metricsEventPrefix)_\(subfeatureID)_\(experimentData.cohortID)"
+        let eventName = "\(Constants.metricsEventPrefix)_\(subfeatureID)_\(experimentData.cohortID)"
         let conversionWindowValue = (conversionWindowDays.lowerBound != conversionWindowDays.upperBound) ?
         "\(conversionWindowDays.lowerBound)-\(conversionWindowDays.upperBound)" :
         "\(conversionWindowDays.lowerBound)"
         let parameters: [String: String] = [
-            Self.Constants.metricKey: metric,
-            Self.Constants.conversionWindowDaysKey: conversionWindowValue,
-            Self.Constants.valueKey: value,
-            Self.Constants.enrollmentDateKey: experimentData.enrollmentDate.toYYYYMMDDInET()
+            Constants.metricKey: metric,
+            Constants.conversionWindowDaysKey: conversionWindowValue,
+            Constants.valueKey: value,
+            Constants.enrollmentDateKey: experimentData.enrollmentDate.toYYYYMMDDInET()
         ]
         let event = ExperimentEvent(name: eventName, parameters: parameters)
         let eventStoreKey = "\(eventName)_\(parameters.toString())"
@@ -190,7 +190,7 @@ extension PixelKit {
         // Check if value is a number
         if let numberOfAction = Int(value), numberOfAction > 1 {
             // Increment or remove based on conversion window status
-            let shouldSendPixel = ExperimentConfig.store.incrementAndCheckThreshold(
+            let shouldSendPixel = ExperimentConfig.eventTracker.incrementAndCheckThreshold(
                 forKey: eventStoreKey,
                 threshold: numberOfAction,
                 isInWindow: isInWindow
@@ -231,6 +231,6 @@ extension Date {
     }
 
     func addDays(_ days: Int) -> Date? {
-        return Calendar.current.date(byAdding: .day, value: days, to: self)
+        Calendar.current.date(byAdding: .day, value: days, to: self)
     }
 }

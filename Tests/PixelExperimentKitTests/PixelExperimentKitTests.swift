@@ -35,7 +35,7 @@ final class PixelExperimentKitTests: XCTestCase {
         super.setUp()
         mockPixelStore = MockExperimentActionPixelStore()
         mockFeatureFlagger = MockFeatureFlagger()
-        PixelKit.configureExperimentKit(featureFlagger: mockFeatureFlagger, store: ExperimentActionPixelManager(store: mockPixelStore), fire: { event, frequency, includeAppVersion in
+        PixelKit.configureExperimentKit(featureFlagger: mockFeatureFlagger, eventTracker: ExperimentEventTracker(store: mockPixelStore), fire: { event, frequency, includeAppVersion in
             self.firedEventSet.insert(event.name + "_" + (event.parameters?.toString() ?? ""))
             self.firedEvent.append(event)
             self.firedFrequency.append(frequency)

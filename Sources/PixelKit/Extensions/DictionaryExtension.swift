@@ -1,5 +1,5 @@
 //
-//  Disctionary+PixelKit.swift
+//  DictionaryExtension.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -18,7 +18,7 @@
 
 public extension Dictionary where Key: Comparable {
     func toString(pairSeparator: String = ":", entrySeparator: String = ",") -> String {
-        return self.sorted(by: { $0.key < $1.key })
+        sorted(by: { $0.key < $1.key })
             .map { "\($0.key)\(pairSeparator)\($0.value)" }
             .joined(separator: entrySeparator)
     }
