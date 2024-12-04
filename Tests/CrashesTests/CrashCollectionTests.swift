@@ -68,6 +68,7 @@ class CrashCollectionTests: XCTestCase {
         let crashCollection = CrashCollection(crashReportSender: crashReportSender , crashCollectionStorage: store)
         let expectation = self.expectation(description: "Crash collection response")
         
+        // Set up closures on our CrashCollection object
         crashCollection.start(process: {_ in
             return ["fake-crash-data".data(using: .utf8)!]  // Not relevant to this test
         }) { pixelParameters, payloads, uploadReports in
@@ -76,6 +77,7 @@ class CrashCollectionTests: XCTestCase {
             expectation.fulfill()
         }
 
+        // Execute crash collection (which will call our mocked CrashReportSender as well)
         XCTAssertNil(store.object(forKey: CrashCollection.Const.crcidKey), "CRCID should not be present in the store before crashHandler receives crashes")
         crashCollection.crashHandler.didReceive([
             MockPayload(mockCrashes: [
@@ -84,22 +86,76 @@ class CrashCollectionTests: XCTestCase {
             ])
         ])
         
-        self.wait(for: [expectation], timeout: 5)
+        self.wait(for: [expectation], timeout: 3)
         
         XCTAssertEqual(store.object(forKey: CrashCollection.Const.crcidKey) as? String, responseCRCIDValue)
     }
     
     func testCRCIDIsClearedWhenServerReturnsSuccessWithNoCRCID()
     {
-        // TODO: Implement
+        let store = MockKeyValueStore()
+        let crashReportSender = MockCrashReportSender(platform: .iOS)
+        let crashCollection = CrashCollection(crashReportSender: crashReportSender , crashCollectionStorage: store)
+        let expectation = self.expectation(description: "Crash collection response")
+        
+        // Set up closures on our CrashCollection object
+        crashCollection.start(process: {_ in
+            return ["fake-crash-data".data(using: .utf8)!]  // Not relevant to this test
+        }) { pixelParameters, payloads, uploadReports in
+            uploadReports()
+        } didFinishHandlingResponse: {
+            expectation.fulfill()
+        }
+
+        // Execute crash collection (which will call our mocked CrashReportSender as well)
+        store.set("Initial CRCID Value", forKey: CrashCollection.Const.crcidKey)
+        XCTAssertNotNil(store.object(forKey: CrashCollection.Const.crcidKey))   // TODO: Too pedantic?  We probably don't need to be explicitly validating MockKeyValueStore here
+        crashCollection.crashHandler.didReceive([
+            MockPayload(mockCrashes: [
+                MXCrashDiagnostic(),
+                MXCrashDiagnostic()
+            ])
+        ])
+        
+        self.wait(for: [expectation], timeout: 3)
+        
+        XCTAssertNil(store.object(forKey: CrashCollection.Const.crcidKey), "CRCID should not be present in the store after receiving a successful response")
     }
-    
-    func testCRCIDIsOverwrittenWhenServerProvidesNewValue() {
-        // TODO: Implement
-    }
+  
+    // TODO: Too redundant with the above to be worthwhile?
+//    func testCRCIDIsOverwrittenWhenServerProvidesNewValue() {
+//        // TODO: Implement
+//    }
     
     func testCRCIDIsRetainedWhenErrorIsReceived() {
-        // TODO: Implement
+        let store = MockKeyValueStore()
+        let crashReportSender = MockCrashReportSender(platform: .iOS)
+        let crashCollection = CrashCollection(crashReportSender: crashReportSender , crashCollectionStorage: store)
+        let expectation = self.expectation(description: "Crash collection response")
+        
+        // Set up closures on our CrashCollection object
+        crashCollection.start(process: {_ in
+            return ["fake-crash-data".data(using: .utf8)!]  // Not relevant to this test
+        }) { pixelParameters, payloads, uploadReports in
+            uploadReports()
+        } didFinishHandlingResponse: {
+            expectation.fulfill()
+        }
+
+        // Execute crash collection (which will call our mocked CrashReportSender as well)
+        let crcid = "Initial CRCID Value"
+        store.set(crcid, forKey: CrashCollection.Const.crcidKey)
+        crashReportSender.responseStatusCode = 500
+        crashCollection.crashHandler.didReceive([
+            MockPayload(mockCrashes: [
+                MXCrashDiagnostic(),
+                MXCrashDiagnostic()
+            ])
+        ])
+        
+        self.wait(for: [expectation], timeout: 3)
+        
+        XCTAssertEqual(store.object(forKey: CrashCollection.Const.crcidKey) as? String, crcid)
     }
     
     func testCRCIDIsSentToServer() {
@@ -131,22 +187,32 @@ class MockCrashReportSender: CrashReportSending {
     
     let platform: CrashCollectionPlatform
     var responseCRCID: String?
+    var responseStatusCode = 200
     
     required init(platform: CrashCollectionPlatform) {
         self.platform = platform
-        
     }
     
     func send(_ crashReportData: Data, crcid: String?, completion: @escaping (_ result: Result<Data?, Error>, _ response: HTTPURLResponse?) -> Void) {
+        var responseHeaderFields: [String: String] = [:]
+        if let responseCRCID {
+            responseHeaderFields[CrashReportSender.httpHeaderCRCID] = responseCRCID
+        }
+        
         guard let response = HTTPURLResponse(url: URL(string: "fakeURL")!,
-                                             statusCode: 200,
+                                             statusCode: responseStatusCode,
                                              httpVersion: nil,
-                                             headerFields: [CrashReportSender.httpHeaderCRCID: responseCRCID ?? ""]) else {
+                                             headerFields: responseHeaderFields) else {
             XCTFail("Failed to create HTTPURLResponse")
             return
         }
         
-        completion(.success(nil), response)
+        if responseStatusCode == 200 {
+            completion(.success(nil), response)
+        } else {
+            completion(.failure(CrashReportSenderError.invalidResponse), response)
+        }
+        
     }
     
     func send(_ crashReportData: Data, crcid: String?) async -> (result: Result<Data?, Error>, response: HTTPURLResponse?) {
