@@ -397,7 +397,7 @@ public final class PixelKit {
         }
 
     // Needs to be updated when fully adopted by iOS
-    private func prefixedName(for event: Event) -> String {
+    private func prefixedAndSuffixedName(for event: Event) -> String {
         if event.name.hasPrefix("m_mac_") {
             // Can be a debug event or not, if already prefixed the name remains unchanged
             return event.name
@@ -411,9 +411,9 @@ public final class PixelKit {
             if let source {
                 switch source {
                 case Source.iOS.rawValue:
-                    return "m_ios_\(event.name)"
+                    return "m_\(event.name)_ios_phone"
                 case Source.iPadOS.rawValue:
-                    return "m_ipad_\(event.name)"
+                    return "m_\(event.name)_ios_tablet"
                 case Source.macDMG.rawValue, Source.macStore.rawValue:
                     return "m_mac_\(event.name)"
                 default:
@@ -433,7 +433,7 @@ public final class PixelKit {
                      includeAppVersionParameter: Bool = true,
                      onComplete: @escaping CompletionBlock = { _, _ in }) {
 
-        let pixelName = prefixedName(for: event)
+        let pixelName = prefixedAndSuffixedName(for: event)
 
         if !dryRun {
             if frequency == .daily, pixelHasBeenFiredToday(pixelName) {
@@ -540,7 +540,7 @@ public final class PixelKit {
     }
 
     public func pixelLastFireDate(event: Event) -> Date? {
-        pixelLastFireDate(pixelName: prefixedName(for: event))
+        pixelLastFireDate(pixelName: prefixedAndSuffixedName(for: event))
     }
 
     private func updatePixelLastFireDate(pixelName: String) {
