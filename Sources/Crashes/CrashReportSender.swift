@@ -78,7 +78,7 @@ public final class CrashReportSender: CrashReportSending {
                     completion(.failure(CrashReportSenderError.invalidResponse), response)
                 }
             } else {
-                    completion(.failure(CrashReportSenderError.invalidResponse), nil)
+                completion(.failure(CrashReportSenderError.invalidResponse), nil)
             }
         }
         task.resume()
