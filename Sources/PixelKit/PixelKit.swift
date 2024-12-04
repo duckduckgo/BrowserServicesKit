@@ -457,7 +457,7 @@ public final class PixelKit {
 
         if !dryRun, let newParams {
             let pixelNameAndParams = pixelName + newParams.toString()
-            if frequency == .uniqueByNameAndParameters,  pixelHasBeenFiredEver(pixelNameAndParams) {
+            if frequency == .uniqueByNameAndParameters, pixelHasBeenFiredEver(pixelNameAndParams) {
                 onComplete(false, nil)
                 return
             }
