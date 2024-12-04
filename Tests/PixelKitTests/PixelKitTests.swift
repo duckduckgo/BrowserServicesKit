@@ -209,6 +209,7 @@ final class PixelKitTests: XCTestCase {
         // Prepare mock to validate expectations
         let pixelKit = PixelKit(dryRun: false,
                                 appVersion: appVersion,
+                                source: PixelKit.Source.macDMG.rawValue,
                                 defaultHeaders: headers,
                                 dailyPixelCalendar: nil,
                                 defaults: userDefaults) { firedPixelName, firedHeaders, parameters, _, _, _ in
@@ -254,6 +255,7 @@ final class PixelKitTests: XCTestCase {
         // Prepare mock to validate expectations
         let pixelKit = PixelKit(dryRun: false,
                                 appVersion: appVersion,
+                                source: PixelKit.Source.macDMG.rawValue,
                                 defaultHeaders: headers,
                                 dailyPixelCalendar: nil,
                                 defaults: userDefaults) { firedPixelName, firedHeaders, parameters, _, _, _ in
@@ -300,6 +302,7 @@ final class PixelKitTests: XCTestCase {
         // Prepare mock to validate expectations
         let pixelKit = PixelKit(dryRun: false,
                                 appVersion: appVersion,
+                                source: PixelKit.Source.macDMG.rawValue,
                                 defaultHeaders: headers,
                                 dailyPixelCalendar: nil,
                                 defaults: userDefaults) { firedPixelName, firedHeaders, parameters, _, _, _ in
