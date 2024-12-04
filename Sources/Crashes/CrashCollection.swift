@@ -92,15 +92,20 @@ public final class CrashCollection {
 
                         switch result.result {
                         case .success:
-                            Logger.general.debug("Successfully sent crash report")
-                            if let receivedCRCID = result.response?.allHeaderFields[Const.crcidHTTPHeaderKey] as? String {
-                                self.crashCollectionStorage.set(receivedCRCID, forKey: Const.crcidKey)
+                            Logger.general.debug("Crash Collection - Sending Crash Report: succeeded")
+                            if let receivedCRCID = result.response?.allHeaderFields[CrashReportSender.httpHeaderCRCID] as? String {
+                                if crcid != receivedCRCID {
+                                    Logger.general.debug("Received new value for CRCID: \(receivedCRCID), setting local crcid value")
+                                    self.crashCollectionStorage.set(receivedCRCID, forKey: Const.crcidKey)
+                                } else {
+                                    Logger.general.debug("Received matching value for CRCID: \(receivedCRCID), no update necessary")
+                                }
                             } else {
-                                Logger.general.debug("No value found for header: \(Const.crcidKey), clearing local crcid value")
+                                Logger.general.debug("No value for CRCID header: \(Const.crcidKey), clearing local crcid value")
                                 self.crashCollectionStorage.removeObject(forKey: Const.crcidKey)
                             }
                         case .failure(let failure):
-                            Logger.general.debug("Failed to send crash report: \(failure)")
+                            Logger.general.debug("Crash Collection - Sending Crash Report: failed (\(failure))")
                         }
                     }
                     didFinishHandlingResponse()
@@ -210,6 +215,5 @@ public final class CrashCollection {
     enum Const {
         static let firstCrashKey = "CrashCollection.first"
         static let crcidKey = "CrashCollection.crcid"
-        static let crcidHTTPHeaderKey = "x-crcid"   // TODO: Settle on final value
     }
 }

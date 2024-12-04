@@ -32,7 +32,14 @@ enum CrashReportSenderError: Error {
 // By conforming to a protocol, we can sub in mocks more easily
 public final class CrashReportSender: CrashReportSending {
 
+#if DEBUG
+    // TODO: Why is a breakpoint here hit twice?
+    static let reportServiceUrl = URL(string: "https://9e3c-20-75-144-152.ngrok-free.app/crash.js")!
+#else
     static let reportServiceUrl = URL(string: "https://duckduckgo.com/crash.js")!
+#endif
+    static let httpHeaderCRCID = "crcid"
+    
     public let platform: CrashCollectionPlatform
     
     private let session = URLSession(configuration: .ephemeral)
@@ -45,6 +52,10 @@ public final class CrashReportSender: CrashReportSending {
         var request = URLRequest(url: Self.reportServiceUrl)
         request.setValue("text/plain", forHTTPHeaderField: "Content-Type")
         request.setValue(platform.userAgent, forHTTPHeaderField: "User-Agent")
+        if let crcid {
+            request.setValue(crcid, forHTTPHeaderField: CrashReportSender.httpHeaderCRCID)
+            Logger.general.debug("Configured crash report HTTP request with crcid: \(crcid)")
+        }
         request.httpMethod = "POST"
         request.httpBody = crashReportData
         

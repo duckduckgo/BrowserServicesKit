@@ -106,6 +106,7 @@ class CrashCollectionTests: XCTestCase {
         // TODO: Can we inspect the HTTP request?
     }
         
+    // TODO: Is it possible to test multiple sends in rapid succession and ensure we complete one request to crash.js at a time?
 }
 
 class MockPayload: MXDiagnosticPayload {
@@ -140,7 +141,7 @@ class MockCrashReportSender: CrashReportSending {
         guard let response = HTTPURLResponse(url: URL(string: "fakeURL")!,
                                              statusCode: 200,
                                              httpVersion: nil,
-                                             headerFields: [CrashCollection.Const.crcidHTTPHeaderKey: responseCRCID ?? ""]) else {
+                                             headerFields: [CrashReportSender.httpHeaderCRCID: responseCRCID ?? ""]) else {
             XCTFail("Failed to create HTTPURLResponse")
             return
         }
