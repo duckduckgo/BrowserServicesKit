@@ -50,7 +50,7 @@ public enum PrivacyFeature: String {
     case sslCertificates
     case brokenSiteReportExperiment
     case toggleReports
-    case phishingDetection
+    case maliciousSiteProtection
     case brokenSitePrompt
     case remoteMessaging
     case additionalCampaignPixelParams
@@ -106,11 +106,17 @@ public enum AIChatSubfeature: String, Equatable, PrivacySubfeature {
         .aiChat
     }
 
-    /// Displays the settings item for showing a shortcut in the Application Menu
+    /// Displays the settings item for showing a shortcut in the macOS application menu.
     case applicationMenuShortcut
 
-    /// Displays the settings item for showing a shortcut in the Toolbar
+    /// Displays the settings item for showing a shortcut in the macOS toolbar.
     case toolbarShortcut
+
+    /// Displays the AI Chat icon in the iOS browsing menu toolbar.
+    case browsingToolbarShortcut
+
+    /// Displays the AI Chat icon in the iOS address bar while on a SERP.
+    case addressBarShortcut
 }
 
 public enum NetworkProtectionSubfeature: String, Equatable, PrivacySubfeature {
@@ -158,6 +164,9 @@ public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {
     case isLaunchedOverrideStripe
     case useUnifiedFeedback
     case setAccessTokenCookieForSubscriptionDomains
+    case isLaunchedROW
+    case isLaunchedROWOverride
+    case freeTrials
 }
 
 public enum SslCertificatesSubfeature: String, PrivacySubfeature {
@@ -173,10 +182,9 @@ public enum DuckPlayerSubfeature: String, PrivacySubfeature {
     case enableDuckPlayer // iOS DuckPlayer rollout feature
 }
 
-public enum PhishingDetectionSubfeature: String, PrivacySubfeature {
-    public var parent: PrivacyFeature { .phishingDetection }
+public enum MaliciousSiteProtectionSubfeature: String, PrivacySubfeature {
+    public var parent: PrivacyFeature { .maliciousSiteProtection }
     case allowErrorPage
-    case allowPreferencesToggle
 }
 
 public enum SyncPromotionSubfeature: String, PrivacySubfeature {

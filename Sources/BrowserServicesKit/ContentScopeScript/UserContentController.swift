@@ -18,10 +18,10 @@
 
 import Combine
 import Common
-import UserScript
-import WebKit
-import QuartzCore
 import os.log
+import QuartzCore
+import UserScript
+@preconcurrency import WebKit
 
 public protocol UserContentControllerDelegate: AnyObject {
     @MainActor

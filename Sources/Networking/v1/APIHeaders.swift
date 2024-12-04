@@ -25,7 +25,7 @@ public extension APIRequest {
     struct Headers {
 
         public typealias UserAgent = String
-        private static var userAgent: UserAgent?
+        public private(set) static var userAgent: UserAgent?
         public static func setUserAgent(_ userAgent: UserAgent) {
             self.userAgent = userAgent
         }

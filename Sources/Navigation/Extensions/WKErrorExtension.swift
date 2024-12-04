@@ -33,6 +33,14 @@ extension WKError {
         code.rawValue == NSURLErrorCancelled && _nsError.domain == NSURLErrorDomain
     }
 
+    public var isServerCertificateUntrusted: Bool {
+        _nsError.isServerCertificateUntrusted
+    }
+}
+extension NSError {
+    public var isServerCertificateUntrusted: Bool {
+        code == NSURLErrorServerCertificateUntrusted && domain == NSURLErrorDomain
+    }
 }
 
 extension WKError {
