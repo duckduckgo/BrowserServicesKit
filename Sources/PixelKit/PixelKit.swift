@@ -455,6 +455,14 @@ public final class PixelKit {
             newParams = nil
         }
 
+        if !dryRun, let newParams {
+            let pixelNameAndParams = pixelName + newParams.toString()
+            if frequency == .uniqueByNameAndParameters,  pixelHasBeenFiredEver(pixelNameAndParams) {
+                onComplete(false, nil)
+                return
+            }
+        }
+
         let newError: Error?
 
         if let event = event as? PixelKitEventV2,
