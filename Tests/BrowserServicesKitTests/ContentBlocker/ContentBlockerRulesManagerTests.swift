@@ -205,7 +205,6 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         errorExp.isInverted = true
 
         let lookupAndFetchExp =  expectation(description: "Look and Fetch rules failed")
-        let compilationTimeExp = expectation(description: "Compilation Time reported")
         let errorHandler = EventMapping<ContentBlockerDebugEvents> { event, _, params, _ in
             if case .contentBlockingCompilationFailed(let listName, let component) = event {
                 XCTAssertEqual(listName, DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName)
@@ -216,11 +215,10 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                     XCTFail("Unexpected component: \(component)")
                 }
 
-            } else if case .contentBlockingCompilationTime = event {
-                XCTAssertNotNil(params?["compilationTime"])
-                compilationTimeExp.fulfill()
             } else if case .contentBlockingLRCMissing = event {
                 lookupAndFetchExp.fulfill()
+            }  else if case .contentBlockingCompilationTaskPerformance(let retryCount, _) = event {
+                XCTAssertEqual(retryCount, 0)
             } else {
                 XCTFail("Unexpected event: \(event)")
             }
@@ -231,7 +229,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                                               updateListener: rulesUpdateListener,
                                               errorReporting: errorHandler)
 
-        wait(for: [exp, errorExp, compilationTimeExp, lookupAndFetchExp], timeout: 15.0)
+        wait(for: [exp, errorExp, lookupAndFetchExp], timeout: 15.0)
 
         XCTAssertNotNil(cbrm.currentRules)
         XCTAssertEqual(cbrm.currentRules.first?.etag, mockRulesSource.trackerData?.etag)
@@ -270,8 +268,8 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                     XCTFail("Unexpected component: \(component)")
                 }
 
-            } else if case .contentBlockingCompilationTime = event {
-                XCTAssertNotNil(params?["compilationTime"])
+            } else if case .contentBlockingCompilationTaskPerformance(let retryCount, _) = event {
+                XCTAssertEqual(retryCount, 1)
             } else if case .contentBlockingLRCMissing = event {
                 lookupAndFetchExp.fulfill()
             } else {
@@ -546,7 +544,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         }
 
         let errorExp = expectation(description: "Error reported")
-        errorExp.expectedFulfillmentCount = 5
+        errorExp.expectedFulfillmentCount = 4
 
         let lookupAndFetchExp =  expectation(description: "Look and Fetch rules failed")
 
@@ -562,11 +560,10 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                     XCTFail("Unexpected component: \(component)")
                 }
 
-            } else if case .contentBlockingCompilationTime = event {
-                XCTAssertNotNil(params?["compilationTime"])
-                errorExp.fulfill()
             } else if case .contentBlockingLRCMissing = event {
                 lookupAndFetchExp.fulfill()
+            } else if case .contentBlockingCompilationTaskPerformance(let retryCount, _) = event {
+                XCTAssertEqual(retryCount, 4)
             } else {
                 XCTFail("Unexpected event: \(event)")
             }
@@ -631,7 +628,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         }
 
         let errorExp = expectation(description: "Error reported")
-        errorExp.expectedFulfillmentCount = 4
+        errorExp.expectedFulfillmentCount = 3
 
         let lookupAndFetchExp =  expectation(description: "Look and Fetch rules failed")
 
@@ -647,9 +644,8 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                     XCTFail("Unexpected component: \(component)")
                 }
 
-            } else if case .contentBlockingCompilationTime = event {
-                XCTAssertNotNil(params?["compilationTime"])
-                errorExp.fulfill()
+            }else if case .contentBlockingCompilationTaskPerformance(let retryCount, _) = event {
+                XCTAssertEqual(retryCount, 3)
             } else if case .contentBlockingLRCMissing = event {
                 lookupAndFetchExp.fulfill()
             } else
