@@ -152,7 +152,7 @@ public final class PixelKit {
     }
 
     private var dryRun: Bool
-    public let source: String?
+    private let source: String?
     private let pixelCalendar: Calendar
 
     public init(dryRun: Bool,
