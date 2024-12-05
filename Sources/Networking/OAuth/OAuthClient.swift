@@ -24,6 +24,7 @@ public enum OAuthClientError: Error, LocalizedError, Equatable {
     case missingTokens
     case missingRefreshToken
     case unauthenticated
+    /// When both access token and refresh token are expired
     case deadToken
 
     public var errorDescription: String? {
@@ -210,35 +211,34 @@ final public class DefaultOAuthClient: OAuthClient {
         switch policy {
         case .local:
             if let localTokenContainer {
-                Logger.OAuthClient.log("Local tokens found, expiry: \(localTokenContainer.decodedAccessToken.exp.value)")
+                Logger.OAuthClient.debug("Local tokens found, expiry: \(localTokenContainer.decodedAccessToken.exp.value)")
                 return localTokenContainer
             } else {
-                Logger.OAuthClient.log("Tokens not found")
+                Logger.OAuthClient.debug("Tokens not found")
                 throw OAuthClientError.missingTokens
             }
         case .localValid:
             if let localTokenContainer {
-                Logger.OAuthClient.log("Local tokens found, expiry: \(localTokenContainer.decodedAccessToken.exp.value)")
+                Logger.OAuthClient.debug("Local tokens found, expiry: \(localTokenContainer.decodedAccessToken.exp.value)")
                 if localTokenContainer.decodedAccessToken.isExpired() {
-                    Logger.OAuthClient.log("Local access token is expired, refreshing it")
-                    let refreshedTokens = try await getTokens(policy: .localForceRefresh)
-                    return refreshedTokens
+                    Logger.OAuthClient.debug("Local access token is expired, refreshing it")
+                    return try await getTokens(policy: .localForceRefresh)
                 } else {
                     return localTokenContainer
                 }
             } else {
-                Logger.OAuthClient.log("Tokens not found")
+                Logger.OAuthClient.debug("Tokens not found")
                 throw OAuthClientError.missingTokens
             }
         case .localForceRefresh:
             guard let refreshToken = localTokenContainer?.refreshToken else {
-                Logger.OAuthClient.log("Refresh token not found")
+                Logger.OAuthClient.debug("Refresh token not found")
                 throw OAuthClientError.missingRefreshToken
             }
             do {
                 let refreshTokenResponse = try await authService.refreshAccessToken(clientID: Constants.clientID, refreshToken: refreshToken)
                 let refreshedTokens = try await decode(accessToken: refreshTokenResponse.accessToken, refreshToken: refreshTokenResponse.refreshToken)
-                Logger.OAuthClient.log("Tokens refreshed: \(refreshedTokens.debugDescription)")
+                Logger.OAuthClient.debug("Tokens refreshed: \(refreshedTokens.debugDescription)")
                 tokenStorage.tokenContainer = refreshedTokens
                 return refreshedTokens
             } catch OAuthServiceError.authAPIError(let code) where code == OAuthRequest.BodyErrorCode.invalidTokenRequest {
@@ -252,7 +252,7 @@ final public class DefaultOAuthClient: OAuthClient {
             do {
                 return try await getTokens(policy: .localValid)
             } catch {
-                Logger.OAuthClient.log("Local token not found, creating a new account")
+                Logger.OAuthClient.debug("Local token not found, creating a new account")
                 let tokens = try await createAccount()
                 tokenStorage.tokenContainer = tokens
                 return tokens

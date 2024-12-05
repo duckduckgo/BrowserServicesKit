@@ -77,6 +77,7 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
     private let apiService: APIService
     private let baseURL: URL
     private let subscriptionCache: UserDefaultsCache<PrivacyProSubscription>
+    private let cacheSerialQueue = DispatchQueue(label: "com.duckduckgo.subscriptionEndpointService.cache", qos: .background)
 
     public init(apiService: APIService,
                 baseURL: URL,
@@ -116,31 +117,42 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
             }
 
             Logger.subscriptionEndpointService.log("No subscription found")
-            subscriptionCache.reset()
+            clearSubscription()
             throw SubscriptionEndpointServiceError.noData
         }
     }
 
     public func updateCache(with subscription: PrivacyProSubscription) {
-        subscriptionCache.set(subscription)
-        NotificationCenter.default.post(name: .subscriptionDidChange, object: self, userInfo: [UserDefaultsCacheKey.subscription: subscription])
+        cacheSerialQueue.sync {
+            let cachedSubscription: PrivacyProSubscription? = subscriptionCache.get()
+            if subscription != cachedSubscription {
+                Logger.subscriptionEndpointService.debug("""
+Subscription changed, updating cache and notifying observers.
+Old: \(cachedSubscription?.debugDescription ?? "nil")
+New: \(subscription.debugDescription)
+""")
+                subscriptionCache.set(subscription)
+                NotificationCenter.default.post(name: .subscriptionDidChange, object: self, userInfo: [UserDefaultsCacheKey.subscription: subscription])
+            } else {
+                Logger.subscriptionEndpointService.debug("No subscription update required")
+            }
+        }
     }
 
     public func getSubscription(accessToken: String, cachePolicy: SubscriptionCachePolicy = .returnCacheDataElseLoad) async throws -> PrivacyProSubscription {
-
         switch cachePolicy {
         case .reloadIgnoringLocalCacheData:
             return try await getRemoteSubscription(accessToken: accessToken)
 
         case .returnCacheDataElseLoad:
-            if let cachedSubscription = subscriptionCache.get() {
+            if let cachedSubscription = getCachedSubscription() {
                 return cachedSubscription
             } else {
                 return try await getRemoteSubscription(accessToken: accessToken)
             }
 
         case .returnCacheDataDontLoad:
-            if let cachedSubscription = subscriptionCache.get() {
+            if let cachedSubscription = getCachedSubscription() {
                 return cachedSubscription
             } else {
                 throw SubscriptionEndpointServiceError.noData
@@ -148,8 +160,19 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
         }
     }
 
+    private func getCachedSubscription() -> PrivacyProSubscription? {
+        var result: PrivacyProSubscription?
+        cacheSerialQueue.sync {
+            result = subscriptionCache.get()
+        }
+        return result
+    }
+
     public func clearSubscription() {
-        subscriptionCache.reset()
+        cacheSerialQueue.sync {
+            subscriptionCache.reset()
+        }
+//        NotificationCenter.default.post(name: .subscriptionDidChange, object: self, userInfo: nil)
     }
 
     // MARK: -
@@ -189,7 +212,6 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
     // MARK: -
 
     public func confirmPurchase(accessToken: String, signature: String) async throws -> ConfirmPurchaseResponse {
-        Logger.subscriptionEndpointService.log("Confirming purchase")
         guard let request = SubscriptionRequest.confirmPurchase(baseURL: baseURL, accessToken: accessToken, signature: signature) else {
             throw SubscriptionEndpointServiceError.invalidRequest
         }

@@ -21,6 +21,14 @@ import Foundation
 @testable import Subscription
 
 public final class SubscriptionManagerMock: SubscriptionManager {
+    public func currentSubscriptionFeatures(forceRefresh: Bool) async -> [Subscription.SubscriptionFeature] {
+        <#code#>
+    }
+    
+    public func isFeatureActive(_ entitlement: Networking.SubscriptionEntitlement) async -> Bool {
+        <#code#>
+    }
+    
     public init() {}
 
     public static var environment: Subscription.SubscriptionEnvironment?
@@ -39,12 +47,12 @@ public final class SubscriptionManagerMock: SubscriptionManager {
     public func refreshCachedSubscription(completion: @escaping (Bool) -> Void) {}
 
     public var resultSubscription: Subscription.PrivacyProSubscription?
-    public func currentSubscription(refresh: Bool) async throws -> Subscription.PrivacyProSubscription {
-        guard let resultSubscription else {
-            throw SubscriptionEndpointServiceError.noData
-        }
-        return resultSubscription
-    }
+//    public func currentSubscription(refresh: Bool) async throws -> Subscription.PrivacyProSubscription {
+//        guard let resultSubscription else {
+//            throw SubscriptionEndpointServiceError.noData
+//        }
+//        return resultSubscription
+//    }
 
     public func getSubscriptionFrom(lastTransactionJWSRepresentation: String) async throws -> Subscription.PrivacyProSubscription {
         guard let resultSubscription else {

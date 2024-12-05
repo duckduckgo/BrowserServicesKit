@@ -30,8 +30,7 @@ struct SubscriptionRequest {
         guard let request = APIRequestV2(url: baseURL.appendingPathComponent(path),
                                          method: .get,
                                          headers: APIRequestV2.HeadersV2(authToken: accessToken),
-                                         timeoutInterval: 20,
-                                         retryPolicy: APIRequestV2.RetryPolicy(maxRetries: 3)) else {
+                                         timeoutInterval: 20) else {
             return nil
         }
         return SubscriptionRequest(apiRequest: request)

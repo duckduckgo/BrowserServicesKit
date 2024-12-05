@@ -20,6 +20,8 @@ import Foundation
 import os.log
 import Networking
 
+typealias SubscriptionFeatureMapping = [String: [SubscriptionEntitlement]]
+
 public protocol SubscriptionFeatureMappingCache {
     func subscriptionFeatures(for subscriptionIdentifier: String) async -> [SubscriptionEntitlement]
 }
@@ -28,7 +30,6 @@ public final class DefaultSubscriptionFeatureMappingCache: SubscriptionFeatureMa
 
     private let subscriptionEndpointService: SubscriptionEndpointService
     private let userDefaults: UserDefaults
-
     private var subscriptionFeatureMapping: SubscriptionFeatureMapping?
 
     public init(subscriptionEndpointService: SubscriptionEndpointService, userDefaults: UserDefaults) {
@@ -37,18 +38,18 @@ public final class DefaultSubscriptionFeatureMappingCache: SubscriptionFeatureMa
     }
 
     public func subscriptionFeatures(for subscriptionIdentifier: String) async -> [SubscriptionEntitlement] {
-        Logger.subscription.debug("[SubscriptionFeatureMappingCache] \(#function) \(subscriptionIdentifier)")
+        Logger.subscriptionFeatureMappingCache.debug("\(#function) \(subscriptionIdentifier)")
         let features: [SubscriptionEntitlement]
 
         if let subscriptionFeatures = currentSubscriptionFeatureMapping[subscriptionIdentifier] {
-            Logger.subscription.debug("[SubscriptionFeatureMappingCache] - got cached features")
+            Logger.subscriptionFeatureMappingCache.debug("- got cached features")
             features = subscriptionFeatures
         } else if let subscriptionFeatures = await fetchRemoteFeatures(for: subscriptionIdentifier) {
-            Logger.subscription.debug("[SubscriptionFeatureMappingCache] - fetching features from BE API")
+            Logger.subscriptionFeatureMappingCache.debug("- fetching features from BE API")
             features = subscriptionFeatures
             updateCachedFeatureMapping(with: subscriptionFeatures, for: subscriptionIdentifier)
         } else {
-            Logger.subscription.debug("[SubscriptionFeatureMappingCache] - Error: using fallback")
+            Logger.subscriptionFeatureMappingCache.error("- Error: using fallback")
             features = fallbackFeatures
         }
 
@@ -58,18 +59,18 @@ public final class DefaultSubscriptionFeatureMappingCache: SubscriptionFeatureMa
     // MARK: - Current feature mapping
 
     private var currentSubscriptionFeatureMapping: SubscriptionFeatureMapping {
-        Logger.subscription.debug("[SubscriptionFeatureMappingCache] - \(#function)")
+        Logger.subscriptionFeatureMappingCache.debug("\(#function)")
         let featureMapping: SubscriptionFeatureMapping
 
         if let cachedFeatureMapping {
-            Logger.subscription.debug("[SubscriptionFeatureMappingCache] -- got cachedFeatureMapping")
+            Logger.subscriptionFeatureMappingCache.debug("got cachedFeatureMapping")
             featureMapping = cachedFeatureMapping
         } else if let storedFeatureMapping {
-            Logger.subscription.debug("[SubscriptionFeatureMappingCache] -- have to fetchStoredFeatureMapping")
+            Logger.subscriptionFeatureMappingCache.debug("have to fetchStoredFeatureMapping")
             featureMapping = storedFeatureMapping
             updateCachedFeatureMapping(to: featureMapping)
         } else {
-            Logger.subscription.debug("[SubscriptionFeatureMappingCache] -- <nil> so creating a new one!")
+            Logger.subscriptionFeatureMappingCache.debug("creating a new one!")
             featureMapping = SubscriptionFeatureMapping()
             updateCachedFeatureMapping(to: featureMapping)
         }
@@ -96,24 +97,32 @@ public final class DefaultSubscriptionFeatureMappingCache: SubscriptionFeatureMa
     // MARK: - Stored subscription feature mapping
 
     static private let subscriptionFeatureMappingKey = "com.duckduckgo.subscription.featuremapping"
+    private let subscriptionFeatureMappingQueue = DispatchQueue(label: "com.duckduckgo.subscription.featuremapping.queue")
 
     dynamic var storedFeatureMapping: SubscriptionFeatureMapping? {
         get {
-            guard let data = userDefaults.data(forKey: Self.subscriptionFeatureMappingKey) else { return nil }
-            do {
-                return try JSONDecoder().decode(SubscriptionFeatureMapping?.self, from: data)
-            } catch {
-                assertionFailure("Errored while decoding feature mapping")
-                return nil
+            var result: SubscriptionFeatureMapping?
+            subscriptionFeatureMappingQueue.sync {
+                guard let data = userDefaults.data(forKey: Self.subscriptionFeatureMappingKey) else { return }
+                do {
+                    result = try JSONDecoder().decode(SubscriptionFeatureMapping?.self, from: data)
+                } catch {
+                    Logger.subscriptionFeatureMappingCache.fault("Errored while decoding feature mapping")
+                    assertionFailure("Errored while decoding feature mapping")
+                }
             }
+            return result
         }
 
         set {
-            do {
-                let data = try JSONEncoder().encode(newValue)
-                userDefaults.set(data, forKey: Self.subscriptionFeatureMappingKey)
-            } catch {
-                assertionFailure("Errored while encoding feature mapping")
+            subscriptionFeatureMappingQueue.sync {
+                do {
+                    let data = try JSONEncoder().encode(newValue)
+                    userDefaults.set(data, forKey: Self.subscriptionFeatureMappingKey)
+                } catch {
+                    Logger.subscriptionFeatureMappingCache.fault("Errored while encoding feature mapping")
+                    assertionFailure("Errored while encoding feature mapping")
+                }
             }
         }
     }
@@ -123,7 +132,7 @@ public final class DefaultSubscriptionFeatureMappingCache: SubscriptionFeatureMa
     private func fetchRemoteFeatures(for subscriptionIdentifier: String) async -> [SubscriptionEntitlement]? {
         do {
             let response = try await subscriptionEndpointService.getSubscriptionFeatures(for: subscriptionIdentifier)
-            Logger.subscription.debug("[SubscriptionFeatureMappingCache] -- Fetched features for `\(subscriptionIdentifier)`: \(response.features)")
+            Logger.subscriptionFeatureMappingCache.debug("-- Fetched features for `\(subscriptionIdentifier)`: \(response.features)")
             return response.features
         } catch {
             return nil
@@ -134,5 +143,3 @@ public final class DefaultSubscriptionFeatureMappingCache: SubscriptionFeatureMa
 
     private let fallbackFeatures: [SubscriptionEntitlement] = [.networkProtection, .dataBrokerProtection, .identityTheftRestoration]
 }
-
-typealias SubscriptionFeatureMapping = [String: [SubscriptionEntitlement]]

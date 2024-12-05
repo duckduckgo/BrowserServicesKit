@@ -117,7 +117,7 @@ public struct JWTRefreshToken: JWTPayload, Equatable {
     }
 }
 
-public enum SubscriptionEntitlement: String, Codable, Equatable {
+public enum SubscriptionEntitlement: String, Codable, Equatable, CustomDebugStringConvertible {
     case networkProtection = "Network Protection"
     case dataBrokerProtection = "Data Broker Protection"
     case identityTheftRestoration = "Identity Theft Restoration"
@@ -126,6 +126,10 @@ public enum SubscriptionEntitlement: String, Codable, Equatable {
 
     public init(from decoder: Decoder) throws {
         self = try Self(rawValue: decoder.singleValueContainer().decode(RawValue.self)) ?? .unknown
+    }
+
+    public var debugDescription: String {
+        return self.rawValue
     }
 }
 

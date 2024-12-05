@@ -40,7 +40,7 @@ public final class DefaultStripePurchaseFlow: StripePurchaseFlow {
     }
 
     public func subscriptionOptions() async -> Result<SubscriptionOptions, StripePurchaseFlowError> {
-        Logger.subscriptionStripePurchaseFlow.log("Getting subscription options")
+        Logger.subscriptionStripePurchaseFlow.log("Getting subscription options for Stripe")
 
         guard let products = try? await subscriptionManager.getProducts(), !products.isEmpty else {
             Logger.subscriptionStripePurchaseFlow.error("Failed to obtain products")
@@ -67,8 +67,8 @@ public final class DefaultStripePurchaseFlow: StripePurchaseFlow {
                                                   .dataBrokerProtection,
                                                   .identityTheftRestoration]
         return .success(SubscriptionOptions(platform: SubscriptionPlatformName.stripe,
-                                                    options: options,
-                                                    features: features))
+                                            options: options,
+                                            availableEntitlements: features))
     }
 
     public func prepareSubscriptionPurchase(emailAccessToken: String?) async -> Result<PurchaseUpdate, StripePurchaseFlowError> {

@@ -20,12 +20,14 @@ import Foundation
 import os.log
 
 public extension Logger {
-    static var subscription = { Logger(subsystem: "Subscription", category: "") }()
-    static var subscriptionAppStorePurchaseFlow = { Logger(subsystem: "Subscription", category: "AppStorePurchaseFlow") }()
-    static var subscriptionAppStoreRestoreFlow = { Logger(subsystem: "Subscription", category: "AppStoreRestoreFlow") }()
-    static var subscriptionStripePurchaseFlow = { Logger(subsystem: "Subscription", category: "StripePurchaseFlow") }()
-    static var subscriptionEndpointService = { Logger(subsystem: "Subscription", category: "EndpointService") }()
-    static var subscriptionStorePurchaseManager = { Logger(subsystem: "Subscription", category: "StorePurchaseManager") }()
-    static var subscriptionKeychain = { Logger(subsystem: "Subscription", category: "KeyChain") }()
-    static var subscriptionCookieManager = { Logger(subsystem: "Subscription", category: "CookieManager") }()
+    private static var subscriptionSubsystem = "Subscription"
+    static var subscription = { Logger(subsystem: Self.subscriptionSubsystem, category: "") }()
+    static var subscriptionAppStorePurchaseFlow = { Logger(subsystem: Self.subscriptionSubsystem, category: "AppStorePurchaseFlow") }()
+    static var subscriptionAppStoreRestoreFlow = { Logger(subsystem: Self.subscriptionSubsystem, category: "AppStoreRestoreFlow") }()
+    static var subscriptionStripePurchaseFlow = { Logger(subsystem: Self.subscriptionSubsystem, category: "StripePurchaseFlow") }()
+    static var subscriptionEndpointService = { Logger(subsystem: Self.subscriptionSubsystem, category: "EndpointService") }()
+    static var subscriptionStorePurchaseManager = { Logger(subsystem: Self.subscriptionSubsystem, category: "StorePurchaseManager") }()
+    static var subscriptionKeychain = { Logger(subsystem: Self.subscriptionSubsystem, category: "KeyChain") }()
+    static var subscriptionCookieManager = { Logger(subsystem: Self.subscriptionSubsystem, category: "CookieManager") }()
+    static var subscriptionFeatureMappingCache = { Logger(subsystem: Self.subscriptionSubsystem, category: "SubscriptionFeatureMappingCache") }()
 }

@@ -124,14 +124,15 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
         let options = [SubscriptionOption(id: monthly.id, cost: .init(displayPrice: monthly.displayPrice, recurrence: "monthly")),
                        SubscriptionOption(id: yearly.id, cost: .init(displayPrice: yearly.displayPrice, recurrence: "yearly"))]
         let features: [SubscriptionEntitlement]
-        if let featureFlagger = subscriptionFeatureFlagger, featureFlagger.isFeatureOn(.isLaunchedROW) || featureFlagger.isFeatureOn(.isLaunchedROWOverride) {
+        if let featureFlagger = subscriptionFeatureFlagger,
+            featureFlagger.isFeatureOn(.isLaunchedROW) || featureFlagger.isFeatureOn(.isLaunchedROWOverride) {
             features = await subscriptionFeatureMappingCache.subscriptionFeatures(for: monthly.id)
         } else {
             features = [.networkProtection, .dataBrokerProtection, .identityTheftRestoration]
         }
         return SubscriptionOptions(platform: platform,
                                    options: options,
-                                   features: features)
+                                   availableEntitlements: features)
     }
 
     @MainActor
@@ -142,7 +143,8 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
             let storefrontCountryCode: String?
             let storefrontRegion: SubscriptionRegion
 
-            if let featureFlagger = subscriptionFeatureFlagger, featureFlagger.isFeatureOn(.isLaunchedROW) || featureFlagger.isFeatureOn(.isLaunchedROWOverride) {
+            if let featureFlagger = subscriptionFeatureFlagger,
+                featureFlagger.isFeatureOn(.isLaunchedROW) || featureFlagger.isFeatureOn(.isLaunchedROWOverride) {
                 if let subscriptionFeatureFlagger, subscriptionFeatureFlagger.isFeatureOn(.usePrivacyProUSARegionOverride) {
                     storefrontCountryCode = "USA"
                 } else if let subscriptionFeatureFlagger, subscriptionFeatureFlagger.isFeatureOn(.usePrivacyProROWRegionOverride) {
@@ -211,7 +213,8 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
         for await result in Transaction.all {
             transactions.append(result)
         }
-        Logger.subscriptionStorePurchaseManager.log("Most recent transaction fetched \(transactions.count) transactions")
+        let lastTransaction = transactions.first
+        Logger.subscriptionStorePurchaseManager.log("Most recent transaction fetched: \(lastTransaction?.debugDescription ?? "?") (tot: \(transactions.count) transactions)")
         return transactions.first?.jwsRepresentation
     }
 
@@ -230,7 +233,7 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
 
         guard let product = availableProducts.first(where: { $0.id == identifier }) else { return .failure(StorePurchaseManagerError.productNotFound) }
 
-        Logger.subscriptionStorePurchaseManager.log("Purchasing Subscription \(product.displayName, privacy: .public) (\(externalID, privacy: .public))")
+        Logger.subscriptionStorePurchaseManager.log("Purchasing Subscription: \(product.displayName, privacy: .public) (\(externalID, privacy: .public))")
 
         purchaseQueue.append(product.id)
 
