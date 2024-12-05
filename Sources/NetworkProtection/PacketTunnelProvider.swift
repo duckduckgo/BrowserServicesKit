@@ -597,7 +597,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
 #if os(macOS)
     private func loadAuthToken(from options: StartupOptions) async throws {
-        Logger.networkProtection.log("Loading token \(options.tokenContainer.description)")
+        Logger.networkProtection.log("Loading token \(options.tokenContainer.description, privacy: .public)")
         switch options.tokenContainer {
         case .set(let newTokenContainer):
             try await tokenProvider.adopt(tokenContainer: newTokenContainer)

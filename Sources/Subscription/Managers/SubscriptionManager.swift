@@ -330,8 +330,16 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
             Logger.subscription.debug("Get tokens \(policy.description, privacy: .public)")
 
             let referenceCachedTokenContainer = try? await oAuthClient.getTokens(policy: .local)
-            let referenceCachedEntitlements = referenceCachedTokenContainer?.decodedAccessToken.subscriptionEntitlements
 
+            if policy == .local {
+                if let localToken = referenceCachedTokenContainer {
+                    return localToken
+                } else {
+                    throw SubscriptionManagerError.tokenUnavailable(error: nil)
+                }
+            }
+
+            let referenceCachedEntitlements = referenceCachedTokenContainer?.decodedAccessToken.subscriptionEntitlements
             let resultTokenContainer = try await oAuthClient.getTokens(policy: policy)
             let newEntitlements = resultTokenContainer.decodedAccessToken.subscriptionEntitlements
 

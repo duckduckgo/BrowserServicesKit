@@ -20,7 +20,7 @@ import Foundation
 import Common
 import os.log
 
-enum NetworkProtectionKeychainStoreError: Error, NetworkProtectionErrorConvertible {
+public enum NetworkProtectionKeychainStoreError: Error, NetworkProtectionErrorConvertible {
     case failedToCastKeychainValueToData(field: String)
     case keychainReadError(field: String, status: Int32)
     case keychainWriteError(field: String, status: Int32)
@@ -39,12 +39,12 @@ enum NetworkProtectionKeychainStoreError: Error, NetworkProtectionErrorConvertib
 }
 
 /// General Keychain access helper class for the NetworkProtection module. Should be used for specific KeychainStore types.
-final class NetworkProtectionKeychainStore {
+public final class NetworkProtectionKeychainStore {
     private let label: String
     private let serviceName: String
     private let keychainType: KeychainType
 
-    init(label: String,
+    public init(label: String,
          serviceName: String,
          keychainType: KeychainType) {
 
@@ -55,7 +55,7 @@ final class NetworkProtectionKeychainStore {
 
     // MARK: - Keychain Interaction
 
-    func readData(named name: String) throws -> Data? {
+    public func readData(named name: String) throws -> Data? {
         Logger.networkProtectionKeyManagement.debug("Reading key \(name, privacy: .public) from keychain")
         var query = defaultAttributes()
         query[kSecAttrAccount] = name
@@ -79,7 +79,7 @@ final class NetworkProtectionKeychainStore {
         }
     }
 
-    func writeData(_ data: Data, named name: String) throws {
+    public func writeData(_ data: Data, named name: String) throws {
         Logger.networkProtectionKeyManagement.debug("Writing key \(name, privacy: .public) to keychain")
         var query = defaultAttributes()
         query[kSecAttrAccount] = name
