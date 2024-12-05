@@ -687,7 +687,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
         guard let accounts = try? vault.accountsFor(domain: domain),
               // Matching account (username) or account with empty username or partial account for domain
               var account = accounts.first(where: {
-                  $0.username == credentials.username ?? partialAccount?.username ?? ""
+                  $0.username == credentials.username || $0.username == "" || $0.username == partialAccount?.username
               }) else {
 
                 // No existing credentials found.  This is a new entry
