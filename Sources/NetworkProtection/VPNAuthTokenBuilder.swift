@@ -20,10 +20,14 @@ import Foundation
 import Subscription
 import Networking
 
-struct VPNAuthTokenBuilder {
+public struct VPNAuthTokenBuilder {
 
-    static func getVPNAuthToken(from tokenProvider: SubscriptionTokenProvider, policy: TokensCachePolicy) async throws -> String {
+    public static func getVPNAuthToken(from tokenProvider: SubscriptionTokenProvider, policy: TokensCachePolicy) async throws -> String {
         let token = try await tokenProvider.getTokenContainer(policy: policy).accessToken
         return "ddg:\(token)"
+    }
+
+    public static func getVPNAuthToken(from originalToken: String) -> String{
+        return "ddg:\(originalToken)"
     }
 }

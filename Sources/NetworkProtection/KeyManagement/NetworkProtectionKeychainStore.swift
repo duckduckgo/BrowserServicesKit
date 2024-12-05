@@ -118,12 +118,10 @@ public final class NetworkProtectionKeychainStore {
     public func deleteAll() throws {
         Logger.networkProtectionKeyManagement.debug("Deleting all keys from keychain")
         var query = defaultAttributes()
-#if false
+#if os(macOS)
         // This line causes the delete to error with status -50 on iOS. Needs investigation but, for now, just delete the first item
         // https://app.asana.com/0/1203512625915051/1205009181378521
         query[kSecMatchLimit] = kSecMatchLimitAll
-
-        // Turns out this is creating issues in macOS too firing a NetworkProtectionError.keychainDeleteError(status: -67701) errSecInvalidRecord
 #endif
 
         let status = SecItemDelete(query as CFDictionary)

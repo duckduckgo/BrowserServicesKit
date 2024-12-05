@@ -414,17 +414,21 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }()
 
-    private lazy var deviceManager: NetworkProtectionDeviceManagement = NetworkProtectionDeviceManager(environment: self.settings.selectedEnvironment,
-                                                                                                       tokenProvider: self.tokenProvider,
-                                                                                                       keyStore: self.keyStore,
-                                                                                                       errorEvents: self.debugEvents)
+    private lazy var deviceManager: NetworkProtectionDeviceManagement = NetworkProtectionDeviceManager(
+        environment: self.settings.selectedEnvironment,
+        tokenProvider: self.tokenProvider,
+        keyStore: self.keyStore,
+        errorEvents: self.debugEvents
+    )
+
     private lazy var tunnelFailureMonitor = NetworkProtectionTunnelFailureMonitor(handshakeReporter: adapter)
 
     public lazy var latencyMonitor = NetworkProtectionLatencyMonitor()
     public lazy var entitlementMonitor = NetworkProtectionEntitlementMonitor()
     public lazy var serverStatusMonitor = NetworkProtectionServerStatusMonitor(
         networkClient: NetworkProtectionBackendClient(environment: self.settings.selectedEnvironment),
-        tokenProvider: self.tokenProvider)
+        tokenProvider: self.tokenProvider
+    )
 
     private var lastTestFailed = false
     private let bandwidthAnalyzer = NetworkProtectionConnectionBandwidthAnalyzer()
@@ -457,8 +461,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 providerEvents: EventMapping<Event>,
                 settings: VPNSettings,
                 defaults: UserDefaults,
-                entitlementCheck: (() async -> Result<Bool, Error>)?
-    ) {
+                entitlementCheck: (() async -> Result<Bool, Error>)?) {
         Logger.networkProtectionMemory.debug("[+] PacketTunnelProvider")
 
         self.notificationsPresenter = notificationsPresenter
@@ -666,12 +669,12 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     @MainActor
     open override func startTunnel(options: [String: NSObject]? = nil) async throws {
-        Logger.networkProtection.log("Starting tunnel...")
+
         // It's important to have this as soon as possible since it helps setup PixelKit
         prepareToConnect(using: tunnelProviderProtocol)
 
         let startupOptions = StartupOptions(options: options ?? [:])
-        Logger.networkProtection.log("...with options: \(startupOptions.description, privacy: .public)")
+        Logger.networkProtection.log("Starting tunnel with options: \(startupOptions.description, privacy: .public)")
 
         // Reset snooze if the VPN is restarting.
         self.snoozeTimingStore.reset()
@@ -1205,6 +1208,11 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     private func handleResetAllState(completionHandler: ((Data?) -> Void)? = nil) {
         resetRegistrationKey()
+
+#if os(macOS)
+        tokenProvider.removeTokenContainer()
+#endif
+
         Task {
             completionHandler?(nil)
             await cancelTunnel(with: TunnelError.appRequestedCancellation)
@@ -1565,9 +1573,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     @MainActor
     private func attemptShutdownDueToRevokedAccess() async {
         let cancelTunnel = {
-// #if os(macOS)
-//            try? self.tokenStore.deleteToken()
-// #endif
+ #if os(macOS)
+            self.tokenProvider.removeTokenContainer()
+ #endif
             self.cancelTunnelWithError(TunnelError.vpnAccessRevoked)
         }
 
@@ -1835,6 +1843,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
         return true
     }
+
 }
 
 extension WireGuardAdapterError: LocalizedError, CustomDebugStringConvertible {
