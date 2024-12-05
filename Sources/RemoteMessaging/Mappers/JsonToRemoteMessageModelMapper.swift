@@ -51,6 +51,7 @@ private enum AttributesKey: String, CaseIterable {
     case duckPlayerOnboarded
     case duckPlayerEnabled
     case messageShown
+    case isCurrentFreemiumPIRUser
 
     func matchingAttribute(jsonMatchingAttribute: AnyDecodable) -> MatchingAttribute {
         switch self {
@@ -86,6 +87,7 @@ private enum AttributesKey: String, CaseIterable {
         case .duckPlayerOnboarded: return DuckPlayerOnboardedMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         case .duckPlayerEnabled: return DuckPlayerEnabledMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         case .messageShown: return MessageShownMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
+        case .isCurrentFreemiumPIRUser: return FreemiumPIRCurrentUserMatchingAttribute(jsonMatchingAttribute: jsonMatchingAttribute)
         }
     }
 }

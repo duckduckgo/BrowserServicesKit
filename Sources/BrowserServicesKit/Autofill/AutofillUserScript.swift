@@ -17,9 +17,9 @@
 //
 
 import Common
-import WebKit
-import UserScript
 import os.log
+import UserScript
+@preconcurrency import WebKit
 
 var previousIncontextSignupPermanentlyDismissedAt: Double?
 var previousEmailSignedIn: Bool?
