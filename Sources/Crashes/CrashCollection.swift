@@ -101,10 +101,11 @@ public final class CrashCollection {
                                     Logger.general.debug("Received matching value for CRCID: \(receivedCRCID), no update necessary")
                                 }
                             } else {
-                                Logger.general.debug("No value for CRCID header: \(Const.crcidKey), clearing local crcid value")
+                                Logger.general.debug("No value for CRCID header: \(Const.crcidKey), clearing local crcid value if present")
                                 self.crashCollectionStorage.removeObject(forKey: Const.crcidKey)
                             }
                         case .failure(let failure):
+                            // TODO: Is it worth sending a pixel for this case, so that we can monitor for missing crash reports?
                             Logger.general.debug("Crash Collection - Sending Crash Report: failed (\(failure))")
                         }
                     }

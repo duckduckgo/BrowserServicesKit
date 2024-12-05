@@ -58,8 +58,7 @@ class CrashCollectionTests: XCTestCase {
         XCTAssertFalse(crashCollection.isFirstCrash)
     }
     
-    func testCRCIDIsUpdatedWhenNoLocalValueIsPresent()
-    {
+    func testCRCIDIsStoredWhenReceived() {
         let responseCRCIDValue = "CRCID Value"
         
         let store = MockKeyValueStore()
@@ -121,13 +120,8 @@ class CrashCollectionTests: XCTestCase {
         
         XCTAssertNil(store.object(forKey: CrashCollection.Const.crcidKey), "CRCID should not be present in the store after receiving a successful response")
     }
-  
-    // TODO: Too redundant with the above to be worthwhile?
-//    func testCRCIDIsOverwrittenWhenServerProvidesNewValue() {
-//        // TODO: Implement
-//    }
     
-    func testCRCIDIsRetainedWhenErrorIsReceived() {
+    func testCRCIDIsRetainedWhenServerErrorIsReceived() {
         let store = MockKeyValueStore()
         let crashReportSender = MockCrashReportSender(platform: .iOS)
         let crashCollection = CrashCollection(crashReportSender: crashReportSender , crashCollectionStorage: store)
