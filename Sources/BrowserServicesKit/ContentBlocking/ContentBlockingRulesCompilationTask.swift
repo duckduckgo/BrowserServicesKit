@@ -28,11 +28,17 @@ extension ContentBlockerRulesManager {
         let compiledRulesList: WKContentRuleList
         let model: ContentBlockerRulesSourceModel
         let resultType: ResultType
-        let performanceInfo: PerformanceInfo? 
-        
+        let performanceInfo: PerformanceInfo?
+
         struct PerformanceInfo {
-            let compilationTime: TimeInterval?
-            let iterationCount: Int?
+            let compilationTime: TimeInterval
+            let iterationCount: Int
+
+            // if none of the sources are broken, we do a minimum of one iteration which should be successful
+            init(compilationTime: TimeInterval, iterationCount: Int = 1) {
+                   self.compilationTime = compilationTime
+                   self.iterationCount = iterationCount
+               }
         }
         
         enum ResultType {
@@ -178,8 +184,12 @@ extension ContentBlockerRulesManager {
         func getCompilationResult(ruleList: WKContentRuleList,
                                   model: ContentBlockerRulesSourceModel,
                                   resultType: CompilationResult.ResultType) -> CompilationResult {
-            let compilationTime = self.compilationStartTime.map { start in CACurrentMediaTime() - start }
-            let perfInfo = CompilationResult.PerformanceInfo(compilationTime: compilationTime, iterationCount: getCompilationIterationCount())
+            let compilationTime = self.compilationStartTime.map { CACurrentMediaTime() - $0 }
+
+            let perfInfo = compilationTime.map {
+                CompilationResult.PerformanceInfo(compilationTime: $0,
+                                                  iterationCount: getCompilationRetryCount())
+            }
 
             return CompilationResult(compiledRulesList: ruleList,
                                             model: model,
@@ -187,10 +197,11 @@ extension ContentBlockerRulesManager {
                                      performanceInfo: perfInfo)
             
         }
-        
-        func getCompilationIterationCount() -> Int {
+
+        func getCompilationRetryCount() -> Int {
             guard let brokenSources = sourceManager.brokenSources else {
-                return 0
+                // if none of the sources are broken, we do a minimum of one iteration which should be successful
+                return 1
             }
                 
             let identifiers = [
@@ -200,7 +211,8 @@ extension ContentBlockerRulesManager {
                 brokenSources.tdsIdentifier
             ]
 
-            return identifiers.compactMap { $0 }.count
+            // add 1 to account for the first iteration before we retry with any broken sources
+            return (identifiers.compactMap { $0 }.count) + 1
         }
 
     }

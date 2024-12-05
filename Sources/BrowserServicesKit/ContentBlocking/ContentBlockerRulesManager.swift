@@ -313,7 +313,6 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
     }
 
     private func startCompilationProcess() {
-        Logger.contentBlocking.debug("Starting compilataion process")
         prepareSourceManagers()
 
         // Prepare compilation tasks based on the sources
@@ -387,12 +386,14 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
                                                                                                 unprotectedSitesHash: nil))
             }
 
-            
-//            if let compilationTime = result.compilationTime {
-//
-//                // todo: need to change this to the updated format with time range and iteration
-//                self.errorReporting?.fire(.contentBlockingCompilationTime, parameters: ["compilationTime": String(compilationTime)])
-//            }
+            // todo - this hard code is a placeholder till I figure out how to check for this task vs. Ad attr task
+            if task.rulesList.name == "TrackerDataSet" {
+                if let perfInfo = result.performanceInfo {
+                    self.errorReporting?.fire(.contentBlockingCompilationTaskPerformance(retryCount: perfInfo.iterationCount,
+                                                                                         timeBucketAggregation: perfInfo.compilationTime),
+                                              parameters: ["compilationTime": String(perfInfo.compilationTime)])
+                }
+            }
 
             changes[task.rulesList.name] = diff
             return rules
