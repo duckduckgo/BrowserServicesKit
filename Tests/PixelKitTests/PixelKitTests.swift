@@ -82,7 +82,7 @@ final class PixelKitTests: XCTestCase {
             case .testEvent, .testEventWithoutParameters, .nameWithDot:
                 return .standard
             case .uniqueEvent:
-                return .unique
+                return .uniqueByName
             case .dailyEvent, .dailyEventWithoutParameters:
                 return .daily
             case .dailyAndContinuousEvent, .dailyAndContinuousEventWithoutParameters:
@@ -209,6 +209,7 @@ final class PixelKitTests: XCTestCase {
         // Prepare mock to validate expectations
         let pixelKit = PixelKit(dryRun: false,
                                 appVersion: appVersion,
+                                source: PixelKit.Source.macDMG.rawValue,
                                 defaultHeaders: headers,
                                 dailyPixelCalendar: nil,
                                 defaults: userDefaults) { firedPixelName, firedHeaders, parameters, _, _, _ in
@@ -254,6 +255,7 @@ final class PixelKitTests: XCTestCase {
         // Prepare mock to validate expectations
         let pixelKit = PixelKit(dryRun: false,
                                 appVersion: appVersion,
+                                source: PixelKit.Source.macDMG.rawValue,
                                 defaultHeaders: headers,
                                 dailyPixelCalendar: nil,
                                 defaults: userDefaults) { firedPixelName, firedHeaders, parameters, _, _, _ in
@@ -300,6 +302,7 @@ final class PixelKitTests: XCTestCase {
         // Prepare mock to validate expectations
         let pixelKit = PixelKit(dryRun: false,
                                 appVersion: appVersion,
+                                source: PixelKit.Source.macDMG.rawValue,
                                 defaultHeaders: headers,
                                 dailyPixelCalendar: nil,
                                 defaults: userDefaults) { firedPixelName, firedHeaders, parameters, _, _, _ in
@@ -397,19 +400,69 @@ final class PixelKitTests: XCTestCase {
         }
 
         // Run test
-        pixelKit.fire(event, frequency: .unique) // Fired
+        pixelKit.fire(event, frequency: .uniqueByName) // Fired
         timeMachine.travel(by: .hour, value: 2)
-        pixelKit.fire(event, frequency: .unique) // Skipped (already fired)
+        pixelKit.fire(event, frequency: .uniqueByName) // Skipped (already fired)
 
         timeMachine.travel(by: .day, value: 1)
         timeMachine.travel(by: .hour, value: 2)
-        pixelKit.fire(event, frequency: .unique) // Skipped (already fired)
+        pixelKit.fire(event, frequency: .uniqueByName) // Skipped (already fired)
 
         timeMachine.travel(by: .hour, value: 10)
-        pixelKit.fire(event, frequency: .unique) // Skipped (already fired)
+        pixelKit.fire(event, frequency: .uniqueByName) // Skipped (already fired)
 
         timeMachine.travel(by: .day, value: 1)
-        pixelKit.fire(event, frequency: .unique) // Skipped (already fired)
+        pixelKit.fire(event, frequency: .uniqueByName) // Skipped (already fired)
+
+        // Wait for expectations to be fulfilled
+        wait(for: [fireCallbackCalled], timeout: 0.5)
+    }
+
+    func testUniqueNyNameAndParameterPixel() {
+        // Prepare test parameters
+        let appVersion = "1.0.5"
+        let headers = ["a": "2", "b": "3", "c": "2000"]
+        let event = TestEventV2.uniqueEvent
+        let userDefaults = userDefaults()
+
+        let timeMachine = TimeMachine()
+
+        // Set expectations
+        let fireCallbackCalled = expectation(description: "Expect the pixel firing callback to be called")
+        fireCallbackCalled.expectedFulfillmentCount = 3
+        fireCallbackCalled.assertForOverFulfill = true
+
+        let pixelKit = PixelKit(dryRun: false,
+                                appVersion: appVersion,
+                                defaultHeaders: headers,
+                                dailyPixelCalendar: nil,
+                                dateGenerator: timeMachine.now,
+                                defaults: userDefaults) { _, _, _, _, _, _ in
+            fireCallbackCalled.fulfill()
+        }
+
+        // Run test
+        pixelKit.fire(event, frequency: .uniqueByNameAndParameters, withAdditionalParameters: ["a": "100"]) // Fired
+        timeMachine.travel(by: .hour, value: 2)
+        pixelKit.fire(event, frequency: .uniqueByNameAndParameters, withAdditionalParameters: ["b": "200"]) // Fired
+        pixelKit.fire(event, frequency: .uniqueByNameAndParameters, withAdditionalParameters: ["a": "100"]) // Skipped (already fired)
+
+        timeMachine.travel(by: .day, value: 1)
+        pixelKit.fire(event, frequency: .uniqueByNameAndParameters, withAdditionalParameters: ["a": "100", "c": "300"]) // Fired
+        timeMachine.travel(by: .hour, value: 2)
+        pixelKit.fire(event, frequency: .uniqueByNameAndParameters, withAdditionalParameters: ["a": "100"]) // Skipped (already fired)
+        pixelKit.fire(event, frequency: .uniqueByNameAndParameters, withAdditionalParameters: ["b": "200"]) // Skipped (already fired)
+        pixelKit.fire(event, frequency: .uniqueByNameAndParameters, withAdditionalParameters: ["c": "300", "a": "100"]) // Skipped (already fired)
+
+        timeMachine.travel(by: .hour, value: 10)
+        pixelKit.fire(event, frequency: .uniqueByNameAndParameters, withAdditionalParameters: ["a": "100"]) // Skipped (already fired)
+        pixelKit.fire(event, frequency: .uniqueByNameAndParameters, withAdditionalParameters: ["b": "200"]) // Skipped (already fired)
+        pixelKit.fire(event, frequency: .uniqueByNameAndParameters, withAdditionalParameters: ["a": "100", "c": "300"]) // Skipped (already fired)
+
+        timeMachine.travel(by: .day, value: 1)
+        pixelKit.fire(event, frequency: .uniqueByNameAndParameters, withAdditionalParameters: ["a": "100"]) // Skipped (already fired)
+        pixelKit.fire(event, frequency: .uniqueByNameAndParameters, withAdditionalParameters: ["b": "200"]) // Skipped (already fired)
+        pixelKit.fire(event, frequency: .uniqueByNameAndParameters, withAdditionalParameters: ["a": "100", "c": "300"]) // Skipped (already fired)
 
         // Wait for expectations to be fulfilled
         wait(for: [fireCallbackCalled], timeout: 0.5)

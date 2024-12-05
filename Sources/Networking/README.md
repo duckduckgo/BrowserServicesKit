@@ -19,7 +19,7 @@ let request = APIRequestV2(url: HTTPURLResponse.testUrl,
                            responseConstraints: [.allowHTTPNotModified,
                                                  .requireETagHeader,
                                                  .requireUserAgent],
-                           allowedQueryReservedCharacters: CharacterSet(charactersIn: ","))!
+                           allowedQueryReservedCharacters: CharacterSet(charactersIn: ","))
 let apiService = DefaultAPIService(urlSession: URLSession.shared)
 ```
 
@@ -55,10 +55,10 @@ The `MockPIService` implementing `APIService` can be found in `BSK/TestUtils`
 
 ```
 let apiResponse = (Data(), HTTPURLResponse(url: HTTPURLResponse.testUrl,
-                                    statusCode: 200,
-                                    httpVersion: nil,
-                                    headerFields: nil)!)
-let mockedAPIService = MockAPIService(decodableResponse: Result.failure(SomeError.testError), apiResponse: Result.success(apiResponse) )
+                                           statusCode: 200,
+                                           httpVersion: nil,
+                                           headerFields: nil)!)
+let mockedAPIService = MockAPIService(apiResponse: Result.success(apiResponse))
 ```
 
 ## v1 (Legacy)

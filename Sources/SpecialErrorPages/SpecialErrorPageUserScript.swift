@@ -23,11 +23,11 @@ import Common
 
 public protocol SpecialErrorPageUserScriptDelegate: AnyObject {
 
-    var errorData: SpecialErrorData? { get }
+    @MainActor var errorData: SpecialErrorData? { get }
 
-    func leaveSite()
-    func visitSite()
-    func advancedInfoPresented()
+    @MainActor func leaveSiteAction()
+    @MainActor func visitSiteAction()
+    @MainActor func advancedInfoPresented()
 
 }
 
@@ -105,13 +105,13 @@ public final class SpecialErrorPageUserScript: NSObject, Subfeature {
 
     @MainActor
     func handleLeaveSiteAction(params: Any, message: UserScriptMessage) -> Encodable? {
-        delegate?.leaveSite()
+        delegate?.leaveSiteAction()
         return nil
     }
 
     @MainActor
     func handleVisitSiteAction(params: Any, message: UserScriptMessage) -> Encodable? {
-        delegate?.visitSite()
+        delegate?.visitSiteAction()
         return nil
     }
 

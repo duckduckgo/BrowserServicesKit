@@ -41,6 +41,9 @@ final class ExperimentCohortsManagerTests: XCTestCase {
     let subfeatureName4 = "TestSubfeature4"
     var experimentData4: ExperimentData!
 
+    var firedSubfeatureID: SubfeatureID?
+    var firedExperimentData: ExperimentData?
+
     let encoder: JSONEncoder = {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .secondsSince1970
@@ -50,8 +53,12 @@ final class ExperimentCohortsManagerTests: XCTestCase {
     override func setUp() {
         super.setUp()
         mockStore = MockExperimentDataStore()
+
         experimentCohortsManager = ExperimentCohortsManager(
-            store: mockStore
+            store: mockStore, fireCohortAssigned: {subfeatureID, experimentData in
+                self.firedSubfeatureID = subfeatureID
+                self.firedExperimentData = experimentData
+            }
         )
 
         let expectedDate1 = Date()
@@ -87,6 +94,8 @@ final class ExperimentCohortsManagerTests: XCTestCase {
         XCTAssertEqual(experiments?[subfeatureName1], experimentData1)
         XCTAssertEqual(experiments?[subfeatureName2], experimentData2)
         XCTAssertNil(experiments?[subfeatureName3])
+        XCTAssertNil(firedSubfeatureID)
+        XCTAssertNil(firedExperimentData)
     }
 
     func testCohortReturnsCohortIDIfExistsForMultipleSubfeatures() {
@@ -100,6 +109,8 @@ final class ExperimentCohortsManagerTests: XCTestCase {
         // THEN
         XCTAssertEqual(result1, experimentData1.cohortID)
         XCTAssertEqual(result2, experimentData2.cohortID)
+        XCTAssertNil(firedSubfeatureID)
+        XCTAssertNil(firedExperimentData)
     }
 
     func testCohortAssignIfEnabledWhenNoCohortExists() {
@@ -114,6 +125,10 @@ final class ExperimentCohortsManagerTests: XCTestCase {
         // THEN
         XCTAssertNotNil(result)
         XCTAssertEqual(result, experimentData1.cohortID)
+        XCTAssertEqual(firedSubfeatureID, subfeatureName1)
+        XCTAssertEqual(firedExperimentData?.cohortID, experimentData1.cohortID)
+        XCTAssertEqual(firedExperimentData?.parentID, experimentData1.parentID)
+        XCTAssertEqual(firedExperimentData?.enrollmentDate.daySinceReferenceDate, experimentData1.enrollmentDate.daySinceReferenceDate)
     }
 
     func testCohortDoesNotAssignIfAssignIfEnabledIsFalse() {
@@ -127,6 +142,8 @@ final class ExperimentCohortsManagerTests: XCTestCase {
 
         // THEN
         XCTAssertNil(result)
+        XCTAssertNil(firedSubfeatureID)
+        XCTAssertNil(firedExperimentData)
     }
 
     func testCohortDoesNotAssignIfAssignIfEnabledIsTrueButNoCohortsAvailable() {
@@ -139,6 +156,8 @@ final class ExperimentCohortsManagerTests: XCTestCase {
 
         // THEN
         XCTAssertNil(result)
+        XCTAssertNil(firedSubfeatureID)
+        XCTAssertNil(firedExperimentData)
     }
 
     func testCohortReassignsCohortIfAssignedCohortDoesNotExistAndAssignIfEnabledIsTrue() {
@@ -150,6 +169,10 @@ final class ExperimentCohortsManagerTests: XCTestCase {
 
         // THEN
         XCTAssertEqual(result1, experimentData3.cohortID)
+        XCTAssertEqual(firedSubfeatureID, subfeatureName1)
+        XCTAssertEqual(firedExperimentData?.cohortID, experimentData3.cohortID)
+        XCTAssertEqual(firedExperimentData?.parentID, experimentData3.parentID)
+        XCTAssertEqual(firedExperimentData?.enrollmentDate.daySinceReferenceDate, experimentData3.enrollmentDate.daySinceReferenceDate)
     }
 
     func testCohortDoesNotReassignsCohortIfAssignedCohortDoesNotExistAndAssignIfEnabledIsTrue() {
@@ -161,6 +184,8 @@ final class ExperimentCohortsManagerTests: XCTestCase {
 
         // THEN
         XCTAssertNil(result1)
+        XCTAssertNil(firedSubfeatureID)
+        XCTAssertNil(firedExperimentData)
     }
 
     func testCohortAssignsBasedOnWeight() {
@@ -173,7 +198,7 @@ final class ExperimentCohortsManagerTests: XCTestCase {
 
         experimentCohortsManager = ExperimentCohortsManager(
             store: mockStore,
-            randomizer: randomizer
+            randomizer: randomizer, fireCohortAssigned: { _, _ in }
         )
 
         // WHEN

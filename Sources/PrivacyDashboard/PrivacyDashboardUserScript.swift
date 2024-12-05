@@ -16,12 +16,13 @@
 //  limitations under the License.
 //
 
+import BrowserServicesKit
+import Common
 import Foundation
-import WebKit
+import MaliciousSiteProtection
 import TrackerRadarKit
 import UserScript
-import Common
-import BrowserServicesKit
+import WebKit
 
 @MainActor
 protocol PrivacyDashboardUserScriptDelegate: AnyObject {
@@ -425,8 +426,8 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         evaluate(js: "window.onChangeCertificateData(\(certificateDataJson))", in: webView)
     }
 
-    func setIsPhishing(_ isPhishing: Bool, webView: WKWebView) {
-        let phishingStatus = ["phishingStatus": isPhishing]
+    func setMaliciousSiteDetectedThreatKind(_ detectedThreatKind: MaliciousSiteProtection.ThreatKind?, webView: WKWebView) {
+        let phishingStatus = ["phishingStatus": detectedThreatKind == .phishing]
         guard let phishingStatusJson = try? JSONEncoder().encode(phishingStatus).utf8String() else {
             assertionFailure("Can't encode phishingStatus into JSON")
             return

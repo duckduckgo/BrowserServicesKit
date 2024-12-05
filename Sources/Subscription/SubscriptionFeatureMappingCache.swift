@@ -99,7 +99,7 @@ public final class DefaultSubscriptionFeatureMappingCache: SubscriptionFeatureMa
     static private let subscriptionFeatureMappingKey = "com.duckduckgo.subscription.featuremapping"
     private let subscriptionFeatureMappingQueue = DispatchQueue(label: "com.duckduckgo.subscription.featuremapping.queue")
 
-    dynamic var storedFeatureMapping: SubscriptionFeatureMapping? {
+    var storedFeatureMapping: SubscriptionFeatureMapping? {
         get {
             var result: SubscriptionFeatureMapping?
             subscriptionFeatureMappingQueue.sync {

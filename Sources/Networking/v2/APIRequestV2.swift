@@ -16,7 +16,10 @@
 //  limitations under the License.
 //
 
+import Common
 import Foundation
+
+public typealias QueryItems = [String: String]
 
 public class APIRequestV2: Hashable, CustomDebugStringConvertible {
 
@@ -44,13 +47,12 @@ public class APIRequestV2: Hashable, CustomDebugStringConvertible {
             hasher.combine(delay)
         }
     }
-    public typealias QueryItems = [String: String]
 
-    internal let timeoutInterval: TimeInterval
-    internal let responseConstraints: [APIResponseConstraints]?
-    internal let retryPolicy: RetryPolicy?
-    internal var authRefreshRetryCount: Int = 0
-    internal var failureRetryCount: Int = 0
+    let timeoutInterval: TimeInterval
+    let responseConstraints: [APIResponseConstraints]?
+    let retryPolicy: RetryPolicy?
+    var authRefreshRetryCount: Int = 0
+    var failureRetryCount: Int = 0
 
     /// Designated initialiser
     /// - Parameters:
@@ -73,6 +75,7 @@ public class APIRequestV2: Hashable, CustomDebugStringConvertible {
                  cachePolicy: URLRequest.CachePolicy? = nil,
                  responseConstraints: [APIResponseConstraints]? = nil,
                  allowedQueryReservedCharacters: CharacterSet? = nil) {
+
         self.timeoutInterval = timeoutInterval
         self.responseConstraints = responseConstraints
 

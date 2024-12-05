@@ -22,25 +22,23 @@ import os.log
 public struct APIResponseV2 {
     public let data: Data?
     public let httpResponse: HTTPURLResponse
+
+    public init(data: Data?, httpResponse: HTTPURLResponse) {
+        self.data = data
+        self.httpResponse = httpResponse
+    }
 }
 
 public extension APIResponseV2 {
 
     /// Decode the APIResponseV2 into the inferred `Decodable` type
     /// - Parameter decoder: A custom JSONDecoder, if not provided the default JSONDecoder() is used
-    /// - Returns: An instance of a Decodable model of the type inferred, throws an error if the body is empty or the decoding fails
+    /// - Returns: An instance of a Decodable model of the type inferred
     func decodeBody<T: Decodable>(decoder: JSONDecoder = JSONDecoder()) throws -> T {
-        // decoder.keyDecodingStrategy = .convertFromSnakeCase
-        decoder.dateDecodingStrategy = .millisecondsSince1970
 
         guard let data = self.data else {
             throw APIRequestV2.Error.emptyResponseBody
         }
-
-#if DEBUG
-        let resultString = String(data: data, encoding: .utf8)
-        Logger.networking.debug("APIResponse body: \(resultString ?? "<empty>")")
-#endif
 
         Logger.networking.debug("Decoding APIResponse body as \(T.self)")
         switch T.self {

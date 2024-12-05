@@ -21,14 +21,6 @@ import Foundation
 @testable import Subscription
 
 public final class SubscriptionManagerMock: SubscriptionManager {
-    public func currentSubscriptionFeatures(forceRefresh: Bool) async -> [Subscription.SubscriptionFeature] {
-        <#code#>
-    }
-    
-    public func isFeatureActive(_ entitlement: Networking.SubscriptionEntitlement) async -> Bool {
-        <#code#>
-    }
-    
     public init() {}
 
     public static var environment: Subscription.SubscriptionEnvironment?
@@ -47,12 +39,6 @@ public final class SubscriptionManagerMock: SubscriptionManager {
     public func refreshCachedSubscription(completion: @escaping (Bool) -> Void) {}
 
     public var resultSubscription: Subscription.PrivacyProSubscription?
-//    public func currentSubscription(refresh: Bool) async throws -> Subscription.PrivacyProSubscription {
-//        guard let resultSubscription else {
-//            throw SubscriptionEndpointServiceError.noData
-//        }
-//        return resultSubscription
-//    }
 
     public func getSubscriptionFrom(lastTransactionJWSRepresentation: String) async throws -> Subscription.PrivacyProSubscription {
         guard let resultSubscription else {
@@ -87,10 +73,6 @@ public final class SubscriptionManagerMock: SubscriptionManager {
 
     public var userEmail: String? {
         resultTokenContainer?.decodedAccessToken.email
-    }
-
-    public var entitlements: [Networking.SubscriptionEntitlement] {
-        resultTokenContainer?.decodedAccessToken.subscriptionEntitlements ?? []
     }
 
     public var resultTokenContainer: Networking.TokenContainer?
@@ -180,15 +162,12 @@ public final class SubscriptionManagerMock: SubscriptionManager {
         self.resultTokenContainer = tokenContainer
     }
 
-    public func getEntitlements(forceRefresh: Bool) async throws -> [Networking.SubscriptionEntitlement] {
-        return entitlements
+    public var resultFeatures: [Subscription.SubscriptionFeature] = []
+    public func currentSubscriptionFeatures(forceRefresh: Bool) async -> [Subscription.SubscriptionFeature] {
+        resultFeatures
     }
 
-    public var currentEntitlements: [Networking.SubscriptionEntitlement] {
-        entitlements
-    }
-
-    public func isEntitlementActive(_ entitlement: Networking.SubscriptionEntitlement) -> Bool {
-        return entitlements.contains(entitlement)
+    public func isFeatureActive(_ entitlement: Networking.SubscriptionEntitlement) async -> Bool {
+        resultFeatures.contains { $0.entitlement == entitlement }
     }
 }
