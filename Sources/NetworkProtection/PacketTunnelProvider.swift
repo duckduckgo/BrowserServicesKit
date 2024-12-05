@@ -601,12 +601,20 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         switch options.tokenContainer {
         case .set(let newTokenContainer):
             try await tokenProvider.adopt(tokenContainer: newTokenContainer)
-
             // Important: Here we force the token refresh in order to immediately branch the system extension token from the main app one.
             // See discussion https://app.asana.com/0/1199230911884351/1208785842165508/f
             try await tokenProvider.getTokenContainer(policy: .localForceRefresh)
-        default:
-            Logger.networkProtection.fault("Token container not in the startup options")
+        case .useExisting:
+            do {
+                try await tokenProvider.getTokenContainer(policy: .local)
+            } catch {
+                throw TunnelError.startingTunnelWithoutAuthToken
+            }
+        case .reset:
+            // This case should in theory not be possible, but it's ideal to have this in place
+            // in case an error in the controller on the client side allows it.
+            tokenProvider.removeTokenContainer()
+            throw TunnelError.startingTunnelWithoutAuthToken
         }
     }
 #endif
@@ -687,7 +695,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 providerEvents.fire(.tunnelStartAttempt(.failure(error)))
             }
 
-            Logger.networkProtection.log("🔴 Stopping VPN due to no auth token")
+            Logger.networkProtection.error("🔴 Stopping VPN due to no auth token")
             await cancelTunnel(with: TunnelError.startingTunnelWithoutAuthToken)
 
             // Check that the error is valid and able to be re-thrown to the OS before shutting the tunnel down

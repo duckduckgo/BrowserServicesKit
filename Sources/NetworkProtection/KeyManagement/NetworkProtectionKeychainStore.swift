@@ -115,7 +115,7 @@ public final class NetworkProtectionKeychainStore {
         return SecItemUpdate(query as CFDictionary, newAttributes as CFDictionary)
     }
 
-    func deleteAll() throws {
+    public func deleteAll() throws {
         Logger.networkProtectionKeyManagement.debug("Deleting all keys from keychain")
         var query = defaultAttributes()
 #if false
