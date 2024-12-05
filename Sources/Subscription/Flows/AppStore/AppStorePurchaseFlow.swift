@@ -102,7 +102,8 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
             externalID = existingExternalID
         } else {
             Logger.subscriptionAppStorePurchaseFlow.log("Try to retrieve an expired Apple subscription or create a new one")
-            // Check for past transactions most recent
+
+            // Try to restore an account from a past purchase
             switch await appStoreRestoreFlow.restoreAccountFromPastPurchase() {
             case .success:
                 Logger.subscriptionAppStorePurchaseFlow.log("An active subscription is already present")
@@ -203,7 +204,6 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
                 return nil
             }
         } catch {
-            Logger.subscription.error("Failed to retrieve the current subscription: \(error)")
             return nil
         }
     }

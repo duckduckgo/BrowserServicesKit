@@ -597,15 +597,16 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
 #if os(macOS)
     private func loadAuthToken(from options: StartupOptions) async throws {
+        Logger.networkProtection.log("Loading token \(options.tokenContainer.description)")
         switch options.tokenContainer {
         case .set(let newTokenContainer):
             try await tokenProvider.adopt(tokenContainer: newTokenContainer)
 
             // Important: Here we force the token refresh in order to immediately branch the system extension token from the main app one.
             // See discussion https://app.asana.com/0/1199230911884351/1208785842165508/f
-            _ = try await VPNAuthTokenBuilder.getVPNAuthToken(from: tokenProvider, policy: .localForceRefresh)
+            try await tokenProvider.getTokenContainer(policy: .localForceRefresh)
         default:
-            Logger.networkProtection.log("Token container not in the startup options")
+            Logger.networkProtection.fault("Token container not in the startup options")
         }
     }
 #endif

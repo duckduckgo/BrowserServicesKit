@@ -23,7 +23,7 @@ import Networking
 struct VPNAuthTokenBuilder {
 
     static func getVPNAuthToken(from tokenProvider: SubscriptionTokenProvider, policy: TokensCachePolicy) async throws -> String {
-        let token = try await tokenProvider.getTokenContainer(policy: .localValid).accessToken
+        let token = try await tokenProvider.getTokenContainer(policy: policy).accessToken
         return "ddg:\(token)"
     }
 }
