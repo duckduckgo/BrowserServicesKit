@@ -20,6 +20,8 @@ import PixelKit
 import BrowserServicesKit
 import Foundation
 
+public typealias ConversionWindow = ClosedRange<Int>
+
 struct ExperimentEvent: PixelKitEvent {
     var name: String
     var parameters: [String: String]?
@@ -81,7 +83,10 @@ extension PixelKit {
     /// 1. Validates if the experiment is active.
     /// 2. Ensures the user is within the specified conversion window.
     /// 3. Tracks actions performed and sends the pixel once the target value is reached (if applicable).
-    public static func fireExperimentPixel(for subfeatureID: SubfeatureID, metric: String, conversionWindowDays: ClosedRange<Int>, value: String) {
+    public static func fireExperimentPixel(for subfeatureID: SubfeatureID,
+                                           metric: String,
+                                           conversionWindowDays: ConversionWindow,
+                                           value: String) {
         // Check is active experiment for user
         guard let featureFlagger = ExperimentConfig.featureFlagger else {
             assertionFailure("PixelKit is not configured for experiments")
@@ -89,7 +94,11 @@ extension PixelKit {
         }
         guard let experimentData = featureFlagger.getAllActiveExperiments()[subfeatureID] else { return }
 
-        fireExperimentPixelForActiveExperiment(subfeatureID, experimentData: experimentData, metric: metric, conversionWindowDays: conversionWindowDays, value: value)
+        fireExperimentPixelForActiveExperiment(subfeatureID,
+                                               experimentData: experimentData,
+                                               metric: metric,
+                                               conversionWindowDays: conversionWindowDays,
+                                               value: value)
     }
 
     /// Fires search-related experiment pixels for all active experiments.
@@ -99,7 +108,7 @@ extension PixelKit {
     /// - The value and conversion windows define when and how many search actions
     ///   must occur before the pixel is fired.
     public static func fireSearchExperimentPixels() {
-        let valueConversionDictionary: [Int: [ClosedRange<Int>]] = [
+        let valueConversionDictionary: [NumberOfActions: [ConversionWindow]] = [
             1: [0...0, 1...1, 2...2, 3...3, 4...4, 5...5, 6...6, 7...7, 5...7],
             4: [5...7, 8...15],
             6: [5...7, 8...15],
@@ -128,7 +137,7 @@ extension PixelKit {
     /// - The value and conversion windows define when and how many app usage actions
     ///   must occur before the pixel is fired.
     public static func fireAppRetentionExperimentPixels() {
-        let valueConversionDictionary: [Int: [ClosedRange<Int>]] = [
+        let valueConversionDictionary: [NumberOfActions: [ConversionWindow]] = [
             1: [1...1, 2...2, 3...3, 4...4, 5...5, 6...6, 7...7, 5...7],
             4: [5...7, 8...15],
             6: [5...7, 8...15],
@@ -154,7 +163,7 @@ extension PixelKit {
         for experiment: SubfeatureID,
         experimentData: ExperimentData,
         metric: String,
-        valueConversionDictionary: [Int: [ClosedRange<Int>]]
+        valueConversionDictionary: [NumberOfActions: [ConversionWindow]]
     ) {
         valueConversionDictionary.forEach { value, ranges in
             ranges.forEach { range in
@@ -169,7 +178,11 @@ extension PixelKit {
         }
     }
 
-    private static func fireExperimentPixelForActiveExperiment(_ subfeatureID: SubfeatureID, experimentData: ExperimentData, metric: String, conversionWindowDays: ClosedRange<Int>, value: String) {
+    private static func fireExperimentPixelForActiveExperiment(_ subfeatureID: SubfeatureID,
+                                                               experimentData: ExperimentData,
+                                                               metric: String,
+                                                               conversionWindowDays: ConversionWindow,
+                                                               value: String) {
         // Set parameters, event name, store key
         let eventName = "\(Constants.metricsEventPrefix)_\(subfeatureID)_\(experimentData.cohortID)"
         let conversionWindowValue = (conversionWindowDays.lowerBound != conversionWindowDays.upperBound) ?
@@ -188,7 +201,7 @@ extension PixelKit {
         let isInWindow = isUserInConversionWindow(conversionWindowDays, enrollmentDate: experimentData.enrollmentDate)
 
         // Check if value is a number
-        if let numberOfAction = Int(value), numberOfAction > 1 {
+        if let numberOfAction = NumberOfActions(value), numberOfAction > 1 {
             // Increment or remove based on conversion window status
             let shouldSendPixel = ExperimentConfig.eventTracker.incrementAndCheckThreshold(
                 forKey: eventStoreKey,
@@ -207,7 +220,7 @@ extension PixelKit {
     }
 
     private static func isUserInConversionWindow(
-        _ conversionWindowRange: ClosedRange<Int>,
+        _ conversionWindowRange: ConversionWindow,
         enrollmentDate: Date
     ) -> Bool {
         let calendar = Calendar.current

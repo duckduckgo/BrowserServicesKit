@@ -18,6 +18,10 @@
 
 import Foundation
 
+public typealias ThresholdCheckResult = Bool
+public typealias ExprimentPixelNameAndParameters = String
+public typealias NumberOfActions = Int
+
 public protocol ExperimentActionPixelStore {
      func removeObject(forKey defaultName: String)
      func integer(forKey defaultName: String) -> Int
@@ -38,18 +42,18 @@ public protocol ExperimentEventTracking {
     ///   - threshold: The count threshold that triggers a return of `true`.
     ///   - isInWindow: A flag indicating if the count should be considered (e.g., within a time window).
     /// - Returns: `true` if the threshold is exceeded and the count is reset, otherwise `false`.
-    func incrementAndCheckThreshold(forKey key: String, threshold: Int, isInWindow: Bool) -> Bool
+    func incrementAndCheckThreshold(forKey key: ExprimentPixelNameAndParameters, threshold: NumberOfActions, isInWindow: Bool) -> ThresholdCheckResult
 }
 
 public struct ExperimentEventTracker: ExperimentEventTracking {
-    let store: ExperimentActionPixelStore
+    private let store: ExperimentActionPixelStore
     private let syncQueue = DispatchQueue(label: "com.pixelkit.experimentActionSyncQueue")
 
     public init(store: ExperimentActionPixelStore = UserDefaults.standard) {
         self.store = store
     }
 
-    public func incrementAndCheckThreshold(forKey key: String, threshold: Int, isInWindow: Bool) -> Bool {
+    public func incrementAndCheckThreshold(forKey key: ExprimentPixelNameAndParameters, threshold: NumberOfActions, isInWindow: Bool) -> ThresholdCheckResult {
         syncQueue.sync {
             // Remove the key if is not in window
             guard isInWindow else {

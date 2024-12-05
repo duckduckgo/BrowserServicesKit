@@ -152,7 +152,7 @@ public final class PixelKit {
     }
 
     private var dryRun: Bool
-    private let source: String?
+    public let source: String?
     private let pixelCalendar: Calendar
 
     public init(dryRun: Bool,
@@ -396,8 +396,11 @@ public final class PixelKit {
             fireRequest(pixelName, headers, parameters, allowedQueryReservedCharacters, callBackOnMainThread, onComplete)
         }
 
-    // Needs to be updated when fully adopted by iOS
+    // Only set up for macOS and for Experiments
     private func prefixedAndSuffixedName(for event: Event) -> String {
+        if event.name.hasPrefix("experiment") {
+            return addPlatformSuffix(to: event.name)
+        }
         if event.name.hasPrefix("m_mac_") {
             // Can be a debug event or not, if already prefixed the name remains unchanged
             return event.name
@@ -408,20 +411,24 @@ public final class PixelKit {
             // Special kind of pixel event that don't follow the standard naming conventions
             return nonStandardEvent.name
         } else {
-            if let source {
-                switch source {
-                case Source.iOS.rawValue:
-                    return "m_\(event.name)_ios_phone"
-                case Source.iPadOS.rawValue:
-                    return "m_\(event.name)_ios_tablet"
-                case Source.macDMG.rawValue, Source.macStore.rawValue:
-                    return "m_mac_\(event.name)"
-                default:
-                    return "m_mac_\(event.name)"
-                }
-            }
             return "m_mac_\(event.name)"
         }
+    }
+
+    private func addPlatformSuffix(to name: String) -> String {
+        if let source {
+            switch source {
+            case Source.iOS.rawValue:
+                return "\(name)_ios_phone"
+            case Source.iPadOS.rawValue:
+                return "\(name)_ios_tablet"
+            case Source.macStore.rawValue, Source.macDMG.rawValue:
+                return "\(name)_mac"
+            default:
+                return name
+            }
+        }
+        return name
     }
 
     public func fire(_ event: Event,
