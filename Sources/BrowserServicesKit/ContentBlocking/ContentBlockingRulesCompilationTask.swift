@@ -33,6 +33,12 @@ extension ContentBlockerRulesManager {
         struct PerformanceInfo {
             let compilationTime: TimeInterval
             let iterationCount: Int
+
+            // default iterationCount = 1 for successful compilation on one try
+                init(compilationTime: TimeInterval, iterationCount: Int = 1) {
+                    self.compilationTime = compilationTime
+                    self.iterationCount = iterationCount
+                }
         }
 
         enum ResultType {
@@ -86,7 +92,7 @@ extension ContentBlockerRulesManager {
                 DispatchQueue.main.async {
                     let identifier = model.rulesIdentifier.stringValue
                     Logger.contentBlocking.debug("Lookup CBR with \(identifier, privacy: .public)")
-                    // Todo: how do we exclude this case from compilation time where the result is returned from cache
+
                     WKContentRuleListStore.default()?.lookUpContentRuleList(forIdentifier: identifier) { ruleList, _ in
                         if let ruleList = ruleList {
                             Logger.contentBlocking.log("🟢 CBR loaded from cache: \(self.rulesList.name, privacy: .public)")
@@ -181,7 +187,7 @@ extension ContentBlockerRulesManager {
 
             let perfInfo = compilationTime.map {
                 CompilationResult.PerformanceInfo(compilationTime: $0,
-                                                  iterationCount: getCompilationRetryCount())
+                                                  iterationCount: getCompilationIterationCount())
             }
 
             return CompilationResult(compiledRulesList: ruleList,
@@ -191,10 +197,10 @@ extension ContentBlockerRulesManager {
 
         }
 
-        func getCompilationRetryCount() -> Int {
+        func getCompilationIterationCount() -> Int {
             guard let brokenSources = sourceManager.brokenSources else {
-                // if none of the sources are broken, we do not do any retries
-                return 0
+                // if none of the sources are broken, we do 1 successful iteration and do not do any retries
+                return 1
             }
 
             let identifiers = [
@@ -204,7 +210,8 @@ extension ContentBlockerRulesManager {
                 brokenSources.tdsIdentifier
             ]
 
-            return (identifiers.compactMap { $0 }.count)
+            // Add one to account for the first compilation aside from any retries
+            return (identifiers.compactMap { $0 }.count) + 1
         }
 
     }

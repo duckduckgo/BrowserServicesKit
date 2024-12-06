@@ -386,8 +386,8 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
                                                                                                 unprotectedSitesHash: nil))
             }
 
-            // todo - this hard code is a placeholder till I figure out how to check for this task vs. Ad attr task
-            if task.rulesList.name == "TrackerDataSet" {
+            if task.rulesList.name == DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName &&
+                result.resultType == .rulesCompilation {
                 if let perfInfo = result.performanceInfo {
                     self.errorReporting?.fire(.contentBlockingCompilationTaskPerformance(retryCount: perfInfo.iterationCount,
                                                                                          timeBucketAggregation: perfInfo.compilationTime),
