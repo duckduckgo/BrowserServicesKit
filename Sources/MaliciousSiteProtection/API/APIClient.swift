@@ -78,11 +78,11 @@ public extension MaliciousSiteDetector {
 
         public func url(for requestType: APIRequestType) -> URL {
             switch requestType {
-            case .hashPrefixSet(_):
+            case .hashPrefixSet:
                 endpoint.appendingPathComponent(APIPath.hashPrefix)
-            case .filterSet(_):
+            case .filterSet:
                 endpoint.appendingPathComponent(APIPath.filterSet)
-            case .matches(_):
+            case .matches:
                 endpoint.appendingPathComponent(APIPath.matches)
             }
         }
