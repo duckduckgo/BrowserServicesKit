@@ -693,7 +693,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
 
         guard let accounts = try? vault.accountsFor(domain: domain),
               // Matching account (username) or account with empty username for domain
-              var account = accounts.first(where: { $0.username == credentials.username || $0.username == "" }) else {
+              var account = accounts.first(where: { $0.username == credentials.username || $0.username.isNilOrEmpty }) else {
 
                 // No existing credentials found.  This is a new entry
                 let account = SecureVaultModels.WebsiteAccount(username: credentials.username ?? "", domain: domain)
@@ -718,7 +718,7 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
         }
 
         // Prompt to update the login on submit when previous username was empty (there was a partial password account)
-        if existingCredentials.account.username == "" {
+        if existingCredentials.account.username.isNilOrEmpty {
             account.username = autofillData.credentials?.username ?? ""
             return SecureVaultModels.WebsiteCredentials(account: account, password: passwordData)
         }
