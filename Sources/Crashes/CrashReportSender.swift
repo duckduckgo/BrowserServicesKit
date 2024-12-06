@@ -31,11 +31,7 @@ enum CrashReportSenderError: Error {
 
 // By conforming to a protocol, we can sub in mocks more easily
 public final class CrashReportSender: CrashReportSending {
-#if DEBUG
-    static let reportServiceUrl = URL(string: "https://9e3c-20-75-144-152.ngrok-free.app/crash.js")!
-#else
     static let reportServiceUrl = URL(string: "https://duckduckgo.com/crash.js")!
-#endif
 
     static let httpHeaderCRCID = "crcid"
 
