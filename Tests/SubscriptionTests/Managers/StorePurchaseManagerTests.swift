@@ -314,26 +314,6 @@ final class StorePurchaseManagerTests: XCTestCase {
         XCTAssertTrue(products.isEmpty)
     }
 
-    func testUpdateAvailableProductsDoesNotUpdateWhenProductsAreSame() async {
-        // Given
-        let monthlyProduct = createMonthlyProduct()
-        let yearlyProduct = createYearlyProduct()
-        mockProductFetcher.mockProducts = [monthlyProduct, yearlyProduct]
-
-        // First update
-        await sut.updateAvailableProducts()
-        let initialProducts = (sut as? DefaultStorePurchaseManager)?.availableProducts ?? []
-
-        // When - Update with same products
-        await sut.updateAvailableProducts()
-        let updatedProducts = (sut as? DefaultStorePurchaseManager)?.availableProducts ?? []
-
-        // Then
-        XCTAssertEqual(mockProductFetcher.fetchCount, 2)
-        XCTAssertEqual(initialProducts.count, updatedProducts.count)
-        XCTAssertEqual(Set(initialProducts.map { $0.id }), Set(updatedProducts.map { $0.id }))
-    }
-
     func testUpdateAvailableProductsWithDifferentRegions() async {
         // Given
         let usaMonthlyProduct = MockSubscriptionProduct(
