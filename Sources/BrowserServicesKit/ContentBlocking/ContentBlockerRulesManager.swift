@@ -242,26 +242,20 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
         Logger.contentBlocking.debug("Lookup compiled rules")
         prepareSourceManagers()
         let initialCompilationTask = LookupRulesTask(sourceManagers: Array(sourceManagers.values))
-        let mutex = DispatchSemaphore(value: 0)
 
-        Task {
-            do {
-                try await initialCompilationTask.lookupCachedRulesLists()
-            } catch {
-                Logger.contentBlocking.debug("❌ Lookup failed: \(error.localizedDescription, privacy: .public)")
-            }
-            mutex.signal()
-        }
-        // We want to confine Compilation work to WorkQueue, so we wait to come back from async Task
-        mutex.wait()
+        let result: [LookupRulesTask.LookupResult]
 
-        if let result = initialCompilationTask.result {
+        do {
+            result = try initialCompilationTask.lookupCachedRulesLists()
+
             let rules = result.map(Rules.init(compilationResult:))
-            Logger.contentBlocking.debug("🟩 Found \(rules.count, privacy: .public) rules")
+            Logger.contentBlocking.debug("🟩 Lookup Found \(rules.count, privacy: .public) rules")
             applyRules(rules)
             return true
+        } catch {
+            Logger.contentBlocking.debug("❌ Lookup failed: \(error.localizedDescription, privacy: .public)")
+            return false
         }
-        return false
     }
 
     /*
@@ -273,18 +267,10 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
 
         let initialCompilationTask = LastCompiledRulesLookupTask(sourceRules: rulesSource.contentBlockerRulesLists,
                                                                  lastCompiledRules: lastCompiledRules)
-        let mutex = DispatchSemaphore(value: 0)
-        Task {
-            try? await initialCompilationTask.fetchCachedRulesLists()
-            mutex.signal()
-        }
-        // We want to confine Compilation work to WorkQueue, so we wait to come back from async Task
-        mutex.wait()
+        let rules = initialCompilationTask.fetchCachedRulesLists()
 
-        let rulesFound = initialCompilationTask.getFetchedRules()
-
-        if let rulesFound {
-            applyRules(rulesFound)
+        if let rules {
+            applyRules(rules)
         } else {
             lock.lock()
             state = .idle
@@ -294,7 +280,7 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
         // No matter if rules were found or not, we need to schedule recompilation, after all
         scheduleCompilation()
 
-        return rulesFound != nil
+        return rules != nil
     }
 
     private func prepareSourceManagers() {
