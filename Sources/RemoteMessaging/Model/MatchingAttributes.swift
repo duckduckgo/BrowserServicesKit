@@ -49,10 +49,10 @@ struct AppIdMatchingAttribute: SingleValueMatching {
 }
 
 struct AppVersionMatchingAttribute: StringRangeMatching {
-    static let defaultMaxValue: String = AppVersion.shared.versionAndBuildNumber
+    static let defaultMaxValue: String = AppVersion.shared.versionNumber
 
     var min: String = MatchingAttributeDefaults.stringDefaultValue
-    var max: String = AppVersion.shared.versionAndBuildNumber
+    var max: String = AppVersion.shared.versionNumber
     var value: String = MatchingAttributeDefaults.stringDefaultValue
     var fallback: Bool?
 }
