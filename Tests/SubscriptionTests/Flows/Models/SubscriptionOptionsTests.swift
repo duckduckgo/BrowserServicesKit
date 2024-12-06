@@ -81,7 +81,7 @@ final class SubscriptionOptionsTests: XCTestCase {
         "displayPrice" : "$0.00",
         "durationInDays" : 7,
         "id" : "2",
-        "isUserEligi ble" : true,
+        "isUserEligible" : true,
         "type" : "freeTrial"
       }
     }
