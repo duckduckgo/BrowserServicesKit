@@ -144,10 +144,6 @@ class CommonAppAttributeMatcherTests: XCTestCase {
                        .fail)
     }
 
-    func testWhenAppVersionDoesNotIncludeBuildNumberButVersionMatchesThenReturnMatch() {
-
-    }
-
     func testWhenAtbMatchesThenReturnMatch() throws {
         XCTAssertEqual(matcher.evaluate(matchingAttribute: AtbMatchingAttribute(value: "v105-2", fallback: nil)),
                        .match)
