@@ -868,42 +868,6 @@ extension SecureVaultManager: AutofillSecureVaultDelegate {
 
 }
 
-final class PartialFormSaveManager {
-    typealias WebsiteAccount = SecureVaultModels.WebsiteAccount
-
-    private static var accounts: [String: WebsiteAccount] = .init()
-
-    func partialAccount(forDomain domain: String) -> WebsiteAccount? {
-        guard let tldPlus1 = TLD().eTLDplus1(domain) else {
-            return nil
-        }
-        guard let account = Self.accounts[tldPlus1] else {
-            return nil
-        }
-
-        guard account.lastUpdated.isLessThan(minutesAgo: 3) else {
-            Self.accounts.removeValue(forKey: domain)
-            return nil
-        }
-
-        return account
-    }
-
-    func store(partialAccount: WebsiteAccount, for domain: String) {
-        guard let tldPlus1 = TLD().eTLDplus1(domain) else {
-            return
-        }
-        Self.accounts[tldPlus1] = partialAccount
-    }
-
-    func removePartialAccount(for domain: String) {
-        guard let tldPlus1 = TLD().eTLDplus1(domain) else {
-            return
-        }
-        Self.accounts.removeValue(forKey: tldPlus1)
-    }
-}
-
 fileprivate extension AutofillSecureVault {
 
     func websiteCredentialsFor(accountId: String) throws -> SecureVaultModels.WebsiteCredentials? {
@@ -915,13 +879,4 @@ fileprivate extension AutofillSecureVault {
         return try websiteCredentialsFor(accountId: accountIdInt)
     }
 
-}
-
-extension Optional where Wrapped == String {
-    var isNilOrEmpty: Bool {
-        if case .some(let wrapped) = self {
-            return wrapped.isEmpty
-        }
-        return true
-    }
 }

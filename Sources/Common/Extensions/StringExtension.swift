@@ -495,3 +495,12 @@ public extension StringProtocol {
     }
 
 }
+
+extension Optional where Wrapped == String {
+    public var isNilOrEmpty: Bool {
+        if case .some(let wrapped) = self {
+            return wrapped.isEmpty
+        }
+        return true
+    }
+}
