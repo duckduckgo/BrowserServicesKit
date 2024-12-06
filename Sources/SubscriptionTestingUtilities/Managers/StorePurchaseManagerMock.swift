@@ -20,7 +20,7 @@ import Foundation
 import Subscription
 
 public final class StorePurchaseManagerMock: StorePurchaseManager {
-    
+
     public var purchasedProductIDs: [String] = []
     public var purchaseQueue: [String] = []
     public var areProductsAvailable: Bool = false

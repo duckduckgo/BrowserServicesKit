@@ -304,7 +304,6 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
             Logger.subscription.error("[StorePurchaseManager] Error: \(String(reflecting: error), privacy: .public)")
         }
     }
-    
 
     @MainActor
     public func updatePurchasedProducts() async {
