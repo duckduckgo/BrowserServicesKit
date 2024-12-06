@@ -42,12 +42,7 @@ extension StringRangeMatching {
         let value = jsonMatchingAttribute[RuleAttributes.value] as? String ?? MatchingAttributeDefaults.stringDefaultValue
         let fallback = jsonMatchingAttribute[RuleAttributes.fallback] as? Bool
 
-        self.init(
-            min: min.trimmingBuildNumber,
-            max: max.trimmingBuildNumber,
-            value: value.trimmingBuildNumber,
-            fallback: fallback
-        )
+        self.init(min: min, max: max, value: value, fallback: fallback)
     }
 
     init(fallback: Bool?) {
@@ -65,18 +60,4 @@ extension StringRangeMatching {
         }
         return RangeStringNumericMatchingAttribute(min: min, max: max).matches(value: value)
     }
-}
-
-private extension String {
-
-    var trimmingBuildNumber: String {
-        let components = self.split(separator: ".")
-
-        if components.count == 4 {
-            return components.dropLast().joined(separator: ".")
-        } else {
-            return self
-        }
-    }
-
 }

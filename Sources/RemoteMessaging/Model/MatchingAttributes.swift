@@ -49,12 +49,27 @@ struct AppIdMatchingAttribute: SingleValueMatching {
 }
 
 struct AppVersionMatchingAttribute: StringRangeMatching {
+
     static let defaultMaxValue: String = AppVersion.shared.versionNumber
 
-    var min: String = MatchingAttributeDefaults.stringDefaultValue
-    var max: String = AppVersion.shared.versionNumber
-    var value: String = MatchingAttributeDefaults.stringDefaultValue
+    var min: String
+    var max: String
+    var value: String
     var fallback: Bool?
+
+    // Legacy versions of the app require a build number in the version string in order to match correctly.
+    // To allow message authors to include a build number for backwards compatibility, while also allowing new clients to use the simpler version
+    // string, this initializer trims the build number before storing it.
+    init(min: String = MatchingAttributeDefaults.stringDefaultValue,
+         max: String  = AppVersion.shared.versionNumber,
+         value: String = MatchingAttributeDefaults.stringDefaultValue,
+         fallback: Bool?) {
+        self.min = min.trimmingBuildNumber
+        self.max = max.trimmingBuildNumber
+        self.value = value.trimmingBuildNumber
+        self.fallback = fallback
+    }
+
 }
 
 struct AtbMatchingAttribute: SingleValueMatching {
@@ -305,4 +320,18 @@ struct RangeStringNumericMatchingAttribute: Equatable {
 
         return version + String(repeating: ".0", count: matchComponents.count - versionComponents.count)
     }
+}
+
+private extension String {
+
+    var trimmingBuildNumber: String {
+        let components = self.split(separator: ".")
+
+        if components.count == 4 {
+            return components.dropLast().joined(separator: ".")
+        } else {
+            return self
+        }
+    }
+
 }
