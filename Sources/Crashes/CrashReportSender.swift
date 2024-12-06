@@ -86,20 +86,4 @@ public final class CrashReportSender: CrashReportSending {
             }
         }
     }
-
-    // Cohort identifier used exclusively to distinguish systemic crashes, only after the user opts in to send them.
-    // Its purpose is strictly limited to improving the reliability of crash reporting and is never used elsewhere.
-    static let crashReportCohortIDKey = "CrashReportSender.crashReportCohortID"
-    var crashReportCohortID: String? {
-        get {
-            if let crcid = UserDefaults().string(forKey: CrashReportSender.crashReportCohortIDKey) {
-                return crcid
-            } else {
-                return nil
-            }
-        }
-        set {
-            UserDefaults().setValue(newValue, forKey: CrashReportSender.crashReportCohortIDKey)
-        }
-    }
 }

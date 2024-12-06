@@ -77,7 +77,7 @@ class CrashCollectionTests: XCTestCase {
         }
 
         // Execute crash collection (which will call our mocked CrashReportSender as well)
-        XCTAssertNil(store.object(forKey: CrashCollection.Const.crcidKey), "CRCID should not be present in the store before crashHandler receives crashes")
+        XCTAssertNil(store.object(forKey: CRCIDManager.crcidKey), "CRCID should not be present in the store before crashHandler receives crashes")
         crashCollection.crashHandler.didReceive([
             MockPayload(mockCrashes: [
                 MXCrashDiagnostic(),
@@ -87,7 +87,7 @@ class CrashCollectionTests: XCTestCase {
         
         self.wait(for: [expectation], timeout: 3)
         
-        XCTAssertEqual(store.object(forKey: CrashCollection.Const.crcidKey) as? String, responseCRCIDValue)
+        XCTAssertEqual(store.object(forKey: CRCIDManager.crcidKey) as? String, responseCRCIDValue)
     }
     
     func testCRCIDIsClearedWhenServerReturnsSuccessWithNoCRCID()
@@ -107,8 +107,8 @@ class CrashCollectionTests: XCTestCase {
         }
 
         // Execute crash collection (which will call our mocked CrashReportSender as well)
-        store.set("Initial CRCID Value", forKey: CrashCollection.Const.crcidKey)
-        XCTAssertNotNil(store.object(forKey: CrashCollection.Const.crcidKey))   // TODO: Too pedantic?  We probably don't need to be explicitly validating MockKeyValueStore here
+        store.set("Initial CRCID Value", forKey: CRCIDManager.crcidKey)
+        XCTAssertNotNil(store.object(forKey: CRCIDManager.crcidKey))   // TODO: Too pedantic?  We probably don't need to be explicitly validating MockKeyValueStore here
         crashCollection.crashHandler.didReceive([
             MockPayload(mockCrashes: [
                 MXCrashDiagnostic(),
@@ -118,7 +118,7 @@ class CrashCollectionTests: XCTestCase {
         
         self.wait(for: [expectation], timeout: 3)
         
-        XCTAssertNil(store.object(forKey: CrashCollection.Const.crcidKey), "CRCID should not be present in the store after receiving a successful response")
+        XCTAssertNil(store.object(forKey: CRCIDManager.crcidKey), "CRCID should not be present in the store after receiving a successful response")
     }
     
     func testCRCIDIsRetainedWhenServerErrorIsReceived() {
@@ -138,7 +138,7 @@ class CrashCollectionTests: XCTestCase {
 
         // Execute crash collection (which will call our mocked CrashReportSender as well)
         let crcid = "Initial CRCID Value"
-        store.set(crcid, forKey: CrashCollection.Const.crcidKey)
+        store.set(crcid, forKey: CRCIDManager.crcidKey)
         crashReportSender.responseStatusCode = 500
         crashCollection.crashHandler.didReceive([
             MockPayload(mockCrashes: [
@@ -149,7 +149,7 @@ class CrashCollectionTests: XCTestCase {
         
         self.wait(for: [expectation], timeout: 3)
         
-        XCTAssertEqual(store.object(forKey: CrashCollection.Const.crcidKey) as? String, crcid)
+        XCTAssertEqual(store.object(forKey: CRCIDManager.crcidKey) as? String, crcid)
     }
     
     func testCRCIDIsSentToServer() {

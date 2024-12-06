@@ -44,6 +44,7 @@ public final class CrashCollection {
         self.crashHandler = CrashHandler()
         self.crashSender = crashReportSender
         self.crashCollectionStorage = crashCollectionStorage
+        self.crcidManager = CRCIDManager(store: crashCollectionStorage)
     }
 
     public func start(didFindCrashReports: @escaping (_ pixelParameters: [[String: String]], _ payloads: [Data], _ uploadReports: @escaping () -> Void) -> Void) {
@@ -87,29 +88,9 @@ public final class CrashCollection {
             didFindCrashReports(pixelParameters, processedData) {
                 Task {
                     for payload in processedData {
-                        let crcid = self.crashCollectionStorage.object(forKey: Const.crcidKey) as? String
-                        let result =  await self.crashSender.send(payload, crcid: crcid)
+                        let result =  await self.crashSender.send(payload, crcid: self.crcidManager.crcid)
+                        self.crcidManager.handleCrashSenderResult(result: result.result, response: result.response)
 
-                        Logger.general.debug("Crash Collection - Sending crash report with crcid: \(crcid ?? "nil")")
-
-                        switch result.result {
-                        case .success:
-                            Logger.general.debug("Crash Collection - Sending Crash Report: succeeded")
-                            if let receivedCRCID = result.response?.allHeaderFields[CrashReportSender.httpHeaderCRCID] as? String {
-                                if crcid != receivedCRCID {
-                                    Logger.general.debug("Crash Collection - Received new value for CRCID: \(receivedCRCID), setting local crcid value")
-                                    self.crashCollectionStorage.set(receivedCRCID, forKey: Const.crcidKey)
-                                } else {
-                                    Logger.general.debug("Crash Collection - Received matching value for CRCID: \(receivedCRCID), no update necessary")
-                                }
-                            } else {
-                                Logger.general.debug("Crash Collection - No value for CRCID header: \(Const.crcidKey), clearing local crcid value if present")
-                                self.clearCRCID()
-                            }
-                        case .failure(let failure):
-                            // TODO: Is it worth sending a pixel for this case, so that we can monitor for missing crash reports?
-                            Logger.general.debug("Crash Collection - Sending Crash Report: failed (\(failure))")
-                        }
                     }
                     didFinishHandlingResponse()
                 }
@@ -202,9 +183,7 @@ public final class CrashCollection {
     }
 
     public func clearCRCID() {
-        self.crashCollectionStorage.removeObject(forKey: Const.crcidKey)
-        let crcid = self.crashCollectionStorage.object(forKey: Const.crcidKey) as? String ?? "nil"
-        Logger.general.debug("Cleared CRCID.  Value in key store is now: \(crcid)")
+        self.crcidManager.crcid = nil
     }
 
     var isFirstCrash: Bool {
@@ -220,9 +199,64 @@ public final class CrashCollection {
     let crashHandler: CrashHandler
     let crashSender: CrashReportSending
     let crashCollectionStorage: KeyValueStoring
+    let crcidManager: CRCIDManager
 
     enum Const {
         static let firstCrashKey = "CrashCollection.first"
-        static let crcidKey = "CrashCollection.crcid"
+    }
+}
+
+
+
+// TODO: This should really be its own file, but adding a new file to BSK and propagating it to iOS and macOS projects is hard.  This can be done as a separate PR once the main changes land across all 3 repos
+//import Foundation
+//import Persistence
+//import os.log
+
+// Cohort identifier used exclusively to distinguish systemic crashes, only after the user opts in to send them.
+// Its purpose is strictly limited to improving the reliability of crash reporting and is never used elsewhere.
+public class CRCIDManager {
+    static let crcidKey = "CRCIDManager.crcidKey"
+    var store: KeyValueStoring
+
+    public init(store: KeyValueStoring = UserDefaults()) {
+        self.store = store
+    }
+
+    public func handleCrashSenderResult(result: Result<Data?, Error>, response: HTTPURLResponse?) {
+        switch result {
+        case .success:
+            Logger.general.debug("Crash Collection - Sending Crash Report: succeeded")
+            if let receivedCRCID = response?.allHeaderFields[CrashReportSender.httpHeaderCRCID] as? String {
+                if crcid != receivedCRCID {
+                    Logger.general.debug("Crash Collection - Received new value for CRCID: \(receivedCRCID), setting local crcid value")
+                    crcid =  receivedCRCID
+                } else {
+                    Logger.general.debug("Crash Collection - Received matching value for CRCID: \(receivedCRCID), no update necessary")
+                }
+            } else {
+                Logger.general.debug("Crash Collection - No value for CRCID header: \(CRCIDManager.crcidKey), clearing local crcid value if present")
+                crcid = nil
+            }
+        case .failure(let failure):
+            // TODO: Is it worth sending a pixel for this case, so that we can monitor for missing crash reports?
+            Logger.general.debug("Crash Collection - Sending Crash Report: failed (\(failure))")
+        }
+    }
+
+    public var crcid: String? {
+        get {
+            return self.store.object(forKey: CRCIDManager.crcidKey) as? String
+        }
+
+        set {
+            // TODO: Is this distinction necessary?
+            if let newValue {
+                store.set(newValue, forKey: CRCIDManager.crcidKey)
+            } else {
+                store.removeObject(forKey: CRCIDManager.crcidKey)
+                Logger.general.debug("Cleared CRCID")
+            }
+        }
     }
 }
