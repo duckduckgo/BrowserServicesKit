@@ -29,6 +29,7 @@ extension APIClient {
 extension APIClient: APIClient.Mockable {}
 
 public protocol APIClientEnvironment {
+    func queryItems(for requestType: APIRequestType) -> QueryItems
     func headers(for requestType: APIRequestType) -> APIRequestV2.HeadersV2
     func url(for requestType: APIRequestType) -> URL
 }
@@ -62,20 +63,27 @@ public extension MaliciousSiteDetector {
             static let hashPrefix = "hashPrefix"
         }
 
-        public func url(for requestType: APIRequestType) -> URL {
+        public func queryItems(for requestType: APIRequestType) -> QueryItems {
             switch requestType {
             case .hashPrefixSet(let configuration):
-                endpoint.appendingPathComponent(APIPath.hashPrefix).appendingParameters([
-                    QueryParameter.category: configuration.threatKind.rawValue,
-                    QueryParameter.revision: (configuration.revision ?? 0).description,
-                ])
+                return [QueryParameter.category: configuration.threatKind.rawValue,
+                        QueryParameter.revision: (configuration.revision ?? 0).description]
             case .filterSet(let configuration):
-                endpoint.appendingPathComponent(APIPath.filterSet).appendingParameters([
-                    QueryParameter.category: configuration.threatKind.rawValue,
-                    QueryParameter.revision: (configuration.revision ?? 0).description,
-                ])
+                return [QueryParameter.category: configuration.threatKind.rawValue,
+                        QueryParameter.revision: (configuration.revision ?? 0).description]
             case .matches(let configuration):
-                endpoint.appendingPathComponent(APIPath.matches).appendingParameter(name: QueryParameter.hashPrefix, value: configuration.hashPrefix)
+                return [QueryParameter.hashPrefix: configuration.hashPrefix]
+            }
+        }
+
+        public func url(for requestType: APIRequestType) -> URL {
+            switch requestType {
+            case .hashPrefixSet(_):
+                endpoint.appendingPathComponent(APIPath.hashPrefix)
+            case .filterSet(_):
+                endpoint.appendingPathComponent(APIPath.filterSet)
+            case .matches(_):
+                endpoint.appendingPathComponent(APIPath.matches)
             }
         }
 
@@ -100,8 +108,9 @@ struct APIClient {
         let requestType = requestConfig.requestType
         let headers = environment.headers(for: requestType)
         let url = environment.url(for: requestType)
+        let queryItems = environment.queryItems(for: requestType)
 
-        let apiRequest = APIRequestV2(url: url, headers: headers, timeoutInterval: requestConfig.timeout ?? 60)!
+        let apiRequest = APIRequestV2(url: url, queryItems: queryItems, headers: headers, timeoutInterval: requestConfig.timeout ?? 60)!
         let response = try await service.fetch(request: apiRequest)
         let result: R.Response = try response.decodeBody()
 

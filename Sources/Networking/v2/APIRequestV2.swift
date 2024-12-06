@@ -83,9 +83,7 @@ public class APIRequestV2: Hashable, CustomDebugStringConvertible {
             return nil
         }
         urlComps.queryItems = queryItems?.toURLQueryItems(allowedReservedCharacters: allowedQueryReservedCharacters)
-        guard let finalURL = urlComps.url else {
-            return nil
-        }
+        guard let finalURL = urlComps.url else { return nil }
         var request = URLRequest(url: finalURL, timeoutInterval: timeoutInterval)
         request.allHTTPHeaderFields = headers?.httpHeaders
         request.httpMethod = method.rawValue

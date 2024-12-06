@@ -180,13 +180,6 @@
     {
       "target" : {
         "containerPath" : "container:",
-        "identifier" : "PhishingDetectionTests",
-        "name" : "PhishingDetectionTests"
-      }
-    },
-    {
-      "target" : {
-        "containerPath" : "container:",
         "identifier" : "PageRefreshMonitorTests",
         "name" : "PageRefreshMonitorTests"
       }

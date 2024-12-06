@@ -22,7 +22,7 @@ import Common
 extension Dictionary where Key == String, Value == String {
 
     public func toURLQueryItems(allowedReservedCharacters: CharacterSet? = nil) -> [URLQueryItem] {
-        return self.map {
+        return self.sorted(by: <).map {
             if let allowedReservedCharacters {
                 URLQueryItem(percentEncodingName: $0.key,
                              value: $0.value,
