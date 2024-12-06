@@ -34,13 +34,12 @@ public enum VPNRoutingRange {
         "::1/128",    /* loopback */
     ]
 
-    public static let localNetworkRange: [NetworkProtection.IPAddressRange] = [
-        // "10.0.0.0/8",     /* 255.0.0.0   */
+    public static let localNetworkRangeWithoutDNS: [NetworkProtection.IPAddressRange] = [
         "172.16.0.0/12",  /* 255.240.0.0 */
         "192.168.0.0/16", /* 255.255.0.0 */
     ]
 
-    public static let localNetworkRangeWithDNS: [NetworkProtection.IPAddressRange] = [
+    public static let localNetworkRange: [NetworkProtection.IPAddressRange] = [
         "10.0.0.0/8",     /* 255.0.0.0   */
         "172.16.0.0/12",  /* 255.240.0.0 */
         "192.168.0.0/16", /* 255.255.0.0 */
