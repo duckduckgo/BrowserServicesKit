@@ -31,11 +31,14 @@ enum CrashReportSenderError: Error {
 
 // By conforming to a protocol, we can sub in mocks more easily
 public final class CrashReportSender: CrashReportSending {
-
+#if DEBUG
+    static let reportServiceUrl = URL(string: "https://9e3c-20-75-144-152.ngrok-free.app/crash.js")!
+#else
     static let reportServiceUrl = URL(string: "https://duckduckgo.com/crash.js")!
+#endif
 
     static let httpHeaderCRCID = "crcid"
-    
+
     public let platform: CrashCollectionPlatform
     
     private let session = URLSession(configuration: .ephemeral)
@@ -87,7 +90,9 @@ public final class CrashReportSender: CrashReportSending {
             }
         }
     }
-    
+
+    // Cohort identifier used exclusively to distinguish systemic crashes, only after the user opts in to send them.
+    // Its purpose is strictly limited to improving the reliability of crash reporting and is never used elsewhere.
     static let crashReportCohortIDKey = "CrashReportSender.crashReportCohortID"
     var crashReportCohortID: String? {
         get {

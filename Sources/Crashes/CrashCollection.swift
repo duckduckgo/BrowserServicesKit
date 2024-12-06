@@ -90,19 +90,21 @@ public final class CrashCollection {
                         let crcid = self.crashCollectionStorage.object(forKey: Const.crcidKey) as? String
                         let result =  await self.crashSender.send(payload, crcid: crcid)
 
+                        Logger.general.debug("Crash Collection - Sending crash report with crcid: \(crcid ?? "nil")")
+
                         switch result.result {
                         case .success:
                             Logger.general.debug("Crash Collection - Sending Crash Report: succeeded")
                             if let receivedCRCID = result.response?.allHeaderFields[CrashReportSender.httpHeaderCRCID] as? String {
                                 if crcid != receivedCRCID {
-                                    Logger.general.debug("Received new value for CRCID: \(receivedCRCID), setting local crcid value")
+                                    Logger.general.debug("Crash Collection - Received new value for CRCID: \(receivedCRCID), setting local crcid value")
                                     self.crashCollectionStorage.set(receivedCRCID, forKey: Const.crcidKey)
                                 } else {
-                                    Logger.general.debug("Received matching value for CRCID: \(receivedCRCID), no update necessary")
+                                    Logger.general.debug("Crash Collection - Received matching value for CRCID: \(receivedCRCID), no update necessary")
                                 }
                             } else {
-                                Logger.general.debug("No value for CRCID header: \(Const.crcidKey), clearing local crcid value if present")
-                                self.crashCollectionStorage.removeObject(forKey: Const.crcidKey)
+                                Logger.general.debug("Crash Collection - No value for CRCID header: \(Const.crcidKey), clearing local crcid value if present")
+                                self.clearCRCID()
                             }
                         case .failure(let failure):
                             // TODO: Is it worth sending a pixel for this case, so that we can monitor for missing crash reports?
@@ -197,6 +199,12 @@ public final class CrashCollection {
             }
 
         }, didFindCrashReports: didFindCrashReports)
+    }
+
+    public func clearCRCID() {
+        self.crashCollectionStorage.removeObject(forKey: Const.crcidKey)
+        let crcid = self.crashCollectionStorage.object(forKey: Const.crcidKey) as? String ?? "nil"
+        Logger.general.debug("Cleared CRCID.  Value in key store is now: \(crcid)")
     }
 
     var isFirstCrash: Bool {
