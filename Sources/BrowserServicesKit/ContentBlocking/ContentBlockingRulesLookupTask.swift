@@ -24,11 +24,12 @@ extension ContentBlockerRulesManager {
 
     final class LookupRulesTask {
 
-        typealias LookupResult = (compiledRulesList: WKContentRuleList, model: ContentBlockerRulesSourceModel)
+        // This type has been overloaded multiple times, I'm collapsing them all into CompilationResult type
+        // typealias LookupResult = (compiledRulesList: WKContentRuleList, model: ContentBlockerRulesSourceModel)
 
         private let sourceManagers: [ContentBlockerRulesSourceManager]
 
-        public private(set) var result: [LookupResult]?
+        public private(set) var result: [CompilationResult]?
 
         init(sourceManagers: [ContentBlockerRulesSourceManager]) {
             self.sourceManagers = sourceManagers
@@ -36,7 +37,7 @@ extension ContentBlockerRulesManager {
 
         func lookupCachedRulesLists() async throws {
 
-            var result = [LookupResult]()
+            var result = [CompilationResult]()
             for sourceManager in sourceManagers {
                 guard let model = sourceManager.makeModel() else {
                     throw WKError(.contentRuleListStoreLookUpFailed)
@@ -49,7 +50,10 @@ extension ContentBlockerRulesManager {
                     throw WKError(.contentRuleListStoreLookUpFailed)
                 }
 
-                result.append((ruleList, model))
+                result.append(CompilationResult(compiledRulesList: ruleList,
+                                                model: model,
+                                                resultType: .cacheLookup,
+                                                performanceInfo: nil))
             }
             self.result = result
         }
