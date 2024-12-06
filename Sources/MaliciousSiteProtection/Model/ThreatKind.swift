@@ -22,6 +22,6 @@ public enum ThreatKind: String, CaseIterable, Codable, CustomStringConvertible {
     public var description: String { rawValue }
 
     case phishing
-    // case malware
+    case malware
 
 }
