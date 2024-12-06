@@ -26,7 +26,7 @@ import Common
 final class SubscriptionEndpointServiceTests: XCTestCase {
     private var apiService: MockAPIService!
     private var endpointService: DefaultSubscriptionEndpointService!
-    private let baseURL = URL(string: "https://api.example.com")!
+    private let baseURL = SubscriptionEnvironment.ServiceEnvironment.staging.url
     private let disposableCache = UserDefaultsCache<PrivacyProSubscription>(key: UserDefaultsCacheKeyKest.subscriptionTest,
                                                                             settings: UserDefaultsCacheSettings(defaultExpirationInterval: .minutes(20)))
     private enum UserDefaultsCacheKeyKest: String, UserDefaultsCacheKeyStore {
@@ -97,9 +97,13 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
     }
 
     func testGetSubscriptionFetchesRemoteSubscriptionWhenNoCache() async throws {
+        // mock subscription response
         let subscriptionData = createSubscriptionResponseData()
         let apiResponse = createAPIResponse(statusCode: 200, data: subscriptionData)
         let request = SubscriptionRequest.getSubscription(baseURL: baseURL, accessToken: "token")!.apiRequest
+
+        // mock features
+        APIMockResponseFactory.mockGetFeatures(destinationMockAPIService: apiService, success: true, subscriptionID: "prod123")
 
         apiService.set(response: apiResponse, forRequest: request)
 

@@ -28,7 +28,6 @@ class SubscriptionManagerTests: XCTestCase {
     var mockOAuthClient: MockOAuthClient!
     var mockSubscriptionEndpointService: SubscriptionEndpointServiceMock!
     var mockStorePurchaseManager: StorePurchaseManagerMock!
-    var subscriptionFeatureMappingCache: SubscriptionFeatureMappingCacheMock!
     var subscriptionFeatureFlagger: FeatureFlaggerMapping<SubscriptionFeatureFlags>!
 
     override func setUp() {
@@ -37,14 +36,12 @@ class SubscriptionManagerTests: XCTestCase {
         mockOAuthClient = MockOAuthClient()
         mockSubscriptionEndpointService = SubscriptionEndpointServiceMock()
         mockStorePurchaseManager = StorePurchaseManagerMock()
-        subscriptionFeatureMappingCache = SubscriptionFeatureMappingCacheMock()
         subscriptionFeatureFlagger = FeatureFlaggerMapping<SubscriptionFeatureFlags>(mapping: { $0.defaultState })
 
         subscriptionManager = DefaultSubscriptionManager(
             storePurchaseManager: mockStorePurchaseManager,
             oAuthClient: mockOAuthClient,
             subscriptionEndpointService: mockSubscriptionEndpointService,
-            subscriptionFeatureMappingCache: subscriptionFeatureMappingCache,
             subscriptionEnvironment: SubscriptionEnvironment(serviceEnvironment: .staging, purchasePlatform: .stripe),
             subscriptionFeatureFlagger: subscriptionFeatureFlagger,
             pixelHandler: { _ in }
@@ -88,7 +85,6 @@ class SubscriptionManagerTests: XCTestCase {
             storePurchaseManager: mockStorePurchaseManager,
             oAuthClient: mockOAuthClient,
             subscriptionEndpointService: mockSubscriptionEndpointService,
-            subscriptionFeatureMappingCache: subscriptionFeatureMappingCache,
             subscriptionEnvironment: SubscriptionEnvironment(serviceEnvironment: .staging, purchasePlatform: .stripe),
             subscriptionFeatureFlagger: subscriptionFeatureFlagger,
             pixelHandler: { type in
@@ -168,7 +164,6 @@ class SubscriptionManagerTests: XCTestCase {
             storePurchaseManager: mockStorePurchaseManager,
             oAuthClient: mockOAuthClient,
             subscriptionEndpointService: mockSubscriptionEndpointService,
-            subscriptionFeatureMappingCache: subscriptionFeatureMappingCache,
             subscriptionEnvironment: environment,
             subscriptionFeatureFlagger: subscriptionFeatureFlagger,
             pixelHandler: { _ in }
@@ -227,7 +222,6 @@ class SubscriptionManagerTests: XCTestCase {
             storePurchaseManager: mockStorePurchaseManager,
             oAuthClient: mockOAuthClient,
             subscriptionEndpointService: mockSubscriptionEndpointService,
-            subscriptionFeatureMappingCache: subscriptionFeatureMappingCache,
             subscriptionEnvironment: productionEnvironment,
             subscriptionFeatureFlagger: subscriptionFeatureFlagger,
             pixelHandler: { _ in }
@@ -248,7 +242,6 @@ class SubscriptionManagerTests: XCTestCase {
             storePurchaseManager: mockStorePurchaseManager,
             oAuthClient: mockOAuthClient,
             subscriptionEndpointService: mockSubscriptionEndpointService,
-            subscriptionFeatureMappingCache: subscriptionFeatureMappingCache,
             subscriptionEnvironment: stagingEnvironment,
             subscriptionFeatureFlagger: subscriptionFeatureFlagger,
             pixelHandler: { _ in }

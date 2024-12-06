@@ -16,7 +16,7 @@
 //  limitations under the License.
 //
 import Foundation
-import Networking
+@testable import Networking
 import TestUtils
 import XCTest
 

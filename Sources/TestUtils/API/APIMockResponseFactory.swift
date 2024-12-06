@@ -54,7 +54,7 @@ public struct APIMockResponseFactory {
             let response = APIResponseV2(data: nil, httpResponse: httpResponse)
             apiService.set(response: response, forRequest: request.apiRequest)
         } else {
-
+            assertionFailure("TODO: implement")
         }
     }
 
@@ -76,7 +76,7 @@ public struct APIMockResponseFactory {
             let response = APIResponseV2(data: jsonString.data(using: .utf8), httpResponse: httpResponse)
             apiService.set(response: response, forRequest: request.apiRequest)
         } else {
-
+            assertionFailure("TODO: implement")
         }
     }
 
@@ -93,7 +93,7 @@ public struct APIMockResponseFactory {
             let response = APIResponseV2(data: jsonString.data(using: .utf8), httpResponse: httpResponse)
             apiService.set(response: response, forRequest: request.apiRequest)
         } else {
-
+            assertionFailure("TODO: implement")
         }
     }
 
@@ -112,7 +112,41 @@ public struct APIMockResponseFactory {
             let response = APIResponseV2(data: jsonString.data(using: .utf8), httpResponse: httpResponse)
             apiService.set(response: response, forRequest: request.apiRequest)
         } else {
+            assertionFailure("TODO: implement")
+        }
+    }
 
+    public static func mockGetProducts(destinationMockAPIService apiService: MockAPIService, success: Bool) {
+        let request = SubscriptionRequest.getProducts(baseURL: SubscriptionEnvironment.ServiceEnvironment.staging.url)!
+        if success {
+            let jsonString = """
+[{"productId":"ddg-privacy-pro-sandbox-monthly-renews-us","productLabel":"Monthly Subscription","billingPeriod":"Monthly","price":"9.99","currency":"USD"},{"productId":"ddg-privacy-pro-sandbox-yearly-renews-us","productLabel":"Yearly Subscription","billingPeriod":"Yearly","price":"99.99","currency":"USD"}]
+"""
+            let httpResponse = HTTPURLResponse(url: request.apiRequest.urlRequest.url!,
+                                               statusCode: HTTPStatusCode.ok.rawValue,
+                                               httpVersion: nil,
+                                               headerFields: [:])!
+            let response = APIResponseV2(data: jsonString.data(using: .utf8), httpResponse: httpResponse)
+            apiService.set(response: response, forRequest: request.apiRequest)
+        } else {
+            assertionFailure("TODO: implement")
+        }
+    }
+
+    public static func mockGetFeatures(destinationMockAPIService apiService: MockAPIService, success: Bool, subscriptionID: String) {
+        let request = SubscriptionRequest.subscriptionFeatures(baseURL: SubscriptionEnvironment.ServiceEnvironment.staging.url, subscriptionID: subscriptionID)!
+        if success {
+            let jsonString = """
+{"features":["Data Broker Protection","Identity Theft Restoration","Network Protection"]}
+"""
+            let httpResponse = HTTPURLResponse(url: request.apiRequest.urlRequest.url!,
+                                               statusCode: HTTPStatusCode.ok.rawValue,
+                                               httpVersion: nil,
+                                               headerFields: [:])!
+            let response = APIResponseV2(data: jsonString.data(using: .utf8), httpResponse: httpResponse)
+            apiService.set(response: response, forRequest: request.apiRequest)
+        } else {
+            assertionFailure("TODO: implement")
         }
     }
 }

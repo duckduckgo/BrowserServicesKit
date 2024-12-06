@@ -23,11 +23,16 @@ public class MockAPIService: APIService {
 
     public var authorizationRefresherCallback: AuthorizationRefresherCallback?
 
-    // Dictionary to store predefined responses for specific requests
+    /// Dictionary to store mocked responses for specific requests
     private var mockResponses: [APIRequestV2: APIResponseV2] = [:]
+    /// Dictionary to store mocked responses for specific requests by URL
     private var mockResponsesByURL: [URL: APIResponseV2] = [:]
+    /// Request handler
+    public var requestHandler: ((APIRequestV2) -> Result<APIResponseV2, Error>)?
 
-    public init() {}
+    public init(requestHandler: ((APIRequestV2) -> Result<APIResponseV2, Error>)? = nil) {
+        self.requestHandler = requestHandler
+    }
 
     public func set(response: APIResponseV2, forRequest request: APIRequestV2) {
         mockResponses[request] = response
@@ -39,10 +44,18 @@ public class MockAPIService: APIService {
 
     // Function to fetch response for a given request
     public func fetch(request: APIRequestV2) async throws -> APIResponseV2 {
-        if let response = mockResponses[request] {
+        if let requestHandler {
+            switch requestHandler(request) {
+                    case .success(let result):
+                        return result
+                    case .failure(let error):
+                        throw error
+                    }
+        } else if let response = mockResponses[request] {
             return response
+        } else {
+            return mockResponsesByURL[request.urlRequest.url!]! // Intentionally crash if the mock is not available
         }
-        return mockResponsesByURL[request.urlRequest.url!]!
     }
 }
 

@@ -31,7 +31,6 @@ final class PrivacyProSubscriptionIntegrationTests: XCTestCase {
     var appStorePurchaseFlow: DefaultAppStorePurchaseFlow!
     var appStoreRestoreFlow: DefaultAppStoreRestoreFlow!
     var storePurchaseManager: StorePurchaseManagerMock!
-    var subscriptionFeatureMappingCache: SubscriptionFeatureMappingCacheMock!
     var subscriptionFeatureFlagger: FeatureFlaggerMapping<SubscriptionFeatureFlags>!
 
     let subscriptionSelectionID = "ios.subscription.1month"
@@ -58,13 +57,11 @@ final class PrivacyProSubscriptionIntegrationTests: XCTestCase {
         let pixelHandler: SubscriptionManager.PixelHandler = { type in
             print("Pixel fired: \(type)")
         }
-        subscriptionFeatureMappingCache = SubscriptionFeatureMappingCacheMock()
         subscriptionFeatureFlagger = FeatureFlaggerMapping<SubscriptionFeatureFlags>(mapping: { $0.defaultState })
 
         subscriptionManager = DefaultSubscriptionManager(storePurchaseManager: storePurchaseManager,
                                                          oAuthClient: authClient,
                                                          subscriptionEndpointService: subscriptionEndpointService,
-                                                         subscriptionFeatureMappingCache: subscriptionFeatureMappingCache,
                                                          subscriptionEnvironment: subscriptionEnvironment,
                                                          subscriptionFeatureFlagger: subscriptionFeatureFlagger,
                                                          pixelHandler: pixelHandler)
@@ -94,6 +91,8 @@ final class PrivacyProSubscriptionIntegrationTests: XCTestCase {
         APIMockResponseFactory.mockGetAccessTokenResponse(destinationMockAPIService: apiService, success: true)
         APIMockResponseFactory.mockGetJWKS(destinationMockAPIService: apiService, success: true)
         APIMockResponseFactory.mockConfirmPurchase(destinationMockAPIService: apiService, success: true)
+        APIMockResponseFactory.mockGetProducts(destinationMockAPIService: apiService, success: true)
+        APIMockResponseFactory.mockGetFeatures(destinationMockAPIService: apiService, success: true, subscriptionID: "ios.subscription.1month")
 
         (subscriptionManager.oAuthClient as! DefaultOAuthClient).testingDecodedTokenContainer = OAuthTokensFactory.makeValidTokenContainerWithEntitlements()
 

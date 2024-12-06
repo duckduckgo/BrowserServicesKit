@@ -45,8 +45,8 @@ public final class NetworkProtectionKeychainStore {
     private let keychainType: KeychainType
 
     public init(label: String,
-         serviceName: String,
-         keychainType: KeychainType) {
+                serviceName: String,
+                keychainType: KeychainType) {
 
         self.label = label
         self.serviceName = serviceName
@@ -108,8 +108,8 @@ public final class NetworkProtectionKeychainStore {
         query[kSecAttrAccount] = name
 
         let newAttributes = [
-          kSecValueData: data,
-          kSecAttrAccessible: kSecAttrAccessibleAfterFirstUnlock
+            kSecValueData: data,
+            kSecAttrAccessible: kSecAttrAccessibleAfterFirstUnlock
         ] as [CFString: Any]
 
         return SecItemUpdate(query as CFDictionary, newAttributes as CFDictionary)

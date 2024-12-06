@@ -21,7 +21,6 @@ import Subscription
 import Networking
 
 public final class SubscriptionEndpointServiceMock: SubscriptionEndpointService {
-
     public var onSignOut: (() -> Void)?
     public var signOutCalled: Bool = false
 
@@ -78,5 +77,9 @@ public final class SubscriptionEndpointServiceMock: SubscriptionEndpointService 
         case .success(let result): return result
         case .failure(let error): throw error
         }
+    }
+
+    public func ingestSubscription(_ subscription: Subscription.PrivacyProSubscription) async throws {
+        getSubscriptionResult = .success(subscription)
     }
 }

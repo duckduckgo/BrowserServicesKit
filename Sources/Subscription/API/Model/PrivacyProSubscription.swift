@@ -29,7 +29,7 @@ public struct PrivacyProSubscription: Codable, Equatable, CustomDebugStringConve
     public let status: Status
 
     /// Not parsed from 
-    public var features: [SubscriptionEntitlement]? = nil
+    public var features: [SubscriptionEntitlement]?
 
     public enum BillingPeriod: String, Codable {
         case monthly = "Monthly"

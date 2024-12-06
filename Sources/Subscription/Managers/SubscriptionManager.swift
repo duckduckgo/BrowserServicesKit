@@ -83,8 +83,6 @@ public protocol SubscriptionTokenProvider {
 
 public protocol SubscriptionManager: SubscriptionTokenProvider {
 
-//    var subscriptionFeatureMappingCache: SubscriptionFeatureMappingCache { get }
-
     // Environment
     static func loadEnvironmentFrom(userDefaults: UserDefaults) -> SubscriptionEnvironment?
     static func save(subscriptionEnvironment: SubscriptionEnvironment, userDefaults: UserDefaults)
@@ -95,7 +93,6 @@ public protocol SubscriptionManager: SubscriptionTokenProvider {
 
     // Subscription
     func refreshCachedSubscription(completion: @escaping (_ isSubscriptionActive: Bool) -> Void)
-//    func currentSubscription(refresh: Bool) async throws -> PrivacyProSubscription
     func getSubscription(cachePolicy: SubscriptionCachePolicy) async throws -> PrivacyProSubscription
     func getSubscriptionFrom(lastTransactionJWSRepresentation: String) async throws -> PrivacyProSubscription
     var canPurchase: Bool { get }
@@ -112,7 +109,6 @@ public protocol SubscriptionManager: SubscriptionTokenProvider {
 
     /// Sign out the user and clear all the tokens and subscription cache
     func signOut() async
-//    func signOut(skipNotification: Bool) async
 
     func clearSubscriptionCache()
 
@@ -121,8 +117,6 @@ public protocol SubscriptionManager: SubscriptionTokenProvider {
 
     /// Pixels handler
     typealias PixelHandler = (SubscriptionPixelType) -> Void
-
-//    func subscriptionOptions(platform: PrivacyProSubscription.Platform) async throws -> SubscriptionOptions
 
     // MARK: - Features
 
@@ -133,14 +127,6 @@ public protocol SubscriptionManager: SubscriptionTokenProvider {
 
     /// True if the feature can be used, false otherwise
     func isFeatureActive(_ entitlement: SubscriptionEntitlement) async -> Bool
-
-//    var currentUserEntitlements: [SubscriptionEntitlement] { get }
-
-//    func getEntitlements(forceRefresh: Bool) async throws -> [SubscriptionEntitlement]
-//    /// Get the cached subscription entitlements
-//    var currentEntitlements: [SubscriptionEntitlement] { get }
-    /// Get the cached entitlements and check if a specific one is present
-//    func isEntitlementActive(_ entitlement: SubscriptionEntitlement) -> Bool
 }
 
 /// Single entry point for everything related to Subscription. This manager is disposable, every time something related to the environment changes this need to be recreated.
@@ -150,7 +136,6 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     private let _storePurchaseManager: StorePurchaseManager?
     private let subscriptionEndpointService: SubscriptionEndpointService
     private let pixelHandler: PixelHandler
-//    public let subscriptionFeatureMappingCache: SubscriptionFeatureMappingCache
     public let currentEnvironment: SubscriptionEnvironment
 
     private let subscriptionFeatureFlagger: FeatureFlaggerMapping<SubscriptionFeatureFlags>?
@@ -158,7 +143,6 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     public init(storePurchaseManager: StorePurchaseManager? = nil,
                 oAuthClient: any OAuthClient,
                 subscriptionEndpointService: SubscriptionEndpointService,
-//                subscriptionFeatureMappingCache: SubscriptionFeatureMappingCache,
                 subscriptionEnvironment: SubscriptionEnvironment,
                 subscriptionFeatureFlagger: FeatureFlaggerMapping<SubscriptionFeatureFlags>?,
                 pixelHandler: @escaping PixelHandler) {
@@ -167,7 +151,6 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
         self.subscriptionEndpointService = subscriptionEndpointService
         self.currentEnvironment = subscriptionEnvironment
         self.pixelHandler = pixelHandler
-//        self.subscriptionFeatureMappingCache = subscriptionFeatureMappingCache
         self.subscriptionFeatureFlagger = subscriptionFeatureFlagger
 
 #if !NETP_SYSTEM_EXTENSION
@@ -414,7 +397,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
                 let currentSubscription = try await getSubscription(cachePolicy: .returnCacheDataDontLoad)
                 let tokenContainer = try await getTokenContainer(policy: forceRefresh ? .localForceRefresh : .local)
                 let userEntitlements = tokenContainer.decodedAccessToken.subscriptionEntitlements
-                let availableFeatures = currentSubscription.features ?? [] //await subscriptionFeatureMappingCache.subscriptionFeatures(for: subscription.productId)
+                let availableFeatures = currentSubscription.features ?? [] // await subscriptionFeatureMappingCache.subscriptionFeatures(for: subscription.productId)
 
                 // Filter out the features that are not available because the user doesn't have the right entitlements
                 let result = availableFeatures.map({ featureEntitlement in
@@ -445,60 +428,4 @@ Subscription features: \(result)
             feature.entitlement == entitlement && feature.enabled
         }
     }
-
-//    private var currentUserEntitlements: [SubscriptionEntitlement] {
-//        return oAuthClient.currentTokenContainer?.decodedAccessToken.subscriptionEntitlements ?? []
-//    }
-
-    //    public func getEntitlements(forceRefresh: Bool) async throws -> [SubscriptionEntitlement] {
-    //        if forceRefresh {
-    //            await refreshAccount()
-    //        }
-    //        return currentEntitlements
-    //    }
-    //
-    //
-    //    public func isEntitlementActive(_ entitlement: SubscriptionEntitlement) -> Bool {
-    //        currentEntitlements.contains(entitlement)
-    //    }
-    //    public func subscriptionOptions(platform: PrivacyProSubscription.Platform) async throws -> SubscriptionOptions {
-    //        Logger.subscription.log("Getting subscription options for \(platform.rawValue, privacy: .public)")
-    //
-    //        switch platform {
-    //        case .apple:
-    //            break
-    //        case .stripe:
-    //            let products = try await getProducts()
-    //            guard !products.isEmpty else {
-    //                Logger.subscription.error("Failed to obtain products")
-    //                throw SubscriptionManagerError.noProductsFound
-    //            }
-    //
-    //            let currency = products.first?.currency ?? "USD"
-    //
-    //            let formatter = NumberFormatter()
-    //            formatter.numberStyle = .currency
-    //            formatter.locale = Locale(identifier: "en_US@currency=\(currency)")
-    //
-    //            let options: [SubscriptionOption] = products.map {
-    //                var displayPrice = "\($0.price) \($0.currency)"
-    //
-    //                if let price = Float($0.price), let formattedPrice = formatter.string(from: price as NSNumber) {
-    //                     displayPrice = formattedPrice
-    //                }
-    //                let cost = SubscriptionOptionCost(displayPrice: displayPrice, recurrence: $0.billingPeriod.lowercased())
-    //                return SubscriptionOption(id: $0.productId, cost: cost)
-    //            }
-    //
-    //            let features: [SubscriptionEntitlement] = [.networkProtection,
-    //                                                       .dataBrokerProtection,
-    //                                                       .identityTheftRestoration]
-    //            return SubscriptionOptions(platform: SubscriptionPlatformName.stripe,
-    //                                       options: options,
-    //                                       features: features)
-    //        default:
-    //            Logger.subscription.fault("Unsupported subscription platform: \(platform.rawValue, privacy: .public)")
-    //            assertionFailure("Unsupported subscription platform: \(platform.rawValue)")
-    //        }
-    //    }
 }

@@ -143,7 +143,7 @@ New: \(subscription.debugDescription)
         }
     }
 
-    private func updateCache(with subscription: PrivacyProSubscription) {
+    func updateCache(with subscription: PrivacyProSubscription) {
         cacheSerialQueue.sync {
             subscriptionCache.set(subscription)
             NotificationCenter.default.post(name: .subscriptionDidChange, object: self, userInfo: [UserDefaultsCacheKey.subscription: subscription])
