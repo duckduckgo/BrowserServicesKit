@@ -17,27 +17,41 @@
 //
 
 import Foundation
+import Networking
 
 public struct SubscriptionOptions: Encodable, Equatable {
+    struct Feature: Encodable, Equatable {
+        let name: SubscriptionEntitlement
+    }
+
     let platform: SubscriptionPlatformName
     let options: [SubscriptionOption]
-    let features: [SubscriptionFeature]
+    /// The available features in the subscription based on the country and feature flags. Not based on user entitlements
+    let features: [SubscriptionOptions.Feature]
+
+    public init(platform: SubscriptionPlatformName, options: [SubscriptionOption], availableEntitlements: [SubscriptionEntitlement]) {
+        self.platform = platform
+        self.options = options
+        self.features = availableEntitlements.map({ entitlement in
+            Feature(name: entitlement)
+        })
+    }
 
     public static var empty: SubscriptionOptions {
-        let features = [SubscriptionFeature(name: .networkProtection),
-                        SubscriptionFeature(name: .dataBrokerProtection),
-                        SubscriptionFeature(name: .identityTheftRestoration)]
+        let features: [SubscriptionEntitlement] = [.networkProtection, .dataBrokerProtection, .identityTheftRestoration]
         let platform: SubscriptionPlatformName
 #if os(iOS)
         platform = .ios
 #else
         platform = .macos
 #endif
-        return SubscriptionOptions(platform: platform, options: [], features: features)
+        return SubscriptionOptions(platform: platform, options: [], availableEntitlements: features)
     }
 
     public func withoutPurchaseOptions() -> Self {
-        SubscriptionOptions(platform: platform, options: [], features: features)
+        SubscriptionOptions(platform: platform, options: [], availableEntitlements: features.map({ feature in
+            feature.name
+        }))
     }
 }
 
@@ -55,8 +69,4 @@ public struct SubscriptionOption: Encodable, Equatable {
 struct SubscriptionOptionCost: Encodable, Equatable {
     let displayPrice: String
     let recurrence: String
-}
-
-public struct SubscriptionFeature: Encodable, Equatable {
-    let name: Entitlement.ProductName
 }

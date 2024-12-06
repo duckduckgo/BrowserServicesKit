@@ -53,28 +53,28 @@ public actor NetworkProtectionEntitlementMonitor {
     // MARK: - Start/Stop monitoring
 
     public func start(entitlementCheck: @escaping () async -> Swift.Result<Bool, Error>, callback: @escaping (Result) async -> Void) {
-        Logger.networkProtectionEntitlement.log("⚫️ Starting entitlement monitor")
+        Logger.networkProtectionEntitlement.log("Starting entitlement monitor")
 
         task = Task.periodic(interval: Self.monitoringInterval) {
             let result = await entitlementCheck()
             switch result {
             case .success(let hasEntitlement):
                 if hasEntitlement {
-                    Logger.networkProtectionEntitlement.log("⚫️ Valid entitlement")
+                    Logger.networkProtectionEntitlement.log("Valid entitlement")
                     await callback(.validEntitlement)
                 } else {
-                    Logger.networkProtectionEntitlement.log("⚫️ Invalid entitlement")
+                    Logger.networkProtectionEntitlement.log("Invalid entitlement")
                     await callback(.invalidEntitlement)
                 }
             case .failure(let error):
-                Logger.networkProtectionEntitlement.error("⚫️ Error retrieving entitlement: \(error.localizedDescription, privacy: .public)")
+                Logger.networkProtectionEntitlement.error("Error retrieving entitlement: \(error.localizedDescription, privacy: .public)")
                 await callback(.error(error))
             }
         }
     }
 
     public func stop() {
-        Logger.networkProtectionEntitlement.log("⚫️ Stopping entitlement monitor")
+        Logger.networkProtectionEntitlement.log("Stopping entitlement monitor")
 
         task?.cancel() // Just making extra sure in case it's detached
         task = nil

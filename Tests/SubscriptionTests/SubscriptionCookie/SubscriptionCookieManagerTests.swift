@@ -20,41 +20,19 @@ import XCTest
 import Common
 @testable import Subscription
 import SubscriptionTestingUtilities
+import TestUtils
 
 final class SubscriptionCookieManagerTests: XCTestCase {
-
-    private struct Constants {
-        static let authToken = UUID().uuidString
-        static let accessToken = UUID().uuidString
-    }
-
-    var accountManager: AccountManagerMock!
-    var subscriptionService: SubscriptionEndpointServiceMock!
-    var authService: AuthEndpointServiceMock!
-    var storePurchaseManager: StorePurchaseManagerMock!
-    var subscriptionEnvironment: SubscriptionEnvironment!
-    var subscriptionFeatureMappingCache: SubscriptionFeatureMappingCacheMock!
+//    var subscriptionService: SubscriptionEndpointServiceMock!
+//    var storePurchaseManager: StorePurchaseManagerMock!
+//    var subscriptionEnvironment: SubscriptionEnvironment!
     var subscriptionManager: SubscriptionManagerMock!
 
     var cookieStore: HTTPCookieStore!
     var subscriptionCookieManager: SubscriptionCookieManager!
 
     override func setUp() async throws {
-        accountManager = AccountManagerMock()
-        subscriptionService = SubscriptionEndpointServiceMock()
-        authService = AuthEndpointServiceMock()
-        storePurchaseManager = StorePurchaseManagerMock()
-        subscriptionEnvironment = SubscriptionEnvironment(serviceEnvironment: .production,
-                                                           purchasePlatform: .appStore)
-        subscriptionFeatureMappingCache = SubscriptionFeatureMappingCacheMock()
-
-        subscriptionManager = SubscriptionManagerMock(accountManager: accountManager,
-                                                      subscriptionEndpointService: subscriptionService,
-                                                      authEndpointService: authService,
-                                                      storePurchaseManager: storePurchaseManager,
-                                                      currentEnvironment: subscriptionEnvironment,
-                                                      canPurchase: true,
-                                                      subscriptionFeatureMappingCache: subscriptionFeatureMappingCache)
+        subscriptionManager = SubscriptionManagerMock()
         cookieStore = MockHTTPCookieStore()
 
         subscriptionCookieManager = SubscriptionCookieManager(subscriptionManager: subscriptionManager,
@@ -64,27 +42,22 @@ final class SubscriptionCookieManagerTests: XCTestCase {
     }
 
     override func tearDown() async throws {
-        accountManager = nil
-        subscriptionService = nil
-        authService = nil
-        storePurchaseManager = nil
-        subscriptionEnvironment = nil
-
         subscriptionManager = nil
+        subscriptionCookieManager = nil
     }
 
     func testSubscriptionCookieIsAddedWhenSigningInToSubscription() async throws {
         // Given
         await ensureNoSubscriptionCookieInTheCookieStore()
-        accountManager.accessToken = Constants.accessToken
+        subscriptionManager.resultTokenContainer = OAuthTokensFactory.makeValidTokenContainer()
 
         // When
         subscriptionCookieManager.enableSettingSubscriptionCookie()
         NotificationCenter.default.post(name: .accountDidSignIn, object: self, userInfo: nil)
-        try await Task.sleep(seconds: 0.1)
+        try await Task.sleep(interval: 0.1)
 
         // Then
-        await checkSubscriptionCookieIsPresent()
+        await checkSubscriptionCookieIsPresent(token: subscriptionManager.resultTokenContainer!.accessToken)
     }
 
     func testSubscriptionCookieIsDeletedWhenSigningInToSubscription() async throws {
@@ -94,7 +67,7 @@ final class SubscriptionCookieManagerTests: XCTestCase {
         // When
         subscriptionCookieManager.enableSettingSubscriptionCookie()
         NotificationCenter.default.post(name: .accountDidSignOut, object: self, userInfo: nil)
-        try await Task.sleep(seconds: 0.1)
+        try await Task.sleep(interval: 0.1)
 
         // Then
         await checkSubscriptionCookieIsHasEmptyValue()
@@ -102,27 +75,27 @@ final class SubscriptionCookieManagerTests: XCTestCase {
 
     func testRefreshWhenSignedInButCookieIsMissing() async throws {
         // Given
-        accountManager.accessToken = Constants.accessToken
+        subscriptionManager.resultTokenContainer = OAuthTokensFactory.makeValidTokenContainer()
         await ensureNoSubscriptionCookieInTheCookieStore()
 
         // When
         subscriptionCookieManager.enableSettingSubscriptionCookie()
         await subscriptionCookieManager.refreshSubscriptionCookie()
-        try await Task.sleep(seconds: 0.1)
+        try await Task.sleep(interval: 0.1)
 
         // Then
-        await checkSubscriptionCookieIsPresent()
+        await checkSubscriptionCookieIsPresent(token: subscriptionManager.resultTokenContainer!.accessToken)
     }
 
     func testRefreshWhenSignedOutButCookieIsPresent() async throws {
         // Given
-        accountManager.accessToken = nil
+        subscriptionManager.resultTokenContainer = nil
         await ensureSubscriptionCookieIsInTheCookieStore()
 
         // When
         subscriptionCookieManager.enableSettingSubscriptionCookie()
         await subscriptionCookieManager.refreshSubscriptionCookie()
-        try await Task.sleep(seconds: 0.1)
+        try await Task.sleep(interval: 0.1)
 
         // Then
         await checkSubscriptionCookieIsHasEmptyValue()
@@ -138,7 +111,7 @@ final class SubscriptionCookieManagerTests: XCTestCase {
         await subscriptionCookieManager.refreshSubscriptionCookie()
         firstRefreshDate = subscriptionCookieManager.lastRefreshDate
 
-        try await Task.sleep(seconds: 0.5)
+        try await Task.sleep(interval: 0.5)
 
         await subscriptionCookieManager.refreshSubscriptionCookie()
         secondRefreshDate = subscriptionCookieManager.lastRefreshDate
@@ -157,7 +130,7 @@ final class SubscriptionCookieManagerTests: XCTestCase {
         await subscriptionCookieManager.refreshSubscriptionCookie()
         firstRefreshDate = subscriptionCookieManager.lastRefreshDate
 
-        try await Task.sleep(seconds: 1.1)
+        try await Task.sleep(interval: 1.1)
 
         await subscriptionCookieManager.refreshSubscriptionCookie()
         secondRefreshDate = subscriptionCookieManager.lastRefreshDate
@@ -167,12 +140,13 @@ final class SubscriptionCookieManagerTests: XCTestCase {
     }
 
     private func ensureSubscriptionCookieIsInTheCookieStore() async {
+        let validTokenContainer = OAuthTokensFactory.makeValidTokenContainer()
         let subscriptionCookie = HTTPCookie(properties: [
             .domain: SubscriptionCookieManager.cookieDomain,
             .path: "/",
             .expires: Date().addingTimeInterval(.days(365)),
             .name: SubscriptionCookieManager.cookieName,
-            .value: Constants.accessToken,
+            .value: validTokenContainer.accessToken,
             .secure: true,
             .init(rawValue: "HttpOnly"): true
         ])!
@@ -187,12 +161,12 @@ final class SubscriptionCookieManagerTests: XCTestCase {
         XCTAssertTrue(cookieStoreCookies.isEmpty)
     }
 
-    private func checkSubscriptionCookieIsPresent() async {
+    private func checkSubscriptionCookieIsPresent(token: String) async {
         guard let subscriptionCookie = await cookieStore.fetchSubscriptionCookie() else {
             XCTFail("No subscription cookie in the store")
             return
         }
-        XCTAssertEqual(subscriptionCookie.value, Constants.accessToken)
+        XCTAssertEqual(subscriptionCookie.value, token)
     }
 
     private func checkSubscriptionCookieIsHasEmptyValue() async {

@@ -20,15 +20,18 @@ import Foundation
 import os.log
 
 public protocol APIService {
+    typealias AuthorizationRefresherCallback = ((_: APIRequestV2) async throws -> String)
+    var authorizationRefresherCallback: AuthorizationRefresherCallback? { get set }
     func fetch(request: APIRequestV2) async throws -> APIResponseV2
 }
 
-public struct DefaultAPIService: APIService {
+public class DefaultAPIService: APIService {
     private let urlSession: URLSession
+    public var authorizationRefresherCallback: AuthorizationRefresherCallback?
 
-    public init(urlSession: URLSession = .shared) {
+    public init(urlSession: URLSession = .shared, authorizationRefresherCallback: AuthorizationRefresherCallback? = nil) {
         self.urlSession = urlSession
-
+        self.authorizationRefresherCallback = authorizationRefresherCallback
     }
 
     /// Fetch an API Request
@@ -45,12 +48,41 @@ public struct DefaultAPIService: APIService {
         // Check response code
         let httpResponse = try response.asHTTPURLResponse()
         let responseHTTPStatus = httpResponse.httpStatus
-        if responseHTTPStatus.isFailure {
-            return APIResponseV2(data: data, httpResponse: httpResponse)
+
+        // First time the request is executed and the response is `.unauthorized` we try to refresh the authentication token
+        if responseHTTPStatus == .unauthorized,
+           request.isAuthenticated == true,
+           request.authRefreshRetryCount == 0,
+           let authorizationRefresherCallback {
+            request.authRefreshRetryCount += 1
+
+            // Ask to refresh the token
+            let refreshedToken = try await authorizationRefresherCallback(request)
+            request.updateAuthorizationHeader(refreshedToken)
+
+            // Try again
+            return try await fetch(request: request)
         }
 
-        try checkConstraints(in: httpResponse, for: request)
+        // It's a failure and the request must be retried
+        if  let retryPolicy = request.retryPolicy,
+            responseHTTPStatus.isFailure,
+            responseHTTPStatus != .unauthorized, // No retries needed is unuathorised
+            request.failureRetryCount < retryPolicy.maxRetries {
+            request.failureRetryCount += 1
 
+            if retryPolicy.delay > 0 {
+                try? await Task.sleep(interval: retryPolicy.delay)
+            }
+
+            // Try again
+            return try await fetch(request: request)
+        }
+
+        // It's not a failure, we check the constraints
+        if !responseHTTPStatus.isFailure {
+            try checkConstraints(in: httpResponse, for: request)
+        }
         return APIResponseV2(data: data, httpResponse: httpResponse)
     }
 
