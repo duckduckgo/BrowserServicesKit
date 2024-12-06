@@ -17,6 +17,7 @@
 //
 
 import Foundation
+import Networking
 
 public struct PrivacyProSubscription: Codable, Equatable, CustomDebugStringConvertible {
     public let productId: String
@@ -26,6 +27,9 @@ public struct PrivacyProSubscription: Codable, Equatable, CustomDebugStringConve
     public let expiresOrRenewsAt: Date
     public let platform: Platform
     public let status: Status
+
+    /// Not parsed from 
+    public var features: [SubscriptionEntitlement]? = nil
 
     public enum BillingPeriod: String, Codable {
         case monthly = "Monthly"
@@ -73,6 +77,7 @@ public struct PrivacyProSubscription: Codable, Equatable, CustomDebugStringConve
         - Expires/Renews At: \(formatDate(expiresOrRenewsAt))
         - Platform: \(platform.rawValue)
         - Status: \(status.rawValue)
+        - Features: \(features?.map { $0.rawValue } ?? [])
         """
     }
 
@@ -83,13 +88,15 @@ public struct PrivacyProSubscription: Codable, Equatable, CustomDebugStringConve
         dateFormatter.timeZone = TimeZone.current
         return dateFormatter.string(from: date)
     }
-//    public static func == (lhs: PrivacyProSubscription, rhs: PrivacyProSubscription) -> Bool {
-//        return lhs.productId == rhs.productId &&
-//        lhs.name == rhs.name &&
-//        lhs.billingPeriod == rhs.billingPeriod &&
-//        lhs.startedAt == rhs.startedAt &&
-//        lhs.expiresOrRenewsAt == rhs.expiresOrRenewsAt &&
-//        lhs.platform == rhs.platform &&
-//        lhs.status == rhs.status
-//    }
+
+    public static func == (lhs: PrivacyProSubscription, rhs: PrivacyProSubscription) -> Bool {
+        return lhs.productId == rhs.productId &&
+        lhs.name == rhs.name &&
+        lhs.billingPeriod == rhs.billingPeriod &&
+        lhs.startedAt == rhs.startedAt &&
+        lhs.expiresOrRenewsAt == rhs.expiresOrRenewsAt &&
+        lhs.platform == rhs.platform &&
+        lhs.status == rhs.status
+        // Ignore the features
+    }
 }

@@ -16,7 +16,6 @@
 //  limitations under the License.
 //
 
-import Common
 import Foundation
 
 public typealias QueryItems = [String: String]

@@ -55,7 +55,7 @@ public enum SubscriptionCachePolicy {
 }
 
 public protocol SubscriptionEndpointService {
-    func updateCache(with subscription: PrivacyProSubscription)
+    func ingestSubscription(_ subscription: PrivacyProSubscription) async throws
     func getSubscription(accessToken: String, cachePolicy: SubscriptionCachePolicy) async throws -> PrivacyProSubscription
     func clearSubscription()
     func getProducts() async throws -> [GetProductsItem]
@@ -104,8 +104,10 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
 
         if statusCode.isSuccess {
             let subscription: PrivacyProSubscription = try response.decodeBody()
-            updateCache(with: subscription)
             Logger.subscriptionEndpointService.log("Subscription details retrieved successfully: \(String(describing: subscription))")
+
+            try await storeAndAddFeaturesIfNeededTo(subscription: subscription)
+
             return subscription
         } else {
             guard statusCode == .badRequest,
@@ -122,21 +124,34 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
         }
     }
 
-    public func updateCache(with subscription: PrivacyProSubscription) {
-        cacheSerialQueue.sync {
-            let cachedSubscription: PrivacyProSubscription? = subscriptionCache.get()
-            if subscription != cachedSubscription {
-                Logger.subscriptionEndpointService.debug("""
+    private func storeAndAddFeaturesIfNeededTo(subscription: PrivacyProSubscription) async throws {
+        let cachedSubscription: PrivacyProSubscription? = subscriptionCache.get()
+        if subscription != cachedSubscription {
+            var subscription = subscription
+            // fetch remote features
+            subscription.features = try await getSubscriptionFeatures(for: subscription.productId).features
+
+            updateCache(with: subscription)
+
+            Logger.subscriptionEndpointService.debug("""
 Subscription changed, updating cache and notifying observers.
 Old: \(cachedSubscription?.debugDescription ?? "nil")
 New: \(subscription.debugDescription)
 """)
-                subscriptionCache.set(subscription)
-                NotificationCenter.default.post(name: .subscriptionDidChange, object: self, userInfo: [UserDefaultsCacheKey.subscription: subscription])
-            } else {
-                Logger.subscriptionEndpointService.debug("No subscription update required")
-            }
+        } else {
+            Logger.subscriptionEndpointService.debug("No subscription update required")
         }
+    }
+
+    private func updateCache(with subscription: PrivacyProSubscription) {
+        cacheSerialQueue.sync {
+            subscriptionCache.set(subscription)
+            NotificationCenter.default.post(name: .subscriptionDidChange, object: self, userInfo: [UserDefaultsCacheKey.subscription: subscription])
+        }
+    }
+
+    public func ingestSubscription(_ subscription: PrivacyProSubscription) async throws {
+        try await storeAndAddFeaturesIfNeededTo(subscription: subscription)
     }
 
     public func getSubscription(accessToken: String, cachePolicy: SubscriptionCachePolicy = .returnCacheDataElseLoad) async throws -> PrivacyProSubscription {

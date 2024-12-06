@@ -150,7 +150,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     private let _storePurchaseManager: StorePurchaseManager?
     private let subscriptionEndpointService: SubscriptionEndpointService
     private let pixelHandler: PixelHandler
-    public let subscriptionFeatureMappingCache: SubscriptionFeatureMappingCache
+//    public let subscriptionFeatureMappingCache: SubscriptionFeatureMappingCache
     public let currentEnvironment: SubscriptionEnvironment
 
     private let subscriptionFeatureFlagger: FeatureFlaggerMapping<SubscriptionFeatureFlags>?
@@ -158,7 +158,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     public init(storePurchaseManager: StorePurchaseManager? = nil,
                 oAuthClient: any OAuthClient,
                 subscriptionEndpointService: SubscriptionEndpointService,
-                subscriptionFeatureMappingCache: SubscriptionFeatureMappingCache,
+//                subscriptionFeatureMappingCache: SubscriptionFeatureMappingCache,
                 subscriptionEnvironment: SubscriptionEnvironment,
                 subscriptionFeatureFlagger: FeatureFlaggerMapping<SubscriptionFeatureFlags>?,
                 pixelHandler: @escaping PixelHandler) {
@@ -167,7 +167,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
         self.subscriptionEndpointService = subscriptionEndpointService
         self.currentEnvironment = subscriptionEnvironment
         self.pixelHandler = pixelHandler
-        self.subscriptionFeatureMappingCache = subscriptionFeatureMappingCache
+//        self.subscriptionFeatureMappingCache = subscriptionFeatureMappingCache
         self.subscriptionFeatureFlagger = subscriptionFeatureFlagger
 
 #if !NETP_SYSTEM_EXTENSION
@@ -243,7 +243,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
 
     public func refreshCachedSubscription(completion: @escaping (_ isSubscriptionActive: Bool) -> Void) {
         Task {
-            guard let tokenContainer = try? await getTokenContainer(policy: .localValid) else {
+            guard let tokenContainer = try? await getTokenContainer(policy: .localForceRefresh) else {
                 completion(false)
                 return
             }
@@ -252,16 +252,6 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
             completion(subscription?.isActive ?? false)
         }
     }
-
-//    public func currentSubscription(refresh: Bool) async throws -> PrivacyProSubscription {
-//        let tokenContainer = try await getTokenContainer(policy: .localValid)
-//        do {
-//            return try await subscriptionEndpointService.getSubscription(accessToken: tokenContainer.accessToken, cachePolicy: refresh ? .reloadIgnoringLocalCacheData : .returnCacheDataElseLoad )
-//        } catch SubscriptionEndpointServiceError.noData {
-////            await signOut()
-//            throw SubscriptionEndpointServiceError.noData
-//        }
-//    }
 
     public func getSubscription(cachePolicy: SubscriptionCachePolicy) async throws -> PrivacyProSubscription {
         if !isUserAuthenticated {
@@ -330,22 +320,13 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
             Logger.subscription.debug("Get tokens \(policy.description, privacy: .public)")
 
             let referenceCachedTokenContainer = try? await oAuthClient.getTokens(policy: .local)
-
-            if policy == .local {
-                if let localToken = referenceCachedTokenContainer {
-                    return localToken
-                } else {
-                    throw SubscriptionManagerError.tokenUnavailable(error: nil)
-                }
-            }
-
             let referenceCachedEntitlements = referenceCachedTokenContainer?.decodedAccessToken.subscriptionEntitlements
             let resultTokenContainer = try await oAuthClient.getTokens(policy: policy)
             let newEntitlements = resultTokenContainer.decodedAccessToken.subscriptionEntitlements
 
             // Send notification when entitlements change
             if referenceCachedEntitlements != newEntitlements {
-                Logger.subscription.debug("Entitlements changed: \(newEntitlements)")
+                Logger.subscription.debug("Entitlements changed - New \(newEntitlements) Old \(String(describing: referenceCachedEntitlements))")
                 NotificationCenter.default.post(name: .entitlementsDidChange, object: self, userInfo: [UserDefaultsCacheKey.subscriptionEntitlements: newEntitlements])
             }
 
@@ -417,11 +398,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
         Logger.subscription.log("Confirming Purchase...")
         let accessToken = try await getTokenContainer(policy: .localValid).accessToken
         let confirmation = try await subscriptionEndpointService.confirmPurchase(accessToken: accessToken, signature: signature)
-        subscriptionEndpointService.updateCache(with: confirmation.subscription)
-
-        // refresh the tokens for fetching the new user entitlements
-        await refreshAccount()
-
+        try await subscriptionEndpointService.ingestSubscription(confirmation.subscription)
         Logger.subscription.log("Purchase confirmed!")
         return confirmation.subscription
     }
@@ -434,10 +411,10 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
         if let subscriptionFeatureFlagger,
            subscriptionFeatureFlagger.isFeatureOn(.isLaunchedROW) || subscriptionFeatureFlagger.isFeatureOn(.isLaunchedROWOverride) {
             do {
-                let subscription = try await getSubscription(cachePolicy: forceRefresh ? .reloadIgnoringLocalCacheData : .returnCacheDataElseLoad)
+                let currentSubscription = try await getSubscription(cachePolicy: .returnCacheDataDontLoad)
                 let tokenContainer = try await getTokenContainer(policy: forceRefresh ? .localForceRefresh : .local)
                 let userEntitlements = tokenContainer.decodedAccessToken.subscriptionEntitlements
-                let availableFeatures = await subscriptionFeatureMappingCache.subscriptionFeatures(for: subscription.productId)
+                let availableFeatures = currentSubscription.features ?? [] //await subscriptionFeatureMappingCache.subscriptionFeatures(for: subscription.productId)
 
                 // Filter out the features that are not available because the user doesn't have the right entitlements
                 let result = availableFeatures.map({ featureEntitlement in

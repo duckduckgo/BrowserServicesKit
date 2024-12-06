@@ -58,8 +58,8 @@ public protocol StorePurchaseManager {
 @available(macOS 12.0, iOS 15.0, *)
 public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseManager {
 
-    private let storeSubscriptionConfiguration: StoreSubscriptionConfiguration
-    private let subscriptionFeatureMappingCache: SubscriptionFeatureMappingCache
+    private let storeSubscriptionConfiguration: any StoreSubscriptionConfiguration
+    private let subscriptionFeatureMappingCache: any SubscriptionFeatureMappingCache
     private let subscriptionFeatureFlagger: FeatureFlaggerMapping<SubscriptionFeatureFlags>?
 
     @Published public private(set) var availableProducts: [Product] = []
@@ -71,7 +71,7 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
     private var transactionUpdates: Task<Void, Never>?
     private var storefrontChanges: Task<Void, Never>?
 
-    public init(subscriptionFeatureMappingCache: SubscriptionFeatureMappingCache,
+    public init(subscriptionFeatureMappingCache: any SubscriptionFeatureMappingCache,
                 subscriptionFeatureFlagger: FeatureFlaggerMapping<SubscriptionFeatureFlags>? = nil) {
         self.storeSubscriptionConfiguration = DefaultStoreSubscriptionConfiguration()
         self.subscriptionFeatureMappingCache = subscriptionFeatureMappingCache
