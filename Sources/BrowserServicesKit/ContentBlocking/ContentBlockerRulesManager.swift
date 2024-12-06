@@ -372,7 +372,7 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
                 Logger.contentBlocking.debug("Failed to complete task \(task.rulesList.name, privacy: .public)")
                 return nil
             }
-            
+
             let rules = Rules(compilationResult: result)
 
             let diff: ContentBlockerRulesIdentifier.Difference

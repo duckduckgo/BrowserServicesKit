@@ -217,7 +217,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
 
             } else if case .contentBlockingLRCMissing = event {
                 lookupAndFetchExp.fulfill()
-            }  else if case .contentBlockingCompilationTaskPerformance(let retryCount, _) = event {
+            } else if case .contentBlockingCompilationTaskPerformance(let retryCount, _) = event {
                 XCTAssertEqual(retryCount, 0)
             } else {
                 XCTFail("Unexpected event: \(event)")
@@ -644,7 +644,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                     XCTFail("Unexpected component: \(component)")
                 }
 
-            }else if case .contentBlockingCompilationTaskPerformance(let retryCount, _) = event {
+            } else if case .contentBlockingCompilationTaskPerformance(let retryCount, _) = event {
                 XCTAssertEqual(retryCount, 3)
             } else if case .contentBlockingLRCMissing = event {
                 lookupAndFetchExp.fulfill()

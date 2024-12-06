@@ -23,7 +23,7 @@ import TrackerRadarKit
 import os.log
 
 extension ContentBlockerRulesManager {
-    
+
     internal struct CompilationResult {
         let compiledRulesList: WKContentRuleList
         let model: ContentBlockerRulesSourceModel
@@ -34,14 +34,13 @@ extension ContentBlockerRulesManager {
             let compilationTime: TimeInterval
             let iterationCount: Int
         }
-        
+
         enum ResultType {
             case cacheLookup
             case rulesCompilation
         }
     }
-    
-    
+
     /**
      Encapsulates compilation steps for a single Task
      */
@@ -109,11 +108,11 @@ extension ContentBlockerRulesManager {
                                           model: ContentBlockerRulesSourceModel,
                                           resultType: CompilationResult.ResultType,
                                           completionHandler: @escaping Completion) {
-            
+
             self.result = self.getCompilationResult(ruleList: compiledRulesList,
                                                     model: model,
                                                     resultType: resultType)
-            
+
             workQueue.async {
                 completionHandler(self, true)
             }
@@ -174,7 +173,7 @@ extension ContentBlockerRulesManager {
                 }
             }
         }
-        
+
         func getCompilationResult(ruleList: WKContentRuleList,
                                   model: ContentBlockerRulesSourceModel,
                                   resultType: CompilationResult.ResultType) -> CompilationResult {
@@ -189,7 +188,7 @@ extension ContentBlockerRulesManager {
                                             model: model,
                                             resultType: resultType,
                                      performanceInfo: perfInfo)
-            
+
         }
 
         func getCompilationRetryCount() -> Int {
@@ -197,7 +196,7 @@ extension ContentBlockerRulesManager {
                 // if none of the sources are broken, we do not do any retries
                 return 0
             }
-                
+
             let identifiers = [
                 brokenSources.allowListIdentifier,
                 brokenSources.tempListIdentifier,
