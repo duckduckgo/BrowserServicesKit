@@ -72,6 +72,7 @@ public class ExperimentCohortsManager: ExperimentCohortsManaging {
     private var store: ExperimentsDataStoring
     private let randomizer: (Range<Double>) -> Double
     private let queue = DispatchQueue(label: "com.ExperimentCohortsManager.queue")
+    private let fireCohortAssigned: (_ subfeatureID: SubfeatureID, _ experiment: ExperimentData) -> Void
 
     public var experiments: Experiments? {
         get {
@@ -81,9 +82,11 @@ public class ExperimentCohortsManager: ExperimentCohortsManaging {
         }
     }
 
-    public init(store: ExperimentsDataStoring = ExperimentsDataStore(), randomizer: @escaping (Range<Double>) -> Double = Double.random(in:)) {
+    public init(store: ExperimentsDataStoring = ExperimentsDataStore(), randomizer: @escaping (Range<Double>) -> Double = Double.random(in:),
+                fireCohortAssigned: @escaping (_ subfeatureID: SubfeatureID, _ experiment: ExperimentData) -> Void) {
         self.store = store
         self.randomizer = randomizer
+        self.fireCohortAssigned = fireCohortAssigned
     }
 
     public func resolveCohort(for experiment: ExperimentSubfeature, allowCohortReassignment: Bool) -> CohortID? {
@@ -113,6 +116,7 @@ extension ExperimentCohortsManager {
             cumulativeWeight += Double(cohort.weight)
             if randomValue < cumulativeWeight {
                 saveCohort(cohort.name, in: subfeature.subfeatureID, parentID: subfeature.parentID)
+                fireCohortAssigned(subfeature.subfeatureID, ExperimentData(parentID: subfeature.parentID, cohortID: cohort.name, enrollmentDate: Date()))
                 return cohort.name
             }
         }

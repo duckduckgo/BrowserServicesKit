@@ -81,7 +81,7 @@ final class FeatureFlaggerExperimentsTests: XCTestCase {
         mockEmbeddedData = MockEmbeddedDataProvider(data: featureJson, etag: "test")
         let mockInternalUserStore = MockInternalUserStoring()
         mockStore = MockExperimentDataStore()
-        experimentManager = ExperimentCohortsManager(store: mockStore)
+        experimentManager = ExperimentCohortsManager(store: mockStore, fireCohortAssigned: { _, _ in })
         manager = PrivacyConfigurationManager(fetchedETag: nil,
                                               fetchedData: nil,
                                               embeddedDataProvider: mockEmbeddedData,

@@ -23,12 +23,10 @@ public protocol SubscriptionFeatureMappingCache {
     func subscriptionFeatures(for subscriptionIdentifier: String) async -> [Entitlement.ProductName]
 }
 
-public final class DefaultSubscriptionFeatureMappingCache: SubscriptionFeatureMappingCache {
+public actor DefaultSubscriptionFeatureMappingCache: SubscriptionFeatureMappingCache {
 
     private let subscriptionEndpointService: SubscriptionEndpointService
     private let userDefaults: UserDefaults
-
-    private var subscriptionFeatureMapping: SubscriptionFeatureMapping?
 
     public init(subscriptionEndpointService: SubscriptionEndpointService, userDefaults: UserDefaults) {
         self.subscriptionEndpointService = subscriptionEndpointService
@@ -96,7 +94,7 @@ public final class DefaultSubscriptionFeatureMappingCache: SubscriptionFeatureMa
 
     static private let subscriptionFeatureMappingKey = "com.duckduckgo.subscription.featuremapping"
 
-    dynamic var storedFeatureMapping: SubscriptionFeatureMapping? {
+    var storedFeatureMapping: SubscriptionFeatureMapping? {
         get {
             guard let data = userDefaults.data(forKey: Self.subscriptionFeatureMappingKey) else { return nil }
             do {
