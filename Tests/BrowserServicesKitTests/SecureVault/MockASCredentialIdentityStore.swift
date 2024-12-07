@@ -66,7 +66,7 @@ final class MockASCredentialIdentityStore: ASCredentialIdentityStoring {
 
 @available(iOS 17.0, macOS 14.0, *)
 extension MockASCredentialIdentityStore {
-    
+
     var savedCredentialIdentities: [ASCredentialIdentity] {
         get {
             return _savedCredentialIdentities as? [ASCredentialIdentity] ?? []
