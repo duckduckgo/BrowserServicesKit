@@ -23,12 +23,14 @@ import SubscriptionTestingUtilities
 final class SubscriptionOptionsTests: XCTestCase {
 
     func testEncoding() throws {
+        let monthlySubscriptionOffer = SubscriptionOptionOffer(type: .freeTrial, id: "1", displayPrice: "$0.00", durationInDays: 7, isUserEligible: true)
+        let yearlySubscriptionOffer = SubscriptionOptionOffer(type: .freeTrial, id: "2", displayPrice: "$0.00", durationInDays: 7, isUserEligible: true)
         let subscriptionOptions = SubscriptionOptions(platform: .macos,
                                                       options: [
                                                         SubscriptionOption(id: "1",
-                                                                           cost: SubscriptionOptionCost(displayPrice: "9 USD", recurrence: "monthly")),
+                                                                           cost: SubscriptionOptionCost(displayPrice: "9 USD", recurrence: "monthly"), offer: monthlySubscriptionOffer),
                                                         SubscriptionOption(id: "2",
-                                                                           cost: SubscriptionOptionCost(displayPrice: "99 USD", recurrence: "yearly"))
+                                                                           cost: SubscriptionOptionCost(displayPrice: "99 USD", recurrence: "yearly"), offer: yearlySubscriptionOffer)
                                                       ],
                                                       features: [
                                                         SubscriptionFeature(name: .networkProtection),
@@ -60,14 +62,28 @@ final class SubscriptionOptionsTests: XCTestCase {
         "displayPrice" : "9 USD",
         "recurrence" : "monthly"
       },
-      "id" : "1"
+      "id" : "1",
+      "offer" : {
+        "displayPrice" : "$0.00",
+        "durationInDays" : 7,
+        "id" : "1",
+        "isUserEligible" : true,
+        "type" : "freeTrial"
+      }
     },
     {
       "cost" : {
         "displayPrice" : "99 USD",
         "recurrence" : "yearly"
       },
-      "id" : "2"
+      "id" : "2",
+      "offer" : {
+        "displayPrice" : "$0.00",
+        "durationInDays" : 7,
+        "id" : "2",
+        "isUserEligible" : true,
+        "type" : "freeTrial"
+      }
     }
   ],
   "platform" : "macos"
