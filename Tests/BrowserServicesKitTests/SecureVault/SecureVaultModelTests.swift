@@ -527,6 +527,161 @@ class SecureVaultModelTests: XCTestCase {
         }
     }
 
+    func testSortedAndDeduplicatedForSameSignatureReturnsTLD() {
+        let controlAccounts = [
+            testAccount("user1", "example.com", "sig1", 0),
+            testAccount("user1", "sub1.example.com", "sig1", 0, 1 * days),
+            testAccount("user1", "sub2.example.com", "sig1", 0),
+        ]
+
+        let sortedAccounts = controlAccounts.sortedAndDeduplicated(tld: tld)
+
+        XCTAssertEqual(sortedAccounts[0].domain, "example.com")
+        XCTAssertEqual(sortedAccounts.count, 1)
+    }
+
+    func testSortedAndDeduplicatedForSameSignatureReturnsWww() {
+        let controlAccounts = [
+            testAccount("user1", "sub.example.com", "sig1", 0, 1 * days),
+            testAccount("user1", "sub1.example.com", "sig1", 0),
+            testAccount("user1", "sub2.example.com", "sig1", 0),
+            testAccount("user1", "www.example.com", "sig1", 0),
+        ]
+
+        let sortedAccounts = controlAccounts.sortedAndDeduplicated(tld: tld)
+
+        XCTAssertEqual(sortedAccounts[0].domain, "www.example.com")
+        XCTAssertEqual(sortedAccounts.count, 1)
+    }
+
+    func testSortedAndDeduplicatedForSameSignatureDifferentSubdomainsReturnsSortedLastUsed() {
+        let controlAccounts = [
+            testAccount("user1", "sub.example.com", "sig1", 0),
+            testAccount("user1", "sub1.example.com", "sig1", 0),
+            testAccount("user1", "sub2.example.com", "sig1", 0, 1 * days),
+            testAccount("user1", "any.example.com", "sig1", 0),
+        ]
+
+        let sortedAccounts = controlAccounts.sortedAndDeduplicated(tld: tld)
+
+        XCTAssertEqual(sortedAccounts[0].domain, "sub2.example.com")
+        XCTAssertEqual(sortedAccounts.count, 1)
+    }
+
+    func testSortedAndDeduplicatedForSameSignatureDifferentDomainsReturnsUniqueDomains() {
+        let controlAccounts = [
+            testAccount("user1", "example.co.uk", "sig1", 0),
+            testAccount("user1", "sub.example.co.uk", "sig1", 0),
+            testAccount("user1", "domain.co.uk", "sig1", 0),
+            testAccount("user1", "www.domain.co.uk", "sig1", 0),
+        ]
+
+        let sortedAccounts = controlAccounts.sortedAndDeduplicated(tld: tld)
+
+        XCTAssertEqual(sortedAccounts[0].domain, "domain.co.uk")
+        XCTAssertEqual(sortedAccounts[1].domain, "example.co.uk")
+        XCTAssertEqual(sortedAccounts.count, 2)
+    }
+
+    func testSortedAndDeduplicatedForNoSignatureReturnsAllAccounts() {
+        let controlAccounts = [
+            SecureVaultModels.WebsiteAccount(id: "1234567890",
+                                             username: "username",
+                                             domain: "example.co.uk",
+                                             created: Date(),
+                                             lastUpdated: Date()),
+            SecureVaultModels.WebsiteAccount(id: "1234567890",
+                                             username: "username",
+                                             domain: "sub.example.co.uk",
+                                             created: Date(),
+                                             lastUpdated: Date()),
+            SecureVaultModels.WebsiteAccount(id: "1234567890",
+                                             username: "username",
+                                             domain: "domain.co.uk",
+                                             created: Date(),
+                                             lastUpdated: Date()),
+            SecureVaultModels.WebsiteAccount(id: "1234567890",
+                                             username: "username",
+                                             domain: "www.domain.co.uk",
+                                             created: Date(),
+                                             lastUpdated: Date())
+        ]
+
+        let sortedAccounts = controlAccounts.sortedAndDeduplicated(tld: tld)
+
+        XCTAssertEqual(sortedAccounts.count, 4)
+    }
+
+    func testSortedAndDeduplicatedWithComplexDomains() {
+        let accounts = [
+            // Multiple subdomains
+            testAccount("user1", "deep.sub.example.com", "sig1", 0),
+            testAccount("user1", "other.sub.example.com", "sig1", 0),
+
+            // Different ports
+            testAccount("user2", "example.com:8080", "sig2", 0),
+            testAccount("user2", "example.com:443", "sig2", 0),
+
+            // Mix of www and non-www
+            testAccount("user3", "www.example.com", "sig3", 0),
+            testAccount("user3", "example.com", "sig3", 0),
+
+            // Different TLDs
+            testAccount("user4", "example.com", "sig4", 0),
+            testAccount("user4", "example.net", "sig4", 0),
+            testAccount("user4", "example.org", "sig4", 0)
+        ]
+
+        let sortedAccounts = accounts.sortedAndDeduplicated(tld: tld)
+
+        // Verify subdomains are properly handled
+        let sig1Accounts = sortedAccounts.filter { $0.signature == "sig1" }
+        XCTAssertEqual(sig1Accounts[0].domain, "deep.sub.example.com")
+        XCTAssertEqual(sig1Accounts.count, 1)
+
+        // Verify ports are considered in deduplication
+        let sig2Accounts = sortedAccounts.filter { $0.signature == "sig2" }
+        XCTAssertEqual(sig2Accounts[0].domain, "example.com:443")
+        XCTAssertEqual(sig2Accounts.count, 1)
+
+        // Verify www and non-www are considered same domain
+        let sig3Accounts = sortedAccounts.filter { $0.signature == "sig3" }
+        XCTAssertEqual(sig3Accounts[0].domain, "example.com")
+        XCTAssertEqual(sig3Accounts.count, 1)
+
+        // Verify different TLDs are preserved
+        let sig4Accounts = sortedAccounts.filter { $0.signature == "sig4" }
+        XCTAssertEqual(sig4Accounts.count, 3)
+    }
+
+    func testSortedAndDeduplicatedWithLastUsedDates() {
+        let accounts = [
+            // Same signature, different last used dates
+            testAccount("user1", "example.com", "sig1", 0, 3 * days),
+            testAccount("user1", "sub.example.com", "sig1", 0, 1 * days),
+            testAccount("user1", "other.example.com", "sig1", 0, 2 * days),
+
+            // Different signatures, same domain, mixed dates
+            testAccount("user2", "example.com", "sig2", 0, 1 * days),
+            testAccount("user3", "example.com", "sig3", 0, 2 * days),
+            testAccount("user4", "example.com", "sig4", 0) // No last used date
+        ]
+
+        let sortedAccounts = accounts.sortedAndDeduplicated(tld: tld)
+
+        // Verify accounts are sorted by last used date
+        XCTAssertEqual(sortedAccounts[0].domain, "example.com") // 3 days ago
+        XCTAssertEqual(sortedAccounts[1].username, "user3") // 2 days ago
+        XCTAssertEqual(sortedAccounts[2].username, "user2") // 1 day ago
+        XCTAssertEqual(sortedAccounts[3].username, "user4") // No last used date
+
+        // Verify deduplication still works with different dates
+        let sig1Accounts = sortedAccounts.filter { $0.signature == "sig1" }
+        XCTAssertEqual(sig1Accounts.count, 1)
+        // Verify the most recently used account is kept
+        XCTAssertEqual(sig1Accounts[0].lastUsed?.timeIntervalSince1970, 3 * days)
+    }
+
     func testPatternMatchedTitle() {
 
         let domainTitles: [String] = [
