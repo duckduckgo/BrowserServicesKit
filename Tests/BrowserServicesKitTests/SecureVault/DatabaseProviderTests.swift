@@ -34,6 +34,13 @@ class DatabaseProviderTests: XCTestCase {
                 try FileManager.default.removeItem(atPath: dbFileContainer.appendingPathComponent(file).path)
             }
 
+            #if os(iOS)
+            let sharedDbFileContainer = DefaultAutofillDatabaseProvider.defaultSharedDatabaseURL().deletingLastPathComponent()
+            for file in try FileManager.default.contentsOfDirectory(atPath: sharedDbFileContainer.path) {
+                guard ["db", "bak"].contains((file as NSString).pathExtension) else { continue }
+                try FileManager.default.removeItem(atPath: sharedDbFileContainer.appendingPathComponent(file).path)
+            }
+            #endif
         } catch let error as NSError {
             // File not found
             if error.domain != NSCocoaErrorDomain || error.code != 4 {
