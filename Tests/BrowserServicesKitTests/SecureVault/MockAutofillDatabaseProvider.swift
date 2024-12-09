@@ -56,7 +56,6 @@ internal class MockAutofillDatabaseProvider: AutofillDatabaseProvider {
     func storeWebsiteCredentials(_ credentials: SecureVaultModels.WebsiteCredentials) throws -> Int64 {
         if let accountIdString = credentials.account.id, let accountID = Int64(accountIdString) {
             _credentialsDict[accountID] = credentials
-            _accounts.append(credentials.account)
             return accountID
         } else {
             var credentialsToStore = credentials
