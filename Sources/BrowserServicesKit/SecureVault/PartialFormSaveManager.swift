@@ -31,7 +31,7 @@ final class PartialFormSaveManager {
     }
 
     func partialAccount(forDomain domain: String) -> WebsiteAccount? {
-        guard let tldPlus1 = TLD().eTLDplus1(domain) else {
+        guard let tldPlus1 = tld.eTLDplus1(domain) else {
             return nil
         }
         guard let account = Self.accounts[tldPlus1] else {
@@ -47,14 +47,14 @@ final class PartialFormSaveManager {
     }
 
     func store(partialAccount: WebsiteAccount, for domain: String) {
-        guard let tldPlus1 = TLD().eTLDplus1(domain) else {
+        guard let tldPlus1 = tld.eTLDplus1(domain) else {
             return
         }
         Self.accounts[tldPlus1] = partialAccount
     }
 
     func removePartialAccount(for domain: String) {
-        guard let tldPlus1 = TLD().eTLDplus1(domain) else {
+        guard let tldPlus1 = tld.eTLDplus1(domain) else {
             return
         }
         Self.accounts.removeValue(forKey: tldPlus1)
