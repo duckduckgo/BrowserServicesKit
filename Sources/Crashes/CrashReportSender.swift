@@ -36,7 +36,7 @@ public final class CrashReportSender: CrashReportSending {
     static let httpHeaderCRCID = "crcid"
 
     public let platform: CrashCollectionPlatform
-    
+
     private let session = URLSession(configuration: .ephemeral)
 
     public init(platform: CrashCollectionPlatform) {
@@ -53,7 +53,7 @@ public final class CrashReportSender: CrashReportSending {
         }
         request.httpMethod = "POST"
         request.httpBody = crashReportData
-        
+
         Logger.general.debug("CrashReportSender: Awaiting session data")
         let task = session.dataTask(with: request) { data, response, error in
             // TODO: Consider pixels for failures that mean we may have lost crash info?
@@ -64,7 +64,7 @@ public final class CrashReportSender: CrashReportSending {
                 } else {
                     assertionFailure("CrashReportSender: Failed to send the crash report: \(response.statusCode)")
                 }
-                
+
                 if let data {
                     completion(.success(data), response)
                 } else if let error {
@@ -78,7 +78,7 @@ public final class CrashReportSender: CrashReportSending {
         }
         task.resume()
     }
-    
+
     public func send(_ crashReportData: Data, crcid: String?) async -> (result: Result<Data?, Error>, response: HTTPURLResponse?) {
         await withCheckedContinuation { continuation in
             send(crashReportData, crcid: crcid) { result, response in
