@@ -20,6 +20,7 @@ import Common
 import Foundation
 import GRDB
 import SecureStorage
+import os.log
 
 public protocol AutofillDatabaseProvider: SecureStorageDatabaseProvider {
 
@@ -82,14 +83,35 @@ public protocol AutofillDatabaseProvider: SecureStorageDatabaseProvider {
 
 public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabaseProvider, AutofillDatabaseProvider {
 
+    struct Constants {
+        static let dbDirectoryName = "Vault"
+        static let dbFileName = "Vault.db"
+    }
+
     public static func defaultDatabaseURL() -> URL {
-        return DefaultAutofillDatabaseProvider.databaseFilePath(directoryName: "Vault", fileName: "Vault.db")
+        return DefaultAutofillDatabaseProvider.databaseFilePath(directoryName: Constants.dbDirectoryName, fileName: Constants.dbFileName, appGroupIdentifier: nil)
+    }
+
+    public static func defaultSharedDatabaseURL() -> URL {
+        return DefaultAutofillDatabaseProvider.databaseFilePath(directoryName: Constants.dbDirectoryName, fileName: Constants.dbFileName, appGroupIdentifier: Bundle.main.appGroupPrefix + ".vault")
     }
 
     public init(file: URL = DefaultAutofillDatabaseProvider.defaultDatabaseURL(),
                 key: Data,
+                fileStorageManager: FileStorageManaging = AppGroupFileStorageManager(),
                 customMigrations: ((inout DatabaseMigrator) -> Void)? = nil) throws {
-        try super.init(file: file, key: key, writerType: .queue) { migrator in
+        let databaseURL: URL
+
+#if os(iOS)
+        databaseURL = Self.migrateDatabaseToSharedGroupIfNeeded(using: fileStorageManager,
+                                                                from: Self.defaultDatabaseURL(),
+                                                                to: Self.defaultSharedDatabaseURL())
+#else
+        // macOS stays in its sandbox location
+        databaseURL = file
+#endif
+
+        try super.init(file: databaseURL, key: key, writerType: .queue) { migrator in
             if let customMigrations {
                 customMigrations(&migrator)
             } else {
@@ -107,6 +129,17 @@ public final class DefaultAutofillDatabaseProvider: GRDBSecureStorageDatabasePro
                 migrator.registerMigration("v12", migrate: Self.migrateV12(database:))
                 migrator.registerMigration("v13", migrate: Self.migrateV13(database:))
             }
+        }
+    }
+
+    private static func migrateDatabaseToSharedGroupIfNeeded(using fileStorageManager: FileStorageManaging = AppGroupFileStorageManager(),
+                                                             from databaseURL: URL,
+                                                             to sharedDatabaseURL: URL) -> URL {
+        do {
+            return try fileStorageManager.migrateDatabaseToSharedStorageIfNeeded(from: databaseURL, to: sharedDatabaseURL)
+        } catch {
+            Logger.secureStorage.error("Failed to migrate database to shared storage: \(error.localizedDescription)")
+            return databaseURL
         }
     }
 
@@ -1411,4 +1444,18 @@ extension SecureVaultModels.Identity: PersistableRecord, FetchableRecord {
 
     public static var databaseTableName: String = "identities"
 
+}
+
+private extension Bundle {
+    var appGroupPrefix: String {
+        let groupIdPrefixKey = "DuckDuckGoGroupIdentifierPrefix"
+        guard let groupIdPrefix = Bundle.main.object(forInfoDictionaryKey: groupIdPrefixKey) as? String else {
+            #if DEBUG && os(iOS)
+            return "group.com.duckduckgo.test"
+            #else
+            fatalError("Info.plist must contain a \"\(groupIdPrefixKey)\" entry with a string value")
+            #endif
+        }
+        return groupIdPrefix
+    }
 }

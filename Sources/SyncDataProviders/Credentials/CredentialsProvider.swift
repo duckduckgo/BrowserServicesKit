@@ -25,19 +25,30 @@ import GRDB
 import SecureStorage
 import os.log
 
+public struct CredentialsInput {
+    public var modifiedAccounts: [SecureVaultModels.WebsiteAccount]
+    public var deletedAccounts: [SecureVaultModels.WebsiteAccount]
+}
+
 public final class CredentialsProvider: DataProvider {
+
+    public private(set) var credentialsInput: CredentialsInput = .init(modifiedAccounts: [], deletedAccounts: [])
 
     public init(
         secureVaultFactory: AutofillVaultFactory = AutofillSecureVaultFactory,
         secureVaultErrorReporter: SecureVaultReporting,
         metadataStore: SyncMetadataStore,
         metricsEvents: EventMapping<MetricsEvent>? = nil,
-        syncDidUpdateData: @escaping () -> Void
+        syncDidUpdateData: @escaping () -> Void,
+        syncDidFinish: @escaping (CredentialsInput?) -> Void
     ) throws {
         self.secureVaultFactory = secureVaultFactory
         self.secureVaultErrorReporter = secureVaultErrorReporter
         self.metricsEvents = metricsEvents
         super.init(feature: .init(name: "credentials"), metadataStore: metadataStore, syncDidUpdateData: syncDidUpdateData)
+        self.syncDidFinish = { [weak self] in
+            syncDidFinish(self?.credentialsInput)
+        }
     }
 
     // MARK: - DataProviding
@@ -166,6 +177,9 @@ public final class CredentialsProvider: DataProvider {
                     )
 
                     try responseHandler.processReceivedCredentials()
+
+                    self.credentialsInput.modifiedAccounts = responseHandler.incomingModifiedAccounts
+                    self.credentialsInput.deletedAccounts = responseHandler.incomingDeletedAccounts
 #if DEBUG
                     try self.willSaveContextAfterApplyingSyncResponse()
 #endif
