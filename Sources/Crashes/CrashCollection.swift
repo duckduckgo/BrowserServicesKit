@@ -206,8 +206,6 @@ public final class CrashCollection {
     }
 }
 
-
-
 // TODO: This should really be its own file, but adding a new file to BSK and propagating it to iOS and macOS projects is hard.  This can be done as a separate PR once the main changes land across all 3 repos
 // import Foundation
 // import Persistence

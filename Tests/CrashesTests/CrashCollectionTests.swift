@@ -25,7 +25,7 @@ import TestUtils
 class CrashCollectionTests: XCTestCase {
 
     func testFirstCrashFlagSent() {
-        let crashCollection = CrashCollection(crashReportSender: CrashReportSender(platform: .iOS), crashCollectionStorage:  MockKeyValueStore())
+        let crashCollection = CrashCollection(crashReportSender: CrashReportSender(platform: .iOS), crashCollectionStorage: MockKeyValueStore())
         // 2 pixels with first = true attached
         XCTAssertTrue(crashCollection.isFirstCrash)
         crashCollection.start { pixelParameters, _, _ in
@@ -42,7 +42,7 @@ class CrashCollectionTests: XCTestCase {
     }
 
     func testSubsequentPixelsDontSendFirstFlag() {
-        let crashCollection = CrashCollection(crashReportSender: CrashReportSender(platform: .iOS), crashCollectionStorage:  MockKeyValueStore())
+        let crashCollection = CrashCollection(crashReportSender: CrashReportSender(platform: .iOS), crashCollectionStorage: MockKeyValueStore())
         // 2 pixels with no first parameter
         crashCollection.isFirstCrash = false
         crashCollection.start { pixelParameters, _, _ in
@@ -64,7 +64,7 @@ class CrashCollectionTests: XCTestCase {
         let store = MockKeyValueStore()
         let crashReportSender = MockCrashReportSender(platform: .iOS)
         crashReportSender.responseCRCID = responseCRCIDValue
-        let crashCollection = CrashCollection(crashReportSender: crashReportSender , crashCollectionStorage: store)
+        let crashCollection = CrashCollection(crashReportSender: crashReportSender, crashCollectionStorage: store)
         let expectation = self.expectation(description: "Crash collection response")
         
         // Set up closures on our CrashCollection object
@@ -94,7 +94,7 @@ class CrashCollectionTests: XCTestCase {
     {
         let store = MockKeyValueStore()
         let crashReportSender = MockCrashReportSender(platform: .iOS)
-        let crashCollection = CrashCollection(crashReportSender: crashReportSender , crashCollectionStorage: store)
+        let crashCollection = CrashCollection(crashReportSender: crashReportSender, crashCollectionStorage: store)
         let expectation = self.expectation(description: "Crash collection response")
         
         // Set up closures on our CrashCollection object
@@ -124,7 +124,7 @@ class CrashCollectionTests: XCTestCase {
     func testCRCIDIsRetainedWhenServerErrorIsReceived() {
         let store = MockKeyValueStore()
         let crashReportSender = MockCrashReportSender(platform: .iOS)
-        let crashCollection = CrashCollection(crashReportSender: crashReportSender , crashCollectionStorage: store)
+        let crashCollection = CrashCollection(crashReportSender: crashReportSender, crashCollectionStorage: store)
         let expectation = self.expectation(description: "Crash collection response")
         
         // Set up closures on our CrashCollection object
