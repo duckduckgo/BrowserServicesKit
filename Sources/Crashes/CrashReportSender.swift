@@ -56,7 +56,6 @@ public final class CrashReportSender: CrashReportSending {
 
         Logger.general.debug("CrashReportSender: Awaiting session data")
         let task = session.dataTask(with: request) { data, response, error in
-            // TODO: Consider pixels for failures that mean we may have lost crash info?
             if let response = response as? HTTPURLResponse {
                 Logger.general.debug("CrashReportSender: Received HTTP response code: \(response.statusCode)")
                 if response.statusCode == 200 {

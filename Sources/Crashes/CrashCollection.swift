@@ -90,7 +90,6 @@ public final class CrashCollection {
                     for payload in processedData {
                         let result =  await self.crashSender.send(payload, crcid: self.crcidManager.crcid)
                         self.crcidManager.handleCrashSenderResult(result: result.result, response: result.response)
-
                     }
                     didFinishHandlingResponse()
                 }
@@ -233,11 +232,12 @@ public class CRCIDManager {
                     Logger.general.debug("Crash Collection - Received matching value for CRCID: \(receivedCRCID), no update necessary")
                 }
             } else {
+                // TODO: Pixel: crashreporting_crcid-missing
                 Logger.general.debug("Crash Collection - No value for CRCID header: \(CRCIDManager.crcidKey), clearing local crcid value if present")
                 crcid = nil
             }
         case .failure(let failure):
-            // TODO: Is it worth sending a pixel for this case, so that we can monitor for missing crash reports?
+            // TODO: Pixel: crashreporting_submission-failed
             Logger.general.debug("Crash Collection - Sending Crash Report: failed (\(failure))")
         }
     }
