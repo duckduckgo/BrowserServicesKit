@@ -44,7 +44,9 @@ final class DefaultStoreSubscriptionConfiguration: StoreSubscriptionConfiguratio
                   appIdentifier: "com.duckduckgo.mobile.ios.alpha",
                   environment: .staging,
                   identifiersByRegion: [.usa: ["ios.subscription.1month",
-                                               "ios.subscription.1year"],
+                                               "ios.subscription.1year",
+                                               "ios.subscription.1month.freetrial.dev",
+                                               "ios.subscription.1year.freetrial.dev"],
                                         .restOfWorld: ["ios.subscription.1month.row",
                                                        "ios.subscription.1year.row"]]),
             // macOS debug build
