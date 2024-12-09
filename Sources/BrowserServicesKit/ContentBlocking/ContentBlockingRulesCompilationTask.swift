@@ -114,12 +114,10 @@ extension ContentBlockerRulesManager {
                                           model: ContentBlockerRulesSourceModel,
                                           resultType: CompilationResult.ResultType,
                                           completionHandler: @escaping Completion) {
-
-            self.result = self.getCompilationResult(ruleList: compiledRulesList,
-                                                    model: model,
-                                                    resultType: resultType)
-
             workQueue.async {
+                self.result = self.getCompilationResult(ruleList: compiledRulesList,
+                                                        model: model,
+                                                        resultType: resultType)
                 completionHandler(self, true)
             }
         }
