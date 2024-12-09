@@ -48,6 +48,10 @@ public enum PrivacyStatsError: CustomNSError {
         }
     }
 
+    public var errorUserInfo: [String: Any] {
+        [NSUnderlyingErrorKey: underlyingError]
+    }
+
     public var underlyingError: Error {
         switch self {
         case .failedToFetchPrivacyStatsSummary(let error),
