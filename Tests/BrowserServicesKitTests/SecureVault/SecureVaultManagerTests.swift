@@ -66,7 +66,7 @@ class SecureVaultManagerTests: XCTestCase {
 
         self.testVault = DefaultAutofillSecureVault(providers: providers)
         self.secureVaultManagerDelegate = MockSecureVaultManagerDelegate()
-        self.manager = SecureVaultManager(vault: self.testVault)
+        self.manager = SecureVaultManager(vault: self.testVault, shouldAllowPartialFormSaves: true)
         self.manager.delegate = secureVaultManagerDelegate
     }
 
