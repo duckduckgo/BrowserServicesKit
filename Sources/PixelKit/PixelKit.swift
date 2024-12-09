@@ -195,6 +195,7 @@ public final class PixelKit {
 
         var headers = headers ?? defaultHeaders
         headers[Header.moreInfo] = "See " + Self.duckDuckGoMorePrivacyInfo.absoluteString
+        // Needs to be updated/generalised when fully adopted by iOS
         if let source {
             switch source {
             case Source.iOS.rawValue:
@@ -204,7 +205,7 @@ public final class PixelKit {
             case Source.macDMG.rawValue, Source.macStore.rawValue:
                 headers[Header.client] = "macOS"
             default:
-                break
+                headers[Header.client] = "macOS"
             }
         }
 
@@ -395,6 +396,7 @@ public final class PixelKit {
             fireRequest(pixelName, headers, parameters, allowedQueryReservedCharacters, callBackOnMainThread, onComplete)
         }
 
+    // Needs to be updated when fully adopted by iOS
     private func prefixedName(for event: Event) -> String {
         if event.name.hasPrefix("m_mac_") {
             // Can be a debug event or not, if already prefixed the name remains unchanged
@@ -415,10 +417,10 @@ public final class PixelKit {
                 case Source.macDMG.rawValue, Source.macStore.rawValue:
                     return "m_mac_\(event.name)"
                 default:
-                    break
+                    return "m_mac_\(event.name)"
                 }
             }
-            return event.name
+            return "m_mac_\(event.name)"
         }
     }
 
