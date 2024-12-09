@@ -24,15 +24,13 @@ extension ContentBlockerRulesManager {
 
     final class LookupRulesTask {
 
-        typealias LookupResult = (compiledRulesList: WKContentRuleList, model: ContentBlockerRulesSourceModel)
-
         private let sourceManagers: [ContentBlockerRulesSourceManager]
 
         init(sourceManagers: [ContentBlockerRulesSourceManager]) {
             self.sourceManagers = sourceManagers
         }
 
-        func lookupCachedRulesLists() throws -> [LookupResult]  {
+        func lookupCachedRulesLists() throws -> [CompilationResult]  {
 
             let models = sourceManagers.compactMap { $0.makeModel() }
             if models.count != sourceManagers.count {
@@ -40,7 +38,7 @@ extension ContentBlockerRulesManager {
                 throw WKError(.contentRuleListStoreLookUpFailed)
             }
 
-            var result = [LookupResult]()
+            var result = [CompilationResult]()
             let group = DispatchGroup()
 
             for model in models {
@@ -54,10 +52,14 @@ extension ContentBlockerRulesManager {
                             return
                         }
 
-                        result.append((ruleList, model))
+                        result.append(CompilationResult(compiledRulesList: ruleList,
+                                                        model: model,
+                                                        resultType: .cacheLookup,
+                                                        performanceInfo: nil))
                         group.leave()
                     }
                 }
+
             }
 
             let operationResult = group.wait(timeout: .now() + 6)
