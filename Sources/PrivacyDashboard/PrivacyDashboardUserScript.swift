@@ -427,12 +427,15 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
     }
 
     func setMaliciousSiteDetectedThreatKind(_ detectedThreatKind: MaliciousSiteProtection.ThreatKind?, webView: WKWebView) {
-        let phishingStatus = ["phishingStatus": detectedThreatKind == .phishing]
-        guard let phishingStatusJson = try? JSONEncoder().encode(phishingStatus).utf8String() else {
-            assertionFailure("Can't encode phishingStatus into JSON")
+        let statusJson: String
+        do {
+            let obj = ["kind": detectedThreatKind?.rawValue ?? NSNull() as Any]
+            statusJson = try JSONSerialization.data(withJSONObject: obj).utf8String()!
+        } catch {
+            assertionFailure("Can't encode status: \(error)")
             return
         }
-        evaluate(js: "window.onChangePhishingStatus(\(phishingStatusJson))", in: webView)
+        evaluate(js: "window.onChangeMaliciousSiteStatus(\(statusJson))", in: webView)
     }
 
     func setIsPendingUpdates(_ isPendingUpdates: Bool, webView: WKWebView) {

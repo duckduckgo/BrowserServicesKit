@@ -16,11 +16,13 @@
 //  limitations under the License.
 //
 
-import XCTest
 import Common
+import os
 import WebKit
-@testable import PrivacyDashboard
+import XCTest
+
 @testable import BrowserServicesKit
+@testable import PrivacyDashboard
 
 @MainActor
 final class PrivacyDashboardControllerTests: XCTestCase {
@@ -268,8 +270,8 @@ final class PrivacyDashboardControllerTests: XCTestCase {
 
         privacyDashboardController.privacyInfo!.malicousSiteThreatKind = .phishing
 
-        wait(for: [expectation], timeout: 100)
-        XCTAssertEqual(mockWebView.capturedJavaScriptString, "window.onChangePhishingStatus({\"phishingStatus\":true})")
+        wait(for: [expectation], timeout: 5)
+        XCTAssertEqual(mockWebView.capturedJavaScriptString, "window.onChangeMaliciousSiteStatus({\"kind\":\"phishing\"})")
     }
 }
 
@@ -287,8 +289,8 @@ class MockWebView: WKWebView {
     }
 
     override func evaluateJavaScript(_ javaScriptString: String) async throws -> Any {
-        print(javaScriptString)
-        if javaScriptString.contains("window.onChangePhishingStatus") {
+        Logger(subsystem: Bundle.main.bundleIdentifier!, category: "DDGTest").info("received javaScriptString \(javaScriptString, privacy: .public)")
+        if javaScriptString.contains("window.onChangeMaliciousSiteStatus") {
             capturedJavaScriptString = javaScriptString
             expectation.fulfill()
         }

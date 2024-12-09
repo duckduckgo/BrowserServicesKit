@@ -22,7 +22,7 @@ import MaliciousSiteProtection
 public enum SpecialErrorKind: String, Encodable {
     case ssl
     case phishing
-    // case malware
+    case malware
 }
 
 public enum SpecialErrorData: Encodable, Equatable {
@@ -70,7 +70,7 @@ public enum SpecialErrorData: Encodable, Equatable {
 public extension MaliciousSiteProtection.ThreatKind {
     var errorPageKind: SpecialErrorKind {
         switch self {
-        // case .malware: .malware
+        case .malware: .malware
         case .phishing: .phishing
         }
     }
