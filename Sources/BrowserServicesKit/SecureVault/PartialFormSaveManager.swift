@@ -24,6 +24,12 @@ final class PartialFormSaveManager {
 
     private static var accounts: [String: WebsiteAccount] = .init()
 
+    private let tld: TLD
+
+    init(tld: TLD) {
+        self.tld = tld
+    }
+
     func partialAccount(forDomain domain: String) -> WebsiteAccount? {
         guard let tldPlus1 = TLD().eTLDplus1(domain) else {
             return nil
