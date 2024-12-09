@@ -248,7 +248,6 @@ public class CRCIDManager {
         }
 
         set {
-            // TODO: Is this distinction necessary?
             if let newValue {
                 store.set(newValue, forKey: CRCIDManager.crcidKey)
             } else {

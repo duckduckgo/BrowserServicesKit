@@ -57,10 +57,10 @@ class CrashCollectionTests: XCTestCase {
         ])
         XCTAssertFalse(crashCollection.isFirstCrash)
     }
-    
+
     func testCRCIDIsStoredWhenReceived() {
         let responseCRCIDValue = "CRCID Value"
-        
+
         let store = MockKeyValueStore()
         let crashReportSender = MockCrashReportSender(platform: .iOS)
         crashReportSender.responseCRCID = responseCRCIDValue
@@ -108,7 +108,7 @@ class CrashCollectionTests: XCTestCase {
 
         // Execute crash collection (which will call our mocked CrashReportSender as well)
         store.set("Initial CRCID Value", forKey: CRCIDManager.crcidKey)
-        XCTAssertNotNil(store.object(forKey: CRCIDManager.crcidKey))   // TODO: Too pedantic?  We probably don't need to be explicitly validating MockKeyValueStore here
+        XCTAssertNotNil(store.object(forKey: CRCIDManager.crcidKey))
         crashCollection.crashHandler.didReceive([
             MockPayload(mockCrashes: [
                 MXCrashDiagnostic(),
