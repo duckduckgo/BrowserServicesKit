@@ -14,7 +14,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: SwiftLint
-        uses: docker://norionomura/swiftlint:0.54.0_swift-5.9.0
+        uses: docker://norionomura/swiftlint:0.57.1_swift-5.9
         with:
           args: swiftlint --reporter github-actions-logging --strict --quiet
 
