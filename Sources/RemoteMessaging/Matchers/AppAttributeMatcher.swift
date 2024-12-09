@@ -81,7 +81,7 @@ public struct CommonAppAttributeMatcher: AttributeMatching {
             assertionFailure("BundleIdentifier should not be empty")
         }
         self.init(bundleId: AppVersion.shared.identifier,
-                  appVersion: AppVersion.shared.versionAndBuildNumber,
+                  appVersion: AppVersion.shared.versionNumber,
                   isInternalUser: isInternalUser,
                   statisticsStore: statisticsStore,
                   variantManager: variantManager)

@@ -29,34 +29,49 @@ extension ContentBlockerRulesManager {
 
         private let sourceManagers: [ContentBlockerRulesSourceManager]
 
-        public private(set) var result: [CompilationResult]?
-
         init(sourceManagers: [ContentBlockerRulesSourceManager]) {
             self.sourceManagers = sourceManagers
         }
 
-        func lookupCachedRulesLists() async throws {
+        func lookupCachedRulesLists() throws -> [CompilationResult]  {
+
+            let models = sourceManagers.compactMap { $0.makeModel() }
+            if models.count != sourceManagers.count {
+                // We should only load rule lists, in case we can match every one of the expected ones
+                throw WKError(.contentRuleListStoreLookUpFailed)
+            }
 
             var result = [CompilationResult]()
-            for sourceManager in sourceManagers {
-                guard let model = sourceManager.makeModel() else {
-                    throw WKError(.contentRuleListStoreLookUpFailed)
+            let group = DispatchGroup()
+
+            for model in models {
+                group.enter()
+
+                DispatchQueue.main.async {
+                    // This needs to be called from the main thread.
+                    WKContentRuleListStore.default().lookUpContentRuleList(forIdentifier: model.rulesIdentifier.stringValue) { ruleList, error in
+                        guard let ruleList, error == nil else {
+                            group.leave()
+                            return
+                        }
+
+                        result.append(CompilationResult(compiledRulesList: ruleList,
+                                                        model: model,
+                                                        resultType: .cacheLookup,
+                                                        performanceInfo: nil))
+                        group.leave()
+                    }
                 }
 
-                guard let ruleList = try await Task(operation: { @MainActor in
-                    try await WKContentRuleListStore.default().contentRuleList(forIdentifier: model.rulesIdentifier.stringValue)
-                }).value else {
-                    // All lists must be found for this to be considered successful
-                    throw WKError(.contentRuleListStoreLookUpFailed)
-                }
-
-                result.append(CompilationResult(compiledRulesList: ruleList,
-                                                model: model,
-                                                resultType: .cacheLookup,
-                                                performanceInfo: nil))
             }
-            self.result = result
-        }
 
+            let operationResult = group.wait(timeout: .now() + 6)
+
+            guard operationResult == .success, result.count == models.count else {
+                throw WKError(.contentRuleListStoreLookUpFailed)
+            }
+
+            return result
+        }
     }
 }
