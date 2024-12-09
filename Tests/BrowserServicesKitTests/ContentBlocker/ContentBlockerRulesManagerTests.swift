@@ -218,7 +218,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
             } else if case .contentBlockingLRCMissing = event {
                 lookupAndFetchExp.fulfill()
             } else if case .contentBlockingCompilationTaskPerformance(let retryCount, _) = event {
-                XCTAssertEqual(retryCount, 0)
+                XCTAssertEqual(retryCount, 1)
             } else {
                 XCTFail("Unexpected event: \(event)")
             }
@@ -269,7 +269,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                 }
 
             } else if case .contentBlockingCompilationTaskPerformance(let retryCount, _) = event {
-                XCTAssertEqual(retryCount, 1)
+                XCTAssertEqual(retryCount, 2)
             } else if case .contentBlockingLRCMissing = event {
                 lookupAndFetchExp.fulfill()
             } else {
@@ -563,7 +563,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
             } else if case .contentBlockingLRCMissing = event {
                 lookupAndFetchExp.fulfill()
             } else if case .contentBlockingCompilationTaskPerformance(let retryCount, _) = event {
-                XCTAssertEqual(retryCount, 4)
+                XCTAssertEqual(retryCount, 5)
             } else {
                 XCTFail("Unexpected event: \(event)")
             }
@@ -645,7 +645,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                 }
 
             } else if case .contentBlockingCompilationTaskPerformance(let retryCount, _) = event {
-                XCTAssertEqual(retryCount, 3)
+                XCTAssertEqual(retryCount, 4)
             } else if case .contentBlockingLRCMissing = event {
                 lookupAndFetchExp.fulfill()
             } else
