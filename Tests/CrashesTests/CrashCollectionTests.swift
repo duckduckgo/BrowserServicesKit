@@ -66,7 +66,7 @@ class CrashCollectionTests: XCTestCase {
         crashReportSender.responseCRCID = responseCRCIDValue
         let crashCollection = CrashCollection(crashReportSender: crashReportSender, crashCollectionStorage: store)
         let expectation = self.expectation(description: "Crash collection response")
-        
+
         // Set up closures on our CrashCollection object
         crashCollection.start(process: {_ in
             return ["fake-crash-data".data(using: .utf8)!]  // Not relevant to this test
@@ -84,12 +84,12 @@ class CrashCollectionTests: XCTestCase {
                 MXCrashDiagnostic()
             ])
         ])
-        
+
         self.wait(for: [expectation], timeout: 3)
-        
+
         XCTAssertEqual(store.object(forKey: CRCIDManager.crcidKey) as? String, responseCRCIDValue)
     }
-    
+
     func testCRCIDIsClearedWhenServerReturnsSuccessWithNoCRCID()
     {
         let store = MockKeyValueStore()
