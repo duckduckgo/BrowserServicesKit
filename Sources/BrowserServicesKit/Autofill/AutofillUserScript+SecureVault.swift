@@ -491,6 +491,7 @@ extension AutofillUserScript {
         case userInitiated
         case autoprompt
         case formSubmission
+        case partialSave
         case passwordGeneration
         case emailProtection
     }

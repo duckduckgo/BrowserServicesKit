@@ -90,6 +90,7 @@ public enum AutofillSubfeature: String, PrivacySubfeature {
     case onForExistingUsers
     case unknownUsernameCategorization
     case credentialsImportPromotionForExistingUsers
+    case partialFormSaves
 }
 
 public enum DBPSubfeature: String, Equatable, PrivacySubfeature {
