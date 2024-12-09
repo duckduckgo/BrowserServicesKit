@@ -50,5 +50,5 @@ public enum ContentBlockerDebugEvents {
     case contentBlockingFetchLRCSucceeded
     case contentBlockingLRCMissing
     case contentBlockingNoMatchInLRC
-    case contentBlockingCompilationTaskPerformance(retryCount: Int, timeBucketAggregation: Double)
+    case contentBlockingCompilationTaskPerformance(iterationCount: Int, timeBucketAggregation: Double)
 }

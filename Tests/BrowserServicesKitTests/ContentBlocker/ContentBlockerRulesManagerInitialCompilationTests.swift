@@ -62,8 +62,8 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
         let errorHandler = EventMapping<ContentBlockerDebugEvents> { event, _, params, _ in
             if case .contentBlockingLRCMissing = event {
                 lookupAndFetchExp.fulfill()
-            } else if case .contentBlockingCompilationTaskPerformance(let retryCount, _) = event {
-                XCTAssertEqual(retryCount, 1)
+            } else if case .contentBlockingCompilationTaskPerformance(let iterationCount, _) = event {
+                XCTAssertEqual(iterationCount, 1)
             } else {
                 XCTFail("Unexpected event: \(event)")
             }
@@ -209,8 +209,8 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
         let errorHandler = EventMapping<ContentBlockerDebugEvents> { event, _, params, _ in
             if case .contentBlockingFetchLRCSucceeded = event {
                 XCTFail("Should  not fetch LRC")
-            } else if case .contentBlockingCompilationTaskPerformance(let retryCount, _) = event {
-                XCTAssertEqual(retryCount, 1)
+            } else if case .contentBlockingCompilationTaskPerformance(let iterationCount, _) = event {
+                XCTAssertEqual(iterationCount, 1)
             } else if case .contentBlockingNoMatchInLRC = event {
                 lookupAndFetchExp.fulfill()
             } else {
@@ -269,8 +269,8 @@ final class ContentBlockerRulesManagerInitialCompilationTests: XCTestCase {
             let errorHandler = EventMapping<ContentBlockerDebugEvents> { event, _, params, _ in
                 if case .contentBlockingFetchLRCSucceeded = event {
                     lookupAndFetchExp.fulfill()
-                } else if case .contentBlockingCompilationTaskPerformance(let retryCount, _) = event {
-                    XCTAssertEqual(retryCount, 1)
+                } else if case .contentBlockingCompilationTaskPerformance(let iterationCount, _) = event {
+                    XCTAssertEqual(iterationCount, 1)
                 } else {
                     XCTFail("Unexpected event: \(event)")
                 }

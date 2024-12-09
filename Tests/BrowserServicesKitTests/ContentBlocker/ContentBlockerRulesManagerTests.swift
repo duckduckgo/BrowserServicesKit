@@ -217,8 +217,8 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
 
             } else if case .contentBlockingLRCMissing = event {
                 lookupAndFetchExp.fulfill()
-            } else if case .contentBlockingCompilationTaskPerformance(let retryCount, _) = event {
-                XCTAssertEqual(retryCount, 1)
+            } else if case .contentBlockingCompilationTaskPerformance(let iterationCount, _) = event {
+                XCTAssertEqual(iterationCount, 1)
             } else {
                 XCTFail("Unexpected event: \(event)")
             }
@@ -268,8 +268,8 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                     XCTFail("Unexpected component: \(component)")
                 }
 
-            } else if case .contentBlockingCompilationTaskPerformance(let retryCount, _) = event {
-                XCTAssertEqual(retryCount, 2)
+            } else if case .contentBlockingCompilationTaskPerformance(let iterationCount, _) = event {
+                XCTAssertEqual(iterationCount, 2)
             } else if case .contentBlockingLRCMissing = event {
                 lookupAndFetchExp.fulfill()
             } else {
@@ -562,8 +562,8 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
 
             } else if case .contentBlockingLRCMissing = event {
                 lookupAndFetchExp.fulfill()
-            } else if case .contentBlockingCompilationTaskPerformance(let retryCount, _) = event {
-                XCTAssertEqual(retryCount, 5)
+            } else if case .contentBlockingCompilationTaskPerformance(let iterationCount, _) = event {
+                XCTAssertEqual(iterationCount, 5)
             } else {
                 XCTFail("Unexpected event: \(event)")
             }
@@ -644,8 +644,8 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                     XCTFail("Unexpected component: \(component)")
                 }
 
-            } else if case .contentBlockingCompilationTaskPerformance(let retryCount, _) = event {
-                XCTAssertEqual(retryCount, 4)
+            } else if case .contentBlockingCompilationTaskPerformance(let iterationCount, _) = event {
+                XCTAssertEqual(iterationCount, 4)
             } else if case .contentBlockingLRCMissing = event {
                 lookupAndFetchExp.fulfill()
             } else

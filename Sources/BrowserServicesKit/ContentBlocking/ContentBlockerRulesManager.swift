@@ -373,7 +373,7 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
             if task.rulesList.name == DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName &&
                 result.resultType == .rulesCompilation {
                 if let perfInfo = result.performanceInfo {
-                    self.errorReporting?.fire(.contentBlockingCompilationTaskPerformance(retryCount: perfInfo.iterationCount,
+                    self.errorReporting?.fire(.contentBlockingCompilationTaskPerformance(iterationCount: perfInfo.iterationCount,
                                                                                          timeBucketAggregation: perfInfo.compilationTime),
                                               parameters: ["compilationTime": String(perfInfo.compilationTime)])
                 }
