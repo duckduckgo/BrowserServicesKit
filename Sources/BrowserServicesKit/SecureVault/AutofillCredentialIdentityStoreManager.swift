@@ -179,7 +179,7 @@ final public class AutofillCredentialIdentityStoreManager: AutofillCredentialIde
         do {
             try await credentialStore.replaceCredentialIdentities(with: credentials)
         } catch {
-            Logger.autofill.error("Failed to save credentials to ASCredentialIdentityStore: \(error.localizedDescription, privacy: .public)")
+            Logger.autofill.error("Failed to replace credentials in ASCredentialIdentityStore: \(error.localizedDescription, privacy: .public)")
             throw error
         }
     }
@@ -189,7 +189,7 @@ final public class AutofillCredentialIdentityStoreManager: AutofillCredentialIde
         do {
             try await credentialStore.replaceCredentialIdentities(credentials)
         } catch {
-            Logger.autofill.error("Failed to save credentials to ASCredentialIdentityStore: \(error.localizedDescription, privacy: .public)")
+            Logger.autofill.error("Failed to replace credentials in ASCredentialIdentityStore: \(error.localizedDescription, privacy: .public)")
             throw error
         }
     }
@@ -208,7 +208,7 @@ final public class AutofillCredentialIdentityStoreManager: AutofillCredentialIde
         do {
             try await credentialStore.removeCredentialIdentities(credentials)
         } catch {
-            Logger.autofill.error("Failed to save credentials from ASCredentialIdentityStore: \(error.localizedDescription, privacy: .public)")
+            Logger.autofill.error("Failed to remove credentials from ASCredentialIdentityStore: \(error.localizedDescription, privacy: .public)")
             throw error
         }
     }
