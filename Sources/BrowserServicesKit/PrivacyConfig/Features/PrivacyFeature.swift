@@ -64,6 +64,7 @@ public enum PrivacyFeature: String {
     case contextualOnboarding
     case textZoom
     case adAttributionReporting
+    case experimentTest
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -89,6 +90,7 @@ public enum AutofillSubfeature: String, PrivacySubfeature {
     case onForExistingUsers
     case unknownUsernameCategorization
     case credentialsImportPromotionForExistingUsers
+    case partialFormSaves
 }
 
 public enum DBPSubfeature: String, Equatable, PrivacySubfeature {
@@ -191,4 +193,9 @@ public enum SyncPromotionSubfeature: String, PrivacySubfeature {
     public var parent: PrivacyFeature { .syncPromotion }
     case bookmarks
     case passwords
+}
+
+public enum ExperimentTestSubfeatures: String, PrivacySubfeature {
+    public var parent: PrivacyFeature { .experimentTest }
+    case experimentTestAA
 }
