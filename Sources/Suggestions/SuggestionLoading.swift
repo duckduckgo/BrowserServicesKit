@@ -90,11 +90,11 @@ public class SuggestionLoader: SuggestionLoading {
             guard let self = self else { return }
             let processor = SuggestionProcessing(platform: dataSource.platform, urlFactory: self.urlFactory)
             let result = processor.result(for: query,
-                                                 from: history,
-                                                 bookmarks: bookmarks,
-                                                 internalPages: internalPages,
-                                                 openTabs: openTabs,
-                                                 apiResult: apiResult)
+                                          from: history,
+                                          bookmarks: bookmarks,
+                                          internalPages: internalPages,
+                                          openTabs: openTabs,
+                                          apiResult: apiResult)
             DispatchQueue.main.async {
                 if let result = result {
                     completion(result, apiError)
