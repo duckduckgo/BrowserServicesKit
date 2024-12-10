@@ -36,6 +36,10 @@ extension WKError {
     public var isServerCertificateUntrusted: Bool {
         _nsError.isServerCertificateUntrusted
     }
+
+    public var isWebContentProcessTerminated: Bool {
+        code == .webContentProcessTerminated && _nsError is WKError
+    }
 }
 extension NSError {
     public var isServerCertificateUntrusted: Bool {

@@ -335,7 +335,7 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
             XCTestExpectation(description: "Will Sleep 3"),
         ]
         self.willSleep = { _ in
-            sleepExpectations[sleepIndex].fulfill()
+            sleepExpectations[safe: sleepIndex]?.fulfill()
             sleepIndex += 1
         }
 

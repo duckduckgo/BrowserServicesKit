@@ -65,7 +65,6 @@ final class MockMaliciousSiteProtectionEmbeddedDataProvider: MaliciousSiteProtec
     }
 
     func data(withContentsOf url: URL) throws -> Data {
-        let data: Data
         switch url.absoluteString {
         case "filterSet":
             self.loadFilterSetCalled = true
