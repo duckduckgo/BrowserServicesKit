@@ -184,11 +184,6 @@ public enum DuckPlayerSubfeature: String, PrivacySubfeature {
     case enableDuckPlayer // iOS DuckPlayer rollout feature
 }
 
-public enum MaliciousSiteProtectionSubfeature: String, PrivacySubfeature {
-    public var parent: PrivacyFeature { .maliciousSiteProtection }
-    case allowErrorPage
-}
-
 public enum SyncPromotionSubfeature: String, PrivacySubfeature {
     public var parent: PrivacyFeature { .syncPromotion }
     case bookmarks
