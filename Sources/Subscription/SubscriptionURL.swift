@@ -38,9 +38,9 @@ public enum SubscriptionURL {
         case .baseURL:
             switch environment {
             case .production:
-                URL(string: "https://duckduckgo.com/subscriptions")!
+                URL(string: "https://abrown.duckduckgo.com/subscriptions")!
             case .staging:
-                URL(string: "https://duckduckgo.com/subscriptions?environment=staging")!
+                URL(string: "https://abrown.duckduckgo.com/subscriptions?environment=staging")!
             }
         case .purchase:
             SubscriptionURL.baseURL.subscriptionURL(environment: environment).appendingPathComponent("welcome")
