@@ -94,7 +94,13 @@ public protocol SubscriptionManager: SubscriptionTokenProvider {
     // Subscription
     func refreshCachedSubscription(completion: @escaping (_ isSubscriptionActive: Bool) -> Void)
     @discardableResult func getSubscription(cachePolicy: SubscriptionCachePolicy) async throws -> PrivacyProSubscription
-    func getSubscriptionFrom(lastTransactionJWSRepresentation: String) async throws -> PrivacyProSubscription
+
+    /// Tries to activate a subscription using a platform signature
+    /// - Parameter lastTransactionJWSRepresentation: A platform signature coming from the AppStore
+    /// - Returns: A subscription if found
+    /// - Throws: An error if the access token is not available or something goes wrong in the api requests
+    func getSubscriptionFrom(lastTransactionJWSRepresentation: String) async throws -> PrivacyProSubscription?
+
     var canPurchase: Bool { get }
     func getProducts() async throws -> [GetProductsItem]
 
@@ -251,9 +257,15 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
         }
     }
 
-    public func getSubscriptionFrom(lastTransactionJWSRepresentation: String) async throws -> PrivacyProSubscription {
-        let tokenContainer = try await oAuthClient.activate(withPlatformSignature: lastTransactionJWSRepresentation)
-        return try await subscriptionEndpointService.getSubscription(accessToken: tokenContainer.accessToken, cachePolicy: .reloadIgnoringLocalCacheData)
+    public func getSubscriptionFrom(lastTransactionJWSRepresentation: String) async throws -> PrivacyProSubscription? {
+        do {
+            let tokenContainer = try await oAuthClient.activate(withPlatformSignature: lastTransactionJWSRepresentation)
+            return try await subscriptionEndpointService.getSubscription(accessToken: tokenContainer.accessToken, cachePolicy: .reloadIgnoringLocalCacheData)
+        } catch SubscriptionEndpointServiceError.noData {
+            return nil
+        } catch {
+            throw error
+        }
     }
 
     public func getProducts() async throws -> [GetProductsItem] {
@@ -389,6 +401,9 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
 
     // MARK: - Features
 
+    /// Returns the features available for the current subscription, a feature is enabled only if the user has the corresponding entitlement
+    /// - Parameter forceRefresh: ignore subscription and token cache and re-download everything
+    /// - Returns: An Array of SubscriptionFeature where each feature is enabled or disabled based on the user entitlements
     public func currentSubscriptionFeatures(forceRefresh: Bool) async -> [SubscriptionFeature] {
         guard isUserAuthenticated else { return [] }
 

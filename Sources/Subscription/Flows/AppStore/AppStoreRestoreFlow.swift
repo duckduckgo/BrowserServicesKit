@@ -76,15 +76,13 @@ public final class DefaultAppStoreRestoreFlow: AppStoreRestoreFlow {
         }
 
         do {
-            let subscription = try await subscriptionManager.getSubscriptionFrom(lastTransactionJWSRepresentation: lastTransactionJWSRepresentation)
-            if subscription.isActive {
+            if let subscription = try await subscriptionManager.getSubscriptionFrom(lastTransactionJWSRepresentation: lastTransactionJWSRepresentation),
+               subscription.isActive {
                 return .success(lastTransactionJWSRepresentation)
             } else {
                 Logger.subscriptionAppStoreRestoreFlow.error("Subscription expired")
-
                 // Removing all traces of the subscription and the account
                 await subscriptionManager.signOut()
-
                 return .failure(.subscriptionExpired)
             }
         } catch {
