@@ -54,10 +54,10 @@ public final class CrashReportSender: CrashReportSending {
         var request = URLRequest(url: Self.reportServiceUrl)
         request.setValue("text/plain", forHTTPHeaderField: "Content-Type")
         request.setValue(platform.userAgent, forHTTPHeaderField: "User-Agent")
-        if let crcid {
-            request.setValue(crcid, forHTTPHeaderField: CrashReportSender.httpHeaderCRCID)
-            Logger.general.debug("Configured crash report HTTP request with crcid: \(crcid)")
-        }
+
+        request.setValue(crcid, forHTTPHeaderField: CrashReportSender.httpHeaderCRCID)
+        Logger.general.debug("Configured crash report HTTP request with crcid: \(crcid ?? "nil")")
+
         request.httpMethod = "POST"
         request.httpBody = crashReportData
 
