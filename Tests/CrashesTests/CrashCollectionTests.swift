@@ -159,48 +159,6 @@ class CrashCollectionTests: XCTestCase {
         
         XCTAssertEqual(store.object(forKey: CRCIDManager.crcidKey) as? String, crcid)
     }
-
-    // TODO: This test doesn't actually test CrashCollection, it's testing the MockCrashReportSender
-    // Useful for debugging, but not actually a good test, and should be removed.
-    func testInvalidResponsePixelIsSent() {
-        let store = MockKeyValueStore()
-        let crashReportSender = MockCrashReportSender(platform: .iOS, pixelEvents: nil)
-        let crashCollection = CrashCollection(crashReportSender: crashReportSender,
-                                              crashCollectionStorage: store)
-        let expectation = self.expectation(description: "Crash collection response")
-
-        // Set up closures on our CrashCollection object
-        crashCollection.start(process: {_ in
-            return ["fake-crash-data".data(using: .utf8)!]  // Not relevant to this test
-        }) { pixelParameters, payloads, uploadReports in
-            uploadReports()
-        } didFinishHandlingResponse: {
-            expectation.fulfill()
-        }
-
-        // Execute crash collection (which will call our mocked CrashReportSender as well)
-        let crcid = "Initial CRCID Value"
-        store.set(crcid, forKey: CRCIDManager.crcidKey)
-        crashReportSender.responseStatusCode = 500
-        crashCollection.crashHandler.didReceive([
-            MockPayload(mockCrashes: [
-                MXCrashDiagnostic(),
-                MXCrashDiagnostic()
-            ])
-        ])
-
-        self.wait(for: [expectation, crashReportSender.submissionFailedExpectation], timeout: 3)
-
-        XCTAssertEqual(store.object(forKey: CRCIDManager.crcidKey) as? String, crcid)
-    }
-
-    func testCRCIDIsSentToServer() {
-        // TODO: Requires ability to inspect outbound HTTP request
-    }
-    
-    func testMultipleCrashReportCallsExecuteSequentialyAndUpdateCRCIDCorrectly() {
-        // TODO: Requires ability to inspect outbound HTTP request
-    }
 }
 
 class MockPayload: MXDiagnosticPayload {
@@ -227,26 +185,10 @@ class MockCrashReportSender: CrashReportSending {
     var responseCRCID: String?
     var responseStatusCode = 200
 
-    // Pixel handling
-    var noCRCIDExpectation = XCTestExpectation(description: "No CRCID Expectation")
-    var submissionFailedExpectation = XCTestExpectation(description: "Submission Failed Expectation")
-
     var pixelEvents: EventMapping<CrashReportSenderError>?
 
     required init(platform: CrashCollectionPlatform, pixelEvents: EventMapping<CrashReportSenderError>?) {
         self.platform = platform
-
-        self.pixelEvents = .init { event, _, _, _ in
-            switch event {
-            case CrashReportSenderError.noCRCID:
-                self.noCRCIDExpectation.fulfill()
-                return
-
-            case CrashReportSenderError.submissionFailed(_):
-                self.submissionFailedExpectation.fulfill()
-                return
-            }
-        }
     }
     
     func send(_ crashReportData: Data, crcid: String?, completion: @escaping (_ result: Result<Data?, Error>, _ response: HTTPURLResponse?) -> Void) {
@@ -266,8 +208,6 @@ class MockCrashReportSender: CrashReportSending {
         if responseStatusCode == 200 {
             completion(.success(nil), response) // Success with nil data
         } else {
-            let crashReportError = CrashReportSenderError.submissionFailed(response)
-            self.pixelEvents?.fire(crashReportError)
             completion(.failure(CrashReportSenderError.submissionFailed(response)), response)
         }
     }
