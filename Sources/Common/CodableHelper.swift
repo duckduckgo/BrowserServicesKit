@@ -51,3 +51,5 @@ public struct CodableHelper {
         return nil
     }
 }
+
+public typealias DecodableHelper = CodableHelper
