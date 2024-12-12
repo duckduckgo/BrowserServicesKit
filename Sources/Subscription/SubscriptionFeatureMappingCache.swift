@@ -20,8 +20,6 @@ import Foundation
 import os.log
 import Networking
 
-// typealias SubscriptionFeatureMapping = [String: [SubscriptionEntitlement]]
-
 public protocol SubscriptionFeatureMappingCache {
     func subscriptionFeatures(for subscriptionIdentifier: String) async -> [SubscriptionEntitlement]
 }
