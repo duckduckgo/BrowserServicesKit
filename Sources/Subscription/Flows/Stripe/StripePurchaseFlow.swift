@@ -42,7 +42,8 @@ public final class DefaultStripePurchaseFlow: StripePurchaseFlow {
     public func subscriptionOptions() async -> Result<SubscriptionOptions, StripePurchaseFlowError> {
         Logger.subscriptionStripePurchaseFlow.log("Getting subscription options for Stripe")
 
-        guard let products = try? await subscriptionManager.getProducts(), !products.isEmpty else {
+        guard let products = try? await subscriptionManager.getProducts(),
+              !products.isEmpty else {
             Logger.subscriptionStripePurchaseFlow.error("Failed to obtain products")
             return .failure(.noProductsFound)
         }

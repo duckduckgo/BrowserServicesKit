@@ -110,9 +110,9 @@ public struct OAuthRequest {
 
     // MARK: -
 
-    internal init(apiRequest: APIRequestV2,
-                  httpSuccessCode: HTTPStatusCode = HTTPStatusCode.ok,
-                  httpErrorCodes: [HTTPStatusCode] = [HTTPStatusCode.badRequest, HTTPStatusCode.internalServerError]) {
+    init(apiRequest: APIRequestV2,
+         httpSuccessCode: HTTPStatusCode = HTTPStatusCode.ok,
+         httpErrorCodes: [HTTPStatusCode] = [HTTPStatusCode.badRequest, HTTPStatusCode.internalServerError]) {
         self.apiRequest = apiRequest
         self.httpSuccessCode = httpSuccessCode
         self.httpErrorCodes = httpErrorCodes

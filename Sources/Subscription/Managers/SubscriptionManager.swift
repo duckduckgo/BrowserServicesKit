@@ -93,7 +93,7 @@ public protocol SubscriptionManager: SubscriptionTokenProvider {
 
     // Subscription
     func refreshCachedSubscription(completion: @escaping (_ isSubscriptionActive: Bool) -> Void)
-    func getSubscription(cachePolicy: SubscriptionCachePolicy) async throws -> PrivacyProSubscription
+    @discardableResult func getSubscription(cachePolicy: SubscriptionCachePolicy) async throws -> PrivacyProSubscription
     func getSubscriptionFrom(lastTransactionJWSRepresentation: String) async throws -> PrivacyProSubscription
     var canPurchase: Bool { get }
     func getProducts() async throws -> [GetProductsItem]
@@ -236,6 +236,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
         }
     }
 
+    @discardableResult
     public func getSubscription(cachePolicy: SubscriptionCachePolicy) async throws -> PrivacyProSubscription {
         if !isUserAuthenticated {
             throw SubscriptionEndpointServiceError.noData

@@ -89,10 +89,6 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
 
     // MARK: - Subscription fetching with caching
 
-    enum GetSubscriptionError: String, Decodable {
-        case noData = ""
-    }
-
     private func getRemoteSubscription(accessToken: String) async throws -> PrivacyProSubscription {
 
         Logger.subscriptionEndpointService.log("Requesting subscription details")
@@ -110,17 +106,15 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
 
             return subscription
         } else {
-            guard statusCode == .badRequest,
-                  let error: GetSubscriptionError = try response.decodeBody(),
-                  error == .noData else {
+            if statusCode == .badRequest {
+                Logger.subscriptionEndpointService.log("No subscription found")
+                clearSubscription()
+                throw SubscriptionEndpointServiceError.noData
+            } else {
                 let bodyString: String = try response.decodeBody()
-                Logger.subscriptionEndpointService.log("Failed to retrieve Subscription details: \(bodyString)")
+                Logger.subscriptionEndpointService.log("(\(statusCode.description) Failed to retrieve Subscription details: \(bodyString)")
                 throw SubscriptionEndpointServiceError.invalidResponseCode(statusCode)
             }
-
-            Logger.subscriptionEndpointService.log("No subscription found")
-            clearSubscription()
-            throw SubscriptionEndpointServiceError.noData
         }
     }
 
@@ -193,7 +187,6 @@ New: \(subscription.debugDescription)
     // MARK: -
 
     public func getProducts() async throws -> [GetProductsItem] {
-        // await apiService.executeAPICall(method: "GET", endpoint: "products", headers: nil, body: nil)
         guard let request = SubscriptionRequest.getProducts(baseURL: baseURL) else {
             throw SubscriptionEndpointServiceError.invalidRequest
         }

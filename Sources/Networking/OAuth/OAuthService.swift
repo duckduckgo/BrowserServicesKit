@@ -108,15 +108,15 @@ public struct DefaultOAuthService: OAuthService {
     ///  The Auth API can answer with errors in the HTTP response body, format: `{ "error": "$error_code" }`, this function decodes the body in `AuthRequest.BodyError`and generates an AuthServiceError containing the error info
     /// - Parameter responseBody: The HTTP response body Data
     /// - Returns: and AuthServiceError.authAPIError containing the error code and description, nil if the body
-    internal func extractError(from response: APIResponseV2, request: OAuthRequest) -> OAuthServiceError? {
+    internal func extractError(from response: APIResponseV2) -> OAuthServiceError? {
         if let bodyError: OAuthRequest.BodyError = try? response.decodeBody() {
             return OAuthServiceError.authAPIError(code: bodyError.error)
         }
         return nil
     }
 
-    internal func throwError(forResponse response: APIResponseV2, request: OAuthRequest) throws {
-        if let error = extractError(from: response, request: request) {
+    internal func throwError(forResponse response: APIResponseV2) throws {
+        if let error = extractError(from: response) {
             throw error
         } else {
             throw OAuthServiceError.missingResponseValue("Body error")
@@ -132,7 +132,7 @@ public struct DefaultOAuthService: OAuthService {
         if statusCode == request.httpSuccessCode {
             return try response.decodeBody()
         } else if request.httpErrorCodes.contains(statusCode) {
-            try throwError(forResponse: response, request: request)
+            try throwError(forResponse: response)
         }
         throw OAuthServiceError.invalidResponseCode(statusCode)
     }
@@ -158,7 +158,7 @@ public struct DefaultOAuthService: OAuthService {
             }
             return cookieValue
         } else if request.httpErrorCodes.contains(statusCode) {
-            try throwError(forResponse: response, request: request)
+            try throwError(forResponse: response)
         }
         throw OAuthServiceError.invalidResponseCode(statusCode)
     }
@@ -187,7 +187,7 @@ public struct DefaultOAuthService: OAuthService {
             }
             return authCode
         } else if request.httpErrorCodes.contains(statusCode) {
-            try throwError(forResponse: response, request: request)
+            try throwError(forResponse: response)
         }
         throw OAuthServiceError.invalidResponseCode(statusCode)
     }
@@ -253,7 +253,7 @@ public struct DefaultOAuthService: OAuthService {
                   }
             return authCode
         } else if request.httpErrorCodes.contains(statusCode) {
-            try throwError(forResponse: response, request: request)
+            try throwError(forResponse: response)
         }
         throw OAuthServiceError.invalidResponseCode(statusCode)
     }
@@ -328,7 +328,7 @@ public struct DefaultOAuthService: OAuthService {
             }
             return authCode
         } else if request.httpErrorCodes.contains(statusCode) {
-            try throwError(forResponse: response, request: request)
+            try throwError(forResponse: response)
         }
         throw OAuthServiceError.invalidResponseCode(statusCode)
     }

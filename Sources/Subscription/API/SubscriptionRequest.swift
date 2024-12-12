@@ -81,3 +81,66 @@ struct SubscriptionRequest {
         return SubscriptionRequest(apiRequest: request)
     }
 }
+/*
+extension SubscriptionRequest {
+
+    // MARK: - Response body errors
+
+    enum Error: LocalizedError, Equatable {
+        case APIError(code: BodyErrorCode)
+        case missingResponseValue(String)
+
+        public var errorDescription: String? {
+            switch self {
+            case .APIError(let code):
+                "Subscription API responded with error \(code.rawValue) - \(code.description)"
+            case .missingResponseValue(let value):
+                "The API response is missing \(value)"
+            }
+        }
+
+        public static func == (lhs: SubscriptionRequest.Error, rhs: SubscriptionRequest.Error) -> Bool {
+            switch (lhs, rhs) {
+            case (.APIError(let lhsCode), .APIError(let rhsCode)):
+                return lhsCode == rhsCode
+            case (.missingResponseValue(let lhsValue), .missingResponseValue(let rhsValue)):
+                return lhsValue == rhsValue
+            default:
+                return lhs == rhs
+            }
+        }
+    }
+
+    struct BodyError: Decodable {
+        let error: BodyErrorCode
+    }
+
+    public enum BodyErrorCode: String, Decodable {
+        case noSubscriptionFound = "No subscription found"
+
+        public var description: String {
+            switch self {
+            case .noSubscriptionFound:
+                return self.rawValue
+            }
+        }
+    }
+
+    func extractBodyError(from response: APIResponseV2) -> BodyError? {
+        do {
+            let bodyError: SubscriptionRequest.BodyError = try response.decodeBody()
+            return bodyError
+        } catch {
+            return nil
+        }
+    }
+
+    func throwError(forResponse response: APIResponseV2) throws {
+        if let extractBodyError = extractBodyError(from: response) {
+            throw SubscriptionRequest.Error.APIError(code: extractBodyError.error)
+        } else {
+            throw SubscriptionRequest.Error.missingResponseValue("Body error")
+        }
+    }
+}
+*/
