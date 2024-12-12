@@ -18,6 +18,7 @@
 
 import Foundation
 
+/// A convenience enum to unify the logic for selecting the right keychain through the query attributes.
 public enum KeychainType {
     case dataProtection(_ accessGroup: AccessGroup)
     /// Uses the system keychain.

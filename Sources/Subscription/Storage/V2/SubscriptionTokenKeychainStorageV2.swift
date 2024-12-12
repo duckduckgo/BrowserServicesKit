@@ -31,7 +31,6 @@ public final class SubscriptionTokenKeychainStorageV2: TokenStoring {
 
     public var tokenContainer: TokenContainer? {
         get {
-//            Logger.subscriptionKeychain.debug("get TokenContainer")
             guard let data = try? retrieveData(forField: .tokens) else {
                 Logger.subscriptionKeychain.debug("TokenContainer not found")
                 return nil
@@ -39,7 +38,6 @@ public final class SubscriptionTokenKeychainStorageV2: TokenStoring {
             return CodableHelper.decode(jsonData: data)
         }
         set {
-//            Logger.subscriptionKeychain.debug("set TokenContainer")
             do {
                 guard let newValue else {
                     Logger.subscriptionKeychain.debug("remove TokenContainer")
