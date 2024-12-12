@@ -30,13 +30,13 @@ public protocol CrashReportSending {
 }
 
 public enum CrashReportSenderError: Error {
-    case noCRCID
+    case crcidMissing
     case submissionFailed(HTTPURLResponse?)
 }
 
 // By conforming to a protocol, we can sub in mocks more easily
 public final class CrashReportSender: CrashReportSending {
-    static let reportServiceUrl = URL(string: "https://duckduckgo.com/crash.js")!
+    static let reportServiceUrl = URL(string: "https://9e3c-20-75-144-152.ngrok-free.app/crash.js")!
 
     static let httpHeaderCRCID = "crcid"
 
@@ -68,7 +68,7 @@ public final class CrashReportSender: CrashReportSending {
                 if response.statusCode == 200 {
                     response.allHeaderFields.forEach { print("\($0.key): \($0.value)") }    // TODO: Why do we straight-up print these, rather than debug logging?
                     if response.allHeaderFields[CrashReportSender.httpHeaderCRCID] == nil {
-                        let crashReportError = CrashReportSenderError.noCRCID
+                        let crashReportError = CrashReportSenderError.crcidMissing
                         self.pixelEvents?.fire(crashReportError)
                     }
                 } else {
