@@ -363,6 +363,7 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
                              {"id": "jsPerformance"},
                              {"id": "openerContext"},
                              {"id": "userRefreshCount"},
+                             {"id": "locale"},
                          ]
                      }
                      window.onGetToggleReportOptionsResponse(json);
