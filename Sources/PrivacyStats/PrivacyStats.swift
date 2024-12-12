@@ -30,6 +30,7 @@ import TrackerRadarKit
 public enum PrivacyStatsError: CustomNSError {
     case failedToFetchPrivacyStatsSummary(Error)
     case failedToStorePrivacyStats(Error)
+    case failedToClearPrivacyStats(Error)
     case failedToLoadCurrentPrivacyStats(Error)
 
     public static let errorDomain: String = "PrivacyStatsError"
@@ -42,14 +43,21 @@ public enum PrivacyStatsError: CustomNSError {
             return 2
         case .failedToLoadCurrentPrivacyStats:
             return 3
+        case .failedToClearPrivacyStats:
+            return 4
         }
+    }
+
+    public var errorUserInfo: [String: Any] {
+        [NSUnderlyingErrorKey: underlyingError]
     }
 
     public var underlyingError: Error {
         switch self {
         case .failedToFetchPrivacyStatsSummary(let error),
                 .failedToStorePrivacyStats(let error),
-                .failedToLoadCurrentPrivacyStats(let error):
+                .failedToLoadCurrentPrivacyStats(let error),
+                .failedToClearPrivacyStats(let error):
             return error
         }
     }
@@ -165,7 +173,7 @@ public final class PrivacyStats: PrivacyStatsCollecting {
                     Logger.privacyStats.debug("Deleted outdated entries")
                 } catch {
                     Logger.privacyStats.error("Save error: \(error)")
-                    errorEvents?.fire(.failedToFetchPrivacyStatsSummary(error))
+                    errorEvents?.fire(.failedToClearPrivacyStats(error))
                 }
                 continuation.resume()
             }

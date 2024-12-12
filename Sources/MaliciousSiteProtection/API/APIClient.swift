@@ -32,6 +32,11 @@ public protocol APIClientEnvironment {
     func queryItems(for requestType: APIRequestType) -> QueryItems
     func headers(for requestType: APIRequestType) -> APIRequestV2.HeadersV2
     func url(for requestType: APIRequestType) -> URL
+    func timeout(for requestType: APIRequestType) -> TimeInterval?
+}
+
+public extension APIClientEnvironment {
+    func timeout(for requestType: APIRequestType) -> TimeInterval? { nil }
 }
 
 public extension MaliciousSiteDetector {
@@ -109,8 +114,8 @@ struct APIClient {
         let headers = environment.headers(for: requestType)
         let url = environment.url(for: requestType)
         let queryItems = environment.queryItems(for: requestType)
-
-        let apiRequest = APIRequestV2(url: url, queryItems: queryItems, headers: headers, timeoutInterval: requestConfig.timeout ?? 60)!
+        let timeout = environment.timeout(for: requestType) ?? requestConfig.defaultTimeout ?? 60
+        let apiRequest = APIRequestV2(url: url, queryItems: queryItems, headers: headers, timeoutInterval: timeout)!
         let response = try await service.fetch(request: apiRequest)
         let result: R.Response = try response.decodeBody()
 

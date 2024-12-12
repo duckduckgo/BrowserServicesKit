@@ -24,59 +24,72 @@ import Networking
 final class SubscriptionOptionsTests: XCTestCase {
 
     func testEncoding() throws {
-        let subscriptionOptions = SubscriptionOptions(
-            platform: .macos,
-            options: [
-                SubscriptionOption(id: "1",
-                                   cost: SubscriptionOptionCost(displayPrice: "9 USD", recurrence: "monthly")),
-                SubscriptionOption(id: "2",
-                                   cost: SubscriptionOptionCost(displayPrice: "99 USD", recurrence: "yearly"))
-            ],
-            availableEntitlements: [.networkProtection,
-                                    .dataBrokerProtection,
-                                    .identityTheftRestoration]
-        )
+        let monthlySubscriptionOffer = SubscriptionOptionOffer(type: .freeTrial, id: "1", displayPrice: "$0.00", durationInDays: 7, isUserEligible: true)
+        let yearlySubscriptionOffer = SubscriptionOptionOffer(type: .freeTrial, id: "2", displayPrice: "$0.00", durationInDays: 7, isUserEligible: true)
+        let subscriptionOptions = SubscriptionOptions(platform: .macos,
+                                                      options: [
+                                                        SubscriptionOption(id: "1",
+                                                                           cost: SubscriptionOptionCost(displayPrice: "9 USD", recurrence: "monthly"), offer: monthlySubscriptionOffer),
+                                                        SubscriptionOption(id: "2",
+                                                                           cost: SubscriptionOptionCost(displayPrice: "99 USD", recurrence: "yearly"), offer: yearlySubscriptionOffer)
+                                                      ],
+                                                      availableEntitlements: [
+                                                        .networkProtection,
+                                                        .dataBrokerProtection,
+                                                        .identityTheftRestoration
+                                                      ])
 
         let jsonEncoder = JSONEncoder()
         jsonEncoder.outputFormatting = [.sortedKeys, .prettyPrinted]
         let data = try? jsonEncoder.encode(subscriptionOptions)
         let subscriptionOptionsString = String(data: data!, encoding: .utf8)!
 
-        let result = subscriptionOptionsString.filter { !$0.isWhitespace && $0 != "\n" }
-        let expected = """
+        XCTAssertEqual(subscriptionOptionsString, """
 {
-    "features": [
-        {
-            "name": "NetworkProtection"
-        },
-        {
-            "name": "DataBrokerProtection"
-        },
-        {
-            "name": "IdentityTheftRestoration"
-        }
-    ],
-    "options": [
-        {
-            "cost": {
-                "displayPrice": "9USD",
-                "recurrence": "monthly"
-            },
-            "id": "1"
-        },
-        {
-            "cost": {
-                "displayPrice": "99USD",
-                "recurrence": "yearly"
-            },
-            "id": "2"
-        }
-    ],
-    "platform": "macos"
+  "features" : [
+    {
+      "name" : "Network Protection"
+    },
+    {
+      "name" : "Data Broker Protection"
+    },
+    {
+      "name" : "Identity Theft Restoration"
+    }
+  ],
+  "options" : [
+    {
+      "cost" : {
+        "displayPrice" : "9 USD",
+        "recurrence" : "monthly"
+      },
+      "id" : "1",
+      "offer" : {
+        "displayPrice" : "$0.00",
+        "durationInDays" : 7,
+        "id" : "1",
+        "isUserEligible" : true,
+        "type" : "freeTrial"
+      }
+    },
+    {
+      "cost" : {
+        "displayPrice" : "99 USD",
+        "recurrence" : "yearly"
+      },
+      "id" : "2",
+      "offer" : {
+        "displayPrice" : "$0.00",
+        "durationInDays" : 7,
+        "id" : "2",
+        "isUserEligible" : true,
+        "type" : "freeTrial"
+      }
+    }
+  ],
+  "platform" : "macos"
 }
-""".filter { !$0.isWhitespace && $0 != "\n" }
-
-        XCTAssertEqual(result, expected)
+""")
     }
 
     func testSubscriptionOptionCostEncoding() throws {
@@ -91,7 +104,7 @@ final class SubscriptionOptionsTests: XCTestCase {
     }
 
     func testSubscriptionFeatureEncoding() throws {
-        let subscriptionFeature = SubscriptionEntitlement.identityTheftRestoration
+        let subscriptionFeature: SubscriptionEntitlement = .identityTheftRestoration
 
         let data = try? JSONEncoder().encode(subscriptionFeature)
         let subscriptionFeatureString = String(data: data!, encoding: .utf8)!

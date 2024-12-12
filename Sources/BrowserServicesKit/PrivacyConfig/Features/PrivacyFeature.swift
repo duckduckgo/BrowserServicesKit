@@ -90,6 +90,7 @@ public enum AutofillSubfeature: String, PrivacySubfeature {
     case onForExistingUsers
     case unknownUsernameCategorization
     case credentialsImportPromotionForExistingUsers
+    case partialFormSaves
 }
 
 public enum DBPSubfeature: String, Equatable, PrivacySubfeature {
@@ -181,11 +182,6 @@ public enum DuckPlayerSubfeature: String, PrivacySubfeature {
     case autoplay
     case openInNewTab
     case enableDuckPlayer // iOS DuckPlayer rollout feature
-}
-
-public enum MaliciousSiteProtectionSubfeature: String, PrivacySubfeature {
-    public var parent: PrivacyFeature { .maliciousSiteProtection }
-    case allowErrorPage
 }
 
 public enum SyncPromotionSubfeature: String, PrivacySubfeature {

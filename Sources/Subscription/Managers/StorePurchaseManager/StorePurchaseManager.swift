@@ -38,7 +38,16 @@ public enum StorePurchaseManagerError: Error {
 public protocol StorePurchaseManager {
     typealias TransactionJWS = String
 
+    /// Returns the available subscription options that DON'T include Free Trial periods.
+    /// - Returns: A `SubscriptionOptions` object containing the available subscription plans and pricing,
+    ///           or `nil` if no options are available or cannot be fetched.
     func subscriptionOptions() async -> SubscriptionOptions?
+
+    /// Returns the subscription options that include Free Trial periods.
+    /// - Returns: A `SubscriptionOptions` object containing subscription plans with free trial offers,
+    ///           or `nil` if no free trial options are available or the user is not eligible.
+    func freeTrialSubscriptionOptions() async -> SubscriptionOptions?
+
     var purchasedProductIDs: [String] { get }
     var purchaseQueue: [String] { get }
     var areProductsAvailable: Bool { get }
@@ -62,7 +71,7 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
     private let subscriptionFeatureMappingCache: any SubscriptionFeatureMappingCache
     private let subscriptionFeatureFlagger: FeatureFlaggerMapping<SubscriptionFeatureFlags>?
 
-    @Published public private(set) var availableProducts: [Product] = []
+    @Published public private(set) var availableProducts: [any SubscriptionProduct] = []
     @Published public private(set) var purchasedProductIDs: [String] = []
     @Published public private(set) var purchaseQueue: [String] = []
 
@@ -70,12 +79,15 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
     public private(set) var currentStorefrontRegion: SubscriptionRegion = .usa
     private var transactionUpdates: Task<Void, Never>?
     private var storefrontChanges: Task<Void, Never>?
+    private var productFetcher: ProductFetching
 
     public init(subscriptionFeatureMappingCache: any SubscriptionFeatureMappingCache,
-                subscriptionFeatureFlagger: FeatureFlaggerMapping<SubscriptionFeatureFlags>? = nil) {
+                subscriptionFeatureFlagger: FeatureFlaggerMapping<SubscriptionFeatureFlags>? = nil,
+                productFetcher: ProductFetching = DefaultProductFetcher()) {
         self.storeSubscriptionConfiguration = DefaultStoreSubscriptionConfiguration()
         self.subscriptionFeatureMappingCache = subscriptionFeatureMappingCache
         self.subscriptionFeatureFlagger = subscriptionFeatureFlagger
+        self.productFetcher = productFetcher
         transactionUpdates = observeTransactionUpdates()
         storefrontChanges = observeStorefrontChanges()
     }
@@ -105,34 +117,13 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
     }
 
     public func subscriptionOptions() async -> SubscriptionOptions? {
-        let products = availableProducts
-        let monthly = products.first(where: { $0.subscription?.subscriptionPeriod.unit == .month && $0.subscription?.subscriptionPeriod.value == 1 })
-        let yearly = products.first(where: { $0.subscription?.subscriptionPeriod.unit == .year && $0.subscription?.subscriptionPeriod.value == 1 })
-        guard let monthly, let yearly else {
-            Logger.subscriptionStorePurchaseManager.error("[AppStorePurchaseFlow] No products found")
-            return nil
-        }
+        let nonFreeTrialProducts = availableProducts.filter { !$0.hasFreeTrialOffer }
+        return await subscriptionOptions(for: nonFreeTrialProducts)
+    }
 
-        let platform: SubscriptionPlatformName = {
-#if os(iOS)
-           .ios
-#else
-           .macos
-#endif
-        }()
-
-        let options = [SubscriptionOption(id: monthly.id, cost: .init(displayPrice: monthly.displayPrice, recurrence: "monthly")),
-                       SubscriptionOption(id: yearly.id, cost: .init(displayPrice: yearly.displayPrice, recurrence: "yearly"))]
-        let features: [SubscriptionEntitlement]
-        if let featureFlagger = subscriptionFeatureFlagger,
-            featureFlagger.isFeatureOn(.isLaunchedROW) || featureFlagger.isFeatureOn(.isLaunchedROWOverride) {
-            features = await subscriptionFeatureMappingCache.subscriptionFeatures(for: monthly.id)
-        } else {
-            features = [.networkProtection, .dataBrokerProtection, .identityTheftRestoration]
-        }
-        return SubscriptionOptions(platform: platform,
-                                   options: options,
-                                   availableEntitlements: features)
+    public func freeTrialSubscriptionOptions() async -> SubscriptionOptions? {
+        let freeTrialProducts = availableProducts.filter { $0.hasFreeTrialOffer }
+        return await subscriptionOptions(for: freeTrialProducts)
     }
 
     @MainActor
@@ -161,10 +152,10 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
 
             self.currentStorefrontRegion = storefrontRegion
             let applicableProductIdentifiers = storeSubscriptionConfiguration.subscriptionIdentifiers(for: storefrontRegion)
-            let availableProducts = try await Product.products(for: applicableProductIdentifiers)
+            let availableProducts = try await productFetcher.products(for: applicableProductIdentifiers)
             Logger.subscription.info("[StorePurchaseManager] updateAvailableProducts fetched \(availableProducts.count) products for \(storefrontCountryCode ?? "<nil>", privacy: .public)")
 
-            if self.availableProducts != availableProducts {
+            if Set(availableProducts.map { $0.id }) != Set(self.availableProducts.map { $0.id }) {
                 self.availableProducts = availableProducts
 
                 // Update cached subscription features mapping
@@ -287,6 +278,37 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
         }
     }
 
+    private func subscriptionOptions(for products: [any SubscriptionProduct]) async -> SubscriptionOptions? {
+        Logger.subscription.info("[AppStorePurchaseFlow] subscriptionOptions")
+        let monthly = products.first(where: { $0.isMonthly })
+        let yearly = products.first(where: { $0.isYearly })
+        guard let monthly, let yearly else {
+            Logger.subscription.error("[AppStorePurchaseFlow] No products found")
+            return nil
+        }
+
+        let platform: SubscriptionPlatformName = {
+#if os(iOS)
+           .ios
+#else
+           .macos
+#endif
+        }()
+
+        let options: [SubscriptionOption] = await [.init(from: monthly, withRecurrence: "monthly"),
+                                                   .init(from: yearly, withRecurrence: "yearly")]
+        let features: [SubscriptionEntitlement]
+        if let featureFlagger = subscriptionFeatureFlagger,
+           featureFlagger.isFeatureOn(.isLaunchedROW) || featureFlagger.isFeatureOn(.isLaunchedROWOverride) {
+            features = await subscriptionFeatureMappingCache.subscriptionFeatures(for: monthly.id)
+        } else {
+            features = [.networkProtection, .dataBrokerProtection, .identityTheftRestoration]
+        }
+        return SubscriptionOptions(platform: platform,
+                                   options: options,
+                                   availableEntitlements: features)
+    }
+
     private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
         // Check whether the JWS passes StoreKit verification.
         switch result {
@@ -323,6 +345,24 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
                 await self?.updateAvailableProducts()
             }
         }
+    }
+}
+
+@available(macOS 12.0, iOS 15.0, *)
+private extension SubscriptionOption {
+
+    init(from product: any SubscriptionProduct, withRecurrence recurrence: String) async {
+        var offer: SubscriptionOptionOffer?
+
+        if let introOffer = product.introductoryOffer, introOffer.isFreeTrial {
+
+            let durationInDays = introOffer.periodInDays
+            let isUserEligible = await product.isEligibleForIntroOffer
+
+            offer = .init(type: .freeTrial, id: introOffer.id ?? "", displayPrice: introOffer.displayPrice, durationInDays: durationInDays, isUserEligible: isUserEligible)
+        }
+
+        self.init(id: product.id, cost: .init(displayPrice: product.displayPrice, recurrence: recurrence), offer: offer)
     }
 }
 

@@ -24,17 +24,42 @@ import os.log
 
 extension ContentBlockerRulesManager {
 
+    internal struct CompilationResult {
+        let compiledRulesList: WKContentRuleList
+        let model: ContentBlockerRulesSourceModel
+        let resultType: ResultType
+        let performanceInfo: PerformanceInfo?
+
+        struct PerformanceInfo {
+            let compilationTime: TimeInterval
+            let iterationCount: Int
+
+            // default iterationCount = 1 for successful compilation on one try
+                init(compilationTime: TimeInterval, iterationCount: Int = 1) {
+                    self.compilationTime = compilationTime
+                    self.iterationCount = iterationCount
+                }
+        }
+
+        enum ResultType {
+            case cacheLookup
+            case rulesCompilation
+        }
+    }
+
     /**
      Encapsulates compilation steps for a single Task
      */
     internal class CompilationTask {
         typealias Completion = (_ task: CompilationTask, _ success: Bool) -> Void
+
         let workQueue: DispatchQueue
         let rulesList: ContentBlockerRulesList
         let sourceManager: ContentBlockerRulesSourceManager
         var isCompleted: Bool { result != nil || compilationImpossible }
         private(set) var compilationImpossible = false
-        private(set) var result: (compiledRulesList: WKContentRuleList, model: ContentBlockerRulesSourceModel)?
+        private(set) var result: CompilationResult?
+        private(set) var compilationStartTime: TimeInterval?
 
         init(workQueue: DispatchQueue,
              rulesList: ContentBlockerRulesList,
@@ -53,6 +78,8 @@ extension ContentBlockerRulesManager {
                     return
                 }
 
+                self.compilationStartTime = CACurrentMediaTime()
+
                 guard !ignoreCache else {
                     Logger.contentBlocking.log("❗️ ignoring cache")
                     self.workQueue.async {
@@ -65,10 +92,14 @@ extension ContentBlockerRulesManager {
                 DispatchQueue.main.async {
                     let identifier = model.rulesIdentifier.stringValue
                     Logger.contentBlocking.debug("Lookup CBR with \(identifier, privacy: .public)")
+
                     WKContentRuleListStore.default()?.lookUpContentRuleList(forIdentifier: identifier) { ruleList, _ in
                         if let ruleList = ruleList {
                             Logger.contentBlocking.log("🟢 CBR loaded from cache: \(self.rulesList.name, privacy: .public)")
-                            self.compilationSucceeded(with: ruleList, model: model, completionHandler: completionHandler)
+                            self.compilationSucceeded(with: ruleList,
+                                                      model: model,
+                                                      resultType: .cacheLookup,
+                                                      completionHandler: completionHandler)
                         } else {
                             self.workQueue.async {
                                 self.compile(model: model, completionHandler: completionHandler)
@@ -81,9 +112,12 @@ extension ContentBlockerRulesManager {
 
         private func compilationSucceeded(with compiledRulesList: WKContentRuleList,
                                           model: ContentBlockerRulesSourceModel,
+                                          resultType: CompilationResult.ResultType,
                                           completionHandler: @escaping Completion) {
             workQueue.async {
-                self.result = (compiledRulesList, model)
+                self.result = self.getCompilationResult(ruleList: compiledRulesList,
+                                                        model: model,
+                                                        resultType: resultType)
                 completionHandler(self, true)
             }
         }
@@ -131,7 +165,10 @@ extension ContentBlockerRulesManager {
 
                     if let ruleList = ruleList {
                         Logger.contentBlocking.log("🟢 CBR compilation for \(self.rulesList.name, privacy: .public) succeeded")
-                        self.compilationSucceeded(with: ruleList, model: model, completionHandler: completionHandler)
+                        self.compilationSucceeded(with: ruleList,
+                                                  model: model,
+                                                  resultType: .rulesCompilation,
+                                                  completionHandler: completionHandler)
                     } else if let error = error {
                         self.compilationFailed(for: model, with: error, completionHandler: completionHandler)
                     } else {
@@ -140,6 +177,41 @@ extension ContentBlockerRulesManager {
                 }
             }
         }
+
+        func getCompilationResult(ruleList: WKContentRuleList,
+                                  model: ContentBlockerRulesSourceModel,
+                                  resultType: CompilationResult.ResultType) -> CompilationResult {
+            let compilationTime = self.compilationStartTime.map { CACurrentMediaTime() - $0 }
+
+            let perfInfo = compilationTime.map {
+                CompilationResult.PerformanceInfo(compilationTime: $0,
+                                                  iterationCount: getCompilationIterationCount())
+            }
+
+            return CompilationResult(compiledRulesList: ruleList,
+                                            model: model,
+                                            resultType: resultType,
+                                     performanceInfo: perfInfo)
+
+        }
+
+        func getCompilationIterationCount() -> Int {
+            guard let brokenSources = sourceManager.brokenSources else {
+                // if none of the sources are broken, we do 1 successful iteration and do not do any retries
+                return 1
+            }
+
+            let identifiers = [
+                brokenSources.allowListIdentifier,
+                brokenSources.tempListIdentifier,
+                brokenSources.unprotectedSitesIdentifier,
+                brokenSources.tdsIdentifier
+            ]
+
+            // Add one to account for the first compilation aside from any retries
+            return (identifiers.compactMap { $0 }.count) + 1
+        }
+
     }
 
 }

@@ -22,11 +22,16 @@ import Networking
 
 public final class SubscriptionFeatureMappingCacheMock: SubscriptionFeatureMappingCache {
 
+    public var didCallSubscriptionFeatures = false
+    public var lastCalledSubscriptionId: String?
+
     public var mapping: [String: [SubscriptionEntitlement]] = [:]
 
     public init() { }
 
     public func subscriptionFeatures(for subscriptionIdentifier: String) async -> [SubscriptionEntitlement] {
+        didCallSubscriptionFeatures = true
+        lastCalledSubscriptionId = subscriptionIdentifier
         return mapping[subscriptionIdentifier] ?? []
     }
 }

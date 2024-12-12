@@ -50,13 +50,13 @@ let package = Package(
         .library(name: "PrivacyStats", targets: ["PrivacyStats"])
     ],
     dependencies: [
-        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "15.1.0"),
+        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "16.0.0"),
         .package(url: "https://github.com/duckduckgo/GRDB.swift.git", exact: "2.4.2"),
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "3.0.0"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.3.0"),
         .package(url: "https://github.com/gumob/PunycodeSwift.git", exact: "3.0.0"),
-        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "6.41.0"),
-        .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "7.2.1"),
+        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "6.42.0"),
+        .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "7.4.0"),
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
         .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
         .package(url: "https://github.com/1024jp/GzipSwift.git", exact: "6.0.1"),
