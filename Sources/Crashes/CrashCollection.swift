@@ -20,6 +20,7 @@ import Foundation
 import MetricKit
 import Persistence
 import os.log
+import Common
 
 public enum CrashCollectionPlatform {
     case iOS, macOS, macOSAppStore
@@ -40,7 +41,8 @@ public enum CrashCollectionPlatform {
 @available(iOS 13, macOS 12, *)
 public final class CrashCollection {
 
-    public init(crashReportSender: CrashReportSending, crashCollectionStorage: KeyValueStoring = UserDefaults()) {
+    public init(crashReportSender: CrashReportSending,
+         crashCollectionStorage: KeyValueStoring = UserDefaults()) {
         self.crashHandler = CrashHandler()
         self.crashSender = crashReportSender
         self.crashCollectionStorage = crashCollectionStorage
@@ -232,12 +234,10 @@ public class CRCIDManager {
                     Logger.general.debug("Crash Collection - Received matching value for CRCID: \(receivedCRCID), no update necessary")
                 }
             } else {
-                // TODO: Pixel: crashreporting_crcid-missing
                 Logger.general.debug("Crash Collection - No value for CRCID header: \(CRCIDManager.crcidKey), clearing local crcid value if present")
                 crcid = nil
             }
         case .failure(let failure):
-            // TODO: Pixel: crashreporting_submission-failed
             Logger.general.debug("Crash Collection - Sending Crash Report: failed (\(failure))")
         }
     }

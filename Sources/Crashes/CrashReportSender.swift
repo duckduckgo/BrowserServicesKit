@@ -18,15 +18,20 @@
 
 import Foundation
 import MetricKit
+import Common
 
 public protocol CrashReportSending {
-    init(platform: CrashCollectionPlatform)
+    var pixelEvents: EventMapping<CrashReportSenderError>? { get }  // TODO: This should _not_ be optional
+
+    init(platform: CrashCollectionPlatform, pixelEvents: EventMapping<CrashReportSenderError>?)
+
     func send(_ crashReportData: Data, crcid: String?) async -> (result: Result<Data?, Error>, response: HTTPURLResponse?)
     func send(_ crashReportData: Data, crcid: String?, completion: @escaping (_ result: Result<Data?, Error>, _ response: HTTPURLResponse?) -> Void)
 }
 
-enum CrashReportSenderError: Error {
-    case invalidResponse
+public enum CrashReportSenderError: Error {
+    case noCRCID
+    case submissionFailed(HTTPURLResponse?)
 }
 
 // By conforming to a protocol, we can sub in mocks more easily
@@ -36,11 +41,13 @@ public final class CrashReportSender: CrashReportSending {
     static let httpHeaderCRCID = "crcid"
 
     public let platform: CrashCollectionPlatform
+    public var pixelEvents: EventMapping<CrashReportSenderError>?
 
     private let session = URLSession(configuration: .ephemeral)
 
-    public init(platform: CrashCollectionPlatform) {
+    public init(platform: CrashCollectionPlatform, pixelEvents: EventMapping<CrashReportSenderError>?) {
         self.platform = platform
+        self.pixelEvents = pixelEvents
     }
 
     public func send(_ crashReportData: Data, crcid: String?, completion: @escaping (_ result: Result<Data?, Error>, _ response: HTTPURLResponse?) -> Void) {
@@ -60,6 +67,10 @@ public final class CrashReportSender: CrashReportSending {
                 Logger.general.debug("CrashReportSender: Received HTTP response code: \(response.statusCode)")
                 if response.statusCode == 200 {
                     response.allHeaderFields.forEach { print("\($0.key): \($0.value)") }    // TODO: Why do we straight-up print these, rather than debug logging?
+                    if response.allHeaderFields[CrashReportSender.httpHeaderCRCID] == nil {
+                        let crashReportError = CrashReportSenderError.noCRCID
+                        self.pixelEvents?.fire(crashReportError)
+                    }
                 } else {
                     assertionFailure("CrashReportSender: Failed to send the crash report: \(response.statusCode)")
                 }
@@ -67,12 +78,18 @@ public final class CrashReportSender: CrashReportSending {
                 if let data {
                     completion(.success(data), response)
                 } else if let error {
+                    let crashReportError = CrashReportSenderError.submissionFailed(response)
+                    self.pixelEvents?.fire(crashReportError)
                     completion(.failure(error), response)
                 } else {
-                    completion(.failure(CrashReportSenderError.invalidResponse), response)
+                    let crashReportError = CrashReportSenderError.submissionFailed(response)
+                    self.pixelEvents?.fire(crashReportError)
+                    completion(.failure(crashReportError), response)
                 }
             } else {
-                completion(.failure(CrashReportSenderError.invalidResponse), nil)
+                let crashReportError = CrashReportSenderError.submissionFailed(nil)
+                self.pixelEvents?.fire(crashReportError)
+                completion(.failure(crashReportError), nil)
             }
         }
         task.resume()
