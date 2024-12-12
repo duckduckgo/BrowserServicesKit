@@ -64,7 +64,7 @@ jobs:
         run: set -o pipefail && swift build | tee build-log.txt | xcbeautify
 
       - name: Run tests
-        run: set -o pipefail && swift test -q | tee -a build-log.txt | xcbeautify --report junit --report-path . --junit-report-filename tests.xml
+        run: set -o pipefail && swift test | tee -a build-log.txt | xcbeautify --report junit --report-path . --junit-report-filename tests.xml
 
       - name: Publish Unit Tests Report
         uses: mikepenz/action-junit-report@v4
