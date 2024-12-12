@@ -30,6 +30,7 @@ final class PrivacyProSubscriptionIntegrationTests: XCTestCase {
     var subscriptionManager: DefaultSubscriptionManager!
     var appStorePurchaseFlow: DefaultAppStorePurchaseFlow!
     var appStoreRestoreFlow: DefaultAppStoreRestoreFlow!
+    var stripePurchaseFlow: DefaultStripePurchaseFlow!
     var storePurchaseManager: StorePurchaseManagerMock!
     var subscriptionFeatureFlagger: FeatureFlaggerMapping<SubscriptionFeatureFlags>!
 
@@ -68,10 +69,10 @@ final class PrivacyProSubscriptionIntegrationTests: XCTestCase {
 
         appStoreRestoreFlow = DefaultAppStoreRestoreFlow(subscriptionManager: subscriptionManager,
                                                          storePurchaseManager: storePurchaseManager)
-
         appStorePurchaseFlow = DefaultAppStorePurchaseFlow(subscriptionManager: subscriptionManager,
                                                            storePurchaseManager: storePurchaseManager,
                                                            appStoreRestoreFlow: appStoreRestoreFlow)
+        stripePurchaseFlow = DefaultStripePurchaseFlow(subscriptionManager: subscriptionManager)
     }
 
     override func tearDownWithError() throws {
@@ -81,9 +82,12 @@ final class PrivacyProSubscriptionIntegrationTests: XCTestCase {
         subscriptionManager = nil
         appStorePurchaseFlow = nil
         appStoreRestoreFlow = nil
+        stripePurchaseFlow = nil
     }
 
-    func testPurchaseSuccess() async throws {
+    // MARK: - Apple store
+
+    func testAppStorePurchaseSuccess() async throws {
 
         // configure mock API responses
         APIMockResponseFactory.mockAuthoriseResponse(destinationMockAPIService: apiService, success: true)
@@ -113,6 +117,29 @@ final class PrivacyProSubscriptionIntegrationTests: XCTestCase {
         switch await appStorePurchaseFlow.completeSubscriptionPurchase(with: purchaseTransactionJWS!) {
         case .success:
             break
+        case .failure(let error):
+            XCTFail("Purchase failed with error: \(error)")
+        }
+    }
+
+    // MARK: - Stripe
+
+    func testStripePurchaseSuccess() async throws {
+
+        // configure mock API responses
+        APIMockResponseFactory.mockAuthoriseResponse(destinationMockAPIService: apiService, success: true)
+        APIMockResponseFactory.mockCreateAccountResponse(destinationMockAPIService: apiService, success: true)
+        APIMockResponseFactory.mockGetAccessTokenResponse(destinationMockAPIService: apiService, success: true)
+
+        (subscriptionManager.oAuthClient as! DefaultOAuthClient).testingDecodedTokenContainer = OAuthTokensFactory.makeValidTokenContainerWithEntitlements()
+
+        // Buy subscription
+        let email = "test@duck.com"
+        let result = await stripePurchaseFlow.prepareSubscriptionPurchase(emailAccessToken: email)
+        switch result {
+        case .success(let success):
+            XCTAssertNotNil(success.type)
+            XCTAssertNotNil(success.token)
         case .failure(let error):
             XCTFail("Purchase failed with error: \(error)")
         }
