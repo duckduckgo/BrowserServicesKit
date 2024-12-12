@@ -40,7 +40,7 @@ public final class SubscriptionManagerMock: SubscriptionManager {
 
     public var resultSubscription: Subscription.PrivacyProSubscription?
 
-    public func getSubscriptionFrom(lastTransactionJWSRepresentation: String) async throws -> Subscription.PrivacyProSubscription {
+    public func getSubscriptionFrom(lastTransactionJWSRepresentation: String) async throws -> Subscription.PrivacyProSubscription? {
         guard let resultSubscription else {
             throw OAuthClientError.missingTokens
         }
