@@ -18,8 +18,6 @@
 
 import Foundation
 
-import Foundation
-
 public extension Date {
 
     struct IndexedMonth: Hashable {
