@@ -63,7 +63,6 @@ public enum Screen: String, Decodable, CaseIterable {
     case choiceToggle
 
     case toggleReport
-    case promptBreakageForm
 
 }
 

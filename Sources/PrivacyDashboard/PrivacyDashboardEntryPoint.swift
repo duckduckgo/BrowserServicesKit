@@ -37,7 +37,7 @@ public enum PrivacyDashboardEntryPoint: Equatable {
         switch self {
         case .dashboard: return .primaryScreen
         case .report: return .breakageForm
-        case .prompt: return .promptBreakageForm
+        case .prompt: return .breakageForm
         case .toggleReport: return .toggleReport
         }
     }
