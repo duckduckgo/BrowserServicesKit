@@ -27,12 +27,15 @@ public protocol FeatureFlagLocalOverridesPersisting {
     /// If there's no override, this function should return `nil`.
     ///
     func value<Flag: FeatureFlagDescribing>(for flag: Flag) -> Bool?
+    func value<Flag: FeatureFlagExperimentDescribing>(for flag: Flag) -> CohortID?
+
 
     /// Set new override for the feature flag.
     ///
     /// Flag can be overridden to `true` or `false`. Setting `nil` clears the override.
     ///
     func set<Flag: FeatureFlagDescribing>(_ value: Bool?, for flag: Flag)
+    func set<Flag: FeatureFlagExperimentDescribing>(_ value: CohortID?, for flag: Flag)
 }
 
 public struct FeatureFlagLocalOverridesUserDefaultsPersistor: FeatureFlagLocalOverridesPersisting {
@@ -48,7 +51,16 @@ public struct FeatureFlagLocalOverridesUserDefaultsPersistor: FeatureFlagLocalOv
         return keyValueStore.object(forKey: key) as? Bool
     }
 
+    public func value<Flag: FeatureFlagExperimentDescribing>(for flag: Flag) -> CohortID? {
+        let key = key(for: flag)
+        return keyValueStore.object(forKey: key) as? CohortID
+    }
+
     public func set<Flag: FeatureFlagDescribing>(_ value: Bool?, for flag: Flag) {
+        let key = key(for: flag)
+        keyValueStore.set(value, forKey: key)
+    }
+    public func set<Flag: FeatureFlagExperimentDescribing>(_ value: CohortID?, for flag: Flag) {
         let key = key(for: flag)
         keyValueStore.set(value, forKey: key)
     }
@@ -58,6 +70,10 @@ public struct FeatureFlagLocalOverridesUserDefaultsPersistor: FeatureFlagLocalOv
     /// It uses camel case to simplify inter-process User Defaults KVO.
     ///
     private func key<Flag: FeatureFlagDescribing>(for flag: Flag) -> String {
+        return "localOverride\(flag.rawValue.capitalizedFirstLetter)"
+    }
+
+    private func key<Flag: FeatureFlagExperimentDescribing>(for flag: Flag) -> String {
         return "localOverride\(flag.rawValue.capitalizedFirstLetter)"
     }
 }
@@ -77,6 +93,7 @@ public protocol FeatureFlagLocalOverridesHandling {
     /// It can be implemented by client apps to react to changes to feature flag
     /// value in runtime, caused by adjusting its local override.
     func flagDidChange<Flag: FeatureFlagDescribing>(_ featureFlag: Flag, isEnabled: Bool)
+//    func flagDidChange<Flag: FeatureFlagExperimentDescribing>(_ featureFlag: Flag, cohort: CohortID)
 }
 
 /// `FeatureFlagLocalOverridesHandling` implementation providing Combine publisher for flag changes.
@@ -117,11 +134,15 @@ public protocol FeatureFlagLocalOverriding: AnyObject {
     /// Returns the current override for a feature flag, or `nil` if override is not set.
     func override<Flag: FeatureFlagDescribing>(for featureFlag: Flag) -> Bool?
 
+    /// Returns the current override for a feature flag, or `nil` if override is not set.
+    func override<Flag: FeatureFlagExperimentDescribing>(for featureFlag: Flag) -> CohortID?
+
     /// Toggles override for a feature flag.
     ///
     /// If override is not currently present, it sets the override to the opposite of the current flag value.
     ///
     func toggleOverride<Flag: FeatureFlagDescribing>(for featureFlag: Flag)
+    func toggleExperimentCohort<Flag: FeatureFlagExperimentDescribing>(for featureFlag: Flag, cohort: CohortID)
 
     /// Clears override for a feature flag.
     ///
@@ -168,6 +189,23 @@ public final class FeatureFlagLocalOverrides: FeatureFlagLocalOverriding {
         return persistor.value(for: featureFlag)
     }
 
+    public func override<Flag: FeatureFlagExperimentDescribing>(for featureFlag: Flag) -> CohortID? {
+        guard featureFlag.supportsLocalOverriding else {
+            return nil
+        }
+        return persistor.value(for: featureFlag)
+    }
+
+    public func toggleExperimentCohort<Flag: FeatureFlagExperimentDescribing>(for featureFlag: Flag, cohort: CohortID) {
+        guard featureFlag.supportsLocalOverriding else {
+            return
+        }
+        let currentValue = persistor.value(for: featureFlag) ?? nil
+        let newValue = cohort
+        persistor.set(newValue, for: featureFlag)
+//        actionHandler.flagDidChange(featureFlag, isEnabled: newValue)
+    }
+
     public func toggleOverride<Flag: FeatureFlagDescribing>(for featureFlag: Flag) {
         guard featureFlag.supportsLocalOverriding else {
             return
@@ -197,4 +235,5 @@ public final class FeatureFlagLocalOverrides: FeatureFlagLocalOverriding {
     private func currentValue<Flag: FeatureFlagDescribing>(for featureFlag: Flag) -> Bool? {
         featureFlagger?.isFeatureOn(for: featureFlag, allowOverride: true)
     }
+
 }
