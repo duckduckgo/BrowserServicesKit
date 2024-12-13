@@ -67,14 +67,14 @@ public enum TokenPayloadError: Error {
 }
 
 public struct JWTAccessToken: JWTPayload, Equatable {
-    public let exp: ExpirationClaim
-    public let iat: IssuedAtClaim
-    public let sub: SubjectClaim
-    public let aud: AudienceClaim
-    public let iss: IssuerClaim
-    public let jti: IDClaim
-    public let scope: String
-    public let api: String // always v2
+    let exp: ExpirationClaim
+    let iat: IssuedAtClaim
+    let sub: SubjectClaim
+    let aud: AudienceClaim
+    let iss: IssuerClaim
+    let jti: IDClaim
+    let scope: String
+    let api: String // always v2
     public let email: String?
     let entitlements: [EntitlementPayload]
 
@@ -97,23 +97,40 @@ public struct JWTAccessToken: JWTPayload, Equatable {
     public var externalID: String {
         sub.value
     }
+
+    public var expirationDate: Date {
+        exp.value
+    }
 }
 
 public struct JWTRefreshToken: JWTPayload, Equatable {
-    public let exp: ExpirationClaim
-    public let iat: IssuedAtClaim
-    public let sub: SubjectClaim
-    public let aud: AudienceClaim
-    public let iss: IssuerClaim
-    public let jti: IDClaim
-    public let scope: String
-    public let api: String
+    let exp: ExpirationClaim
+    let iat: IssuedAtClaim
+    let sub: SubjectClaim
+    let aud: AudienceClaim
+    let iss: IssuerClaim
+    let jti: IDClaim
+    let scope: String
+    let api: String
 
     public func verify(using signer: JWTKit.JWTSigner) throws {
         try self.exp.verifyNotExpired()
         if self.scope != "refresh" {
             throw TokenPayloadError.invalidTokenScope
         }
+    }
+
+    public func isExpired() -> Bool {
+        do {
+            try self.exp.verifyNotExpired()
+        } catch {
+            return true
+        }
+        return false
+    }
+
+    public var expirationDate: Date {
+        exp.value
     }
 }
 
