@@ -68,9 +68,15 @@ private extension URL {
     }
 
     func addingOpenerParameterIfNeeded(from configuration: PrivacyDashboardURLBuilder.Configuration) -> URL {
-        if case .startScreen(let entryPoint) = configuration, case .toggleReport = entryPoint {
-            return appendingParameter(name: Constant.openerKey, value: Constant.menuScreenKey)
+        if case .startScreen(let entryPoint) = configuration {
+            switch entryPoint {
+            case .toggleReport, .report:
+                return appendingParameter(name: Constant.openerKey, value: Constant.menuScreenKey)
+            default:
+                break
+            }
         }
+
         if case .segueToScreen(_, let entryPoint) = configuration, entryPoint == .dashboard {
             return appendingParameter(name: Constant.openerKey, value: Constant.dashboardScreenKey)
         }
