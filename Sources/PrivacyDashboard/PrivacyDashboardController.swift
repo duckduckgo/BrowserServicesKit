@@ -141,8 +141,8 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
     }
 
     private func loadStartScreen() {
-        let url = PrivacyDashboardURLBuilder(configuration: .startScreen(entryPoint: entryPoint, variant: variant)).build()
-        webView?.loadHTMLString(dashboardHtml, baseURL: url.deletingLastPathComponent())
+        let url = PrivacyDashboardURLBuilder(configuration: .startScreen(entryPoint: entryPoint)).build()
+        webView?.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent().deletingLastPathComponent())
     }
 
     public func updatePrivacyInfo(_ privacyInfo: PrivacyInfo?) {
