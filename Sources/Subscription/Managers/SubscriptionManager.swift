@@ -64,11 +64,6 @@ public protocol SubscriptionTokenProvider {
     @discardableResult
     func getTokenContainer(policy: TokensCachePolicy) async throws -> TokenContainer
 
-    /// Get a token container synchronously accordingly to the policy
-    /// - Parameter policy: The policy that will be used to get the token, it effects the tokens source and validity
-    /// - Returns: The TokenContainer, nil in case of error
-    func getTokenContainerSynchronously(policy: TokensCachePolicy) -> TokenContainer?
-
     /// Exchange access token v1 for a access token v2
     /// - Parameter tokenV1: The Auth v1 access token
     /// - Returns: An auth v2 TokenContainer
@@ -354,19 +349,6 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
         } catch {
             throw SubscriptionManagerError.tokenUnavailable(error: error)
         }
-    }
-
-    public func getTokenContainerSynchronously(policy: TokensCachePolicy) -> TokenContainer? {
-        Logger.subscription.debug("Fetching tokens synchronously")
-        let semaphore = DispatchSemaphore(value: 0)
-
-        Task(priority: .high) {
-            defer { semaphore.signal() }
-            return try? await getTokenContainer(policy: policy)
-        }
-
-        semaphore.wait()
-        return nil
     }
 
     public func exchange(tokenV1: String) async throws -> TokenContainer {

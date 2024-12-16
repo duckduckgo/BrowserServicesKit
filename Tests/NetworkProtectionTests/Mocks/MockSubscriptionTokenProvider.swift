@@ -35,18 +35,6 @@ public class MockSubscriptionTokenProvider: SubscriptionTokenProvider {
         }
     }
 
-    public func getTokenContainerSynchronously(policy: Networking.TokensCachePolicy) -> Networking.TokenContainer? {
-        guard let tokenResult = tokenResult else {
-            return nil
-        }
-        switch tokenResult {
-        case .success(let result):
-            return result
-        case .failure:
-            return nil
-        }
-    }
-
     public func exchange(tokenV1: String) async throws -> Networking.TokenContainer {
         guard let tokenResult = tokenResult else {
             throw OAuthClientError.missingTokens

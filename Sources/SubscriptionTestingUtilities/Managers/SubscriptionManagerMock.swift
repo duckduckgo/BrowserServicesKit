@@ -93,10 +93,6 @@ public final class SubscriptionManagerMock: SubscriptionManager {
         }
     }
 
-    public func getTokenContainerSynchronously(policy: Networking.TokensCachePolicy) -> Networking.TokenContainer? {
-        return resultTokenContainer
-    }
-
     public var resultExchangeTokenContainer: Networking.TokenContainer?
     public func exchange(tokenV1: String) async throws -> Networking.TokenContainer {
         guard let resultExchangeTokenContainer else {
