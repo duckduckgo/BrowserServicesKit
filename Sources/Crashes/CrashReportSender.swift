@@ -21,7 +21,7 @@ import MetricKit
 import Common
 
 public protocol CrashReportSending {
-    var pixelEvents: EventMapping<CrashReportSenderError>? { get }  // TODO: This should _not_ be optional
+    var pixelEvents: EventMapping<CrashReportSenderError>? { get }
 
     init(platform: CrashCollectionPlatform, pixelEvents: EventMapping<CrashReportSenderError>?)
 
