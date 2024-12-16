@@ -51,7 +51,7 @@ final class PixelExperimentKitTests: XCTestCase {
         firedIncludeAppVersion = []
     }
 
-    func testFireExperimentEnrollmentPixelSendsExpectedData() {
+    func testfireExperimentEnrollmentPixelPixelSendsExpectedData() {
         // GIVEN
         let subfeatureID = "testSubfeature"
         let cohort = "A"
@@ -70,7 +70,7 @@ final class PixelExperimentKitTests: XCTestCase {
         XCTAssertFalse(firedIncludeAppVersion[0])
     }
 
-    func testFireExperimentPixel_WithValidExperimentAndConversionWindowAndValueNotNumber() {
+    func testFireExperimentPixel_WithValidExperimentAndConversionWindow() {
         // GIVEN
 
         let subfeatureID = "credentialsSaving"
@@ -99,80 +99,11 @@ final class PixelExperimentKitTests: XCTestCase {
         XCTAssertEqual(mockPixelStore.store.count, 0)
     }
 
-    func testFireExperimentPixel_WithValidExperimentAndConversionWindowAndValue1() {
-        // GIVEN
-        let subfeatureID = "credentialsSaving"
-        let cohort = "control"
-        let enrollmentDate = Date().addingTimeInterval(-3 * 24 * 60 * 60) // 5 days ago
-        let conversionWindow = 3...7
-        let value = "1"
-        let expectedEventName = "experiment_metrics_\(subfeatureID)_\(cohort)"
-        let expectedParameters = [
-            "metric": "someMetric",
-            "conversionWindowDays": "3-7",
-            "value": value,
-            "enrollmentDate": enrollmentDate.toYYYYMMDDInET()
-        ]
-        let experimentData = ExperimentData(parentID: "autofill", cohortID: cohort, enrollmentDate: enrollmentDate)
-        mockFeatureFlagger.experiments = [subfeatureID: experimentData]
-
-        // WHEN
-        PixelKit.fireExperimentPixel(for: subfeatureID, metric: "someMetric", conversionWindowDays: conversionWindow, value: value)
-
-        // THEN
-        XCTAssertEqual(firedEvent[0].name, expectedEventName)
-        XCTAssertEqual(firedEvent[0].parameters, expectedParameters)
-        XCTAssertEqual(firedFrequency[0], .uniqueByNameAndParameters)
-        XCTAssertFalse(firedIncludeAppVersion[0])
-        XCTAssertEqual(mockPixelStore.store.count, 0)
-    }
-
-    func testFireExperimentPixel_WithValidExperimentAndConversionWindowAndValueN() {
-        // GIVEN
-        let subfeatureID = "credentialsSaving"
-        let cohort = "control"
-        let enrollmentDate = Date().addingTimeInterval(-7 * 24 * 60 * 60) // 5 days ago
-        let conversionWindow = 3...7
-        let randomNumber = Int.random(in: 1...100)
-        let value = "\(randomNumber)"
-        let expectedEventName = "experiment_metrics_\(subfeatureID)_\(cohort)"
-        let expectedParameters = [
-            "metric": "someMetric",
-            "conversionWindowDays": "3-7",
-            "value": value,
-            "enrollmentDate": enrollmentDate.toYYYYMMDDInET()
-        ]
-        let experimentData = ExperimentData(parentID: "autofill", cohortID: cohort, enrollmentDate: enrollmentDate)
-        mockFeatureFlagger.experiments = [subfeatureID: experimentData]
-
-        // WHEN calling fire before expected number of calls
-        for n in 1..<randomNumber {
-            PixelKit.fireExperimentPixel(for: subfeatureID, metric: "someMetric", conversionWindowDays: conversionWindow, value: value)
-            // THEN
-            XCTAssertTrue(firedEvent.isEmpty)
-            XCTAssertTrue(firedFrequency.isEmpty)
-            XCTAssertTrue(firedIncludeAppVersion.isEmpty)
-            XCTAssertEqual(mockPixelStore.store.count, 1)
-            XCTAssertEqual(mockPixelStore.store.values.first, n)
-        }
-
-        // WHEN calling fire at the right number of calls
-        PixelKit.fireExperimentPixel(for: subfeatureID, metric: "someMetric", conversionWindowDays: conversionWindow, value: value)
-
-        // THEN
-        XCTAssertEqual(firedEvent[0].name, expectedEventName)
-        XCTAssertEqual(firedEvent[0].parameters, expectedParameters)
-        XCTAssertEqual(firedFrequency[0], .uniqueByNameAndParameters)
-        XCTAssertFalse(firedIncludeAppVersion[0])
-        XCTAssertEqual(mockPixelStore.store.count, 0)
-    }
-
-    func testFireExperimentPixel_WithInvalidExperimentAndValidConversionWindowAndValue1() {
+    func testFireExperimentPixel_WithInvalidExperimentAndValidConversionWindow() {
         // GIVEN
         let subfeatureID = "credentialsSaving"
         let conversionWindow = 3...7
-        let randomNumber = Int.random(in: 1...100)
-        let value = "\(randomNumber)"
+        let value = String(Int.random(in: 1...100))
         mockFeatureFlagger.experiments = [:]
 
         // WHEN
@@ -185,13 +116,13 @@ final class PixelExperimentKitTests: XCTestCase {
         XCTAssertEqual(mockPixelStore.store.count, 0)
     }
 
-    func testFireExperimentPixel_WithValidExperimentAndOutsideConversionWindowAndValueN() {
+    func testFireExperimentPixel_WithValidExperimentAndBeforeConversionWindow() {
         // GIVEN
         let subfeatureID = "credentialsSaving"
         let cohort = "control"
         let enrollmentDate = Date().addingTimeInterval(-7 * 24 * 60 * 60) // 7 days ago
         let conversionWindow = 8...11
-        let value = "3"
+        let value = "someValue"
         let experimentData = ExperimentData(parentID: "autofill", cohortID: cohort, enrollmentDate: enrollmentDate)
         mockFeatureFlagger.experiments = [subfeatureID: experimentData]
 
@@ -205,28 +136,180 @@ final class PixelExperimentKitTests: XCTestCase {
         XCTAssertEqual(mockPixelStore.store.count, 0)
     }
 
-    func testFireExperimentPixel_WithValidExperimentAndAfterConversionWindowAndValueNAfterSomeCalledHappened() {
+    func testFireExperimentPixel_WithValidExperimentAndAfterConversionWindow() {
+        // GIVEN
+        let subfeatureID = "credentialsSaving"
+        let cohort = "control"
+        let enrollmentDate = Date().addingTimeInterval(-12 * 24 * 60 * 60) // 12 days ago
+        let conversionWindow = 8...11
+        let value = "someValue"
+        let experimentData = ExperimentData(parentID: "autofill", cohortID: cohort, enrollmentDate: enrollmentDate)
+        mockFeatureFlagger.experiments = [subfeatureID: experimentData]
+
+        // WHEN
+        PixelKit.fireExperimentPixel(for: subfeatureID, metric: "someMetric", conversionWindowDays: conversionWindow, value: value)
+
+        // THEN
+        XCTAssertTrue(firedEvent.isEmpty)
+        XCTAssertTrue(firedFrequency.isEmpty)
+        XCTAssertTrue(firedIncludeAppVersion.isEmpty)
+        XCTAssertEqual(mockPixelStore.store.count, 0)
+    }
+
+
+    func testFireExperimentPixel_WithValidExperimentAndConversionWindowAndValue1() {
+        // GIVEN
+        let subfeatureID = "credentialsSaving"
+        let cohort = "control"
+        let enrollmentDate = Date().addingTimeInterval(-3 * 24 * 60 * 60) // 5 days ago
+        let conversionWindow = 3...7
+        let value = 1
+        let expectedEventName = "experiment_metrics_\(subfeatureID)_\(cohort)"
+        let expectedParameters = [
+            "metric": "someMetric",
+            "conversionWindowDays": "3-7",
+            "value": String(value),
+            "enrollmentDate": enrollmentDate.toYYYYMMDDInET()
+        ]
+        let experimentData = ExperimentData(parentID: "autofill", cohortID: cohort, enrollmentDate: enrollmentDate)
+        mockFeatureFlagger.experiments = [subfeatureID: experimentData]
+
+        // WHEN
+        PixelKit.fireExperimentPixelWhenReachingNumberOfCalls(for: subfeatureID, metric: "someMetric", conversionWindowDays: conversionWindow, numberOfCalls: value)
+
+        // THEN
+        XCTAssertEqual(firedEvent[0].name, expectedEventName)
+        XCTAssertEqual(firedEvent[0].parameters, expectedParameters)
+        XCTAssertEqual(firedFrequency[0], .uniqueByNameAndParameters)
+        XCTAssertFalse(firedIncludeAppVersion[0])
+        XCTAssertEqual(mockPixelStore.store.count, 0)
+    }
+
+    func testFireExperimentPixelWhenReachingNumberOfCalls_WithValidExperimentAndConversionWindowAndValue1() {
+        // GIVEN
+        let subfeatureID = "credentialsSaving"
+        let cohort = "control"
+        let enrollmentDate = Date().addingTimeInterval(-3 * 24 * 60 * 60) // 5 days ago
+        let conversionWindow = 3...7
+        let value = 1
+        let expectedEventName = "experiment_metrics_\(subfeatureID)_\(cohort)"
+        let expectedParameters = [
+            "metric": "someMetric",
+            "conversionWindowDays": "3-7",
+            "value": String(value),
+            "enrollmentDate": enrollmentDate.toYYYYMMDDInET()
+        ]
+        let experimentData = ExperimentData(parentID: "autofill", cohortID: cohort, enrollmentDate: enrollmentDate)
+        mockFeatureFlagger.experiments = [subfeatureID: experimentData]
+
+        // WHEN
+        PixelKit.fireExperimentPixelWhenReachingNumberOfCalls(for: subfeatureID, metric: "someMetric", conversionWindowDays: conversionWindow, numberOfCalls: value)
+
+        // THEN
+        XCTAssertEqual(firedEvent[0].name, expectedEventName)
+        XCTAssertEqual(firedEvent[0].parameters, expectedParameters)
+        XCTAssertEqual(firedFrequency[0], .uniqueByNameAndParameters)
+        XCTAssertFalse(firedIncludeAppVersion[0])
+        XCTAssertEqual(mockPixelStore.store.count, 0)
+    }
+
+    func testFireExperimentPixelWhenReachingNumberOfCalls_WithValidExperimentAndConversionWindowAndValueN() {
+        // GIVEN
+        let subfeatureID = "credentialsSaving"
+        let cohort = "control"
+        let enrollmentDate = Date().addingTimeInterval(-7 * 24 * 60 * 60) // 5 days ago
+        let conversionWindow = 3...7
+        let value = Int.random(in: 1...100)
+        let expectedEventName = "experiment_metrics_\(subfeatureID)_\(cohort)"
+        let expectedParameters = [
+            "metric": "someMetric",
+            "conversionWindowDays": "3-7",
+            "value": String(value),
+            "enrollmentDate": enrollmentDate.toYYYYMMDDInET()
+        ]
+        let experimentData = ExperimentData(parentID: "autofill", cohortID: cohort, enrollmentDate: enrollmentDate)
+        mockFeatureFlagger.experiments = [subfeatureID: experimentData]
+
+        // WHEN calling fire before expected number of calls
+        for n in 1..<value {
+            PixelKit.fireExperimentPixelWhenReachingNumberOfCalls(for: subfeatureID, metric: "someMetric", conversionWindowDays: conversionWindow, numberOfCalls: value)
+            // THEN
+            XCTAssertTrue(firedEvent.isEmpty)
+            XCTAssertTrue(firedFrequency.isEmpty)
+            XCTAssertTrue(firedIncludeAppVersion.isEmpty)
+            XCTAssertEqual(mockPixelStore.store.count, 1)
+            XCTAssertEqual(mockPixelStore.store.values.first, n)
+        }
+
+        // WHEN calling fire at the right number of calls
+        PixelKit.fireExperimentPixelWhenReachingNumberOfCalls(for: subfeatureID, metric: "someMetric", conversionWindowDays: conversionWindow, numberOfCalls: value)
+
+        // THEN
+        XCTAssertEqual(firedEvent[0].name, expectedEventName)
+        XCTAssertEqual(firedEvent[0].parameters, expectedParameters)
+        XCTAssertEqual(firedFrequency[0], .uniqueByNameAndParameters)
+        XCTAssertFalse(firedIncludeAppVersion[0])
+        XCTAssertEqual(mockPixelStore.store.count, 0)
+    }
+
+    func testFireExperimentPixelWhenReachingNumberOfCalls_WithInvalidExperimentAndValidConversionWindowAndValue1() {
+        // GIVEN
+        let subfeatureID = "credentialsSaving"
+        let conversionWindow = 3...7
+        let value = Int.random(in: 1...100)
+        mockFeatureFlagger.experiments = [:]
+
+        // WHEN
+        PixelKit.fireExperimentPixelWhenReachingNumberOfCalls(for: subfeatureID, metric: "someMetric", conversionWindowDays: conversionWindow, numberOfCalls: value)
+
+        // THEN
+        XCTAssertTrue(firedEvent.isEmpty)
+        XCTAssertTrue(firedFrequency.isEmpty)
+        XCTAssertTrue(firedIncludeAppVersion.isEmpty)
+        XCTAssertEqual(mockPixelStore.store.count, 0)
+    }
+
+    func testFireExperimentPixelWhenReachingNumberOfCalls_WithValidExperimentAndOutsideConversionWindowAndValueN() {
+        // GIVEN
+        let subfeatureID = "credentialsSaving"
+        let cohort = "control"
+        let enrollmentDate = Date().addingTimeInterval(-7 * 24 * 60 * 60) // 7 days ago
+        let conversionWindow = 8...11
+        let value = 3
+        let experimentData = ExperimentData(parentID: "autofill", cohortID: cohort, enrollmentDate: enrollmentDate)
+        mockFeatureFlagger.experiments = [subfeatureID: experimentData]
+
+        // WHEN
+        PixelKit.fireExperimentPixelWhenReachingNumberOfCalls(for: subfeatureID, metric: "someMetric", conversionWindowDays: conversionWindow, numberOfCalls: value)
+
+        // THEN
+        XCTAssertTrue(firedEvent.isEmpty)
+        XCTAssertTrue(firedFrequency.isEmpty)
+        XCTAssertTrue(firedIncludeAppVersion.isEmpty)
+        XCTAssertEqual(mockPixelStore.store.count, 0)
+    }
+
+    func testFireExperimentPixelWhenReachingNumberOfCalls_WithValidExperimentAndAfterConversionWindowAndValueNAfterSomeCalledHappened() {
         // GIVEN
         let subfeatureID = "credentialsSaving"
         let cohort = "control"
         let enrollmentDate = Date().addingTimeInterval(-6 * 24 * 60 * 60) // 6 days ago
-        print(enrollmentDate)
         let conversionWindow = 3...5
-        let value = "3"
+        let value = 3
         let experimentData = ExperimentData(parentID: "autofill", cohortID: cohort, enrollmentDate: enrollmentDate)
         mockFeatureFlagger.experiments = [subfeatureID: experimentData]
         let expectedEventName = "experiment_metrics_\(subfeatureID)_\(cohort)"
         let expectedParameters = [
             "metric": "someMetric",
             "conversionWindowDays": "3-5",
-            "value": value,
+            "value": String(value),
             "enrollmentDate": enrollmentDate.toYYYYMMDDInET()
         ]
         let eventStoreKey = expectedEventName + "_" + expectedParameters.toString()
         mockPixelStore.store = [eventStoreKey: 2]
 
         // WHEN
-        PixelKit.fireExperimentPixel(for: subfeatureID, metric: "someMetric", conversionWindowDays: conversionWindow, value: value)
+        PixelKit.fireExperimentPixelWhenReachingNumberOfCalls(for: subfeatureID, metric: "someMetric", conversionWindowDays: conversionWindow, numberOfCalls: value)
 
         // THEN
         XCTAssertTrue(firedEvent.isEmpty)
