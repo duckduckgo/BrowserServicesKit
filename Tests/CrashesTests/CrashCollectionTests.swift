@@ -125,7 +125,7 @@ class CrashCollectionTests: XCTestCase {
         
         self.wait(for: [expectation], timeout: 3)
         
-        XCTAssertNil(store.object(forKey: CRCIDManager.crcidKey), "CRCID should not be present in the store after receiving a successful response")
+        XCTAssertEqual(store.object(forKey: CRCIDManager.crcidKey) as! String, "", "CRCID should not be present in the store after receiving a successful response")
     }
     
     func testCRCIDIsRetainedWhenServerErrorIsReceived() {

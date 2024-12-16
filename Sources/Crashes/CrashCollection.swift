@@ -184,7 +184,7 @@ public final class CrashCollection {
     }
 
     public func clearCRCID() {
-        self.crcidManager.crcid = nil
+        self.crcidManager.crcid = ""
     }
 
     var isFirstCrash: Bool {
@@ -235,25 +235,20 @@ public class CRCIDManager {
                 }
             } else {
                 Logger.general.debug("Crash Collection - No value for CRCID header: \(CRCIDManager.crcidKey), clearing local crcid value if present")
-                crcid = nil
+                crcid = ""
             }
         case .failure(let failure):
             Logger.general.debug("Crash Collection - Sending Crash Report: failed (\(failure))")
         }
     }
 
-    public var crcid: String? {
+    public var crcid: String {
         get {
-            return self.store.object(forKey: CRCIDManager.crcidKey) as? String
+            return self.store.object(forKey: CRCIDManager.crcidKey) as? String ?? ""
         }
 
         set {
-            if let newValue {
-                store.set(newValue, forKey: CRCIDManager.crcidKey)
-            } else {
-                store.removeObject(forKey: CRCIDManager.crcidKey)
-                Logger.general.debug("Cleared CRCID")
-            }
+            store.set(newValue, forKey: CRCIDManager.crcidKey)
         }
     }
 }
