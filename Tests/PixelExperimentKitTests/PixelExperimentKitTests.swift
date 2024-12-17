@@ -156,7 +156,6 @@ final class PixelExperimentKitTests: XCTestCase {
         XCTAssertEqual(mockPixelStore.store.count, 0)
     }
 
-
     func testFireExperimentPixel_WithValidExperimentAndConversionWindowAndValue1() {
         // GIVEN
         let subfeatureID = "credentialsSaving"
