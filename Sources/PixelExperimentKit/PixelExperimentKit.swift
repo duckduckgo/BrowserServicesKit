@@ -115,9 +115,9 @@ extension PixelKit {
     /// 2. Ensures the user is within the specified conversion window.
     /// 3. Tracks actions performed and sends the pixel once the target value is reached (if applicable).
     public static func fireExperimentPixelIfThresholdReached(for subfeatureID: SubfeatureID,
-                                                                    metric: String,
-                                                                    conversionWindowDays: ConversionWindow,
-                                                                    threshold: NumberOfCalls) {
+                                                             metric: String,
+                                                             conversionWindowDays: ConversionWindow,
+                                                             threshold: NumberOfCalls) {
         // Check is active experiment for user
         guard let featureFlagger = ExperimentConfig.featureFlagger else {
             assertionFailure("PixelKit is not configured for experiments")
