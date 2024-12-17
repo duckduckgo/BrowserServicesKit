@@ -221,7 +221,6 @@ extension PixelKit {
         // Determine if the user is within the conversion window
         let isInWindow = isUserInConversionWindow(conversionWindowDays, enrollmentDate: experimentData.enrollmentDate)
 
-        //        ifnumberOfAction > 1 {
         // Increment or remove based on conversion window status
         let shouldSendPixel = ExperimentConfig.eventTracker.incrementAndCheckThreshold(
             forKey: eventStoreKey,
@@ -233,10 +232,6 @@ extension PixelKit {
         if shouldSendPixel {
             ExperimentConfig.fireFunction(event, .uniqueByNameAndParameters, false)
         }
-        //        } else if isInWindow {
-        //            // If value is not a number, send the pixel only if within the window
-        //            ExperimentConfig.fireFunction(event, .uniqueByNameAndParameters, false)
-        //        }
     }
 
     private static func isUserInConversionWindow(
