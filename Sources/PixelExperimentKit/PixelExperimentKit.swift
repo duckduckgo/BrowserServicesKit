@@ -82,7 +82,7 @@ extension PixelKit {
     /// This function:
     /// 1. Validates if the experiment is active.
     /// 2. Ensures the user is within the specified conversion window.
-    /// 3. Sends the pixel if not sent before (as a unique by name and parameter)
+    /// 3. Sends the pixel if not sent before (unique by name and parameter)
     public static func fireExperimentPixel(for subfeatureID: SubfeatureID,
                                            metric: String,
                                            conversionWindowDays: ConversionWindow,
@@ -92,17 +92,19 @@ extension PixelKit {
             assertionFailure("PixelKit is not configured for experiments")
             return
         }
-
         guard let experimentData = featureFlagger.getAllActiveExperiments()[subfeatureID] else { return }
+
+        // Define event
         let event = event(for: subfeatureID, experimentData: experimentData, conversionWindowDays: conversionWindowDays, metric: metric, value: value)
+
+        // Send unique by name and parameter pixel if within conversion window
         let isInWindow = isUserInConversionWindow(conversionWindowDays, enrollmentDate: experimentData.enrollmentDate)
         if isInWindow {
-            // If value is not a number, send the pixel only if within the window
             ExperimentConfig.fireFunction(event, .uniqueByNameAndParameters, false)
         }
     }
 
-    /// Fires a pixel for a specific action in an experiment, based on conversion window and value thresholds (if value is a number).
+    /// Fires a pixel for a specific action in an experiment, based on conversion window and value thresholds.
     /// - Parameters:
     ///   - subfeatureID: Identifier for the subfeature associated with the experiment.
     ///   - metric: The name of the metric being tracked (e.g., "searches").
