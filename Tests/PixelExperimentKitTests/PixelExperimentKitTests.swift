@@ -174,7 +174,7 @@ final class PixelExperimentKitTests: XCTestCase {
         mockFeatureFlagger.experiments = [subfeatureID: experimentData]
 
         // WHEN
-        PixelKit.fireExperimentPixelWhenReachingNumberOfCalls(for: subfeatureID, metric: "someMetric", conversionWindowDays: conversionWindow, numberOfCalls: value)
+        PixelKit.fireExperimentPixelIfThresholdReached(for: subfeatureID, metric: "someMetric", conversionWindowDays: conversionWindow, threshold: value)
 
         // THEN
         XCTAssertEqual(firedEvent[0].name, expectedEventName)
@@ -202,7 +202,7 @@ final class PixelExperimentKitTests: XCTestCase {
         mockFeatureFlagger.experiments = [subfeatureID: experimentData]
 
         // WHEN
-        PixelKit.fireExperimentPixelWhenReachingNumberOfCalls(for: subfeatureID, metric: "someMetric", conversionWindowDays: conversionWindow, numberOfCalls: value)
+        PixelKit.fireExperimentPixelIfThresholdReached(for: subfeatureID, metric: "someMetric", conversionWindowDays: conversionWindow, threshold: value)
 
         // THEN
         XCTAssertEqual(firedEvent[0].name, expectedEventName)
@@ -231,7 +231,7 @@ final class PixelExperimentKitTests: XCTestCase {
 
         // WHEN calling fire before expected number of calls
         for n in 1..<value {
-            PixelKit.fireExperimentPixelWhenReachingNumberOfCalls(for: subfeatureID, metric: "someMetric", conversionWindowDays: conversionWindow, numberOfCalls: value)
+            PixelKit.fireExperimentPixelIfThresholdReached(for: subfeatureID, metric: "someMetric", conversionWindowDays: conversionWindow, threshold: value)
             // THEN
             XCTAssertTrue(firedEvent.isEmpty)
             XCTAssertTrue(firedFrequency.isEmpty)
@@ -241,7 +241,7 @@ final class PixelExperimentKitTests: XCTestCase {
         }
 
         // WHEN calling fire at the right number of calls
-        PixelKit.fireExperimentPixelWhenReachingNumberOfCalls(for: subfeatureID, metric: "someMetric", conversionWindowDays: conversionWindow, numberOfCalls: value)
+        PixelKit.fireExperimentPixelIfThresholdReached(for: subfeatureID, metric: "someMetric", conversionWindowDays: conversionWindow, threshold: value)
 
         // THEN
         XCTAssertEqual(firedEvent[0].name, expectedEventName)
@@ -259,7 +259,7 @@ final class PixelExperimentKitTests: XCTestCase {
         mockFeatureFlagger.experiments = [:]
 
         // WHEN
-        PixelKit.fireExperimentPixelWhenReachingNumberOfCalls(for: subfeatureID, metric: "someMetric", conversionWindowDays: conversionWindow, numberOfCalls: value)
+        PixelKit.fireExperimentPixelIfThresholdReached(for: subfeatureID, metric: "someMetric", conversionWindowDays: conversionWindow, threshold: value)
 
         // THEN
         XCTAssertTrue(firedEvent.isEmpty)
@@ -279,7 +279,7 @@ final class PixelExperimentKitTests: XCTestCase {
         mockFeatureFlagger.experiments = [subfeatureID: experimentData]
 
         // WHEN
-        PixelKit.fireExperimentPixelWhenReachingNumberOfCalls(for: subfeatureID, metric: "someMetric", conversionWindowDays: conversionWindow, numberOfCalls: value)
+        PixelKit.fireExperimentPixelIfThresholdReached(for: subfeatureID, metric: "someMetric", conversionWindowDays: conversionWindow, threshold: value)
 
         // THEN
         XCTAssertTrue(firedEvent.isEmpty)
@@ -308,7 +308,7 @@ final class PixelExperimentKitTests: XCTestCase {
         mockPixelStore.store = [eventStoreKey: 2]
 
         // WHEN
-        PixelKit.fireExperimentPixelWhenReachingNumberOfCalls(for: subfeatureID, metric: "someMetric", conversionWindowDays: conversionWindow, numberOfCalls: value)
+        PixelKit.fireExperimentPixelIfThresholdReached(for: subfeatureID, metric: "someMetric", conversionWindowDays: conversionWindow, threshold: value)
 
         // THEN
         XCTAssertTrue(firedEvent.isEmpty)

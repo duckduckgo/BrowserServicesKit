@@ -21,6 +21,7 @@ import BrowserServicesKit
 import Foundation
 
 public typealias ConversionWindow = ClosedRange<Int>
+public typealias NumberOfCalls = Int
 
 struct ExperimentEvent: PixelKitEvent {
     var name: String
@@ -94,14 +95,12 @@ extension PixelKit {
         }
         guard let experimentData = featureFlagger.getAllActiveExperiments()[subfeatureID] else { return }
 
+        // Check if within conversion window
+        guard isUserInConversionWindow(conversionWindowDays, enrollmentDate: experimentData.enrollmentDate) else { return }
+
         // Define event
         let event = event(for: subfeatureID, experimentData: experimentData, conversionWindowDays: conversionWindowDays, metric: metric, value: value)
-
-        // Send unique by name and parameter pixel if within conversion window
-        let isInWindow = isUserInConversionWindow(conversionWindowDays, enrollmentDate: experimentData.enrollmentDate)
-        if isInWindow {
-            ExperimentConfig.fireFunction(event, .uniqueByNameAndParameters, false)
-        }
+        ExperimentConfig.fireFunction(event, .uniqueByNameAndParameters, false)
     }
 
     /// Fires a pixel for a specific action in an experiment, based on conversion window and value thresholds.
@@ -115,10 +114,10 @@ extension PixelKit {
     /// 1. Validates if the experiment is active.
     /// 2. Ensures the user is within the specified conversion window.
     /// 3. Tracks actions performed and sends the pixel once the target value is reached (if applicable).
-    public static func fireExperimentPixelWhenReachingNumberOfCalls(for subfeatureID: SubfeatureID,
+    public static func fireExperimentPixelIfThresholdReached(for subfeatureID: SubfeatureID,
                                                                     metric: String,
                                                                     conversionWindowDays: ConversionWindow,
-                                                                    numberOfCalls: Int) {
+                                                                    threshold: NumberOfCalls) {
         // Check is active experiment for user
         guard let featureFlagger = ExperimentConfig.featureFlagger else {
             assertionFailure("PixelKit is not configured for experiments")
@@ -130,7 +129,7 @@ extension PixelKit {
                                                experimentData: experimentData,
                                                metric: metric,
                                                conversionWindowDays: conversionWindowDays,
-                                               numberOfCalls: numberOfCalls)
+                                               numberOfCalls: threshold)
     }
 
     /// Fires search-related experiment pixels for all active experiments.
