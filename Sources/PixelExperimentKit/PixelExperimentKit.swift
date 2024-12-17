@@ -21,6 +21,7 @@ import BrowserServicesKit
 import Foundation
 
 public typealias ConversionWindow = ClosedRange<Int>
+public typealias NumberOfCalls = Int
 
 struct ExperimentEvent: PixelKitEvent {
     var name: String
@@ -72,7 +73,7 @@ extension PixelKit {
         ExperimentConfig.fireFunction(event, .uniqueByNameAndParameters, false)
     }
 
-    /// Fires a pixel for a specific action in an experiment, based on conversion window and value thresholds (if value is a number).
+    /// Fires a pixel for a specific action in an experiment, based on conversion window and value.
     /// - Parameters:
     ///   - subfeatureID: Identifier for the subfeature associated with the experiment.
     ///   - metric: The name of the metric being tracked (e.g., "searches").
@@ -82,7 +83,7 @@ extension PixelKit {
     /// This function:
     /// 1. Validates if the experiment is active.
     /// 2. Ensures the user is within the specified conversion window.
-    /// 3. Tracks actions performed and sends the pixel once the target value is reached (if applicable).
+    /// 3. Sends the pixel if not sent before (unique by name and parameter)
     public static func fireExperimentPixel(for subfeatureID: SubfeatureID,
                                            metric: String,
                                            conversionWindowDays: ConversionWindow,
@@ -94,11 +95,41 @@ extension PixelKit {
         }
         guard let experimentData = featureFlagger.getAllActiveExperiments()[subfeatureID] else { return }
 
+        // Check if within conversion window
+        guard isUserInConversionWindow(conversionWindowDays, enrollmentDate: experimentData.enrollmentDate) else { return }
+
+        // Define event
+        let event = event(for: subfeatureID, experimentData: experimentData, conversionWindowDays: conversionWindowDays, metric: metric, value: value)
+        ExperimentConfig.fireFunction(event, .uniqueByNameAndParameters, false)
+    }
+
+    /// Fires a pixel for a specific action in an experiment, based on conversion window and value thresholds.
+    /// - Parameters:
+    ///   - subfeatureID: Identifier for the subfeature associated with the experiment.
+    ///   - metric: The name of the metric being tracked (e.g., "searches").
+    ///   - conversionWindowDays: The range of days after enrollment during which the action is valid.
+    ///   - numberOfCalls: target number of actions required to fire the pixel.
+    ///
+    /// This function:
+    /// 1. Validates if the experiment is active.
+    /// 2. Ensures the user is within the specified conversion window.
+    /// 3. Tracks actions performed and sends the pixel once the target value is reached (if applicable).
+    public static func fireExperimentPixelIfThresholdReached(for subfeatureID: SubfeatureID,
+                                                             metric: String,
+                                                             conversionWindowDays: ConversionWindow,
+                                                             threshold: NumberOfCalls) {
+        // Check is active experiment for user
+        guard let featureFlagger = ExperimentConfig.featureFlagger else {
+            assertionFailure("PixelKit is not configured for experiments")
+            return
+        }
+        guard let experimentData = featureFlagger.getAllActiveExperiments()[subfeatureID] else { return }
+
         fireExperimentPixelForActiveExperiment(subfeatureID,
                                                experimentData: experimentData,
                                                metric: metric,
                                                conversionWindowDays: conversionWindowDays,
-                                               value: value)
+                                               numberOfCalls: threshold)
     }
 
     /// Fires search-related experiment pixels for all active experiments.
@@ -172,7 +203,7 @@ extension PixelKit {
                     experimentData: experimentData,
                     metric: metric,
                     conversionWindowDays: range,
-                    value: "\(value)"
+                    numberOfCalls: value
                 )
             }
         }
@@ -182,39 +213,24 @@ extension PixelKit {
                                                                experimentData: ExperimentData,
                                                                metric: String,
                                                                conversionWindowDays: ConversionWindow,
-                                                               value: String) {
+                                                               numberOfCalls: Int) {
         // Set parameters, event name, store key
-        let eventName = "\(Constants.metricsEventPrefix)_\(subfeatureID)_\(experimentData.cohortID)"
-        let conversionWindowValue = (conversionWindowDays.lowerBound != conversionWindowDays.upperBound) ?
-        "\(conversionWindowDays.lowerBound)-\(conversionWindowDays.upperBound)" :
-        "\(conversionWindowDays.lowerBound)"
-        let parameters: [String: String] = [
-            Constants.metricKey: metric,
-            Constants.conversionWindowDaysKey: conversionWindowValue,
-            Constants.valueKey: value,
-            Constants.enrollmentDateKey: experimentData.enrollmentDate.toYYYYMMDDInET()
-        ]
-        let event = ExperimentEvent(name: eventName, parameters: parameters)
-        let eventStoreKey = "\(eventName)_\(parameters.toString())"
+        let event = event(for: subfeatureID, experimentData: experimentData, conversionWindowDays: conversionWindowDays, metric: metric, value: String(numberOfCalls))
+        let parameters = parameters(metric: metric, conversionWindowDays: conversionWindowDays, value: String(numberOfCalls), experimentData: experimentData)
+        let eventStoreKey = "\(event.name)_\(parameters.toString())"
 
         // Determine if the user is within the conversion window
         let isInWindow = isUserInConversionWindow(conversionWindowDays, enrollmentDate: experimentData.enrollmentDate)
 
-        // Check if value is a number
-        if let numberOfAction = NumberOfActions(value), numberOfAction > 1 {
-            // Increment or remove based on conversion window status
-            let shouldSendPixel = ExperimentConfig.eventTracker.incrementAndCheckThreshold(
-                forKey: eventStoreKey,
-                threshold: numberOfAction,
-                isInWindow: isInWindow
-            )
+        // Increment or remove based on conversion window status
+        let shouldSendPixel = ExperimentConfig.eventTracker.incrementAndCheckThreshold(
+            forKey: eventStoreKey,
+            threshold: numberOfCalls,
+            isInWindow: isInWindow
+        )
 
-            // Send the pixel only if conditions are met
-            if shouldSendPixel {
-                ExperimentConfig.fireFunction(event, .uniqueByNameAndParameters, false)
-            }
-        } else if isInWindow {
-            // If value is not a number, send the pixel only if within the window
+        // Send the pixel only if conditions are met
+        if shouldSendPixel {
             ExperimentConfig.fireFunction(event, .uniqueByNameAndParameters, false)
         }
     }
@@ -232,6 +248,24 @@ extension PixelKit {
         let currentDate = calendar.startOfDay(for: Date())
         return currentDate >= calendar.startOfDay(for: startOfWindow) &&
         currentDate <= calendar.startOfDay(for: endOfWindow)
+    }
+
+    private static func event(for subfeatureID: SubfeatureID, experimentData: ExperimentData, conversionWindowDays: ConversionWindow, metric: String, value: String) -> ExperimentEvent{
+        let eventName = "\(Constants.metricsEventPrefix)_\(subfeatureID)_\(experimentData.cohortID)"
+        let parameters = parameters(metric: metric, conversionWindowDays: conversionWindowDays, value: value, experimentData: experimentData)
+        return ExperimentEvent(name: eventName, parameters: parameters)
+    }
+
+    private static func parameters(metric: String, conversionWindowDays: ConversionWindow, value: String, experimentData: ExperimentData) -> [String: String] {
+        let conversionWindowValue = (conversionWindowDays.lowerBound != conversionWindowDays.upperBound) ?
+        "\(conversionWindowDays.lowerBound)-\(conversionWindowDays.upperBound)" :
+        "\(conversionWindowDays.lowerBound)"
+        return [
+            Constants.metricKey: metric,
+            Constants.conversionWindowDaysKey: conversionWindowValue,
+            Constants.valueKey: value,
+            Constants.enrollmentDateKey: experimentData.enrollmentDate.toYYYYMMDDInET()
+        ]
     }
 }
 
