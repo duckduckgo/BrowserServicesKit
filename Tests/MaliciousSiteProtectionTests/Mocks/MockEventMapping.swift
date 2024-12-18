@@ -32,8 +32,6 @@ public class MockEventMapping: EventMapping<MaliciousSiteProtection.Event> {
             switch event {
             case .errorPageShown:
                 Self.clientSideHitParam = params?[PixelKit.Parameters.clientSideHit]
-            case .updateTaskFailed48h(error: let error):
-                Self.errorParam = error
             default:
                 break
             }
