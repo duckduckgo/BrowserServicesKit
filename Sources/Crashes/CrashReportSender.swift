@@ -21,7 +21,8 @@ import MetricKit
 
 public final class CrashReportSender {
 
-    static let reportServiceUrl = URL(string: "https://duckduckgo.com/crash.js")!
+    static let reportServiceUrl = URL(string: "https://d8de8a323263.ngrok.app/crash.js")!
+    //static let reportServiceUrl = URL(string: "https://duckduckgo.com/crash.js")!
     public let platform: CrashCollectionPlatform
 
     public init(platform: CrashCollectionPlatform) {
