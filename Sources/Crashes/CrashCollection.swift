@@ -42,7 +42,7 @@ public enum CrashCollectionPlatform {
 public final class CrashCollection {
 
     public init(crashReportSender: CrashReportSending,
-         crashCollectionStorage: KeyValueStoring = UserDefaults()) {
+                crashCollectionStorage: KeyValueStoring = UserDefaults()) {
         self.crashHandler = CrashHandler()
         self.crashSender = crashReportSender
         self.crashCollectionStorage = crashCollectionStorage

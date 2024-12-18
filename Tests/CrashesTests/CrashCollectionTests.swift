@@ -103,7 +103,7 @@ class CrashCollectionTests: XCTestCase {
         let crashCollection = CrashCollection(crashReportSender: crashReportSender,
                                               crashCollectionStorage: store)
         let expectation = self.expectation(description: "Crash collection response")
-        
+
         // Set up closures on our CrashCollection object
         crashCollection.start(process: {_ in
             return ["fake-crash-data".data(using: .utf8)!]  // Not relevant to this test
@@ -122,19 +122,19 @@ class CrashCollectionTests: XCTestCase {
                 MXCrashDiagnostic()
             ])
         ])
-        
+
         self.wait(for: [expectation], timeout: 3)
-        
+
         XCTAssertEqual(store.object(forKey: CRCIDManager.crcidKey) as! String, "", "CRCID should not be present in the store after receiving a successful response")
     }
-    
+
     func testCRCIDIsRetainedWhenServerErrorIsReceived() {
         let store = MockKeyValueStore()
         let crashReportSender = MockCrashReportSender(platform: .iOS, pixelEvents: nil)
         let crashCollection = CrashCollection(crashReportSender: crashReportSender,
                                               crashCollectionStorage: store)
         let expectation = self.expectation(description: "Crash collection response")
-        
+
         // Set up closures on our CrashCollection object
         crashCollection.start(process: {_ in
             return ["fake-crash-data".data(using: .utf8)!]  // Not relevant to this test
@@ -154,9 +154,9 @@ class CrashCollectionTests: XCTestCase {
                 MXCrashDiagnostic()
             ])
         ])
-        
+
         self.wait(for: [expectation], timeout: 3)
-        
+
         XCTAssertEqual(store.object(forKey: CRCIDManager.crcidKey) as? String, crcid)
     }
 }
@@ -180,7 +180,7 @@ class MockPayload: MXDiagnosticPayload {
 }
 
 class MockCrashReportSender: CrashReportSending {
-    
+
     let platform: CrashCollectionPlatform
     var responseCRCID: String?
     var responseStatusCode = 200
@@ -190,13 +190,13 @@ class MockCrashReportSender: CrashReportSending {
     required init(platform: CrashCollectionPlatform, pixelEvents: EventMapping<CrashReportSenderError>?) {
         self.platform = platform
     }
-    
+
     func send(_ crashReportData: Data, crcid: String?, completion: @escaping (_ result: Result<Data?, Error>, _ response: HTTPURLResponse?) -> Void) {
         var responseHeaderFields: [String: String] = [:]
         if let responseCRCID {
             responseHeaderFields[CrashReportSender.httpHeaderCRCID] = responseCRCID
         }
-        
+
         guard let response = HTTPURLResponse(url: URL(string: "fakeURL")!,
                                              statusCode: responseStatusCode,
                                              httpVersion: nil,
@@ -204,14 +204,14 @@ class MockCrashReportSender: CrashReportSending {
             XCTFail("Failed to create HTTPURLResponse")
             return
         }
-        
+
         if responseStatusCode == 200 {
             completion(.success(nil), response) // Success with nil data
         } else {
             completion(.failure(CrashReportSenderError.submissionFailed(response)), response)
         }
     }
-    
+
     func send(_ crashReportData: Data, crcid: String?) async -> (result: Result<Data?, Error>, response: HTTPURLResponse?) {
         await withCheckedContinuation { continuation in
             send(crashReportData, crcid: crcid) { result, response in
