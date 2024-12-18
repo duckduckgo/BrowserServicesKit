@@ -29,7 +29,7 @@ public enum AppStorePurchaseFlowError: Swift.Error, Equatable, LocalizedError {
     case purchaseFailed(Swift.Error)
     case cancelledByUser
     case missingEntitlements
-    case internalError
+    case internalError(Swift.Error?)
 
     public var errorDescription: String? {
         switch self {
@@ -47,8 +47,8 @@ public enum AppStorePurchaseFlowError: Swift.Error, Equatable, LocalizedError {
             "Purchase cancelled by user"
         case .missingEntitlements:
             "Missing entitlements"
-        case .internalError:
-            "Internal error"
+        case .internalError(let error):
+            "Internal error: \(error?.localizedDescription ?? "<nil>" )"
         }
     }
 
@@ -124,14 +124,14 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
                     return .failure(.accountCreationFailed(error))
                 } catch {
                     Logger.subscriptionStripePurchaseFlow.error("Failed to create a new account: \(error.localizedDescription, privacy: .public), the operation is unrecoverable")
-                    return .failure(.internalError)
+                    return .failure(.internalError(error))
                 }
             }
         }
 
         guard let externalID else {
             Logger.subscriptionAppStorePurchaseFlow.fault("Missing external ID, subscription purchase failed")
-            return .failure(.internalError)
+            return .failure(.internalError(nil))
         }
 
         // Make the purchase

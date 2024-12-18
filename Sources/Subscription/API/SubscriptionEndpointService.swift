@@ -42,7 +42,7 @@ public struct GetSubscriptionFeaturesResponse: Decodable {
     public let features: [SubscriptionEntitlement]
 }
 
-public enum SubscriptionEndpointServiceError: Error {
+public enum SubscriptionEndpointServiceError: Error, Equatable {
     case noData
     case invalidRequest
     case invalidResponseCode(HTTPStatusCode)

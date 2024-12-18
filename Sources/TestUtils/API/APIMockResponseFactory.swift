@@ -25,6 +25,20 @@ public struct APIMockResponseFactory {
 
     static let authCookieHeaders = [ HTTPHeaderKey.setCookie: "ddg_auth_session_id=kADeCPMmCIHIV5uD6AFoB7Fk7pRiXFzlmQE4gW9r7FRKV8OGC1rRnZcTXoa7iIa8qgjiQCqZYq6Caww6k5HJl3; domain=duckduckgo.com; path=/api/auth/v2/; max-age=600; SameSite=Strict; secure; HttpOnly"]
 
+    static let someAPIBodyErrorJSON = "{\"error\":\"invalid_authorization_request\"}"
+    static var someAPIBodyErrorJSONData: Data {
+        someAPIBodyErrorJSON.data(using: .utf8)!
+    }
+
+    static func setErrorResponse(forRequest request: APIRequestV2, apiService: MockAPIService) {
+        let httpResponse = HTTPURLResponse(url: request.urlRequest.url!,
+                                           statusCode: HTTPStatusCode.badRequest.rawValue,
+                                           httpVersion: nil,
+                                           headerFields: [:])!
+        let response = APIResponseV2(data: someAPIBodyErrorJSONData, httpResponse: httpResponse)
+        apiService.set(response: response, forRequest: request)
+    }
+
     public static func mockAuthoriseResponse(destinationMockAPIService apiService: MockAPIService, success: Bool) {
         let request = OAuthRequest.authorize(baseURL: OAuthEnvironment.staging.url, codeChallenge: "codeChallenge")!
         if success {
@@ -35,12 +49,7 @@ public struct APIMockResponseFactory {
             let response = APIResponseV2(data: nil, httpResponse: httpResponse)
             apiService.set(response: response, forRequest: request.apiRequest)
         } else {
-            let httpResponse = HTTPURLResponse(url: request.apiRequest.urlRequest.url!,
-                                               statusCode: request.httpErrorCodes.first!.rawValue,
-                                               httpVersion: nil,
-                                               headerFields: [:])!
-            let response = APIResponseV2(data: nil, httpResponse: httpResponse)
-            apiService.set(response: response, forRequest: request.apiRequest)
+            setErrorResponse(forRequest: request.apiRequest, apiService: apiService)
         }
     }
 
@@ -54,7 +63,7 @@ public struct APIMockResponseFactory {
             let response = APIResponseV2(data: nil, httpResponse: httpResponse)
             apiService.set(response: response, forRequest: request.apiRequest)
         } else {
-            assertionFailure("TODO: implement")
+            setErrorResponse(forRequest: request.apiRequest, apiService: apiService)
         }
     }
 
@@ -76,7 +85,7 @@ public struct APIMockResponseFactory {
             let response = APIResponseV2(data: jsonString.data(using: .utf8), httpResponse: httpResponse)
             apiService.set(response: response, forRequest: request.apiRequest)
         } else {
-            assertionFailure("TODO: implement")
+            setErrorResponse(forRequest: request.apiRequest, apiService: apiService)
         }
     }
 
@@ -93,7 +102,7 @@ public struct APIMockResponseFactory {
             let response = APIResponseV2(data: jsonString.data(using: .utf8), httpResponse: httpResponse)
             apiService.set(response: response, forRequest: request.apiRequest)
         } else {
-            assertionFailure("TODO: implement")
+            setErrorResponse(forRequest: request.apiRequest, apiService: apiService)
         }
     }
 
@@ -112,7 +121,7 @@ public struct APIMockResponseFactory {
             let response = APIResponseV2(data: jsonString.data(using: .utf8), httpResponse: httpResponse)
             apiService.set(response: response, forRequest: request.apiRequest)
         } else {
-            assertionFailure("TODO: implement")
+            setErrorResponse(forRequest: request.apiRequest, apiService: apiService)
         }
     }
 
@@ -129,7 +138,12 @@ public struct APIMockResponseFactory {
             let response = APIResponseV2(data: jsonString.data(using: .utf8), httpResponse: httpResponse)
             apiService.set(response: response, forRequest: request.apiRequest)
         } else {
-            assertionFailure("TODO: implement")
+            let httpResponse = HTTPURLResponse(url: request.apiRequest.urlRequest.url!,
+                                               statusCode: HTTPStatusCode.badRequest.rawValue,
+                                               httpVersion: nil,
+                                               headerFields: [:])!
+            let response = APIResponseV2(data: someAPIBodyErrorJSONData, httpResponse: httpResponse)
+            apiService.set(response: response, forRequest: request.apiRequest)
         }
     }
 
@@ -146,7 +160,7 @@ public struct APIMockResponseFactory {
             let response = APIResponseV2(data: jsonString.data(using: .utf8), httpResponse: httpResponse)
             apiService.set(response: response, forRequest: request.apiRequest)
         } else {
-            assertionFailure("TODO: implement")
+            setErrorResponse(forRequest: request.apiRequest, apiService: apiService)
         }
     }
 }
