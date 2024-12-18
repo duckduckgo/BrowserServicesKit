@@ -22,14 +22,14 @@ import Foundation
 /// Provides all mocks needed for testing subscription initialised with positive outcomes and basic configurations. All mocks can be partially reconfigured with failures or incorrect data
 public struct SubscriptionMockFactory {
 
-    public static let subscription = Subscription(productId: UUID().uuidString,
+    public static let subscription = PrivacyProSubscription(productId: UUID().uuidString,
                                                   name: "Subscription test #1",
                                                   billingPeriod: .monthly,
                                                   startedAt: Date(),
                                                   expiresOrRenewsAt: Date().addingTimeInterval(TimeInterval.days(+30)),
                                                   platform: .apple,
                                                   status: .autoRenewable)
-    public static let expiredSubscription = Subscription(productId: UUID().uuidString,
+    public static let expiredSubscription = PrivacyProSubscription(productId: UUID().uuidString,
                                                          name: "Subscription test #2",
                                                          billingPeriod: .monthly,
                                                          startedAt: Date().addingTimeInterval(TimeInterval.days(-31)),
@@ -37,7 +37,7 @@ public struct SubscriptionMockFactory {
                                                          platform: .apple,
                                                          status: .expired)
 
-    public static let expiredStripeSubscription = Subscription(productId: UUID().uuidString,
+    public static let expiredStripeSubscription = PrivacyProSubscription(productId: UUID().uuidString,
                                                          name: "Subscription test #2",
                                                          billingPeriod: .monthly,
                                                          startedAt: Date().addingTimeInterval(TimeInterval.days(-31)),

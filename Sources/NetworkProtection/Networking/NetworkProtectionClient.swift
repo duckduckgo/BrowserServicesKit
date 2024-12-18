@@ -89,6 +89,26 @@ public enum NetworkProtectionClientError: CustomNSError, NetworkProtectionErrorC
             return [:]
         }
     }
+
+    public var errorDescription: String? {
+        switch self {
+        case .failedToFetchLocationList: return "Failed to fetch location list"
+        case .failedToParseLocationListResponse: return "Failed to parse location list response"
+        case .failedToFetchServerList: return "Failed to fetch server list"
+        case .failedToParseServerListResponse: return "Failed to parse server list response"
+        case .failedToEncodeRegisterKeyRequest: return "Failed to encode register key request"
+        case .failedToFetchServerStatus(let error):
+            return "Failed to fetch server status: \(error)"
+        case .failedToParseServerStatusResponse(let error):
+            return "Failed to parse server status response: \(error)"
+        case .failedToFetchRegisteredServers(let error):
+            return "Failed to fetch registered servers: \(error)"
+        case .failedToParseRegisteredServersResponse(let error):
+            return "Failed to parse registered servers response: \(error)"
+        case .invalidAuthToken: return "Invalid auth token"
+        case .accessDenied: return "Access denied"
+        }
+    }
 }
 
 struct RegisterKeyRequestBody: Encodable {
@@ -175,14 +195,12 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
     }
 
     private let decoder: JSONDecoder = {
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withFullDate, .withFullTime, .withFractionalSeconds]
-
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .custom({ decoder in
             let container = try decoder.singleValueContainer()
             let dateString = try container.decode(String.self)
-
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withFullDate, .withFullTime, .withFractionalSeconds]
             guard let date = formatter.date(from: dateString) else {
                 throw DecoderError.failedToDecode(key: container.codingPath.last?.stringValue ?? String(describing: container.codingPath))
             }

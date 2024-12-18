@@ -26,19 +26,19 @@ final class DecodableHelperTests: XCTestCase {
 
     func testWhenDecodingDictionary_ThenValueIsReturned() {
         let dictionary = ["name": "dax"]
-        let person: Person? = DecodableHelper.decode(from: dictionary)
+        let person: Person? = CodableHelper.decode(from: dictionary)
         XCTAssertEqual("dax", person?.name)
     }
 
     func testWhenDecodingAny_ThenValueIsReturned() {
         let data = ["name": "dax"] as Any
-        let person: Person? = DecodableHelper.decode(from: data)
+        let person: Person? = CodableHelper.decode(from: data)
         XCTAssertEqual("dax", person?.name)
     }
 
     func testWhenDecodingFails_ThenNilIsReturned() {
         let data = ["oops_name": "dax"] as Any
-        let person: Person? = DecodableHelper.decode(from: data)
+        let person: Person? = CodableHelper.decode(from: data)
         XCTAssertNil(person)
     }
 }

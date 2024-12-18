@@ -61,6 +61,8 @@ public class ControllerErrorMesssageObserverThroughDistributedNotifications: Con
         let errorMessage = notification.object as? String
         logErrorChanged(isShowingError: errorMessage != nil)
 
+        Logger.networkProtectionStatusReporter.debug("Received error message")
+
         subject.send(errorMessage)
     }
 
