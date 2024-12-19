@@ -19,6 +19,7 @@
 import Foundation
 import MetricKit
 import Common
+import os.log
 
 public protocol CrashReportSending {
     var pixelEvents: EventMapping<CrashReportSenderError>? { get }
@@ -66,7 +67,9 @@ public final class CrashReportSender: CrashReportSending {
             if let response = response as? HTTPURLResponse {
                 Logger.general.debug("CrashReportSender: Received HTTP response code: \(response.statusCode)")
                 if response.statusCode == 200 {
-                    response.allHeaderFields.forEach { print("\($0.key): \($0.value)") }    // TODO: Why do we straight-up print these, rather than debug logging?
+                    response.allHeaderFields.forEach { headerField in
+                        Logger.general.debug("CrashReportSender: \(String(describing: headerField.key)): \(String(describing: headerField.value))")
+                    }
                     let receivedCRCID = response.allHeaderFields[CrashReportSender.httpHeaderCRCID]
                     if receivedCRCID == nil || receivedCRCID as? String == "" {
                         let crashReportError = CrashReportSenderError.crcidMissing
