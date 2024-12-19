@@ -187,7 +187,7 @@ public final class CrashCollection {
     }
 
     public func clearCRCID() {
-        self.crcidManager.crcid = ""
+        self.crcidManager.crcid = nil
     }
 
     var isFirstCrash: Bool {
@@ -245,9 +245,9 @@ public class CRCIDManager {
         }
     }
 
-    public var crcid: String {
+    public var crcid: String? {
         get {
-            return self.store.object(forKey: CRCIDManager.crcidKey) as? String ?? ""
+            return self.store.object(forKey: CRCIDManager.crcidKey) as? String
         }
 
         set {

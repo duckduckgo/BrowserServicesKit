@@ -54,8 +54,9 @@ public final class CrashReportSender: CrashReportSending {
         request.setValue("text/plain", forHTTPHeaderField: "Content-Type")
         request.setValue(platform.userAgent, forHTTPHeaderField: "User-Agent")
 
-        request.setValue(crcid, forHTTPHeaderField: CrashReportSender.httpHeaderCRCID)
-        Logger.general.debug("Configured crash report HTTP request with crcid: \(crcid ?? "nil")")
+        let crcidHeaderValue = crcid ?? ""
+        request.setValue(crcidHeaderValue, forHTTPHeaderField: CrashReportSender.httpHeaderCRCID)
+        Logger.general.debug("Configured crash report HTTP request with crcid: \(crcidHeaderValue)")
 
         request.httpMethod = "POST"
         request.httpBody = crashReportData
@@ -66,7 +67,8 @@ public final class CrashReportSender: CrashReportSending {
                 Logger.general.debug("CrashReportSender: Received HTTP response code: \(response.statusCode)")
                 if response.statusCode == 200 {
                     response.allHeaderFields.forEach { print("\($0.key): \($0.value)") }    // TODO: Why do we straight-up print these, rather than debug logging?
-                    if response.allHeaderFields[CrashReportSender.httpHeaderCRCID] == nil {
+                    let receivedCRCID = response.allHeaderFields[CrashReportSender.httpHeaderCRCID]
+                    if receivedCRCID == nil || receivedCRCID as? String == "" {
                         let crashReportError = CrashReportSenderError.crcidMissing
                         self.pixelEvents?.fire(crashReportError)
                     }
