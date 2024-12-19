@@ -95,27 +95,27 @@ public enum HTTPStatusCode: Int, CustomDebugStringConvertible {
     case networkAuthenticationRequired = 511
 
     // Utility functions
-    var isInformational: Bool {
+    public var isInformational: Bool {
         return (100...199).contains(self.rawValue)
     }
 
-    var isSuccess: Bool {
+    public var isSuccess: Bool {
         return (200...299).contains(self.rawValue)
     }
 
-    var isRedirection: Bool {
+    public var isRedirection: Bool {
         return (300...399).contains(self.rawValue)
     }
 
-    var isClientError: Bool {
+    public var isClientError: Bool {
         return (400...499).contains(self.rawValue)
     }
 
-    var isServerError: Bool {
+    public var isServerError: Bool {
         return (500...599).contains(self.rawValue)
     }
 
-    var isFailure: Bool {
+    public var isFailure: Bool {
         return isClientError || isServerError
     }
 
@@ -123,7 +123,7 @@ public enum HTTPStatusCode: Int, CustomDebugStringConvertible {
         "\(self.rawValue) - \(description)"
     }
 
-    var description: String {
+    public var description: String {
         switch self {
         case .unknown:
             return "Unknown"

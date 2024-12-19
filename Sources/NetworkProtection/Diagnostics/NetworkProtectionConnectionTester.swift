@@ -123,7 +123,7 @@ final class NetworkProtectionConnectionTester {
     }
 
     func stop() {
-        Logger.networkProtectionConnectionTester.log("🔴 Stopping connection tester")
+        Logger.networkProtectionConnectionTester.log("🟢 Stopping connection tester")
         stopScheduledTimer()
         isRunning = false
     }
@@ -216,7 +216,7 @@ final class NetworkProtectionConnectionTester {
             Logger.networkProtectionConnectionTester.log("👎 VPN is DOWN")
             handleDisconnected()
         } else {
-            Logger.networkProtectionConnectionTester.log("👍 VPN: \(vpnIsConnected ? "UP" : "DOWN") local: \(localIsConnected ? "UP" : "DOWN")")
+            Logger.networkProtectionConnectionTester.log("👍 VPN: \(vpnIsConnected ? "UP" : "DOWN", privacy: .public) local: \(localIsConnected ? "UP" : "DOWN", privacy: .public)")
             handleConnected()
         }
     }

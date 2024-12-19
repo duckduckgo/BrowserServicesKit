@@ -30,12 +30,12 @@ public struct DefaultRemoteMessagingSurveyURLBuilder: RemoteMessagingSurveyActio
 
     private let statisticsStore: StatisticsStore
     private let vpnActivationDateStore: VPNActivationDateProviding
-    private let subscription: Subscription?
+    private let subscription: PrivacyProSubscription?
     private let localeIdentifier: String
 
     public init(statisticsStore: StatisticsStore,
                 vpnActivationDateStore: VPNActivationDateProviding,
-                subscription: Subscription?,
+                subscription: PrivacyProSubscription?,
                 localeIdentifier: String = Locale.current.identifier) {
         self.statisticsStore = statisticsStore
         self.vpnActivationDateStore = vpnActivationDateStore
@@ -134,7 +134,7 @@ public struct DefaultRemoteMessagingSurveyURLBuilder: RemoteMessagingSurveyActio
 
 }
 
-extension Subscription {
+extension PrivacyProSubscription {
     var privacyProStatusSurveyParameter: String {
         switch status {
         case .autoRenewable:
