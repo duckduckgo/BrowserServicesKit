@@ -533,7 +533,8 @@ let package = Package(
         .testTarget(
             name: "CrashesTests",
             dependencies: [
-                "Crashes"
+                "Crashes",
+                "TestUtils"
             ]
         ),
         .testTarget(

@@ -18,6 +18,9 @@
 
 import Foundation
 import MetricKit
+import Persistence
+import os.log
+import Common
 
 public enum CrashCollectionPlatform {
     case iOS, macOS, macOSAppStore
@@ -38,9 +41,12 @@ public enum CrashCollectionPlatform {
 @available(iOS 13, macOS 12, *)
 public final class CrashCollection {
 
-    public init(platform: CrashCollectionPlatform) {
-        crashHandler = CrashHandler()
-        crashSender = CrashReportSender(platform: platform)
+    public init(crashReportSender: CrashReportSending,
+                crashCollectionStorage: KeyValueStoring = UserDefaults.standard) {
+        self.crashHandler = CrashHandler()
+        self.crashSender = crashReportSender
+        self.crashCollectionStorage = crashCollectionStorage
+        self.crcidManager = CRCIDManager(store: crashCollectionStorage)
     }
 
     public func start(didFindCrashReports: @escaping (_ pixelParameters: [[String: String]], _ payloads: [Data], _ uploadReports: @escaping () -> Void) -> Void) {
@@ -55,7 +61,11 @@ public final class CrashCollection {
     ///   - didFindCrashReports: callback called after payload preprocessing is finished.
     ///     Provides processed JSON data to be presented to the user and Pixel parameters to fire a crash Pixel.
     ///     `uploadReports` callback is used when the user accepts uploading the crash report and starts crash upload to the server.
-    public func start(process: @escaping ([MXDiagnosticPayload]) -> [Data], didFindCrashReports: @escaping (_ pixelParameters: [[String: String]], _ payloads: [Data], _ uploadReports: @escaping () -> Void) -> Void) {
+    public func start(process: @escaping ([MXDiagnosticPayload]) -> [Data],
+                      didFindCrashReports: @escaping (_ pixelParameters: [[String: String]],
+                                                      _ payloads: [Data],
+                                                      _ uploadReports: @escaping () -> Void) -> Void,
+                      didFinishHandlingResponse: @escaping (() -> Void) = {}) {
         let first = isFirstCrash
         isFirstCrash = false
 
@@ -80,8 +90,13 @@ public final class CrashCollection {
             didFindCrashReports(pixelParameters, processedData) {
                 Task {
                     for payload in processedData {
-                        await self.crashSender.send(payload)
+                        // Note: It's important that we submit crashes to our service one by one.  CRCIDs are assigned (or potentially expired
+                        // and updated with a new one) in response to a call to crash.js, and making multiple calls in parallel would mean
+                        // the server may assign several CRCIDs to a single client in rapid succession.
+                        let result =  await self.crashSender.send(payload, crcid: self.crcidManager.crcid)
+                        self.crcidManager.handleCrashSenderResult(result: result.result, response: result.response)
                     }
+                    didFinishHandlingResponse()
                 }
             }
         }
@@ -171,20 +186,72 @@ public final class CrashCollection {
         }, didFindCrashReports: didFindCrashReports)
     }
 
+    public func clearCRCID() {
+        self.crcidManager.crcid = ""
+    }
+
     var isFirstCrash: Bool {
         get {
-            UserDefaults().object(forKey: Const.firstCrashKey) as? Bool ?? true
+            crashCollectionStorage.object(forKey: Const.firstCrashKey) as? Bool ?? true
         }
 
         set {
-            UserDefaults().set(newValue, forKey: Const.firstCrashKey)
+            crashCollectionStorage.set(newValue, forKey: Const.firstCrashKey)
         }
     }
 
     let crashHandler: CrashHandler
-    let crashSender: CrashReportSender
+    let crashSender: CrashReportSending
+    let crashCollectionStorage: KeyValueStoring
+    let crcidManager: CRCIDManager
 
     enum Const {
         static let firstCrashKey = "CrashCollection.first"
+    }
+}
+
+// TODO: This should really be its own file, but adding a new file to BSK and propagating it to iOS and macOS projects is hard.  This can be done as a separate PR once the main changes land across all 3 repos
+// import Foundation
+// import Persistence
+// import os.log
+
+// Cohort identifier used exclusively to distinguish systemic crashes, only after the user opts in to send them.
+// Its purpose is strictly limited to improving the reliability of crash reporting and is never used elsewhere.
+public class CRCIDManager {
+    static let crcidKey = "CRCIDManager.crcidKey"
+    var store: KeyValueStoring
+
+    public init(store: KeyValueStoring = UserDefaults()) {
+        self.store = store
+    }
+
+    public func handleCrashSenderResult(result: Result<Data?, Error>, response: HTTPURLResponse?) {
+        switch result {
+        case .success:
+            Logger.general.debug("Crash Collection - Sending Crash Report: succeeded")
+            if let receivedCRCID = response?.allHeaderFields[CrashReportSender.httpHeaderCRCID] as? String {
+                if crcid != receivedCRCID {
+                    Logger.general.debug("Crash Collection - Received new value for CRCID: \(receivedCRCID), setting local crcid value")
+                    crcid =  receivedCRCID
+                } else {
+                    Logger.general.debug("Crash Collection - Received matching value for CRCID: \(receivedCRCID), no update necessary")
+                }
+            } else {
+                Logger.general.debug("Crash Collection - No value for CRCID header: \(CRCIDManager.crcidKey), clearing local crcid value if present")
+                crcid = ""
+            }
+        case .failure(let failure):
+            Logger.general.debug("Crash Collection - Sending Crash Report: failed (\(failure))")
+        }
+    }
+
+    public var crcid: String {
+        get {
+            return self.store.object(forKey: CRCIDManager.crcidKey) as? String ?? ""
+        }
+
+        set {
+            store.set(newValue, forKey: CRCIDManager.crcidKey)
+        }
     }
 }
