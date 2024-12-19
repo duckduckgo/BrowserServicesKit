@@ -285,13 +285,19 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
 
             if let bodyDict = try? JSONDecoder().decode([String: String].self, from: body!) {
                 XCTAssertEqual(bodyDict["signedTransactionInfo"], Constants.mostRecentTransactionJWS)
+                XCTAssertEqual(bodyDict["extraParamKey"], "extraParamValue")
             } else {
                 XCTFail("Failed to decode body")
             }
         }
 
         // When
-        _ = await subscriptionService.confirmPurchase(accessToken: Constants.accessToken, signature: Constants.mostRecentTransactionJWS)
+        let additionalParams = ["extraParamKey": "extraParamValue"]
+        _ = await subscriptionService.confirmPurchase(
+            accessToken: Constants.accessToken,
+            signature: Constants.mostRecentTransactionJWS,
+            additionalParams: additionalParams
+        )
 
         // Then
         await fulfillment(of: [apiServiceCalledExpectation], timeout: 0.1)
@@ -323,7 +329,7 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
         """.data(using: .utf8)!
 
         // When
-        let result = await subscriptionService.confirmPurchase(accessToken: Constants.accessToken, signature: Constants.mostRecentTransactionJWS)
+        let result = await subscriptionService.confirmPurchase(accessToken: Constants.accessToken, signature: Constants.mostRecentTransactionJWS, additionalParams: nil)
 
         // Then
         switch result {
@@ -345,13 +351,78 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
         }
     }
 
+    func testConfirmPurchaseWithAdditionalParams() async throws {
+        // Given
+        let apiServiceCalledExpectation = expectation(description: "apiService")
+
+        apiService.mockAuthHeaders = Constants.authorizationHeader
+        apiService.onExecuteAPICall = { parameters in
+            let (_, _, _, body) = parameters
+
+            apiServiceCalledExpectation.fulfill()
+            if let bodyDict = try? JSONDecoder().decode([String: String].self, from: body!) {
+                XCTAssertEqual(bodyDict["signedTransactionInfo"], Constants.mostRecentTransactionJWS)
+                XCTAssertEqual(bodyDict["extraParamKey1"], "extraValue1")
+                XCTAssertEqual(bodyDict["extraParamKey2"], "extraValue2")
+            } else {
+                XCTFail("Failed to decode body")
+            }
+        }
+
+        // When
+        let additionalParams = [
+            "extraParamKey1": "extraValue1",
+            "extraParamKey2": "extraValue2"
+        ]
+        _ = await subscriptionService.confirmPurchase(
+            accessToken: Constants.accessToken,
+            signature: Constants.mostRecentTransactionJWS,
+            additionalParams: additionalParams
+        )
+
+        // Then
+        await fulfillment(of: [apiServiceCalledExpectation], timeout: 0.1)
+    }
+
+    func testConfirmPurchaseWithConflictingKeys() async throws {
+        // Given
+        let apiServiceCalledExpectation = expectation(description: "apiService")
+
+        apiService.mockAuthHeaders = Constants.authorizationHeader
+        apiService.onExecuteAPICall = { parameters in
+            let (_, _, _, body) = parameters
+
+            apiServiceCalledExpectation.fulfill()
+            if let bodyDict = try? JSONDecoder().decode([String: String].self, from: body!) {
+                XCTAssertEqual(bodyDict["signedTransactionInfo"], Constants.mostRecentTransactionJWS)
+                XCTAssertEqual(bodyDict["extraParamKey"], "extraValue")
+            } else {
+                XCTFail("Failed to decode body")
+            }
+        }
+
+        // When
+        let additionalParams = [
+            "signedTransactionInfo": "overriddenValue",
+            "extraParamKey": "extraValue"
+        ]
+        _ = await subscriptionService.confirmPurchase(
+            accessToken: Constants.accessToken,
+            signature: Constants.mostRecentTransactionJWS,
+            additionalParams: additionalParams
+        )
+
+        // Then
+        await fulfillment(of: [apiServiceCalledExpectation], timeout: 0.1)
+    }
+
     func testConfirmPurchaseError() async throws {
         // Given
         apiService.mockAuthHeaders = Constants.authorizationHeader
         apiService.mockAPICallError = Constants.unknownServerError
 
         // When
-        let result = await subscriptionService.confirmPurchase(accessToken: Constants.accessToken, signature: Constants.mostRecentTransactionJWS)
+        let result = await subscriptionService.confirmPurchase(accessToken: Constants.accessToken, signature: Constants.mostRecentTransactionJWS, additionalParams: nil)
 
         // Then
         switch result {
