@@ -42,7 +42,7 @@ public enum CrashCollectionPlatform {
 public final class CrashCollection {
 
     public init(crashReportSender: CrashReportSending,
-                crashCollectionStorage: KeyValueStoring = UserDefaults()) {
+                crashCollectionStorage: KeyValueStoring = UserDefaults.standard) {
         self.crashHandler = CrashHandler()
         self.crashSender = crashReportSender
         self.crashCollectionStorage = crashCollectionStorage
@@ -90,6 +90,9 @@ public final class CrashCollection {
             didFindCrashReports(pixelParameters, processedData) {
                 Task {
                     for payload in processedData {
+                        // Note: It's important that we submit crashes to our service one by one.  CRCIDs are assigned (or potentially expired
+                        // and updated with a new one) in response to a call to crash.js, and making multiple calls in parallel would mean
+                        // the server may assign several CRCIDs to a single client in rapid succession.
                         let result =  await self.crashSender.send(payload, crcid: self.crcidManager.crcid)
                         self.crcidManager.handleCrashSenderResult(result: result.result, response: result.response)
                     }
