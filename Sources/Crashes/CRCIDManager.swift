@@ -26,7 +26,7 @@ public class CRCIDManager {
     static let crcidKey = "CRCIDManager.crcidKey"
     var store: KeyValueStoring
 
-    public init(store: KeyValueStoring = UserDefaults()) {
+    public init(store: KeyValueStoring = UserDefaults.standard) {
         self.store = store
     }
 
