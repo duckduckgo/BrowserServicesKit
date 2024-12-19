@@ -18,6 +18,9 @@
 
 import Foundation
 import MetricKit
+import Persistence
+import os.log
+import Common
 
 public enum CrashCollectionPlatform {
     case iOS, macOS, macOSAppStore
@@ -38,9 +41,12 @@ public enum CrashCollectionPlatform {
 @available(iOS 13, macOS 12, *)
 public final class CrashCollection {
 
-    public init(platform: CrashCollectionPlatform) {
-        crashHandler = CrashHandler()
-        crashSender = CrashReportSender(platform: platform)
+    public init(crashReportSender: CrashReportSending,
+                crashCollectionStorage: KeyValueStoring = UserDefaults.standard) {
+        self.crashHandler = CrashHandler()
+        self.crashSender = crashReportSender
+        self.crashCollectionStorage = crashCollectionStorage
+        self.crcidManager = CRCIDManager(store: crashCollectionStorage)
     }
 
     public func start(didFindCrashReports: @escaping (_ pixelParameters: [[String: String]], _ payloads: [Data], _ uploadReports: @escaping () -> Void) -> Void) {
@@ -55,7 +61,11 @@ public final class CrashCollection {
     ///   - didFindCrashReports: callback called after payload preprocessing is finished.
     ///     Provides processed JSON data to be presented to the user and Pixel parameters to fire a crash Pixel.
     ///     `uploadReports` callback is used when the user accepts uploading the crash report and starts crash upload to the server.
-    public func start(process: @escaping ([MXDiagnosticPayload]) -> [Data], didFindCrashReports: @escaping (_ pixelParameters: [[String: String]], _ payloads: [Data], _ uploadReports: @escaping () -> Void) -> Void) {
+    public func start(process: @escaping ([MXDiagnosticPayload]) -> [Data],
+                      didFindCrashReports: @escaping (_ pixelParameters: [[String: String]],
+                                                      _ payloads: [Data],
+                                                      _ uploadReports: @escaping () -> Void) -> Void,
+                      didFinishHandlingResponse: @escaping (() -> Void) = {}) {
         let first = isFirstCrash
         isFirstCrash = false
 
@@ -80,8 +90,13 @@ public final class CrashCollection {
             didFindCrashReports(pixelParameters, processedData) {
                 Task {
                     for payload in processedData {
-                        await self.crashSender.send(payload)
+                        // Note: It's important that we submit crashes to our service one by one.  CRCIDs are assigned (or potentially expired
+                        // and updated with a new one) in response to a call to crash.js, and making multiple calls in parallel would mean
+                        // the server may assign several CRCIDs to a single client in rapid succession.
+                        let result =  await self.crashSender.send(payload, crcid: self.crcidManager.crcid)
+                        self.crcidManager.handleCrashSenderResult(result: result.result, response: result.response)
                     }
+                    didFinishHandlingResponse()
                 }
             }
         }
@@ -171,18 +186,24 @@ public final class CrashCollection {
         }, didFindCrashReports: didFindCrashReports)
     }
 
+    public func clearCRCID() {
+        self.crcidManager.crcid = nil
+    }
+
     var isFirstCrash: Bool {
         get {
-            UserDefaults().object(forKey: Const.firstCrashKey) as? Bool ?? true
+            crashCollectionStorage.object(forKey: Const.firstCrashKey) as? Bool ?? true
         }
 
         set {
-            UserDefaults().set(newValue, forKey: Const.firstCrashKey)
+            crashCollectionStorage.set(newValue, forKey: Const.firstCrashKey)
         }
     }
 
     let crashHandler: CrashHandler
-    let crashSender: CrashReportSender
+    let crashSender: CrashReportSending
+    let crashCollectionStorage: KeyValueStoring
+    let crcidManager: CRCIDManager
 
     enum Const {
         static let firstCrashKey = "CrashCollection.first"
