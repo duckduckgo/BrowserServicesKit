@@ -110,7 +110,7 @@ public final class MaliciousSiteDetector: MaliciousSiteDetecting {
         for threatKind in hashPrefixMatchingThreatKinds {
             let matches = await checkLocalFilters(hostHash: hostHash, canonicalUrl: canonicalUrl, for: threatKind)
             if matches {
-                eventMapping.fire(.errorPageShown(clientSideHit: true, threatKind: threatKind))
+                eventMapping.fire(.errorPageShown(category: threatKind, clientSideHit: true))
                 return threatKind
             }
         }
@@ -120,7 +120,7 @@ public final class MaliciousSiteDetector: MaliciousSiteDetecting {
         let match = await checkApiMatches(hostHash: hostHash, canonicalUrl: canonicalUrl)
         if let match {
             let threatKind = match.category.flatMap(ThreatKind.init) ?? hashPrefixMatchingThreatKinds[0]
-            eventMapping.fire(.errorPageShown(clientSideHit: false, threatKind: threatKind))
+            eventMapping.fire(.errorPageShown(category: threatKind, clientSideHit: false))
             return threatKind
         }
 

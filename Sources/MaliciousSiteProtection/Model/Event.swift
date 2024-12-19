@@ -21,52 +21,52 @@ import PixelKit
 
 public extension PixelKit {
     enum Parameters: Hashable {
-        public static let clientSideHit = "client_side_hit"
-        public static let settingToggledTo = "setting_toggled_to"
+        public static let clientSideHit = "clientSideHit"
+        public static let category = "category"
+        public static let settingToggledTo = "newState"
     }
 }
 
 public enum Event: PixelKitEventV2 {
-    case errorPageShown(clientSideHit: Bool, threatKind: ThreatKind)
-    case visitSite
-    case iframeLoaded
-    case updateTaskFailed48h(error: Error?)
+    case errorPageShown(category: ThreatKind, clientSideHit: Bool)
+    case visitSite(category: ThreatKind)
+    case iframeLoaded(category: ThreatKind)
     case settingToggled(to: Bool)
 
     public var name: String {
         switch self {
         case .errorPageShown:
-            return "phishing_detection_error-page-shown"
+            return "malicious-site-protection_error-page-shown"
         case .visitSite:
-            return "phishing_detection_visit-site"
+            return "malicious-site-protection_visit-site"
         case .iframeLoaded:
-            return "phishing_detection_iframe-loaded"
-        case .updateTaskFailed48h:
-            return "phishing_detection_update-task-failed-48h"
+            return "malicious-site-protection_iframe-loaded"
         case .settingToggled:
-            return "phishing_detection_setting-toggled"
+            return "malicious-site-protection_feature-toggled"
         }
     }
 
     public var parameters: [String: String]? {
         switch self {
-        case .errorPageShown(let clientSideHit, threatKind: _):
-            return [PixelKit.Parameters.clientSideHit: String(clientSideHit)]
-        case .visitSite:
-            return [:]
-        case .iframeLoaded:
-            return [:]
-        case .updateTaskFailed48h(let error):
-            return error?.pixelParameters
+        case .errorPageShown(category: let category, clientSideHit: let clientSideHit):
+            return [
+                PixelKit.Parameters.category: category.rawValue,
+                PixelKit.Parameters.clientSideHit: String(clientSideHit),
+            ]
+        case .visitSite(category: let category),
+             .iframeLoaded(category: let category):
+            return [
+                PixelKit.Parameters.category: category.rawValue,
+            ]
         case .settingToggled(let state):
-            return [PixelKit.Parameters.settingToggledTo: String(state)]
+            return [
+                PixelKit.Parameters.settingToggledTo: String(state)
+            ]
         }
     }
 
     public var error: (any Error)? {
         switch self {
-        case .updateTaskFailed48h(let error):
-            return error
         case .errorPageShown:
             return nil
         case .visitSite:
