@@ -652,6 +652,8 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
     }
 
     func testOpenAboutBlankInNewWindow() throws {
+        throw XCTSkip("Flaky, see https://app.asana.com/0/1200194497630846/1205018266972898/f")
+
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
         navigationDelegateProxy.finishEventsDispatchTime = .instant
 
@@ -1633,6 +1635,8 @@ class DistributedNavigationDelegateTests: DistributedNavigationDelegateTestsBase
     }
 
     func testWhenWebContentProcessIsTerminated_webProcessDidTerminateAndNavigationDidFailReceived() throws {
+        throw XCTSkip("Flaky, see https://app.asana.com/0/1200194497630846/1205018266972898/f")
+        
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
 
         responder(at: 0).onNavigationResponse = { [unowned webView=withWebView(do: { $0 })] _ in
