@@ -165,15 +165,15 @@
             </BuildableReference>
          </TestableReference>
          <TestableReference
-             skipped = "NO">
-             <BuildableReference
-                BuildableIdentifier = "primary"
-                BlueprintIdentifier = "PhishingDetectionTests"
-                BuildableName = "PhishingDetectionTests"
-                BlueprintName = "PhishingDetectionTests"
-                ReferencedContainer = "container:">
-             </BuildableReference>
-          </TestableReference>
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "PhishingDetectionTests"
+               BuildableName = "PhishingDetectionTests"
+               BlueprintName = "PhishingDetectionTests"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

@@ -16,12 +16,13 @@
 //  limitations under the License.
 //
 
+import BrowserServicesKit
+import Common
 import Foundation
-import WebKit
+import MaliciousSiteProtection
 import TrackerRadarKit
 import UserScript
-import Common
-import BrowserServicesKit
+import WebKit
 
 @MainActor
 protocol PrivacyDashboardUserScriptDelegate: AnyObject {
@@ -362,6 +363,7 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
                              {"id": "jsPerformance"},
                              {"id": "openerContext"},
                              {"id": "userRefreshCount"},
+                             {"id": "locale"},
                          ]
                      }
                      window.onGetToggleReportOptionsResponse(json);
@@ -425,13 +427,16 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         evaluate(js: "window.onChangeCertificateData(\(certificateDataJson))", in: webView)
     }
 
-    func setIsPhishing(_ isPhishing: Bool, webView: WKWebView) {
-        let phishingStatus = ["phishingStatus": isPhishing]
-        guard let phishingStatusJson = try? JSONEncoder().encode(phishingStatus).utf8String() else {
-            assertionFailure("Can't encode phishingStatus into JSON")
+    func setMaliciousSiteDetectedThreatKind(_ detectedThreatKind: MaliciousSiteProtection.ThreatKind?, webView: WKWebView) {
+        let statusJson: String
+        do {
+            let obj = ["kind": detectedThreatKind?.rawValue ?? NSNull() as Any]
+            statusJson = try JSONSerialization.data(withJSONObject: obj).utf8String()!
+        } catch {
+            assertionFailure("Can't encode status: \(error)")
             return
         }
-        evaluate(js: "window.onChangePhishingStatus(\(phishingStatusJson))", in: webView)
+        evaluate(js: "window.onChangeMaliciousSiteStatus(\(statusJson))", in: webView)
     }
 
     func setIsPendingUpdates(_ isPendingUpdates: Bool, webView: WKWebView) {

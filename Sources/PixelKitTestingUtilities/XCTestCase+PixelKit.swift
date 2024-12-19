@@ -149,7 +149,7 @@ public extension XCTestCase {
             expectedPixelNames.append(originalName)
         case .legacyInitial:
             expectedPixelNames.append(originalName)
-        case .unique:
+        case .uniqueByName:
             expectedPixelNames.append(originalName)
         case .legacyDaily:
             expectedPixelNames.append(originalName)
@@ -161,6 +161,8 @@ public extension XCTestCase {
         case .dailyAndCount:
             expectedPixelNames.append(originalName.appending("_daily"))
             expectedPixelNames.append(originalName.appending("_count"))
+        case .uniqueByNameAndParameters:
+            expectedPixelNames.append(originalName)
         }
         return expectedPixelNames
     }

@@ -394,9 +394,9 @@ public extension String {
 
     // MARK: Regex
 
-    func matches(_ regex: NSRegularExpression) -> Bool {
-        let matches = regex.matches(in: self, options: .anchored, range: self.fullRange)
-        return matches.count == 1
+    func matches(_ regex: RegEx) -> Bool {
+        let firstMatch = firstMatch(of: regex, options: .anchored)
+        return firstMatch != nil
     }
 
     func matches(pattern: String, options: NSRegularExpression.Options = [.caseInsensitive]) -> Bool {
@@ -406,7 +406,7 @@ public extension String {
         return matches(regex)
     }
 
-    func replacing(_ regex: NSRegularExpression, with replacement: String) -> String {
+    func replacing(_ regex: RegEx, with replacement: String) -> String {
         regex.stringByReplacingMatches(in: self, range: self.fullRange, withTemplate: replacement)
     }
 
@@ -494,4 +494,13 @@ public extension StringProtocol {
             .joined(separator: ".")
     }
 
+}
+
+public extension Optional where Wrapped == String {
+    var isNilOrEmpty: Bool {
+        if case .some(let wrapped) = self {
+            return wrapped.isEmpty
+        }
+        return true
+    }
 }

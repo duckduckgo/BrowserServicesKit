@@ -491,9 +491,9 @@
             buildForAnalyzing = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "PhishingDetection"
-               BuildableName = "PhishingDetection"
-               BlueprintName = "PhishingDetection"
+               BlueprintIdentifier = "MaliciousSiteProtection"
+               BuildableName = "MaliciousSiteProtection"
+               BlueprintName = "MaliciousSiteProtection"
                ReferencedContainer = "container:">
             </BuildableReference>
          </BuildActionEntry>
@@ -550,6 +550,20 @@
                BlueprintIdentifier = "PrivacyStats"
                BuildableName = "PrivacyStats"
                BlueprintName = "PrivacyStats"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "PixelExperimentKit"
+               BuildableName = "PixelExperimentKit"
+               BlueprintName = "PixelExperimentKit"
                ReferencedContainer = "container:">
             </BuildableReference>
          </BuildActionEntry>
@@ -796,9 +810,9 @@
             skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "PhishingDetectionTests"
-               BuildableName = "PhishingDetectionTests"
-               BlueprintName = "PhishingDetectionTests"
+               BlueprintIdentifier = "MaliciousSiteProtectionTests"
+               BuildableName = "MaliciousSiteProtectionTests"
+               BlueprintName = "MaliciousSiteProtectionTests"
                ReferencedContainer = "container:">
             </BuildableReference>
          </TestableReference>
@@ -839,6 +853,16 @@
                BlueprintIdentifier = "PrivacyStatsTests"
                BuildableName = "PrivacyStatsTests"
                BlueprintName = "PrivacyStatsTests"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "PixelExperimentKitTests"
+               BuildableName = "PixelExperimentKitTests"
+               BlueprintName = "PixelExperimentKitTests"
                ReferencedContainer = "container:">
             </BuildableReference>
          </TestableReference>

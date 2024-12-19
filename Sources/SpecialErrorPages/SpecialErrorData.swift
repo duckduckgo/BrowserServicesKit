@@ -17,24 +17,61 @@
 //
 
 import Foundation
+import MaliciousSiteProtection
 
 public enum SpecialErrorKind: String, Encodable {
     case ssl
     case phishing
+    case malware
 }
 
-public struct SpecialErrorData: Encodable, Equatable {
+public enum SpecialErrorData: Encodable, Equatable {
 
-    var kind: SpecialErrorKind
-    var errorType: String?
-    var domain: String?
-    var eTldPlus1: String?
-
-    public init(kind: SpecialErrorKind, errorType: String? = nil, domain: String? = nil, eTldPlus1: String? = nil) {
-        self.kind = kind
-        self.errorType = errorType
-        self.domain = domain
-        self.eTldPlus1 = eTldPlus1
+    enum CodingKeys: CodingKey {
+        case kind
+        case errorType
+        case domain
+        case eTldPlus1
+        case url
     }
 
+    case ssl(type: SSLErrorType, domain: String, eTldPlus1: String?)
+    case maliciousSite(kind: MaliciousSiteProtection.ThreatKind, url: URL)
+
+    public func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+
+        switch self {
+        case .ssl(type: let type, domain: let domain, eTldPlus1: let eTldPlus1):
+            try container.encode(SpecialErrorKind.ssl, forKey: .kind)
+            try container.encode(type, forKey: .errorType)
+            try container.encode(domain, forKey: .domain)
+
+            switch type {
+            case .expired, .selfSigned, .invalid: break
+            case .wrongHost:
+                guard let eTldPlus1 else {
+                    assertionFailure("expected eTldPlus1 != nil when kind is .wrongHost")
+                    break
+                }
+                try container.encode(eTldPlus1, forKey: .eTldPlus1)
+            }
+
+        case .maliciousSite(kind: let kind, url: let url):
+            // https://app.asana.com/0/1206594217596623/1208824527069247/f
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(kind.errorPageKind, forKey: .kind)
+            try container.encode(url, forKey: .url)
+        }
+    }
+
+}
+
+public extension MaliciousSiteProtection.ThreatKind {
+    var errorPageKind: SpecialErrorKind {
+        switch self {
+        case .malware: .malware
+        case .phishing: .phishing
+        }
+    }
 }

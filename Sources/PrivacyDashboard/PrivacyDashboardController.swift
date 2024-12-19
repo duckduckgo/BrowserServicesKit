@@ -16,12 +16,13 @@
 //  limitations under the License.
 //
 
-import Foundation
-import WebKit
-import Combine
-import PrivacyDashboardResources
 import BrowserServicesKit
+import Combine
 import Common
+import Foundation
+import MaliciousSiteProtection
+import PrivacyDashboardResources
+import WebKit
 
 public enum PrivacyDashboardOpenSettingsTarget: String {
 
@@ -205,7 +206,7 @@ extension PrivacyDashboardController: WKNavigationDelegate {
         subscribeToServerTrust()
         subscribeToConsentManaged()
         subscribeToAllowedPermissions()
-        subscribeToIsPhishing()
+        subscribeToMaliciousSiteThreatKind()
     }
 
     private func subscribeToTheme() {
@@ -259,12 +260,12 @@ extension PrivacyDashboardController: WKNavigationDelegate {
             .store(in: &cancellables)
     }
 
-    private func subscribeToIsPhishing() {
-        privacyInfo?.$isPhishing
+    private func subscribeToMaliciousSiteThreatKind() {
+        privacyInfo?.$malicousSiteThreatKind
             .receive(on: DispatchQueue.main )
-            .sink(receiveValue: { [weak self] isPhishing in
-                guard let self = self, let webView = self.webView else { return }
-                script.setIsPhishing(isPhishing, webView: webView)
+            .sink(receiveValue: { [weak self] detectedThreatKind in
+                guard let self, let webView else { return }
+                script.setMaliciousSiteDetectedThreatKind(detectedThreatKind, webView: webView)
             })
             .store(in: &cancellables)
     }

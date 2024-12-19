@@ -50,7 +50,7 @@ public enum PrivacyFeature: String {
     case sslCertificates
     case brokenSiteReportExperiment
     case toggleReports
-    case phishingDetection
+    case maliciousSiteProtection
     case brokenSitePrompt
     case remoteMessaging
     case additionalCampaignPixelParams
@@ -64,6 +64,7 @@ public enum PrivacyFeature: String {
     case contextualOnboarding
     case textZoom
     case adAttributionReporting
+    case experimentTest
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -89,6 +90,7 @@ public enum AutofillSubfeature: String, PrivacySubfeature {
     case onForExistingUsers
     case unknownUsernameCategorization
     case credentialsImportPromotionForExistingUsers
+    case partialFormSaves
 }
 
 public enum DBPSubfeature: String, Equatable, PrivacySubfeature {
@@ -166,6 +168,7 @@ public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {
     case setAccessTokenCookieForSubscriptionDomains
     case isLaunchedROW
     case isLaunchedROWOverride
+    case freeTrials
 }
 
 public enum SslCertificatesSubfeature: String, PrivacySubfeature {
@@ -181,14 +184,13 @@ public enum DuckPlayerSubfeature: String, PrivacySubfeature {
     case enableDuckPlayer // iOS DuckPlayer rollout feature
 }
 
-public enum PhishingDetectionSubfeature: String, PrivacySubfeature {
-    public var parent: PrivacyFeature { .phishingDetection }
-    case allowErrorPage
-    case allowPreferencesToggle
-}
-
 public enum SyncPromotionSubfeature: String, PrivacySubfeature {
     public var parent: PrivacyFeature { .syncPromotion }
     case bookmarks
     case passwords
+}
+
+public enum ExperimentTestSubfeatures: String, PrivacySubfeature {
+    public var parent: PrivacyFeature { .experimentTest }
+    case experimentTestAA
 }

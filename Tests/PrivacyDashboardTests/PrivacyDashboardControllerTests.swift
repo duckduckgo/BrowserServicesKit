@@ -16,11 +16,13 @@
 //  limitations under the License.
 //
 
-import XCTest
 import Common
+import os
 import WebKit
-@testable import PrivacyDashboard
+import XCTest
+
 @testable import BrowserServicesKit
+@testable import PrivacyDashboard
 
 @MainActor
 final class PrivacyDashboardControllerTests: XCTestCase {
@@ -260,16 +262,16 @@ final class PrivacyDashboardControllerTests: XCTestCase {
 
     func testWhenIsPhishingSetThenJavaScriptEvaluatedWithCorrectString() {
         let expectation = XCTestExpectation()
-        let privacyInfo = PrivacyInfo(url: URL(string: "someurl.com")!, parentEntity: nil, protectionStatus: .init(unprotectedTemporary: false, enabledFeatures: [], allowlisted: true, denylisted: true), isPhishing: false)
+        let privacyInfo = PrivacyInfo(url: URL(string: "someurl.com")!, parentEntity: nil, protectionStatus: .init(unprotectedTemporary: false, enabledFeatures: [], allowlisted: true, denylisted: true), malicousSiteThreatKind: .none)
         makePrivacyDashboardController(entryPoint: .dashboard, privacyInfo: privacyInfo)
         let config = WKWebViewConfiguration()
         let mockWebView = MockWebView(frame: .zero, configuration: config, expectation: expectation)
         privacyDashboardController.webView = mockWebView
 
-        privacyDashboardController.privacyInfo!.isPhishing = true
+        privacyDashboardController.privacyInfo!.malicousSiteThreatKind = .phishing
 
-        wait(for: [expectation], timeout: 100)
-        XCTAssertEqual(mockWebView.capturedJavaScriptString, "window.onChangePhishingStatus({\"phishingStatus\":true})")
+        wait(for: [expectation], timeout: 5)
+        XCTAssertEqual(mockWebView.capturedJavaScriptString, "window.onChangeMaliciousSiteStatus({\"kind\":\"phishing\"})")
     }
 }
 
@@ -287,8 +289,8 @@ class MockWebView: WKWebView {
     }
 
     override func evaluateJavaScript(_ javaScriptString: String) async throws -> Any {
-        print(javaScriptString)
-        if javaScriptString.contains("window.onChangePhishingStatus") {
+        Logger(subsystem: Bundle.main.bundleIdentifier!, category: "DDGTest").info("received javaScriptString \(javaScriptString, privacy: .public)")
+        if javaScriptString.contains("window.onChangeMaliciousSiteStatus") {
             capturedJavaScriptString = javaScriptString
             expectation.fulfill()
         }

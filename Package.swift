@@ -42,23 +42,25 @@ let package = Package(
         .library(name: "PixelKitTestingUtilities", targets: ["PixelKitTestingUtilities"]),
         .library(name: "SpecialErrorPages", targets: ["SpecialErrorPages"]),
         .library(name: "DuckPlayer", targets: ["DuckPlayer"]),
-        .library(name: "PhishingDetection", targets: ["PhishingDetection"]),
+        .library(name: "MaliciousSiteProtection", targets: ["MaliciousSiteProtection"]),
         .library(name: "Onboarding", targets: ["Onboarding"]),
+        .library(name: "PixelExperimentKit", targets: ["PixelExperimentKit"]),
         .library(name: "BrokenSitePrompt", targets: ["BrokenSitePrompt"]),
         .library(name: "PageRefreshMonitor", targets: ["PageRefreshMonitor"]),
         .library(name: "PrivacyStats", targets: ["PrivacyStats"]),
     ],
     dependencies: [
-        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "15.1.0"),
+        .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "16.0.0"),
         .package(url: "https://github.com/duckduckgo/GRDB.swift.git", exact: "2.4.2"),
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "3.0.0"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.3.0"),
         .package(url: "https://github.com/gumob/PunycodeSwift.git", exact: "3.0.0"),
-        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "6.41.0"),
-        .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "7.2.1"),
+        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "6.42.0"),
+        .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "7.4.0"),
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
         .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
-        .package(url: "https://github.com/1024jp/GzipSwift.git", exact: "6.0.1")
+        .package(url: "https://github.com/1024jp/GzipSwift.git", exact: "6.0.1"),
+        .package(url: "https://github.com/pointfreeco/swift-clocks.git", exact: "1.0.5"),
     ],
     targets: [
         .target(
@@ -250,6 +252,7 @@ let package = Package(
                 "ContentBlocking",
                 "Persistence",
                 "BrowserServicesKit",
+                "MaliciousSiteProtection",
                 .product(name: "PrivacyDashboardResources", package: "privacy-dashboard")
             ],
             path: "Sources/PrivacyDashboard",
@@ -391,7 +394,8 @@ let package = Package(
             dependencies: [
                 "Common",
                 "UserScript",
-                "BrowserServicesKit"
+                "BrowserServicesKit",
+                "MaliciousSiteProtection",
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
@@ -408,9 +412,11 @@ let package = Package(
             ]
         ),
         .target(
-            name: "PhishingDetection",
+            name: "MaliciousSiteProtection",
             dependencies: [
-                "Common"
+                "Common",
+                "Networking",
+                "PixelKit",
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
@@ -419,6 +425,19 @@ let package = Package(
         .target(
             name: "Onboarding",
             dependencies: [
+                "BrowserServicesKit"
+            ],
+            resources: [
+                .process("Resources")
+            ],
+            swiftSettings: [
+                .define("DEBUG", .when(configuration: .debug))
+            ]
+        ),
+        .target(
+            name: "PixelExperimentKit",
+            dependencies: [
+                "PixelKit",
                 "BrowserServicesKit"
             ],
             resources: [
@@ -656,25 +675,33 @@ let package = Package(
         .testTarget(
             name: "DuckPlayerTests",
             dependencies: [
-                "DuckPlayer"
+                "DuckPlayer",
+                "BrowserServicesKitTestsUtils",
             ]
         ),
 
         .testTarget(
-            name: "PhishingDetectionTests",
+            name: "MaliciousSiteProtectionTests",
             dependencies: [
-                "PhishingDetection",
-                "PixelKit"
+                "TestUtils",
+                "MaliciousSiteProtection",
+                .product(name: "Clocks", package: "swift-clocks"),
             ],
             resources: [
-                .copy("Resources/hashPrefixes.json"),
-                .copy("Resources/filterSet.json")
+                .copy("Resources/phishingHashPrefixes.json"),
+                .copy("Resources/phishingFilterSet.json"),
             ]
         ),
         .testTarget(
             name: "OnboardingTests",
             dependencies: [
                 "Onboarding"
+            ]
+        ),
+        .testTarget(
+            name: "PixelExperimentKitTests",
+            dependencies: [
+                "PixelExperimentKit"
             ]
         ),
         .testTarget(
