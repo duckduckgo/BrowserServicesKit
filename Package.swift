@@ -47,7 +47,7 @@ let package = Package(
         .library(name: "PixelExperimentKit", targets: ["PixelExperimentKit"]),
         .library(name: "BrokenSitePrompt", targets: ["BrokenSitePrompt"]),
         .library(name: "PageRefreshMonitor", targets: ["PageRefreshMonitor"]),
-        .library(name: "PrivacyStats", targets: ["PrivacyStats"]),
+        .library(name: "PrivacyStats", targets: ["PrivacyStats"])
     ],
     dependencies: [
         .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "16.0.0"),
@@ -60,7 +60,8 @@ let package = Package(
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
         .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
         .package(url: "https://github.com/1024jp/GzipSwift.git", exact: "6.0.1"),
-        .package(url: "https://github.com/pointfreeco/swift-clocks.git", exact: "1.0.5"),
+        .package(url: "https://github.com/vapor/jwt-kit.git", exact: "4.13.4"),
+        .package(url: "https://github.com/pointfreeco/swift-clocks.git", exact: "1.0.5")
     ],
     targets: [
         .target(
@@ -75,7 +76,8 @@ let package = Package(
                 "UserScript",
                 "ContentBlocking",
                 "SecureStorage",
-                "Subscription"
+                "Subscription",
+                "Networking"
             ],
             resources: [
                 .process("ContentBlocking/UserScripts/contentblockerrules.js"),
@@ -274,7 +276,8 @@ let package = Package(
         .target(
             name: "Networking",
             dependencies: [
-                "Common",
+                .product(name: "JWTKit", package: "jwt-kit"),
+                "Common"
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
@@ -323,6 +326,7 @@ let package = Package(
             dependencies: [
                 "Networking",
                 "Persistence",
+                "Subscription"
             ]
         ),
         .target(
@@ -330,7 +334,8 @@ let package = Package(
             dependencies: [
                 .target(name: "WireGuardC"),
                 "Common",
-                "Networking"
+                "Networking",
+                "Subscription"
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
@@ -362,7 +367,8 @@ let package = Package(
         .target(
             name: "Subscription",
             dependencies: [
-                "Common"
+                "Common",
+                "Networking"
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
@@ -371,7 +377,9 @@ let package = Package(
         .target(
             name: "SubscriptionTestingUtilities",
             dependencies: [
-                "Subscription"
+                "Subscription",
+                "Common",
+                "TestUtils"
             ]
         ),
         .target(
@@ -637,6 +645,7 @@ let package = Package(
             dependencies: [
                 "NetworkProtection",
                 "NetworkProtectionTestUtils",
+                "TestUtils",
             ],
             resources: [
                 .copy("Resources/servers-original-endpoint.json"),
@@ -663,6 +672,7 @@ let package = Package(
             dependencies: [
                 "Subscription",
                 "SubscriptionTestingUtilities",
+                "TestUtils",
             ]
         ),
         .testTarget(

@@ -19,6 +19,7 @@
 import Foundation
 import StoreKit
 import os.log
+import Networking
 
 public enum StoreError: Error {
     case failedVerification
@@ -66,8 +67,8 @@ public protocol StorePurchaseManager {
 @available(macOS 12.0, iOS 15.0, *)
 public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseManager {
 
-    private let storeSubscriptionConfiguration: StoreSubscriptionConfiguration
-    private let subscriptionFeatureMappingCache: SubscriptionFeatureMappingCache
+    private let storeSubscriptionConfiguration: any StoreSubscriptionConfiguration
+    private let subscriptionFeatureMappingCache: any SubscriptionFeatureMappingCache
     private let subscriptionFeatureFlagger: FeatureFlaggerMapping<SubscriptionFeatureFlags>?
 
     @Published public private(set) var availableProducts: [any SubscriptionProduct] = []
@@ -78,10 +79,9 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
     public private(set) var currentStorefrontRegion: SubscriptionRegion = .usa
     private var transactionUpdates: Task<Void, Never>?
     private var storefrontChanges: Task<Void, Never>?
-
     private var productFetcher: ProductFetching
 
-    public init(subscriptionFeatureMappingCache: SubscriptionFeatureMappingCache,
+    public init(subscriptionFeatureMappingCache: any SubscriptionFeatureMappingCache,
                 subscriptionFeatureFlagger: FeatureFlaggerMapping<SubscriptionFeatureFlags>? = nil,
                 productFetcher: ProductFetching = DefaultProductFetcher()) {
         self.storeSubscriptionConfiguration = DefaultStoreSubscriptionConfiguration()
@@ -102,16 +102,16 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
         do {
             purchaseQueue.removeAll()
 
-            Logger.subscription.info("[StorePurchaseManager] Before AppStore.sync()")
+            Logger.subscriptionStorePurchaseManager.log("Before AppStore.sync()")
 
             try await AppStore.sync()
 
-            Logger.subscription.info("[StorePurchaseManager] After AppStore.sync()")
+            Logger.subscriptionStorePurchaseManager.log("After AppStore.sync()")
 
             await updatePurchasedProducts()
             await updateAvailableProducts()
         } catch {
-            Logger.subscription.error("[StorePurchaseManager] Error: \(String(reflecting: error), privacy: .public) (\(error.localizedDescription, privacy: .public))")
+            Logger.subscriptionStorePurchaseManager.error("[StorePurchaseManager] Error: \(String(reflecting: error), privacy: .public) (\(error.localizedDescription, privacy: .public))")
             throw error
         }
     }
@@ -128,13 +128,14 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
 
     @MainActor
     public func updateAvailableProducts() async {
-        Logger.subscription.info("[StorePurchaseManager] updateAvailableProducts")
+        Logger.subscriptionStorePurchaseManager.log("Update available products")
 
         do {
             let storefrontCountryCode: String?
             let storefrontRegion: SubscriptionRegion
 
-            if let featureFlagger = subscriptionFeatureFlagger, featureFlagger.isFeatureOn(.isLaunchedROW) || featureFlagger.isFeatureOn(.isLaunchedROWOverride) {
+            if let featureFlagger = subscriptionFeatureFlagger,
+                featureFlagger.isFeatureOn(.isLaunchedROW) || featureFlagger.isFeatureOn(.isLaunchedROWOverride) {
                 if let subscriptionFeatureFlagger, subscriptionFeatureFlagger.isFeatureOn(.usePrivacyProUSARegionOverride) {
                     storefrontCountryCode = "USA"
                 } else if let subscriptionFeatureFlagger, subscriptionFeatureFlagger.isFeatureOn(.usePrivacyProROWRegionOverride) {
@@ -163,13 +164,13 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
                 }
             }
         } catch {
-            Logger.subscription.error("[StorePurchaseManager] Error: \(String(reflecting: error), privacy: .public)")
+            Logger.subscriptionStorePurchaseManager.error("Failed to fetch available products: \(String(reflecting: error), privacy: .public)")
         }
     }
 
     @MainActor
     public func updatePurchasedProducts() async {
-        Logger.subscription.info("[StorePurchaseManager] updatePurchasedProducts")
+        Logger.subscriptionStorePurchaseManager.log("Update purchased products")
 
         var purchasedSubscriptions: [String] = []
 
@@ -185,10 +186,10 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
                 }
             }
         } catch {
-            Logger.subscription.error("[StorePurchaseManager] Error: \(String(reflecting: error), privacy: .public)")
+            Logger.subscriptionStorePurchaseManager.error("Failed to update purchased products: \(String(reflecting: error), privacy: .public)")
         }
 
-        Logger.subscription.info("[StorePurchaseManager] updatePurchasedProducts fetched \(purchasedSubscriptions.count) active subscriptions")
+        Logger.subscriptionStorePurchaseManager.log("UpdatePurchasedProducts fetched \(purchasedSubscriptions.count) active subscriptions")
 
         if self.purchasedProductIDs != purchasedSubscriptions {
             self.purchasedProductIDs = purchasedSubscriptions
@@ -197,31 +198,24 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
 
     @MainActor
     public func mostRecentTransaction() async -> String? {
-        Logger.subscription.info("[StorePurchaseManager] mostRecentTransaction")
+        Logger.subscriptionStorePurchaseManager.log("Retrieving most recent transaction")
 
         var transactions: [VerificationResult<Transaction>] = []
-
         for await result in Transaction.all {
             transactions.append(result)
         }
-
-        Logger.subscription.info("[StorePurchaseManager] mostRecentTransaction fetched \(transactions.count) transactions")
-
+        let lastTransaction = transactions.first
+        Logger.subscriptionStorePurchaseManager.log("Most recent transaction fetched: \(lastTransaction?.debugDescription ?? "?") (tot: \(transactions.count) transactions)")
         return transactions.first?.jwsRepresentation
     }
 
     @MainActor
     public func hasActiveSubscription() async -> Bool {
-        Logger.subscription.info("[StorePurchaseManager] hasActiveSubscription")
-
         var transactions: [VerificationResult<Transaction>] = []
-
         for await result in Transaction.currentEntitlements {
             transactions.append(result)
         }
-
-        Logger.subscription.info("[StorePurchaseManager] hasActiveSubscription fetched \(transactions.count) transactions")
-
+        Logger.subscriptionStorePurchaseManager.log("hasActiveSubscription fetched \(transactions.count) transactions")
         return !transactions.isEmpty
     }
 
@@ -230,7 +224,7 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
 
         guard let product = availableProducts.first(where: { $0.id == identifier }) else { return .failure(StorePurchaseManagerError.productNotFound) }
 
-        Logger.subscription.info("[StorePurchaseManager] purchaseSubscription \(product.displayName, privacy: .public) (\(externalID, privacy: .public))")
+        Logger.subscriptionStorePurchaseManager.log("Purchasing Subscription: \(product.displayName, privacy: .public) (\(externalID, privacy: .public))")
 
         purchaseQueue.append(product.id)
 
@@ -239,7 +233,7 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
         if let token = UUID(uuidString: externalID) {
             options.insert(.appAccountToken(token))
         } else {
-            Logger.subscription.error("[StorePurchaseManager] Error: Failed to create UUID")
+            Logger.subscriptionStorePurchaseManager.error("Failed to create UUID from \(externalID, privacy: .public)")
             return .failure(StorePurchaseManagerError.externalIDisNotAValidUUID)
         }
 
@@ -247,11 +241,11 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
         do {
             purchaseResult = try await product.purchase(options: options)
         } catch {
-            Logger.subscription.error("[StorePurchaseManager] Error: \(String(reflecting: error), privacy: .public)")
+            Logger.subscriptionStorePurchaseManager.error("Error: \(String(reflecting: error), privacy: .public)")
             return .failure(StorePurchaseManagerError.purchaseFailed)
         }
 
-        Logger.subscription.info("[StorePurchaseManager] purchaseSubscription complete")
+        Logger.subscriptionStorePurchaseManager.log("PurchaseSubscription complete")
 
         purchaseQueue.removeAll()
 
@@ -259,27 +253,27 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
         case let .success(verificationResult):
             switch verificationResult {
             case let .verified(transaction):
-                Logger.subscription.info("[StorePurchaseManager] purchaseSubscription result: success")
+                Logger.subscriptionStorePurchaseManager.log("PurchaseSubscription result: success")
                 // Successful purchase
                 await transaction.finish()
                 await self.updatePurchasedProducts()
                 return .success(verificationResult.jwsRepresentation)
             case let .unverified(_, error):
-                Logger.subscription.info("[StorePurchaseManager] purchaseSubscription result: success /unverified/ - \(String(reflecting: error), privacy: .public)")
+                Logger.subscriptionStorePurchaseManager.log("purchaseSubscription result: success /unverified/ - \(String(reflecting: error), privacy: .public)")
                 // Successful purchase but transaction/receipt can't be verified
                 // Could be a jailbroken phone
                 return .failure(StorePurchaseManagerError.transactionCannotBeVerified)
             }
         case .pending:
-            Logger.subscription.info("[StorePurchaseManager] purchaseSubscription result: pending")
+            Logger.subscriptionStorePurchaseManager.log("purchaseSubscription result: pending")
             // Transaction waiting on SCA (Strong Customer Authentication) or
             // approval from Ask to Buy
             return .failure(StorePurchaseManagerError.transactionPendingAuthentication)
         case .userCancelled:
-            Logger.subscription.info("[StorePurchaseManager] purchaseSubscription result: user cancelled")
+            Logger.subscriptionStorePurchaseManager.log("purchaseSubscription result: user cancelled")
             return .failure(StorePurchaseManagerError.purchaseCancelledByUser)
         @unknown default:
-            Logger.subscription.info("[StorePurchaseManager] purchaseSubscription result: unknown")
+            Logger.subscriptionStorePurchaseManager.log("purchaseSubscription result: unknown")
             return .failure(StorePurchaseManagerError.unknownError)
         }
     }
@@ -302,20 +296,17 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
         }()
 
         let options: [SubscriptionOption] = await [.init(from: monthly, withRecurrence: "monthly"),
-                       .init(from: yearly, withRecurrence: "yearly")]
-
-        let features: [SubscriptionFeature]
-
-        if let featureFlagger = subscriptionFeatureFlagger, featureFlagger.isFeatureOn(.isLaunchedROW) || featureFlagger.isFeatureOn(.isLaunchedROWOverride) {
-            features = await subscriptionFeatureMappingCache.subscriptionFeatures(for: monthly.id).compactMap { SubscriptionFeature(name: $0) }
+                                                   .init(from: yearly, withRecurrence: "yearly")]
+        let features: [SubscriptionEntitlement]
+        if let featureFlagger = subscriptionFeatureFlagger,
+           featureFlagger.isFeatureOn(.isLaunchedROW) || featureFlagger.isFeatureOn(.isLaunchedROWOverride) {
+            features = await subscriptionFeatureMappingCache.subscriptionFeatures(for: monthly.id)
         } else {
-            let allFeatures: [Entitlement.ProductName] = [.networkProtection, .dataBrokerProtection, .identityTheftRestoration]
-            features = allFeatures.compactMap { SubscriptionFeature(name: $0) }
+            features = [.networkProtection, .dataBrokerProtection, .identityTheftRestoration]
         }
-
         return SubscriptionOptions(platform: platform,
                                    options: options,
-                                   features: features)
+                                   availableEntitlements: features)
     }
 
     private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
@@ -334,7 +325,7 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
 
         Task.detached { [weak self] in
             for await result in Transaction.updates {
-                Logger.subscription.info("[StorePurchaseManager] observeTransactionUpdates")
+                Logger.subscriptionStorePurchaseManager.log("observeTransactionUpdates")
 
                 if case .verified(let transaction) = result {
                     await transaction.finish()
@@ -349,7 +340,7 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
 
         Task.detached { [weak self] in
             for await result in Storefront.updates {
-                Logger.subscription.info("[StorePurchaseManager] observeStorefrontChanges: \(result.countryCode)")
+                Logger.subscriptionStorePurchaseManager.log("observeStorefrontChanges: \(result.countryCode)")
                 await self?.updatePurchasedProducts()
                 await self?.updateAvailableProducts()
             }
