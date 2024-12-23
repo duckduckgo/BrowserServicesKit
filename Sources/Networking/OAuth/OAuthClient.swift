@@ -352,34 +352,6 @@ final public class DefaultOAuthClient: OAuthClient {
         return tokens
     }
 
-    // MARK: Refresh
-
-//    private func refreshTokens() async throws -> TokenContainer {
-//        Logger.OAuthClient.log("Refreshing tokens")
-//        guard let refreshToken = tokenStorage.tokenContainer?.refreshToken else {
-//            throw OAuthClientError.missingRefreshToken
-//        }
-//
-//        do {
-//            let refreshTokenResponse = try await authService.refreshAccessToken(clientID: Constants.clientID, refreshToken: refreshToken)
-//            let refreshedTokens = try await decode(accessToken: refreshTokenResponse.accessToken, refreshToken: refreshTokenResponse.refreshToken)
-//            Logger.OAuthClient.log("Tokens refreshed: \(refreshedTokens.debugDescription)")
-//            tokenStorage.tokenContainer = refreshedTokens
-//            return refreshedTokens
-//        } catch OAuthServiceError.authAPIError(let code) {
-//            if code == OAuthRequest.BodyErrorCode.invalidTokenRequest {
-//                Logger.OAuthClient.error("Failed to refresh token")
-//                throw OAuthClientError.deadToken
-//            } else {
-//                Logger.OAuthClient.error("Failed to refresh token: \(code.rawValue, privacy: .public), \(code.description, privacy: .public)")
-//                throw OAuthServiceError.authAPIError(code: code)
-//            }
-//        } catch {
-//            Logger.OAuthClient.error("Failed to refresh token: \(error, privacy: .public)")
-//            throw error
-//        }
-//    }
-
     // MARK: Exchange V1 to V2 token
 
     public func exchange(accessTokenV1: String) async throws -> TokenContainer {

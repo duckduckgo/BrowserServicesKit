@@ -395,7 +395,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
                 let currentSubscription = try await getSubscription(cachePolicy: .returnCacheDataDontLoad)
                 let tokenContainer = try await getTokenContainer(policy: forceRefresh ? .localForceRefresh : .local)
                 let userEntitlements = tokenContainer.decodedAccessToken.subscriptionEntitlements
-                let availableFeatures = currentSubscription.features ?? [] // await subscriptionFeatureMappingCache.subscriptionFeatures(for: subscription.productId)
+                let availableFeatures = currentSubscription.features ?? []
 
                 // Filter out the features that are not available because the user doesn't have the right entitlements
                 let result = availableFeatures.map({ featureEntitlement in
@@ -403,9 +403,9 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
                     return SubscriptionFeature(entitlement: featureEntitlement, enabled: enabled)
                 })
                 Logger.subscription.log("""
-User entitlements: \(userEntitlements)
-Available Features: \(availableFeatures)
-Subscription features: \(result)
+User entitlements: \(userEntitlements, privacy: .public)
+Available Features: \(availableFeatures, privacy: .public)
+Subscription features: \(result, privacy: .public)
 """)
                 return result
             } catch {

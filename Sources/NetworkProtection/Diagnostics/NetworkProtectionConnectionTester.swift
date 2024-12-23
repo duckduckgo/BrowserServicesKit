@@ -123,7 +123,7 @@ final class NetworkProtectionConnectionTester {
     }
 
     func stop() {
-        Logger.networkProtectionConnectionTester.log("🟢 Stopping connection tester")
+        Logger.networkProtectionConnectionTester.log("🔴 Stopping connection tester")
         stopScheduledTimer()
         isRunning = false
     }

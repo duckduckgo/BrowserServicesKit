@@ -23,7 +23,6 @@ public enum KeychainType {
     case dataProtection(_ accessGroup: AccessGroup)
     /// Uses the system keychain.
     case system
-    case fileBased
 
     public enum AccessGroup {
         case unspecified
@@ -43,8 +42,6 @@ public enum KeychainType {
                 ]
             }
         case .system:
-            return [kSecUseDataProtectionKeychain: false]
-        case .fileBased:
             return [kSecUseDataProtectionKeychain: false]
         }
     }
