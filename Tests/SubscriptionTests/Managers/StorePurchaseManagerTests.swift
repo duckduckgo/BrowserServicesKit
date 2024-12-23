@@ -273,7 +273,6 @@ final class StorePurchaseManagerTests: XCTestCase {
         XCTAssertNotNil(monthlyOption)
         XCTAssertNotNil(monthlyOption?.offer)
         XCTAssertEqual(monthlyOption?.offer?.type, .freeTrial)
-        XCTAssertEqual(monthlyOption?.offer?.displayPrice, "$0.00")
         XCTAssertEqual(monthlyOption?.offer?.durationInDays, 7)
         XCTAssertTrue(monthlyOption?.offer?.isUserEligible ?? false)
 
@@ -281,7 +280,6 @@ final class StorePurchaseManagerTests: XCTestCase {
         XCTAssertNotNil(yearlyOption)
         XCTAssertNotNil(yearlyOption?.offer)
         XCTAssertEqual(yearlyOption?.offer?.type, .freeTrial)
-        XCTAssertEqual(yearlyOption?.offer?.displayPrice, "$0.00")
         XCTAssertEqual(yearlyOption?.offer?.durationInDays, 14)
         XCTAssertTrue(yearlyOption?.offer?.isUserEligible ?? false)
     }

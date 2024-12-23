@@ -356,7 +356,7 @@ private extension SubscriptionOption {
             let durationInDays = introOffer.periodInDays
             let isUserEligible = await product.isEligibleForIntroOffer
 
-            offer = .init(type: .freeTrial, id: introOffer.id ?? "", displayPrice: introOffer.displayPrice, durationInDays: durationInDays, isUserEligible: isUserEligible)
+            offer = .init(type: .freeTrial, id: introOffer.id ?? "", durationInDays: durationInDays, isUserEligible: isUserEligible)
         }
 
         self.init(id: product.id, cost: .init(displayPrice: product.displayPrice, recurrence: recurrence), offer: offer)
