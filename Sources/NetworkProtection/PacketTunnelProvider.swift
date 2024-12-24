@@ -603,13 +603,13 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         Logger.networkProtection.log("Loading token \(options.tokenContainer.description, privacy: .public)")
         switch options.tokenContainer {
         case .set(let newTokenContainer):
-            try await tokenProvider.adopt(tokenContainer: newTokenContainer)
+            tokenProvider.adopt(tokenContainer: newTokenContainer)
             // Important: Here we force the token refresh in order to immediately branch the system extension token from the main app one.
             // See discussion https://app.asana.com/0/1199230911884351/1208785842165508/f
             try await tokenProvider.getTokenContainer(policy: .localForceRefresh)
         case .useExisting:
             do {
-                try await tokenProvider.getTokenContainer(policy: .local)
+                try await tokenProvider.getTokenContainer(policy: .localValid)
             } catch {
                 throw TunnelError.startingTunnelWithoutAuthToken
             }
