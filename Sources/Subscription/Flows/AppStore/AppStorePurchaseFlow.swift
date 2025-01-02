@@ -35,7 +35,7 @@ public enum AppStorePurchaseFlowError: Swift.Error {
 public protocol AppStorePurchaseFlow {
     typealias TransactionJWS = String
     func purchaseSubscription(with subscriptionIdentifier: String, emailAccessToken: String?) async -> Result<AppStorePurchaseFlow.TransactionJWS, AppStorePurchaseFlowError>
-    
+
     /// Completes the subscription purchase by validating the transaction.
       ///
       /// - Parameters:
