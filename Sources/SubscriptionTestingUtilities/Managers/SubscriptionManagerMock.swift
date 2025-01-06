@@ -154,7 +154,7 @@ public final class SubscriptionManagerMock: SubscriptionManager {
         }
     }
 
-    public func adopt(tokenContainer: Networking.TokenContainer) async throws {
+    public func adopt(tokenContainer: Networking.TokenContainer) {
         self.resultTokenContainer = tokenContainer
     }
 

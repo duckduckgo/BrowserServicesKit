@@ -47,15 +47,15 @@ public class MockSubscriptionTokenProvider: SubscriptionTokenProvider {
         }
     }
 
-    public func adopt(tokenContainer: Networking.TokenContainer) async throws {
+    public func adopt(tokenContainer: Networking.TokenContainer) {
         guard let tokenResult = tokenResult else {
-            throw OAuthClientError.missingTokens
+            return
         }
         switch tokenResult {
         case .success:
             return
         case .failure(let error):
-            throw error
+            return
         }
     }
 
