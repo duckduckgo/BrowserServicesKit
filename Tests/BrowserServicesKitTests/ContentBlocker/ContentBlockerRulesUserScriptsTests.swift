@@ -16,6 +16,9 @@
 //  limitations under the License.
 //
 
+// Tests are disabled on iOS due to WKWebView stability issues on the iOS 17.5+ simulator.
+#if os(macOS)
+
 import BrowserServicesKit
 import Common
 import TrackerRadarKit
@@ -59,14 +62,16 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
   "entities": {
     "Fake Tracking Inc": {
       "domains": [
-        "tracker.com"
+        "tracker.com",
+        "trackeraffiliated.com"
       ],
       "displayName": "Fake Tracking Inc",
       "prevalence": 0.1
     }
   },
   "domains": {
-    "tracker.com": "Fake Tracking Inc"
+    "tracker.com": "Fake Tracking Inc",
+    "trackeraffiliated.com": "Fake Tracking Inc"
   }
 }
 """
@@ -79,6 +84,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
     var webView: WKWebView?
 
     let nonTrackerURL = URL(string: "test://nontracker.com/1.png")!
+    let nonTrackerAffiliatedURL = URL(string: "test://trackeraffiliated.com/1.png")!
     let trackerURL = URL(string: "test://tracker.com/1.png")!
     let subTrackerURL = URL(string: "test://sub.tracker.com/1.png")!
 
@@ -89,7 +95,8 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
 
         website = MockWebsite(resources: [.init(type: .image, url: nonTrackerURL),
                                           .init(type: .image, url: trackerURL),
-                                          .init(type: .image, url: subTrackerURL)])
+                                          .init(type: .image, url: subTrackerURL),
+                                          .init(type: .image, url: nonTrackerAffiliatedURL)])
     }
 
     private func setupWebViewForUserScripTests(trackerData: TrackerData,
@@ -186,7 +193,11 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
             let blockedTrackers = Set(self.userScriptDelegateMock.detectedTrackers.filter { $0.isBlocked }.map { $0.domain })
             XCTAssertEqual(expectedTrackers, blockedTrackers)
 
-            let expectedRequests: Set<URL> = [websiteURL, self.nonTrackerURL]
+            let expected3rdParty: Set<String> = ["nontracker.com", "trackeraffiliated.com"]
+            let detected3rdParty = Set(self.userScriptDelegateMock.detectedThirdPartyRequests.map { $0.domain })
+            XCTAssertEqual(detected3rdParty, expected3rdParty)
+
+            let expectedRequests: Set<URL> = [websiteURL, self.nonTrackerURL, self.nonTrackerAffiliatedURL]
             XCTAssertEqual(Set(self.schemeHandler.handledRequests), expectedRequests)
         }
 
@@ -216,11 +227,19 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
             let detectedTrackers = Set(self.userScriptDelegateMock.detectedTrackers.map { $0.domain })
             XCTAssert(detectedTrackers.isEmpty)
 
-            let expected3rdParty: Set<String> = ["nontracker.com"]
+            let expected3rdParty: Set<String> = ["nontracker.com", "trackeraffiliated.com"]
             let detected3rdParty = Set(self.userScriptDelegateMock.detectedThirdPartyRequests.map { $0.domain })
             XCTAssertEqual(detected3rdParty, expected3rdParty)
 
-            let expectedRequests: Set<URL> = [websiteURL, self.nonTrackerURL, self.trackerURL, self.subTrackerURL]
+            let expectedOwnedBy1stPartyRequests: Set<String> = ["trackeraffiliated.com"]
+            let detectedOwnedBy1stPartyRequests = Set(self.userScriptDelegateMock.detectedThirdPartyRequests.filter { $0.state == .allowed(reason: .ownedByFirstParty) }.map { $0.domain })
+            XCTAssertEqual(detectedOwnedBy1stPartyRequests, expectedOwnedBy1stPartyRequests)
+
+            let expectedOther3rdPartyRequests: Set<String> = ["nontracker.com"]
+            let detectedOther3rdPartyRequests = Set(self.userScriptDelegateMock.detectedThirdPartyRequests.filter { $0.state == .allowed(reason: .otherThirdPartyRequest) }.map { $0.domain })
+            XCTAssertEqual(detectedOther3rdPartyRequests, expectedOther3rdPartyRequests)
+
+            let expectedRequests: Set<URL> = [websiteURL, self.nonTrackerURL, self.nonTrackerAffiliatedURL, self.trackerURL, self.subTrackerURL]
             XCTAssertEqual(Set(self.schemeHandler.handledRequests), expectedRequests)
         }
 
@@ -247,10 +266,11 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
             let blockedTrackers = Set(self.userScriptDelegateMock.detectedTrackers.filter { $0.isBlocked }.map { $0.domain })
             XCTAssertEqual(blockedTrackers, expectedTrackers)
 
+            let expected3rdParty: Set<String> = ["trackeraffiliated.com"]
             let detected3rdParty = Set(self.userScriptDelegateMock.detectedThirdPartyRequests.map { $0.domain })
-            XCTAssert(detected3rdParty.isEmpty)
+            XCTAssertEqual(detected3rdParty, expected3rdParty)
 
-            let expectedRequests: Set<URL> = [websiteURL, self.nonTrackerURL]
+            let expectedRequests: Set<URL> = [websiteURL, self.nonTrackerURL, self.nonTrackerAffiliatedURL]
             XCTAssertEqual(Set(self.schemeHandler.handledRequests), expectedRequests)
         }
 
@@ -280,7 +300,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
             let detectedTrackers = Set(self.userScriptDelegateMock.detectedTrackers.map { $0.domain })
             XCTAssertEqual(expectedTrackers, detectedTrackers)
 
-            let expectedRequests: Set<URL> = [websiteURL, self.nonTrackerURL, self.trackerURL, self.subTrackerURL]
+            let expectedRequests: Set<URL> = [websiteURL, self.nonTrackerURL, self.nonTrackerAffiliatedURL, self.trackerURL, self.subTrackerURL]
             XCTAssertEqual(Set(self.schemeHandler.handledRequests), expectedRequests)
         }
 
@@ -312,7 +332,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
             let detectedTrackers = Set(self.userScriptDelegateMock.detectedTrackers.map { $0.domain })
             XCTAssertEqual(expectedTrackers, detectedTrackers)
 
-            let expectedRequests: Set<URL> = [websiteURL, self.nonTrackerURL, self.trackerURL, self.subTrackerURL]
+            let expectedRequests: Set<URL> = [websiteURL, self.nonTrackerURL, self.nonTrackerAffiliatedURL, self.trackerURL, self.subTrackerURL]
             XCTAssertEqual(Set(self.schemeHandler.handledRequests), expectedRequests)
         }
 
@@ -339,7 +359,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
             let blockedTrackers = Set(self.userScriptDelegateMock.detectedTrackers.filter { $0.isBlocked }.map { $0.domain })
             XCTAssertEqual(expectedTrackers, blockedTrackers)
 
-            let expectedRequests: Set<URL> = [websiteURL, self.nonTrackerURL]
+            let expectedRequests: Set<URL> = [websiteURL, self.nonTrackerURL, self.nonTrackerAffiliatedURL]
             XCTAssertEqual(Set(self.schemeHandler.handledRequests), expectedRequests)
         }
 
@@ -366,7 +386,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
             let blockedTrackers = Set(self.userScriptDelegateMock.detectedTrackers.filter { $0.isBlocked }.map { $0.domain })
             XCTAssertEqual(expectedTrackers, blockedTrackers)
 
-            let expectedRequests: Set<URL> = [websiteURL, self.nonTrackerURL]
+            let expectedRequests: Set<URL> = [websiteURL, self.nonTrackerURL, self.nonTrackerAffiliatedURL]
             XCTAssertEqual(Set(self.schemeHandler.handledRequests), expectedRequests)
         }
 
@@ -396,7 +416,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
             let detectedTrackers = Set(self.userScriptDelegateMock.detectedTrackers.map { $0.domain })
             XCTAssertEqual(expectedTrackers, detectedTrackers)
 
-            let expectedRequests: Set<URL> = [websiteURL, self.nonTrackerURL, self.trackerURL, self.subTrackerURL]
+            let expectedRequests: Set<URL> = [websiteURL, self.nonTrackerURL, self.nonTrackerAffiliatedURL, self.trackerURL, self.subTrackerURL]
             XCTAssertEqual(Set(self.schemeHandler.handledRequests), expectedRequests)
         }
 
@@ -426,7 +446,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
             let detectedTrackers = Set(self.userScriptDelegateMock.detectedTrackers.map { $0.domain })
             XCTAssertEqual(expectedTrackers, detectedTrackers)
 
-            let expectedRequests: Set<URL> = [websiteURL, self.nonTrackerURL, self.trackerURL, self.subTrackerURL]
+            let expectedRequests: Set<URL> = [websiteURL, self.nonTrackerURL, self.nonTrackerAffiliatedURL, self.trackerURL, self.subTrackerURL]
             XCTAssertEqual(Set(self.schemeHandler.handledRequests), expectedRequests)
         }
 
@@ -453,7 +473,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
             let blockedTrackers = Set(self.userScriptDelegateMock.detectedTrackers.filter { $0.isBlocked }.map { $0.domain })
             XCTAssertEqual(expectedTrackers, blockedTrackers)
 
-            let expectedRequests: Set<URL> = [websiteURL, self.nonTrackerURL]
+            let expectedRequests: Set<URL> = [websiteURL, self.nonTrackerURL, self.nonTrackerAffiliatedURL]
             XCTAssertEqual(Set(self.schemeHandler.handledRequests), expectedRequests)
         }
 
@@ -483,7 +503,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
             let detectedTrackers = Set(self.userScriptDelegateMock.detectedTrackers.map { $0.domain })
             XCTAssertEqual(expectedTrackers, detectedTrackers)
 
-            let expectedRequests: Set<URL> = [websiteURL, self.nonTrackerURL, self.trackerURL, self.subTrackerURL]
+            let expectedRequests: Set<URL> = [websiteURL, self.nonTrackerURL, self.nonTrackerAffiliatedURL, self.trackerURL, self.subTrackerURL]
             XCTAssertEqual(Set(self.schemeHandler.handledRequests), expectedRequests)
         }
 
@@ -513,7 +533,7 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
             let detectedTrackers = Set(self.userScriptDelegateMock.detectedTrackers.map { $0.domain })
             XCTAssertEqual(expectedTrackers, detectedTrackers)
 
-            let expectedRequests: Set<URL> = [websiteURL, self.nonTrackerURL, self.trackerURL, self.subTrackerURL]
+            let expectedRequests: Set<URL> = [websiteURL, self.nonTrackerURL, self.nonTrackerAffiliatedURL, self.trackerURL, self.subTrackerURL]
             XCTAssertEqual(Set(self.schemeHandler.handledRequests), expectedRequests)
         }
 
@@ -552,3 +572,5 @@ class ContentBlockerRulesUserScriptsTests: XCTestCase {
         self.wait(for: [websiteLoaded], timeout: 30)
     }
 }
+
+#endif

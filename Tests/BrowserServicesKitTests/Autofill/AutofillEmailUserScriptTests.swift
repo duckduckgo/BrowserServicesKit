@@ -37,7 +37,7 @@ class AutofillEmailUserScriptTests: XCTestCase {
         }
         """.data(using: .utf8)!
         let privacyConfig = AutofillTestHelper.preparePrivacyConfig(embeddedConfig: embeddedConfig)
-        let properties = ContentScopeProperties(gpcEnabled: false, sessionKey: "1234", featureToggles: ContentScopeFeatureToggles.allTogglesOn)
+        let properties = ContentScopeProperties(gpcEnabled: false, sessionKey: "1234", messageSecret: "1234", featureToggles: ContentScopeFeatureToggles.allTogglesOn)
         let sourceProvider = DefaultAutofillSourceProvider.Builder(privacyConfigurationManager: privacyConfig,
                                                                            properties: properties)
             .withJSLoading()
@@ -332,9 +332,44 @@ class MockAutofillEmailDelegate: AutofillEmailDelegate {
 class MockWebView: WKWebView {
 
     var javaScriptString: String?
+    var evaluateJavaScriptResult: Any?
 
-    override func evaluateJavaScript(_ javaScriptString: String, completionHandler: ((Any?, Error?) -> Void)? = nil) {
-        self.javaScriptString = javaScriptString
+    convenience init() {
+        self.init(frame: .zero, configuration: WKWebViewConfiguration())
+    }
+
+    override init(frame: CGRect, configuration: WKWebViewConfiguration) {
+        _=Self.swizzleEvaluateJavaScriptOnce
+        super.init(frame: frame, configuration: configuration)
+    }
+
+    required init?(coder: NSCoder) {
+        _=Self.swizzleEvaluateJavaScriptOnce
+        super.init(coder: coder)
+    }
+
+}
+private extension WKWebView {
+
+    static let swizzleEvaluateJavaScriptOnce: () = {
+        guard let originalMethod = class_getInstanceMethod(WKWebView.self, #selector(evaluateJavaScript(_:completionHandler:))),
+              let swizzledMethod = class_getInstanceMethod(WKWebView.self, #selector(swizzled_evaluateJavaScript(_:completionHandler:))) else {
+            assertionFailure("Methods not available")
+            return
+        }
+
+        method_exchangeImplementations(originalMethod, swizzledMethod)
+    }()
+
+    // place popover inside bounds of its owner Main Window
+    @objc(swizzled_evaluateJavaScript:completionHandler:)
+    private dynamic func swizzled_evaluateJavaScript(_ javaScriptString: String, completionHandler: ((Any?, (any Error)?) -> Void)? = nil) {
+        if let mockWebView = self as? MockWebView {
+            mockWebView.javaScriptString = javaScriptString
+            completionHandler?(mockWebView.evaluateJavaScriptResult, nil)
+            return
+        }
+        self.swizzled_evaluateJavaScript(javaScriptString, completionHandler: completionHandler) // call the original
     }
 
 }

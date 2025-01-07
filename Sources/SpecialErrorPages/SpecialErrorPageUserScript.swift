@@ -23,11 +23,11 @@ import Common
 
 public protocol SpecialErrorPageUserScriptDelegate: AnyObject {
 
-    var errorData: SpecialErrorData? { get }
+    @MainActor var errorData: SpecialErrorData? { get }
 
-    func leaveSite()
-    func visitSite()
-    func advancedInfoPresented()
+    @MainActor func leaveSiteAction()
+    @MainActor func visitSiteAction()
+    @MainActor func advancedInfoPresented()
 
 }
 
@@ -71,20 +71,21 @@ public final class SpecialErrorPageUserScript: NSObject, Subfeature {
         self.languageCode = languageCode
     }
 
-    @MainActor
     public func handler(forMethodNamed methodName: String) -> Subfeature.Handler? {
-        guard isEnabled, let messageName = MessageName(rawValue: methodName) else { return nil }
-        return methodHandlers[messageName]
-    }
+        guard isEnabled else { return nil }
 
-    private lazy var methodHandlers: [MessageName: Handler] = [
-        .initialSetup: initialSetup,
-        .reportPageException: reportPageException,
-        .reportInitException: reportInitException,
-        .leaveSite: handleLeaveSiteAction,
-        .visitSite: handleVisitSiteAction,
-        .advancedInfo: handleAdvancedInfoPresented
-    ]
+        switch MessageName(rawValue: methodName) {
+        case .initialSetup: return initialSetup
+        case .reportPageException: return reportPageException
+        case .reportInitException: return reportInitException
+        case .leaveSite: return handleLeaveSiteAction
+        case .visitSite: return handleVisitSiteAction
+        case .advancedInfo: return handleAdvancedInfoPresented
+        default:
+            assertionFailure("SpecialErrorPageUserScript: Failed to parse User Script message: \(methodName)")
+            return nil
+        }
+    }
 
     @MainActor
     private func initialSetup(params: Any, original: WKScriptMessage) async throws -> Encodable? {
@@ -105,13 +106,13 @@ public final class SpecialErrorPageUserScript: NSObject, Subfeature {
 
     @MainActor
     func handleLeaveSiteAction(params: Any, message: UserScriptMessage) -> Encodable? {
-        delegate?.leaveSite()
+        delegate?.leaveSiteAction()
         return nil
     }
 
     @MainActor
     func handleVisitSiteAction(params: Any, message: UserScriptMessage) -> Encodable? {
-        delegate?.visitSite()
+        delegate?.visitSiteAction()
         return nil
     }
 

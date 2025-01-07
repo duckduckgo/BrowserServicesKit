@@ -41,9 +41,10 @@ public protocol HistoryCoordinating: AnyObject {
     func title(for url: URL) -> String?
 
     func burnAll(completion: @escaping () -> Void)
-    func burnDomains(_ baseDomains: Set<String>, tld: TLD, completion: @escaping () -> Void)
+    func burnDomains(_ baseDomains: Set<String>, tld: TLD, completion: @escaping (Set<URL>) -> Void)
     func burnVisits(_ visits: [Visit], completion: @escaping () -> Void)
 
+    func removeUrlEntry(_ url: URL, completion: ((Error?) -> Void)?)
 }
 
 /// Coordinates access to History. Uses its own queue with high qos for all operations.
@@ -168,19 +169,20 @@ final public class HistoryCoordinator: HistoryCoordinating {
         }
     }
 
-    public func burnDomains(_ baseDomains: Set<String>, tld: TLD, completion: @escaping () -> Void) {
+    public func burnDomains(_ baseDomains: Set<String>, tld: TLD, completion: @escaping (Set<URL>) -> Void) {
         guard let historyDictionary = historyDictionary else { return }
 
+        var urls = Set<URL>()
         let entries: [HistoryEntry] = historyDictionary.values.filter { historyEntry in
-            guard let host = historyEntry.url.host, let baseDomain = tld.eTLDplus1(host) else {
-                return false
-            }
-
-            return baseDomains.contains(baseDomain)
+            guard let host = historyEntry.url.host,
+                  let baseDomain = tld.eTLDplus1(host),
+                  baseDomains.contains(baseDomain) else { return false }
+            urls.insert(historyEntry.url)
+            return true
         }
 
         removeEntries(entries, completionHandler: { _ in
-            completion()
+            completion(urls)
         })
     }
 
@@ -188,6 +190,20 @@ final public class HistoryCoordinator: HistoryCoordinating {
         removeVisits(visits) { _ in
             completion()
         }
+    }
+
+    public enum EntryRemovalError: Error {
+        case notAvailable
+    }
+
+    public func removeUrlEntry(_ url: URL, completion: ((Error?) -> Void)? = nil) {
+        guard let historyDictionary = historyDictionary else { return }
+        guard let entry = historyDictionary[url] else {
+            completion?(EntryRemovalError.notAvailable)
+            return
+        }
+
+        removeEntries([entry], completionHandler: completion)
     }
 
     var cleaningDate: Date { .monthAgo }

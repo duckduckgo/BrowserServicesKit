@@ -31,9 +31,12 @@ public final class PixelKit {
         /// [Legacy] Used in Pixel.fire(...) as .unique but without the `_u` requirement in the name
         case legacyInitial
 
-        /// Sent only once ever. The timestamp for this pixel is stored. 
+        /// Sent only once ever (based on pixel name only.) The timestamp for this pixel is stored.
         /// Note: This is the only pixel that MUST end with `_u`, Name for pixels of this type must end with if it doesn't an assertion is fired.
-        case unique
+        case uniqueByName
+
+        /// Sent only once ever (based on pixel name AND parameters). The timestamp for this pixel is stored.
+        case uniqueByNameAndParameters
 
         /// [Legacy] Used in Pixel.fire(...) as .daily but without the `_d` automatically added to the name
         case legacyDaily
@@ -41,8 +44,13 @@ public final class PixelKit {
         /// Sent once per day. The last timestamp for this pixel is stored and compared to the current date. Pixels of this type will have `_d` appended to their name.
         case daily
 
-        /// Sent once per day with a `_d` suffix, in addition to every time it is called with a `_c` suffix.
+        /// [Legacy] Sent once per day with a `_d` suffix, in addition to every time it is called with a `_c` suffix.
         /// This means a pixel will get sent twice the first time it is called per-day, and subsequent calls that day will only send the `_c` variant.
+        /// This is useful in situations where pixels receive spikes in volume, as the daily pixel can be used to determine how many users are actually affected.
+        case legacyDailyAndCount
+
+        /// Sent once per day with a `_daily` suffix, in addition to every time it is called with a `_count` suffix.
+        /// This means a pixel will get sent twice the first time it is called per-day, and subsequent calls that day will only send the `_count` variant.
         /// This is useful in situations where pixels receive spikes in volume, as the daily pixel can be used to determine how many users are actually affected.
         case dailyAndCount
 
@@ -52,14 +60,18 @@ public final class PixelKit {
                 "Standard"
             case .legacyInitial:
                 "Legacy Initial"
-            case .unique:
+            case .uniqueByName:
                 "Unique"
             case .legacyDaily:
                 "Legacy Daily"
             case .daily:
                 "Daily"
+            case .legacyDailyAndCount:
+                "Legacy Daily and Count"
             case .dailyAndCount:
                 "Daily and Count"
+            case .uniqueByNameAndParameters:
+                "Unique By Name And Parameters"
             }
         }
     }
@@ -183,69 +195,165 @@ public final class PixelKit {
 
         var headers = headers ?? defaultHeaders
         headers[Header.moreInfo] = "See " + Self.duckDuckGoMorePrivacyInfo.absoluteString
-        headers[Header.client] = "macOS"
+        // Needs to be updated/generalised when fully adopted by iOS
+        if let source {
+            switch source {
+            case Source.iOS.rawValue:
+                headers[Header.client] = "iOS"
+            case Source.iPadOS.rawValue:
+                headers[Header.client] = "iPadOS"
+            case Source.macDMG.rawValue, Source.macStore.rawValue:
+                headers[Header.client] = "macOS"
+            default:
+                headers[Header.client] = "macOS"
+            }
+        }
 
         // The event name can't contain `.`
         reportErrorIf(pixel: pixelName, contains: ".")
 
         switch frequency {
         case .standard:
-            reportErrorIf(pixel: pixelName, endsWith: "_u")
-            reportErrorIf(pixel: pixelName, endsWith: "_d")
-            fireRequestWrapper(pixelName, headers, newParams, allowedQueryReservedCharacters, true, frequency, onComplete)
+            handleStandardFrequency(pixelName, headers, newParams, allowedQueryReservedCharacters, onComplete)
         case .legacyInitial:
-            reportErrorIf(pixel: pixelName, endsWith: "_u")
-            reportErrorIf(pixel: pixelName, endsWith: "_d")
-            if !pixelHasBeenFiredEver(pixelName) {
-                fireRequestWrapper(pixelName, headers, newParams, allowedQueryReservedCharacters, true, frequency, onComplete)
-                updatePixelLastFireDate(pixelName: pixelName)
-            } else {
-                printDebugInfo(pixelName: pixelName, frequency: frequency, parameters: newParams, skipped: true)
-            }
-        case .unique:
-            reportErrorIf(pixel: pixelName, endsWith: "_d")
-            guard pixelName.hasSuffix("_u") else {
-                assertionFailure("Unique pixel: must end with _u")
-                onComplete(false, nil)
-                return
-            }
-            if !pixelHasBeenFiredEver(pixelName) {
-                fireRequestWrapper(pixelName, headers, newParams, allowedQueryReservedCharacters, true, frequency, onComplete)
-                updatePixelLastFireDate(pixelName: pixelName)
-            } else {
-                printDebugInfo(pixelName: pixelName, frequency: frequency, parameters: newParams, skipped: true)
-            }
+            handleLegacyInitial(pixelName, headers, newParams, allowedQueryReservedCharacters, onComplete)
+        case .uniqueByName:
+            handleUnique(pixelName, headers, newParams, allowedQueryReservedCharacters, onComplete)
+        case .uniqueByNameAndParameters:
+            handleUniqueByNameAndParameters(pixelName, headers, newParams, allowedQueryReservedCharacters, onComplete)
         case .legacyDaily:
-            reportErrorIf(pixel: pixelName, endsWith: "_u")
-            reportErrorIf(pixel: pixelName, endsWith: "_d")
-            if !pixelHasBeenFiredToday(pixelName) {
-                fireRequestWrapper(pixelName, headers, newParams, allowedQueryReservedCharacters, true, frequency, onComplete)
-                updatePixelLastFireDate(pixelName: pixelName)
-            } else {
-                printDebugInfo(pixelName: pixelName, frequency: frequency, parameters: newParams, skipped: true)
-            }
+            handleLegacyDaily(pixelName, headers, newParams, allowedQueryReservedCharacters, onComplete)
         case .daily:
-            reportErrorIf(pixel: pixelName, endsWith: "_u")
-            reportErrorIf(pixel: pixelName, endsWith: "_d") // Because is added automatically
-            if !pixelHasBeenFiredToday(pixelName) {
-                fireRequestWrapper(pixelName + "_d", headers, newParams, allowedQueryReservedCharacters, true, frequency, onComplete)
-                updatePixelLastFireDate(pixelName: pixelName)
-            } else {
-                printDebugInfo(pixelName: pixelName + "_d", frequency: frequency, parameters: newParams, skipped: true)
-            }
+            handleDaily(pixelName, headers, newParams, allowedQueryReservedCharacters, onComplete)
+        case .legacyDailyAndCount:
+            handleLegacyDailyAndCount(pixelName, headers, newParams, allowedQueryReservedCharacters, onComplete)
         case .dailyAndCount:
-            reportErrorIf(pixel: pixelName, endsWith: "_u")
-            reportErrorIf(pixel: pixelName, endsWith: "_d") // Because is added automatically
-            reportErrorIf(pixel: pixelName, endsWith: "_c") // Because is added automatically
-            if !pixelHasBeenFiredToday(pixelName) {
-                fireRequestWrapper(pixelName + "_d", headers, newParams, allowedQueryReservedCharacters, true, frequency, onComplete)
-                updatePixelLastFireDate(pixelName: pixelName)
-            } else {
-                printDebugInfo(pixelName: pixelName + "_d", frequency: frequency, parameters: newParams, skipped: true)
-            }
-
-            fireRequestWrapper(pixelName + "_c", headers, newParams, allowedQueryReservedCharacters, true, frequency, onComplete)
+            handleDailyAndCount(pixelName, headers, newParams, allowedQueryReservedCharacters, onComplete)
         }
+    }
+
+    private func handleStandardFrequency(_ pixelName: String,
+                                         _ headers: [String: String],
+                                         _ params: [String: String],
+                                         _ allowedQueryReservedCharacters: CharacterSet?,
+                                         _ onComplete: @escaping CompletionBlock) {
+        reportErrorIf(pixel: pixelName, endsWith: "_u")
+        reportErrorIf(pixel: pixelName, endsWith: "_d")
+        fireRequestWrapper(pixelName, headers, params, allowedQueryReservedCharacters, true, .standard, onComplete)
+    }
+
+    private func handleLegacyInitial(_ pixelName: String,
+                                     _ headers: [String: String],
+                                     _ newParams: [String: String],
+                                     _ allowedQueryReservedCharacters: CharacterSet?,
+                                     _ onComplete: @escaping CompletionBlock) {
+        reportErrorIf(pixel: pixelName, endsWith: "_u")
+        reportErrorIf(pixel: pixelName, endsWith: "_d")
+        if !pixelHasBeenFiredEver(pixelName) {
+            fireRequestWrapper(pixelName, headers, newParams, allowedQueryReservedCharacters, true, .legacyInitial, onComplete)
+            updatePixelLastFireDate(pixelName: pixelName)
+        } else {
+            printDebugInfo(pixelName: pixelName, frequency: .legacyInitial, parameters: newParams, skipped: true)
+        }
+    }
+
+    private func handleUnique(_ pixelName: String,
+                              _ headers: [String: String],
+                              _ newParams: [String: String],
+                              _ allowedQueryReservedCharacters: CharacterSet?,
+                              _ onComplete: @escaping CompletionBlock) {
+        reportErrorIf(pixel: pixelName, endsWith: "_d")
+        guard pixelName.hasSuffix("_u") else {
+            assertionFailure("Unique pixel: must end with _u")
+            onComplete(false, nil)
+            return
+        }
+        if !pixelHasBeenFiredEver(pixelName) {
+            fireRequestWrapper(pixelName, headers, newParams, allowedQueryReservedCharacters, true, .uniqueByName, onComplete)
+            updatePixelLastFireDate(pixelName: pixelName)
+        } else {
+            printDebugInfo(pixelName: pixelName, frequency: .uniqueByName, parameters: newParams, skipped: true)
+        }
+    }
+
+    private func handleUniqueByNameAndParameters(_ pixelName: String,
+                                                 _ headers: [String: String],
+                                                 _ newParams: [String: String],
+                                                 _ allowedQueryReservedCharacters: CharacterSet?,
+                                                 _ onComplete: @escaping CompletionBlock) {
+        let pixelNameAndParams = pixelName + newParams.toString()
+        if !pixelHasBeenFiredEver(pixelNameAndParams) {
+            fireRequestWrapper(pixelName, headers, newParams, allowedQueryReservedCharacters, true, .uniqueByNameAndParameters, onComplete)
+            updatePixelLastFireDate(pixelName: pixelNameAndParams)
+        } else {
+            printDebugInfo(pixelName: pixelName, frequency: .uniqueByNameAndParameters, parameters: newParams, skipped: true)
+        }
+    }
+
+    private func handleLegacyDaily(_ pixelName: String,
+                                   _ headers: [String: String],
+                                   _ newParams: [String: String],
+                                   _ allowedQueryReservedCharacters: CharacterSet?,
+                                   _ onComplete: @escaping CompletionBlock) {
+        reportErrorIf(pixel: pixelName, endsWith: "_u")
+        reportErrorIf(pixel: pixelName, endsWith: "_d")
+        if !pixelHasBeenFiredToday(pixelName) {
+            fireRequestWrapper(pixelName, headers, newParams, allowedQueryReservedCharacters, true, .legacyDaily, onComplete)
+            updatePixelLastFireDate(pixelName: pixelName)
+        } else {
+            printDebugInfo(pixelName: pixelName, frequency: .legacyDaily, parameters: newParams, skipped: true)
+        }
+    }
+
+    private func handleDaily(_ pixelName: String,
+                             _ headers: [String: String],
+                             _ newParams: [String: String],
+                             _ allowedQueryReservedCharacters: CharacterSet?,
+                             _ onComplete: @escaping CompletionBlock) {
+        reportErrorIf(pixel: pixelName, endsWith: "_u")
+        reportErrorIf(pixel: pixelName, endsWith: "_d") // Because is added automatically
+        if !pixelHasBeenFiredToday(pixelName) {
+            fireRequestWrapper(pixelName + "_d", headers, newParams, allowedQueryReservedCharacters, true, .daily, onComplete)
+            updatePixelLastFireDate(pixelName: pixelName)
+        } else {
+            printDebugInfo(pixelName: pixelName + "_d", frequency: .daily, parameters: newParams, skipped: true)
+        }
+    }
+
+    private func handleLegacyDailyAndCount(_ pixelName: String,
+                                           _ headers: [String: String],
+                                           _ newParams: [String: String],
+                                           _ allowedQueryReservedCharacters: CharacterSet?,
+                                           _ onComplete: @escaping CompletionBlock) {
+        reportErrorIf(pixel: pixelName, endsWith: "_u")
+        reportErrorIf(pixel: pixelName, endsWith: "_d") // Because is added automatically
+        reportErrorIf(pixel: pixelName, endsWith: "_c") // Because is added automatically
+        if !pixelHasBeenFiredToday(pixelName) {
+            fireRequestWrapper(pixelName + "_d", headers, newParams, allowedQueryReservedCharacters, true, .legacyDailyAndCount, onComplete)
+            updatePixelLastFireDate(pixelName: pixelName)
+        } else {
+            printDebugInfo(pixelName: pixelName + "_d", frequency: .legacyDailyAndCount, parameters: newParams, skipped: true)
+        }
+
+        fireRequestWrapper(pixelName + "_c", headers, newParams, allowedQueryReservedCharacters, true, .legacyDailyAndCount, onComplete)
+    }
+
+    private func handleDailyAndCount(_ pixelName: String,
+                                     _ headers: [String: String],
+                                     _ newParams: [String: String],
+                                     _ allowedQueryReservedCharacters: CharacterSet?,
+                                     _ onComplete: @escaping CompletionBlock) {
+        reportErrorIf(pixel: pixelName, endsWith: "_u")
+        reportErrorIf(pixel: pixelName, endsWith: "_daily") // Because is added automatically
+        reportErrorIf(pixel: pixelName, endsWith: "_count") // Because is added automatically
+        if !pixelHasBeenFiredToday(pixelName) {
+            fireRequestWrapper(pixelName + "_daily", headers, newParams, allowedQueryReservedCharacters, true, .dailyAndCount, onComplete)
+            updatePixelLastFireDate(pixelName: pixelName)
+        } else {
+            printDebugInfo(pixelName: pixelName + "_daily", frequency: .dailyAndCount, parameters: newParams, skipped: true)
+        }
+
+        fireRequestWrapper(pixelName + "_count", headers, newParams, allowedQueryReservedCharacters, true, .dailyAndCount, onComplete)
     }
 
     /// If the pixel name ends with the forbiddenString then an error is logged or an assertion failure is fired in debug
@@ -288,7 +396,11 @@ public final class PixelKit {
             fireRequest(pixelName, headers, parameters, allowedQueryReservedCharacters, callBackOnMainThread, onComplete)
         }
 
-    private func prefixedName(for event: Event) -> String {
+    // Only set up for macOS and for Experiments
+    private func prefixedAndSuffixedName(for event: Event) -> String {
+        if event.name.hasPrefix("experiment") {
+            return addPlatformSuffix(to: event.name)
+        }
         if event.name.hasPrefix("m_mac_") {
             // Can be a debug event or not, if already prefixed the name remains unchanged
             return event.name
@@ -303,6 +415,22 @@ public final class PixelKit {
         }
     }
 
+    private func addPlatformSuffix(to name: String) -> String {
+        if let source {
+            switch source {
+            case Source.iOS.rawValue:
+                return "\(name)_ios_phone"
+            case Source.iPadOS.rawValue:
+                return "\(name)_ios_tablet"
+            case Source.macStore.rawValue, Source.macDMG.rawValue:
+                return "\(name)_mac"
+            default:
+                return name
+            }
+        }
+        return name
+    }
+
     public func fire(_ event: Event,
                      frequency: Frequency = .standard,
                      withHeaders headers: [String: String]? = nil,
@@ -312,13 +440,13 @@ public final class PixelKit {
                      includeAppVersionParameter: Bool = true,
                      onComplete: @escaping CompletionBlock = { _, _ in }) {
 
-        let pixelName = prefixedName(for: event)
+        let pixelName = prefixedAndSuffixedName(for: event)
 
         if !dryRun {
             if frequency == .daily, pixelHasBeenFiredToday(pixelName) {
                 onComplete(false, nil)
                 return
-            } else if frequency == .unique, pixelHasBeenFiredEver(pixelName) {
+            } else if frequency == .uniqueByName, pixelHasBeenFiredEver(pixelName) {
                 onComplete(false, nil)
                 return
             }
@@ -334,6 +462,14 @@ public final class PixelKit {
             newParams = params1.merging(params2) { $1 }
         case (.none, .none):
             newParams = nil
+        }
+
+        if !dryRun, let newParams {
+            let pixelNameAndParams = pixelName + newParams.toString()
+            if frequency == .uniqueByNameAndParameters, pixelHasBeenFiredEver(pixelNameAndParams) {
+                onComplete(false, nil)
+                return
+            }
         }
 
         let newError: Error?
@@ -411,7 +547,7 @@ public final class PixelKit {
     }
 
     public func pixelLastFireDate(event: Event) -> Date? {
-        pixelLastFireDate(pixelName: prefixedName(for: event))
+        pixelLastFireDate(pixelName: prefixedAndSuffixedName(for: event))
     }
 
     private func updatePixelLastFireDate(pixelName: String) {

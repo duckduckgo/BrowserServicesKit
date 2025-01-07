@@ -17,6 +17,8 @@
 //
 
 import Foundation
+import Networking
+import os.log
 
 protocol NetworkProtectionClient {
     func getLocations(authToken: String) async -> Result<[NetworkProtectionLocation], NetworkProtectionClientError>
@@ -35,11 +37,6 @@ public enum NetworkProtectionClientError: CustomNSError, NetworkProtectionErrorC
     case failedToEncodeRegisterKeyRequest
     case failedToFetchRegisteredServers(Error)
     case failedToParseRegisteredServersResponse(Error)
-    case failedToEncodeRedeemRequest
-    case invalidInviteCode
-    case failedToRedeemInviteCode(Error)
-    case failedToRetrieveAuthToken(AuthenticationFailureResponse)
-    case failedToParseRedeemResponse(Error)
     case invalidAuthToken
     case accessDenied
 
@@ -54,11 +51,6 @@ public enum NetworkProtectionClientError: CustomNSError, NetworkProtectionErrorC
         case .failedToEncodeRegisterKeyRequest: return .failedToEncodeRegisterKeyRequest
         case .failedToFetchRegisteredServers(let error): return .failedToFetchRegisteredServers(error)
         case .failedToParseRegisteredServersResponse(let error): return .failedToParseRegisteredServersResponse(error)
-        case .failedToEncodeRedeemRequest: return .failedToEncodeRedeemRequest
-        case .invalidInviteCode: return .invalidInviteCode
-        case .failedToRedeemInviteCode(let error): return .failedToRedeemInviteCode(error)
-        case .failedToRetrieveAuthToken(let response): return .failedToRetrieveAuthToken(response)
-        case .failedToParseRedeemResponse(let error): return .failedToParseRedeemResponse(error)
         case .invalidAuthToken: return .invalidAuthToken
         case .accessDenied: return .vpnAccessRevoked
         }
@@ -73,11 +65,6 @@ public enum NetworkProtectionClientError: CustomNSError, NetworkProtectionErrorC
         case .failedToEncodeRegisterKeyRequest: return 4
         case .failedToFetchRegisteredServers: return 5
         case .failedToParseRegisteredServersResponse: return 6
-        case .failedToEncodeRedeemRequest: return 7
-        case .invalidInviteCode: return 8
-        case .failedToRedeemInviteCode: return 9
-        case .failedToRetrieveAuthToken: return 10
-        case .failedToParseRedeemResponse: return 11
         case .invalidAuthToken: return 12
         case .accessDenied: return 13
         case .failedToFetchServerStatus: return 14
@@ -93,15 +80,10 @@ public enum NetworkProtectionClientError: CustomNSError, NetworkProtectionErrorC
                 .failedToParseServerListResponse(let error),
                 .failedToFetchRegisteredServers(let error),
                 .failedToParseRegisteredServersResponse(let error),
-                .failedToRedeemInviteCode(let error),
-                .failedToParseRedeemResponse(let error),
                 .failedToFetchServerStatus(let error),
                 .failedToParseServerStatusResponse(let error):
             return [NSUnderlyingErrorKey: error as NSError]
         case .failedToEncodeRegisterKeyRequest,
-                .failedToEncodeRedeemRequest,
-                .invalidInviteCode,
-                .failedToRetrieveAuthToken,
                 .invalidAuthToken,
                 .accessDenied:
             return [:]
@@ -157,20 +139,12 @@ enum RegisterServerSelection {
     }
 }
 
-struct RedeemInviteCodeRequestBody: Encodable {
-    let code: String
-}
-
 struct ExchangeAccessTokenRequestBody: Encodable {
     let token: String
 }
 
 struct AuthenticationSuccessResponse: Decodable {
     let token: String
-}
-
-public struct AuthenticationFailureResponse: Decodable {
-    public let message: String
 }
 
 final class NetworkProtectionBackendClient: NetworkProtectionClient {
@@ -220,10 +194,8 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
     }()
 
     private let endpointURL: URL
-    private let isSubscriptionEnabled: Bool
 
-    init(environment: VPNSettings.SelectedEnvironment = .default, isSubscriptionEnabled: Bool) {
-        self.isSubscriptionEnabled = isSubscriptionEnabled
+    init(environment: VPNSettings.SelectedEnvironment = .default) {
         self.endpointURL = environment.endpointURL
     }
 
@@ -244,6 +216,7 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
 
     func getLocations(authToken: String) async -> Result<[NetworkProtectionLocation], NetworkProtectionClientError> {
         var request = URLRequest(url: locationsURL)
+        request.allHTTPHeaderFields = APIRequest.Headers().httpHeaders
         request.setValue("bearer \(authToken)", forHTTPHeaderField: "Authorization")
         let downloadedData: Data
 
@@ -287,6 +260,7 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
 
     func getServers(authToken: String) async -> Result<[NetworkProtectionServer], NetworkProtectionClientError> {
         var request = URLRequest(url: serversURL)
+        request.allHTTPHeaderFields = APIRequest.Headers().httpHeaders
         request.setValue("bearer \(authToken)", forHTTPHeaderField: "Authorization")
         let downloadedData: Data
 
@@ -330,6 +304,7 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
 
     func getServerStatus(authToken: String, serverName: String) async -> Result<NetworkProtectionServerStatus, NetworkProtectionClientError> {
         var request = URLRequest(url: serverStatusURL(serverName: serverName))
+        request.allHTTPHeaderFields = APIRequest.Headers().httpHeaders
         request.setValue("bearer \(authToken)", forHTTPHeaderField: "Authorization")
         let downloadedData: Data
 
@@ -382,6 +357,7 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
         }
 
         var request = URLRequest(url: registerKeyURL)
+        request.allHTTPHeaderFields = APIRequest.Headers().httpHeaders
         request.setValue("bearer \(authToken)", forHTTPHeaderField: "Authorization")
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpMethod = "POST"
@@ -399,7 +375,7 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
                 responseData = data
             case 401:
                 return .failure(.invalidAuthToken)
-            case 403 where isSubscriptionEnabled:
+            case 403:
                 return .failure(.accessDenied)
             default:
                 throw RegisterError.unexpectedStatus(status: response.statusCode)
@@ -428,56 +404,6 @@ final class NetworkProtectionBackendClient: NetworkProtectionClient {
                 // Adding a large number so that we can get a somewhat reasonable status code
                 return 100000 + status
             }
-        }
-    }
-
-    private func retrieveAuthToken<RequestBody: Encodable>(
-        requestBody: RequestBody,
-        endpoint: URL
-    ) async -> Result<String, NetworkProtectionClientError> {
-        let requestBodyData: Data
-
-        do {
-            requestBodyData = try JSONEncoder().encode(requestBody)
-        } catch {
-            return .failure(.failedToEncodeRedeemRequest)
-        }
-
-        var request = URLRequest(url: endpoint)
-        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.httpMethod = "POST"
-        request.httpBody = requestBodyData
-
-        let responseData: Data
-
-        do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            guard let response = response as? HTTPURLResponse else {
-                throw AuthTokenError.noResponse
-            }
-            switch response.statusCode {
-            case 200:
-                responseData = data
-            case 400:
-                return .failure(.invalidInviteCode)
-            default:
-                do {
-                    // Try to redeem the subscription backend error response first:
-                    let decodedRedemptionResponse = try decoder.decode(AuthenticationFailureResponse.self, from: data)
-                    return .failure(.failedToRetrieveAuthToken(decodedRedemptionResponse))
-                } catch {
-                    throw AuthTokenError.unexpectedStatus(status: response.statusCode)
-                }
-            }
-        } catch {
-            return .failure(NetworkProtectionClientError.failedToRedeemInviteCode(error))
-        }
-
-        do {
-            let decodedRedemptionResponse = try decoder.decode(AuthenticationSuccessResponse.self, from: responseData)
-            return .success(decodedRedemptionResponse.token)
-        } catch {
-            return .failure(NetworkProtectionClientError.failedToParseRedeemResponse(error))
         }
     }
 

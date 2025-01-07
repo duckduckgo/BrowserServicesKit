@@ -23,6 +23,7 @@ import Foundation
 import Gzip
 import Persistence
 import TestUtils
+import Networking
 
 @testable import DDGSync
 
@@ -168,19 +169,28 @@ class MockPrivacyConfiguration: PrivacyConfiguration {
         return .enabled
     }
 
-    func isSubfeatureEnabled(
-        _ subfeature: any PrivacySubfeature,
-        versionProvider: AppVersionProvider,
-        randomizer: (Range<Double>) -> Double
-    ) -> Bool {
+    func isSubfeatureEnabled(_ subfeature: any BrowserServicesKit.PrivacySubfeature, versionProvider: BrowserServicesKit.AppVersionProvider, randomizer: (Range<Double>) -> Double) -> Bool {
         true
     }
 
-    func stateFor(_ subfeature: any PrivacySubfeature, versionProvider: AppVersionProvider, randomizer: (Range<Double>) -> Double) -> PrivacyConfigurationFeatureState {
+    func stateFor(_ subfeature: any BrowserServicesKit.PrivacySubfeature, versionProvider: BrowserServicesKit.AppVersionProvider, randomizer: (Range<Double>) -> Double) -> BrowserServicesKit.PrivacyConfigurationFeatureState {
         return .enabled
     }
 
+    func stateFor(subfeatureID: BrowserServicesKit.SubfeatureID, parentFeatureID: BrowserServicesKit.ParentFeatureID, versionProvider: BrowserServicesKit.AppVersionProvider, randomizer: (Range<Double>) -> Double) -> BrowserServicesKit.PrivacyConfigurationFeatureState {
+        return .enabled
+    }
+
+    func cohorts(for subfeature: any BrowserServicesKit.PrivacySubfeature) -> [BrowserServicesKit.PrivacyConfigurationData.Cohort]? {
+        return nil
+    }
+
+    func cohorts(subfeatureID: BrowserServicesKit.SubfeatureID, parentFeatureID: BrowserServicesKit.ParentFeatureID) -> [BrowserServicesKit.PrivacyConfigurationData.Cohort]? {
+        return nil
+    }
+
     var identifier: String = "abcd"
+    var version: String? = "123456789"
     var userUnprotectedDomains: [String] = []
     var tempUnprotectedDomains: [String] = []
     var trackerAllowlist: PrivacyConfigurationData.TrackerAllowlist = .init(json: ["state": "disabled"])!
@@ -260,14 +270,14 @@ class RemoteAPIRequestCreatingMock: RemoteAPIRequestCreating {
 
     struct CreateRequestCallArgs: Equatable {
         let url: URL
-        let method: HTTPRequestMethod
+        let method: Networking.APIRequest.HTTPMethod
         let headers: [String: String]
         let parameters: [String: String]
         let body: Data?
         let contentType: String?
     }
 
-    func createRequest(url: URL, method: HTTPRequestMethod, headers: [String: String], parameters: [String: String], body: Data?, contentType: String?) -> HTTPRequesting {
+    func createRequest(url: URL, method: Networking.APIRequest.HTTPMethod, headers: [String: String], parameters: [String: String], body: Data?, contentType: String?) -> HTTPRequesting {
         lock.lock()
         defer { lock.unlock() }
         createRequestCallCount += 1

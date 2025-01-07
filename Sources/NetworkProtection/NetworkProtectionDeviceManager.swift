@@ -65,10 +65,8 @@ public protocol NetworkProtectionDeviceManagement {
     typealias GenerateTunnelConfigurationResult = (tunnelConfiguration: TunnelConfiguration, server: NetworkProtectionServer)
 
     func generateTunnelConfiguration(resolvedSelectionMethod: NetworkProtectionServerSelectionMethod,
-                                     includedRoutes: [IPAddressRange],
-                                     excludedRoutes: [IPAddressRange],
+                                     excludeLocalNetworks: Bool,
                                      dnsSettings: NetworkProtectionDNSSettings,
-                                     isKillSwitchEnabled: Bool,
                                      regenerateKey: Bool) async throws -> GenerateTunnelConfigurationResult
 
 }
@@ -80,30 +78,24 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
 
     private let errorEvents: EventMapping<NetworkProtectionError>?
 
-    private let isSubscriptionEnabled: Bool
-
     public init(environment: VPNSettings.SelectedEnvironment,
                 tokenStore: NetworkProtectionTokenStore,
                 keyStore: NetworkProtectionKeyStore,
-                errorEvents: EventMapping<NetworkProtectionError>?,
-                isSubscriptionEnabled: Bool) {
-        self.init(networkClient: NetworkProtectionBackendClient(environment: environment, isSubscriptionEnabled: isSubscriptionEnabled),
+                errorEvents: EventMapping<NetworkProtectionError>?) {
+        self.init(networkClient: NetworkProtectionBackendClient(environment: environment),
                   tokenStore: tokenStore,
                   keyStore: keyStore,
-                  errorEvents: errorEvents,
-                  isSubscriptionEnabled: isSubscriptionEnabled)
+                  errorEvents: errorEvents)
     }
 
     init(networkClient: NetworkProtectionClient,
          tokenStore: NetworkProtectionTokenStore,
          keyStore: NetworkProtectionKeyStore,
-         errorEvents: EventMapping<NetworkProtectionError>?,
-         isSubscriptionEnabled: Bool) {
+         errorEvents: EventMapping<NetworkProtectionError>?) {
         self.networkClient = networkClient
         self.tokenStore = tokenStore
         self.keyStore = keyStore
         self.errorEvents = errorEvents
-        self.isSubscriptionEnabled = isSubscriptionEnabled
     }
 
     /// Requests a new server list from the backend and updates it locally.
@@ -135,10 +127,8 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     /// 3. If the key already existed, look up the stored set of backend servers and check if the preferred server is registered. If not, register it, and return the tunnel configuration + server info.
     ///
     public func generateTunnelConfiguration(resolvedSelectionMethod: NetworkProtectionServerSelectionMethod,
-                                            includedRoutes: [IPAddressRange],
-                                            excludedRoutes: [IPAddressRange],
+                                            excludeLocalNetworks: Bool,
                                             dnsSettings: NetworkProtectionDNSSettings,
-                                            isKillSwitchEnabled: Bool,
                                             regenerateKey: Bool) async throws -> GenerateTunnelConfigurationResult {
         var keyPair: KeyPair
 
@@ -158,7 +148,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
         }
 
         let (selectedServer, newExpiration) = try await register(keyPair: keyPair, selectionMethod: resolvedSelectionMethod)
-        Logger.networkProtection.debug("Server registration successul")
+        Logger.networkProtection.log("Server registration successul")
 
         keyStore.updateKeyPair(keyPair)
 
@@ -174,10 +164,8 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
         do {
             let configuration = try tunnelConfiguration(interfacePrivateKey: keyPair.privateKey,
                                                         server: selectedServer,
-                                                        includedRoutes: includedRoutes,
-                                                        excludedRoutes: excludedRoutes,
-                                                        dnsSettings: dnsSettings,
-                                                        isKillSwitchEnabled: isKillSwitchEnabled)
+                                                        excludeLocalNetworks: excludeLocalNetworks,
+                                                        dnsSettings: dnsSettings)
             return (configuration, selectedServer)
         } catch let error as NetworkProtectionError {
             errorEvents?.fire(error)
@@ -265,10 +253,8 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
 
     func tunnelConfiguration(interfacePrivateKey: PrivateKey,
                              server: NetworkProtectionServer,
-                             includedRoutes: [IPAddressRange],
-                             excludedRoutes: [IPAddressRange],
-                             dnsSettings: NetworkProtectionDNSSettings,
-                             isKillSwitchEnabled: Bool) throws -> TunnelConfiguration {
+                             excludeLocalNetworks: Bool,
+                             dnsSettings: NetworkProtectionDNSSettings) throws -> TunnelConfiguration {
 
         guard let allowedIPs = server.allowedIPs else {
             throw NetworkProtectionError.noServerRegistrationInfo
@@ -291,21 +277,30 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
         let dns: [DNSServer]
         switch dnsSettings {
         case .default:
-            dns = [DNSServer(address: server.serverInfo.internalIP)]
+            dns = [DNSServer(address: server.serverInfo.internalIP.ipAddress)]
         case .custom(let servers):
             dns = servers
                 .compactMap { IPv4Address($0) }
                 .map { DNSServer(address: $0) }
         }
 
-        let interface = interfaceConfiguration(privateKey: interfacePrivateKey,
-                                               addressRange: interfaceAddressRange,
-                                               includedRoutes: includedRoutes,
-                                               excludedRoutes: excludedRoutes,
-                                               dns: dns,
-                                               isKillSwitchEnabled: isKillSwitchEnabled)
+        let routingTableResolver = VPNRoutingTableResolver(
+            dnsServers: dns,
+            excludeLocalNetworks: excludeLocalNetworks)
 
-        return TunnelConfiguration(name: "DuckDuckGo VPN", interface: interface, peers: [peerConfiguration])
+        Logger.networkProtection.log("Routing table information:\nL Included Routes: \(routingTableResolver.includedRoutes, privacy: .public)\nL Excluded Routes: \(routingTableResolver.excludedRoutes, privacy: .public)")
+
+        let interface = InterfaceConfiguration(privateKey: interfacePrivateKey,
+                                               addresses: [interfaceAddressRange],
+                                               includedRoutes: routingTableResolver.includedRoutes,
+                                               excludedRoutes: routingTableResolver.excludedRoutes,
+                                               dns: dns)
+
+        let tunnelConfiguration = TunnelConfiguration(name: "DuckDuckGo VPN", interface: interface, peers: [peerConfiguration])
+
+        Logger.networkProtection.log("Tunnel configuration routing information:\nL Included Routes: \(tunnelConfiguration.interface.includedRoutes, privacy: .public)\nL Excluded Routes: \(tunnelConfiguration.interface.excludedRoutes, privacy: .public)")
+
+        return tunnelConfiguration
     }
 
     func peerConfiguration(serverPublicKey: PublicKey, serverEndpoint: Endpoint) -> PeerConfiguration {
@@ -315,25 +310,6 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
         peerConfiguration.endpoint = serverEndpoint
 
         return peerConfiguration
-    }
-
-    func interfaceConfiguration(privateKey: PrivateKey,
-                                addressRange: IPAddressRange,
-                                includedRoutes: [IPAddressRange],
-                                excludedRoutes: [IPAddressRange],
-                                dns: [DNSServer],
-                                isKillSwitchEnabled: Bool) -> InterfaceConfiguration {
-        var includedRoutes = includedRoutes
-        // Tunnel doesn‘t work with ‘enforceRoutes‘ option when DNS IP/addressRange is in includedRoutes
-        if !isKillSwitchEnabled {
-            includedRoutes.append(contentsOf: dns.map { IPAddressRange(address: $0.address, networkPrefixLength: 32) })
-            includedRoutes.append(addressRange)
-        }
-        return InterfaceConfiguration(privateKey: privateKey,
-                                      addresses: [addressRange],
-                                      includedRoutes: includedRoutes,
-                                      excludedRoutes: excludedRoutes,
-                                      dns: dns)
     }
 
     private func handle(clientError: NetworkProtectionClientError) {
@@ -348,10 +324,8 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     private func handleAccessRevoked(_ error: NetworkProtectionClientError) throws {
         switch error {
         case .accessDenied, .invalidAuthToken:
-            if isSubscriptionEnabled {
-                errorEvents?.fire(.vpnAccessRevoked)
-                throw NetworkProtectionError.vpnAccessRevoked
-            }
+            errorEvents?.fire(.vpnAccessRevoked)
+            throw NetworkProtectionError.vpnAccessRevoked
         default:
             break
         }

@@ -19,36 +19,45 @@
 import Foundation
 import Subscription
 
-public struct SubscriptionEndpointServiceMock: SubscriptionEndpointService {
+public final class SubscriptionEndpointServiceMock: SubscriptionEndpointService {
     public var getSubscriptionResult: Result<Subscription, SubscriptionServiceError>?
     public var getProductsResult: Result<[GetProductsItem], APIServiceError>?
+    public var getSubscriptionFeaturesResult: Result<GetSubscriptionFeaturesResponse, APIServiceError>?
     public var getCustomerPortalURLResult: Result<GetCustomerPortalURLResponse, APIServiceError>?
     public var confirmPurchaseResult: Result<ConfirmPurchaseResponse, APIServiceError>?
 
-    public init(getSubscriptionResult: Result<Subscription, SubscriptionServiceError>? = nil,
-                getProductsResult: Result<[GetProductsItem], APIServiceError>? = nil,
-                getCustomerPortalURLResult: Result<GetCustomerPortalURLResponse, APIServiceError>? = nil,
-                confirmPurchaseResult: Result<ConfirmPurchaseResponse, APIServiceError>? = nil) {
-        self.getSubscriptionResult = getSubscriptionResult
-        self.getProductsResult = getProductsResult
-        self.getCustomerPortalURLResult = getCustomerPortalURLResult
-        self.confirmPurchaseResult = confirmPurchaseResult
-    }
+    public var onUpdateCache: ((Subscription) -> Void)?
+    public var onGetSubscription: ((String, APICachePolicy) -> Void)?
+    public var onSignOut: (() -> Void)?
+
+    public var updateCacheWithSubscriptionCalled: Bool = false
+    public var getSubscriptionCalled: Bool = false
+    public var signOutCalled: Bool = false
+
+    public init() { }
 
     public func updateCache(with subscription: Subscription) {
-
+        onUpdateCache?(subscription)
+        updateCacheWithSubscriptionCalled = true
     }
 
     public func getSubscription(accessToken: String, cachePolicy: APICachePolicy) async -> Result<Subscription, SubscriptionServiceError> {
-        getSubscriptionResult!
+        getSubscriptionCalled = true
+        onGetSubscription?(accessToken, cachePolicy)
+        return getSubscriptionResult!
     }
 
     public func signOut() {
-
+        signOutCalled = true
+        onSignOut?()
     }
 
     public func getProducts() async -> Result<[GetProductsItem], APIServiceError> {
         getProductsResult!
+    }
+
+    public func getSubscriptionFeatures(for subscriptionID: String) async -> Result<GetSubscriptionFeaturesResponse, APIServiceError> {
+        getSubscriptionFeaturesResult!
     }
 
     public func getCustomerPortalURL(accessToken: String, externalID: String) async -> Result<GetCustomerPortalURLResponse, APIServiceError> {

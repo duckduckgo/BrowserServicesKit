@@ -218,6 +218,43 @@ class HistoryCoordinatorTests: XCTestCase {
         waitForExpectations(timeout: 1.0)
     }
 
+    func testWhenHistoryIsBurningDomains_ThenHistoryIsCleanedForDomainsAndRemovedUrlsReturnedInCallback() {
+        let burnAllFinished = expectation(description: "Burn All Finished")
+        let (historyStoringMock, historyCoordinator) = HistoryCoordinator.aHistoryCoordinator
+
+        let url0 = URL(string: "https://tobekept.com")!
+        historyCoordinator.addVisit(of: url0)
+
+        let url1 = URL(string: "https://duckduckgo.com")!
+        historyCoordinator.addVisit(of: url1)
+
+        let url2 = URL(string: "https://test.duckduckgo.com")!
+        historyCoordinator.addVisit(of: url2)
+
+        let fireproofDomain = "wikipedia.org"
+        let url3 = URL(string: "https://\(fireproofDomain)")!
+        historyCoordinator.addVisit(of: url3)
+
+        let url4 = URL(string: "https://subdomain.\(fireproofDomain)")!
+        historyCoordinator.addVisit(of: url4)
+
+        let url5 = URL(string: "https://test.com")!
+        historyCoordinator.addVisit(of: url5)
+
+        XCTAssert(historyCoordinator.history!.count == 6)
+
+        historyCoordinator.burnDomains(["duckduckgo.com", fireproofDomain], tld: TLD()) { urls in
+            let expectedUrls = Set([url1, url2, url3, url4])
+
+            XCTAssertEqual(Set(historyStoringMock.removeEntriesArray.map(\.url)), expectedUrls)
+            XCTAssertEqual(urls, expectedUrls)
+
+            burnAllFinished.fulfill()
+        }
+
+        waitForExpectations(timeout: 2.0)
+    }
+
     func testWhenUrlIsMarkedAsFailedToLoad_ThenFailedToLoadFlagIsStored() {
         let (historyStoringMock, historyCoordinator) = HistoryCoordinator.aHistoryCoordinator
 
@@ -277,6 +314,43 @@ class HistoryCoordinatorTests: XCTestCase {
         let bookmarksDatabase = CoreDataDatabase(name: name, containerLocation: location, model: model)
         bookmarksDatabase.loadStore()
         return bookmarksDatabase
+    }
+
+    func testWhenRemoveUrlEntryCalledWithExistingUrl_ThenEntryIsRemovedAndNoError() {
+        let (historyStoringMock, historyCoordinator) = HistoryCoordinator.aHistoryCoordinator
+
+        let url = URL(string: "https://duckduckgo.com")!
+        historyCoordinator.addVisit(of: url)
+
+        XCTAssertTrue(historyCoordinator.history!.contains(where: { $0.url == url }))
+
+        let removalExpectation = expectation(description: "Entry removed without error")
+        historyCoordinator.removeUrlEntry(url) { error in
+            XCTAssertNil(error, "Expected no error when removing an existing URL entry")
+            removalExpectation.fulfill()
+        }
+
+        waitForExpectations(timeout: 1.0)
+
+        XCTAssertFalse(historyCoordinator.history!.contains(where: { $0.url == url }))
+        XCTAssertTrue(historyStoringMock.removeEntriesCalled, "Expected removeEntries to be called")
+        XCTAssertEqual(historyStoringMock.removeEntriesArray.count, 1)
+        XCTAssertEqual(historyStoringMock.removeEntriesArray.first?.url, url)
+    }
+
+    func testWhenRemoveUrlEntryCalledWithNonExistingUrl_ThenEntryRemovalFailsWithNotAvailableError() {
+        let (_, historyCoordinator) = HistoryCoordinator.aHistoryCoordinator
+
+        let nonExistentUrl = URL(string: "https://nonexistent.com")!
+
+        let removalExpectation = expectation(description: "Entry removal fails with notAvailable error")
+        historyCoordinator.removeUrlEntry(nonExistentUrl) { error in
+            XCTAssertNotNil(error, "Expected an error when removing a non-existent URL entry")
+            XCTAssertEqual(error as? HistoryCoordinator.EntryRemovalError, .notAvailable, "Expected notAvailable error")
+            removalExpectation.fulfill()
+        }
+
+        waitForExpectations(timeout: 1.0)
     }
 
 }

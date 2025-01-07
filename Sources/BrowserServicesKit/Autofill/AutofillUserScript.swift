@@ -17,9 +17,9 @@
 //
 
 import Common
-import WebKit
-import UserScript
 import os.log
+import UserScript
+@preconcurrency import WebKit
 
 var previousIncontextSignupPermanentlyDismissedAt: Double?
 var previousEmailSignedIn: Bool?
@@ -61,6 +61,9 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
         case getIncontextSignupDismissedAt
         case startEmailProtectionSignup
         case closeEmailProtectionTab
+
+        case startCredentialsImportFlow
+        case credentialsImportFlowPermanentlyDismissed
     }
 
     /// Represents if the autofill is loaded into the top autofill context.
@@ -69,10 +72,15 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
     ///  once the user selects a field to open, we store field type and other contextual information to be initialized into the top autofill.
     public var serializedInputContext: String?
 
+    /// Represents whether the webView is part of a burner window
+    public var isBurnerWindow: Bool = false
+
     public var sessionKey: String?
+    public var messageSecret: String?
 
     public weak var emailDelegate: AutofillEmailDelegate?
     public weak var vaultDelegate: AutofillSecureVaultDelegate?
+    public weak var passwordImportDelegate: AutofillPasswordImportDelegate?
 
     internal var scriptSourceProvider: AutofillUserScriptSourceProvider
 
@@ -97,6 +105,9 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
         // We can't do reply based messaging to frames on versions before the ones mentioned above, so main frame only
         return true
     }
+
+    // Temporary only for Pixel purposes. Do not rely on this for any functional logic
+    static var domainOfMostRecentGetAvailableInputsMessage: String?
 
     public var messageNames: [String] {
         return MessageName.allCases.map(\.rawValue)
@@ -156,6 +167,8 @@ public class AutofillUserScript: NSObject, UserScript, UserScriptMessageEncrypti
         case .getIncontextSignupDismissedAt: return getIncontextSignupDismissedAt
         case .startEmailProtectionSignup: return startEmailProtectionSignup
         case .closeEmailProtectionTab: return closeEmailProtectionTab
+        case .startCredentialsImportFlow: return startCredentialsImportFlow
+        case .credentialsImportFlowPermanentlyDismissed: return credentialsImportFlowPermanentlyDismissed
         }
     }
 

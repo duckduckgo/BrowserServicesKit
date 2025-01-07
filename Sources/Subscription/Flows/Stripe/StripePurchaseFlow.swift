@@ -71,9 +71,11 @@ public final class DefaultStripePurchaseFlow: StripePurchaseFlow {
                                       cost: cost)
         }
 
-        let features = SubscriptionFeatureName.allCases.map { SubscriptionFeature(name: $0.rawValue) }
+        let features = [SubscriptionFeature(name: .networkProtection),
+                        SubscriptionFeature(name: .dataBrokerProtection),
+                        SubscriptionFeature(name: .identityTheftRestoration)]
 
-        return .success(SubscriptionOptions(platform: SubscriptionPlatformName.stripe.rawValue,
+        return .success(SubscriptionOptions(platform: SubscriptionPlatformName.stripe,
                                             options: options,
                                             features: features))
     }
@@ -100,7 +102,7 @@ public final class DefaultStripePurchaseFlow: StripePurchaseFlow {
             }
         }
 
-        return .success(PurchaseUpdate(type: "redirect", token: token))
+        return .success(PurchaseUpdate.redirect(withToken: token))
     }
 
     private func isSubscriptionExpired(accessToken: String) async -> Bool {

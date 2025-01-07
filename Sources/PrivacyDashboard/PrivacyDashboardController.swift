@@ -16,12 +16,13 @@
 //  limitations under the License.
 //
 
-import Foundation
-import WebKit
-import Combine
-import PrivacyDashboardResources
 import BrowserServicesKit
+import Combine
 import Common
+import Foundation
+import MaliciousSiteProtection
+import PrivacyDashboardResources
+import WebKit
 
 public enum PrivacyDashboardOpenSettingsTarget: String {
 
@@ -160,7 +161,7 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
         switch entryPoint {
         case .report: source = .appMenu
         case .dashboard: source = .dashboard
-        case .prompt(let event): source = .prompt(event)
+        case .prompt: source = .prompt
         case .toggleReport: source = .onProtectionsOffMenu
         case .afterTogglePrompt: source = .afterTogglePrompt
         }
@@ -205,6 +206,7 @@ extension PrivacyDashboardController: WKNavigationDelegate {
         subscribeToServerTrust()
         subscribeToConsentManaged()
         subscribeToAllowedPermissions()
+        subscribeToMaliciousSiteThreatKind()
     }
 
     private func subscribeToTheme() {
@@ -254,6 +256,16 @@ extension PrivacyDashboardController: WKNavigationDelegate {
             .sink(receiveValue: { [weak self] serverTrustViewModel in
                 guard let self, let serverTrustViewModel, let webView else { return }
                 script.setServerTrust(serverTrustViewModel, webView: webView)
+            })
+            .store(in: &cancellables)
+    }
+
+    private func subscribeToMaliciousSiteThreatKind() {
+        privacyInfo?.$malicousSiteThreatKind
+            .receive(on: DispatchQueue.main )
+            .sink(receiveValue: { [weak self] detectedThreatKind in
+                guard let self, let webView else { return }
+                script.setMaliciousSiteDetectedThreatKind(detectedThreatKind, webView: webView)
             })
             .store(in: &cancellables)
     }

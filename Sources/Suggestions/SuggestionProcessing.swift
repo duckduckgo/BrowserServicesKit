@@ -19,14 +19,22 @@
 import Foundation
 import Common
 
+public enum Platform {
+
+    case mobile, desktop
+
+}
+
 /// Class encapsulates the whole ordering and filtering algorithm
 /// It takes query, history, bookmarks, and apiResult as input parameters
 /// The output is instance of SuggestionResult
 final class SuggestionProcessing {
 
+    private let platform: Platform
     private var urlFactory: (String) -> URL?
 
-    init(urlFactory: @escaping (String) -> URL?) {
+    init(platform: Platform, urlFactory: @escaping (String) -> URL?) {
+        self.platform = platform
         self.urlFactory = urlFactory
     }
 
@@ -34,6 +42,7 @@ final class SuggestionProcessing {
                 from history: [HistorySuggestion],
                 bookmarks: [Bookmark],
                 internalPages: [InternalPage],
+                openTabs: [BrowserTab],
                 apiResult: APIResult?) -> SuggestionResult? {
         let query = query.lowercased()
 
@@ -49,7 +58,8 @@ final class SuggestionProcessing {
         }
 
         // Get best matches from history and bookmarks
-        let allLocalSuggestions = localSuggestions(from: history, bookmarks: bookmarks, internalPages: internalPages, query: query)
+        let allLocalSuggestions = Array(localSuggestions(from: history, bookmarks: bookmarks, internalPages: internalPages, openTabs: openTabs, query: query)
+            .prefix(100)) // temporary optimsiation
 
         // Combine HaB and domains into navigational suggestions and remove duplicates
         let navigationalSuggestions = allLocalSuggestions + duckDuckGoDomainSuggestions
@@ -57,13 +67,15 @@ final class SuggestionProcessing {
         let maximumOfNavigationalSuggestions = min(
             Self.maximumNumberOfSuggestions - Self.minimumNumberInSuggestionGroup,
             query.count + 1)
-        let mergedSuggestions = merge(navigationalSuggestions, maximum: maximumOfNavigationalSuggestions)
+        let expandedSuggestions = replaceHistoryWithBookmarksAndTabs(navigationalSuggestions)
+
+        let dedupedNavigationalSuggestions = Array(dedupLocalSuggestions(expandedSuggestions).prefix(maximumOfNavigationalSuggestions))
 
         // Split the Top Hits and the History and Bookmarks section
-        let topHits = topHits(from: mergedSuggestions)
-        let localSuggestions = Array(mergedSuggestions.dropFirst(topHits.count).filter { suggestion in
+        let topHits = topHits(from: dedupedNavigationalSuggestions)
+        let localSuggestions = Array(dedupedNavigationalSuggestions.dropFirst(topHits.count).filter { suggestion in
             switch suggestion {
-            case .bookmark, .historyEntry, .internalPage:
+            case .bookmark, .openTab, .historyEntry, .internalPage:
                 return true
             default:
                 return false
@@ -75,6 +87,86 @@ final class SuggestionProcessing {
         return makeResult(topHits: topHits,
                           duckduckgoSuggestions: dedupedDuckDuckGoSuggestions,
                           localSuggestions: localSuggestions)
+    }
+
+    private func dedupLocalSuggestions(_ suggestions: [Suggestion]) -> [Suggestion] {
+        return suggestions.reduce([]) { partialResult, suggestion in
+            if partialResult.contains(where: {
+
+                switch $0 {
+                case .bookmark(title: let title, url: let url, isFavorite: let isFavorite, allowedInTopHits: _):
+                    if case .bookmark(let searchTitle, let searchUrl, let searchIsFavorite, _) = suggestion,
+                       searchTitle == title,
+                       searchUrl.naked == url.naked,
+                       searchIsFavorite == isFavorite {
+                        return true
+                    }
+
+                case .historyEntry(title: let title, url: let url, allowedInTopHits: _):
+                    if case .historyEntry(let searchTitle, let searchUrl, _) = suggestion,
+                       searchTitle == title,
+                       searchUrl.naked == url {
+                        return true
+                    }
+
+                case .internalPage(title: let title, url: let url):
+                    if case .internalPage(let searchTitle, let searchUrl) = suggestion,
+                       searchTitle == title,
+                       searchUrl == url {
+                        return true
+                    }
+
+                case .openTab(title: let title, url: let url):
+                    if case .openTab(let searchTitle, let searchUrl) = suggestion,
+                       searchTitle == title,
+                       searchUrl.naked == url.naked {
+                        return true
+                    }
+
+                default:
+                    assertionFailure("Unexpected suggestion in local suggestions")
+                    return true
+                }
+
+                return false
+            }) {
+                return partialResult
+            }
+            return partialResult + [suggestion]
+        }
+    }
+
+    private func replaceHistoryWithBookmarksAndTabs(_ sourceSuggestions: [Suggestion]) -> [Suggestion] {
+        var expanded = [Suggestion]()
+        for i in 0 ..< sourceSuggestions.count {
+            let suggestion = sourceSuggestions[i]
+            guard case .historyEntry = suggestion else {
+                expanded.append(suggestion)
+                continue
+            }
+
+            var foundTab = false
+            var foundBookmark = false
+
+            if let tab = sourceSuggestions[i ..< sourceSuggestions.endIndex].first(where: {
+                $0.isOpenTab && $0.url?.naked == suggestion.url?.naked
+            }) {
+                foundTab = true
+                expanded.append(tab)
+            }
+
+            if case .bookmark(title: let title, url: let url, isFavorite: let isFavorite, allowedInTopHits: _) = sourceSuggestions[i ..< sourceSuggestions.endIndex].first(where: {
+                $0.isBookmark && $0.url?.naked == suggestion.url?.naked
+            }) {
+                foundBookmark = true
+                expanded.append(.bookmark(title: title, url: url, isFavorite: isFavorite, allowedInTopHits: suggestion.allowedInTopHits))
+            }
+
+            if !foundTab && !foundBookmark {
+                expanded.append(suggestion)
+            }
+        }
+        return expanded
     }
 
     private func removeDuplicateWebsiteSuggestions(in sourceSuggestions: [Suggestion], from targetSuggestions: [Suggestion]) -> [Suggestion] {
@@ -102,13 +194,14 @@ final class SuggestionProcessing {
 
     // MARK: - History and Bookmarks
 
-    private func localSuggestions(from history: [HistorySuggestion], bookmarks: [Bookmark], internalPages: [InternalPage], query: Query) -> [Suggestion] {
+    private func localSuggestions(from history: [HistorySuggestion], bookmarks: [Bookmark], internalPages: [InternalPage], openTabs: [BrowserTab], query: Query) -> [Suggestion] {
         enum LocalSuggestion {
             case bookmark(Bookmark)
             case history(HistorySuggestion)
             case internalPage(InternalPage)
+            case openTab(BrowserTab)
         }
-        let localSuggestions: [LocalSuggestion] = bookmarks.map(LocalSuggestion.bookmark) + history.map(LocalSuggestion.history) + internalPages.map(LocalSuggestion.internalPage)
+        let localSuggestions: [LocalSuggestion] = bookmarks.map(LocalSuggestion.bookmark) + openTabs.map(LocalSuggestion.openTab) + history.map(LocalSuggestion.history) + internalPages.map(LocalSuggestion.internalPage)
         let queryTokens = Score.tokens(from: query)
 
         let result: [Suggestion] = localSuggestions
@@ -121,6 +214,8 @@ final class SuggestionProcessing {
                     Score(historyEntry: historyEntry, query: query, queryTokens: queryTokens)
                 case .internalPage(let internalPage):
                     Score(internalPage: internalPage, query: query, queryTokens: queryTokens)
+                case .openTab(let tab):
+                    Score(browserTab: tab, query: query)
                 }
 
                 return (item, score)
@@ -133,140 +228,31 @@ final class SuggestionProcessing {
             .compactMap {
                 switch $0.item {
                 case .bookmark(let bookmark):
-                    return Suggestion(bookmark: bookmark)
+                    switch platform {
+                    case .desktop: return Suggestion(bookmark: bookmark)
+                    case .mobile: return Suggestion(bookmark: bookmark, allowedInTopHits: true)
+                    }
+
                 case .history(let historyEntry):
                     return Suggestion(historyEntry: historyEntry)
                 case .internalPage(let internalPage):
                     return Suggestion(internalPage: internalPage)
+                case .openTab(let tab):
+                    return Suggestion(tab: tab)
                 }
             }
 
         return result
     }
 
-    // MARK: - Elimination of duplicates and merging of suggestions
-
-    // The point of this method is to prioritise duplicates that
-    // provide a higher value or replace history suggestions with bookmark suggestions
-    private func merge(_ suggestions: [Suggestion], maximum: Int? = nil) -> [Suggestion] {
-
-        // Finds a duplicate with the same URL and available title
-        func findDuplicateContainingTitle(_ suggestion: Suggestion,
-                                          nakedUrl: URL,
-                                          from suggestions: [Suggestion]) -> Suggestion? {
-            guard suggestion.title == nil else {
-                return nil
-            }
-            return suggestions.first(where: {
-                $0.url?.naked == nakedUrl && $0.title != nil
-            }) ?? nil
-        }
-
-        // Finds a bookmark duplicate for history entry and copies allowedInTopHits value
-        func findBookmarkDuplicate(to historySuggestion: Suggestion,
-                                   nakedUrl: URL,
-                                   from sugestions: [Suggestion]) -> Suggestion? {
-            guard case .historyEntry = historySuggestion else {
-                return nil
-            }
-            if let newSuggestion = suggestions.first(where: {
-                if case .bookmark = $0, $0.url?.naked == nakedUrl { return true }
-                return false
-            }), case let Suggestion.bookmark(title: title, url: url, isFavorite: isFavorite, allowedInTopHits: _) = newSuggestion {
-                #if os(macOS)
-                // Copy allowedInTopHits from original suggestion
-                return Suggestion.bookmark(title: title,
-                                           url: url,
-                                           isFavorite: isFavorite,
-                                           allowedInTopHits: historySuggestion.allowedInTopHits)
-                #else
-                return Suggestion.bookmark(title: title,
-                                           url: url,
-                                           isFavorite: isFavorite,
-                                           allowedInTopHits: true)
-                #endif
-            } else {
-                return nil
-            }
-        }
-
-        // Finds a history entry duplicate for bookmark
-        func findAndMergeHistoryDuplicate(with bookmarkSuggestion: Suggestion,
-                                          nakedUrl: URL,
-                                          from sugestions: [Suggestion]) -> Suggestion? {
-            guard case let .bookmark(title: title, url: url, isFavorite: isFavorite, allowedInTopHits: _) = bookmarkSuggestion else {
-                return nil
-            }
-            if let historySuggestion = suggestions.first(where: {
-                if case .historyEntry = $0, $0.url?.naked == nakedUrl { return true }
-                return false
-            }), historySuggestion.allowedInTopHits {
-                #if os(macOS)
-                return Suggestion.bookmark(title: title,
-                                           url: url,
-                                           isFavorite: isFavorite,
-                                           allowedInTopHits: historySuggestion.allowedInTopHits)
-                #else
-                return Suggestion.bookmark(title: title,
-                                           url: url,
-                                           isFavorite: isFavorite,
-                                           allowedInTopHits: true)
-                #endif
-            } else {
-                return nil
-            }
-        }
-
-        var newSuggestions = [Suggestion]()
-        var urls = Set<URL>()
-
-        for suggestion in suggestions {
-            guard let suggestionUrl = suggestion.url,
-                  let suggestionNakedUrl = suggestionUrl.naked,
-                  !urls.contains(suggestionNakedUrl) else {
-                continue
-            }
-
-            var newSuggestion: Suggestion?
-
-            switch suggestion {
-            case .historyEntry:
-                // If there is a historyEntry and bookmark with the same URL, suggest the bookmark
-                newSuggestion = findBookmarkDuplicate(to: suggestion, nakedUrl: suggestionNakedUrl, from: suggestions)
-            case .bookmark:
-                newSuggestion = findAndMergeHistoryDuplicate(with: suggestion, nakedUrl: suggestionNakedUrl, from: suggestions)
-            case .phrase, .website, .internalPage, .unknown:
-                break
-            }
-
-            // Sometimes, duplicates with a lower score have more information
-            if newSuggestion == nil {
-                switch suggestion {
-                case .historyEntry:
-                    newSuggestion = findDuplicateContainingTitle(suggestion, nakedUrl: suggestionNakedUrl, from: suggestions)
-                case .bookmark, .phrase, .website, .internalPage, .unknown:
-                    break
-                }
-            }
-
-            urls.insert(suggestionNakedUrl)
-            newSuggestions.append(newSuggestion ?? suggestion)
-
-            if let maximum = maximum, newSuggestions.count >= maximum {
-                break
-            }
-        }
-
-        return newSuggestions
-    }
-
     // MARK: - Top Hits
 
+    /// Take the top two items from the suggestions, but only up to the first suggestion that is not allowed in top hits
     private func topHits(from suggestions: [Suggestion]) -> [Suggestion] {
         var topHits = [Suggestion]()
 
-        for (i, suggestion) in suggestions.enumerated() {
-            guard i <= Self.maximumNumberOfTopHits else { break }
+        for suggestion in suggestions {
+            guard topHits.count < Self.maximumNumberOfTopHits else { break }
 
             if suggestion.allowedInTopHits {
                 topHits.append(suggestion)
@@ -287,8 +273,10 @@ final class SuggestionProcessing {
     private func makeResult(topHits: [Suggestion],
                             duckduckgoSuggestions: [Suggestion],
                             localSuggestions: [Suggestion]) -> SuggestionResult {
+
+        assert(topHits.count <= Self.maximumNumberOfTopHits)
+
         // Top Hits
-        let topHits = Array(topHits.prefix(2))
         var total = topHits.count
 
         // History and Bookmarks

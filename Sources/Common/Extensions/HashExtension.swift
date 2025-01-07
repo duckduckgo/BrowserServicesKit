@@ -42,8 +42,13 @@ extension Data {
 extension String {
 
     public var sha1: String {
-        let dataBytes = data(using: .utf8)!
-        return dataBytes.sha1
+        let result = utf8data.sha1
+        return result
+    }
+
+    public var sha256: String {
+        let result = utf8data.sha256
+        return result
     }
 
 }

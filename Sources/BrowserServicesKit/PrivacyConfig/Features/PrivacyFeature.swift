@@ -40,6 +40,7 @@ public enum PrivacyFeature: String {
     case windowsDownloadLink
     case incontextSignup
     case newTabContinueSetUp
+    case newTabSearchField
     case dbp
     case sync
     case privacyDashboard
@@ -49,11 +50,22 @@ public enum PrivacyFeature: String {
     case sslCertificates
     case brokenSiteReportExperiment
     case toggleReports
+    case maliciousSiteProtection
     case brokenSitePrompt
     case remoteMessaging
     case additionalCampaignPixelParams
     case newTabPageImprovements
     case syncPromotion
+    case autofillSurveys
+    case marketplaceAdPostback
+    case autocompleteTabs
+    case networkProtection
+    case aiChat
+    case contextualOnboarding
+    case textZoom
+    case adAttributionReporting
+    case experimentTest
+    case forceOldAppDelegate
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -76,9 +88,10 @@ public enum AutofillSubfeature: String, PrivacySubfeature {
     case accessCredentialManagement
     case autofillPasswordGeneration
     case onByDefault
-    case deduplicateLoginsOnImport
     case onForExistingUsers
     case unknownUsernameCategorization
+    case credentialsImportPromotionForExistingUsers
+    case partialFormSaves
 }
 
 public enum DBPSubfeature: String, Equatable, PrivacySubfeature {
@@ -89,6 +102,38 @@ public enum DBPSubfeature: String, Equatable, PrivacySubfeature {
     case waitlist
     case waitlistBetaActive
     case freemium
+}
+
+public enum AIChatSubfeature: String, Equatable, PrivacySubfeature {
+    public var parent: PrivacyFeature {
+        .aiChat
+    }
+
+    /// Displays the settings item for showing a shortcut in the macOS application menu.
+    case applicationMenuShortcut
+
+    /// Displays the settings item for showing a shortcut in the macOS toolbar.
+    case toolbarShortcut
+
+    /// Displays the AI Chat icon in the iOS browsing menu toolbar.
+    case browsingToolbarShortcut
+
+    /// Displays the AI Chat icon in the iOS address bar while on a SERP.
+    case addressBarShortcut
+}
+
+public enum NetworkProtectionSubfeature: String, Equatable, PrivacySubfeature {
+    public var parent: PrivacyFeature {
+        .networkProtection
+    }
+
+    /// Display user tips for Network Protection
+    /// https://app.asana.com/0/72649045549333/1208231259093710/f
+    case userTips
+
+    /// Enforce routes for the VPN to fix TunnelVision
+    /// https://app.asana.com/0/72649045549333/1208617860225199/f
+    case enforceRoutes
 }
 
 public enum SyncSubfeature: String, PrivacySubfeature {
@@ -108,7 +153,7 @@ public enum AutoconsentSubfeature: String, PrivacySubfeature {
     }
 
     case onByDefault
-    case filterlistExperiment
+    case filterlist
 }
 
 public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {
@@ -121,9 +166,13 @@ public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {
     case isLaunchedOverride
     case isLaunchedOverrideStripe
     case useUnifiedFeedback
+    case setAccessTokenCookieForSubscriptionDomains
+    case isLaunchedROW
+    case isLaunchedROWOverride
+    case freeTrials
 }
 
-public enum sslCertificatesSubfeature: String, PrivacySubfeature {
+public enum SslCertificatesSubfeature: String, PrivacySubfeature {
     public var parent: PrivacyFeature { .sslCertificates }
     case allowBypass
 }
@@ -133,10 +182,16 @@ public enum DuckPlayerSubfeature: String, PrivacySubfeature {
     case pip
     case autoplay
     case openInNewTab
+    case enableDuckPlayer // iOS DuckPlayer rollout feature
 }
 
 public enum SyncPromotionSubfeature: String, PrivacySubfeature {
     public var parent: PrivacyFeature { .syncPromotion }
     case bookmarks
     case passwords
+}
+
+public enum ExperimentTestSubfeatures: String, PrivacySubfeature {
+    public var parent: PrivacyFeature { .experimentTest }
+    case experimentTestAA
 }

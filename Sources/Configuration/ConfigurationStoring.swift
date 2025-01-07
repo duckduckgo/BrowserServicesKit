@@ -27,4 +27,6 @@ public protocol ConfigurationStoring {
     mutating func saveData(_ data: Data, for configuration: Configuration) throws
     mutating func saveEtag(_ etag: String, for configuration: Configuration) throws
 
+    func fileUrl(for configuration: Configuration) -> URL
+
 }

@@ -18,32 +18,66 @@
 
 import Foundation
 
-public struct SubscriptionOptions: Encodable {
-    let platform: String
+public struct SubscriptionOptions: Encodable, Equatable {
+    let platform: SubscriptionPlatformName
     let options: [SubscriptionOption]
     let features: [SubscriptionFeature]
+
     public static var empty: SubscriptionOptions {
-        let features = SubscriptionFeatureName.allCases.map { SubscriptionFeature(name: $0.rawValue) }
+        let features = [SubscriptionFeature(name: .networkProtection),
+                        SubscriptionFeature(name: .dataBrokerProtection),
+                        SubscriptionFeature(name: .identityTheftRestoration)]
         let platform: SubscriptionPlatformName
 #if os(iOS)
         platform = .ios
 #else
         platform = .macos
 #endif
-        return SubscriptionOptions(platform: platform.rawValue, options: [], features: features)
+        return SubscriptionOptions(platform: platform, options: [], features: features)
+    }
+
+    public func withoutPurchaseOptions() -> Self {
+        SubscriptionOptions(platform: platform, options: [], features: features)
     }
 }
 
-public struct SubscriptionOption: Encodable {
-    let id: String
-    let cost: SubscriptionOptionCost
+public enum SubscriptionPlatformName: String, Encodable {
+    case ios
+    case macos
+    case stripe
 }
 
-struct SubscriptionOptionCost: Encodable {
+public struct SubscriptionOption: Encodable, Equatable {
+    let id: String
+    let cost: SubscriptionOptionCost
+    let offer: SubscriptionOptionOffer?
+
+    init(id: String, cost: SubscriptionOptionCost, offer: SubscriptionOptionOffer? = nil) {
+        self.id = id
+        self.cost = cost
+        self.offer = offer
+    }
+}
+
+struct SubscriptionOptionCost: Encodable, Equatable {
     let displayPrice: String
     let recurrence: String
 }
 
-public struct SubscriptionFeature: Encodable {
-    let name: String
+public struct SubscriptionFeature: Encodable, Equatable {
+    let name: Entitlement.ProductName
+}
+
+/// A `SubscriptionOptionOffer` represents an offer (e.g Free Trials) associated with a Subscription
+public struct SubscriptionOptionOffer: Encodable, Equatable {
+
+    public enum OfferType: String, Codable, CaseIterable {
+        case freeTrial
+    }
+
+    let type: OfferType
+    let id: String
+    let displayPrice: String
+    let durationInDays: Int
+    let isUserEligible: Bool
 }

@@ -129,7 +129,7 @@ extern "C" terminate_handler SetCxxExceptionTerminateHandler(terminate_handler h
 }
 
 // prevent crashes if `NSException` has no `reserved` field
-- (id)valueForUndefinedKey:(NSString *)key {}
+- (id)valueForUndefinedKey:(NSString *)key { return nil; }
 - (void)setValue:(id)value forUndefinedKey:(NSString *)key {}
 
 @end

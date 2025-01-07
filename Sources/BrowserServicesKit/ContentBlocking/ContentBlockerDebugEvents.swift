@@ -46,6 +46,9 @@ public enum ContentBlockerDebugEvents {
 
     case contentBlockingCompilationFailed(listName: String, component: Component)
 
-    case contentBlockingCompilationTime
-
+    case contentBlockingLookupRulesSucceeded
+    case contentBlockingFetchLRCSucceeded
+    case contentBlockingLRCMissing
+    case contentBlockingNoMatchInLRC
+    case contentBlockingCompilationTaskPerformance(iterationCount: Int, timeBucketAggregation: Double)
 }

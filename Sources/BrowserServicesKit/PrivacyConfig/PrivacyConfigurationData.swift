@@ -27,6 +27,7 @@ public struct PrivacyConfigurationData {
         case features
         case unprotectedTemporary
         case trackerAllowlist
+        case version
     }
 
     public struct State {
@@ -35,9 +36,24 @@ public struct PrivacyConfigurationData {
         static public let enabled = "enabled"
     }
 
+    public struct Cohort {
+        public let name: String
+        public let weight: Int
+
+        public init?(json: [String: Any]) {
+            guard let name = json["name"] as? String,
+                  let weight = json["weight"] as? Int else {
+                return nil
+            }
+
+            self.name = name
+            self.weight = weight
+        }
+    }
     public let features: [FeatureName: PrivacyFeature]
     public let trackerAllowlist: TrackerAllowlist
     public let unprotectedTemporary: [ExceptionEntry]
+    public let version: String?
 
     public init(data: Data) throws {
         guard let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] else {
@@ -47,6 +63,12 @@ public struct PrivacyConfigurationData {
     }
 
     internal init(json: [String: Any]) {
+
+        if let versionInt = json[CodingKeys.version.rawValue] as? Int {
+            version = String(versionInt)
+        } else {
+            version = json[CodingKeys.version.rawValue] as? String
+        }
 
         if let tempListData = json[CodingKeys.unprotectedTemporary.rawValue] as? [[String: String]] {
             unprotectedTemporary = tempListData.compactMap({ ExceptionEntry(json: $0) })
@@ -84,10 +106,12 @@ public struct PrivacyConfigurationData {
 
     public init(features: [FeatureName: PrivacyFeature],
                 unprotectedTemporary: [ExceptionEntry],
-                trackerAllowlist: TrackerAllowlistData) {
+                trackerAllowlist: TrackerAllowlistData,
+                version: String? = nil) {
         self.features = features
         self.unprotectedTemporary = unprotectedTemporary
         self.trackerAllowlist = TrackerAllowlist(entries: trackerAllowlist, state: State.enabled)
+        self.version = version
     }
 
     public class PrivacyFeature {
@@ -111,6 +135,9 @@ public struct PrivacyConfigurationData {
                 case state
                 case minSupportedVersion
                 case rollout
+                case cohorts
+                case targets
+                case settings
             }
 
             public struct Rollout: Hashable {
@@ -144,9 +171,27 @@ public struct PrivacyConfigurationData {
                 }
             }
 
+            public struct Target {
+                enum CodingKeys: String {
+                    case localeCountry
+                    case localeLanguage
+                }
+
+                public let localeCountry: String?
+                public let localeLanguage: String?
+
+                public init(json: [String: Any]) {
+                    self.localeCountry = json[CodingKeys.localeCountry.rawValue] as? String
+                    self.localeLanguage = json[CodingKeys.localeLanguage.rawValue] as? String
+                }
+            }
+
             public let state: FeatureState
             public let minSupportedVersion: FeatureSupportedVersion?
             public let rollout: Rollout?
+            public let cohorts: [Cohort]?
+            public let targets: [Target]?
+            public let settings: String?
 
             public init?(json: [String: Any]) {
                 guard let state = json[CodingKeys.state.rawValue] as? String else {
@@ -160,6 +205,26 @@ public struct PrivacyConfigurationData {
                     self.rollout = Rollout(json: rollout)
                 } else {
                     self.rollout = nil
+                }
+
+                if let cohortData = json[CodingKeys.cohorts.rawValue] as? [[String: Any]] {
+                    let parsedCohorts = cohortData.compactMap { Cohort(json: $0) }
+                    cohorts = parsedCohorts.isEmpty ? nil : parsedCohorts
+                } else {
+                    cohorts = nil
+                }
+
+                if let targetData = json[CodingKeys.targets.rawValue] as? [[String: Any]] {
+                    targets = targetData.compactMap { Target(json: $0) }
+                } else {
+                    targets = nil
+                }
+
+                if let settingsData = json[CodingKeys.settings.rawValue] {
+                    let jsonData = try? JSONSerialization.data(withJSONObject: settingsData, options: [])
+                    settings = jsonData != nil ? String(data: jsonData!, encoding: .utf8) : nil
+                } else {
+                    settings = nil
                 }
             }
         }

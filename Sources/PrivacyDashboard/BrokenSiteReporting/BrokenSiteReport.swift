@@ -39,8 +39,8 @@ public struct BrokenSiteReport {
         case onProtectionsOffMenu
         /// From the privacy dashboard's on protections toggle off
         case onProtectionsOffDashboard
-        /// From the 'Site Not Working?' prompt that appears on various events
-        case prompt(String)
+        /// From the 'Site Not Working?' prompt that appears after user refreshes 3 times within 20 sec window
+        case prompt
         /// From the prompt that appears after user toggled off protections which asks if it helped
         case afterTogglePrompt
 
@@ -50,7 +50,7 @@ public struct BrokenSiteReport {
             case .dashboard: return "dashboard"
             case .onProtectionsOffMenu: return "on_protections_off_menu"
             case .onProtectionsOffDashboard: return "on_protections_off_dashboard_main"
-            case .prompt(let event): return event
+            case .prompt: return "reload-three-times-within-20-seconds" // previously multiple events were under this; now there's only one
             case .afterTogglePrompt: return "after_toggle_prompt"
             }
         }
@@ -81,6 +81,7 @@ public struct BrokenSiteReport {
     let manufacturer: String
     let upgradedHttps: Bool
     let tdsETag: String?
+    let configVersion: String?
     let blockedTrackerDomains: [String]
     let installedSurrogates: [String]
     let isGPCEnabled: Bool
@@ -112,6 +113,7 @@ public struct BrokenSiteReport {
         manufacturer: String,
         upgradedHttps: Bool,
         tdsETag: String?,
+        configVersion: String?,
         blockedTrackerDomains: [String]?,
         installedSurrogates: [String]?,
         isGPCEnabled: Bool,
@@ -134,6 +136,7 @@ public struct BrokenSiteReport {
         self.manufacturer = manufacturer
         self.upgradedHttps = upgradedHttps
         self.tdsETag = tdsETag
+        self.configVersion = configVersion
         self.blockedTrackerDomains = blockedTrackerDomains ?? []
         self.installedSurrogates = installedSurrogates ?? []
         self.isGPCEnabled = isGPCEnabled
@@ -160,6 +163,7 @@ public struct BrokenSiteReport {
         manufacturer: String,
         upgradedHttps: Bool,
         tdsETag: String?,
+        configVersion: String?,
         blockedTrackerDomains: [String]?,
         installedSurrogates: [String]?,
         isGPCEnabled: Bool,
@@ -186,6 +190,7 @@ public struct BrokenSiteReport {
         self.manufacturer = manufacturer
         self.upgradedHttps = upgradedHttps
         self.tdsETag = tdsETag
+        self.configVersion = configVersion
         self.blockedTrackerDomains = blockedTrackerDomains ?? []
         self.installedSurrogates = installedSurrogates ?? []
         self.isGPCEnabled = isGPCEnabled
@@ -215,6 +220,7 @@ public struct BrokenSiteReport {
             "siteUrl": siteUrl.trimmingQueryItemsAndFragment().absoluteString,
             "upgradedHttps": upgradedHttps.description,
             "tds": tdsETag?.trimmingCharacters(in: CharacterSet(charactersIn: "\"")) ?? "",
+            "remote_config_version": configVersion ?? "",
             "blockedTrackers": blockedTrackerDomains.joined(separator: ","),
             "surrogates": installedSurrogates.joined(separator: ","),
             "gpc": isGPCEnabled.description,

@@ -569,6 +569,38 @@ extension Array where Element == SecureVaultModels.WebsiteAccount {
         return (removeDuplicates ? result.removeDuplicates() : result).filter { $0.domain?.isEmpty == false }
     }
 
+    public func sortedAndDeduplicated(tld: TLD, urlMatcher: AutofillDomainNameUrlMatcher = AutofillDomainNameUrlMatcher()) -> [SecureVaultModels.WebsiteAccount] {
+
+        let groupedBySignature = Dictionary(grouping: self) { $0.signature ?? "" }
+
+        let deduplicatedAccounts = groupedBySignature
+            .flatMap { (signature, accounts) -> [SecureVaultModels.WebsiteAccount] in
+
+                // no need to dedupe accounts with no signature, or where a signature group only has 1 account
+                if signature.isEmpty || accounts.count == 1 {
+                    return accounts
+                }
+
+                // This set is required as accounts can have duplicate signatures but different domains if the domain has a SLD + TLD like `co.uk`
+                // e.g. accounts with the same username & password for `example.co.uk` and `domain.co.uk` will have the same signature
+                var uniqueHosts = Set<String>()
+
+                for account in accounts {
+                    if let domain = account.domain,
+                       let urlComponents = urlMatcher.normalizeSchemeForAutofill(domain),
+                       let host = urlComponents.eTLDplus1(tld: tld) ?? urlComponents.host {
+                        uniqueHosts.insert(host)
+                    }
+                }
+
+                return uniqueHosts.flatMap { host in
+                    accounts.sortedForDomain(host, tld: tld, removeDuplicates: true)
+                }
+            }
+
+        return deduplicatedAccounts.sorted { compareAccount($0, $1) }
+    }
+
     private func extractTLD(domain: String, tld: TLD, urlMatcher: AutofillDomainNameUrlMatcher) -> String? {
         guard var urlComponents = urlMatcher.normalizeSchemeForAutofill(domain) else { return nil }
         guard urlComponents.host != .localhost else { return domain }

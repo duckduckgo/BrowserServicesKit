@@ -147,6 +147,7 @@ extension URL {
         return true
     }
 
+    // swiftlint:disable cyclomatic_complexity
     /// URL and URLComponents can't cope with emojis and international characters so this routine does some manual processing while trying to
     /// retain the input as much as possible.
     public init?(trimmedAddressBarString: String) {
@@ -176,7 +177,23 @@ extension URL {
                urlWithScheme.port != nil || urlWithScheme.user != nil {
                 // could be a local domain but user needs to use the protocol to specify that
                 // make exception for "localhost"
-                guard urlWithScheme.host?.contains(".") == true || urlWithScheme.host == .localhost else { return nil }
+                let hasDomain = urlWithScheme.host?.contains(".") == true
+                guard hasDomain || urlWithScheme.host == .localhost else { return nil }
+
+                let isInvalidUserInfo = {
+                    let hasUser = urlWithScheme.user != nil
+                    let hasPassword = urlWithScheme.password != nil
+                    let hasPath = !urlWithScheme.path.isEmpty
+                    let hasPort = urlWithScheme.port != nil
+                    let hasFragment = urlWithScheme.fragment != nil
+
+                    return hasUser && !hasPassword && !hasPath && !hasPort && !hasFragment
+                }()
+
+                if isInvalidUserInfo {
+                    return nil
+                }
+
                 self = urlWithScheme
                 return
 
@@ -204,6 +221,7 @@ extension URL {
 
         self.init(punycodeEncodedString: s)
     }
+    // swiftlint:enable cyclomatic_complexity
 
     private init?(punycodeEncodedString: String) {
         var s = punycodeEncodedString
@@ -222,6 +240,10 @@ extension URL {
         }
 
         guard let (authData, urlPart, query) = Self.fixupAndSplitURLString(s) else { return nil }
+
+        if (authData?.contains(" ") == true) || urlPart.contains(" ") {
+            return nil
+        }
 
         let componentsWithoutQuery = urlPart.split(separator: "/").map(String.init)
         guard !componentsWithoutQuery.isEmpty else {
@@ -332,22 +354,24 @@ extension URL {
 
     // MARK: - Parameters
 
+    @_disfavoredOverload // prefer ordered KeyValuePairs collection when `parameters` passed as a Dictionary literal to preserve order.
     public func appendingParameters<QueryParams: Collection>(_ parameters: QueryParams, allowedReservedCharacters: CharacterSet? = nil) -> URL
     where QueryParams.Element == (key: String, value: String) {
+        let result = self.appending(percentEncodedQueryItems: parameters.map { name, value in
+            URLQueryItem(percentEncodingName: name, value: value, withAllowedCharacters: allowedReservedCharacters)
+        })
+        return result
+    }
 
-        return parameters.reduce(self) { partialResult, parameter in
-            partialResult.appendingParameter(
-                name: parameter.key,
-                value: parameter.value,
-                allowedReservedCharacters: allowedReservedCharacters
-            )
-        }
+    public func appendingParameters(_ parameters: KeyValuePairs<String, String>, allowedReservedCharacters: CharacterSet? = nil) -> URL {
+        let result = self.appending(percentEncodedQueryItems: parameters.map { name, value in
+            URLQueryItem(percentEncodingName: name, value: value, withAllowedCharacters: allowedReservedCharacters)
+        })
+        return result
     }
 
     public func appendingParameter(name: String, value: String, allowedReservedCharacters: CharacterSet? = nil) -> URL {
-        let queryItem = URLQueryItem(percentEncodingName: name,
-                                     value: value,
-                                     withAllowedCharacters: allowedReservedCharacters)
+        let queryItem = URLQueryItem(percentEncodingName: name, value: value, withAllowedCharacters: allowedReservedCharacters)
         return self.appending(percentEncodedQueryItem: queryItem)
     }
 
@@ -356,13 +380,15 @@ extension URL {
     }
 
     public func appending(percentEncodedQueryItems: [URLQueryItem]) -> URL {
-        guard var components = URLComponents(url: self, resolvingAgainstBaseURL: true) else { return self }
+        guard !percentEncodedQueryItems.isEmpty,
+              var components = URLComponents(url: self, resolvingAgainstBaseURL: true) else { return self }
 
         var existingPercentEncodedQueryItems = components.percentEncodedQueryItems ?? [URLQueryItem]()
         existingPercentEncodedQueryItems.append(contentsOf: percentEncodedQueryItems)
         components.percentEncodedQueryItems = existingPercentEncodedQueryItems
+        let result = components.url ?? self
 
-        return components.url ?? self
+        return result
     }
 
     public func getQueryItems() -> [URLQueryItem]? {
@@ -442,6 +468,104 @@ extension URL {
         return host == protectionSpace.host && (port ?? navigationalScheme?.defaultPort) == protectionSpace.port && scheme == protectionSpace.protocol
     }
 
+    // MARK: Canonicalization 
+    public func canonicalHost() -> String? {
+        // Step 1: Extract hostname portion from the URL
+        guard var canonicalHost = self.host else {
+            return nil
+        }
+
+        // Step 2: Decode any %XX escapes present in the hostname
+        if let decodedHost = canonicalHost.removingPercentEncoding {
+            canonicalHost = decodedHost
+        }
+
+        // Step 3: Discard any characters outside the range 0x20 to 0x7E
+        canonicalHost = canonicalHost.filter { character in
+            let asciiValue = character.unicodeScalars.first?.value ?? 0
+            return (asciiValue >= 0x20 && asciiValue <= 0x7E)
+        }
+
+        // Step 4: Discard any leading and/or trailing full-stops
+        canonicalHost = canonicalHost.trimmingCharacters(in: CharacterSet(charactersIn: "."))
+
+        // Step 5: Replace sequences of two or more full-stops with a single full-stop
+        canonicalHost = canonicalHost.replacingOccurrences(of: "\\.+", with: ".", options: .regularExpression)
+
+        // Step 6: If the hostname is a numeric IPv4 address then reduce it to the canonical dotted quad form
+        let ipv4AddressComponents = canonicalHost.components(separatedBy: ".")
+        if ipv4AddressComponents.count == 4, ipv4AddressComponents.allSatisfy({ Int($0) != nil }) {
+            canonicalHost = ipv4AddressComponents.joined(separator: ".")
+        }
+
+        // Step 7: Replace any characters other than letters, numbers, ".", and "-" with "%XX" escape codes, using lowercase hexadecimal digits
+        canonicalHost = canonicalHost.addingPercentEncoding(withAllowedCharacters: .urlHostAllowed) ?? ""
+
+        // Step 8: If more than six components in the resulting hostname, discard all but the rightmost six components
+        let components = canonicalHost.components(separatedBy: ".").suffix(6)
+        canonicalHost = components.joined(separator: ".")
+
+        return canonicalHost
+     }
+
+    public func canonicalURL() -> URL? {
+        // Step 1: Remove tab (0x09), CR (0x0d), and LF (0x0a) characters
+        var urlString = self.absoluteString.filter { $0 != "\t" && $0 != "\r" && $0 != "\n" }
+
+        // Step 2: Remove the fragment
+        if let fragmentRange = urlString.range(of: "#") {
+            urlString.removeSubrange(fragmentRange.lowerBound..<urlString.endIndex)
+        }
+
+        // Step 3: Repeatedly percent-unescape the URL until it has no more percent-escapes
+        var previousURLString: String
+        repeat {
+            previousURLString = urlString
+            if let unescapedURLString = urlString.removingPercentEncoding {
+                urlString = unescapedURLString
+            }
+        } while urlString != previousURLString
+
+        // Step 4: Remove all trailing slashes, but keep the single slash after the domain
+        if let url = URL(string: urlString), url.path == "/" {
+            // Do not remove the single trailing slash if it's just the domain
+        } else {
+            while urlString.last == "/" {
+                urlString.removeLast()
+            }
+        }
+
+        // Step 5: Remove all occurrences of more than one "/", but not in the protocol part
+        if let range = urlString.range(of: "://") {
+            let protocolPart = urlString[..<range.upperBound]
+            let restOfURL = urlString[range.upperBound...]
+            urlString = protocolPart + restOfURL.replacingOccurrences(of: "/+", with: "/", options: .regularExpression)
+        }
+
+        // Step 6: Remove all occurrences of "/./" in the path
+        urlString = urlString.replacingOccurrences(of: "/./", with: "/")
+
+        // Step 7: Remove all occurrences of "/../" in the path
+        while let range = urlString.range(of: "/../") {
+            let previousComponentRange = urlString.range(of: "/", options: .backwards, range: urlString.startIndex..<range.lowerBound)
+            if let previousComponentRange = previousComponentRange {
+                urlString.removeSubrange(previousComponentRange.upperBound..<range.upperBound)
+            } else {
+                break
+            }
+        }
+
+        // Step 8: Lowercase everything
+        urlString = urlString.lowercased()
+
+        // Validate the URL according to RFC 2396
+        guard let validURL = URL(string: urlString), validURL.path.count > 0 else {
+            return nil
+        }
+
+        return validURL
+    }
+
 }
 
 public extension CharacterSet {
@@ -459,7 +583,7 @@ public extension CharacterSet {
 
 }
 
-extension URLQueryItem {
+public extension URLQueryItem {
 
     init(percentEncodingName name: String, value: String, withAllowedCharacters allowedReservedCharacters: CharacterSet? = nil) {
         let allowedCharacters: CharacterSet = {

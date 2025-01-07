@@ -16,11 +16,13 @@
 //  limitations under the License.
 //
 
-import XCTest
 import Common
+import os
 import WebKit
-@testable import PrivacyDashboard
+import XCTest
+
 @testable import BrowserServicesKit
+@testable import PrivacyDashboard
 
 @MainActor
 final class PrivacyDashboardControllerTests: XCTestCase {
@@ -30,10 +32,10 @@ final class PrivacyDashboardControllerTests: XCTestCase {
     var toggleReportingManagerMock: ToggleReportingManagerMock!
     var webView: WKWebView!
 
-    private func makePrivacyDashboardController(entryPoint: PrivacyDashboardEntryPoint) {
+    private func makePrivacyDashboardController(entryPoint: PrivacyDashboardEntryPoint, privacyInfo: PrivacyInfo? = nil) {
         delegateMock = PrivacyDashboardDelegateMock()
         toggleReportingManagerMock = ToggleReportingManagerMock()
-        privacyDashboardController = PrivacyDashboardController(privacyInfo: nil,
+        privacyDashboardController = PrivacyDashboardController(privacyInfo: privacyInfo,
                                                                 entryPoint: entryPoint,
                                                                 variant: .control,
                                                                 toggleReportingManager: toggleReportingManagerMock,
@@ -254,6 +256,45 @@ final class PrivacyDashboardControllerTests: XCTestCase {
         privacyDashboardController.handleViewWillDisappear()
         XCTAssertTrue(delegateMock.didChangeProtectionSwitchCalled)
         XCTAssertFalse(delegateMock.didRequestCloseCalled)
+    }
+
+    // MARK: Phishing
+
+    func testWhenIsPhishingSetThenJavaScriptEvaluatedWithCorrectString() {
+        let expectation = XCTestExpectation()
+        let privacyInfo = PrivacyInfo(url: URL(string: "someurl.com")!, parentEntity: nil, protectionStatus: .init(unprotectedTemporary: false, enabledFeatures: [], allowlisted: true, denylisted: true), malicousSiteThreatKind: .none)
+        makePrivacyDashboardController(entryPoint: .dashboard, privacyInfo: privacyInfo)
+        let config = WKWebViewConfiguration()
+        let mockWebView = MockWebView(frame: .zero, configuration: config, expectation: expectation)
+        privacyDashboardController.webView = mockWebView
+
+        privacyDashboardController.privacyInfo!.malicousSiteThreatKind = .phishing
+
+        wait(for: [expectation], timeout: 5)
+        XCTAssertEqual(mockWebView.capturedJavaScriptString, "window.onChangeMaliciousSiteStatus({\"kind\":\"phishing\"})")
+    }
+}
+
+class MockWebView: WKWebView {
+    let expectation: XCTestExpectation
+    var capturedJavaScriptString = ""
+
+    init(frame: CGRect, configuration: WKWebViewConfiguration, expectation: XCTestExpectation) {
+          self.expectation = expectation
+          super.init(frame: frame, configuration: configuration)
+      }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func evaluateJavaScript(_ javaScriptString: String) async throws -> Any {
+        Logger(subsystem: Bundle.main.bundleIdentifier!, category: "DDGTest").info("received javaScriptString \(javaScriptString, privacy: .public)")
+        if javaScriptString.contains("window.onChangeMaliciousSiteStatus") {
+            capturedJavaScriptString = javaScriptString
+            expectation.fulfill()
+        }
+        return try await super.evaluateJavaScript(javaScriptString)
     }
 
 }

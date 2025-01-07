@@ -27,6 +27,8 @@ public enum RequestVaultCredentialsAction: String, Codable {
 
 public protocol AutofillSecureVaultDelegate: AnyObject {
 
+    typealias SecureVaultLoginsCount = Int
+
     var autofillWebsiteAccountMatcher: AutofillWebsiteAccountMatcher? { get }
     var tld: TLD? { get }
 
@@ -34,7 +36,8 @@ public protocol AutofillSecureVaultDelegate: AnyObject {
         [SecureVaultModels.WebsiteCredentials],
         [SecureVaultModels.Identity],
         [SecureVaultModels.CreditCard],
-        SecureVaultModels.CredentialsProvider
+        SecureVaultModels.CredentialsProvider,
+        SecureVaultLoginsCount
     ) -> Void)
 
     func autofillUserScript(_: AutofillUserScript, didRequestCreditCardsManagerForDomain domain: String)
@@ -73,6 +76,14 @@ public protocol AutofillSecureVaultDelegate: AnyObject {
 
     func autofillUserScript(_: AutofillUserScript, didSendPixel pixel: AutofillUserScript.JSPixel)
 
+}
+
+public protocol AutofillPasswordImportDelegate: AnyObject {
+    func autofillUserScriptShouldShowPasswordImportDialog(domain: String, credentials: [SecureVaultModels.WebsiteCredentials], credentialsProvider: SecureVaultModels.CredentialsProvider, totalCredentialsCount: Int) -> Bool
+    func autofillUserScriptDidRequestPasswordImportFlow(_ completion: @escaping () -> Void)
+    func autofillUserScriptDidFinishImportWithImportedCredentialForCurrentDomain()
+    func autofillUserScriptShouldDisplayOverlay(_ serializedInputContext: String, for domain: String) -> Bool
+    func autofillUserScriptDidRequestPermanentCredentialsImportPromptDismissal()
 }
 
 extension AutofillUserScript {
@@ -314,6 +325,7 @@ extension AutofillUserScript {
         let creditCards: AvailableInputTypesCreditCards
         let email: Bool
         let credentialsProviderStatus: CredentialProviderStatus
+        let credentialsImport: Bool
 
     }
 
@@ -433,13 +445,20 @@ extension AutofillUserScript {
 
     func getAvailableInputTypes(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         let domain = hostForMessage(message)
+        Self.domainOfMostRecentGetAvailableInputsMessage = domain
         let email = emailDelegate?.autofillUserScriptDidRequestSignedInStatus(self) ?? false
-        vaultDelegate?.autofillUserScript(self, didRequestAutoFillInitDataForDomain: domain) { credentials, identities, cards, credentialsProvider  in
+        vaultDelegate?.autofillUserScript(self, didRequestAutoFillInitDataForDomain: domain) { [weak self] credentials, identities, cards, credentialsProvider, totalCredentialsCount in
+            guard let self else {
+                replyHandler("")
+                return
+            }
+            let credentialsImport = self.passwordImportDelegate?.autofillUserScriptShouldShowPasswordImportDialog(domain: domain, credentials: credentials, credentialsProvider: credentialsProvider, totalCredentialsCount: totalCredentialsCount) ?? false
             let response = RequestAvailableInputTypesResponse(credentials: credentials,
                                                               identities: identities,
                                                               cards: cards,
                                                               email: email,
-                                                              credentialsProvider: credentialsProvider)
+                                                              credentialsProvider: credentialsProvider,
+                                                              credentialsImport: credentialsImport)
             if let json = try? JSONEncoder().encode(response), let jsonString = String(data: json, encoding: .utf8) {
                 replyHandler(jsonString)
             }
@@ -472,6 +491,7 @@ extension AutofillUserScript {
         case userInitiated
         case autoprompt
         case formSubmission
+        case partialSave
         case passwordGeneration
         case emailProtection
     }
@@ -515,7 +535,7 @@ extension AutofillUserScript {
 
     func pmGetAutoFillInitData(_ message: UserScriptMessage, _ replyHandler: @escaping MessageReplyHandler) {
         let domain = hostForMessage(message)
-        vaultDelegate?.autofillUserScript(self, didRequestAutoFillInitDataForDomain: domain) { credentials, identities, cards, credentialsProvider in
+        vaultDelegate?.autofillUserScript(self, didRequestAutoFillInitDataForDomain: domain) { credentials, identities, cards, credentialsProvider, _ in
             let credentialObjects: [CredentialObject]
             if credentialsProvider.locked {
                 credentialObjects = [CredentialObject(id: "provider_locked", username: "", credentialsProvider: credentialsProvider.name.rawValue)]
@@ -715,6 +735,30 @@ extension AutofillUserScript {
         replyHandler(nil)
     }
 
+    // MARK: Credentials Import Flow
+
+    func startCredentialsImportFlow(_ message: UserScriptMessage, replyHandler: @escaping MessageReplyHandler) {
+        passwordImportDelegate?.autofillUserScriptDidRequestPasswordImportFlow { [weak self] in
+            NotificationCenter.default.post(name: .passwordImportDidCloseImportDialog, object: nil)
+            guard let self else {
+                replyHandler(nil)
+                return
+            }
+            let domain = Self.domainOfMostRecentGetAvailableInputsMessage ?? ""
+            vaultDelegate?.autofillUserScript(self, didRequestAccountsForDomain: domain, completionHandler: { [weak self] credentials, _ in
+                if !credentials.isEmpty {
+                    self?.passwordImportDelegate?.autofillUserScriptDidFinishImportWithImportedCredentialForCurrentDomain()
+                }
+            })
+        }
+    }
+
+    func credentialsImportFlowPermanentlyDismissed(_ message: UserScriptMessage, replyHandler: @escaping MessageReplyHandler) {
+        passwordImportDelegate?.autofillUserScriptDidRequestPermanentCredentialsImportPromptDismissal()
+        replyHandler(nil)
+        NotificationCenter.default.post(name: .passwordImportDidCloseImportDialog, object: nil)
+    }
+
     // MARK: Pixels
 
     public struct JSPixel: Equatable {
@@ -726,6 +770,10 @@ extension AutofillUserScript {
 
         private enum IdentityPixelName: String {
             case autofillIdentity = "autofill_identity"
+        }
+
+        private enum CredentialsImportPromotionPixelName: String {
+            case promotionShown = "autofill_import_credentials_prompt_shown"
         }
 
         /// The pixel name sent by the JS layer. This name does not include the platform on which it was sent.
@@ -748,6 +796,13 @@ extension AutofillUserScript {
 
         public var isIdentityPixel: Bool {
             if case IdentityPixelName.autofillIdentity.rawValue = originalPixelName {
+                return true
+            }
+            return false
+        }
+
+        public var isCredentialsImportPromotionPixel: Bool {
+            if case CredentialsImportPromotionPixelName.promotionShown.rawValue = originalPixelName {
                 return true
             }
             return false
@@ -782,13 +837,18 @@ extension AutofillUserScript {
     }
 }
 
+public extension Notification.Name {
+    static let passwordImportDidCloseImportDialog = Notification.Name("com.duckduckgo.browserServicesKit.PasswordImportDidCloseImportDialog")
+}
+
 extension AutofillUserScript.RequestAvailableInputTypesResponse {
 
     init(accounts: [SecureVaultModels.WebsiteAccount],
          identities: [SecureVaultModels.Identity],
          cards: [SecureVaultModels.CreditCard],
          email: Bool,
-         credentialsProvider: SecureVaultModels.CredentialsProvider) {
+         credentialsProvider: SecureVaultModels.CredentialsProvider,
+         credentialsImport: Bool) {
         let credentialObjects: [AutofillUserScript.CredentialObject] = accounts.compactMap {
             guard let id = $0.id, let username = $0.username else { return nil }
             return .init(id: id, username: username, credentialsProvider: credentialsProvider.name.rawValue)
@@ -803,7 +863,8 @@ extension AutofillUserScript.RequestAvailableInputTypesResponse {
             identities: identities,
             creditCards: cards,
             email: email,
-            credentialsProviderStatus: credentialsProvider.locked ? .locked : .unlocked
+            credentialsProviderStatus: credentialsProvider.locked ? .locked : .unlocked,
+            credentialsImport: credentialsImport
         )
         self.init(success: success, error: nil)
     }
@@ -812,7 +873,8 @@ extension AutofillUserScript.RequestAvailableInputTypesResponse {
          identities: [SecureVaultModels.Identity],
          cards: [SecureVaultModels.CreditCard],
          email: Bool,
-         credentialsProvider: SecureVaultModels.CredentialsProvider) {
+         credentialsProvider: SecureVaultModels.CredentialsProvider,
+         credentialsImport: Bool) {
         let username = credentialsProvider.locked || credentials.hasAtLeastOneUsername
         let password = credentialsProvider.locked || credentials.hasAtLeastOnePassword
         let credentials = AutofillUserScript.AvailableInputTypesSuccess.AvailableInputTypesCredentials(username: username, password: password)
@@ -821,7 +883,8 @@ extension AutofillUserScript.RequestAvailableInputTypesResponse {
             identities: AutofillUserScript.AvailableInputTypesSuccess.AvailableInputTypesIdentities(identities: identities),
             creditCards: AutofillUserScript.AvailableInputTypesSuccess.AvailableInputTypesCreditCards(creditCards: cards),
             email: email,
-            credentialsProviderStatus: credentialsProvider.locked ? .locked : .unlocked
+            credentialsProviderStatus: credentialsProvider.locked ? .locked : .unlocked,
+            credentialsImport: credentialsImport
         )
         self.init(success: success, error: nil)
     }
@@ -919,10 +982,11 @@ extension AutofillUserScript.AskToUnlockProviderResponse {
          credentialsProvider: SecureVaultModels.CredentialsProvider) {
 
         let availableInputTypesResponse = AutofillUserScript.RequestAvailableInputTypesResponse(credentials: credentials,
-                                                                             identities: identities,
-                                                                             cards: cards,
-                                                                             email: email,
-                                                                             credentialsProvider: credentialsProvider)
+                                                                                                identities: identities,
+                                                                                                cards: cards,
+                                                                                                email: email,
+                                                                                                credentialsProvider: credentialsProvider,
+                                                                                                credentialsImport: false)
         let status = credentialsProvider.locked ? AutofillUserScript.CredentialProviderStatus.locked : .unlocked
         let credentialsArray: [AutofillUserScript.CredentialResponse] = credentials.compactMap { credential in
             guard let id = credential.account.id,

@@ -34,6 +34,9 @@ final class CredentialsResponseHandler {
     let allReceivedIDs: Set<String>
     private var credentialsByUUID: [String: SecureVaultModels.SyncableCredentials] = [:]
 
+    var incomingModifiedAccounts = [SecureVaultModels.WebsiteAccount]()
+    var incomingDeletedAccounts = [SecureVaultModels.WebsiteAccount]()
+
     private let decrypt: (String) throws -> String
     private let metricsEvents: EventMapping<MetricsEvent>?
 
@@ -117,6 +120,7 @@ final class CredentialsResponseHandler {
 
             if syncable.isDeleted {
                 try secureVault.deleteSyncableCredentials(existingEntity, in: database)
+                trackCredentialChange(of: existingEntity, with: syncable)
             } else if isModifiedAfterSyncTimestamp {
                 metricsEvents?.fire(.localTimestampResolutionTriggered(feature: feature))
             } else {
@@ -126,10 +130,10 @@ final class CredentialsResponseHandler {
                                                          in: database,
                                                          encryptedUsing: secureVaultEncryptionKey,
                                                          hashedUsing: secureVaultHashingSalt)
+                trackCredentialChange(of: existingEntity, with: syncable)
             }
 
         } else if !syncable.isDeleted {
-
             let newEntity = try SecureVaultModels.SyncableCredentials(syncable: syncable, decryptedUsing: decrypt)
             assert(newEntity.metadata.lastModified == nil, "lastModified should be nil for a new metadata entity")
             try secureVault.storeSyncableCredentials(newEntity,
@@ -137,6 +141,7 @@ final class CredentialsResponseHandler {
                                                      encryptedUsing: secureVaultEncryptionKey,
                                                      hashedUsing: secureVaultHashingSalt)
             credentialsByUUID[syncableUUID] = newEntity
+            trackCredentialChange(of: newEntity, with: syncable)
         }
     }
 
@@ -182,6 +187,18 @@ final class CredentialsResponseHandler {
             return matchingSyncableCredentials
         }
         return syncableCredentials.first(where: { $0.credentialsRecord?.password == nil })
+    }
+
+    private func trackCredentialChange(of entity: SecureVaultModels.SyncableCredentials, with syncable: SyncableCredentialsAdapter) {
+        guard let account = entity.account else {
+            return
+        }
+
+        if syncable.isDeleted {
+            incomingDeletedAccounts.append(account)
+        } else {
+            incomingModifiedAccounts.append(account)
+        }
     }
 }
 

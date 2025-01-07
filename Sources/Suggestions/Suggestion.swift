@@ -25,14 +25,16 @@ public enum Suggestion: Equatable {
     case bookmark(title: String, url: URL, isFavorite: Bool, allowedInTopHits: Bool)
     case historyEntry(title: String?, url: URL, allowedInTopHits: Bool)
     case internalPage(title: String, url: URL)
+    case openTab(title: String, url: URL)
     case unknown(value: String)
 
-    var url: URL? {
+    public var url: URL? {
         switch self {
         case .website(url: let url),
              .historyEntry(title: _, url: let url, allowedInTopHits: _),
              .bookmark(title: _, url: let url, isFavorite: _, allowedInTopHits: _),
-             .internalPage(title: _, url: let url):
+             .internalPage(title: _, url: let url),
+             .openTab(title: _, url: let url):
             return url
         case .phrase, .unknown:
             return nil
@@ -44,7 +46,8 @@ public enum Suggestion: Equatable {
         case .historyEntry(title: let title, url: _, allowedInTopHits: _):
             return title
         case .bookmark(title: let title, url: _, isFavorite: _, allowedInTopHits: _),
-             .internalPage(title: let title, url: _):
+             .internalPage(title: let title, url: _),
+             .openTab(title: let title, url: _):
             return title
         case .phrase, .website, .unknown:
             return nil
@@ -53,7 +56,7 @@ public enum Suggestion: Equatable {
 
     public var allowedInTopHits: Bool {
         switch self {
-        case .website:
+        case .website, .openTab:
             return true
         case .historyEntry(title: _, url: _, allowedInTopHits: let allowedInTopHits):
             return allowedInTopHits
@@ -64,23 +67,44 @@ public enum Suggestion: Equatable {
         }
     }
 
+    public var isOpenTab: Bool {
+        if case .openTab = self {
+            return true
+        }
+        return false
+    }
+
+    public var isBookmark: Bool {
+        if case .bookmark = self {
+            return true
+        }
+        return false
+    }
+
+    public var isHistoryEntry: Bool {
+        if case .historyEntry = self {
+            return true
+        }
+        return false
+    }
 }
 
 extension Suggestion {
 
+    init?(bookmark: Bookmark, allowedInTopHits: Bool) {
+        guard let urlObject = URL(string: bookmark.url) else { return nil }
+        self = .bookmark(title: bookmark.title,
+                         url: urlObject,
+                         isFavorite: bookmark.isFavorite,
+                         allowedInTopHits: allowedInTopHits)
+    }
+
     init?(bookmark: Bookmark) {
         guard let urlObject = URL(string: bookmark.url) else { return nil }
-        #if os(macOS)
         self = .bookmark(title: bookmark.title,
                          url: urlObject,
                          isFavorite: bookmark.isFavorite,
                          allowedInTopHits: bookmark.isFavorite)
-        #else
-        self = .bookmark(title: bookmark.title,
-                         url: urlObject,
-                         isFavorite: bookmark.isFavorite,
-                         allowedInTopHits: true)
-        #endif
     }
 
     init(historyEntry: HistorySuggestion) {
@@ -94,6 +118,10 @@ extension Suggestion {
 
     init(internalPage: InternalPage) {
         self = .internalPage(title: internalPage.title, url: internalPage.url)
+    }
+
+    init(tab: BrowserTab) {
+        self = .openTab(title: tab.title, url: tab.url)
     }
 
     init(url: URL) {

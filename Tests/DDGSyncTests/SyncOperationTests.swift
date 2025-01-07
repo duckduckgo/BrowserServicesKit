@@ -74,7 +74,7 @@ class SyncOperationTests: XCTestCase {
             XCTAssertEqual(featureError, .noResponseBody)
         })
         XCTAssertEqual(apiMock.createRequestCallCount, 1)
-        XCTAssertEqual(apiMock.createRequestCallArgs[0].method, .GET)
+        XCTAssertEqual(apiMock.createRequestCallArgs[0].method, .get)
     }
 
     func testWhenThereAreChangesThenPatchRequestIsFired() async throws {
@@ -97,7 +97,7 @@ class SyncOperationTests: XCTestCase {
             XCTAssertEqual(featureError, .noResponseBody)
         })
         XCTAssertEqual(apiMock.createRequestCallCount, 1)
-        XCTAssertEqual(apiMock.createRequestCallArgs[0].method, .PATCH)
+        XCTAssertEqual(apiMock.createRequestCallArgs[0].method, .patch)
     }
 
     func testThatForMultipleDataProvidersRequestsSeparateRequestsAreSentConcurrently() async throws {

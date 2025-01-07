@@ -22,15 +22,107 @@ import SubscriptionTestingUtilities
 
 final class SubscriptionOptionsTests: XCTestCase {
 
-    override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
+    func testEncoding() throws {
+        let monthlySubscriptionOffer = SubscriptionOptionOffer(type: .freeTrial, id: "1", displayPrice: "$0.00", durationInDays: 7, isUserEligible: true)
+        let yearlySubscriptionOffer = SubscriptionOptionOffer(type: .freeTrial, id: "2", displayPrice: "$0.00", durationInDays: 7, isUserEligible: true)
+        let subscriptionOptions = SubscriptionOptions(platform: .macos,
+                                                      options: [
+                                                        SubscriptionOption(id: "1",
+                                                                           cost: SubscriptionOptionCost(displayPrice: "9 USD", recurrence: "monthly"), offer: monthlySubscriptionOffer),
+                                                        SubscriptionOption(id: "2",
+                                                                           cost: SubscriptionOptionCost(displayPrice: "99 USD", recurrence: "yearly"), offer: yearlySubscriptionOffer)
+                                                      ],
+                                                      features: [
+                                                        SubscriptionFeature(name: .networkProtection),
+                                                        SubscriptionFeature(name: .dataBrokerProtection),
+                                                        SubscriptionFeature(name: .identityTheftRestoration)
+                                                      ])
+
+        let jsonEncoder = JSONEncoder()
+        jsonEncoder.outputFormatting = [.sortedKeys, .prettyPrinted]
+        let data = try? jsonEncoder.encode(subscriptionOptions)
+        let subscriptionOptionsString = String(data: data!, encoding: .utf8)!
+
+        XCTAssertEqual(subscriptionOptionsString, """
+{
+  "features" : [
+    {
+      "name" : "Network Protection"
+    },
+    {
+      "name" : "Data Broker Protection"
+    },
+    {
+      "name" : "Identity Theft Restoration"
+    }
+  ],
+  "options" : [
+    {
+      "cost" : {
+        "displayPrice" : "9 USD",
+        "recurrence" : "monthly"
+      },
+      "id" : "1",
+      "offer" : {
+        "displayPrice" : "$0.00",
+        "durationInDays" : 7,
+        "id" : "1",
+        "isUserEligible" : true,
+        "type" : "freeTrial"
+      }
+    },
+    {
+      "cost" : {
+        "displayPrice" : "99 USD",
+        "recurrence" : "yearly"
+      },
+      "id" : "2",
+      "offer" : {
+        "displayPrice" : "$0.00",
+        "durationInDays" : 7,
+        "id" : "2",
+        "isUserEligible" : true,
+        "type" : "freeTrial"
+      }
+    }
+  ],
+  "platform" : "macos"
+}
+""")
     }
 
-    override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
+    func testSubscriptionOptionCostEncoding() throws {
+        let subscriptionOptionCost = SubscriptionOptionCost(displayPrice: "9 USD", recurrence: "monthly")
+
+        let jsonEncoder = JSONEncoder()
+        jsonEncoder.outputFormatting = [.sortedKeys]
+        let data = try? jsonEncoder.encode(subscriptionOptionCost)
+        let subscriptionOptionCostString = String(data: data!, encoding: .utf8)!
+
+        XCTAssertEqual(subscriptionOptionCostString, "{\"displayPrice\":\"9 USD\",\"recurrence\":\"monthly\"}")
     }
 
-    func testCodable() throws {
+    func testSubscriptionFeatureEncoding() throws {
+        let subscriptionFeature = SubscriptionFeature(name: .identityTheftRestoration)
 
+        let data = try? JSONEncoder().encode(subscriptionFeature)
+        let subscriptionFeatureString = String(data: data!, encoding: .utf8)!
+
+        XCTAssertEqual(subscriptionFeatureString, "{\"name\":\"Identity Theft Restoration\"}")
+    }
+
+    func testEmptySubscriptionOptions() throws {
+        let empty = SubscriptionOptions.empty
+
+        let platform: SubscriptionPlatformName
+#if os(iOS)
+        platform = .ios
+#else
+        platform = .macos
+#endif
+
+        XCTAssertEqual(empty.platform, platform)
+        XCTAssertTrue(empty.options.isEmpty)
+        XCTAssertEqual(empty.features.count, 3)
     }
 }

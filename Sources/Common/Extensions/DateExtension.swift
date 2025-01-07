@@ -64,7 +64,11 @@ public extension Date {
     }
 
     var startOfDay: Date {
-        return  Calendar.current.startOfDay(for: self)
+        return Calendar.current.startOfDay(for: self)
+    }
+
+    func daysAgo(_ days: Int) -> Date {
+        Calendar.current.date(byAdding: .day, value: -days, to: self)!
     }
 
     static var startOfMinuteNow: Date {
@@ -124,6 +128,19 @@ public extension Date {
     @inlinable
     func adding(_ timeInterval: TimeInterval) -> Date {
         addingTimeInterval(timeInterval)
+    }
+
+    func isSameDay(_ otherDate: Date?) -> Bool {
+        guard let otherDate = otherDate else { return false }
+        return Calendar.current.isDate(self, inSameDayAs: otherDate)
+    }
+
+    func isLessThan(daysAgo days: Int) -> Bool {
+        self > Date().addingTimeInterval(Double(-days) * 24 * 60 * 60)
+    }
+
+    func isLessThan(minutesAgo minutes: Int) -> Bool {
+        self > Date().addingTimeInterval(Double(-minutes) * 60)
     }
 
 }

@@ -22,40 +22,343 @@ import SubscriptionTestingUtilities
 
 final class SubscriptionEndpointServiceTests: XCTestCase {
 
+    private struct Constants {
+        static let authToken = UUID().uuidString
+        static let accessToken = UUID().uuidString
+        static let externalID = UUID().uuidString
+        static let email = "dax@duck.com"
+
+        static let mostRecentTransactionJWS = "dGhpcyBpcyBub3QgYSByZWFsIEFw(...)cCBTdG9yZSB0cmFuc2FjdGlvbiBKV1M="
+
+        static let subscription = SubscriptionMockFactory.subscription
+
+        static let customerPortalURL = "https://billing.stripe.com/p/session/test_ABC"
+
+        static let authorizationHeader = ["Authorization": "Bearer TOKEN"]
+
+        static let unknownServerError = APIServiceError.serverError(statusCode: 401, error: "unknown_error")
+    }
+
+    var apiService: APIServiceMock!
+    var subscriptionService: SubscriptionEndpointService!
+
     override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
+        apiService = APIServiceMock()
+        subscriptionService = DefaultSubscriptionEndpointService(currentServiceEnvironment: .staging, apiService: apiService)
     }
 
     override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
+        apiService = nil
+        subscriptionService = nil
     }
 
-    func testGetSubscriptionSuccessNoCache() async throws {
-        let token = "someToken"
-        let subscription = DDGSubscription(productId: "productID",
-                                           name: "name",
-                                           billingPeriod: .monthly,
-                                           startedAt: Date.yearAgo,
-                                           expiresOrRenewsAt: Date.aYearFromNow,
-                                           platform: .apple,
-                                           status: .autoRenewable)
-        let apiService = APIServiceMock(mockAuthHeaders: ["Authorization": "Bearer " + token],
-                                        mockAPICallSuccessResult: subscription)
-        let service = DefaultSubscriptionEndpointService(currentServiceEnvironment: .staging,
-                                                         apiService: apiService)
-        switch await service.getSubscription(accessToken: token, cachePolicy: .reloadIgnoringLocalCacheData) {
+    // MARK: - Tests for
+
+    func testGetSubscriptionCall() async throws {
+        // Given
+        let apiServiceCalledExpectation = expectation(description: "apiService")
+
+        apiService.mockAuthHeaders = Constants.authorizationHeader
+        apiService.onExecuteAPICall = { parameters in
+            let (method, endpoint, headers, _) = parameters
+
+            apiServiceCalledExpectation.fulfill()
+            XCTAssertEqual(method, "GET")
+            XCTAssertEqual(endpoint, "subscription")
+            XCTAssertEqual(headers, Constants.authorizationHeader)
+        }
+
+        // When
+        _ = await subscriptionService.getSubscription(accessToken: Constants.accessToken, cachePolicy: .reloadIgnoringLocalCacheData)
+
+        // Then
+        await fulfillment(of: [apiServiceCalledExpectation], timeout: 0.1)
+    }
+
+    func testGetSubscriptionSuccess() async throws {
+        // Given
+        apiService.mockAuthHeaders = Constants.authorizationHeader
+        apiService.mockResponseJSONData = """
+        {
+            "productId": "\(Constants.subscription.productId)",
+            "name": "\(Constants.subscription.name)",
+            "billingPeriod": "\(Constants.subscription.billingPeriod.rawValue)",
+            "startedAt": \(Constants.subscription.startedAt.timeIntervalSince1970*1000),
+            "expiresOrRenewsAt": \(Constants.subscription.expiresOrRenewsAt.timeIntervalSince1970*1000),
+            "platform": "\(Constants.subscription.platform.rawValue)",
+            "status": "\(Constants.subscription.status.rawValue)"
+        }
+        """.data(using: .utf8)!
+
+        // When
+        let result = await subscriptionService.getSubscription(accessToken: Constants.accessToken, cachePolicy: .reloadIgnoringLocalCacheData)
+
+        // Then
+        switch result {
         case .success(let success):
-            XCTAssertEqual(subscription, success)
+            XCTAssertEqual(success.productId, Constants.subscription.productId)
+            XCTAssertEqual(success.name, Constants.subscription.name)
+            XCTAssertEqual(success.billingPeriod, Constants.subscription.billingPeriod)
+            XCTAssertEqual(success.startedAt.timeIntervalSince1970,
+                           Constants.subscription.startedAt.timeIntervalSince1970,
+                           accuracy: 0.001)
+            XCTAssertEqual(success.expiresOrRenewsAt.timeIntervalSince1970,
+                           Constants.subscription.expiresOrRenewsAt.timeIntervalSince1970,
+                           accuracy: 0.001)
+            XCTAssertEqual(success.platform, Constants.subscription.platform)
+            XCTAssertEqual(success.status, Constants.subscription.status)
         case .failure:
             XCTFail("Unexpected failure")
         }
     }
 
-    func testGetSubscriptionSuccessCache() async throws {
-        // Implement
+    func testGetSubscriptionError() async throws {
+        // Given
+        apiService.mockAuthHeaders = Constants.authorizationHeader
+        apiService.mockAPICallError = Constants.unknownServerError
+
+        // When
+        let result = await subscriptionService.getSubscription(accessToken: Constants.accessToken, cachePolicy: .reloadIgnoringLocalCacheData)
+
+        // Then
+        switch result {
+        case .success:
+            XCTFail("Unexpected success")
+        case .failure:
+            break
+        }
     }
 
-    func testGetSubscriptionFailure() async throws {
-        // Implement
+    // MARK: - Tests for getProducts
+
+    func testGetProductsCall() async throws {
+        // Given
+        let apiServiceCalledExpectation = expectation(description: "apiService")
+
+        apiService.mockAuthHeaders = Constants.authorizationHeader
+        apiService.onExecuteAPICall = { parameters in
+            let (method, endpoint, headers, _) = parameters
+
+            apiServiceCalledExpectation.fulfill()
+            XCTAssertEqual(method, "GET")
+            XCTAssertEqual(endpoint, "products")
+            XCTAssertNil(headers)
+        }
+
+        // When
+        _ = await subscriptionService.getProducts()
+
+        // Then
+        await fulfillment(of: [apiServiceCalledExpectation], timeout: 0.1)
+    }
+
+    func testGetProductsSuccess() async throws {
+        // Given
+        apiService.mockResponseJSONData = """
+        [
+            {
+                "productId":"ddg-privacy-pro-sandbox-monthly-renews-us",
+                "productLabel":"Monthly Subscription",
+                "billingPeriod":"Monthly",
+                "price":"9.99",
+                "currency":"USD"
+            },
+            {
+                "productId":"ddg-privacy-pro-sandbox-yearly-renews-us",
+                "productLabel":"Yearly Subscription",
+                "billingPeriod":"Yearly",
+                "price":"99.99",
+                "currency":"USD"
+            }
+        ]
+        """.data(using: .utf8)!
+
+        // When
+        let result = await subscriptionService.getProducts()
+
+        // Then
+        switch result {
+        case .success(let success):
+            XCTAssertEqual(success.count, 2)
+        case .failure:
+            XCTFail("Unexpected failure")
+        }
+    }
+
+    func testGetProductsError() async throws {
+        // Given
+        apiService.mockAPICallError = Constants.unknownServerError
+
+        // When
+        let result = await subscriptionService.getProducts()
+
+        // Then
+        switch result {
+        case .success:
+            XCTFail("Unexpected success")
+        case .failure:
+            break
+        }
+    }
+
+    // MARK: - Tests for getCustomerPortalURL
+
+    func testGetCustomerPortalURLCall() async throws {
+        // Given
+        let apiServiceCalledExpectation = expectation(description: "apiService")
+
+        apiService.mockAuthHeaders = Constants.authorizationHeader
+        apiService.onExecuteAPICall = { parameters in
+            let (method, endpoint, headers, _) = parameters
+
+            apiServiceCalledExpectation.fulfill()
+            XCTAssertEqual(method, "GET")
+            XCTAssertEqual(endpoint, "checkout/portal")
+            XCTAssertEqual(headers?.count, 2)
+            XCTAssertEqual(headers?["externalAccountId"], Constants.externalID)
+
+            if let (authorizationHeaderKey, authorizationHeaderValue) = Constants.authorizationHeader.first {
+                XCTAssertEqual(headers?[authorizationHeaderKey], authorizationHeaderValue)
+            }
+        }
+
+        // When
+        _ = await subscriptionService.getCustomerPortalURL(accessToken: Constants.accessToken, externalID: Constants.externalID)
+
+        // Then
+        await fulfillment(of: [apiServiceCalledExpectation], timeout: 0.1)
+    }
+
+    func testGetCustomerPortalURLSuccess() async throws {
+        // Given
+        apiService.mockAuthHeaders = Constants.authorizationHeader
+        apiService.mockResponseJSONData = """
+        {
+            "customerPortalUrl":"\(Constants.customerPortalURL)"
+        }
+        """.data(using: .utf8)!
+
+        // When
+        let result = await subscriptionService.getCustomerPortalURL(accessToken: Constants.accessToken, externalID: Constants.externalID)
+
+        // Then
+        switch result {
+        case .success(let success):
+            XCTAssertEqual(success.customerPortalUrl, Constants.customerPortalURL)
+        case .failure:
+            XCTFail("Unexpected failure")
+        }
+    }
+
+    func testGetCustomerPortalURLError() async throws {
+        // Given
+        apiService.mockAuthHeaders = Constants.authorizationHeader
+        apiService.mockAPICallError = Constants.unknownServerError
+
+        // When
+        let result = await subscriptionService.getCustomerPortalURL(accessToken: Constants.accessToken, externalID: Constants.externalID)
+
+        // Then
+        switch result {
+        case .success:
+            XCTFail("Unexpected success")
+        case .failure:
+            break
+        }
+    }
+
+    // MARK: - Tests for confirmPurchase
+
+    func testConfirmPurchaseCall() async throws {
+        // Given
+        let apiServiceCalledExpectation = expectation(description: "apiService")
+
+        apiService.mockAuthHeaders = Constants.authorizationHeader
+        apiService.onExecuteAPICall = { parameters in
+            let (method, endpoint, headers, body) = parameters
+
+            apiServiceCalledExpectation.fulfill()
+            XCTAssertEqual(method, "POST")
+            XCTAssertEqual(endpoint, "purchase/confirm/apple")
+            XCTAssertEqual(headers, Constants.authorizationHeader)
+            XCTAssertNotNil(body)
+
+            if let bodyDict = try? JSONDecoder().decode([String: String].self, from: body!) {
+                XCTAssertEqual(bodyDict["signedTransactionInfo"], Constants.mostRecentTransactionJWS)
+            } else {
+                XCTFail("Failed to decode body")
+            }
+        }
+
+        // When
+        _ = await subscriptionService.confirmPurchase(accessToken: Constants.accessToken, signature: Constants.mostRecentTransactionJWS)
+
+        // Then
+        await fulfillment(of: [apiServiceCalledExpectation], timeout: 0.1)
+    }
+
+    func testConfirmPurchaseSuccess() async throws {
+        // Given
+        apiService.mockAuthHeaders = Constants.authorizationHeader
+        apiService.mockResponseJSONData = """
+        {
+            "email":"",
+            "entitlements":
+            [
+                {"product":"Data Broker Protection","name":"subscriber"},
+                {"product":"Identity Theft Restoration","name":"subscriber"},
+                {"product":"Network Protection","name":"subscriber"}
+            ],
+            "subscription":
+            {
+                "productId": "\(Constants.subscription.productId)",
+                "name": "\(Constants.subscription.name)",
+                "billingPeriod": "\(Constants.subscription.billingPeriod.rawValue)",
+                "startedAt": \(Constants.subscription.startedAt.timeIntervalSince1970*1000),
+                "expiresOrRenewsAt": \(Constants.subscription.expiresOrRenewsAt.timeIntervalSince1970*1000),
+                "platform": "\(Constants.subscription.platform.rawValue)",
+                "status": "\(Constants.subscription.status.rawValue)"
+            }
+        }
+        """.data(using: .utf8)!
+
+        // When
+        let result = await subscriptionService.confirmPurchase(accessToken: Constants.accessToken, signature: Constants.mostRecentTransactionJWS)
+
+        // Then
+        switch result {
+        case .success(let success):
+            XCTAssertEqual(success.entitlements.count, 3)
+            XCTAssertEqual(success.subscription.productId, Constants.subscription.productId)
+            XCTAssertEqual(success.subscription.name, Constants.subscription.name)
+            XCTAssertEqual(success.subscription.billingPeriod, Constants.subscription.billingPeriod)
+            XCTAssertEqual(success.subscription.startedAt.timeIntervalSince1970,
+                           Constants.subscription.startedAt.timeIntervalSince1970,
+                           accuracy: 0.001)
+            XCTAssertEqual(success.subscription.expiresOrRenewsAt.timeIntervalSince1970,
+                           Constants.subscription.expiresOrRenewsAt.timeIntervalSince1970,
+                           accuracy: 0.001)
+            XCTAssertEqual(success.subscription.platform, Constants.subscription.platform)
+            XCTAssertEqual(success.subscription.status, Constants.subscription.status)
+        case .failure:
+            XCTFail("Unexpected failure")
+        }
+    }
+
+    func testConfirmPurchaseError() async throws {
+        // Given
+        apiService.mockAuthHeaders = Constants.authorizationHeader
+        apiService.mockAPICallError = Constants.unknownServerError
+
+        // When
+        let result = await subscriptionService.confirmPurchase(accessToken: Constants.accessToken, signature: Constants.mostRecentTransactionJWS)
+
+        // Then
+        switch result {
+        case .success:
+            XCTFail("Unexpected success")
+        case .failure:
+            break
+        }
     }
 }
