@@ -75,7 +75,7 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
         return "macos"
         #endif
     }
-    public var dashboardHtml: String {
+    public lazy var dashboardHtml: String = {
         guard let file = Bundle.privacyDashboardResourcesBundle.path(forResource: dashboardHtmlName, ofType: "html", inDirectory: "html") else {
             assertionFailure("HTML for the PrivacyDashboard was not found")
             return ""
@@ -85,7 +85,7 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
             return ""
         }
         return html
-    }
+    }()
 
     public private(set) weak var privacyInfo: PrivacyInfo?
     private let entryPoint: PrivacyDashboardEntryPoint
