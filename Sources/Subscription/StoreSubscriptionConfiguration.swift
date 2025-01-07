@@ -19,6 +19,12 @@
 import Foundation
 import Combine
 
+/// Constants relating to `StoreSubscriptionConfiguration`
+enum StoreSubscriptionConstants {
+    /// The suffix appended to subscription identifiers to indicate that the subscription includes a free trial.
+    static let freeTrialSuffix = ".freetrial"
+}
+
 protocol StoreSubscriptionConfiguration {
     var allSubscriptionIdentifiers: [String] { get }
     func subscriptionIdentifiers(for country: String) -> [String]
@@ -36,7 +42,9 @@ final class DefaultStoreSubscriptionConfiguration: StoreSubscriptionConfiguratio
                   appIdentifier: "com.duckduckgo.mobile.ios",
                   environment: .production,
                   identifiersByRegion: [.usa: ["ddg.privacy.pro.monthly.renews.us",
-                                               "ddg.privacy.pro.yearly.renews.us"],
+                                               "ddg.privacy.pro.yearly.renews.us",
+                                               "ddg.privacy.pro.monthly.renews.us\(StoreSubscriptionConstants.freeTrialSuffix)",
+                                               "ddg.privacy.pro.yearly.renews.us\(StoreSubscriptionConstants.freeTrialSuffix)"],
                                         .restOfWorld: ["ddg.privacy.pro.monthly.renews.row",
                                                        "ddg.privacy.pro.yearly.renews.row"]]),
             // iOS debug Alpha build
@@ -45,8 +53,8 @@ final class DefaultStoreSubscriptionConfiguration: StoreSubscriptionConfiguratio
                   environment: .staging,
                   identifiersByRegion: [.usa: ["ios.subscription.1month",
                                                "ios.subscription.1year",
-                                               "ios.subscription.1month.freetrial.dev",
-                                               "ios.subscription.1year.freetrial.dev"],
+                                               "ios.subscription.1month\(StoreSubscriptionConstants.freeTrialSuffix).dev",
+                                               "ios.subscription.1year\(StoreSubscriptionConstants.freeTrialSuffix).dev"],
                                         .restOfWorld: ["ios.subscription.1month.row",
                                                        "ios.subscription.1year.row"]]),
             // macOS debug build

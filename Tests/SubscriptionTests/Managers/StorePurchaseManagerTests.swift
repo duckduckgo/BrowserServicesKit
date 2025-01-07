@@ -44,7 +44,7 @@ final class StorePurchaseManagerTests: XCTestCase {
             displayName: "Monthly Plan",
             displayPrice: "$9.99",
             isMonthly: true,
-            hasFreeTrialOffer: false
+            isFreeTrialProduct: false
         )
 
         let yearlyProduct = MockSubscriptionProduct(
@@ -52,7 +52,7 @@ final class StorePurchaseManagerTests: XCTestCase {
             displayName: "Yearly Plan",
             displayPrice: "$99.99",
             isYearly: true,
-            hasFreeTrialOffer: false
+            isFreeTrialProduct: false
         )
 
         let monthlyTrialProduct = MockSubscriptionProduct(
@@ -60,7 +60,7 @@ final class StorePurchaseManagerTests: XCTestCase {
             displayName: "Monthly Plan with Trial",
             displayPrice: "$9.99",
             isMonthly: true,
-            hasFreeTrialOffer: true,
+            isFreeTrialProduct: true,
             introOffer: MockIntroductoryOffer(
                 id: "trial1",
                 displayPrice: "Free",
@@ -92,7 +92,7 @@ final class StorePurchaseManagerTests: XCTestCase {
             displayName: "Monthly Plan with Trial",
             displayPrice: "$9.99",
             isMonthly: true,
-            hasFreeTrialOffer: true,
+            isFreeTrialProduct: true,
             introOffer: MockIntroductoryOffer(
                 id: "trial1",
                 displayPrice: "Free",
@@ -107,7 +107,7 @@ final class StorePurchaseManagerTests: XCTestCase {
             displayName: "Yearly Plan with Trial",
             displayPrice: "$99.99",
             isYearly: true,
-            hasFreeTrialOffer: true,
+            isFreeTrialProduct: true,
             introOffer: MockIntroductoryOffer(
                 id: "trial2",
                 displayPrice: "Free",
@@ -122,7 +122,7 @@ final class StorePurchaseManagerTests: XCTestCase {
             displayName: "Regular Plan",
             displayPrice: "$9.99",
             isMonthly: true,
-            hasFreeTrialOffer: false
+            isFreeTrialProduct: false
         )
 
         mockProductFetcher.mockProducts = [monthlyTrialProduct, yearlyTrialProduct, regularProduct]
@@ -148,7 +148,7 @@ final class StorePurchaseManagerTests: XCTestCase {
             displayName: "Monthly Plan",
             displayPrice: "$9.99",
             isMonthly: true,
-            hasFreeTrialOffer: false
+            isFreeTrialProduct: false
         )
 
         mockProductFetcher.mockProducts = [monthlyProduct]
@@ -168,7 +168,7 @@ final class StorePurchaseManagerTests: XCTestCase {
             displayName: "Monthly Plan with Trial",
             displayPrice: "$9.99",
             isMonthly: true,
-            hasFreeTrialOffer: true,
+            isFreeTrialProduct: true,
             introOffer: MockIntroductoryOffer(
                 id: "trial1",
                 displayPrice: "Free",
@@ -194,7 +194,7 @@ final class StorePurchaseManagerTests: XCTestCase {
             displayName: "Monthly Plan",
             displayPrice: "$9.99",
             isMonthly: true,
-            hasFreeTrialOffer: false
+            isFreeTrialProduct: false
         )
 
         let yearlyProduct = MockSubscriptionProduct(
@@ -202,7 +202,7 @@ final class StorePurchaseManagerTests: XCTestCase {
             displayName: "Yearly Plan",
             displayPrice: "$99.99",
             isYearly: true,
-            hasFreeTrialOffer: false
+            isFreeTrialProduct: false
         )
 
         mockProductFetcher.mockProducts = [monthlyProduct, yearlyProduct]
@@ -235,7 +235,7 @@ final class StorePurchaseManagerTests: XCTestCase {
             displayName: "Monthly Plan with Trial",
             displayPrice: "$9.99",
             isMonthly: true,
-            hasFreeTrialOffer: true,
+            isFreeTrialProduct: true,
             introOffer: MockIntroductoryOffer(
                 id: "trial1",
                 displayPrice: "$0.00",
@@ -250,7 +250,7 @@ final class StorePurchaseManagerTests: XCTestCase {
             displayName: "Yearly Plan with Trial",
             displayPrice: "$99.99",
             isYearly: true,
-            hasFreeTrialOffer: true,
+            isFreeTrialProduct: true,
             introOffer: MockIntroductoryOffer(
                 id: "trial2",
                 displayPrice: "$0.00",
@@ -413,7 +413,7 @@ private extension StorePurchaseManagerTests {
             displayName: "Monthly Plan\(withTrial ? " with Trial" : "")",
             displayPrice: "$9.99",
             isMonthly: true,
-            hasFreeTrialOffer: withTrial,
+            isFreeTrialProduct: withTrial,
             introOffer: withTrial ? MockIntroductoryOffer(
                 id: "trial1",
                 displayPrice: "Free",
@@ -430,7 +430,7 @@ private extension StorePurchaseManagerTests {
             displayName: "Yearly Plan\(withTrial ? " with Trial" : "")",
             displayPrice: "$99.99",
             isYearly: true,
-            hasFreeTrialOffer: withTrial,
+            isFreeTrialProduct: withTrial,
             introOffer: withTrial ? MockIntroductoryOffer(
                 id: "trial2",
                 displayPrice: "Free",
@@ -449,7 +449,7 @@ private class MockSubscriptionProduct: SubscriptionProduct {
     let description: String
     let isMonthly: Bool
     let isYearly: Bool
-    let hasFreeTrialOffer: Bool
+    let isFreeTrialProduct: Bool
     private let mockIntroOffer: MockIntroductoryOffer?
     private let mockIsEligibleForIntroOffer: Bool
 
@@ -459,7 +459,7 @@ private class MockSubscriptionProduct: SubscriptionProduct {
          description: String = "Mock Description",
          isMonthly: Bool = false,
          isYearly: Bool = false,
-         hasFreeTrialOffer: Bool = false,
+         isFreeTrialProduct: Bool = false,
          introOffer: MockIntroductoryOffer? = nil,
          isEligibleForIntroOffer: Bool = false) {
         self.id = id
@@ -468,7 +468,7 @@ private class MockSubscriptionProduct: SubscriptionProduct {
         self.description = description
         self.isMonthly = isMonthly
         self.isYearly = isYearly
-        self.hasFreeTrialOffer = hasFreeTrialOffer
+        self.isFreeTrialProduct = isFreeTrialProduct
         self.mockIntroOffer = introOffer
         self.mockIsEligibleForIntroOffer = isEligibleForIntroOffer
     }
