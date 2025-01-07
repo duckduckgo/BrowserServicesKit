@@ -219,7 +219,8 @@ final class FingerprintingReferenceTests: XCTestCase {
                                                              passwordGeneration: false,
                                                              inlineIconCredentials: false,
                                                              thirdPartyCredentialsProvider: false,
-                                                             unknownUsernameCategorization: false)
+                                                             unknownUsernameCategorization: false,
+                                                             partialFormSaves: false)
 
         let contentScopeProperties = ContentScopeProperties(gpcEnabled: false,
                                                             sessionKey: UUID().uuidString,
