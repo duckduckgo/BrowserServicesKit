@@ -19,7 +19,7 @@
 import XCTest
 @testable import Subscription
 @testable import Networking
-import TestUtils
+import NetworkingTestingUtils
 import SubscriptionTestingUtilities
 import JWTKit
 
@@ -93,9 +93,9 @@ final class PrivacyProSubscriptionIntegrationTests: XCTestCase {
         APIMockResponseFactory.mockCreateAccountResponse(destinationMockAPIService: apiService, success: true)
         APIMockResponseFactory.mockGetAccessTokenResponse(destinationMockAPIService: apiService, success: true)
         APIMockResponseFactory.mockGetJWKS(destinationMockAPIService: apiService, success: true)
-        APIMockResponseFactory.mockConfirmPurchase(destinationMockAPIService: apiService, success: true)
-        APIMockResponseFactory.mockGetProducts(destinationMockAPIService: apiService, success: true)
-        APIMockResponseFactory.mockGetFeatures(destinationMockAPIService: apiService, success: true, subscriptionID: "ios.subscription.1month")
+        SubscriptionAPIMockResponseFactory.mockConfirmPurchase(destinationMockAPIService: apiService, success: true)
+        SubscriptionAPIMockResponseFactory.mockGetProducts(destinationMockAPIService: apiService, success: true)
+        SubscriptionAPIMockResponseFactory.mockGetFeatures(destinationMockAPIService: apiService, success: true, subscriptionID: "ios.subscription.1month")
 
         (subscriptionManager.oAuthClient as! DefaultOAuthClient).testingDecodedTokenContainer = OAuthTokensFactory.makeValidTokenContainerWithEntitlements()
 
@@ -204,7 +204,7 @@ final class PrivacyProSubscriptionIntegrationTests: XCTestCase {
         (subscriptionManager.oAuthClient as! DefaultOAuthClient).testingDecodedTokenContainer = OAuthTokensFactory.makeValidTokenContainerWithEntitlements()
         storePurchaseManager.purchaseSubscriptionResult = .success("purchaseTransactionJWS")
 
-        APIMockResponseFactory.mockConfirmPurchase(destinationMockAPIService: apiService, success: false)
+        SubscriptionAPIMockResponseFactory.mockConfirmPurchase(destinationMockAPIService: apiService, success: false)
 
         var purchaseTransactionJWS: String?
         switch await appStorePurchaseFlow.purchaseSubscription(with: subscriptionSelectionID) {
@@ -232,8 +232,8 @@ final class PrivacyProSubscriptionIntegrationTests: XCTestCase {
         (subscriptionManager.oAuthClient as! DefaultOAuthClient).testingDecodedTokenContainer = OAuthTokensFactory.makeValidTokenContainerWithEntitlements()
         storePurchaseManager.purchaseSubscriptionResult = .success("purchaseTransactionJWS")
 
-        APIMockResponseFactory.mockConfirmPurchase(destinationMockAPIService: apiService, success: true)
-        APIMockResponseFactory.mockGetFeatures(destinationMockAPIService: apiService, success: false, subscriptionID: "ios.subscription.1month")
+        SubscriptionAPIMockResponseFactory.mockConfirmPurchase(destinationMockAPIService: apiService, success: true)
+        SubscriptionAPIMockResponseFactory.mockGetFeatures(destinationMockAPIService: apiService, success: false, subscriptionID: "ios.subscription.1month")
 
         (subscriptionManager.oAuthClient as! DefaultOAuthClient).testingDecodedTokenContainer = OAuthTokensFactory.makeValidTokenContainerWithEntitlements()
 

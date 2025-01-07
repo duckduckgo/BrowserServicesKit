@@ -19,7 +19,7 @@
 import XCTest
 @testable import Configuration
 @testable import Networking
-@testable import TestUtils
+import NetworkingTestingUtils
 
 final class ConfigurationFetcherTests: XCTestCase {
 

@@ -19,7 +19,6 @@
 import Foundation
 import Common
 @testable import Subscription
-import TestUtils
 
 public final class SubscriptionCookieManagerMock: SubscriptionCookieManaging {
 

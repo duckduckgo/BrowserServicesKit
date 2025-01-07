@@ -20,7 +20,7 @@ import XCTest
 @testable import Subscription
 @testable import Networking
 import SubscriptionTestingUtilities
-import TestUtils
+import NetworkingTestingUtils
 import Common
 
 final class SubscriptionEndpointServiceTests: XCTestCase {
@@ -103,7 +103,7 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
         let request = SubscriptionRequest.getSubscription(baseURL: baseURL, accessToken: "token")!.apiRequest
 
         // mock features
-        APIMockResponseFactory.mockGetFeatures(destinationMockAPIService: apiService, success: true, subscriptionID: "prod123")
+        SubscriptionAPIMockResponseFactory.mockGetFeatures(destinationMockAPIService: apiService, success: true, subscriptionID: "prod123")
 
         apiService.set(response: apiResponse, forRequest: request)
 

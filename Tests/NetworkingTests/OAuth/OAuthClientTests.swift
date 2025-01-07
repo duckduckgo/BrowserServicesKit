@@ -17,7 +17,7 @@
 //
 
 import XCTest
-import TestUtils
+import NetworkingTestingUtils
 @testable import Networking
 import JWTKit
 

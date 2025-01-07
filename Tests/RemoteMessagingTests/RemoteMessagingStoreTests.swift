@@ -21,7 +21,7 @@ import CoreData
 import Foundation
 import Persistence
 import RemoteMessagingTestsUtils
-import TestUtils
+import PersistenceTestingUtils
 import XCTest
 @testable import RemoteMessaging
 

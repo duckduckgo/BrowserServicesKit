@@ -19,7 +19,7 @@
 import XCTest
 import JWTKit
 @testable import Networking
-import TestUtils
+import NetworkingTestingUtils
 
 final class TokenContainerTests: XCTestCase {
 

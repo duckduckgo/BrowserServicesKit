@@ -23,7 +23,7 @@ import XCTest
 import Common
 @testable import Subscription
 @testable import Networking
-import TestUtils
+import NetworkingTestingUtils
 
 class NetworkProtectionLocationListCompositeRepositoryTests: XCTestCase {
     var repository: NetworkProtectionLocationListCompositeRepository!

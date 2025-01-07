@@ -20,7 +20,7 @@ import XCTest
 @testable import Subscription
 @testable import Networking
 import SubscriptionTestingUtilities
-import TestUtils
+import NetworkingTestingUtils
 
 @available(macOS 12.0, iOS 15.0, *)
 final class DefaultAppStorePurchaseFlowTests: XCTestCase {

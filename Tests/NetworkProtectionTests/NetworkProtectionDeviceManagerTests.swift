@@ -22,7 +22,7 @@ import XCTest
 @testable import NetworkProtectionTestUtils
 @testable import Networking
 @testable import Subscription
-import TestUtils
+import NetworkingTestingUtils
 
 final class NetworkProtectionDeviceManagerTests: XCTestCase {
     var tokenProvider: MockSubscriptionTokenProvider!

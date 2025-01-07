@@ -17,7 +17,7 @@
 //
 import Foundation
 @testable import Networking
-import TestUtils
+import NetworkingTestingUtils
 import XCTest
 
 @testable import MaliciousSiteProtection

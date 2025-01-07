@@ -18,9 +18,9 @@
 
 import XCTest
 @testable import Subscription
-@testable import Networking
 import SubscriptionTestingUtilities
-import TestUtils
+@testable import Networking
+import NetworkingTestingUtils
 
 @available(macOS 12.0, iOS 15.0, *)
 final class DefaultAppStoreRestoreFlowTests: XCTestCase {

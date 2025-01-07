@@ -20,7 +20,7 @@ import XCTest
 @testable import Subscription
 @testable import Networking
 import SubscriptionTestingUtilities
-import TestUtils
+import NetworkingTestingUtils
 
 class SubscriptionManagerTests: XCTestCase {
 

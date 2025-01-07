@@ -17,7 +17,6 @@
 //
 
 import XCTest
-import TestUtils
 @testable import Networking
 
 final class AuthServiceTests: XCTestCase {

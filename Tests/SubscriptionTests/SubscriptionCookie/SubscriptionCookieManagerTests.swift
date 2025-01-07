@@ -20,12 +20,9 @@ import XCTest
 import Common
 @testable import Subscription
 import SubscriptionTestingUtilities
-import TestUtils
+import NetworkingTestingUtils
 
 final class SubscriptionCookieManagerTests: XCTestCase {
-//    var subscriptionService: SubscriptionEndpointServiceMock!
-//    var storePurchaseManager: StorePurchaseManagerMock!
-//    var subscriptionEnvironment: SubscriptionEnvironment!
     var subscriptionManager: SubscriptionManagerMock!
 
     var cookieStore: HTTPCookieStore!
