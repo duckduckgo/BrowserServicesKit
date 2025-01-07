@@ -84,7 +84,7 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
             assertionFailure("Should be able to load HTML as a string")
             return ""
         }
-        return html;
+        return html
     }
 
     public private(set) weak var privacyInfo: PrivacyInfo?
