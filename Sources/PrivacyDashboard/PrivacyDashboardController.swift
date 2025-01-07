@@ -68,6 +68,24 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
     @Published public var theme: PrivacyDashboardTheme?
     @Published public var allowedPermissions: [AllowedPermission] = []
     public var preferredLocale: String?
+    public var dashboardHtmlName: String {
+        #if os(iOS)
+        return "ios"
+        #else
+        return "macos"
+        #endif
+    }
+    public var dashboardHtml: String {
+        guard let file = Bundle.privacyDashboardResourcesBundle.path(forResource: dashboardHtmlName, ofType: "html", inDirectory: "html") else {
+            assertionFailure("HTML for the PrivacyDashboard was not found")
+            return ""
+        }
+        guard let html = try? String(contentsOfFile: file) else {
+            assertionFailure("Should be able to load HTML as a string")
+            return ""
+        }
+        return html;
+    }
 
     public private(set) weak var privacyInfo: PrivacyInfo?
     private let entryPoint: PrivacyDashboardEntryPoint
@@ -124,7 +142,7 @@ public protocol PrivacyDashboardControllerDelegate: AnyObject {
 
     private func loadStartScreen() {
         let url = PrivacyDashboardURLBuilder(configuration: .startScreen(entryPoint: entryPoint, variant: variant)).build()
-        webView?.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent().deletingLastPathComponent())
+        webView?.loadHTMLString(dashboardHtml, baseURL: url.deletingLastPathComponent())
     }
 
     public func updatePrivacyInfo(_ privacyInfo: PrivacyInfo?) {
