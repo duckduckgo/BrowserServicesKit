@@ -65,6 +65,7 @@ public enum PrivacyFeature: String {
     case textZoom
     case adAttributionReporting
     case experimentTest
+    case forceOldAppDelegate
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
