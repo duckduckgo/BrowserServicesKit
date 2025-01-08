@@ -167,8 +167,6 @@ public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {
     case isLaunchedOverrideStripe
     case useUnifiedFeedback
     case setAccessTokenCookieForSubscriptionDomains
-    case isLaunchedROW
-    case isLaunchedROWOverride
     case freeTrials
 }
 
