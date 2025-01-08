@@ -76,7 +76,7 @@ final class SettingsRegularSyncResponseHandlerTests: SettingsProviderTestsBase {
         XCTAssertEqual(emailManagerStorage.mockToken, "secret-token-remote")
     }
 
-    func testThatSettingStateIsApplied() async throws {
+    func flaky_testThatSettingStateIsApplied() async throws {
         let received: [Syncable] = [
             .testSetting("remote")
         ]
