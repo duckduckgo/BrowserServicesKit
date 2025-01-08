@@ -97,7 +97,6 @@
       }
     },
     {
-      "parallelizable" : false,
       "target" : {
         "containerPath" : "container:",
         "identifier" : "SyncDataProvidersTests",
