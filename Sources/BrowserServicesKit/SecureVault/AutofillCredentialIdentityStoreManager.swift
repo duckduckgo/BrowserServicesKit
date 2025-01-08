@@ -19,6 +19,7 @@
 import Foundation
 import AuthenticationServices
 import Common
+import SecureStorage
 import os.log
 
 public protocol AutofillCredentialIdentityStoreManaging {
@@ -32,14 +33,17 @@ public protocol AutofillCredentialIdentityStoreManaging {
 final public class AutofillCredentialIdentityStoreManager: AutofillCredentialIdentityStoreManaging {
 
     private let credentialStore: ASCredentialIdentityStoring
-    private let vault: (any AutofillSecureVault)?
+    private var vault: (any AutofillSecureVault)?
+    private let reporter: SecureVaultReporting
     private let tld: TLD
 
     public init(credentialStore: ASCredentialIdentityStoring = ASCredentialIdentityStore.shared,
-                vault: (any AutofillSecureVault)?,
+                vault: (any AutofillSecureVault)? = nil,
+                reporter: SecureVaultReporting,
                 tld: TLD) {
         self.credentialStore = credentialStore
         self.vault = vault
+        self.reporter = reporter
         self.tld = tld
     }
 
@@ -240,8 +244,15 @@ final public class AutofillCredentialIdentityStoreManager: AutofillCredentialIde
 
     // MARK: - Private Secure Vault Operations
 
+    private func secureVault() -> (any AutofillSecureVault)? {
+        if vault == nil {
+            vault = try? AutofillSecureVaultFactory.makeVault(reporter: reporter)
+        }
+        return vault
+    }
+
     private func fetchAccounts() throws -> [SecureVaultModels.WebsiteAccount] {
-        guard let vault = vault else {
+        guard let vault = secureVault() else {
             Logger.autofill.error("Vault not created")
             return []
         }
@@ -256,7 +267,7 @@ final public class AutofillCredentialIdentityStoreManager: AutofillCredentialIde
     }
 
     private func fetchAccountsFor(domain: String) throws -> [SecureVaultModels.WebsiteAccount] {
-        guard let vault = vault else {
+        guard let vault = secureVault() else {
             Logger.autofill.error("Vault not created")
             return []
         }
