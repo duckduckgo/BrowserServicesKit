@@ -63,7 +63,6 @@ final class PrivacyProSubscriptionIntegrationTests: XCTestCase {
                                                          oAuthClient: authClient,
                                                          subscriptionEndpointService: subscriptionEndpointService,
                                                          subscriptionEnvironment: subscriptionEnvironment,
-                                                         subscriptionFeatureFlagger: subscriptionFeatureFlagger,
                                                          pixelHandler: pixelHandler)
 
         appStoreRestoreFlow = DefaultAppStoreRestoreFlow(subscriptionManager: subscriptionManager,

@@ -28,7 +28,6 @@ class SubscriptionManagerTests: XCTestCase {
     var mockOAuthClient: MockOAuthClient!
     var mockSubscriptionEndpointService: SubscriptionEndpointServiceMock!
     var mockStorePurchaseManager: StorePurchaseManagerMock!
-    var subscriptionFeatureFlagger: FeatureFlaggerMapping<SubscriptionFeatureFlags>!
 
     override func setUp() {
         super.setUp()
@@ -36,14 +35,12 @@ class SubscriptionManagerTests: XCTestCase {
         mockOAuthClient = MockOAuthClient()
         mockSubscriptionEndpointService = SubscriptionEndpointServiceMock()
         mockStorePurchaseManager = StorePurchaseManagerMock()
-        subscriptionFeatureFlagger = FeatureFlaggerMapping<SubscriptionFeatureFlags>(mapping: { $0.defaultState })
 
         subscriptionManager = DefaultSubscriptionManager(
             storePurchaseManager: mockStorePurchaseManager,
             oAuthClient: mockOAuthClient,
             subscriptionEndpointService: mockSubscriptionEndpointService,
             subscriptionEnvironment: SubscriptionEnvironment(serviceEnvironment: .staging, purchasePlatform: .stripe),
-            subscriptionFeatureFlagger: subscriptionFeatureFlagger,
             pixelHandler: { _ in }
         )
     }
@@ -86,7 +83,6 @@ class SubscriptionManagerTests: XCTestCase {
             oAuthClient: mockOAuthClient,
             subscriptionEndpointService: mockSubscriptionEndpointService,
             subscriptionEnvironment: SubscriptionEnvironment(serviceEnvironment: .staging, purchasePlatform: .stripe),
-            subscriptionFeatureFlagger: subscriptionFeatureFlagger,
             pixelHandler: { type in
                 XCTAssertEqual(type, .deadToken)
                 expectation.fulfill()
@@ -165,7 +161,6 @@ class SubscriptionManagerTests: XCTestCase {
             oAuthClient: mockOAuthClient,
             subscriptionEndpointService: mockSubscriptionEndpointService,
             subscriptionEnvironment: environment,
-            subscriptionFeatureFlagger: subscriptionFeatureFlagger,
             pixelHandler: { _ in }
         )
 
@@ -223,7 +218,6 @@ class SubscriptionManagerTests: XCTestCase {
             oAuthClient: mockOAuthClient,
             subscriptionEndpointService: mockSubscriptionEndpointService,
             subscriptionEnvironment: productionEnvironment,
-            subscriptionFeatureFlagger: subscriptionFeatureFlagger,
             pixelHandler: { _ in }
         )
 
@@ -243,7 +237,6 @@ class SubscriptionManagerTests: XCTestCase {
             oAuthClient: mockOAuthClient,
             subscriptionEndpointService: mockSubscriptionEndpointService,
             subscriptionEnvironment: stagingEnvironment,
-            subscriptionFeatureFlagger: subscriptionFeatureFlagger,
             pixelHandler: { _ in }
         )
 

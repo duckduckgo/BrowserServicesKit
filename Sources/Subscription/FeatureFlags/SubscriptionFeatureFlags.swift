@@ -19,8 +19,6 @@
 import Foundation
 
 public enum SubscriptionFeatureFlags {
-    case isLaunchedROW
-    case isLaunchedROWOverride
     case usePrivacyProUSARegionOverride
     case usePrivacyProROWRegionOverride
 }
@@ -29,8 +27,6 @@ public extension SubscriptionFeatureFlags {
 
     var defaultState: Bool {
         switch self {
-        case .isLaunchedROW, .isLaunchedROWOverride:
-            return true
         case .usePrivacyProUSARegionOverride, .usePrivacyProROWRegionOverride:
             return false
         }

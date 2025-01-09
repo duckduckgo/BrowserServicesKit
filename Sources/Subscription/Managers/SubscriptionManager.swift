@@ -139,20 +139,16 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     private let pixelHandler: PixelHandler
     public let currentEnvironment: SubscriptionEnvironment
 
-    private let subscriptionFeatureFlagger: FeatureFlaggerMapping<SubscriptionFeatureFlags>?
-
     public init(storePurchaseManager: StorePurchaseManager? = nil,
                 oAuthClient: any OAuthClient,
                 subscriptionEndpointService: SubscriptionEndpointService,
                 subscriptionEnvironment: SubscriptionEnvironment,
-                subscriptionFeatureFlagger: FeatureFlaggerMapping<SubscriptionFeatureFlags>?,
                 pixelHandler: @escaping PixelHandler) {
         self._storePurchaseManager = storePurchaseManager
         self.oAuthClient = oAuthClient
         self.subscriptionEndpointService = subscriptionEndpointService
         self.currentEnvironment = subscriptionEnvironment
         self.pixelHandler = pixelHandler
-        self.subscriptionFeatureFlagger = subscriptionFeatureFlagger
 
 #if !NETP_SYSTEM_EXTENSION
         switch currentEnvironment.purchasePlatform {
@@ -170,18 +166,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
 
     public var canPurchase: Bool {
         guard let storePurchaseManager = _storePurchaseManager else { return false }
-
-        switch storePurchaseManager.currentStorefrontRegion {
-        case .usa:
-            return storePurchaseManager.areProductsAvailable
-        case .restOfWorld:
-            if let subscriptionFeatureFlagger,
-               subscriptionFeatureFlagger.isFeatureOn(.isLaunchedROW) || subscriptionFeatureFlagger.isFeatureOn(.isLaunchedROWOverride) {
-                return storePurchaseManager.areProductsAvailable
-            } else {
-                return false
-            }
-        }
+        return storePurchaseManager.areProductsAvailable
     }
 
     @available(macOS 12.0, iOS 15.0, *)
@@ -388,35 +373,25 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     /// - Returns: An Array of SubscriptionFeature where each feature is enabled or disabled based on the user entitlements
     public func currentSubscriptionFeatures(forceRefresh: Bool) async -> [SubscriptionFeature] {
         guard isUserAuthenticated else { return [] }
+        do {
+            let currentSubscription = try await getSubscription(cachePolicy: .returnCacheDataDontLoad)
+            let tokenContainer = try await getTokenContainer(policy: forceRefresh ? .localForceRefresh : .local)
+            let userEntitlements = tokenContainer.decodedAccessToken.subscriptionEntitlements
+            let availableFeatures = currentSubscription.features ?? []
 
-        if let subscriptionFeatureFlagger,
-           subscriptionFeatureFlagger.isFeatureOn(.isLaunchedROW) || subscriptionFeatureFlagger.isFeatureOn(.isLaunchedROWOverride) {
-            do {
-                let currentSubscription = try await getSubscription(cachePolicy: .returnCacheDataDontLoad)
-                let tokenContainer = try await getTokenContainer(policy: forceRefresh ? .localForceRefresh : .local)
-                let userEntitlements = tokenContainer.decodedAccessToken.subscriptionEntitlements
-                let availableFeatures = currentSubscription.features ?? []
-
-                // Filter out the features that are not available because the user doesn't have the right entitlements
-                let result = availableFeatures.map({ featureEntitlement in
-                    let enabled = userEntitlements.contains(featureEntitlement)
-                    return SubscriptionFeature(entitlement: featureEntitlement, enabled: enabled)
-                })
-                Logger.subscription.log("""
+            // Filter out the features that are not available because the user doesn't have the right entitlements
+            let result = availableFeatures.map({ featureEntitlement in
+                let enabled = userEntitlements.contains(featureEntitlement)
+                return SubscriptionFeature(entitlement: featureEntitlement, enabled: enabled)
+            })
+            Logger.subscription.log("""
 User entitlements: \(userEntitlements, privacy: .public)
 Available Features: \(availableFeatures, privacy: .public)
 Subscription features: \(result, privacy: .public)
 """)
-                return result
-            } catch {
-                return []
-            }
-        } else {
-            let result = [SubscriptionFeature(entitlement: .networkProtection, enabled: true),
-                          SubscriptionFeature(entitlement: .dataBrokerProtection, enabled: true),
-                          SubscriptionFeature(entitlement: .identityTheftRestoration, enabled: true)]
-            Logger.subscription.debug("Default Subscription features: \(result)")
             return result
+        } catch {
+            return []
         }
     }
 
