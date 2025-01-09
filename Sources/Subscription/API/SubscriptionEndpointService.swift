@@ -100,10 +100,7 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
 
         let cachedSubscription: Subscription? = subscriptionCache.get()
         if subscription != cachedSubscription {
-            let defaultExpiryDate = Date().addingTimeInterval(subscriptionCache.settings.defaultExpirationInterval)
-            let expiryDate = min(defaultExpiryDate, subscription.expiresOrRenewsAt)
-
-            subscriptionCache.set(subscription, expires: expiryDate)
+            subscriptionCache.set(subscription)
             NotificationCenter.default.post(name: .subscriptionDidChange, object: self, userInfo: [UserDefaultsCacheKey.subscription: subscription])
         }
     }

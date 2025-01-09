@@ -66,6 +66,7 @@ public enum PrivacyFeature: String {
     case adAttributionReporting
     case experimentTest
     case forceOldAppDelegate
+    case htmlNewTabPage
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -159,16 +160,10 @@ public enum AutoconsentSubfeature: String, PrivacySubfeature {
 public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {
     public var parent: PrivacyFeature { .privacyPro }
 
-    case isLaunched
-    case isLaunchedStripe
     case allowPurchase
     case allowPurchaseStripe
-    case isLaunchedOverride
-    case isLaunchedOverrideStripe
     case useUnifiedFeedback
     case setAccessTokenCookieForSubscriptionDomains
-    case isLaunchedROW
-    case isLaunchedROWOverride
     case freeTrials
 }
 
@@ -194,4 +189,9 @@ public enum SyncPromotionSubfeature: String, PrivacySubfeature {
 public enum ExperimentTestSubfeatures: String, PrivacySubfeature {
     public var parent: PrivacyFeature { .experimentTest }
     case experimentTestAA
+}
+
+public enum HTMLNewTabPageSubfeature: String, Equatable, PrivacySubfeature {
+    public var parent: PrivacyFeature { .htmlNewTabPage }
+    case isLaunched
 }

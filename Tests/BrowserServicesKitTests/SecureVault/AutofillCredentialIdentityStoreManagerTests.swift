@@ -44,7 +44,7 @@ final class AutofillCredentialIdentityStoreManagerTests: XCTestCase {
         mockVault = DefaultAutofillSecureVault(providers: providers)
 
         tld = TLD()
-        manager = AutofillCredentialIdentityStoreManager(credentialStore: mockStore, vault: mockVault, tld: tld)
+        manager = AutofillCredentialIdentityStoreManager(credentialStore: mockStore, vault: mockVault, reporter: MockSecureVaultReporting(), tld: tld)
     }
 
     override func tearDown() {
@@ -204,4 +204,8 @@ final class AutofillCredentialIdentityStoreManagerTests: XCTestCase {
         return SecureVaultModels.WebsiteAccount(id: id, username: username, domain: domain, signature: signature, created: created, lastUpdated: lastUpdated, lastUsed: lastUsed)
     }
 
+}
+
+private class MockSecureVaultReporting: SecureVaultReporting {
+    func secureVaultError(_ error: SecureStorage.SecureStorageError) {}
 }

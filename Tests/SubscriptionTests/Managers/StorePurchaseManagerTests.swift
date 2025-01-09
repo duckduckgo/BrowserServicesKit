@@ -358,7 +358,7 @@ final class StorePurchaseManagerTests: XCTestCase {
 
         // When - Switch to ROW region
         mockProductFetcher.mockProducts = [rowMonthlyProduct, rowYearlyProduct]
-        mockFeatureFlagger.enabledFeatures = [.isLaunchedROW, .usePrivacyProROWRegionOverride]
+        mockFeatureFlagger.enabledFeatures = [.usePrivacyProROWRegionOverride]
         await sut.updateAvailableProducts()
 
         // Then - Verify ROW products

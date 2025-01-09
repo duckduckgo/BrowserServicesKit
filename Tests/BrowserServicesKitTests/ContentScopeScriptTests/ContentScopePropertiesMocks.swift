@@ -28,5 +28,6 @@ extension ContentScopeFeatureToggles {
                                                          passwordGeneration: true,
                                                          inlineIconCredentials: true,
                                                          thirdPartyCredentialsProvider: false,
-                                                         unknownUsernameCategorization: true)
+                                                         unknownUsernameCategorization: true,
+                                                         partialFormSaves: true)
 }
