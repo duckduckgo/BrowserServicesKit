@@ -108,7 +108,6 @@ final class SubscriptionFeatureAvailabilityTests: XCTestCase {
         XCTAssertTrue(subscriptionFeatureAvailability.isSubscriptionPurchaseAllowed)
     }
 
-
     func testStripeSubscriptionPurchaseAllowedWhenAllFlagsDisabledAndInternalUser() {
         internalUserDeciderStore.isInternalUser = true
         XCTAssertTrue(internalUserDeciderStore.isInternalUser)

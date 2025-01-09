@@ -300,7 +300,7 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
                        .init(from: yearly, withRecurrence: "yearly")]
 
         let features: [SubscriptionFeature] = await subscriptionFeatureMappingCache.subscriptionFeatures(for: monthly.id).compactMap { SubscriptionFeature(name: $0) }
-        
+
         return SubscriptionOptions(platform: platform,
                                    options: options,
                                    features: features)
