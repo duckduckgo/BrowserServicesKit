@@ -20,7 +20,6 @@ import Foundation
 import Subscription
 
 public protocol SubscriptionFeatureAvailability {
-    var isFeatureAvailable: Bool { get }
     var isSubscriptionPurchaseAllowed: Bool { get }
     var usesUnifiedFeedbackForm: Bool { get }
 }
@@ -34,10 +33,6 @@ public final class DefaultSubscriptionFeatureAvailability: SubscriptionFeatureAv
                 purchasePlatform: SubscriptionEnvironment.PurchasePlatform) {
         self.privacyConfigurationManager = privacyConfigurationManager
         self.purchasePlatform = purchasePlatform
-    }
-
-    public var isFeatureAvailable: Bool {
-        isInternalUser || isSubscriptionLaunched || isSubscriptionLaunchedOverride
     }
 
     public var isSubscriptionPurchaseAllowed: Bool {
@@ -61,23 +56,5 @@ public final class DefaultSubscriptionFeatureAvailability: SubscriptionFeatureAv
 
     private var isInternalUser: Bool {
         privacyConfigurationManager.internalUserDecider.isInternalUser
-    }
-
-    private var isSubscriptionLaunched: Bool {
-        switch purchasePlatform {
-        case .appStore:
-            privacyConfigurationManager.privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.isLaunched)
-        case .stripe:
-            privacyConfigurationManager.privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.isLaunchedStripe)
-        }
-    }
-
-    private var isSubscriptionLaunchedOverride: Bool {
-        switch purchasePlatform {
-        case .appStore:
-            privacyConfigurationManager.privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.isLaunchedOverride)
-        case .stripe:
-            privacyConfigurationManager.privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.isLaunchedOverrideStripe)
-        }
     }
 }
