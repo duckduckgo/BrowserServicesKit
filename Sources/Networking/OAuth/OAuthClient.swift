@@ -211,7 +211,7 @@ final public class DefaultOAuthClient: OAuthClient {
         switch policy {
         case .local:
             if let localTokenContainer {
-                Logger.OAuthClient.debug("Local tokens found, expiry: \(localTokenContainer.decodedAccessToken.exp.value)")
+                Logger.OAuthClient.debug("Local tokens found, expiry: \(localTokenContainer.decodedAccessToken.exp.value, privacy: .public)")
                 return localTokenContainer
             } else {
                 Logger.OAuthClient.debug("Tokens not found")
@@ -219,7 +219,7 @@ final public class DefaultOAuthClient: OAuthClient {
             }
         case .localValid:
             if let localTokenContainer {
-                Logger.OAuthClient.debug("Local tokens found, expiry: \(localTokenContainer.decodedAccessToken.exp.value)")
+                Logger.OAuthClient.debug("Local tokens found, expiry: \(localTokenContainer.decodedAccessToken.exp.value, privacy: .public)")
                 if localTokenContainer.decodedAccessToken.isExpired() {
                     Logger.OAuthClient.debug("Local access token is expired, refreshing it")
                     return try await getTokens(policy: .localForceRefresh)
