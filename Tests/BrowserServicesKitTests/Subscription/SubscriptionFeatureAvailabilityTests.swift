@@ -47,157 +47,75 @@ final class SubscriptionFeatureAvailabilityTests: XCTestCase {
 
     // MARK: - Tests for App Store
 
-    func testSubscriptionFeatureNotAvailableWhenAllFlagsDisabledAndNotInternalUser() {
+    func testSubscriptionPurchaseNotAllowedWhenAllFlagsDisabledAndNotInternalUser() {
         internalUserDeciderStore.isInternalUser = false
         XCTAssertFalse(internalUserDeciderStore.isInternalUser)
 
-        XCTAssertFalse(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.isLaunched))
-        XCTAssertFalse(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.isLaunchedOverride))
         XCTAssertFalse(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.allowPurchase))
 
         let subscriptionFeatureAvailability = DefaultSubscriptionFeatureAvailability(privacyConfigurationManager: privacyConfigurationManager,
                                                                                      purchasePlatform: .appStore)
-        XCTAssertFalse(subscriptionFeatureAvailability.isFeatureAvailable)
         XCTAssertFalse(subscriptionFeatureAvailability.isSubscriptionPurchaseAllowed)
     }
 
-    func testSubscriptionFeatureAvailableWhenIsLaunchedFlagEnabled() {
+    func testSubscriptionPurchaseAllowedWhenAllowPurchaseFlagEnabled() {
         internalUserDeciderStore.isInternalUser = false
         XCTAssertFalse(internalUserDeciderStore.isInternalUser)
 
-        privacyConfig.isSubfeatureEnabledCheck = makeSubfeatureEnabledCheck(for: [.isLaunched, .allowPurchase])
+        privacyConfig.isSubfeatureEnabledCheck = makeSubfeatureEnabledCheck(for: [.allowPurchase])
 
-        XCTAssertTrue(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.isLaunched))
-        XCTAssertFalse(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.isLaunchedOverride))
         XCTAssertTrue(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.allowPurchase))
 
         let subscriptionFeatureAvailability = DefaultSubscriptionFeatureAvailability(privacyConfigurationManager: privacyConfigurationManager,
                                                                                      purchasePlatform: .appStore)
-        XCTAssertTrue(subscriptionFeatureAvailability.isFeatureAvailable)
         XCTAssertTrue(subscriptionFeatureAvailability.isSubscriptionPurchaseAllowed)
     }
 
-    func testSubscriptionFeatureAvailableWhenIsLaunchedOverrideFlagEnabled() {
-        internalUserDeciderStore.isInternalUser = false
-        XCTAssertFalse(internalUserDeciderStore.isInternalUser)
-
-        privacyConfig.isSubfeatureEnabledCheck = makeSubfeatureEnabledCheck(for: [.isLaunchedOverride, .allowPurchase])
-
-        XCTAssertFalse(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.isLaunched))
-        XCTAssertTrue(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.isLaunchedOverride))
-        XCTAssertTrue(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.allowPurchase))
-
-        let subscriptionFeatureAvailability = DefaultSubscriptionFeatureAvailability(privacyConfigurationManager: privacyConfigurationManager,
-                                                                                     purchasePlatform: .appStore)
-        XCTAssertTrue(subscriptionFeatureAvailability.isFeatureAvailable)
-        XCTAssertTrue(subscriptionFeatureAvailability.isSubscriptionPurchaseAllowed)
-    }
-
-    func testSubscriptionFeatureAvailableAndPurchaseNotAllowed() {
-        internalUserDeciderStore.isInternalUser = false
-        XCTAssertFalse(internalUserDeciderStore.isInternalUser)
-
-        privacyConfig.isSubfeatureEnabledCheck = makeSubfeatureEnabledCheck(for: [.isLaunched])
-
-        XCTAssertTrue(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.isLaunched))
-        XCTAssertFalse(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.isLaunchedOverride))
-        XCTAssertFalse(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.allowPurchase))
-
-        let subscriptionFeatureAvailability = DefaultSubscriptionFeatureAvailability(privacyConfigurationManager: privacyConfigurationManager,
-                                                                                     purchasePlatform: .appStore)
-        XCTAssertTrue(subscriptionFeatureAvailability.isFeatureAvailable)
-        XCTAssertFalse(subscriptionFeatureAvailability.isSubscriptionPurchaseAllowed)
-    }
-
-    func testSubscriptionFeatureAvailableWhenAllFlagsDisabledAndInternalUser() {
+    func testSubscriptionPurchaseAllowedWhenAllFlagsDisabledAndInternalUser() {
         internalUserDeciderStore.isInternalUser = true
         XCTAssertTrue(internalUserDeciderStore.isInternalUser)
 
-        XCTAssertFalse(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.isLaunched))
-        XCTAssertFalse(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.isLaunchedOverride))
         XCTAssertFalse(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.allowPurchase))
 
         let subscriptionFeatureAvailability = DefaultSubscriptionFeatureAvailability(privacyConfigurationManager: privacyConfigurationManager,
                                                                                      purchasePlatform: .appStore)
-        XCTAssertTrue(subscriptionFeatureAvailability.isFeatureAvailable)
         XCTAssertTrue(subscriptionFeatureAvailability.isSubscriptionPurchaseAllowed)
     }
 
     // MARK: - Tests for Stripe
 
-    func testStripeSubscriptionFeatureNotAvailableWhenAllFlagsDisabledAndNotInternalUser() {
+    func testStripeSubscriptionPurchaseNotAllowedWhenAllFlagsDisabledAndNotInternalUser() {
         internalUserDeciderStore.isInternalUser = false
         XCTAssertFalse(internalUserDeciderStore.isInternalUser)
 
-        XCTAssertFalse(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.isLaunchedStripe))
-        XCTAssertFalse(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.isLaunchedOverrideStripe))
         XCTAssertFalse(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.allowPurchaseStripe))
 
         let subscriptionFeatureAvailability = DefaultSubscriptionFeatureAvailability(privacyConfigurationManager: privacyConfigurationManager,
                                                                                      purchasePlatform: .stripe)
-        XCTAssertFalse(subscriptionFeatureAvailability.isFeatureAvailable)
         XCTAssertFalse(subscriptionFeatureAvailability.isSubscriptionPurchaseAllowed)
     }
 
-    func testStripeSubscriptionFeatureAvailableWhenIsLaunchedFlagEnabled() {
+    func testStripeSubscriptionPurchaseAllowedWhenAllowPurchaseFlagEnabled() {
         internalUserDeciderStore.isInternalUser = false
         XCTAssertFalse(internalUserDeciderStore.isInternalUser)
 
-        privacyConfig.isSubfeatureEnabledCheck = makeSubfeatureEnabledCheck(for: [.isLaunchedStripe, .allowPurchaseStripe])
+        privacyConfig.isSubfeatureEnabledCheck = makeSubfeatureEnabledCheck(for: [.allowPurchaseStripe])
 
-        XCTAssertTrue(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.isLaunchedStripe))
-        XCTAssertFalse(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.isLaunchedOverrideStripe))
         XCTAssertTrue(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.allowPurchaseStripe))
 
         let subscriptionFeatureAvailability = DefaultSubscriptionFeatureAvailability(privacyConfigurationManager: privacyConfigurationManager,
                                                                                      purchasePlatform: .stripe)
-        XCTAssertTrue(subscriptionFeatureAvailability.isFeatureAvailable)
         XCTAssertTrue(subscriptionFeatureAvailability.isSubscriptionPurchaseAllowed)
     }
 
-    func testStripeSubscriptionFeatureAvailableWhenIsLaunchedOverrideFlagEnabled() {
-        internalUserDeciderStore.isInternalUser = false
-        XCTAssertFalse(internalUserDeciderStore.isInternalUser)
-
-        privacyConfig.isSubfeatureEnabledCheck = makeSubfeatureEnabledCheck(for: [.isLaunchedOverrideStripe, .allowPurchaseStripe])
-
-        XCTAssertFalse(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.isLaunchedStripe))
-        XCTAssertTrue(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.isLaunchedOverrideStripe))
-        XCTAssertTrue(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.allowPurchaseStripe))
-
-        let subscriptionFeatureAvailability = DefaultSubscriptionFeatureAvailability(privacyConfigurationManager: privacyConfigurationManager,
-                                                                                     purchasePlatform: .stripe)
-        XCTAssertTrue(subscriptionFeatureAvailability.isFeatureAvailable)
-        XCTAssertTrue(subscriptionFeatureAvailability.isSubscriptionPurchaseAllowed)
-    }
-
-    func testStripeSubscriptionFeatureAvailableAndPurchaseNotAllowed() {
-        internalUserDeciderStore.isInternalUser = false
-        XCTAssertFalse(internalUserDeciderStore.isInternalUser)
-
-        privacyConfig.isSubfeatureEnabledCheck = makeSubfeatureEnabledCheck(for: [.isLaunchedStripe])
-
-        XCTAssertTrue(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.isLaunchedStripe))
-        XCTAssertFalse(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.isLaunchedOverrideStripe))
-        XCTAssertFalse(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.allowPurchaseStripe))
-
-        let subscriptionFeatureAvailability = DefaultSubscriptionFeatureAvailability(privacyConfigurationManager: privacyConfigurationManager,
-                                                                                     purchasePlatform: .stripe)
-        XCTAssertTrue(subscriptionFeatureAvailability.isFeatureAvailable)
-        XCTAssertFalse(subscriptionFeatureAvailability.isSubscriptionPurchaseAllowed)
-    }
-
-    func testStripeSubscriptionFeatureAvailableWhenAllFlagsDisabledAndInternalUser() {
+    func testStripeSubscriptionPurchaseAllowedWhenAllFlagsDisabledAndInternalUser() {
         internalUserDeciderStore.isInternalUser = true
         XCTAssertTrue(internalUserDeciderStore.isInternalUser)
 
-        XCTAssertFalse(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.isLaunchedStripe))
-        XCTAssertFalse(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.isLaunchedOverrideStripe))
         XCTAssertFalse(privacyConfig.isSubfeatureEnabled(PrivacyProSubfeature.allowPurchaseStripe))
 
         let subscriptionFeatureAvailability = DefaultSubscriptionFeatureAvailability(privacyConfigurationManager: privacyConfigurationManager,
                                                                                      purchasePlatform: .stripe)
-        XCTAssertTrue(subscriptionFeatureAvailability.isFeatureAvailable)
         XCTAssertTrue(subscriptionFeatureAvailability.isSubscriptionPurchaseAllowed)
     }
 

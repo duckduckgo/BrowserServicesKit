@@ -48,22 +48,18 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     public let subscriptionFeatureMappingCache: SubscriptionFeatureMappingCache
     public let currentEnvironment: SubscriptionEnvironment
 
-    private let subscriptionFeatureFlagger: FeatureFlaggerMapping<SubscriptionFeatureFlags>
-
     public init(storePurchaseManager: StorePurchaseManager? = nil,
                 accountManager: AccountManager,
                 subscriptionEndpointService: SubscriptionEndpointService,
                 authEndpointService: AuthEndpointService,
                 subscriptionFeatureMappingCache: SubscriptionFeatureMappingCache,
-                subscriptionEnvironment: SubscriptionEnvironment,
-                subscriptionFeatureFlagger: FeatureFlaggerMapping<SubscriptionFeatureFlags>) {
+                subscriptionEnvironment: SubscriptionEnvironment) {
         self._storePurchaseManager = storePurchaseManager
         self.accountManager = accountManager
         self.subscriptionEndpointService = subscriptionEndpointService
         self.authEndpointService = authEndpointService
         self.subscriptionFeatureMappingCache = subscriptionFeatureMappingCache
         self.currentEnvironment = subscriptionEnvironment
-        self.subscriptionFeatureFlagger = subscriptionFeatureFlagger
 
         switch currentEnvironment.purchasePlatform {
         case .appStore:
@@ -80,16 +76,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     public var canPurchase: Bool {
         guard let storePurchaseManager = _storePurchaseManager else { return false }
 
-        switch storePurchaseManager.currentStorefrontRegion {
-        case .usa:
-            return storePurchaseManager.areProductsAvailable
-        case .restOfWorld:
-            if subscriptionFeatureFlagger.isFeatureOn(.isLaunchedROW) || subscriptionFeatureFlagger.isFeatureOn(.isLaunchedROWOverride) {
-                return storePurchaseManager.areProductsAvailable
-            } else {
-                return false
-            }
-        }
+        return storePurchaseManager.areProductsAvailable
     }
 
     @available(macOS 12.0, iOS 15.0, *)
@@ -176,15 +163,11 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     public func currentSubscriptionFeatures() async -> [Entitlement.ProductName] {
         guard let token = accountManager.accessToken else { return [] }
 
-        if subscriptionFeatureFlagger.isFeatureOn(.isLaunchedROW) || subscriptionFeatureFlagger.isFeatureOn(.isLaunchedROWOverride) {
-            switch await subscriptionEndpointService.getSubscription(accessToken: token, cachePolicy: .returnCacheDataElseLoad) {
-            case .success(let subscription):
-                return await subscriptionFeatureMappingCache.subscriptionFeatures(for: subscription.productId)
-            case .failure:
-                return []
-            }
-        } else {
-            return [.networkProtection, .dataBrokerProtection, .identityTheftRestoration]
+        switch await subscriptionEndpointService.getSubscription(accessToken: token, cachePolicy: .returnCacheDataElseLoad) {
+        case .success(let subscription):
+            return await subscriptionFeatureMappingCache.subscriptionFeatures(for: subscription.productId)
+        case .failure:
+            return []
         }
     }
 }

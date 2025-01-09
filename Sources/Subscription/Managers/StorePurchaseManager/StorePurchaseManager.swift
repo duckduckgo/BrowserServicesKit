@@ -134,20 +134,15 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
             let storefrontCountryCode: String?
             let storefrontRegion: SubscriptionRegion
 
-            if let featureFlagger = subscriptionFeatureFlagger, featureFlagger.isFeatureOn(.isLaunchedROW) || featureFlagger.isFeatureOn(.isLaunchedROWOverride) {
-                if let subscriptionFeatureFlagger, subscriptionFeatureFlagger.isFeatureOn(.usePrivacyProUSARegionOverride) {
-                    storefrontCountryCode = "USA"
-                } else if let subscriptionFeatureFlagger, subscriptionFeatureFlagger.isFeatureOn(.usePrivacyProROWRegionOverride) {
-                    storefrontCountryCode = "POL"
-                } else {
-                    storefrontCountryCode = await Storefront.current?.countryCode
-                }
-
-                storefrontRegion = SubscriptionRegion.matchingRegion(for: storefrontCountryCode ?? "USA") ?? .usa // Fallback to USA
-            } else {
+            if let subscriptionFeatureFlagger, subscriptionFeatureFlagger.isFeatureOn(.usePrivacyProUSARegionOverride) {
                 storefrontCountryCode = "USA"
-                storefrontRegion = .usa
+            } else if let subscriptionFeatureFlagger, subscriptionFeatureFlagger.isFeatureOn(.usePrivacyProROWRegionOverride) {
+                storefrontCountryCode = "POL"
+            } else {
+                storefrontCountryCode = await Storefront.current?.countryCode
             }
+
+            storefrontRegion = SubscriptionRegion.matchingRegion(for: storefrontCountryCode ?? "USA") ?? .usa // Fallback to USA
 
             self.currentStorefrontRegion = storefrontRegion
             let applicableProductIdentifiers = storeSubscriptionConfiguration.subscriptionIdentifiers(for: storefrontRegion)
@@ -304,14 +299,7 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
         let options: [SubscriptionOption] = await [.init(from: monthly, withRecurrence: "monthly"),
                        .init(from: yearly, withRecurrence: "yearly")]
 
-        let features: [SubscriptionFeature]
-
-        if let featureFlagger = subscriptionFeatureFlagger, featureFlagger.isFeatureOn(.isLaunchedROW) || featureFlagger.isFeatureOn(.isLaunchedROWOverride) {
-            features = await subscriptionFeatureMappingCache.subscriptionFeatures(for: monthly.id).compactMap { SubscriptionFeature(name: $0) }
-        } else {
-            let allFeatures: [Entitlement.ProductName] = [.networkProtection, .dataBrokerProtection, .identityTheftRestoration]
-            features = allFeatures.compactMap { SubscriptionFeature(name: $0) }
-        }
+        let features: [SubscriptionFeature] = await subscriptionFeatureMappingCache.subscriptionFeatures(for: monthly.id).compactMap { SubscriptionFeature(name: $0) }
 
         return SubscriptionOptions(platform: platform,
                                    options: options,

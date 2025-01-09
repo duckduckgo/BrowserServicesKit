@@ -160,16 +160,10 @@ public enum AutoconsentSubfeature: String, PrivacySubfeature {
 public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {
     public var parent: PrivacyFeature { .privacyPro }
 
-    case isLaunched
-    case isLaunchedStripe
     case allowPurchase
     case allowPurchaseStripe
-    case isLaunchedOverride
-    case isLaunchedOverrideStripe
     case useUnifiedFeedback
     case setAccessTokenCookieForSubscriptionDomains
-    case isLaunchedROW
-    case isLaunchedROWOverride
     case freeTrials
 }
 
