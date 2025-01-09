@@ -196,3 +196,8 @@ public enum ExperimentTestSubfeatures: String, PrivacySubfeature {
     public var parent: PrivacyFeature { .experimentTest }
     case experimentTestAA
 }
+
+public enum HTMLNewTabPageSubfeature: String, Equatable, PrivacySubfeature {
+    public var parent: PrivacyFeature { .htmlNewTabPage }
+    case isLaunched
+}
