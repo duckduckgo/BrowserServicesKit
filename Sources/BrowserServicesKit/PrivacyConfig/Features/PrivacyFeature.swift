@@ -121,6 +121,9 @@ public enum AIChatSubfeature: String, Equatable, PrivacySubfeature {
 
     /// Displays the AI Chat icon in the iOS address bar while on a SERP.
     case addressBarShortcut
+
+    /// Web and native integration for opening AI Chat in a custom webview.
+    case deepLink
 }
 
 public enum NetworkProtectionSubfeature: String, Equatable, PrivacySubfeature {
