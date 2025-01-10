@@ -175,6 +175,7 @@ let package = Package(
             dependencies: [
                 "Common",
                 "CxxCrashHandler",
+                "Persistence",
             ]),
         .target(
             name: "CxxCrashHandler",

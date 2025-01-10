@@ -123,7 +123,7 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
                     Logger.subscriptionStripePurchaseFlow.error("Failed to create a new account: \(error.localizedDescription, privacy: .public)")
                     return .failure(.accountCreationFailed(error))
                 } catch {
-                    Logger.subscriptionStripePurchaseFlow.error("Failed to create a new account: \(error.localizedDescription, privacy: .public), the operation is unrecoverable")
+                    Logger.subscriptionStripePurchaseFlow.fault("Failed to create a new account: \(error.localizedDescription, privacy: .public), the operation is unrecoverable")
                     return .failure(.internalError(error))
                 }
             }

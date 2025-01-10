@@ -249,9 +249,14 @@ final public class DefaultOAuthClient: OAuthClient {
                 return try await getTokens(policy: .localValid)
             } catch {
                 Logger.OAuthClient.debug("Local token not found, creating a new account")
-                let tokens = try await createAccount()
-                tokenStorage.tokenContainer = tokens
-                return tokens
+                do {
+                    let tokens = try await createAccount()
+                    tokenStorage.tokenContainer = tokens
+                    return tokens
+                } catch {
+                    Logger.OAuthClient.fault("Failed to create account: \(error, privacy: .public)")
+                    throw error
+                }
             }
         }
     }
