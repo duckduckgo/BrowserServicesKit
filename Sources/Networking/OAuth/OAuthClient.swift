@@ -134,9 +134,10 @@ final public class DefaultOAuthClient: OAuthClient {
     public var legacyTokenStorage: (any LegacyTokenStoring)?
 
     public init(tokensStorage: any TokenStoring,
-                legacyTokenStorage: (any LegacyTokenStoring)? = nil,
+                legacyTokenStorage: (any LegacyTokenStoring)?,
                 authService: OAuthService) {
         self.tokenStorage = tokensStorage
+        self.legacyTokenStorage = legacyTokenStorage
         self.authService = authService
     }
 
@@ -200,13 +201,8 @@ final public class DefaultOAuthClient: OAuthClient {
     }
 
     public func getTokens(policy: TokensCachePolicy) async throws -> TokenContainer {
-        let localTokenContainer: TokenContainer?
         // V1 to V2 tokens migration
-        if let migratedTokenContainer = await migrateLegacyTokenIfNeeded() {
-            localTokenContainer = migratedTokenContainer
-        } else {
-            localTokenContainer = tokenStorage.tokenContainer
-        }
+        let localTokenContainer: TokenContainer? = await migrateLegacyTokenIfNeeded() ?? tokenStorage.tokenContainer
 
         switch policy {
         case .local:
@@ -263,7 +259,7 @@ final public class DefaultOAuthClient: OAuthClient {
     /// Tries to retrieve the v1 auth token stored locally, if present performs a migration to v2 and removes the old token
     private func migrateLegacyTokenIfNeeded() async -> TokenContainer? {
         guard var legacyTokenStorage,
-                let legacyToken = legacyTokenStorage.token else {
+              let legacyToken = legacyTokenStorage.token else {
             return nil
         }
 

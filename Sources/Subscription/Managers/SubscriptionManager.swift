@@ -234,6 +234,9 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
         } catch SubscriptionEndpointServiceError.noData {
 //            await signOut()
             throw SubscriptionEndpointServiceError.noData
+        } catch {
+            Logger.networking.error("Error getting subscription: \(error, privacy: .public)")
+            throw SubscriptionEndpointServiceError.noData
         }
     }
 
@@ -374,7 +377,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     public func currentSubscriptionFeatures(forceRefresh: Bool) async -> [SubscriptionFeature] {
         guard isUserAuthenticated else { return [] }
         do {
-            let currentSubscription = try await getSubscription(cachePolicy: .returnCacheDataDontLoad)
+            let currentSubscription = try await getSubscription(cachePolicy: .returnCacheDataElseLoad)
             let tokenContainer = try await getTokenContainer(policy: forceRefresh ? .localForceRefresh : .local)
             let userEntitlements = tokenContainer.decodedAccessToken.subscriptionEntitlements
             let availableFeatures = currentSubscription.features ?? []
@@ -391,6 +394,7 @@ Subscription features: \(result, privacy: .public)
 """)
             return result
         } catch {
+            Logger.subscription.error("Error retrieving subscription features: \(error, privacy: .public)")
             return []
         }
     }

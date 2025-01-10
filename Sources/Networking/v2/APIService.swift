@@ -41,13 +41,19 @@ public class DefaultAPIService: APIService {
 
         Logger.networking.debug("Fetching: \(request.debugDescription)")
         let (data, response) = try await fetch(for: request.urlRequest)
-        Logger.networking.debug("Response: \(response.debugDescription) Data size: \(data.count) bytes")
 
         try Task.checkCancellation()
 
         // Check response code
         let httpResponse = try response.asHTTPURLResponse()
         let responseHTTPStatus = httpResponse.httpStatus
+
+        Logger.networking.debug("Response: [\(responseHTTPStatus.rawValue, privacy: .public)] \(response.debugDescription) Data size: \(data.count) bytes")
+#if DEBUG
+        if let bodyString = String(data: data, encoding: .utf8) {
+            Logger.networking.debug("Request body: \(bodyString)")
+        }
+#endif
 
         // First time the request is executed and the response is `.unauthorized` we try to refresh the authentication token
         if responseHTTPStatus == .unauthorized,

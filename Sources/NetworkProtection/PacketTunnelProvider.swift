@@ -1327,7 +1327,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     @available(iOS 17, *)
     @MainActor
     public func handleShutDown() async throws {
-        Logger.networkProtection.log("🔴 Disabling Connect On Demand and shutting down the tunnel")
+        Logger.networkProtection.log("⚫️ Disabling Connect On Demand and shutting down the tunnel")
         let managers = try await NETunnelProviderManager.loadAllFromPreferences()
 
         guard let manager = managers.first else {
@@ -1503,13 +1503,13 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
 
         guard let entitlementCheck else {
+            Logger.networkProtection.fault("Expected entitlement check but didn't find one")
             assertionFailure("Expected entitlement check but didn't find one")
             return
         }
 
         await entitlementMonitor.start(entitlementCheck: entitlementCheck) { [weak self] result in
-            /// Attempt tunnel shutdown & show messaging iff the entitlement is verified to be invalid
-            /// Ignore otherwise
+            /// Attempt tunnel shutdown & show messaging if the entitlement is verified to be invalid, Ignore otherwise
             switch result {
             case .invalidEntitlement:
                 await self?.handleAccessRevoked(attemptsShutdown: true)

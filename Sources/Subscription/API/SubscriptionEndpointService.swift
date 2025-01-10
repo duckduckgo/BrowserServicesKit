@@ -100,7 +100,7 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
 
         if statusCode.isSuccess {
             let subscription: PrivacyProSubscription = try response.decodeBody()
-            Logger.subscriptionEndpointService.log("Subscription details retrieved successfully: \(String(describing: subscription))")
+            Logger.subscriptionEndpointService.log("Subscription details retrieved successfully: \(String(describing: subscription), privacy: .public)")
 
             try await storeAndAddFeaturesIfNeededTo(subscription: subscription)
 
@@ -123,14 +123,15 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
         if subscription != cachedSubscription {
             var subscription = subscription
             // fetch remote features
+            Logger.subscriptionEndpointService.log("Getting features for subscription  \(subscription.productId, privacy: .public)")
             subscription.features = try await getSubscriptionFeatures(for: subscription.productId).features
 
             updateCache(with: subscription)
 
             Logger.subscriptionEndpointService.debug("""
 Subscription changed, updating cache and notifying observers.
-Old: \(cachedSubscription?.debugDescription ?? "nil")
-New: \(subscription.debugDescription)
+Old: \(cachedSubscription?.debugDescription ?? "nil", privacy: .public)
+New: \(subscription.debugDescription, privacy: .public)
 """)
         } else {
             Logger.subscriptionEndpointService.debug("No subscription update required")
@@ -234,7 +235,6 @@ New: \(subscription.debugDescription)
     }
 
     public func getSubscriptionFeatures(for subscriptionID: String) async throws -> GetSubscriptionFeaturesResponse {
-        Logger.subscriptionEndpointService.log("Getting subscription features")
         guard let request = SubscriptionRequest.subscriptionFeatures(baseURL: baseURL, subscriptionID: subscriptionID) else {
             throw SubscriptionEndpointServiceError.invalidRequest
         }
