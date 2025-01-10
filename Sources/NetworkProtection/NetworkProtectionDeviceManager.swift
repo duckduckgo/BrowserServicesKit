@@ -45,8 +45,10 @@ public enum NetworkProtectionServerSelectionMethod: CustomDebugStringConvertible
 }
 
 public enum NetworkProtectionDNSSettings: Codable, Equatable, CustomStringConvertible {
-    case `default`
+    case ddg(malwareProtection: Bool)
     case custom([String])
+
+    public static let `default` = NetworkProtectionDNSSettings.ddg(malwareProtection: false)
 
     public var usesCustomDNS: Bool {
         guard case .custom(let servers) = self, !servers.isEmpty else { return false }
@@ -55,7 +57,7 @@ public enum NetworkProtectionDNSSettings: Codable, Equatable, CustomStringConver
 
     public var description: String {
         switch self {
-        case .default: return "DuckDuckGo"
+        case .ddg: return "DuckDuckGo"
         case .custom(let servers): return servers.joined(separator: ", ")
         }
     }
@@ -276,7 +278,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
 
         let dns: [DNSServer]
         switch dnsSettings {
-        case .default:
+        case .ddg:
             dns = [DNSServer(address: server.serverInfo.internalIP.ipAddress)]
         case .custom(let servers):
             dns = servers

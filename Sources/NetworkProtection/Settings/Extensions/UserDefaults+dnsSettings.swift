@@ -60,7 +60,7 @@ extension UserDefaults {
 
         set {
             switch newValue {
-            case .default:
+            case .ddg:
                 dnsSettingStorageValue = StorableDNSSettings()
             case .custom(let dnsServers):
                 let hosts = dnsServers.compactMap(\.toIPv4Host)
