@@ -84,10 +84,10 @@ extension Product: SubscriptionProduct {
     /// A Boolean value that indicates whether the subscription product is one which relates to a Free Trial.
     ///
     /// This property returns `true` if the subscription has an associated introductory offer marked as a free trial
-    /// or if the subscription's identifier contains the designated free trial suffix.
+    /// or if the subscription's identifier contains the designated free trial identifer.
     /// If neither condition is met, the property returns `false`.
     public var isFreeTrialProduct: Bool {
-        return subscription?.introductoryOffer?.isFreeTrial ?? false || id.contains(StoreSubscriptionConstants.freeTrialSuffix)
+        return subscription?.introductoryOffer?.isFreeTrial ?? false || id.contains(StoreSubscriptionConstants.freeTrialIdentifer)
     }
 
     /// Asynchronously checks if the user is eligible for an introductory offer.
