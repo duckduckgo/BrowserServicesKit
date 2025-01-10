@@ -164,7 +164,7 @@ public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {
     case allowPurchaseStripe
     case useUnifiedFeedback
     case setAccessTokenCookieForSubscriptionDomains
-    case freeTrials
+    case privacyProFreeTrialJan25
 }
 
 public enum SslCertificatesSubfeature: String, PrivacySubfeature {

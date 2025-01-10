@@ -33,6 +33,12 @@ public struct ExperimentData: Codable, Equatable {
     public let parentID: ParentFeatureID
     public let cohortID: CohortID
     public let enrollmentDate: Date
+
+    public init(parentID: ParentFeatureID, cohortID: CohortID, enrollmentDate: Date) {
+        self.parentID = parentID
+        self.cohortID = cohortID
+        self.enrollmentDate = enrollmentDate
+    }
 }
 
 public protocol ExperimentCohortsManaging {

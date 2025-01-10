@@ -29,7 +29,7 @@ public final class AppStorePurchaseFlowMock: AppStorePurchaseFlow {
         purchaseSubscriptionResult!
     }
 
-    public func completeSubscriptionPurchase(with transactionJWS: TransactionJWS) async -> Result<PurchaseUpdate, AppStorePurchaseFlowError> {
+    public func completeSubscriptionPurchase(with transactionJWS: TransactionJWS, additionalParams: [String: String]?) async -> Result<PurchaseUpdate, AppStorePurchaseFlowError> {
         completeSubscriptionPurchaseResult!
     }
 }
