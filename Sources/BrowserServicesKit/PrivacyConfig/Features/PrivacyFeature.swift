@@ -195,3 +195,8 @@ public enum ExperimentTestSubfeatures: String, PrivacySubfeature {
     public var parent: PrivacyFeature { .experimentTest }
     case experimentTestAA
 }
+
+public enum MaliciousSiteProtectionSubfeature: String, PrivacySubfeature {
+    public var parent: PrivacyFeature { .maliciousSiteProtection }
+    case onByDefault // Rollout feature
+}
