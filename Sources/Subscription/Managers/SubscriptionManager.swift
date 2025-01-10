@@ -109,7 +109,7 @@ public protocol SubscriptionManager: SubscriptionTokenProvider {
     var userEmail: String? { get }
 
     /// Sign out the user and clear all the tokens and subscription cache
-    func signOut() async
+    func signOut(notifyUI: Bool) async
 
     func clearSubscriptionCache()
 
@@ -298,7 +298,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
         do {
             Logger.subscription.debug("Get tokens \(policy.description, privacy: .public)")
 
-            let referenceCachedTokenContainer = try? await oAuthClient.getTokens(policy: .local)
+            let referenceCachedTokenContainer = try? await oAuthClient.getTokens(policy: .local) // the currently stored one
             let referenceCachedEntitlements = referenceCachedTokenContainer?.decodedAccessToken.subscriptionEntitlements
             let resultTokenContainer = try await oAuthClient.getTokens(policy: policy)
             let newEntitlements = resultTokenContainer.decodedAccessToken.subscriptionEntitlements
@@ -353,11 +353,14 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
         oAuthClient.removeLocalAccount()
     }
 
-    public func signOut() async {
-        Logger.subscription.log("Removing all traces of the subscription and auth tokens")
+    public func signOut(notifyUI: Bool) async {
+        Logger.subscription.log("SignOut: Removing all traces of the subscription and auth tokens")
         try? await oAuthClient.logout()
         subscriptionEndpointService.clearSubscription()
-        NotificationCenter.default.post(name: .accountDidSignOut, object: self, userInfo: nil)
+        if notifyUI {
+            Logger.subscription.debug("SignOut: Notifying the UI")
+            NotificationCenter.default.post(name: .accountDidSignOut, object: self, userInfo: nil)
+        }
     }
 
     public func confirmPurchase(signature: String) async throws -> PrivacyProSubscription {

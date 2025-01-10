@@ -141,7 +141,7 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
         case .failure(let error):
             Logger.subscriptionAppStorePurchaseFlow.error("purchaseSubscription error: \(String(reflecting: error), privacy: .public)")
 
-            await subscriptionManager.signOut()
+            await subscriptionManager.signOut(notifyUI: true)
 
             switch error {
             case .purchaseCancelledByUser:
@@ -213,7 +213,7 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
         Logger.subscriptionAppStorePurchaseFlow.log("Recovering Subscription From Dead Token")
 
         // Clear everything, the token is unrecoverable
-        await subscriptionManager.signOut()
+        await subscriptionManager.signOut(notifyUI: true)
 
         switch await appStoreRestoreFlow.restoreAccountFromPastPurchase() {
         case .success(let transactionJWS):

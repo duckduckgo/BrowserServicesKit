@@ -50,7 +50,8 @@ public class DefaultAPIService: APIService {
 
         Logger.networking.debug("Response: [\(responseHTTPStatus.rawValue, privacy: .public)] \(response.debugDescription) Data size: \(data.count) bytes")
 #if DEBUG
-        if let bodyString = String(data: data, encoding: .utf8) {
+        if let bodyString = String(data: data, encoding: .utf8),
+           !bodyString.isEmpty {
             Logger.networking.debug("Request body: \(bodyString)")
         }
 #endif

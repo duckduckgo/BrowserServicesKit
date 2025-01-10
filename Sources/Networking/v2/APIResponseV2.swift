@@ -41,11 +41,6 @@ public extension APIResponseV2 {
             throw APIRequestV2.Error.emptyResponseBody
         }
 
-#if DEBUG
-        let resultString = String(data: data, encoding: .utf8)
-        Logger.networking.debug("APIResponse body: \(resultString ?? "<empty>")")
-#endif
-
         Logger.networking.debug("Decoding APIResponse body as \(T.self)")
         switch T.self {
         case is String.Type:
