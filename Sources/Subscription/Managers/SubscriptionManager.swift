@@ -228,7 +228,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
                 let subscription = try await getSubscription(cachePolicy: .reloadIgnoringLocalCacheData)
                 Logger.subscription.log("Subscription is \(subscription.isActive ? "active" : "not active", privacy: .public)")
                 if subscription.isActive {
-                    pixelHandler(.subscriptionIsActive) // PixelKit.fire(PrivacyProPixel.privacyProSubscriptionActive, frequency: .daily)
+                    pixelHandler(.subscriptionIsActive)
                 }
             } catch {
                 Logger.subscription.error("Failed to load initial subscription data: \(error, privacy: .public)")
@@ -399,7 +399,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
 
         do {
             let currentSubscription = try await getSubscription(cachePolicy: .returnCacheDataElseLoad)
-            let tokenContainer = try await getTokenContainer(policy: forceRefresh ? .localForceRefresh : .local)
+            let tokenContainer = try await getTokenContainer(policy: forceRefresh ? .localForceRefresh : .localValid)
             let userEntitlements = tokenContainer.decodedAccessToken.subscriptionEntitlements
             let availableFeatures = currentSubscription.features ?? []
 
