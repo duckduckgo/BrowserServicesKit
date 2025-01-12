@@ -100,7 +100,7 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
 
         if statusCode.isSuccess {
             let subscription: PrivacyProSubscription = try response.decodeBody()
-            Logger.subscriptionEndpointService.log("Subscription details retrieved successfully: \(String(describing: subscription), privacy: .public)")
+            Logger.subscriptionEndpointService.log("Subscription details retrieved successfully: \(subscription.debugDescription, privacy: .public)")
 
             try await storeAndAddFeaturesIfNeededTo(subscription: subscription)
 

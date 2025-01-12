@@ -95,6 +95,10 @@ public protocol OAuthClient {
     /// All options store new or refreshed tokens via the tokensStorage
     func getTokens(policy: TokensCachePolicy) async throws -> TokenContainer
 
+    /// Migrate access token v1 to auth token v2 if needed
+    /// - Returns: A valid TokenContainer if a token v1 is found in the LegacyTokenContainer, nil if no v1 token is available. Throws an error in case of failures during the migration
+    func migrateV1Token() async throws -> TokenContainer?
+
     // MARK: Activate
 
     /// Activate the account with a platform signature
@@ -201,8 +205,7 @@ final public class DefaultOAuthClient: OAuthClient {
     }
 
     public func getTokens(policy: TokensCachePolicy) async throws -> TokenContainer {
-        // V1 to V2 tokens migration
-        let localTokenContainer: TokenContainer? = await migrateLegacyTokenIfNeeded() ?? tokenStorage.tokenContainer
+        let localTokenContainer = tokenStorage.tokenContainer
 
         switch policy {
         case .local:
@@ -262,7 +265,7 @@ final public class DefaultOAuthClient: OAuthClient {
     }
 
     /// Tries to retrieve the v1 auth token stored locally, if present performs a migration to v2 and removes the old token
-    private func migrateLegacyTokenIfNeeded() async -> TokenContainer? {
+    public func migrateV1Token() async throws -> TokenContainer? {
         guard var legacyTokenStorage,
               let legacyToken = legacyTokenStorage.token else {
             return nil
@@ -278,11 +281,10 @@ final public class DefaultOAuthClient: OAuthClient {
 
             // Store new tokens
             tokenStorage.tokenContainer = tokenContainer
-
             return tokenContainer
         } catch {
             Logger.OAuthClient.error("Failed to migrate legacy token: \(error, privacy: .public)")
-            return nil
+            throw error
         }
     }
 

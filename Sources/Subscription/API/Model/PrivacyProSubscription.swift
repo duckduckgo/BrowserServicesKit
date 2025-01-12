@@ -77,7 +77,7 @@ public struct PrivacyProSubscription: Codable, Equatable, CustomDebugStringConve
         - Expires/Renews At: \(formatDate(expiresOrRenewsAt))
         - Platform: \(platform.rawValue)
         - Status: \(status.rawValue)
-        - Features: \(features?.map { $0.rawValue } ?? [])
+        - Features: \(features?.map { $0.debugDescription } ?? [])
         """
     }
 

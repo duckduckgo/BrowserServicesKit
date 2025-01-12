@@ -102,11 +102,7 @@ public final class SubscriptionManagerMock: SubscriptionManager {
         return resultExchangeTokenContainer
     }
 
-    public func signOut(skipNotification: Bool) {
-
-    }
-
-    public func signOut() async {
+    public func signOut(notifyUI: Bool) {
         resultTokenContainer = nil
     }
 

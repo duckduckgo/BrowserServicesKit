@@ -233,7 +233,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private lazy var serverSelectionResolver: VPNServerSelectionResolving = {
         let locationRepository = NetworkProtectionLocationListCompositeRepository(
             environment: settings.selectedEnvironment,
-            tokenProvider: tokenProvider,
+            tokenProvider: subscriptionManager,
             errorEvents: debugEvents
         )
         return VPNServerSelectionResolver(locationListRepository: locationRepository, vpnSettings: settings)
@@ -262,7 +262,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private lazy var keyStore = NetworkProtectionKeychainKeyStore(keychainType: keychainType,
                                                                   errorEvents: debugEvents)
 
-    private let tokenProvider: any SubscriptionTokenProvider
+    private let subscriptionManager: any SubscriptionManager
 
     private func resetRegistrationKey() {
         Logger.networkProtectionKeyManagement.log("Resetting the current registration key")
@@ -416,7 +416,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     private lazy var deviceManager: NetworkProtectionDeviceManagement = NetworkProtectionDeviceManager(
         environment: self.settings.selectedEnvironment,
-        tokenProvider: self.tokenProvider,
+        tokenProvider: self.subscriptionManager,
         keyStore: self.keyStore,
         errorEvents: self.debugEvents
     )
@@ -427,7 +427,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     public lazy var entitlementMonitor = NetworkProtectionEntitlementMonitor()
     public lazy var serverStatusMonitor = NetworkProtectionServerStatusMonitor(
         networkClient: NetworkProtectionBackendClient(environment: self.settings.selectedEnvironment),
-        tokenProvider: self.tokenProvider
+        tokenProvider: self.subscriptionManager
     )
 
     private var lastTestFailed = false
@@ -456,7 +456,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 snoozeTimingStore: NetworkProtectionSnoozeTimingStore,
                 wireGuardInterface: WireGuardInterface,
                 keychainType: KeychainType,
-                tokenProvider: any SubscriptionTokenProvider,
+                subscriptionManager: any SubscriptionManager,
                 debugEvents: EventMapping<NetworkProtectionError>,
                 providerEvents: EventMapping<Event>,
                 settings: VPNSettings,
@@ -466,7 +466,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
         self.notificationsPresenter = notificationsPresenter
         self.keychainType = keychainType
-        self.tokenProvider = tokenProvider
+        self.subscriptionManager = subscriptionManager
         self.debugEvents = debugEvents
         self.providerEvents = providerEvents
         self.tunnelHealth = tunnelHealthStore
@@ -603,20 +603,20 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         Logger.networkProtection.log("Loading token \(options.tokenContainer.description, privacy: .public)")
         switch options.tokenContainer {
         case .set(let newTokenContainer):
-            tokenProvider.adopt(tokenContainer: newTokenContainer)
+            subscriptionManager.adopt(tokenContainer: newTokenContainer)
             // Important: Here we force the token refresh in order to immediately branch the system extension token from the main app one.
             // See discussion https://app.asana.com/0/1199230911884351/1208785842165508/f
-            try await tokenProvider.getTokenContainer(policy: .localForceRefresh)
+            try await subscriptionManager.getTokenContainer(policy: .localForceRefresh)
         case .useExisting:
             do {
-                try await tokenProvider.getTokenContainer(policy: .localValid)
+                try await subscriptionManager.getTokenContainer(policy: .localValid)
             } catch {
                 throw TunnelError.startingTunnelWithoutAuthToken
             }
         case .reset:
             // This case should in theory not be possible, but it's ideal to have this in place
             // in case an error in the controller on the client side allows it.
-            tokenProvider.removeTokenContainer()
+            subscriptionManager.removeTokenContainer()
             throw TunnelError.startingTunnelWithoutAuthToken
         }
     }
@@ -711,6 +711,11 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 try? await Task.sleep(interval: .seconds(2))
                 throw error
             }
+        }
+
+        // Subscription initial tasks
+        Task {
+            await subscriptionManager.loadInitialData()
         }
 
         do {
@@ -1210,7 +1215,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         resetRegistrationKey()
 
 #if os(macOS)
-        tokenProvider.removeTokenContainer()
+        subscriptionManager.removeTokenContainer()
 #endif
 
         Task {
@@ -1574,7 +1579,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private func attemptShutdownDueToRevokedAccess() async {
         let cancelTunnel = {
  #if os(macOS)
-            self.tokenProvider.removeTokenContainer()
+            self.subscriptionManager.removeTokenContainer()
  #endif
             self.cancelTunnelWithError(TunnelError.vpnAccessRevoked)
         }
