@@ -398,10 +398,11 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
         guard isUserAuthenticated else { return [] }
 
         do {
-            let currentSubscription = try await getSubscription(cachePolicy: .returnCacheDataElseLoad)
             let tokenContainer = try await getTokenContainer(policy: forceRefresh ? .localForceRefresh : .localValid)
-            let userEntitlements = tokenContainer.decodedAccessToken.subscriptionEntitlements
-            let availableFeatures = currentSubscription.features ?? []
+            let currentSubscription = try await getSubscription(cachePolicy: forceRefresh ? .reloadIgnoringLocalCacheData : .returnCacheDataElseLoad)
+            
+            let userEntitlements = tokenContainer.decodedAccessToken.subscriptionEntitlements // What the user has access to
+            let availableFeatures = currentSubscription.features ?? [] // what the subscription is capable to provide
 
             // Filter out the features that are not available because the user doesn't have the right entitlements
             let result = availableFeatures.map({ featureEntitlement in
@@ -409,7 +410,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
                 return SubscriptionFeature(entitlement: featureEntitlement, enabled: enabled)
             })
             Logger.subscription.log("""
-User entitlements: \(userEntitlements, privacy: .public)
+User entitlements: \(userEntitlements, privacy: .public) 
 Available Features: \(availableFeatures, privacy: .public)
 Subscription features: \(result, privacy: .public)
 """)

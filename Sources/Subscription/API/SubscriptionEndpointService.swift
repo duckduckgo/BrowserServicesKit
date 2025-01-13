@@ -81,7 +81,7 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
 
     public init(apiService: APIService,
                 baseURL: URL,
-                subscriptionCache: UserDefaultsCache<PrivacyProSubscription> = UserDefaultsCache<PrivacyProSubscription>(key: UserDefaultsCacheKey.subscription, settings: UserDefaultsCacheSettings(defaultExpirationInterval: .minutes(20)))) {
+                subscriptionCache: UserDefaultsCache<PrivacyProSubscription>) {
         self.apiService = apiService
         self.baseURL = baseURL
         self.subscriptionCache = subscriptionCache
@@ -101,10 +101,7 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
         if statusCode.isSuccess {
             let subscription: PrivacyProSubscription = try response.decodeBody()
             Logger.subscriptionEndpointService.log("Subscription details retrieved successfully: \(subscription.debugDescription, privacy: .public)")
-
-            try await storeAndAddFeaturesIfNeededTo(subscription: subscription)
-
-            return subscription
+            return try await storeAndAddFeaturesIfNeededTo(subscription: subscription)
         } else {
             if statusCode == .badRequest {
                 Logger.subscriptionEndpointService.log("No subscription found")
@@ -118,29 +115,32 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
         }
     }
 
-    private func storeAndAddFeaturesIfNeededTo(subscription: PrivacyProSubscription) async throws {
+    @discardableResult
+    private func storeAndAddFeaturesIfNeededTo(subscription: PrivacyProSubscription) async throws -> PrivacyProSubscription {
         let cachedSubscription: PrivacyProSubscription? = subscriptionCache.get()
         if subscription != cachedSubscription {
             var subscription = subscription
             // fetch remote features
-            Logger.subscriptionEndpointService.log("Getting features for subscription  \(subscription.productId, privacy: .public)")
+            Logger.subscriptionEndpointService.log("Getting features for subscription: \(subscription.productId, privacy: .public)")
             subscription.features = try await getSubscriptionFeatures(for: subscription.productId).features
 
-            updateCache(with: subscription)
-
             Logger.subscriptionEndpointService.debug("""
-Subscription changed, updating cache and notifying observers.
+Subscription changed
 Old: \(cachedSubscription?.debugDescription ?? "nil", privacy: .public)
 New: \(subscription.debugDescription, privacy: .public)
 """)
+
+            updateCache(with: subscription)
         } else {
             Logger.subscriptionEndpointService.debug("No subscription update required")
         }
+        return subscription
     }
 
     func updateCache(with subscription: PrivacyProSubscription) {
         cacheSerialQueue.sync {
             subscriptionCache.set(subscription)
+            Logger.subscriptionEndpointService.debug("Notifying subscription changed")
             NotificationCenter.default.post(name: .subscriptionDidChange, object: self, userInfo: [UserDefaultsCacheKey.subscription: subscription])
         }
     }
