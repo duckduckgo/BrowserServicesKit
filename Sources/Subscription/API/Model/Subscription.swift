@@ -54,6 +54,7 @@ public struct Subscription: Codable, Equatable {
         case gracePeriod = "Grace Period"
         case inactive = "Inactive"
         case expired = "Expired"
+        case trial = "Trial"
         case unknown
 
         public init(from decoder: Decoder) throws {
