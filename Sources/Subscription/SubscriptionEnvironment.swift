@@ -17,6 +17,7 @@
 //
 
 import Foundation
+import Networking
 
 public struct SubscriptionEnvironment: Codable {
 
@@ -32,6 +33,8 @@ public struct SubscriptionEnvironment: Codable {
             }
         }
     }
+
+    public var authEnvironment: OAuthEnvironment { serviceEnvironment == .production ? .production : .staging }
 
     public enum PurchasePlatform: String, Codable {
         case appStore, stripe
