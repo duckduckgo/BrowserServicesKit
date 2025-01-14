@@ -55,7 +55,7 @@ final class PrivacyDashboardControllerTests: XCTestCase {
         for entryPoint in entryPoints {
             makePrivacyDashboardController(entryPoint: entryPoint)
             let currentURL = privacyDashboardController.webView!.url
-            XCTAssertEqual(currentURL?.getParameter(named: "screen"), "breakageForm")
+            XCTAssertEqual(currentURL?.getParameter(named: "screen"), entryPoint.screen.rawValue)
             if case .toggleReport = entryPoint {
                 XCTAssertEqual(currentURL?.getParameter(named: "opener"), "menu")
             }
