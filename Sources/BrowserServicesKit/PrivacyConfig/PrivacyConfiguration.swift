@@ -100,6 +100,9 @@ public protocol PrivacyConfiguration {
     /// Returns settings for a specified feature.
     func settings(for feature: PrivacyFeature) -> PrivacyConfigurationData.PrivacyFeature.FeatureSettings
 
+    /// Returns settings for a specified subfeature.
+    func settings(for subfeature: any PrivacySubfeature) -> PrivacyConfigurationData.PrivacyFeature.SubfeatureSettings?
+
     /// Removes given domain from locally unprotected list.
     func userEnabledProtection(forDomain: String)
     /// Adds given domain to locally unprotected list.

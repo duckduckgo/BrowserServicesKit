@@ -320,6 +320,13 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         return data.features[feature.rawValue]?.settings ?? [:]
     }
 
+    public func settings(for subfeature: any PrivacySubfeature) -> PrivacyConfigurationData.PrivacyFeature.SubfeatureSettings? {
+        guard let subfeatureData = subfeatures(for: subfeature.parent)[subfeature.rawValue] else {
+            return nil
+        }
+        return subfeatureData.settings
+    }
+
     public func userEnabledProtection(forDomain domain: String) {
         let domainToRemove = locallyUnprotected.unprotectedDomains.first { unprotectedDomain in
             unprotectedDomain.punycodeEncodedHostname.lowercased() == domain

@@ -120,6 +120,7 @@ public struct PrivacyConfigurationData {
         public typealias FeatureSettings = [String: Any]
         public typealias Features = [String: Feature]
         public typealias FeatureSupportedVersion = String
+        public typealias SubfeatureSettings = String
 
         enum CodingKeys: String {
             case state
@@ -191,7 +192,7 @@ public struct PrivacyConfigurationData {
             public let rollout: Rollout?
             public let cohorts: [Cohort]?
             public let targets: [Target]?
-            public let settings: String?
+            public let settings: SubfeatureSettings?
 
             public init?(json: [String: Any]) {
                 guard let state = json[CodingKeys.state.rawValue] as? String else {
