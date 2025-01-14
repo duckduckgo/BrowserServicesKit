@@ -303,14 +303,6 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
 
     // MARK: -
 
-//    private func refreshAccount() async {
-//        do {
-//            try await getTokenContainer(policy: .localForceRefresh)
-//        } catch {
-//            Logger.subscription.error("Failed to refresh account: \(error.localizedDescription, privacy: .public)")
-//        }
-//    }
-
     @discardableResult public func getTokenContainer(policy: TokensCachePolicy) async throws -> TokenContainer {
         do {
             Logger.subscription.debug("Get tokens \(policy.description, privacy: .public)")
@@ -340,7 +332,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
 
     /// If the client succeeds in making a refresh request but does not get the response, then the second refresh request will fail with `invalidTokenRequest` and the stored token will become unusable and un-refreshable.
     private func throwAppropriateDeadTokenError() async throws -> TokenContainer {
-        Logger.subscription.warning("Dead token detected")
+        Logger.subscription.fault("Dead token detected")
         do {
             let subscription = try await subscriptionEndpointService.getSubscription(accessToken: "", // Token is unused
                                                                                      cachePolicy: .returnCacheDataDontLoad)
@@ -363,7 +355,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
     }
 
     public func adopt(tokenContainer: TokenContainer) {
-        oAuthClient.currentTokenContainer = tokenContainer
+        oAuthClient.adopt(tokenContainer: tokenContainer)
     }
 
     public func removeTokenContainer() {
@@ -400,7 +392,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
         do {
             let tokenContainer = try await getTokenContainer(policy: forceRefresh ? .localForceRefresh : .localValid)
             let currentSubscription = try await getSubscription(cachePolicy: forceRefresh ? .reloadIgnoringLocalCacheData : .returnCacheDataElseLoad)
-            
+
             let userEntitlements = tokenContainer.decodedAccessToken.subscriptionEntitlements // What the user has access to
             let availableFeatures = currentSubscription.features ?? [] // what the subscription is capable to provide
 
@@ -410,7 +402,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
                 return SubscriptionFeature(entitlement: featureEntitlement, enabled: enabled)
             })
             Logger.subscription.log("""
-User entitlements: \(userEntitlements, privacy: .public) 
+User entitlements: \(userEntitlements, privacy: .public)
 Available Features: \(availableFeatures, privacy: .public)
 Subscription features: \(result, privacy: .public)
 """)

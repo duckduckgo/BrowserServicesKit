@@ -53,6 +53,10 @@ public class MockOAuthClient: OAuthClient {
         }
     }
 
+    public func adopt(tokenContainer: Networking.TokenContainer) {
+
+    }
+
     public var createAccountResponse: Result<Networking.TokenContainer, Error>!
     public func createAccount() async throws -> Networking.TokenContainer {
         switch createAccountResponse {

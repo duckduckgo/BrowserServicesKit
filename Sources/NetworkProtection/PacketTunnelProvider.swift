@@ -600,23 +600,32 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
 #if os(macOS)
     private func loadAuthToken(from options: StartupOptions) async throws {
-        Logger.networkProtection.log("Loading token \(options.tokenContainer.description, privacy: .public)")
+        Logger.networkProtection.log("Load token container")
         switch options.tokenContainer {
         case .set(let newTokenContainer):
+            Logger.networkProtection.log("Set new token - \(newTokenContainer.debugDescription, privacy: .public)")
             subscriptionManager.adopt(tokenContainer: newTokenContainer)
             // Important: Here we force the token refresh in order to immediately branch the system extension token from the main app one.
             // See discussion https://app.asana.com/0/1199230911884351/1208785842165508/f
-            try await subscriptionManager.getTokenContainer(policy: .localForceRefresh)
+            do {
+                try await subscriptionManager.getTokenContainer(policy: .localForceRefresh)
+            } catch {
+                Logger.networkProtection.fault("Error force-refreshing token container: \(error, privacy: .public)\n \(newTokenContainer.refreshToken, privacy: .public)")
+                throw TunnelError.startingTunnelWithoutAuthToken
+            }
         case .useExisting:
+            Logger.networkProtection.log("Use existing token")
             do {
                 try await subscriptionManager.getTokenContainer(policy: .localValid)
             } catch {
+                Logger.networkProtection.fault("Error loading token container: \(error, privacy: .public)")
                 throw TunnelError.startingTunnelWithoutAuthToken
             }
         case .reset:
+            Logger.networkProtection.log("Reset token")
             // This case should in theory not be possible, but it's ideal to have this in place
             // in case an error in the controller on the client side allows it.
-            subscriptionManager.removeTokenContainer()
+            await subscriptionManager.signOut(notifyUI: false)
             throw TunnelError.startingTunnelWithoutAuthToken
         }
     }

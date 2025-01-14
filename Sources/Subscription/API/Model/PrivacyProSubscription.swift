@@ -89,14 +89,14 @@ public struct PrivacyProSubscription: Codable, Equatable, CustomDebugStringConve
         return dateFormatter.string(from: date)
     }
 
-    public static func == (lhs: PrivacyProSubscription, rhs: PrivacyProSubscription) -> Bool {
-        return lhs.productId == rhs.productId &&
-        lhs.name == rhs.name &&
-        lhs.billingPeriod == rhs.billingPeriod &&
-        lhs.startedAt == rhs.startedAt &&
-        lhs.expiresOrRenewsAt == rhs.expiresOrRenewsAt &&
-        lhs.platform == rhs.platform &&
-        lhs.status == rhs.status
-        // Ignore the features
-    }
+//    public static func == (lhs: PrivacyProSubscription, rhs: PrivacyProSubscription) -> Bool {
+//        return lhs.productId == rhs.productId &&
+//        lhs.name == rhs.name &&
+//        lhs.billingPeriod == rhs.billingPeriod &&
+//        lhs.startedAt == rhs.startedAt &&
+//        lhs.expiresOrRenewsAt == rhs.expiresOrRenewsAt &&
+//        lhs.platform == rhs.platform &&
+//        lhs.status == rhs.status
+//        // Ignore the features
+//    }
 }

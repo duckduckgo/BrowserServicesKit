@@ -99,14 +99,13 @@ public protocol OAuthClient {
     /// - Returns: A valid TokenContainer if a token v1 is found in the LegacyTokenContainer, nil if no v1 token is available. Throws an error in case of failures during the migration
     func migrateV1Token() async throws -> TokenContainer?
 
-    // MARK: Activate
+    /// Use the TokenContainer provided
+    func adopt(tokenContainer: TokenContainer)
 
     /// Activate the account with a platform signature
     /// - Parameter signature: The platform signature
     /// - Returns: A container of tokens
     func activate(withPlatformSignature signature: String) async throws -> TokenContainer
-
-    // MARK: Exchange
 
     /// Exchange token v1 for tokens v2
     /// - Parameter accessTokenV1: The legacy auth token
@@ -241,7 +240,7 @@ final public class DefaultOAuthClient: OAuthClient {
                 tokenStorage.tokenContainer = refreshedTokens
                 return refreshedTokens
             } catch OAuthServiceError.authAPIError(let code) where code == OAuthRequest.BodyErrorCode.invalidTokenRequest {
-                Logger.OAuthClient.error("Failed to refresh token")
+                Logger.OAuthClient.error("Failed to refresh token: invalidTokenRequest")
                 throw OAuthClientError.deadToken
             } catch OAuthServiceError.authAPIError(let code) {
                 Logger.OAuthClient.error("Failed to refresh token: \(code.rawValue, privacy: .public), \(code.description, privacy: .public)")
@@ -266,7 +265,8 @@ final public class DefaultOAuthClient: OAuthClient {
 
     /// Tries to retrieve the v1 auth token stored locally, if present performs a migration to v2 and removes the old token
     public func migrateV1Token() async throws -> TokenContainer? {
-        guard var legacyTokenStorage,
+        guard isUserAuthenticated == false, // Migration already performed, a v2 token is present
+              var legacyTokenStorage,
               let legacyToken = legacyTokenStorage.token else {
             return nil
         }
@@ -276,8 +276,7 @@ final public class DefaultOAuthClient: OAuthClient {
             let tokenContainer = try await exchange(accessTokenV1: legacyToken)
             Logger.OAuthClient.log("Tokens migrated successfully, removing legacy token")
 
-            // Remove old token
-            legacyTokenStorage.token = nil
+            // NOTE: We don't remove the old token to allow roll back to Auth V1
 
             // Store new tokens
             tokenStorage.tokenContainer = tokenContainer
@@ -286,6 +285,11 @@ final public class DefaultOAuthClient: OAuthClient {
             Logger.OAuthClient.error("Failed to migrate legacy token: \(error, privacy: .public)")
             throw error
         }
+    }
+
+    public func adopt(tokenContainer: TokenContainer) {
+        Logger.OAuthClient.log("Adopting TokenContainer: \(tokenContainer.debugDescription)")
+        tokenStorage.tokenContainer = tokenContainer
     }
 
     // MARK: Create

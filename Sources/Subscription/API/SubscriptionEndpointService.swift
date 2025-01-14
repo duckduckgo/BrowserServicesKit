@@ -81,7 +81,7 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
 
     public init(apiService: APIService,
                 baseURL: URL,
-                subscriptionCache: UserDefaultsCache<PrivacyProSubscription>) {
+                subscriptionCache: UserDefaultsCache<PrivacyProSubscription> = UserDefaultsCache<PrivacyProSubscription>(key: UserDefaultsCacheKey.subscription, settings: UserDefaultsCacheSettings(defaultExpirationInterval: .minutes(20)))) {
         self.apiService = apiService
         self.baseURL = baseURL
         self.subscriptionCache = subscriptionCache
@@ -118,18 +118,16 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
     @discardableResult
     private func storeAndAddFeaturesIfNeededTo(subscription: PrivacyProSubscription) async throws -> PrivacyProSubscription {
         let cachedSubscription: PrivacyProSubscription? = subscriptionCache.get()
-        if subscription != cachedSubscription {
-            var subscription = subscription
-            // fetch remote features
-            Logger.subscriptionEndpointService.log("Getting features for subscription: \(subscription.productId, privacy: .public)")
-            subscription.features = try await getSubscriptionFeatures(for: subscription.productId).features
-
-            Logger.subscriptionEndpointService.debug("""
-Subscription changed
-Old: \(cachedSubscription?.debugDescription ?? "nil", privacy: .public)
+        var subscription = subscription
+        // fetch remote features
+        Logger.subscriptionEndpointService.log("Getting features for subscription: \(subscription.productId, privacy: .public)")
+        subscription.features = try await getSubscriptionFeatures(for: subscription.productId).features
+        Logger.subscriptionEndpointService.debug("""
+Subscription:
+Cached: \(cachedSubscription?.debugDescription ?? "nil", privacy: .public)
 New: \(subscription.debugDescription, privacy: .public)
 """)
-
+        if subscription != cachedSubscription {
             updateCache(with: subscription)
         } else {
             Logger.subscriptionEndpointService.debug("No subscription update required")

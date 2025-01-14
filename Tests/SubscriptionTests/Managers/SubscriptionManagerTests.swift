@@ -103,8 +103,7 @@ class SubscriptionManagerTests: XCTestCase {
 
     // MARK: - Subscription Status Tests
 
-    func testRefreshCachedSubscription_ActiveSubscription() {
-        let expectation = self.expectation(description: "Active subscription callback")
+    func testRefreshCachedSubscription_ActiveSubscription() async {
         let activeSubscription = PrivacyProSubscription(
             productId: "testProduct",
             name: "Test Subscription",
@@ -116,15 +115,13 @@ class SubscriptionManagerTests: XCTestCase {
         )
         mockSubscriptionEndpointService.getSubscriptionResult = .success(activeSubscription)
         mockOAuthClient.getTokensResponse = .success(OAuthTokensFactory.makeValidTokenContainer())
-        subscriptionManager.refreshCachedSubscription { isActive in
-            XCTAssertTrue(isActive)
-            expectation.fulfill()
-        }
-        wait(for: [expectation], timeout: 0.1)
+        mockOAuthClient.isUserAuthenticated = true
+
+        let subscription = try! await subscriptionManager.getSubscription(cachePolicy: .reloadIgnoringLocalCacheData)
+        XCTAssertTrue(subscription.isActive)
     }
 
-    func testRefreshCachedSubscription_ExpiredSubscription() {
-        let expectation = self.expectation(description: "Expired subscription callback")
+    func testRefreshCachedSubscription_ExpiredSubscription() async {
         let expiredSubscription = PrivacyProSubscription(
             productId: "testProduct",
             name: "Test Subscription",
@@ -136,11 +133,11 @@ class SubscriptionManagerTests: XCTestCase {
         )
         mockSubscriptionEndpointService.getSubscriptionResult = .success(expiredSubscription)
 
-        subscriptionManager.refreshCachedSubscription { isActive in
-            XCTAssertFalse(isActive)
-            expectation.fulfill()
+        do {
+            try await subscriptionManager.getSubscription(cachePolicy: .reloadIgnoringLocalCacheData)
+        } catch {
+            XCTAssertEqual(error.localizedDescription, SubscriptionEndpointServiceError.noData.localizedDescription)
         }
-        wait(for: [expectation], timeout: 0.1)
     }
 
     // MARK: - URL Generation Tests

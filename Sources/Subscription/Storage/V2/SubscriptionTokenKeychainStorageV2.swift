@@ -24,23 +24,37 @@ import Common
 public final class SubscriptionTokenKeychainStorageV2: TokenStoring {
 
     private let keychainType: KeychainType
+    private let errorHandler: (AccountKeychainAccessType, AccountKeychainAccessError) -> Void
 
-    public init(keychainType: KeychainType = .dataProtection(.unspecified)) {
+    public init(keychainType: KeychainType = .dataProtection(.unspecified),
+                errorHandler: @escaping (AccountKeychainAccessType, AccountKeychainAccessError) -> Void) {
         self.keychainType = keychainType
+        self.errorHandler = errorHandler
     }
 
     public var tokenContainer: TokenContainer? {
         get {
-            guard let data = try? retrieveData(forField: .tokens) else {
-                Logger.subscriptionKeychain.debug("TokenContainer not found")
+            do {
+                guard let data = try retrieveData(forField: .tokens) else {
+                    Logger.subscriptionKeychain.debug("TokenContainer not found")
+                    return nil
+                }
+                return CodableHelper.decode(jsonData: data)
+            } catch {
+                if let error = error as? AccountKeychainAccessError {
+                    errorHandler(AccountKeychainAccessType.getAuthToken, error)
+                } else {
+                    assertionFailure("Unexpected error: \(error)")
+                    Logger.OAuth.fault("Unexpected error: \(error, privacy: .public)")
+                }
+
                 return nil
             }
-            return CodableHelper.decode(jsonData: data)
         }
         set {
             do {
                 guard let newValue else {
-                    Logger.subscriptionKeychain.debug("remove TokenContainer")
+                    Logger.subscriptionKeychain.debug("Remove TokenContainer")
                     try self.deleteItem(forField: .tokens)
                     return
                 }
@@ -48,12 +62,16 @@ public final class SubscriptionTokenKeychainStorageV2: TokenStoring {
                 if let data = CodableHelper.encode(newValue) {
                     try self.store(data: data, forField: .tokens)
                 } else {
-                    Logger.subscriptionKeychain.fault("Failed to encode TokenContainer")
-                    assertionFailure("Failed to encode TokenContainer")
+                    throw AccountKeychainAccessError.failedToDecodeKeychainData
                 }
             } catch {
                 Logger.subscriptionKeychain.fault("Failed to set TokenContainer: \(error, privacy: .public)")
-                assertionFailure("Failed to set TokenContainer")
+                if let error = error as? AccountKeychainAccessError {
+                    errorHandler(AccountKeychainAccessType.storeAuthToken, error)
+                } else {
+                    assertionFailure("Unexpected error: \(error)")
+                    Logger.OAuth.fault("Unexpected error: \(error, privacy: .public)")
+                }
             }
         }
     }
@@ -73,18 +91,6 @@ extension SubscriptionTokenKeychainStorageV2 {
         }
     }
 
-    func getString(forField field: SubscriptionKeychainField) throws -> String? {
-        guard let data = try retrieveData(forField: field) else {
-            return nil
-        }
-
-        if let decodedString = String(data: data, encoding: String.Encoding.utf8) {
-            return decodedString
-        } else {
-            throw AccountKeychainAccessError.failedToDecodeKeychainDataAsString
-        }
-    }
-
     func retrieveData(forField field: SubscriptionKeychainField) throws -> Data? {
         var query = defaultAttributes()
         query[kSecAttrService] = field.keyValue
@@ -98,21 +104,13 @@ extension SubscriptionTokenKeychainStorageV2 {
             if let existingItem = item as? Data {
                 return existingItem
             } else {
-                throw AccountKeychainAccessError.failedToDecodeKeychainValueAsData
+                throw AccountKeychainAccessError.failedToDecodeKeychainData
             }
         } else if status == errSecItemNotFound {
             return nil
         } else {
             throw AccountKeychainAccessError.keychainLookupFailure(status)
         }
-    }
-
-    func set(string: String, forField field: SubscriptionKeychainField) throws {
-        guard let stringData = string.data(using: .utf8) else {
-            return
-        }
-
-        try store(data: stringData, forField: field)
     }
 
     func store(data: Data, forField field: SubscriptionKeychainField) throws {
