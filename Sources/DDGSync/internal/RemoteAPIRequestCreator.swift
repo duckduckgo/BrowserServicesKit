@@ -42,7 +42,7 @@ public struct RemoteAPIRequestCreator: RemoteAPIRequestCreating {
                                                      body: body)
 
         if let body {
-            Logger.sync.debug("\(method.rawValue, privacy: .public) request body: \(String(bytes: body, encoding: .utf8) ?? "", privacy: .public)")
+            Logger.sync.debug("\(method.rawValue, privacy: .public) request body: \(String(bytes: body, encoding: .utf8) ?? "")")
         }
 
         return APIRequest(configuration: configuration, requirements: [.allowHTTPNotModified])

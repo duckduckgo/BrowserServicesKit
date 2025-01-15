@@ -265,7 +265,7 @@ final public class DefaultOAuthClient: OAuthClient {
 
     /// Tries to retrieve the v1 auth token stored locally, if present performs a migration to v2 and removes the old token
     public func migrateV1Token() async throws -> TokenContainer? {
-        guard isUserAuthenticated == false, // Migration already performed, a v2 token is present
+        guard !isUserAuthenticated, // Migration already performed, a v2 token is present
               var legacyTokenStorage,
               let legacyToken = legacyTokenStorage.token else {
             return nil

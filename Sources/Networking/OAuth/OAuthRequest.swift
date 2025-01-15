@@ -275,7 +275,8 @@ public struct OAuthRequest {
         ]
         guard let request = APIRequestV2(url: baseURL.appendingPathComponent(path),
                                          method: .get,
-                                         queryItems: queryItems) else {
+                                         queryItems: queryItems,
+                                         timeoutInterval: 20.0) else {
             return nil
         }
         return OAuthRequest(apiRequest: request)

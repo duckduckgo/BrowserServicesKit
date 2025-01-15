@@ -166,9 +166,9 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private lazy var adapter: WireGuardAdapter = {
         WireGuardAdapter(with: self, wireGuardInterface: self.wireGuardInterface) { logLevel, message in
             if logLevel == .error {
-                Logger.networkProtection.error("🔴 Received error from adapter: \(message, privacy: .public)")
+                Logger.networkProtectionWireGuard.error("🔴 Received error from adapter: \(message, privacy: .public)")
             } else {
-                Logger.networkProtection.log("Received message from adapter: \(message, privacy: .public)")
+                Logger.networkProtectionWireGuard.log("Received message from adapter: \(message, privacy: .public)")
             }
         }
     }()
@@ -484,7 +484,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     deinit {
-        Logger.networkProtectionMemory.debug("[-] PacketTunnelProvider")
+        Logger.networkProtectionMemory.log("[-] PacketTunnelProvider")
     }
 
     private var tunnelProviderProtocol: NETunnelProviderProtocol? {
