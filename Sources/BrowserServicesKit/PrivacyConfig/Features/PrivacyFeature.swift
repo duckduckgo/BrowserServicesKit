@@ -131,6 +131,10 @@ public enum NetworkProtectionSubfeature: String, Equatable, PrivacySubfeature {
         .networkProtection
     }
 
+    /// App Exclusions for the VPN
+    /// https://app.asana.com/0/1206580121312550/1209150117333883/f
+    case appExclusions
+
     /// Display user tips for Network Protection
     /// https://app.asana.com/0/72649045549333/1208231259093710/f
     case userTips
