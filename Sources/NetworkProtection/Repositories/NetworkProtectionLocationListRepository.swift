@@ -99,7 +99,7 @@ final public class NetworkProtectionLocationListCompositeRepository: NetworkProt
             errorEvents.fire(error)
             throw error
         } catch Networking.OAuthClientError.missingTokens {
-            let newError = NetworkProtectionError.noAuthTokenFound
+            let newError = NetworkProtectionError.noAuthTokenFound(Networking.OAuthClientError.missingTokens)
             errorEvents.fire(newError)
             throw newError
         } catch {

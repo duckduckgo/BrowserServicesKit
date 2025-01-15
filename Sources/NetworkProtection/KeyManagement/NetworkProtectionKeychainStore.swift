@@ -20,7 +20,7 @@ import Foundation
 import Common
 import os.log
 
-public enum NetworkProtectionKeychainStoreError: Error, NetworkProtectionErrorConvertible {
+enum NetworkProtectionKeychainStoreError: Error, NetworkProtectionErrorConvertible {
     case failedToCastKeychainValueToData(field: String)
     case keychainReadError(field: String, status: Int32)
     case keychainWriteError(field: String, status: Int32)
