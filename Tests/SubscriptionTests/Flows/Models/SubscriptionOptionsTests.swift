@@ -24,8 +24,8 @@ import Networking
 final class SubscriptionOptionsTests: XCTestCase {
 
     func testEncoding() throws {
-        let monthlySubscriptionOffer = SubscriptionOptionOffer(type: .freeTrial, id: "1", displayPrice: "$0.00", durationInDays: 7, isUserEligible: true)
-        let yearlySubscriptionOffer = SubscriptionOptionOffer(type: .freeTrial, id: "2", displayPrice: "$0.00", durationInDays: 7, isUserEligible: true)
+        let monthlySubscriptionOffer = SubscriptionOptionOffer(type: .freeTrial, id: "1", durationInDays: 7, isUserEligible: true)
+        let yearlySubscriptionOffer = SubscriptionOptionOffer(type: .freeTrial, id: "2", durationInDays: 7, isUserEligible: true)
         let subscriptionOptions = SubscriptionOptions(platform: .macos,
                                                       options: [
                                                         SubscriptionOption(id: "1",
@@ -65,7 +65,6 @@ final class SubscriptionOptionsTests: XCTestCase {
       },
       "id" : "1",
       "offer" : {
-        "displayPrice" : "$0.00",
         "durationInDays" : 7,
         "id" : "1",
         "isUserEligible" : true,
@@ -79,7 +78,6 @@ final class SubscriptionOptionsTests: XCTestCase {
       },
       "id" : "2",
       "offer" : {
-        "displayPrice" : "$0.00",
         "durationInDays" : 7,
         "id" : "2",
         "isUserEligible" : true,

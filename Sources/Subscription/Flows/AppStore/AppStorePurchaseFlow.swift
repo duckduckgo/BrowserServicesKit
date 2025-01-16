@@ -75,7 +75,14 @@ public enum AppStorePurchaseFlowError: Swift.Error, Equatable, LocalizedError {
 public protocol AppStorePurchaseFlow {
     typealias TransactionJWS = String
     func purchaseSubscription(with subscriptionIdentifier: String) async -> Result<TransactionJWS, AppStorePurchaseFlowError>
-    @discardableResult func completeSubscriptionPurchase(with transactionJWS: TransactionJWS) async -> Result<PurchaseUpdate, AppStorePurchaseFlowError>
+
+    /// Completes the subscription purchase by validating the transaction.
+    ///
+    /// - Parameters:
+    ///   - transactionJWS: The JWS representation of the transaction to be validated.
+    ///   - additionalParams: Optional additional parameters to send with the transaction validation request.
+    /// - Returns: A `Result` containing either a `PurchaseUpdate` object on success or an `AppStorePurchaseFlowError` on failure.
+    @discardableResult func completeSubscriptionPurchase(with transactionJWS: TransactionJWS, additionalParams: [String: String]?) async -> Result<PurchaseUpdate, AppStorePurchaseFlowError>
 }
 
 @available(macOS 12.0, iOS 15.0, *)
@@ -153,13 +160,12 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
     }
 
     @discardableResult
-    public func completeSubscriptionPurchase(with transactionJWS: TransactionJWS) async -> Result<PurchaseUpdate, AppStorePurchaseFlowError> {
+    public func completeSubscriptionPurchase(with transactionJWS: TransactionJWS, additionalParams: [String: String]?) async -> Result<PurchaseUpdate, AppStorePurchaseFlowError> {
         Logger.subscriptionAppStorePurchaseFlow.log("Completing Subscription Purchase")
-
         subscriptionManager.clearSubscriptionCache()
 
         do {
-            let subscription = try await subscriptionManager.confirmPurchase(signature: transactionJWS)
+            let subscription = try await subscriptionManager.confirmPurchase(signature: transactionJWS, additionalParams: additionalParams)
             if subscription.isActive {
                 let refreshedToken = try await subscriptionManager.getTokenContainer(policy: .localForceRefresh)
                 if refreshedToken.decodedAccessToken.subscriptionEntitlements.isEmpty {

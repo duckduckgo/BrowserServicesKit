@@ -173,7 +173,7 @@ class SubscriptionManagerTests: XCTestCase {
         mockSubscriptionEndpointService.confirmPurchaseResult = .failure(APIRequestV2.Error.invalidResponse)
         mockOAuthClient.getTokensResponse = .success(OAuthTokensFactory.makeValidTokenContainer())
         do {
-            _ = try await subscriptionManager.confirmPurchase(signature: testSignature)
+            _ = try await subscriptionManager.confirmPurchase(signature: testSignature, additionalParams: nil)
             XCTFail("Error expected")
         } catch {
             XCTAssertEqual(error as? APIRequestV2.Error, APIRequestV2.Error.invalidResponse)

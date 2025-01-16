@@ -112,7 +112,7 @@ final class PrivacyProSubscriptionIntegrationTests: XCTestCase {
         }
         XCTAssertNotNil(purchaseTransactionJWS)
 
-        switch await appStorePurchaseFlow.completeSubscriptionPurchase(with: purchaseTransactionJWS!) {
+        switch await appStorePurchaseFlow.completeSubscriptionPurchase(with: purchaseTransactionJWS!, additionalParams: nil) {
         case .success:
             break
         case .failure(let error):
@@ -214,7 +214,7 @@ final class PrivacyProSubscriptionIntegrationTests: XCTestCase {
         }
         XCTAssertNotNil(purchaseTransactionJWS)
 
-        switch await appStorePurchaseFlow.completeSubscriptionPurchase(with: purchaseTransactionJWS!) {
+        switch await appStorePurchaseFlow.completeSubscriptionPurchase(with: purchaseTransactionJWS!, additionalParams: nil) {
         case .success:
             XCTFail("Unexpected success")
         case .failure(let error):
@@ -245,7 +245,7 @@ final class PrivacyProSubscriptionIntegrationTests: XCTestCase {
         }
         XCTAssertNotNil(purchaseTransactionJWS)
 
-        switch await appStorePurchaseFlow.completeSubscriptionPurchase(with: purchaseTransactionJWS!) {
+        switch await appStorePurchaseFlow.completeSubscriptionPurchase(with: purchaseTransactionJWS!, additionalParams: nil) {
         case .success:
             XCTFail("Unexpected success")
         case .failure(let error):

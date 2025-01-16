@@ -61,7 +61,18 @@ public protocol SubscriptionEndpointService {
     func getProducts() async throws -> [GetProductsItem]
     func getSubscriptionFeatures(for subscriptionID: String) async throws -> GetSubscriptionFeaturesResponse
     func getCustomerPortalURL(accessToken: String, externalID: String) async throws -> GetCustomerPortalURLResponse
-    func confirmPurchase(accessToken: String, signature: String) async throws -> ConfirmPurchaseResponse
+
+    /// Confirms a subscription purchase by validating the provided access token and signature with the backend service.
+    ///
+    /// This method sends the necessary data to the server to confirm the purchase,
+    /// and optionally includes additional parameters for customization.
+    ///
+    /// - Parameters:
+    ///   - accessToken: A string representing the user's access token, used for authentication.
+    ///   - signature: A string representing the purchase signature.
+    ///   - additionalParams: An optional dictionary of additional parameters to include in the request.
+    /// - Returns: A `ConfirmPurchaseResponse` object on success
+    func confirmPurchase(accessToken: String, signature: String, additionalParams: [String: String]?) async throws -> ConfirmPurchaseResponse
 }
 
 extension SubscriptionEndpointService {
@@ -218,8 +229,8 @@ New: \(subscription.debugDescription, privacy: .public)
 
     // MARK: -
 
-    public func confirmPurchase(accessToken: String, signature: String) async throws -> ConfirmPurchaseResponse {
-        guard let request = SubscriptionRequest.confirmPurchase(baseURL: baseURL, accessToken: accessToken, signature: signature) else {
+    public func confirmPurchase(accessToken: String, signature: String, additionalParams: [String: String]?) async throws -> ConfirmPurchaseResponse {
+        guard let request = SubscriptionRequest.confirmPurchase(baseURL: baseURL, accessToken: accessToken, signature: signature, additionalParams: additionalParams) else {
             throw SubscriptionEndpointServiceError.invalidRequest
         }
         let response = try await apiService.fetch(request: request.apiRequest)

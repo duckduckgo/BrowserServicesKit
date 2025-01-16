@@ -120,7 +120,7 @@ final class DefaultAppStorePurchaseFlowTests: XCTestCase {
         subscriptionManagerMock.resultSubscription = SubscriptionMockFactory.subscription
         subscriptionManagerMock.confirmPurchaseResponse = .success(subscriptionManagerMock.resultSubscription!)
 
-        let result = await sut.completeSubscriptionPurchase(with: "transactionJWS")
+        let result = await sut.completeSubscriptionPurchase(with: "transactionJWS", additionalParams: nil)
 
         XCTAssertEqual(result, .success(.completed))
     }
@@ -130,7 +130,7 @@ final class DefaultAppStorePurchaseFlowTests: XCTestCase {
         subscriptionManagerMock.resultSubscription = SubscriptionMockFactory.subscription
         subscriptionManagerMock.confirmPurchaseResponse = .success(subscriptionManagerMock.resultSubscription!)
 
-        let result = await sut.completeSubscriptionPurchase(with: "transactionJWS")
+        let result = await sut.completeSubscriptionPurchase(with: "transactionJWS", additionalParams: nil)
 
         XCTAssertEqual(result, .failure(.missingEntitlements))
     }
@@ -140,7 +140,7 @@ final class DefaultAppStorePurchaseFlowTests: XCTestCase {
         subscriptionManagerMock.resultSubscription = SubscriptionMockFactory.expiredSubscription
         subscriptionManagerMock.confirmPurchaseResponse = .success(subscriptionManagerMock.resultSubscription!)
 
-        let result = await sut.completeSubscriptionPurchase(with: "transactionJWS")
+        let result = await sut.completeSubscriptionPurchase(with: "transactionJWS", additionalParams: nil)
 
         XCTAssertEqual(result, .failure(.purchaseFailed(AppStoreRestoreFlowError.subscriptionExpired)))
     }
@@ -150,7 +150,7 @@ final class DefaultAppStorePurchaseFlowTests: XCTestCase {
         subscriptionManagerMock.resultTokenContainer = OAuthTokensFactory.makeValidTokenContainerWithEntitlements()
         subscriptionManagerMock.confirmPurchaseResponse = .failure(OAuthServiceError.invalidResponseCode(HTTPStatusCode.badRequest))
 
-        let result = await sut.completeSubscriptionPurchase(with: "transactionJWS")
+        let result = await sut.completeSubscriptionPurchase(with: "transactionJWS", additionalParams: nil)
         switch result {
         case .success:
             XCTFail("Unexpected success")
@@ -374,16 +374,67 @@ final class AppStorePurchaseFlowTests: XCTestCase {
     func testCompleteSubscriptionPurchaseSuccess() async throws {
         // Given
         accountManager.accessToken = Constants.accessToken
-        subscriptionService.confirmPurchaseResult = .success(ConfirmPurchaseResponse(email: nil,
-                                                                                     entitlements: [],
-                                                                                     subscription: SubscriptionMockFactory.subscription))
+        subscriptionService.confirmPurchaseResult = .success(
+            ConfirmPurchaseResponse(
+                email: nil,
+                entitlements: [],
+                subscription: SubscriptionMockFactory.subscription
+            )
+        )
+
+        let expectedAdditionalParams = ["key1": "value1", "key2": "value2"]
+
+        subscriptionService.onConfirmPurchase = { accessToken, signature, additionalParams in
+            XCTAssertEqual(accessToken, Constants.accessToken)
+            XCTAssertEqual(signature, Constants.transactionJWS)
+            XCTAssertEqual(additionalParams, expectedAdditionalParams)
+        }
 
         subscriptionService.onUpdateCache = { subscription in
             XCTAssertEqual(subscription, SubscriptionMockFactory.subscription)
         }
 
         // When
-        switch await appStorePurchaseFlow.completeSubscriptionPurchase(with: Constants.transactionJWS) {
+        switch await appStorePurchaseFlow.completeSubscriptionPurchase(
+            with: Constants.transactionJWS,
+            additionalParams: expectedAdditionalParams
+        ) {
+        case .success(let success):
+            // Then
+            XCTAssertTrue(subscriptionService.updateCacheWithSubscriptionCalled)
+            XCTAssertTrue(accountManager.updateCacheWithEntitlementsCalled)
+            XCTAssertEqual(success.type, "completed")
+        case .failure(let error):
+            XCTFail("Unexpected failure: \(String(reflecting: error))")
+        }
+    }
+
+    func testCompleteSubscriptionPurchaseWithNilAdditionalParams() async throws {
+        // Given
+        accountManager.accessToken = Constants.accessToken
+        subscriptionService.confirmPurchaseResult = .success(
+            ConfirmPurchaseResponse(
+                email: nil,
+                entitlements: [],
+                subscription: SubscriptionMockFactory.subscription
+            )
+        )
+
+        subscriptionService.onConfirmPurchase = { accessToken, signature, additionalParams in
+            XCTAssertEqual(accessToken, Constants.accessToken)
+            XCTAssertEqual(signature, Constants.transactionJWS)
+            XCTAssertNil(additionalParams)
+        }
+
+        subscriptionService.onUpdateCache = { subscription in
+            XCTAssertEqual(subscription, SubscriptionMockFactory.subscription)
+        }
+
+        // When
+        switch await appStorePurchaseFlow.completeSubscriptionPurchase(
+            with: Constants.transactionJWS,
+            additionalParams: nil
+        ) {
         case .success(let success):
             // Then
             XCTAssertTrue(subscriptionService.updateCacheWithSubscriptionCalled)
@@ -399,7 +450,33 @@ final class AppStorePurchaseFlowTests: XCTestCase {
         XCTAssertNil(accountManager.accessToken)
 
         // When
-        switch await appStorePurchaseFlow.completeSubscriptionPurchase(with: Constants.transactionJWS) {
+        switch await appStorePurchaseFlow.completeSubscriptionPurchase(with: Constants.transactionJWS, additionalParams: nil) {
+        case .success:
+            XCTFail("Unexpected success")
+        case .failure(let error):
+            // Then
+            XCTAssertEqual(error, .missingEntitlements)
+        }
+    }
+
+    func testCompleteSubscriptionPurchaseErrorWithAdditionalParams() async throws {
+        // Given
+        accountManager.accessToken = Constants.accessToken
+        subscriptionService.confirmPurchaseResult = .failure(Constants.unknownServerError)
+
+        let additionalParams = ["key1": "value1"]
+
+        subscriptionService.onConfirmPurchase = { accessToken, signature, additionalParams in
+            XCTAssertEqual(accessToken, Constants.accessToken)
+            XCTAssertEqual(signature, Constants.transactionJWS)
+            XCTAssertEqual(additionalParams, additionalParams)
+        }
+
+        // When
+        switch await appStorePurchaseFlow.completeSubscriptionPurchase(
+            with: Constants.transactionJWS,
+            additionalParams: additionalParams
+        ) {
         case .success:
             XCTFail("Unexpected success")
         case .failure(let error):
@@ -414,7 +491,7 @@ final class AppStorePurchaseFlowTests: XCTestCase {
         subscriptionService.confirmPurchaseResult = .failure(Constants.unknownServerError)
 
         // When
-        switch await appStorePurchaseFlow.completeSubscriptionPurchase(with: Constants.transactionJWS) {
+        switch await appStorePurchaseFlow.completeSubscriptionPurchase(with: Constants.transactionJWS, additionalParams: nil) {
         case .success:
             XCTFail("Unexpected success")
         case .failure(let error):

@@ -121,12 +121,19 @@ public enum AIChatSubfeature: String, Equatable, PrivacySubfeature {
 
     /// Displays the AI Chat icon in the iOS address bar while on a SERP.
     case addressBarShortcut
+
+    /// Web and native integration for opening AI Chat in a custom webview.
+    case deepLink
 }
 
 public enum NetworkProtectionSubfeature: String, Equatable, PrivacySubfeature {
     public var parent: PrivacyFeature {
         .networkProtection
     }
+
+    /// App Exclusions for the VPN
+    /// https://app.asana.com/0/1206580121312550/1209150117333883/f
+    case appExclusions
 
     /// Display user tips for Network Protection
     /// https://app.asana.com/0/72649045549333/1208231259093710/f
@@ -164,7 +171,7 @@ public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {
     case allowPurchaseStripe
     case useUnifiedFeedback
     case setAccessTokenCookieForSubscriptionDomains
-    case freeTrials
+    case privacyProFreeTrialJan25
 }
 
 public enum SslCertificatesSubfeature: String, PrivacySubfeature {

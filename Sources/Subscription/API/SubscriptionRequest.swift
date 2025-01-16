@@ -58,9 +58,14 @@ struct SubscriptionRequest {
         return SubscriptionRequest(apiRequest: request)
     }
 
-    static func confirmPurchase(baseURL: URL, accessToken: String, signature: String) -> SubscriptionRequest? {
+    static func confirmPurchase(baseURL: URL, accessToken: String, signature: String, additionalParams: [String: String]?) -> SubscriptionRequest? {
         let path = "/purchase/confirm/apple"
-        let bodyDict = ["signedTransactionInfo": signature]
+        var bodyDict = ["signedTransactionInfo": signature]
+
+        if let additionalParams {
+            bodyDict.merge(additionalParams) { (_, new) in new }
+        }
+
         guard let bodyData = CodableHelper.encode(bodyDict) else { return nil }
         guard let request = APIRequestV2(url: baseURL.appendingPathComponent(path),
                                          method: .post,

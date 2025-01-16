@@ -117,12 +117,16 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
     }
 
     public func subscriptionOptions() async -> SubscriptionOptions? {
-        let nonFreeTrialProducts = availableProducts.filter { !$0.hasFreeTrialOffer }
+        let nonFreeTrialProducts = availableProducts.filter { !$0.isFreeTrialProduct }
+        let ids = nonFreeTrialProducts.map(\.self.id)
+        Logger.subscription.debug("[StorePurchaseManager] Returning SubscriptionOptions for products: \(ids)")
         return await subscriptionOptions(for: nonFreeTrialProducts)
     }
 
     public func freeTrialSubscriptionOptions() async -> SubscriptionOptions? {
-        let freeTrialProducts = availableProducts.filter { $0.hasFreeTrialOffer }
+        let freeTrialProducts = availableProducts.filter { $0.isFreeTrialProduct }
+        let ids = freeTrialProducts.map(\.self.id)
+        Logger.subscription.debug("[StorePurchaseManager] Returning Free Trial SubscriptionOptions for products: \(ids)")
         return await subscriptionOptions(for: freeTrialProducts)
     }
 
@@ -347,7 +351,7 @@ private extension SubscriptionOption {
             let durationInDays = introOffer.periodInDays
             let isUserEligible = await product.isEligibleForIntroOffer
 
-            offer = .init(type: .freeTrial, id: introOffer.id ?? "", displayPrice: introOffer.displayPrice, durationInDays: durationInDays, isUserEligible: isUserEligible)
+            offer = .init(type: .freeTrial, id: introOffer.id ?? "", durationInDays: durationInDays, isUserEligible: isUserEligible)
         }
 
         self.init(id: product.id, cost: .init(displayPrice: product.displayPrice, recurrence: recurrence), offer: offer)

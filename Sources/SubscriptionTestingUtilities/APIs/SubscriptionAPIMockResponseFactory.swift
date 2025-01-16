@@ -42,7 +42,8 @@ public struct SubscriptionAPIMockResponseFactory {
     public static func mockConfirmPurchase(destinationMockAPIService apiService: MockAPIService, success: Bool) {
         let request = SubscriptionRequest.confirmPurchase(baseURL: SubscriptionEnvironment.ServiceEnvironment.staging.url,
                                                           accessToken: "somAccessToken",
-                                                          signature: "someSignature")!
+                                                          signature: "someSignature",
+                                                          additionalParams: nil)!
         if success {
             let jsonString = """
 {"email":"","entitlements":[{"product":"Data Broker Protection","name":"subscriber"},{"product":"Identity Theft Restoration","name":"subscriber"},{"product":"Network Protection","name":"subscriber"}],"subscription":{"productId":"ios.subscription.1month","name":"Monthly Subscription","billingPeriod":"Monthly","startedAt":1730991734000,"expiresOrRenewsAt":1730992034000,"platform":"apple","status":"Auto-Renewable"}}
