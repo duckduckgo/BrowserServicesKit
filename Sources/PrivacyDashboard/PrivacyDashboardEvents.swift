@@ -27,7 +27,7 @@ public enum PrivacyDashboardEvents {
 
     }
 
-    case showReportBrokenSite // TODO: Remove this?
+    case showReportBrokenSite
 
     case reportBrokenSiteShown
     case reportBrokenSiteSent
