@@ -31,6 +31,7 @@ protocol PrivacyDashboardUserScriptDelegate: AnyObject {
     func userScript(_ userScript: PrivacyDashboardUserScript, setHeight height: Int)
     func userScriptDidRequestClose(_ userScript: PrivacyDashboardUserScript)
     func userScriptDidRequestShowReportBrokenSite(_ userScript: PrivacyDashboardUserScript)
+    func userScriptDidRequestReportBrokenSiteShown(_ userScript: PrivacyDashboardUserScript)
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestSubmitBrokenSiteReportWithCategory category: String, description: String)
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestOpenUrlInNewTab: URL)
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestOpenSettings: String)
@@ -107,6 +108,7 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         case privacyDashboardSetSize
         case privacyDashboardClose
         case privacyDashboardShowReportBrokenSite
+        case privacyDashboardReportBrokenSiteShown
         case privacyDashboardSubmitBrokenSiteReport
         case privacyDashboardOpenUrlInNewTab
         case privacyDashboardOpenSettings
@@ -143,6 +145,8 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             handleClose()
         case .privacyDashboardShowReportBrokenSite:
             handleShowReportBrokenSite()
+        case .privacyDashboardReportBrokenSiteShown:
+            handleReportBrokenSiteShown()
         case .privacyDashboardSubmitBrokenSiteReport:
             handleSubmitBrokenSiteReport(message: message)
         case .privacyDashboardOpenUrlInNewTab:
@@ -194,6 +198,10 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
 
     private func handleShowReportBrokenSite() {
         delegate?.userScriptDidRequestShowReportBrokenSite(self)
+    }
+
+    private func handleReportBrokenSiteShown() {
+        delegate?.userScriptDidRequestReportBrokenSiteShown(self)
     }
 
     private func handleSubmitBrokenSiteReport(message: WKScriptMessage) {
