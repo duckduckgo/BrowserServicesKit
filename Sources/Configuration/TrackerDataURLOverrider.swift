@@ -34,7 +34,7 @@ public final class TrackerDataURLOverrider: TrackerDataURLProviding {
     }
 
     public init (privacyConfigurationManager: PrivacyConfigurationManaging,
-          featureFlagger: FeatureFlagger) {
+                 featureFlagger: FeatureFlagger) {
         self.privacyConfigurationManager = privacyConfigurationManager
         self.featureFlagger = featureFlagger
     }
