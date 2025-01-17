@@ -77,8 +77,7 @@ let package = Package(
                 "UserScript",
                 "ContentBlocking",
                 "SecureStorage",
-                "Subscription",
-                "Networking"
+                "Subscription"
             ],
             resources: [
                 .process("ContentBlocking/UserScripts/contentblockerrules.js"),
