@@ -45,11 +45,15 @@ final class APIRequestV2Tests: XCTestCase {
             XCTFail("Nil URLRequest")
             return
         }
-        XCTAssertEqual(urlRequest.url?.host(), url.host())
+        XCTAssertEqual(urlRequest.url?.host, url.host)
         XCTAssertEqual(urlRequest.httpMethod, method.rawValue)
 
-        let urlComponents = URLComponents(string: urlRequest.url!.absoluteString)!
-        XCTAssertTrue(urlComponents.queryItems!.contains(queryItems.toURLQueryItems()))
+        if let urlComponents = URLComponents(url: urlRequest.url!, resolvingAgainstBaseURL: false) {
+            let expectedQueryItems = queryItems.map { URLQueryItem(name: $0.key, value: $0.value) }
+            XCTAssertEqual(urlComponents.queryItems, expectedQueryItems)
+        } else {
+            XCTFail("Invalid URLComponents")
+        }
 
         XCTAssertEqual(urlRequest.allHTTPHeaderFields, headers.httpHeaders)
         XCTAssertEqual(urlRequest.httpBody, body)
@@ -74,9 +78,13 @@ final class APIRequestV2Tests: XCTestCase {
                                       body: body,
                                       timeoutInterval: timeoutInterval,
                                       cachePolicy: cachePolicy)
-
-        let urlComponents = URLComponents(string: apiRequest!.urlRequest.url!.absoluteString)!
-        XCTAssertTrue(urlComponents.queryItems!.contains(queryItems.toURLQueryItems()))
+        
+        if let urlComponents = URLComponents(url: apiRequest!.urlRequest.url!, resolvingAgainstBaseURL: false) {
+            let expectedQueryItems = queryItems.map { URLQueryItem(name: $0.key, value: $0.value) }
+            XCTAssertEqual(urlComponents.queryItems, expectedQueryItems)
+        } else {
+            XCTFail("Invalid URLComponents")
+        }
 
         XCTAssertNotNil(apiRequest)
         XCTAssertEqual(apiRequest?.urlRequest.url?.absoluteString, "https://www.example.com?key=value")

@@ -64,6 +64,7 @@ public class APIRequestV2: Hashable, CustomDebugStringConvertible {
     ///   - cachePolicy: The request cache policy, default is `.useProtocolCachePolicy`
     ///   - responseRequirements: The response requirements
     ///   - allowedQueryReservedCharacters: The characters in this character set will not be URL encoded in the query parameters
+    /// - Note: The init can return nil if the URLComponents fails to parse the provided URL
     public init?(url: URL,
                  method: HTTPRequestMethod = .get,
                  queryItems: QueryItems? = nil,
