@@ -368,10 +368,13 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     }
 
     func userScriptDidRequestShowReportBrokenSite(_ userScript: PrivacyDashboardUserScript) {
+        eventMapping.fire(.showReportBrokenSite)
+    }
+
+    func userScriptDidRequestReportBrokenSiteShown(_ userScript: PrivacyDashboardUserScript) {
         eventMapping.fire(.reportBrokenSiteShown, parameters: [
             PrivacyDashboardEvents.Parameters.source: source.rawValue
         ])
-        eventMapping.fire(.showReportBrokenSite)
     }
 
     func userScript(_ userScript: PrivacyDashboardUserScript, setHeight height: Int) {
@@ -379,7 +382,9 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     }
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestSubmitBrokenSiteReportWithCategory category: String, description: String) {
-        eventMapping.fire(.reportBrokenSiteSent)
+        eventMapping.fire(.reportBrokenSiteSent, parameters: [
+            PrivacyDashboardEvents.Parameters.source: source.rawValue
+        ])
         delegate?.privacyDashboardController(self, didRequestSubmitBrokenSiteReportWithCategory: category, description: description)
     }
 
