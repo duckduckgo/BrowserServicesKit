@@ -81,7 +81,11 @@ public class APIRequestV2: Hashable, CustomDebugStringConvertible {
         guard var urlComps = URLComponents(url: url, resolvingAgainstBaseURL: true) else {
             return nil
         }
-        urlComps.queryItems = queryItems?.toURLQueryItems(allowedReservedCharacters: allowedQueryReservedCharacters)
+        if let queryItems {
+            // we append both the query items already added to the URL and the new passed as parameters
+            let originalQI = urlComps.queryItems ?? []
+            urlComps.queryItems = originalQI + queryItems.toURLQueryItems(allowedReservedCharacters: allowedQueryReservedCharacters)
+        }
         guard let finalURL = urlComps.url else { return nil }
         var request = URLRequest(url: finalURL, timeoutInterval: timeoutInterval)
         request.allHTTPHeaderFields = headers?.httpHeaders

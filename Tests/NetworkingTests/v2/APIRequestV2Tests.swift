@@ -127,4 +127,18 @@ final class APIRequestV2Tests: XCTestCase {
         let urlComponents = URLComponents(string: urlString)!
         XCTAssertTrue(urlComponents.queryItems?.count == 1)
     }
+
+    func testQueryParametersConcatenation() {
+        let url = URL(string: "https://www.example.com?originalKey=originalValue")!
+        let queryItems: QueryItems = [(key: "additionalKey", value: "additionalValue")]
+
+        let apiRequest = APIRequestV2(url: url,
+                                      queryItems: queryItems,
+                                      allowedQueryReservedCharacters: CharacterSet(charactersIn: ","))
+
+        let urlString = apiRequest!.urlRequest.url!.absoluteString
+        XCTAssertTrue(urlString == "https://www.example.com?originalKey=originalValue&additionalKey=additionalValue")
+        let urlComponents = URLComponents(string: urlString)!
+        XCTAssertTrue(urlComponents.queryItems?.count == 2)
+    }
 }

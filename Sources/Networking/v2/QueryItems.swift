@@ -26,7 +26,7 @@ public typealias QueryItems = Array<QueryItem>
 extension QueryItems {
 
     public func toURLQueryItems(allowedReservedCharacters: CharacterSet? = nil) -> [URLQueryItem] {
-        return self.compactMap {
+        return self.map {
             if let allowedReservedCharacters {
                 return URLQueryItem(percentEncodingName: $0.key,
                                     value: $0.value,
