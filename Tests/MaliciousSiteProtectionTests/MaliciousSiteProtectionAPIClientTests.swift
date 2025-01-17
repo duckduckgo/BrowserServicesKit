@@ -45,10 +45,7 @@ final class MaliciousSiteProtectionAPIClientTests: XCTestCase {
         let deleteFilter = Filter(hash: "6a929cd0b3ba4677eaedf1b2bdaf3ff89281cca94f688c83103bc9a676aea46d", regex: "(?i)^https?\\:\\/\\/[\\w\\-\\.]+(?:\\:(?:80|443))?")
         let expectedResponse = APIClient.Response.FiltersChangeSet(insert: [insertFilter], delete: [deleteFilter], revision: 666, replace: false)
         mockService.requestHandler = { [unowned self] in
-            let resultURL = $0.urlRequest.url!
-            let expectedQueryItems = client.environment.queryItems(for: .filterSet(APIRequestType.FilterSet(threatKind: .phishing, revision: 666)))
-            let expectedURL = client.environment.url(for: .filterSet(APIRequestType.FilterSet(threatKind: .phishing, revision: 666))).appending(queryItems: expectedQueryItems.toURLQueryItems())
-            XCTAssertEqual(resultURL, expectedURL)
+            XCTAssertEqual($0.urlRequest.url, client.environment.url(for: .filterSet(.init(threatKind: .phishing, revision: 666))))
             let data = try? JSONEncoder().encode(expectedResponse)
             let response = HTTPURLResponse(url: $0.urlRequest.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
             return .success(.init(data: data, httpResponse: response))
@@ -65,10 +62,7 @@ final class MaliciousSiteProtectionAPIClientTests: XCTestCase {
         // Given
         let expectedResponse = APIClient.Response.HashPrefixesChangeSet(insert: ["abc"], delete: ["def"], revision: 1, replace: false)
         mockService.requestHandler = { [unowned self] in
-            let resultURL = $0.urlRequest.url
-            let expectedQueryItems = client.environment.queryItems(for: .hashPrefixSet(.init(threatKind: .phishing, revision: 1)))
-            let expectedURL = client.environment.url(for: .hashPrefixSet(.init(threatKind: .phishing, revision: 1))).appending(queryItems: expectedQueryItems.toURLQueryItems())
-            XCTAssertEqual(resultURL, expectedURL)
+            XCTAssertEqual($0.urlRequest.url, client.environment.url(for: .hashPrefixSet(.init(threatKind: .phishing, revision: 1))))
             let data = try? JSONEncoder().encode(expectedResponse)
             let response = HTTPURLResponse(url: $0.urlRequest.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
             return .success(.init(data: data, httpResponse: response))
@@ -85,10 +79,7 @@ final class MaliciousSiteProtectionAPIClientTests: XCTestCase {
         // Given
         let expectedResponse = APIClient.Response.Matches(matches: [Match(hostname: "example.com", url: "https://example.com/test", regex: ".", hash: "a379a6f6eeafb9a55e378c118034e2751e682fab9f2d30ab13d2125586ce1947", category: nil)])
         mockService.requestHandler = { [unowned self] in
-            let resultURL = $0.urlRequest.url
-            let expectedQueryItems = client.environment.queryItems(for: .matches(.init(hashPrefix: "abc")))
-            let expectedURL = client.environment.url(for: .matches(.init(hashPrefix: "abc"))).appending(queryItems: expectedQueryItems.toURLQueryItems())
-            XCTAssertEqual(resultURL, expectedURL)
+            XCTAssertEqual($0.urlRequest.url, client.environment.url(for: .matches(.init(hashPrefix: "abc"))))
             let data = try? JSONEncoder().encode(expectedResponse)
             let response = HTTPURLResponse(url: $0.urlRequest.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
             return .success(.init(data: data, httpResponse: response))
