@@ -1,7 +1,7 @@
 //
-//  NetworkProtectionTokenStoreMocks.swift
+//  MockTokenStorage.swift
 //
-//  Copyright © 2021 DuckDuckGo. All rights reserved.
+//  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -17,25 +17,13 @@
 //
 
 import Foundation
-@testable import NetworkProtection
+import Networking
 
-final class NetworkProtectionTokenStoreMock: NetworkProtectionTokenStore {
+public class MockTokenStorage: TokenStoring {
 
-    var token: String?
-
-    func store(_ token: String) {
-        self.token = token
+    public init(tokenContainer: Networking.TokenContainer? = nil) {
+        self.tokenContainer = tokenContainer
     }
 
-    func fetchToken() -> String? {
-        token
-    }
-
-    func deleteToken() {
-        self.token = nil
-    }
-
-    func fetchSubscriptionToken() throws -> String? {
-        "ddg:accessToken"
-    }
+    public var tokenContainer: Networking.TokenContainer?
 }

@@ -25,122 +25,190 @@ public extension Date {
         public let index: Int
     }
 
+    /// Extracts day, month, and year components from the date.
     var components: DateComponents {
-        return Calendar.current.dateComponents([.day, .year, .month], from: self)
+        Calendar.current.dateComponents([.day, .year, .month], from: self)
     }
 
+    /// Returns the date exactly one week ago.
     static var weekAgo: Date {
-        return Calendar.current.date(byAdding: .weekOfMonth, value: -1, to: Date())!
+        guard let date = Calendar.current.date(byAdding: .weekOfMonth, value: -1, to: Date()) else {
+            fatalError("Unable to calculate a week ago date.")
+        }
+        return date
     }
 
-    static var monthAgo: Date! {
-        return Calendar.current.date(byAdding: .month, value: -1, to: Date())!
+    /// Returns the date exactly one month ago.
+    static var monthAgo: Date {
+        guard let date = Calendar.current.date(byAdding: .month, value: -1, to: Date()) else {
+            fatalError("Unable to calculate a month ago date.")
+        }
+        return date
     }
 
-    static var yearAgo: Date! {
-        return Calendar.current.date(byAdding: .year, value: -1, to: Date())!
+    /// Returns the date exactly one year ago.
+    static var yearAgo: Date {
+        guard let date = Calendar.current.date(byAdding: .year, value: -1, to: Date()) else {
+            fatalError("Unable to calculate a year ago date.")
+        }
+        return date
     }
 
-    static var aYearFromNow: Date! {
-        return Calendar.current.date(byAdding: .year, value: 1, to: Date())!
+    /// Returns the date exactly one year from now.
+    static var aYearFromNow: Date {
+        guard let date = Calendar.current.date(byAdding: .year, value: 1, to: Date()) else {
+            fatalError("Unable to calculate a year from now date.")
+        }
+        return date
     }
 
-    static func daysAgo(_ days: Int) -> Date! {
-        return Calendar.current.date(byAdding: .day, value: -days, to: Date())!
+    /// Returns the date a specific number of days ago.
+    static func daysAgo(_ days: Int) -> Date {
+        guard let date = Calendar.current.date(byAdding: .day, value: -days, to: Date()) else {
+            fatalError("Unable to calculate \(days) days ago date.")
+        }
+        return date
     }
 
+    /// Checks if two dates fall on the same calendar day.
     static func isSameDay(_ date1: Date, _ date2: Date?) -> Bool {
         guard let date2 = date2 else { return false }
         return Calendar.current.isDate(date1, inSameDayAs: date2)
     }
 
+    /// Returns the start of tomorrow's day.
     static var startOfDayTomorrow: Date {
         let tomorrow = Calendar.current.date(byAdding: .day, value: 1, to: Date())!
         return Calendar.current.startOfDay(for: tomorrow)
     }
 
+    /// Returns the start of today's day.
     static var startOfDayToday: Date {
-        return Calendar.current.startOfDay(for: Date())
+        Calendar.current.startOfDay(for: Date())
     }
 
+    /// Returns the start of the day for this date instance.
     var startOfDay: Date {
-        return Calendar.current.startOfDay(for: self)
+        Calendar.current.startOfDay(for: self)
     }
 
+    /// Returns the date a specific number of days ago from this date instance.
     func daysAgo(_ days: Int) -> Date {
-        Calendar.current.date(byAdding: .day, value: -days, to: self)!
+        guard let date = Calendar.current.date(byAdding: .day, value: -days, to: self) else {
+            fatalError("Unable to calculate \(days) days ago date from this instance.")
+        }
+        return date
     }
 
+    /// Returns the start of the current minute.
     static var startOfMinuteNow: Date {
-        let date = Calendar.current.date(bySetting: .second, value: 0, of: Date())!
-        let start = Calendar.current.date(byAdding: .minute, value: -1, to: date)!
+        guard let date = Calendar.current.date(bySetting: .second, value: 0, of: Date()),
+              let start = Calendar.current.date(byAdding: .minute, value: -1, to: date) else {
+            fatalError("Unable to calculate the start of the current minute.")
+        }
         return start
     }
 
+    /// Provides a list of months with their names and indices.
     static var monthsWithIndex: [IndexedMonth] {
-        let months = Calendar.current.monthSymbols
-
-        return months.enumerated().map { index, month in
-            return IndexedMonth(name: month, index: index + 1)
+        Calendar.current.monthSymbols.enumerated().map { index, month in
+            IndexedMonth(name: month, index: index + 1)
         }
     }
 
-    static var daysInMonth: [Int] = {
-        return Array(1...31)
-    }()
+    /// Provides a list of days in a month (1 through 31).
+    static let daysInMonth = Array(1...31)
 
-    static var nextTenYears: [Int] = {
-        let offsetComponents = DateComponents(year: 1)
+    /// Provides a list of the next ten years including the current year.
+    static var nextTenYears: [Int] {
+        let currentYear = Calendar.current.component(.year, from: Date())
+        return (0...10).map { currentYear + $0 }
+    }
 
-        var years = [Int]()
-        var currentDate = Date()
+    /// Provides a list of the last hundred years including the current year.
+    static var lastHundredYears: [Int] {
+        let currentYear = Calendar.current.component(.year, from: Date())
+        return (0...100).map { currentYear - $0 }
+    }
 
-        for _ in 0...10 {
-            let currentYear = Calendar.current.component(.year, from: currentDate)
-            years.append(currentYear)
-
-            currentDate = Calendar.current.date(byAdding: offsetComponents, to: currentDate)!
-        }
-
-        return years
-    }()
-
-    static var lastHundredYears: [Int] = {
-        let offsetComponents = DateComponents(year: -1)
-
-        var years = [Int]()
-        var currentDate = Date()
-
-        for _ in 0...100 {
-            let currentYear = Calendar.current.component(.year, from: currentDate)
-            years.append(currentYear)
-
-            currentDate = Calendar.current.date(byAdding: offsetComponents, to: currentDate)!
-        }
-
-        return years
-    }()
-
+    /// Returns the number of whole days since the reference date (January 1, 2001).
     var daySinceReferenceDate: Int {
         Int(self.timeIntervalSinceReferenceDate / TimeInterval.day)
     }
 
-    @inlinable
+    /// Adds a specific time interval to this date.
     func adding(_ timeInterval: TimeInterval) -> Date {
         addingTimeInterval(timeInterval)
     }
 
+    /// Checks if this date falls on the same calendar day as another date.
     func isSameDay(_ otherDate: Date?) -> Bool {
         guard let otherDate = otherDate else { return false }
         return Calendar.current.isDate(self, inSameDayAs: otherDate)
     }
 
+    /// Checks if this date is within a certain number of days ago.
     func isLessThan(daysAgo days: Int) -> Bool {
-        self > Date().addingTimeInterval(Double(-days) * 24 * 60 * 60)
+        self > Date().addingTimeInterval(Double(-days) * TimeInterval.day)
     }
 
+    /// Checks if this date is within a certain number of minutes ago.
     func isLessThan(minutesAgo minutes: Int) -> Bool {
         self > Date().addingTimeInterval(Double(-minutes) * 60)
     }
 
+    /// Returns a new date a specific number of seconds from now.
+    static func secondsFromNow(_ seconds: Int) -> Date {
+        Calendar.current.date(byAdding: .second, value: -seconds, to: Date())!
+    }
+
+    /// Returns a new date a specific number of minutes from now.
+    static func minutesFromNow(_ minutes: Int) -> Date {
+        Calendar.current.date(byAdding: .minute, value: -minutes, to: Date())!
+    }
+
+    /// Returns a new date a specific number of hours from now.
+    static func hoursFromNow(_ hours: Int) -> Date {
+        Calendar.current.date(byAdding: .hour, value: -hours, to: Date())!
+    }
+
+    /// Returns a new date a specific number of days from now.
+    static func daysFromNow(_ days: Int) -> Date {
+        Calendar.current.date(byAdding: .day, value: -days, to: Date())!
+    }
+
+    /// Returns a new date a specific number of months from now.
+    static func monthsFromNow(_ months: Int) -> Date {
+        Calendar.current.date(byAdding: .month, value: -months, to: Date())!
+    }
+
+    /// Returns the number of seconds since this date until now.
+    func secondsSinceNow() -> Int {
+        Int(Date().timeIntervalSince(self))
+    }
+
+    /// Returns the number of minutes since this date until now.
+    func minutesSinceNow() -> Int {
+        secondsSinceNow() / 60
+    }
+
+    /// Returns the number of hours since this date until now.
+    func hoursSinceNow() -> Int {
+        minutesSinceNow() / 60
+    }
+
+    /// Returns the number of days since this date until now.
+    func daysSinceNow() -> Int {
+        hoursSinceNow() / 24
+    }
+
+    /// Returns the number of months since this date until now.
+    func monthsSinceNow() -> Int {
+        Calendar.current.dateComponents([.month], from: self, to: Date()).month ?? 0
+    }
+
+    /// Returns the number of years since this date until now.
+    func yearsSinceNow() -> Int {
+        Calendar.current.dateComponents([.year], from: self, to: Date()).year ?? 0
+    }
 }

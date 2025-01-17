@@ -1,5 +1,5 @@
 //
-//  MockAPIService.swift
+//  Untitled.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -16,23 +16,3 @@
 //  limitations under the License.
 //
 
-import Foundation
-import Networking
-
-public class MockAPIService: APIService {
-
-    public var requestHandler: ((APIRequestV2) -> Result<APIResponseV2, Error>)!
-
-    public init(requestHandler: ((APIRequestV2) -> Result<APIResponseV2, Error>)? = nil) {
-        self.requestHandler = requestHandler
-    }
-
-    public func fetch(request: APIRequestV2) async throws -> APIResponseV2 {
-        switch requestHandler!(request) {
-        case .success(let result):
-            return result
-        case .failure(let error):
-            throw error
-        }
-    }
-}

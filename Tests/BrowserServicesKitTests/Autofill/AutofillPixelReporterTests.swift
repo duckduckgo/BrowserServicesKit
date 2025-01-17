@@ -17,7 +17,6 @@
 //
 
 import XCTest
-import TestUtils
 import Common
 import SecureStorage
 import SecureStorageTestsUtils
