@@ -1,6 +1,5 @@
 //
 //  QueryItems.swift
-//  DuckDuckGo
 //
 //  Copyright © 2025 DuckDuckGo. All rights reserved.
 //
@@ -21,7 +20,7 @@ import Foundation
 import Common
 
 public typealias QueryItem = Dictionary<String, String>.Element
-public typealias QueryItems = Array<QueryItem>
+public typealias QueryItems = [QueryItem]
 
 extension QueryItems {
 

@@ -166,7 +166,7 @@ public struct OAuthRequest {
               emailAddress.isEmpty == false else { return nil }
 
         let path = "/api/auth/v2/otp"
-        let queryItems: QueryItems = [(key: "email",value: emailAddress)]
+        let queryItems: QueryItems = [(key: "email", value: emailAddress)]
         guard let domain = baseURL.host,
               let cookie = Self.ddgAuthSessionCookie(domain: domain, path: path, authSessionID: authSessionID)
         else { return nil }
@@ -248,9 +248,9 @@ public struct OAuthRequest {
 
         let path = "/api/auth/v2/token"
         let queryItems: QueryItems = [
-            (key: "grant_type", value:"authorization_code"),
-            (key: "client_id", value:clientID),
-            (key: "code_verifier", value:codeVerifier),
+            (key: "grant_type", value: "authorization_code"),
+            (key: "client_id", value: clientID),
+            (key: "code_verifier", value: codeVerifier),
             (key: "code", value: code),
             (key: "redirect_uri", value: redirectURI)
         ]
@@ -269,9 +269,9 @@ public struct OAuthRequest {
 
         let path = "/api/auth/v2/token"
         let queryItems: QueryItems = [
-            (key: "grant_type", value:"refresh_token"),
-            (key: "client_id", value:clientID),
-            (key: "refresh_token", value:refreshToken)
+            (key: "grant_type", value: "refresh_token"),
+            (key: "client_id", value: clientID),
+            (key: "refresh_token", value: refreshToken)
         ]
         guard let request = APIRequestV2(url: baseURL.appendingPathComponent(path),
                                          method: .get,
