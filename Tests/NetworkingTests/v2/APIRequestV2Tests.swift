@@ -25,7 +25,7 @@ final class APIRequestV2Tests: XCTestCase {
     func testInitializationWithValidURL() {
         let url = URL(string: "https://www.example.com")!
         let method = HTTPRequestMethod.get
-        let queryItems = ["key": "value"]
+        let queryItems: QueryItems = [(key: "key", value: "value")]
         let headers = APIRequestV2.HeadersV2()
         let body = "Test body".data(using: .utf8)
         let timeoutInterval: TimeInterval = 30.0
@@ -49,7 +49,9 @@ final class APIRequestV2Tests: XCTestCase {
         XCTAssertEqual(urlRequest.httpMethod, method.rawValue)
 
         if let urlComponents = URLComponents(url: urlRequest.url!, resolvingAgainstBaseURL: false) {
-            let expectedQueryItems = queryItems.map { URLQueryItem(name: $0.key, value: $0.value) }
+            let expectedQueryItems = queryItems.map { queryItem in
+                URLQueryItem(name: queryItem.key, value: queryItem.value)
+            }
             XCTAssertEqual(urlComponents.queryItems, expectedQueryItems)
         } else {
             XCTFail("Invalid URLComponents")
@@ -65,7 +67,7 @@ final class APIRequestV2Tests: XCTestCase {
     func testURLRequestGeneration() {
         let url = URL(string: "https://www.example.com")!
         let method = HTTPRequestMethod.post
-        let queryItems = ["key": "value"]
+        let queryItems: QueryItems = [(key: "key", value: "value")]
         let headers = APIRequestV2.HeadersV2()
         let body = "Test body".data(using: .utf8)
         let timeoutInterval: TimeInterval = 30.0
@@ -114,7 +116,7 @@ final class APIRequestV2Tests: XCTestCase {
 
     func testAllowedQueryReservedCharacters() {
         let url = URL(string: "https://www.example.com")!
-        let queryItems = ["k#e,y": "val#ue"]
+        let queryItems: QueryItems = [(key: "k#e,y", value: "val#ue")]
 
         let apiRequest = APIRequestV2(url: url,
                                       queryItems: queryItems,

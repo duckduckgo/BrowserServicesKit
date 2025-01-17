@@ -71,13 +71,17 @@ public extension MaliciousSiteDetector {
         public func queryItems(for requestType: APIRequestType) -> QueryItems {
             switch requestType {
             case .hashPrefixSet(let configuration):
-                return [QueryParameter.category: configuration.threatKind.rawValue,
-                        QueryParameter.revision: (configuration.revision ?? 0).description]
+                return [
+                    (key: QueryParameter.category, value: configuration.threatKind.rawValue),
+                    (key: QueryParameter.revision, value: (configuration.revision ?? 0).description)
+                ]
             case .filterSet(let configuration):
-                return [QueryParameter.category: configuration.threatKind.rawValue,
-                        QueryParameter.revision: (configuration.revision ?? 0).description]
+                return [
+                    (key: QueryParameter.category, value: configuration.threatKind.rawValue),
+                    (key: QueryParameter.revision, value: (configuration.revision ?? 0).description)
+                ]
             case .matches(let configuration):
-                return [QueryParameter.hashPrefix: configuration.hashPrefix]
+                return [(key: QueryParameter.hashPrefix, value: configuration.hashPrefix)]
             }
         }
 

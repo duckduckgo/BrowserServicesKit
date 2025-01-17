@@ -18,8 +18,6 @@
 
 import Foundation
 
-public typealias QueryItems = [String: String]
-
 public class APIRequestV2: Hashable, CustomDebugStringConvertible {
 
     private(set) var urlRequest: URLRequest

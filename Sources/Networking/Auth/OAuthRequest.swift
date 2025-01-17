@@ -124,13 +124,13 @@ public struct OAuthRequest {
         guard codeChallenge.isEmpty == false else { return nil }
 
         let path = "/api/auth/v2/authorize"
-        let queryItems = [
-            "response_type": "code",
-            "code_challenge": codeChallenge,
-            "code_challenge_method": "S256",
-            "client_id": "f4311287-0121-40e6-8bbd-85c36daf1837",
-            "redirect_uri": "com.duckduckgo:/authcb",
-            "scope": "privacypro"
+        let queryItems: QueryItems = [
+            (key: "response_type", value: "code"),
+            (key: "code_challenge", value: codeChallenge),
+            (key: "code_challenge_method", value: "S256"),
+            (key: "client_id", value: "f4311287-0121-40e6-8bbd-85c36daf1837"),
+            (key: "redirect_uri", value: "com.duckduckgo:/authcb"),
+            (key: "scope", value: "privacypro")
         ]
         guard let request = APIRequestV2(url: baseURL.appendingPathComponent(path),
                                          method: .get,
@@ -166,7 +166,7 @@ public struct OAuthRequest {
               emailAddress.isEmpty == false else { return nil }
 
         let path = "/api/auth/v2/otp"
-        let queryItems = [ "email": emailAddress ]
+        let queryItems: QueryItems = [(key: "email",value: emailAddress)]
         guard let domain = baseURL.host,
               let cookie = Self.ddgAuthSessionCookie(domain: domain, path: path, authSessionID: authSessionID)
         else { return nil }
@@ -247,12 +247,12 @@ public struct OAuthRequest {
               redirectURI.isEmpty == false else { return nil }
 
         let path = "/api/auth/v2/token"
-        let queryItems = [
-            "grant_type": "authorization_code",
-            "client_id": clientID,
-            "code_verifier": codeVerifier,
-            "code": code,
-            "redirect_uri": redirectURI
+        let queryItems: QueryItems = [
+            (key: "grant_type", value:"authorization_code"),
+            (key: "client_id", value:clientID),
+            (key: "code_verifier", value:codeVerifier),
+            (key: "code", value: code),
+            (key: "redirect_uri", value: redirectURI)
         ]
         guard let request = APIRequestV2(url: baseURL.appendingPathComponent(path),
                                          method: .get,
@@ -268,10 +268,10 @@ public struct OAuthRequest {
               refreshToken.isEmpty == false else { return nil }
 
         let path = "/api/auth/v2/token"
-        let queryItems = [
-            "grant_type": "refresh_token",
-            "client_id": clientID,
-            "refresh_token": refreshToken,
+        let queryItems: QueryItems = [
+            (key: "grant_type", value:"refresh_token"),
+            (key: "client_id", value:clientID),
+            (key: "refresh_token", value:refreshToken)
         ]
         guard let request = APIRequestV2(url: baseURL.appendingPathComponent(path),
                                          method: .get,
@@ -289,9 +289,9 @@ public struct OAuthRequest {
         guard accessToken.isEmpty == false else { return nil }
 
         let path = "/api/auth/v2/account/edit"
-        var queryItems: [String: String] = [:]
+        var queryItems: QueryItems = []
         if let email {
-            queryItems["email"] = email
+            queryItems.append((key: "email", value: email))
         }
 
         guard let request = APIRequestV2(url: baseURL.appendingPathComponent(path),
@@ -312,10 +312,10 @@ public struct OAuthRequest {
               otp.isEmpty == false else { return nil }
 
         let path = "/account/edit/confirm"
-        let queryItems = [
-            "email": email,
-            "hash": hash,
-            "otp": otp,
+        let queryItems: QueryItems = [
+            (key: "email", value: email),
+            (key: "hash", value: hash),
+            (key: "otp", value: otp)
         ]
 
         guard let request = APIRequestV2(url: baseURL.appendingPathComponent(path),

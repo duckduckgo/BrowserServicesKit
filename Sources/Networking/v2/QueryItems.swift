@@ -1,7 +1,8 @@
 //
-//  Dictionary+URLQueryItem.swift
+//  QueryItems.swift
+//  DuckDuckGo
 //
-//  Copyright © 2024 DuckDuckGo. All rights reserved.
+//  Copyright © 2025 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -19,16 +20,19 @@
 import Foundation
 import Common
 
-extension Dictionary where Key == String, Value == String {
+public typealias QueryItem = Dictionary<String, String>.Element
+public typealias QueryItems = Array<QueryItem>
+
+extension QueryItems {
 
     public func toURLQueryItems(allowedReservedCharacters: CharacterSet? = nil) -> [URLQueryItem] {
-        return self.sorted(by: <).map {
+        return self.compactMap {
             if let allowedReservedCharacters {
-                URLQueryItem(percentEncodingName: $0.key,
-                             value: $0.value,
+                return URLQueryItem(percentEncodingName: $0.key,
+                                    value: $0.value,
                              withAllowedCharacters: allowedReservedCharacters)
             } else {
-                URLQueryItem(name: $0.key, value: $0.value)
+                return URLQueryItem(name: $0.key, value: $0.value)
             }
         }
     }
