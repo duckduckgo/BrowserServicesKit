@@ -382,7 +382,9 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     }
 
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestSubmitBrokenSiteReportWithCategory category: String, description: String) {
-        eventMapping.fire(.reportBrokenSiteSent)
+        eventMapping.fire(.reportBrokenSiteSent, parameters: [
+            PrivacyDashboardEvents.Parameters.source: source.rawValue
+        ])
         delegate?.privacyDashboardController(self, didRequestSubmitBrokenSiteReportWithCategory: category, description: description)
     }
 
