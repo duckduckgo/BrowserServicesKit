@@ -67,6 +67,7 @@ public enum PrivacyFeature: String {
     case experimentTest
     case forceOldAppDelegate
     case htmlNewTabPage
+    case tabManager
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -77,6 +78,14 @@ public protocol PrivacySubfeature: RawRepresentable where RawValue == String {
 }
 
 // MARK: Subfeature definitions
+
+public enum TabManagerSubfeature: String, PrivacySubfeature {
+    public var parent: PrivacyFeature {
+        .tabManager
+    }
+
+    case multiSelection
+}
 
 public enum AutofillSubfeature: String, PrivacySubfeature {
     public var parent: PrivacyFeature {
@@ -130,6 +139,10 @@ public enum NetworkProtectionSubfeature: String, Equatable, PrivacySubfeature {
     public var parent: PrivacyFeature {
         .networkProtection
     }
+
+    /// App Exclusions for the VPN
+    /// https://app.asana.com/0/1206580121312550/1209150117333883/f
+    case appExclusions
 
     /// Display user tips for Network Protection
     /// https://app.asana.com/0/72649045549333/1208231259093710/f
@@ -197,4 +210,20 @@ public enum ExperimentTestSubfeatures: String, PrivacySubfeature {
 public enum HTMLNewTabPageSubfeature: String, Equatable, PrivacySubfeature {
     public var parent: PrivacyFeature { .htmlNewTabPage }
     case isLaunched
+}
+
+public enum ContentBlockingSubfeature: String, Equatable, PrivacySubfeature {
+    public var parent: PrivacyFeature { .contentBlocking }
+    case tdsNextExperimentBaseline
+    case tdsNextExperimentFeb25
+    case tdsNextExperimentMar25
+    case tdsNextExperimentApr25
+    case tdsNextExperimentMay25
+    case tdsNextExperimentJun25
+    case tdsNextExperimentJul25
+    case tdsNextExperimentAug25
+    case tdsNextExperimentSep25
+    case tdsNextExperimentOct25
+    case tdsNextExperimentNov25
+    case tdsNextExperimentDec25
 }

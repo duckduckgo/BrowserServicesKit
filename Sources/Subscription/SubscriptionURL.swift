@@ -43,7 +43,7 @@ public enum SubscriptionURL {
                 URL(string: "https://duckduckgo.com/subscriptions?environment=staging")!
             }
         case .purchase:
-            SubscriptionURL.baseURL.subscriptionURL(environment: environment).appendingPathComponent("welcome")
+            SubscriptionURL.baseURL.subscriptionURL(environment: environment)
         case .faq:
             URL(string: "https://duckduckgo.com/duckduckgo-help-pages/privacy-pro/")!
         case .activateViaEmail:
