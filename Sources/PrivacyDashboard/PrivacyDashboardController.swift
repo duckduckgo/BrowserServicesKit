@@ -370,7 +370,7 @@ extension PrivacyDashboardController: PrivacyDashboardUserScriptDelegate {
     func userScriptDidRequestShowReportBrokenSite(_ userScript: PrivacyDashboardUserScript) {
         eventMapping.fire(.showReportBrokenSite)
     }
-    
+
     func userScriptDidRequestReportBrokenSiteShown(_ userScript: PrivacyDashboardUserScript) {
         eventMapping.fire(.reportBrokenSiteShown, parameters: [
             PrivacyDashboardEvents.Parameters.source: source.rawValue
