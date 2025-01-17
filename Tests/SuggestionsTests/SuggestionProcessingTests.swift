@@ -103,6 +103,261 @@ final class SuggestionProcessingTests: XCTestCase {
         }))
     }
 
+    func testWhenTabsAndMultipleMatchingHistoryRecordsAvailable_ThenOpenTabsSuggestedInTopHits() {
+        let tabs = [
+            BrowserTabMock(url: "http://duckduckgo.com", title: "DuckDuckGo"),
+            BrowserTabMock(url: "http://ducktales.com", title: "Duck Tales"),
+        ]
+
+        let history = [
+            HistoryEntryMock(identifier: UUID(),
+                           url: URL(string: "http://ducks.wikipedia.org")!,
+                           title: "Ducks – Wikipedia",
+                           numberOfVisits: 301,
+                           lastVisit: Date(),
+                           failedToLoad: false,
+                           isDownload: false),
+            HistoryEntryMock(identifier: UUID(),
+                           url: URL(string: "http://www.ducktails.com")!,
+                           title: "Duck Tails",
+                           numberOfVisits: 302,
+                           lastVisit: Date(),
+                           failedToLoad: false,
+                           isDownload: false),
+            HistoryEntryMock(identifier: UUID(),
+                           url: URL(string: "http://www.duck.com")!,
+                           title: "Duck",
+                           numberOfVisits: 303,
+                           lastVisit: Date(),
+                           failedToLoad: false,
+                           isDownload: false),
+            HistoryEntryMock(identifier: UUID(),
+                           url: URL(string: "http://www.duckduckgo.com")!,
+                           title: "DuckDuckGo",
+                           numberOfVisits: 1,
+                           lastVisit: Date(),
+                           failedToLoad: false,
+                           isDownload: false),
+            HistoryEntryMock(identifier: UUID(),
+                           url: URL(string: "http://duckme.com")!,
+                           title: "Duck me!",
+                           numberOfVisits: 304,
+                           lastVisit: Date(),
+                           failedToLoad: false,
+                           isDownload: false),
+            HistoryEntryMock(identifier: UUID(),
+                           url: URL(string: "http://duckslake.com")!,
+                           title: "Ducks lake",
+                           numberOfVisits: 305,
+                           lastVisit: Date(),
+                           failedToLoad: false,
+                           isDownload: false),
+            HistoryEntryMock(identifier: UUID(),
+                           url: URL(string: "http://wikipedia.com")!,
+                           title: "Wikipedia",
+                           numberOfVisits: 307,
+                           lastVisit: Date(),
+                           failedToLoad: false,
+                           isDownload: false),
+        ]
+
+        let processing = SuggestionProcessing(platform: .desktop, urlFactory: Self.simpleUrlFactory)
+        let result = processing.result(for: "Duck",
+                                       from: history,
+                                       bookmarks: [],
+                                       internalPages: [],
+                                       openTabs: tabs,
+                                       apiResult: APIResult.anAPIResult)
+
+        XCTAssertEqual(result?.topHits, [
+            .openTab(title: "DuckDuckGo", url: URL(string: "http://duckduckgo.com")!),
+            .openTab(title: "Duck Tales", url: URL(string: "http://ducktales.com")!),
+        ])
+        // Filter out history entries that are already in top hits
+        let topHitUrls = Set(result?.topHits.map { $0.url!.absoluteString } ?? [])
+        let expectedLocalSuggestions = history
+            .filter { $0.title?.lowercased().contains("duck") == true && !topHitUrls.contains($0.url.absoluteString) }
+            .sorted { $0.numberOfVisits > $1.numberOfVisits }
+            .prefix(3)
+            .map { Suggestion.historyEntry(title: $0.title, url: $0.url, allowedInTopHits: true) }
+
+        XCTAssertEqual(result?.localSuggestions, expectedLocalSuggestions)
+    }
+
+    func testWhenMultipleMatchingBookmarksAvailableOnMobile_ThenOpenTabsSuggestedInTopHits() {
+        let tabs = [
+            BrowserTabMock(url: "http://duckduckgo.com", title: "DuckDuckGo"),
+            BrowserTabMock(url: "http://ducktales.com", title: "Duck Tales"),
+        ]
+
+        let bookmarks: [BookmarkMock] = [
+            BookmarkMock(url: "http://ducks.wikipedia.org", title: "Ducks – Wikipedia", isFavorite: false),
+            BookmarkMock(url: "http://www.ducktails.com", title: "Duck Tails", isFavorite: false),
+            BookmarkMock(url: "http://www.duck.com", title: "Duck", isFavorite: false),
+            BookmarkMock(url: "http://www.duckduckgo.com", title: "DuckDuckGo", isFavorite: false),
+            BookmarkMock(url: "http://duckme.com", title: "Duck me!", isFavorite: false),
+            BookmarkMock(url: "http://duckslake.com", title: "Ducks lake", isFavorite: false),
+            BookmarkMock(url: "http://wikipedia.org", title: "Wikipedia", isFavorite: false),
+        ]
+
+        let processing = SuggestionProcessing(platform: .mobile, urlFactory: Self.simpleUrlFactory)
+        let result = processing.result(for: "Duck",
+                                       from: [], // No history records
+                                       bookmarks: bookmarks,
+                                       internalPages: [],
+                                       openTabs: tabs,
+                                       apiResult: APIResult.anAPIResult)
+
+        // Assert that the top hits include the open tabs
+        XCTAssertEqual(result?.topHits, [
+            .openTab(title: "DuckDuckGo", url: URL(string: "http://duckduckgo.com")!),
+            .openTab(title: "Duck Tales", url: URL(string: "http://ducktales.com")!),
+        ])
+
+        // Filter out bookmarks that are already in top hits
+        let topHitUrls = Set(result?.topHits.map { $0.url!.absoluteString } ?? [])
+        let expectedLocalSuggestions = bookmarks
+            .filter { $0.title.lowercased().contains("duck") && !topHitUrls.contains($0.url) }
+            .prefix(3)
+            .map { Suggestion.bookmark(title: $0.title, url: URL(string: $0.url)!, isFavorite: $0.isFavorite, allowedInTopHits: true) }
+
+        XCTAssertEqual(result?.localSuggestions, expectedLocalSuggestions)
+    }
+
+    func testWhenMultipleMatchingBookmarksAvailableOnDesktop_ThenOpenTabsSuggestedInTopHits() {
+        let tabs = [
+            BrowserTabMock(url: "http://duckduckgo.com", title: "DuckDuckGo"),
+            BrowserTabMock(url: "http://ducktales.com", title: "Duck Tales"),
+        ]
+
+        let bookmarks: [BookmarkMock] = [
+            BookmarkMock(url: "http://ducks.wikipedia.org", title: "Ducks – Wikipedia", isFavorite: false),
+            BookmarkMock(url: "http://www.ducktails.com", title: "Duck Tails", isFavorite: false),
+            BookmarkMock(url: "http://www.duck.com", title: "Duck", isFavorite: false),
+            BookmarkMock(url: "http://www.duckduckgo.com", title: "DuckDuckGo", isFavorite: false),
+            BookmarkMock(url: "http://duckme.com", title: "Duck me!", isFavorite: false),
+            BookmarkMock(url: "http://duckslake.com", title: "Ducks lake", isFavorite: false),
+            BookmarkMock(url: "http://wikipedia.org", title: "Wikipedia", isFavorite: false),
+        ]
+
+        let processing = SuggestionProcessing(platform: .desktop, urlFactory: Self.simpleUrlFactory)
+        let result = processing.result(for: "Duck",
+                                       from: [], // No history records
+                                       bookmarks: bookmarks,
+                                       internalPages: [],
+                                       openTabs: tabs,
+                                       apiResult: APIResult.anAPIResult)
+
+        // Assert that the top hits include the open tabs
+        XCTAssertEqual(result?.topHits, [
+            .openTab(title: "DuckDuckGo", url: URL(string: "http://duckduckgo.com")!),
+            .openTab(title: "Duck Tales", url: URL(string: "http://ducktales.com")!),
+        ])
+
+        // Filter out bookmarks that are already in top hits
+        let topHitUrls = Set(result?.topHits.map { $0.url!.absoluteString } ?? [])
+        let expectedLocalSuggestions = bookmarks
+            .filter { $0.title.lowercased().contains("duck") && !topHitUrls.contains($0.url) }
+            .prefix(3)
+            .map { Suggestion.bookmark(title: $0.title, url: URL(string: $0.url)!, isFavorite: $0.isFavorite, allowedInTopHits: false) }
+
+        XCTAssertEqual(result?.localSuggestions, expectedLocalSuggestions)
+    }
+
+    func testWhenTabsAndMultipleHistoryRecordsAndBookmarksAvailable_ThenOpenTabsSuggested() {
+        let tabs = [
+            BrowserTabMock(url: "http://duckduckgo.com", title: "DuckDuckGo"),
+            BrowserTabMock(url: "http://ducktales.com", title: "Duck Tales"),
+        ]
+
+        let history = [
+            HistoryEntryMock(identifier: UUID(),
+                           url: URL(string: "http://ducks.wikipedia.org")!,
+                           title: "Ducks – Wikipedia",
+                           numberOfVisits: 301,
+                           lastVisit: Date(),
+                           failedToLoad: false,
+                           isDownload: false),
+            HistoryEntryMock(identifier: UUID(),
+                           url: URL(string: "http://www.ducktails.com")!,
+                           title: "Duck Tails",
+                           numberOfVisits: 302,
+                           lastVisit: Date(),
+                           failedToLoad: false,
+                           isDownload: false),
+            HistoryEntryMock(identifier: UUID(),
+                           url: URL(string: "http://www.duck.com")!,
+                           title: "Duck",
+                           numberOfVisits: 303,
+                           lastVisit: Date(),
+                           failedToLoad: false,
+                           isDownload: false),
+            HistoryEntryMock(identifier: UUID(),
+                           url: URL(string: "http://www.duckduckgo.com")!,
+                           title: "DuckDuckGo",
+                           numberOfVisits: 1,
+                           lastVisit: Date(),
+                           failedToLoad: false,
+                           isDownload: false),
+            HistoryEntryMock(identifier: UUID(),
+                           url: URL(string: "http://duckme.com")!,
+                           title: "Duck me!",
+                           numberOfVisits: 304,
+                           lastVisit: Date(),
+                           failedToLoad: false,
+                           isDownload: false),
+            HistoryEntryMock(identifier: UUID(),
+                           url: URL(string: "http://duckslake.com")!,
+                           title: "Ducks lake",
+                           numberOfVisits: 305,
+                           lastVisit: Date(),
+                           failedToLoad: false,
+                           isDownload: false),
+            HistoryEntryMock(identifier: UUID(),
+                           url: URL(string: "http://wikipedia.com")!,
+                           title: "Wikipedia",
+                           numberOfVisits: 307,
+                           lastVisit: Date(),
+                           failedToLoad: false,
+                           isDownload: false),
+        ]
+
+        let bookmarks: [BookmarkMock] = [
+            BookmarkMock(url: "http://duckduckgo.com", title: "DuckDuckGo", isFavorite: false),
+            BookmarkMock(url: "http://www.ducktails.com", title: "Duck Tails", isFavorite: false),
+            BookmarkMock(url: "https://wikipedia.org/ducks", title: "Wikipedia – Ducks", isFavorite: false),
+            BookmarkMock(url: "http://duckme.com", title: "Duck me!", isFavorite: false),
+        ]
+
+        let processing = SuggestionProcessing(platform: .desktop, urlFactory: Self.simpleUrlFactory)
+        let result = processing.result(for: "Duck",
+                                       from: history,
+                                       bookmarks: bookmarks,
+                                       internalPages: [],
+                                       openTabs: tabs,
+                                       apiResult: APIResult.anAPIResult)
+
+        XCTAssertEqual(result?.topHits, [
+            .openTab(title: "DuckDuckGo", url: URL(string: "http://duckduckgo.com")!),
+            .openTab(title: "Duck Tales", url: URL(string: "http://ducktales.com")!),
+        ])
+        // Filter out history entries that are already in top hits
+        let topHitUrls = Set(result?.topHits.map { $0.url!.absoluteString } ?? [])
+        let expectedLocalSuggestions = history
+            .filter { $0.title?.lowercased().contains("duck") == true && !topHitUrls.contains($0.url.absoluteString) }
+            .sorted { $0.numberOfVisits > $1.numberOfVisits }
+            .prefix(3)
+            .map { suggestion in
+                if let bookmark = bookmarks.first(where: { $0.url == suggestion.url.absoluteString }) {
+                    return Suggestion.bookmark(title: bookmark.title, url: suggestion.url, isFavorite: bookmark.isFavorite, allowedInTopHits: true)
+                } else {
+                    return Suggestion.historyEntry(title: suggestion.title, url: suggestion.url, allowedInTopHits: true)
+                }
+            }
+
+        XCTAssertEqual(result?.localSuggestions, expectedLocalSuggestions)
+    }
+
     func testWhenOnDesktopAndBookmarkIsFavorite_ThenBookmarkAppearsInTopHits() {
 
         let bookmarks = [
