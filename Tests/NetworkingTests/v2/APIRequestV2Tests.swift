@@ -78,7 +78,7 @@ final class APIRequestV2Tests: XCTestCase {
                                       body: body,
                                       timeoutInterval: timeoutInterval,
                                       cachePolicy: cachePolicy)
-        
+
         if let urlComponents = URLComponents(url: apiRequest!.urlRequest.url!, resolvingAgainstBaseURL: false) {
             let expectedQueryItems = queryItems.map { URLQueryItem(name: $0.key, value: $0.value) }
             XCTAssertEqual(urlComponents.queryItems, expectedQueryItems)
