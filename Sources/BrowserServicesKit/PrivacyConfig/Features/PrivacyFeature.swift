@@ -67,6 +67,7 @@ public enum PrivacyFeature: String {
     case experimentTest
     case forceOldAppDelegate
     case htmlNewTabPage
+    case tabManager
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -77,6 +78,14 @@ public protocol PrivacySubfeature: RawRepresentable where RawValue == String {
 }
 
 // MARK: Subfeature definitions
+
+public enum TabManagerSubfeature: String, PrivacySubfeature {
+    public var parent: PrivacyFeature {
+        .tabManager
+    }
+
+    case multiSelection
+}
 
 public enum AutofillSubfeature: String, PrivacySubfeature {
     public var parent: PrivacyFeature {
