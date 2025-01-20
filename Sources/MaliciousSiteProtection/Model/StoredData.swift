@@ -31,7 +31,7 @@ public extension DataManager {
         case hashPrefixSet(HashPrefixes)
         case filterSet(FilterSet)
 
-        public enum Kind: CaseIterable {
+        public enum Kind: String, CaseIterable {
             case hashPrefixSet, filterSet
         }
         // keep to get a compiler error when number of cases changes

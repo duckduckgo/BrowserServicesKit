@@ -20,6 +20,7 @@ import Common
 import Foundation
 import Networking
 import os
+import PixelKit
 
 public protocol MaliciousSiteUpdateManaging {
     var lastHashPrefixSetUpdateDate: Date { get }
@@ -77,6 +78,10 @@ public struct UpdateManager: InternalUpdateManaging {
             changeSet = try await apiClient.load(request)
         } catch {
             Logger.updateManager.error("error fetching \(type(of: key)).\(key.threatKind): \(error)")
+            // If fetched dataset is empty and internet is reachable send pixel
+            if dataSet.revision == 0 { // TODO: Check for internet connection
+                PixelKit.fire(DebugEvent(Event.failedToDownloadInitialDataSets(category: key.threatKind, type: key.dataType.kind)))
+            }
             return false
         }
         guard !changeSet.isEmpty || changeSet.revision != dataSet.revision else {
