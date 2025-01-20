@@ -33,7 +33,7 @@ final class PageRefreshMonitorTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        monitor = PageRefreshMonitor(onDidDetectRefreshPattern: { self.detectionCount += 1 },
+        monitor = PageRefreshMonitor(onDidDetectRefreshPattern: { _ in self.detectionCount += 1 },
                                      store: MockPageRefreshStore())
     }
 

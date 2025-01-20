@@ -439,7 +439,8 @@ let package = Package(
             name: "PixelExperimentKit",
             dependencies: [
                 "PixelKit",
-                "BrowserServicesKit"
+                "BrowserServicesKit",
+                "Configuration"
             ],
             resources: [
                 .process("Resources")
@@ -702,7 +703,8 @@ let package = Package(
         .testTarget(
             name: "PixelExperimentKitTests",
             dependencies: [
-                "PixelExperimentKit"
+                "PixelExperimentKit",
+                "Configuration"
             ]
         ),
         .testTarget(

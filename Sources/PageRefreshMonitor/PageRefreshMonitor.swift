@@ -52,11 +52,11 @@ public extension PageRefreshMonitoring {
 /// if three refreshes occur within a 20-second window.
 public final class PageRefreshMonitor: PageRefreshMonitoring {
 
-    private let onDidDetectRefreshPattern: () -> Void
+    private let onDidDetectRefreshPattern: (Int) -> Void
     private var store: PageRefreshStoring
     private var lastRefreshedURL: URL?
 
-    public init(onDidDetectRefreshPattern: @escaping () -> Void,
+    public init(onDidDetectRefreshPattern: @escaping (Int) -> Void,
                 store: PageRefreshStoring) {
         self.onDidDetectRefreshPattern = onDidDetectRefreshPattern
         self.store = store
@@ -70,6 +70,13 @@ public final class PageRefreshMonitor: PageRefreshMonitoring {
     public func register(for url: URL, date: Date = Date()) {
         resetIfURLChanged(to: url)
 
+        // Trigger detection if three refreshes occurred within 20 seconds
+        // This is used to send an experiment pixel at maximum once per day
+        // Reset it is not needed since it counts the time from last timestamp
+        if date.timeIntervalSince(refreshTimestamps.last ?? Date.distantPast) < 12.0 {
+            onDidDetectRefreshPattern(2)
+        }
+
         // Add the new refresh timestamp
         refreshTimestamps.append(date)
 
@@ -78,7 +85,7 @@ public final class PageRefreshMonitor: PageRefreshMonitoring {
 
         // Trigger detection if three refreshes occurred within 20 seconds, then reset timestamps
         if refreshTimestamps.count > 2 {
-            onDidDetectRefreshPattern()
+            onDidDetectRefreshPattern(3)
             NotificationCenter.default.post(name: .pageRefreshMonitorDidDetectRefreshPattern, object: self)
             refreshTimestamps.removeAll() // Reset timestamps after detection
         }
