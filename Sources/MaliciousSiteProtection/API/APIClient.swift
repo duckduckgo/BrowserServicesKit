@@ -108,7 +108,8 @@ struct APIClient {
         let timeout = environment.timeout(for: requestType) ?? requestConfig.defaultTimeout ?? 60
 
         guard let apiRequest = APIRequestV2(url: url, method: .get, headers: headers, timeoutInterval: timeout) else {
-            throw APIRequestV2.Error.invalidDataType
+            assertionFailure("Invalid URL")
+            throw APIRequestV2.Error.invalidURL
         }
         let response = try await service.fetch(request: apiRequest)
         let result: R.Response = try response.decodeBody()
