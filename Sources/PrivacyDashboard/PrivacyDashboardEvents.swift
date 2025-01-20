@@ -22,20 +22,14 @@ public enum PrivacyDashboardEvents {
 
     public enum Parameters {
 
-        public static let variant = "variant"
         public static let source = "source"
         public static let category = "category"
-        public static let didToggleProtectionsFixIssue = "didToggleProtectionsFixIssue"
 
     }
 
     case showReportBrokenSite
 
     case reportBrokenSiteShown
-    case breakageCategorySelected
     case reportBrokenSiteSent
-    case overallCategorySelected
-    case skipToggleStep
-    case toggleProtectionOff
 
 }
