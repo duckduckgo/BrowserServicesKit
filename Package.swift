@@ -53,14 +53,14 @@ let package = Package(
         .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "16.1.0"),
         .package(url: "https://github.com/duckduckgo/GRDB.swift.git", exact: "2.4.2"),
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "3.0.0"),
-        .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.3.0"),
+        .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.4.0"),
         .package(url: "https://github.com/gumob/PunycodeSwift.git", exact: "3.0.0"),
-        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "7.1.0"),
-        .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "7.6.0"),
+        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "7.7.0"),
+        .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "8.1.0"),
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
         .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
         .package(url: "https://github.com/1024jp/GzipSwift.git", exact: "6.0.1"),
-        .package(url: "https://github.com/pointfreeco/swift-clocks.git", exact: "1.0.5"),
+        .package(url: "https://github.com/pointfreeco/swift-clocks.git", exact: "1.0.6"),
     ],
     targets: [
         .target(
@@ -166,6 +166,7 @@ let package = Package(
             dependencies: [
                 "Common",
                 "CxxCrashHandler",
+                "Persistence"
             ]),
         .target(
             name: "CxxCrashHandler",

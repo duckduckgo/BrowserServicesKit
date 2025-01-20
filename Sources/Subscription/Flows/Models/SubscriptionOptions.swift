@@ -77,7 +77,6 @@ public struct SubscriptionOptionOffer: Encodable, Equatable {
 
     let type: OfferType
     let id: String
-    let displayPrice: String
-    let durationInDays: Int
+    let durationInDays: Int?
     let isUserEligible: Bool
 }

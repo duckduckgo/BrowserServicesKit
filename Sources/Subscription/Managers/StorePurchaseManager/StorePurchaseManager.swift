@@ -117,12 +117,16 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
     }
 
     public func subscriptionOptions() async -> SubscriptionOptions? {
-        let nonFreeTrialProducts = availableProducts.filter { !$0.hasFreeTrialOffer }
+        let nonFreeTrialProducts = availableProducts.filter { !$0.isFreeTrialProduct }
+        let ids = nonFreeTrialProducts.map(\.self.id)
+        Logger.subscription.debug("[StorePurchaseManager] Returning SubscriptionOptions for products: \(ids)")
         return await subscriptionOptions(for: nonFreeTrialProducts)
     }
 
     public func freeTrialSubscriptionOptions() async -> SubscriptionOptions? {
-        let freeTrialProducts = availableProducts.filter { $0.hasFreeTrialOffer }
+        let freeTrialProducts = availableProducts.filter { $0.isFreeTrialProduct }
+        let ids = freeTrialProducts.map(\.self.id)
+        Logger.subscription.debug("[StorePurchaseManager] Returning Free Trial SubscriptionOptions for products: \(ids)")
         return await subscriptionOptions(for: freeTrialProducts)
     }
 
@@ -134,20 +138,15 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
             let storefrontCountryCode: String?
             let storefrontRegion: SubscriptionRegion
 
-            if let featureFlagger = subscriptionFeatureFlagger, featureFlagger.isFeatureOn(.isLaunchedROW) || featureFlagger.isFeatureOn(.isLaunchedROWOverride) {
-                if let subscriptionFeatureFlagger, subscriptionFeatureFlagger.isFeatureOn(.usePrivacyProUSARegionOverride) {
-                    storefrontCountryCode = "USA"
-                } else if let subscriptionFeatureFlagger, subscriptionFeatureFlagger.isFeatureOn(.usePrivacyProROWRegionOverride) {
-                    storefrontCountryCode = "POL"
-                } else {
-                    storefrontCountryCode = await Storefront.current?.countryCode
-                }
-
-                storefrontRegion = SubscriptionRegion.matchingRegion(for: storefrontCountryCode ?? "USA") ?? .usa // Fallback to USA
-            } else {
+            if let subscriptionFeatureFlagger, subscriptionFeatureFlagger.isFeatureOn(.usePrivacyProUSARegionOverride) {
                 storefrontCountryCode = "USA"
-                storefrontRegion = .usa
+            } else if let subscriptionFeatureFlagger, subscriptionFeatureFlagger.isFeatureOn(.usePrivacyProROWRegionOverride) {
+                storefrontCountryCode = "POL"
+            } else {
+                storefrontCountryCode = await Storefront.current?.countryCode
             }
+
+            storefrontRegion = SubscriptionRegion.matchingRegion(for: storefrontCountryCode ?? "USA") ?? .usa // Fallback to USA
 
             self.currentStorefrontRegion = storefrontRegion
             let applicableProductIdentifiers = storeSubscriptionConfiguration.subscriptionIdentifiers(for: storefrontRegion)
@@ -304,14 +303,7 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
         let options: [SubscriptionOption] = await [.init(from: monthly, withRecurrence: "monthly"),
                        .init(from: yearly, withRecurrence: "yearly")]
 
-        let features: [SubscriptionFeature]
-
-        if let featureFlagger = subscriptionFeatureFlagger, featureFlagger.isFeatureOn(.isLaunchedROW) || featureFlagger.isFeatureOn(.isLaunchedROWOverride) {
-            features = await subscriptionFeatureMappingCache.subscriptionFeatures(for: monthly.id).compactMap { SubscriptionFeature(name: $0) }
-        } else {
-            let allFeatures: [Entitlement.ProductName] = [.networkProtection, .dataBrokerProtection, .identityTheftRestoration]
-            features = allFeatures.compactMap { SubscriptionFeature(name: $0) }
-        }
+        let features: [SubscriptionFeature] = await subscriptionFeatureMappingCache.subscriptionFeatures(for: monthly.id).compactMap { SubscriptionFeature(name: $0) }
 
         return SubscriptionOptions(platform: platform,
                                    options: options,
@@ -368,7 +360,7 @@ private extension SubscriptionOption {
             let durationInDays = introOffer.periodInDays
             let isUserEligible = await product.isEligibleForIntroOffer
 
-            offer = .init(type: .freeTrial, id: introOffer.id ?? "", displayPrice: introOffer.displayPrice, durationInDays: durationInDays, isUserEligible: isUserEligible)
+            offer = .init(type: .freeTrial, id: introOffer.id ?? "", durationInDays: durationInDays, isUserEligible: isUserEligible)
         }
 
         self.init(id: product.id, cost: .init(displayPrice: product.displayPrice, recurrence: recurrence), offer: offer)
