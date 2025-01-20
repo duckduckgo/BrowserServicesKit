@@ -104,6 +104,18 @@ public struct TDSOverrideExperimentMetrics {
         }
     }
 
+    public static func getActiveTDSExperimentNameWithCohort(featureFlagger: FeatureFlagger) -> String? {
+        let activeExperiments = featureFlagger.getAllActiveExperiments()
+        for experimentType in TdsExperimentType.allCases {
+            let subfeatureID = experimentType.subfeature.rawValue
+            if activeExperiments.contains(where: { $0.key == subfeatureID }) {
+                guard let experimentData = featureFlagger.getAllActiveExperiments()[subfeatureID] else { return nil }
+                return "\(subfeatureID)_\(experimentData.cohortID)"
+            }
+        }
+        return nil
+    }
+
     private static func fireDebugBreakageExperiment(experimentType: TdsExperimentType, etag: String, featureFlagger: FeatureFlagger, fire: @escaping (_ parameters: [String: String]) -> Void) {
         let subfeatureID = experimentType.subfeature.rawValue
         let wasCohortAssigned = featureFlagger.getAllActiveExperiments().contains(where: { $0.key == subfeatureID })
@@ -119,54 +131,3 @@ public struct TDSOverrideExperimentMetrics {
         fire(parameters)
     }
 }
-
-//public extension PixelKit {
-//    static func fireTdsExperimentMetricPrivacyToggleUsed(
-//           fireDebugExperiment: @escaping (_ parameters: [String: String]) -> Void
-//       ) {
-//        for experiment in TdsExperimentType.allCases {
-//            for day in 0...5 {
-//                PixelKit.fireExperimentPixel(for: experiment.subfeature.rawValue, metric: "privacyToggleUsed", conversionWindowDays: day...day, value: "1")
-//                fireDebugBreakageExperiment(experimentType: experiment, fire: fireDebugExperiment)
-//            }
-//        }
-//    }
-//
-//    static func fireTdsExperimentMetric2XRefresh(
-//        fireDebugExperiment: @escaping (_ parameters: [String: String]) -> Void
-//    ) {
-//        for experiment in TdsExperimentType.allCases {
-//            for day in 0...5 {
-//                PixelKit.fireExperimentPixel(for: experiment.subfeature.rawValue, metric: "2XRefresh", conversionWindowDays: day...day, value: "1")
-//                fireDebugBreakageExperiment(experimentType: experiment, fire: fireDebugExperiment)
-//            }
-//        }
-//    }
-//
-//    static func fireTdsExperimentMetric3XRefresh(
-//        fireDebugExperiment: @escaping (_ parameters: [String: String]) -> Void
-//    ) {
-//        for experiment in TdsExperimentType.allCases {
-//            for day in 0...5 {
-//                PixelKit.fireExperimentPixel(for: experiment.subfeature.rawValue, metric: "3XRefresh", conversionWindowDays: day...day, value: "1")
-//                fireDebugBreakageExperiment(experimentType: experiment, fire: fireDebugExperiment)
-//            }
-//        }
-//    }
-//
-//    private static func fireDebugBreakageExperiment(experimentType: TdsExperimentType, fire: @escaping (_ parameters: [String: String]) -> Void) {
-//        let featureFlagger = AppDependencyProvider.shared.featureFlagger
-//        let subfeatureID = experimentType.subfeature.rawValue
-//        let wasCohortAssigned = featureFlagger.getAllActiveExperiments().contains(where: { $0.key == subfeatureID })
-//        guard let experimentData = featureFlagger.getAllActiveExperiments()[subfeatureID] else { return }
-//        guard wasCohortAssigned else { return }
-//        let experimentName: String = subfeatureID + experimentData.cohortID
-//        let enrolmentDate = experimentData.enrollmentDate.toYYYYMMDDInET()
-//        let parameters = [
-//            "experiment": experimentName,
-//            "enrolmentDate": enrolmentDate,
-//            "tdsEtag": ConfigurationStore().loadEtag(for: .trackerDataSet) ?? ""
-//        ]
-//        fire(parameters)
-//    }
-//}

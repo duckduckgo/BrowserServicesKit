@@ -89,5 +89,28 @@ final class TDSOverrideExperimentMetricsTests: XCTestCase {
         XCTAssertTrue(debugCalls.isEmpty)
     }
 
+    func test_OnGetActiveTDSExperimentNameWithCohort_WhenExperimentActive_ThenCorrectExperimentNameReturned() {
+        let mockFeatureFlagger = MockFeatureFlagger()
+        mockFeatureFlagger.experiments = [
+            TdsExperimentType.allCases[3].subfeature.rawValue: ExperimentData(parentID: "someParentID", cohortID: "testCohort", enrollmentDate: Date())
+        ]
+
+        // WHEN
+        let experimentName = TDSOverrideExperimentMetrics.getActiveTDSExperimentNameWithCohort(featureFlagger: mockFeatureFlagger)
+
+        // THEN
+        XCTAssertEqual(experimentName, "\(TdsExperimentType.allCases[3].subfeature.rawValue)_testCohort")
+    }
+
+    func test_OnGetActiveTDSExperimentNameWithCohort_WhenNoExperimentActive_ThenCorrectExperimentNameReturned() {
+        let mockFeatureFlagger = MockFeatureFlagger()
+
+        // WHEN
+        let experimentName = TDSOverrideExperimentMetrics.getActiveTDSExperimentNameWithCohort(featureFlagger: mockFeatureFlagger)
+
+        // THEN
+        XCTAssertNil(experimentName)
+    }
+
 
 }
