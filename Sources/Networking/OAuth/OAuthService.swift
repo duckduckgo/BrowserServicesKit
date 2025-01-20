@@ -192,47 +192,6 @@ public struct DefaultOAuthService: OAuthService {
         throw OAuthServiceError.invalidResponseCode(statusCode)
     }
 
-    /* MARK: Request OTP
-
-    public func requestOTP(authSessionID: String, emailAddress: String) async throws {
-        try Task.checkCancellation()
-        guard let request = OAuthRequest.requestOTP(baseURL: baseURL, authSessionID: authSessionID, emailAddress: emailAddress) else {
-            throw OAuthServiceError.invalidRequest
-        }
-
-        let response = try await apiService.fetch(request: request.apiRequest)
-        try Task.checkCancellation()
-
-        let statusCode = response.httpResponse.httpStatus
-        if statusCode == request.httpSuccessCode {
-        } else if request.httpErrorCodes.contains(statusCode) {
-            try throwError(forResponse: response, request: request)
-        }
-        throw OAuthServiceError.invalidResponseCode(statusCode)
-    }
-
-    // MARK: Login
-
-    public func login(withOTP otp: String, authSessionID: String, email: String) async throws -> AuthorisationCode {
-        try Task.checkCancellation()
-        let method = OAuthLoginMethodOTP(email: email, otp: otp)
-        guard let request = OAuthRequest.login(baseURL: baseURL, authSessionID: authSessionID, method: method) else {
-            throw OAuthServiceError.invalidRequest
-        }
-
-        let response = try await apiService.fetch(request: request.apiRequest)
-        try Task.checkCancellation()
-
-        let statusCode = response.httpResponse.httpStatus
-        if statusCode == request.httpSuccessCode {
-            return try extract(header: HTTPHeaderKey.location, from: response.httpResponse)
-        } else if request.httpErrorCodes.contains(statusCode) {
-            try throwError(forResponse: response, request: request)
-        }
-        throw OAuthServiceError.invalidResponseCode(statusCode)
-    }
-     */
-
     public func login(withSignature signature: String, authSessionID: String) async throws -> AuthorisationCode {
         try Task.checkCancellation()
         let method = OAuthLoginMethodSignature(signature: signature)
@@ -273,27 +232,6 @@ public struct DefaultOAuthService: OAuthService {
         }
         return try await fetch(request: request)
     }
-
-    /* MARK: Edit account
-
-    /// Edit an account email address
-    /// - Parameters:
-    ///   - email: The email address to change to. If omitted, the account email address will be removed.
-    /// - Returns: EditAccountResponse containing a status, always "confirmed" and an hash used in the `confirm edit account` API call
-    public func editAccount(clientID: String, accessToken: String, email: String?) async throws -> EditAccountResponse {
-        guard let request = OAuthRequest.editAccount(baseURL: baseURL, accessToken: accessToken, email: email) else {
-            throw OAuthServiceError.invalidRequest
-        }
-        return try await fetch(request: request)
-    }
-
-    public func confirmEditAccount(accessToken: String, email: String, hash: String, otp: String) async throws -> ConfirmEditAccountResponse {
-        guard let request = OAuthRequest.confirmEditAccount(baseURL: baseURL, accessToken: accessToken, email: email, hash: hash, otp: otp) else {
-            throw OAuthServiceError.invalidRequest
-        }
-        return try await fetch(request: request)
-    }
-     */
 
     // MARK: Logout
 

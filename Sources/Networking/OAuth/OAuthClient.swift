@@ -305,49 +305,6 @@ final public class DefaultOAuthClient: OAuthClient {
         return tokenContainer
     }
 
-    // MARK: Activate
-
-    /*
-    /// Helper, single use
-    public class EmailAccountActivator {
-
-        private let oAuthClient: any OAuthClient
-        private var email: String?
-        private var authSessionID: String?
-        private var codeVerifier: String?
-
-        public init(oAuthClient: any OAuthClient) {
-            self.oAuthClient = oAuthClient
-        }
-
-        public func activateWith(email: String) async throws {
-            self.email = email
-            let (authSessionID, codeVerifier) = try await oAuthClient.requestOTP(email: email)
-            self.authSessionID = authSessionID
-            self.codeVerifier = codeVerifier
-        }
-
-        public func confirm(otp: String) async throws {
-            guard let codeVerifier, let authSessionID, let email else { return }
-            try await oAuthClient.activate(withOTP: otp, email: email, codeVerifier: codeVerifier, authSessionID: authSessionID)
-        }
-    }
-
-    public func requestOTP(email: String) async throws -> (authSessionID: String, codeVerifier: String) {
-        Logger.OAuthClient.log("Requesting OTP")
-        let (codeVerifier, codeChallenge) = try await getVerificationCodes()
-        let authSessionID = try await authService.authorize(codeChallenge: codeChallenge)
-        try await authService.requestOTP(authSessionID: authSessionID, emailAddress: email)
-        return (authSessionID, codeVerifier) // to be used in activate(withOTP or activate(withPlatformSignature
-    }
-
-    public func activate(withOTP otp: String, email: String, codeVerifier: String, authSessionID: String) async throws {
-        Logger.OAuthClient.log("Activating with OTP")
-        let authCode = try await authService.login(withOTP: otp, authSessionID: authSessionID, email: email)
-        try await getTokens(authCode: authCode, codeVerifier: codeVerifier)
-    }
-     */
-
     public func activate(withPlatformSignature signature: String) async throws -> TokenContainer {
         Logger.OAuthClient.log("Activating with platform signature")
         let (codeVerifier, codeChallenge) = try await getVerificationCodes()
@@ -388,46 +345,4 @@ final public class DefaultOAuthClient: OAuthClient {
         tokenStorage.tokenContainer = nil
         legacyTokenStorage?.token = nil
     }
-
-    /* MARK: Edit account
-
-    /// Helper, single use
-    public class AccountEditor {
-
-        private let oAuthClient: any OAuthClient
-        private var hashString: String?
-        private var email: String?
-
-        public init(oAuthClient: any OAuthClient) {
-            self.oAuthClient = oAuthClient
-        }
-
-        public func change(email: String?) async throws {
-            self.hashString = try await self.oAuthClient.changeAccount(email: email)
-        }
-
-        public func send(otp: String) async throws {
-            guard let email, let hashString else {
-                throw OAuthClientError.internalError("Missing email or hashString")
-            }
-            try await oAuthClient.confirmChangeAccount(email: email, otp: otp, hash: hashString)
-            try await oAuthClient.refreshTokens()
-        }
-    }
-
-    public func changeAccount(email: String?) async throws -> String {
-        guard let token = tokensStorage.tokenContainer?.accessToken else {
-            throw OAuthClientError.unauthenticated
-        }
-        let editAccountResponse = try await authService.editAccount(clientID: Constants.clientID, accessToken: token, email: email)
-        return editAccountResponse.hash
-    }
-
-    public func confirmChangeAccount(email: String, otp: String, hash: String) async throws {
-        guard let token = tokensStorage.tokenContainer?.accessToken else {
-            throw OAuthClientError.unauthenticated
-        }
-        _ = try await authService.confirmEditAccount(accessToken: token, email: email, hash: hash, otp: otp)
-    }
-     */
 }
