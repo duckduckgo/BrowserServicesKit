@@ -37,7 +37,6 @@ final class PrivacyDashboardControllerTests: XCTestCase {
         toggleReportingManagerMock = ToggleReportingManagerMock()
         privacyDashboardController = PrivacyDashboardController(privacyInfo: privacyInfo,
                                                                 entryPoint: entryPoint,
-                                                                variant: .control,
                                                                 toggleReportingManager: toggleReportingManagerMock,
                                                                 eventMapping: EventMapping<PrivacyDashboardEvents> { _, _, _, _ in })
         webView = WKWebView()
@@ -51,16 +50,12 @@ final class PrivacyDashboardControllerTests: XCTestCase {
         let entryPoints: [PrivacyDashboardEntryPoint] = [
             .dashboard,
             .report,
-            .afterTogglePrompt(category: "apple", didToggleProtectionsFixIssue: false),
             .toggleReport(completionHandler: { _ in })
         ]
         for entryPoint in entryPoints {
             makePrivacyDashboardController(entryPoint: entryPoint)
             let currentURL = privacyDashboardController.webView!.url
-            XCTAssertEqual(currentURL?.getParameter(named: "screen"), entryPoint.screen(for: .control).rawValue)
-            if case .afterTogglePrompt = entryPoint {
-                XCTAssertEqual(currentURL?.getParameter(named: "category"), "apple")
-            }
+            XCTAssertEqual(currentURL?.getParameter(named: "screen"), entryPoint.screen.rawValue)
             if case .toggleReport = entryPoint {
                 XCTAssertEqual(currentURL?.getParameter(named: "opener"), "menu")
             }
