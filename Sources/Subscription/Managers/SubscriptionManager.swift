@@ -46,39 +46,6 @@ public enum SubscriptionPixelType {
     case subscriptionIsActive
 }
 
-/// A `SubscriptionFeature` is **available** if the specific feature is `on` for the specific subscription. Feature availability if decided based on the country and the local and remote feature flags.
-/// A `SubscriptionFeature` is **enabled** if the logged in user has the required entitlements.
-public struct SubscriptionFeature: Equatable, CustomDebugStringConvertible {
-    public var entitlement: SubscriptionEntitlement
-    public var enabled: Bool
-
-    public var debugDescription: String {
-        "\(entitlement.rawValue) is \(enabled ? "enabled" : "disabled")"
-    }
-}
-
-/// The sole entity responsible of obtaining, storing and refreshing an OAuth Token
-public protocol SubscriptionTokenProvider {
-
-    /// Get a token container accordingly to the policy
-    /// - Parameter policy: The policy that will be used to get the token, it effects the tokens source and validity
-    /// - Returns: The TokenContainer
-    /// - Throws: OAuthClientError.deadToken if the token is unrecoverable. SubscriptionEndpointServiceError.noData if the token is not available.
-    @discardableResult
-    func getTokenContainer(policy: TokensCachePolicy) async throws -> TokenContainer
-
-    /// Exchange access token v1 for a access token v2
-    /// - Parameter tokenV1: The Auth v1 access token
-    /// - Returns: An auth v2 TokenContainer
-    func exchange(tokenV1: String) async throws -> TokenContainer
-
-    /// Used only from the Mac Packet Tunnel Provider when a token is received during configuration
-    func adopt(tokenContainer: TokenContainer)
-
-    /// Remove the stored token container
-    func removeTokenContainer()
-}
-
 public protocol SubscriptionManager: SubscriptionTokenProvider {
 
     // Environment
@@ -128,8 +95,8 @@ public protocol SubscriptionManager: SubscriptionTokenProvider {
     /// A user cant have an entitlement without the feature, if a user is missing an entitlement the feature is disabled
     func currentSubscriptionFeatures(forceRefresh: Bool) async -> [SubscriptionFeature]
 
-    /// True if the feature can be used, false otherwise
-    func isFeatureActive(_ entitlement: SubscriptionEntitlement) async -> Bool
+    /// True if the feature can be used by the user, false otherwise
+    func isFeatureAvailableForUser(_ entitlement: SubscriptionEntitlement) async -> Bool
 }
 
 /// Single entry point for everything related to Subscription. This manager is disposable, every time something related to the environment changes this need to be recreated.
@@ -401,7 +368,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
             // Filter out the features that are not available because the user doesn't have the right entitlements
             let result = availableFeatures.map({ featureEntitlement in
                 let enabled = userEntitlements.contains(featureEntitlement)
-                return SubscriptionFeature(entitlement: featureEntitlement, enabled: enabled)
+                return SubscriptionFeature(entitlement: featureEntitlement, availableForUser: enabled)
             })
             Logger.subscription.log("""
 User entitlements: \(userEntitlements, privacy: .public)
@@ -415,12 +382,12 @@ Subscription features: \(result, privacy: .public)
         }
     }
 
-    public func isFeatureActive(_ entitlement: SubscriptionEntitlement) async -> Bool {
+    public func isFeatureAvailableForUser(_ entitlement: SubscriptionEntitlement) async -> Bool {
         guard isUserAuthenticated else { return false }
 
         let currentFeatures = await currentSubscriptionFeatures(forceRefresh: false)
         return currentFeatures.contains { feature in
-            feature.entitlement == entitlement && feature.enabled
+            feature.entitlement == entitlement && feature.availableForUser
         }
     }
 }

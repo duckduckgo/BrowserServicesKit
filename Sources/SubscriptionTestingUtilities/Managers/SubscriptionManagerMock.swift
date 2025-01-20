@@ -159,7 +159,7 @@ public final class SubscriptionManagerMock: SubscriptionManager {
         resultFeatures
     }
 
-    public func isFeatureActive(_ entitlement: Networking.SubscriptionEntitlement) async -> Bool {
+    public func isFeatureAvailableForUser(_ entitlement: Networking.SubscriptionEntitlement) async -> Bool {
         resultFeatures.contains { $0.entitlement == entitlement }
     }
 }
