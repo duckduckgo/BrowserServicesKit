@@ -21,11 +21,15 @@ import XCTest
 @testable import PixelExperimentKit
 import BrowserServicesKit
 import Configuration
+import PixelKit
 
 final class TDSOverrideExperimentMetricsTests: XCTestCase {
 
+//    var mockFeatureFlagger: MockFeatureFlagger!
+
     override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
+//        mockFeatureFlagger = MockFeatureFlagger()
+//        PixelKit.configureExperimentKit(featureFlagger: mockFeatureFlagger, eventTracker: ExperimentEventTracker(store: MockExperimentActionPixelStore()), fire: { _, _, _ in })
     }
 
     override func tearDownWithError() throws {
@@ -91,12 +95,13 @@ final class TDSOverrideExperimentMetricsTests: XCTestCase {
 
     func test_OnGetActiveTDSExperimentNameWithCohort_WhenExperimentActive_ThenCorrectExperimentNameReturned() {
         let mockFeatureFlagger = MockFeatureFlagger()
+        PixelKit.configureExperimentKit(featureFlagger: mockFeatureFlagger, eventTracker: ExperimentEventTracker(store: MockExperimentActionPixelStore()), fire: { _, _, _ in })
         mockFeatureFlagger.experiments = [
             TdsExperimentType.allCases[3].subfeature.rawValue: ExperimentData(parentID: "someParentID", cohortID: "testCohort", enrollmentDate: Date())
         ]
 
         // WHEN
-        let experimentName = TDSOverrideExperimentMetrics.getActiveTDSExperimentNameWithCohort(featureFlagger: mockFeatureFlagger)
+        let experimentName = TDSOverrideExperimentMetrics.activeTDSExperimentNameWithCohort
 
         // THEN
         XCTAssertEqual(experimentName, "\(TdsExperimentType.allCases[3].subfeature.rawValue)_testCohort")
@@ -104,9 +109,10 @@ final class TDSOverrideExperimentMetricsTests: XCTestCase {
 
     func test_OnGetActiveTDSExperimentNameWithCohort_WhenNoExperimentActive_ThenCorrectExperimentNameReturned() {
         let mockFeatureFlagger = MockFeatureFlagger()
+        PixelKit.configureExperimentKit(featureFlagger: mockFeatureFlagger, eventTracker: ExperimentEventTracker(store: MockExperimentActionPixelStore()), fire: { _, _, _ in })
 
         // WHEN
-        let experimentName = TDSOverrideExperimentMetrics.getActiveTDSExperimentNameWithCohort(featureFlagger: mockFeatureFlagger)
+        let experimentName = TDSOverrideExperimentMetrics.activeTDSExperimentNameWithCohort
 
         // THEN
         XCTAssertNil(experimentName)

@@ -104,7 +104,8 @@ public struct TDSOverrideExperimentMetrics {
         }
     }
 
-    public static func getActiveTDSExperimentNameWithCohort(featureFlagger: FeatureFlagger) -> String? {
+    public static var activeTDSExperimentNameWithCohort: String? {
+        guard let featureFlagger = PixelKit.ExperimentConfig.featureFlagger else { return nil }
         let activeExperiments = featureFlagger.getAllActiveExperiments()
         for experimentType in TdsExperimentType.allCases {
             let subfeatureID = experimentType.subfeature.rawValue
