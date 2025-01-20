@@ -211,3 +211,19 @@ public enum HTMLNewTabPageSubfeature: String, Equatable, PrivacySubfeature {
     public var parent: PrivacyFeature { .htmlNewTabPage }
     case isLaunched
 }
+
+public enum ContentBlockingSubfeature: String, Equatable, PrivacySubfeature {
+    public var parent: PrivacyFeature { .contentBlocking }
+    case tdsNextExperimentBaseline
+    case tdsNextExperimentFeb25
+    case tdsNextExperimentMar25
+    case tdsNextExperimentApr25
+    case tdsNextExperimentMay25
+    case tdsNextExperimentJun25
+    case tdsNextExperimentJul25
+    case tdsNextExperimentAug25
+    case tdsNextExperimentSep25
+    case tdsNextExperimentOct25
+    case tdsNextExperimentNov25
+    case tdsNextExperimentDec25
+}

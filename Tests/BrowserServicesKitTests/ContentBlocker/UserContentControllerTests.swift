@@ -338,6 +338,10 @@ class PrivacyConfigurationMock: PrivacyConfiguration {
         return nil
     }
 
+    func settings(for subfeature: any PrivacySubfeature) -> PrivacyConfigurationData.PrivacyFeature.SubfeatureSettings? {
+        return nil
+    }
+
     var identifier: String = "abcd"
     var version: String? = "123456789"
     var userUnprotectedDomains: [String] = []
