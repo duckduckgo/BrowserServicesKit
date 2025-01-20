@@ -56,9 +56,9 @@ public actor DataManager: DataManaging {
             // no stored dataSet or the embedded one is newer
             let embeddedRevision = embeddedDataProvider.revision(for: dataType)
             let embeddedItems = embeddedDataProvider.loadDataSet(for: key)
-            return .init(revision: embeddedRevision, items: embeddedItems)
+            dataSet = .init(revision: embeddedRevision, items: embeddedItems)
         } else {
-            return DataKey.DataSet(revision: 0, items: [])
+            dataSet = DataKey.DataSet(revision: 0, items: [])
         }
 
         // cache
