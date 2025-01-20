@@ -61,7 +61,7 @@ public struct MaliciousSiteProtectionFeatureFlags {
         privacyConfigManager.privacyConfig.settings(for: .maliciousSiteProtection)
     }
 
-    init(
+    public init(
         featureFlagger: FeatureFlagger,
         privacyConfigManager: PrivacyConfigurationManaging
     ) {
