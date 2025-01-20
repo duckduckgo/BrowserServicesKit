@@ -70,7 +70,7 @@ public final class PageRefreshMonitor: PageRefreshMonitoring {
     public func register(for url: URL, date: Date = Date()) {
         resetIfURLChanged(to: url)
 
-        // Trigger detection if three refreshes occurred within 20 seconds
+        // Trigger detection if two refreshes occurred within 12 seconds
         // This is used to send an experiment pixel at maximum once per day
         // Reset it is not needed since it counts the time from last timestamp
         if date.timeIntervalSince(refreshTimestamps.last ?? Date.distantPast) < 12.0 {

@@ -29,21 +29,28 @@ final class MockPageRefreshStore: PageRefreshStoring {
 final class PageRefreshMonitorTests: XCTestCase {
 
     var monitor: PageRefreshMonitor!
-    var detectionCount: Int = 0
+    var detectionParameters: [Int] = []
 
     override func setUp() {
         super.setUp()
-        monitor = PageRefreshMonitor(onDidDetectRefreshPattern: { _ in self.detectionCount += 1 },
+        monitor = PageRefreshMonitor(onDidDetectRefreshPattern: { patternCount in self.detectionParameters.append(patternCount)},
                                      store: MockPageRefreshStore())
     }
 
     // MARK: - Pattern Detection Tests
 
-    func testDoesNotDetectEventWhenRefreshesAreFewerThanThree() {
+    func testDoesNotDetectEventWhenRefreshesAreFewerThanTwo() {
+        let url = URL(string: "https://example.com/pageA")!
+        monitor.register(for: url)
+        XCTAssertEqual(detectionParameters.count, 0)
+    }
+
+    func testDetectsEventWhenTwoRefreshesOccurOnSameURL() {
         let url = URL(string: "https://example.com/pageA")!
         monitor.register(for: url)
         monitor.register(for: url)
-        XCTAssertEqual(detectionCount, 0)
+        XCTAssertEqual(detectionParameters.count, 1)
+        XCTAssertEqual(detectionParameters, [2])
     }
 
     func testDetectsEventWhenThreeRefreshesOccurOnSameURL() {
@@ -51,7 +58,8 @@ final class PageRefreshMonitorTests: XCTestCase {
         monitor.register(for: url)
         monitor.register(for: url)
         monitor.register(for: url)
-        XCTAssertEqual(detectionCount, 1)
+        XCTAssertEqual(detectionParameters.count, 3)
+        XCTAssertEqual(detectionParameters, [2, 2, 3])
     }
 
     func testDetectsEventTwiceWhenSixRefreshesOccurOnSameURL() {
@@ -59,7 +67,8 @@ final class PageRefreshMonitorTests: XCTestCase {
         for _ in 1...6 {
             monitor.register(for: url)
         }
-        XCTAssertEqual(detectionCount, 2)
+        XCTAssertEqual(detectionParameters.count, 6)
+        XCTAssertEqual(detectionParameters, [2, 2, 3, 2, 2, 3])
     }
 
     // MARK: - URL Change Handling
@@ -70,7 +79,7 @@ final class PageRefreshMonitorTests: XCTestCase {
         monitor.register(for: urlA)
         monitor.register(for: urlB)
         monitor.register(for: urlA)
-        XCTAssertEqual(detectionCount, 0)
+        XCTAssertEqual(detectionParameters.count, 0)
     }
 
     func testStartsNewCounterWhenURLChangesAndRegistersNewRefreshes() {
@@ -79,21 +88,42 @@ final class PageRefreshMonitorTests: XCTestCase {
         monitor.register(for: urlA)
         monitor.register(for: urlA)
         monitor.register(for: urlB)
-        XCTAssertEqual(detectionCount, 0)
+        XCTAssertEqual(detectionParameters.count, 1)
+        XCTAssertEqual(detectionParameters, [2])
         monitor.register(for: urlB)
         monitor.register(for: urlB)
-        XCTAssertEqual(detectionCount, 1)
+        XCTAssertEqual(detectionParameters.count, 4)
+        XCTAssertEqual(detectionParameters, [2, 2, 2, 3])
     }
 
     // MARK: - Timed Pattern Detection
 
-    func testDoesNotDetectEventIfThreeRefreshesOccurAfter20Seconds() {
+    func testDoesNotDetectEventIfThreeRefreshesOccurAfter12Seconds() {
+        let url = URL(string: "https://example.com/pageA")!
+        let date = Date()
+        monitor.register(for: url, date: date)
+        monitor.register(for: url, date: date + 13) // 13 seconds after the first event
+        XCTAssertEqual(detectionParameters.count, 0)
+    }
+
+    func testDoesDetect2xEventIfSecondRefreshesOccurAfter12SecondsAndThirdAfter20Seconds() {
+        let url = URL(string: "https://example.com/pageA")!
+        let date = Date()
+        monitor.register(for: url, date: date)
+        monitor.register(for: url, date: date + 13) // 13 seconds after the first event
+        monitor.register(for: url, date: date + 21) // 21 seconds after the first event 8 seconds after second event
+        XCTAssertEqual(detectionParameters.count, 1)
+        XCTAssertEqual(detectionParameters, [2])
+    }
+
+    func testDoesDetect2xEventIfThreeRefreshesOccurAfter20Seconds() {
         let url = URL(string: "https://example.com/pageA")!
         let date = Date()
         monitor.register(for: url, date: date)
         monitor.register(for: url, date: date)
         monitor.register(for: url, date: date + 21) // 21 seconds after the first event
-        XCTAssertEqual(detectionCount, 0)
+        XCTAssertEqual(detectionParameters.count, 1)
+        XCTAssertEqual(detectionParameters, [2])
     }
 
     func testDetectsEventIfThreeRefreshesOccurWithin20Seconds() {
@@ -102,7 +132,8 @@ final class PageRefreshMonitorTests: XCTestCase {
         monitor.register(for: url, date: date)
         monitor.register(for: url, date: date)
         monitor.register(for: url, date: date + 19) // 19 seconds after the first event
-        XCTAssertEqual(detectionCount, 1)
+        XCTAssertEqual(detectionParameters.count, 2)
+        XCTAssertEqual(detectionParameters, [2, 3])
     }
 
     func testDetectsEventIfRefreshesAreWithinOverall20SecondWindow() {
@@ -111,9 +142,11 @@ final class PageRefreshMonitorTests: XCTestCase {
         monitor.register(for: url, date: date)
         monitor.register(for: url, date: date + 19) // 19 seconds after the first event
         monitor.register(for: url, date: date + 21) // 21 seconds after the first event (2 seconds after second event)
-        XCTAssertEqual(detectionCount, 0)
+        XCTAssertEqual(detectionParameters.count, 1)
+        XCTAssertEqual(detectionParameters, [2])
         monitor.register(for: url, date: date + 23) // 23 seconds after the first event (4 seconds after second event)
-        XCTAssertEqual(detectionCount, 1)
+        XCTAssertEqual(detectionParameters.count, 3)
+        XCTAssertEqual(detectionParameters, [2, 2, 3])
     }
 
 }
