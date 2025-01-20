@@ -83,7 +83,7 @@ public protocol SubscriptionManager: SubscriptionTokenProvider {
     func clearSubscriptionCache()
 
     /// Confirm a purchase with a platform signature
-    func confirmPurchase(signature: String, additionalParams: [String : String]?) async throws -> PrivacyProSubscription
+    func confirmPurchase(signature: String, additionalParams: [String: String]?) async throws -> PrivacyProSubscription
 
     /// Pixels handler
     typealias PixelHandler = (SubscriptionPixelType) -> Void
@@ -339,7 +339,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
         }
     }
 
-    public func confirmPurchase(signature: String, additionalParams: [String : String]?) async throws -> PrivacyProSubscription {
+    public func confirmPurchase(signature: String, additionalParams: [String: String]?) async throws -> PrivacyProSubscription {
         Logger.subscription.log("Confirming Purchase...")
         let accessToken = try await getTokenContainer(policy: .localValid).accessToken
         let confirmation = try await subscriptionEndpointService.confirmPurchase(accessToken: accessToken,
