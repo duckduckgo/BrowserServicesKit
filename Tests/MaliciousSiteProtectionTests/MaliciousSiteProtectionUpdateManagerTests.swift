@@ -29,6 +29,7 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
     var dataManager: MockMaliciousSiteProtectionDataManager!
     var apiClient: MaliciousSiteProtection.APIClient.Mockable!
     var updateIntervalProvider: UpdateManager.UpdateIntervalProvider!
+    var updateManagerInfoStore: MockMaliciousSiteProtectionUpdateManagerInfoStore!
     var clock: TestClock<Duration>!
     var willSleep: ((TimeInterval) -> Void)?
     var updateTask: Task<Void, Error>?
@@ -37,6 +38,7 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
         apiClient = MockMaliciousSiteProtectionAPIClient()
         dataManager = MockMaliciousSiteProtectionDataManager()
         clock = TestClock()
+        updateManagerInfoStore = MockMaliciousSiteProtectionUpdateManagerInfoStore()
 
         let clockSleeper = Sleeper(clock: clock)
         let reportingSleeper = Sleeper {
@@ -44,11 +46,12 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
             try await clockSleeper.sleep(for: $0)
         }
 
-        updateManager = MaliciousSiteProtection.UpdateManager(apiClient: apiClient, dataManager: dataManager, sleeper: reportingSleeper, updateIntervalProvider: { self.updateIntervalProvider($0) })
+        updateManager = MaliciousSiteProtection.UpdateManager(apiClient: apiClient, dataManager: dataManager, sleeper: reportingSleeper, updateInfoStorage: updateManagerInfoStore, updateIntervalProvider: { self.updateIntervalProvider($0) })
     }
 
     override func tearDown() async throws {
         updateManager = nil
+        updateManagerInfoStore = nil
         dataManager = nil
         apiClient = nil
         updateIntervalProvider = nil
@@ -119,13 +122,13 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
         ]
 
         // Save revision and update the filter set and hash prefixes
-        await dataManager.store(FilterDictionary(revision: 2, items: [
+        _ = await dataManager.store(FilterDictionary(revision: 2, items: [
             Filter(hash: "testhash1", regex: ".*example.*"),
             Filter(hash: "testhash2", regex: ".*test.*"),
             Filter(hash: "testhash2", regex: ".*test1.*"),
             Filter(hash: "testhash3", regex: ".*test3.*"),
         ]), for: .filterSet(threatKind: .phishing))
-        await dataManager.store(HashPrefixSet(revision: 2, items: [
+        _ = await dataManager.store(HashPrefixSet(revision: 2, items: [
             "aa00bb11",
             "bb00cc11",
             "cc00dd11",
@@ -148,8 +151,8 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
         let expectedHashPrefixes: Set<String> = []
 
         // Save revision and update the filter set and hash prefixes
-        await dataManager.store(FilterDictionary(revision: 3, items: []), for: .filterSet(threatKind: .phishing))
-        await dataManager.store(HashPrefixSet(revision: 3, items: []), for: .hashPrefixes(threatKind: .phishing))
+        _ = await dataManager.store(FilterDictionary(revision: 3, items: []), for: .filterSet(threatKind: .phishing))
+        _ = await dataManager.store(HashPrefixSet(revision: 3, items: []), for: .hashPrefixes(threatKind: .phishing))
 
         await updateManager.updateData(for: .filterSet(threatKind: .phishing))
         await updateManager.updateData(for: .hashPrefixes(threatKind: .phishing))
@@ -170,8 +173,8 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
         ]
 
         // Save revision and update the filter set and hash prefixes
-        await dataManager.store(FilterDictionary(revision: 4, items: []), for: .filterSet(threatKind: .phishing))
-        await dataManager.store(HashPrefixSet(revision: 4, items: []), for: .hashPrefixes(threatKind: .phishing))
+        _ = await dataManager.store(FilterDictionary(revision: 4, items: []), for: .filterSet(threatKind: .phishing))
+        _ = await dataManager.store(HashPrefixSet(revision: 4, items: []), for: .hashPrefixes(threatKind: .phishing))
 
         await updateManager.updateData(for: .filterSet(threatKind: .phishing))
         await updateManager.updateData(for: .hashPrefixes(threatKind: .phishing))
@@ -192,12 +195,12 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
         ]
 
         // Save revision and update the filter set and hash prefixes
-        await dataManager.store(FilterDictionary(revision: 5, items: [
+        _ = await dataManager.store(FilterDictionary(revision: 5, items: [
             Filter(hash: "testhash2", regex: ".*test.*"),
             Filter(hash: "testhash1", regex: ".*example.*"),
             Filter(hash: "testhash5", regex: ".*test.*")
         ]), for: .filterSet(threatKind: .phishing))
-        await dataManager.store(HashPrefixSet(revision: 5, items: [
+        _ = await dataManager.store(HashPrefixSet(revision: 5, items: [
             "a379a6f6",
             "dd00ee11",
             "cc00dd11",
@@ -388,6 +391,78 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
         XCTAssertEqual(filterSet.revision, 1) // Expecting revision to remain 1
 
         withExtendedLifetime(c) {}
+    }
+
+    func testWhenLastHashPrefixSetUpdateDateIsCalledThenReturnStoredDate() {
+        // GIVEN
+        let date = Date()
+        updateManagerInfoStore.lastHashPrefixesRefreshDate = date
+
+        // WHEN
+        let result = updateManager.lastHashPrefixSetUpdateDate
+
+        // THEN
+        XCTAssertEqual(result, date)
+    }
+
+    func testWhenLastFilterSetUpdateDateIsCalledThenReturnStoredDate() {
+        // GIVEN
+        let date = Date()
+        updateManagerInfoStore.lastFilterSetsRefreshDate = date
+
+        // WHEN
+        let result = updateManager.lastFilterSetUpdateDate
+
+        // THEN
+        XCTAssertEqual(result, date)
+    }
+
+    func testWhenUpdateDataForDatasetTypeIsCalled_AndTypeIsHashPrefix_AndDatasetIsUpdated_ThenSaveUpdateDate() async throws {
+        // GIVEN
+        XCTAssertEqual(updateManagerInfoStore.lastHashPrefixesRefreshDate, .distantPast)
+
+        // WHEN
+        try await updateManager.updateData(datasetType: .hashPrefixSet).value
+
+        // THEN
+        XCTAssertNotEqual(updateManagerInfoStore.lastHashPrefixesRefreshDate, .distantPast)
+    }
+
+    func testWhenUpdateDataForDatasetTypeIsCalled_AndTypeIsFilterSet_AndDatasetIsUpdated_ThenSaveUpdateDate() async throws {
+        // GIVEN
+        XCTAssertEqual(updateManagerInfoStore.lastFilterSetsRefreshDate, .distantPast)
+
+        // WHEN
+        try await updateManager.updateData(datasetType: .filterSet).value
+
+        // THEN
+        XCTAssertNotEqual(updateManagerInfoStore.lastFilterSetsRefreshDate, .distantPast)
+    }
+
+    func testWhenUpdateDataForDatasetTypeIsCalled_AndTypeIsHashPrefix_AndDatasetIsNotUpdated_ThenDoNotSaveUpdateDate() async throws {
+        // GIVEN
+        dataManager = MockMaliciousSiteProtectionDataManager(storeDatasetSuccess: false)
+        updateManager = MaliciousSiteProtection.UpdateManager(apiClient: apiClient, dataManager: dataManager, updateInfoStorage: updateManagerInfoStore, updateIntervalProvider: { self.updateIntervalProvider($0) })
+        XCTAssertEqual(updateManagerInfoStore.lastHashPrefixesRefreshDate, .distantPast)
+
+        // WHEN
+        try await updateManager.updateData(datasetType: .hashPrefixSet).value
+
+        // THEN
+        XCTAssertEqual(updateManagerInfoStore.lastHashPrefixesRefreshDate, .distantPast)
+    }
+
+    func testWhenUpdateDataForDatasetTypeIsCalled_AndTypeIsFilterSet_AndDatasetIsNotUpdated_ThenDoNotSaveUpdateDate() async throws {
+        // GIVEN
+        dataManager = MockMaliciousSiteProtectionDataManager(storeDatasetSuccess: false)
+        updateManager = MaliciousSiteProtection.UpdateManager(apiClient: apiClient, dataManager: dataManager, updateInfoStorage: updateManagerInfoStore, updateIntervalProvider: { self.updateIntervalProvider($0) })
+        XCTAssertEqual(updateManagerInfoStore.lastFilterSetsRefreshDate, .distantPast)
+
+        // WHEN
+        try await updateManager.updateData(datasetType: .hashPrefixSet).value
+
+        // THEN
+        XCTAssertEqual(updateManagerInfoStore.lastFilterSetsRefreshDate, .distantPast)
     }
 
 }

@@ -1,0 +1,119 @@
+//
+//  MaliciousSiteProtectionUpdateManagerInfoStoreTests.swift
+//  DuckDuckGo
+//
+//  Copyright © 2025 DuckDuckGo. All rights reserved.
+//
+//  Licensed under the Apache License, Version 2.0 (the "License");
+//  you may not use this file except in compliance with the License.
+//  You may obtain a copy of the License at
+//
+//  http://www.apache.org/licenses/LICENSE-2.0
+//
+//  Unless required by applicable law or agreed to in writing, software
+//  distributed under the License is distributed on an "AS IS" BASIS,
+//  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//  See the License for the specific language governing permissions and
+//  limitations under the License.
+//
+
+import Foundation
+import XCTest
+
+@testable import MaliciousSiteProtection
+
+class MaliciousSiteProtectionUpdateManagerInfoStoreTests: XCTestCase {
+    private var sut: MaliciousSiteProtectionUpdateManagerInfoStore!
+    private var userDefaults: UserDefaults!
+
+    override func setUpWithError() throws {
+        try super.setUpWithError()
+        userDefaults = UserDefaults(suiteName: #file)
+        sut = MaliciousSiteProtectionUpdateManagerInfoStore(userDefaults: userDefaults)
+        userDefaults.removePersistentDomain(forName: #file)
+    }
+
+    override func tearDownWithError() throws {
+        userDefaults.removePersistentDomain(forName: #file)
+        userDefaults = nil
+        sut = nil
+        try super.tearDownWithError()
+    }
+
+    func testWhenLastHashPrefixesRefreshDateIsNotSetThenReturnDistantDate() {
+        // GIVEN
+        XCTAssertNil(userDefaults.object(forKey: MaliciousSiteProtectionUpdateManagerInfoStore.Keys.maliciousSiteProtectionLastHashPrefixSetUpdateDate))
+
+        // WHEN
+        let result = sut.lastHashPrefixesRefreshDate
+
+        // THEN
+        XCTAssertEqual(result, .distantPast)
+    }
+
+    func testWhenLastHashPrefixesRefreshDateIsSetThenReturnThatDate() {
+        // GIVEN
+        let date = Date()
+        userDefaults.set(date, forKey: MaliciousSiteProtectionUpdateManagerInfoStore.Keys.maliciousSiteProtectionLastHashPrefixSetUpdateDate)
+
+        // WHEN
+        let result = sut.lastHashPrefixesRefreshDate
+
+        // THEN
+        XCTAssertEqual(result, date)
+    }
+
+    func testWhenSetLastHashPrefixesRefreshDateThenSaveIt() {
+        // GIVEN
+        let date = Date()
+        XCTAssertNil(userDefaults.object(forKey: MaliciousSiteProtectionUpdateManagerInfoStore.Keys.maliciousSiteProtectionLastHashPrefixSetUpdateDate))
+
+        // WHEN
+        sut.lastHashPrefixesRefreshDate = date
+
+        // THEN
+        XCTAssertEqual(
+            userDefaults.object(forKey: MaliciousSiteProtectionUpdateManagerInfoStore.Keys.maliciousSiteProtectionLastHashPrefixSetUpdateDate) as? Date,
+            date
+        )
+    }
+
+    func testWhenFilterSetsRefreshDateIsNotSetThenReturnDistantDate() {
+        // GIVEN
+        XCTAssertNil(userDefaults.object(forKey: MaliciousSiteProtectionUpdateManagerInfoStore.Keys.maliciousSiteProtectionLastFilterSetUpdateDate))
+
+        // WHEN
+        let result = sut.lastHashPrefixesRefreshDate
+
+        // THEN
+        XCTAssertEqual(result, .distantPast)
+    }
+
+    func testWhenFilterSetsRefreshDateIsSetThenReturnThatDate() {
+        // GIVEN
+        let date = Date()
+        userDefaults.set(date, forKey: MaliciousSiteProtectionUpdateManagerInfoStore.Keys.maliciousSiteProtectionLastFilterSetUpdateDate)
+
+        // WHEN
+        let result = sut.lastFilterSetsRefreshDate
+
+        // THEN
+        XCTAssertEqual(result, date)
+    }
+
+    func testWhenSetFilterSetsRefreshDateThenSaveIt() {
+        // GIVEN
+        let date = Date()
+        XCTAssertNil(userDefaults.object(forKey: MaliciousSiteProtectionUpdateManagerInfoStore.Keys.maliciousSiteProtectionLastFilterSetUpdateDate))
+
+        // WHEN
+        sut.lastFilterSetsRefreshDate = date
+
+        // THEN
+        XCTAssertEqual(
+            userDefaults.object(forKey: MaliciousSiteProtectionUpdateManagerInfoStore.Keys.maliciousSiteProtectionLastFilterSetUpdateDate) as? Date,
+            date
+        )
+    }
+
+}

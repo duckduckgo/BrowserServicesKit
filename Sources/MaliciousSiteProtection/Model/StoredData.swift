@@ -31,7 +31,7 @@ public extension DataManager {
         case hashPrefixSet(HashPrefixes)
         case filterSet(FilterSet)
 
-        enum Kind: CaseIterable {
+        public enum Kind: CaseIterable {
             case hashPrefixSet, filterSet
         }
         // keep to get a compiler error when number of cases changes
@@ -66,6 +66,16 @@ public extension DataManager {
                 }
             }.flatMap { $0 }
         }
+
+        static func dataType(forKind kind: DataManager.StoredDataType.Kind) -> [DataManager.StoredDataType] {
+            ThreatKind.allCases.map { threatKind in
+                switch kind {
+                case .hashPrefixSet: .hashPrefixSet(.init(threatKind: threatKind))
+                case .filterSet: .filterSet(.init(threatKind: threatKind))
+                }
+            }
+        }
+
     }
 }
 

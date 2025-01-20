@@ -21,13 +21,20 @@ import Foundation
 import Networking
 import os
 
-protocol UpdateManaging {
-    func updateData(for key: some MaliciousSiteDataKey) async
+public protocol MaliciousSiteUpdateManaging {
+    var lastHashPrefixSetUpdateDate: Date { get }
+    var lastFilterSetUpdateDate: Date { get }
 
     func startPeriodicUpdates() -> Task<Void, Error>
+    func updateData(datasetType: DataManager.StoredDataType.Kind) -> Task<Void, any Error>
 }
 
-public struct UpdateManager: UpdateManaging {
+protocol InternalUpdateManaging: MaliciousSiteUpdateManaging {
+    @discardableResult
+    func updateData(for key: some MaliciousSiteDataKey) async -> Bool
+}
+
+public struct UpdateManager: InternalUpdateManaging {
 
     private let apiClient: APIClient.Mockable
     private let dataManager: DataManaging
@@ -35,19 +42,30 @@ public struct UpdateManager: UpdateManaging {
     public typealias UpdateIntervalProvider = (DataManager.StoredDataType) -> TimeInterval?
     private let updateIntervalProvider: UpdateIntervalProvider
     private let sleeper: Sleeper
+    private let updateInfoStorage: MaliciousSiteProtectioUpdateManagerInfoStorage
+
+    public var lastHashPrefixSetUpdateDate: Date {
+        updateInfoStorage.lastHashPrefixesRefreshDate
+    }
+
+    public var lastFilterSetUpdateDate: Date {
+        updateInfoStorage.lastFilterSetsRefreshDate
+    }
 
     public init(apiEnvironment: APIClientEnvironment, service: APIService = DefaultAPIService(urlSession: .shared), dataManager: DataManager, updateIntervalProvider: @escaping UpdateIntervalProvider) {
         self.init(apiClient: APIClient(environment: apiEnvironment, service: service), dataManager: dataManager, updateIntervalProvider: updateIntervalProvider)
     }
 
-    init(apiClient: APIClient.Mockable, dataManager: DataManaging, sleeper: Sleeper = .default, updateIntervalProvider: @escaping UpdateIntervalProvider) {
+    init(apiClient: APIClient.Mockable, dataManager: DataManaging, sleeper: Sleeper = .default, updateInfoStorage: MaliciousSiteProtectioUpdateManagerInfoStorage = MaliciousSiteProtectionUpdateManagerInfoStore(),  updateIntervalProvider: @escaping UpdateIntervalProvider) {
         self.apiClient = apiClient
         self.dataManager = dataManager
         self.updateIntervalProvider = updateIntervalProvider
         self.sleeper = sleeper
+        self.updateInfoStorage = updateInfoStorage
     }
 
-    func updateData<DataKey: MaliciousSiteDataKey>(for key: DataKey) async {
+    @discardableResult
+    func updateData<DataKey: MaliciousSiteDataKey>(for key: DataKey) async -> Bool {
         // load currently stored data set
         var dataSet = await dataManager.dataSet(for: key)
         let oldRevision = dataSet.revision
@@ -58,20 +76,26 @@ public struct UpdateManager: UpdateManaging {
             let request = DataKey.DataSet.APIRequest(threatKind: key.threatKind, revision: oldRevision)
             changeSet = try await apiClient.load(request)
         } catch {
-            Logger.updateManager.error("error fetching filter set: \(error)")
-            return
+            Logger.updateManager.error("error fetching \(type(of: key)).\(key.threatKind): \(error)")
+            return false
         }
         guard !changeSet.isEmpty || changeSet.revision != dataSet.revision else {
-            Logger.updateManager.debug("no changes to filter set")
-            return
+            Logger.updateManager.debug("no changes to \(type(of: key)).\(key.threatKind)")
+            // If change set is empty or revision is the same we consider a successfull update in terms of last refresh date.
+            return true
         }
 
         // apply changes
         dataSet.apply(changeSet)
 
         // store back
-        await self.dataManager.store(dataSet, for: key)
+        guard await self.dataManager.store(dataSet, for: key) else {
+            Logger.updateManager.error("\(type(of: key)).\(key.threatKind) failed to be saved")
+            return false
+        }
         Logger.updateManager.debug("\(type(of: key)).\(key.threatKind) updated from rev.\(oldRevision) to rev.\(dataSet.revision)")
+
+        return true
     }
 
     public func startPeriodicUpdates() -> Task<Void, any Error> {
@@ -94,6 +118,40 @@ public struct UpdateManager: UpdateManaging {
                     }
                 }
                 for try await _ in group {}
+            }
+        }
+    }
+
+    public func updateData(datasetType: DataManager.StoredDataType.Kind) -> Task<Void, any Error> {
+        Task {
+            // run update jobs in background for every data type
+            await withTaskGroup(of: Bool.self) { group in
+                for dataType in DataManager.StoredDataType.dataType(forKind: datasetType) {
+                    group.addTask {
+                        await self.updateData(for: dataType.dataKey)
+                    }
+                }
+
+                // Check that at least one of the dataset type have updated
+                let success = await group.reduce(false) { partial, newValue in
+                    partial || newValue
+                }
+
+                if success {
+                    await saveLastUpdateDate(for: datasetType)
+                }
+            }
+        }
+    }
+
+    private func saveLastUpdateDate(for kind: DataManager.StoredDataType.Kind) async {
+        await MainActor.run {
+            let date = Date()
+            switch kind {
+            case .hashPrefixSet:
+                updateInfoStorage.lastHashPrefixesRefreshDate = date
+            case .filterSet:
+                updateInfoStorage.lastFilterSetsRefreshDate = date
             }
         }
     }

@@ -29,7 +29,7 @@ class MaliciousSiteProtectionDataManagerTests: XCTestCase {
     }
     let datasetFiles: [String] = [Constants.hashPrefixesFileName, Constants.filterSetFileName]
     var dataManager: MaliciousSiteProtection.DataManager!
-    var fileStore: MaliciousSiteProtection.FileStoring!
+    var fileStore: MockMaliciousSiteProtectionFileStore!
 
     override func setUp() async throws {
         embeddedDataProvider = MockMaliciousSiteProtectionEmbeddedDataProvider()
@@ -58,7 +58,7 @@ class MaliciousSiteProtectionDataManagerTests: XCTestCase {
         }
     }
 
-    func testWhenNoDataSavedThenProviderDataReturned() async {
+    func testWhenNoDataSavedAndProviderIsNotNilThenProviderDataReturned() async {
         clearDatasets()
         let expectedFilterSet = Set([Filter(hash: "some", regex: "some")])
         let expectedFilterDict = FilterDictionary(revision: 65, items: expectedFilterSet)
@@ -71,6 +71,30 @@ class MaliciousSiteProtectionDataManagerTests: XCTestCase {
 
         XCTAssertEqual(actualFilterSet, expectedFilterDict)
         XCTAssertEqual(actualHashPrefix.set, expectedHashPrefix)
+    }
+
+    func testWhenNoDataSavedAndEmbeddedProviderIsNilThenCreateAnEmptyDataSet() async {
+        // GIVEN
+        clearDatasets()
+        dataManager = MaliciousSiteProtection.DataManager(
+            fileStore: fileStore,
+            embeddedDataProvider: nil,
+            fileNameProvider: { dataType in
+                switch dataType {
+                case .filterSet: Constants.filterSetFileName
+                case .hashPrefixSet: Constants.hashPrefixesFileName
+                }
+            })
+        let expectedFilterDict = FilterDictionary(revision: 0, items: [])
+        let expectedHashPrefix = HashPrefixSet(revision: 0, items: [])
+
+        // WHEN
+        let actualFilterSet = await dataManager.dataSet(for: .filterSet(threatKind: .phishing))
+        let actualHashPrefix = await dataManager.dataSet(for: .hashPrefixes(threatKind: .phishing))
+
+        // THEN
+        XCTAssertEqual(actualFilterSet, expectedFilterDict)
+        XCTAssertEqual(actualHashPrefix, expectedHashPrefix)
     }
 
     func testWhenEmbeddedRevisionNewerThanOnDisk_ThenLoadEmbedded() async {
@@ -153,14 +177,46 @@ class MaliciousSiteProtectionDataManagerTests: XCTestCase {
         XCTAssertEqual(actualHashPrefixRevision, 1)
     }
 
+    func testWhenEmbeddedProviderIsNilThenLoadDataFromDisk() async {
+        // GIVEN
+        // On Disk Data Setup
+        let onDiskFilterDict = FilterDictionary(revision: 6, items: [Filter(hash: "other", regex: "other")])
+        let filterSetData = try! JSONEncoder().encode(onDiskFilterDict)
+        let onDiskHashPrefix = HashPrefixSet(revision: 6, items: ["faffa"])
+        let hashPrefixData = try! JSONEncoder().encode(onDiskHashPrefix)
+        fileStore.write(data: filterSetData, to: Constants.filterSetFileName)
+        fileStore.write(data: hashPrefixData, to: Constants.hashPrefixesFileName)
+        dataManager = MaliciousSiteProtection.DataManager(
+            fileStore: fileStore,
+            embeddedDataProvider: nil,
+            fileNameProvider: { dataType in
+                switch dataType {
+                case .filterSet: Constants.filterSetFileName
+                case .hashPrefixSet: Constants.hashPrefixesFileName
+                }
+            })
+
+        // WHEN
+        let actualFilterSet = await dataManager.dataSet(for: .filterSet(threatKind: .phishing))
+        let actualHashPrefix = await dataManager.dataSet(for: .hashPrefixes(threatKind: .phishing))
+        let actualFilterSetRevision = actualFilterSet.revision
+        let actualHashPrefixRevision = actualFilterSet.revision
+
+        // THEN
+        XCTAssertEqual(actualFilterSet, onDiskFilterDict)
+        XCTAssertEqual(actualHashPrefix, onDiskHashPrefix)
+        XCTAssertEqual(actualFilterSetRevision, 6)
+        XCTAssertEqual(actualHashPrefixRevision, 6)
+    }
+
     func testWriteAndLoadData() async {
         // Get and write data
         let expectedHashPrefixes = Set(["aabb"])
         let expectedFilterSet = Set([Filter(hash: "dummyhash", regex: "dummyregex")])
         let expectedRevision = 65
 
-        await dataManager.store(HashPrefixSet(revision: expectedRevision, items: expectedHashPrefixes), for: .hashPrefixes(threatKind: .phishing))
-        await dataManager.store(FilterDictionary(revision: expectedRevision, items: expectedFilterSet), for: .filterSet(threatKind: .phishing))
+        _ = await dataManager.store(HashPrefixSet(revision: expectedRevision, items: expectedHashPrefixes), for: .hashPrefixes(threatKind: .phishing))
+        _ = await dataManager.store(FilterDictionary(revision: expectedRevision, items: expectedFilterSet), for: .filterSet(threatKind: .phishing))
 
         let actualFilterSet = await dataManager.dataSet(for: .filterSet(threatKind: .phishing))
         let actualHashPrefix = await dataManager.dataSet(for: .hashPrefixes(threatKind: .phishing))
@@ -206,8 +262,8 @@ class MaliciousSiteProtectionDataManagerTests: XCTestCase {
         // Update in-memory data
         let updatedFilterSet = Set([Filter(hash: "updated", regex: "updated")])
         let updatedHashPrefixes = Set(["updatedPrefix"])
-        await dataManager.store(HashPrefixSet(revision: 1, items: updatedHashPrefixes), for: .hashPrefixes(threatKind: .phishing))
-        await dataManager.store(FilterDictionary(revision: 1, items: updatedFilterSet), for: .filterSet(threatKind: .phishing))
+        _ = await dataManager.store(HashPrefixSet(revision: 1, items: updatedHashPrefixes), for: .hashPrefixes(threatKind: .phishing))
+        _ = await dataManager.store(FilterDictionary(revision: 1, items: updatedFilterSet), for: .filterSet(threatKind: .phishing))
 
         let actualFilterSet = await dataManager.dataSet(for: .filterSet(threatKind: .phishing))
         let actualHashPrefix = await dataManager.dataSet(for: .hashPrefixes(threatKind: .phishing))
@@ -233,15 +289,50 @@ class MaliciousSiteProtectionDataManagerTests: XCTestCase {
         XCTAssertEqual(reloadedHashPrefixRevision, 1)
     }
 
+    func testSuccessfulWriteOfDataReturnsTrue() async {
+        // GIVEN
+        fileStore.writeSuccess = true
+        let expectedHashPrefixes = Set(["aabb"])
+        let expectedFilterSet = Set([Filter(hash: "dummyhash", regex: "dummyregex")])
+        let expectedRevision = 65
+
+        // WHEN
+        let hashPrefixResult = await dataManager.store(HashPrefixSet(revision: expectedRevision, items: expectedHashPrefixes), for: .hashPrefixes(threatKind: .phishing))
+        let filterSetResult = await dataManager.store(FilterDictionary(revision: expectedRevision, items: expectedFilterSet), for: .filterSet(threatKind: .phishing))
+
+        // THEN
+        XCTAssertTrue(hashPrefixResult)
+        XCTAssertTrue(filterSetResult)
+    }
+
+    func testUnsuccessfulWriteOfDataReturnsFalse() async {
+        // GIVEN
+        fileStore.writeSuccess = false
+        let expectedHashPrefixes = Set(["aabb"])
+        let expectedFilterSet = Set([Filter(hash: "dummyhash", regex: "dummyregex")])
+        let expectedRevision = 65
+
+        // WHEN
+        let hashPrefixResult = await dataManager.store(HashPrefixSet(revision: expectedRevision, items: expectedHashPrefixes), for: .hashPrefixes(threatKind: .phishing))
+        let filterSetResult = await dataManager.store(FilterDictionary(revision: expectedRevision, items: expectedFilterSet), for: .filterSet(threatKind: .phishing))
+
+        // THEN
+        XCTAssertFalse(hashPrefixResult)
+        XCTAssertFalse(filterSetResult)
+    }
+
 }
 
 class MockMaliciousSiteProtectionFileStore: MaliciousSiteProtection.FileStoring {
 
     private var data: [String: Data] = [:]
 
+    var writeSuccess: Bool = true
+
+    @discardableResult
     func write(data: Data, to filename: String) -> Bool {
         self.data[filename] = data
-        return true
+        return writeSuccess
     }
 
     func read(from filename: String) -> Data? {

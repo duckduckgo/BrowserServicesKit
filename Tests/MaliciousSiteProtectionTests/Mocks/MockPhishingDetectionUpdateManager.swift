@@ -19,12 +19,16 @@
 import Foundation
 @testable import MaliciousSiteProtection
 
-class MockPhishingDetectionUpdateManager: MaliciousSiteProtection.UpdateManaging {
-
+class MockPhishingDetectionUpdateManager: MaliciousSiteProtection.MaliciousSiteUpdateManaging {
     var didUpdateFilterSet = false
     var didUpdateHashPrefixes = false
     var startPeriodicUpdatesCalled = false
     var completionHandler: (() -> Void)?
+    var updateDataForDatasetTypeCalled = false
+    var capturedUpdateDatasetType: DataManager.StoredDataType.Kind?
+
+    var lastHashPrefixSetUpdateDate: Date = .distantPast
+    var lastFilterSetUpdateDate: Date = .distantPast
 
     func updateData(for key: some MaliciousSiteProtection.MaliciousSiteDataKey) async {
         switch key.dataType {
@@ -51,6 +55,12 @@ class MockPhishingDetectionUpdateManager: MaliciousSiteProtection.UpdateManaging
 
     public func startPeriodicUpdates() -> Task<Void, any Error> {
         startPeriodicUpdatesCalled = true
+        return Task {}
+    }
+
+    public func updateData(datasetType: DataManager.StoredDataType.Kind) -> Task<Void, any Error> {
+        updateDataForDatasetTypeCalled = true
+        capturedUpdateDatasetType = datasetType
         return Task {}
     }
 }

@@ -23,6 +23,13 @@ import Foundation
 actor MockMaliciousSiteProtectionDataManager: MaliciousSiteProtection.DataManaging {
 
     @Published var store = [MaliciousSiteProtection.DataManager.StoredDataType: Any]()
+
+    private let storeDatasetSuccess: Bool
+
+    init(storeDatasetSuccess: Bool = true) {
+        self.storeDatasetSuccess = storeDatasetSuccess
+    }
+
     func publisher<DataKey>(for key: DataKey) -> AnyPublisher<DataKey.DataSet, Never> where DataKey: MaliciousSiteProtection.MaliciousSiteDataKey {
         $store.map { $0[key.dataType] as? DataKey.DataSet ?? .init(revision: 0, items: []) }
             .removeDuplicates()
@@ -33,8 +40,9 @@ actor MockMaliciousSiteProtectionDataManager: MaliciousSiteProtection.DataManagi
         return store[key.dataType] as? DataKey.DataSet ?? .init(revision: 0, items: [])
     }
 
-    func store<DataKey>(_ dataSet: DataKey.DataSet, for key: DataKey) async where DataKey: MaliciousSiteProtection.MaliciousSiteDataKey {
+    func store<DataKey>(_ dataSet: DataKey.DataSet, for key: DataKey) async -> Bool where DataKey: MaliciousSiteProtection.MaliciousSiteDataKey {
         store[key.dataType] = dataSet
+        return storeDatasetSuccess
     }
 
 }
