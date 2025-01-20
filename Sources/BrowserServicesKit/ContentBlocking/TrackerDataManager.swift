@@ -112,6 +112,9 @@ public class TrackerDataManager {
                 let data = try JSONDecoder().decode(TrackerData.self, from: data)
                 fetchedData = (data, etag)
             } catch {
+                errorReporting?.fire(.trackerDataParseFailed,
+                                     error: error,
+                                     parameters: [ContentBlockerDebugEvents.Parameters.etag: etag])
                 errorReporting?.fire(.trackerDataParseFailed, error: error)
                 fetchedData = nil
                 return .embeddedFallback
