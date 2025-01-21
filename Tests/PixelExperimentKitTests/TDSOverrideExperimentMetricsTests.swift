@@ -1,6 +1,5 @@
 //
 //  TDSOverrideExperimentMetricsTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2025 DuckDuckGo. All rights reserved.
 //
@@ -25,35 +24,31 @@ import PixelKit
 
 final class TDSOverrideExperimentMetricsTests: XCTestCase {
 
-//    var mockFeatureFlagger: MockFeatureFlagger!
+    var mockFeatureFlagger: MockFeatureFlagger!
+    var pixelCalls: [(SubfeatureID, String, ClosedRange<Int>, String)] = []
+    var debugCalls: [[String: String]] = []
 
     override func setUpWithError() throws {
-//        mockFeatureFlagger = MockFeatureFlagger()
-//        PixelKit.configureExperimentKit(featureFlagger: mockFeatureFlagger, eventTracker: ExperimentEventTracker(store: MockExperimentActionPixelStore()), fire: { _, _, _ in })
+        mockFeatureFlagger = MockFeatureFlagger()
+        PixelKit.configureExperimentKit(featureFlagger: mockFeatureFlagger, eventTracker: ExperimentEventTracker(store: MockExperimentActionPixelStore()), fire: { _, _, _ in })
+        TDSOverrideExperimentMetrics.configureTDSOverrideExperimentMetrics { subfeatureID, metric, conversionWindow, value in
+            self.pixelCalls.append((subfeatureID, metric, conversionWindow, value))
+        }
     }
 
     override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
+        mockFeatureFlagger = nil
     }
 
     func test_OnfireTdsExperimentMetricPrivacyToggleUsed_WhenExperimentActive_ThenCorrectPixelFunctionsCalled() {
         // GIVEN
-        var pixelCalls: [(SubfeatureID, String, ClosedRange<Int>, String)] = []
-        var debugCalls: [[String: String]] = []
-        TDSOverrideExperimentMetrics.configureTDSOverrideExperimentMetrics { subfeatureID, metric, conversionWindow, value in
-            pixelCalls.append((subfeatureID, metric, conversionWindow, value))
-        }
-        let mockFeatureFlagger = MockFeatureFlagger()
         mockFeatureFlagger.experiments = [
             TdsExperimentType.allCases[3].subfeature.rawValue: ExperimentData(parentID: "someParentID", cohortID: "testCohort", enrollmentDate: Date())
         ]
 
         // WHEN
-        TDSOverrideExperimentMetrics.fireTdsExperimentMetricPrivacyToggleUsed(
-            etag: "testEtag",
-            featureFlagger: mockFeatureFlagger
-        ) { parameters in
-            debugCalls.append(parameters)
+        TDSOverrideExperimentMetrics.fireTdsExperimentMetric(metricType: .privacyToggleUsed, etag: "testEtag") { parameters in
+            self.debugCalls.append(parameters)
         }
 
         // THEN
@@ -68,20 +63,9 @@ final class TDSOverrideExperimentMetricsTests: XCTestCase {
     }
 
     func test_OnfireTdsExperimentMetricPrivacyToggleUsed_WhenNoExperimentActive_ThenCorrectPixelFunctionsCalled() {
-        // GIVEN
-        var pixelCalls: [(SubfeatureID, String, ClosedRange<Int>, String)] = []
-        var debugCalls: [[String: String]] = []
-        TDSOverrideExperimentMetrics.configureTDSOverrideExperimentMetrics { subfeatureID, metric, conversionWindow, value in
-            pixelCalls.append((subfeatureID, metric, conversionWindow, value))
-        }
-        let mockFeatureFlagger = MockFeatureFlagger()
-
         // WHEN
-        TDSOverrideExperimentMetrics.fireTdsExperimentMetricPrivacyToggleUsed(
-            etag: "testEtag",
-            featureFlagger: mockFeatureFlagger
-        ) { parameters in
-            debugCalls.append(parameters)
+        TDSOverrideExperimentMetrics.fireTdsExperimentMetric(metricType: .privacyToggleUsed, etag: "testEtag") { parameters in
+            self.debugCalls.append(parameters)
         }
 
         // THEN
@@ -94,8 +78,7 @@ final class TDSOverrideExperimentMetricsTests: XCTestCase {
     }
 
     func test_OnGetActiveTDSExperimentNameWithCohort_WhenExperimentActive_ThenCorrectExperimentNameReturned() {
-        let mockFeatureFlagger = MockFeatureFlagger()
-        PixelKit.configureExperimentKit(featureFlagger: mockFeatureFlagger, eventTracker: ExperimentEventTracker(store: MockExperimentActionPixelStore()), fire: { _, _, _ in })
+        // GIVEN
         mockFeatureFlagger.experiments = [
             TdsExperimentType.allCases[3].subfeature.rawValue: ExperimentData(parentID: "someParentID", cohortID: "testCohort", enrollmentDate: Date())
         ]
@@ -108,15 +91,11 @@ final class TDSOverrideExperimentMetricsTests: XCTestCase {
     }
 
     func test_OnGetActiveTDSExperimentNameWithCohort_WhenNoExperimentActive_ThenCorrectExperimentNameReturned() {
-        let mockFeatureFlagger = MockFeatureFlagger()
-        PixelKit.configureExperimentKit(featureFlagger: mockFeatureFlagger, eventTracker: ExperimentEventTracker(store: MockExperimentActionPixelStore()), fire: { _, _, _ in })
-
         // WHEN
         let experimentName = TDSOverrideExperimentMetrics.activeTDSExperimentNameWithCohort
 
         // THEN
         XCTAssertNil(experimentName)
     }
-
 
 }
