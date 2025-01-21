@@ -78,7 +78,10 @@ final public class UserContentController: WKUserContentController {
     @Published @MainActor public private(set) var contentBlockingAssets: ContentBlockingAssets? {
         willSet {
             self.removeAllContentRuleLists()
+
+#if os(iOS)
             self.removeAllUserScripts()
+#endif
 
             if let contentBlockingAssets = newValue {
                 Logger.contentBlocking.debug("📚 installing \(contentBlockingAssets.debugDescription)")
