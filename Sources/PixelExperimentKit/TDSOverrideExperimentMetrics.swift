@@ -58,7 +58,6 @@ public struct TDSOverrideExperimentMetrics {
         return nil
     }
 
-
     public static func fireTdsExperimentMetric(
         metricType: TdsExperimentMetricType,
         etag: String,
