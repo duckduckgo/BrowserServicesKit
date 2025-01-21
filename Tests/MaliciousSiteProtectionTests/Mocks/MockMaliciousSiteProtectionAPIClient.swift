@@ -23,6 +23,8 @@ class MockMaliciousSiteProtectionAPIClient: MaliciousSiteProtection.APIClient.Mo
     var updateHashPrefixesCalled: ((Int) -> Void)?
     var updateFilterSetsCalled: ((Int) -> Void)?
 
+    var loadRequestError: Error?
+
     var filterRevisions: [Int: APIClient.Response.FiltersChangeSet] = [
         0: .init(insert: [
             Filter(hash: "testhash1", regex: ".*example.*"),
@@ -74,6 +76,10 @@ class MockMaliciousSiteProtectionAPIClient: MaliciousSiteProtection.APIClient.Mo
     ]
 
     func load<Request>(_ requestConfig: Request) async throws -> Request.Response where Request: APIClient.Request {
+        if let loadRequestError {
+            throw loadRequestError
+        }
+
         switch requestConfig.requestType {
         case .hashPrefixSet(let configuration):
             return _hashPrefixesChangeSet(for: configuration.threatKind, revision: configuration.revision ?? 0) as! Request.Response

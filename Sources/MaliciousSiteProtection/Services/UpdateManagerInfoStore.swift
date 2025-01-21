@@ -1,5 +1,5 @@
 //
-//  UpdateManager.swift
+//  MaliciousSiteProtectionUpdateManagerInfoStore.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //

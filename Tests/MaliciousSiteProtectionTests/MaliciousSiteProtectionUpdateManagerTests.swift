@@ -19,6 +19,7 @@
 import Clocks
 import Common
 import Foundation
+import Networking
 import XCTest
 
 @testable import MaliciousSiteProtection
@@ -27,7 +28,7 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
 
     var updateManager: MaliciousSiteProtection.UpdateManager!
     var dataManager: MockMaliciousSiteProtectionDataManager!
-    var apiClient: MaliciousSiteProtection.APIClient.Mockable!
+    var apiClient: MockMaliciousSiteProtectionAPIClient!
     var updateIntervalProvider: UpdateManager.UpdateIntervalProvider!
     var updateManagerInfoStore: MockMaliciousSiteProtectionUpdateManagerInfoStore!
     var clock: TestClock<Duration>!
@@ -56,6 +57,7 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
         apiClient = nil
         updateIntervalProvider = nil
         updateTask?.cancel()
+        MockUpdateManagerPixelHandler.tearDown()
     }
 
     func testUpdateHashPrefixes() async {
@@ -465,4 +467,57 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
         XCTAssertEqual(updateManagerInfoStore.lastFilterSetsUpdateDate, .distantPast)
     }
 
+    func testWhenUpdateDataApiFails_AndInitialLocalDatasetIsEmpty_AndErrorIsNoInternetConnection_ThenSendFailedToFetchDatasetsPixel() async {
+        // GIVEN
+        apiClient.loadRequestError = APIRequestV2.Error.urlSession(URLError(.notConnectedToInternet))
+        updateManager = MaliciousSiteProtection.UpdateManager(apiClient: apiClient, dataManager: dataManager, pixelHandler: MockUpdateManagerPixelHandler.self, updateIntervalProvider: { self.updateIntervalProvider($0) })
+        XCTAssertFalse(MockUpdateManagerPixelHandler.didCallFireFailedToDownloadInitialDatasets)
+        XCTAssertNil(MockUpdateManagerPixelHandler.capturedThreatKind)
+        XCTAssertNil(MockUpdateManagerPixelHandler.capturedDatasetType)
+
+        // WHEN
+        await updateManager.updateData(for: .hashPrefixes(threatKind: .phishing))
+
+        // THEN
+        XCTAssertTrue(MockUpdateManagerPixelHandler.didCallFireFailedToDownloadInitialDatasets)
+        XCTAssertEqual(MockUpdateManagerPixelHandler.capturedThreatKind, .phishing)
+        XCTAssertEqual(MockUpdateManagerPixelHandler.capturedDatasetType, .hashPrefixSet)
+    }
+
+    func testWhenUpdateDataApiFails_AndInitialLocalDatasetIsNotEmpty_AndErrorIsNoInternetConnection_ThenDoNotSendFailedToFetchDatasetsPixel() async {
+        // GIVEN
+        _ = await dataManager.store(HashPrefixSet(revision: 3, items: []), for: .hashPrefixes(threatKind: .phishing))
+        apiClient.loadRequestError = APIRequestV2.Error.urlSession(URLError(.notConnectedToInternet))
+        updateManager = MaliciousSiteProtection.UpdateManager(apiClient: apiClient, dataManager: dataManager, pixelHandler: MockUpdateManagerPixelHandler.self, updateIntervalProvider: { self.updateIntervalProvider($0) })
+        XCTAssertFalse(MockUpdateManagerPixelHandler.didCallFireFailedToDownloadInitialDatasets)
+        XCTAssertNil(MockUpdateManagerPixelHandler.capturedThreatKind)
+        XCTAssertNil(MockUpdateManagerPixelHandler.capturedDatasetType)
+
+        // WHEN
+        await updateManager.updateData(for: .hashPrefixes(threatKind: .phishing))
+
+        // THEN
+        XCTAssertFalse(MockUpdateManagerPixelHandler.didCallFireFailedToDownloadInitialDatasets)
+        XCTAssertNil(MockUpdateManagerPixelHandler.capturedThreatKind)
+        XCTAssertNil(MockUpdateManagerPixelHandler.capturedDatasetType)
+    }
+
+}
+
+final class MockUpdateManagerPixelHandler: UpdateManagerPixelFiring {
+    private(set) static var didCallFireFailedToDownloadInitialDatasets = false
+    private(set) static var capturedThreatKind: ThreatKind?
+    private(set) static var capturedDatasetType: MaliciousSiteProtection.DataManager.StoredDataType.Kind?
+
+    static func fireFailedToDownloadInitialDatasets(threat: MaliciousSiteProtection.ThreatKind, datasetType: MaliciousSiteProtection.DataManager.StoredDataType.Kind) {
+        didCallFireFailedToDownloadInitialDatasets = true
+        capturedThreatKind = threat
+        capturedDatasetType = datasetType
+    }
+
+    static func tearDown() {
+        didCallFireFailedToDownloadInitialDatasets = false
+        capturedThreatKind = nil
+        capturedDatasetType = nil
+    }
 }

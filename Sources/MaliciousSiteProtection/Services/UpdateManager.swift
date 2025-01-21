@@ -44,6 +44,7 @@ public struct UpdateManager: InternalUpdateManaging {
     private let updateIntervalProvider: UpdateIntervalProvider
     private let sleeper: Sleeper
     private let updateInfoStorage: MaliciousSiteProtectioUpdateManagerInfoStorage
+    private let pixelHandler: UpdateManagerPixelFiring.Type
 
     public var lastHashPrefixSetUpdateDate: Date {
         updateInfoStorage.lastHashPrefixSetsUpdateDate
@@ -57,12 +58,13 @@ public struct UpdateManager: InternalUpdateManaging {
         self.init(apiClient: APIClient(environment: apiEnvironment, service: service), dataManager: dataManager, updateIntervalProvider: updateIntervalProvider)
     }
 
-    init(apiClient: APIClient.Mockable, dataManager: DataManaging, sleeper: Sleeper = .default, updateInfoStorage: MaliciousSiteProtectioUpdateManagerInfoStorage = MaliciousSiteProtectionUpdateManagerInfoStore(),  updateIntervalProvider: @escaping UpdateIntervalProvider) {
+    init(apiClient: APIClient.Mockable, dataManager: DataManaging, sleeper: Sleeper = .default, updateInfoStorage: MaliciousSiteProtectioUpdateManagerInfoStorage = MaliciousSiteProtectionUpdateManagerInfoStore(), pixelHandler:  UpdateManagerPixelFiring.Type = PixelKit.self, updateIntervalProvider: @escaping UpdateIntervalProvider) {
         self.apiClient = apiClient
         self.dataManager = dataManager
         self.updateIntervalProvider = updateIntervalProvider
         self.sleeper = sleeper
         self.updateInfoStorage = updateInfoStorage
+        self.pixelHandler = pixelHandler
     }
 
     @discardableResult
@@ -78,13 +80,15 @@ public struct UpdateManager: InternalUpdateManaging {
             changeSet = try await apiClient.load(request)
         } catch APIRequestV2.Error.urlSession(let error as URLError) {
             Logger.updateManager.error("error fetching \(type(of: key)).\(key.threatKind): \(error)")
-            fireNetworkIssuePixelIfNeeded(error: error, threatKind: key.threatKind, datasetType: key.dataType.kind)
+            if dataSet.revision == 0 && error.code == .notConnectedToInternet {
+                pixelHandler.fireFailedToDownloadInitialDatasets(threat: key.threatKind, datasetType: key.dataType.kind)
+            }
             return false
-        }
-        catch {
+        } catch {
             Logger.updateManager.error("error fetching \(type(of: key)).\(key.threatKind): \(error)")
             return false
         }
+
         guard !changeSet.isEmpty || changeSet.revision != dataSet.revision else {
             Logger.updateManager.debug("no changes to \(type(of: key)).\(key.threatKind)")
             // If change set is empty or revision is the same we consider a successfull update in terms of last refresh date.
@@ -162,16 +166,16 @@ public struct UpdateManager: InternalUpdateManaging {
         }
     }
 
-    private func fireNetworkIssuePixelIfNeeded(error: URLError, threatKind: ThreatKind, datasetType: DataManager.StoredDataType.Kind) {
-        switch error.code {
-        case .notConnectedToInternet:
-            PixelKit.fire(DebugEvent(Event.failedToDownloadInitialDataSets(category: threatKind, type: datasetType)))
-        case .timedOut:
-            // TODO: Send Pixel for timeout
-            break
-        default:
-            break
-        }
-    }
+}
 
+// MARK: - Update Manager + PixelKit
+
+protocol UpdateManagerPixelFiring {
+    static func fireFailedToDownloadInitialDatasets(threat: ThreatKind, datasetType: DataManager.StoredDataType.Kind)
+}
+
+extension PixelKit: UpdateManagerPixelFiring {
+    static func fireFailedToDownloadInitialDatasets(threat: ThreatKind, datasetType: DataManager.StoredDataType.Kind) {
+        fire(DebugEvent(MaliciousSiteProtection.Event.failedToDownloadInitialDataSets(category: threat, type: datasetType)))
+    }
 }
