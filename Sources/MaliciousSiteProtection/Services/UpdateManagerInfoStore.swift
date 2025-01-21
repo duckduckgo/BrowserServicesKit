@@ -19,13 +19,13 @@
 import Foundation
 
 protocol MaliciousSiteProtectioUpdateManagerInfoStorage: AnyObject {
-    var lastHashPrefixesRefreshDate: Date { get set }
-    var lastFilterSetsRefreshDate: Date { get set }
+    var lastHashPrefixSetsUpdateDate: Date { get set }
+    var lastFilterSetsUpdateDate: Date { get set }
 }
 
 final class MaliciousSiteProtectionUpdateManagerInfoStore: MaliciousSiteProtectioUpdateManagerInfoStorage {
     enum Keys {
-        static let maliciousSiteProtectionLastHashPrefixSetUpdateDate = "com.duckduckgo.ios.maliciousSiteProtection.lastHashPrefixesRefreshDate"
+        static let maliciousSiteProtectionLastHashPrefixSetUpdateDate = "com.duckduckgo.ios.maliciousSiteProtection.lastHashPrefixSetRefreshDate"
         static let maliciousSiteProtectionLastFilterSetUpdateDate = "com.duckduckgo.ios.maliciousSiteProtection.lastFilterSetsRefreshDate"
     }
 
@@ -35,7 +35,7 @@ final class MaliciousSiteProtectionUpdateManagerInfoStore: MaliciousSiteProtecti
         self.userDefaults = userDefaults
     }
 
-    var lastHashPrefixesRefreshDate: Date {
+    var lastHashPrefixSetsUpdateDate: Date {
         get {
             userDefaults.object(forKey: Keys.maliciousSiteProtectionLastHashPrefixSetUpdateDate) as? Date ?? .distantPast
         }
@@ -44,7 +44,7 @@ final class MaliciousSiteProtectionUpdateManagerInfoStore: MaliciousSiteProtecti
         }
     }
 
-    var lastFilterSetsRefreshDate: Date {
+    var lastFilterSetsUpdateDate: Date {
         get {
             userDefaults.object(forKey: Keys.maliciousSiteProtectionLastFilterSetUpdateDate) as? Date ?? .distantPast
         }

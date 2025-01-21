@@ -396,7 +396,7 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
     func testWhenLastHashPrefixSetUpdateDateIsCalledThenReturnStoredDate() {
         // GIVEN
         let date = Date()
-        updateManagerInfoStore.lastHashPrefixesRefreshDate = date
+        updateManagerInfoStore.lastHashPrefixSetsUpdateDate = date
 
         // WHEN
         let result = updateManager.lastHashPrefixSetUpdateDate
@@ -408,7 +408,7 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
     func testWhenLastFilterSetUpdateDateIsCalledThenReturnStoredDate() {
         // GIVEN
         let date = Date()
-        updateManagerInfoStore.lastFilterSetsRefreshDate = date
+        updateManagerInfoStore.lastFilterSetsUpdateDate = date
 
         // WHEN
         let result = updateManager.lastFilterSetUpdateDate
@@ -419,50 +419,50 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
 
     func testWhenUpdateDataForDatasetTypeIsCalled_AndTypeIsHashPrefix_AndDatasetIsUpdated_ThenSaveUpdateDate() async throws {
         // GIVEN
-        XCTAssertEqual(updateManagerInfoStore.lastHashPrefixesRefreshDate, .distantPast)
+        XCTAssertEqual(updateManagerInfoStore.lastHashPrefixSetsUpdateDate, .distantPast)
 
         // WHEN
         try await updateManager.updateData(datasetType: .hashPrefixSet).value
 
         // THEN
-        XCTAssertNotEqual(updateManagerInfoStore.lastHashPrefixesRefreshDate, .distantPast)
+        XCTAssertNotEqual(updateManagerInfoStore.lastHashPrefixSetsUpdateDate, .distantPast)
     }
 
     func testWhenUpdateDataForDatasetTypeIsCalled_AndTypeIsFilterSet_AndDatasetIsUpdated_ThenSaveUpdateDate() async throws {
         // GIVEN
-        XCTAssertEqual(updateManagerInfoStore.lastFilterSetsRefreshDate, .distantPast)
+        XCTAssertEqual(updateManagerInfoStore.lastFilterSetsUpdateDate, .distantPast)
 
         // WHEN
         try await updateManager.updateData(datasetType: .filterSet).value
 
         // THEN
-        XCTAssertNotEqual(updateManagerInfoStore.lastFilterSetsRefreshDate, .distantPast)
+        XCTAssertNotEqual(updateManagerInfoStore.lastFilterSetsUpdateDate, .distantPast)
     }
 
     func testWhenUpdateDataForDatasetTypeIsCalled_AndTypeIsHashPrefix_AndDatasetIsNotUpdated_ThenDoNotSaveUpdateDate() async throws {
         // GIVEN
         dataManager = MockMaliciousSiteProtectionDataManager(storeDatasetSuccess: false)
         updateManager = MaliciousSiteProtection.UpdateManager(apiClient: apiClient, dataManager: dataManager, updateInfoStorage: updateManagerInfoStore, updateIntervalProvider: { self.updateIntervalProvider($0) })
-        XCTAssertEqual(updateManagerInfoStore.lastHashPrefixesRefreshDate, .distantPast)
+        XCTAssertEqual(updateManagerInfoStore.lastHashPrefixSetsUpdateDate, .distantPast)
 
         // WHEN
         try await updateManager.updateData(datasetType: .hashPrefixSet).value
 
         // THEN
-        XCTAssertEqual(updateManagerInfoStore.lastHashPrefixesRefreshDate, .distantPast)
+        XCTAssertEqual(updateManagerInfoStore.lastHashPrefixSetsUpdateDate, .distantPast)
     }
 
     func testWhenUpdateDataForDatasetTypeIsCalled_AndTypeIsFilterSet_AndDatasetIsNotUpdated_ThenDoNotSaveUpdateDate() async throws {
         // GIVEN
         dataManager = MockMaliciousSiteProtectionDataManager(storeDatasetSuccess: false)
         updateManager = MaliciousSiteProtection.UpdateManager(apiClient: apiClient, dataManager: dataManager, updateInfoStorage: updateManagerInfoStore, updateIntervalProvider: { self.updateIntervalProvider($0) })
-        XCTAssertEqual(updateManagerInfoStore.lastFilterSetsRefreshDate, .distantPast)
+        XCTAssertEqual(updateManagerInfoStore.lastFilterSetsUpdateDate, .distantPast)
 
         // WHEN
         try await updateManager.updateData(datasetType: .hashPrefixSet).value
 
         // THEN
-        XCTAssertEqual(updateManagerInfoStore.lastFilterSetsRefreshDate, .distantPast)
+        XCTAssertEqual(updateManagerInfoStore.lastFilterSetsUpdateDate, .distantPast)
     }
 
 }

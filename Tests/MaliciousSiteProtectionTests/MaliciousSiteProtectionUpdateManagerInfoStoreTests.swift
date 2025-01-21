@@ -45,7 +45,7 @@ class MaliciousSiteProtectionUpdateManagerInfoStoreTests: XCTestCase {
         XCTAssertNil(userDefaults.object(forKey: MaliciousSiteProtectionUpdateManagerInfoStore.Keys.maliciousSiteProtectionLastHashPrefixSetUpdateDate))
 
         // WHEN
-        let result = sut.lastHashPrefixesRefreshDate
+        let result = sut.lastHashPrefixSetsUpdateDate
 
         // THEN
         XCTAssertEqual(result, .distantPast)
@@ -57,7 +57,7 @@ class MaliciousSiteProtectionUpdateManagerInfoStoreTests: XCTestCase {
         userDefaults.set(date, forKey: MaliciousSiteProtectionUpdateManagerInfoStore.Keys.maliciousSiteProtectionLastHashPrefixSetUpdateDate)
 
         // WHEN
-        let result = sut.lastHashPrefixesRefreshDate
+        let result = sut.lastHashPrefixSetsUpdateDate
 
         // THEN
         XCTAssertEqual(result, date)
@@ -69,7 +69,7 @@ class MaliciousSiteProtectionUpdateManagerInfoStoreTests: XCTestCase {
         XCTAssertNil(userDefaults.object(forKey: MaliciousSiteProtectionUpdateManagerInfoStore.Keys.maliciousSiteProtectionLastHashPrefixSetUpdateDate))
 
         // WHEN
-        sut.lastHashPrefixesRefreshDate = date
+        sut.lastHashPrefixSetsUpdateDate = date
 
         // THEN
         XCTAssertEqual(
@@ -83,7 +83,7 @@ class MaliciousSiteProtectionUpdateManagerInfoStoreTests: XCTestCase {
         XCTAssertNil(userDefaults.object(forKey: MaliciousSiteProtectionUpdateManagerInfoStore.Keys.maliciousSiteProtectionLastFilterSetUpdateDate))
 
         // WHEN
-        let result = sut.lastHashPrefixesRefreshDate
+        let result = sut.lastHashPrefixSetsUpdateDate
 
         // THEN
         XCTAssertEqual(result, .distantPast)
@@ -95,7 +95,7 @@ class MaliciousSiteProtectionUpdateManagerInfoStoreTests: XCTestCase {
         userDefaults.set(date, forKey: MaliciousSiteProtectionUpdateManagerInfoStore.Keys.maliciousSiteProtectionLastFilterSetUpdateDate)
 
         // WHEN
-        let result = sut.lastFilterSetsRefreshDate
+        let result = sut.lastFilterSetsUpdateDate
 
         // THEN
         XCTAssertEqual(result, date)
@@ -107,7 +107,7 @@ class MaliciousSiteProtectionUpdateManagerInfoStoreTests: XCTestCase {
         XCTAssertNil(userDefaults.object(forKey: MaliciousSiteProtectionUpdateManagerInfoStore.Keys.maliciousSiteProtectionLastFilterSetUpdateDate))
 
         // WHEN
-        sut.lastFilterSetsRefreshDate = date
+        sut.lastFilterSetsUpdateDate = date
 
         // THEN
         XCTAssertEqual(

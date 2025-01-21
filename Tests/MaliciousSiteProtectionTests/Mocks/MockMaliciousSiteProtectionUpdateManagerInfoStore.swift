@@ -21,7 +21,7 @@ import Foundation
 @testable import MaliciousSiteProtection
 
 final class MockMaliciousSiteProtectionUpdateManagerInfoStore: MaliciousSiteProtectioUpdateManagerInfoStorage {
-    var lastHashPrefixesRefreshDate: Date = .distantPast
+    var lastHashPrefixSetsUpdateDate: Date = .distantPast
     
-    var lastFilterSetsRefreshDate: Date = .distantPast
+    var lastFilterSetsUpdateDate: Date = .distantPast
 }

@@ -46,11 +46,11 @@ public struct UpdateManager: InternalUpdateManaging {
     private let updateInfoStorage: MaliciousSiteProtectioUpdateManagerInfoStorage
 
     public var lastHashPrefixSetUpdateDate: Date {
-        updateInfoStorage.lastHashPrefixesRefreshDate
+        updateInfoStorage.lastHashPrefixSetsUpdateDate
     }
 
     public var lastFilterSetUpdateDate: Date {
-        updateInfoStorage.lastFilterSetsRefreshDate
+        updateInfoStorage.lastFilterSetsUpdateDate
     }
 
     public init(apiEnvironment: APIClientEnvironment, service: APIService = DefaultAPIService(urlSession: .shared), dataManager: DataManager, updateIntervalProvider: @escaping UpdateIntervalProvider) {
@@ -155,9 +155,9 @@ public struct UpdateManager: InternalUpdateManaging {
             let date = Date()
             switch kind {
             case .hashPrefixSet:
-                updateInfoStorage.lastHashPrefixesRefreshDate = date
+                updateInfoStorage.lastHashPrefixSetsUpdateDate = date
             case .filterSet:
-                updateInfoStorage.lastFilterSetsRefreshDate = date
+                updateInfoStorage.lastFilterSetsUpdateDate = date
             }
         }
     }
