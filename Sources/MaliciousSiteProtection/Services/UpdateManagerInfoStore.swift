@@ -1,5 +1,5 @@
 //
-//  MaliciousSiteProtectionUpdateManagerInfoStore.swift
+//  UpdateManagerInfoStore.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -23,7 +23,7 @@ protocol MaliciousSiteProtectioUpdateManagerInfoStorage: AnyObject {
     var lastFilterSetsUpdateDate: Date { get set }
 }
 
-final class MaliciousSiteProtectionUpdateManagerInfoStore: MaliciousSiteProtectioUpdateManagerInfoStorage {
+final class UpdateManagerInfoStore: MaliciousSiteProtectioUpdateManagerInfoStorage {
     enum Keys {
         static let maliciousSiteProtectionLastHashPrefixSetUpdateDate = "com.duckduckgo.ios.maliciousSiteProtection.lastHashPrefixSetRefreshDate"
         static let maliciousSiteProtectionLastFilterSetUpdateDate = "com.duckduckgo.ios.maliciousSiteProtection.lastFilterSetsRefreshDate"

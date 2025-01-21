@@ -58,7 +58,7 @@ public struct UpdateManager: InternalUpdateManaging {
         self.init(apiClient: APIClient(environment: apiEnvironment, service: service), dataManager: dataManager, updateIntervalProvider: updateIntervalProvider)
     }
 
-    init(apiClient: APIClient.Mockable, dataManager: DataManaging, sleeper: Sleeper = .default, updateInfoStorage: MaliciousSiteProtectioUpdateManagerInfoStorage = MaliciousSiteProtectionUpdateManagerInfoStore(), pixelHandler:  UpdateManagerPixelFiring.Type = PixelKit.self, updateIntervalProvider: @escaping UpdateIntervalProvider) {
+    init(apiClient: APIClient.Mockable, dataManager: DataManaging, sleeper: Sleeper = .default, updateInfoStorage: MaliciousSiteProtectioUpdateManagerInfoStorage = UpdateManagerInfoStore(), pixelHandler: UpdateManagerPixelFiring.Type = PixelKit.self, updateIntervalProvider: @escaping UpdateIntervalProvider) {
         self.apiClient = apiClient
         self.dataManager = dataManager
         self.updateIntervalProvider = updateIntervalProvider
@@ -143,6 +143,7 @@ public struct UpdateManager: InternalUpdateManaging {
                 }
 
                 // Check that at least one of the dataset type have updated
+                // swiftlint:disable:next reduce_boolean
                 let success = await group.reduce(false) { partial, newValue in
                     partial || newValue
                 }

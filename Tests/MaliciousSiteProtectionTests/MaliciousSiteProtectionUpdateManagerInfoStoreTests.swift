@@ -22,13 +22,13 @@ import XCTest
 @testable import MaliciousSiteProtection
 
 class MaliciousSiteProtectionUpdateManagerInfoStoreTests: XCTestCase {
-    private var sut: MaliciousSiteProtectionUpdateManagerInfoStore!
+    private var sut: UpdateManagerInfoStore!
     private var userDefaults: UserDefaults!
 
     override func setUpWithError() throws {
         try super.setUpWithError()
         userDefaults = UserDefaults(suiteName: #file)
-        sut = MaliciousSiteProtectionUpdateManagerInfoStore(userDefaults: userDefaults)
+        sut = UpdateManagerInfoStore(userDefaults: userDefaults)
         userDefaults.removePersistentDomain(forName: #file)
     }
 
@@ -41,7 +41,7 @@ class MaliciousSiteProtectionUpdateManagerInfoStoreTests: XCTestCase {
 
     func testWhenLastHashPrefixesRefreshDateIsNotSetThenReturnDistantDate() {
         // GIVEN
-        XCTAssertNil(userDefaults.object(forKey: MaliciousSiteProtectionUpdateManagerInfoStore.Keys.maliciousSiteProtectionLastHashPrefixSetUpdateDate))
+        XCTAssertNil(userDefaults.object(forKey: UpdateManagerInfoStore.Keys.maliciousSiteProtectionLastHashPrefixSetUpdateDate))
 
         // WHEN
         let result = sut.lastHashPrefixSetsUpdateDate
@@ -53,7 +53,7 @@ class MaliciousSiteProtectionUpdateManagerInfoStoreTests: XCTestCase {
     func testWhenLastHashPrefixesRefreshDateIsSetThenReturnThatDate() {
         // GIVEN
         let date = Date()
-        userDefaults.set(date, forKey: MaliciousSiteProtectionUpdateManagerInfoStore.Keys.maliciousSiteProtectionLastHashPrefixSetUpdateDate)
+        userDefaults.set(date, forKey: UpdateManagerInfoStore.Keys.maliciousSiteProtectionLastHashPrefixSetUpdateDate)
 
         // WHEN
         let result = sut.lastHashPrefixSetsUpdateDate
@@ -65,21 +65,21 @@ class MaliciousSiteProtectionUpdateManagerInfoStoreTests: XCTestCase {
     func testWhenSetLastHashPrefixesRefreshDateThenSaveIt() {
         // GIVEN
         let date = Date()
-        XCTAssertNil(userDefaults.object(forKey: MaliciousSiteProtectionUpdateManagerInfoStore.Keys.maliciousSiteProtectionLastHashPrefixSetUpdateDate))
+        XCTAssertNil(userDefaults.object(forKey: UpdateManagerInfoStore.Keys.maliciousSiteProtectionLastHashPrefixSetUpdateDate))
 
         // WHEN
         sut.lastHashPrefixSetsUpdateDate = date
 
         // THEN
         XCTAssertEqual(
-            userDefaults.object(forKey: MaliciousSiteProtectionUpdateManagerInfoStore.Keys.maliciousSiteProtectionLastHashPrefixSetUpdateDate) as? Date,
+            userDefaults.object(forKey: UpdateManagerInfoStore.Keys.maliciousSiteProtectionLastHashPrefixSetUpdateDate) as? Date,
             date
         )
     }
 
     func testWhenFilterSetsRefreshDateIsNotSetThenReturnDistantDate() {
         // GIVEN
-        XCTAssertNil(userDefaults.object(forKey: MaliciousSiteProtectionUpdateManagerInfoStore.Keys.maliciousSiteProtectionLastFilterSetUpdateDate))
+        XCTAssertNil(userDefaults.object(forKey: UpdateManagerInfoStore.Keys.maliciousSiteProtectionLastFilterSetUpdateDate))
 
         // WHEN
         let result = sut.lastHashPrefixSetsUpdateDate
@@ -91,7 +91,7 @@ class MaliciousSiteProtectionUpdateManagerInfoStoreTests: XCTestCase {
     func testWhenFilterSetsRefreshDateIsSetThenReturnThatDate() {
         // GIVEN
         let date = Date()
-        userDefaults.set(date, forKey: MaliciousSiteProtectionUpdateManagerInfoStore.Keys.maliciousSiteProtectionLastFilterSetUpdateDate)
+        userDefaults.set(date, forKey: UpdateManagerInfoStore.Keys.maliciousSiteProtectionLastFilterSetUpdateDate)
 
         // WHEN
         let result = sut.lastFilterSetsUpdateDate
@@ -103,14 +103,14 @@ class MaliciousSiteProtectionUpdateManagerInfoStoreTests: XCTestCase {
     func testWhenSetFilterSetsRefreshDateThenSaveIt() {
         // GIVEN
         let date = Date()
-        XCTAssertNil(userDefaults.object(forKey: MaliciousSiteProtectionUpdateManagerInfoStore.Keys.maliciousSiteProtectionLastFilterSetUpdateDate))
+        XCTAssertNil(userDefaults.object(forKey: UpdateManagerInfoStore.Keys.maliciousSiteProtectionLastFilterSetUpdateDate))
 
         // WHEN
         sut.lastFilterSetsUpdateDate = date
 
         // THEN
         XCTAssertEqual(
-            userDefaults.object(forKey: MaliciousSiteProtectionUpdateManagerInfoStore.Keys.maliciousSiteProtectionLastFilterSetUpdateDate) as? Date,
+            userDefaults.object(forKey: UpdateManagerInfoStore.Keys.maliciousSiteProtectionLastFilterSetUpdateDate) as? Date,
             date
         )
     }
