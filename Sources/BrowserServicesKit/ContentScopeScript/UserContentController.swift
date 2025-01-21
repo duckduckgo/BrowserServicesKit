@@ -42,6 +42,7 @@ public protocol UserContentControllerNewContent {
 
 @objc(UserContentController)
 final public class UserContentController: WKUserContentController {
+
     public let privacyConfigurationManager: PrivacyConfigurationManaging
     @MainActor
     public weak var delegate: UserContentControllerDelegate?
@@ -78,10 +79,7 @@ final public class UserContentController: WKUserContentController {
     @Published @MainActor public private(set) var contentBlockingAssets: ContentBlockingAssets? {
         willSet {
             self.removeAllContentRuleLists()
-
-#if os(iOS)
-            self.removeAllUserScripts()
-#endif
+            self.removeInstalledUserScripts()
 
             if let contentBlockingAssets = newValue {
                 Logger.contentBlocking.debug("📚 installing \(contentBlockingAssets.debugDescription)")
@@ -219,10 +217,36 @@ final public class UserContentController: WKUserContentController {
         super.removeAllContentRuleLists()
     }
 
+#if !os(iOS)
+    private let removeUserScriptSelector = "removeUserScript:"
+    private var removeUserScriptSupported: Bool {
+        responds(to: NSSelectorFromString("_" + removeUserScriptSelector))
+    }
+    private var installedUserScripts = [WKUserScript]()
+#endif
+
     @MainActor
     private func installUserScripts(_ wkUserScripts: [WKUserScript], handlers: [UserScript]) {
         handlers.forEach { self.addHandler($0) }
         wkUserScripts.forEach(self.addUserScript)
+        installedUserScripts.append(contentsOf: wkUserScripts)
+    }
+
+    private func removeInstalledUserScripts() {
+#if os(iOS)
+            self.removeAllUserScripts()
+#else
+            // Avoid removal of web extension scripts
+            if removeUserScriptSupported {
+                for installedUserScript in installedUserScripts {
+                    self.perform(NSSelectorFromString("_" + removeUserScriptSelector), with: installedUserScript)
+                }
+                installedUserScripts.removeAll()
+            } else {
+                self.removeAllUserScripts()
+            }
+#endif
+
     }
 
     @MainActor
