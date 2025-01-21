@@ -24,16 +24,21 @@ import XCTest
 
 final class MaliciousSiteProtectionAPIClientTests: XCTestCase {
 
+    var apiEnvironment: MaliciousSiteProtection.APIClientEnvironment!
     var mockService: MockAPIService!
-    var client: MaliciousSiteProtection.APIClient!
+    lazy var apiService: APIService! = mockService
+    lazy var client: MaliciousSiteProtection.APIClient! = {
+        .init(environment: apiEnvironment, service: apiService)
+    }()
 
     override func setUp() {
         super.setUp()
+        apiEnvironment = MaliciousSiteDetector.APIEnvironment.staging
         mockService = MockAPIService()
-        client = .init(environment: MaliciousSiteDetector.APIEnvironment.staging, service: mockService)
     }
 
     override func tearDown() {
+        apiEnvironment = nil
         mockService = nil
         client = nil
         super.tearDown()
@@ -140,4 +145,37 @@ final class MaliciousSiteProtectionAPIClientTests: XCTestCase {
         }
     }
 
+    func testWhenMatchesRequestTimeouts_TimeoutErrorThrown() async throws {
+        // Given
+        apiService = DefaultAPIService()
+        apiEnvironment = MockEnvironment(timeout: 0.0001)
+
+        do {
+            let response = try await client.matches(forHashPrefix: "")
+            XCTFail("Unexpected \(response) expected throw")
+        } catch let error as Networking.APIRequestV2.Error {
+            switch error {
+            case Networking.APIRequestV2.Error.urlSession(URLError.timedOut):
+                XCTAssertTrue(error.isTimedOut) // should match testWhenMatchesApiFailsThenEventIsFired!
+            default:
+                XCTFail("Unexpected \(error)")
+            }
+        }
+    }
+
+}
+
+extension MaliciousSiteProtectionAPIClientTests {
+    struct MockEnvironment: MaliciousSiteProtection.APIClientEnvironment {
+        let timeout: TimeInterval?
+        func headers(for requestType: MaliciousSiteProtection.APIRequestType) -> Networking.APIRequestV2.HeadersV2 {
+            .init()
+        }
+        func url(for requestType: MaliciousSiteProtection.APIRequestType) -> URL {
+            MaliciousSiteDetector.APIEnvironment.production.url(for: requestType)
+        }
+        func timeout(for requestType: APIRequestType) -> TimeInterval? {
+            timeout
+        }
+    }
 }
