@@ -375,8 +375,7 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
                 if let perfInfo = result.performanceInfo {
                     self.errorReporting?.fire(.contentBlockingCompilationTaskPerformance(iterationCount: perfInfo.iterationCount,
                                                                                          timeBucketAggregation: perfInfo.compilationTime),
-                                              parameters: ["compilationTime": String(perfInfo.compilationTime),
-                                                           "etag": result.model.rulesIdentifier.tdsEtag])
+                                              parameters: ["compilationTime": String(perfInfo.compilationTime)])
                 }
             }
 

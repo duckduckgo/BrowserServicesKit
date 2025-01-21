@@ -113,9 +113,7 @@ public class TrackerDataManager {
                 fetchedData = (data, etag)
             } catch {
                 errorReporting?.fire(.trackerDataParseFailed,
-                                     error: error,
-                                     parameters: [ContentBlockerDebugEvents.Parameters.etag: etag])
-                errorReporting?.fire(.trackerDataParseFailed, error: error)
+                                     error: error)
                 fetchedData = nil
                 return .embeddedFallback
             }
