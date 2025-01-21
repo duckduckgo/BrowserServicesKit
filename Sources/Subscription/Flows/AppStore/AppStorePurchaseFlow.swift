@@ -119,13 +119,6 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
                 Logger.subscriptionAppStorePurchaseFlow.log("Failed to restore an account from a past purchase: \(error.localizedDescription, privacy: .public)")
                 do {
                     externalID = try await subscriptionManager.getTokenContainer(policy: .createIfNeeded).decodedAccessToken.externalID
-                } catch OAuthClientError.deadToken {
-                    do {
-                        let transactionJWS = try await recoverSubscriptionFromDeadToken()
-                        return .success(transactionJWS)
-                    } catch {
-                        return .failure(.purchaseFailed(OAuthClientError.deadToken))
-                    }
                 } catch Networking.OAuthClientError.missingTokens {
                     Logger.subscriptionStripePurchaseFlow.error("Failed to create a new account: \(error.localizedDescription, privacy: .public)")
                     return .failure(.accountCreationFailed(error))
@@ -178,13 +171,6 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
                 Logger.subscriptionAppStorePurchaseFlow.error("Subscription expired")
                 return .failure(.purchaseFailed(AppStoreRestoreFlowError.subscriptionExpired))
             }
-        } catch OAuthClientError.deadToken {
-            do {
-                try await recoverSubscriptionFromDeadToken()
-                return .success(.completed)
-            } catch {
-                return .failure(.purchaseFailed(OAuthClientError.deadToken))
-            }
         } catch {
             Logger.subscriptionAppStorePurchaseFlow.error("Purchase Failed: \(error)")
             return .failure(.purchaseFailed(error))
@@ -200,32 +186,23 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
                 return try await subscriptionManager.getTokenContainer(policy: .localValid).decodedAccessToken.externalID
             }
             return nil
-        } catch OAuthClientError.deadToken {
-            do {
-                try await recoverSubscriptionFromDeadToken()
-                return try? await subscriptionManager.getTokenContainer(policy: .localValid).decodedAccessToken.externalID
-            } catch {
-                Logger.subscription.error("Failed to retrieve the current subscription: Missing transaction JWS")
-                return nil
-            }
         } catch {
+            Logger.subscription.error("Failed to retrieve the current subscription ID: \(error.localizedDescription, privacy: .public)")
             return nil
         }
     }
 
-    @discardableResult
-    private func recoverSubscriptionFromDeadToken() async throws -> String {
+    public func recoverSubscriptionFromDeadToken() async throws {
         Logger.subscriptionAppStorePurchaseFlow.log("Recovering Subscription From Dead Token")
 
         // Clear everything, the token is unrecoverable
         await subscriptionManager.signOut(notifyUI: true)
 
         switch await appStoreRestoreFlow.restoreAccountFromPastPurchase() {
-        case .success(let transactionJWS):
+        case .success:
             Logger.subscriptionAppStorePurchaseFlow.log("Subscription recovered")
-            return transactionJWS
         case .failure(let error):
-            Logger.subscriptionAppStorePurchaseFlow.log("Failed to recover Apple subscription: \(error.localizedDescription, privacy: .public)")
+            Logger.subscriptionAppStorePurchaseFlow.fault("Failed to recover Apple subscription: \(error.localizedDescription, privacy: .public)")
             throw error
         }
     }
