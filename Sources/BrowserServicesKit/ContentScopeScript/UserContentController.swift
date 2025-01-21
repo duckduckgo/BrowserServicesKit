@@ -217,7 +217,7 @@ final public class UserContentController: WKUserContentController {
         super.removeAllContentRuleLists()
     }
 
-#if !os(iOS)
+#if os(macOS)
     private let removeUserScriptSelector = "removeUserScript:"
     private var removeUserScriptSupported: Bool {
         responds(to: NSSelectorFromString("_" + removeUserScriptSelector))
@@ -229,22 +229,25 @@ final public class UserContentController: WKUserContentController {
     private func installUserScripts(_ wkUserScripts: [WKUserScript], handlers: [UserScript]) {
         handlers.forEach { self.addHandler($0) }
         wkUserScripts.forEach(self.addUserScript)
+
+#if os(macOS)
         installedUserScripts.append(contentsOf: wkUserScripts)
+#endif
     }
 
     private func removeInstalledUserScripts() {
-#if os(iOS)
-            self.removeAllUserScripts()
-#else
-            // Avoid removal of web extension scripts
-            if removeUserScriptSupported {
-                for installedUserScript in installedUserScripts {
-                    self.perform(NSSelectorFromString("_" + removeUserScriptSelector), with: installedUserScript)
-                }
-                installedUserScripts.removeAll()
-            } else {
-                self.removeAllUserScripts()
+#if os(macOS)
+        // Avoid removal of web extension scripts
+        if removeUserScriptSupported {
+            for installedUserScript in installedUserScripts {
+                self.perform(NSSelectorFromString("_" + removeUserScriptSelector), with: installedUserScript)
             }
+            installedUserScripts.removeAll()
+        } else {
+            self.removeAllUserScripts()
+        }
+#else
+        self.removeAllUserScripts()
 #endif
 
     }
