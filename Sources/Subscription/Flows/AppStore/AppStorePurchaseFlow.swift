@@ -166,8 +166,8 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
 
         do {
             let subscription = try await subscriptionManager.confirmPurchase(signature: transactionJWS, additionalParams: additionalParams)
+            let refreshedToken = try await subscriptionManager.getTokenContainer(policy: .localForceRefresh)
             if subscription.isActive {
-                let refreshedToken = try await subscriptionManager.getTokenContainer(policy: .localForceRefresh)
                 if refreshedToken.decodedAccessToken.subscriptionEntitlements.isEmpty {
                     Logger.subscriptionAppStorePurchaseFlow.error("Missing entitlements")
                     return .failure(.missingEntitlements)
@@ -176,7 +176,6 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
                 }
             } else {
                 Logger.subscriptionAppStorePurchaseFlow.error("Subscription expired")
-                // Removing all traces of the subscription and the account
                 return .failure(.purchaseFailed(AppStoreRestoreFlowError.subscriptionExpired))
             }
         } catch OAuthClientError.deadToken {

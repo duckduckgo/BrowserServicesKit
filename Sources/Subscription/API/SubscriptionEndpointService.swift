@@ -230,7 +230,10 @@ New: \(subscription.debugDescription, privacy: .public)
     // MARK: -
 
     public func confirmPurchase(accessToken: String, signature: String, additionalParams: [String: String]?) async throws -> ConfirmPurchaseResponse {
-        guard let request = SubscriptionRequest.confirmPurchase(baseURL: baseURL, accessToken: accessToken, signature: signature, additionalParams: additionalParams) else {
+        guard let request = SubscriptionRequest.confirmPurchase(baseURL: baseURL,
+                                                                accessToken: accessToken,
+                                                                signature: signature,
+                                                                additionalParams: additionalParams) else {
             throw SubscriptionEndpointServiceError.invalidRequest
         }
         let response = try await apiService.fetch(request: request.apiRequest)
