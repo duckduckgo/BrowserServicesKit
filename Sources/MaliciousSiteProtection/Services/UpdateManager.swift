@@ -76,12 +76,13 @@ public struct UpdateManager: InternalUpdateManaging {
         do {
             let request = DataKey.DataSet.APIRequest(threatKind: key.threatKind, revision: oldRevision)
             changeSet = try await apiClient.load(request)
-        } catch {
+        } catch APIRequestV2.Error.urlSession(let error as URLError) {
             Logger.updateManager.error("error fetching \(type(of: key)).\(key.threatKind): \(error)")
-            // If fetched dataset is empty and internet is reachable send pixel
-            if dataSet.revision == 0 { // TODO: Check for internet connection
-                PixelKit.fire(DebugEvent(Event.failedToDownloadInitialDataSets(category: key.threatKind, type: key.dataType.kind)))
-            }
+            fireNetworkIssuePixelIfNeeded(error: error, threatKind: key.threatKind, datasetType: key.dataType.kind)
+            return false
+        }
+        catch {
+            Logger.updateManager.error("error fetching \(type(of: key)).\(key.threatKind): \(error)")
             return false
         }
         guard !changeSet.isEmpty || changeSet.revision != dataSet.revision else {
@@ -158,6 +159,18 @@ public struct UpdateManager: InternalUpdateManaging {
             case .filterSet:
                 updateInfoStorage.lastFilterSetsRefreshDate = date
             }
+        }
+    }
+
+    private func fireNetworkIssuePixelIfNeeded(error: URLError, threatKind: ThreatKind, datasetType: DataManager.StoredDataType.Kind) {
+        switch error.code {
+        case .notConnectedToInternet:
+            PixelKit.fire(DebugEvent(Event.failedToDownloadInitialDataSets(category: threatKind, type: datasetType)))
+        case .timedOut:
+            // TODO: Send Pixel for timeout
+            break
+        default:
+            break
         }
     }
 
