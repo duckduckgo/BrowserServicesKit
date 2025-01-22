@@ -67,6 +67,7 @@ public enum PrivacyFeature: String {
     case forceOldAppDelegate
     case htmlNewTabPage
     case tabManager
+    case webViewStateRestoration
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
