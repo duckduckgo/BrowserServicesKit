@@ -101,7 +101,7 @@ public extension APIRequestType {
             .matches(self)
         }
 
-        var defaultTimeout: TimeInterval? { 10 }
+        var defaultTimeout: TimeInterval? { 5 }
     }
 }
 /// extension to call generic `load(_: some Request)` method like this: `load(.matches(…))`
