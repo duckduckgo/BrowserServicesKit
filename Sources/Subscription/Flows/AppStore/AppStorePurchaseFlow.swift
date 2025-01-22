@@ -88,8 +88,8 @@ public protocol AppStorePurchaseFlow {
 @available(macOS 12.0, iOS 15.0, *)
 public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
     private let subscriptionManager: any SubscriptionManager
-    private let storePurchaseManager: StorePurchaseManager
-    private let appStoreRestoreFlow: AppStoreRestoreFlow
+    private let storePurchaseManager: any StorePurchaseManager
+    private let appStoreRestoreFlow: any AppStoreRestoreFlow
 
     public init(subscriptionManager: any SubscriptionManager,
                 storePurchaseManager: any StorePurchaseManager,

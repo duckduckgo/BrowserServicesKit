@@ -33,9 +33,9 @@ public protocol StripePurchaseFlow {
 }
 
 public final class DefaultStripePurchaseFlow: StripePurchaseFlow {
-    private let subscriptionManager: SubscriptionManager
+    private let subscriptionManager: any SubscriptionManager
 
-    public init(subscriptionManager: SubscriptionManager) {
+    public init(subscriptionManager: any SubscriptionManager) {
         self.subscriptionManager = subscriptionManager
     }
 
