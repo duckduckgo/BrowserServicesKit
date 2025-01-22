@@ -1,6 +1,5 @@
 //
 //  MaliciousSiteProtectionFeatureFlags.swift
-//  DuckDuckGo
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -89,7 +88,7 @@ extension MaliciousSiteProtectionFeatureFlags: MaliciousSiteProtectionFeatureFla
     public var hashPrefixUpdateFrequency: Int {
         getSettings(MaliciousSiteProtectionFeatureSettings.hashPrefixUpdateFrequency)
     }
-    
+
     public var filterSetUpdateFrequency: Int {
         getSettings(MaliciousSiteProtectionFeatureSettings.filterSetUpdateFrequency)
     }
