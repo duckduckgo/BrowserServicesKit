@@ -22,23 +22,22 @@ import MaliciousSiteProtection
 import PixelKit
 
 public class MockEventMapping: EventMapping<MaliciousSiteProtection.Event> {
-    static var events: [MaliciousSiteProtection.Event] = []
-    static var clientSideHitParam: String?
-    static var errorParam: Error?
+    var events: [MaliciousSiteProtection.Event] = []
+    var clientSideHitParam: String?
+    var errorParam: Error?
 
     public init() {
+        weak var weakSelf: MockEventMapping!
         super.init { event, error, params, _ in
-            Self.events.append(event)
+            weakSelf!.events.append(event)
             switch event {
             case .errorPageShown:
-                Self.clientSideHitParam = params?[PixelKit.Parameters.clientSideHit]
+                weakSelf!.clientSideHitParam = params?[PixelKit.Parameters.clientSideHit]
             default:
                 break
             }
         }
+        weakSelf = self
     }
 
-    override init(mapping: @escaping EventMapping<MaliciousSiteProtection.Event>.Mapping) {
-        fatalError("Use init()")
-    }
 }

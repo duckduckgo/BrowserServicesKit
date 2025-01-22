@@ -68,8 +68,11 @@ public final class MaliciousSiteDetector: MaliciousSiteDetecting {
         let matches: [Match]
         do {
             matches = try await apiClient.matches(forHashPrefix: hashPrefixParam).matches
+        } catch APIRequestV2.Error.urlSession(URLError.timedOut) {
+            eventMapping.fire(.matchesApiTimeout)
+            return nil
         } catch {
-            Logger.general.error("Error fetching matches from API: \(error)")
+            eventMapping.fire(.matchesApiFailure(error))
             return nil
         }
 
