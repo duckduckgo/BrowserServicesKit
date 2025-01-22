@@ -16,6 +16,7 @@
 //  limitations under the License.
 //
 import Foundation
+import Networking
 import XCTest
 
 @testable import MaliciousSiteProtection
@@ -99,5 +100,61 @@ class MaliciousSiteDetectorTests: XCTestCase {
         let result = await detector.evaluate(url)
 
         XCTAssertNil(result)
+    }
+
+    func testWhenMatchesApiFailsThenEventIsFired() async {
+        let e = expectation(description: "matchesForHashPrefix called")
+        mockAPIClient.matchesForHashPrefix = { _ in
+            let error = Networking.APIRequestV2.Error.urlSession(URLError(.badServerResponse))
+            XCTAssertFalse(error.isTimedOut)
+            e.fulfill()
+            throw error
+        }
+
+        await mockDataManager.store(HashPrefixSet(revision: 0, items: ["255a8a79"]), for: .hashPrefixes(threatKind: .phishing))
+
+        let url = URL(string: "https://malicious.com/")!
+        let result = await detector.evaluate(url)
+        XCTAssertNil(result)
+
+        await fulfillment(of: [e], timeout: 0)
+
+        XCTAssertEqual(mockEventMapping.events.count, 1)
+        switch mockEventMapping.events.last {
+        case .matchesApiFailure(APIRequestV2.Error.urlSession(URLError.badServerResponse)):
+            break
+        case .none:
+            XCTFail( "No event fired")
+        case .some(let event):
+            XCTFail("Unexpected event \(event)")
+        }
+    }
+
+    func testWhenMatchesApiFailsWithTimeoutThenEventIsFired() async {
+        let e = expectation(description: "matchesForHashPrefix called")
+        mockAPIClient.matchesForHashPrefix = { _ in
+            let error = Networking.APIRequestV2.Error.urlSession(URLError(.timedOut))
+            XCTAssertTrue(error.isTimedOut) // should match testWhenMatchesRequestTimeouts_TimeoutErrorThrown!
+            e.fulfill()
+            throw error
+        }
+
+        await mockDataManager.store(HashPrefixSet(revision: 0, items: ["255a8a79"]), for: .hashPrefixes(threatKind: .phishing))
+
+        let url = URL(string: "https://malicious.com/")!
+        let result = await detector.evaluate(url)
+        XCTAssertNil(result)
+
+        await fulfillment(of: [e], timeout: 0)
+
+        XCTAssertEqual(mockEventMapping.events.count, 1)
+        switch mockEventMapping.events.last {
+        case .matchesApiTimeout:
+            break
+        case .none:
+            XCTFail( "No event fired")
+        case .some(let event):
+            XCTFail("Unexpected event \(event)")
+        }
     }
 }
