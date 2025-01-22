@@ -54,19 +54,17 @@ public enum MaliciousSiteProtectionFeatureSettings: String {
 }
 
 public struct MaliciousSiteProtectionFeatureFlags {
-    private let featureFlagger: FeatureFlagger
     private let privacyConfigManager: PrivacyConfigurationManaging
+    private let isMaliciousSiteProtectionEnabledGetter: () -> Bool
 
     private var remoteSettings: PrivacyConfigurationData.PrivacyFeature.FeatureSettings {
         privacyConfigManager.privacyConfig.settings(for: .maliciousSiteProtection)
     }
 
-    public init(
-        featureFlagger: FeatureFlagger,
-        privacyConfigManager: PrivacyConfigurationManaging
-    ) {
-        self.featureFlagger = featureFlagger
+    public init(privacyConfigManager: PrivacyConfigurationManaging,
+                isMaliciousSiteProtectionEnabled: @escaping () -> Bool) {
         self.privacyConfigManager = privacyConfigManager
+        self.isMaliciousSiteProtectionEnabledGetter = isMaliciousSiteProtectionEnabled
     }
 }
 
@@ -75,7 +73,7 @@ public struct MaliciousSiteProtectionFeatureFlags {
 extension MaliciousSiteProtectionFeatureFlags: MaliciousSiteProtectionFeatureFlagger {
 
     public var isMaliciousSiteProtectionEnabled: Bool {
-        privacyConfigManager.privacyConfig.isSubfeatureEnabled(MaliciousSiteProtectionSubfeature.onByDefault)
+        return isMaliciousSiteProtectionEnabledGetter()
     }
 
     public func shouldDetectMaliciousThreat(forDomain domain: String?) -> Bool {
