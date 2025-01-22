@@ -52,11 +52,12 @@ public extension PageRefreshMonitoring {
 /// if three refreshes occur within a 20-second window.
 public final class PageRefreshMonitor: PageRefreshMonitoring {
 
-    private let onDidDetectRefreshPattern: (_ numberOfRefreshes: Int) -> Void
+    public typealias NumberOfRefreshes = Int
+    private let onDidDetectRefreshPattern: (_ numberOfRefreshes: NumberOfRefreshes) -> Void
     private var store: PageRefreshStoring
     private var lastRefreshedURL: URL?
 
-    public init(onDidDetectRefreshPattern: @escaping (Int) -> Void,
+    public init(onDidDetectRefreshPattern: @escaping (NumberOfRefreshes) -> Void,
                 store: PageRefreshStoring) {
         self.onDidDetectRefreshPattern = onDidDetectRefreshPattern
         self.store = store
@@ -70,22 +71,18 @@ public final class PageRefreshMonitor: PageRefreshMonitoring {
     public func register(for url: URL, date: Date = Date()) {
         resetIfURLChanged(to: url)
 
-        // Detect a refresh pattern if two refreshes occur within 12 seconds,
-        // triggering the experiment pixel (sent at most once per day).
-        // Detecting three refreshes within 21 seconds necessarily includes detecting two within 12 seconds,
-        // so clearing timestamps after detecting three refreshes has no impact on pixel sending since it is sent at most once per day.
-        if date.timeIntervalSince(refreshTimestamps.last ?? Date.distantPast) < 12.0 {
-            onDidDetectRefreshPattern(2)
-        }
-
         // Add the new refresh timestamp
         refreshTimestamps.append(date)
 
-        // Retain only timestamps within the last 20 seconds
-        refreshTimestamps = refreshTimestamps.filter { date.timeIntervalSince($0) < 20.0 }
+        let refreshesInLast20Secs = refreshTimestamps.filter { date.timeIntervalSince($0) < 20.0 }
+        let refreshesInLast12Secs = refreshTimestamps.filter { date.timeIntervalSince($0) < 12.0 }
 
-        // Trigger detection if three refreshes occurred within 20 seconds, then reset timestamps
-        if refreshTimestamps.count > 2 {
+        // Trigger detection if two refreshes occurred within 12 seconds
+        if refreshesInLast12Secs.count > 1 {
+            onDidDetectRefreshPattern(2)
+        }
+        // Trigger detection if three refreshes occurred within 20 seconds
+        if refreshesInLast20Secs.count > 2 {
             onDidDetectRefreshPattern(3)
             NotificationCenter.default.post(name: .pageRefreshMonitorDidDetectRefreshPattern, object: self)
             refreshTimestamps.removeAll() // Reset timestamps after detection

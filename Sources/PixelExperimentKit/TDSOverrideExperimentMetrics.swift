@@ -21,7 +21,7 @@ import PixelKit
 import Configuration
 import BrowserServicesKit
 
-public enum TdsExperimentMetricType: String {
+public enum TDSExperimentMetricType: String {
     /// Metric triggered when the privacy toggle is used.
     case privacyToggleUsed = "privacyToggleUsed"
     /// Metric triggered after 2 quick refreshes.
@@ -47,40 +47,32 @@ public struct TDSOverrideExperimentMetrics {
 
     public static var activeTDSExperimentNameWithCohort: String? {
         guard let featureFlagger = PixelKit.ExperimentConfig.featureFlagger else { return nil }
-        let activeExperiments = featureFlagger.getAllActiveExperiments()
 
-        for experimentType in TdsExperimentType.allCases {
-            let subfeatureID = experimentType.subfeature.rawValue
-            if let experimentData = activeExperiments[subfeatureID] {
-                return "\(subfeatureID)_\(experimentData.cohortID)"
-            }
-        }
-        return nil
+        return TDSExperimentType.allCases.compactMap { experimentType in
+            guard let experimentData = featureFlagger.getAllActiveExperiments()[experimentType.subfeature.rawValue] else { return nil }
+            return "\(experimentType.subfeature.rawValue)_\(experimentData.cohortID)"
+        }.first
     }
 
-    public static func fireTdsExperimentMetric(
-        metricType: TdsExperimentMetricType,
-        etag: String,
-        fireDebugExperiment: @escaping FireDebugExperiment
-    ) {
-        for experiment in TdsExperimentType.allCases {
+    public static func fireTDSExperimentMetric( metricType: TDSExperimentMetricType,
+                                                etag: String,
+                                                fireDebugExperiment: @escaping FireDebugExperiment) {
+        for experiment in TDSExperimentType.allCases {
             for day in 0...5 {
-                ExperimentConfig.firePixelExperiment(
-                    experiment.subfeature.rawValue,
-                    metricType.rawValue,
-                    day...day,
-                    "1"
+                ExperimentConfig.firePixelExperiment(experiment.subfeature.rawValue,
+                                                     metricType.rawValue,
+                                                     day...day,
+                                                     "1"
                 )
-                fireDebugBreakageExperiment(
-                    experimentType: experiment,
-                    etag: etag,
-                    fire: fireDebugExperiment
+                fireDebugBreakageExperiment(experimentType: experiment,
+                                            etag: etag,
+                                            fire: fireDebugExperiment
                 )
             }
         }
     }
 
-    private static func fireDebugBreakageExperiment(experimentType: TdsExperimentType,
+    private static func fireDebugBreakageExperiment(experimentType: TDSExperimentType,
                                                     etag: String,
                                                     fire: @escaping FireDebugExperiment) {
         guard

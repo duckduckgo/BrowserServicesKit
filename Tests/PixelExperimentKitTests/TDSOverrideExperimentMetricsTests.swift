@@ -43,34 +43,34 @@ final class TDSOverrideExperimentMetricsTests: XCTestCase {
     func test_OnfireTdsExperimentMetricPrivacyToggleUsed_WhenExperimentActive_ThenCorrectPixelFunctionsCalled() {
         // GIVEN
         mockFeatureFlagger.experiments = [
-            TdsExperimentType.allCases[3].subfeature.rawValue: ExperimentData(parentID: "someParentID", cohortID: "testCohort", enrollmentDate: Date())
+            TDSExperimentType.allCases[3].subfeature.rawValue: ExperimentData(parentID: "someParentID", cohortID: "testCohort", enrollmentDate: Date())
         ]
 
         // WHEN
-        TDSOverrideExperimentMetrics.fireTdsExperimentMetric(metricType: .privacyToggleUsed, etag: "testEtag") { parameters in
+        TDSOverrideExperimentMetrics.fireTDSExperimentMetric(metricType: .privacyToggleUsed, etag: "testEtag") { parameters in
             self.debugCalls.append(parameters)
         }
 
         // THEN
-        XCTAssertEqual(pixelCalls.count, TdsExperimentType.allCases.count * 6, "firePixelExperiment should be called for each experiment and each conversionWindow 0...5.")
-        XCTAssertEqual(pixelCalls.first?.0, TdsExperimentType.allCases[0].subfeature.rawValue, "expected SubfeatureID should be passed as parameter")
+        XCTAssertEqual(pixelCalls.count, TDSExperimentType.allCases.count * 6, "firePixelExperiment should be called for each experiment and each conversionWindow 0...5.")
+        XCTAssertEqual(pixelCalls.first?.0, TDSExperimentType.allCases[0].subfeature.rawValue, "expected SubfeatureID should be passed as parameter")
         XCTAssertEqual(pixelCalls.first?.1, "privacyToggleUsed", "expected metric should be passed as parameter")
         XCTAssertEqual(pixelCalls.first?.2, 0...0, "expected Conversion Window should be passed as parameter")
         XCTAssertEqual(pixelCalls.first?.3, "1", "expected Value should be passed as parameter")
         XCTAssertEqual(debugCalls.count, 6, "fireDebugExperiment should be called for each conversionWindow on one experiment.")
         XCTAssertEqual(debugCalls.first?["tdsEtag"], "testEtag")
-        XCTAssertEqual(debugCalls.first?["experiment"], "\(TdsExperimentType.allCases[3].experiment.rawValue)testCohort")
+        XCTAssertEqual(debugCalls.first?["experiment"], "\(TDSExperimentType.allCases[3].experiment.rawValue)testCohort")
     }
 
     func test_OnfireTdsExperimentMetricPrivacyToggleUsed_WhenNoExperimentActive_ThenCorrectPixelFunctionsCalled() {
         // WHEN
-        TDSOverrideExperimentMetrics.fireTdsExperimentMetric(metricType: .privacyToggleUsed, etag: "testEtag") { parameters in
+        TDSOverrideExperimentMetrics.fireTDSExperimentMetric(metricType: .privacyToggleUsed, etag: "testEtag") { parameters in
             self.debugCalls.append(parameters)
         }
 
         // THEN
-        XCTAssertEqual(pixelCalls.count, TdsExperimentType.allCases.count * 6, "firePixelExperiment should be called for each experiment and each conversionWindow 0...5.")
-        XCTAssertEqual(pixelCalls.first?.0, TdsExperimentType.allCases[0].subfeature.rawValue, "expected SubfeatureID should be passed as parameter")
+        XCTAssertEqual(pixelCalls.count, TDSExperimentType.allCases.count * 6, "firePixelExperiment should be called for each experiment and each conversionWindow 0...5.")
+        XCTAssertEqual(pixelCalls.first?.0, TDSExperimentType.allCases[0].subfeature.rawValue, "expected SubfeatureID should be passed as parameter")
         XCTAssertEqual(pixelCalls.first?.1, "privacyToggleUsed", "expected metric should be passed as parameter")
         XCTAssertEqual(pixelCalls.first?.2, 0...0, "expected Conversion Window should be passed as parameter")
         XCTAssertEqual(pixelCalls.first?.3, "1", "expected Value should be passed as parameter")
@@ -80,14 +80,14 @@ final class TDSOverrideExperimentMetricsTests: XCTestCase {
     func test_OnGetActiveTDSExperimentNameWithCohort_WhenExperimentActive_ThenCorrectExperimentNameReturned() {
         // GIVEN
         mockFeatureFlagger.experiments = [
-            TdsExperimentType.allCases[3].subfeature.rawValue: ExperimentData(parentID: "someParentID", cohortID: "testCohort", enrollmentDate: Date())
+            TDSExperimentType.allCases[3].subfeature.rawValue: ExperimentData(parentID: "someParentID", cohortID: "testCohort", enrollmentDate: Date())
         ]
 
         // WHEN
         let experimentName = TDSOverrideExperimentMetrics.activeTDSExperimentNameWithCohort
 
         // THEN
-        XCTAssertEqual(experimentName, "\(TdsExperimentType.allCases[3].subfeature.rawValue)_testCohort")
+        XCTAssertEqual(experimentName, "\(TDSExperimentType.allCases[3].subfeature.rawValue)_testCohort")
     }
 
     func test_OnGetActiveTDSExperimentNameWithCohort_WhenNoExperimentActive_ThenCorrectExperimentNameReturned() {
