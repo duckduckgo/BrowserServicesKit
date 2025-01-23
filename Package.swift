@@ -55,7 +55,7 @@ let package = Package(
         .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "3.0.0"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.4.0"),
         .package(url: "https://github.com/gumob/PunycodeSwift.git", exact: "3.0.0"),
-        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "7.7.0"),
+        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "7.8.0"),
         .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "8.1.0"),
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
         .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
@@ -75,7 +75,8 @@ let package = Package(
                 "UserScript",
                 "ContentBlocking",
                 "SecureStorage",
-                "Subscription"
+                "Subscription",
+                "PixelKit"
             ],
             resources: [
                 .process("ContentBlocking/UserScripts/contentblockerrules.js"),
@@ -415,6 +416,7 @@ let package = Package(
         .target(
             name: "MaliciousSiteProtection",
             dependencies: [
+                "BrowserServicesKit",
                 "Common",
                 "Networking",
                 "PixelKit",
@@ -439,7 +441,8 @@ let package = Package(
             name: "PixelExperimentKit",
             dependencies: [
                 "PixelKit",
-                "BrowserServicesKit"
+                "BrowserServicesKit",
+                "Configuration"
             ],
             resources: [
                 .process("Resources")
@@ -702,7 +705,8 @@ let package = Package(
         .testTarget(
             name: "PixelExperimentKitTests",
             dependencies: [
-                "PixelExperimentKit"
+                "PixelExperimentKit",
+                "Configuration"
             ]
         ),
         .testTarget(
