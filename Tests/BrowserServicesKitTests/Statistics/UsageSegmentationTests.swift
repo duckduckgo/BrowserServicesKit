@@ -1,6 +1,5 @@
 //
 //  UsageSegmentationTests.swift
-//  DuckDuckGo
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -68,7 +67,7 @@ final class UsageSegmentationTests: XCTestCase {
 
     /// Activity type is not relevant here, that's tested elsewhere.
     func testWhenValidATBReceivedAndCalculatorReturnsNoResult_ThenNoPixelFired() {
-        
+
         defaultCalculatorResult = nil
 
         var pixelFired = false
@@ -126,7 +125,7 @@ final class UsageSegmentationTests: XCTestCase {
 
     private func assertWhenATBReceivedWithSameInstallAtb_ThenStoredAndPixelFired(_ activityType: UsageActivityType, installAtb: String = "v100-1", atb: String = "v100-1", file: StaticString = #filePath, line: UInt = #line) {
         var pixelFired = false
-        var pixelParams: [String: String]? = nil
+        var pixelParams: [String: String]?
         let pixelHandler = EventMapping<UsageSegmentationPixel> { event, error, params, onComplete in
             if case .usageSegments = event {
                 pixelFired = true
@@ -146,7 +145,7 @@ final class UsageSegmentationTests: XCTestCase {
 
     private func assertWhenNewATBReceivedWithInstallAtb_ThenBothStoredAndPixelFired(_ activityType: UsageActivityType, file: StaticString = #filePath, line: UInt = #line) {
         var pixelFired = false
-        var pixelParams: [String: String]? = nil
+        var pixelParams: [String: String]?
         let pixelHandler = EventMapping<UsageSegmentationPixel> { event, error, params, onComplete in
             if case .usageSegments = event {
                 pixelFired = true
