@@ -322,7 +322,6 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
         let c1 = await dataManager.publisher(for: .hashPrefixes(threatKind: .phishing)).dropFirst().sink { data in
             expectations[data.revision - 1].fulfill()
         }
-
         // data for FilterSet should not be updated
         let c2 = await dataManager.publisher(for: .filterSet(threatKind: .phishing)).dropFirst().sink { data in
             XCTFail("Unexpected filter set update received: \(data)")
