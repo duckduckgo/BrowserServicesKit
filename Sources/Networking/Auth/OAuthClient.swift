@@ -206,25 +206,23 @@ final public class DefaultOAuthClient: OAuthClient {
 
         switch policy {
         case .local:
-            if let localTokenContainer {
-                Logger.OAuthClient.debug("Local tokens found, expiry: \(localTokenContainer.decodedAccessToken.exp.value, privacy: .public)")
-                return localTokenContainer
-            } else {
+            guard let localTokenContainer else {
                 Logger.OAuthClient.debug("Tokens not found")
                 throw OAuthClientError.missingTokens
             }
+            Logger.OAuthClient.debug("Local tokens found, expiry: \(localTokenContainer.decodedAccessToken.exp.value, privacy: .public)")
+            return localTokenContainer
         case .localValid:
-            if let localTokenContainer {
-                Logger.OAuthClient.debug("Local tokens found, expiry: \(localTokenContainer.decodedAccessToken.exp.value, privacy: .public)")
-                if localTokenContainer.decodedAccessToken.isExpired() {
-                    Logger.OAuthClient.debug("Local access token is expired, refreshing it")
-                    return try await getTokens(policy: .localForceRefresh)
-                } else {
-                    return localTokenContainer
-                }
-            } else {
+            guard let localTokenContainer else {
                 Logger.OAuthClient.debug("Tokens not found")
                 throw OAuthClientError.missingTokens
+            }
+            Logger.OAuthClient.debug("Local tokens found, expiry: \(localTokenContainer.decodedAccessToken.exp.value, privacy: .public)")
+            if localTokenContainer.decodedAccessToken.isExpired() {
+                Logger.OAuthClient.debug("Local access token is expired, refreshing it")
+                return try await getTokens(policy: .localForceRefresh)
+            } else {
+                return localTokenContainer
             }
         case .localForceRefresh:
             guard let refreshToken = localTokenContainer?.refreshToken else {

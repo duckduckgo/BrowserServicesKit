@@ -80,8 +80,8 @@ public protocol OAuthService {
 
 public struct DefaultOAuthService: OAuthService {
 
-    private let baseURL: URL
-    private let apiService: any APIService
+    let baseURL: URL
+    let apiService: any APIService
 
     /// Default initialiser
     /// - Parameters:
@@ -96,7 +96,7 @@ public struct DefaultOAuthService: OAuthService {
     ///   - header: The header key
     ///   - httpResponse: The HTTP URL Response
     /// - Returns: The header value, throws an error if not present
-    internal func extract(header: String, from httpResponse: HTTPURLResponse) throws -> String {
+    func extract(header: String, from httpResponse: HTTPURLResponse) throws -> String {
         let headers = httpResponse.allHeaderFields
         guard let result = headers[header] as? String else {
             throw OAuthServiceError.missingResponseValue(header)
@@ -108,14 +108,14 @@ public struct DefaultOAuthService: OAuthService {
     ///  The Auth API can answer with errors in the HTTP response body, format: `{ "error": "$error_code" }`, this function decodes the body in `AuthRequest.BodyError`and generates an AuthServiceError containing the error info
     /// - Parameter responseBody: The HTTP response body Data
     /// - Returns: and AuthServiceError.authAPIError containing the error code and description, nil if the body
-    internal func extractError(from response: APIResponseV2) -> OAuthServiceError? {
+    func extractError(from response: APIResponseV2) -> OAuthServiceError? {
         if let bodyError: OAuthRequest.BodyError = try? response.decodeBody() {
             return OAuthServiceError.authAPIError(code: bodyError.error)
         }
         return nil
     }
 
-    internal func throwError(forResponse response: APIResponseV2) throws {
+    func throwError(forResponse response: APIResponseV2) throws {
         if let error = extractError(from: response) {
             throw error
         } else {
@@ -123,18 +123,28 @@ public struct DefaultOAuthService: OAuthService {
         }
     }
 
-    internal func fetch<T: Decodable>(request: OAuthRequest) async throws -> T {
+    func fetch(request: OAuthRequest?) async throws -> APIResponseV2 {
         try Task.checkCancellation()
+        guard let request else {
+            throw OAuthServiceError.invalidRequest
+        }
         let response = try await apiService.fetch(request: request.apiRequest)
         try Task.checkCancellation()
 
         let statusCode = response.httpResponse.httpStatus
-        if statusCode == request.httpSuccessCode {
-            return try response.decodeBody()
-        } else if request.httpErrorCodes.contains(statusCode) {
-            try throwError(forResponse: response)
+        if statusCode != request.httpSuccessCode {
+            if request.httpErrorCodes.contains(statusCode) {
+                try throwError(forResponse: response)
+            } else {
+                throw OAuthServiceError.invalidResponseCode(statusCode)
+            }
         }
-        throw OAuthServiceError.invalidResponseCode(statusCode)
+        return response
+    }
+
+    func fetch<T: Decodable>(request: OAuthRequest?) async throws -> T {
+        let response = try await fetch(request: request)
+        return try response.decodeBody()
     }
 
     // MARK: - API requests
@@ -142,165 +152,59 @@ public struct DefaultOAuthService: OAuthService {
     // MARK: Authorize
 
     public func authorize(codeChallenge: String) async throws -> OAuthSessionID {
-        try Task.checkCancellation()
-        guard let request = OAuthRequest.authorize(baseURL: baseURL, codeChallenge: codeChallenge) else {
-            throw OAuthServiceError.invalidRequest
+        let request = OAuthRequest.authorize(baseURL: baseURL, codeChallenge: codeChallenge)
+        let response = try await fetch(request: request)
+        guard let cookieValue = response.httpResponse.getCookie(withName: "ddg_auth_session_id")?.value else {
+            throw OAuthServiceError.missingResponseValue("ddg_auth_session_id cookie")
         }
-
-        let response = try await apiService.fetch(request: request.apiRequest)
-        try Task.checkCancellation()
-
-        let statusCode = response.httpResponse.httpStatus
-        if statusCode == request.httpSuccessCode {
-            // let location = try extract(header: HTTPHeaderKey.location, from: response.httpResponse)
-            guard let cookieValue = response.httpResponse.getCookie(withName: "ddg_auth_session_id")?.value else {
-                throw OAuthServiceError.missingResponseValue("ddg_auth_session_id cookie")
-            }
-            return cookieValue
-        } else if request.httpErrorCodes.contains(statusCode) {
-            try throwError(forResponse: response)
-        }
-        throw OAuthServiceError.invalidResponseCode(statusCode)
+        return cookieValue
     }
 
     // MARK: Create Account
 
     public func createAccount(authSessionID: String) async throws -> AuthorisationCode {
-        try Task.checkCancellation()
-        guard let request = OAuthRequest.createAccount(baseURL: baseURL, authSessionID: authSessionID) else {
-            throw OAuthServiceError.invalidRequest
+        let request = OAuthRequest.createAccount(baseURL: baseURL, authSessionID: authSessionID)
+        let response = try await fetch(request: request)
+        //  The redirect URI from the original Authorization request indicated by the ddg_auth_session_id in the provided Cookie header, with the authorization code needed for the Access Token request appended as a query param. The intention is that the client will intercept this redirect and extract the authorization code to make the Access Token request in the background.
+        let redirectURI = try extract(header: HTTPHeaderKey.location, from: response.httpResponse)
+        // Extract the code from the URL query params, example: com.duckduckgo:/authcb?code=NgNjnlLaqUomt9b5LDbzAtTyeW9cBNhCGtLB3vpcctluSZI51M9tb2ZDIZdijSPTYBr4w8dtVZl85zNSemxozv
+        guard let authCode = URLComponents(string: redirectURI)?.queryItems?.first(where: { queryItem in
+            queryItem.name == "code"
+        })?.value else {
+            throw OAuthServiceError.missingResponseValue("Authorization Code in redirect URI")
         }
-
-        let response = try await apiService.fetch(request: request.apiRequest)
-        try Task.checkCancellation()
-
-        let statusCode = response.httpResponse.httpStatus
-        if statusCode == request.httpSuccessCode {
-            //  The redirect URI from the original Authorization request indicated by the ddg_auth_session_id in the provided Cookie header, with the authorization code needed for the Access Token request appended as a query param. The intention is that the client will intercept this redirect and extract the authorization code to make the Access Token request in the background.
-            let redirectURI = try extract(header: HTTPHeaderKey.location, from: response.httpResponse)
-
-            // Extract the code from the URL query params, example: com.duckduckgo:/authcb?code=NgNjnlLaqUomt9b5LDbzAtTyeW9cBNhCGtLB3vpcctluSZI51M9tb2ZDIZdijSPTYBr4w8dtVZl85zNSemxozv
-            guard let authCode = URLComponents(string: redirectURI)?.queryItems?.first(where: { queryItem in
-                queryItem.name == "code"
-            })?.value else {
-                throw OAuthServiceError.missingResponseValue("Authorization Code in redirect URI")
-            }
-            return authCode
-        } else if request.httpErrorCodes.contains(statusCode) {
-            try throwError(forResponse: response)
-        }
-        throw OAuthServiceError.invalidResponseCode(statusCode)
+        return authCode
     }
-
-    /* MARK: Request OTP
-
-    public func requestOTP(authSessionID: String, emailAddress: String) async throws {
-        try Task.checkCancellation()
-        guard let request = OAuthRequest.requestOTP(baseURL: baseURL, authSessionID: authSessionID, emailAddress: emailAddress) else {
-            throw OAuthServiceError.invalidRequest
-        }
-
-        let response = try await apiService.fetch(request: request.apiRequest)
-        try Task.checkCancellation()
-
-        let statusCode = response.httpResponse.httpStatus
-        if statusCode == request.httpSuccessCode {
-        } else if request.httpErrorCodes.contains(statusCode) {
-            try throwError(forResponse: response, request: request)
-        }
-        throw OAuthServiceError.invalidResponseCode(statusCode)
-    }
-
-    // MARK: Login
-
-    public func login(withOTP otp: String, authSessionID: String, email: String) async throws -> AuthorisationCode {
-        try Task.checkCancellation()
-        let method = OAuthLoginMethodOTP(email: email, otp: otp)
-        guard let request = OAuthRequest.login(baseURL: baseURL, authSessionID: authSessionID, method: method) else {
-            throw OAuthServiceError.invalidRequest
-        }
-
-        let response = try await apiService.fetch(request: request.apiRequest)
-        try Task.checkCancellation()
-
-        let statusCode = response.httpResponse.httpStatus
-        if statusCode == request.httpSuccessCode {
-            return try extract(header: HTTPHeaderKey.location, from: response.httpResponse)
-        } else if request.httpErrorCodes.contains(statusCode) {
-            try throwError(forResponse: response, request: request)
-        }
-        throw OAuthServiceError.invalidResponseCode(statusCode)
-    }
-     */
 
     public func login(withSignature signature: String, authSessionID: String) async throws -> AuthorisationCode {
-        try Task.checkCancellation()
         let method = OAuthLoginMethodSignature(signature: signature)
-        guard let request = OAuthRequest.login(baseURL: baseURL, authSessionID: authSessionID, method: method) else {
-            throw OAuthServiceError.invalidRequest
+        let request = OAuthRequest.login(baseURL: baseURL, authSessionID: authSessionID, method: method)
+        let response = try await fetch(request: request)
+        //Example: "com.duckduckgo:/authcb?code=eud8rNxyq2lhN4VFwQ7CAcir80dFBRIE4YpPY0gqeunTw4j6SoWkN4AA2c0TNO1sohqe84zubUtERkLLl94Qam"
+        guard let locationHeaderValue = try? extract(header: HTTPHeaderKey.location, from: response.httpResponse),
+              let redirectURL = URL(string: locationHeaderValue),
+              let authCode = redirectURL.queryParameters()?["code"] else {
+            throw OAuthServiceError.missingResponseValue("Auth code")
         }
-
-        let response = try await apiService.fetch(request: request.apiRequest)
-        try Task.checkCancellation()
-
-        let statusCode = response.httpResponse.httpStatus
-        if statusCode == request.httpSuccessCode {
-            // "com.duckduckgo:/authcb?code=eud8rNxyq2lhN4VFwQ7CAcir80dFBRIE4YpPY0gqeunTw4j6SoWkN4AA2c0TNO1sohqe84zubUtERkLLl94Qam"
-            guard let locationHeaderValue = try? extract(header: HTTPHeaderKey.location, from: response.httpResponse),
-                  let redirectURL = URL(string: locationHeaderValue),
-                  let authCode = redirectURL.queryParameters()?["code"] else {
-                throw OAuthServiceError.missingResponseValue("Auth code")
-                  }
-            return authCode
-        } else if request.httpErrorCodes.contains(statusCode) {
-            try throwError(forResponse: response)
-        }
-        throw OAuthServiceError.invalidResponseCode(statusCode)
+        return authCode
     }
 
     // MARK: Access token
 
     public func getAccessToken(clientID: String, codeVerifier: String, code: String, redirectURI: String) async throws -> OAuthTokenResponse {
-        guard let request = OAuthRequest.getAccessToken(baseURL: baseURL, clientID: clientID, codeVerifier: codeVerifier, code: code, redirectURI: redirectURI) else {
-            throw OAuthServiceError.invalidRequest
-        }
+        let request = OAuthRequest.getAccessToken(baseURL: baseURL, clientID: clientID, codeVerifier: codeVerifier, code: code, redirectURI: redirectURI)
         return try await fetch(request: request)
     }
 
     public func refreshAccessToken(clientID: String, refreshToken: String) async throws -> OAuthTokenResponse {
-        guard let request = OAuthRequest.refreshAccessToken(baseURL: baseURL, clientID: clientID, refreshToken: refreshToken) else {
-            throw OAuthServiceError.invalidRequest
-        }
+        let request = OAuthRequest.refreshAccessToken(baseURL: baseURL, clientID: clientID, refreshToken: refreshToken)
         return try await fetch(request: request)
     }
-
-    /* MARK: Edit account
-
-    /// Edit an account email address
-    /// - Parameters:
-    ///   - email: The email address to change to. If omitted, the account email address will be removed.
-    /// - Returns: EditAccountResponse containing a status, always "confirmed" and an hash used in the `confirm edit account` API call
-    public func editAccount(clientID: String, accessToken: String, email: String?) async throws -> EditAccountResponse {
-        guard let request = OAuthRequest.editAccount(baseURL: baseURL, accessToken: accessToken, email: email) else {
-            throw OAuthServiceError.invalidRequest
-        }
-        return try await fetch(request: request)
-    }
-
-    public func confirmEditAccount(accessToken: String, email: String, hash: String, otp: String) async throws -> ConfirmEditAccountResponse {
-        guard let request = OAuthRequest.confirmEditAccount(baseURL: baseURL, accessToken: accessToken, email: email, hash: hash, otp: otp) else {
-            throw OAuthServiceError.invalidRequest
-        }
-        return try await fetch(request: request)
-    }
-     */
 
     // MARK: Logout
 
     public func logout(accessToken: String) async throws {
-        guard let request = OAuthRequest.logout(baseURL: baseURL, accessToken: accessToken) else {
-            throw OAuthServiceError.invalidRequest
-        }
+        let request = OAuthRequest.logout(baseURL: baseURL, accessToken: accessToken)
         let response: LogoutResponse = try await fetch(request: request)
         guard response.status == "logged_out" else {
             throw OAuthServiceError.missingResponseValue("LogoutResponse.status")
@@ -310,27 +214,16 @@ public struct DefaultOAuthService: OAuthService {
     // MARK: Access token exchange
 
     public func exchangeToken(accessTokenV1: String, authSessionID: String) async throws -> AuthorisationCode {
-        try Task.checkCancellation()
-        guard let request = OAuthRequest.exchangeToken(baseURL: baseURL, accessTokenV1: accessTokenV1, authSessionID: authSessionID) else {
-            throw OAuthServiceError.invalidRequest
+        let request = OAuthRequest.exchangeToken(baseURL: baseURL, accessTokenV1: accessTokenV1, authSessionID: authSessionID)
+        let response = try await fetch(request: request)
+        let redirectURI = try extract(header: HTTPHeaderKey.location, from: response.httpResponse)
+        // Extract the code from the URL query params, example: com.duckduckgo:/authcb?code=NgNj...ozv
+        guard let authCode = URLComponents(string: redirectURI)?.queryItems?.first(where: { queryItem in
+            queryItem.name == "code"
+        })?.value else {
+            throw OAuthServiceError.missingResponseValue("Authorization Code in redirect URI")
         }
-        let response = try await apiService.fetch(request: request.apiRequest)
-        try Task.checkCancellation()
-
-        let statusCode = response.httpResponse.httpStatus
-        if statusCode == request.httpSuccessCode {
-            let redirectURI = try extract(header: HTTPHeaderKey.location, from: response.httpResponse)
-            // Extract the code from the URL query params, example: com.duckduckgo:/authcb?code=NgNj...ozv
-            guard let authCode = URLComponents(string: redirectURI)?.queryItems?.first(where: { queryItem in
-                queryItem.name == "code"
-            })?.value else {
-                throw OAuthServiceError.missingResponseValue("Authorization Code in redirect URI")
-            }
-            return authCode
-        } else if request.httpErrorCodes.contains(statusCode) {
-            try throwError(forResponse: response)
-        }
-        throw OAuthServiceError.invalidResponseCode(statusCode)
+        return authCode
     }
 
     // MARK: JWKs
@@ -338,11 +231,7 @@ public struct DefaultOAuthService: OAuthService {
     /// Create a  JWTSigners with the JWKs provided by the endpoint
     /// - Returns: A JWTSigners that can be used to verify JWTs
     public func getJWTSigners() async throws -> JWTSigners {
-        try Task.checkCancellation()
-        guard let request = OAuthRequest.jwks(baseURL: baseURL) else {
-            throw OAuthServiceError.invalidRequest
-        }
-        try Task.checkCancellation()
+        let request = OAuthRequest.jwks(baseURL: baseURL)
         let response: String = try await fetch(request: request)
         let signers = JWTSigners()
         try signers.use(jwksJSON: response)
