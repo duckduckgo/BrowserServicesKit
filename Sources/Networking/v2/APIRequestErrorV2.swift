@@ -44,6 +44,14 @@ extension APIRequestV2 {
                 return "The response body is nil"
             }
         }
+
+        public var isTimedOut: Bool {
+            if case .urlSession(URLError.timedOut) = self {
+                true
+            } else {
+                false
+            }
+        }
     }
 
 }

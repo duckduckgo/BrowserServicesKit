@@ -80,7 +80,7 @@ class MockMaliciousSiteProtectionAPIClient: MaliciousSiteProtection.APIClient.Mo
         case .filterSet(let configuration):
             return _filtersChangeSet(for: configuration.threatKind, revision: configuration.revision ?? 0) as! Request.Response
         case .matches(let configuration):
-            return _matches(forHashPrefix: configuration.hashPrefix) as! Request.Response
+            return try matchesForHashPrefix(configuration.hashPrefix) as! Request.Response
         }
     }
     func _filtersChangeSet(for threatKind: MaliciousSiteProtection.ThreatKind, revision: Int) -> MaliciousSiteProtection.APIClient.Response.FiltersChangeSet {
@@ -93,7 +93,7 @@ class MockMaliciousSiteProtectionAPIClient: MaliciousSiteProtection.APIClient.Mo
         return hashPrefixRevisions[revision] ?? .init(insert: [], delete: [], revision: revision, replace: false)
     }
 
-    func _matches(forHashPrefix hashPrefix: String) -> APIClient.Response.Matches {
+    var matchesForHashPrefix: (String) throws -> APIClient.Response.Matches = { _ in
         .init(matches: [
             Match(hostname: "example.com", url: "https://example.com/mal", regex: ".*", hash: "a379a6f6eeafb9a55e378c118034e2751e682fab9f2d30ab13d2125586ce1947", category: nil),
             Match(hostname: "test.com", url: "https://test.com/mal", regex: ".*test.*", hash: "aa00bb11aa00cc11bb00cc11", category: nil)
