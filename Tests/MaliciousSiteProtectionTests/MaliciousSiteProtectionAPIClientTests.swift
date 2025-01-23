@@ -171,7 +171,8 @@ final class MaliciousSiteProtectionAPIClientTests: XCTestCase {
 extension MaliciousSiteProtectionAPIClientTests {
     struct MockEnvironment: MaliciousSiteProtection.APIClientEnvironment {
         let timeout: TimeInterval?
-        func headers(for requestType: MaliciousSiteProtection.APIRequestType, platform: MaliciousSiteProtection.MaliciousSiteDetector.APIEnvironment.Platform, authToken: String?) -> Networking.APIRequestV2.HeadersV2 {            .init()
+        func headers(for requestType: MaliciousSiteProtection.APIRequestType, platform: MaliciousSiteProtection.MaliciousSiteDetector.APIEnvironment.Platform, authToken: String?) -> Networking.APIRequestV2.HeadersV2 {
+            .init()
         }
         func url(for requestType: MaliciousSiteProtection.APIRequestType, platform: MaliciousSiteProtection.MaliciousSiteDetector.APIEnvironment.Platform) -> URL {
             MaliciousSiteDetector.APIEnvironment.production.url(for: requestType, platform: platform)

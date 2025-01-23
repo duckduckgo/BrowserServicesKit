@@ -415,6 +415,7 @@ let package = Package(
         .target(
             name: "MaliciousSiteProtection",
             dependencies: [
+                "BrowserServicesKit",
                 "Common",
                 "Networking",
                 "PixelKit",
