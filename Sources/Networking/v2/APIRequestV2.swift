@@ -79,6 +79,7 @@ public class APIRequestV2: Hashable, CustomDebugStringConvertible {
 
         // Generate URL request
         guard var urlComps = URLComponents(url: url, resolvingAgainstBaseURL: true) else {
+            assertionFailure("Malformed URL: \(url)")
             return nil
         }
         if let queryItems {

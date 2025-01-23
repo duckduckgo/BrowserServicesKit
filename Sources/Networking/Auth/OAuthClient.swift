@@ -25,7 +25,7 @@ public enum OAuthClientError: Error, LocalizedError, Equatable {
     case missingRefreshToken
     case unauthenticated
     /// When both access token and refresh token are expired
-    case deadToken
+    case refreshTokenExpired
 
     public var errorDescription: String? {
         switch self {
@@ -37,32 +37,30 @@ public enum OAuthClientError: Error, LocalizedError, Equatable {
             return "No refresh token available, please re-authenticate"
         case .unauthenticated:
             return "The account is not authenticated, please re-authenticate"
-        case .deadToken:
-            return "The token can't be refreshed"
+        case .refreshTokenExpired:
+            return "The refresh token is expired, the token is unrecoverable please re-authenticate"
         }
     }
 }
 
 /// Provides the locally stored tokens container
-public protocol TokenStoring {
+public protocol AuthTokenStoring {
     var tokenContainer: TokenContainer? { get set }
 }
 
 /// Provides the legacy AuthToken V1
-public protocol LegacyTokenStoring {
+public protocol LegacyAuthTokenStoring {
     var token: String? { get set }
 }
 
-public enum TokensCachePolicy {
-    /// The locally stored one as it is, valid or not
+public enum AuthTokensCachePolicy {
+    /// The token container from the local storage
     case local
-    /// The locally stored one refreshed
+    /// The token container from the local storage, refreshed if needed
     case localValid
-
-    /// The locally stored one and force the refresh
+    /// A refreshed token
     case localForceRefresh
-
-    /// Local refreshed, if doesn't exist create a new one
+    /// Like `.localValid`,  if doesn't exist create a new one
     case createIfNeeded
 
     public var description: String {
@@ -93,7 +91,7 @@ public protocol OAuthClient {
     /// -  `.localForceRefresh`: Returns what's in the storage but forces a refresh first. throws an error if no refresh token is available.
     /// - `.createIfNeeded`: Returns what's in the storage, if the stored token is expired refreshes it, if not token is available creates a new account/token
     /// All options store new or refreshed tokens via the tokensStorage
-    func getTokens(policy: TokensCachePolicy) async throws -> TokenContainer
+    func getTokens(policy: AuthTokensCachePolicy) async throws -> TokenContainer
 
     /// Migrate access token v1 to auth token v2 if needed
     /// - Returns: A valid TokenContainer if a token v1 is found in the LegacyTokenContainer, nil if no v1 token is available. Throws an error in case of failures during the migration
@@ -133,11 +131,11 @@ final public class DefaultOAuthClient: OAuthClient {
     // MARK: -
 
     private let authService: any OAuthService
-    private var tokenStorage: any TokenStoring
-    public var legacyTokenStorage: (any LegacyTokenStoring)?
+    private var tokenStorage: any AuthTokenStoring
+    public var legacyTokenStorage: (any LegacyAuthTokenStoring)?
 
-    public init(tokensStorage: any TokenStoring,
-                legacyTokenStorage: (any LegacyTokenStoring)?,
+    public init(tokensStorage: any AuthTokenStoring,
+                legacyTokenStorage: (any LegacyAuthTokenStoring)?,
                 authService: OAuthService) {
         self.tokenStorage = tokensStorage
         self.legacyTokenStorage = legacyTokenStorage
@@ -203,7 +201,7 @@ final public class DefaultOAuthClient: OAuthClient {
         }
     }
 
-    public func getTokens(policy: TokensCachePolicy) async throws -> TokenContainer {
+    public func getTokens(policy: AuthTokensCachePolicy) async throws -> TokenContainer {
         let localTokenContainer = tokenStorage.tokenContainer
 
         switch policy {
@@ -241,7 +239,7 @@ final public class DefaultOAuthClient: OAuthClient {
                 return refreshedTokens
             } catch OAuthServiceError.authAPIError(let code) where code == OAuthRequest.BodyErrorCode.invalidTokenRequest {
                 Logger.OAuthClient.error("Failed to refresh token: invalidTokenRequest")
-                throw OAuthClientError.deadToken
+                throw OAuthClientError.refreshTokenExpired
             } catch OAuthServiceError.authAPIError(let code) {
                 Logger.OAuthClient.error("Failed to refresh token: \(code.rawValue, privacy: .public), \(code.description, privacy: .public)")
                 throw OAuthServiceError.authAPIError(code: code)

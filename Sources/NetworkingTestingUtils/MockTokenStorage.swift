@@ -19,7 +19,7 @@
 import Foundation
 import Networking
 
-public class MockTokenStorage: TokenStoring {
+public class MockTokenStorage: AuthTokenStoring {
 
     public init(tokenContainer: Networking.TokenContainer? = nil) {
         self.tokenContainer = tokenContainer
