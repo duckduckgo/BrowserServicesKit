@@ -369,6 +369,7 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
 
         // Cancel the update task
         updateTask!.cancel()
+        await Task.megaYield(count: 10)
 
         // Reset expectations for further updates
         let c = await dataManager.$store.dropFirst().sink { data in
