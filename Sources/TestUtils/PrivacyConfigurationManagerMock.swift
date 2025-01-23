@@ -58,7 +58,7 @@ final class MockInternalUserStoring: InternalUserStoring {
     var isInternalUser: Bool = false
 }
 
-extension DefaultInternalUserDecider {
+private extension DefaultInternalUserDecider {
     convenience init(mockedStore: MockInternalUserStoring = MockInternalUserStoring()) {
         self.init(store: mockedStore)
     }
