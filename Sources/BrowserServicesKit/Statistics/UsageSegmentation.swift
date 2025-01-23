@@ -43,8 +43,8 @@ public final class UsageSegmentation: UsageSegmenting {
     private let calculatorFactory: UsageSegmentationCalculatorMaking
 
     public init(pixelEvents: EventMapping<UsageSegmentationPixel>?,
-         storage: UsageSegmentationStoring = UsageSegmentationStorage(),
-         calculatorFactory: UsageSegmentationCalculatorMaking = DefaultCalculatorFactory()) {
+                storage: UsageSegmentationStoring = UsageSegmentationStorage(),
+                calculatorFactory: UsageSegmentationCalculatorMaking = DefaultCalculatorFactory()) {
         self.pixelEvents = pixelEvents
         self.storage = storage
         self.calculatorFactory = calculatorFactory
