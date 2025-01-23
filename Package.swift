@@ -75,7 +75,8 @@ let package = Package(
                 "UserScript",
                 "ContentBlocking",
                 "SecureStorage",
-                "Subscription"
+                "Subscription",
+                "PixelKit"
             ],
             resources: [
                 .process("ContentBlocking/UserScripts/contentblockerrules.js"),
