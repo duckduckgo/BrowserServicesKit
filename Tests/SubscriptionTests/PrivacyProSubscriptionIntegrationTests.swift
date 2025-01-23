@@ -91,6 +91,7 @@ final class PrivacyProSubscriptionIntegrationTests: XCTestCase {
         APIMockResponseFactory.mockAuthoriseResponse(destinationMockAPIService: apiService, success: true)
         APIMockResponseFactory.mockCreateAccountResponse(destinationMockAPIService: apiService, success: true)
         APIMockResponseFactory.mockGetAccessTokenResponse(destinationMockAPIService: apiService, success: true)
+        APIMockResponseFactory.mockRefreshAccessTokenResponse(destinationMockAPIService: apiService, success: true)
         APIMockResponseFactory.mockGetJWKS(destinationMockAPIService: apiService, success: true)
         SubscriptionAPIMockResponseFactory.mockConfirmPurchase(destinationMockAPIService: apiService, success: true)
         SubscriptionAPIMockResponseFactory.mockGetProducts(destinationMockAPIService: apiService, success: true)
