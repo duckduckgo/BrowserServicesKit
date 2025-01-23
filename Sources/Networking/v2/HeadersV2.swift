@@ -18,6 +18,8 @@
 
 import Foundation
 
+public typealias HTTPHeaders = [String: String]
+
 public extension APIRequestV2 {
 
     /// All possible request content types
@@ -75,7 +77,7 @@ public extension APIRequestV2 {
             self.additionalHeaders = additionalHeaders
         }
 
-        public var httpHeaders: [String: String] {
+        public var httpHeaders: HTTPHeaders {
             var headers = [
                 HTTPHeaderKey.acceptEncoding: acceptEncoding,
                 HTTPHeaderKey.acceptLanguage: acceptLanguage

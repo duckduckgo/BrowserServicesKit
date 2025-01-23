@@ -34,15 +34,6 @@ public class APIRequestV2: Hashable, CustomDebugStringConvertible {
         public var debugDescription: String {
             "MaxRetries: \(maxRetries), delay: \(delay)"
         }
-
-        public static func == (lhs: APIRequestV2.RetryPolicy, rhs: APIRequestV2.RetryPolicy) -> Bool {
-            lhs.maxRetries == rhs.maxRetries && lhs.delay == rhs.delay
-        }
-
-        public func hash(into hasher: inout Hasher) {
-            hasher.combine(maxRetries)
-            hasher.combine(delay)
-        }
     }
 
     let timeoutInterval: TimeInterval

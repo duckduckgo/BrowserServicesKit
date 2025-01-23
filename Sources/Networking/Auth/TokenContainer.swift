@@ -159,12 +159,10 @@ public struct EntitlementPayload: Codable, Equatable {
 public extension JWTAccessToken {
 
     var subscriptionEntitlements: [SubscriptionEntitlement] {
-        return entitlements.map({ entPayload in
-            entPayload.product
-        })
+        entitlements.map(\.product)
     }
 
     func hasEntitlement(_ entitlement: SubscriptionEntitlement) -> Bool {
-        return subscriptionEntitlements.contains(entitlement)
+        subscriptionEntitlements.contains(entitlement)
     }
 }
