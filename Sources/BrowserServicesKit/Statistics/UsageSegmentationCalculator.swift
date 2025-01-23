@@ -42,6 +42,8 @@ public final class UsageSegmentationCalculatorFactory: UsageSegmentationCalculat
 
 public final class DefaultCalculatorFactory: UsageSegmentationCalculatorMaking {
 
+    public init() {}
+
     public func make(installAtb: Atb) -> any UsageSegmentationCalculating {
         return UsageSegmentationCalculator(installAtb: installAtb)
     }
@@ -81,7 +83,7 @@ public final class UsageSegmentationCalculator: UsageSegmentationCalculating {
     private var previousWAUSegments = [String]()
     private var previousMAUSegments = Array(repeating: Array(repeating: "", count: 4), count: 4)
 
-    init(installAtb: Atb) {
+    public init(installAtb: Atb) {
         self.installAtb = installAtb
     }
 

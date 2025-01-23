@@ -19,21 +19,21 @@
 import Foundation
 import Persistence
 
-protocol UsageSegmentationStoring {
+public protocol UsageSegmentationStoring {
 
     var searchAtbs: [Atb] { get set }
     var appUseAtbs: [Atb] { get set }
 
 }
 
-final class UsageSegmentationStorage: UsageSegmentationStoring {
+public final class UsageSegmentationStorage: UsageSegmentationStoring {
 
     enum Keys {
         static let search = "usageSegmentation.atbs.search"
         static let appUse = "usageSegmentation.atbs.appUse"
     }
 
-    var searchAtbs: [Atb] {
+    public var searchAtbs: [Atb] {
         get {
             let storedAtbs: [String] = (keyValueStore.object(forKey: Keys.search) as? [String]) ?? []
             return storedAtbs.map {
@@ -48,7 +48,7 @@ final class UsageSegmentationStorage: UsageSegmentationStoring {
         }
     }
 
-    var appUseAtbs: [Atb] {
+    public var appUseAtbs: [Atb] {
         get {
             let storedAtbs: [String] = (keyValueStore.object(forKey: Keys.appUse) as? [String]) ?? []
             return storedAtbs.map {
@@ -65,7 +65,7 @@ final class UsageSegmentationStorage: UsageSegmentationStoring {
 
     let keyValueStore: KeyValueStoring
 
-    init(keyValueStore: KeyValueStoring = UserDefaults.standard) {
+    public init(keyValueStore: KeyValueStoring = UserDefaults.standard) {
         self.keyValueStore = keyValueStore
     }
 

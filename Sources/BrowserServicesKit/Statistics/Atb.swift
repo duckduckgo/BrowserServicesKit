@@ -29,11 +29,11 @@ public struct Atb: Decodable, Equatable {
     /// Same as `template` two characters on the end, e.g. `ma`
     static let templateWithVariant = template + "xx"
 
-    let version: String
-    let updateVersion: String?
+    public let version: String
+    public let updateVersion: String?
     let numeric: AtbNumeric?
 
-    init(version: String, updateVersion: String?) {
+    public init(version: String, updateVersion: String?) {
         self.version = version
         self.updateVersion = updateVersion
         self.numeric = AtbNumeric.makeFromVersion(version)
