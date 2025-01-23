@@ -20,12 +20,6 @@ import XCTest
 import Common
 @testable import PageRefreshMonitor
 
-final class MockPageRefreshStore: PageRefreshStoring {
-
-    var refreshTimestamps: [Date] = []
-
-}
-
 final class PageRefreshMonitorTests: XCTestCase {
 
     var monitor: PageRefreshMonitor!
@@ -33,8 +27,7 @@ final class PageRefreshMonitorTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        monitor = PageRefreshMonitor(onDidDetectRefreshPattern: { patternCount in self.detectionParameters.append(patternCount)},
-                                     store: MockPageRefreshStore())
+        monitor = PageRefreshMonitor(onDidDetectRefreshPattern: { patternCount in self.detectionParameters.append(patternCount)})
     }
 
     // MARK: - Pattern Detection Tests
@@ -58,8 +51,8 @@ final class PageRefreshMonitorTests: XCTestCase {
         monitor.register(for: url)
         monitor.register(for: url)
         monitor.register(for: url)
-        XCTAssertEqual(detectionParameters.count, 3)
-        XCTAssertEqual(detectionParameters, [2, 2, 3])
+        XCTAssertEqual(detectionParameters.count, 2)
+        XCTAssertEqual(detectionParameters, [2, 3])
     }
 
     func testDetectsEventTwiceWhenSixRefreshesOccurOnSameURL() {
@@ -67,8 +60,8 @@ final class PageRefreshMonitorTests: XCTestCase {
         for _ in 1...6 {
             monitor.register(for: url)
         }
-        XCTAssertEqual(detectionParameters.count, 6)
-        XCTAssertEqual(detectionParameters, [2, 2, 3, 2, 2, 3])
+        XCTAssertEqual(detectionParameters.count, 5)
+        XCTAssertEqual(detectionParameters, [2, 3, 2, 2, 3])
     }
 
     // MARK: - URL Change Handling
@@ -92,8 +85,8 @@ final class PageRefreshMonitorTests: XCTestCase {
         XCTAssertEqual(detectionParameters, [2])
         monitor.register(for: urlB)
         monitor.register(for: urlB)
-        XCTAssertEqual(detectionParameters.count, 4)
-        XCTAssertEqual(detectionParameters, [2, 2, 2, 3])
+        XCTAssertEqual(detectionParameters.count, 3)
+        XCTAssertEqual(detectionParameters, [2, 2, 3])
     }
 
     // MARK: - Timed Pattern Detection
@@ -145,8 +138,8 @@ final class PageRefreshMonitorTests: XCTestCase {
         XCTAssertEqual(detectionParameters.count, 1)
         XCTAssertEqual(detectionParameters, [2])
         monitor.register(for: url, date: date + 23) // 23 seconds after the first event (4 seconds after second event)
-        XCTAssertEqual(detectionParameters.count, 3)
-        XCTAssertEqual(detectionParameters, [2, 2, 3])
+        XCTAssertEqual(detectionParameters.count, 2)
+        XCTAssertEqual(detectionParameters, [2, 3])
     }
 
 }
