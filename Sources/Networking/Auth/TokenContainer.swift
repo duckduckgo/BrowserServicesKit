@@ -51,6 +51,7 @@ extension TokenContainer: CustomDebugStringConvertible {
     }
 }
 
+/// Convenience init and accessor used when the token container is send via IPC and NSData is needed
 extension TokenContainer {
 
     public var data: NSData? {
