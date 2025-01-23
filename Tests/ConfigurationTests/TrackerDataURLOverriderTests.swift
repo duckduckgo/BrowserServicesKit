@@ -45,7 +45,7 @@ final class TrackerDataURLOverriderTests: XCTestCase {
     func testTrackerDataURL_forControlCohort_returnsControlUrl() throws {
         // GIVEN
         mockFeatureFlagger.mockCohorts = [
-            TdsExperimentType(rawValue: 0)!.subfeature.rawValue: TdsNextExperimentFlag.Cohort.control]
+            TDSExperimentType(rawValue: 0)!.subfeature.rawValue: TDSNextExperimentFlag.Cohort.control]
         let privacyConfig = MockPrivacyConfiguration()
         privacyConfig.subfeatureSettings = "{ \"controlUrl\": \"\(controlURL)\", \"treatmentUrl\": \"\(treatmentURL)\"}"
         mockPrivacyConfigurationManager.privacyConfig = privacyConfig
@@ -54,13 +54,13 @@ final class TrackerDataURLOverriderTests: XCTestCase {
         let url = try XCTUnwrap(urlProvider.trackerDataURL)
 
         // THEN
-        XCTAssertEqual(url.absoluteString, TrackerDataURLOverrider.Constants.baseTdsURLString + controlURL)
+        XCTAssertEqual(url.absoluteString, TrackerDataURLOverrider.Constants.baseTDSURLString + controlURL)
     }
 
     func testTrackerDataURL_forTreatmentCohort_returnsTreatmentUrl() throws {
         // GIVEN
         mockFeatureFlagger.mockCohorts = [
-            TdsExperimentType(rawValue: 0)!.subfeature.rawValue: TdsNextExperimentFlag.Cohort.treatment]
+            TDSExperimentType(rawValue: 0)!.subfeature.rawValue: TDSNextExperimentFlag.Cohort.treatment]
         let privacyConfig = MockPrivacyConfiguration()
         privacyConfig.subfeatureSettings = "{ \"controlUrl\": \"\(controlURL)\", \"treatmentUrl\": \"\(treatmentURL)\"}"
         mockPrivacyConfigurationManager.privacyConfig = privacyConfig
@@ -69,13 +69,13 @@ final class TrackerDataURLOverriderTests: XCTestCase {
         let url = try XCTUnwrap(urlProvider.trackerDataURL)
 
         // THEN
-        XCTAssertEqual(url.absoluteString, TrackerDataURLOverrider.Constants.baseTdsURLString + treatmentURL)
+        XCTAssertEqual(url.absoluteString, TrackerDataURLOverrider.Constants.baseTDSURLString + treatmentURL)
     }
 
     func testTrackerDataURL_ifNoSettings_returnsDefaultURL() throws {
         // GIVEN
         mockFeatureFlagger.mockCohorts = [
-            TdsExperimentType(rawValue: 0)!.subfeature.rawValue: TdsNextExperimentFlag.Cohort.treatment]
+            TDSExperimentType(rawValue: 0)!.subfeature.rawValue: TDSNextExperimentFlag.Cohort.treatment]
         let privacyConfig = MockPrivacyConfiguration()
         mockPrivacyConfigurationManager.privacyConfig = privacyConfig
 
@@ -106,19 +106,19 @@ final class TrackerDataURLOverriderTests: XCTestCase {
         let thirdExperimentTreatmentURL = "third-treatment.json"
         let privacyConfig = MockPrivacyConfiguration()
         privacyConfig.mockSubfeatureSettings = [
-            TdsExperimentType(rawValue: 0)!.subfeature.rawValue: """
+            TDSExperimentType(rawValue: 0)!.subfeature.rawValue: """
             {
                 "controlUrl": "\(firstExperimentControlURL)",
                 "treatmentUrl": "first-treatment.json"
             }
             """,
-            TdsExperimentType(rawValue: 1)!.subfeature.rawValue: """
+            TDSExperimentType(rawValue: 1)!.subfeature.rawValue: """
             {
                 "controlUrl": "second-control.json",
                 "treatmentUrl": "\(secondExperimentTreatmentURL)"
             }
             """,
-            TdsExperimentType(rawValue: 2)!.subfeature.rawValue: """
+            TDSExperimentType(rawValue: 2)!.subfeature.rawValue: """
             {
                 "controlUrl": "third-control.json",
                 "treatmentUrl": "\(thirdExperimentTreatmentURL)"
@@ -127,15 +127,15 @@ final class TrackerDataURLOverriderTests: XCTestCase {
         ]
         mockPrivacyConfigurationManager.privacyConfig = privacyConfig
         mockFeatureFlagger.mockCohorts = [
-            TdsExperimentType(rawValue: 1)!.subfeature.rawValue: TdsNextExperimentFlag.Cohort.treatment,
-            TdsExperimentType(rawValue: 2)!.subfeature.rawValue: TdsNextExperimentFlag.Cohort.treatment
+            TDSExperimentType(rawValue: 1)!.subfeature.rawValue: TDSNextExperimentFlag.Cohort.treatment,
+            TDSExperimentType(rawValue: 2)!.subfeature.rawValue: TDSNextExperimentFlag.Cohort.treatment
         ]
 
         // WHEN
         let url = try XCTUnwrap(urlProvider.trackerDataURL)
 
         // THEN
-        XCTAssertEqual(url.absoluteString, TrackerDataURLOverrider.Constants.baseTdsURLString + secondExperimentTreatmentURL)
+        XCTAssertEqual(url.absoluteString, TrackerDataURLOverrider.Constants.baseTDSURLString + secondExperimentTreatmentURL)
     }
 
 }
