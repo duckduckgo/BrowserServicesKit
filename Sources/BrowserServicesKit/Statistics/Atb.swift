@@ -89,9 +89,6 @@ public struct Atb: Decodable, Equatable {
                   let day = Int(version.substring(5...5)),
                   (1...7).contains(day) else {
 
-                if !ProcessInfo().arguments.contains("testing") {
-                    assertionFailure("bad atb")
-                }
                 return nil
             }
 
