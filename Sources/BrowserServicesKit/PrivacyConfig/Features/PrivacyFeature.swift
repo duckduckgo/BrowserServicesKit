@@ -227,3 +227,8 @@ public enum ContentBlockingSubfeature: String, Equatable, PrivacySubfeature {
     case tdsNextExperimentNov25
     case tdsNextExperimentDec25
 }
+
+public enum MaliciousSiteProtectionSubfeature: String, PrivacySubfeature {
+    public var parent: PrivacyFeature { .maliciousSiteProtection }
+    case onByDefault // Rollout feature
+}
