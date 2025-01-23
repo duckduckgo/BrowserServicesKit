@@ -322,7 +322,6 @@ let package = Package(
         .target(
             name: "TestUtils",
             dependencies: [
-                "BrowserServicesKit",
                 "Networking",
                 "Persistence",
             ]
@@ -716,8 +715,7 @@ let package = Package(
         .testTarget(
             name: "BrokenSitePromptTests",
             dependencies: [
-                "BrokenSitePrompt",
-                "TestUtils",
+                "BrokenSitePrompt"
             ]
         ),
         .testTarget(
