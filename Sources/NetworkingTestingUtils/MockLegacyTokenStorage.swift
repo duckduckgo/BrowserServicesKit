@@ -19,7 +19,7 @@
 import Foundation
 import Networking
 
-public class MockLegacyTokenStorage: LegacyTokenStoring {
+public class MockLegacyTokenStorage: LegacyAuthTokenStoring {
 
     public init(token: String? = nil) {
         self.token = token

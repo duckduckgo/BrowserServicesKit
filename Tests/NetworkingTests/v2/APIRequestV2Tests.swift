@@ -25,7 +25,7 @@ final class APIRequestV2Tests: XCTestCase {
     func testInitializationWithValidURL() {
         let url = URL(string: "https://www.example.com")!
         let method = HTTPRequestMethod.get
-        let queryItems = ["key": "value"]
+        let queryItems: QueryItems = [(key: "key", value: "value")]
         let headers = APIRequestV2.HeadersV2()
         let body = "Test body".data(using: .utf8)
         let timeoutInterval: TimeInterval = 30.0
@@ -45,11 +45,17 @@ final class APIRequestV2Tests: XCTestCase {
             XCTFail("Nil URLRequest")
             return
         }
-        XCTAssertEqual(urlRequest.url?.host(), url.host())
+        XCTAssertEqual(urlRequest.url?.host, url.host)
         XCTAssertEqual(urlRequest.httpMethod, method.rawValue)
 
-        let urlComponents = URLComponents(string: urlRequest.url!.absoluteString)!
-        XCTAssertTrue(urlComponents.queryItems!.contains(queryItems.toURLQueryItems()))
+        if let urlComponents = URLComponents(url: urlRequest.url!, resolvingAgainstBaseURL: false) {
+            let expectedQueryItems = queryItems.map { queryItem in
+                URLQueryItem(name: queryItem.key, value: queryItem.value)
+            }
+            XCTAssertEqual(urlComponents.queryItems, expectedQueryItems)
+        } else {
+            XCTFail("Invalid URLComponents")
+        }
 
         XCTAssertEqual(urlRequest.allHTTPHeaderFields, headers.httpHeaders)
         XCTAssertEqual(urlRequest.httpBody, body)
@@ -61,7 +67,7 @@ final class APIRequestV2Tests: XCTestCase {
     func testURLRequestGeneration() {
         let url = URL(string: "https://www.example.com")!
         let method = HTTPRequestMethod.post
-        let queryItems = ["key": "value"]
+        let queryItems: QueryItems = [(key: "key", value: "value")]
         let headers = APIRequestV2.HeadersV2()
         let body = "Test body".data(using: .utf8)
         let timeoutInterval: TimeInterval = 30.0
@@ -75,8 +81,12 @@ final class APIRequestV2Tests: XCTestCase {
                                       timeoutInterval: timeoutInterval,
                                       cachePolicy: cachePolicy)
 
-        let urlComponents = URLComponents(string: apiRequest!.urlRequest.url!.absoluteString)!
-        XCTAssertTrue(urlComponents.queryItems!.contains(queryItems.toURLQueryItems()))
+        if let urlComponents = URLComponents(url: apiRequest!.urlRequest.url!, resolvingAgainstBaseURL: false) {
+            let expectedQueryItems = queryItems.map { URLQueryItem(name: $0.key, value: $0.value) }
+            XCTAssertEqual(urlComponents.queryItems, expectedQueryItems)
+        } else {
+            XCTFail("Invalid URLComponents")
+        }
 
         XCTAssertNotNil(apiRequest)
         XCTAssertEqual(apiRequest?.urlRequest.url?.absoluteString, "https://www.example.com?key=value")
@@ -106,7 +116,7 @@ final class APIRequestV2Tests: XCTestCase {
 
     func testAllowedQueryReservedCharacters() {
         let url = URL(string: "https://www.example.com")!
-        let queryItems = ["k#e,y": "val#ue"]
+        let queryItems: QueryItems = [(key: "k#e,y", value: "val#ue")]
 
         let apiRequest = APIRequestV2(url: url,
                                       queryItems: queryItems,
@@ -116,5 +126,19 @@ final class APIRequestV2Tests: XCTestCase {
         XCTAssertTrue(urlString == "https://www.example.com?k%2523e,y=val%2523ue")
         let urlComponents = URLComponents(string: urlString)!
         XCTAssertTrue(urlComponents.queryItems?.count == 1)
+    }
+
+    func testQueryParametersConcatenation() {
+        let url = URL(string: "https://www.example.com?originalKey=originalValue")!
+        let queryItems: QueryItems = [(key: "additionalKey", value: "additionalValue")]
+
+        let apiRequest = APIRequestV2(url: url,
+                                      queryItems: queryItems,
+                                      allowedQueryReservedCharacters: CharacterSet(charactersIn: ","))
+
+        let urlString = apiRequest!.urlRequest.url!.absoluteString
+        XCTAssertTrue(urlString == "https://www.example.com?originalKey=originalValue&additionalKey=additionalValue")
+        let urlComponents = URLComponents(string: urlString)!
+        XCTAssertTrue(urlComponents.queryItems?.count == 2)
     }
 }

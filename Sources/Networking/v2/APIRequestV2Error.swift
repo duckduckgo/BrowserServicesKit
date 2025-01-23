@@ -28,6 +28,7 @@ extension APIRequestV2 {
         case invalidStatusCode(Int)
         case invalidDataType
         case emptyResponseBody
+        case invalidURL
 
         public var errorDescription: String? {
             switch self {
@@ -43,6 +44,8 @@ extension APIRequestV2 {
                 return "Invalid response data type"
             case .emptyResponseBody:
                 return "The response body is nil"
+            case .invalidURL:
+                return "Invalid URL"
             }
         }
 
@@ -61,10 +64,11 @@ extension APIRequestV2 {
                 return true
             case (.emptyResponseBody, .emptyResponseBody):
                 return true
+            case (.invalidURL, .invalidURL):
+                return true
             default:
                 return false
             }
         }
     }
-
 }

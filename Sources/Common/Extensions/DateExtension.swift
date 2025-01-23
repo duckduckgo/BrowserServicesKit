@@ -157,31 +157,6 @@ public extension Date {
         self > Date().addingTimeInterval(Double(-minutes) * 60)
     }
 
-    /// Returns a new date a specific number of seconds from now.
-    static func secondsFromNow(_ seconds: Int) -> Date {
-        Calendar.current.date(byAdding: .second, value: -seconds, to: Date())!
-    }
-
-    /// Returns a new date a specific number of minutes from now.
-    static func minutesFromNow(_ minutes: Int) -> Date {
-        Calendar.current.date(byAdding: .minute, value: -minutes, to: Date())!
-    }
-
-    /// Returns a new date a specific number of hours from now.
-    static func hoursFromNow(_ hours: Int) -> Date {
-        Calendar.current.date(byAdding: .hour, value: -hours, to: Date())!
-    }
-
-    /// Returns a new date a specific number of days from now.
-    static func daysFromNow(_ days: Int) -> Date {
-        Calendar.current.date(byAdding: .day, value: -days, to: Date())!
-    }
-
-    /// Returns a new date a specific number of months from now.
-    static func monthsFromNow(_ months: Int) -> Date {
-        Calendar.current.date(byAdding: .month, value: -months, to: Date())!
-    }
-
     /// Returns the number of seconds since this date until now.
     func secondsSinceNow() -> Int {
         Int(Date().timeIntervalSince(self))

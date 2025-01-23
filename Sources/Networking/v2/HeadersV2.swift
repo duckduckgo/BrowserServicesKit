@@ -18,6 +18,8 @@
 
 import Foundation
 
+public typealias HTTPHeaders = [String: String]
+
 public extension APIRequestV2 {
 
     /// All possible request content types

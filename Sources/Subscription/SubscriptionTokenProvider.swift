@@ -27,7 +27,7 @@ public protocol SubscriptionTokenProvider {
     /// - Returns: The TokenContainer
     /// - Throws: OAuthClientError.deadToken if the token is unrecoverable. SubscriptionEndpointServiceError.noData if the token is not available.
     @discardableResult
-    func getTokenContainer(policy: TokensCachePolicy) async throws -> TokenContainer
+    func getTokenContainer(policy: AuthTokensCachePolicy) async throws -> TokenContainer
 
     /// Exchange access token v1 for a access token v2
     /// - Parameter tokenV1: The Auth v1 access token

@@ -21,7 +21,7 @@ import os.log
 import Networking
 import Common
 
-public final class SubscriptionTokenKeychainStorageV2: TokenStoring {
+public final class SubscriptionTokenKeychainStorageV2: AuthTokenStoring {
 
     private let keychainType: KeychainType
     private let errorHandler: (AccountKeychainAccessType, AccountKeychainAccessError) -> Void

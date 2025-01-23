@@ -1,5 +1,5 @@
 //
-//  SubscriptionTokenKeychainStorage+LegacyTokenStoring.swift
+//  SubscriptionTokenKeychainStorage+LegacyAuthTokenStoring.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -19,7 +19,7 @@
 import Foundation
 import Networking
 
-extension SubscriptionTokenKeychainStorage: LegacyTokenStoring {
+extension SubscriptionTokenKeychainStorage: LegacyAuthTokenStoring {
 
     public var token: String? {
         get {

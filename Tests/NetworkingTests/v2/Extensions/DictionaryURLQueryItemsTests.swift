@@ -32,9 +32,11 @@ final class DictionaryURLQueryItemsTests: XCTestCase {
     }
 
     func testBasicKeyValuePairsConversion() {
-        let dict: [String: String] = ["key1": "value1",
-                                      "key2": "value2"]
-        let queryItems = dict.toURLQueryItems()
+        let queryParamCollection: QueryItems = [
+            (key: "key1", value: "value1"),
+            (key: "key2", value: "value2")
+        ]
+        let queryItems = queryParamCollection.toURLQueryItems()
 
         XCTAssertEqual(queryItems.count, 2)
         let q0 = queryParam(withName: "key1", from: queryItems)
@@ -47,8 +49,10 @@ final class DictionaryURLQueryItemsTests: XCTestCase {
     }
 
     func testReservedCharactersAreEncoded() {
-        let dict: [String: String] = ["query": "value with spaces",
-                                      "special": "value/with/slash"]
+        let dict: QueryItems = [
+            (key: "query", value: "value with spaces"),
+            (key: "special", value: "value/with/slash")
+        ]
         let queryItems = dict.toURLQueryItems()
 
         XCTAssertEqual(queryItems.count, 2)
@@ -62,7 +66,7 @@ final class DictionaryURLQueryItemsTests: XCTestCase {
     }
 
     func testReservedCharactersNotEncodedWhenAllowedCharacterSetProvided() {
-        let dict: [String: String] = ["specialKey": "value/with/slash"]
+        let dict: QueryItems = [(key: "specialKey", value: "value/with/slash")]
         let allowedCharacters = CharacterSet.urlPathAllowed
         let queryItems = dict.toURLQueryItems(allowedReservedCharacters: allowedCharacters)
 
@@ -72,14 +76,14 @@ final class DictionaryURLQueryItemsTests: XCTestCase {
     }
 
     func testEmptyDictionaryReturnsEmptyQueryItems() {
-        let dict: [String: String] = [:]
+        let dict: QueryItems = []
         let queryItems = dict.toURLQueryItems()
 
         XCTAssertEqual(queryItems.count, 0)
     }
 
     func testPercentEncodingWithCustomCharacterSet() {
-        let dict: [String: String] = ["key": "value with spaces & symbols!"]
+        let dict: QueryItems = [(key: "key", value: "value with spaces & symbols!")]
         let allowedCharacters = CharacterSet.punctuationCharacters.union(.whitespaces)
         let queryItems = dict.toURLQueryItems(allowedReservedCharacters: allowedCharacters)
 
@@ -89,10 +93,10 @@ final class DictionaryURLQueryItemsTests: XCTestCase {
     }
 
     func testMultipleItemsWithReservedCharacters() {
-        let dict: [String: String] = [
-            "path": "part/with/slashes",
-            "query": "value with spaces",
-            "fragment": "with#fragment"
+        let dict: QueryItems = [
+            (key: "path", value: "part/with/slashes"),
+            (key: "query", value: "value with spaces"),
+            (key: "fragment", value: "with#fragment")
         ]
         let allowedCharacters = CharacterSet.urlPathAllowed.union(.whitespaces).union(.punctuationCharacters)
         let queryItems = dict.toURLQueryItems(allowedReservedCharacters: allowedCharacters)

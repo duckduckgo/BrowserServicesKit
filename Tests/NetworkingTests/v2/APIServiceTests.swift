@@ -33,7 +33,7 @@ final class APIServiceTests: XCTestCase {
     func disabled_testRealFull() async throws {
         let request = APIRequestV2(url: HTTPURLResponse.testUrl,
                                    method: .post,
-                                   queryItems: ["Query,Item1%Name": "Query,Item1%Value"],
+                                   queryItems: [(key: "Query,Item1%Name", value: "Query,Item1%Value")],
                                    headers: APIRequestV2.HeadersV2(userAgent: "UserAgent"),
                                    body: Data(),
                                    timeoutInterval: TimeInterval(20),
@@ -72,8 +72,9 @@ final class APIServiceTests: XCTestCase {
     // MARK: -
 
     func testQueryItems() async throws {
-        let qItems = ["qName1": "qValue1",
-                      "qName2": "qValue2"]
+        let qItems: QueryItems = [
+            (key: "qName1", value: "qValue1"),
+             (key: "qName2", value: "qValue2")]
         MockURLProtocol.requestHandler = { request in
             let urlComponents = URLComponents(string: request.url!.absoluteString)!
             XCTAssertTrue(urlComponents.queryItems!.contains(qItems.toURLQueryItems()))
@@ -247,5 +248,44 @@ final class APIServiceTests: XCTestCase {
         }
 
         await fulfillment(of: [requestCountExpectation], timeout: 1.0)
+    }
+
+    // MARK: - Refresh auth
+
+    func testRefreshIsCalledForAuthenticatedRequest() async throws {
+        let refreshCalledExpectation = expectation(description: "Refresh block called")
+        refreshCalledExpectation.expectedFulfillmentCount = 1
+
+        MockURLProtocol.requestHandler = { _ in
+            (HTTPURLResponse.unauthorised, nil)
+        }
+
+        let request = APIRequestV2(url: HTTPURLResponse.testUrl,
+                                   headers: APIRequestV2.HeadersV2(authToken: "expiredToken"))!
+        let apiService = DefaultAPIService(urlSession: mockURLSession) { request in
+            refreshCalledExpectation.fulfill()
+            return "someToken"
+        }
+        _ = try await apiService.fetch(request: request)
+
+        await fulfillment(of: [refreshCalledExpectation], timeout: 1.0)
+    }
+
+    func testRefreshIsNotCalledForUnauthenticatedRequest() async throws {
+        let refreshCalledExpectation = expectation(description: "Refresh block NOT called")
+        refreshCalledExpectation.isInverted = true
+
+        MockURLProtocol.requestHandler = { _ in
+            (HTTPURLResponse.unauthorised, nil)
+        }
+
+        let request = APIRequestV2(url: HTTPURLResponse.testUrl)!
+        let apiService = DefaultAPIService(urlSession: mockURLSession) { request in
+            refreshCalledExpectation.fulfill()
+            return "someToken"
+        }
+        _ = try await apiService.fetch(request: request)
+
+        await fulfillment(of: [refreshCalledExpectation], timeout: 1.0)
     }
 }

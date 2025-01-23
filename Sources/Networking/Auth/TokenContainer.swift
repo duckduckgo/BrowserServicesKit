@@ -1,5 +1,5 @@
 //
-//  OAuthTokens.swift
+//  TokenContainer.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -51,6 +51,7 @@ extension TokenContainer: CustomDebugStringConvertible {
     }
 }
 
+/// Convenience init and accessor used when the token container is send via IPC and NSData is needed
 extension TokenContainer {
 
     public var data: NSData? {
@@ -158,12 +159,10 @@ public struct EntitlementPayload: Codable, Equatable {
 public extension JWTAccessToken {
 
     var subscriptionEntitlements: [SubscriptionEntitlement] {
-        return entitlements.map({ entPayload in
-            entPayload.product
-        })
+        entitlements.map(\.product)
     }
 
     func hasEntitlement(_ entitlement: SubscriptionEntitlement) -> Bool {
-        return subscriptionEntitlements.contains(entitlement)
+        subscriptionEntitlements.contains(entitlement)
     }
 }

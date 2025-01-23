@@ -18,8 +18,6 @@
 
 import Foundation
 
-public typealias QueryItems = [String: String]
-
 public class APIRequestV2: Hashable, CustomDebugStringConvertible {
 
     private(set) var urlRequest: URLRequest
@@ -35,15 +33,6 @@ public class APIRequestV2: Hashable, CustomDebugStringConvertible {
 
         public var debugDescription: String {
             "MaxRetries: \(maxRetries), delay: \(delay)"
-        }
-
-        public static func == (lhs: APIRequestV2.RetryPolicy, rhs: APIRequestV2.RetryPolicy) -> Bool {
-            lhs.maxRetries == rhs.maxRetries && lhs.delay == rhs.delay
-        }
-
-        public func hash(into hasher: inout Hasher) {
-            hasher.combine(maxRetries)
-            hasher.combine(delay)
         }
     }
 
@@ -64,6 +53,7 @@ public class APIRequestV2: Hashable, CustomDebugStringConvertible {
     ///   - cachePolicy: The request cache policy, default is `.useProtocolCachePolicy`
     ///   - responseRequirements: The response requirements
     ///   - allowedQueryReservedCharacters: The characters in this character set will not be URL encoded in the query parameters
+    /// - Note: The init can return nil if the URLComponents fails to parse the provided URL
     public init?(url: URL,
                  method: HTTPRequestMethod = .get,
                  queryItems: QueryItems? = nil,
@@ -80,9 +70,14 @@ public class APIRequestV2: Hashable, CustomDebugStringConvertible {
 
         // Generate URL request
         guard var urlComps = URLComponents(url: url, resolvingAgainstBaseURL: true) else {
+            assertionFailure("Malformed URL: \(url)")
             return nil
         }
-        urlComps.queryItems = queryItems?.toURLQueryItems(allowedReservedCharacters: allowedQueryReservedCharacters)
+        if let queryItems {
+            // we append both the query items already added to the URL and the new passed as parameters
+            let originalQI = urlComps.queryItems ?? []
+            urlComps.queryItems = originalQI + queryItems.toURLQueryItems(allowedReservedCharacters: allowedQueryReservedCharacters)
+        }
         guard let finalURL = urlComps.url else { return nil }
         var request = URLRequest(url: finalURL, timeoutInterval: timeoutInterval)
         request.allHTTPHeaderFields = headers?.httpHeaders

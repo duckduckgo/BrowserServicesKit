@@ -1,5 +1,5 @@
 //
-//  NetworkProtectionKeychainTokenStore+LegacyTokenStoring.swift
+//  NetworkProtectionKeychainTokenStore+LegacyAuthTokenStoring.swift
 //
 //  Copyright © 2025 DuckDuckGo. All rights reserved.
 //
@@ -19,7 +19,7 @@
 import Foundation
 import Networking
 
-extension NetworkProtectionKeychainTokenStore: LegacyTokenStoring {
+extension NetworkProtectionKeychainTokenStore: LegacyAuthTokenStoring {
 
     public var token: String? {
             get {

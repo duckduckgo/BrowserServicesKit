@@ -23,7 +23,7 @@ import Subscription
 public class MockSubscriptionTokenProvider: SubscriptionTokenProvider {
     public var tokenResult: Result<Networking.TokenContainer, Error>?
 
-    public func getTokenContainer(policy: Networking.TokensCachePolicy) async throws -> Networking.TokenContainer {
+    public func getTokenContainer(policy: Networking.AuthTokensCachePolicy) async throws -> Networking.TokenContainer {
         guard let tokenResult = tokenResult else {
             throw OAuthClientError.missingTokens
         }

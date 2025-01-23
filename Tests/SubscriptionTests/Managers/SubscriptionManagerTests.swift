@@ -65,7 +65,7 @@ class SubscriptionManagerTests: XCTestCase {
 
     func testGetTokenContainer_ErrorHandlingDeadToken() async throws {
         // Set up dead token error to trigger recovery attempt
-        mockOAuthClient.getTokensResponse = .failure(OAuthClientError.deadToken)
+        mockOAuthClient.getTokensResponse = .failure(OAuthClientError.refreshTokenExpired)
         let date = Date()
         let expiredSubscription = PrivacyProSubscription(
             productId: "testProduct",

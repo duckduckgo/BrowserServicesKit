@@ -77,7 +77,7 @@ public final class SubscriptionManagerMock: SubscriptionManager {
 
     public var resultTokenContainer: Networking.TokenContainer?
     public var resultCreateAccountTokenContainer: Networking.TokenContainer?
-    public func getTokenContainer(policy: Networking.TokensCachePolicy) async throws -> Networking.TokenContainer {
+    public func getTokenContainer(policy: Networking.AuthTokensCachePolicy) async throws -> Networking.TokenContainer {
         switch policy {
         case .local, .localValid, .localForceRefresh:
             guard let resultTokenContainer else {

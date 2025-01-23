@@ -270,7 +270,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
 
     // MARK: -
 
-    @discardableResult public func getTokenContainer(policy: TokensCachePolicy) async throws -> TokenContainer {
+    @discardableResult public func getTokenContainer(policy: AuthTokensCachePolicy) async throws -> TokenContainer {
         do {
             Logger.subscription.debug("Get tokens \(policy.description, privacy: .public)")
 
@@ -290,7 +290,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
                 NotificationCenter.default.post(name: .accountDidSignIn, object: self, userInfo: nil)
             }
             return resultTokenContainer
-        } catch OAuthClientError.deadToken {
+        } catch OAuthClientError.refreshTokenExpired {
             return try await throwAppropriateDeadTokenError()
         } catch {
             throw SubscriptionManagerError.tokenUnavailable(error: error)
@@ -306,7 +306,7 @@ public final class DefaultSubscriptionManager: SubscriptionManager {
             switch subscription.platform {
             case .apple:
                 pixelHandler(.deadToken)
-                throw OAuthClientError.deadToken
+                throw OAuthClientError.refreshTokenExpired
             default:
                 throw SubscriptionManagerError.tokenUnavailable(error: nil)
             }
