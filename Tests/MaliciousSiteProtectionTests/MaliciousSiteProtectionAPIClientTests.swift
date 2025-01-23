@@ -174,7 +174,7 @@ extension MaliciousSiteProtectionAPIClientTests {
         func headers(for requestType: MaliciousSiteProtection.APIRequestType, platform: MaliciousSiteProtection.MaliciousSiteDetector.APIEnvironment.Platform, authToken: String?) -> Networking.APIRequestV2.HeadersV2 {            .init()
         }
         func url(for requestType: MaliciousSiteProtection.APIRequestType, platform: MaliciousSiteProtection.MaliciousSiteDetector.APIEnvironment.Platform) -> URL {
-                    MaliciousSiteDetector.APIEnvironment.production.url(for: requestType, platform: platform)
+            MaliciousSiteDetector.APIEnvironment.production.url(for: requestType, platform: platform)
         }
         func timeout(for requestType: APIRequestType) -> TimeInterval? {
             timeout
