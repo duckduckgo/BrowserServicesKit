@@ -46,9 +46,9 @@ public enum Event: PixelKitEventV2 {
         case .settingToggled:
             return "malicious-site-protection_feature-toggled"
         case .matchesApiTimeout:
-            return "malicious-site-protection.client-timeout"
+            return "malicious-site-protection_client-timeout"
         case .matchesApiFailure:
-            return "malicious-site-protection.matches-api-error"
+            return "malicious-site-protection_matches-api-error"
         }
     }
 

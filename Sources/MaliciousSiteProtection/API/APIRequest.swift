@@ -50,7 +50,7 @@ public extension APIRequestType {
         let threatKind: ThreatKind
         let revision: Int?
 
-        init(threatKind: ThreatKind, revision: Int?) {
+        public init(threatKind: ThreatKind, revision: Int?) {
             self.threatKind = threatKind
             self.revision = revision
         }
@@ -74,7 +74,7 @@ public extension APIRequestType {
         let threatKind: ThreatKind
         let revision: Int?
 
-        init(threatKind: ThreatKind, revision: Int?) {
+        public init(threatKind: ThreatKind, revision: Int?) {
             self.threatKind = threatKind
             self.revision = revision
         }
@@ -96,6 +96,10 @@ public extension APIRequestType {
         typealias Response = APIClient.Response.Matches
 
         let hashPrefix: String
+
+        public init(hashPrefix: String) {
+            self.hashPrefix = hashPrefix
+        }
 
         var requestType: APIRequestType {
             .matches(self)
