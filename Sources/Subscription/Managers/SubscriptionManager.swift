@@ -97,6 +97,26 @@ public protocol SubscriptionManager: SubscriptionTokenProvider {
 
     /// True if the feature can be used by the user, false otherwise
     func isFeatureAvailableForUser(_ entitlement: SubscriptionEntitlement) async -> Bool
+
+    // MARK: - Token Management
+
+    /// Get a token container accordingly to the policy
+    /// - Parameter policy: The policy that will be used to get the token, it effects the tokens source and validity
+    /// - Returns: The TokenContainer
+    /// - Throws: OAuthClientError.deadToken if the token is unrecoverable. SubscriptionEndpointServiceError.noData if the token is not available.
+    @discardableResult
+    func getTokenContainer(policy: AuthTokensCachePolicy) async throws -> TokenContainer
+
+    /// Exchange access token v1 for a access token v2
+    /// - Parameter tokenV1: The Auth v1 access token
+    /// - Returns: An auth v2 TokenContainer
+    func exchange(tokenV1: String) async throws -> TokenContainer
+
+    /// Used only from the Mac Packet Tunnel Provider when a token is received during configuration
+    func adopt(tokenContainer: TokenContainer)
+
+    /// Remove the stored token container
+    func removeTokenContainer()
 }
 
 /// Single entry point for everything related to Subscription. This manager is disposable, every time something related to the environment changes this need to be recreated.
@@ -389,5 +409,15 @@ Subscription features: \(result, privacy: .public)
         return currentFeatures.contains { feature in
             feature.entitlement == entitlement && feature.availableForUser
         }
+    }
+}
+
+extension DefaultSubscriptionManager: SubscriptionTokenProvider {
+    public func getAccessToken() async throws -> String {
+        try await getTokenContainer(policy: .localValid).accessToken
+    }
+
+    public func removeAccessToken() {
+        removeTokenContainer()
     }
 }

@@ -105,7 +105,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     public func refreshServerList() async throws -> [NetworkProtectionServer] {
         let token: String
         do {
-            token = try await VPNAuthTokenBuilder.getVPNAuthToken(from: tokenProvider, policy: .localValid)
+            token = try await VPNAuthTokenBuilder.getVPNAuthToken(from: tokenProvider)
         } catch {
             throw NetworkProtectionError.noAuthTokenFound(error)
         }
@@ -194,7 +194,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
                                                                                                     newExpiration: Date?) {
         let token: String
         do {
-            token = try await VPNAuthTokenBuilder.getVPNAuthToken(from: tokenProvider, policy: .localValid)
+            token = try await VPNAuthTokenBuilder.getVPNAuthToken(from: tokenProvider)
         } catch {
             throw NetworkProtectionError.noAuthTokenFound(error)
         }
@@ -323,7 +323,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     private func handle(clientError: NetworkProtectionClientError) {
  #if os(macOS)
         if case .invalidAuthToken = clientError {
-            tokenProvider.removeTokenContainer()
+            tokenProvider.removeAccessToken()
         }
  #endif
         errorEvents?.fire(clientError.networkProtectionError)

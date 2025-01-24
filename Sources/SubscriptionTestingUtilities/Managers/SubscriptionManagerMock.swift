@@ -21,6 +21,7 @@ import Foundation
 @testable import Subscription
 
 public final class SubscriptionManagerMock: SubscriptionManager {
+    
     public init() {}
 
     public static var environment: Subscription.SubscriptionEnvironment?
@@ -161,5 +162,18 @@ public final class SubscriptionManagerMock: SubscriptionManager {
 
     public func isFeatureAvailableForUser(_ entitlement: Networking.SubscriptionEntitlement) async -> Bool {
         resultFeatures.contains { $0.entitlement == entitlement }
+    }
+
+    //MARK: - Subscription Token Provider
+
+    public func getAccessToken() async throws -> String {
+        guard let accessToken = resultTokenContainer?.accessToken else {
+            throw SubscriptionManagerError.tokenUnavailable(error: nil)
+        }
+        return accessToken
+    }
+
+    public func removeAccessToken() {
+        resultTokenContainer = nil
     }
 }

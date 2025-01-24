@@ -34,7 +34,7 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
     override func setUp() {
         super.setUp()
         tokenProvider = MockSubscriptionTokenProvider()
-        tokenProvider.tokenResult = .success(OAuthTokensFactory.makeValidTokenContainer())
+        tokenProvider.tokenResult = .success(OAuthTokensFactory.makeValidTokenContainer().accessToken)
         keyStore = NetworkProtectionKeyStoreMock()
         networkClient = MockNetworkProtectionClient()
         temporaryURL = temporaryFileURL()
@@ -115,11 +115,11 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
         _ = NetworkProtectionServer.mockRegisteredServer
         networkClient.stubRegister = .failure(.invalidAuthToken)
 
-        tokenProvider.tokenResult = .success(OAuthTokensFactory.makeValidTokenContainerWithEntitlements())
+        tokenProvider.tokenResult = .success("aToken")
 
         _ = try? await manager.generateTunnelConfiguration(selectionMethod: .automatic, regenerateKey: false)
 
-        let tokens = try? await tokenProvider.getTokenContainer(policy: .local)
+        let tokens = try? await tokenProvider.getAccessToken()
         XCTAssertNil(tokens)
     }
 

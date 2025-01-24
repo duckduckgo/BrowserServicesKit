@@ -21,11 +21,12 @@ import Networking
 import Subscription
 
 public class MockSubscriptionTokenProvider: SubscriptionTokenProvider {
-    public var tokenResult: Result<Networking.TokenContainer, Error>?
 
-    public func getTokenContainer(policy: Networking.AuthTokensCachePolicy) async throws -> Networking.TokenContainer {
-        guard let tokenResult = tokenResult else {
-            throw OAuthClientError.missingTokens
+    public var tokenResult: Result<String, Error>?
+
+    public func getAccessToken() async throws -> String {
+        guard let tokenResult else {
+            throw SubscriptionManagerError.tokenUnavailable(error: nil)
         }
         switch tokenResult {
         case .success(let result):
@@ -34,32 +35,8 @@ public class MockSubscriptionTokenProvider: SubscriptionTokenProvider {
             throw error
         }
     }
-
-    public func exchange(tokenV1: String) async throws -> Networking.TokenContainer {
-        guard let tokenResult = tokenResult else {
-            throw OAuthClientError.missingTokens
-        }
-        switch tokenResult {
-        case .success(let result):
-            return result
-        case .failure(let error):
-            throw error
-        }
-    }
-
-    public func adopt(tokenContainer: Networking.TokenContainer) {
-        guard let tokenResult = tokenResult else {
-            return
-        }
-        switch tokenResult {
-        case .success:
-            return
-        case .failure(let error):
-            return
-        }
-    }
-
-    public func removeTokenContainer() {
+    
+    public func removeAccessToken() {
         tokenResult = nil
     }
 }

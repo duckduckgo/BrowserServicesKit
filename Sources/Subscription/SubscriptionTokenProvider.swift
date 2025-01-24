@@ -22,21 +22,9 @@ import Networking
 /// The sole entity responsible of obtaining, storing and refreshing an OAuth Token
 public protocol SubscriptionTokenProvider {
 
-    /// Get a token container accordingly to the policy
-    /// - Parameter policy: The policy that will be used to get the token, it effects the tokens source and validity
-    /// - Returns: The TokenContainer
-    /// - Throws: OAuthClientError.deadToken if the token is unrecoverable. SubscriptionEndpointServiceError.noData if the token is not available.
-    @discardableResult
-    func getTokenContainer(policy: AuthTokensCachePolicy) async throws -> TokenContainer
+    /// Get a valid access token
+    func getAccessToken() async throws -> String
 
-    /// Exchange access token v1 for a access token v2
-    /// - Parameter tokenV1: The Auth v1 access token
-    /// - Returns: An auth v2 TokenContainer
-    func exchange(tokenV1: String) async throws -> TokenContainer
-
-    /// Used only from the Mac Packet Tunnel Provider when a token is received during configuration
-    func adopt(tokenContainer: TokenContainer)
-
-    /// Remove the stored token container
-    func removeTokenContainer()
+    /// Remove the access token
+    func removeAccessToken()
 }

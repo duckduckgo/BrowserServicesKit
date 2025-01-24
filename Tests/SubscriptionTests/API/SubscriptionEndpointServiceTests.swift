@@ -189,6 +189,7 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
         let date = Date(timeIntervalSince1970: 123456789)
         let confirmResponse = ConfirmPurchaseResponse(
             email: "user@example.com",
+            entitlements: nil,
             subscription: PrivacyProSubscription(
                 productId: "prod123",
                 name: "Pro Plan",

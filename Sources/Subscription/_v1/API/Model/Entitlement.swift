@@ -1,5 +1,5 @@
 //
-//  VPNAuthTokenBuilder.swift
+//  Entitlement.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -17,17 +17,19 @@
 //
 
 import Foundation
-import Subscription
-import Networking
 
-public struct VPNAuthTokenBuilder {
+public struct Entitlement: Codable, Equatable {
+    public let product: ProductName
 
-    public static func getVPNAuthToken(from tokenProvider: SubscriptionTokenProvider) async throws -> String {
-        let token = try await tokenProvider.getAccessToken()
-        return "ddg:\(token)"
-    }
+    public enum ProductName: String, Codable {
+        case networkProtection = "Network Protection"
+        case dataBrokerProtection = "Data Broker Protection"
+        case identityTheftRestoration = "Identity Theft Restoration"
+        case identityTheftRestorationGlobal = "Global Identity Theft Restoration"
+        case unknown
 
-    public static func getVPNAuthToken(from originalToken: String) -> String{
-        return "ddg:\(originalToken)"
+        public init(from decoder: Decoder) throws {
+            self = try Self(rawValue: decoder.singleValueContainer().decode(RawValue.self)) ?? .unknown
+        }
     }
 }
