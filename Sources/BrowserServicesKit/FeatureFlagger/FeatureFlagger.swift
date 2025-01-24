@@ -123,6 +123,16 @@ public protocol FeatureFlagExperimentDescribing {
         /// The `Cohort` type allows dynamic resolution of cohorts by their raw `String` value,
         /// making it easy to map user configurations to specific cohort groups.
     associatedtype CohortType: FlagCohort
+
+    /// Return `true` here if a flag can be locally overridden.
+    ///
+    /// Local overriding mechanism requires passing `FeatureFlagOverriding` instance to
+    /// the `FeatureFlagger`. Then it will handle all feature flags that return `true` for
+    /// this property.
+    ///
+    /// > Note: Local feature flag overriding is gated by the internal user flag and has no effect
+    ///   as long as internal user flag is off.
+    var supportsLocalOverriding: Bool { get }
 }
 
 public enum FeatureFlagSource {
@@ -187,7 +197,7 @@ public protocol FeatureFlagger: AnyObject {
     ///     - If the feature is a subfeature, resolves its cohort using `getCohortIfEnabled(_ subfeature:)`.
     ///     - Returns `nil` if the user is not eligible.
     ///
-    func getCohortIfEnabled<Flag: FeatureFlagExperimentDescribing>(for featureFlag: Flag) -> (any FlagCohort)?
+    func getCohortIfEnabled<Flag: FeatureFlagExperimentDescribing>(for featureFlag: Flag, allowOverride: Bool) -> (any FlagCohort)?
 
     /// Retrieves all active experiments currently assigned to the user.
     ///
@@ -295,7 +305,10 @@ public class DefaultFeatureFlagger: FeatureFlagger {
         return activeExperiments
     }
 
-    public func getCohortIfEnabled<Flag: FeatureFlagExperimentDescribing>(for featureFlag: Flag) -> (any FlagCohort)? {
+    public func getCohortIfEnabled<Flag: FeatureFlagExperimentDescribing>(for featureFlag: Flag, allowOverride: Bool) -> (any FlagCohort)? {
+        if allowOverride, internalUserDecider.isInternalUser, let localOverride = localOverrides?.override(for: featureFlag) {
+            return Flag.CohortType.allCases.first { return $0.rawValue == localOverride }
+        }
         switch featureFlag.source {
         case .disabled:
             return nil

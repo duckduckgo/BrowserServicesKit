@@ -41,7 +41,7 @@ public final class TrackerDataURLOverrider: TrackerDataURLProviding {
 
     public var trackerDataURL: URL? {
         for experimentType in TDSExperimentType.allCases {
-            if let cohort = featureFlagger.getCohortIfEnabled(for: experimentType.experiment) as? TDSNextExperimentFlag.Cohort,
+            if let cohort = featureFlagger.getCohortIfEnabled(for: experimentType.experiment, allowOverride: false) as? TDSNextExperimentFlag.Cohort,
                let url = trackerDataURL(for: experimentType.subfeature, cohort: cohort) {
                 return url
             }
@@ -114,6 +114,8 @@ public enum TDSExperimentType: Int, CaseIterable {
 }
 
 public struct TDSNextExperimentFlag: FeatureFlagExperimentDescribing {
+    public var supportsLocalOverriding: Bool = false
+
     public var rawValue: String
     public var source: FeatureFlagSource
 
