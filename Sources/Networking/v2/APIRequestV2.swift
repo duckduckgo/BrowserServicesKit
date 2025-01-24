@@ -18,7 +18,7 @@
 
 import Foundation
 
-public class APIRequestV2: Hashable, CustomDebugStringConvertible {
+public struct APIRequestV2: Hashable, CustomDebugStringConvertible {
 
     private(set) var urlRequest: URLRequest
 
@@ -39,8 +39,6 @@ public class APIRequestV2: Hashable, CustomDebugStringConvertible {
     let timeoutInterval: TimeInterval
     let responseConstraints: [APIResponseConstraints]?
     let retryPolicy: RetryPolicy?
-    var authRefreshRetryCount: Int = 0
-    var failureRetryCount: Int = 0
 
     /// Designated initialiser
     /// - Parameters:
@@ -101,11 +99,10 @@ public class APIRequestV2: Hashable, CustomDebugStringConvertible {
         Cache Policy: \(urlRequest.cachePolicy)
         Response Constraints: \(responseConstraints?.map { $0.rawValue } ?? [])
         Retry Policy: \(retryPolicy?.debugDescription ?? "None")
-        Retries counts: Refresh \(authRefreshRetryCount), Failure \(failureRetryCount)
         """
     }
 
-    public func updateAuthorizationHeader(_ token: String) {
+    public mutating func updateAuthorizationHeader(_ token: String) {
         self.urlRequest.allHTTPHeaderFields?[HTTPHeaderKey.authorization] = "Bearer \(token)"
     }
 
@@ -122,9 +119,7 @@ public class APIRequestV2: Hashable, CustomDebugStringConvertible {
         return urlLhs == urlRhs &&
         lhs.timeoutInterval == rhs.timeoutInterval &&
         lhs.responseConstraints == rhs.responseConstraints &&
-        lhs.retryPolicy == rhs.retryPolicy &&
-        lhs.authRefreshRetryCount == rhs.authRefreshRetryCount &&
-        lhs.failureRetryCount == rhs.failureRetryCount
+        lhs.retryPolicy == rhs.retryPolicy
     }
 
     public func hash(into hasher: inout Hasher) {
@@ -133,7 +128,5 @@ public class APIRequestV2: Hashable, CustomDebugStringConvertible {
         hasher.combine(timeoutInterval)
         hasher.combine(responseConstraints)
         hasher.combine(retryPolicy)
-        hasher.combine(authRefreshRetryCount)
-        hasher.combine(failureRetryCount)
     }
 }
