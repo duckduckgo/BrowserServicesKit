@@ -58,10 +58,10 @@ final class NWConnectionExtensionTests: XCTestCase {
             return states
         }
 
-        await fulfillment(of: [eReady])
+        await fulfillment(of: [eReady], timeout: 3)
         connection.cancel()
 
-        await fulfillment(of: [eFinished])
+        await fulfillment(of: [eFinished], timeout: 3)
         let result = try await states
 
         XCTAssertEqual(result, [.preparing, .ready, .cancelled])
