@@ -31,6 +31,7 @@ protocol PrivacyDashboardUserScriptDelegate: AnyObject {
     func userScript(_ userScript: PrivacyDashboardUserScript, setHeight height: Int)
     func userScriptDidRequestClose(_ userScript: PrivacyDashboardUserScript)
     func userScriptDidRequestShowReportBrokenSite(_ userScript: PrivacyDashboardUserScript)
+    func userScriptDidRequestReportBrokenSiteShown(_ userScript: PrivacyDashboardUserScript)
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestSubmitBrokenSiteReportWithCategory category: String, description: String)
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestOpenUrlInNewTab: URL)
     func userScript(_ userScript: PrivacyDashboardUserScript, didRequestOpenSettings: String)
@@ -41,11 +42,7 @@ protocol PrivacyDashboardUserScriptDelegate: AnyObject {
     func userScript(_ userScript: PrivacyDashboardUserScript, didSelectReportAction shouldSendReport: Bool)
 
     // Experiment flows
-    func userScript(_ userScript: PrivacyDashboardUserScript, didSelectOverallCategory category: String)
-    func userScript(_ userScript: PrivacyDashboardUserScript, didSelectBreakageCategory category: String)
-    func userScriptDidRequestShowAlertForMissingDescription(_ userScript: PrivacyDashboardUserScript)
     func userScriptDidRequestShowNativeFeedback(_ userScript: PrivacyDashboardUserScript)
-    func userScriptDidSkipTogglingStep(_ userScript: PrivacyDashboardUserScript)
 
 }
 
@@ -67,14 +64,6 @@ public enum Screen: String, Decodable, CaseIterable {
     case choiceToggle
 
     case toggleReport
-    case promptBreakageForm
-
-}
-
-public enum BreakageScreen: String, Decodable {
-
-    case categorySelection
-    case categoryTypeSelection
 
 }
 
@@ -115,11 +104,11 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
 
     enum MessageNames: String, CaseIterable {
 
-        case privacyDashboardTelemetrySpan
         case privacyDashboardSetProtection
         case privacyDashboardSetSize
         case privacyDashboardClose
         case privacyDashboardShowReportBrokenSite
+        case privacyDashboardReportBrokenSiteShown
         case privacyDashboardSubmitBrokenSiteReport
         case privacyDashboardOpenUrlInNewTab
         case privacyDashboardOpenSettings
@@ -128,7 +117,6 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         case privacyDashboardGetToggleReportOptions
         case privacyDashboardSendToggleReport
         case privacyDashboardRejectToggleReport
-        case privacyDashboardShowAlertForMissingDescription
         case privacyDashboardShowNativeFeedback
 
     }
@@ -157,6 +145,8 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             handleClose()
         case .privacyDashboardShowReportBrokenSite:
             handleShowReportBrokenSite()
+        case .privacyDashboardReportBrokenSiteShown:
+            handleReportBrokenSiteShown()
         case .privacyDashboardSubmitBrokenSiteReport:
             handleSubmitBrokenSiteReport(message: message)
         case .privacyDashboardOpenUrlInNewTab:
@@ -173,12 +163,8 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
             handleSendToggleReport()
         case .privacyDashboardRejectToggleReport:
             handleDoNotSendToggleReport()
-        case .privacyDashboardShowAlertForMissingDescription:
-            handleShowAlertForMissingDescription()
         case .privacyDashboardShowNativeFeedback:
             handleShowNativeFeedback()
-        case .privacyDashboardTelemetrySpan:
-            handleTelemetrySpan(message: message)
         }
     }
 
@@ -212,6 +198,10 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
 
     private func handleShowReportBrokenSite() {
         delegate?.userScriptDidRequestShowReportBrokenSite(self)
+    }
+
+    private func handleReportBrokenSiteShown() {
+        delegate?.userScriptDidRequestReportBrokenSiteShown(self)
     }
 
     private func handleSubmitBrokenSiteReport(message: WKScriptMessage) {
@@ -286,50 +276,8 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         delegate?.userScript(self, didSelectReportAction: false)
     }
 
-    private func handleSelectOverallCategory(message: WKScriptMessage) {
-        guard let dict = message.body as? [String: Any],
-              let category = dict["category"] as? String
-        else {
-            assertionFailure("handleSelectOverallCategory: expected { category: String }")
-            return
-        }
-        delegate?.userScript(self, didSelectOverallCategory: category)
-    }
-
-    private func handleSelectBreakageCategory(message: WKScriptMessage) {
-        guard let dict = message.body as? [String: Any],
-              let category = dict["category"] as? String
-        else {
-            assertionFailure("handleSelectBreakageCategory: expected { category: String }")
-            return
-        }
-        delegate?.userScript(self, didSelectBreakageCategory: category)
-    }
-
-    private func handleShowAlertForMissingDescription() {
-        delegate?.userScriptDidRequestShowAlertForMissingDescription(self)
-    }
-
     private func handleShowNativeFeedback() {
         delegate?.userScriptDidRequestShowNativeFeedback(self)
-    }
-
-    private func handleTelemetrySpan(message: WKScriptMessage) {
-        guard let telemetrySpan: TelemetrySpan = DecodableHelper.decode(from: message.messageBody) else {
-            assertionFailure("privacyDashboardTelemetrySpan: expected TelemetrySpan")
-            return
-        }
-
-        if telemetrySpan.attributes.name == "categoryTypeSelected" {
-            let category = telemetrySpan.attributes.value ?? ""
-            delegate?.userScript(self, didSelectOverallCategory: category)
-        } else if telemetrySpan.attributes.name == "categorySelected" {
-            let category = telemetrySpan.attributes.value ?? ""
-            delegate?.userScript(self, didSelectBreakageCategory: category)
-        } else if telemetrySpan.attributes.name == "toggleSkipped" {
-            delegate?.userScriptDidSkipTogglingStep(self)
-        }
-
     }
 
     // MARK: - Calls to script's JS API
@@ -340,7 +288,7 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
         atbEntry = ""
 #endif
         let js = """
-                     const json = {
+                     window.onGetToggleReportOptionsResponse({
                          "data": [
                              {
                                  "id": "siteUrl",
@@ -363,9 +311,9 @@ final class PrivacyDashboardUserScript: NSObject, StaticUserScript {
                              {"id": "jsPerformance"},
                              {"id": "openerContext"},
                              {"id": "userRefreshCount"},
+                             {"id": "locale"},
                          ]
-                     }
-                     window.onGetToggleReportOptionsResponse(json);
+                     });
                      """
         evaluate(js: js, in: webView)
     }

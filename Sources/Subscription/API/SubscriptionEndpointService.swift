@@ -53,7 +53,22 @@ public protocol SubscriptionEndpointService {
     func getProducts() async -> Result<[GetProductsItem], APIServiceError>
     func getSubscriptionFeatures(for subscriptionID: String) async -> Result<GetSubscriptionFeaturesResponse, APIServiceError>
     func getCustomerPortalURL(accessToken: String, externalID: String) async -> Result<GetCustomerPortalURLResponse, APIServiceError>
-    func confirmPurchase(accessToken: String, signature: String) async -> Result<ConfirmPurchaseResponse, APIServiceError>
+
+    /// Confirms a subscription purchase by validating the provided access token and signature with the backend service.
+    ///
+    /// This method sends the necessary data to the server to confirm the purchase,
+    /// and optionally includes additional parameters for customization.
+    ///
+    /// - Parameters:
+    ///   - accessToken: A string representing the user's access token, used for authentication.
+    ///   - signature: A string representing the purchase signature.
+    ///   - additionalParams: An optional dictionary of additional parameters to include in the request.
+    /// - Returns: A `Result` containing either a `ConfirmPurchaseResponse` object on success or an `APIServiceError` on failure.
+    func confirmPurchase(
+        accessToken: String,
+        signature: String,
+        additionalParams: [String: String]?
+    ) async -> Result<ConfirmPurchaseResponse, APIServiceError>
 }
 
 extension SubscriptionEndpointService {
@@ -100,10 +115,7 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
 
         let cachedSubscription: Subscription? = subscriptionCache.get()
         if subscription != cachedSubscription {
-            let defaultExpiryDate = Date().addingTimeInterval(subscriptionCache.settings.defaultExpirationInterval)
-            let expiryDate = min(defaultExpiryDate, subscription.expiresOrRenewsAt)
-
-            subscriptionCache.set(subscription, expires: expiryDate)
+            subscriptionCache.set(subscription)
             NotificationCenter.default.post(name: .subscriptionDidChange, object: self, userInfo: [UserDefaultsCacheKey.subscription: subscription])
         }
     }
@@ -156,11 +168,13 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
 
     // MARK: -
 
-    public func confirmPurchase(accessToken: String, signature: String) async -> Result<ConfirmPurchaseResponse, APIServiceError> {
+    public func confirmPurchase(accessToken: String, signature: String, additionalParams: [String: String]?) async -> Result<ConfirmPurchaseResponse, APIServiceError> {
         let headers = apiService.makeAuthorizationHeader(for: accessToken)
         let bodyDict = ["signedTransactionInfo": signature]
 
-        guard let bodyData = try? JSONEncoder().encode(bodyDict) else { return .failure(.encodingError) }
+        let finalBodyDict = bodyDict.merging(additionalParams ?? [:]) { (existing, _) in existing }
+
+        guard let bodyData = try? JSONEncoder().encode(finalBodyDict) else { return .failure(.encodingError) }
         return await apiService.executeAPICall(method: "POST", endpoint: "purchase/confirm/apple", headers: headers, body: bodyData)
     }
 }

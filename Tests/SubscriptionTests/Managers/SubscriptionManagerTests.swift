@@ -36,7 +36,6 @@ final class SubscriptionManagerTests: XCTestCase {
     var authService: AuthEndpointServiceMock!
     var subscriptionFeatureMappingCache: SubscriptionFeatureMappingCacheMock!
     var subscriptionEnvironment: SubscriptionEnvironment!
-    var subscriptionFeatureFlagger: FeatureFlaggerMapping<SubscriptionFeatureFlags>!
 
     var subscriptionManager: SubscriptionManager!
 
@@ -48,15 +47,13 @@ final class SubscriptionManagerTests: XCTestCase {
         subscriptionFeatureMappingCache = SubscriptionFeatureMappingCacheMock()
         subscriptionEnvironment = SubscriptionEnvironment(serviceEnvironment: .production,
                                                           purchasePlatform: .appStore)
-        subscriptionFeatureFlagger = FeatureFlaggerMapping<SubscriptionFeatureFlags>(mapping: { $0.defaultState })
 
         subscriptionManager = DefaultSubscriptionManager(storePurchaseManager: storePurchaseManager,
                                                          accountManager: accountManager,
                                                          subscriptionEndpointService: subscriptionService,
                                                          authEndpointService: authService,
                                                          subscriptionFeatureMappingCache: subscriptionFeatureMappingCache,
-                                                         subscriptionEnvironment: subscriptionEnvironment,
-                                                         subscriptionFeatureFlagger: subscriptionFeatureFlagger)
+                                                         subscriptionEnvironment: subscriptionEnvironment)
 
     }
 
@@ -209,8 +206,7 @@ final class SubscriptionManagerTests: XCTestCase {
                                                                        subscriptionEndpointService: subscriptionService,
                                                                        authEndpointService: authService,
                                                                        subscriptionFeatureMappingCache: subscriptionFeatureMappingCache,
-                                                                       subscriptionEnvironment: productionEnvironment,
-                                                                       subscriptionFeatureFlagger: subscriptionFeatureFlagger)
+                                                                       subscriptionEnvironment: productionEnvironment)
 
         // When
         let productionPurchaseURL = productionSubscriptionManager.url(for: .purchase)
@@ -228,8 +224,7 @@ final class SubscriptionManagerTests: XCTestCase {
                                                                     subscriptionEndpointService: subscriptionService,
                                                                     authEndpointService: authService,
                                                                     subscriptionFeatureMappingCache: subscriptionFeatureMappingCache,
-                                                                    subscriptionEnvironment: stagingEnvironment,
-                                                                    subscriptionFeatureFlagger: subscriptionFeatureFlagger)
+                                                                    subscriptionEnvironment: stagingEnvironment)
 
         // When
         let stagingPurchaseURL = stagingSubscriptionManager.url(for: .purchase)

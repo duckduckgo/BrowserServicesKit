@@ -27,6 +27,7 @@ public final class SubscriptionEndpointServiceMock: SubscriptionEndpointService 
     public var confirmPurchaseResult: Result<ConfirmPurchaseResponse, APIServiceError>?
 
     public var onUpdateCache: ((Subscription) -> Void)?
+    public var onConfirmPurchase: ((String, String, [String: String]?) -> Void)?
     public var onGetSubscription: ((String, APICachePolicy) -> Void)?
     public var onSignOut: (() -> Void)?
 
@@ -64,7 +65,8 @@ public final class SubscriptionEndpointServiceMock: SubscriptionEndpointService 
         getCustomerPortalURLResult!
     }
 
-    public func confirmPurchase(accessToken: String, signature: String) async -> Result<ConfirmPurchaseResponse, APIServiceError> {
-        confirmPurchaseResult!
+    public func confirmPurchase(accessToken: String, signature: String, additionalParams: [String: String]?) async -> Result<ConfirmPurchaseResponse, APIServiceError> {
+        onConfirmPurchase?(accessToken, signature, additionalParams)
+        return confirmPurchaseResult!
     }
 }

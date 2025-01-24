@@ -14,8 +14,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/content-scope-scripts",
       "state" : {
-        "revision" : "93ea6c3e771bc0b743b38cefbff548c10add9898",
-        "version" : "6.42.0"
+        "revision" : "0ac30560ec969a321caea321f95537120416c323",
+        "version" : "7.7.0"
       }
     },
     {
@@ -23,8 +23,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/duckduckgo-autofill.git",
       "state" : {
-        "revision" : "88982a3802ac504e2f1a118a73bfdf2d8f4a7735",
-        "version" : "16.0.0"
+        "revision" : "47c26dc32b94cdbcef3e6157497147917678c25c",
+        "version" : "16.1.0"
       }
     },
     {
@@ -50,8 +50,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/privacy-dashboard",
       "state" : {
-        "revision" : "022c845b06ace6a4aa712a4fa3e79da32193d5c6",
-        "version" : "7.4.0"
+        "revision" : "c52bd5d851b1f8f0482e82b8720852670f525497",
+        "version" : "8.1.0"
       }
     },
     {
@@ -68,8 +68,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-clocks.git",
       "state" : {
-        "revision" : "b9b24b69e2adda099a1fa381cda1eeec272d5b53",
-        "version" : "1.0.5"
+        "revision" : "cc46202b53476d64e824e0b6612da09d84ffde8e",
+        "version" : "1.0.6"
       }
     },
     {
@@ -77,8 +77,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/pointfreeco/swift-concurrency-extras",
       "state" : {
-        "revision" : "163409ef7dae9d960b87f34b51587b6609a76c1f",
-        "version" : "1.3.0"
+        "revision" : "82a4ae7170d98d8538ec77238b7eb8e7199ef2e8",
+        "version" : "1.3.1"
       }
     },
     {
@@ -95,8 +95,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/duckduckgo/sync_crypto",
       "state" : {
-        "revision" : "0c8bf3c0e75591bc366407b9d7a73a9fcfc7736f",
-        "version" : "0.3.0"
+        "revision" : "cc726cebb67367466bc31ced4784e16d44ac68d1",
+        "version" : "0.4.0"
       }
     },
     {

@@ -48,7 +48,6 @@ public enum PrivacyFeature: String {
     case performanceMetrics
     case privacyPro
     case sslCertificates
-    case brokenSiteReportExperiment
     case toggleReports
     case maliciousSiteProtection
     case brokenSitePrompt
@@ -65,6 +64,9 @@ public enum PrivacyFeature: String {
     case textZoom
     case adAttributionReporting
     case experimentTest
+    case forceOldAppDelegate
+    case htmlNewTabPage
+    case tabManager
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -75,6 +77,14 @@ public protocol PrivacySubfeature: RawRepresentable where RawValue == String {
 }
 
 // MARK: Subfeature definitions
+
+public enum TabManagerSubfeature: String, PrivacySubfeature {
+    public var parent: PrivacyFeature {
+        .tabManager
+    }
+
+    case multiSelection
+}
 
 public enum AutofillSubfeature: String, PrivacySubfeature {
     public var parent: PrivacyFeature {
@@ -119,12 +129,19 @@ public enum AIChatSubfeature: String, Equatable, PrivacySubfeature {
 
     /// Displays the AI Chat icon in the iOS address bar while on a SERP.
     case addressBarShortcut
+
+    /// Web and native integration for opening AI Chat in a custom webview.
+    case deepLink
 }
 
 public enum NetworkProtectionSubfeature: String, Equatable, PrivacySubfeature {
     public var parent: PrivacyFeature {
         .networkProtection
     }
+
+    /// App Exclusions for the VPN
+    /// https://app.asana.com/0/1206580121312550/1209150117333883/f
+    case appExclusions
 
     /// Display user tips for Network Protection
     /// https://app.asana.com/0/72649045549333/1208231259093710/f
@@ -159,17 +176,11 @@ public enum AutoconsentSubfeature: String, PrivacySubfeature {
 public enum PrivacyProSubfeature: String, Equatable, PrivacySubfeature {
     public var parent: PrivacyFeature { .privacyPro }
 
-    case isLaunched
-    case isLaunchedStripe
     case allowPurchase
     case allowPurchaseStripe
-    case isLaunchedOverride
-    case isLaunchedOverrideStripe
     case useUnifiedFeedback
     case setAccessTokenCookieForSubscriptionDomains
-    case isLaunchedROW
-    case isLaunchedROWOverride
-    case freeTrials
+    case privacyProFreeTrialJan25
 }
 
 public enum SslCertificatesSubfeature: String, PrivacySubfeature {
@@ -194,4 +205,25 @@ public enum SyncPromotionSubfeature: String, PrivacySubfeature {
 public enum ExperimentTestSubfeatures: String, PrivacySubfeature {
     public var parent: PrivacyFeature { .experimentTest }
     case experimentTestAA
+}
+
+public enum HTMLNewTabPageSubfeature: String, Equatable, PrivacySubfeature {
+    public var parent: PrivacyFeature { .htmlNewTabPage }
+    case isLaunched
+}
+
+public enum ContentBlockingSubfeature: String, Equatable, PrivacySubfeature {
+    public var parent: PrivacyFeature { .contentBlocking }
+    case tdsNextExperimentBaseline
+    case tdsNextExperimentFeb25
+    case tdsNextExperimentMar25
+    case tdsNextExperimentApr25
+    case tdsNextExperimentMay25
+    case tdsNextExperimentJun25
+    case tdsNextExperimentJul25
+    case tdsNextExperimentAug25
+    case tdsNextExperimentSep25
+    case tdsNextExperimentOct25
+    case tdsNextExperimentNov25
+    case tdsNextExperimentDec25
 }
