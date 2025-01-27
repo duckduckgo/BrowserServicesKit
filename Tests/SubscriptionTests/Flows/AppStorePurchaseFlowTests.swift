@@ -188,7 +188,12 @@ final class AppStorePurchaseFlowTests: XCTestCase {
             // Then
             XCTAssertTrue(authService.createAccountCalled)
             XCTAssertFalse(storePurchaseManager.purchaseSubscriptionCalled)
-            XCTAssertEqual(error, .accountCreationFailed)
+            switch error {
+            case .accountCreationFailed:
+                break
+            default:
+                XCTFail("Unexpected error: \(error)")
+            }
         }
     }
 
@@ -210,7 +215,12 @@ final class AppStorePurchaseFlowTests: XCTestCase {
             // Then
             XCTAssertTrue(authService.createAccountCalled)
             XCTAssertTrue(storePurchaseManager.purchaseSubscriptionCalled)
-            XCTAssertEqual(error, .purchaseFailed)
+            switch error {
+            case .purchaseFailed:
+                break
+            default:
+                XCTFail("Unexpected error: \(error)")
+            }
         }
     }
 
