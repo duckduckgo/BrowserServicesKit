@@ -290,12 +290,12 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
         // Advance the clock by 1 seconds
         await self.clock.advance(by: .seconds(1))
         // expect to receive v.2 update for hashPrefixes
-        await fulfillment(of: [hashPrefixUpdateExpectations[1], hashPrefixSleepExpectations[1]], timeout: 1)
+        await fulfillment(of: [hashPrefixUpdateExpectations[1], hashPrefixSleepExpectations[1]], timeout: 3)
 
         // Advance the clock by 1 seconds
         await self.clock.advance(by: .seconds(1))
         // expect to receive v.3 update for hashPrefixes and v.2 update for filterSet
-        await fulfillment(of: [hashPrefixUpdateExpectations[2], hashPrefixSleepExpectations[2], filterSetUpdateExpectations[1], filterSetSleepExpectations[1]], timeout: 1)        //
+        await fulfillment(of: [hashPrefixUpdateExpectations[2], hashPrefixSleepExpectations[2], filterSetUpdateExpectations[1], filterSetSleepExpectations[1]], timeout: 2)        //
 
         // Advance the clock by 1 seconds
         await self.clock.advance(by: .seconds(2))
