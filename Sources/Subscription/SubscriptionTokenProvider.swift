@@ -1,7 +1,7 @@
 //
-//  AppStoreRestoreFlowMock.swift
+//  SubscriptionTokenProvider.swift
 //
-//  Copyright © 2024 DuckDuckGo. All rights reserved.
+//  Copyright © 2025 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -17,16 +17,14 @@
 //
 
 import Foundation
-import Subscription
+import Networking
 
-public final class AppStoreRestoreFlowMock: AppStoreRestoreFlowV2 {
-    public var restoreAccountFromPastPurchaseResult: Result<String, AppStoreRestoreFlowErrorV2>?
-    public var restoreAccountFromPastPurchaseCalled: Bool = false
+/// The sole entity responsible of obtaining, storing and refreshing an OAuth Token
+public protocol SubscriptionTokenProvider {
 
-    public init() { }
+    /// Get a valid access token
+    func getAccessToken() async throws -> String
 
-    @discardableResult public func restoreAccountFromPastPurchase() async -> Result<String, AppStoreRestoreFlowErrorV2> {
-        restoreAccountFromPastPurchaseCalled = true
-        return restoreAccountFromPastPurchaseResult!
-    }
+    /// Remove the access token
+    func removeAccessToken()
 }

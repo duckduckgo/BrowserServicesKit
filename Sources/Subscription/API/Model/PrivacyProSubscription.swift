@@ -1,5 +1,5 @@
 //
-//  Subscription.swift
+//  PrivacyProSubscription.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -17,17 +17,19 @@
 //
 
 import Foundation
+import Networking
 
-public typealias DDGSubscription = Subscription // to avoid conflicts when Combine is imported
-
-public struct Subscription: Codable, Equatable {
+public struct PrivacyProSubscription: Codable, Equatable, CustomDebugStringConvertible {
     public let productId: String
     public let name: String
-    public let billingPeriod: Subscription.BillingPeriod
+    public let billingPeriod: BillingPeriod
     public let startedAt: Date
     public let expiresOrRenewsAt: Date
-    public let platform: Subscription.Platform
+    public let platform: Platform
     public let status: Status
+
+    /// Not parsed from 
+    public var features: [SubscriptionEntitlement]?
 
     public enum BillingPeriod: String, Codable {
         case monthly = "Monthly"
@@ -63,5 +65,27 @@ public struct Subscription: Codable, Equatable {
 
     public var isActive: Bool {
         status != .expired && status != .inactive
+    }
+
+    public var debugDescription: String {
+        return """
+        Subscription:
+        - Product ID: \(productId)
+        - Name: \(name)
+        - Billing Period: \(billingPeriod.rawValue)
+        - Started At: \(formatDate(startedAt))
+        - Expires/Renews At: \(formatDate(expiresOrRenewsAt))
+        - Platform: \(platform.rawValue)
+        - Status: \(status.rawValue)
+        - Features: \(features?.map { $0.debugDescription } ?? [])
+        """
+    }
+
+    private func formatDate(_ date: Date) -> String {
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateStyle = .medium
+        dateFormatter.timeStyle = .short
+        dateFormatter.timeZone = TimeZone.current
+        return dateFormatter.string(from: date)
     }
 }

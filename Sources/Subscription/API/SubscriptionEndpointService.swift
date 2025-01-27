@@ -18,27 +18,27 @@
 
 import Common
 import Foundation
-
-public struct GetProductsItem: Decodable {
-    public let productId: String
-    public let productLabel: String
-    public let billingPeriod: String
-    public let price: String
-    public let currency: String
-}
+//
+//public struct GetProductsItem: Decodable {
+//    public let productId: String
+//    public let productLabel: String
+//    public let billingPeriod: String
+//    public let price: String
+//    public let currency: String
+//}
 
 public struct GetSubscriptionFeaturesResponse: Decodable {
     public let features: [Entitlement.ProductName]
 }
 
-public struct GetCustomerPortalURLResponse: Decodable {
-    public let customerPortalUrl: String
-}
+//public struct GetCustomerPortalURLResponse: Decodable {
+//    public let customerPortalUrl: String
+//}
 
 public struct ConfirmPurchaseResponse: Decodable {
     public let email: String?
     public let entitlements: [Entitlement]
-    public let subscription: Subscription
+    public let subscription: PrivacyProSubscription
 }
 
 public enum SubscriptionServiceError: Error {
@@ -47,8 +47,8 @@ public enum SubscriptionServiceError: Error {
 }
 
 public protocol SubscriptionEndpointService {
-    func updateCache(with subscription: Subscription)
-    func getSubscription(accessToken: String, cachePolicy: APICachePolicy) async -> Result<Subscription, SubscriptionServiceError>
+    func updateCache(with subscription: PrivacyProSubscription)
+    func getSubscription(accessToken: String, cachePolicy: APICachePolicy) async -> Result<PrivacyProSubscription, SubscriptionServiceError>
     func signOut()
     func getProducts() async -> Result<[GetProductsItem], APIServiceError>
     func getSubscriptionFeatures(for subscriptionID: String) async -> Result<GetSubscriptionFeaturesResponse, APIServiceError>
@@ -73,19 +73,19 @@ public protocol SubscriptionEndpointService {
 
 extension SubscriptionEndpointService {
 
-    public func getSubscription(accessToken: String) async -> Result<Subscription, SubscriptionServiceError> {
+    public func getSubscription(accessToken: String) async -> Result<PrivacyProSubscription, SubscriptionServiceError> {
         await getSubscription(accessToken: accessToken, cachePolicy: .returnCacheDataElseLoad)
     }
 }
 
 /// Communicates with our backend
-public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
+public struct DefaultSubscriptionEndpointServiceV1: SubscriptionEndpointService {
     private let currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment
-    private let apiService: APIService
-    private let subscriptionCache = UserDefaultsCache<Subscription>(key: UserDefaultsCacheKey.subscription,
-                                                                    settings: UserDefaultsCacheSettings(defaultExpirationInterval: .minutes(20)))
+    private let apiService: SubscriptionAPIService
+    private let subscriptionCache = UserDefaultsCache<PrivacyProSubscription>(key: UserDefaultsCacheKey.subscription,
+                                                                              settings: UserDefaultsCacheSettings(defaultExpirationInterval: .minutes(20)))
 
-    public init(currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment, apiService: APIService) {
+    public init(currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment, apiService: SubscriptionAPIService) {
         self.currentServiceEnvironment = currentServiceEnvironment
         self.apiService = apiService
     }
@@ -94,14 +94,14 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
         self.currentServiceEnvironment = currentServiceEnvironment
         let baseURL = currentServiceEnvironment == .production ? URL(string: "https://subscriptions.duckduckgo.com/api")! : URL(string: "https://subscriptions-dev.duckduckgo.com/api")!
         let session = URLSession(configuration: URLSessionConfiguration.ephemeral)
-        self.apiService = DefaultAPIService(baseURL: baseURL, session: session)
+        self.apiService = DefaultAPIServiceV1(baseURL: baseURL, session: session)
     }
 
     // MARK: - Subscription fetching with caching
 
-    private func getRemoteSubscription(accessToken: String) async -> Result<Subscription, SubscriptionServiceError> {
+    private func getRemoteSubscription(accessToken: String) async -> Result<PrivacyProSubscription, SubscriptionServiceError> {
 
-        let result: Result<Subscription, APIServiceError> = await apiService.executeAPICall(method: "GET", endpoint: "subscription", headers: apiService.makeAuthorizationHeader(for: accessToken), body: nil)
+        let result: Result<PrivacyProSubscription, APIServiceError> = await apiService.executeAPICall(method: "GET", endpoint: "subscription", headers: apiService.makeAuthorizationHeader(for: accessToken), body: nil)
         switch result {
         case .success(let subscriptionResponse):
             updateCache(with: subscriptionResponse)
@@ -111,16 +111,16 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
         }
     }
 
-    public func updateCache(with subscription: Subscription) {
+    public func updateCache(with subscription: PrivacyProSubscription) {
 
-        let cachedSubscription: Subscription? = subscriptionCache.get()
+        let cachedSubscription = subscriptionCache.get()
         if subscription != cachedSubscription {
             subscriptionCache.set(subscription)
             NotificationCenter.default.post(name: .subscriptionDidChange, object: self, userInfo: [UserDefaultsCacheKey.subscription: subscription])
         }
     }
 
-    public func getSubscription(accessToken: String, cachePolicy: APICachePolicy = .returnCacheDataElseLoad) async -> Result<Subscription, SubscriptionServiceError> {
+    public func getSubscription(accessToken: String, cachePolicy: APICachePolicy = .returnCacheDataElseLoad) async -> Result<PrivacyProSubscription, SubscriptionServiceError> {
 
         switch cachePolicy {
         case .reloadIgnoringLocalCacheData:

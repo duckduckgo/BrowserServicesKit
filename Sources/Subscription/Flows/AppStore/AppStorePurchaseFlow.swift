@@ -20,16 +20,16 @@ import Foundation
 import StoreKit
 import os.log
 
-public enum AppStorePurchaseFlowError: Swift.Error {
-    case noProductsFound
-    case activeSubscriptionAlreadyPresent
-    case authenticatingWithTransactionFailed
-    case accountCreationFailed
-    case purchaseFailed
-    case cancelledByUser
-    case missingEntitlements
-    case internalError
-}
+//public enum AppStorePurchaseFlowErrorV1: Swift.Error {
+//    case noProductsFound
+//    case activeSubscriptionAlreadyPresent
+//    case authenticatingWithTransactionFailed
+//    case accountCreationFailed
+//    case purchaseFailed
+//    case cancelledByUser
+//    case missingEntitlements
+//    case internalError
+//}
 
 @available(macOS 12.0, iOS 15.0, *)
 public protocol AppStorePurchaseFlow {
@@ -68,7 +68,7 @@ public protocol AppStorePurchaseFlow {
   }
 
 @available(macOS 12.0, iOS 15.0, *)
-public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
+public final class DefaultAppStorePurchaseFlowV1: AppStorePurchaseFlow {
     private let subscriptionEndpointService: SubscriptionEndpointService
     private let storePurchaseManager: StorePurchaseManager
     private let accountManager: AccountManager
@@ -121,7 +121,7 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
                         }
                     case .failure(let error):
                         Logger.subscription.error("[AppStorePurchaseFlow] createAccount error: \(String(reflecting: error), privacy: .public)")
-                        return .failure(.accountCreationFailed)
+                        return .failure(.accountCreationFailed(error))
                     }
                 }
             }
@@ -138,7 +138,7 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
             case .purchaseCancelledByUser:
                 return .failure(.cancelledByUser)
             default:
-                return .failure(.purchaseFailed)
+                return .failure(.purchaseFailed(error))
             }
         }
     }

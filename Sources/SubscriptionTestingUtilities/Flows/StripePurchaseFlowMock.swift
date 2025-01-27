@@ -19,16 +19,16 @@
 import Foundation
 import Subscription
 
-public final class StripePurchaseFlowMock: StripePurchaseFlow {
-    public var subscriptionOptionsResult: Result<SubscriptionOptions, StripePurchaseFlowError>
+public final class StripePurchaseFlowMock: StripePurchaseFlowV2 {
+    public var subscriptionOptionsResult: Result<SubscriptionOptionsV2, StripePurchaseFlowError>
     public var prepareSubscriptionPurchaseResult: Result<PurchaseUpdate, StripePurchaseFlowError>
 
-    public init(subscriptionOptionsResult: Result<SubscriptionOptions, StripePurchaseFlowError>, prepareSubscriptionPurchaseResult: Result<PurchaseUpdate, StripePurchaseFlowError>) {
+    public init(subscriptionOptionsResult: Result<SubscriptionOptionsV2, StripePurchaseFlowError>, prepareSubscriptionPurchaseResult: Result<PurchaseUpdate, StripePurchaseFlowError>) {
         self.subscriptionOptionsResult = subscriptionOptionsResult
         self.prepareSubscriptionPurchaseResult = prepareSubscriptionPurchaseResult
     }
 
-    public func subscriptionOptions() async -> Result<SubscriptionOptions, StripePurchaseFlowError> {
+    public func subscriptionOptions() async -> Result<SubscriptionOptionsV2, StripePurchaseFlowError> {
         subscriptionOptionsResult
     }
 

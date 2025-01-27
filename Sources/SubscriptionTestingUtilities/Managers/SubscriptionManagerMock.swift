@@ -17,63 +17,163 @@
 //
 
 import Foundation
+@testable import Networking
 @testable import Subscription
 
-public final class SubscriptionManagerMock: SubscriptionManager {
-    public var accountManager: AccountManager
-    public var subscriptionEndpointService: SubscriptionEndpointService
-    public var authEndpointService: AuthEndpointService
-    public var subscriptionFeatureMappingCache: SubscriptionFeatureMappingCache
+public final class SubscriptionManagerMock: SubscriptionManagerV2 {
+    
+    public init() {}
 
-    public static var storedEnvironment: SubscriptionEnvironment?
-    public static func loadEnvironmentFrom(userDefaults: UserDefaults) -> SubscriptionEnvironment? {
-        return storedEnvironment
+    public static var environment: Subscription.SubscriptionEnvironment?
+    public static func loadEnvironmentFrom(userDefaults: UserDefaults) -> Subscription.SubscriptionEnvironment? {
+        return environment
     }
 
-    public static func save(subscriptionEnvironment: SubscriptionEnvironment, userDefaults: UserDefaults) {
-        storedEnvironment = subscriptionEnvironment
+    public static func save(subscriptionEnvironment: Subscription.SubscriptionEnvironment, userDefaults: UserDefaults) {
+        environment = subscriptionEnvironment
     }
 
-    public var currentEnvironment: SubscriptionEnvironment
-    public var canPurchase: Bool
+    public var currentEnvironment: Subscription.SubscriptionEnvironment = .init(serviceEnvironment: .staging, purchasePlatform: .appStore)
 
-    public func storePurchaseManager() -> StorePurchaseManager {
-        internalStorePurchaseManager
+    public func loadInitialData() {}
+
+    public func refreshCachedSubscription(completion: @escaping (Bool) -> Void) {}
+
+    public var resultSubscription: Subscription.PrivacyProSubscription?
+
+    public func getSubscriptionFrom(lastTransactionJWSRepresentation: String) async throws -> Subscription.PrivacyProSubscription? {
+        guard let resultSubscription else {
+            throw OAuthClientError.missingTokens
+        }
+        return resultSubscription
     }
 
-    public func loadInitialData() {
+    public var canPurchase: Bool = true
+
+    public var resultStorePurchaseManager: (any Subscription.StorePurchaseManagerV2)?
+    public func storePurchaseManager() -> any Subscription.StorePurchaseManagerV2 {
+        return resultStorePurchaseManager!
+    }
+
+    public var resultURL: URL!
+    public func url(for type: Subscription.SubscriptionURL) -> URL {
+        return resultURL
+    }
+
+    public var customerPortalURL: URL?
+    public func getCustomerPortalURL() async throws -> URL {
+        guard let customerPortalURL else {
+            throw SubscriptionEndpointServiceError.noData
+        }
+        return customerPortalURL
+    }
+
+    public var isUserAuthenticated: Bool {
+        resultTokenContainer != nil
+    }
+
+    public var userEmail: String? {
+        resultTokenContainer?.decodedAccessToken.email
+    }
+
+    public var resultTokenContainer: Networking.TokenContainer?
+    public var resultCreateAccountTokenContainer: Networking.TokenContainer?
+    public func getTokenContainer(policy: Networking.AuthTokensCachePolicy) async throws -> Networking.TokenContainer {
+        switch policy {
+        case .local, .localValid, .localForceRefresh:
+            guard let resultTokenContainer else {
+                throw OAuthClientError.missingTokens
+            }
+            return resultTokenContainer
+        case .createIfNeeded:
+            guard let resultCreateAccountTokenContainer else {
+                throw OAuthClientError.missingTokens
+            }
+            resultTokenContainer = resultCreateAccountTokenContainer
+            return resultCreateAccountTokenContainer
+        }
+    }
+
+    public var resultExchangeTokenContainer: Networking.TokenContainer?
+    public func exchange(tokenV1: String) async throws -> Networking.TokenContainer {
+        guard let resultExchangeTokenContainer else {
+           throw OAuthClientError.missingTokens
+        }
+        resultTokenContainer = resultExchangeTokenContainer
+        return resultExchangeTokenContainer
+    }
+
+    public func signOut(notifyUI: Bool) {
+        resultTokenContainer = nil
+    }
+
+    public func removeTokenContainer() {
+        resultTokenContainer = nil
+    }
+
+    public func clearSubscriptionCache() {
 
     }
 
-    public func refreshCachedSubscriptionAndEntitlements(completion: @escaping (Bool) -> Void) {
-        completion(true)
+    public var confirmPurchaseResponse: Result<Subscription.PrivacyProSubscription, Error>?
+    public func confirmPurchase(signature: String, additionalParams: [String: String]?) async throws -> Subscription.PrivacyProSubscription {
+        switch confirmPurchaseResponse! {
+        case .success(let result):
+            return result
+        case .failure(let error):
+            throw error
+        }
     }
 
-    public func url(for type: SubscriptionURL) -> URL {
-        type.subscriptionURL(environment: currentEnvironment.serviceEnvironment)
+    public func refreshAccount() async {}
+
+    public var confirmPurchaseError: Error?
+    public func confirmPurchase(signature: String) async throws {
+        if let confirmPurchaseError {
+            throw confirmPurchaseError
+        }
     }
 
-    public func currentSubscriptionFeatures() async -> [Entitlement.ProductName] {
-        return []
+    public func getSubscription(cachePolicy: Subscription.SubscriptionCachePolicy) async throws -> Subscription.PrivacyProSubscription {
+        guard let resultSubscription else {
+            throw SubscriptionEndpointServiceError.noData
+        }
+        return resultSubscription
     }
 
-    public init(accountManager: AccountManager,
-                subscriptionEndpointService: SubscriptionEndpointService,
-                authEndpointService: AuthEndpointService,
-                storePurchaseManager: StorePurchaseManager,
-                currentEnvironment: SubscriptionEnvironment,
-                canPurchase: Bool,
-                subscriptionFeatureMappingCache: SubscriptionFeatureMappingCache) {
-        self.accountManager = accountManager
-        self.subscriptionEndpointService = subscriptionEndpointService
-        self.authEndpointService = authEndpointService
-        self.internalStorePurchaseManager = storePurchaseManager
-        self.currentEnvironment = currentEnvironment
-        self.canPurchase = canPurchase
-        self.subscriptionFeatureMappingCache = subscriptionFeatureMappingCache
+    public var productsResponse: Result<[Subscription.GetProductsItem], Error>?
+    public func getProducts() async throws -> [Subscription.GetProductsItem] {
+        switch productsResponse! {
+        case .success(let result):
+            return result
+        case .failure(let error):
+            throw error
+        }
     }
 
-    // MARK: -
+    public func adopt(tokenContainer: Networking.TokenContainer) {
+        self.resultTokenContainer = tokenContainer
+    }
 
-    let internalStorePurchaseManager: StorePurchaseManager
+    public var resultFeatures: [Subscription.SubscriptionFeature] = []
+    public func currentSubscriptionFeatures(forceRefresh: Bool) async -> [Subscription.SubscriptionFeature] {
+        resultFeatures
+    }
+
+    public func isFeatureAvailableForUser(_ entitlement: Networking.SubscriptionEntitlement) async -> Bool {
+        resultFeatures.contains { $0.entitlement == entitlement }
+    }
+
+    //MARK: - Subscription Token Provider
+
+    public func getAccessToken() async throws -> String {
+        guard let accessToken = resultTokenContainer?.accessToken else {
+            throw SubscriptionManagerError.tokenUnavailable(error: nil)
+        }
+        return accessToken
+    }
+
+    public func removeAccessToken() {
+        resultTokenContainer = nil
+    }
 }

@@ -1,5 +1,5 @@
 //
-//  SubscriptionFeatureMappingCacheMock.swift
+//  DefaultSubscriptionEndpointService+SubscriptionFeatureMappingCacheV2.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -17,21 +17,18 @@
 //
 
 import Foundation
-import Subscription
 import Networking
+import os.log
 
-public final class SubscriptionFeatureMappingCacheMock: SubscriptionFeatureMappingCacheV2 {
+extension DefaultSubscriptionEndpointService: SubscriptionFeatureMappingCacheV2 {
 
-    public var didCallSubscriptionFeatures = false
-    public var lastCalledSubscriptionId: String?
-
-    public var mapping: [String: [SubscriptionEntitlement]] = [:]
-
-    public init() { }
-
-    public func subscriptionFeatures(for subscriptionIdentifier: String) async -> [SubscriptionEntitlement] {
-        didCallSubscriptionFeatures = true
-        lastCalledSubscriptionId = subscriptionIdentifier
-        return mapping[subscriptionIdentifier] ?? []
+    public func subscriptionFeatures(for subscriptionIdentifier: String) async -> [Networking.SubscriptionEntitlement] {
+        do {
+            let response = try await getSubscriptionFeatures(for: subscriptionIdentifier)
+            return response.features
+        } catch {
+            Logger.subscription.error("Failed to get subscription features: \(error)")
+            return [.networkProtection, .dataBrokerProtection, .identityTheftRestoration]
+        }
     }
 }

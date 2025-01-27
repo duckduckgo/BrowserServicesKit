@@ -17,19 +17,24 @@
 //
 
 import Foundation
+import Networking
 
 public struct SubscriptionEnvironment: Codable {
 
-    public enum ServiceEnvironment: Codable {
+    public enum ServiceEnvironment: String, Codable {
         case production, staging
 
-        public var description: String {
+        public var url: URL {
             switch self {
-            case .production: return "Production"
-            case .staging: return "Staging"
+            case .production:
+                URL(string: "https://subscriptions.duckduckgo.com/api")!
+            case .staging:
+                URL(string: "https://subscriptions-dev.duckduckgo.com/api")!
             }
         }
     }
+
+    public var authEnvironment: OAuthEnvironment { serviceEnvironment == .production ? .production : .staging }
 
     public enum PurchasePlatform: String, Codable {
         case appStore, stripe
@@ -41,5 +46,9 @@ public struct SubscriptionEnvironment: Codable {
     public init(serviceEnvironment: SubscriptionEnvironment.ServiceEnvironment, purchasePlatform: SubscriptionEnvironment.PurchasePlatform) {
         self.serviceEnvironment = serviceEnvironment
         self.purchasePlatform = purchasePlatform
+    }
+
+    public var description: String {
+        "ServiceEnvironment: \(serviceEnvironment.rawValue), PurchasePlatform: \(purchasePlatform.rawValue)"
     }
 }

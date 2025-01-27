@@ -1,5 +1,5 @@
 //
-//  StripePurchaseFlow.swift
+//  StripePurchaseFlowV1.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -20,18 +20,18 @@ import Foundation
 import StoreKit
 import os.log
 
-public enum StripePurchaseFlowError: Swift.Error {
-    case noProductsFound
-    case accountCreationFailed
-}
+//public enum StripePurchaseFlowError: Swift.Error {
+//    case noProductsFound
+//    case accountCreationFailed
+//}
 
-public protocol StripePurchaseFlow {
+public protocol StripePurchaseFlowV1 {
     func subscriptionOptions() async -> Result<SubscriptionOptions, StripePurchaseFlowError>
     func prepareSubscriptionPurchase(emailAccessToken: String?) async -> Result<PurchaseUpdate, StripePurchaseFlowError>
     func completeSubscriptionPurchase() async
 }
 
-public final class DefaultStripePurchaseFlow: StripePurchaseFlow {
+public final class DefaultStripePurchaseFlowV1: StripePurchaseFlowV1 {
     private let subscriptionEndpointService: SubscriptionEndpointService
     private let authEndpointService: AuthEndpointService
     private let accountManager: AccountManager
@@ -58,7 +58,7 @@ public final class DefaultStripePurchaseFlow: StripePurchaseFlow {
         formatter.numberStyle = .currency
         formatter.locale = Locale(identifier: "en_US@currency=\(currency)")
 
-        let options: [SubscriptionOption] = products.map {
+        let options: [SubscriptionOptionV1] = products.map {
             var displayPrice = "\($0.price) \($0.currency)"
 
             if let price = Float($0.price), let formattedPrice = formatter.string(from: price as NSNumber) {
@@ -67,17 +67,17 @@ public final class DefaultStripePurchaseFlow: StripePurchaseFlow {
 
             let cost = SubscriptionOptionCost(displayPrice: displayPrice, recurrence: $0.billingPeriod.lowercased())
 
-            return SubscriptionOption(id: $0.productId,
+            return SubscriptionOptionV1(id: $0.productId,
                                       cost: cost)
         }
 
-        let features = [SubscriptionFeature(name: .networkProtection),
-                        SubscriptionFeature(name: .dataBrokerProtection),
-                        SubscriptionFeature(name: .identityTheftRestoration)]
+        let features = [SubscriptionFeatureV1(name: .networkProtection),
+                        SubscriptionFeatureV1(name: .dataBrokerProtection),
+                        SubscriptionFeatureV1(name: .identityTheftRestoration)]
 
         return .success(SubscriptionOptions(platform: SubscriptionPlatformName.stripe,
-                                            options: options,
-                                            features: features))
+                                              options: options,
+                                              features: features))
     }
 
     public func prepareSubscriptionPurchase(emailAccessToken: String?) async -> Result<PurchaseUpdate, StripePurchaseFlowError> {

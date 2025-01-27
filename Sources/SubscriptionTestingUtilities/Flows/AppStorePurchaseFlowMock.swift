@@ -19,16 +19,17 @@
 import Foundation
 import Subscription
 
-public final class AppStorePurchaseFlowMock: AppStorePurchaseFlow {
+public final class AppStorePurchaseFlowMock: AppStorePurchaseFlowV2 {
     public var purchaseSubscriptionResult: Result<TransactionJWS, AppStorePurchaseFlowError>?
     public var completeSubscriptionPurchaseResult: Result<PurchaseUpdate, AppStorePurchaseFlowError>?
 
     public init() { }
 
-    public func purchaseSubscription(with subscriptionIdentifier: String, emailAccessToken: String?) async -> Result<TransactionJWS, AppStorePurchaseFlowError> {
+    public func purchaseSubscription(with subscriptionIdentifier: String) async -> Result<TransactionJWS, AppStorePurchaseFlowError> {
         purchaseSubscriptionResult!
     }
 
+    @discardableResult
     public func completeSubscriptionPurchase(with transactionJWS: TransactionJWS, additionalParams: [String: String]?) async -> Result<PurchaseUpdate, AppStorePurchaseFlowError> {
         completeSubscriptionPurchaseResult!
     }

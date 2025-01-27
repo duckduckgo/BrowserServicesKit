@@ -23,7 +23,7 @@ import StoreKit
 
 final class StorePurchaseManagerTests: XCTestCase {
 
-    private var sut: StorePurchaseManager!
+    private var sut: StorePurchaseManagerV2!
     private var mockCache: SubscriptionFeatureMappingCacheMock!
     private var mockProductFetcher: MockProductFetcher!
     private var mockFeatureFlagger: MockFeatureFlagger!
