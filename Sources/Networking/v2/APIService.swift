@@ -45,7 +45,7 @@ public class DefaultAPIService: APIService {
     /// - Returns: An `APIResponseV2` containing the body data and the HTTPURLResponse
     public func fetch(request: APIRequestV2, authAlreadyRefreshed: Bool = false, failureRetryCount: Int = 0) async throws -> APIResponseV2 {
         var request = request
-        
+
         Logger.networking.debug("Fetching: \(request.debugDescription)")
         let (data, response) = try await fetch(for: request.urlRequest)
 
