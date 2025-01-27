@@ -64,7 +64,7 @@ public protocol StorePurchaseManager {
 //@available(macOS 12.0, iOS 15.0, *) typealias Transaction = StoreKit.Transaction
 
 @available(macOS 12.0, iOS 15.0, *)
-public final class DefaultStorePurchaseManagerV1: ObservableObject, StorePurchaseManager {
+public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseManager {
 
     private let storeSubscriptionConfiguration: StoreSubscriptionConfiguration
     private let subscriptionFeatureMappingCache: SubscriptionFeatureMappingCache

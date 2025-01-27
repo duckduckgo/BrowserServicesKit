@@ -68,7 +68,7 @@ public protocol AppStorePurchaseFlow {
   }
 
 @available(macOS 12.0, iOS 15.0, *)
-public final class DefaultAppStorePurchaseFlowV1: AppStorePurchaseFlow {
+public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
     private let subscriptionEndpointService: SubscriptionEndpointService
     private let storePurchaseManager: StorePurchaseManager
     private let accountManager: AccountManager

@@ -32,6 +32,13 @@ public struct SubscriptionEnvironment: Codable {
                 URL(string: "https://subscriptions-dev.duckduckgo.com/api")!
             }
         }
+
+        public var description: String {
+            switch self {
+            case .production: return "Production"
+            case .staging: return "Staging"
+            }
+        }
     }
 
     public var authEnvironment: OAuthEnvironment { serviceEnvironment == .production ? .production : .staging }

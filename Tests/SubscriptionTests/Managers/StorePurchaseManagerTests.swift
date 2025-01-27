@@ -32,7 +32,7 @@ final class StorePurchaseManagerTests: XCTestCase {
         mockCache = SubscriptionFeatureMappingCacheMock()
         mockProductFetcher = MockProductFetcher()
         mockFeatureFlagger = MockFeatureFlagger()
-        sut = DefaultStorePurchaseManager(subscriptionFeatureMappingCache: mockCache,
+        sut = DefaultStorePurchaseManagerV2(subscriptionFeatureMappingCache: mockCache,
                                           subscriptionFeatureFlagger: mockFeatureFlagger,
                                           productFetcher: mockProductFetcher)
     }
@@ -294,7 +294,7 @@ final class StorePurchaseManagerTests: XCTestCase {
         await sut.updateAvailableProducts()
 
         // Then
-        let products = (sut as? DefaultStorePurchaseManager)?.availableProducts ?? []
+        let products = (sut as? DefaultStorePurchaseManagerV2)?.availableProducts ?? []
         XCTAssertEqual(products.count, 2)
         XCTAssertTrue(products.contains(where: { $0.id == monthlyProduct.id }))
         XCTAssertTrue(products.contains(where: { $0.id == yearlyProduct.id }))
@@ -308,7 +308,7 @@ final class StorePurchaseManagerTests: XCTestCase {
         await sut.updateAvailableProducts()
 
         // Then
-        let products = (sut as? DefaultStorePurchaseManager)?.availableProducts ?? []
+        let products = (sut as? DefaultStorePurchaseManagerV2)?.availableProducts ?? []
         XCTAssertTrue(products.isEmpty)
     }
 
@@ -348,9 +348,9 @@ final class StorePurchaseManagerTests: XCTestCase {
         await sut.updateAvailableProducts()
 
         // Then - Verify USA products
-        let usaProducts = (sut as? DefaultStorePurchaseManager)?.availableProducts ?? []
+        let usaProducts = (sut as? DefaultStorePurchaseManagerV2)?.availableProducts ?? []
         XCTAssertEqual(usaProducts.count, 2)
-        XCTAssertEqual((sut as? DefaultStorePurchaseManager)?.currentStorefrontRegion, .usa)
+        XCTAssertEqual((sut as? DefaultStorePurchaseManagerV2)?.currentStorefrontRegion, .usa)
         XCTAssertTrue(usaProducts.contains(where: { $0.id == "com.test.usa.monthly" }))
         XCTAssertTrue(usaProducts.contains(where: { $0.id == "com.test.usa.yearly" }))
 
@@ -360,9 +360,9 @@ final class StorePurchaseManagerTests: XCTestCase {
         await sut.updateAvailableProducts()
 
         // Then - Verify ROW products
-        let rowProducts = (sut as? DefaultStorePurchaseManager)?.availableProducts ?? []
+        let rowProducts = (sut as? DefaultStorePurchaseManagerV2)?.availableProducts ?? []
         XCTAssertEqual(rowProducts.count, 2)
-        XCTAssertEqual((sut as? DefaultStorePurchaseManager)?.currentStorefrontRegion, .restOfWorld)
+        XCTAssertEqual((sut as? DefaultStorePurchaseManagerV2)?.currentStorefrontRegion, .restOfWorld)
         XCTAssertTrue(rowProducts.contains(where: { $0.id == "com.test.row.monthly" }))
         XCTAssertTrue(rowProducts.contains(where: { $0.id == "com.test.row.yearly" }))
 

@@ -79,7 +79,7 @@ extension SubscriptionEndpointService {
 }
 
 /// Communicates with our backend
-public struct DefaultSubscriptionEndpointServiceV1: SubscriptionEndpointService {
+public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
     private let currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment
     private let apiService: SubscriptionAPIService
     private let subscriptionCache = UserDefaultsCache<PrivacyProSubscription>(key: UserDefaultsCacheKey.subscription,

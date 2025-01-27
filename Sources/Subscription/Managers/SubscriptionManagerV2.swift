@@ -120,7 +120,7 @@ public protocol SubscriptionManagerV2: SubscriptionTokenProvider {
 }
 
 /// Single entry point for everything related to Subscription. This manager is disposable, every time something related to the environment changes this need to be recreated.
-public final class DefaultSubscriptionManager: SubscriptionManagerV2 {
+public final class DefaultSubscriptionManagerV2: SubscriptionManagerV2 {
 
     var oAuthClient: any OAuthClient
     private let _storePurchaseManager: StorePurchaseManagerV2?
@@ -412,7 +412,7 @@ Subscription features: \(result, privacy: .public)
     }
 }
 
-extension DefaultSubscriptionManager: SubscriptionTokenProvider {
+extension DefaultSubscriptionManagerV2: SubscriptionTokenProvider {
     public func getAccessToken() async throws -> String {
         try await getTokenContainer(policy: .localValid).accessToken
     }

@@ -20,8 +20,7 @@ import Foundation
 import Common
 import os.log
 
-public protocol SubscriptionCookieManagingV1 {
-    init(subscriptionManager: SubscriptionManager, currentCookieStore: @MainActor @escaping () -> HTTPCookieStore?, eventMapping: EventMapping<SubscriptionCookieManagerEvent>)
+public protocol SubscriptionCookieManaging {
     func enableSettingSubscriptionCookie()
     func disableSettingSubscriptionCookie() async
 
@@ -31,7 +30,7 @@ public protocol SubscriptionCookieManagingV1 {
     var lastRefreshDate: Date? { get }
 }
 
-public final class SubscriptionCookieManager: SubscriptionCookieManagingV1 {
+public final class SubscriptionCookieManager: SubscriptionCookieManaging {
 
     public static let cookieDomain = "subscriptions.duckduckgo.com"
     public static let cookieName = "privacy_pro_access_token"

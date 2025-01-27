@@ -24,7 +24,7 @@ import NetworkingTestingUtils
 
 class SubscriptionManagerTests: XCTestCase {
 
-    var subscriptionManager: DefaultSubscriptionManager!
+    var subscriptionManager: DefaultSubscriptionManagerV2!
     var mockOAuthClient: MockOAuthClient!
     var mockSubscriptionEndpointService: SubscriptionEndpointServiceMock!
     var mockStorePurchaseManager: StorePurchaseManagerMock!
@@ -36,7 +36,7 @@ class SubscriptionManagerTests: XCTestCase {
         mockSubscriptionEndpointService = SubscriptionEndpointServiceMock()
         mockStorePurchaseManager = StorePurchaseManagerMock()
 
-        subscriptionManager = DefaultSubscriptionManager(
+        subscriptionManager = DefaultSubscriptionManagerV2(
             storePurchaseManager: mockStorePurchaseManager,
             oAuthClient: mockOAuthClient,
             subscriptionEndpointService: mockSubscriptionEndpointService,
@@ -78,7 +78,7 @@ class SubscriptionManagerTests: XCTestCase {
         )
         mockSubscriptionEndpointService.getSubscriptionResult = .success(expiredSubscription)
         let expectation = self.expectation(description: "Dead token pixel called")
-        subscriptionManager = DefaultSubscriptionManager(
+        subscriptionManager = DefaultSubscriptionManagerV2(
             storePurchaseManager: mockStorePurchaseManager,
             oAuthClient: mockOAuthClient,
             subscriptionEndpointService: mockSubscriptionEndpointService,
@@ -154,7 +154,7 @@ class SubscriptionManagerTests: XCTestCase {
 
     func testURLGeneration_ForSubscriptionTypes() {
         let environment = SubscriptionEnvironment(serviceEnvironment: .production, purchasePlatform: .appStore)
-        subscriptionManager = DefaultSubscriptionManager(
+        subscriptionManager = DefaultSubscriptionManagerV2(
             storePurchaseManager: mockStorePurchaseManager,
             oAuthClient: mockOAuthClient,
             subscriptionEndpointService: mockSubscriptionEndpointService,
@@ -192,13 +192,13 @@ class SubscriptionManagerTests: XCTestCase {
         let userDefaults = UserDefaults(suiteName: userDefaultsSuiteName)!
         userDefaults.removePersistentDomain(forName: userDefaultsSuiteName)
 
-        var loadedEnvironment = DefaultSubscriptionManager.loadEnvironmentFrom(userDefaults: userDefaults)
+        var loadedEnvironment = DefaultSubscriptionManagerV2.loadEnvironmentFrom(userDefaults: userDefaults)
         XCTAssertNil(loadedEnvironment)
 
         // When
-        DefaultSubscriptionManager.save(subscriptionEnvironment: subscriptionEnvironment,
+        DefaultSubscriptionManagerV2.save(subscriptionEnvironment: subscriptionEnvironment,
                                         userDefaults: userDefaults)
-        loadedEnvironment = DefaultSubscriptionManager.loadEnvironmentFrom(userDefaults: userDefaults)
+        loadedEnvironment = DefaultSubscriptionManagerV2.loadEnvironmentFrom(userDefaults: userDefaults)
 
         // Then
         XCTAssertEqual(loadedEnvironment?.serviceEnvironment, subscriptionEnvironment.serviceEnvironment)
@@ -211,7 +211,7 @@ class SubscriptionManagerTests: XCTestCase {
         // Given
         let productionEnvironment = SubscriptionEnvironment(serviceEnvironment: .production, purchasePlatform: .appStore)
 
-        let productionSubscriptionManager = DefaultSubscriptionManager(
+        let productionSubscriptionManager = DefaultSubscriptionManagerV2(
             storePurchaseManager: mockStorePurchaseManager,
             oAuthClient: mockOAuthClient,
             subscriptionEndpointService: mockSubscriptionEndpointService,
@@ -230,7 +230,7 @@ class SubscriptionManagerTests: XCTestCase {
         // Given
         let stagingEnvironment = SubscriptionEnvironment(serviceEnvironment: .staging, purchasePlatform: .appStore)
 
-        let stagingSubscriptionManager = DefaultSubscriptionManager(
+        let stagingSubscriptionManager = DefaultSubscriptionManagerV2(
             storePurchaseManager: mockStorePurchaseManager,
             oAuthClient: mockOAuthClient,
             subscriptionEndpointService: mockSubscriptionEndpointService,

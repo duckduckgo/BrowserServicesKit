@@ -84,7 +84,7 @@ extension SubscriptionEndpointServiceV2 {
 }
 
 /// Communicates with our backend
-public struct DefaultSubscriptionEndpointService: SubscriptionEndpointServiceV2 {
+public struct DefaultSubscriptionEndpointServiceV2: SubscriptionEndpointServiceV2 {
 
     private let apiService: APIService
     private let baseURL: URL

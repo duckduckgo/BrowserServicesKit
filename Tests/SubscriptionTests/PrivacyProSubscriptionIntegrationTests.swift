@@ -28,7 +28,7 @@ final class PrivacyProSubscriptionIntegrationTests: XCTestCase {
     var apiService: MockAPIService!
     var tokenStorage: MockTokenStorage!
     var legacyAccountStorage: MockLegacyTokenStorage!
-    var subscriptionManager: DefaultSubscriptionManager!
+    var subscriptionManager: DefaultSubscriptionManagerV2!
     var appStorePurchaseFlow: DefaultAppStorePurchaseFlowV2!
     var appStoreRestoreFlow: DefaultAppStoreRestoreFlowV2!
     var stripePurchaseFlow: DefaultStripePurchaseFlow!
@@ -52,14 +52,14 @@ final class PrivacyProSubscriptionIntegrationTests: XCTestCase {
                                             legacyTokenStorage: legacyAccountStorage,
                                             authService: authService)
         storePurchaseManager = StorePurchaseManagerMock()
-        let subscriptionEndpointService = DefaultSubscriptionEndpointService(apiService: apiService,
+        let subscriptionEndpointService = DefaultSubscriptionEndpointServiceV2(apiService: apiService,
                                                                              baseURL: subscriptionEnvironment.serviceEnvironment.url)
         let pixelHandler: SubscriptionManagerV2.PixelHandler = { type in
             print("Pixel fired: \(type)")
         }
         subscriptionFeatureFlagger = FeatureFlaggerMapping<SubscriptionFeatureFlags>(mapping: { $0.defaultState })
 
-        subscriptionManager = DefaultSubscriptionManager(storePurchaseManager: storePurchaseManager,
+        subscriptionManager = DefaultSubscriptionManagerV2(storePurchaseManager: storePurchaseManager,
                                                          oAuthClient: authClient,
                                                          subscriptionEndpointService: subscriptionEndpointService,
                                                          subscriptionEnvironment: subscriptionEnvironment,

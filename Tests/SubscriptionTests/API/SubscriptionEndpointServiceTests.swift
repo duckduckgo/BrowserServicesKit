@@ -25,7 +25,7 @@ import Common
 
 final class SubscriptionEndpointServiceTests: XCTestCase {
     private var apiService: MockAPIService!
-    private var endpointService: DefaultSubscriptionEndpointService!
+    private var endpointService: DefaultSubscriptionEndpointServiceV2!
     private let baseURL = SubscriptionEnvironment.ServiceEnvironment.staging.url
     private let disposableCache = UserDefaultsCache<PrivacyProSubscription>(key: UserDefaultsCacheKeyKest.subscriptionTest,
                                                                             settings: UserDefaultsCacheSettings(defaultExpirationInterval: .minutes(20)))
@@ -39,7 +39,7 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
         encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .millisecondsSince1970
         apiService = MockAPIService()
-        endpointService = DefaultSubscriptionEndpointService(apiService: apiService,
+        endpointService = DefaultSubscriptionEndpointServiceV2(apiService: apiService,
                                                              baseURL: baseURL,
                                                              subscriptionCache: disposableCache)
     }
