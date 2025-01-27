@@ -35,7 +35,6 @@ public struct GetCustomerPortalURLResponse: Codable, Equatable {
 
 public struct ConfirmPurchaseResponseV2: Codable, Equatable {
     public let email: String?
-//    public let entitlements: [Entitlement]?
     public let subscription: PrivacyProSubscription
 }
 

@@ -20,20 +20,6 @@ import Foundation
 import StoreKit
 import os.log
 
-// public enum StoreError: Error {
-//    case failedVerification
-// }
-//
-// public enum StorePurchaseManagerError: Error {
-//    case productNotFound
-//    case externalIDisNotAValidUUID
-//    case purchaseFailed
-//    case transactionCannotBeVerified
-//    case transactionPendingAuthentication
-//    case purchaseCancelledByUser
-//    case unknownError
-// }
-
 public protocol StorePurchaseManager {
     typealias TransactionJWS = String
 
@@ -60,8 +46,6 @@ public protocol StorePurchaseManager {
 
     @MainActor func purchaseSubscription(with identifier: String, externalID: String) async -> Result<StorePurchaseManager.TransactionJWS, StorePurchaseManagerError>
 }
-
-// @available(macOS 12.0, iOS 15.0, *) typealias Transaction = StoreKit.Transaction
 
 @available(macOS 12.0, iOS 15.0, *)
 public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseManager {
@@ -366,36 +350,3 @@ private extension SubscriptionOption {
         self.init(id: product.id, cost: .init(displayPrice: product.displayPrice, recurrence: recurrence), offer: offer)
     }
 }
-
-// public extension UserDefaults {
-//
-//    enum Constants {
-//        static let storefrontRegionOverrideKey = "Subscription.debug.storefrontRegionOverride"
-//        static let usaValue = "usa"
-//        static let rowValue = "row"
-//    }
-//
-//    dynamic var storefrontRegionOverride: SubscriptionRegion? {
-//        get {
-//            switch string(forKey: Constants.storefrontRegionOverrideKey) {
-//            case "usa":
-//                return .usa
-//            case "row":
-//                return .restOfWorld
-//            default:
-//                return nil
-//            }
-//        }
-//
-//        set {
-//            switch newValue {
-//            case .usa:
-//                set(Constants.usaValue, forKey: Constants.storefrontRegionOverrideKey)
-//            case .restOfWorld:
-//                set(Constants.rowValue, forKey: Constants.storefrontRegionOverrideKey)
-//            default:
-//                removeObject(forKey: Constants.storefrontRegionOverrideKey)
-//            }
-//        }
-//    }
-// }

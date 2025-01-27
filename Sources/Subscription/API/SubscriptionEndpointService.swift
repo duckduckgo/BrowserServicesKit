@@ -18,22 +18,10 @@
 
 import Common
 import Foundation
-//
-// public struct GetProductsItem: Decodable {
-//    public let productId: String
-//    public let productLabel: String
-//    public let billingPeriod: String
-//    public let price: String
-//    public let currency: String
-// }
 
 public struct GetSubscriptionFeaturesResponse: Decodable {
     public let features: [Entitlement.ProductName]
 }
-
-// public struct GetCustomerPortalURLResponse: Decodable {
-//    public let customerPortalUrl: String
-// }
 
 public struct ConfirmPurchaseResponse: Decodable {
     public let email: String?

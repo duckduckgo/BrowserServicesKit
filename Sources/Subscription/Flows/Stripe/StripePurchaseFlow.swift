@@ -20,11 +20,6 @@ import Foundation
 import StoreKit
 import os.log
 
-// public enum StripePurchaseFlowError: Swift.Error {
-//    case noProductsFound
-//    case accountCreationFailed
-// }
-
 public protocol StripePurchaseFlow {
     func subscriptionOptions() async -> Result<SubscriptionOptions, StripePurchaseFlowError>
     func prepareSubscriptionPurchase(emailAccessToken: String?) async -> Result<PurchaseUpdate, StripePurchaseFlowError>

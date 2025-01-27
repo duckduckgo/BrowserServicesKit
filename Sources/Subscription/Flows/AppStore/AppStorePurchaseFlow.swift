@@ -20,17 +20,6 @@ import Foundation
 import StoreKit
 import os.log
 
-// public enum AppStorePurchaseFlowErrorV1: Swift.Error {
-//    case noProductsFound
-//    case activeSubscriptionAlreadyPresent
-//    case authenticatingWithTransactionFailed
-//    case accountCreationFailed
-//    case purchaseFailed
-//    case cancelledByUser
-//    case missingEntitlements
-//    case internalError
-// }
-
 @available(macOS 12.0, iOS 15.0, *)
 public protocol AppStorePurchaseFlow {
     typealias TransactionJWS = String
