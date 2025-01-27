@@ -43,7 +43,7 @@ public enum APICachePolicy {
     case returnCacheDataDontLoad
 }
 
-public struct DefaultAPIServiceV1: SubscriptionAPIService {
+public struct DefaultSubscriptionAPIService: SubscriptionAPIService {
     private let baseURL: URL
     private let session: URLSession
 

@@ -21,6 +21,8 @@ import Common
 
 extension Dictionary where Key == String, Value == String {
 
+    /// Convert a Dictionary key:String, value:String into an array of URLQueryItem ordering alphabetically the items by key
+    /// - Returns: An ordered array of URLQueryItem
     public func toURLQueryItems(allowedReservedCharacters: CharacterSet? = nil) -> [URLQueryItem] {
         return self.sorted(by: <).map {
             if let allowedReservedCharacters {

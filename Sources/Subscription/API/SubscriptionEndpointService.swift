@@ -94,7 +94,7 @@ public struct DefaultSubscriptionEndpointService: SubscriptionEndpointService {
         self.currentServiceEnvironment = currentServiceEnvironment
         let baseURL = currentServiceEnvironment == .production ? URL(string: "https://subscriptions.duckduckgo.com/api")! : URL(string: "https://subscriptions-dev.duckduckgo.com/api")!
         let session = URLSession(configuration: URLSessionConfiguration.ephemeral)
-        self.apiService = DefaultAPIServiceV1(baseURL: baseURL, session: session)
+        self.apiService = DefaultSubscriptionAPIService(baseURL: baseURL, session: session)
     }
 
     // MARK: - Subscription fetching with caching
