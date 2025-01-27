@@ -32,6 +32,8 @@ public enum Event: PixelKitEventV2 {
     case visitSite(category: ThreatKind)
     case iframeLoaded(category: ThreatKind)
     case settingToggled(to: Bool)
+    case matchesApiTimeout
+    case matchesApiFailure(Error)
 
     public var name: String {
         switch self {
@@ -43,6 +45,10 @@ public enum Event: PixelKitEventV2 {
             return "malicious-site-protection_iframe-loaded"
         case .settingToggled:
             return "malicious-site-protection_feature-toggled"
+        case .matchesApiTimeout:
+            return "malicious-site-protection_client-timeout"
+        case .matchesApiFailure:
+            return "malicious-site-protection_matches-api-error"
         }
     }
 
@@ -62,6 +68,9 @@ public enum Event: PixelKitEventV2 {
             return [
                 PixelKit.Parameters.settingToggledTo: String(state)
             ]
+        case .matchesApiTimeout,
+             .matchesApiFailure:
+            return [:]
         }
     }
 
@@ -75,6 +84,10 @@ public enum Event: PixelKitEventV2 {
             return nil
         case .settingToggled:
             return nil
+        case .matchesApiTimeout:
+            return nil
+        case .matchesApiFailure(let error):
+            return error
         }
     }
 

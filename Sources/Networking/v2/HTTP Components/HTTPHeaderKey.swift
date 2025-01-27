@@ -82,6 +82,7 @@ public struct HTTPHeaderKey {
     public static let via = "Via"
     public static let warning = "Warning"
     public static let wwwAuthenticate = "WWW-Authenticate"
+    public static let authToken = "X-Auth-Token"
     public static let xContentTypeOptions = "X-Content-Type-Options"
     public static let xFrameOptions = "X-Frame-Options"
     public static let xPoweredBy = "X-Powered-By"
