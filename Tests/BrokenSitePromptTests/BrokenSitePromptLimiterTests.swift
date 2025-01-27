@@ -17,7 +17,6 @@
 //
 
 import BrowserServicesKit
-import TestUtils
 import XCTest
 
 @testable import BrokenSitePrompt

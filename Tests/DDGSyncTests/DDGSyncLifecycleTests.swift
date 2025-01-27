@@ -19,7 +19,6 @@
 import Combine
 import Common
 import XCTest
-import TestUtils
 @testable import DDGSync
 
 final class DDGSyncLifecycleTests: XCTestCase {

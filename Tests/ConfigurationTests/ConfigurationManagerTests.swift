@@ -18,9 +18,10 @@
 
 import XCTest
 import Persistence
+import PersistenceTestingUtils
 @testable import Configuration
 @testable import Networking
-@testable import TestUtils
+import NetworkingTestingUtils
 
 final class MockConfigurationManager: DefaultConfigurationManager {
 

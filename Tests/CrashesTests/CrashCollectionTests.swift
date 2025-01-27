@@ -20,7 +20,7 @@
 import MetricKit
 import XCTest
 import Persistence
-import TestUtils
+import PersistenceTestingUtils
 import Common
 
 class CrashCollectionTests: XCTestCase {
