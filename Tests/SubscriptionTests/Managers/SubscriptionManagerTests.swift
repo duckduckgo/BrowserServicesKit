@@ -163,7 +163,7 @@ class SubscriptionManagerTests: XCTestCase {
         )
 
         let helpURL = subscriptionManager.url(for: .purchase)
-        XCTAssertEqual(helpURL.absoluteString, "https://duckduckgo.com/subscriptions/welcome")
+        XCTAssertEqual(helpURL.absoluteString, "https://duckduckgo.com/subscriptions")
     }
 
     // MARK: - Purchase Confirmation Tests
