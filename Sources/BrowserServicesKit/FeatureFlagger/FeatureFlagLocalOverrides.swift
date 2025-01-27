@@ -20,6 +20,7 @@ import Combine
 import Foundation
 import Persistence
 
+/// A protocol for retrieving the current experiment cohort for feature flags if one has already been assigned.
 public protocol CurrentExperimentCohortProvider {
     func getCurrentCohortIfAssigned<Flag: FeatureFlagDescribing>(for featureFlag: Flag) -> (any FlagCohort)?
 }
@@ -31,6 +32,11 @@ public protocol FeatureFlagLocalOverridesPersisting {
     /// If there's no override, this function should return `nil`.
     ///
     func value<Flag: FeatureFlagDescribing>(for flag: Flag) -> Bool?
+
+    /// Return value for the cohort override for the experiment flag.
+    ///
+    /// If there's no override, this function should return `nil`.
+    ///
     func value<Flag: FeatureFlagDescribing>(for flag: Flag) -> CohortID?
 
     /// Set new override for the feature flag.
@@ -38,6 +44,11 @@ public protocol FeatureFlagLocalOverridesPersisting {
     /// Flag can be overridden to `true` or `false`. Setting `nil` clears the override.
     ///
     func set<Flag: FeatureFlagDescribing>(_ value: Bool?, for flag: Flag)
+
+    /// Sets a new cohort override for the specified experiment feature flag.
+    ///
+    /// Flag can be overridden to one of the cohort of the feature. Setting `nil` clears the override.
+    ///
     func setExperiment<Flag: FeatureFlagDescribing>(_ value: CohortID?, for flag: Flag)
 }
 
@@ -55,7 +66,7 @@ public struct FeatureFlagLocalOverridesUserDefaultsPersistor: FeatureFlagLocalOv
     }
 
     public func value<Flag: FeatureFlagDescribing>(for flag: Flag) -> CohortID? {
-        let key = key(for: flag)
+        let key = experimentKey(for: flag)
         return keyValueStore.object(forKey: key) as? CohortID
     }
 
@@ -65,7 +76,7 @@ public struct FeatureFlagLocalOverridesUserDefaultsPersistor: FeatureFlagLocalOv
     }
 
     public func setExperiment<Flag: FeatureFlagDescribing>(_ value: CohortID?, for flag: Flag) {
-        let key = key(for: flag)
+        let key = experimentKey(for: flag)
         keyValueStore.set(value, forKey: key)
     }
 
@@ -75,6 +86,14 @@ public struct FeatureFlagLocalOverridesUserDefaultsPersistor: FeatureFlagLocalOv
     ///
     private func key<Flag: FeatureFlagDescribing>(for flag: Flag) -> String {
         return "localOverride\(flag.rawValue.capitalizedFirstLetter)"
+    }
+
+    /// This function returns the User Defaults key for a feature flag cohort override.
+    ///
+    /// It uses camel case to simplify inter-process User Defaults KVO.
+    ///
+    private func experimentKey<Flag: FeatureFlagDescribing>(for flag: Flag) -> String {
+        return "localOverride\(flag.rawValue.capitalizedFirstLetter)_cohort"
     }
 }
 
@@ -93,6 +112,12 @@ public protocol FeatureFlagLocalOverridesHandling {
     /// It can be implemented by client apps to react to changes to feature flag
     /// value in runtime, caused by adjusting its local override.
     func flagDidChange<Flag: FeatureFlagDescribing>(_ featureFlag: Flag, isEnabled: Bool)
+
+    /// This function is called whenever the effective cohort of a feature flag changes due to a local override.
+    /// changes as a result of adding or removing a local override.
+    ///
+    /// It can be implemented by client apps to react to changes to feature flag
+    /// value in runtime, caused by adjusting its local override.
     func experimentFlagDidChange<Flag: FeatureFlagDescribing>(_ featureFlag: Flag, cohort: CohortID)
 }
 
@@ -143,7 +168,7 @@ public protocol FeatureFlagLocalOverriding: AnyObject {
     /// Returns the current override for a feature flag, or `nil` if override is not set.
     func override<Flag: FeatureFlagDescribing>(for featureFlag: Flag) -> Bool?
 
-    /// Returns the current override for a feature flag, or `nil` if override is not set.
+    /// Returns the current cohort override for a feature flag, or `nil` if override is not set.
     func experimentOverride<Flag: FeatureFlagDescribing>(for featureFlag: Flag) -> CohortID?
 
     /// Toggles override for a feature flag.
@@ -151,7 +176,12 @@ public protocol FeatureFlagLocalOverriding: AnyObject {
     /// If override is not currently present, it sets the override to the opposite of the current flag value.
     ///
     func toggleOverride<Flag: FeatureFlagDescribing>(for featureFlag: Flag)
-    func toggleExperimentCohort<Flag: FeatureFlagDescribing>(for featureFlag: Flag, cohort: CohortID)
+
+    /// Sets the cohort override for a feature flag.
+    ///
+    /// If override is not currently present, it sets the override to the opposite of the current flag value.
+    ///
+    func setExperimentCohortOverride<Flag: FeatureFlagDescribing>(for featureFlag: Flag, cohort: CohortID)
 
     /// Clears override for a feature flag.
     ///
@@ -165,6 +195,12 @@ public protocol FeatureFlagLocalOverriding: AnyObject {
     /// This function calls `clearOverride(for:)` for each flag.
     ///
     func clearAllOverrides<Flag: FeatureFlagDescribing>(for flagType: Flag.Type)
+
+    /// Returns the effective value of a feature flag, considering the current state and overrides.
+    func currentValue<Flag: FeatureFlagDescribing>(for featureFlag: Flag) -> Bool?
+
+    /// Returns the effective cohort of a feature flag, considering the current state and overrides.
+    func currentExperimentCohort<Flag: FeatureFlagDescribing>(for featureFlag: Flag) -> (any FlagCohort)?
 }
 
 public final class FeatureFlagLocalOverrides: FeatureFlagLocalOverriding {
@@ -215,7 +251,7 @@ public final class FeatureFlagLocalOverrides: FeatureFlagLocalOverriding {
         actionHandler.flagDidChange(featureFlag, isEnabled: newValue)
     }
 
-    public func toggleExperimentCohort<Flag: FeatureFlagDescribing>(for featureFlag: Flag, cohort: CohortID) {
+    public func setExperimentCohortOverride<Flag: FeatureFlagDescribing>(for featureFlag: Flag, cohort: CohortID) {
         guard featureFlag.supportsLocalOverriding else {
             return
         }
@@ -225,20 +261,18 @@ public final class FeatureFlagLocalOverrides: FeatureFlagLocalOverriding {
     }
 
     public func clearOverride<Flag: FeatureFlagDescribing>(for featureFlag: Flag) {
-        if featureFlag.cohortType == nil {
-            guard let override = override(for: featureFlag) else {
-                return
-            }
+        // Clear the regular override
+        if let override = override(for: featureFlag) {
             persistor.set(nil, for: featureFlag)
             if let defaultValue = currentValue(for: featureFlag), defaultValue != override {
                 actionHandler.flagDidChange(featureFlag, isEnabled: defaultValue)
             }
-        } else {
-            guard let override = experimentOverride(for: featureFlag) else {
-                return
-            }
+        }
+
+        // Clear the experiment cohort override
+        if let experimentOverride = experimentOverride(for: featureFlag) {
             persistor.setExperiment(nil, for: featureFlag)
-            if let defaultValue = currentExperimentCohort(for: featureFlag)?.rawValue, defaultValue != override {
+            if let defaultValue = currentExperimentCohort(for: featureFlag)?.rawValue, defaultValue != experimentOverride {
                 actionHandler.experimentFlagDidChange(featureFlag, cohort: defaultValue)
             }
         }
@@ -250,11 +284,11 @@ public final class FeatureFlagLocalOverrides: FeatureFlagLocalOverriding {
         }
     }
 
-    private func currentValue<Flag: FeatureFlagDescribing>(for featureFlag: Flag) -> Bool? {
+    public func currentValue<Flag: FeatureFlagDescribing>(for featureFlag: Flag) -> Bool? {
         featureFlagger?.isFeatureOn(for: featureFlag, allowOverride: true)
     }
 
-    private func currentExperimentCohort<Flag: FeatureFlagDescribing>(for featureFlag: Flag) -> (any FlagCohort)? {
+    public func currentExperimentCohort<Flag: FeatureFlagDescribing>(for featureFlag: Flag) -> (any FlagCohort)? {
         guard let flagger = featureFlagger as? CurrentExperimentCohortProvider else { return nil }
         return flagger.getCurrentCohortIfAssigned(for: featureFlag)
     }

@@ -41,7 +41,8 @@ public final class TrackerDataURLOverrider: TrackerDataURLProviding {
 
     public var trackerDataURL: URL? {
         for experimentType in TDSExperimentType.allCases {
-            if let cohort = featureFlagger.getCohortIfEnabled(for: experimentType.experiment, allowOverride: false) as? TDSNextExperimentFlag.Cohort,
+            print(experimentType)
+            if let cohort = featureFlagger.getCohortIfEnabled(for: experimentType, allowOverride: false) as? TDSExperimentType.Cohort,
                let url = trackerDataURL(for: experimentType.subfeature, cohort: cohort) {
                 return url
             }
@@ -49,7 +50,7 @@ public final class TrackerDataURLOverrider: TrackerDataURLProviding {
         return nil
     }
 
-    private func trackerDataURL(for subfeature: any PrivacySubfeature, cohort: TDSNextExperimentFlag.Cohort) -> URL? {
+    private func trackerDataURL(for subfeature: any PrivacySubfeature, cohort: TDSExperimentType.Cohort) -> URL? {
         guard let settings = privacyConfigurationManager.privacyConfig.settings(for: subfeature),
               let jsonData = settings.data(using: .utf8) else { return nil }
         do {
@@ -64,7 +65,7 @@ public final class TrackerDataURLOverrider: TrackerDataURLProviding {
     }
 }
 
-public enum TDSExperimentType: Int, CaseIterable {
+public enum TDSExperimentType: String, CaseIterable {
     case baseline
     case feb25
     case mar25
@@ -77,10 +78,6 @@ public enum TDSExperimentType: Int, CaseIterable {
     case oct25
     case nov25
     case dec25
-
-    public var experiment: any FeatureFlagExperimentDescribing {
-        TDSNextExperimentFlag(subfeature: self.subfeature)
-    }
 
     public var subfeature: any PrivacySubfeature {
         switch self {
@@ -110,24 +107,24 @@ public enum TDSExperimentType: Int, CaseIterable {
             ContentBlockingSubfeature.tdsNextExperimentDec25
         }
     }
-
 }
 
-public struct TDSNextExperimentFlag: FeatureFlagExperimentDescribing {
-    public var supportsLocalOverriding: Bool = false
-
-    public var rawValue: String
-    public var source: FeatureFlagSource
-
-    public init(subfeature: any PrivacySubfeature) {
-        self.source = .remoteReleasable(.subfeature(subfeature))
-        self.rawValue = subfeature.rawValue
+extension TDSExperimentType: FeatureFlagDescribing {
+    public var supportsLocalOverriding: Bool {
+        return false
     }
-
-    public typealias CohortType = Cohort
+    
+    public var source: FeatureFlagSource {
+        return .remoteReleasable(.subfeature(self.subfeature))
+    }
+    
+    public var cohortType: (any BrowserServicesKit.FlagCohort.Type)? {
+        return Cohort.self
+    }
 
     public enum Cohort: String, FlagCohort {
         case control
         case treatment
     }
+
 }

@@ -45,7 +45,7 @@ final class TrackerDataURLOverriderTests: XCTestCase {
     func testTrackerDataURL_forControlCohort_returnsControlUrl() throws {
         // GIVEN
         mockFeatureFlagger.mockCohorts = [
-            TDSExperimentType(rawValue: 0)!.subfeature.rawValue: TDSNextExperimentFlag.Cohort.control]
+            TDSExperimentType.allCases[0].rawValue: TDSExperimentType.Cohort.control]
         let privacyConfig = MockPrivacyConfiguration()
         privacyConfig.subfeatureSettings = "{ \"controlUrl\": \"\(controlURL)\", \"treatmentUrl\": \"\(treatmentURL)\"}"
         mockPrivacyConfigurationManager.privacyConfig = privacyConfig
@@ -60,7 +60,7 @@ final class TrackerDataURLOverriderTests: XCTestCase {
     func testTrackerDataURL_forTreatmentCohort_returnsTreatmentUrl() throws {
         // GIVEN
         mockFeatureFlagger.mockCohorts = [
-            TDSExperimentType(rawValue: 0)!.subfeature.rawValue: TDSNextExperimentFlag.Cohort.treatment]
+            TDSExperimentType.value(at: 0)!.rawValue: TDSExperimentType.Cohort.treatment]
         let privacyConfig = MockPrivacyConfiguration()
         privacyConfig.subfeatureSettings = "{ \"controlUrl\": \"\(controlURL)\", \"treatmentUrl\": \"\(treatmentURL)\"}"
         mockPrivacyConfigurationManager.privacyConfig = privacyConfig
@@ -75,7 +75,7 @@ final class TrackerDataURLOverriderTests: XCTestCase {
     func testTrackerDataURL_ifNoSettings_returnsDefaultURL() throws {
         // GIVEN
         mockFeatureFlagger.mockCohorts = [
-            TDSExperimentType(rawValue: 0)!.subfeature.rawValue: TDSNextExperimentFlag.Cohort.treatment]
+            TDSExperimentType.value(at: 0)!.rawValue: TDSExperimentType.Cohort.treatment]
         let privacyConfig = MockPrivacyConfiguration()
         mockPrivacyConfigurationManager.privacyConfig = privacyConfig
 
@@ -106,19 +106,19 @@ final class TrackerDataURLOverriderTests: XCTestCase {
         let thirdExperimentTreatmentURL = "third-treatment.json"
         let privacyConfig = MockPrivacyConfiguration()
         privacyConfig.mockSubfeatureSettings = [
-            TDSExperimentType(rawValue: 0)!.subfeature.rawValue: """
+            TDSExperimentType.value(at: 0)!.rawValue: """
             {
                 "controlUrl": "\(firstExperimentControlURL)",
                 "treatmentUrl": "first-treatment.json"
             }
             """,
-            TDSExperimentType(rawValue: 1)!.subfeature.rawValue: """
+            TDSExperimentType.value(at: 1)!.subfeature.rawValue: """
             {
                 "controlUrl": "second-control.json",
                 "treatmentUrl": "\(secondExperimentTreatmentURL)"
             }
             """,
-            TDSExperimentType(rawValue: 2)!.subfeature.rawValue: """
+            TDSExperimentType.value(at: 2)!.subfeature.rawValue: """
             {
                 "controlUrl": "third-control.json",
                 "treatmentUrl": "\(thirdExperimentTreatmentURL)"
@@ -127,8 +127,8 @@ final class TrackerDataURLOverriderTests: XCTestCase {
         ]
         mockPrivacyConfigurationManager.privacyConfig = privacyConfig
         mockFeatureFlagger.mockCohorts = [
-            TDSExperimentType(rawValue: 1)!.subfeature.rawValue: TDSNextExperimentFlag.Cohort.treatment,
-            TDSExperimentType(rawValue: 2)!.subfeature.rawValue: TDSNextExperimentFlag.Cohort.treatment
+            TDSExperimentType.value(at: 1)!.rawValue: TDSExperimentType.Cohort.treatment,
+            TDSExperimentType.value(at: 2)!.rawValue: TDSExperimentType.Cohort.treatment
         ]
 
         // WHEN
@@ -154,7 +154,7 @@ private class MockFeatureFlaggerMockSettings: FeatureFlagger {
         return nil
     }
 
-    func getCohortIfEnabled<Flag>(for featureFlag: Flag) -> (any FlagCohort)? where Flag: FeatureFlagExperimentDescribing {
+    func getCohortIfEnabled<Flag>(for featureFlag: Flag, allowOverride: Bool) -> (any FlagCohort)? where Flag: FeatureFlagDescribing {
         return mockCohorts[featureFlag.rawValue]
     }
 
@@ -256,5 +256,12 @@ final class MockInternalUserStoring: InternalUserStoring {
 extension DefaultInternalUserDecider {
     convenience init(mockedStore: MockInternalUserStoring = MockInternalUserStoring()) {
         self.init(store: mockedStore)
+    }
+}
+
+extension TDSExperimentType {
+    static func value(at index: Int) -> TDSExperimentType? {
+        guard index >= 0 && index < allCases.count else { return nil }
+        return allCases[index]
     }
 }

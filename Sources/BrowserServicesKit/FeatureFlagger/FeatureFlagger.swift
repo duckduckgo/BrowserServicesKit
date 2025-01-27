@@ -242,6 +242,7 @@ public extension FeatureFlagger {
     func isFeatureOn<Flag: FeatureFlagDescribing>(for featureFlag: Flag) -> Bool {
         isFeatureOn(for: featureFlag, allowOverride: true)
     }
+    
 }
 
 public class DefaultFeatureFlagger: FeatureFlagger {

@@ -19,15 +19,25 @@
 import BrowserServicesKit
 
 enum TestFeatureFlag: String, FeatureFlagDescribing {
+    var cohortType: (any BrowserServicesKit.FlagCohort.Type)? {
+        switch self {
+        case .nonOverridableFlag, .overridableFlagDisabledByDefault, .overridableFlagEnabledByDefault:
+            nil
+        case .overridableExperimentFlagWithCohortBByDefault:
+            FakeExperimentCohort.self
+        }
+    }
+
     case nonOverridableFlag
     case overridableFlagDisabledByDefault
     case overridableFlagEnabledByDefault
+    case overridableExperimentFlagWithCohortBByDefault
 
     var supportsLocalOverriding: Bool {
         switch self {
         case .nonOverridableFlag:
             return false
-        case .overridableFlagDisabledByDefault, .overridableFlagEnabledByDefault:
+        case .overridableFlagDisabledByDefault, .overridableFlagEnabledByDefault, .overridableExperimentFlagWithCohortBByDefault:
             return true
         }
     }
@@ -40,6 +50,13 @@ enum TestFeatureFlag: String, FeatureFlagDescribing {
             return .disabled
         case .overridableFlagEnabledByDefault:
             return .internalOnly()
+        case .overridableExperimentFlagWithCohortBByDefault:
+            return .internalOnly(FakeExperimentCohort.cohortB)
         }
+    }
+
+    enum FakeExperimentCohort: String, FlagCohort {
+        case cohortA
+        case cohortB
     }
 }

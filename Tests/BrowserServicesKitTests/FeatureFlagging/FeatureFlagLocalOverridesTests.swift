@@ -21,14 +21,20 @@ import TestUtils
 import XCTest
 
 final class CapturingFeatureFlagLocalOverridesHandler: FeatureFlagLocalOverridesHandling {
+    
     struct Parameters: Equatable {
         let rawValue: String
-        let isEnabled: Bool
+        let isEnabled: Bool?
+        let cohort: CohortID?
     }
     var calls: [Parameters] = []
 
     func flagDidChange<Flag: FeatureFlagDescribing>(_ featureFlag: Flag, isEnabled: Bool) {
-        calls.append(.init(rawValue: featureFlag.rawValue, isEnabled: isEnabled))
+        calls.append(.init(rawValue: featureFlag.rawValue, isEnabled: isEnabled, cohort: nil))
+    }
+
+    func experimentFlagDidChange<Flag>(_ featureFlag: Flag, cohort: CohortID) where Flag: FeatureFlagDescribing {
+        calls.append(.init(rawValue: featureFlag.rawValue, isEnabled: nil, cohort: cohort))
     }
 }
 
@@ -98,12 +104,12 @@ final class FeatureFlagLocalOverridesTests: XCTestCase {
         XCTAssertEqual(
             actionHandler.calls,
             [
-                .init(rawValue: TestFeatureFlag.overridableFlagDisabledByDefault.rawValue, isEnabled: true),
-                .init(rawValue: TestFeatureFlag.overridableFlagEnabledByDefault.rawValue, isEnabled: false),
-                .init(rawValue: TestFeatureFlag.overridableFlagDisabledByDefault.rawValue, isEnabled: false),
-                .init(rawValue: TestFeatureFlag.overridableFlagEnabledByDefault.rawValue, isEnabled: true),
-                .init(rawValue: TestFeatureFlag.overridableFlagEnabledByDefault.rawValue, isEnabled: false),
-                .init(rawValue: TestFeatureFlag.overridableFlagEnabledByDefault.rawValue, isEnabled: true)
+                .init(rawValue: TestFeatureFlag.overridableFlagDisabledByDefault.rawValue, isEnabled: true, cohort: nil),
+                .init(rawValue: TestFeatureFlag.overridableFlagEnabledByDefault.rawValue, isEnabled: false, cohort: nil),
+                .init(rawValue: TestFeatureFlag.overridableFlagDisabledByDefault.rawValue, isEnabled: false, cohort: nil),
+                .init(rawValue: TestFeatureFlag.overridableFlagEnabledByDefault.rawValue, isEnabled: true, cohort: nil),
+                .init(rawValue: TestFeatureFlag.overridableFlagEnabledByDefault.rawValue, isEnabled: false, cohort: nil),
+                .init(rawValue: TestFeatureFlag.overridableFlagEnabledByDefault.rawValue, isEnabled: true, cohort: nil)
             ]
         )
     }
@@ -117,8 +123,8 @@ final class FeatureFlagLocalOverridesTests: XCTestCase {
         XCTAssertEqual(
             actionHandler.calls,
             [
-                .init(rawValue: TestFeatureFlag.overridableFlagDisabledByDefault.rawValue, isEnabled: true),
-                .init(rawValue: TestFeatureFlag.overridableFlagDisabledByDefault.rawValue, isEnabled: false)
+                .init(rawValue: TestFeatureFlag.overridableFlagDisabledByDefault.rawValue, isEnabled: true, cohort: nil),
+                .init(rawValue: TestFeatureFlag.overridableFlagDisabledByDefault.rawValue, isEnabled: false, cohort: nil)
             ]
         )
     }
@@ -159,8 +165,8 @@ final class FeatureFlagLocalOverridesTests: XCTestCase {
         XCTAssertEqual(
             actionHandler.calls,
             [
-                .init(rawValue: TestFeatureFlag.overridableFlagDisabledByDefault.rawValue, isEnabled: false),
-                .init(rawValue: TestFeatureFlag.overridableFlagEnabledByDefault.rawValue, isEnabled: true)
+                .init(rawValue: TestFeatureFlag.overridableFlagDisabledByDefault.rawValue, isEnabled: false, cohort: nil),
+                .init(rawValue: TestFeatureFlag.overridableFlagEnabledByDefault.rawValue, isEnabled: true, cohort: nil)
             ]
         )
     }
