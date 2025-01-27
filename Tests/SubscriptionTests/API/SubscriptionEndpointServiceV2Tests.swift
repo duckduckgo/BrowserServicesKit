@@ -1,5 +1,5 @@
 //
-//  SubscriptionEndpointServiceTests.swift
+//  SubscriptionEndpointServiceV2Tests.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -23,7 +23,7 @@ import SubscriptionTestingUtilities
 import NetworkingTestingUtils
 import Common
 
-final class SubscriptionEndpointServiceTests: XCTestCase {
+final class SubscriptionEndpointServiceV2Tests: XCTestCase {
     private var apiService: MockAPIService!
     private var endpointService: DefaultSubscriptionEndpointServiceV2!
     private let baseURL = SubscriptionEnvironment.ServiceEnvironment.staging.url
@@ -189,7 +189,6 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
         let date = Date(timeIntervalSince1970: 123456789)
         let confirmResponse = ConfirmPurchaseResponseV2(
             email: "user@example.com",
-//            entitlements: nil,
             subscription: PrivacyProSubscription(
                 productId: "prod123",
                 name: "Pro Plan",
@@ -255,7 +254,7 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
 }
 
 /*
-final class SubscriptionEndpointServiceTests: XCTestCase {
+final class SubscriptionEndpointServiceV2Tests: XCTestCase {
 
     private struct Constants {
 //        static let tokenContainer = OAuthTokensFactory.makeValidTokenContainer()

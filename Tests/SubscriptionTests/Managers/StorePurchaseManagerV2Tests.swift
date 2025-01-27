@@ -1,5 +1,5 @@
 //
-//  StorePurchaseManagerTests.swift
+//  StorePurchaseManagerV2Tests.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -21,7 +21,7 @@ import XCTest
 import SubscriptionTestingUtilities
 import StoreKit
 
-final class StorePurchaseManagerTests: XCTestCase {
+final class StorePurchaseManagerV2Tests: XCTestCase {
 
     private var sut: StorePurchaseManagerV2!
     private var mockCache: SubscriptionFeatureMappingCacheMockV2!
@@ -406,7 +406,7 @@ private enum MockProductError: Error {
     case fetchFailed
 }
 
-private extension StorePurchaseManagerTests {
+private extension StorePurchaseManagerV2Tests {
     func createMonthlyProduct(withTrial: Bool = false) -> MockSubscriptionProduct {
         MockSubscriptionProduct(
             id: "com.test.monthly\(withTrial ? ".trial" : "")",

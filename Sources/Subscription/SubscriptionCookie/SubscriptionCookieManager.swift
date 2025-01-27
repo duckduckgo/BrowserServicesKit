@@ -165,10 +165,6 @@ public final class SubscriptionCookieManager: SubscriptionCookieManaging {
     }
 }
 
-// enum SubscriptionCookieManagerError: Error {
-//    case failedToCreateSubscriptionCookie
-// }
-
 private extension HTTPCookieStore {
 
     func fetchCurrentSubscriptionCookie() async -> HTTPCookie? {

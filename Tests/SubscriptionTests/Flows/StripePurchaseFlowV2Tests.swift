@@ -1,5 +1,5 @@
 //
-//  StripePurchaseFlowTests.swift
+//  StripePurchaseFlowV2Tests.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -20,7 +20,7 @@
  @testable import Subscription
  import SubscriptionTestingUtilities
 
- final class StripePurchaseFlowTests: XCTestCase {
+ final class StripePurchaseFlowV2Tests: XCTestCase {
 
     private struct Constants {
         static let authToken = UUID().uuidString

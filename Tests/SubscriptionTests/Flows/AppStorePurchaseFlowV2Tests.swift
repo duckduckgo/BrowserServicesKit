@@ -1,5 +1,5 @@
 //
-//  AppStorePurchaseFlowTests.swift
+//  DefaultAppStorePurchaseFlowV2Tests.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -23,7 +23,7 @@ import SubscriptionTestingUtilities
 import NetworkingTestingUtils
 
 @available(macOS 12.0, iOS 15.0, *)
-final class DefaultAppStorePurchaseFlowTests: XCTestCase {
+final class DefaultAppStorePurchaseFlowV2Tests: XCTestCase {
 
     private var sut: DefaultAppStorePurchaseFlowV2!
     private var subscriptionManagerMock: SubscriptionManagerMockV2!

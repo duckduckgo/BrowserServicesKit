@@ -1,5 +1,5 @@
 //
-//  SubscriptionManagerTests.swift
+//  SubscriptionManagerV2Tests.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -22,7 +22,7 @@ import XCTest
 import SubscriptionTestingUtilities
 import NetworkingTestingUtils
 
-class SubscriptionManagerTests: XCTestCase {
+class SubscriptionManagerV2Tests: XCTestCase {
 
     var subscriptionManager: DefaultSubscriptionManagerV2!
     var mockOAuthClient: MockOAuthClient!

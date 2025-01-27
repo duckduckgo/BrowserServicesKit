@@ -1,5 +1,5 @@
 //
-//  SubscriptionCookieManagerTests.swift
+//  SubscriptionCookieManagerV2Tests.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -22,7 +22,7 @@ import Common
 import SubscriptionTestingUtilities
 import NetworkingTestingUtils
 
-final class SubscriptionCookieManagerTests: XCTestCase {
+final class SubscriptionCookieManagerV2Tests: XCTestCase {
     var subscriptionManager: SubscriptionManagerMockV2!
 
     var cookieStore: HTTPCookieStore!

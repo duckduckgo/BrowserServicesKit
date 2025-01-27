@@ -1,5 +1,5 @@
 //
-//  PrivacyProSubscriptionIntegrationTests.swift
+//  PrivacyProSubscriptionV2IntegrationTests.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -23,7 +23,7 @@ import NetworkingTestingUtils
 import SubscriptionTestingUtilities
 import JWTKit
 
-final class PrivacyProSubscriptionIntegrationTests: XCTestCase {
+final class PrivacyProSubscriptionV2IntegrationTests: XCTestCase {
 
     var apiService: MockAPIService!
     var tokenStorage: MockTokenStorage!
