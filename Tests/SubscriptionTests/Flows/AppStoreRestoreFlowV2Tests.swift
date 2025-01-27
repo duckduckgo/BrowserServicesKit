@@ -23,7 +23,7 @@ import SubscriptionTestingUtilities
 import NetworkingTestingUtils
 
 @available(macOS 12.0, iOS 15.0, *)
-final class DefaultAppStoreRestoreV2FlowTests: XCTestCase {
+final class AppStoreRestoreFlowV2Tests: XCTestCase {
 
     private var sut: DefaultAppStoreRestoreFlowV2!
     private var subscriptionManagerMock: SubscriptionManagerMockV2!
