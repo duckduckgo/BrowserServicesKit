@@ -24,12 +24,12 @@ import StoreKit
 final class StorePurchaseManagerTests: XCTestCase {
 
     private var sut: StorePurchaseManagerV2!
-    private var mockCache: SubscriptionFeatureMappingCacheMock!
+    private var mockCache: SubscriptionFeatureMappingCacheMockV2!
     private var mockProductFetcher: MockProductFetcher!
     private var mockFeatureFlagger: MockFeatureFlagger!
 
     override func setUpWithError() throws {
-        mockCache = SubscriptionFeatureMappingCacheMock()
+        mockCache = SubscriptionFeatureMappingCacheMockV2()
         mockProductFetcher = MockProductFetcher()
         mockFeatureFlagger = MockFeatureFlagger()
         sut = DefaultStorePurchaseManagerV2(subscriptionFeatureMappingCache: mockCache,

@@ -31,8 +31,8 @@ final class PrivacyProSubscriptionIntegrationTests: XCTestCase {
     var subscriptionManager: DefaultSubscriptionManagerV2!
     var appStorePurchaseFlow: DefaultAppStorePurchaseFlowV2!
     var appStoreRestoreFlow: DefaultAppStoreRestoreFlowV2!
-    var stripePurchaseFlow: DefaultStripePurchaseFlow!
-    var storePurchaseManager: StorePurchaseManagerMock!
+    var stripePurchaseFlow: DefaultStripePurchaseFlowV2!
+    var storePurchaseManager: StorePurchaseManagerMockV2!
     var subscriptionFeatureFlagger: FeatureFlaggerMapping<SubscriptionFeatureFlags>!
 
     let subscriptionSelectionID = "ios.subscription.1month"
@@ -51,7 +51,7 @@ final class PrivacyProSubscriptionIntegrationTests: XCTestCase {
         let authClient = DefaultOAuthClient(tokensStorage: tokenStorage,
                                             legacyTokenStorage: legacyAccountStorage,
                                             authService: authService)
-        storePurchaseManager = StorePurchaseManagerMock()
+        storePurchaseManager = StorePurchaseManagerMockV2()
         let subscriptionEndpointService = DefaultSubscriptionEndpointServiceV2(apiService: apiService,
                                                                              baseURL: subscriptionEnvironment.serviceEnvironment.url)
         let pixelHandler: SubscriptionManagerV2.PixelHandler = { type in
@@ -70,7 +70,7 @@ final class PrivacyProSubscriptionIntegrationTests: XCTestCase {
         appStorePurchaseFlow = DefaultAppStorePurchaseFlowV2(subscriptionManager: subscriptionManager,
                                                            storePurchaseManager: storePurchaseManager,
                                                            appStoreRestoreFlow: appStoreRestoreFlow)
-        stripePurchaseFlow = DefaultStripePurchaseFlow(subscriptionManager: subscriptionManager)
+        stripePurchaseFlow = DefaultStripePurchaseFlowV2(subscriptionManager: subscriptionManager)
     }
 
     override func tearDownWithError() throws {

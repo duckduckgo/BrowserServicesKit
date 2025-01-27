@@ -32,7 +32,7 @@ public protocol StripePurchaseFlowV2 {
     func completeSubscriptionPurchase() async
 }
 
-public final class DefaultStripePurchaseFlow: StripePurchaseFlowV2 {
+public final class DefaultStripePurchaseFlowV2: StripePurchaseFlowV2 {
     private let subscriptionManager: any SubscriptionManagerV2
 
     public init(subscriptionManager: any SubscriptionManagerV2) {

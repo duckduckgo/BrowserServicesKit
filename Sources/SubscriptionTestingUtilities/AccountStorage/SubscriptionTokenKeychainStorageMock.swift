@@ -1,5 +1,5 @@
 //
-//  AppStoreRestoreFlowMock.swift
+//  SubscriptionTokenKeychainStorageMock.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -19,14 +19,26 @@
 import Foundation
 import Subscription
 
-public final class AppStoreRestoreFlowMock: AppStoreRestoreFlow {
-    public var restoreAccountFromPastPurchaseResult: Result<Void, AppStoreRestoreFlowError>?
-    public var restoreAccountFromPastPurchaseCalled: Bool = false
+public final class SubscriptionTokenKeychainStorageMock: SubscriptionTokenStoring {
 
-    public init() { }
+    public var accessToken: String?
 
-    public func restoreAccountFromPastPurchase() async -> Result<Void, AppStoreRestoreFlowError> {
-        restoreAccountFromPastPurchaseCalled = true
-        return restoreAccountFromPastPurchaseResult!
+    public var removeAccessTokenCalled: Bool = false
+
+    public init(accessToken: String? = nil) {
+        self.accessToken = accessToken
+    }
+
+    public func getAccessToken() throws -> String? {
+        accessToken
+    }
+
+    public func store(accessToken: String) throws {
+        self.accessToken = accessToken
+    }
+
+    public func removeAccessToken() throws {
+        removeAccessTokenCalled = true
+        accessToken = nil
     }
 }

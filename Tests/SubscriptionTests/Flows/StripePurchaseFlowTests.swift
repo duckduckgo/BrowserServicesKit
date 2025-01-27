@@ -32,17 +32,17 @@
     }
 
     var accountManager: AccountManagerMock!
-    var subscriptionService: SubscriptionEndpointServiceMock!
+    var subscriptionService: SubscriptionEndpointServiceMockV2!
     var authEndpointService: AuthEndpointServiceMock!
 
     var stripePurchaseFlow: StripePurchaseFlowV2!
 
     override func setUpWithError() throws {
         accountManager = AccountManagerMock()
-        subscriptionService = SubscriptionEndpointServiceMock()
+        subscriptionService = SubscriptionEndpointServiceMockV2()
         authEndpointService = AuthEndpointServiceMock()
 
-        stripePurchaseFlow = DefaultStripePurchaseFlow(subscriptionEndpointService: subscriptionService,
+        stripePurchaseFlow = DefaultStripePurchaseFlowV2(subscriptionEndpointService: subscriptionService,
                                                        authEndpointService: authEndpointService,
                                                        accountManager: accountManager)
     }

@@ -165,9 +165,9 @@ public final class SubscriptionCookieManager: SubscriptionCookieManaging {
     }
 }
 
-//enum SubscriptionCookieManagerError: Error {
+// enum SubscriptionCookieManagerError: Error {
 //    case failedToCreateSubscriptionCookie
-//}
+// }
 
 private extension HTTPCookieStore {
 

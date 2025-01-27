@@ -1,5 +1,5 @@
 //
-//  AppStoreRestoreFlowMock.swift
+//  SubscriptionFeatureMappingCacheMockV2.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -18,15 +18,20 @@
 
 import Foundation
 import Subscription
+import Networking
 
-public final class AppStoreRestoreFlowMock: AppStoreRestoreFlow {
-    public var restoreAccountFromPastPurchaseResult: Result<Void, AppStoreRestoreFlowError>?
-    public var restoreAccountFromPastPurchaseCalled: Bool = false
+public final class SubscriptionFeatureMappingCacheMockV2: SubscriptionFeatureMappingCacheV2 {
+
+    public var didCallSubscriptionFeatures = false
+    public var lastCalledSubscriptionId: String?
+
+    public var mapping: [String: [SubscriptionEntitlement]] = [:]
 
     public init() { }
 
-    public func restoreAccountFromPastPurchase() async -> Result<Void, AppStoreRestoreFlowError> {
-        restoreAccountFromPastPurchaseCalled = true
-        return restoreAccountFromPastPurchaseResult!
+    public func subscriptionFeatures(for subscriptionIdentifier: String) async -> [SubscriptionEntitlement] {
+        didCallSubscriptionFeatures = true
+        lastCalledSubscriptionId = subscriptionIdentifier
+        return mapping[subscriptionIdentifier] ?? []
     }
 }

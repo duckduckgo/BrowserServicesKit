@@ -1,5 +1,5 @@
 //
-//  AppStoreRestoreFlowV1.swift
+//  AppStoreRestoreFlow.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //

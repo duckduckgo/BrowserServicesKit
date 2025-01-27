@@ -1,5 +1,5 @@
 //
-//  StripePurchaseFlowV1.swift
+//  StripePurchaseFlow.swift
 //
 //  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
@@ -20,18 +20,18 @@ import Foundation
 import StoreKit
 import os.log
 
-//public enum StripePurchaseFlowError: Swift.Error {
+// public enum StripePurchaseFlowError: Swift.Error {
 //    case noProductsFound
 //    case accountCreationFailed
-//}
+// }
 
-public protocol StripePurchaseFlowV1 {
+public protocol StripePurchaseFlow {
     func subscriptionOptions() async -> Result<SubscriptionOptions, StripePurchaseFlowError>
     func prepareSubscriptionPurchase(emailAccessToken: String?) async -> Result<PurchaseUpdate, StripePurchaseFlowError>
     func completeSubscriptionPurchase() async
 }
 
-public final class DefaultStripePurchaseFlowV1: StripePurchaseFlowV1 {
+public final class DefaultStripePurchaseFlow: StripePurchaseFlow {
     private let subscriptionEndpointService: SubscriptionEndpointService
     private let authEndpointService: AuthEndpointService
     private let accountManager: AccountManager
@@ -58,7 +58,7 @@ public final class DefaultStripePurchaseFlowV1: StripePurchaseFlowV1 {
         formatter.numberStyle = .currency
         formatter.locale = Locale(identifier: "en_US@currency=\(currency)")
 
-        let options: [SubscriptionOptionV1] = products.map {
+        let options: [SubscriptionOption] = products.map {
             var displayPrice = "\($0.price) \($0.currency)"
 
             if let price = Float($0.price), let formattedPrice = formatter.string(from: price as NSNumber) {
@@ -67,13 +67,13 @@ public final class DefaultStripePurchaseFlowV1: StripePurchaseFlowV1 {
 
             let cost = SubscriptionOptionCost(displayPrice: displayPrice, recurrence: $0.billingPeriod.lowercased())
 
-            return SubscriptionOptionV1(id: $0.productId,
+            return SubscriptionOption(id: $0.productId,
                                       cost: cost)
         }
 
-        let features = [SubscriptionFeatureV1(name: .networkProtection),
-                        SubscriptionFeatureV1(name: .dataBrokerProtection),
-                        SubscriptionFeatureV1(name: .identityTheftRestoration)]
+        let features = [SubscriptionFeature(name: .networkProtection),
+                        SubscriptionFeature(name: .dataBrokerProtection),
+                        SubscriptionFeature(name: .identityTheftRestoration)]
 
         return .success(SubscriptionOptions(platform: SubscriptionPlatformName.stripe,
                                               options: options,

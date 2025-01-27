@@ -20,11 +20,11 @@ import Foundation
 import StoreKit
 import os.log
 
-//public enum StoreError: Error {
+// public enum StoreError: Error {
 //    case failedVerification
-//}
+// }
 //
-//public enum StorePurchaseManagerError: Error {
+// public enum StorePurchaseManagerError: Error {
 //    case productNotFound
 //    case externalIDisNotAValidUUID
 //    case purchaseFailed
@@ -32,7 +32,7 @@ import os.log
 //    case transactionPendingAuthentication
 //    case purchaseCancelledByUser
 //    case unknownError
-//}
+// }
 
 public protocol StorePurchaseManager {
     typealias TransactionJWS = String
@@ -61,7 +61,7 @@ public protocol StorePurchaseManager {
     @MainActor func purchaseSubscription(with identifier: String, externalID: String) async -> Result<StorePurchaseManager.TransactionJWS, StorePurchaseManagerError>
 }
 
-//@available(macOS 12.0, iOS 15.0, *) typealias Transaction = StoreKit.Transaction
+// @available(macOS 12.0, iOS 15.0, *) typealias Transaction = StoreKit.Transaction
 
 @available(macOS 12.0, iOS 15.0, *)
 public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseManager {
@@ -300,10 +300,10 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
 #endif
         }()
 
-        let options: [SubscriptionOptionV1] = await [.init(from: monthly, withRecurrence: "monthly"),
+        let options: [SubscriptionOption] = await [.init(from: monthly, withRecurrence: "monthly"),
                        .init(from: yearly, withRecurrence: "yearly")]
 
-        let features: [SubscriptionFeatureV1] = await subscriptionFeatureMappingCache.subscriptionFeatures(for: monthly.id).compactMap { SubscriptionFeatureV1(name: $0) }
+        let features: [SubscriptionFeature] = await subscriptionFeatureMappingCache.subscriptionFeatures(for: monthly.id).compactMap { SubscriptionFeature(name: $0) }
 
         return SubscriptionOptions(platform: platform,
                                    options: options,
@@ -350,7 +350,7 @@ public final class DefaultStorePurchaseManager: ObservableObject, StorePurchaseM
 }
 
 @available(macOS 12.0, iOS 15.0, *)
-private extension SubscriptionOptionV1 {
+private extension SubscriptionOption {
 
     init(from product: any SubscriptionProduct, withRecurrence recurrence: String) async {
         var offer: SubscriptionOptionOffer?
@@ -367,7 +367,7 @@ private extension SubscriptionOptionV1 {
     }
 }
 
-//public extension UserDefaults {
+// public extension UserDefaults {
 //
 //    enum Constants {
 //        static let storefrontRegionOverrideKey = "Subscription.debug.storefrontRegionOverride"
@@ -398,4 +398,4 @@ private extension SubscriptionOptionV1 {
 //            }
 //        }
 //    }
-//}
+// }

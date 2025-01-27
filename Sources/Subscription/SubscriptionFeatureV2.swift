@@ -21,7 +21,7 @@ import Networking
 
 /// A `SubscriptionFeature` is **available** if the specific feature is `on` for the specific subscription. Feature availability if decided based on the country and the local and remote feature flags.
 /// A `SubscriptionFeature` is **availableForUser** if the logged in user has the required entitlements.
-public struct SubscriptionFeature: Equatable, CustomDebugStringConvertible {
+public struct SubscriptionFeatureV2: Equatable, CustomDebugStringConvertible {
     public var entitlement: SubscriptionEntitlement
     public var availableForUser: Bool
 

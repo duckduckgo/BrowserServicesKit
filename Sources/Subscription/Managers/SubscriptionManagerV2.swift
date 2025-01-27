@@ -93,7 +93,7 @@ public protocol SubscriptionManagerV2: SubscriptionTokenProvider {
     /// Get the current subscription features
     /// A feature is based on an entitlement and can be enabled or disabled
     /// A user cant have an entitlement without the feature, if a user is missing an entitlement the feature is disabled
-    func currentSubscriptionFeatures(forceRefresh: Bool) async -> [SubscriptionFeature]
+    func currentSubscriptionFeatures(forceRefresh: Bool) async -> [SubscriptionFeatureV2]
 
     /// True if the feature can be used by the user, false otherwise
     func isFeatureAvailableForUser(_ entitlement: SubscriptionEntitlement) async -> Bool
@@ -375,7 +375,7 @@ public final class DefaultSubscriptionManagerV2: SubscriptionManagerV2 {
     /// Returns the features available for the current subscription, a feature is enabled only if the user has the corresponding entitlement
     /// - Parameter forceRefresh: ignore subscription and token cache and re-download everything
     /// - Returns: An Array of SubscriptionFeature where each feature is enabled or disabled based on the user entitlements
-    public func currentSubscriptionFeatures(forceRefresh: Bool) async -> [SubscriptionFeature] {
+    public func currentSubscriptionFeatures(forceRefresh: Bool) async -> [SubscriptionFeatureV2] {
         guard isUserAuthenticated else { return [] }
 
         do {
@@ -388,7 +388,7 @@ public final class DefaultSubscriptionManagerV2: SubscriptionManagerV2 {
             // Filter out the features that are not available because the user doesn't have the right entitlements
             let result = availableFeatures.map({ featureEntitlement in
                 let enabled = userEntitlements.contains(featureEntitlement)
-                return SubscriptionFeature(entitlement: featureEntitlement, availableForUser: enabled)
+                return SubscriptionFeatureV2(entitlement: featureEntitlement, availableForUser: enabled)
             })
             Logger.subscription.log("""
 User entitlements: \(userEntitlements, privacy: .public)

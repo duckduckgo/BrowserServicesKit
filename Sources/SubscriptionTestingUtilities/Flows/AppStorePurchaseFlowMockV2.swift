@@ -1,5 +1,5 @@
 //
-//  AppStorePurchaseFlowMock.swift
+//  AppStorePurchaseFlowMockV2.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -19,16 +19,17 @@
 import Foundation
 import Subscription
 
-public final class AppStorePurchaseFlowMock: AppStorePurchaseFlow {
+public final class AppStorePurchaseFlowMockV2: AppStorePurchaseFlowV2 {
     public var purchaseSubscriptionResult: Result<TransactionJWS, AppStorePurchaseFlowError>?
     public var completeSubscriptionPurchaseResult: Result<PurchaseUpdate, AppStorePurchaseFlowError>?
 
     public init() { }
 
-    public func purchaseSubscription(with subscriptionIdentifier: String, emailAccessToken: String?) async -> Result<TransactionJWS, AppStorePurchaseFlowError> {
+    public func purchaseSubscription(with subscriptionIdentifier: String) async -> Result<TransactionJWS, AppStorePurchaseFlowError> {
         purchaseSubscriptionResult!
     }
 
+    @discardableResult
     public func completeSubscriptionPurchase(with transactionJWS: TransactionJWS, additionalParams: [String: String]?) async -> Result<PurchaseUpdate, AppStorePurchaseFlowError> {
         completeSubscriptionPurchaseResult!
     }

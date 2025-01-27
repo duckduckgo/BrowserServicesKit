@@ -26,13 +26,13 @@ import NetworkingTestingUtils
 final class DefaultAppStoreRestoreFlowTests: XCTestCase {
 
     private var sut: DefaultAppStoreRestoreFlowV2!
-    private var subscriptionManagerMock: SubscriptionManagerMock!
-    private var storePurchaseManagerMock: StorePurchaseManagerMock!
+    private var subscriptionManagerMock: SubscriptionManagerMockV2!
+    private var storePurchaseManagerMock: StorePurchaseManagerMockV2!
 
     override func setUp() {
         super.setUp()
-        subscriptionManagerMock = SubscriptionManagerMock()
-        storePurchaseManagerMock = StorePurchaseManagerMock()
+        subscriptionManagerMock = SubscriptionManagerMockV2()
+        storePurchaseManagerMock = StorePurchaseManagerMockV2()
         sut = DefaultAppStoreRestoreFlowV2(
             subscriptionManager: subscriptionManagerMock,
             storePurchaseManager: storePurchaseManagerMock

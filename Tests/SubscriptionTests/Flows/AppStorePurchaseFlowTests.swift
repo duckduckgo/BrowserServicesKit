@@ -26,15 +26,15 @@ import NetworkingTestingUtils
 final class DefaultAppStorePurchaseFlowTests: XCTestCase {
 
     private var sut: DefaultAppStorePurchaseFlowV2!
-    private var subscriptionManagerMock: SubscriptionManagerMock!
-    private var storePurchaseManagerMock: StorePurchaseManagerMock!
-    private var appStoreRestoreFlowMock: AppStoreRestoreFlowMock!
+    private var subscriptionManagerMock: SubscriptionManagerMockV2!
+    private var storePurchaseManagerMock: StorePurchaseManagerMockV2!
+    private var appStoreRestoreFlowMock: AppStoreRestoreFlowMockV2!
 
     override func setUp() {
         super.setUp()
-        subscriptionManagerMock = SubscriptionManagerMock()
-        storePurchaseManagerMock = StorePurchaseManagerMock()
-        appStoreRestoreFlowMock = AppStoreRestoreFlowMock()
+        subscriptionManagerMock = SubscriptionManagerMockV2()
+        storePurchaseManagerMock = StorePurchaseManagerMockV2()
+        appStoreRestoreFlowMock = AppStoreRestoreFlowMockV2()
         sut = DefaultAppStorePurchaseFlowV2(
             subscriptionManager: subscriptionManagerMock,
             storePurchaseManager: storePurchaseManagerMock,
@@ -176,16 +176,16 @@ final class AppStorePurchaseFlowTests: XCTestCase {
         static let transactionJWS = "dGhpcyBpcyBub3QgYSByZWFsIEFw(...)cCBTdG9yZSB0cmFuc2FjdGlvbiBKV1M="
     }
 
-     var mockSubscriptionManager: SubscriptionManagerMock!
-     var mockStorePurchaseManager: StorePurchaseManagerMock!
-     var mockAppStoreRestoreFlow: AppStoreRestoreFlowMock!
+     var mockSubscriptionManager: SubscriptionManagerMockV2!
+     var mockStorePurchaseManager: StorePurchaseManagerMockV2!
+     var mockAppStoreRestoreFlow: AppStoreRestoreFlowMockV2!
 
     var appStorePurchaseFlow: AppStorePurchaseFlowV2!
 
     override func setUpWithError() throws {
-        mockSubscriptionManager = SubscriptionManagerMock()
-        mockStorePurchaseManager = StorePurchaseManagerMock()
-        mockAppStoreRestoreFlow = AppStoreRestoreFlowMock()
+        mockSubscriptionManager = SubscriptionManagerMockV2()
+        mockStorePurchaseManager = StorePurchaseManagerMockV2()
+        mockAppStoreRestoreFlow = AppStoreRestoreFlowMockV2()
 
         appStorePurchaseFlow = DefaultAppStorePurchaseFlowV2(subscriptionManager: mockSubscriptionManager,
                                                            storePurchaseManager: mockStorePurchaseManager,

@@ -23,13 +23,13 @@ import SubscriptionTestingUtilities
 import NetworkingTestingUtils
 
 final class SubscriptionCookieManagerTests: XCTestCase {
-    var subscriptionManager: SubscriptionManagerMock!
+    var subscriptionManager: SubscriptionManagerMockV2!
 
     var cookieStore: HTTPCookieStore!
     var subscriptionCookieManager: SubscriptionCookieManagerV2!
 
     override func setUp() async throws {
-        subscriptionManager = SubscriptionManagerMock()
+        subscriptionManager = SubscriptionManagerMockV2()
         cookieStore = MockHTTPCookieStore()
 
         subscriptionCookieManager = SubscriptionCookieManagerV2(subscriptionManager: subscriptionManager,

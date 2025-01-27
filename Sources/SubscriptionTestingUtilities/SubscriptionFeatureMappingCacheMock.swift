@@ -18,18 +18,17 @@
 
 import Foundation
 import Subscription
-import Networking
 
-public final class SubscriptionFeatureMappingCacheMock: SubscriptionFeatureMappingCacheV2 {
+public final class SubscriptionFeatureMappingCacheMock: SubscriptionFeatureMappingCache {
 
     public var didCallSubscriptionFeatures = false
     public var lastCalledSubscriptionId: String?
 
-    public var mapping: [String: [SubscriptionEntitlement]] = [:]
+    public var mapping: [String: [Entitlement.ProductName]] = [:]
 
     public init() { }
 
-    public func subscriptionFeatures(for subscriptionIdentifier: String) async -> [SubscriptionEntitlement] {
+    public func subscriptionFeatures(for subscriptionIdentifier: String) async -> [Entitlement.ProductName] {
         didCallSubscriptionFeatures = true
         lastCalledSubscriptionId = subscriptionIdentifier
         return mapping[subscriptionIdentifier] ?? []

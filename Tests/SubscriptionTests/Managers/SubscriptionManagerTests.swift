@@ -26,15 +26,15 @@ class SubscriptionManagerTests: XCTestCase {
 
     var subscriptionManager: DefaultSubscriptionManagerV2!
     var mockOAuthClient: MockOAuthClient!
-    var mockSubscriptionEndpointService: SubscriptionEndpointServiceMock!
-    var mockStorePurchaseManager: StorePurchaseManagerMock!
+    var mockSubscriptionEndpointService: SubscriptionEndpointServiceMockV2!
+    var mockStorePurchaseManager: StorePurchaseManagerMockV2!
 
     override func setUp() {
         super.setUp()
 
         mockOAuthClient = MockOAuthClient()
-        mockSubscriptionEndpointService = SubscriptionEndpointServiceMock()
-        mockStorePurchaseManager = StorePurchaseManagerMock()
+        mockSubscriptionEndpointService = SubscriptionEndpointServiceMockV2()
+        mockStorePurchaseManager = StorePurchaseManagerMockV2()
 
         subscriptionManager = DefaultSubscriptionManagerV2(
             storePurchaseManager: mockStorePurchaseManager,
