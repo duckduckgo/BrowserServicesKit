@@ -70,5 +70,14 @@ extension APIRequestV2 {
                 return false
             }
         }
+
+        public var isTimedOut: Bool {
+            if case .urlSession(URLError.timedOut) = self {
+                true
+            } else {
+                false
+            }
+        }
     }
+
 }

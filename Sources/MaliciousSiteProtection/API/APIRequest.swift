@@ -50,7 +50,7 @@ public extension APIRequestType {
         let threatKind: ThreatKind
         let revision: Int?
 
-        init(threatKind: ThreatKind, revision: Int?) {
+        public init(threatKind: ThreatKind, revision: Int?) {
             self.threatKind = threatKind
             self.revision = revision
         }
@@ -74,7 +74,7 @@ public extension APIRequestType {
         let threatKind: ThreatKind
         let revision: Int?
 
-        init(threatKind: ThreatKind, revision: Int?) {
+        public init(threatKind: ThreatKind, revision: Int?) {
             self.threatKind = threatKind
             self.revision = revision
         }
@@ -97,11 +97,15 @@ public extension APIRequestType {
 
         let hashPrefix: String
 
+        public init(hashPrefix: String) {
+            self.hashPrefix = hashPrefix
+        }
+
         var requestType: APIRequestType {
             .matches(self)
         }
 
-        var defaultTimeout: TimeInterval? { 10 }
+        var defaultTimeout: TimeInterval? { 5 }
     }
 }
 /// extension to call generic `load(_: some Request)` method like this: `load(.matches(…))`

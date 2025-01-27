@@ -22,7 +22,13 @@ import os.log
 public protocol APIService {
     typealias AuthorizationRefresherCallback = ((_: APIRequestV2) async throws -> String)
     var authorizationRefresherCallback: AuthorizationRefresherCallback? { get set }
-    func fetch(request: APIRequestV2) async throws -> APIResponseV2
+    func fetch(request: APIRequestV2, authAlreadyRefreshed: Bool, failureRetryCount: Int) async throws -> APIResponseV2
+}
+
+extension APIService {
+    public func fetch(request: APIRequestV2) async throws -> APIResponseV2 {
+        return try await fetch(request: request, authAlreadyRefreshed: false, failureRetryCount: 0)
+    }
 }
 
 public class DefaultAPIService: APIService {
@@ -37,7 +43,8 @@ public class DefaultAPIService: APIService {
     /// Fetch an API Request
     /// - Parameter request: A configured APIRequest
     /// - Returns: An `APIResponseV2` containing the body data and the HTTPURLResponse
-    public func fetch(request: APIRequestV2) async throws -> APIResponseV2 {
+    public func fetch(request: APIRequestV2, authAlreadyRefreshed: Bool = false, failureRetryCount: Int = 0) async throws -> APIResponseV2 {
+        var request = request
 
         Logger.networking.debug("Fetching: \(request.debugDescription)")
         let (data, response) = try await fetch(for: request.urlRequest)
@@ -59,31 +66,29 @@ public class DefaultAPIService: APIService {
         // First time the request is executed and the response is `.unauthorized` we try to refresh the authentication token
         if responseHTTPStatus == .unauthorized,
            request.isAuthenticated == true,
-           request.authRefreshRetryCount == 0,
+           !authAlreadyRefreshed,
            let authorizationRefresherCallback {
-            request.authRefreshRetryCount += 1
 
             // Ask to refresh the token
             let refreshedToken = try await authorizationRefresherCallback(request)
             request.updateAuthorizationHeader(refreshedToken)
 
             // Try again
-            return try await fetch(request: request)
+            return try await fetch(request: request, authAlreadyRefreshed: true, failureRetryCount: failureRetryCount)
         }
 
         // It's a failure and the request must be retried
         if  let retryPolicy = request.retryPolicy,
             responseHTTPStatus.isFailure,
             responseHTTPStatus != .unauthorized, // No retries needed is unuathorised
-            request.failureRetryCount < retryPolicy.maxRetries {
-            request.failureRetryCount += 1
+            failureRetryCount < retryPolicy.maxRetries {
 
             if retryPolicy.delay > 0 {
                 try? await Task.sleep(interval: retryPolicy.delay)
             }
 
             // Try again
-            return try await fetch(request: request)
+            return try await fetch(request: request, authAlreadyRefreshed: authAlreadyRefreshed, failureRetryCount: failureRetryCount + 1)
         }
 
         // It's not a failure, we check the constraints

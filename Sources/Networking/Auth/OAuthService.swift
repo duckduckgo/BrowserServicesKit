@@ -180,7 +180,7 @@ public struct DefaultOAuthService: OAuthService {
         let method = OAuthLoginMethodSignature(signature: signature)
         let request = OAuthRequest.login(baseURL: baseURL, authSessionID: authSessionID, method: method)
         let response = try await fetch(request: request)
-        //Example: "com.duckduckgo:/authcb?code=eud8rNxyq2lhN4VFwQ7CAcir80dFBRIE4YpPY0gqeunTw4j6SoWkN4AA2c0TNO1sohqe84zubUtERkLLl94Qam"
+        // Example: "com.duckduckgo:/authcb?code=eud8rNxyq2lhN4VFwQ7CAcir80dFBRIE4YpPY0gqeunTw4j6SoWkN4AA2c0TNO1sohqe84zubUtERkLLl94Qam"
         guard let locationHeaderValue = try? extract(header: HTTPHeaderKey.location, from: response.httpResponse),
               let redirectURL = URL(string: locationHeaderValue),
               let authCode = redirectURL.queryParameters()?["code"] else {
