@@ -147,8 +147,6 @@ extension Subscription {
             return "inactive"
         case .expired:
             return "expired"
-        case .trial:
-            return "trial"
         case .unknown:
             return "unknown"
         }
