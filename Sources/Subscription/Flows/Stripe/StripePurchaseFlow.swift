@@ -57,7 +57,7 @@ public final class DefaultStripePurchaseFlow: StripePurchaseFlow {
             var displayPrice = "\($0.price) \($0.currency)"
 
             if let price = Float($0.price), let formattedPrice = formatter.string(from: price as NSNumber) {
-                 displayPrice = formattedPrice
+                displayPrice = formattedPrice
             }
 
             let cost = SubscriptionOptionCost(displayPrice: displayPrice, recurrence: $0.billingPeriod.lowercased())
@@ -71,8 +71,8 @@ public final class DefaultStripePurchaseFlow: StripePurchaseFlow {
                         SubscriptionFeature(name: .identityTheftRestoration)]
 
         return .success(SubscriptionOptions(platform: SubscriptionPlatformName.stripe,
-                                              options: options,
-                                              features: features))
+                                            options: options,
+                                            features: features))
     }
 
     public func prepareSubscriptionPurchase(emailAccessToken: String?) async -> Result<PurchaseUpdate, StripePurchaseFlowError> {
