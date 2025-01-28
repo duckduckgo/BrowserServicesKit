@@ -78,11 +78,8 @@ public struct UpdateManager: InternalUpdateManaging {
         do {
             let request = DataKey.DataSet.APIRequest(threatKind: key.threatKind, revision: oldRevision)
             changeSet = try await apiClient.load(request)
-        } catch APIRequestV2.Error.urlSession(let error as URLError) {
-            Logger.updateManager.error("error fetching \(type(of: key)).\(key.threatKind): \(error)")
-            if dataSet.revision == 0 && error.code == .notConnectedToInternet {
-                pixelHandler.fireFailedToDownloadInitialDatasets(threat: key.threatKind, datasetType: key.dataType.kind)
-            }
+        } catch APIRequestV2.Error.urlSession(URLError.notConnectedToInternet) where dataSet.revision == 0 {
+            pixelHandler.fireFailedToDownloadInitialDatasets(threat: key.threatKind, datasetType: key.dataType.kind)
             return false
         } catch {
             Logger.updateManager.error("error fetching \(type(of: key)).\(key.threatKind): \(error)")
@@ -136,7 +133,7 @@ public struct UpdateManager: InternalUpdateManaging {
         Task {
             // run update jobs in background for every data type
             await withTaskGroup(of: Bool.self) { group in
-                for dataType in DataManager.StoredDataType.dataType(forKind: datasetType) {
+                for dataType in DataManager.StoredDataType.dataTypes(forKind: datasetType) {
                     group.addTask {
                         await self.updateData(for: dataType.dataKey)
                     }
@@ -155,15 +152,14 @@ public struct UpdateManager: InternalUpdateManaging {
         }
     }
 
-    private func saveLastUpdateDate(for kind: DataManager.StoredDataType.Kind) async {
-        await MainActor.run {
-            let date = Date()
-            switch kind {
-            case .hashPrefixSet:
-                updateInfoStorage.lastHashPrefixSetsUpdateDate = date
-            case .filterSet:
-                updateInfoStorage.lastFilterSetsUpdateDate = date
-            }
+    @MainActor
+    private func saveLastUpdateDate(for kind: DataManager.StoredDataType.Kind) {
+        let date = Date()
+        switch kind {
+        case .hashPrefixSet:
+            updateInfoStorage.lastHashPrefixSetsUpdateDate = date
+        case .filterSet:
+            updateInfoStorage.lastFilterSetsUpdateDate = date
         }
     }
 
