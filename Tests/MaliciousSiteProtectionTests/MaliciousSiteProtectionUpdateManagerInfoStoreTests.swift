@@ -27,13 +27,13 @@ class MaliciousSiteProtectionUpdateManagerInfoStoreTests: XCTestCase {
 
     override func setUpWithError() throws {
         try super.setUpWithError()
-        userDefaults = UserDefaults(suiteName: #file)
+        userDefaults = UserDefaults(suiteName: String(describing: Self.self))
         sut = UpdateManagerInfoStore(userDefaults: userDefaults)
         userDefaults.removePersistentDomain(forName: #file)
     }
 
     override func tearDownWithError() throws {
-        userDefaults.removePersistentDomain(forName: #file)
+        userDefaults.removePersistentDomain(forName: String(describing: Self.self))
         userDefaults = nil
         sut = nil
         try super.tearDownWithError()

@@ -40,9 +40,12 @@ actor MockMaliciousSiteProtectionDataManager: MaliciousSiteProtection.DataManagi
         return store[key.dataType] as? DataKey.DataSet ?? .init(revision: 0, items: [])
     }
 
-    func store<DataKey>(_ dataSet: DataKey.DataSet, for key: DataKey) async -> Bool where DataKey: MaliciousSiteProtection.MaliciousSiteDataKey {
-        store[key.dataType] = dataSet
-        return storeDatasetSuccess
+    func store<DataKey>(_ dataSet: DataKey.DataSet, for key: DataKey) async throws where DataKey: MaliciousSiteProtection.MaliciousSiteDataKey {
+        if storeDatasetSuccess {
+            store[key.dataType] = dataSet
+        } else {
+            throw NSError(domain: "com.au.duckduckgo.MockMaliciousSiteProtectionDataManager", code: 0, userInfo: nil)
+        }
     }
 
 }

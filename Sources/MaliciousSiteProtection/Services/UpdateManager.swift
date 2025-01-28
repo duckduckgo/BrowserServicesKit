@@ -27,12 +27,11 @@ public protocol MaliciousSiteUpdateManaging {
     var lastFilterSetUpdateDate: Date { get }
 
     func startPeriodicUpdates() -> Task<Void, Error>
-    func updateData(datasetType: DataManager.StoredDataType.Kind) -> Task<Void, any Error>
+    func updateData(datasetType: DataManager.StoredDataType.Kind) async -> Task<Void, Error>
 }
 
 protocol InternalUpdateManaging: MaliciousSiteUpdateManaging {
-    @discardableResult
-    func updateData(for key: some MaliciousSiteDataKey) async -> Bool
+    func updateData(for key: some MaliciousSiteDataKey) async throws
 }
 
 public struct UpdateManager: InternalUpdateManaging {
@@ -67,8 +66,7 @@ public struct UpdateManager: InternalUpdateManaging {
         self.pixelHandler = pixelHandler
     }
 
-    @discardableResult
-    func updateData<DataKey: MaliciousSiteDataKey>(for key: DataKey) async -> Bool {
+    func updateData<DataKey: MaliciousSiteDataKey>(for key: DataKey) async throws {
         // load currently stored data set
         var dataSet = await dataManager.dataSet(for: key)
         let oldRevision = dataSet.revision
@@ -78,31 +76,33 @@ public struct UpdateManager: InternalUpdateManaging {
         do {
             let request = DataKey.DataSet.APIRequest(threatKind: key.threatKind, revision: oldRevision)
             changeSet = try await apiClient.load(request)
-        } catch APIRequestV2.Error.urlSession(URLError.notConnectedToInternet) where dataSet.revision == 0 {
-            pixelHandler.fireFailedToDownloadInitialDatasets(threat: key.threatKind, datasetType: key.dataType.kind)
-            return false
         } catch {
             Logger.updateManager.error("error fetching \(type(of: key)).\(key.threatKind): \(error)")
-            return false
+
+            // Fire a Pixel if it fails to load initial datasets
+            if case APIRequestV2.Error.urlSession(URLError.notConnectedToInternet) = error, dataSet.revision == 0 {
+                pixelHandler.fireFailedToDownloadInitialDatasets(threat: key.threatKind, datasetType: key.dataType.kind)
+            }
+
+            throw error
         }
 
         guard !changeSet.isEmpty || changeSet.revision != dataSet.revision else {
             Logger.updateManager.debug("no changes to \(type(of: key)).\(key.threatKind)")
-            // If change set is empty or revision is the same we consider a successfull update in terms of last refresh date.
-            return true
+            return
         }
 
         // apply changes
         dataSet.apply(changeSet)
 
         // store back
-        guard await self.dataManager.store(dataSet, for: key) else {
+        do {
+            try await self.dataManager.store(dataSet, for: key)
+            Logger.updateManager.debug("\(type(of: key)).\(key.threatKind) updated from rev.\(oldRevision) to rev.\(dataSet.revision)")
+        } catch {
             Logger.updateManager.error("\(type(of: key)).\(key.threatKind) failed to be saved")
-            return false
+            throw error
         }
-        Logger.updateManager.debug("\(type(of: key)).\(key.threatKind) updated from rev.\(oldRevision) to rev.\(dataSet.revision)")
-
-        return true
     }
 
     public func startPeriodicUpdates() -> Task<Void, any Error> {
@@ -120,7 +120,11 @@ public struct UpdateManager: InternalUpdateManaging {
                     group.addTask {
                         // run periodically until the parent task is cancelled
                         try await performPeriodicJob(interval: updateInterval, sleeper: sleeper) {
-                            await self.updateData(for: dataType.dataKey)
+                            do {
+                                try await self.updateData(for: dataType.dataKey)
+                            } catch {
+                                Logger.updateManager.warning("Failed periodic update for kind: \(dataType.dataKey.threatKind). Error: \(error)")
+                            }
                         }
                     }
                 }
@@ -129,13 +133,19 @@ public struct UpdateManager: InternalUpdateManaging {
         }
     }
 
-    public func updateData(datasetType: DataManager.StoredDataType.Kind) -> Task<Void, any Error> {
+    public func updateData(datasetType: DataManager.StoredDataType.Kind) async -> Task<Void, any Error> {
         Task {
             // run update jobs in background for every data type
             await withTaskGroup(of: Bool.self) { group in
                 for dataType in DataManager.StoredDataType.dataTypes(forKind: datasetType) {
                     group.addTask {
-                        await self.updateData(for: dataType.dataKey)
+                        do {
+                            try await self.updateData(for: dataType.dataKey)
+                            return true
+                        } catch {
+                            Logger.updateManager.error("Failed to update dataset type: \(datasetType.rawValue) for kind: \(dataType.dataKey.threatKind). Error: \(error)")
+                            return false
+                        }
                     }
                 }
 
@@ -154,6 +164,8 @@ public struct UpdateManager: InternalUpdateManaging {
 
     @MainActor
     private func saveLastUpdateDate(for kind: DataManager.StoredDataType.Kind) {
+        Logger.updateManager.debug("Saving last update date for kind: \(kind.rawValue)")
+
         let date = Date()
         switch kind {
         case .hashPrefixSet:

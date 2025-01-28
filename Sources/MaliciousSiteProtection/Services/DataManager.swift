@@ -21,7 +21,7 @@ import os
 
 protocol DataManaging {
     func dataSet<DataKey: MaliciousSiteDataKey>(for key: DataKey) async -> DataKey.DataSet
-    func store<DataKey: MaliciousSiteDataKey>(_ dataSet: DataKey.DataSet, for key: DataKey) async -> Bool
+    func store<DataKey: MaliciousSiteDataKey>(_ dataSet: DataKey.DataSet, for key: DataKey) async throws
 }
 
 public actor DataManager: DataManaging {
@@ -90,7 +90,7 @@ public actor DataManager: DataManaging {
         return storedDataSet
     }
 
-    func store<DataKey: MaliciousSiteDataKey>(_ dataSet: DataKey.DataSet, for key: DataKey) -> Bool {
+    func store<DataKey: MaliciousSiteDataKey>(_ dataSet: DataKey.DataSet, for key: DataKey) throws {
         let dataType = key.dataType
         let fileName = fileNameProvider(dataType)
         self.store[dataType] = dataSet
@@ -100,11 +100,10 @@ public actor DataManager: DataManaging {
             data = try JSONEncoder().encode(dataSet)
         } catch {
             Logger.dataManager.error("Error encoding \(fileName): \(error.localizedDescription)")
-            assertionFailure("Failed to store data to \(fileName): \(error)")
-            return false
+            throw error
         }
 
-        return fileStore.write(data: data, to: fileName)
+        try fileStore.write(data: data, to: fileName)
     }
 
 }

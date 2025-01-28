@@ -42,10 +42,10 @@ class MaliciousSiteDetectorTests: XCTestCase {
         detector = nil
     }
 
-    func testIsMaliciousWithLocalFilterHit() async {
+    func testIsMaliciousWithLocalFilterHit() async throws {
         let filter = Filter(hash: "255a8a793097aeea1f06a19c08cde28db0eb34c660c6e4e7480c9525d034b16d", regex: ".*malicious.*")
-        _ = await mockDataManager.store(FilterDictionary(revision: 0, items: [filter]), for: .filterSet(threatKind: .phishing))
-        _ = await mockDataManager.store(HashPrefixSet(revision: 0, items: ["255a8a79"]), for: .hashPrefixes(threatKind: .phishing))
+        try await mockDataManager.store(FilterDictionary(revision: 0, items: [filter]), for: .filterSet(threatKind: .phishing))
+        try await mockDataManager.store(HashPrefixSet(revision: 0, items: ["255a8a79"]), for: .hashPrefixes(threatKind: .phishing))
 
         let url = URL(string: "https://malicious.com/")!
 
@@ -54,9 +54,9 @@ class MaliciousSiteDetectorTests: XCTestCase {
         XCTAssertEqual(result, .phishing)
     }
 
-    func testIsMaliciousWithApiMatch() async {
-        _ = await mockDataManager.store(FilterDictionary(revision: 0, items: []), for: .filterSet(threatKind: .phishing))
-        _ = await mockDataManager.store(HashPrefixSet(revision: 0, items: ["a379a6f6"]), for: .hashPrefixes(threatKind: .phishing))
+    func testIsMaliciousWithApiMatch() async throws {
+        try await mockDataManager.store(FilterDictionary(revision: 0, items: []), for: .filterSet(threatKind: .phishing))
+        try await mockDataManager.store(HashPrefixSet(revision: 0, items: ["a379a6f6"]), for: .hashPrefixes(threatKind: .phishing))
 
         let url = URL(string: "https://example.com/mal")!
 
@@ -65,10 +65,10 @@ class MaliciousSiteDetectorTests: XCTestCase {
         XCTAssertEqual(result, .phishing)
     }
 
-    func testIsMaliciousWithHashPrefixMatch() async {
+    func testIsMaliciousWithHashPrefixMatch() async throws {
         let filter = Filter(hash: "notamatch", regex: ".*malicious.*")
-        _ = await mockDataManager.store(FilterDictionary(revision: 0, items: [filter]), for: .filterSet(threatKind: .phishing))
-        _ = await mockDataManager.store(HashPrefixSet(revision: 0, items: ["4c64eb24" /* matches safe.com */]), for: .hashPrefixes(threatKind: .phishing))
+        try await mockDataManager.store(FilterDictionary(revision: 0, items: [filter]), for: .filterSet(threatKind: .phishing))
+        try await mockDataManager.store(HashPrefixSet(revision: 0, items: ["4c64eb24" /* matches safe.com */]), for: .hashPrefixes(threatKind: .phishing))
 
         let url = URL(string: "https://safe.com")!
 
@@ -77,11 +77,11 @@ class MaliciousSiteDetectorTests: XCTestCase {
         XCTAssertNil(result)
     }
 
-    func testIsMaliciousWithFullHashMatch() async {
+    func testIsMaliciousWithFullHashMatch() async throws {
         // 4c64eb2468bcd3e113b37167e6b819aeccf550f974a6082ef17fb74ca68e823b
         let filter = Filter(hash: "4c64eb2468bcd3e113b37167e6b819aeccf550f974a6082ef17fb74ca68e823b", regex: "https://safe.com/maliciousURI")
-        _ = await mockDataManager.store(FilterDictionary(revision: 0, items: [filter]), for: .filterSet(threatKind: .phishing))
-        _ = await mockDataManager.store(HashPrefixSet(revision: 0, items: ["4c64eb24"]), for: .hashPrefixes(threatKind: .phishing))
+        try await mockDataManager.store(FilterDictionary(revision: 0, items: [filter]), for: .filterSet(threatKind: .phishing))
+        try await mockDataManager.store(HashPrefixSet(revision: 0, items: ["4c64eb24"]), for: .hashPrefixes(threatKind: .phishing))
 
         let url = URL(string: "https://safe.com")!
 
@@ -90,10 +90,10 @@ class MaliciousSiteDetectorTests: XCTestCase {
         XCTAssertNil(result)
     }
 
-    func testIsMaliciousWithNoHashPrefixMatch() async {
+    func testIsMaliciousWithNoHashPrefixMatch() async throws {
         let filter = Filter(hash: "testHash", regex: ".*malicious.*")
-        _ = await mockDataManager.store(FilterDictionary(revision: 0, items: [filter]), for: .filterSet(threatKind: .phishing))
-        _ = await mockDataManager.store(HashPrefixSet(revision: 0, items: ["testPrefix"]), for: .hashPrefixes(threatKind: .phishing))
+        try await mockDataManager.store(FilterDictionary(revision: 0, items: [filter]), for: .filterSet(threatKind: .phishing))
+        try await mockDataManager.store(HashPrefixSet(revision: 0, items: ["testPrefix"]), for: .hashPrefixes(threatKind: .phishing))
 
         let url = URL(string: "https://safe.com")!
 
@@ -102,7 +102,7 @@ class MaliciousSiteDetectorTests: XCTestCase {
         XCTAssertNil(result)
     }
 
-    func testWhenMatchesApiFailsThenEventIsFired() async {
+    func testWhenMatchesApiFailsThenEventIsFired() async throws {
         let e = expectation(description: "matchesForHashPrefix called")
         mockAPIClient.matchesForHashPrefix = { _ in
             let error = Networking.APIRequestV2.Error.urlSession(URLError(.badServerResponse))
@@ -111,7 +111,7 @@ class MaliciousSiteDetectorTests: XCTestCase {
             throw error
         }
 
-        await mockDataManager.store(HashPrefixSet(revision: 0, items: ["255a8a79"]), for: .hashPrefixes(threatKind: .phishing))
+        try await mockDataManager.store(HashPrefixSet(revision: 0, items: ["255a8a79"]), for: .hashPrefixes(threatKind: .phishing))
 
         let url = URL(string: "https://malicious.com/")!
         let result = await detector.evaluate(url)
@@ -130,7 +130,7 @@ class MaliciousSiteDetectorTests: XCTestCase {
         }
     }
 
-    func testWhenMatchesApiFailsWithTimeoutThenEventIsFired() async {
+    func testWhenMatchesApiFailsWithTimeoutThenEventIsFired() async throws {
         let e = expectation(description: "matchesForHashPrefix called")
         mockAPIClient.matchesForHashPrefix = { _ in
             let error = Networking.APIRequestV2.Error.urlSession(URLError(.timedOut))
@@ -139,7 +139,7 @@ class MaliciousSiteDetectorTests: XCTestCase {
             throw error
         }
 
-        await mockDataManager.store(HashPrefixSet(revision: 0, items: ["255a8a79"]), for: .hashPrefixes(threatKind: .phishing))
+        try await mockDataManager.store(HashPrefixSet(revision: 0, items: ["255a8a79"]), for: .hashPrefixes(threatKind: .phishing))
 
         let url = URL(string: "https://malicious.com/")!
         let result = await detector.evaluate(url)
