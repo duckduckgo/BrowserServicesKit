@@ -268,25 +268,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         keyStore.resetCurrentKeyPair()
     }
 
-    private var isKeyExpired: Bool {
-        guard let currentExpirationDate = keyStore.currentExpirationDate else {
-            return true
-        }
-
-        return currentExpirationDate <= Date()
-    }
-
-    private func rekeyIfExpired() async {
-        Logger.networkProtectionKeyManagement.log("Checking if rekey is necessary...")
-
-        guard isKeyExpired else {
-            Logger.networkProtectionKeyManagement.log("The key is not expired")
-            return
-        }
-
-        try? await rekey()
-    }
-
     private func rekey() async throws {
         providerEvents.fire(.userBecameActive)
 
@@ -320,35 +301,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
     }
 
-    private func setKeyValidity(_ interval: TimeInterval?) {
-        if let interval {
-            let firstExpirationDate = Date().addingTimeInterval(interval)
-            Logger.networkProtectionKeyManagement.log("Setting key validity interval to \(String(describing: interval), privacy: .public) seconds (next expiration date \(String(describing: firstExpirationDate), privacy: .public))")
-            settings.registrationKeyValidity = .custom(interval)
-        } else {
-            Logger.networkProtectionKeyManagement.log("Resetting key validity interval")
-            settings.registrationKeyValidity = .automatic
-        }
-
-        keyStore.setValidityInterval(interval)
-    }
-
     // MARK: - Bandwidth Analyzer
-
-    private func updateBandwidthAnalyzerAndRekeyIfExpired() {
-        Task {
-            await updateBandwidthAnalyzer()
-
-            // This provides a more frequent active user pixel check
-            providerEvents.fire(.userBecameActive)
-
-            guard self.bandwidthAnalyzer.isConnectionIdle() else {
-                return
-            }
-
-            await rekeyIfExpired()
-        }
-    }
 
     /// Updates the bandwidth analyzer with the latest data from the WireGuard Adapter
     ///
@@ -367,6 +320,21 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private var isConnectionTesterEnabled: Bool = true
 
     @MainActor
+    private lazy var keyExpirationTester: KeyExpirationTester = {
+        KeyExpirationTester(keyStore: keyStore, settings: settings) { @MainActor [weak self] in
+            guard let self else { return false }
+
+            // This provides a more frequent active user pixel check
+            providerEvents.fire(.userBecameActive)
+
+            await updateBandwidthAnalyzer()
+            return bandwidthAnalyzer.isConnectionIdle()
+        } rekey: { @MainActor [weak self] in
+            try await self?.rekey()
+        }
+    }()
+
+    @MainActor
     private lazy var connectionTester: NetworkProtectionConnectionTester = {
         NetworkProtectionConnectionTester(timerQueue: timerQueue) { @MainActor [weak self] result in
             guard let self else { return }
@@ -376,7 +344,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             switch result {
             case .connected:
                 self.tunnelHealth.isHavingConnectivityIssues = false
-                self.updateBandwidthAnalyzerAndRekeyIfExpired()
 
             case .reconnected(let failureCount):
                 providerEvents.fire(
@@ -392,7 +359,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 }
 
                 self.tunnelHealth.isHavingConnectivityIssues = false
-                self.updateBandwidthAnalyzerAndRekeyIfExpired()
 
             case .disconnected(let failureCount):
                 if failureCount == 1 {
@@ -534,11 +500,15 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
     private func loadKeyValidity(from options: StartupOptions) {
         switch options.keyValidity {
         case .set(let validity):
-            setKeyValidity(validity)
+            Task { @MainActor in
+                await keyExpirationTester.setKeyValidity(validity)
+            }
         case .useExisting:
             break
         case .reset:
-            setKeyValidity(nil)
+            Task { @MainActor in
+                await keyExpirationTester.setKeyValidity(nil)
+            }
         }
     }
 
@@ -821,7 +791,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                         }
 #endif
                     } catch {
-                        self.cancelTunnelWithError(error)
+                        Logger.networkProtection.log("Connection Tester failed to start... will run without it: \(error, privacy: .public)")
                         return
                     }
                 }
@@ -1198,7 +1168,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     private func handleExpireRegistrationKey(completionHandler: ((Data?) -> Void)? = nil) {
         Task {
-            try? await rekey()
+            keyStore.currentExpirationDate = Date()
+            await keyExpirationTester.rekeyIfExpired()
             completionHandler?(nil)
         }
     }
@@ -1311,7 +1282,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     private func handleSetKeyValidity(_ keyValidity: TimeInterval?, completionHandler: ((Data?) -> Void)? = nil) {
         Task {
-            setKeyValidity(keyValidity)
+            await keyExpirationTester.setKeyValidity(keyValidity)
             completionHandler?(nil)
         }
     }
@@ -1593,6 +1564,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         await startLatencyMonitor()
         await startEntitlementMonitor()
         await startServerStatusMonitor()
+        await keyExpirationTester.start(testImmediately: testImmediately)
 
         do {
             try await startConnectionTester(testImmediately: testImmediately)

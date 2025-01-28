@@ -22,6 +22,10 @@ import os.log
 
 public protocol NetworkProtectionKeyStore {
 
+    /// Obtain the current expiration date
+    ///
+    var currentExpirationDate: Date? { get }
+
     /// Obtain the current `KeyPair`.
     ///
     func currentKeyPair() -> KeyPair?
@@ -145,7 +149,7 @@ public final class NetworkProtectionKeychainKeyStore: NetworkProtectionKeyStore 
 
     // MARK: - UserDefaults
 
-    var currentExpirationDate: Date? {
+    public var currentExpirationDate: Date? {
         get {
             return userDefaults.object(forKey: UserDefaultKeys.expirationDate) as? Date
         }
