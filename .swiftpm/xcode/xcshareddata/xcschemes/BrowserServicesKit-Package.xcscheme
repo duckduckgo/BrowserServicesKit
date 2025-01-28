@@ -567,6 +567,20 @@
                ReferencedContainer = "container:">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry
+            buildForTesting = "YES"
+            buildForRunning = "YES"
+            buildForProfiling = "YES"
+            buildForArchiving = "YES"
+            buildForAnalyzing = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "Statistics"
+               BuildableName = "Statistics"
+               BlueprintName = "Statistics"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
@@ -863,6 +877,16 @@
                BlueprintIdentifier = "PixelExperimentKitTests"
                BuildableName = "PixelExperimentKitTests"
                BlueprintName = "PixelExperimentKitTests"
+               ReferencedContainer = "container:">
+            </BuildableReference>
+         </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "StatisticsTests"
+               BuildableName = "StatisticsTests"
+               BlueprintName = "StatisticsTests"
                ReferencedContainer = "container:">
             </BuildableReference>
          </TestableReference>
