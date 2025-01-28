@@ -67,6 +67,7 @@ public enum PrivacyFeature: String {
     case forceOldAppDelegate
     case htmlNewTabPage
     case tabManager
+    case webViewStateRestoration
 }
 
 /// An abstraction to be implemented by any "subfeature" of a given `PrivacyConfiguration` feature.
@@ -161,6 +162,7 @@ public enum SyncSubfeature: String, PrivacySubfeature {
     case level1AllowDataSyncing
     case level2AllowSetupFlows
     case level3AllowCreateAccount
+    case seamlessAccountSwitching
 }
 
 public enum AutoconsentSubfeature: String, PrivacySubfeature {
@@ -225,4 +227,9 @@ public enum ContentBlockingSubfeature: String, Equatable, PrivacySubfeature {
     case tdsNextExperimentOct25
     case tdsNextExperimentNov25
     case tdsNextExperimentDec25
+}
+
+public enum MaliciousSiteProtectionSubfeature: String, PrivacySubfeature {
+    public var parent: PrivacyFeature { .maliciousSiteProtection }
+    case onByDefault // Rollout feature
 }

@@ -17,7 +17,7 @@
 //
 
 import XCTest
-import TestUtils
+import PersistenceTestingUtils
 @testable import DDGSync
 
 class SyncDailyStatsTests: XCTestCase {

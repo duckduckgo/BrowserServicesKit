@@ -30,7 +30,7 @@ public final class TrackerDataURLOverrider: TrackerDataURLProviding {
     var featureFlagger: FeatureFlagger
 
     public enum Constants {
-        public static let baseTdsURLString = "https://staticcdn.duckduckgo.com/trackerblocking/"
+        public static let baseTDSURLString = "https://staticcdn.duckduckgo.com/trackerblocking/"
     }
 
     public init (privacyConfigurationManager: PrivacyConfigurationManaging,
@@ -40,8 +40,8 @@ public final class TrackerDataURLOverrider: TrackerDataURLProviding {
     }
 
     public var trackerDataURL: URL? {
-        for experimentType in TdsExperimentType.allCases {
-            if let cohort = featureFlagger.getCohortIfEnabled(for: experimentType.experiment) as? TdsNextExperimentFlag.Cohort,
+        for experimentType in TDSExperimentType.allCases {
+            if let cohort = featureFlagger.getCohortIfEnabled(for: experimentType.experiment) as? TDSNextExperimentFlag.Cohort,
                let url = trackerDataURL(for: experimentType.subfeature, cohort: cohort) {
                 return url
             }
@@ -49,13 +49,13 @@ public final class TrackerDataURLOverrider: TrackerDataURLProviding {
         return nil
     }
 
-    private func trackerDataURL(for subfeature: any PrivacySubfeature, cohort: TdsNextExperimentFlag.Cohort) -> URL? {
+    private func trackerDataURL(for subfeature: any PrivacySubfeature, cohort: TDSNextExperimentFlag.Cohort) -> URL? {
         guard let settings = privacyConfigurationManager.privacyConfig.settings(for: subfeature),
               let jsonData = settings.data(using: .utf8) else { return nil }
         do {
             if let settingsDict = try JSONSerialization.jsonObject(with: jsonData) as? [String: String],
                let urlString = cohort == .control ? settingsDict["controlUrl"] : settingsDict["treatmentUrl"] {
-                return URL(string: Constants.baseTdsURLString + urlString)
+                return URL(string: Constants.baseTDSURLString + urlString)
             }
         } catch {
             Logger.config.info("privacyConfiguration: Failed to parse subfeature settings JSON: \(error)")
@@ -64,7 +64,7 @@ public final class TrackerDataURLOverrider: TrackerDataURLProviding {
     }
 }
 
-public enum TdsExperimentType: Int, CaseIterable {
+public enum TDSExperimentType: Int, CaseIterable {
     case baseline
     case feb25
     case mar25
@@ -79,7 +79,7 @@ public enum TdsExperimentType: Int, CaseIterable {
     case dec25
 
     public var experiment: any FeatureFlagExperimentDescribing {
-        TdsNextExperimentFlag(subfeature: self.subfeature)
+        TDSNextExperimentFlag(subfeature: self.subfeature)
     }
 
     public var subfeature: any PrivacySubfeature {
@@ -113,7 +113,7 @@ public enum TdsExperimentType: Int, CaseIterable {
 
 }
 
-public struct TdsNextExperimentFlag: FeatureFlagExperimentDescribing {
+public struct TDSNextExperimentFlag: FeatureFlagExperimentDescribing {
     public var rawValue: String
     public var source: FeatureFlagSource
 

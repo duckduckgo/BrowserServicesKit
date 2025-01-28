@@ -16,8 +16,8 @@
 //  limitations under the License.
 //
 
-import TestUtils
 import XCTest
+import PersistenceTestingUtils
 @testable import RemoteMessaging
 
 class RemoteMessagingPercentileUserDefaultsStoreTests: XCTestCase {

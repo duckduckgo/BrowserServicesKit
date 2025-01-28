@@ -29,8 +29,8 @@ extension APIClient {
 extension APIClient: APIClient.Mockable {}
 
 public protocol APIClientEnvironment {
-    func headers(for requestType: APIRequestType) -> APIRequestV2.HeadersV2
-    func url(for requestType: APIRequestType) -> URL
+    func headers(for requestType: APIRequestType, platform: MaliciousSiteDetector.APIEnvironment.Platform, authToken: String?) -> APIRequestV2.HeadersV2
+    func url(for requestType: APIRequestType, platform: MaliciousSiteDetector.APIEnvironment.Platform) -> URL
     func timeout(for requestType: APIRequestType) -> TimeInterval?
 }
 
@@ -44,15 +44,16 @@ public extension MaliciousSiteDetector {
         case production
         case staging
 
-        var endpoint: URL {
+        func endpoint(for platform: Platform) -> URL {
             switch self {
-            case .production: URL(string: "https://duckduckgo.com/api/protection/")!
-            case .staging: URL(string: "https://staging.duckduckgo.com/api/protection/")!
+            case .production: URL(string: "https://duckduckgo.com/api/protection/v2/\(platform.rawValue)/")!
+            case .staging: URL(string: "https://staging.duckduckgo.com/api/protection/v2/\(platform.rawValue)/")!
             }
         }
 
-        var defaultHeaders: APIRequestV2.HeadersV2 {
-            .init(userAgent: Networking.APIRequest.Headers.userAgent)
+        public enum Platform: String {
+            case macOS = "macos"
+            case iOS = "ios"
         }
 
         enum APIPath {
@@ -67,8 +68,9 @@ public extension MaliciousSiteDetector {
             static let hashPrefix = "hashPrefix"
         }
 
-        public func url(for requestType: APIRequestType) -> URL {
-            switch requestType {
+        public func url(for requestType: APIRequestType, platform: Platform) -> URL {
+            let endpoint = endpoint(for: platform)
+            return switch requestType {
             case .hashPrefixSet(let configuration):
                 endpoint.appendingPathComponent(APIPath.hashPrefix).appendingParameters([
                     QueryParameter.category: configuration.threatKind.rawValue,
@@ -84,8 +86,11 @@ public extension MaliciousSiteDetector {
             }
         }
 
-        public func headers(for requestType: APIRequestType) -> APIRequestV2.HeadersV2 {
-            defaultHeaders
+        public func headers(for requestType: APIRequestType, platform: Platform, authToken: String?) -> APIRequestV2.HeadersV2 {
+            .init(userAgent: Networking.APIRequest.Headers.userAgent,
+                  additionalHeaders: [
+                    HTTPHeaderKey.authToken: authToken ?? "36d11d1b4acee44a6f0b3902337b8b4c459100e1c73021ef48acb73fccf7a2a8",
+                  ])
         }
     }
 
@@ -93,21 +98,39 @@ public extension MaliciousSiteDetector {
 
 struct APIClient {
 
+    typealias Platform = MaliciousSiteDetector.APIEnvironment.Platform
+    let platform: Platform
+    let authToken: String?
     let environment: APIClientEnvironment
     private let service: APIService
 
-    init(environment: APIClientEnvironment, service: APIService = DefaultAPIService(urlSession: .shared)) {
+    init(environment: APIClientEnvironment, platform: Platform? = nil, authToken: String? = nil, service: APIService = DefaultAPIService(urlSession: .shared)) {
+        if let platform {
+            self.platform = platform
+        } else {
+#if os(macOS)
+            self.platform = .macOS
+#elseif os(iOS)
+            self.platform = .iOS
+#else
+            fatalError("Unsupported platform")
+#endif
+        }
+        self.authToken = authToken
         self.environment = environment
         self.service = service
     }
 
     func load<R: Request>(_ requestConfig: R) async throws -> R.Response {
         let requestType = requestConfig.requestType
-        let headers = environment.headers(for: requestType)
-        let url = environment.url(for: requestType)
+        let headers = environment.headers(for: requestType, platform: platform, authToken: authToken)
+        let url = environment.url(for: requestType, platform: platform)
         let timeout = environment.timeout(for: requestType) ?? requestConfig.defaultTimeout ?? 60
 
-        let apiRequest = APIRequestV2(url: url, method: .get, headers: headers, timeoutInterval: timeout)
+        guard let apiRequest = APIRequestV2(url: url, method: .get, headers: headers, timeoutInterval: timeout) else {
+            assertionFailure("Invalid URL")
+            throw APIRequestV2.Error.invalidURL
+        }
         let response = try await service.fetch(request: apiRequest)
         let result: R.Response = try response.decodeBody()
 
