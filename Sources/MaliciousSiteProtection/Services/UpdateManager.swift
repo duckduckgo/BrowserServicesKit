@@ -23,11 +23,13 @@ import os
 import PixelKit
 
 public protocol MaliciousSiteUpdateManaging {
+    #if os(iOS)
     var lastHashPrefixSetUpdateDate: Date { get }
     var lastFilterSetUpdateDate: Date { get }
-
-    func startPeriodicUpdates() -> Task<Void, Error>
     func updateData(datasetType: DataManager.StoredDataType.Kind) async -> Task<Void, Error>
+    #elseif os(macOS)
+    func startPeriodicUpdates() -> Task<Void, Error>
+    #endif
 }
 
 protocol InternalUpdateManaging: MaliciousSiteUpdateManaging {
@@ -45,6 +47,7 @@ public struct UpdateManager: InternalUpdateManaging {
     private let updateInfoStorage: MaliciousSiteProtectioUpdateManagerInfoStorage
     private let pixelHandler: UpdateManagerPixelFiring.Type
 
+    #if os(iOS)
     public var lastHashPrefixSetUpdateDate: Date {
         updateInfoStorage.lastHashPrefixSetsUpdateDate
     }
@@ -52,6 +55,7 @@ public struct UpdateManager: InternalUpdateManaging {
     public var lastFilterSetUpdateDate: Date {
         updateInfoStorage.lastFilterSetsUpdateDate
     }
+    #endif
 
     public init(apiEnvironment: APIClientEnvironment, service: APIService = DefaultAPIService(urlSession: .shared), dataManager: DataManager, updateIntervalProvider: @escaping UpdateIntervalProvider) {
         self.init(apiClient: APIClient(environment: apiEnvironment, service: service), dataManager: dataManager, updateIntervalProvider: updateIntervalProvider)
@@ -105,6 +109,7 @@ public struct UpdateManager: InternalUpdateManaging {
         }
     }
 
+    #if os(macOS)
     public func startPeriodicUpdates() -> Task<Void, any Error> {
         Task.detached {
             // run update jobs in background for every data type
@@ -132,7 +137,9 @@ public struct UpdateManager: InternalUpdateManaging {
             }
         }
     }
+    #endif
 
+    #if os(iOS)
     public func updateData(datasetType: DataManager.StoredDataType.Kind) async -> Task<Void, any Error> {
         Task {
             // run update jobs in background for every data type
@@ -174,6 +181,7 @@ public struct UpdateManager: InternalUpdateManaging {
             updateInfoStorage.lastFilterSetsUpdateDate = date
         }
     }
+    #endif
 
 }
 

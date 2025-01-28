@@ -220,6 +220,7 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
         XCTAssertEqual(filterSet, FilterDictionary(revision: 6, items: expectedFilterSet), "Filter set should match the expected set after update.")
     }
 
+    #if os(macOS)
     func testWhenPeriodicUpdatesStart_dataSetsAreUpdated() async throws {
         self.updateIntervalProvider = { _ in 1 }
 
@@ -395,7 +396,9 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
 
         withExtendedLifetime(c) {}
     }
+    #endif
 
+    #if os(iOS)
     func testWhenLastHashPrefixSetUpdateDateIsCalledThenReturnStoredDate() {
         // GIVEN
         let date = Date()
@@ -467,6 +470,7 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
         // THEN
         XCTAssertEqual(updateManagerInfoStore.lastFilterSetsUpdateDate, .distantPast)
     }
+    #endif
 
     func testWhenUpdateDataApiFails_AndInitialLocalDatasetIsEmpty_AndErrorIsNoInternetConnection_ThenSendFailedToFetchDatasetsPixel() async {
         // GIVEN
