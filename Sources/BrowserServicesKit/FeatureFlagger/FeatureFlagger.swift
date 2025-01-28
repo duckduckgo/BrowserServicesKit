@@ -338,12 +338,6 @@ public class DefaultFeatureFlagger: FeatureFlagger {
 
 extension DefaultFeatureFlagger: CurrentExperimentCohortProvider {
     func getCurrentCohortIfAssigned<Flag: FeatureFlagDescribing>(for featureFlag: Flag) -> (any FlagCohort)? {
-        // Check for local overrides
-        if internalUserDecider.isInternalUser, let localOverride = localOverrides?.experimentOverride(for: featureFlag) {
-            return featureFlag.cohortType?.cohorts.first { $0.rawValue == localOverride }
-        }
-
-        // Handle feature cohort sources
         switch featureFlag.source {
         case .disabled:
             return nil
