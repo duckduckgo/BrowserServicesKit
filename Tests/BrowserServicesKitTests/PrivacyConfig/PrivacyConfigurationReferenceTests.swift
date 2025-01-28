@@ -19,7 +19,6 @@
 import XCTest
 import os.log
 import BrowserServicesKit
-@testable import TestUtils
 
 final class PrivacyConfigurationReferenceTests: XCTestCase {
 
@@ -30,14 +29,14 @@ final class PrivacyConfigurationReferenceTests: XCTestCase {
 
     func testPrivacyConfiguration() throws {
         let dataLoader = JsonTestDataLoader()
-        let testsData = dataLoader.fromJsonFile(Resource.tests, fromBundle: Bundle.module)
+        let testsData = dataLoader.fromJsonFile(Resource.tests)
 
         let referenceTests = try JSONDecoder().decode(TestData.self, from: testsData)
 
         for testConfig in referenceTests.testConfigs {
             let path = "\(Resource.configRootPath)/\(testConfig.referenceConfig)"
 
-            let configData = dataLoader.fromJsonFile(path, fromBundle: Bundle.module)
+            let configData = dataLoader.fromJsonFile(path)
             let privacyConfigurationData = try PrivacyConfigurationData(data: configData)
 
             let privacyConfiguration = AppPrivacyConfiguration(data: privacyConfigurationData,

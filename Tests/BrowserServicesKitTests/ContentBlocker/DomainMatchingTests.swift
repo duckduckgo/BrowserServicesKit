@@ -20,7 +20,6 @@ import XCTest
 @testable import TrackerRadarKit
 import Foundation
 import os.log
-@testable import TestUtils
 
 struct RefTests: Decodable {
 
@@ -50,8 +49,8 @@ class DomainMatchingTests: XCTestCase {
     private var data = JsonTestDataLoader()
 
     func testDomainMatchingRules() throws {
-        let trackerJSON = data.fromJsonFile("Resources/privacy-reference-tests/tracker-radar-tests/TR-domain-matching/tracker_radar_reference.json", fromBundle: Bundle.module)
-        let testJSON = data.fromJsonFile("Resources/privacy-reference-tests/tracker-radar-tests/TR-domain-matching/domain_matching_tests.json", fromBundle: Bundle.module)
+        let trackerJSON = data.fromJsonFile("Resources/privacy-reference-tests/tracker-radar-tests/TR-domain-matching/tracker_radar_reference.json")
+        let testJSON = data.fromJsonFile("Resources/privacy-reference-tests/tracker-radar-tests/TR-domain-matching/domain_matching_tests.json")
 
         let trackerData = try JSONDecoder().decode(TrackerData.self, from: trackerJSON)
 

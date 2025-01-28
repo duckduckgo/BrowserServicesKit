@@ -48,7 +48,6 @@ let package = Package(
         .library(name: "BrokenSitePrompt", targets: ["BrokenSitePrompt"]),
         .library(name: "PageRefreshMonitor", targets: ["PageRefreshMonitor"]),
         .library(name: "PrivacyStats", targets: ["PrivacyStats"]),
-        .library(name: "Statistics", targets: ["Statistics"])
     ],
     dependencies: [
         .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "16.1.0"),
@@ -76,8 +75,7 @@ let package = Package(
                 "UserScript",
                 "ContentBlocking",
                 "SecureStorage",
-                "Subscription",
-                "Statistics"
+                "Subscription"
             ],
             resources: [
                 .process("ContentBlocking/UserScripts/contentblockerrules.js"),
@@ -212,16 +210,6 @@ let package = Package(
             ]
         ),
         .target(
-            name: "Statistics",
-            dependencies: [
-                "Persistence",
-                "Common",
-            ],
-            swiftSettings: [
-                .define("DEBUG", .when(configuration: .debug))
-            ]
-        ),
-        .target(
             name: "ContentBlocking",
             dependencies: [
                 "TrackerRadarKit",
@@ -314,7 +302,6 @@ let package = Package(
             name: "RemoteMessagingTestsUtils",
             dependencies: [
                 "RemoteMessaging",
-                "TestUtils"
             ]
         ),
         .target(
@@ -337,10 +324,6 @@ let package = Package(
             dependencies: [
                 "Networking",
                 "Persistence",
-                "Statistics"
-            ],
-            resources: [
-                .process("Resources")
             ]
         ),
         .target(
@@ -586,7 +569,6 @@ let package = Package(
             name: "NetworkingTests",
             dependencies: [
                 "TestUtils",
-                "Statistics"
             ]
         ),
         .testTarget(
@@ -720,16 +702,6 @@ let package = Package(
             ]
         ),
         .testTarget(
-            name: "StatisticsTests",
-            dependencies: [
-                "Statistics",
-                "TestUtils"
-            ],
-            resources: [
-                .copy("Resources")
-            ]
-        ),
-        .testTarget(
             name: "PixelExperimentKitTests",
             dependencies: [
                 "PixelExperimentKit",
@@ -759,7 +731,6 @@ let package = Package(
             dependencies: [
                 "PrivacyStats",
                 "TestUtils",
-                "Statistics"
             ]
         ),
     ],

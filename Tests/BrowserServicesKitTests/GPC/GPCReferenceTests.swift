@@ -24,14 +24,13 @@ import BrowserServicesKit
 import os.log
 import WebKit
 @testable import TrackerRadarKit
-@testable import TestUtils
 
 final class GPCReferenceTests: XCTestCase {
     private let userScriptDelegateMock = MockSurrogatesUserScriptDelegate()
     private let navigationDelegateMock = MockNavigationDelegate()
     private let schemeHandler = TestSchemeHandler()
     private static let data = JsonTestDataLoader()
-    private static let config = data.fromJsonFile(Resource.config, fromBundle: Bundle.module)
+    private static let config = data.fromJsonFile(Resource.config)
     private var javascriptTests = [GpcJavaScriptAPITest]()
 
     private enum Resource {
@@ -55,7 +54,7 @@ final class GPCReferenceTests: XCTestCase {
     func testGPCHeader() throws {
         let dataLoader = JsonTestDataLoader()
 
-        let testsData = dataLoader.fromJsonFile(Resource.tests, fromBundle: Bundle.module)
+        let testsData = dataLoader.fromJsonFile(Resource.tests)
         let referenceTests = try JSONDecoder().decode(GPCTestData.self, from: testsData)
 
         let privacyConfig = privacyManager.privacyConfig
@@ -102,7 +101,7 @@ final class GPCReferenceTests: XCTestCase {
     func testGPCJavascriptAPI() throws {
         let dataLoader = JsonTestDataLoader()
 
-        let testsData = dataLoader.fromJsonFile(Resource.tests, fromBundle: Bundle.module)
+        let testsData = dataLoader.fromJsonFile(Resource.tests)
         let referenceTests = try JSONDecoder().decode(GPCTestData.self, from: testsData)
 
         javascriptTests = referenceTests.gpcJavaScriptAPI.tests.filter {

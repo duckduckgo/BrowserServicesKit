@@ -20,7 +20,6 @@ import Foundation
 import XCTest
 @testable import BrowserServicesKit
 @testable import Common
-@testable import Statistics
 
 final class UsageSegmentationTests: XCTestCase {
 

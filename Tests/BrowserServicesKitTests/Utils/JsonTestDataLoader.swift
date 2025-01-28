@@ -60,17 +60,17 @@ final class JsonTestDataLoader {
         return "{[}".data(using: .utf16)!
     }
 
-    func unexpected(fromBundle: Bundle = Bundle.module) -> Data {
-        guard let data = try? FileLoader().load(filePath: "Resources/unexpected.json", fromBundle: fromBundle) else {
+    func unexpected() -> Data {
+        guard let data = try? FileLoader().load(filePath: "Resources/unexpected.json", fromBundle: bundle) else {
             fatalError("Failed to load Resources/unexpected.json")
         }
         return data
     }
 
-    func fromJsonFile(_ filePath: String, fromBundle: Bundle = Bundle.module) -> Data {
+    func fromJsonFile(_ filePath: String) -> Data {
 
         do {
-            return try FileLoader().load(filePath: filePath, fromBundle: fromBundle)
+            return try FileLoader().load(filePath: filePath, fromBundle: bundle)
         } catch {
             fatalError("Unable to load \(filePath) error \(error)")
         }

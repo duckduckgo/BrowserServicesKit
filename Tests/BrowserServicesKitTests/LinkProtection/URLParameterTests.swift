@@ -20,7 +20,6 @@ import XCTest
 import os.log
 @testable import TrackerRadarKit
 @testable import BrowserServicesKit
-@testable import TestUtils
 
 struct URLParamRefTests: Decodable {
     struct URLParamTests: Decodable {
@@ -48,7 +47,7 @@ final class URLParameterTests: XCTestCase {
     }
 
     private static let data = JsonTestDataLoader()
-    private static let config = data.fromJsonFile(Resource.config, fromBundle: Bundle.module)
+    private static let config = data.fromJsonFile(Resource.config)
 
     private var privacyManager: PrivacyConfigurationManager {
         let embeddedDataProvider = MockEmbeddedDataProvider(data: Self.config,
@@ -64,7 +63,7 @@ final class URLParameterTests: XCTestCase {
     }
 
     private lazy var urlParamTestSuite: URLParamRefTests = {
-        let tests = Self.data.fromJsonFile(Resource.tests, fromBundle: Bundle.module)
+        let tests = Self.data.fromJsonFile(Resource.tests)
         return try! JSONDecoder().decode(URLParamRefTests.self, from: tests)
     }()
 

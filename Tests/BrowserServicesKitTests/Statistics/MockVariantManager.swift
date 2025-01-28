@@ -17,7 +17,7 @@
 //
 
 import Foundation
-import Statistics
+import BrowserServicesKit
 
 struct MockVariantManager: VariantManager {
 

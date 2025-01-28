@@ -19,7 +19,6 @@
 import Foundation
 import Common
 import BrowserServicesKit
-import Statistics
 
 #if os(iOS)
 public typealias UserAttributeMatcher = MobileUserAttributeMatcher

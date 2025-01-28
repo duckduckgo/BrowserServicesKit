@@ -19,7 +19,6 @@
 import BrowserServicesKit
 import TestUtils
 import XCTest
-import BrowserServicesKitTestsUtils
 
 final class CapturingFeatureFlagLocalOverridesHandler: FeatureFlagLocalOverridesHandling {
     struct Parameters: Equatable {

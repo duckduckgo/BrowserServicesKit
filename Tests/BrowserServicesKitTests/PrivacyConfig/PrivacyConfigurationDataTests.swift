@@ -19,14 +19,13 @@
 import XCTest
 import CommonCrypto
 @testable import BrowserServicesKit
-@testable import TestUtils
 
 class PrivacyConfigurationDataTests: XCTestCase {
 
     private var data = JsonTestDataLoader()
 
     func testJSONParsing() throws {
-        let jsonData = data.fromJsonFile("Resources/privacy-config-example.json", fromBundle: Bundle.module)
+        let jsonData = data.fromJsonFile("Resources/privacy-config-example.json")
         let configData = try PrivacyConfigurationData(data: jsonData)
 
         XCTAssertEqual(configData.version, "2021.6.7")
@@ -90,7 +89,7 @@ class PrivacyConfigurationDataTests: XCTestCase {
     }
 
     func testJSONWithoutAllowlistParsing() {
-        let jsonData = data.fromJsonFile("Resources/privacy-config-example.json", fromBundle: Bundle.module)
+        let jsonData = data.fromJsonFile("Resources/privacy-config-example.json")
         var json = try? JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
         var features = json?["features"] as? [String: Any]
         features?.removeValue(forKey: "trackerAllowlist")

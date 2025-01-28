@@ -20,7 +20,6 @@ import BrowserServicesKit
 import Common
 import Foundation
 import Subscription
-import Statistics
 
 public protocol VPNActivationDateProviding {
     func daysSinceActivation() -> Int?

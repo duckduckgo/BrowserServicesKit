@@ -25,7 +25,6 @@ import XCTest
 import WebKit
 import Common
 import os.log
-@testable import TestUtils
 
 final class FingerprintingReferenceTests: XCTestCase {
     private var referenceTests = [Test]()
@@ -43,17 +42,17 @@ final class FingerprintingReferenceTests: XCTestCase {
     }
 
     private lazy var testData: TestData = {
-        let testData = dataLoader.fromJsonFile(Resource.tests, fromBundle: Bundle.module)
+        let testData = dataLoader.fromJsonFile(Resource.tests)
         return try! JSONDecoder().decode(TestData.self, from: testData)
     }()
 
     private lazy var scriptToInject: String = {
-        let scriptData = dataLoader.fromJsonFile(Resource.script, fromBundle: Bundle.module)
+        let scriptData = dataLoader.fromJsonFile(Resource.script)
         return String(data: scriptData, encoding: .utf8)!
     }()
 
     private lazy var privacyManager: PrivacyConfigurationManager = {
-        let configJSONData = dataLoader.fromJsonFile(Resource.config, fromBundle: Bundle.module)
+        let configJSONData = dataLoader.fromJsonFile(Resource.config)
         let embeddedDataProvider = MockEmbeddedDataProvider(data: configJSONData,
                                                             etag: "embedded")
         let localProtection = MockDomainsProtectionStore()

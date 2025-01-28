@@ -1,8 +1,7 @@
 //
-//  EmptyFile.swift
-//  DuckDuckGo
+//  MockVariant.swift
 //
-//  Copyright © 2025 DuckDuckGo. All rights reserved.
+//  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -17,4 +16,19 @@
 //  limitations under the License.
 //
 
-// Empty file on purpose. See https://stackoverflow.com/questions/63237395/generating-resource-bundle-accessor-type-bundle-has-no-member-module
+import BrowserServicesKit
+import Foundation
+
+public class MockVariant: Variant {
+    public var name: String
+    public var weight: Int
+    public var isIncluded: () -> Bool
+    public var features: [FeatureName]
+
+    public init(name: String, weight: Int, isIncluded: @escaping () -> Bool, features: [FeatureName]) {
+        self.name = name
+        self.weight = weight
+        self.isIncluded = isIncluded
+        self.features = features
+    }
+}

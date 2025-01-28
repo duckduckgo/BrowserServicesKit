@@ -16,8 +16,8 @@
 //  limitations under the License.
 //
 
+import BrowserServicesKit
 import Foundation
-import Statistics
 
 public class MockVariantManager: VariantManager {
 

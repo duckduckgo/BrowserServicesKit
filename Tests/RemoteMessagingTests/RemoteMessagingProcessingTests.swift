@@ -21,7 +21,6 @@ import BrowserServicesKitTestsUtils
 import RemoteMessagingTestsUtils
 import XCTest
 @testable import RemoteMessaging
-import TestUtils
 
 struct TestRemoteMessagingProcessor: RemoteMessagingProcessing {
     var endpoint: URL

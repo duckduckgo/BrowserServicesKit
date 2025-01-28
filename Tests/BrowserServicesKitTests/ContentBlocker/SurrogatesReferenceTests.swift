@@ -25,7 +25,6 @@ import os.log
 import WebKit
 import BrowserServicesKit
 import Common
-@testable import TestUtils
 
 final class SurrogatesReferenceTests: XCTestCase {
     private let schemeHandler = TestSchemeHandler()
@@ -45,9 +44,9 @@ final class SurrogatesReferenceTests: XCTestCase {
     func testSurrogates() throws {
         let dataLoader = JsonTestDataLoader()
 
-        let trackerRadarJSONData = dataLoader.fromJsonFile(Resource.trackerRadar, fromBundle: Bundle.module)
-        let testsData = dataLoader.fromJsonFile(Resource.tests, fromBundle: Bundle.module)
-        let surrogatesData = dataLoader.fromJsonFile(Resource.surrogates, fromBundle: Bundle.module)
+        let trackerRadarJSONData = dataLoader.fromJsonFile(Resource.trackerRadar)
+        let testsData = dataLoader.fromJsonFile(Resource.tests)
+        let surrogatesData = dataLoader.fromJsonFile(Resource.surrogates)
 
         let referenceTests = try JSONDecoder().decode(RefTests.self, from: testsData)
         let surrogateTests = referenceTests.surrogateTests.tests

@@ -22,7 +22,6 @@ import Common
 import XCTest
 @testable import BrowserServicesKit
 @testable import BloomFilterWrapper
-@testable import TestUtils
 
 private struct HTTPSUpgradesRefTests: Decodable {
     struct HTTPSUpgradesTests: Decodable {
@@ -58,7 +57,7 @@ final class HTTPSUpgradeReferenceTests: XCTestCase {
 
     private static let data = JsonTestDataLoader()
 
-    private static let config = data.fromJsonFile(Resource.config, fromBundle: Bundle.module)
+    private static let config = data.fromJsonFile(Resource.config)
     private static let emptyConfig =
     """
     {
@@ -84,17 +83,17 @@ final class HTTPSUpgradeReferenceTests: XCTestCase {
     }
 
     private lazy var httpsUpgradesTestSuite: HTTPSUpgradesRefTests = {
-        let tests = Self.data.fromJsonFile(Resource.tests, fromBundle: Bundle.module)
+        let tests = Self.data.fromJsonFile(Resource.tests)
         return try! JSONDecoder().decode(HTTPSUpgradesRefTests.self, from: tests)
     }()
 
     private lazy var excludedDomains: [String] = {
-        let allowListData = Self.data.fromJsonFile(Resource.allowList, fromBundle: Bundle.module)
+        let allowListData = Self.data.fromJsonFile(Resource.allowList)
         return try! HTTPSUpgradeParser.convertExcludedDomainsData(allowListData)
     }()
 
     private lazy var bloomFilterSpecification: HTTPSBloomFilterSpecification = {
-        let data = Self.data.fromJsonFile(Resource.bloomFilterSpec, fromBundle: Bundle.module)
+        let data = Self.data.fromJsonFile(Resource.bloomFilterSpec)
         return try! HTTPSUpgradeParser.convertBloomFilterSpecification(fromJSONData: data)
     }()
 

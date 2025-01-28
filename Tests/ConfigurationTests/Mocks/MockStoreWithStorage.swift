@@ -20,7 +20,6 @@ import Foundation
 import Persistence
 import TestUtils
 @testable import Configuration
-import BrowserServicesKitTestsUtils
 
 final class MockStoreWithStorage: ConfigurationStoring {
 
