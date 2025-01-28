@@ -100,6 +100,7 @@ public actor DataManager: DataManaging {
             data = try JSONEncoder().encode(dataSet)
         } catch {
             Logger.dataManager.error("Error encoding \(fileName): \(error.localizedDescription)")
+            assertionFailure("Failed to store data to \(fileName): \(error)")
             throw error
         }
 

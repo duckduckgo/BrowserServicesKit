@@ -137,7 +137,7 @@ public struct UpdateManager: InternalUpdateManaging {
         Task {
             // run update jobs in background for every data type
             await withTaskGroup(of: Bool.self) { group in
-                for dataType in DataManager.StoredDataType.dataTypes(forKind: datasetType) {
+                for dataType in DataManager.StoredDataType.dataTypes(for: datasetType) {
                     group.addTask {
                         do {
                             try await self.updateData(for: dataType.dataKey)
