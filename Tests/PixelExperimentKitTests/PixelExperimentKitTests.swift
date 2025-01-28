@@ -609,7 +609,7 @@ class MockFeatureFlagger: FeatureFlagger {
     func getCohortIfEnabled<Flag>(for featureFlag: Flag, allowOverride: Bool) -> (any FlagCohort)? where Flag: FeatureFlagDescribing {
         nil
     }
-    
+
     var experiments: Experiments = [:]
 
     var internalUserDecider: any InternalUserDecider = MockInternalUserDecider()

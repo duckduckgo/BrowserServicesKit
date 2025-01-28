@@ -21,7 +21,7 @@ import TestUtils
 import XCTest
 
 final class CapturingFeatureFlagLocalOverridesHandler: FeatureFlagLocalOverridesHandling {
-    
+
     struct Parameters: Equatable {
         let rawValue: String
         let isEnabled: Bool?

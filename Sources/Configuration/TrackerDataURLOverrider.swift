@@ -112,11 +112,11 @@ extension TDSExperimentType: FeatureFlagDescribing {
     public var supportsLocalOverriding: Bool {
         return false
     }
-    
+
     public var source: FeatureFlagSource {
         return .remoteReleasable(.subfeature(self.subfeature))
     }
-    
+
     public var cohortType: (any BrowserServicesKit.FlagCohort.Type)? {
         return Cohort.self
     }
