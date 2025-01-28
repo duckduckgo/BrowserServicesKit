@@ -19,7 +19,7 @@
 import Foundation
 import XCTest
 @testable import NetworkProtection
-@testable import NetworkProtectionTestUtils
+import NetworkProtectionTestUtils
 
 final class NetworkProtectionConnectionBandwidthAnalyzerTests: XCTestCase {
 

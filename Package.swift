@@ -14,10 +14,10 @@ let package = Package(
         // Exported libraries
         .library(name: "BrowserServicesKit", targets: ["BrowserServicesKit"]),
         .library(name: "Common", targets: ["Common"]),
-        .library(name: "TestUtils", targets: ["TestUtils"]),
         .library(name: "DDGSync", targets: ["DDGSync"]),
         .library(name: "BrowserServicesKitTestsUtils", targets: ["BrowserServicesKitTestsUtils"]),
         .library(name: "Persistence", targets: ["Persistence"]),
+        .library(name: "PersistenceTestingUtils", targets: ["PersistenceTestingUtils"]),
         .library(name: "Bookmarks", targets: ["Bookmarks"]),
         .library(name: "BloomFilterWrapper", targets: ["BloomFilterWrapper"]),
         .library(name: "UserScript", targets: ["UserScript"]),
@@ -27,6 +27,7 @@ let package = Package(
         .library(name: "PrivacyDashboard", targets: ["PrivacyDashboard"]),
         .library(name: "Configuration", targets: ["Configuration"]),
         .library(name: "Networking", targets: ["Networking"]),
+        .library(name: "NetworkingTestingUtils", targets: ["NetworkingTestingUtils"]),
         .library(name: "RemoteMessaging", targets: ["RemoteMessaging"]),
         .library(name: "RemoteMessagingTestsUtils", targets: ["RemoteMessagingTestsUtils"]),
         .library(name: "Navigation", targets: ["Navigation"]),
@@ -47,20 +48,21 @@ let package = Package(
         .library(name: "PixelExperimentKit", targets: ["PixelExperimentKit"]),
         .library(name: "BrokenSitePrompt", targets: ["BrokenSitePrompt"]),
         .library(name: "PageRefreshMonitor", targets: ["PageRefreshMonitor"]),
-        .library(name: "PrivacyStats", targets: ["PrivacyStats"]),
+        .library(name: "PrivacyStats", targets: ["PrivacyStats"])
     ],
     dependencies: [
         .package(url: "https://github.com/duckduckgo/duckduckgo-autofill.git", exact: "16.1.0"),
         .package(url: "https://github.com/duckduckgo/GRDB.swift.git", exact: "2.4.2"),
-        .package(url: "https://github.com/duckduckgo/TrackerRadarKit", exact: "3.0.0"),
+        .package(url: "https://github.com/duckduckgo/TrackerRadarKit.git", exact: "3.0.0"),
         .package(url: "https://github.com/duckduckgo/sync_crypto", exact: "0.4.0"),
         .package(url: "https://github.com/gumob/PunycodeSwift.git", exact: "3.0.0"),
-        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "7.8.0"),
+        .package(url: "https://github.com/duckduckgo/content-scope-scripts", exact: "7.10.0"),
         .package(url: "https://github.com/duckduckgo/privacy-dashboard", exact: "8.1.0"),
         .package(url: "https://github.com/httpswift/swifter.git", exact: "1.5.0"),
         .package(url: "https://github.com/duckduckgo/bloom_cpp.git", exact: "3.0.0"),
         .package(url: "https://github.com/1024jp/GzipSwift.git", exact: "6.0.1"),
-        .package(url: "https://github.com/pointfreeco/swift-clocks.git", exact: "1.0.6"),
+        .package(url: "https://github.com/vapor/jwt-kit.git", exact: "4.13.4"),
+        .package(url: "https://github.com/pointfreeco/swift-clocks.git", exact: "1.0.6")
     ],
     targets: [
         .target(
@@ -101,6 +103,12 @@ let package = Package(
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
+            ]
+        ),
+        .target(
+            name: "PersistenceTestingUtils",
+            dependencies: [
+                "Persistence"
             ]
         ),
         .target(
@@ -276,10 +284,17 @@ let package = Package(
         .target(
             name: "Networking",
             dependencies: [
-                "Common",
+                .product(name: "JWTKit", package: "jwt-kit"),
+                "Common"
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
+            ]
+        ),
+        .target(
+            name: "NetworkingTestingUtils",
+            dependencies: [
+                "Networking",
             ]
         ),
         .target(
@@ -321,13 +336,6 @@ let package = Package(
             ]
         ),
         .target(
-            name: "TestUtils",
-            dependencies: [
-                "Networking",
-                "Persistence",
-            ]
-        ),
-        .target(
             name: "NetworkProtection",
             dependencies: [
                 .target(name: "WireGuardC"),
@@ -364,7 +372,8 @@ let package = Package(
         .target(
             name: "Subscription",
             dependencies: [
-                "Common"
+                "Common",
+                "Networking"
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))
@@ -373,7 +382,9 @@ let package = Package(
         .target(
             name: "SubscriptionTestingUtilities",
             dependencies: [
-                "Subscription"
+                "Subscription",
+                "Common",
+                "NetworkingTestingUtils",
             ]
         ),
         .target(
@@ -527,8 +538,8 @@ let package = Package(
                 "BrowserServicesKit",
                 "BrowserServicesKitTestsUtils",
                 "SecureStorageTestsUtils",
-                "TestUtils",
-                "Subscription"
+                "Subscription",
+                "PersistenceTestingUtils",
             ],
             resources: [
                 .copy("Resources")
@@ -538,7 +549,7 @@ let package = Package(
             name: "CrashesTests",
             dependencies: [
                 "Crashes",
-                "TestUtils"
+                "PersistenceTestingUtils"
             ]
         ),
         .testTarget(
@@ -546,7 +557,7 @@ let package = Package(
             dependencies: [
                 "BookmarksTestsUtils",
                 "DDGSync",
-                "TestUtils",
+                "PersistenceTestingUtils",
             ],
             resources: [
                 .copy("Resources/SyncMetadata_V3.sqlite"),
@@ -569,7 +580,7 @@ let package = Package(
         .testTarget(
             name: "NetworkingTests",
             dependencies: [
-                "TestUtils",
+                "NetworkingTestingUtils"
             ]
         ),
         .testTarget(
@@ -601,7 +612,7 @@ let package = Package(
         .testTarget(
             name: "PersistenceTests",
             dependencies: [
-                "Persistence",
+                "PersistenceTestingUtils",
                 "TrackerRadarKit",
             ]
         ),
@@ -611,7 +622,7 @@ let package = Package(
                 "BrowserServicesKitTestsUtils",
                 "RemoteMessaging",
                 "RemoteMessagingTestsUtils",
-                "TestUtils",
+                "PersistenceTestingUtils",
             ],
             resources: [
                 .copy("Resources/remote-messaging-config-example.json"),
@@ -625,7 +636,8 @@ let package = Package(
             name: "ConfigurationTests",
             dependencies: [
                 "Configuration",
-                "TestUtils",
+                "NetworkingTestingUtils",
+                "PersistenceTestingUtils",
             ]
         ),
         .testTarget(
@@ -641,6 +653,7 @@ let package = Package(
             dependencies: [
                 "NetworkProtection",
                 "NetworkProtectionTestUtils",
+                "NetworkingTestingUtils",
             ],
             resources: [
                 .copy("Resources/servers-original-endpoint.json"),
@@ -659,7 +672,7 @@ let package = Package(
             name: "PrivacyDashboardTests",
             dependencies: [
                 "PrivacyDashboard",
-                "TestUtils",
+                "PersistenceTestingUtils",
             ]
         ),
         .testTarget(
@@ -667,6 +680,7 @@ let package = Package(
             dependencies: [
                 "Subscription",
                 "SubscriptionTestingUtilities",
+                "NetworkingTestingUtils",
             ]
         ),
         .testTarget(
@@ -687,7 +701,8 @@ let package = Package(
         .testTarget(
             name: "MaliciousSiteProtectionTests",
             dependencies: [
-                "TestUtils",
+                "Networking",
+                "NetworkingTestingUtils",
                 "MaliciousSiteProtection",
                 .product(name: "Clocks", package: "swift-clocks"),
             ],
@@ -731,7 +746,6 @@ let package = Package(
             name: "PrivacyStatsTests",
             dependencies: [
                 "PrivacyStats",
-                "TestUtils",
             ]
         ),
     ],
