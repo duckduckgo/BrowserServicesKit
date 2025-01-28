@@ -22,6 +22,7 @@ import Foundation
 import RemoteMessagingTestsUtils
 import XCTest
 @testable import RemoteMessaging
+import TestUtils
 
 class DesktopAppAttributeMatcherTests: XCTestCase {
 

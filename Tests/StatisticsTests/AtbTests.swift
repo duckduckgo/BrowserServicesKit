@@ -19,7 +19,7 @@
 import Foundation
 import XCTest
 import Common
-@testable import BrowserServicesKit
+@testable import Statistics
 
 class AtbTests: XCTestCase {
 

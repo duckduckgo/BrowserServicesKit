@@ -20,6 +20,7 @@ import XCTest
 import os.log
 @testable import TrackerRadarKit
 @testable import BrowserServicesKit
+@testable import TestUtils
 
 struct AmpRefTests: Decodable {
     struct AmpFormatTests: Decodable {
@@ -60,7 +61,7 @@ final class AmpMatchingTests: XCTestCase {
     }
 
     private static let data = JsonTestDataLoader()
-    private static let config = data.fromJsonFile(Resource.config)
+    private static let config = data.fromJsonFile(Resource.config, fromBundle: Bundle.module)
 
     private var privacyManager: PrivacyConfigurationManager {
         let embeddedDataProvider = MockEmbeddedDataProvider(data: Self.config,
@@ -82,7 +83,7 @@ final class AmpMatchingTests: XCTestCase {
     }
 
     private lazy var ampTestSuite: AmpRefTests = {
-        let tests = Self.data.fromJsonFile(Resource.tests)
+        let tests = Self.data.fromJsonFile(Resource.tests, fromBundle: Bundle.module)
         return try! JSONDecoder().decode(AmpRefTests.self, from: tests)
     }()
 

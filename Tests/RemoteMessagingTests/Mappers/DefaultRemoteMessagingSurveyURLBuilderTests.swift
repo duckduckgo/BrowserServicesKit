@@ -19,6 +19,7 @@
 import XCTest
 import BrowserServicesKitTestsUtils
 import RemoteMessagingTestsUtils
+import TestUtils
 @testable import Subscription
 @testable import RemoteMessaging
 

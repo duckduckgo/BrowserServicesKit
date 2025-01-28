@@ -18,7 +18,8 @@
 
 import Foundation
 import XCTest
-@testable import BrowserServicesKit
+@testable import Statistics
+@testable import TestUtils
 
 final class UsageSegmentationCalculationTests: XCTestCase {
 
@@ -49,7 +50,7 @@ final class UsageSegmentationCalculationTests: XCTestCase {
     }
 
     func testCalculations() throws {
-        let data = JsonTestDataLoader().fromJsonFile("Resources/mobile_segments_test_cases.json")
+        let data = JsonTestDataLoader().fromJsonFile("Resources/mobile_segments_test_cases.json", fromBundle: Bundle.module)
         XCTAssertNotNil(data)
 
         let cases = try JSONDecoder().decode([UsageSegmentationTestCase].self, from: data)

@@ -19,11 +19,12 @@
 import XCTest
 import Common
 @testable import BrowserServicesKit
+@testable import TestUtils
 
 final class HTTPSUpgradeParserTests: XCTestCase {
 
     func testWhenExcludedDomainsJSONIsUnexpectedThenTypeMismatchErrorThrown() {
-        let data = JsonTestDataLoader().unexpected()
+        let data = JsonTestDataLoader().unexpected(fromBundle: Bundle.module)
         XCTAssertThrowsError(try HTTPSUpgradeParser.convertExcludedDomainsData(data)) { error in
             XCTAssertEqual(error.localizedDescription, JsonError.typeMismatch.localizedDescription)
         }
@@ -37,13 +38,13 @@ final class HTTPSUpgradeParserTests: XCTestCase {
     }
 
     func testWhenExcludedDomainsJSONIsValidThenDomainsReturned() {
-        let data = JsonTestDataLoader().fromJsonFile("Resources/https_excluded_domains.json")
+        let data = JsonTestDataLoader().fromJsonFile("Resources/https_excluded_domains.json", fromBundle: Bundle.module)
         let result = try? HTTPSUpgradeParser.convertExcludedDomainsData(data)
         XCTAssertEqual(Set<String>(["www.example.com", "example.com", "test.com", "anothertest.com"]), Set<String>(result!))
     }
 
     func testWhenBloomFilterSpecificationJSONIsUnexpectedThenTypeMismatchErrorThrown() {
-        let data = JsonTestDataLoader().unexpected()
+        let data = JsonTestDataLoader().unexpected(fromBundle: Bundle.module)
         XCTAssertThrowsError(try HTTPSUpgradeParser.convertBloomFilterSpecification(fromJSONData: data), "") { error in
             XCTAssertEqual(error.localizedDescription, JsonError.typeMismatch.localizedDescription)
         }
@@ -57,7 +58,7 @@ final class HTTPSUpgradeParserTests: XCTestCase {
     }
 
     func testWhenBloomFilterSpecificationIsValidThenSpecificationReturned() {
-        let data = JsonTestDataLoader().fromJsonFile("Resources/https_bloom_spec.json")
+        let data = JsonTestDataLoader().fromJsonFile("Resources/https_bloom_spec.json", fromBundle: Bundle.module)
         let result = try? HTTPSUpgradeParser.convertBloomFilterSpecification(fromJSONData: data)
         XCTAssertNotNil(result)
         XCTAssertEqual(1250000, result?.bitCount)

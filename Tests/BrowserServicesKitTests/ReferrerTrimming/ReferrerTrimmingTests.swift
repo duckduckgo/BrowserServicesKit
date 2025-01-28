@@ -22,6 +22,7 @@ import WebKit
 import Common
 @testable import TrackerRadarKit
 @testable import BrowserServicesKit
+@testable import TestUtils
 
 struct ReferrerTests: Codable {
     struct ReferrerHeaderTest: Codable {
@@ -51,7 +52,7 @@ class ReferrerTrimmingTests: XCTestCase {
     }
 
     private static let data = JsonTestDataLoader()
-    private static let config = data.fromJsonFile(Resource.config)
+    private static let config = data.fromJsonFile(Resource.config, fromBundle: Bundle.module)
 
     private var privacyManager: PrivacyConfigurationManager {
         let embeddedDataProvider = MockEmbeddedDataProvider(data: Self.config,
@@ -73,12 +74,12 @@ class ReferrerTrimmingTests: XCTestCase {
     }
 
     private lazy var tds: TrackerData = {
-        let trackerJSON = Self.data.fromJsonFile(Resource.tds)
+        let trackerJSON = Self.data.fromJsonFile(Resource.tds, fromBundle: Bundle.module)
         return try! JSONDecoder().decode(TrackerData.self, from: trackerJSON)
     }()
 
     private lazy var referrerTestSuite: ReferrerTests = {
-        let tests = Self.data.fromJsonFile(Resource.tests)
+        let tests = Self.data.fromJsonFile(Resource.tests, fromBundle: Bundle.module)
         return try! JSONDecoder().decode(ReferrerTests.self, from: tests)
     }()
 

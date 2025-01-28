@@ -1,7 +1,7 @@
 //
 //  MockStatisticsStore.swift
 //
-//  Copyright © 2024 DuckDuckGo. All rights reserved.
+//  Copyright © 2017 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -16,21 +16,19 @@
 //  limitations under the License.
 //
 
-import BrowserServicesKit
 import Foundation
+@testable import Statistics
 
-public class MockStatisticsStore: StatisticsStore {
+class MockStatisticsStore: StatisticsStore {
 
-    public init() {}
+    var installDate: Date?
+    var atb: String?
+    var searchRetentionAtb: String?
+    var appRetentionAtb: String?
 
-    public var installDate: Date?
-    public var atb: String?
-    public var searchRetentionAtb: String?
-    public var appRetentionAtb: String?
-
-    public var hasInstallStatistics: Bool {
+    var hasInstallStatistics: Bool {
         return atb != nil
     }
 
-    public var variant: String?
+    var variant: String?
 }

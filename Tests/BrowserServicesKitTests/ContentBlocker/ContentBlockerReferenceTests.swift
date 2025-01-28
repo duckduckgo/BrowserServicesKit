@@ -25,6 +25,7 @@ import WebKit
 import BrowserServicesKit
 import TrackerRadarKit
 import Common
+@testable import TestUtils
 
 class ContentBlockerReferenceTests: XCTestCase {
 
@@ -88,8 +89,8 @@ class ContentBlockerReferenceTests: XCTestCase {
     func testDomainMatching() throws {
 
         let data = JsonTestDataLoader()
-        let trackerJSON = data.fromJsonFile("Resources/privacy-reference-tests/tracker-radar-tests/TR-domain-matching/tracker_radar_reference.json")
-        let testJSON = data.fromJsonFile("Resources/privacy-reference-tests/tracker-radar-tests/TR-domain-matching/domain_matching_tests.json")
+        let trackerJSON = data.fromJsonFile("Resources/privacy-reference-tests/tracker-radar-tests/TR-domain-matching/tracker_radar_reference.json", fromBundle: Bundle.module)
+        let testJSON = data.fromJsonFile("Resources/privacy-reference-tests/tracker-radar-tests/TR-domain-matching/domain_matching_tests.json", fromBundle: Bundle.module)
 
         tds = try JSONDecoder().decode(TrackerData.self, from: trackerJSON)
 

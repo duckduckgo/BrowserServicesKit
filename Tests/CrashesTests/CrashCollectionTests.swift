@@ -22,6 +22,7 @@ import XCTest
 import Persistence
 import TestUtils
 import Common
+import BrowserServicesKitTestsUtils
 
 class CrashCollectionTests: XCTestCase {
 
