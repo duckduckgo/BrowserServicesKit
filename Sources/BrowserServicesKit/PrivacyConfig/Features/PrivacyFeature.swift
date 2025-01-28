@@ -162,6 +162,7 @@ public enum SyncSubfeature: String, PrivacySubfeature {
     case level1AllowDataSyncing
     case level2AllowSetupFlows
     case level3AllowCreateAccount
+    case seamlessAccountSwitching
 }
 
 public enum AutoconsentSubfeature: String, PrivacySubfeature {

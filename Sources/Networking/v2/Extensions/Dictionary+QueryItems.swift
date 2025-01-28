@@ -1,7 +1,7 @@
 //
-//  HTTPURLResponse+Utilities.swift
+//  Dictionary+QueryItems.swift
 //
-//  Copyright © 2023 DuckDuckGo. All rights reserved.
+//  Copyright © 2025 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -17,22 +17,10 @@
 //
 
 import Foundation
-import Common
 
-public extension HTTPURLResponse {
+public extension Dictionary<String, String> {
 
-    var httpStatus: HTTPStatusCode {
-        HTTPStatusCode(rawValue: statusCode) ?? .unknown
-    }
-    var etag: String? { etag(droppingWeakPrefix: true) }
-
-    private static let weakEtagPrefix = "W/"
-
-    func etag(droppingWeakPrefix: Bool) -> String? {
-        let etag = value(forHTTPHeaderField: HTTPHeaderKey.etag)
-        if droppingWeakPrefix {
-            return etag?.dropping(prefix: HTTPURLResponse.weakEtagPrefix)
-        }
-        return etag
+    func toQueryItems() -> QueryItems {
+        self.map { QueryItem(key: $0.key, value: $0.value) }
     }
 }

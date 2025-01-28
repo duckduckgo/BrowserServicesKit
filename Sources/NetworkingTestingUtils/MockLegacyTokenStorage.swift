@@ -1,5 +1,5 @@
 //
-//  MockAPIService.swift
+//  MockLegacyTokenStorage.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -19,20 +19,11 @@
 import Foundation
 import Networking
 
-public class MockAPIService: APIService {
+public class MockLegacyTokenStorage: LegacyAuthTokenStoring {
 
-    public var requestHandler: ((APIRequestV2) -> Result<APIResponseV2, Error>)!
-
-    public init(requestHandler: ((APIRequestV2) -> Result<APIResponseV2, Error>)? = nil) {
-        self.requestHandler = requestHandler
+    public init(token: String? = nil) {
+        self.token = token
     }
 
-    public func fetch(request: APIRequestV2) async throws -> APIResponseV2 {
-        switch requestHandler!(request) {
-        case .success(let result):
-            return result
-        case .failure(let error):
-            throw error
-        }
-    }
+    public var token: String?
 }

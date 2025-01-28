@@ -22,7 +22,7 @@ import Common
 import Foundation
 import Gzip
 import Persistence
-import TestUtils
+import PersistenceTestingUtils
 import Networking
 
 @testable import DDGSync

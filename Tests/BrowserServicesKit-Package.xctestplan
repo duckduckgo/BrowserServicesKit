@@ -1,0 +1,213 @@
+{
+  "configurations" : [
+    {
+      "id" : "CEDD46E5-DAEC-407E-B790-8A23D5B18D80",
+      "name" : "Configuration 1",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+
+  },
+  "testTargets" : [
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "ConfigurationTests",
+        "name" : "ConfigurationTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "PageRefreshMonitorTests",
+        "name" : "PageRefreshMonitorTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "BookmarksTests",
+        "name" : "BookmarksTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "BrokenSitePromptTests",
+        "name" : "BrokenSitePromptTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "NetworkProtectionTests",
+        "name" : "NetworkProtectionTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "DDGSyncCryptoTests",
+        "name" : "DDGSyncCryptoTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "NavigationTests",
+        "name" : "NavigationTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "RemoteMessagingTests",
+        "name" : "RemoteMessagingTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "CrashesTests",
+        "name" : "CrashesTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "DDGSyncTests",
+        "name" : "DDGSyncTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "CommonTests",
+        "name" : "CommonTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "SecureStorageTests",
+        "name" : "SecureStorageTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "SyncDataProvidersTests",
+        "name" : "SyncDataProvidersTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "DuckPlayerTests",
+        "name" : "DuckPlayerTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "MaliciousSiteProtectionTests",
+        "name" : "MaliciousSiteProtectionTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "SubscriptionTests",
+        "name" : "SubscriptionTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "NetworkingTests",
+        "name" : "NetworkingTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "PrivacyStatsTests",
+        "name" : "PrivacyStatsTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "PixelExperimentKitTests",
+        "name" : "PixelExperimentKitTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "PersistenceTests",
+        "name" : "PersistenceTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "HistoryTests",
+        "name" : "HistoryTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "UserScriptTests",
+        "name" : "UserScriptTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "PrivacyDashboardTests",
+        "name" : "PrivacyDashboardTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "PixelKitTests",
+        "name" : "PixelKitTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "BrowserServicesKitTests",
+        "name" : "BrowserServicesKitTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "OnboardingTests",
+        "name" : "OnboardingTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "SuggestionsTests",
+        "name" : "SuggestionsTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:",
+        "identifier" : "SpecialErrorPagesTests",
+        "name" : "SpecialErrorPagesTests"
+      }
+    }
+  ],
+  "version" : 1
+}

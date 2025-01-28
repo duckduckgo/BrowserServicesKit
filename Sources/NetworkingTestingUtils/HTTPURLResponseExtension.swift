@@ -26,27 +26,31 @@ public extension HTTPURLResponse {
     static let testUserAgent = "test-user-agent"
 
     static let ok = HTTPURLResponse(url: testUrl,
-                                    statusCode: 200,
+                                    statusCode: HTTPStatusCode.ok.rawValue,
                                     httpVersion: nil,
                                     headerFields: [HTTPHeaderKey.etag: testEtag])!
 
     static let okNoEtag = HTTPURLResponse(url: testUrl,
-                                          statusCode: 200,
+                                          statusCode: HTTPStatusCode.ok.rawValue,
                                           httpVersion: nil,
                                           headerFields: [:])!
 
     static let notModified = HTTPURLResponse(url: testUrl,
-                                             statusCode: 304,
+                                             statusCode: HTTPStatusCode.notModified.rawValue,
                                              httpVersion: nil,
                                              headerFields: [HTTPHeaderKey.etag: testEtag])!
 
     static let internalServerError = HTTPURLResponse(url: testUrl,
-                                                     statusCode: 500,
+                                                     statusCode: HTTPStatusCode.internalServerError.rawValue,
                                                      httpVersion: nil,
                                                      headerFields: [:])!
 
     static let okUserAgent = HTTPURLResponse(url: testUrl,
-                                             statusCode: 200,
+                                             statusCode: HTTPStatusCode.ok.rawValue,
                                              httpVersion: nil,
                                              headerFields: [HTTPHeaderKey.userAgent: testUserAgent])!
+    static let unauthorised = HTTPURLResponse(url: testUrl,
+                                              statusCode: HTTPStatusCode.unauthorized.rawValue,
+                                              httpVersion: nil,
+                                              headerFields: [:])!
 }

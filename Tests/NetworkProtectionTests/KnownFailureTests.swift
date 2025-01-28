@@ -33,4 +33,4 @@ final class KnownFailureTests: XCTestCase {
     }
 }
 
-extension String: Error {}
+extension String: @retroactive Error {}

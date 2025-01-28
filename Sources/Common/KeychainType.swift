@@ -19,12 +19,9 @@
 import Foundation
 
 /// A convenience enum to unify the logic for selecting the right keychain through the query attributes.
-///
 public enum KeychainType {
     case dataProtection(_ accessGroup: AccessGroup)
-
     /// Uses the system keychain.
-    ///
     case system
 
     public enum AccessGroup {
@@ -32,7 +29,7 @@ public enum KeychainType {
         case named(_ name: String)
     }
 
-    func queryAttributes() -> [CFString: Any] {
+    public func queryAttributes() -> [CFString: Any] {
         switch self {
         case .dataProtection(let accessGroup):
             switch accessGroup {

@@ -1,7 +1,7 @@
 //
-//  DecodableHelper.swift
+//  HTTPURLResponse+HTTPStatusCode.swift
 //
-//  Copyright © 2021 DuckDuckGo. All rights reserved.
+//  Copyright © 2023 DuckDuckGo. All rights reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
 //  you may not use this file except in compliance with the License.
@@ -17,16 +17,10 @@
 //
 
 import Foundation
-import os.log
 
-public struct DecodableHelper {
-    public static func decode<Input: Any, Target: Decodable>(from input: Input) -> Target? {
-        do {
-            let json = try JSONSerialization.data(withJSONObject: input)
-            return try JSONDecoder().decode(Target.self, from: json)
-        } catch {
-            Logger.general.error("Error decoding message body: \(error.localizedDescription, privacy: .public)")
-            return nil
-        }
+public extension HTTPURLResponse {
+
+    var httpStatus: HTTPStatusCode {
+        HTTPStatusCode(rawValue: statusCode) ?? .unknown
     }
 }

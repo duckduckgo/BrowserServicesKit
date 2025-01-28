@@ -19,7 +19,8 @@
 import Foundation
 import XCTest
 @testable import BrowserServicesKit
-@testable import TestUtils
+import PersistenceTestingUtils
+
 @testable import Persistence
 
 final class UsageSegmentationStorageTests: XCTestCase {
