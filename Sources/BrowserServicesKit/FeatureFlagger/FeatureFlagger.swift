@@ -74,6 +74,33 @@ public protocol FeatureFlagDescribing: CaseIterable {
     /// ```
     var source: FeatureFlagSource { get }
 
+    /// Defines the type of cohort associated with the feature flag, if any.
+    ///
+    /// This property allows feature flags to define and associate with specific cohorts,
+    /// which are groups of users categorized for experimentation or feature rollouts.
+    ///
+    /// - Returns: A type conforming to `FlagCohort`, or `nil` if no cohort is associated
+    ///   with the feature flag.
+    ///
+    /// ### Example:
+    /// For a feature flag with cohorts like "control" and "treatment":
+    ///
+    /// ```
+    /// public enum ExampleFeatureFlag: FeatureFlagDescribing {
+    ///     case experimentalFeature
+    ///
+    ///     var cohortType: (any FlagCohort.Type)? {
+    ///         return ExampleCohort.self
+    ///     }
+    ///
+    ///     public enum ExampleCohort: String, FlagCohort {
+    ///         case control
+    ///         case treatment
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// If `cohortType` is `nil`, the feature flag does not have associated cohorts.
     var cohortType: (any FlagCohort.Type)? { get }
 }
 
@@ -139,6 +166,8 @@ public protocol FeatureFlagger: AnyObject {
     ///     - If the feature is a subfeature, resolves its cohort using `getCohortIfEnabled(_ subfeature:)`.
     ///     - Returns `nil` if the user is not eligible.
     ///
+    /// > Note: Setting `allowOverride` to `false` skips checking local overrides. This can be used
+    ///   when the non-overridden feature flag value is required.
     func getCohortIfEnabled<Flag: FeatureFlagDescribing>(for featureFlag: Flag, allowOverride: Bool) -> (any FlagCohort)?
 
     /// Retrieves all active experiments currently assigned to the user.
@@ -172,6 +201,15 @@ public extension FeatureFlagger {
         isFeatureOn(for: featureFlag, allowOverride: true)
     }
 
+    /// Called from app features to determine the cohort for a given feature, if enabled.
+    ///
+    /// Feature Flag's `source` is checked to determine if the flag is enabled. If the feature
+    /// flagger provides an overrides mechanism (`localOverrides` is not `nil`) and the user
+    /// is internal, local overrides are checked first and, if present, returned as the cohort.
+    ///
+    func getCohortIfEnabled<Flag: FeatureFlagDescribing>(for featureFlag: Flag) -> (any FlagCohort)? {
+        getCohortIfEnabled(for: featureFlag, allowOverride: true)
+    }
 }
 
 public class DefaultFeatureFlagger: FeatureFlagger {
@@ -299,7 +337,7 @@ public class DefaultFeatureFlagger: FeatureFlagger {
 }
 
 extension DefaultFeatureFlagger: CurrentExperimentCohortProvider {
-    public func getCurrentCohortIfAssigned<Flag: FeatureFlagDescribing>(for featureFlag: Flag) -> (any FlagCohort)? {
+    func getCurrentCohortIfAssigned<Flag: FeatureFlagDescribing>(for featureFlag: Flag) -> (any FlagCohort)? {
         // Check for local overrides
         if internalUserDecider.isInternalUser, let localOverride = localOverrides?.experimentOverride(for: featureFlag) {
             return featureFlag.cohortType?.cohorts.first { $0.rawValue == localOverride }

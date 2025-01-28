@@ -21,7 +21,7 @@ import Foundation
 import Persistence
 
 /// A protocol for retrieving the current experiment cohort for feature flags if one has already been assigned.
-public protocol CurrentExperimentCohortProvider {
+protocol CurrentExperimentCohortProvider {
     func getCurrentCohortIfAssigned<Flag: FeatureFlagDescribing>(for featureFlag: Flag) -> (any FlagCohort)?
 }
 

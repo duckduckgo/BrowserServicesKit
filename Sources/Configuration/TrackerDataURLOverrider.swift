@@ -41,7 +41,6 @@ public final class TrackerDataURLOverrider: TrackerDataURLProviding {
 
     public var trackerDataURL: URL? {
         for experimentType in TDSExperimentType.allCases {
-            print(experimentType)
             if let cohort = featureFlagger.getCohortIfEnabled(for: experimentType, allowOverride: false) as? TDSExperimentType.Cohort,
                let url = trackerDataURL(for: experimentType.subfeature, cohort: cohort) {
                 return url
@@ -126,5 +125,4 @@ extension TDSExperimentType: FeatureFlagDescribing {
         case control
         case treatment
     }
-
 }
