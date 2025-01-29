@@ -29,7 +29,7 @@ public extension PixelKit {
 }
 
 public enum Event: PixelKitEventV2 {
-    case errorPageShown(category: ThreatKind, clientSideHit: Bool)
+    case errorPageShown(category: ThreatKind, clientSideHit: Bool?)
     case visitSite(category: ThreatKind)
     case iframeLoaded(category: ThreatKind)
     case settingToggled(to: Bool)
@@ -59,10 +59,17 @@ public enum Event: PixelKitEventV2 {
     public var parameters: [String: String]? {
         switch self {
         case .errorPageShown(category: let category, clientSideHit: let clientSideHit):
-            return [
-                PixelKit.Parameters.category: category.rawValue,
-                PixelKit.Parameters.clientSideHit: String(clientSideHit),
-            ]
+            let parameters = if let clientSideHit {
+                [
+                    PixelKit.Parameters.category: category.rawValue,
+                    PixelKit.Parameters.clientSideHit: String(clientSideHit),
+                ]
+            } else {
+                [
+                    PixelKit.Parameters.category: category.rawValue,
+                ]
+            }
+            return parameters
         case .visitSite(category: let category),
              .iframeLoaded(category: let category):
             return [

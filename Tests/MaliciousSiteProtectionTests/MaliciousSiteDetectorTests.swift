@@ -157,4 +157,88 @@ class MaliciousSiteDetectorTests: XCTestCase {
             XCTFail("Unexpected event \(event)")
         }
     }
+
+    func testWhenLocalFilterHitAndFilterSetSmallerThanHundredThenClientSideHitParameterIsNil() async throws {
+        // GIVEN
+        let filter = Filter(hash: "255a8a793097aeea1f06a19c08cde28db0eb34c660c6e4e7480c9525d034b16d", regex: ".*malicious.*")
+        try await mockDataManager.store(FilterDictionary(revision: 0, items: [filter]), for: .filterSet(threatKind: .phishing))
+        try await mockDataManager.store(HashPrefixSet(revision: 0, items: ["255a8a79"]), for: .hashPrefixes(threatKind: .phishing))
+        let url = URL(string: "https://malicious.com/")!
+
+        // WHEN
+        _ = await detector.evaluate(url)
+
+        // THEN
+        XCTAssertEqual(mockEventMapping.events.count, 1)
+        switch mockEventMapping.events.last {
+        case let .errorPageShown(_, clientSideHit):
+            XCTAssertTrue(clientSideHit == true)
+        default:
+            XCTFail("Wrong event fired")
+        }
+    }
+
+    func testWhenLocalFilterHitAndFilterSetGreaterThanHundredThenClientSideHitParameterIsNil() async throws {
+        // GIVEN
+        let maliciousFilter = Filter(hash: "255a8a793097aeea1f06a19c08cde28db0eb34c660c6e4e7480c9525d034b16d", regex: ".*malicious.*")
+        let filters = (1...100).map { i in
+            Filter(hash: "255a8a793097aeea1f06a19c08cde28db0eb34c660c6e4e7480c9525d034b16d\(i)", regex: ".*malicious.*")
+        } + [maliciousFilter]
+        try await mockDataManager.store(FilterDictionary(revision: 0, items: filters), for: .filterSet(threatKind: .phishing))
+        try await mockDataManager.store(HashPrefixSet(revision: 0, items: ["255a8a79"]), for: .hashPrefixes(threatKind: .phishing))
+        let url = URL(string: "https://malicious.com/")!
+
+        // WHEN
+        _ = await detector.evaluate(url)
+
+        // THEN
+        XCTAssertEqual(mockEventMapping.events.count, 1)
+        switch mockEventMapping.events.last {
+        case let .errorPageShown(_, clientSideHit):
+            XCTAssertNil(clientSideHit)
+        default:
+            XCTFail("Wrong event fired")
+        }
+    }
+
+    func testWhenMatchesAPIAndFilterSetSmallerThanHundredThenClientSideHitParameterIsNil() async throws {
+        // GIVEN
+        try await mockDataManager.store(HashPrefixSet(revision: 0, items: ["a379a6f6"]), for: .hashPrefixes(threatKind: .phishing))
+        let url = URL(string: "https://example.com/mal")!
+
+        // WHEN
+        let _ = await detector.evaluate(url)
+
+        // THEN
+        XCTAssertEqual(mockEventMapping.events.count, 1)
+        switch mockEventMapping.events.last {
+        case let .errorPageShown(_, clientSideHit):
+            XCTAssertTrue(clientSideHit == false)
+        default:
+            XCTFail("Wrong event fired")
+        }
+    }
+
+    func testWhenMatchesAPIAndFilterSetGreaterThanHundredThenClientSideHitParameterIsNil() async throws {
+        // GIVEN
+        let maliciousFilter = Filter(hash: "255a8a793097aeea1f06a19c08cde28db0eb34c660c6e4e7480c9525d034b16d", regex: ".*malicious.*")
+        let filters = (1...100).map { i in
+            Filter(hash: "255a8a793097aeea1f06a19c08cde28db0eb34c660c6e4e7480c9525d034b16d\(i)", regex: ".*malicious.*")
+        } + [maliciousFilter]
+        try await mockDataManager.store(FilterDictionary(revision: 0, items: filters), for: .filterSet(threatKind: .phishing))
+        try await mockDataManager.store(HashPrefixSet(revision: 0, items: ["a379a6f6"]), for: .hashPrefixes(threatKind: .phishing))
+        let url = URL(string: "https://example.com/mal")!
+
+        // WHEN
+        let _ = await detector.evaluate(url)
+
+        // THEN
+        XCTAssertEqual(mockEventMapping.events.count, 1)
+        switch mockEventMapping.events.last {
+        case let .errorPageShown(_, clientSideHit):
+            XCTAssertNil(clientSideHit)
+        default:
+            XCTFail("Wrong event fired")
+        }
+    }
 }
