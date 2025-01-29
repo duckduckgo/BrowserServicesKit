@@ -26,7 +26,7 @@ public protocol MaliciousSiteUpdateManaging {
     #if os(iOS)
     var lastHashPrefixSetUpdateDate: Date { get }
     var lastFilterSetUpdateDate: Date { get }
-    func updateData(datasetType: DataManager.StoredDataType.Kind) async -> Task<Void, Error>
+    func updateData(datasetType: DataManager.StoredDataType.Kind) -> Task<Void, Error>
     #elseif os(macOS)
     func startPeriodicUpdates() -> Task<Void, Error>
     #endif
@@ -140,7 +140,7 @@ public struct UpdateManager: InternalUpdateManaging {
     #endif
 
     #if os(iOS)
-    public func updateData(datasetType: DataManager.StoredDataType.Kind) async -> Task<Void, any Error> {
+    public func updateData(datasetType: DataManager.StoredDataType.Kind) -> Task<Void, any Error> {
         Task {
             // run update jobs in background for every data type
             await withTaskGroup(of: Bool.self) { group in
