@@ -114,7 +114,7 @@ public struct DefaultSubscriptionEndpointServiceV2: SubscriptionEndpointServiceV
             Logger.subscriptionEndpointService.log("Subscription details retrieved successfully: \(subscription.debugDescription, privacy: .public)")
             return try await storeAndAddFeaturesIfNeededTo(subscription: subscription)
         } else {
-            if statusCode == .badRequest {
+            if statusCode == .badRequest || statusCode == .notFound {
                 Logger.subscriptionEndpointService.log("No subscription found")
                 clearSubscription()
                 throw SubscriptionEndpointServiceError.noData
