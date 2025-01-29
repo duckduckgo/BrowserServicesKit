@@ -20,7 +20,7 @@ import Foundation
 import os
 
 public protocol FileStoring {
-    @discardableResult func write(data: Data, to filename: String) -> Bool
+    func write(data: Data, to filename: String) throws
     func read(from filename: String) -> Data?
 }
 
@@ -40,14 +40,13 @@ public struct FileStore: FileStoring, CustomDebugStringConvertible {
         }
     }
 
-    public func write(data: Data, to filename: String) -> Bool {
+    public func write(data: Data, to filename: String) throws {
         let fileURL = dataStoreURL.appendingPathComponent(filename)
         do {
             try data.write(to: fileURL)
-            return true
         } catch {
             Logger.dataManager.error("Error writing to directory: \(error.localizedDescription)")
-            return false
+            throw error
         }
     }
 

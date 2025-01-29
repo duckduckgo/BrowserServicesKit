@@ -19,6 +19,7 @@
 import Clocks
 import Common
 import Foundation
+import Networking
 import XCTest
 
 @testable import MaliciousSiteProtection
@@ -27,8 +28,9 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
 
     var updateManager: MaliciousSiteProtection.UpdateManager!
     var dataManager: MockMaliciousSiteProtectionDataManager!
-    var apiClient: MaliciousSiteProtection.APIClient.Mockable!
+    var apiClient: MockMaliciousSiteProtectionAPIClient!
     var updateIntervalProvider: UpdateManager.UpdateIntervalProvider!
+    var updateManagerInfoStore: MockMaliciousSiteProtectionUpdateManagerInfoStore!
     var clock: TestClock<Duration>!
     var willSleep: ((TimeInterval) -> Void)?
     var updateTask: Task<Void, Error>?
@@ -37,6 +39,7 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
         apiClient = MockMaliciousSiteProtectionAPIClient()
         dataManager = MockMaliciousSiteProtectionDataManager()
         clock = TestClock()
+        updateManagerInfoStore = MockMaliciousSiteProtectionUpdateManagerInfoStore()
 
         let clockSleeper = Sleeper(clock: clock)
         let reportingSleeper = Sleeper {
@@ -44,19 +47,21 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
             try await clockSleeper.sleep(for: $0)
         }
 
-        updateManager = MaliciousSiteProtection.UpdateManager(apiClient: apiClient, dataManager: dataManager, sleeper: reportingSleeper, updateIntervalProvider: { self.updateIntervalProvider($0) })
+        updateManager = MaliciousSiteProtection.UpdateManager(apiClient: apiClient, dataManager: dataManager, sleeper: reportingSleeper, updateInfoStorage: updateManagerInfoStore, updateIntervalProvider: { self.updateIntervalProvider($0) })
     }
 
     override func tearDown() async throws {
         updateManager = nil
+        updateManagerInfoStore = nil
         dataManager = nil
         apiClient = nil
         updateIntervalProvider = nil
         updateTask?.cancel()
+        MockUpdateManagerPixelHandler.tearDown()
     }
 
-    func testUpdateHashPrefixes() async {
-        await updateManager.updateData(for: .hashPrefixes(threatKind: .phishing))
+    func testUpdateHashPrefixes() async throws {
+        try await updateManager.updateData(for: .hashPrefixes(threatKind: .phishing))
         let dataSet = await dataManager.dataSet(for: .hashPrefixes(threatKind: .phishing))
         XCTAssertEqual(dataSet, HashPrefixSet(revision: 1, items: [
             "aa00bb11",
@@ -67,8 +72,8 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
         ]))
     }
 
-    func testUpdateFilterSet() async {
-        await updateManager.updateData(for: .filterSet(threatKind: .phishing))
+    func testUpdateFilterSet() async throws {
+        try await updateManager.updateData(for: .filterSet(threatKind: .phishing))
         let dataSet = await dataManager.dataSet(for: .filterSet(threatKind: .phishing))
         XCTAssertEqual(dataSet, FilterDictionary(revision: 1, items: [
             Filter(hash: "testhash1", regex: ".*example.*"),
@@ -76,7 +81,7 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
         ]))
     }
 
-    func testRevision1AddsAndDeletesData() async {
+    func testRevision1AddsAndDeletesData() async throws {
         let expectedFilterSet: Set<Filter> = [
             Filter(hash: "testhash2", regex: ".*test.*"),
             Filter(hash: "testhash3", regex: ".*test.*")
@@ -89,12 +94,12 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
         ]
 
         // revision 0 -> 1
-        await updateManager.updateData(for: .filterSet(threatKind: .phishing))
-        await updateManager.updateData(for: .hashPrefixes(threatKind: .phishing))
+        try await updateManager.updateData(for: .filterSet(threatKind: .phishing))
+        try await updateManager.updateData(for: .hashPrefixes(threatKind: .phishing))
 
         // revision 1 -> 2
-        await updateManager.updateData(for: .filterSet(threatKind: .phishing))
-        await updateManager.updateData(for: .hashPrefixes(threatKind: .phishing))
+        try await updateManager.updateData(for: .filterSet(threatKind: .phishing))
+        try await updateManager.updateData(for: .hashPrefixes(threatKind: .phishing))
 
         let hashPrefixes = await dataManager.dataSet(for: .hashPrefixes(threatKind: .phishing))
         let filterSet = await dataManager.dataSet(for: .filterSet(threatKind: .phishing))
@@ -103,7 +108,7 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
         XCTAssertEqual(filterSet, FilterDictionary(revision: 2, items: expectedFilterSet), "Filter set should match the expected set after update.")
     }
 
-    func testRevision2AddsAndDeletesData() async {
+    func testRevision2AddsAndDeletesData() async throws {
         let expectedFilterSet: Set<Filter> = [
             Filter(hash: "testhash4", regex: ".*test.*"),
             Filter(hash: "testhash2", regex: ".*test1.*"),
@@ -119,13 +124,13 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
         ]
 
         // Save revision and update the filter set and hash prefixes
-        await dataManager.store(FilterDictionary(revision: 2, items: [
+        try await dataManager.store(FilterDictionary(revision: 2, items: [
             Filter(hash: "testhash1", regex: ".*example.*"),
             Filter(hash: "testhash2", regex: ".*test.*"),
             Filter(hash: "testhash2", regex: ".*test1.*"),
             Filter(hash: "testhash3", regex: ".*test3.*"),
         ]), for: .filterSet(threatKind: .phishing))
-        await dataManager.store(HashPrefixSet(revision: 2, items: [
+        try await dataManager.store(HashPrefixSet(revision: 2, items: [
             "aa00bb11",
             "bb00cc11",
             "cc00dd11",
@@ -133,8 +138,8 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
             "a379a6f6"
         ]), for: .hashPrefixes(threatKind: .phishing))
 
-        await updateManager.updateData(for: .filterSet(threatKind: .phishing))
-        await updateManager.updateData(for: .hashPrefixes(threatKind: .phishing))
+        try await updateManager.updateData(for: .filterSet(threatKind: .phishing))
+        try await updateManager.updateData(for: .hashPrefixes(threatKind: .phishing))
 
         let hashPrefixes = await dataManager.dataSet(for: .hashPrefixes(threatKind: .phishing))
         let filterSet = await dataManager.dataSet(for: .filterSet(threatKind: .phishing))
@@ -143,16 +148,16 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
         XCTAssertEqual(filterSet, FilterDictionary(revision: 3, items: expectedFilterSet), "Filter set should match the expected set after update.")
     }
 
-    func testRevision3AddsAndDeletesNothing() async {
+    func testRevision3AddsAndDeletesNothing() async throws {
         let expectedFilterSet: Set<Filter> = []
         let expectedHashPrefixes: Set<String> = []
 
         // Save revision and update the filter set and hash prefixes
-        await dataManager.store(FilterDictionary(revision: 3, items: []), for: .filterSet(threatKind: .phishing))
-        await dataManager.store(HashPrefixSet(revision: 3, items: []), for: .hashPrefixes(threatKind: .phishing))
+        try await dataManager.store(FilterDictionary(revision: 3, items: []), for: .filterSet(threatKind: .phishing))
+        try await dataManager.store(HashPrefixSet(revision: 3, items: []), for: .hashPrefixes(threatKind: .phishing))
 
-        await updateManager.updateData(for: .filterSet(threatKind: .phishing))
-        await updateManager.updateData(for: .hashPrefixes(threatKind: .phishing))
+        try await updateManager.updateData(for: .filterSet(threatKind: .phishing))
+        try await updateManager.updateData(for: .hashPrefixes(threatKind: .phishing))
 
         let hashPrefixes = await dataManager.dataSet(for: .hashPrefixes(threatKind: .phishing))
         let filterSet = await dataManager.dataSet(for: .filterSet(threatKind: .phishing))
@@ -161,7 +166,7 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
         XCTAssertEqual(filterSet, FilterDictionary(revision: 3, items: expectedFilterSet), "Filter set should match the expected set after update.")
     }
 
-    func testRevision4AddsAndDeletesData() async {
+    func testRevision4AddsAndDeletesData() async throws {
         let expectedFilterSet: Set<Filter> = [
             Filter(hash: "testhash5", regex: ".*test.*")
         ]
@@ -170,11 +175,11 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
         ]
 
         // Save revision and update the filter set and hash prefixes
-        await dataManager.store(FilterDictionary(revision: 4, items: []), for: .filterSet(threatKind: .phishing))
-        await dataManager.store(HashPrefixSet(revision: 4, items: []), for: .hashPrefixes(threatKind: .phishing))
+        try await dataManager.store(FilterDictionary(revision: 4, items: []), for: .filterSet(threatKind: .phishing))
+        try await dataManager.store(HashPrefixSet(revision: 4, items: []), for: .hashPrefixes(threatKind: .phishing))
 
-        await updateManager.updateData(for: .filterSet(threatKind: .phishing))
-        await updateManager.updateData(for: .hashPrefixes(threatKind: .phishing))
+        try await updateManager.updateData(for: .filterSet(threatKind: .phishing))
+        try await updateManager.updateData(for: .hashPrefixes(threatKind: .phishing))
 
         let hashPrefixes = await dataManager.dataSet(for: .hashPrefixes(threatKind: .phishing))
         let filterSet = await dataManager.dataSet(for: .filterSet(threatKind: .phishing))
@@ -183,7 +188,7 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
         XCTAssertEqual(filterSet, FilterDictionary(revision: 5, items: expectedFilterSet), "Filter set should match the expected set after update.")
     }
 
-    func testRevision5replacesData() async {
+    func testRevision5replacesData() async throws {
         let expectedFilterSet: Set<Filter> = [
             Filter(hash: "testhash6", regex: ".*test6.*")
         ]
@@ -192,20 +197,20 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
         ]
 
         // Save revision and update the filter set and hash prefixes
-        await dataManager.store(FilterDictionary(revision: 5, items: [
+        try await dataManager.store(FilterDictionary(revision: 5, items: [
             Filter(hash: "testhash2", regex: ".*test.*"),
             Filter(hash: "testhash1", regex: ".*example.*"),
             Filter(hash: "testhash5", regex: ".*test.*")
         ]), for: .filterSet(threatKind: .phishing))
-        await dataManager.store(HashPrefixSet(revision: 5, items: [
+        try await dataManager.store(HashPrefixSet(revision: 5, items: [
             "a379a6f6",
             "dd00ee11",
             "cc00dd11",
             "bb00cc11"
         ]), for: .hashPrefixes(threatKind: .phishing))
 
-        await updateManager.updateData(for: .filterSet(threatKind: .phishing))
-        await updateManager.updateData(for: .hashPrefixes(threatKind: .phishing))
+        try await updateManager.updateData(for: .filterSet(threatKind: .phishing))
+        try await updateManager.updateData(for: .hashPrefixes(threatKind: .phishing))
 
         let hashPrefixes = await dataManager.dataSet(for: .hashPrefixes(threatKind: .phishing))
         let filterSet = await dataManager.dataSet(for: .filterSet(threatKind: .phishing))
@@ -214,6 +219,7 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
         XCTAssertEqual(filterSet, FilterDictionary(revision: 6, items: expectedFilterSet), "Filter set should match the expected set after update.")
     }
 
+    #if os(macOS)
     func testWhenPeriodicUpdatesStart_dataSetsAreUpdated() async throws {
         self.updateIntervalProvider = { _ in 1 }
 
@@ -389,5 +395,133 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
 
         withExtendedLifetime(c) {}
     }
+    #endif
 
+    #if os(iOS)
+    func testWhenLastHashPrefixSetUpdateDateIsCalledThenReturnStoredDate() {
+        // GIVEN
+        let date = Date()
+        updateManagerInfoStore.lastHashPrefixSetsUpdateDate = date
+
+        // WHEN
+        let result = updateManager.lastHashPrefixSetUpdateDate
+
+        // THEN
+        XCTAssertEqual(result, date)
+    }
+
+    func testWhenLastFilterSetUpdateDateIsCalledThenReturnStoredDate() {
+        // GIVEN
+        let date = Date()
+        updateManagerInfoStore.lastFilterSetsUpdateDate = date
+
+        // WHEN
+        let result = updateManager.lastFilterSetUpdateDate
+
+        // THEN
+        XCTAssertEqual(result, date)
+    }
+
+    func testWhenUpdateDataForDatasetTypeIsCalled_AndTypeIsHashPrefix_AndDatasetIsUpdated_ThenSaveUpdateDate() async throws {
+        // GIVEN
+        XCTAssertEqual(updateManagerInfoStore.lastHashPrefixSetsUpdateDate, .distantPast)
+
+        // WHEN
+        try await updateManager.updateData(datasetType: .hashPrefixSet).value
+
+        // THEN
+        XCTAssertNotEqual(updateManagerInfoStore.lastHashPrefixSetsUpdateDate, .distantPast)
+    }
+
+    func testWhenUpdateDataForDatasetTypeIsCalled_AndTypeIsFilterSet_AndDatasetIsUpdated_ThenSaveUpdateDate() async throws {
+        // GIVEN
+        XCTAssertEqual(updateManagerInfoStore.lastFilterSetsUpdateDate, .distantPast)
+
+        // WHEN
+        try await updateManager.updateData(datasetType: .filterSet).value
+
+        // THEN
+        XCTAssertNotEqual(updateManagerInfoStore.lastFilterSetsUpdateDate, .distantPast)
+    }
+
+    func testWhenUpdateDataForDatasetTypeIsCalled_AndTypeIsHashPrefix_AndDatasetIsNotUpdated_ThenDoNotSaveUpdateDate() async throws {
+        // GIVEN
+        dataManager = MockMaliciousSiteProtectionDataManager(storeDatasetSuccess: false)
+        updateManager = MaliciousSiteProtection.UpdateManager(apiClient: apiClient, dataManager: dataManager, updateInfoStorage: updateManagerInfoStore, updateIntervalProvider: { self.updateIntervalProvider($0) })
+        XCTAssertEqual(updateManagerInfoStore.lastHashPrefixSetsUpdateDate, .distantPast)
+
+        // WHEN
+        try await updateManager.updateData(datasetType: .hashPrefixSet).value
+
+        // THEN
+        XCTAssertEqual(updateManagerInfoStore.lastHashPrefixSetsUpdateDate, .distantPast)
+    }
+
+    func testWhenUpdateDataForDatasetTypeIsCalled_AndTypeIsFilterSet_AndDatasetIsNotUpdated_ThenDoNotSaveUpdateDate() async throws {
+        // GIVEN
+        dataManager = MockMaliciousSiteProtectionDataManager(storeDatasetSuccess: false)
+        updateManager = MaliciousSiteProtection.UpdateManager(apiClient: apiClient, dataManager: dataManager, updateInfoStorage: updateManagerInfoStore, updateIntervalProvider: { self.updateIntervalProvider($0) })
+        XCTAssertEqual(updateManagerInfoStore.lastFilterSetsUpdateDate, .distantPast)
+
+        // WHEN
+        try await updateManager.updateData(datasetType: .hashPrefixSet).value
+
+        // THEN
+        XCTAssertEqual(updateManagerInfoStore.lastFilterSetsUpdateDate, .distantPast)
+    }
+    #endif
+
+    func testWhenUpdateDataApiFails_AndInitialLocalDatasetIsEmpty_AndErrorIsNoInternetConnection_ThenSendFailedToFetchDatasetsPixel() async {
+        // GIVEN
+        apiClient.loadRequestError = APIRequestV2.Error.urlSession(URLError(.notConnectedToInternet))
+        updateManager = MaliciousSiteProtection.UpdateManager(apiClient: apiClient, dataManager: dataManager, pixelHandler: MockUpdateManagerPixelHandler.self, updateIntervalProvider: { self.updateIntervalProvider($0) })
+        XCTAssertFalse(MockUpdateManagerPixelHandler.didCallFireFailedToDownloadInitialDatasets)
+        XCTAssertNil(MockUpdateManagerPixelHandler.capturedThreatKind)
+        XCTAssertNil(MockUpdateManagerPixelHandler.capturedDatasetType)
+
+        // WHEN
+        await XCTAssertThrowsError(try await updateManager.updateData(for: .hashPrefixes(threatKind: .phishing)))
+
+        // THEN
+        XCTAssertTrue(MockUpdateManagerPixelHandler.didCallFireFailedToDownloadInitialDatasets)
+        XCTAssertEqual(MockUpdateManagerPixelHandler.capturedThreatKind, .phishing)
+        XCTAssertEqual(MockUpdateManagerPixelHandler.capturedDatasetType, .hashPrefixSet)
+    }
+
+    func testWhenUpdateDataApiFails_AndInitialLocalDatasetIsNotEmpty_AndErrorIsNoInternetConnection_ThenDoNotSendFailedToFetchDatasetsPixel() async throws {
+        // GIVEN
+        try await dataManager.store(HashPrefixSet(revision: 3, items: []), for: .hashPrefixes(threatKind: .phishing))
+        apiClient.loadRequestError = APIRequestV2.Error.urlSession(URLError(.notConnectedToInternet))
+        updateManager = MaliciousSiteProtection.UpdateManager(apiClient: apiClient, dataManager: dataManager, pixelHandler: MockUpdateManagerPixelHandler.self, updateIntervalProvider: { self.updateIntervalProvider($0) })
+        XCTAssertFalse(MockUpdateManagerPixelHandler.didCallFireFailedToDownloadInitialDatasets)
+        XCTAssertNil(MockUpdateManagerPixelHandler.capturedThreatKind)
+        XCTAssertNil(MockUpdateManagerPixelHandler.capturedDatasetType)
+
+        // WHEN
+        await XCTAssertThrowsError(try await updateManager.updateData(for: .hashPrefixes(threatKind: .phishing)))
+
+        // THEN
+        XCTAssertFalse(MockUpdateManagerPixelHandler.didCallFireFailedToDownloadInitialDatasets)
+        XCTAssertNil(MockUpdateManagerPixelHandler.capturedThreatKind)
+        XCTAssertNil(MockUpdateManagerPixelHandler.capturedDatasetType)
+    }
+
+}
+
+final class MockUpdateManagerPixelHandler: UpdateManagerPixelFiring {
+    private(set) static var didCallFireFailedToDownloadInitialDatasets = false
+    private(set) static var capturedThreatKind: ThreatKind?
+    private(set) static var capturedDatasetType: MaliciousSiteProtection.DataManager.StoredDataType.Kind?
+
+    static func fireFailedToDownloadInitialDatasets(threat: MaliciousSiteProtection.ThreatKind, datasetType: MaliciousSiteProtection.DataManager.StoredDataType.Kind) {
+        didCallFireFailedToDownloadInitialDatasets = true
+        capturedThreatKind = threat
+        capturedDatasetType = datasetType
+    }
+
+    static func tearDown() {
+        didCallFireFailedToDownloadInitialDatasets = false
+        capturedThreatKind = nil
+        capturedDatasetType = nil
+    }
 }
