@@ -18,8 +18,6 @@
 
 import Foundation
 
-public typealias HTTPHeaders = [String: String]
-
 public extension APIRequest {
 
     struct Headers {

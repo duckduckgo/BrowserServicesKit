@@ -17,7 +17,7 @@
 //
 
 import XCTest
-import TestUtils
+import PersistenceTestingUtils
 @testable import PrivacyDashboard
 
 final class ExpiryStorageTests: XCTestCase {

@@ -226,8 +226,10 @@ public class DDGSync: DDGSyncing {
 
         let syncEnabled = dependencies.keyValueStore.object(forKey: Constants.syncEnabledKey) != nil
         guard syncEnabled else {
+            if account != nil {
+                dependencies.errorEvents.fire(.accountRemoved(.syncEnabledNotSetOnKeyValueStore))
+            }
             try? dependencies.secureStore.removeAccount()
-            dependencies.errorEvents.fire(.accountRemoved(.syncEnabledNotSetOnKeyValueStore))
             authState = .inactive
             return
         }

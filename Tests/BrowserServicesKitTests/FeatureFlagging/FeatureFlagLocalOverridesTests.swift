@@ -17,7 +17,7 @@
 //
 
 import BrowserServicesKit
-import TestUtils
+import PersistenceTestingUtils
 import XCTest
 
 final class CapturingFeatureFlagLocalOverridesHandler: FeatureFlagLocalOverridesHandling {
