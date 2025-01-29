@@ -24,6 +24,7 @@ public extension PixelKit {
         public static let clientSideHit = "clientSideHit"
         public static let category = "category"
         public static let settingToggledTo = "newState"
+        public static let datasetType = "type"
     }
 }
 
@@ -34,6 +35,7 @@ public enum Event: PixelKitEventV2 {
     case settingToggled(to: Bool)
     case matchesApiTimeout
     case matchesApiFailure(Error)
+    case failedToDownloadInitialDataSets(category: ThreatKind, type: DataManager.StoredDataType.Kind)
 
     public var name: String {
         switch self {
@@ -49,6 +51,8 @@ public enum Event: PixelKitEventV2 {
             return "malicious-site-protection_client-timeout"
         case .matchesApiFailure:
             return "malicious-site-protection_matches-api-error"
+        case .failedToDownloadInitialDataSets:
+            return "malicious-site-protection_failed-to-fetch-initial-datasets"
         }
     }
 
@@ -71,6 +75,11 @@ public enum Event: PixelKitEventV2 {
         case .matchesApiTimeout,
              .matchesApiFailure:
             return [:]
+        case .failedToDownloadInitialDataSets(let category, let datasetType):
+            return [
+                PixelKit.Parameters.category: category.rawValue,
+                PixelKit.Parameters.datasetType: datasetType.rawValue,
+            ]
         }
     }
 
@@ -88,6 +97,8 @@ public enum Event: PixelKitEventV2 {
             return nil
         case .matchesApiFailure(let error):
             return error
+        case .failedToDownloadInitialDataSets:
+            return nil
         }
     }
 
