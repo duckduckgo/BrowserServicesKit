@@ -293,6 +293,11 @@ public class DefaultFeatureFlagger: FeatureFlagger {
         }
 
         // Handle feature cohort sources
+        return handleCohortResolutionBasedOnSources(for: featureFlag, allowCohortAssignment: true)
+    }
+
+    private func handleCohortResolutionBasedOnSources<Flag: FeatureFlagDescribing>(for featureFlag: Flag, allowCohortAssignment: Bool) -> (any FlagCohort)? {
+        // Handle feature cohort sources
         switch featureFlag.source {
         case .disabled:
             return nil
@@ -301,7 +306,7 @@ public class DefaultFeatureFlagger: FeatureFlagger {
         case .remoteReleasable(let featureType),
                 .remoteDevelopment(let featureType) where internalUserDecider.isInternalUser:
             if case .subfeature(let subfeature) = featureType {
-                if let resolvedCohortID = getCohortIfEnabled(subfeature) {
+                if let resolvedCohortID = getCohortIfEnabled(subfeature, allowCohortReassignment: allowCohortAssignment) {
                     return featureFlag.cohortType?.cohort(for: resolvedCohortID)
                 }
             }
@@ -338,21 +343,6 @@ public class DefaultFeatureFlagger: FeatureFlagger {
 
 extension DefaultFeatureFlagger: CurrentExperimentCohortProvider {
     func getCurrentCohortIfAssigned<Flag: FeatureFlagDescribing>(for featureFlag: Flag) -> (any FlagCohort)? {
-        switch featureFlag.source {
-        case .disabled:
-            return nil
-        case .internalOnly(let cohort):
-            return cohort
-        case .remoteReleasable(let featureType),
-                .remoteDevelopment(let featureType) where internalUserDecider.isInternalUser:
-            if case .subfeature(let subfeature) = featureType {
-                if let resolvedCohortID = getCohortIfEnabled(subfeature, allowCohortReassignment: false) {
-                    return featureFlag.cohortType?.cohort(for: resolvedCohortID)
-                }
-            }
-            return nil
-        default:
-            return nil
-        }
+        return handleCohortResolutionBasedOnSources(for: featureFlag, allowCohortAssignment: false)
     }
 }
