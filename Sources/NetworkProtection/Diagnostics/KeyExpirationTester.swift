@@ -67,18 +67,18 @@ final actor KeyExpirationTester {
 
     func start(testImmediately: Bool) async {
         guard !isRunning else {
-            Logger.networkProtectionConnectionTester.log("Will not start the key expiration tester as it's already running")
+            Logger.networkProtectionKeyManagement.log("Will not start the key expiration tester as it's already running")
             return
         }
 
         isRunning = true
 
-        Logger.networkProtectionConnectionTester.log("🟢 Starting rekey timer")
+        Logger.networkProtectionKeyManagement.log("🟢 Starting rekey timer")
         await scheduleTimer(testImmediately: testImmediately)
     }
 
     func stop() {
-        Logger.networkProtectionConnectionTester.log("🔴 Stopping rekey timer")
+        Logger.networkProtectionKeyManagement.log("🔴 Stopping rekey timer")
         stopScheduledTimer()
         isRunning = false
     }

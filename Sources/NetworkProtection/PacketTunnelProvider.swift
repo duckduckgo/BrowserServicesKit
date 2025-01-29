@@ -1576,7 +1576,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     @MainActor
     public func stopMonitors() async {
-        self.connectionTester.stop()
+        connectionTester.stop()
+        await keyExpirationTester.stop()
         await self.tunnelFailureMonitor.stop()
         await self.latencyMonitor.stop()
         await self.entitlementMonitor.stop()
