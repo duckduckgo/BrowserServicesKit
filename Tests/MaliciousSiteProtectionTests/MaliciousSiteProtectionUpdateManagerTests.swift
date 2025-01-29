@@ -21,7 +21,6 @@ import Common
 import Foundation
 import Networking
 import XCTest
-import TestUtils
 
 @testable import MaliciousSiteProtection
 

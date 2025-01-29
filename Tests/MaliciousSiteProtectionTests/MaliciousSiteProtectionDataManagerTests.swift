@@ -18,7 +18,6 @@
 
 import Foundation
 import XCTest
-import TestUtils
 
 @testable import MaliciousSiteProtection
 
