@@ -149,7 +149,7 @@ public final class NetworkProtectionKeychainKeyStore: NetworkProtectionKeyStore 
 
     // MARK: - UserDefaults
 
-    public var currentExpirationDate: Date? {
+    private(set) public var currentExpirationDate: Date? {
         get {
             return userDefaults.object(forKey: UserDefaultKeys.expirationDate) as? Date
         }
