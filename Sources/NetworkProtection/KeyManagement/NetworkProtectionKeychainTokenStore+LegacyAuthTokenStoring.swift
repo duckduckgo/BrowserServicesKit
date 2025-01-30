@@ -22,24 +22,24 @@ import Networking
 extension NetworkProtectionKeychainTokenStore: LegacyAuthTokenStoring {
 
     public var token: String? {
-            get {
-                do {
-                    return try fetchToken()
-                } catch {
-                    assertionFailure("Failed to retrieve auth token: \(error)")
-                }
-                return nil
+        get {
+            do {
+                return try fetchToken()
+            } catch {
+                assertionFailure("Failed to retrieve auth token: \(error)")
             }
-            set(newValue) {
-                do {
-                    guard let newValue else {
-                        try deleteToken()
-                        return
-                    }
-                    try store(newValue)
-                } catch {
-                    assertionFailure("Failed set token: \(error)")
+            return nil
+        }
+        set(newValue) {
+            do {
+                guard let newValue else {
+                    try deleteToken()
+                    return
                 }
+                try store(newValue)
+            } catch {
+                assertionFailure("Failed set token: \(error)")
             }
         }
+    }
 }
