@@ -21,20 +21,23 @@ import XCTest
 @testable import NetworkProtection
 @testable import NetworkProtectionTestUtils
 import Common
+@testable import Subscription
+@testable import Networking
+import NetworkingTestingUtils
 
 class NetworkProtectionLocationListCompositeRepositoryTests: XCTestCase {
     var repository: NetworkProtectionLocationListCompositeRepository!
     var client: MockNetworkProtectionClient!
-    var tokenStore: MockNetworkProtectionTokenStorage!
+    var tokenProvider: MockSubscriptionTokenProvider!
     var verifyErrorEvent: ((NetworkProtectionError) -> Void)?
 
     override func setUp() {
         super.setUp()
         client = MockNetworkProtectionClient()
-        tokenStore = MockNetworkProtectionTokenStorage()
+        tokenProvider = MockSubscriptionTokenProvider()
         repository = NetworkProtectionLocationListCompositeRepository(
             client: client,
-            tokenStore: tokenStore,
+            tokenProvider: tokenProvider,
             errorEvents: .init { [weak self] event, _, _, _ in
                 self?.verifyErrorEvent?(event)
         })
@@ -44,13 +47,12 @@ class NetworkProtectionLocationListCompositeRepositoryTests: XCTestCase {
     override func tearDown() {
         NetworkProtectionLocationListCompositeRepository.clearCache()
         client = nil
-        tokenStore = nil
+        tokenProvider = nil
         repository = nil
         super.tearDown()
     }
 
     func testFetchLocationList_firstCall_fetchesAndReturnsList() async throws {
-        let expectedToken = "aToken"
         let expectedList: [NetworkProtectionLocation] = [
             .testData(country: "US", cities: [
                 .testData(name: "New York"),
@@ -58,21 +60,22 @@ class NetworkProtectionLocationListCompositeRepositoryTests: XCTestCase {
             ])
         ]
         client.stubGetLocations = .success(expectedList)
-        tokenStore.stubFetchToken = expectedToken
+        let tokenContainer = OAuthTokensFactory.makeValidTokenContainerWithEntitlements()
+        tokenProvider.tokenResult = .success(tokenContainer)
         let locations = try await repository.fetchLocationList()
-        XCTAssertEqual(expectedToken, client.spyGetLocationsAuthToken)
+        XCTAssertEqual("ddg:\(tokenContainer.accessToken)", client.spyGetLocationsAuthToken)
         XCTAssertEqual(expectedList, locations)
     }
 
     func testFetchLocationList_secondCall_returnsCachedList() async throws {
-        let expectedToken = "aToken"
         let expectedList: [NetworkProtectionLocation] = [
             .testData(country: "DE", cities: [
                 .testData(name: "Berlin")
             ])
         ]
         client.stubGetLocations = .success(expectedList)
-        tokenStore.stubFetchToken = expectedToken
+        let tokenContainer = OAuthTokensFactory.makeValidTokenContainer()
+        tokenProvider.tokenResult = .success(tokenContainer)
         _ = try await repository.fetchLocationList()
         client.spyGetLocationsAuthToken = nil
         let locations = try await repository.fetchLocationList()
@@ -83,7 +86,7 @@ class NetworkProtectionLocationListCompositeRepositoryTests: XCTestCase {
 
     func testFetchLocationList_noAuthToken_throwsError() async throws {
         client.stubGetLocations = .success([.testData()])
-        tokenStore.stubFetchToken = nil
+        tokenProvider.tokenResult = .failure(OAuthClientError.missingTokens)
         var errorResult: NetworkProtectionError?
         do {
             _ = try await repository.fetchLocationList()
@@ -101,7 +104,7 @@ class NetworkProtectionLocationListCompositeRepositoryTests: XCTestCase {
 
     func testFetchLocationList_noAuthToken_sendsErrorEvent() async {
         client.stubGetLocations = .success([.testData()])
-        tokenStore.stubFetchToken = nil
+        tokenProvider.tokenResult = .failure(OAuthClientError.missingTokens)
         var didReceiveError: Bool = false
         verifyErrorEvent = { error in
             didReceiveError = true

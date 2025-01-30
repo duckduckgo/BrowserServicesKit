@@ -21,7 +21,6 @@ import Common
 import os.log
 
 public protocol SubscriptionCookieManaging {
-    init(subscriptionManager: SubscriptionManager, currentCookieStore: @MainActor @escaping () -> HTTPCookieStore?, eventMapping: EventMapping<SubscriptionCookieManagerEvent>)
     func enableSettingSubscriptionCookie()
     func disableSettingSubscriptionCookie() async
 
@@ -86,18 +85,17 @@ public final class SubscriptionCookieManager: SubscriptionCookieManaging {
                   let cookieStore = await currentCookieStore()
             else { return }
 
-            guard let accessToken = subscriptionManager.accountManager.accessToken else {
-                Logger.subscription.error("[SubscriptionCookieManager] Handle .accountDidSignIn - can't set the cookie, token is missing")
-                eventMapping.fire(.errorHandlingAccountDidSignInTokenIsMissing)
-                return
-            }
-            Logger.subscription.info("[SubscriptionCookieManager] Handle .accountDidSignIn - setting cookie")
-
             do {
+                let accessToken = try await subscriptionManager.getTokenContainer(policy: .localValid).accessToken
+                Logger.subscriptionCookieManager.info("Handle .accountDidSignIn - setting cookie")
                 try await cookieStore.setSubscriptionCookie(for: accessToken)
                 updateLastRefreshDateToNow()
-            } catch {
+            } catch SubscriptionCookieManagerError.failedToCreateSubscriptionCookie {
                 eventMapping.fire(.failedToSetSubscriptionCookie)
+            } catch {
+                Logger.subscriptionCookieManager.error("Handle .accountDidSignIn - can't set the cookie, token is missing")
+                eventMapping.fire(.errorHandlingAccountDidSignInTokenIsMissing)
+                return
             }
         }
     }
@@ -107,7 +105,7 @@ public final class SubscriptionCookieManager: SubscriptionCookieManaging {
             guard isSettingSubscriptionCookieEnabled,
                   let cookieStore = await currentCookieStore()
             else { return }
-            Logger.subscription.info("[SubscriptionCookieManager] Handle .accountDidSignOut - deleting cookie")
+            Logger.subscriptionCookieManager.info("Handle .accountDidSignOut - deleting cookie")
 
             do {
                 try await cookieStore.setEmptySubscriptionCookie()
@@ -123,17 +121,17 @@ public final class SubscriptionCookieManager: SubscriptionCookieManaging {
               shouldRefreshSubscriptionCookie(),
               let cookieStore = await currentCookieStore() else { return }
 
-        Logger.subscription.info("[SubscriptionCookieManager] Refresh subscription cookie")
+        Logger.subscriptionCookieManager.info("Refresh subscription cookie")
         updateLastRefreshDateToNow()
 
-        let accessToken: String? = subscriptionManager.accountManager.accessToken
+        let accessToken: String? = try? await subscriptionManager.getTokenContainer(policy: .localValid).accessToken
         let subscriptionCookie = await cookieStore.fetchCurrentSubscriptionCookie()
 
         let noCookieOrWithUnexpectedValue = (accessToken ?? "") != subscriptionCookie?.value
 
         do {
             if noCookieOrWithUnexpectedValue {
-                Logger.subscription.info("[SubscriptionCookieManager] Refresh: No cookie or one with unexpected value")
+                Logger.subscriptionCookieManager.info("Refresh: No cookie or one with unexpected value")
 
                 if let accessToken {
                     try await cookieStore.setSubscriptionCookie(for: accessToken)
@@ -166,10 +164,6 @@ public final class SubscriptionCookieManager: SubscriptionCookieManaging {
     }
 }
 
-enum SubscriptionCookieManagerError: Error {
-    case failedToCreateSubscriptionCookie
-}
-
 private extension HTTPCookieStore {
 
     func fetchCurrentSubscriptionCookie() async -> HTTPCookie? {
@@ -190,12 +184,12 @@ private extension HTTPCookieStore {
             .secure: true,
             .init(rawValue: "HttpOnly"): true
         ]) else {
-            Logger.subscription.error("[HTTPCookieStore] Subscription cookie could not be created")
+            Logger.subscriptionCookieManager.error("Subscription cookie could not be created")
             assertionFailure("Subscription cookie could not be created")
             throw SubscriptionCookieManagerError.failedToCreateSubscriptionCookie
         }
 
-        Logger.subscription.info("[HTTPCookieStore] Setting subscription cookie")
+        Logger.subscriptionCookieManager.info("Setting subscription cookie")
         await setCookie(cookie)
     }
 }

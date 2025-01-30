@@ -19,7 +19,7 @@
 import Foundation
 import Subscription
 
-public final class APIServiceMock: APIService {
+public final class APIServiceMock: SubscriptionAPIService {
     public var mockAuthHeaders: [String: String] = [String: String]()
 
     public var mockResponseJSONData: Data?

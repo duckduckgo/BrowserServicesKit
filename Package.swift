@@ -78,7 +78,8 @@ let package = Package(
                 "ContentBlocking",
                 "SecureStorage",
                 "Subscription",
-                "PixelKit"
+                "Networking",
+                "PixelKit",
             ],
             resources: [
                 .process("ContentBlocking/UserScripts/contentblockerrules.js"),
@@ -340,7 +341,8 @@ let package = Package(
             dependencies: [
                 .target(name: "WireGuardC"),
                 "Common",
-                "Networking"
+                "Networking",
+                "Subscription"
             ],
             swiftSettings: [
                 .define("DEBUG", .when(configuration: .debug))

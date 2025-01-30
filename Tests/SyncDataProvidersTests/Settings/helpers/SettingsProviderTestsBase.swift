@@ -145,12 +145,14 @@ internal class SettingsProviderTestsBase: XCTestCase {
     }
 
     override func tearDown() {
+        emailManagerStorage = nil
+        emailManager = nil
         try? metadataDatabase.tearDown(deleteStores: true)
         metadataDatabase = nil
         try? FileManager.default.removeItem(at: metadataDatabaseLocation)
-
+        metadataDatabaseLocation = nil
+        testSettingSyncHandler = nil
         provider = nil
-        emailManager = nil
         super.tearDown()
     }
 

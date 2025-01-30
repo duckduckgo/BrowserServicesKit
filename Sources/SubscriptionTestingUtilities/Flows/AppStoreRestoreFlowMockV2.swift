@@ -1,5 +1,5 @@
 //
-//  AppStoreAccountManagementFlowMock.swift
+//  AppStoreRestoreFlowMockV2.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -19,16 +19,14 @@
 import Foundation
 import Subscription
 
-public final class AppStoreAccountManagementFlowMock: AppStoreAccountManagementFlow {
-    public var refreshAuthTokenIfNeededResult: Result<String, AppStoreAccountManagementFlowError>?
-    public var onRefreshAuthTokenIfNeeded: (() -> Void)?
-    public var refreshAuthTokenIfNeededCalled: Bool = false
+public final class AppStoreRestoreFlowMockV2: AppStoreRestoreFlowV2 {
+    public var restoreAccountFromPastPurchaseResult: Result<String, AppStoreRestoreFlowErrorV2>?
+    public var restoreAccountFromPastPurchaseCalled: Bool = false
 
     public init() { }
 
-    public func refreshAuthTokenIfNeeded() async -> Result<String, AppStoreAccountManagementFlowError> {
-        refreshAuthTokenIfNeededCalled = true
-        onRefreshAuthTokenIfNeeded?()
-        return refreshAuthTokenIfNeededResult!
+    @discardableResult public func restoreAccountFromPastPurchase() async -> Result<String, AppStoreRestoreFlowErrorV2> {
+        restoreAccountFromPastPurchaseCalled = true
+        return restoreAccountFromPastPurchaseResult!
     }
 }

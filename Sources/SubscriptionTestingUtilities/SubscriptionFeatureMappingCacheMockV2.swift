@@ -1,5 +1,5 @@
 //
-//  SubscriptionTokenKeychainStorageMock.swift
+//  SubscriptionFeatureMappingCacheMockV2.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -18,27 +18,20 @@
 
 import Foundation
 import Subscription
+import Networking
 
-public final class SubscriptionTokenKeychainStorageMock: SubscriptionTokenStoring {
+public final class SubscriptionFeatureMappingCacheMockV2: SubscriptionFeatureMappingCacheV2 {
 
-    public var accessToken: String?
+    public var didCallSubscriptionFeatures = false
+    public var lastCalledSubscriptionId: String?
 
-    public var removeAccessTokenCalled: Bool = false
+    public var mapping: [String: [SubscriptionEntitlement]] = [:]
 
-    public init(accessToken: String? = nil) {
-        self.accessToken = accessToken
-    }
+    public init() { }
 
-    public func getAccessToken() throws -> String? {
-        accessToken
-    }
-
-    public func store(accessToken: String) throws {
-        self.accessToken = accessToken
-    }
-
-    public func removeAccessToken() throws {
-        removeAccessTokenCalled = true
-        accessToken = nil
+    public func subscriptionFeatures(for subscriptionIdentifier: String) async -> [SubscriptionEntitlement] {
+        didCallSubscriptionFeatures = true
+        lastCalledSubscriptionId = subscriptionIdentifier
+        return mapping[subscriptionIdentifier] ?? []
     }
 }
