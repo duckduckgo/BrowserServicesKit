@@ -388,7 +388,7 @@ public final class DefaultSubscriptionManagerV2: SubscriptionManagerV2 {
             // Filter out the features that are not available because the user doesn't have the right entitlements
             let result = availableFeatures.map({ featureEntitlement in
                 let enabled = userEntitlements.contains(featureEntitlement)
-                return SubscriptionFeatureV2(entitlement: featureEntitlement, availableForUser: enabled)
+                return SubscriptionFeatureV2(entitlement: featureEntitlement, isAvailableForUser: enabled)
             })
             Logger.subscription.log("""
 User entitlements: \(userEntitlements, privacy: .public)
@@ -407,7 +407,7 @@ Subscription features: \(result, privacy: .public)
 
         let currentFeatures = await currentSubscriptionFeatures(forceRefresh: false)
         return currentFeatures.contains { feature in
-            feature.entitlement == entitlement && feature.availableForUser
+            feature.entitlement == entitlement && feature.isAvailableForUser
         }
     }
 }

@@ -23,9 +23,9 @@ import Networking
 /// A `SubscriptionFeature` is **availableForUser** if the logged in user has the required entitlements.
 public struct SubscriptionFeatureV2: Equatable, CustomDebugStringConvertible {
     public var entitlement: SubscriptionEntitlement
-    public var availableForUser: Bool
+    public var isAvailableForUser: Bool
 
     public var debugDescription: String {
-        "\(entitlement.rawValue) is \(availableForUser ? "available" : "unavailable")"
+        "\(entitlement.rawValue) is \(isAvailableForUser ? "available" : "unavailable")"
     }
 }
