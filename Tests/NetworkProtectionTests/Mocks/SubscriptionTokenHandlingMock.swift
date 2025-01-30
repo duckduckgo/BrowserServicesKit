@@ -1,6 +1,5 @@
 //
 //  SubscriptionTokenHandlingMock.swift
-//  DuckDuckGo
 //
 //  Copyright © 2025 DuckDuckGo. All rights reserved.
 //
@@ -22,22 +21,22 @@ import NetworkProtection
 
 public class SubscriptionTokenHandlingMock: SubscriptionTokenHandling {
 
-    public var token: String? = nil
+    public var token: String?
     public func getToken() async throws -> String {
         guard let token else {
             throw NetworkProtectionClientError.invalidAuthToken
         }
         return token
     }
-    
+
     public func removeToken() async throws {
         token = nil
     }
-    
+
     public func refreshToken() async throws {
 
     }
-    
+
     public func adoptToken(_ someKindOfToken: Any) async throws {
 
     }
