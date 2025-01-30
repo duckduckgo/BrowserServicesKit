@@ -191,7 +191,7 @@ New: \(subscription.debugDescription, privacy: .public)
         cacheSerialQueue.sync {
             subscriptionCache.reset()
         }
-//        NotificationCenter.default.post(name: .subscriptionDidChange, object: self, userInfo: nil)
+// TODO: check if needed: NotificationCenter.default.post(name: .subscriptionDidChange, object: self, userInfo: nil)
     }
 
     // MARK: -
