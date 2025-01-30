@@ -1510,7 +1510,8 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         }
 
         await entitlementMonitor.start(entitlementCheck: entitlementCheck) { [weak self] result in
-            /// Attempt tunnel shutdown & show messaging if the entitlement is verified to be invalid, Ignore otherwise
+            /// Attempt tunnel shutdown & show messaging iff the entitlement is verified to be invalid
+            /// Ignore otherwise
             switch result {
             case .invalidEntitlement:
                 await self?.handleAccessRevoked(attemptsShutdown: true)
