@@ -49,13 +49,13 @@ public actor NetworkProtectionServerStatusMonitor {
     }
 
     private let networkClient: NetworkProtectionClient
-    private let tokenStore: NetworkProtectionTokenStore
+    private let tokenHandler: any SubscriptionTokenHandling
 
     // MARK: - Init & deinit
 
-    init(networkClient: NetworkProtectionClient, tokenStore: NetworkProtectionTokenStore) {
+    init(networkClient: NetworkProtectionClient, tokenHandler: any SubscriptionTokenHandling) {
         self.networkClient = networkClient
-        self.tokenStore = tokenStore
+        self.tokenHandler = tokenHandler
 
         Logger.networkProtectionMemory.debug("[+] \(String(describing: self), privacy: .public)")
     }
@@ -99,11 +99,11 @@ public actor NetworkProtectionServerStatusMonitor {
     // MARK: - Server Status Check
 
     private func checkServerStatus(for serverName: String) async -> Result<NetworkProtectionServerStatus, NetworkProtectionClientError> {
-        guard let accessToken = try? tokenStore.fetchToken() else {
+        guard let accessToken = try? await VPNAuthTokenBuilder.getVPNAuthToken(from: tokenHandler, policy: .localValid) else {
+            Logger.networkProtection.fault("Failed to check server status due to lack of access token")
             assertionFailure("Failed to check server status due to lack of access token")
             return .failure(.invalidAuthToken)
         }
-
         return await networkClient.getServerStatus(authToken: accessToken, serverName: serverName)
     }
 
