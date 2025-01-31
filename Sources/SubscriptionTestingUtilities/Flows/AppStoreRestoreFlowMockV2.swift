@@ -1,5 +1,5 @@
 //
-//  PurchaseUpdate.swift
+//  AppStoreRestoreFlowMockV2.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -17,18 +17,16 @@
 //
 
 import Foundation
+import Subscription
 
-public struct PurchaseUpdate: Codable, Equatable {
-    let type: String
-    let token: String?
+public final class AppStoreRestoreFlowMockV2: AppStoreRestoreFlowV2 {
+    public var restoreAccountFromPastPurchaseResult: Result<String, AppStoreRestoreFlowErrorV2>?
+    public var restoreAccountFromPastPurchaseCalled: Bool = false
 
-    public init(type: String, token: String? = nil) {
-        self.type = type
-        self.token = token
+    public init() { }
+
+    @discardableResult public func restoreAccountFromPastPurchase() async -> Result<String, AppStoreRestoreFlowErrorV2> {
+        restoreAccountFromPastPurchaseCalled = true
+        return restoreAccountFromPastPurchaseResult!
     }
-
-    public static let completed = PurchaseUpdate(type: "completed")
-    public static let canceled = PurchaseUpdate(type: "canceled")
-    public static let redirect = PurchaseUpdate(type: "redirect")
-    public static func redirect(withToken token: String) -> Self { PurchaseUpdate(type: "redirect", token: token) }
 }

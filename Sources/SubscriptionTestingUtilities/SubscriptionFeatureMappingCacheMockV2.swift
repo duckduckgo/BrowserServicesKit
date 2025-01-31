@@ -1,5 +1,5 @@
 //
-//  PurchaseUpdate.swift
+//  SubscriptionFeatureMappingCacheMockV2.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -17,18 +17,21 @@
 //
 
 import Foundation
+import Subscription
+import Networking
 
-public struct PurchaseUpdate: Codable, Equatable {
-    let type: String
-    let token: String?
+public final class SubscriptionFeatureMappingCacheMockV2: SubscriptionFeatureMappingCacheV2 {
 
-    public init(type: String, token: String? = nil) {
-        self.type = type
-        self.token = token
+    public var didCallSubscriptionFeatures = false
+    public var lastCalledSubscriptionId: String?
+
+    public var mapping: [String: [SubscriptionEntitlement]] = [:]
+
+    public init() { }
+
+    public func subscriptionFeatures(for subscriptionIdentifier: String) async -> [SubscriptionEntitlement] {
+        didCallSubscriptionFeatures = true
+        lastCalledSubscriptionId = subscriptionIdentifier
+        return mapping[subscriptionIdentifier] ?? []
     }
-
-    public static let completed = PurchaseUpdate(type: "completed")
-    public static let canceled = PurchaseUpdate(type: "canceled")
-    public static let redirect = PurchaseUpdate(type: "redirect")
-    public static func redirect(withToken token: String) -> Self { PurchaseUpdate(type: "redirect", token: token) }
 }

@@ -1,5 +1,5 @@
 //
-//  PurchaseUpdate.swift
+//  StripePurchaseFlowV2Tests.swift
 //
 //  Copyright © 2024 DuckDuckGo. All rights reserved.
 //
@@ -15,20 +15,10 @@
 //  See the License for the specific language governing permissions and
 //  limitations under the License.
 //
+import XCTest
+@testable import Subscription
+import SubscriptionTestingUtilities
 
-import Foundation
+final class StripePurchaseFlowV2Tests: XCTestCase {
 
-public struct PurchaseUpdate: Codable, Equatable {
-    let type: String
-    let token: String?
-
-    public init(type: String, token: String? = nil) {
-        self.type = type
-        self.token = token
-    }
-
-    public static let completed = PurchaseUpdate(type: "completed")
-    public static let canceled = PurchaseUpdate(type: "canceled")
-    public static let redirect = PurchaseUpdate(type: "redirect")
-    public static func redirect(withToken token: String) -> Self { PurchaseUpdate(type: "redirect", token: token) }
 }

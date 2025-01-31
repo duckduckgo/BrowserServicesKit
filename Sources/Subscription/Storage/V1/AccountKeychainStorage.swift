@@ -31,6 +31,7 @@ public enum AccountKeychainAccessType: String {
 }
 
 public enum AccountKeychainAccessError: Error, Equatable {
+    case failedToDecodeKeychainData
     case failedToDecodeKeychainValueAsData
     case failedToDecodeKeychainDataAsString
     case keychainSaveFailure(OSStatus)
@@ -39,6 +40,7 @@ public enum AccountKeychainAccessError: Error, Equatable {
 
     public var errorDescription: String {
         switch self {
+        case .failedToDecodeKeychainData: return "failedToDecodeKeychainData"
         case .failedToDecodeKeychainValueAsData: return "failedToDecodeKeychainValueAsData"
         case .failedToDecodeKeychainDataAsString: return "failedToDecodeKeychainDataAsString"
         case .keychainSaveFailure(let status): return "keychainSaveFailure(\(status))"
@@ -100,7 +102,7 @@ public final class AccountKeychainStorage: AccountStoring {
     }
 }
 
-private extension AccountKeychainStorage {
+extension AccountKeychainStorage {
 
     /*
      Uses just kSecAttrService as the primary key, since we don't want to store
