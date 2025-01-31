@@ -218,9 +218,9 @@ final public class UserContentController: WKUserContentController {
     }
 
 #if os(macOS)
-    private let removeUserScriptSelector = "removeUserScript:"
+    static let removeUserScriptSelector = "removeUserScript:"
     private var removeUserScriptSupported: Bool {
-        responds(to: NSSelectorFromString("_" + removeUserScriptSelector))
+        responds(to: NSSelectorFromString("_" + Self.removeUserScriptSelector))
     }
     private var installedUserScripts = [WKUserScript]()
 #endif
@@ -240,7 +240,7 @@ final public class UserContentController: WKUserContentController {
         // Avoid removal of web extension scripts
         if removeUserScriptSupported {
             for installedUserScript in installedUserScripts {
-                self.perform(NSSelectorFromString("_" + removeUserScriptSelector), with: installedUserScript)
+                self.perform(NSSelectorFromString("_" + Self.removeUserScriptSelector), with: installedUserScript)
             }
             installedUserScripts.removeAll()
         } else {
