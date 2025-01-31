@@ -344,7 +344,6 @@ final class DefaultFeatureFlaggerTests: XCTestCase {
         let featureFlagger = createFeatureFlaggerWithLocalOverrides()
         internalUserDeciderStore.isInternalUser = false
         overrides.experimentOverride = { _ in return TestFeatureFlag.FakeExperimentCohort.cohortA.rawValue }
-        let actualCohort = featureFlagger.getCohortIfEnabled(for: TestFeatureFlag.overridableExperimentFlagWithCohortBByDefault, allowOverride: true)
 
         XCTAssertFalse(featureFlagger.isFeatureOn(for: TestFeatureFlag.overridableExperimentFlagWithCohortBByDefault))
         XCTAssertTrue(overrides.overrideCalls.isEmpty)
@@ -413,7 +412,7 @@ final class DefaultFeatureFlaggerTests: XCTestCase {
 }
 
 extension FeatureFlagSource: FeatureFlagDescribing {
-    public var cohortType: (any BrowserServicesKit.FlagCohort.Type)? { nil } 
+    public var cohortType: (any BrowserServicesKit.FlagCohort.Type)? { nil }
     public static let allCases: [FeatureFlagSource]  = []
     public var supportsLocalOverriding: Bool { false }
     public var rawValue: String { "rawValue" }
