@@ -172,13 +172,13 @@ class MaliciousSiteDetectorTests: XCTestCase {
         XCTAssertEqual(mockEventMapping.events.count, 1)
         switch mockEventMapping.events.last {
         case let .errorPageShown(_, clientSideHit):
-            XCTAssertTrue(clientSideHit == true)
+            XCTAssertNil(clientSideHit)
         default:
             XCTFail("Wrong event fired")
         }
     }
 
-    func testWhenLocalFilterHitAndFilterSetGreaterThanHundredThenClientSideHitParameterIsNil() async throws {
+    func testWhenLocalFilterHitAndFilterSetGreaterThanHundredThenClientSideHitParameterIsSent() async throws {
         // GIVEN
         let maliciousFilter = Filter(hash: "255a8a793097aeea1f06a19c08cde28db0eb34c660c6e4e7480c9525d034b16d", regex: ".*malicious.*")
         let filters = (1...100).map { i in
@@ -195,7 +195,7 @@ class MaliciousSiteDetectorTests: XCTestCase {
         XCTAssertEqual(mockEventMapping.events.count, 1)
         switch mockEventMapping.events.last {
         case let .errorPageShown(_, clientSideHit):
-            XCTAssertNil(clientSideHit)
+            XCTAssertNotNil(clientSideHit)
         default:
             XCTFail("Wrong event fired")
         }
@@ -207,19 +207,19 @@ class MaliciousSiteDetectorTests: XCTestCase {
         let url = URL(string: "https://example.com/mal")!
 
         // WHEN
-        let _ = await detector.evaluate(url)
+        _ = await detector.evaluate(url)
 
         // THEN
         XCTAssertEqual(mockEventMapping.events.count, 1)
         switch mockEventMapping.events.last {
         case let .errorPageShown(_, clientSideHit):
-            XCTAssertTrue(clientSideHit == false)
+            XCTAssertNil(clientSideHit)
         default:
             XCTFail("Wrong event fired")
         }
     }
 
-    func testWhenMatchesAPIAndFilterSetGreaterThanHundredThenClientSideHitParameterIsNil() async throws {
+    func testWhenMatchesAPIAndFilterSetGreaterThanHundredThenClientSideHitParameterIsSet() async throws {
         // GIVEN
         let maliciousFilter = Filter(hash: "255a8a793097aeea1f06a19c08cde28db0eb34c660c6e4e7480c9525d034b16d", regex: ".*malicious.*")
         let filters = (1...100).map { i in
@@ -230,13 +230,13 @@ class MaliciousSiteDetectorTests: XCTestCase {
         let url = URL(string: "https://example.com/mal")!
 
         // WHEN
-        let _ = await detector.evaluate(url)
+         _ = await detector.evaluate(url)
 
         // THEN
         XCTAssertEqual(mockEventMapping.events.count, 1)
         switch mockEventMapping.events.last {
         case let .errorPageShown(_, clientSideHit):
-            XCTAssertNil(clientSideHit)
+            XCTAssertNotNil(clientSideHit)
         default:
             XCTFail("Wrong event fired")
         }

@@ -132,8 +132,9 @@ public final class MaliciousSiteDetector: MaliciousSiteDetecting {
 
     private func fireErrorPageShown(threatKind: ThreatKind, clientSideHit: Bool) async {
         let filterSet = await dataManager.dataSet(for: .filterSet(threatKind: threatKind))
+        // Send Pixel clientSideHit parameter only if filterSet size is greater than 100
         // https://app.asana.com/0/0/1209113403594297/1209141231997704/f
-        let sanitisedClientSideHit = filterSet.filters.count < 100 ? clientSideHit : nil
+        let sanitisedClientSideHit = filterSet.filters.count > 100 ? clientSideHit : nil
         eventMapping.fire(.errorPageShown(category: threatKind, clientSideHit: sanitisedClientSideHit))
     }
 }
