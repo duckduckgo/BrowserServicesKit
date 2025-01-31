@@ -18,6 +18,7 @@
 
 import Foundation
 import Common
+import Networking
 
 public struct AccessTokenResponse: Decodable {
     public let accessToken: String
@@ -68,9 +69,9 @@ public protocol AuthEndpointService {
 
 public struct DefaultAuthEndpointService: AuthEndpointService {
     private let currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment
-    private let apiService: APIService
+    private let apiService: SubscriptionAPIService
 
-    public init(currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment, apiService: APIService) {
+    public init(currentServiceEnvironment: SubscriptionEnvironment.ServiceEnvironment, apiService: SubscriptionAPIService) {
         self.currentServiceEnvironment = currentServiceEnvironment
         self.apiService = apiService
     }
@@ -79,7 +80,7 @@ public struct DefaultAuthEndpointService: AuthEndpointService {
         self.currentServiceEnvironment = currentServiceEnvironment
         let baseURL = currentServiceEnvironment == .production ? URL(string: "https://quack.duckduckgo.com/api/auth")! : URL(string: "https://quackdev.duckduckgo.com/api/auth")!
         let session = URLSession(configuration: URLSessionConfiguration.ephemeral)
-        self.apiService = DefaultAPIService(baseURL: baseURL, session: session)
+        self.apiService = DefaultSubscriptionAPIService(baseURL: baseURL, session: session)
     }
 
     public func getAccessToken(token: String) async -> Result<AccessTokenResponse, APIServiceError> {

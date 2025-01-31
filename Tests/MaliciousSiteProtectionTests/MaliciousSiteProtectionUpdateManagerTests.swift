@@ -215,7 +215,7 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
     }
 
     func testWhenPeriodicUpdatesStart_dataSetsAreUpdated() async throws {
-        self.updateIntervalProvider = { _ in 1 }
+        self.updateIntervalProvider = { _ in 0.9 }
 
         let eHashPrefixesUpdated = expectation(description: "Hash prefixes updated")
         let c1 = await dataManager.publisher(for: .hashPrefixes(threatKind: .phishing)).dropFirst().sink { data in
@@ -239,8 +239,9 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
         // Start periodic updates
         self.updateIntervalProvider = { dataType in
             switch dataType {
-            case .filterSet: return 2
-            case .hashPrefixSet: return 1
+            case .hashPrefixSet(.init(threatKind: .phishing)): 1 * 0.99 // update hash prefixes every second
+            case .filterSet(.init(threatKind: .phishing)): 2 * 0.99 // update filter set every 2 seconds
+            default: nil // only update phishing data
             }
         }
 
@@ -274,12 +275,14 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
         var hashPrefixSleepIndex = 0
         var filterSetSleepIndex = 0
         self.willSleep = { interval in
-            if interval == 1 {
-                hashPrefixSleepExpectations[safe: hashPrefixSleepIndex]?.fulfill()
-                hashPrefixSleepIndex += 1
-            } else {
-                filterSetSleepExpectations[safe: filterSetSleepIndex]?.fulfill()
-                filterSetSleepIndex += 1
+            DispatchQueue.main.async {
+                if interval <= 1 {
+                    hashPrefixSleepExpectations[safe: hashPrefixSleepIndex]?.fulfill()
+                    hashPrefixSleepIndex += 1
+                } else {
+                    filterSetSleepExpectations[safe: filterSetSleepIndex]?.fulfill()
+                    filterSetSleepIndex += 1
+                }
             }
         }
 
@@ -289,18 +292,18 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
 
         // Advance the clock by 1 seconds
         await self.clock.advance(by: .seconds(1))
-        // expect to receive v.2 update for hashPrefixes
+        // expect to receive v.2 update for hashPrefixes (1s. interval)
         await fulfillment(of: [hashPrefixUpdateExpectations[1], hashPrefixSleepExpectations[1]], timeout: 1)
 
         // Advance the clock by 1 seconds
         await self.clock.advance(by: .seconds(1))
-        // expect to receive v.3 update for hashPrefixes and v.2 update for filterSet
-        await fulfillment(of: [hashPrefixUpdateExpectations[2], hashPrefixSleepExpectations[2], filterSetUpdateExpectations[1], filterSetSleepExpectations[1]], timeout: 1)        //
+        // expect to receive v.3 update for hashPrefixes (1s. interval) and v.2 update for filterSet (2s. interval)
+        await fulfillment(of: [hashPrefixUpdateExpectations[2], hashPrefixSleepExpectations[2], filterSetUpdateExpectations[1], filterSetSleepExpectations[1]], timeout: 1)
 
         // Advance the clock by 1 seconds
         await self.clock.advance(by: .seconds(2))
-        // expect to receive v.3 update for filterSet and no update for hashPrefixes (no v.3 updates in the mock)
-        await fulfillment(of: [filterSetUpdateExpectations[2], filterSetSleepExpectations[2]], timeout: 1)        //
+        // expect to receive v.3 update for filterSet (2s. interval) and no update for hashPrefixes (no v.3->v.4 update in MockMaliciousSiteProtectionAPIClient)
+        await fulfillment(of: [filterSetSleepExpectations[2], filterSetUpdateExpectations[2]], timeout: 1)
 
         withExtendedLifetime((c1, c2)) {}
     }
@@ -309,8 +312,8 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
         // Start periodic updates
         self.updateIntervalProvider = { dataType in
             switch dataType {
-            case .filterSet: return nil // Set update interval to nil for FilterSet
-            case .hashPrefixSet: return 1
+            case .hashPrefixSet(.init(threatKind: .phishing)): return 0.9
+            default: return nil // Set update interval to nil for FilterSet or other threat kinds
             }
         }
 
@@ -335,8 +338,10 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
             XCTestExpectation(description: "Will Sleep 3"),
         ]
         self.willSleep = { _ in
-            sleepExpectations[safe: sleepIndex]?.fulfill()
-            sleepIndex += 1
+            DispatchQueue.main.async {
+                sleepExpectations[safe: sleepIndex]?.fulfill()
+                sleepIndex += 1
+            }
         }
 
         // expect initial hashPrefixes update run instantly
@@ -344,12 +349,12 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
         await fulfillment(of: [expectations[0], sleepExpectations[0]], timeout: 1)
 
         // Advance the clock by 1 seconds
-        await self.clock.advance(by: .seconds(2))
+        await self.clock.advance(by: .seconds(1))
         // expect to receive v.2 update for hashPrefixes
         await fulfillment(of: [expectations[1], sleepExpectations[1]], timeout: 1)
 
         // Advance the clock by 1 seconds
-        await self.clock.advance(by: .seconds(2))
+        await self.clock.advance(by: .seconds(1))
         // expect to receive v.3 update for hashPrefixes
         await fulfillment(of: [expectations[2], sleepExpectations[2]], timeout: 1)
 
@@ -358,12 +363,12 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
 
     func testWhenPeriodicUpdatesAreCancelled_noFurtherUpdatesReceived() async throws {
         // Start periodic updates
-        self.updateIntervalProvider = { _ in 1 }
+        self.updateIntervalProvider = { _ in 0.99 }
         updateTask = updateManager.startPeriodicUpdates()
 
         // Wait for the initial update
         try await withTimeout(1) { [self] in
-            for await _ in await dataManager.publisher(for: .filterSet(threatKind: .phishing)).first(where: { $0.revision == 1 }).values {}
+            for await _ in await dataManager.publisher(for: .hashPrefixes(threatKind: .phishing)).first(where: { $0.revision == 1 }).values {}
             for await _ in await dataManager.publisher(for: .filterSet(threatKind: .phishing)).first(where: { $0.revision == 1 }).values {}
         }
 
@@ -377,7 +382,7 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
         }
 
         // Advance the clock to check for further updates
-        await self.clock.advance(by: .seconds(2))
+        await self.clock.advance(by: .seconds(1))
         await clock.run()
         await Task.megaYield(count: 10)
 
