@@ -18,7 +18,6 @@
 
 import Foundation
 import Networking
-import os.log
 
 extension SubscriptionTokenKeychainStorage: LegacyAuthTokenStoring {
 
@@ -27,12 +26,7 @@ extension SubscriptionTokenKeychainStorage: LegacyAuthTokenStoring {
             do {
                 return try getAccessToken()
             } catch {
-                if let error = error as? AccountKeychainAccessError {
-                    errorHandler?(AccountKeychainAccessType.getAuthToken, error)
-                } else {
-                    assertionFailure("Unexpected error: \(error)")
-                    Logger.subscriptionKeychain.fault("Unexpected error: \(error, privacy: .public)")
-                }
+                assertionFailure("Failed to retrieve auth token: \(error)")
             }
             return nil
         }
@@ -44,13 +38,8 @@ extension SubscriptionTokenKeychainStorage: LegacyAuthTokenStoring {
                 }
                 try store(accessToken: newValue)
             } catch {
-                Logger.subscriptionKeychain.fault("Failed to set TokenContainer: \(error, privacy: .public)")
-                if let error = error as? AccountKeychainAccessError {
-                    errorHandler?(AccountKeychainAccessType.storeAuthToken, error)
-                } else {
-                    assertionFailure("Unexpected error: \(error)")
-                    Logger.subscriptionKeychain.fault("Unexpected error: \(error, privacy: .public)")
-                }            }
+                assertionFailure("Failed set token: \(error)")
+            }
         }
     }
 }

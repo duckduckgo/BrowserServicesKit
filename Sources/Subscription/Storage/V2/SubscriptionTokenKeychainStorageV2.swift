@@ -35,7 +35,7 @@ public final class SubscriptionTokenKeychainStorageV2: AuthTokenStoring {
     public var tokenContainer: TokenContainer? {
         get {
             do {
-                guard let data = try retrieveData(forField: .tokens) else {
+                guard let data = try retrieveData(forField: .tokenContainer) else {
                     Logger.subscriptionKeychain.debug("TokenContainer not found")
                     return nil
                 }
@@ -45,7 +45,7 @@ public final class SubscriptionTokenKeychainStorageV2: AuthTokenStoring {
                     errorHandler(AccountKeychainAccessType.getAuthToken, error)
                 } else {
                     assertionFailure("Unexpected error: \(error)")
-                    Logger.subscriptionKeychain.fault("Unexpected error: \(error, privacy: .public)")
+                    Logger.OAuth.fault("Unexpected error: \(error, privacy: .public)")
                 }
 
                 return nil
@@ -55,12 +55,12 @@ public final class SubscriptionTokenKeychainStorageV2: AuthTokenStoring {
             do {
                 guard let newValue else {
                     Logger.subscriptionKeychain.debug("Remove TokenContainer")
-                    try self.deleteItem(forField: .tokens)
+                    try self.deleteItem(forField: .tokenContainer)
                     return
                 }
 
                 if let data = CodableHelper.encode(newValue) {
-                    try self.store(data: data, forField: .tokens)
+                    try self.store(data: data, forField: .tokenContainer)
                 } else {
                     throw AccountKeychainAccessError.failedToDecodeKeychainData
                 }
@@ -70,7 +70,7 @@ public final class SubscriptionTokenKeychainStorageV2: AuthTokenStoring {
                     errorHandler(AccountKeychainAccessType.storeAuthToken, error)
                 } else {
                     assertionFailure("Unexpected error: \(error)")
-                    Logger.subscriptionKeychain.fault("Unexpected error: \(error, privacy: .public)")
+                    Logger.OAuth.fault("Unexpected error: \(error, privacy: .public)")
                 }
             }
         }
@@ -84,7 +84,7 @@ extension SubscriptionTokenKeychainStorageV2 {
      multiple accounts/tokens at the same time
      */
     enum SubscriptionKeychainField: String, CaseIterable {
-        case tokens = "subscription.v2.tokens"
+        case tokenContainer = "subscription.v2.tokens"
 
         var keyValue: String {
             "com.duckduckgo" + "." + rawValue
