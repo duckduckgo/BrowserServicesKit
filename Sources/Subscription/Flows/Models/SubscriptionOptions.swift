@@ -41,12 +41,6 @@ public struct SubscriptionOptions: Encodable, Equatable {
     }
 }
 
-public enum SubscriptionPlatformName: String, Encodable {
-    case ios
-    case macos
-    case stripe
-}
-
 public struct SubscriptionOption: Encodable, Equatable {
     let id: String
     let cost: SubscriptionOptionCost
@@ -59,24 +53,6 @@ public struct SubscriptionOption: Encodable, Equatable {
     }
 }
 
-struct SubscriptionOptionCost: Encodable, Equatable {
-    let displayPrice: String
-    let recurrence: String
-}
-
 public struct SubscriptionFeature: Encodable, Equatable {
     let name: Entitlement.ProductName
-}
-
-/// A `SubscriptionOptionOffer` represents an offer (e.g Free Trials) associated with a Subscription
-public struct SubscriptionOptionOffer: Encodable, Equatable {
-
-    public enum OfferType: String, Codable, CaseIterable {
-        case freeTrial
-    }
-
-    let type: OfferType
-    let id: String
-    let durationInDays: Int?
-    let isUserEligible: Bool
 }
