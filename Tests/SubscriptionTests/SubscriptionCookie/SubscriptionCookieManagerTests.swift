@@ -211,39 +211,3 @@ private extension HTTPCookieStore {
         await allCookies().first { $0.domain == SubscriptionCookieManager.cookieDomain && $0.name == SubscriptionCookieManager.cookieName }
     }
 }
-
-class MockHTTPCookieStore: HTTPCookieStore {
-
-    var cookies: [HTTPCookie]
-
-    init(cookies: [HTTPCookie] = []) {
-        self.cookies = cookies
-    }
-
-    func allCookies() async -> [HTTPCookie] {
-        return cookies
-    }
-
-    func setCookie(_ cookie: HTTPCookie) async {
-        cookies.removeAll { $0.domain == cookie.domain }
-        cookies.append(cookie)
-    }
-
-    func deleteCookie(_ cookie: HTTPCookie) async {
-        cookies.removeAll { $0.domain == cookie.domain }
-    }
-
-}
-
-class MockSubscriptionCookieManageEventPixelMapping: EventMapping<SubscriptionCookieManagerEvent> {
-
-    public init() {
-        super.init { event, _, _, _ in
-
-        }
-    }
-
-    override init(mapping: @escaping EventMapping<SubscriptionCookieManagerEvent>.Mapping) {
-        fatalError("Use init()")
-    }
-}

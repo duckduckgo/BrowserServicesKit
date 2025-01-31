@@ -216,7 +216,7 @@ final class NetworkProtectionConnectionTester {
             Logger.networkProtectionConnectionTester.log("👎 VPN is DOWN")
             handleDisconnected()
         } else {
-            Logger.networkProtectionConnectionTester.log("👍 VPN: \(vpnIsConnected ? "UP" : "DOWN") local: \(localIsConnected ? "UP" : "DOWN")")
+            Logger.networkProtectionConnectionTester.log("👍 VPN: \(vpnIsConnected ? "UP" : "DOWN", privacy: .public) local: \(localIsConnected ? "UP" : "DOWN", privacy: .public)")
             handleConnected()
         }
     }
