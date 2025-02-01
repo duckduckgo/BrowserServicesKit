@@ -26,6 +26,10 @@ final class NetworkProtectionKeyStoreMock: NetworkProtectionKeyStore {
 
     // MARK: - NetworkProtectionKeyStore
 
+    var currentExpirationDate: Date? {
+        Date()
+    }
+
     func currentKeyPair() -> NetworkProtection.KeyPair? {
         keyPair
     }

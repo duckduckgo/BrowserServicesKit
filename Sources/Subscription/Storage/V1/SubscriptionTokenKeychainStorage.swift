@@ -17,6 +17,7 @@
 //
 
 import Foundation
+import Common
 
 public final class SubscriptionTokenKeychainStorage: SubscriptionTokenStoring {
 
@@ -145,40 +146,7 @@ private extension SubscriptionTokenKeychainStorage {
             kSecClass: kSecClassGenericPassword,
             kSecAttrSynchronizable: false
         ]
-
         attributes.merge(keychainType.queryAttributes()) { $1 }
-
         return attributes
-    }
-}
-
-public enum KeychainType {
-    case dataProtection(_ accessGroup: AccessGroup)
-    /// Uses the system keychain.
-    case system
-    case fileBased
-
-    public enum AccessGroup {
-        case unspecified
-        case named(_ name: String)
-    }
-
-    func queryAttributes() -> [CFString: Any] {
-        switch self {
-        case .dataProtection(let accessGroup):
-            switch accessGroup {
-            case .unspecified:
-                return [kSecUseDataProtectionKeychain: true]
-            case .named(let accessGroup):
-                return [
-                    kSecUseDataProtectionKeychain: true,
-                    kSecAttrAccessGroup: accessGroup
-                ]
-            }
-        case .system:
-            return [kSecUseDataProtectionKeychain: false]
-        case .fileBased:
-            return [kSecUseDataProtectionKeychain: false]
-        }
     }
 }
