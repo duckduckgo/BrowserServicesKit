@@ -93,6 +93,7 @@ extension URL {
         public static let about = NavigationalScheme(rawValue: "about")
         public static let duck = NavigationalScheme(rawValue: "duck")
         public static let mailto = NavigationalScheme(rawValue: "mailto")
+        public static let webkitExtension = NavigationalScheme(rawValue: "webkit-extension")
 
         public init(rawValue: String) {
             self.rawValue = rawValue
