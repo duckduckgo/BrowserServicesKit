@@ -51,26 +51,26 @@ public protocol ExperimentCohortsManaging {
     /// for the specified experiment. If the assigned cohort is valid (i.e., it matches
     /// one of the experiment's defined cohorts), the method returns the assigned cohort.
     /// Otherwise, the invalid cohort is removed, and a new cohort is assigned if
-    /// `allowCohortReassignment` is `true`.
+    /// `allowCohortAssignment` is `true`.
     ///
     /// - Parameters:
     ///   - experiment: The `ExperimentSubfeature` representing the experiment and its associated cohorts.
-    ///   - allowCohortReassignment: A Boolean value indicating whether cohort assignment is allowed
+    ///   - allowCohortAssignment: A Boolean value indicating whether cohort assignment is allowed
     ///     if the user is not already assigned to a valid cohort.
     ///
     /// - Returns: The valid `CohortID` assigned to the user for the experiment, or `nil`
-    ///   if no valid cohort exists and `allowCohortReassignment` is `false`.
+    ///   if no valid cohort exists and `allowCohortAssignment` is `false`.
     ///
     /// - Behavior:
     ///   1. Retrieves the currently assigned cohort for the experiment using the `subfeatureID`.
     ///   2. Validates if the assigned cohort exists within the experiment's cohort list:
     ///      - If valid, the assigned cohort is returned.
     ///      - If invalid, the cohort is removed from storage.
-    ///   3. If cohort assignment is enabled (`allowCohortReassignment` is `true`), a new cohort
+    ///   3. If cohort assignment is enabled (`allowCohortAssignment` is `true`), a new cohort
     ///      is assigned based on the experiment's cohort weights and saved in storage.
     ///      - Cohort assignment is probabilistic, determined by the cohort weights.
     ///
-    func resolveCohort(for experiment: ExperimentSubfeature, allowCohortReassignment: Bool) -> CohortID?
+    func resolveCohort(for experiment: ExperimentSubfeature, allowCohortAssignment: Bool) -> CohortID?
 }
 
 public class ExperimentCohortsManager: ExperimentCohortsManaging {
@@ -95,14 +95,14 @@ public class ExperimentCohortsManager: ExperimentCohortsManaging {
         self.fireCohortAssigned = fireCohortAssigned
     }
 
-    public func resolveCohort(for experiment: ExperimentSubfeature, allowCohortReassignment: Bool) -> CohortID? {
+    public func resolveCohort(for experiment: ExperimentSubfeature, allowCohortAssignment: Bool) -> CohortID? {
         queue.sync {
             let assignedCohort = cohort(for: experiment.subfeatureID)
             if experiment.cohorts.contains(where: { $0.name == assignedCohort }) {
                 return assignedCohort
             }
             removeCohort(from: experiment.subfeatureID)
-            return allowCohortReassignment ? assignCohort(to: experiment) : nil
+            return allowCohortAssignment ? assignCohort(to: experiment) : nil
         }
     }
 }

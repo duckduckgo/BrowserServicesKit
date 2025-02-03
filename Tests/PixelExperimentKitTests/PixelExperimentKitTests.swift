@@ -606,17 +606,21 @@ class MockExperimentActionPixelStore: ExperimentActionPixelStore {
 }
 
 class MockFeatureFlagger: FeatureFlagger {
+    func resolveCohort<Flag>(for featureFlag: Flag, allowOverride: Bool) -> (any FeatureFlagCohortDescribing)? where Flag: FeatureFlagDescribing {
+        nil
+    }
+
     var experiments: Experiments = [:]
 
     var internalUserDecider: any InternalUserDecider = MockInternalUserDecider()
 
     var localOverrides: (any BrowserServicesKit.FeatureFlagLocalOverriding)?
 
-    func getCohortIfEnabled<Flag>(for featureFlag: Flag) -> (any FlagCohort)? where Flag: FeatureFlagExperimentDescribing {
+    func resolveCohort<Flag>(for featureFlag: Flag) -> (any FeatureFlagCohortDescribing)? where Flag: FeatureFlagDescribing {
         return nil
     }
 
-    func getAllActiveExperiments() -> Experiments {
+    var allActiveExperiments: Experiments {
         return experiments
     }
 
