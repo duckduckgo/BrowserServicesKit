@@ -93,7 +93,7 @@ extension PixelKit {
             assertionFailure("PixelKit is not configured for experiments")
             return
         }
-        guard let experimentData = featureFlagger.getAllActiveExperiments()[subfeatureID] else { return }
+        guard let experimentData = featureFlagger.allActiveExperiments[subfeatureID] else { return }
 
         // Check if within conversion window
         guard isUserInConversionWindow(conversionWindowDays, enrollmentDate: experimentData.enrollmentDate) else { return }
@@ -123,7 +123,7 @@ extension PixelKit {
             assertionFailure("PixelKit is not configured for experiments")
             return
         }
-        guard let experimentData = featureFlagger.getAllActiveExperiments()[subfeatureID] else { return }
+        guard let experimentData = featureFlagger.allActiveExperiments[subfeatureID] else { return }
 
         fireExperimentPixelForActiveExperiment(subfeatureID,
                                                experimentData: experimentData,
@@ -151,7 +151,7 @@ extension PixelKit {
             assertionFailure("PixelKit is not configured for experiments")
             return
         }
-        featureFlagger.getAllActiveExperiments().forEach { experiment in
+        featureFlagger.allActiveExperiments.forEach { experiment in
             fireExperimentPixels(for:
                 experiment.key,
                 experimentData: experiment.value,
@@ -180,7 +180,7 @@ extension PixelKit {
             assertionFailure("PixelKit is not configured for experiments")
             return
         }
-        featureFlagger.getAllActiveExperiments().forEach { experiment in
+        featureFlagger.allActiveExperiments.forEach { experiment in
             fireExperimentPixels(
                 for: experiment.key,
                 experimentData: experiment.value,

@@ -22,11 +22,12 @@ import XCTest
 final class CapturingFeatureFlagOverriding: FeatureFlagLocalOverriding {
 
     var overrideCalls: [any FeatureFlagDescribing] = []
-    var toggleOverideCalls: [any FeatureFlagDescribing] = []
+    var toggleOverrideCalls: [any FeatureFlagDescribing] = []
     var clearOverrideCalls: [any FeatureFlagDescribing] = []
     var clearAllOverrideCallCount: Int = 0
 
     var override: (any FeatureFlagDescribing) -> Bool? = { _ in nil }
+    var experimentOverride: (any FeatureFlagDescribing) -> CohortID? = { _ in nil }
 
     var actionHandler: any FeatureFlagLocalOverridesHandling = CapturingFeatureFlagLocalOverridesHandler()
     weak var featureFlagger: FeatureFlagger?
@@ -37,7 +38,7 @@ final class CapturingFeatureFlagOverriding: FeatureFlagLocalOverriding {
     }
 
     func toggleOverride<Flag: FeatureFlagDescribing>(for featureFlag: Flag) {
-        toggleOverideCalls.append(featureFlag)
+        toggleOverrideCalls.append(featureFlag)
     }
 
     func clearOverride<Flag: FeatureFlagDescribing>(for featureFlag: Flag) {
@@ -46,6 +47,23 @@ final class CapturingFeatureFlagOverriding: FeatureFlagLocalOverriding {
 
     func clearAllOverrides<Flag: FeatureFlagDescribing>(for flagType: Flag.Type) {
         clearAllOverrideCallCount += 1
+    }
+
+    func experimentOverride<Flag>(for featureFlag: Flag) -> CohortID? where Flag: FeatureFlagDescribing {
+        overrideCalls.append(featureFlag)
+        return experimentOverride(featureFlag)
+    }
+
+    func setExperimentCohortOverride<Flag>(for featureFlag: Flag, cohort: CohortID) where Flag: FeatureFlagDescribing {
+        return
+    }
+
+    func currentValue<Flag>(for featureFlag: Flag) -> Bool? where Flag: FeatureFlagDescribing {
+        return nil
+    }
+
+    func currentExperimentCohort<Flag>(for featureFlag: Flag) -> (any FeatureFlagCohortDescribing)? where Flag: FeatureFlagDescribing {
+        return nil
     }
 }
 
@@ -145,123 +163,123 @@ final class DefaultFeatureFlaggerTests: XCTestCase {
 
     // MARK: - Experiments
 
-    func testWhenGetCohortIfEnabled_andSourceDisabled_returnsNil() {
+    func testWhenResolveCohort_andSourceDisabled_returnsNil() {
         let featureFlagger = createFeatureFlagger()
-        let flag = FakeExperimentFlag(source: .disabled)
-        let cohort = featureFlagger.getCohortIfEnabled(for: flag)
+        let flag = FakeExperimentFlags.disabledFlag
+        let cohort = featureFlagger.resolveCohort(for: flag, allowOverride: true)
         XCTAssertNil(cohort)
     }
 
-    func estWhenGetCohortIfEnabled_andSourceInternal_returnsPassedCohort() {
+    func testWhenResolveCohort_andSourceInternal_returnsPassedCohort() {
         let featureFlagger = createFeatureFlagger()
-        let flag = FakeExperimentFlag(source: .internalOnly(AutofillCohort.blue))
-        let cohort = featureFlagger.getCohortIfEnabled(for: flag)
-        XCTAssertEqual(cohort?.rawValue, AutofillCohort.blue.rawValue)
+        let flag = FakeExperimentFlags.internalFlag
+        let cohort = featureFlagger.resolveCohort(for: flag, allowOverride: true)
+        XCTAssertEqual(cohort?.rawValue, FakeExperimentFlagsCohort.blue.rawValue)
     }
 
-    func testWhenGetCohortIfEnabled_andRemoteInternal_andInternalStateTrue_and_cohortAssigned_returnsAssignedCohort() {
+    func testWhenResolveCohort_andRemoteInternal_andInternalStateTrue_and_cohortAssigned_returnsAssignedCohort() {
         internalUserDeciderStore.isInternalUser = true
         let subfeature = AutofillSubfeature.credentialsAutofill
-        experimentManager.cohortToReturn = AutofillCohort.control.rawValue
+        experimentManager.cohortToReturn = FakeExperimentFlagsCohort.control.rawValue
         let embeddedData = Self.embeddedConfig(autofillSubfeatureForState: (subfeature: subfeature, state: "enabled"))
 
-        let flag = FakeExperimentFlag(source: .remoteDevelopment(.subfeature(AutofillSubfeature.credentialsAutofill)))
+        let flag = FakeExperimentFlags.remoteDeveloperFlag
         let featureFlagger = createFeatureFlagger(withMockedConfigData: embeddedData)
-        let cohort = featureFlagger.getCohortIfEnabled(for: flag)
-        XCTAssertEqual(cohort?.rawValue, AutofillCohort.control.rawValue)
+        let cohort = featureFlagger.resolveCohort(for: flag, allowOverride: true)
+        XCTAssertEqual(cohort?.rawValue, FakeExperimentFlagsCohort.control.rawValue)
     }
 
-    func testWhenGetCohortIfEnabled_andRemoteInternal_andInternalStateFalse_and_cohortAssigned_returnsNil() {
+    func testWhenResolveCohort_andRemoteInternal_andInternalStateFalse_and_cohortAssigned_returnsNil() {
         internalUserDeciderStore.isInternalUser = false
         let subfeature = AutofillSubfeature.credentialsAutofill
-        experimentManager.cohortToReturn = AutofillCohort.control.rawValue
+        experimentManager.cohortToReturn = FakeExperimentFlagsCohort.control.rawValue
         let embeddedData = Self.embeddedConfig(autofillSubfeatureForState: (subfeature: subfeature, state: "enabled"))
 
-        let flag = FakeExperimentFlag(source: .remoteDevelopment(.subfeature(AutofillSubfeature.credentialsAutofill)))
+        let flag = FakeExperimentFlags.remoteDeveloperFlag
         let featureFlagger = createFeatureFlagger(withMockedConfigData: embeddedData)
-        let cohort = featureFlagger.getCohortIfEnabled(for: flag)
+        let cohort = featureFlagger.resolveCohort(for: flag, allowOverride: true)
         XCTAssertNil(cohort)
     }
 
-    func testWhenGetCohortIfEnabled_andRemoteInternal_andInternalStateTrue_and_cohortAssigned_andFeaturePassed_returnsNil() {
+    func testWhenResolveCohort_andRemoteInternal_andInternalStateTrue_and_cohortAssigned_andFeaturePassed_returnsNil() {
         internalUserDeciderStore.isInternalUser = true
         let subfeature = AutofillSubfeature.credentialsAutofill
-        experimentManager.cohortToReturn = AutofillCohort.control.rawValue
+        experimentManager.cohortToReturn = FakeExperimentFlagsCohort.control.rawValue
         let embeddedData = Self.embeddedConfig(autofillSubfeatureForState: (subfeature: subfeature, state: "enabled"))
 
-        let flag = FakeExperimentFlag(source: .remoteDevelopment(.feature(.autofill)))
+        let flag = FakeExperimentFlags.remoteDevelopmentFeature
         let featureFlagger = createFeatureFlagger(withMockedConfigData: embeddedData)
-        let cohort = featureFlagger.getCohortIfEnabled(for: flag)
+        let cohort = featureFlagger.resolveCohort(for: flag, allowOverride: true)
         XCTAssertNil(cohort)
     }
 
-    func testWhenGetCohortIfEnabled_andRemoteInternal_andInternalStateTrue_and_cohortNotAssigned_returnsNil() {
-        internalUserDeciderStore.isInternalUser = true
-        let subfeature = AutofillSubfeature.credentialsAutofill
-        experimentManager.cohortToReturn = nil
-        let embeddedData = Self.embeddedConfig(autofillSubfeatureForState: (subfeature: subfeature, state: "enabled"))
-
-        let flag = FakeExperimentFlag(source: .remoteDevelopment(.subfeature(AutofillSubfeature.credentialsAutofill)))
-        let featureFlagger = createFeatureFlagger(withMockedConfigData: embeddedData)
-        let cohort = featureFlagger.getCohortIfEnabled(for: flag)
-        XCTAssertNil(cohort)
-    }
-
-    func testWhenGetCohortIfEnabled_andRemoteInternal_andInternalStateTrue_and_cohortAssignedButNorMatchingEnum_returnsNil() {
-        internalUserDeciderStore.isInternalUser = true
-        let subfeature = AutofillSubfeature.credentialsAutofill
-        experimentManager.cohortToReturn = "some"
-        let embeddedData = Self.embeddedConfig(autofillSubfeatureForState: (subfeature: subfeature, state: "enabled"))
-
-        let flag = FakeExperimentFlag(source: .remoteDevelopment(.subfeature(AutofillSubfeature.credentialsAutofill)))
-        let featureFlagger = createFeatureFlagger(withMockedConfigData: embeddedData)
-        let cohort = featureFlagger.getCohortIfEnabled(for: flag)
-        XCTAssertNil(cohort)
-    }
-
-    func testWhenGetCohortIfEnabled_andRemoteReleasable_and_cohortAssigned_returnsAssignedCohort() {
-        let subfeature = AutofillSubfeature.credentialsAutofill
-        experimentManager.cohortToReturn = AutofillCohort.control.rawValue
-        let embeddedData = Self.embeddedConfig(autofillSubfeatureForState: (subfeature: subfeature, state: "enabled"))
-
-        let flag = FakeExperimentFlag(source: .remoteReleasable(.subfeature(AutofillSubfeature.credentialsAutofill)))
-        let featureFlagger = createFeatureFlagger(withMockedConfigData: embeddedData)
-        let cohort = featureFlagger.getCohortIfEnabled(for: flag)
-        XCTAssertEqual(cohort?.rawValue, AutofillCohort.control.rawValue)
-    }
-
-    func testWhenGetCohortIfEnabled_andRemoteReleasable_and_cohortAssigned_andFeaturePassed_returnsNil() {
-        let subfeature = AutofillSubfeature.credentialsAutofill
-        experimentManager.cohortToReturn = AutofillCohort.control.rawValue
-        let embeddedData = Self.embeddedConfig(autofillSubfeatureForState: (subfeature: subfeature, state: "enabled"))
-
-        let flag = FakeExperimentFlag(source: .remoteReleasable(.feature(.autofill)))
-        let featureFlagger = createFeatureFlagger(withMockedConfigData: embeddedData)
-        let cohort = featureFlagger.getCohortIfEnabled(for: flag)
-        XCTAssertNil(cohort)
-    }
-
-    func testWhenGetCohortIfEnabled_andRemoteReleasable_and_cohortNotAssigned_andFeaturePassed_returnsNil() {
+    func testWhenResolveCohort_andRemoteInternal_andInternalStateTrue_and_cohortNotAssigned_returnsNil() {
         internalUserDeciderStore.isInternalUser = true
         let subfeature = AutofillSubfeature.credentialsAutofill
         experimentManager.cohortToReturn = nil
         let embeddedData = Self.embeddedConfig(autofillSubfeatureForState: (subfeature: subfeature, state: "enabled"))
 
-        let flag = FakeExperimentFlag(source: .remoteReleasable(.subfeature(AutofillSubfeature.credentialsAutofill)))
+        let flag = FakeExperimentFlags.remoteDeveloperFlag
         let featureFlagger = createFeatureFlagger(withMockedConfigData: embeddedData)
-        let cohort = featureFlagger.getCohortIfEnabled(for: flag)
+        let cohort = featureFlagger.resolveCohort(for: flag, allowOverride: true)
         XCTAssertNil(cohort)
     }
 
-    func testWhenGetCohortIfEnabled_andRemoteReleasable_and_cohortAssignedButNotMatchingEnum_returnsNil() {
+    func testWhenResolveCohort_andRemoteInternal_andInternalStateTrue_and_cohortAssignedButNorMatchingEnum_returnsNil() {
         internalUserDeciderStore.isInternalUser = true
         let subfeature = AutofillSubfeature.credentialsAutofill
         experimentManager.cohortToReturn = "some"
         let embeddedData = Self.embeddedConfig(autofillSubfeatureForState: (subfeature: subfeature, state: "enabled"))
 
-        let flag = FakeExperimentFlag(source: .remoteReleasable(.subfeature(AutofillSubfeature.credentialsAutofill)))
+        let flag = FakeExperimentFlags.remoteDeveloperFlag
         let featureFlagger = createFeatureFlagger(withMockedConfigData: embeddedData)
-        let cohort = featureFlagger.getCohortIfEnabled(for: flag)
+        let cohort = featureFlagger.resolveCohort(for: flag, allowOverride: true)
+        XCTAssertNil(cohort)
+    }
+
+    func testWhenResolveCohort_andRemoteReleasable_and_cohortAssigned_returnsAssignedCohort() {
+        let subfeature = AutofillSubfeature.credentialsAutofill
+        experimentManager.cohortToReturn = FakeExperimentFlagsCohort.control.rawValue
+        let embeddedData = Self.embeddedConfig(autofillSubfeatureForState: (subfeature: subfeature, state: "enabled"))
+
+        let flag = FakeExperimentFlags.remoteReleasableFlag
+        let featureFlagger = createFeatureFlagger(withMockedConfigData: embeddedData)
+        let cohort = featureFlagger.resolveCohort(for: flag, allowOverride: true)
+        XCTAssertEqual(cohort?.rawValue, FakeExperimentFlagsCohort.control.rawValue)
+    }
+
+    func testWhenResolveCohort_andRemoteReleasable_and_cohortAssigned_andFeaturePassed_returnsNil() {
+        let subfeature = AutofillSubfeature.credentialsAutofill
+        experimentManager.cohortToReturn = FakeExperimentFlagsCohort.control.rawValue
+        let embeddedData = Self.embeddedConfig(autofillSubfeatureForState: (subfeature: subfeature, state: "enabled"))
+
+        let flag = FakeExperimentFlags.remoteReleasableFeature
+        let featureFlagger = createFeatureFlagger(withMockedConfigData: embeddedData)
+        let cohort = featureFlagger.resolveCohort(for: flag, allowOverride: true)
+        XCTAssertNil(cohort)
+    }
+
+    func testWhenResolveCohort_andRemoteReleasable_and_cohortNotAssigned_andFeaturePassed_returnsNil() {
+        internalUserDeciderStore.isInternalUser = true
+        let subfeature = AutofillSubfeature.credentialsAutofill
+        experimentManager.cohortToReturn = nil
+        let embeddedData = Self.embeddedConfig(autofillSubfeatureForState: (subfeature: subfeature, state: "enabled"))
+
+        let flag = FakeExperimentFlags.remoteReleasableFlag
+        let featureFlagger = createFeatureFlagger(withMockedConfigData: embeddedData)
+        let cohort = featureFlagger.resolveCohort(for: flag, allowOverride: true)
+        XCTAssertNil(cohort)
+    }
+
+    func testWhenResolveCohort_andRemoteReleasable_and_cohortAssignedButNotMatchingEnum_returnsNil() {
+        internalUserDeciderStore.isInternalUser = true
+        let subfeature = AutofillSubfeature.credentialsAutofill
+        experimentManager.cohortToReturn = "some"
+        let embeddedData = Self.embeddedConfig(autofillSubfeatureForState: (subfeature: subfeature, state: "enabled"))
+
+        let flag = FakeExperimentFlags.remoteReleasableFlag
+        let featureFlagger = createFeatureFlagger(withMockedConfigData: embeddedData)
+        let cohort = featureFlagger.resolveCohort(for: flag, allowOverride: true)
         XCTAssertNil(cohort)
     }
 
@@ -284,6 +302,18 @@ final class DefaultFeatureFlaggerTests: XCTestCase {
         XCTAssertEqual(try XCTUnwrap(overrides.overrideCalls.first as? TestFeatureFlag), .overridableFlagDisabledByDefault)
     }
 
+    func testWhenLocalExperimentOverridesIsSetUpAndUserIsInternalThenLocalOverrideTakesPrecedenceWhenCheckingFlagValue() throws {
+        let featureFlagger = createFeatureFlaggerWithLocalOverrides()
+        internalUserDeciderStore.isInternalUser = true
+
+        overrides.experimentOverride = { _ in return TestFeatureFlag.FakeExperimentCohort.cohortA.rawValue }
+        let actualCohort = featureFlagger.resolveCohort(for: TestFeatureFlag.overridableExperimentFlagWithCohortBByDefault, allowOverride: true)
+
+        XCTAssertEqual(actualCohort?.rawValue, TestFeatureFlag.FakeExperimentCohort.cohortA.rawValue)
+        XCTAssertEqual(overrides.overrideCalls.count, 1)
+        XCTAssertEqual(try XCTUnwrap(overrides.overrideCalls.first as? TestFeatureFlag), .overridableExperimentFlagWithCohortBByDefault)
+    }
+
     func testWhenLocalOverridesIsSetUpAndUserIsInternalAndAllowOverrideIsFalseThenLocalOverrideIsNotCheckedWhenCheckingFlagValue() throws {
         let featureFlagger = createFeatureFlaggerWithLocalOverrides()
         internalUserDeciderStore.isInternalUser = true
@@ -292,11 +322,30 @@ final class DefaultFeatureFlaggerTests: XCTestCase {
         XCTAssertTrue(overrides.overrideCalls.isEmpty)
     }
 
+    func testWhenLocalExperimentOverridesIsSetUpAndUserIsInternalAndAllowOverrideIsFalseThenLocalOverrideIsNotCheckedWhenCheckingFlagValue() throws {
+        let featureFlagger = createFeatureFlaggerWithLocalOverrides()
+        internalUserDeciderStore.isInternalUser = true
+        overrides.experimentOverride = { _ in return TestFeatureFlag.FakeExperimentCohort.cohortA.rawValue }
+        let actualCohort = featureFlagger.resolveCohort(for: TestFeatureFlag.overridableExperimentFlagWithCohortBByDefault, allowOverride: false)
+
+        XCTAssertEqual(actualCohort?.rawValue, TestFeatureFlag.FakeExperimentCohort.cohortB.rawValue)
+        XCTAssertTrue(overrides.overrideCalls.isEmpty)
+    }
+
     func testWhenLocalOverridesIsSetUpAndUserIsNotInternalThenLocalOverrideIsNotCheckedWhenCheckingFlagValue() throws {
         let featureFlagger = createFeatureFlaggerWithLocalOverrides()
         internalUserDeciderStore.isInternalUser = false
 
         XCTAssertFalse(featureFlagger.isFeatureOn(for: TestFeatureFlag.overridableFlagDisabledByDefault))
+        XCTAssertTrue(overrides.overrideCalls.isEmpty)
+    }
+
+    func testWhenLocalExperimentOverridesIsSetUpAndUserIsNotInternalThenLocalOverrideIsNotCheckedWhenCheckingFlagValue() throws {
+        let featureFlagger = createFeatureFlaggerWithLocalOverrides()
+        internalUserDeciderStore.isInternalUser = false
+        overrides.experimentOverride = { _ in return TestFeatureFlag.FakeExperimentCohort.cohortA.rawValue }
+
+        XCTAssertFalse(featureFlagger.isFeatureOn(for: TestFeatureFlag.overridableExperimentFlagWithCohortBByDefault))
         XCTAssertTrue(overrides.overrideCalls.isEmpty)
     }
 
@@ -363,6 +412,7 @@ final class DefaultFeatureFlaggerTests: XCTestCase {
 }
 
 extension FeatureFlagSource: FeatureFlagDescribing {
+    public var cohortType: (any FeatureFlagCohortDescribing.Type)? { nil }
     public static let allCases: [FeatureFlagSource]  = []
     public var supportsLocalOverriding: Bool { false }
     public var rawValue: String { "rawValue" }
@@ -373,20 +423,43 @@ class MockExperimentManager: ExperimentCohortsManaging {
     var cohortToReturn: CohortID?
     var experiments: BrowserServicesKit.Experiments?
 
-    func resolveCohort(for experiment: BrowserServicesKit.ExperimentSubfeature, allowCohortReassignment: Bool) -> CohortID? {
+    func resolveCohort(for experiment: BrowserServicesKit.ExperimentSubfeature, allowCohortAssignment: Bool) -> CohortID? {
         return cohortToReturn
     }
 }
-
-private struct FakeExperimentFlag: FeatureFlagExperimentDescribing {
-    typealias CohortType = AutofillCohort
-
-    var rawValue: String = "fake-experiment"
-
-    var source: FeatureFlagSource
+private enum FakeExperimentFlags: String, CaseIterable {
+    case disabledFlag
+    case internalFlag
+    case remoteDeveloperFlag
+    case remoteDevelopmentFeature
+    case remoteReleasableFlag
+    case remoteReleasableFeature
 }
 
-private enum AutofillCohort: String, FlagCohort {
+extension  FakeExperimentFlags: FeatureFlagDescribing {
+    var supportsLocalOverriding: Bool { true }
+
+    var cohortType: (any FeatureFlagCohortDescribing.Type)? { FakeExperimentFlagsCohort.self}
+
+    var source: FeatureFlagSource {
+        switch self {
+        case .disabledFlag:
+                .disabled
+        case .internalFlag:
+                .internalOnly(FakeExperimentFlagsCohort.blue)
+        case .remoteDeveloperFlag:
+                .remoteDevelopment(.subfeature(AutofillSubfeature.credentialsAutofill))
+        case .remoteDevelopmentFeature:
+                .remoteDevelopment(.feature(.autofill))
+        case .remoteReleasableFlag:
+                .remoteReleasable(.subfeature(AutofillSubfeature.credentialsAutofill))
+        case .remoteReleasableFeature:
+                .remoteReleasable(.feature(.autofill))
+        }
+    }
+}
+
+private enum FakeExperimentFlagsCohort: String, FeatureFlagCohortDescribing {
     case control
     case blue
 }
