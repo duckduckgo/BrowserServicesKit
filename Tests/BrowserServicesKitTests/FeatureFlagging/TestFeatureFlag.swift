@@ -19,7 +19,7 @@
 import BrowserServicesKit
 
 enum TestFeatureFlag: String, FeatureFlagDescribing {
-    var cohortType: (any BrowserServicesKit.FlagCohort.Type)? {
+    var cohortType: (any FeatureFlagCohortDescribing.Type)? {
         switch self {
         case .nonOverridableFlag, .overridableFlagDisabledByDefault, .overridableFlagEnabledByDefault:
             nil
@@ -55,7 +55,7 @@ enum TestFeatureFlag: String, FeatureFlagDescribing {
         }
     }
 
-    enum FakeExperimentCohort: String, FlagCohort {
+    enum FakeExperimentCohort: String, FeatureFlagCohortDescribing {
         case cohortA
         case cohortB
     }

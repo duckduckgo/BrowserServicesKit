@@ -20,11 +20,6 @@ import Combine
 import Foundation
 import Persistence
 
-/// A protocol for retrieving the current experiment cohort for feature flags if one has already been assigned.
-protocol CurrentExperimentCohortProvider {
-    func getCurrentCohortIfAssigned<Flag: FeatureFlagDescribing>(for featureFlag: Flag) -> (any FlagCohort)?
-}
-
 /// This protocol defines persistence layer for feature flag overrides.
 public protocol FeatureFlagLocalOverridesPersisting {
     /// Return value for the flag override.
@@ -200,7 +195,7 @@ public protocol FeatureFlagLocalOverriding: AnyObject {
     func currentValue<Flag: FeatureFlagDescribing>(for featureFlag: Flag) -> Bool?
 
     /// Returns the effective cohort of a feature flag, considering the current state and overrides.
-    func currentExperimentCohort<Flag: FeatureFlagDescribing>(for featureFlag: Flag) -> (any FlagCohort)?
+    func currentExperimentCohort<Flag: FeatureFlagDescribing>(for featureFlag: Flag) -> (any FeatureFlagCohortDescribing)?
 }
 
 public final class FeatureFlagLocalOverrides: FeatureFlagLocalOverriding {
@@ -288,8 +283,8 @@ public final class FeatureFlagLocalOverrides: FeatureFlagLocalOverriding {
         featureFlagger?.isFeatureOn(for: featureFlag, allowOverride: true)
     }
 
-    public func currentExperimentCohort<Flag: FeatureFlagDescribing>(for featureFlag: Flag) -> (any FlagCohort)? {
-        guard let flagger = featureFlagger as? CurrentExperimentCohortProvider else { return nil }
-        return flagger.getCurrentCohortIfAssigned(for: featureFlag)
+    public func currentExperimentCohort<Flag: FeatureFlagDescribing>(for featureFlag: Flag) -> (any FeatureFlagCohortDescribing)? {
+        guard let flagger = featureFlagger as? CurrentExperimentCohortProviding else { return nil }
+        return flagger.assignedCohort(for: featureFlag)
     }
 }

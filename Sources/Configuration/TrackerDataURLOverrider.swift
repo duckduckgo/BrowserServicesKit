@@ -41,7 +41,7 @@ public final class TrackerDataURLOverrider: TrackerDataURLProviding {
 
     public var trackerDataURL: URL? {
         for experimentType in TDSExperimentType.allCases {
-            if let cohort = featureFlagger.getCohortIfEnabled(for: experimentType, allowOverride: false) as? TDSExperimentType.Cohort,
+            if let cohort = featureFlagger.resolveCohort(for: experimentType, allowOverride: false) as? TDSExperimentType.Cohort,
                let url = trackerDataURL(for: experimentType.subfeature, cohort: cohort) {
                 return url
             }
@@ -117,11 +117,11 @@ extension TDSExperimentType: FeatureFlagDescribing {
         return .remoteReleasable(.subfeature(self.subfeature))
     }
 
-    public var cohortType: (any BrowserServicesKit.FlagCohort.Type)? {
+    public var cohortType: (any FeatureFlagCohortDescribing.Type)? {
         return Cohort.self
     }
 
-    public enum Cohort: String, FlagCohort {
+    public enum Cohort: String, FeatureFlagCohortDescribing {
         case control
         case treatment
     }

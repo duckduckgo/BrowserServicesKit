@@ -143,22 +143,22 @@ final class TrackerDataURLOverriderTests: XCTestCase {
 private class MockFeatureFlaggerMockSettings: FeatureFlagger {
     var internalUserDecider: InternalUserDecider = DefaultInternalUserDecider(store: MockInternalUserStoring())
     var localOverrides: FeatureFlagLocalOverriding?
-    var mockCohorts: [String: any FlagCohort] = [:]
+    var mockCohorts: [String: any FeatureFlagCohortDescribing] = [:]
 
     var isFeatureOn = true
     func isFeatureOn<Flag: FeatureFlagDescribing>(for featureFlag: Flag, allowOverride: Bool) -> Bool {
         return isFeatureOn
     }
 
-    func getCohortIfEnabled(_ subfeature: any PrivacySubfeature) -> CohortID? {
+    func resolveCohort(_ subfeature: any PrivacySubfeature) -> CohortID? {
         return nil
     }
 
-    func getCohortIfEnabled<Flag>(for featureFlag: Flag, allowOverride: Bool) -> (any FlagCohort)? where Flag: FeatureFlagDescribing {
+    func resolveCohort<Flag>(for featureFlag: Flag, allowOverride: Bool) -> (any FeatureFlagCohortDescribing)? where Flag: FeatureFlagDescribing {
         return mockCohorts[featureFlag.rawValue]
     }
 
-    func getAllActiveExperiments() -> Experiments {
+    var allActiveExperiments: Experiments {
         return [:]
     }
 }
