@@ -88,7 +88,7 @@ final public class NetworkProtectionLocationListCompositeRepository: NetworkProt
     @discardableResult
     func fetchLocationListFromRemote() async throws -> [NetworkProtectionLocation] {
         do {
-            guard let authToken = try? await VPNAuthTokenBuilder.getVPNAuthToken(from: tokenHandler, policy: .localValid) else {
+            guard let authToken = try? await VPNAuthTokenBuilder.getVPNAuthToken(from: tokenHandler) else {
                 throw NetworkProtectionError.noAuthTokenFound
             }
             Self.locationList = try await client.getLocations(authToken: authToken).get()

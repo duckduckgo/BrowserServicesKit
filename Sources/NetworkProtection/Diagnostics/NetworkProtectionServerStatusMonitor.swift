@@ -99,7 +99,7 @@ public actor NetworkProtectionServerStatusMonitor {
     // MARK: - Server Status Check
 
     private func checkServerStatus(for serverName: String) async -> Result<NetworkProtectionServerStatus, NetworkProtectionClientError> {
-        guard let accessToken = try? await VPNAuthTokenBuilder.getVPNAuthToken(from: tokenHandler, policy: .localValid) else {
+        guard let accessToken = try? await VPNAuthTokenBuilder.getVPNAuthToken(from: tokenHandler) else {
             Logger.networkProtection.fault("Failed to check server status due to lack of access token")
             assertionFailure("Failed to check server status due to lack of access token")
             return .failure(.invalidAuthToken)

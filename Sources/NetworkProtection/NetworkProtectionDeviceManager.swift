@@ -102,7 +102,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     /// This method will return the remote server list if available, or the local server list if there was a problem with the service call.
     ///
     public func refreshServerList() async throws -> [NetworkProtectionServer] {
-        guard let token = try? await VPNAuthTokenBuilder.getVPNAuthToken(from: tokenHandler, policy: .localValid) else {
+        guard let token = try? await VPNAuthTokenBuilder.getVPNAuthToken(from: tokenHandler) else {
             throw NetworkProtectionError.noAuthTokenFound
         }
 
@@ -189,7 +189,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     private func register(keyPair: KeyPair,
                           selectionMethod: NetworkProtectionServerSelectionMethod) async throws -> (server: NetworkProtectionServer,
                                                                                                     newExpiration: Date?) {
-        guard let token = try? await VPNAuthTokenBuilder.getVPNAuthToken(from: tokenHandler, policy: .localValid) else {
+        guard let token = try? await VPNAuthTokenBuilder.getVPNAuthToken(from: tokenHandler) else {
             throw NetworkProtectionError.noAuthTokenFound
         }
 

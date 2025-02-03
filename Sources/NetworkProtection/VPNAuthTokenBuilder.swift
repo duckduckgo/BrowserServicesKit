@@ -23,7 +23,7 @@ public struct VPNAuthTokenBuilder {
 
     static let tokenPrefix = "ddg:"
 
-    public static func getVPNAuthToken(from tokenProvider: any SubscriptionTokenHandling, policy: AuthTokensCachePolicy) async throws -> String {
+    public static func getVPNAuthToken(from tokenProvider: any SubscriptionTokenHandling) async throws -> String {
         let token = try await tokenProvider.getToken()
         return tokenPrefix + token
     }
