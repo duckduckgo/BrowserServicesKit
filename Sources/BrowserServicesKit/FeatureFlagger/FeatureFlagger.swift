@@ -18,8 +18,6 @@
 
 import Foundation
 
-public protocol FlagCohort: RawRepresentable, CaseIterable where RawValue == CohortID {}
-
 /// This protocol defines a common interface for feature flags managed by FeatureFlagger.
 ///
 /// It should be implemented by the feature flag type in client apps.
@@ -64,65 +62,86 @@ public protocol FeatureFlagDescribing: CaseIterable {
     /// }
     /// ```
     var source: FeatureFlagSource { get }
-}
 
-/// This protocol defines a common interface for experiment feature flags managed by FeatureFlagger.
-///
-/// It should be implemented by the feature flag type in client apps.
-///
-public protocol FeatureFlagExperimentDescribing {
-
-    /// Returns a string representation of the flag
-    var rawValue: String { get }
-
-    /// Defines the source of the experiment feature flag, which corresponds to
-    /// where the final flag value should come from.
+    /// Defines the type of cohort associated with the feature flag, if any.
     ///
-    /// Example client implementation:
+    /// This property allows feature flags to define and associate with specific cohorts,
+    /// which are groups of users categorized for experimentation or feature rollouts.
+    ///
+    /// - Returns: A type conforming to `FeatureFlagCohortDescribing`, or `nil` if no cohort is associated
+    ///   with the feature flag.
+    ///
+    /// ### Example:
+    /// For a feature flag with cohorts like "control" and "treatment":
     ///
     /// ```
-    /// public enum FeatureFlag: FeatureFlagDescribing {
-    ///    case sync
-    ///    case autofill
-    ///    case cookieConsent
-    ///    case duckPlayer
+    /// public enum ExampleFeatureFlag: FeatureFlagDescribing {
+    ///     case experimentalFeature
     ///
-    ///    var source: FeatureFlagSource {
-    ///        case .sync:
-    ///            return .disabled
-    ///        case .cookieConsent:
-    ///            return .internalOnly(cohort)
-    ///        case .credentialsAutofill:
-    ///            return .remoteDevelopment(.subfeature(AutofillSubfeature.credentialsAutofill))
-    ///        case .duckPlayer:
-    ///            return .remoteReleasable(.feature(.duckPlayer))
-    ///    }
+    ///     var cohortType: (any FeatureFlagCohortDescribing.Type)? {
+    ///         return ExampleCohort.self
+    ///     }
+    ///
+    ///     public enum ExampleCohort: String, FeatureFlagCohortDescribing {
+    ///         case control
+    ///         case treatment
+    ///     }
     /// }
     /// ```
-    var source: FeatureFlagSource { get }
+    ///
+    /// If `cohortType` is `nil`, the feature flag does not have associated cohorts.
+    var cohortType: (any FeatureFlagCohortDescribing.Type)? { get }
+}
 
-    /// Represents the possible groups or variants within an experiment.
-        ///
-        /// The `Cohort` type is used to define user groups or test variations for feature
-        /// experimentation. Each cohort typically corresponds to a specific behavior or configuration
-        /// applied to a subset of users. For example, in an A/B test, you might define cohorts such as
-        /// `control` and `treatment`.
-        ///
-        /// Each cohort must conform to the `CohortEnum` protocol, which ensures that the cohort type
-        /// is an `enum` with `String` raw values and provides access to all possible cases
-        /// through `CaseIterable`.
-        ///
-        /// Example:
-        /// ```
-        /// public enum AutofillCohorts: String, CohortEnum {
-        ///     case control
-        ///     case treatment
-        /// }
-        /// ```
-        ///
-        /// The `Cohort` type allows dynamic resolution of cohorts by their raw `String` value,
-        /// making it easy to map user configurations to specific cohort groups.
-    associatedtype CohortType: FlagCohort
+/// A protocol that defines a set of cohorts for feature flags.
+///
+/// Cohorts represent groups of users categorized for A/B testing. Each cohort has a unique identifier (`CohortID`).
+///
+/// Types conforming to `FeatureFlagCohortDescribing` must be an `enum`, conform to
+/// `CaseIterable`, and use a `RawValue` of type `CohortID` (typically a `String`).
+///
+/// ## Usage
+///
+/// To define cohorts for a feature flag, create an `enum` conforming to `FeatureFlagCohortDescribing`:
+///
+/// ```swift
+/// public enum ExampleCohort: String, FeatureFlagCohortDescribing {
+///     case control
+///     case treatment
+/// }
+/// ```
+///
+/// These cohorts can then be associated with feature flags to segment users into different
+/// groups for experimentation:
+///
+/// ```swift
+/// public enum ExampleFeatureFlag: FeatureFlagDescribing {
+///     case newUI
+///
+///     var cohortType: (any FeatureFlagCohortDescribing.Type)? {
+///         return ExampleCohort.self
+///     }
+/// }
+/// ```
+///
+/// ## Provided Utility Methods
+///
+/// - `cohort(for rawValue: CohortID) -> Self?`: Retrieves the cohort instance from its raw value.
+/// - `cohorts: [Self]`: Returns an array of all defined cohorts.
+public protocol FeatureFlagCohortDescribing: CaseIterable, RawRepresentable where RawValue == CohortID {}
+
+/// A protocol for retrieving the current experiment cohort for feature flags if one has already been assigned.
+protocol CurrentExperimentCohortProviding {
+    func assignedCohort<Flag: FeatureFlagDescribing>(for featureFlag: Flag) -> (any FeatureFlagCohortDescribing)?
+}
+
+public extension FeatureFlagCohortDescribing {
+    static func cohort(for rawValue: CohortID) -> Self? {
+        return Self.allCases.first { $0.rawValue == rawValue }
+    }
+    static var cohorts: [Self] {
+        return Array(Self.allCases)
+    }
 }
 
 public enum FeatureFlagSource {
@@ -130,7 +149,7 @@ public enum FeatureFlagSource {
     case disabled
 
     /// Enabled for internal users only. Cannot be toggled remotely
-    case internalOnly((any FlagCohort)? = nil)
+    case internalOnly((any FeatureFlagCohortDescribing)? = nil)
 
     /// Toggled remotely using PrivacyConfiguration but only for internal users. Otherwise, disabled.
     case remoteDevelopment(PrivacyConfigFeatureLevel)
@@ -184,10 +203,49 @@ public protocol FeatureFlagger: AnyObject {
     ///   - For `.disabled`: Returns `nil`.
     ///   - For `.internalOnly`: Returns the cohort if the user is an internal user.
     ///   - For `.remoteDevelopment` and `.remoteReleasable`:
-    ///     - If the feature is a subfeature, resolves its cohort using `getCohortIfEnabled(_ subfeature:)`.
+    ///     - If the feature is a subfeature, resolves its cohort using `resolveCohort(_ subfeature:)`.
     ///     - Returns `nil` if the user is not eligible.
     ///
-    func getCohortIfEnabled<Flag: FeatureFlagExperimentDescribing>(for featureFlag: Flag) -> (any FlagCohort)?
+    /// > Note: Setting `allowOverride` to `false` skips checking local overrides. This can be used
+    ///   when the non-overridden feature flag value is required.
+
+    /// Retrieves or attempts to assign a cohort for a feature flag if the feature is enabled.
+    ///
+    /// This method checks whether the feature flag is active based on its source configuration.
+    /// If the flag is enabled and supports cohorts, it returns the assigned cohort if one exists.
+    /// Otherwise, it attempts to resolve and assign the appropriate cohort from the available options.
+    ///
+    /// If local overrides are enabled (`allowOverride = true`) and the user is internal, the overridden
+    /// cohort is returned before any other logic is applied.
+    ///
+    /// ## Behavior:
+    /// - **For `.disabled` flags**: Returns `nil`.
+    /// - **For `.internalOnly` flags**: Returns the predefined cohort if the user is an internal user.
+    /// - **For `.remoteDevelopment` and `.remoteReleasable` flags**:
+    ///   - If the feature is a subfeature, resolves its cohort using `resolveCohort(_ subfeature:)`.
+    ///   - If no cohort is assigned yet, attempts to assign one from the available cohorts.
+    ///
+    /// > **Note**: If `allowOverride` is `false`, local overrides are ignored.
+    ///
+    /// ## Example:
+    /// ```swift
+    /// if let cohort = featureFlagger.resolveCohort(for: .newUI) as? ExampleCohort {
+    ///     switch cohort {
+    ///     case .treatment:
+    ///         print("treatment")
+    ///     case .control:
+    ///         print("control")
+    ///     }
+    /// }
+    /// ```
+    ///
+    /// In this example, `ExampleCohort` is the cohort type associated with the `.newUI` feature flag.
+    /// The switch statement handles the assigned cohort values accordingly.
+    ///
+    /// - Parameter featureFlag: The feature flag for which to retrieve or assign a cohort.
+    /// - Parameter allowOverride: Whether local overrides should be considered.
+    /// - Returns: The assigned `FeatureFlagCohortDescribing` instance if the feature is enabled, or `nil` otherwise.
+    func resolveCohort<Flag: FeatureFlagDescribing>(for featureFlag: Flag, allowOverride: Bool) -> (any FeatureFlagCohortDescribing)?
 
     /// Retrieves all active experiments currently assigned to the user.
     ///
@@ -205,7 +263,7 @@ public protocol FeatureFlagger: AnyObject {
     ///      - Validates its assigned cohort using `resolveCohort` in the `ExperimentManager`.
     ///   3. If the experiment passes validation, it is added to the result dictionary.
     ///
-    func getAllActiveExperiments() -> Experiments
+    var allActiveExperiments: Experiments { get }
 }
 
 public extension FeatureFlagger {
@@ -218,6 +276,16 @@ public extension FeatureFlagger {
     ///
     func isFeatureOn<Flag: FeatureFlagDescribing>(for featureFlag: Flag) -> Bool {
         isFeatureOn(for: featureFlag, allowOverride: true)
+    }
+
+    /// Called from app features to determine the cohort for a given feature, if enabled.
+    ///
+    /// Feature Flag's `source` is checked to determine if the flag is enabled. If the feature
+    /// flagger provides an overrides mechanism (`localOverrides` is not `nil`) and the user
+    /// is internal, local overrides are checked first and, if present, returned as the cohort.
+    ///
+    func resolveCohort<Flag: FeatureFlagDescribing>(for featureFlag: Flag) -> (any FeatureFlagCohortDescribing)? {
+        resolveCohort(for: featureFlag, allowOverride: true)
     }
 }
 
@@ -277,7 +345,7 @@ public class DefaultFeatureFlagger: FeatureFlagger {
         }
     }
 
-    public func getAllActiveExperiments() -> Experiments {
+    public var allActiveExperiments: Experiments {
         guard let enrolledExperiments = experimentManager?.experiments else { return [:] }
         var activeExperiments = [String: ExperimentData]()
         let config = privacyConfigManager.privacyConfig
@@ -288,14 +356,25 @@ public class DefaultFeatureFlagger: FeatureFlagger {
             let cohorts = config.cohorts(subfeatureID: subfeatureID, parentFeatureID: experimentData.parentID) ?? []
             let experimentSubfeature = ExperimentSubfeature(parentID: experimentData.parentID, subfeatureID: subfeatureID, cohorts: cohorts)
 
-            if experimentManager?.resolveCohort(for: experimentSubfeature, allowCohortReassignment: false) == experimentData.cohortID {
+            if experimentManager?.resolveCohort(for: experimentSubfeature, allowCohortAssignment: false) == experimentData.cohortID {
                 activeExperiments[subfeatureID] = experimentData
             }
         }
         return activeExperiments
     }
 
-    public func getCohortIfEnabled<Flag: FeatureFlagExperimentDescribing>(for featureFlag: Flag) -> (any FlagCohort)? {
+    public func resolveCohort<Flag: FeatureFlagDescribing>(for featureFlag: Flag, allowOverride: Bool) -> (any FeatureFlagCohortDescribing)? {
+        // Check for local overrides
+        if allowOverride, internalUserDecider.isInternalUser, let localOverride = localOverrides?.experimentOverride(for: featureFlag) {
+            return featureFlag.cohortType?.cohorts.first { $0.rawValue == localOverride }
+        }
+
+        // Handle feature cohort sources
+        return handleCohortResolutionBasedOnSources(for: featureFlag, allowCohortAssignment: true)
+    }
+
+    private func handleCohortResolutionBasedOnSources<Flag: FeatureFlagDescribing>(for featureFlag: Flag, allowCohortAssignment: Bool) -> (any FeatureFlagCohortDescribing)? {
+        // Handle feature cohort sources
         switch featureFlag.source {
         case .disabled:
             return nil
@@ -304,8 +383,8 @@ public class DefaultFeatureFlagger: FeatureFlagger {
         case .remoteReleasable(let featureType),
                 .remoteDevelopment(let featureType) where internalUserDecider.isInternalUser:
             if case .subfeature(let subfeature) = featureType {
-                if let resolvedCohortID = getCohortIfEnabled(subfeature) {
-                    return Flag.CohortType.allCases.first { return $0.rawValue == resolvedCohortID }
+                if let resolvedCohortID = resolveCohort(subfeature, allowCohortAssignment: allowCohortAssignment) {
+                    return featureFlag.cohortType?.cohort(for: resolvedCohortID)
                 }
             }
             return nil
@@ -314,16 +393,16 @@ public class DefaultFeatureFlagger: FeatureFlagger {
         }
     }
 
-    private func getCohortIfEnabled(_ subfeature: any PrivacySubfeature) -> CohortID? {
+    private func resolveCohort(_ subfeature: any PrivacySubfeature, allowCohortAssignment: Bool = true) -> CohortID? {
         let config = privacyConfigManager.privacyConfig
         let featureState = config.stateFor(subfeature)
         let cohorts = config.cohorts(for: subfeature)
         let experiment = ExperimentSubfeature(parentID: subfeature.parent.rawValue, subfeatureID: subfeature.rawValue, cohorts: cohorts ?? [])
         switch featureState {
         case .enabled:
-            return experimentManager?.resolveCohort(for: experiment, allowCohortReassignment: true)
+            return experimentManager?.resolveCohort(for: experiment, allowCohortAssignment: allowCohortAssignment)
         case .disabled(.targetDoesNotMatch):
-            return experimentManager?.resolveCohort(for: experiment, allowCohortReassignment: false)
+            return experimentManager?.resolveCohort(for: experiment, allowCohortAssignment: false)
         default:
             return nil
         }
@@ -336,5 +415,11 @@ public class DefaultFeatureFlagger: FeatureFlagger {
         case .subfeature(let subfeature):
             return privacyConfigManager.privacyConfig.isSubfeatureEnabled(subfeature)
         }
+    }
+}
+
+extension DefaultFeatureFlagger: CurrentExperimentCohortProviding {
+    func assignedCohort<Flag: FeatureFlagDescribing>(for featureFlag: Flag) -> (any FeatureFlagCohortDescribing)? {
+        return handleCohortResolutionBasedOnSources(for: featureFlag, allowCohortAssignment: false)
     }
 }

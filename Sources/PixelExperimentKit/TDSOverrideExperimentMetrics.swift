@@ -49,7 +49,7 @@ public struct TDSOverrideExperimentMetrics {
         guard let featureFlagger = PixelKit.ExperimentConfig.featureFlagger else { return nil }
 
         return TDSExperimentType.allCases.compactMap { experimentType in
-            guard let experimentData = featureFlagger.getAllActiveExperiments()[experimentType.subfeature.rawValue] else { return nil }
+            guard let experimentData = featureFlagger.allActiveExperiments[experimentType.subfeature.rawValue] else { return nil }
             return "\(experimentType.subfeature.rawValue)_\(experimentData.cohortID)"
         }.first
     }
@@ -77,7 +77,7 @@ public struct TDSOverrideExperimentMetrics {
                                                     fire: @escaping FireDebugExperiment) {
         guard
             let featureFlagger = PixelKit.ExperimentConfig.featureFlagger,
-            let experimentData = featureFlagger.getAllActiveExperiments()[experimentType.subfeature.rawValue]
+            let experimentData = featureFlagger.allActiveExperiments[experimentType.subfeature.rawValue]
         else { return }
 
         let experimentName: String = experimentType.subfeature.rawValue + experimentData.cohortID

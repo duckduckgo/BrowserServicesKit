@@ -45,7 +45,8 @@ public final class SubscriptionTokenKeychainStorageV2: AuthTokenStoring {
                     errorHandler(AccountKeychainAccessType.getAuthToken, error)
                 } else {
                     assertionFailure("Unexpected error: \(error)")
-                    Logger.OAuth.fault("Unexpected error: \(error, privacy: .public)")
+
+                    Logger.subscriptionKeychain.fault("Unexpected error: \(error, privacy: .public)")
                 }
 
                 return nil
@@ -70,7 +71,7 @@ public final class SubscriptionTokenKeychainStorageV2: AuthTokenStoring {
                     errorHandler(AccountKeychainAccessType.storeAuthToken, error)
                 } else {
                     assertionFailure("Unexpected error: \(error)")
-                    Logger.OAuth.fault("Unexpected error: \(error, privacy: .public)")
+                    Logger.subscriptionKeychain.fault("Unexpected error: \(error, privacy: .public)")
                 }
             }
         }

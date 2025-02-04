@@ -59,7 +59,7 @@ final class TDSOverrideExperimentMetricsTests: XCTestCase {
         XCTAssertEqual(pixelCalls.first?.3, "1", "expected Value should be passed as parameter")
         XCTAssertEqual(debugCalls.count, 6, "fireDebugExperiment should be called for each conversionWindow on one experiment.")
         XCTAssertEqual(debugCalls.first?["tdsEtag"], "testEtag")
-        XCTAssertEqual(debugCalls.first?["experiment"], "\(TDSExperimentType.allCases[3].experiment.rawValue)testCohort")
+        XCTAssertEqual(debugCalls.first?["experiment"], "\(TDSExperimentType.allCases[3].subfeature.rawValue)testCohort")
     }
 
     func test_OnfireTdsExperimentMetricPrivacyToggleUsed_WhenNoExperimentActive_ThenCorrectPixelFunctionsCalled() {
