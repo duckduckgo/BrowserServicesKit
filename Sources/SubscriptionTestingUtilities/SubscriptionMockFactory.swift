@@ -30,7 +30,7 @@ public struct SubscriptionMockFactory {
                                                   platform: .apple,
                                                   status: .autoRenewable,
                                                   activeOffers: [])
-    public static let expiredSubscription = Subscription(productId: UUID().uuidString,
+    public static let expiredSubscription = PrivacyProSubscription(productId: UUID().uuidString,
                                                          name: "Subscription test #2",
                                                          billingPeriod: .monthly,
                                                          startedAt: Date().addingTimeInterval(TimeInterval.days(-31)),

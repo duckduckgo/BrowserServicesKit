@@ -23,7 +23,7 @@ import SubscriptionTestingUtilities
 final class SubscriptionTests: XCTestCase {
 
     func testEquality() throws {
-        let a = DDGSubscription(productId: "1",
+        let a = PrivacyProSubscription(productId: "1",
                                 name: "a",
                                 billingPeriod: .monthly,
                                 startedAt: Date(timeIntervalSince1970: 1000),
@@ -31,7 +31,7 @@ final class SubscriptionTests: XCTestCase {
                                 platform: .apple,
                                 status: .autoRenewable,
                                 activeOffers: [.trial])
-        let b = DDGSubscription(productId: "1",
+        let b = PrivacyProSubscription(productId: "1",
                                 name: "a",
                                 billingPeriod: .monthly,
                                 startedAt: Date(timeIntervalSince1970: 1000),
@@ -39,7 +39,7 @@ final class SubscriptionTests: XCTestCase {
                                 platform: .apple,
                                 status: .autoRenewable,
                                 activeOffers: [.trial])
-        let c = DDGSubscription(productId: "2",
+        let c = PrivacyProSubscription(productId: "2",
                                 name: "a",
                                 billingPeriod: .monthly,
                                 startedAt: Date(timeIntervalSince1970: 1000),
@@ -144,11 +144,11 @@ final class SubscriptionTests: XCTestCase {
     }
 
     func testOfferTypeDecoding() throws {
-        let trial = try JSONDecoder().decode(Subscription.OfferType.self, from: Data("\"Trial\"".utf8))
-        XCTAssertEqual(trial, Subscription.OfferType.trial)
+        let trial = try JSONDecoder().decode(PrivacyProSubscription.OfferType.self, from: Data("\"Trial\"".utf8))
+        XCTAssertEqual(trial, PrivacyProSubscription.OfferType.trial)
 
-        let unknown = try JSONDecoder().decode(Subscription.OfferType.self, from: Data("\"something unexpected\"".utf8))
-        XCTAssertEqual(unknown, Subscription.OfferType.unknown)
+        let unknown = try JSONDecoder().decode(PrivacyProSubscription.OfferType.self, from: Data("\"something unexpected\"".utf8))
+        XCTAssertEqual(unknown, PrivacyProSubscription.OfferType.unknown)
     }
 
     func testDecodingWithActiveOffers() throws {
@@ -195,21 +195,21 @@ final class SubscriptionTests: XCTestCase {
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         decoder.dateDecodingStrategy = .millisecondsSince1970
 
-        let subscriptionWithOffers = try decoder.decode(Subscription.self, from: Data(rawSubscriptionWithOffers.utf8))
+        let subscriptionWithOffers = try decoder.decode(PrivacyProSubscription.self, from: Data(rawSubscriptionWithOffers.utf8))
         XCTAssertEqual(subscriptionWithOffers.activeOffers, [.trial])
 
-        let subscriptionWithoutOffers = try decoder.decode(Subscription.self, from: Data(rawSubscriptionWithoutOffers.utf8))
+        let subscriptionWithoutOffers = try decoder.decode(PrivacyProSubscription.self, from: Data(rawSubscriptionWithoutOffers.utf8))
         XCTAssertEqual(subscriptionWithoutOffers.activeOffers, [])
 
-        let subscriptionWithUnknownOffers = try decoder.decode(Subscription.self, from: Data(rawSubscriptionWithUnknownOffers.utf8))
+        let subscriptionWithUnknownOffers = try decoder.decode(PrivacyProSubscription.self, from: Data(rawSubscriptionWithUnknownOffers.utf8))
         XCTAssertEqual(subscriptionWithUnknownOffers.activeOffers, [.unknown])
     }
 }
 
 extension PrivacyProSubscription {
 
-    static func make(withStatus status: Subscription.Status, activeOffers: [Subscription.OfferType] = []) -> Subscription {
-        Subscription(productId: UUID().uuidString,
+    static func make(withStatus status: PrivacyProSubscription.Status, activeOffers: [PrivacyProSubscription.OfferType] = []) -> PrivacyProSubscription {
+        PrivacyProSubscription(productId: UUID().uuidString,
                      name: "Subscription test #1",
                      billingPeriod: .monthly,
                      startedAt: Date(),

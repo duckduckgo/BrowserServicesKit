@@ -82,7 +82,8 @@ class SubscriptionManagerV2Tests: XCTestCase {
             startedAt: Date(),
             expiresOrRenewsAt: Date().addingTimeInterval(30 * 24 * 60 * 60), // 30 days from now
             platform: .stripe,
-            status: .autoRenewable
+            status: .autoRenewable,
+            activeOffers: []
         )
         mockSubscriptionEndpointService.getSubscriptionResult = .success(activeSubscription)
         mockOAuthClient.getTokensResponse = .success(OAuthTokensFactory.makeValidTokenContainer())
@@ -100,7 +101,8 @@ class SubscriptionManagerV2Tests: XCTestCase {
             startedAt: Date().addingTimeInterval(-30 * 24 * 60 * 60), // 30 days ago
             expiresOrRenewsAt: Date().addingTimeInterval(-1), // expired
             platform: .apple,
-            status: .expired
+            status: .expired,
+            activeOffers: []
         )
         mockSubscriptionEndpointService.getSubscriptionResult = .success(expiredSubscription)
 
