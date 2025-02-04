@@ -54,6 +54,11 @@ public final class PixelKit {
         /// This is useful in situations where pixels receive spikes in volume, as the daily pixel can be used to determine how many users are actually affected.
         case dailyAndCount
 
+        /// Sent once per day with a `_daily` suffix, in addition to every time it is called with the default name (no suffix).
+        /// This means a pixel will get sent twice the first time it is called per-day, and subsequent calls that day will only send the pixel with a standard name.
+        /// This is useful in situations where pixels receive spikes in volume, as the daily pixel can be used to determine how many users are actually affected.
+        case dailyAndStandard
+
         fileprivate var description: String {
             switch self {
             case .standard:
@@ -70,6 +75,8 @@ public final class PixelKit {
                 "Legacy Daily and Count"
             case .dailyAndCount:
                 "Daily and Count"
+            case .dailyAndStandard:
+                "Daily and Standard"
             case .uniqueByNameAndParameters:
                 "Unique By Name And Parameters"
             }
@@ -229,6 +236,8 @@ public final class PixelKit {
             handleLegacyDailyAndCount(pixelName, headers, newParams, allowedQueryReservedCharacters, onComplete)
         case .dailyAndCount:
             handleDailyAndCount(pixelName, headers, newParams, allowedQueryReservedCharacters, onComplete)
+        case .dailyAndStandard:
+            handleDailyAndStandard(pixelName, headers, newParams, allowedQueryReservedCharacters, onComplete)
         }
     }
 
@@ -354,6 +363,23 @@ public final class PixelKit {
         }
 
         fireRequestWrapper(pixelName + "_count", headers, newParams, allowedQueryReservedCharacters, true, .dailyAndCount, onComplete)
+    }
+
+    private func handleDailyAndStandard(_ pixelName: String,
+                                        _ headers: [String: String],
+                                        _ newParams: [String: String],
+                                        _ allowedQueryReservedCharacters: CharacterSet?,
+                                        _ onComplete: @escaping CompletionBlock) {
+        reportErrorIf(pixel: pixelName, endsWith: "_u")
+        reportErrorIf(pixel: pixelName, endsWith: "_daily") // Because is added automatically
+        if !pixelHasBeenFiredToday(pixelName) {
+            fireRequestWrapper(pixelName + "_daily", headers, newParams, allowedQueryReservedCharacters, true, .dailyAndCount, onComplete)
+            updatePixelLastFireDate(pixelName: pixelName)
+        } else {
+            printDebugInfo(pixelName: pixelName + "_daily", frequency: .dailyAndCount, parameters: newParams, skipped: true)
+        }
+
+        fireRequestWrapper(pixelName, headers, newParams, allowedQueryReservedCharacters, true, .dailyAndCount, onComplete)
     }
 
     /// If the pixel name ends with the forbiddenString then an error is logged or an assertion failure is fired in debug
