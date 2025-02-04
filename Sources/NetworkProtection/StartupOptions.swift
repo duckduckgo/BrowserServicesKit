@@ -18,6 +18,8 @@
 
 import Foundation
 import Common
+import Networking
+import os.log
 
 /// This class handles the proper parsing of the startup options for our tunnel.
 ///
@@ -111,6 +113,7 @@ public struct StartupOptions {
     public let excludeLocalNetworks: StoredOption<Bool>
 #if os(macOS)
     let authToken: StoredOption<String>
+    let tokenContainer: StoredOption<TokenContainer>
 #endif
     let enableTester: StoredOption<Bool>
 
@@ -134,6 +137,7 @@ public struct StartupOptions {
         let resetStoredOptionsIfNil = startupMethod == .manualByMainApp
 #if os(macOS)
         authToken = Self.readAuthToken(from: options, resetIfNil: resetStoredOptionsIfNil)
+        tokenContainer = Self.readTokenContainer(from: options, resetIfNil: resetStoredOptionsIfNil)
 #endif
         enableTester = Self.readEnableTester(from: options, resetIfNil: resetStoredOptionsIfNil)
         keyValidity = Self.readKeyValidity(from: options, resetIfNil: resetStoredOptionsIfNil)
@@ -173,6 +177,17 @@ public struct StartupOptions {
             }
 
             return authToken
+        }
+    }
+
+    private static func readTokenContainer(from options: [String: Any], resetIfNil: Bool) -> StoredOption<TokenContainer> {
+        StoredOption(resetIfNil: resetIfNil) {
+            guard let data = options[NetworkProtectionOptionKey.tokenContainer] as? NSData,
+                  let tokenContainer = try? TokenContainer(with: data) else {
+                Logger.networkProtection.error("`tokenContainer` is missing or invalid")
+                return nil
+            }
+            return tokenContainer
         }
     }
 #endif

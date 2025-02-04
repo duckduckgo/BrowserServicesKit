@@ -73,27 +73,27 @@ public protocol NetworkProtectionDeviceManagement {
 
 public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     private let networkClient: NetworkProtectionClient
-    private let tokenStore: NetworkProtectionTokenStore
+    private let tokenHandler: any SubscriptionTokenHandling
     private let keyStore: NetworkProtectionKeyStore
 
     private let errorEvents: EventMapping<NetworkProtectionError>?
 
     public init(environment: VPNSettings.SelectedEnvironment,
-                tokenStore: NetworkProtectionTokenStore,
+                tokenHandler: any SubscriptionTokenHandling,
                 keyStore: NetworkProtectionKeyStore,
                 errorEvents: EventMapping<NetworkProtectionError>?) {
         self.init(networkClient: NetworkProtectionBackendClient(environment: environment),
-                  tokenStore: tokenStore,
+                  tokenHandler: tokenHandler,
                   keyStore: keyStore,
                   errorEvents: errorEvents)
     }
 
     init(networkClient: NetworkProtectionClient,
-         tokenStore: NetworkProtectionTokenStore,
+         tokenHandler: any SubscriptionTokenHandling,
          keyStore: NetworkProtectionKeyStore,
          errorEvents: EventMapping<NetworkProtectionError>?) {
         self.networkClient = networkClient
-        self.tokenStore = tokenStore
+        self.tokenHandler = tokenHandler
         self.keyStore = keyStore
         self.errorEvents = errorEvents
     }
@@ -102,9 +102,10 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     /// This method will return the remote server list if available, or the local server list if there was a problem with the service call.
     ///
     public func refreshServerList() async throws -> [NetworkProtectionServer] {
-        guard let token = try? tokenStore.fetchToken() else {
+        guard let token = try? await VPNAuthTokenBuilder.getVPNAuthToken(from: tokenHandler) else {
             throw NetworkProtectionError.noAuthTokenFound
         }
+
         let result = await networkClient.getServers(authToken: token)
         let completeServerList: [NetworkProtectionServer]
 
@@ -112,7 +113,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
         case .success(let serverList):
             completeServerList = serverList
         case .failure(let failure):
-            handle(clientError: failure)
+            await handle(clientError: failure)
             throw failure
         }
 
@@ -188,8 +189,9 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
     private func register(keyPair: KeyPair,
                           selectionMethod: NetworkProtectionServerSelectionMethod) async throws -> (server: NetworkProtectionServer,
                                                                                                     newExpiration: Date?) {
-
-        guard let token = try? tokenStore.fetchToken() else { throw NetworkProtectionError.noAuthTokenFound }
+        guard let token = try? await VPNAuthTokenBuilder.getVPNAuthToken(from: tokenHandler) else {
+            throw NetworkProtectionError.noAuthTokenFound
+        }
 
         let serverSelection: RegisterServerSelection
         let excludedServerName: String?
@@ -231,7 +233,7 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
             selectedServer = registeredServer
             return (selectedServer, selectedServer.expirationDate)
         case .failure(let error):
-            handle(clientError: error)
+            await handle(clientError: error)
             try handleAccessRevoked(error)
             throw error
         }
@@ -312,12 +314,12 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
         return peerConfiguration
     }
 
-    private func handle(clientError: NetworkProtectionClientError) {
-#if os(macOS)
+    private func handle(clientError: NetworkProtectionClientError) async {
+ #if os(macOS)
         if case .invalidAuthToken = clientError {
-            try? tokenStore.deleteToken()
+            try? await tokenHandler.removeToken()
         }
-#endif
+ #endif
         errorEvents?.fire(clientError.networkProtectionError)
     }
 
