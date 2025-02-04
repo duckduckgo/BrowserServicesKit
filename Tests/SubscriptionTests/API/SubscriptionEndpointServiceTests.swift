@@ -86,7 +86,8 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
             "startedAt": \(Constants.subscription.startedAt.timeIntervalSince1970*1000),
             "expiresOrRenewsAt": \(Constants.subscription.expiresOrRenewsAt.timeIntervalSince1970*1000),
             "platform": "\(Constants.subscription.platform.rawValue)",
-            "status": "\(Constants.subscription.status.rawValue)"
+            "status": "\(Constants.subscription.status.rawValue)",
+            "activeOffers": [] 
         }
         """.data(using: .utf8)!
 
@@ -323,7 +324,8 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
                 "startedAt": \(Constants.subscription.startedAt.timeIntervalSince1970*1000),
                 "expiresOrRenewsAt": \(Constants.subscription.expiresOrRenewsAt.timeIntervalSince1970*1000),
                 "platform": "\(Constants.subscription.platform.rawValue)",
-                "status": "\(Constants.subscription.status.rawValue)"
+                "status": "\(Constants.subscription.status.rawValue)",
+                "activeOffers": [] 
             }
         }
         """.data(using: .utf8)!
