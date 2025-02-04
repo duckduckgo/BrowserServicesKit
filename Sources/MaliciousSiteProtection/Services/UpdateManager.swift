@@ -40,12 +40,12 @@ public struct UpdateManager: InternalUpdateManaging {
 
     private let apiClient: APIClient.Mockable
     private let dataManager: DataManaging
+    private let eventMapping: EventMapping<Event>
 
     public typealias UpdateIntervalProvider = (DataManager.StoredDataType) -> TimeInterval?
     private let updateIntervalProvider: UpdateIntervalProvider
     private let sleeper: Sleeper
     private let updateInfoStorage: MaliciousSiteProtectioUpdateManagerInfoStorage
-    private let pixelHandler: UpdateManagerPixelFiring.Type
 
     #if os(iOS)
     public var lastHashPrefixSetUpdateDate: Date {
@@ -57,17 +57,17 @@ public struct UpdateManager: InternalUpdateManaging {
     }
     #endif
 
-    public init(apiEnvironment: APIClientEnvironment, service: APIService = DefaultAPIService(urlSession: .shared), dataManager: DataManager, updateIntervalProvider: @escaping UpdateIntervalProvider) {
-        self.init(apiClient: APIClient(environment: apiEnvironment, service: service), dataManager: dataManager, updateIntervalProvider: updateIntervalProvider)
+    public init(apiEnvironment: APIClientEnvironment, service: APIService = DefaultAPIService(urlSession: .shared), dataManager: DataManager, eventMapping: EventMapping<Event>, updateIntervalProvider: @escaping UpdateIntervalProvider) {
+        self.init(apiClient: APIClient(environment: apiEnvironment, service: service), dataManager: dataManager, eventMapping: eventMapping, updateIntervalProvider: updateIntervalProvider)
     }
 
-    init(apiClient: APIClient.Mockable, dataManager: DataManaging, sleeper: Sleeper = .default, updateInfoStorage: MaliciousSiteProtectioUpdateManagerInfoStorage = UpdateManagerInfoStore(), pixelHandler: UpdateManagerPixelFiring.Type = PixelKit.self, updateIntervalProvider: @escaping UpdateIntervalProvider) {
+    init(apiClient: APIClient.Mockable, dataManager: DataManaging, eventMapping: EventMapping<Event>, sleeper: Sleeper = .default, updateInfoStorage: MaliciousSiteProtectioUpdateManagerInfoStorage = UpdateManagerInfoStore(), updateIntervalProvider: @escaping UpdateIntervalProvider) {
         self.apiClient = apiClient
         self.dataManager = dataManager
+        self.eventMapping = eventMapping
         self.updateIntervalProvider = updateIntervalProvider
         self.sleeper = sleeper
         self.updateInfoStorage = updateInfoStorage
-        self.pixelHandler = pixelHandler
     }
 
     func updateData<DataKey: MaliciousSiteDataKey>(for key: DataKey) async throws {
@@ -85,7 +85,7 @@ public struct UpdateManager: InternalUpdateManaging {
 
             // Fire a Pixel if it fails to load initial datasets
             if case APIRequestV2.Error.urlSession(URLError.notConnectedToInternet) = error, dataSet.revision == 0 {
-                pixelHandler.fireFailedToDownloadInitialDatasets(threat: key.threatKind, datasetType: key.dataType.kind)
+                eventMapping.fire(MaliciousSiteProtection.Event.failedToDownloadInitialDataSets(category: key.threatKind, type: key.dataType.kind))
             }
 
             throw error
@@ -183,16 +183,4 @@ public struct UpdateManager: InternalUpdateManaging {
     }
     #endif
 
-}
-
-// MARK: - Update Manager + PixelKit
-
-protocol UpdateManagerPixelFiring {
-    static func fireFailedToDownloadInitialDatasets(threat: ThreatKind, datasetType: DataManager.StoredDataType.Kind)
-}
-
-extension PixelKit: UpdateManagerPixelFiring {
-    static func fireFailedToDownloadInitialDatasets(threat: ThreatKind, datasetType: DataManager.StoredDataType.Kind) {
-        fire(DebugEvent(MaliciousSiteProtection.Event.failedToDownloadInitialDataSets(category: threat, type: datasetType)))
-    }
 }

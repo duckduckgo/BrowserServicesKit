@@ -34,12 +34,14 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
     var clock: TestClock<Duration>!
     var willSleep: ((TimeInterval) -> Void)?
     var updateTask: Task<Void, Error>?
+    private var mockEventMapping: MockEventMapping!
 
     override func setUp() async throws {
         apiClient = MockMaliciousSiteProtectionAPIClient()
         dataManager = MockMaliciousSiteProtectionDataManager()
         clock = TestClock()
         updateManagerInfoStore = MockMaliciousSiteProtectionUpdateManagerInfoStore()
+        mockEventMapping = MockEventMapping()
 
         let clockSleeper = Sleeper(clock: clock)
         let reportingSleeper = Sleeper {
@@ -47,7 +49,7 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
             try await clockSleeper.sleep(for: $0)
         }
 
-        updateManager = MaliciousSiteProtection.UpdateManager(apiClient: apiClient, dataManager: dataManager, sleeper: reportingSleeper, updateInfoStorage: updateManagerInfoStore, updateIntervalProvider: { self.updateIntervalProvider($0) })
+        updateManager = MaliciousSiteProtection.UpdateManager(apiClient: apiClient, dataManager: dataManager, eventMapping: mockEventMapping, sleeper: reportingSleeper, updateInfoStorage: updateManagerInfoStore, updateIntervalProvider: { self.updateIntervalProvider($0) })
     }
 
     override func tearDown() async throws {
@@ -56,8 +58,8 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
         dataManager = nil
         apiClient = nil
         updateIntervalProvider = nil
+        mockEventMapping = nil
         updateTask?.cancel()
-        MockUpdateManagerPixelHandler.tearDown()
     }
 
     func testUpdateHashPrefixes() async throws {
@@ -479,54 +481,34 @@ class MaliciousSiteProtectionUpdateManagerTests: XCTestCase {
     func testWhenUpdateDataApiFails_AndInitialLocalDatasetIsEmpty_AndErrorIsNoInternetConnection_ThenSendFailedToFetchDatasetsPixel() async {
         // GIVEN
         apiClient.loadRequestError = APIRequestV2.Error.urlSession(URLError(.notConnectedToInternet))
-        updateManager = MaliciousSiteProtection.UpdateManager(apiClient: apiClient, dataManager: dataManager, pixelHandler: MockUpdateManagerPixelHandler.self, updateIntervalProvider: { self.updateIntervalProvider($0) })
-        XCTAssertFalse(MockUpdateManagerPixelHandler.didCallFireFailedToDownloadInitialDatasets)
-        XCTAssertNil(MockUpdateManagerPixelHandler.capturedThreatKind)
-        XCTAssertNil(MockUpdateManagerPixelHandler.capturedDatasetType)
+        updateManager = MaliciousSiteProtection.UpdateManager(apiClient: apiClient, dataManager: dataManager, eventMapping: mockEventMapping, updateIntervalProvider: { self.updateIntervalProvider($0) })
+        XCTAssertTrue(mockEventMapping.events.isEmpty)
 
         // WHEN
         await XCTAssertThrowsError(try await updateManager.updateData(for: .hashPrefixes(threatKind: .phishing)))
 
         // THEN
-        XCTAssertTrue(MockUpdateManagerPixelHandler.didCallFireFailedToDownloadInitialDatasets)
-        XCTAssertEqual(MockUpdateManagerPixelHandler.capturedThreatKind, .phishing)
-        XCTAssertEqual(MockUpdateManagerPixelHandler.capturedDatasetType, .hashPrefixSet)
+        switch mockEventMapping.events.last {
+        case let .failedToDownloadInitialDataSets(category, type):
+            XCTAssertEqual(category, .phishing)
+            XCTAssertEqual(type, .hashPrefixSet)
+        default:
+            XCTFail("Unexpected event sent: \(mockEventMapping.events)")
+        }
     }
 
     func testWhenUpdateDataApiFails_AndInitialLocalDatasetIsNotEmpty_AndErrorIsNoInternetConnection_ThenDoNotSendFailedToFetchDatasetsPixel() async throws {
         // GIVEN
         try await dataManager.store(HashPrefixSet(revision: 3, items: []), for: .hashPrefixes(threatKind: .phishing))
         apiClient.loadRequestError = APIRequestV2.Error.urlSession(URLError(.notConnectedToInternet))
-        updateManager = MaliciousSiteProtection.UpdateManager(apiClient: apiClient, dataManager: dataManager, pixelHandler: MockUpdateManagerPixelHandler.self, updateIntervalProvider: { self.updateIntervalProvider($0) })
-        XCTAssertFalse(MockUpdateManagerPixelHandler.didCallFireFailedToDownloadInitialDatasets)
-        XCTAssertNil(MockUpdateManagerPixelHandler.capturedThreatKind)
-        XCTAssertNil(MockUpdateManagerPixelHandler.capturedDatasetType)
+        updateManager = MaliciousSiteProtection.UpdateManager(apiClient: apiClient, dataManager: dataManager, eventMapping: mockEventMapping, updateIntervalProvider: { self.updateIntervalProvider($0) })
+        XCTAssertTrue(mockEventMapping.events.isEmpty)
 
         // WHEN
         await XCTAssertThrowsError(try await updateManager.updateData(for: .hashPrefixes(threatKind: .phishing)))
 
         // THEN
-        XCTAssertFalse(MockUpdateManagerPixelHandler.didCallFireFailedToDownloadInitialDatasets)
-        XCTAssertNil(MockUpdateManagerPixelHandler.capturedThreatKind)
-        XCTAssertNil(MockUpdateManagerPixelHandler.capturedDatasetType)
+        XCTAssertTrue(mockEventMapping.events.isEmpty)
     }
 
-}
-
-final class MockUpdateManagerPixelHandler: UpdateManagerPixelFiring {
-    private(set) static var didCallFireFailedToDownloadInitialDatasets = false
-    private(set) static var capturedThreatKind: ThreatKind?
-    private(set) static var capturedDatasetType: MaliciousSiteProtection.DataManager.StoredDataType.Kind?
-
-    static func fireFailedToDownloadInitialDatasets(threat: MaliciousSiteProtection.ThreatKind, datasetType: MaliciousSiteProtection.DataManager.StoredDataType.Kind) {
-        didCallFireFailedToDownloadInitialDatasets = true
-        capturedThreatKind = threat
-        capturedDatasetType = datasetType
-    }
-
-    static func tearDown() {
-        didCallFireFailedToDownloadInitialDatasets = false
-        capturedThreatKind = nil
-        capturedDatasetType = nil
-    }
 }

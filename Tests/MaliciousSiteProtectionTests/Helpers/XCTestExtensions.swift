@@ -18,7 +18,7 @@
 
 import XCTest
 
-/// sserts that an async expression doesn’t throw an error.
+/// Asserts that an async expression doesn’t throw an error.
 /// - Parameters:
 ///   - expression: An async expression that can throw an error.
 ///   - message: An optional description of a failure.
