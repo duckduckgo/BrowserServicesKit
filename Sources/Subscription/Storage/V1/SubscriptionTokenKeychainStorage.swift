@@ -22,9 +22,12 @@ import Common
 public final class SubscriptionTokenKeychainStorage: SubscriptionTokenStoring {
 
     private let keychainType: KeychainType
+    let errorHandler: ((AccountKeychainAccessType, AccountKeychainAccessError) -> Void)?
 
-    public init(keychainType: KeychainType = .dataProtection(.unspecified)) {
+    public init(keychainType: KeychainType = .dataProtection(.unspecified),
+                errorHandler: ((AccountKeychainAccessType, AccountKeychainAccessError) -> Void)? = nil) {
         self.keychainType = keychainType
+        self.errorHandler = errorHandler
     }
 
     public func getAccessToken() throws -> String? {
