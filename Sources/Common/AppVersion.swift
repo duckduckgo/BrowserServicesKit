@@ -61,4 +61,8 @@ public struct AppVersion {
         return "\(os.majorVersion).\(os.minorVersion).\(os.patchVersion)"
     }
 
+    public func someNewFunction() {
+        print("This is just for a monorepo demo")
+    }
+
 }
