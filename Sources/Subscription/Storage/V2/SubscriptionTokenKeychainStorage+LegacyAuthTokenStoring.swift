@@ -50,7 +50,8 @@ extension SubscriptionTokenKeychainStorage: LegacyAuthTokenStoring {
                 } else {
                     assertionFailure("Unexpected error: \(error)")
                     Logger.subscriptionKeychain.fault("Unexpected error: \(error, privacy: .public)")
-                }            }
+                }
+            }
         }
     }
 }
