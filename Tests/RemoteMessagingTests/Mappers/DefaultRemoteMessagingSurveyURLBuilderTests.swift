@@ -89,13 +89,14 @@ class DefaultRemoteMessagingSurveyURLBuilderTests: XCTestCase {
             daysSinceLastActive: vpnDaysSinceLastActive
         )
 
-        let subscription = PrivacyProSubscription(productId: "product-id",
-                                                  name: "product-name",
-                                                  billingPeriod: .monthly,
-                                                  startedAt: Date(timeIntervalSince1970: 1000),
-                                                  expiresOrRenewsAt: Date(timeIntervalSince1970: 2000),
-                                                  platform: .apple,
-                                                  status: .autoRenewable)
+        let subscription = DDGSubscription(productId: "product-id",
+                                           name: "product-name",
+                                           billingPeriod: .monthly,
+                                           startedAt: Date(timeIntervalSince1970: 1000),
+                                           expiresOrRenewsAt: Date(timeIntervalSince1970: 2000),
+                                           platform: .apple,
+                                           status: .autoRenewable,
+                                           activeOffers: [])
 
         return DefaultRemoteMessagingSurveyURLBuilder(
             statisticsStore: mockStatisticsStore,

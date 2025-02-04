@@ -27,6 +27,7 @@ public struct PrivacyProSubscription: Codable, Equatable, CustomDebugStringConve
     public let expiresOrRenewsAt: Date
     public let platform: Platform
     public let status: Status
+    public let activeOffers: [OfferType]
 
     /// Not parsed from 
     public var features: [SubscriptionEntitlement]?
@@ -58,6 +59,22 @@ public struct PrivacyProSubscription: Codable, Equatable, CustomDebugStringConve
         case expired = "Expired"
         case unknown
 
+        public init(from decoder: Decoder) throws {
+            self = try Self(rawValue: decoder.singleValueContainer().decode(RawValue.self)) ?? .unknown
+        }
+    }
+
+    /// Represents different types of subscription offers.
+    ///
+    /// - `trial`: A trial offer.
+    /// - `unknown`: A fallback case for any unrecognized offer types, ensuring forward compatibility.
+    public enum OfferType: String, Codable {
+        case trial = "Trial"
+        case unknown
+
+        /// Decodes an `OfferType` from a JSON value.
+        ///
+        /// If the decoded value does not match any known case, it defaults to `.unknown`.
         public init(from decoder: Decoder) throws {
             self = try Self(rawValue: decoder.singleValueContainer().decode(RawValue.self)) ?? .unknown
         }
