@@ -36,4 +36,5 @@ public extension Logger {
     static var networkProtectionStatusReporter = { Logger(subsystem: Logger.subsystem, category: "Status Reporter") }()
     static var networkProtectionSleep = { Logger(subsystem: Logger.subsystem, category: "Sleep and Wake") }()
     static var networkProtectionEntitlement = { Logger(subsystem: Logger.subsystem, category: "Entitlement Monitor") }()
+    static var networkProtectionWireGuard = { Logger(subsystem: Logger.subsystem, category: "WireGuardAdapter") }()
 }
