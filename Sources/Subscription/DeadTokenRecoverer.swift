@@ -26,8 +26,7 @@ public struct DeadTokenRecoverer {
     private static var recoveryAttempted: Int = 0
 
     public static func recoverDeadToken(endpointService: any SubscriptionEndpointServiceV2,
-                                 restoreFlow: any AppStoreRestoreFlowV2) async throws {
-
+                                        restoreFlow: any AppStoreRestoreFlowV2) async throws {
         if recoveryAttempted != 0 {
             recoveryAttempted -= 1
             throw SubscriptionManagerError.tokenUnRefreshable

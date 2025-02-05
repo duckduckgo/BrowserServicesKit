@@ -29,7 +29,7 @@ class SubscriptionManagerV2Tests: XCTestCase {
     var mockSubscriptionEndpointService: SubscriptionEndpointServiceMockV2!
     var mockStorePurchaseManager: StorePurchaseManagerMockV2!
     var mockAppStoreRestoreFlowV2: AppStoreRestoreFlowMockV2!
-    var overrideTokenResponse: Result<Networking.TokenContainer, Error>? = nil
+    var overrideTokenResponse: Result<Networking.TokenContainer, Error>?
 
     override func setUp() {
         super.setUp()
@@ -72,15 +72,15 @@ class SubscriptionManagerV2Tests: XCTestCase {
         XCTAssertEqual(result, expectedTokenContainer)
     }
 
-//    func testGetTokenContainer_ExpiresInLessThen10Minutes() async throws {
-//        mockOAuthClient.getTokensResponse = .success(OAuthTokensFactory.makeTokenContainer(thatExpiresIn: 5))
-//        mockOAuthClient.refreshTokensResponse = .success(OAuthTokensFactory.makeValidTokenContainer())
-//
-//        let result = try await subscriptionManager.getTokenContainer(policy: .localValid)
-//        XCTAssertFalse(result.decodedAccessToken.isExpired())
-//        let expiryDate = result.decodedAccessToken.exp.value
-//        XCTAssertTrue(expiryDate.minutesSinceNow() > 20)
-//    }
+    func testGetTokenContainer_ExpiresInLessThen10Minutes() async throws {
+        mockOAuthClient.getTokensResponse = .success(OAuthTokensFactory.makeTokenContainer(thatExpiresIn: 5))
+        mockOAuthClient.refreshTokensResponse = .success(OAuthTokensFactory.makeValidTokenContainer())
+
+        let result = try await subscriptionManager.getTokenContainer(policy: .localValid)
+        XCTAssertFalse(result.decodedAccessToken.isExpired())
+        let expiryDate = result.decodedAccessToken.exp.value
+        XCTAssertTrue(abs(expiryDate.minutesSinceNow()) > 20)
+    }
 
     // MARK: - Subscription Status Tests
 
