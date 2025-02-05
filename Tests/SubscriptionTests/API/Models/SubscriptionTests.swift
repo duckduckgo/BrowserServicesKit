@@ -30,7 +30,7 @@ final class SubscriptionTests: XCTestCase {
                                 expiresOrRenewsAt: Date(timeIntervalSince1970: 2000),
                                 platform: .apple,
                                 status: .autoRenewable,
-                                activeOffers: [.trial])
+                                       activeOffers: [PrivacyProSubscription.Offer(type: .trial)])
         let b = PrivacyProSubscription(productId: "1",
                                 name: "a",
                                 billingPeriod: .monthly,
@@ -38,7 +38,7 @@ final class SubscriptionTests: XCTestCase {
                                 expiresOrRenewsAt: Date(timeIntervalSince1970: 2000),
                                 platform: .apple,
                                 status: .autoRenewable,
-                                activeOffers: [.trial])
+                                activeOffers: [PrivacyProSubscription.Offer(type: .trial)])
         let c = PrivacyProSubscription(productId: "2",
                                 name: "a",
                                 billingPeriod: .monthly,
@@ -161,7 +161,7 @@ final class SubscriptionTests: XCTestCase {
             \"expiresOrRenewsAt\": 1723375183000,
             \"platform\": \"stripe\",
             \"status\": \"Auto-Renewable\",
-            \"activeOffers\": [\"Trial\"]
+            \"activeOffers\": [{ \"type\": \"Trial\"}]
         }
         """
 
@@ -187,7 +187,7 @@ final class SubscriptionTests: XCTestCase {
             \"expiresOrRenewsAt\": 1723375183000,
             \"platform\": \"stripe\",
             \"status\": \"Auto-Renewable\",
-            \"activeOffers\": [\"SpecialOffer\"]
+            \"activeOffers\": [{ \"type\": \"SpecialOffer\"}]
         }
         """
 
@@ -196,19 +196,19 @@ final class SubscriptionTests: XCTestCase {
         decoder.dateDecodingStrategy = .millisecondsSince1970
 
         let subscriptionWithOffers = try decoder.decode(PrivacyProSubscription.self, from: Data(rawSubscriptionWithOffers.utf8))
-        XCTAssertEqual(subscriptionWithOffers.activeOffers, [.trial])
+        XCTAssertEqual(subscriptionWithOffers.activeOffers, [PrivacyProSubscription.Offer(type: .trial)])
 
         let subscriptionWithoutOffers = try decoder.decode(PrivacyProSubscription.self, from: Data(rawSubscriptionWithoutOffers.utf8))
         XCTAssertEqual(subscriptionWithoutOffers.activeOffers, [])
 
         let subscriptionWithUnknownOffers = try decoder.decode(PrivacyProSubscription.self, from: Data(rawSubscriptionWithUnknownOffers.utf8))
-        XCTAssertEqual(subscriptionWithUnknownOffers.activeOffers, [.unknown])
+        XCTAssertEqual(subscriptionWithUnknownOffers.activeOffers, [PrivacyProSubscription.Offer(type: .unknown)])
     }
 }
 
 extension PrivacyProSubscription {
 
-    static func make(withStatus status: PrivacyProSubscription.Status, activeOffers: [PrivacyProSubscription.OfferType] = []) -> PrivacyProSubscription {
+    static func make(withStatus status: PrivacyProSubscription.Status, activeOffers: [PrivacyProSubscription.Offer] = []) -> PrivacyProSubscription {
         PrivacyProSubscription(productId: UUID().uuidString,
                      name: "Subscription test #1",
                      billingPeriod: .monthly,

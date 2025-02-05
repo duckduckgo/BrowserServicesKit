@@ -27,7 +27,7 @@ public struct PrivacyProSubscription: Codable, Equatable, CustomDebugStringConve
     public let expiresOrRenewsAt: Date
     public let platform: Platform
     public let status: Status
-    public let activeOffers: [OfferType]
+    public let activeOffers: [Offer]
 
     /// Not parsed from 
     public var features: [SubscriptionEntitlement]?
@@ -62,6 +62,15 @@ public struct PrivacyProSubscription: Codable, Equatable, CustomDebugStringConve
         public init(from decoder: Decoder) throws {
             self = try Self(rawValue: decoder.singleValueContainer().decode(RawValue.self)) ?? .unknown
         }
+    }
+
+    /// Represents a subscription offer.
+    ///
+    /// The `Offer` struct encapsulates information about a specific subscription offer,
+    /// including its type.
+    public struct Offer: Codable, Equatable {
+        /// The type of the offer.
+        public let type: OfferType
     }
 
     /// Represents different types of subscription offers.
