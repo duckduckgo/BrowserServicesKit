@@ -23,7 +23,11 @@ import os.log
 
 public typealias BrowsingHistory = [HistoryEntry]
 
-public protocol HistoryCoordinating: AnyObject {
+public protocol HistoryCoordinatingDebuggingSupport {
+    @discardableResult func addVisit(of url: URL, at date: Date) -> Visit?
+}
+
+public protocol HistoryCoordinating: AnyObject, HistoryCoordinatingDebuggingSupport {
 
     func loadHistory(onCleanFinished: @escaping () -> Void)
 
@@ -45,6 +49,12 @@ public protocol HistoryCoordinating: AnyObject {
     func burnVisits(_ visits: [Visit], completion: @escaping () -> Void)
 
     func removeUrlEntry(_ url: URL, completion: ((Error?) -> Void)?)
+}
+
+extension HistoryCoordinating {
+    public func addVisit(of url: URL) -> Visit? {
+        addVisit(of: url, at: Date())
+    }
 }
 
 /// Coordinates access to History. Uses its own queue with high qos for all operations.
@@ -86,14 +96,14 @@ final public class HistoryCoordinator: HistoryCoordinating {
 
     private var cancellables = Set<AnyCancellable>()
 
-    @discardableResult public func addVisit(of url: URL) -> Visit? {
+    @discardableResult public func addVisit(of url: URL, at date: Date) -> Visit? {
         guard let historyDictionary = historyDictionary else {
             Logger.history.debug("Visit of \(url.absoluteString) ignored")
             return nil
         }
 
         let entry = historyDictionary[url] ?? HistoryEntry(url: url)
-        let visit = entry.addVisit()
+        let visit = entry.addVisit(at: date)
         entry.failedToLoad = false
 
         self.historyDictionary?[url] = entry
