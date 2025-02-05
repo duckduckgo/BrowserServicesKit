@@ -24,7 +24,7 @@ import SubscriptionTestingUtilities
 import JWTKit
 
 final class PrivacyProSubscriptionV2IntegrationTests: XCTestCase {
-
+    
     var apiService: MockAPIService!
     var tokenStorage: MockTokenStorage!
     var legacyAccountStorage: MockLegacyTokenStorage!
@@ -34,9 +34,9 @@ final class PrivacyProSubscriptionV2IntegrationTests: XCTestCase {
     var stripePurchaseFlow: DefaultStripePurchaseFlowV2!
     var storePurchaseManager: StorePurchaseManagerMockV2!
     var subscriptionFeatureFlagger: FeatureFlaggerMapping<SubscriptionFeatureFlags>!
-
+    
     let subscriptionSelectionID = "ios.subscription.1month"
-
+    
     override func setUpWithError() throws {
         apiService = MockAPIService()
         apiService.authorizationRefresherCallback = { _ in
@@ -47,32 +47,33 @@ final class PrivacyProSubscriptionV2IntegrationTests: XCTestCase {
         // keychain storage
         tokenStorage = MockTokenStorage()
         legacyAccountStorage = MockLegacyTokenStorage()
-
+        
         let authClient = DefaultOAuthClient(tokensStorage: tokenStorage,
                                             legacyTokenStorage: legacyAccountStorage,
                                             authService: authService)
         storePurchaseManager = StorePurchaseManagerMockV2()
         let subscriptionEndpointService = DefaultSubscriptionEndpointServiceV2(apiService: apiService,
-                                                                             baseURL: subscriptionEnvironment.serviceEnvironment.url)
+                                                                               baseURL: subscriptionEnvironment.serviceEnvironment.url)
         let pixelHandler: SubscriptionManagerV2.PixelHandler = { type in
             print("Pixel fired: \(type)")
         }
         subscriptionFeatureFlagger = FeatureFlaggerMapping<SubscriptionFeatureFlags>(mapping: { $0.defaultState })
-
+        
         subscriptionManager = DefaultSubscriptionManagerV2(storePurchaseManager: storePurchaseManager,
-                                                         oAuthClient: authClient,
-                                                         subscriptionEndpointService: subscriptionEndpointService,
-                                                         subscriptionEnvironment: subscriptionEnvironment,
-                                                         pixelHandler: pixelHandler)
-
+                                                           oAuthClient: authClient,
+                                                           subscriptionEndpointService: subscriptionEndpointService,
+                                                           subscriptionEnvironment: subscriptionEnvironment,
+                                                           pixelHandler: pixelHandler,
+                                                           autoRecoveryHandler: {})
+        
         appStoreRestoreFlow = DefaultAppStoreRestoreFlowV2(subscriptionManager: subscriptionManager,
-                                                         storePurchaseManager: storePurchaseManager)
+                                                           storePurchaseManager: storePurchaseManager)
         appStorePurchaseFlow = DefaultAppStorePurchaseFlowV2(subscriptionManager: subscriptionManager,
-                                                           storePurchaseManager: storePurchaseManager,
-                                                           appStoreRestoreFlow: appStoreRestoreFlow)
+                                                             storePurchaseManager: storePurchaseManager,
+                                                             appStoreRestoreFlow: appStoreRestoreFlow)
         stripePurchaseFlow = DefaultStripePurchaseFlowV2(subscriptionManager: subscriptionManager)
     }
-
+    
     override func tearDownWithError() throws {
         apiService = nil
         tokenStorage = nil
@@ -82,11 +83,11 @@ final class PrivacyProSubscriptionV2IntegrationTests: XCTestCase {
         appStoreRestoreFlow = nil
         stripePurchaseFlow = nil
     }
-
+    
     // MARK: - Apple store
-
+    
     func testAppStorePurchaseSuccess() async throws {
-
+        
         // configure mock API responses
         APIMockResponseFactory.mockAuthoriseResponse(destinationMockAPIService: apiService, success: true)
         APIMockResponseFactory.mockCreateAccountResponse(destinationMockAPIService: apiService, success: true)
@@ -96,14 +97,14 @@ final class PrivacyProSubscriptionV2IntegrationTests: XCTestCase {
         SubscriptionAPIMockResponseFactory.mockConfirmPurchase(destinationMockAPIService: apiService, success: true)
         SubscriptionAPIMockResponseFactory.mockGetProducts(destinationMockAPIService: apiService, success: true)
         SubscriptionAPIMockResponseFactory.mockGetFeatures(destinationMockAPIService: apiService, success: true, subscriptionID: "ios.subscription.1month")
-
+        
         (subscriptionManager.oAuthClient as! DefaultOAuthClient).testingDecodedTokenContainer = OAuthTokensFactory.makeValidTokenContainerWithEntitlements()
-
+        
         // configure mock store purchase manager responses
         storePurchaseManager.purchaseSubscriptionResult = .success("purchaseTransactionJWS")
-
+        
         // Buy subscription
-
+        
         var purchaseTransactionJWS: String?
         switch await appStorePurchaseFlow.purchaseSubscription(with: subscriptionSelectionID) {
         case .success(let transactionJWS):
@@ -112,7 +113,7 @@ final class PrivacyProSubscriptionV2IntegrationTests: XCTestCase {
             XCTFail("Purchase failed with error: \(error)")
         }
         XCTAssertNotNil(purchaseTransactionJWS)
-
+        
         switch await appStorePurchaseFlow.completeSubscriptionPurchase(with: purchaseTransactionJWS!, additionalParams: nil) {
         case .success:
             break
@@ -120,10 +121,10 @@ final class PrivacyProSubscriptionV2IntegrationTests: XCTestCase {
             XCTFail("Purchase failed with error: \(error)")
         }
     }
-
+    
     func testAppStorePurchaseFailure_authorise() async throws {
         APIMockResponseFactory.mockAuthoriseResponse(destinationMockAPIService: apiService, success: false)
-
+        
         switch await appStorePurchaseFlow.purchaseSubscription(with: subscriptionSelectionID) {
         case .success:
             XCTFail("Unexpected success")
@@ -136,12 +137,12 @@ final class PrivacyProSubscriptionV2IntegrationTests: XCTestCase {
             }
         }
     }
-
+    
     func testAppStorePurchaseFailure_create_account() async throws {
         // configure mock API responses
         APIMockResponseFactory.mockAuthoriseResponse(destinationMockAPIService: apiService, success: true)
         APIMockResponseFactory.mockCreateAccountResponse(destinationMockAPIService: apiService, success: false)
-
+        
         switch await appStorePurchaseFlow.purchaseSubscription(with: subscriptionSelectionID) {
         case .success:
             XCTFail("Unexpected success")
@@ -154,13 +155,13 @@ final class PrivacyProSubscriptionV2IntegrationTests: XCTestCase {
             }
         }
     }
-
+    
     func testAppStorePurchaseFailure_get_token() async throws {
         // configure mock API responses
         APIMockResponseFactory.mockAuthoriseResponse(destinationMockAPIService: apiService, success: true)
         APIMockResponseFactory.mockCreateAccountResponse(destinationMockAPIService: apiService, success: true)
         APIMockResponseFactory.mockGetAccessTokenResponse(destinationMockAPIService: apiService, success: false)
-
+        
         switch await appStorePurchaseFlow.purchaseSubscription(with: subscriptionSelectionID) {
         case .success:
             XCTFail("Unexpected success")
@@ -173,14 +174,14 @@ final class PrivacyProSubscriptionV2IntegrationTests: XCTestCase {
             }
         }
     }
-
+    
     func testAppStorePurchaseFailure_get_JWKS() async throws {
         // configure mock API responses
         APIMockResponseFactory.mockAuthoriseResponse(destinationMockAPIService: apiService, success: true)
         APIMockResponseFactory.mockCreateAccountResponse(destinationMockAPIService: apiService, success: true)
         APIMockResponseFactory.mockGetAccessTokenResponse(destinationMockAPIService: apiService, success: true)
         APIMockResponseFactory.mockGetJWKS(destinationMockAPIService: apiService, success: false)
-
+        
         switch await appStorePurchaseFlow.purchaseSubscription(with: subscriptionSelectionID) {
         case .success:
             XCTFail("Unexpected success")
@@ -193,19 +194,19 @@ final class PrivacyProSubscriptionV2IntegrationTests: XCTestCase {
             }
         }
     }
-
+    
     func testAppStorePurchaseFailure_confirm_purchase() async throws {
         // configure mock API responses
         APIMockResponseFactory.mockAuthoriseResponse(destinationMockAPIService: apiService, success: true)
         APIMockResponseFactory.mockCreateAccountResponse(destinationMockAPIService: apiService, success: true)
         APIMockResponseFactory.mockGetAccessTokenResponse(destinationMockAPIService: apiService, success: true)
         APIMockResponseFactory.mockGetJWKS(destinationMockAPIService: apiService, success: true)
-
+        
         (subscriptionManager.oAuthClient as! DefaultOAuthClient).testingDecodedTokenContainer = OAuthTokensFactory.makeValidTokenContainerWithEntitlements()
         storePurchaseManager.purchaseSubscriptionResult = .success("purchaseTransactionJWS")
-
+        
         SubscriptionAPIMockResponseFactory.mockConfirmPurchase(destinationMockAPIService: apiService, success: false)
-
+        
         var purchaseTransactionJWS: String?
         switch await appStorePurchaseFlow.purchaseSubscription(with: subscriptionSelectionID) {
         case .success(let transactionJWS):
@@ -214,7 +215,7 @@ final class PrivacyProSubscriptionV2IntegrationTests: XCTestCase {
             XCTFail("Purchase failed with error: \(error)")
         }
         XCTAssertNotNil(purchaseTransactionJWS)
-
+        
         switch await appStorePurchaseFlow.completeSubscriptionPurchase(with: purchaseTransactionJWS!, additionalParams: nil) {
         case .success:
             XCTFail("Unexpected success")
@@ -222,21 +223,21 @@ final class PrivacyProSubscriptionV2IntegrationTests: XCTestCase {
             XCTAssertEqual(error, .purchaseFailed(SubscriptionEndpointServiceError.invalidResponseCode(.badRequest)))
         }
     }
-
+    
     func testAppStorePurchaseFailure_get_features() async throws {
         APIMockResponseFactory.mockAuthoriseResponse(destinationMockAPIService: apiService, success: true)
         APIMockResponseFactory.mockCreateAccountResponse(destinationMockAPIService: apiService, success: true)
         APIMockResponseFactory.mockGetAccessTokenResponse(destinationMockAPIService: apiService, success: true)
         APIMockResponseFactory.mockGetJWKS(destinationMockAPIService: apiService, success: true)
-
+        
         (subscriptionManager.oAuthClient as! DefaultOAuthClient).testingDecodedTokenContainer = OAuthTokensFactory.makeValidTokenContainerWithEntitlements()
         storePurchaseManager.purchaseSubscriptionResult = .success("purchaseTransactionJWS")
-
+        
         SubscriptionAPIMockResponseFactory.mockConfirmPurchase(destinationMockAPIService: apiService, success: true)
         SubscriptionAPIMockResponseFactory.mockGetFeatures(destinationMockAPIService: apiService, success: false, subscriptionID: "ios.subscription.1month")
-
+        
         (subscriptionManager.oAuthClient as! DefaultOAuthClient).testingDecodedTokenContainer = OAuthTokensFactory.makeValidTokenContainerWithEntitlements()
-
+        
         var purchaseTransactionJWS: String?
         switch await appStorePurchaseFlow.purchaseSubscription(with: subscriptionSelectionID) {
         case .success(let transactionJWS):
@@ -245,7 +246,7 @@ final class PrivacyProSubscriptionV2IntegrationTests: XCTestCase {
             XCTFail("Purchase failed with error: \(error)")
         }
         XCTAssertNotNil(purchaseTransactionJWS)
-
+        
         switch await appStorePurchaseFlow.completeSubscriptionPurchase(with: purchaseTransactionJWS!, additionalParams: nil) {
         case .success:
             XCTFail("Unexpected success")
@@ -253,17 +254,17 @@ final class PrivacyProSubscriptionV2IntegrationTests: XCTestCase {
             XCTAssertEqual(error, .purchaseFailed(SubscriptionEndpointServiceError.invalidResponseCode(.badRequest)))
         }
     }
-
+    
     // MARK: - Stripe
-
+    
     func testStripePurchaseSuccess() async throws {
         // configure mock API responses
         APIMockResponseFactory.mockAuthoriseResponse(destinationMockAPIService: apiService, success: true)
         APIMockResponseFactory.mockCreateAccountResponse(destinationMockAPIService: apiService, success: true)
         APIMockResponseFactory.mockGetAccessTokenResponse(destinationMockAPIService: apiService, success: true)
-
+        
         (subscriptionManager.oAuthClient as! DefaultOAuthClient).testingDecodedTokenContainer = OAuthTokensFactory.makeValidTokenContainerWithEntitlements()
-
+        
         // Buy subscription
         let email = "test@duck.com"
         let result = await stripePurchaseFlow.prepareSubscriptionPurchase(emailAccessToken: email)
@@ -275,12 +276,12 @@ final class PrivacyProSubscriptionV2IntegrationTests: XCTestCase {
             XCTFail("Purchase failed with error: \(error)")
         }
     }
-
+    
     func testStripePurchaseFailure_authorise() async throws {
         // configure mock API responses
         APIMockResponseFactory.mockAuthoriseResponse(destinationMockAPIService: apiService, success: false)
         (subscriptionManager.oAuthClient as! DefaultOAuthClient).testingDecodedTokenContainer = OAuthTokensFactory.makeValidTokenContainerWithEntitlements()
-
+        
         // Buy subscription
         let email = "test@duck.com"
         let result = await stripePurchaseFlow.prepareSubscriptionPurchase(emailAccessToken: email)
@@ -291,14 +292,14 @@ final class PrivacyProSubscriptionV2IntegrationTests: XCTestCase {
             XCTAssertEqual(error, StripePurchaseFlowError.accountCreationFailed)
         }
     }
-
+    
     func testStripePurchaseFailure_create_account() async throws {
         // configure mock API responses
         APIMockResponseFactory.mockAuthoriseResponse(destinationMockAPIService: apiService, success: true)
         APIMockResponseFactory.mockCreateAccountResponse(destinationMockAPIService: apiService, success: false)
-
+        
         (subscriptionManager.oAuthClient as! DefaultOAuthClient).testingDecodedTokenContainer = OAuthTokensFactory.makeValidTokenContainerWithEntitlements()
-
+        
         // Buy subscription
         let email = "test@duck.com"
         let result = await stripePurchaseFlow.prepareSubscriptionPurchase(emailAccessToken: email)
@@ -309,15 +310,15 @@ final class PrivacyProSubscriptionV2IntegrationTests: XCTestCase {
             XCTAssertEqual(error, StripePurchaseFlowError.accountCreationFailed)
         }
     }
-
+    
     func testStripePurchaseFailure_get_token() async throws {
         // configure mock API responses
         APIMockResponseFactory.mockAuthoriseResponse(destinationMockAPIService: apiService, success: true)
         APIMockResponseFactory.mockCreateAccountResponse(destinationMockAPIService: apiService, success: true)
         APIMockResponseFactory.mockGetAccessTokenResponse(destinationMockAPIService: apiService, success: false)
-
+        
         (subscriptionManager.oAuthClient as! DefaultOAuthClient).testingDecodedTokenContainer = OAuthTokensFactory.makeValidTokenContainerWithEntitlements()
-
+        
         // Buy subscription
         let email = "test@duck.com"
         let result = await stripePurchaseFlow.prepareSubscriptionPurchase(emailAccessToken: email)

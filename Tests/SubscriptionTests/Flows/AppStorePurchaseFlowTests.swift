@@ -255,7 +255,7 @@ final class AppStorePurchaseFlowTests: XCTestCase {
             ConfirmPurchaseResponse(
                 email: nil,
                 entitlements: [],
-                subscription: SubscriptionMockFactory.subscription
+                subscription: SubscriptionMockFactory.appleSubscription
             )
         )
 
@@ -268,7 +268,7 @@ final class AppStorePurchaseFlowTests: XCTestCase {
         }
 
         subscriptionService.onUpdateCache = { subscription in
-            XCTAssertEqual(subscription, SubscriptionMockFactory.subscription)
+            XCTAssertEqual(subscription, SubscriptionMockFactory.appleSubscription)
         }
 
         // When
@@ -293,7 +293,7 @@ final class AppStorePurchaseFlowTests: XCTestCase {
             ConfirmPurchaseResponse(
                 email: nil,
                 entitlements: [],
-                subscription: SubscriptionMockFactory.subscription
+                subscription: SubscriptionMockFactory.appleSubscription
             )
         )
 
@@ -304,7 +304,7 @@ final class AppStorePurchaseFlowTests: XCTestCase {
         }
 
         subscriptionService.onUpdateCache = { subscription in
-            XCTAssertEqual(subscription, SubscriptionMockFactory.subscription)
+            XCTAssertEqual(subscription, SubscriptionMockFactory.appleSubscription)
         }
 
         // When

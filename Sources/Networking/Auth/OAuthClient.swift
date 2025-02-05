@@ -26,6 +26,7 @@ public enum OAuthClientError: Error, LocalizedError, Equatable {
     case unauthenticated
     /// When both access token and refresh token are expired
     case refreshTokenExpired
+    case invalidTokenRequest
 
     public var errorDescription: String? {
         switch self {
@@ -39,6 +40,8 @@ public enum OAuthClientError: Error, LocalizedError, Equatable {
             return "The account is not authenticated, please re-authenticate"
         case .refreshTokenExpired:
             return "The refresh token is expired, the token is unrecoverable please re-authenticate"
+        case .invalidTokenRequest:
+            return "Invalid token request"
         }
     }
 }
@@ -204,7 +207,15 @@ final public class DefaultOAuthClient: OAuthClient {
     public func getTokens(policy: AuthTokensCachePolicy) async throws -> TokenContainer {
         let localTokenContainer = tokenStorage.tokenContainer
 
+        if policy != .local,
+           let localTokenContainer,
+            localTokenContainer.decodedRefreshToken.isExpired() {
+            // The refresh token is expired, the token is un-refreshable
+            throw OAuthClientError.refreshTokenExpired
+        }
+
         switch policy {
+
         case .local:
             guard let localTokenContainer else {
                 Logger.OAuthClient.debug("Tokens not found")
@@ -212,18 +223,29 @@ final public class DefaultOAuthClient: OAuthClient {
             }
             Logger.OAuthClient.debug("Local tokens found, expiry: \(localTokenContainer.decodedAccessToken.exp.value, privacy: .public)")
             return localTokenContainer
+
         case .localValid:
             guard let localTokenContainer else {
                 Logger.OAuthClient.debug("Tokens not found")
                 throw OAuthClientError.missingTokens
             }
-            Logger.OAuthClient.debug("Local tokens found, expiry: \(localTokenContainer.decodedAccessToken.exp.value, privacy: .public)")
-            if localTokenContainer.decodedAccessToken.isExpired() {
+            let tokenExpiryDate = localTokenContainer.decodedAccessToken.exp.value
+            Logger.OAuthClient.debug("Local tokens found, expiry: \(tokenExpiryDate, privacy: .public)")
+
+#if DEBUG
+            let expiresSoon = false
+#else
+            // Expires in less than 10 minutes, check only in release, the staging token expires every 4 minutes
+            let expiresSoon = tokenExpiryDate.minutesSinceNow() < 10
+#endif
+
+            if localTokenContainer.decodedAccessToken.isExpired() || expiresSoon {
                 Logger.OAuthClient.debug("Local access token is expired, refreshing it")
                 return try await getTokens(policy: .localForceRefresh)
             } else {
                 return localTokenContainer
             }
+
         case .localForceRefresh:
             guard let refreshToken = localTokenContainer?.refreshToken else {
                 Logger.OAuthClient.debug("Refresh token not found")
@@ -237,11 +259,12 @@ final public class DefaultOAuthClient: OAuthClient {
                 return refreshedTokens
             } catch OAuthServiceError.authAPIError(let code) where code == OAuthRequest.BodyErrorCode.invalidTokenRequest {
                 Logger.OAuthClient.error("Failed to refresh token: invalidTokenRequest")
-                throw OAuthClientError.refreshTokenExpired
+                throw OAuthClientError.invalidTokenRequest
             } catch OAuthServiceError.authAPIError(let code) {
                 Logger.OAuthClient.error("Failed to refresh token: \(code.rawValue, privacy: .public), \(code.description, privacy: .public)")
                 throw OAuthServiceError.authAPIError(code: code)
             }
+
         case .createIfNeeded:
             do {
                 return try await getTokens(policy: .localValid)

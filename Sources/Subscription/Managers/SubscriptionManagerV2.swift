@@ -21,20 +21,35 @@ import Common
 import os.log
 import Networking
 
-public enum SubscriptionManagerError: Error, Equatable {
+public enum SubscriptionManagerError: Error, Equatable, LocalizedError {
     case tokenUnavailable(error: Error?)
     case confirmationHasInvalidSubscription
     case noProductsFound
+    case tokenUnRefreshable
 
     public static func == (lhs: SubscriptionManagerError, rhs: SubscriptionManagerError) -> Bool {
         switch (lhs, rhs) {
         case (.tokenUnavailable(let lhsError), .tokenUnavailable(let rhsError)):
             return lhsError?.localizedDescription == rhsError?.localizedDescription
         case (.confirmationHasInvalidSubscription, .confirmationHasInvalidSubscription),
-            (.noProductsFound, .noProductsFound):
+            (.noProductsFound, .noProductsFound),
+            (.tokenUnRefreshable, .tokenUnRefreshable):
             return true
         default:
             return false
+        }
+    }
+
+    public var errorDescription: String? {
+        switch self {
+        case .tokenUnavailable(error: let error):
+            "Token unavailable: \(String(describing: error))"
+        case .confirmationHasInvalidSubscription:
+            "Confirmation has an invalid subscription"
+        case .noProductsFound:
+            "No products found"
+        case .tokenUnRefreshable:
+            "Token is not refreshable, the account will be log out"
         }
     }
 }
@@ -88,6 +103,9 @@ public protocol SubscriptionManagerV2: SubscriptionTokenProvider {
     /// Pixels handler
     typealias PixelHandler = (SubscriptionPixelType) -> Void
 
+    /// Closure called when an expired refresh token is detected and the Subscription login is invalid. An attempt to automatically recover it can be performed or the app can ask the user to do it manually
+    typealias AutoRecoveryHandler = () async throws -> Void
+
     // MARK: - Features
 
     /// Get the current subscription features
@@ -103,7 +121,9 @@ public protocol SubscriptionManagerV2: SubscriptionTokenProvider {
     /// Get a token container accordingly to the policy
     /// - Parameter policy: The policy that will be used to get the token, it effects the tokens source and validity
     /// - Returns: The TokenContainer
-    /// - Throws: OAuthClientError.deadToken if the token is unrecoverable. SubscriptionEndpointServiceError.noData if the token is not available.
+    /// - Throws: A `SubscriptionManagerError`.
+    ///     `tokenUnRefreshable` if the token is cannot be refreshed, typically due to an expired refresh token.
+    ///     `tokenUnavailable` if the token is not available for the reason specified by the underlying error.
     @discardableResult
     func getTokenContainer(policy: AuthTokensCachePolicy) async throws -> TokenContainer
 
@@ -126,18 +146,21 @@ public final class DefaultSubscriptionManagerV2: SubscriptionManagerV2 {
     private let _storePurchaseManager: StorePurchaseManagerV2?
     private let subscriptionEndpointService: SubscriptionEndpointServiceV2
     private let pixelHandler: PixelHandler
+    private let autoRecoveryHandler: AutoRecoveryHandler
     public let currentEnvironment: SubscriptionEnvironment
 
     public init(storePurchaseManager: StorePurchaseManagerV2? = nil,
                 oAuthClient: any OAuthClient,
                 subscriptionEndpointService: SubscriptionEndpointServiceV2,
                 subscriptionEnvironment: SubscriptionEnvironment,
-                pixelHandler: @escaping PixelHandler) {
+                pixelHandler: @escaping PixelHandler,
+                autoRecoveryHandler: @escaping AutoRecoveryHandler) {
         self._storePurchaseManager = storePurchaseManager
         self.oAuthClient = oAuthClient
         self.subscriptionEndpointService = subscriptionEndpointService
         self.currentEnvironment = subscriptionEnvironment
         self.pixelHandler = pixelHandler
+        self.autoRecoveryHandler = autoRecoveryHandler
 
 #if !NETP_SYSTEM_EXTENSION
         switch currentEnvironment.purchasePlatform {
@@ -291,10 +314,9 @@ public final class DefaultSubscriptionManagerV2: SubscriptionManagerV2 {
     // MARK: -
 
     @discardableResult public func getTokenContainer(policy: AuthTokensCachePolicy) async throws -> TokenContainer {
+        Logger.subscription.debug("Get tokens \(policy.description, privacy: .public)")
         do {
-            Logger.subscription.debug("Get tokens \(policy.description, privacy: .public)")
-
-            let referenceCachedTokenContainer = try? await oAuthClient.getTokens(policy: .local) // the currently stored one
+            let referenceCachedTokenContainer = try? await oAuthClient.getTokens(policy: .local)
             let referenceCachedEntitlements = referenceCachedTokenContainer?.decodedAccessToken.subscriptionEntitlements
             let resultTokenContainer = try await oAuthClient.getTokens(policy: policy)
             let newEntitlements = resultTokenContainer.decodedAccessToken.subscriptionEntitlements
@@ -305,33 +327,27 @@ public final class DefaultSubscriptionManagerV2: SubscriptionManagerV2 {
                 NotificationCenter.default.post(name: .entitlementsDidChange, object: self, userInfo: [UserDefaultsCacheKey.subscriptionEntitlements: newEntitlements])
             }
 
-            if referenceCachedTokenContainer == nil { // new login
+            // Send "accountDidSignIn" notification when login changes
+            if referenceCachedTokenContainer == nil {
                 Logger.subscription.debug("New login detected")
                 NotificationCenter.default.post(name: .accountDidSignIn, object: self, userInfo: nil)
             }
             return resultTokenContainer
         } catch OAuthClientError.refreshTokenExpired {
-            return try await throwAppropriateDeadTokenError()
+            do { return try await attemptTokenRecovery() } catch { throw error }
         } catch {
             throw SubscriptionManagerError.tokenUnavailable(error: error)
         }
     }
 
-    /// If the client succeeds in making a refresh request but does not get the response, then the second refresh request will fail with `invalidTokenRequest` and the stored token will become unusable and un-refreshable.
-    private func throwAppropriateDeadTokenError() async throws -> TokenContainer {
-        Logger.subscription.fault("Dead token detected")
+    func attemptTokenRecovery() async throws -> TokenContainer {
+        Logger.subscription.log("The refresh token is expired, attempting subscription recovery...")
+        await signOut(notifyUI: false)
         do {
-            let subscription = try await subscriptionEndpointService.getSubscription(accessToken: "", // Token is unused
-                                                                                     cachePolicy: .returnCacheDataDontLoad)
-            switch subscription.platform {
-            case .apple:
-                pixelHandler(.deadToken)
-                throw OAuthClientError.refreshTokenExpired
-            default:
-                throw SubscriptionManagerError.tokenUnavailable(error: nil)
-            }
+            try await autoRecoveryHandler()
+            return try await getTokenContainer(policy: .local)
         } catch {
-            throw SubscriptionManagerError.tokenUnavailable(error: error)
+            throw SubscriptionManagerError.tokenUnRefreshable
         }
     }
 

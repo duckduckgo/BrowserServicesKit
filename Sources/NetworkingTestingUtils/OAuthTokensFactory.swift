@@ -54,6 +54,21 @@ public struct OAuthTokensFactory {
         )
     }
 
+    public static func makeAccessToken(thatExpiresIn minutes: Int, scope: String, email: String = "test@example.com") -> JWTAccessToken {
+        return JWTAccessToken(
+            exp: ExpirationClaim(value: Date().addingTimeInterval(3600)), // 1 hour from now
+            iat: IssuedAtClaim(value: Date()),
+            sub: SubjectClaim(value: "test-subject"),
+            aud: AudienceClaim(value: ["test-audience"]),
+            iss: IssuerClaim(value: "test-issuer"),
+            jti: IDClaim(value: "test-id"),
+            scope: scope,
+            api: "v2",
+            email: email,
+            entitlements: []
+        )
+    }
+
     // Helper function to create a valid JWTRefreshToken with customizable scope
     public static func makeRefreshToken(scope: String) -> JWTRefreshToken {
         return JWTRefreshToken(
@@ -68,10 +83,30 @@ public struct OAuthTokensFactory {
         )
     }
 
+    public static func makeExpiredRefreshToken(scope: String) -> JWTRefreshToken {
+        return JWTRefreshToken(
+            exp: ExpirationClaim(value: Date().daysAgo(40)),
+            iat: IssuedAtClaim(value: Date().daysAgo(70)),
+            sub: SubjectClaim(value: "test-subject"),
+            aud: AudienceClaim(value: ["test-audience"]),
+            iss: IssuerClaim(value: "test-issuer"),
+            jti: IDClaim(value: "test-id"),
+            scope: scope,
+            api: "v2"
+        )
+    }
+
     public static func makeValidTokenContainer() -> TokenContainer {
         return TokenContainer(accessToken: "accessToken",
                                refreshToken: "refreshToken",
                                decodedAccessToken: OAuthTokensFactory.makeAccessToken(scope: "privacypro"),
+                               decodedRefreshToken: OAuthTokensFactory.makeRefreshToken(scope: "refresh"))
+    }
+
+    public static func makeTokenContainer(thatExpiresIn minutes: Int) -> TokenContainer {
+        return TokenContainer(accessToken: "AccessTokenExpiringIn\(minutes)Minutes",
+                               refreshToken: "refreshToken",
+                              decodedAccessToken: OAuthTokensFactory.makeAccessToken(thatExpiresIn: minutes, scope: "privacypro"),
                                decodedRefreshToken: OAuthTokensFactory.makeRefreshToken(scope: "refresh"))
     }
 
@@ -96,6 +131,13 @@ public struct OAuthTokensFactory {
 
     public static func makeValidOAuthTokenResponse() -> OAuthTokenResponse {
         return OAuthTokenResponse(accessToken: "**validaccesstoken**", refreshToken: "**validrefreshtoken**")
+    }
+
+    public static func makeDeadTokenContainer() -> TokenContainer {
+        return TokenContainer(accessToken: "expiredAccessToken",
+                               refreshToken: "expiredRefreshToken",
+                               decodedAccessToken: OAuthTokensFactory.makeExpiredAccessToken(),
+                              decodedRefreshToken: OAuthTokensFactory.makeExpiredRefreshToken(scope: "refresh"))
     }
 }
 

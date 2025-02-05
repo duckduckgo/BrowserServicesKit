@@ -94,7 +94,7 @@ final class AppStoreRestoreFlowV2Tests: XCTestCase {
 
     func test_restoreAccountFromPastPurchase_withActiveSubscription_returnsSuccess() async {
         storePurchaseManagerMock.mostRecentTransactionResult = "lastTransactionJWS"
-        subscriptionManagerMock.resultSubscription = SubscriptionMockFactory.subscription
+        subscriptionManagerMock.resultSubscription = SubscriptionMockFactory.appleSubscription
 
         let result = await sut.restoreAccountFromPastPurchase()
 
