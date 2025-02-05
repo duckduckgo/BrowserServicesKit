@@ -23,7 +23,15 @@ import os.log
 
 public typealias BrowsingHistory = [HistoryEntry]
 
+/**
+ * This protocol allows for debugging History.
+ */
 public protocol HistoryCoordinatingDebuggingSupport {
+    /**
+     * Adds visit at an arbitrary time, rather than current timestamp.
+     *
+     * > This function shouldn't be used in production code. Instead, `addVisit(of: URL)` should be used.
+     */
     @discardableResult func addVisit(of url: URL, at date: Date) -> Visit?
 }
 
