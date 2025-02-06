@@ -148,13 +148,6 @@ final class DateExtensionTests: XCTestCase {
         XCTAssertEqual(date.daySinceReferenceDate, daysSinceReference)
     }
 
-    func testAdding() {
-        let date = Date()
-        let addedDate = date.adding(60)
-
-        XCTAssertEqual(addedDate.timeIntervalSince(date), 60)
-    }
-
     func testIsSameDayInstanceMethod() {
         let today = Date()
         let sameDay = today
@@ -218,8 +211,7 @@ final class DateExtensionTests: XCTestCase {
         let futureDate = Date(timeIntervalSinceNow: 100) // 100 seconds in the future
         XCTAssertFalse(futureDate.isInThePast())
 
-        let now = Date()
-        XCTAssertFalse(now.isInThePast()) // Edge case: exact current time
+        XCTAssertFalse(Date().isInThePast()) // Edge case: exact current time
     }
 
     func testIsInTheFuture() {
@@ -229,7 +221,6 @@ final class DateExtensionTests: XCTestCase {
         let pastDate = Date(timeIntervalSinceNow: -100) // 100 seconds ago
         XCTAssertFalse(pastDate.isInTheFuture())
 
-        let now = Date()
-        XCTAssertFalse(now.isInTheFuture()) // Edge case: exact current time
+        XCTAssertFalse(Date().isInTheFuture()) // Edge case: exact current time
     }
 }

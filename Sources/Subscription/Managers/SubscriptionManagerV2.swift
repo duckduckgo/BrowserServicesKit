@@ -49,7 +49,7 @@ public enum SubscriptionManagerError: Error, Equatable, LocalizedError {
         case .noProductsFound:
             "No products found"
         case .tokenUnRefreshable:
-            "Token is not refreshable, the account will be log out"
+            "Token is not refreshable, the account will be logged out"
         }
     }
 }
@@ -122,7 +122,7 @@ public protocol SubscriptionManagerV2: SubscriptionTokenProvider {
     /// - Parameter policy: The policy that will be used to get the token, it effects the tokens source and validity
     /// - Returns: The TokenContainer
     /// - Throws: A `SubscriptionManagerError`.
-    ///     `tokenUnRefreshable` if the token is cannot be refreshed, typically due to an expired refresh token.
+    ///     `tokenUnRefreshable` if the token cannot be refreshed, typically due to an expired refresh token.
     ///     `tokenUnavailable` if the token is not available for the reason specified by the underlying error.
     @discardableResult
     func getTokenContainer(policy: AuthTokensCachePolicy) async throws -> TokenContainer
@@ -316,22 +316,23 @@ public final class DefaultSubscriptionManagerV2: SubscriptionManagerV2 {
     @discardableResult public func getTokenContainer(policy: AuthTokensCachePolicy) async throws -> TokenContainer {
         Logger.subscription.debug("Get tokens \(policy.description, privacy: .public)")
         do {
-            let referenceCachedTokenContainer = try? await oAuthClient.getTokens(policy: .local)
-            let referenceCachedEntitlements = referenceCachedTokenContainer?.decodedAccessToken.subscriptionEntitlements
+            let currentCachedTokenContainer = try? await oAuthClient.getTokens(policy: .local)
+            let currentCachedEntitlements = currentCachedTokenContainer?.decodedAccessToken.subscriptionEntitlements
             let resultTokenContainer = try await oAuthClient.getTokens(policy: policy)
             let newEntitlements = resultTokenContainer.decodedAccessToken.subscriptionEntitlements
 
-            // Send notification when entitlements change
-            if referenceCachedEntitlements != newEntitlements {
-                Logger.subscription.debug("Entitlements changed - New \(newEntitlements) Old \(String(describing: referenceCachedEntitlements))")
-                NotificationCenter.default.post(name: .entitlementsDidChange, object: self, userInfo: [UserDefaultsCacheKey.subscriptionEntitlements: newEntitlements])
-            }
-
             // Send "accountDidSignIn" notification when login changes
-            if referenceCachedTokenContainer == nil {
+            if currentCachedTokenContainer == nil {
                 Logger.subscription.debug("New login detected")
                 NotificationCenter.default.post(name: .accountDidSignIn, object: self, userInfo: nil)
             }
+
+            // Send notification when entitlements change
+            if currentCachedEntitlements != newEntitlements {
+                Logger.subscription.debug("Entitlements changed - New \(newEntitlements) Old \(String(describing: currentCachedEntitlements))")
+                NotificationCenter.default.post(name: .entitlementsDidChange, object: self, userInfo: [UserDefaultsCacheKey.subscriptionEntitlements: newEntitlements])
+            }
+
             return resultTokenContainer
         } catch OAuthClientError.refreshTokenExpired {
             do { return try await attemptTokenRecovery() } catch { throw error }

@@ -23,15 +23,15 @@ import os.log
 @available(macOS 12.0, *)
 public struct DeadTokenRecoverer {
 
-    private static var recoveryAttempted: Int = 0
+    private static var recoveryAttemptCount: Int = 0
 
     public static func recoverDeadToken(endpointService: any SubscriptionEndpointServiceV2,
                                         restoreFlow: any AppStoreRestoreFlowV2) async throws {
-        if recoveryAttempted != 0 {
-            recoveryAttempted -= 1
+        if recoveryAttemptCount != 0 {
+            recoveryAttemptCount -= 1
             throw SubscriptionManagerError.tokenUnRefreshable
         }
-        recoveryAttempted += 1
+        recoveryAttemptCount += 1
 
         let subscription = try await endpointService.getSubscription(accessToken: "",
                                                                      cachePolicy: .returnCacheDataDontLoad)

@@ -136,11 +136,6 @@ public extension Date {
         Int(self.timeIntervalSinceReferenceDate / TimeInterval.day)
     }
 
-    /// Adds a specific time interval to this date.
-    func adding(_ timeInterval: TimeInterval) -> Date {
-        addingTimeInterval(timeInterval)
-    }
-
     /// Checks if this date falls on the same calendar day as another date.
     func isSameDay(_ otherDate: Date?) -> Bool {
         guard let otherDate = otherDate else { return false }
@@ -162,10 +157,15 @@ public extension Date {
         Int(Date().timeIntervalSince(self))
     }
 
+    /// Returns the number of seconds since this date until now.
+    func secondsFromNow() -> Int {
+        Int(self.timeIntervalSince(Date()))
+    }
+
     /// The number of minutes since this date until now.
     /// Returns a negative number if self is in the future.
     func minutesSinceNow() -> Int {
-        secondsSinceNow() / 60
+        Int(secondsSinceNow()) / 60
     }
 
     /// The number of hours since this date until now.

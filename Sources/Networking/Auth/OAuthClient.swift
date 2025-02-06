@@ -129,6 +129,13 @@ final public class DefaultOAuthClient: OAuthClient {
         static let clientID = "f4311287-0121-40e6-8bbd-85c36daf1837"
         static let redirectURI = "com.duckduckgo:/authcb"
         static let availableScopes = [ "privacypro" ]
+
+#if DEBUG
+        /// The seconds before the expiry date when we consider a token effectively expired
+        static let tokenExpiryBufferInterval: Int = 30
+#else
+        static let tokenExpiryBufferInterval: Int = 60*10
+#endif
     }
 
     // MARK: -
@@ -232,13 +239,8 @@ final public class DefaultOAuthClient: OAuthClient {
             let tokenExpiryDate = localTokenContainer.decodedAccessToken.exp.value
             Logger.OAuthClient.debug("Local tokens found, expiry: \(tokenExpiryDate, privacy: .public)")
 
-#if DEBUG
-            let expiresSoon = false
-#else
-            // Expires in less than 10 minutes, check only in release, the staging token expires every 4 minutes
-            let expiresSoon = tokenExpiryDate.minutesSinceNow() < 10
-#endif
-
+            // If the token expires in less than `Constants.tokenExpiryBufferInterval` minutes we treat it as already expired
+            let expiresSoon = tokenExpiryDate.secondsFromNow() < Constants.tokenExpiryBufferInterval
             if localTokenContainer.decodedAccessToken.isExpired() || expiresSoon {
                 Logger.OAuthClient.debug("Local access token is expired, refreshing it")
                 return try await getTokens(policy: .localForceRefresh)
