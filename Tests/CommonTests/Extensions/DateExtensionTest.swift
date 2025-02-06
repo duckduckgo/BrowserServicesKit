@@ -210,4 +210,26 @@ final class DateExtensionTests: XCTestCase {
         let date = Calendar.current.date(byAdding: .year, value: -2, to: Date())!
         XCTAssertEqual(date.yearsSinceNow(), 2)
     }
+
+    func testIsInThePast() {
+        let pastDate = Date(timeIntervalSinceNow: -100) // 100 seconds ago
+        XCTAssertTrue(pastDate.isInThePast())
+
+        let futureDate = Date(timeIntervalSinceNow: 100) // 100 seconds in the future
+        XCTAssertFalse(futureDate.isInThePast())
+
+        let now = Date()
+        XCTAssertFalse(now.isInThePast()) // Edge case: exact current time
+    }
+
+    func testIsInTheFuture() {
+        let futureDate = Date(timeIntervalSinceNow: 100) // 100 seconds in the future
+        XCTAssertTrue(futureDate.isInTheFuture())
+
+        let pastDate = Date(timeIntervalSinceNow: -100) // 100 seconds ago
+        XCTAssertFalse(pastDate.isInTheFuture())
+
+        let now = Date()
+        XCTAssertFalse(now.isInTheFuture()) // Edge case: exact current time
+    }
 }

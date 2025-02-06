@@ -191,4 +191,12 @@ public extension Date {
     func yearsSinceNow() -> Int {
         Calendar.current.dateComponents([.year], from: self, to: Date()).year ?? 0
     }
+
+    func isInThePast() -> Bool {
+        return self < Date()
+    }
+    
+    func isInTheFuture() -> Bool {
+        return self > Date()
+    }
 }
