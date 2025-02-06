@@ -46,7 +46,7 @@ public struct SubscriptionMockFactory {
                                                          expiresOrRenewsAt: Date().addingTimeInterval(TimeInterval.days(-1)),
                                                          platform: .stripe,
                                                          status: .expired,
-                                                               activeOffers: [])
+                                                         activeOffers: [])
 
     public static let productsItems: [GetProductsItem] = [GetProductsItem(productId: appleSubscription.productId,
                                                                           productLabel: appleSubscription.name,

@@ -30,7 +30,7 @@ final class SubscriptionTests: XCTestCase {
                                 expiresOrRenewsAt: Date(timeIntervalSince1970: 2000),
                                 platform: .apple,
                                 status: .autoRenewable,
-                                       activeOffers: [PrivacyProSubscription.Offer(type: .trial)])
+                                activeOffers: [PrivacyProSubscription.Offer(type: .trial)])
         let b = PrivacyProSubscription(productId: "1",
                                 name: "a",
                                 billingPeriod: .monthly,
