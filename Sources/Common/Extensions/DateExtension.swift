@@ -195,7 +195,7 @@ public extension Date {
     func isInThePast() -> Bool {
         return self < Date()
     }
-    
+
     func isInTheFuture() -> Bool {
         return self > Date()
     }
