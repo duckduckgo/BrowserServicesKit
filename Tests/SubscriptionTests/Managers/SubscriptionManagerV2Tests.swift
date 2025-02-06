@@ -49,7 +49,7 @@ class SubscriptionManagerV2Tests: XCTestCase {
                 if let overrideTokenResponse = self.overrideTokenResponse {
                     self.mockOAuthClient.getTokensResponse = overrideTokenResponse
                 }
-                try await DeadTokenRecoverer.recoverDeadToken(endpointService: self.mockSubscriptionEndpointService, restoreFlow: self.mockAppStoreRestoreFlowV2)
+                try await DeadTokenRecoverer.attemptRecoveryFromPastPurchase(endpointService: self.mockSubscriptionEndpointService, restoreFlow: self.mockAppStoreRestoreFlowV2)
             }
         )
     }

@@ -25,7 +25,7 @@ public struct DeadTokenRecoverer {
 
     private static var recoveryAttemptCount: Int = 0
 
-    public static func recoverDeadToken(endpointService: any SubscriptionEndpointServiceV2,
+    public static func attemptRecoveryFromPastPurchase(endpointService: any SubscriptionEndpointServiceV2,
                                         restoreFlow: any AppStoreRestoreFlowV2) async throws {
         if recoveryAttemptCount != 0 {
             recoveryAttemptCount -= 1
