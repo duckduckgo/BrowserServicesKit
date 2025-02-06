@@ -25,16 +25,14 @@ public struct DeadTokenRecoverer {
 
     private static var recoveryAttemptCount: Int = 0
 
-    public static func attemptRecoveryFromPastPurchase(endpointService: any SubscriptionEndpointServiceV2,
-                                        restoreFlow: any AppStoreRestoreFlowV2) async throws {
+    public static func attemptRecoveryFromPastPurchase(endpointService: any SubscriptionEndpointServiceV2, restoreFlow: any AppStoreRestoreFlowV2) async throws {
         if recoveryAttemptCount != 0 {
             recoveryAttemptCount -= 1
             throw SubscriptionManagerError.tokenUnRefreshable
         }
         recoveryAttemptCount += 1
 
-        let subscription = try await endpointService.getSubscription(accessToken: "",
-                                                                     cachePolicy: .returnCacheDataDontLoad)
+        let subscription = try await endpointService.getSubscription(accessToken: "", cachePolicy: .returnCacheDataDontLoad)
         guard subscription.platform == .apple else {
             throw SubscriptionManagerError.tokenUnRefreshable
         }
