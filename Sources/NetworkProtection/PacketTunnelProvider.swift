@@ -700,17 +700,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             }
 
             Logger.networkProtection.error("🔴 Stopping VPN due to no auth token")
-
-            // Check that the error is valid and able to be re-thrown to the OS before shutting the tunnel down
-            if let wrappedError = wrapped(error: error) {
-                // Wait for the provider to complete its pixel request.
-                try? await Task.sleep(interval: .seconds(2))
-                throw wrappedError
-            } else {
-                // Wait for the provider to complete its pixel request.
-                try? await Task.sleep(interval: .seconds(2))
-                throw error
-            }
+            throw error
         }
 
         do {
@@ -739,17 +729,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             self.knownFailureStore.lastKnownFailure = KnownFailure(error)
 
             providerEvents.fire(.tunnelStartAttempt(.failure(error)))
-
-            // Check that the error is valid and able to be re-thrown to the OS before shutting the tunnel down
-            if let wrappedError = wrapped(error: error) {
-                // Wait for the provider to complete its pixel request.
-                try? await Task.sleep(interval: .seconds(2))
-                throw wrappedError
-            } else {
-                // Wait for the provider to complete its pixel request.
-                try? await Task.sleep(interval: .seconds(2))
-                throw error
-            }
+            throw error
         }
     }
 
@@ -1824,29 +1804,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             }
         }
     }
-
-    /// Wraps an error instance in a new error type in cases where it is malformed; i.e., doesn't use an `NSError` instance for its underlying error, etc.
-    private func wrapped(error: Error) -> Error? {
-        if containsValidUnderlyingError(error) {
-            return nil
-        } else {
-            return InvalidDiagnosticError.errorWithInvalidUnderlyingError(error)
-        }
-    }
-
-    private func containsValidUnderlyingError(_ error: Error) -> Bool {
-        let nsError = error as NSError
-
-        if let underlyingError = nsError.userInfo[NSUnderlyingErrorKey] as? Error {
-            return containsValidUnderlyingError(underlyingError)
-        } else if nsError.userInfo[NSUnderlyingErrorKey] != nil {
-            // If `NSUnderlyingErrorKey` exists but is not an `Error`, return false
-            return false
-        }
-
-        return true
-    }
-
 }
 
 extension WireGuardAdapterError: LocalizedError, CustomDebugStringConvertible {
