@@ -24,16 +24,18 @@ public extension PixelKit {
         public static let clientSideHit = "clientSideHit"
         public static let category = "category"
         public static let settingToggledTo = "newState"
+        public static let datasetType = "type"
     }
 }
 
 public enum Event: PixelKitEventV2 {
-    case errorPageShown(category: ThreatKind, clientSideHit: Bool)
+    case errorPageShown(category: ThreatKind, clientSideHit: Bool?)
     case visitSite(category: ThreatKind)
     case iframeLoaded(category: ThreatKind)
     case settingToggled(to: Bool)
     case matchesApiTimeout
     case matchesApiFailure(Error)
+    case failedToDownloadInitialDataSets(category: ThreatKind, type: DataManager.StoredDataType.Kind)
 
     public var name: String {
         switch self {
@@ -49,16 +51,25 @@ public enum Event: PixelKitEventV2 {
             return "malicious-site-protection_client-timeout"
         case .matchesApiFailure:
             return "malicious-site-protection_matches-api-error"
+        case .failedToDownloadInitialDataSets:
+            return "malicious-site-protection_failed-to-fetch-initial-datasets"
         }
     }
 
     public var parameters: [String: String]? {
         switch self {
         case .errorPageShown(category: let category, clientSideHit: let clientSideHit):
-            return [
-                PixelKit.Parameters.category: category.rawValue,
-                PixelKit.Parameters.clientSideHit: String(clientSideHit),
-            ]
+            let parameters = if let clientSideHit {
+                [
+                    PixelKit.Parameters.category: category.rawValue,
+                    PixelKit.Parameters.clientSideHit: String(clientSideHit),
+                ]
+            } else {
+                [
+                    PixelKit.Parameters.category: category.rawValue,
+                ]
+            }
+            return parameters
         case .visitSite(category: let category),
              .iframeLoaded(category: let category):
             return [
@@ -71,6 +82,11 @@ public enum Event: PixelKitEventV2 {
         case .matchesApiTimeout,
              .matchesApiFailure:
             return [:]
+        case .failedToDownloadInitialDataSets(let category, let datasetType):
+            return [
+                PixelKit.Parameters.category: category.rawValue,
+                PixelKit.Parameters.datasetType: datasetType.rawValue,
+            ]
         }
     }
 
@@ -88,6 +104,8 @@ public enum Event: PixelKitEventV2 {
             return nil
         case .matchesApiFailure(let error):
             return error
+        case .failedToDownloadInitialDataSets:
+            return nil
         }
     }
 

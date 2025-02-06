@@ -21,12 +21,12 @@ import os
 
 protocol DataManaging {
     func dataSet<DataKey: MaliciousSiteDataKey>(for key: DataKey) async -> DataKey.DataSet
-    func store<DataKey: MaliciousSiteDataKey>(_ dataSet: DataKey.DataSet, for key: DataKey) async
+    func store<DataKey: MaliciousSiteDataKey>(_ dataSet: DataKey.DataSet, for key: DataKey) async throws
 }
 
 public actor DataManager: DataManaging {
 
-    private let embeddedDataProvider: EmbeddedDataProviding
+    private let embeddedDataProvider: EmbeddedDataProviding?
     private let fileStore: FileStoring
 
     public typealias FileNameProvider = (DataManager.StoredDataType) -> String
@@ -34,7 +34,7 @@ public actor DataManager: DataManaging {
 
     private var store: [StoredDataType: Any] = [:]
 
-    public init(fileStore: FileStoring, embeddedDataProvider: EmbeddedDataProviding, fileNameProvider: @escaping FileNameProvider) {
+    public init(fileStore: FileStoring, embeddedDataProvider: EmbeddedDataProviding?, fileNameProvider: @escaping FileNameProvider) {
         self.embeddedDataProvider = embeddedDataProvider
         self.fileStore = fileStore
         self.fileNameProvider = fileNameProvider
@@ -48,12 +48,18 @@ public actor DataManager: DataManaging {
         }
 
         // read stored dataSet if it‘s newer than the embedded one
-        let dataSet = readStoredDataSet(for: key) ?? {
+        let dataSet: DataKey.DataSet
+
+        if let storedDataSet = readStoredDataSet(for: key) {
+            dataSet = storedDataSet
+        } else if let embeddedDataProvider {
             // no stored dataSet or the embedded one is newer
             let embeddedRevision = embeddedDataProvider.revision(for: dataType)
             let embeddedItems = embeddedDataProvider.loadDataSet(for: key)
-            return .init(revision: embeddedRevision, items: embeddedItems)
-        }()
+            dataSet = .init(revision: embeddedRevision, items: embeddedItems)
+        } else {
+            dataSet = DataKey.DataSet(revision: 0, items: [])
+        }
 
         // cache
         store[dataType] = dataSet
@@ -75,7 +81,7 @@ public actor DataManager: DataManaging {
         }
 
         // compare to the embedded data revision
-        let embeddedDataRevision = embeddedDataProvider.revision(for: dataType)
+        let embeddedDataRevision = embeddedDataProvider?.revision(for: dataType) ?? 0
         guard storedDataSet.revision >= embeddedDataRevision else {
             Logger.dataManager.error("Stored \(fileName) is outdated: revision: \(storedDataSet.revision), embedded revision: \(embeddedDataRevision).")
             return nil
@@ -84,7 +90,7 @@ public actor DataManager: DataManaging {
         return storedDataSet
     }
 
-    func store<DataKey: MaliciousSiteDataKey>(_ dataSet: DataKey.DataSet, for key: DataKey) {
+    func store<DataKey: MaliciousSiteDataKey>(_ dataSet: DataKey.DataSet, for key: DataKey) throws {
         let dataType = key.dataType
         let fileName = fileNameProvider(dataType)
         self.store[dataType] = dataSet
@@ -95,11 +101,10 @@ public actor DataManager: DataManaging {
         } catch {
             Logger.dataManager.error("Error encoding \(fileName): \(error.localizedDescription)")
             assertionFailure("Failed to store data to \(fileName): \(error)")
-            return
+            throw error
         }
 
-        let success = fileStore.write(data: data, to: fileName)
-        assert(success)
+        try fileStore.write(data: data, to: fileName)
     }
 
 }

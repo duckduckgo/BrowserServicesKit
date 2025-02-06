@@ -113,7 +113,7 @@ public final class MaliciousSiteDetector: MaliciousSiteDetecting {
         for threatKind in hashPrefixMatchingThreatKinds {
             let matches = await checkLocalFilters(hostHash: hostHash, canonicalUrl: canonicalUrl, for: threatKind)
             if matches {
-                eventMapping.fire(.errorPageShown(category: threatKind, clientSideHit: true))
+                await fireErrorPageShown(threatKind: threatKind, clientSideHit: true)
                 return threatKind
             }
         }
@@ -123,11 +123,18 @@ public final class MaliciousSiteDetector: MaliciousSiteDetecting {
         let match = await checkApiMatches(hostHash: hostHash, canonicalUrl: canonicalUrl)
         if let match {
             let threatKind = match.category.flatMap(ThreatKind.init) ?? hashPrefixMatchingThreatKinds[0]
-            eventMapping.fire(.errorPageShown(category: threatKind, clientSideHit: false))
+            await fireErrorPageShown(threatKind: threatKind, clientSideHit: false)
             return threatKind
         }
 
         return .none
     }
 
+    private func fireErrorPageShown(threatKind: ThreatKind, clientSideHit: Bool) async {
+        let filterSet = await dataManager.dataSet(for: .filterSet(threatKind: threatKind))
+        // Send Pixel clientSideHit parameter only if filterSet size is greater than 100
+        // https://app.asana.com/0/0/1209113403594297/1209141231997704/f
+        let sanitisedClientSideHit = filterSet.filters.count > 100 ? clientSideHit : nil
+        eventMapping.fire(.errorPageShown(category: threatKind, clientSideHit: sanitisedClientSideHit))
+    }
 }
