@@ -24,22 +24,15 @@ final class PacketTunnelProviderTests: XCTestCase {
 
     typealias TunnelError = PacketTunnelProvider.TunnelError
 
-    /// Tests that `TunnelError`implements `CustomNSError`.
-    ///
-    func testThatTunnelErrorImplementsCustomNSError() {
-        let genericError: Error = TunnelError.startingTunnelWithoutAuthToken
-
-        XCTAssertNotNil(genericError as? CustomNSError)
-    }
-
     /// Tests that `TunnelError` has the expected underlying error information.
     ///
     func testThatTunnelErrorHasTheExpectedUnderlyingErrorInformation() {
-        XCTAssertEqual(TunnelError.startingTunnelWithoutAuthToken.errorUserInfo[NSUnderlyingErrorKey] as? NSError, nil)
+        let underlyingError = NSError(domain: "test", code: 1)
+
+        XCTAssertEqual(TunnelError.startingTunnelWithoutAuthToken(internalError: underlyingError).errorUserInfo[NSUnderlyingErrorKey] as? NSError, underlyingError)
         XCTAssertEqual(TunnelError.simulateTunnelFailureError.errorUserInfo[NSUnderlyingErrorKey] as? NSError, nil)
         XCTAssertEqual(TunnelError.vpnAccessRevoked.errorUserInfo[NSUnderlyingErrorKey] as? NSError, nil)
 
-        let underlyingError = NSError(domain: "test", code: 1)
         XCTAssertEqual(TunnelError.couldNotGenerateTunnelConfiguration(internalError: underlyingError).errorUserInfo[NSUnderlyingErrorKey] as? NSError, underlyingError)
     }
 }
