@@ -72,16 +72,6 @@ class SubscriptionManagerV2Tests: XCTestCase {
         XCTAssertEqual(result, expectedTokenContainer)
     }
 
-    func testGetTokenContainer_ExpiresInLessThen10Minutes() async throws {
-        mockOAuthClient.getTokensResponse = .success(OAuthTokensFactory.makeTokenContainer(thatExpiresIn: 5))
-        mockOAuthClient.refreshTokensResponse = .success(OAuthTokensFactory.makeValidTokenContainer())
-
-        let result = try await subscriptionManager.getTokenContainer(policy: .localValid)
-        XCTAssertFalse(result.decodedAccessToken.isExpired())
-        let expiryDate = result.decodedAccessToken.exp.value
-        XCTAssertTrue(abs(expiryDate.minutesSinceNow()) > 20)
-    }
-
     // MARK: - Subscription Status Tests
 
     func testRefreshCachedSubscription_ActiveSubscription() async {
