@@ -122,7 +122,7 @@ final class OAuthClientTests: XCTestCase {
     func testGetToken_localValid_expiresIn5minutes_refreshSuccess() async throws {
 
         mockOAuthService.getJWTSignersResponse = .success(JWTSigners())
-        tokenStorage.tokenContainer = OAuthTokensFactory.makeTokenContainer(thatExpiresIn: 25)
+        tokenStorage.tokenContainer = OAuthTokensFactory.makeTokenContainer(thatExpiresIn: .seconds(25))
         mockOAuthService.refreshAccessTokenResponse = .success(OAuthTokensFactory.makeValidOAuthTokenResponse())
         oAuthClient.testingDecodedTokenContainer = OAuthTokensFactory.makeValidTokenContainer()
 
@@ -132,7 +132,7 @@ final class OAuthClientTests: XCTestCase {
         XCTAssertNotNil(localContainer.decodedAccessToken)
         XCTAssertNotNil(localContainer.decodedRefreshToken)
         XCTAssertFalse(localContainer.decodedAccessToken.isExpired())
-        XCTAssertTrue(localContainer.decodedAccessToken.exp.value.timeIntervalSinceNow > 300)
+        XCTAssertTrue(localContainer.decodedAccessToken.exp.value.timeIntervalSinceNow > .minutes(10))
     }
 
     /// An expired local token exists but refresh fails
