@@ -113,7 +113,7 @@ final class SubscriptionManagerTests: XCTestCase {
         subscriptionService.onGetSubscription = { _, cachePolicy in
             XCTAssertEqual(cachePolicy, .reloadIgnoringLocalCacheData)
         }
-        subscriptionService.getSubscriptionResult = .success(SubscriptionMockFactory.subscription)
+        subscriptionService.getSubscriptionResult = .success(SubscriptionMockFactory.appleSubscription)
 
         accountManager.onFetchEntitlements = { cachePolicy in
             XCTAssertEqual(cachePolicy, .reloadIgnoringLocalCacheData)
@@ -146,7 +146,7 @@ final class SubscriptionManagerTests: XCTestCase {
 
     func testForRefreshCachedSubscriptionAndEntitlements() async throws {
         // Given
-        let subscription = SubscriptionMockFactory.subscription
+        let subscription = SubscriptionMockFactory.appleSubscription
 
         accountManager.accessToken = Constants.accessToken
 

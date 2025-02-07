@@ -22,7 +22,7 @@ import Foundation
 /// Provides all mocks needed for testing subscription initialised with positive outcomes and basic configurations. All mocks can be partially reconfigured with failures or incorrect data
 public struct SubscriptionMockFactory {
 
-    public static let subscription = PrivacyProSubscription(productId: UUID().uuidString,
+    public static let appleSubscription = PrivacyProSubscription(productId: UUID().uuidString,
                                                   name: "Subscription test #1",
                                                   billingPeriod: .monthly,
                                                   startedAt: Date(),
@@ -45,9 +45,9 @@ public struct SubscriptionMockFactory {
                                                          platform: .stripe,
                                                          status: .expired)
 
-    public static let productsItems: [GetProductsItem] = [GetProductsItem(productId: subscription.productId,
-                                                                          productLabel: subscription.name,
-                                                                          billingPeriod: subscription.billingPeriod.rawValue,
+    public static let productsItems: [GetProductsItem] = [GetProductsItem(productId: appleSubscription.productId,
+                                                                          productLabel: appleSubscription.name,
+                                                                          billingPeriod: appleSubscription.billingPeriod.rawValue,
                                                                           price: "0.99",
                                                                           currency: "USD")]
 }

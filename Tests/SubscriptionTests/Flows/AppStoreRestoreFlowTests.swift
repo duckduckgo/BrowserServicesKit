@@ -84,7 +84,7 @@ final class AppStoreRestoreFlowTests: XCTestCase {
             XCTAssertEqual(accessToken, Constants.accessToken)
         }
 
-        let subscription = SubscriptionMockFactory.subscription
+        let subscription = SubscriptionMockFactory.appleSubscription
         subscriptionService.getSubscriptionResult = .success(subscription)
 
         XCTAssertTrue(subscription.isActive)

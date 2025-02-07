@@ -53,23 +53,24 @@ final class PrivacyProSubscriptionV2IntegrationTests: XCTestCase {
                                             authService: authService)
         storePurchaseManager = StorePurchaseManagerMockV2()
         let subscriptionEndpointService = DefaultSubscriptionEndpointServiceV2(apiService: apiService,
-                                                                             baseURL: subscriptionEnvironment.serviceEnvironment.url)
+                                                                               baseURL: subscriptionEnvironment.serviceEnvironment.url)
         let pixelHandler: SubscriptionManagerV2.PixelHandler = { type in
             print("Pixel fired: \(type)")
         }
         subscriptionFeatureFlagger = FeatureFlaggerMapping<SubscriptionFeatureFlags>(mapping: { $0.defaultState })
 
         subscriptionManager = DefaultSubscriptionManagerV2(storePurchaseManager: storePurchaseManager,
-                                                         oAuthClient: authClient,
-                                                         subscriptionEndpointService: subscriptionEndpointService,
-                                                         subscriptionEnvironment: subscriptionEnvironment,
-                                                         pixelHandler: pixelHandler)
+                                                           oAuthClient: authClient,
+                                                           subscriptionEndpointService: subscriptionEndpointService,
+                                                           subscriptionEnvironment: subscriptionEnvironment,
+                                                           pixelHandler: pixelHandler,
+                                                           autoRecoveryHandler: {})
 
         appStoreRestoreFlow = DefaultAppStoreRestoreFlowV2(subscriptionManager: subscriptionManager,
-                                                         storePurchaseManager: storePurchaseManager)
+                                                           storePurchaseManager: storePurchaseManager)
         appStorePurchaseFlow = DefaultAppStorePurchaseFlowV2(subscriptionManager: subscriptionManager,
-                                                           storePurchaseManager: storePurchaseManager,
-                                                           appStoreRestoreFlow: appStoreRestoreFlow)
+                                                             storePurchaseManager: storePurchaseManager,
+                                                             appStoreRestoreFlow: appStoreRestoreFlow)
         stripePurchaseFlow = DefaultStripePurchaseFlowV2(subscriptionManager: subscriptionManager)
     }
 

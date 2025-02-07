@@ -28,6 +28,8 @@ class SubscriptionManagerV2Tests: XCTestCase {
     var mockOAuthClient: MockOAuthClient!
     var mockSubscriptionEndpointService: SubscriptionEndpointServiceMockV2!
     var mockStorePurchaseManager: StorePurchaseManagerMockV2!
+    var mockAppStoreRestoreFlowV2: AppStoreRestoreFlowMockV2!
+    var overrideTokenResponse: Result<Networking.TokenContainer, Error>?
 
     override func setUp() {
         super.setUp()
@@ -35,13 +37,20 @@ class SubscriptionManagerV2Tests: XCTestCase {
         mockOAuthClient = MockOAuthClient()
         mockSubscriptionEndpointService = SubscriptionEndpointServiceMockV2()
         mockStorePurchaseManager = StorePurchaseManagerMockV2()
+        mockAppStoreRestoreFlowV2 = AppStoreRestoreFlowMockV2()
 
         subscriptionManager = DefaultSubscriptionManagerV2(
             storePurchaseManager: mockStorePurchaseManager,
             oAuthClient: mockOAuthClient,
             subscriptionEndpointService: mockSubscriptionEndpointService,
             subscriptionEnvironment: SubscriptionEnvironment(serviceEnvironment: .staging, purchasePlatform: .stripe),
-            pixelHandler: { _ in }
+            pixelHandler: { _ in },
+            autoRecoveryHandler: {
+                if let overrideTokenResponse = self.overrideTokenResponse {
+                    self.mockOAuthClient.getTokensResponse = overrideTokenResponse
+                }
+                try await DeadTokenRecoverer.attemptRecoveryFromPastPurchase(endpointService: self.mockSubscriptionEndpointService, restoreFlow: self.mockAppStoreRestoreFlowV2)
+            }
         )
     }
 
@@ -63,42 +72,14 @@ class SubscriptionManagerV2Tests: XCTestCase {
         XCTAssertEqual(result, expectedTokenContainer)
     }
 
-    func testGetTokenContainer_ErrorHandlingDeadToken() async throws {
-        // Set up dead token error to trigger recovery attempt
-        mockOAuthClient.getTokensResponse = .failure(OAuthClientError.refreshTokenExpired)
-        let date = Date()
-        let expiredSubscription = PrivacyProSubscription(
-            productId: "testProduct",
-            name: "Test Subscription",
-            billingPeriod: .monthly,
-            startedAt: date.addingTimeInterval(-30 * 24 * 60 * 60), // 30 days ago
-            expiresOrRenewsAt: date.addingTimeInterval(-1), // expired
-            platform: .apple,
-            status: .expired
-        )
-        mockSubscriptionEndpointService.getSubscriptionResult = .success(expiredSubscription)
-        let expectation = self.expectation(description: "Dead token pixel called")
-        subscriptionManager = DefaultSubscriptionManagerV2(
-            storePurchaseManager: mockStorePurchaseManager,
-            oAuthClient: mockOAuthClient,
-            subscriptionEndpointService: mockSubscriptionEndpointService,
-            subscriptionEnvironment: SubscriptionEnvironment(serviceEnvironment: .staging, purchasePlatform: .stripe),
-            pixelHandler: { type in
-                XCTAssertEqual(type, .deadToken)
-                expectation.fulfill()
-            }
-        )
+    func testGetTokenContainer_ExpiresInLessThen10Minutes() async throws {
+        mockOAuthClient.getTokensResponse = .success(OAuthTokensFactory.makeTokenContainer(thatExpiresIn: 5))
+        mockOAuthClient.refreshTokensResponse = .success(OAuthTokensFactory.makeValidTokenContainer())
 
-        do {
-            _ = try await subscriptionManager.getTokenContainer(policy: .localValid)
-            XCTFail("Error expected")
-        } catch SubscriptionManagerError.tokenUnavailable {
-            // Expected error
-        } catch {
-            XCTFail("Unexpected error: \(error)")
-        }
-
-        await fulfillment(of: [expectation], timeout: 0.1)
+        let result = try await subscriptionManager.getTokenContainer(policy: .localValid)
+        XCTAssertFalse(result.decodedAccessToken.isExpired())
+        let expiryDate = result.decodedAccessToken.exp.value
+        XCTAssertTrue(abs(expiryDate.minutesSinceNow()) > 20)
     }
 
     // MARK: - Subscription Status Tests
@@ -159,7 +140,8 @@ class SubscriptionManagerV2Tests: XCTestCase {
             oAuthClient: mockOAuthClient,
             subscriptionEndpointService: mockSubscriptionEndpointService,
             subscriptionEnvironment: environment,
-            pixelHandler: { _ in }
+            pixelHandler: { _ in },
+            autoRecoveryHandler: {}
         )
 
         let helpURL = subscriptionManager.url(for: .purchase)
@@ -216,7 +198,8 @@ class SubscriptionManagerV2Tests: XCTestCase {
             oAuthClient: mockOAuthClient,
             subscriptionEndpointService: mockSubscriptionEndpointService,
             subscriptionEnvironment: productionEnvironment,
-            pixelHandler: { _ in }
+            pixelHandler: { _ in },
+            autoRecoveryHandler: {}
         )
 
         // When
@@ -235,7 +218,8 @@ class SubscriptionManagerV2Tests: XCTestCase {
             oAuthClient: mockOAuthClient,
             subscriptionEndpointService: mockSubscriptionEndpointService,
             subscriptionEnvironment: stagingEnvironment,
-            pixelHandler: { _ in }
+            pixelHandler: { _ in },
+            autoRecoveryHandler: {}
         )
 
         // When
@@ -243,5 +227,49 @@ class SubscriptionManagerV2Tests: XCTestCase {
 
         // Then
         XCTAssertEqual(stagingPurchaseURL, SubscriptionURL.purchase.subscriptionURL(environment: .staging))
+    }
+
+    // MARK: - Dead token recovery
+
+    func testDeadTokenRecoverySuccess() async throws {
+        mockOAuthClient.getTokensResponse = .failure(OAuthClientError.refreshTokenExpired)
+        overrideTokenResponse = .success(OAuthTokensFactory.makeValidTokenContainer())
+        mockSubscriptionEndpointService.getSubscriptionResult = .success(SubscriptionMockFactory.appleSubscription)
+        mockAppStoreRestoreFlowV2.restoreAccountFromPastPurchaseResult = .success("some")
+        let tokenContainer = try await subscriptionManager.getTokenContainer(policy: .localValid)
+        XCTAssertFalse(tokenContainer.decodedAccessToken.isExpired())
+    }
+
+    func testDeadTokenRecoveryFailure() async throws {
+        mockOAuthClient.getTokensResponse = .failure(OAuthClientError.refreshTokenExpired)
+        overrideTokenResponse = .success(OAuthTokensFactory.makeValidTokenContainer())
+        mockSubscriptionEndpointService.getSubscriptionResult = .success(SubscriptionMockFactory.appleSubscription)
+        mockAppStoreRestoreFlowV2.restoreAccountFromPastPurchaseResult = .failure(AppStoreRestoreFlowErrorV2.subscriptionExpired)
+
+        do {
+            try await subscriptionManager.getTokenContainer(policy: .localValid)
+            XCTFail("This should fail with error: SubscriptionManagerError.tokenUnRefreshable")
+        } catch {
+            XCTAssertEqual(error as! SubscriptionManagerError, SubscriptionManagerError.tokenUnRefreshable)
+        }
+    }
+
+    /// Dead token error loop detector: this case shouldn't be possible, but if the BE starts to send back expired tokens we risk to enter in an infinite loop.
+    func testDeadTokenRecoveryLoop() async throws {
+        mockOAuthClient.getTokensResponse = .failure(OAuthClientError.refreshTokenExpired)
+        mockSubscriptionEndpointService.getSubscriptionResult = .success(SubscriptionMockFactory.appleSubscription)
+        mockAppStoreRestoreFlowV2.restoreAccountFromPastPurchaseResult = .success("some")
+        do {
+            try await subscriptionManager.getTokenContainer(policy: .localValid)
+            XCTFail("This should fail with error: SubscriptionManagerError.tokenUnRefreshable")
+        } catch {
+            XCTAssertEqual(error as! SubscriptionManagerError, SubscriptionManagerError.tokenUnRefreshable)
+        }
+        do {
+            try await subscriptionManager.getTokenContainer(policy: .localValid)
+            XCTFail("This should fail with error: SubscriptionManagerError.tokenUnRefreshable")
+        } catch {
+            XCTAssertEqual(error as! SubscriptionManagerError, SubscriptionManagerError.tokenUnRefreshable)
+        }
     }
 }

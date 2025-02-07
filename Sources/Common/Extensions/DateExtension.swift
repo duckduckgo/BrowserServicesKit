@@ -136,11 +136,6 @@ public extension Date {
         Int(self.timeIntervalSinceReferenceDate / TimeInterval.day)
     }
 
-    /// Adds a specific time interval to this date.
-    func adding(_ timeInterval: TimeInterval) -> Date {
-        addingTimeInterval(timeInterval)
-    }
-
     /// Checks if this date falls on the same calendar day as another date.
     func isSameDay(_ otherDate: Date?) -> Bool {
         guard let otherDate = otherDate else { return false }
@@ -162,28 +157,46 @@ public extension Date {
         Int(Date().timeIntervalSince(self))
     }
 
-    /// Returns the number of minutes since this date until now.
-    func minutesSinceNow() -> Int {
-        secondsSinceNow() / 60
+    /// Returns the number of seconds since this date until now.
+    func secondsFromNow() -> Int {
+        Int(self.timeIntervalSince(Date()))
     }
 
-    /// Returns the number of hours since this date until now.
+    /// The number of minutes since this date until now.
+    /// Returns a negative number if self is in the future.
+    func minutesSinceNow() -> Int {
+        Int(secondsSinceNow()) / 60
+    }
+
+    /// The number of hours since this date until now.
+    /// Returns a negative number if self is in the future.
     func hoursSinceNow() -> Int {
         minutesSinceNow() / 60
     }
 
-    /// Returns the number of days since this date until now.
+    /// The number of days since this date until now.
+    /// Returns a negative number if self is in the future.
     func daysSinceNow() -> Int {
         hoursSinceNow() / 24
     }
 
-    /// Returns the number of months since this date until now.
+    /// The number of months since this date until now.
+    /// Returns a negative number if self is in the future.
     func monthsSinceNow() -> Int {
         Calendar.current.dateComponents([.month], from: self, to: Date()).month ?? 0
     }
 
-    /// Returns the number of years since this date until now.
+    /// The number of years since this date until now.
+    /// Returns a negative number if self is in the future.
     func yearsSinceNow() -> Int {
         Calendar.current.dateComponents([.year], from: self, to: Date()).year ?? 0
+    }
+
+    func isInThePast() -> Bool {
+        return self < Date()
+    }
+
+    func isInTheFuture() -> Bool {
+        return self > Date()
     }
 }

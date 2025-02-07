@@ -30,7 +30,7 @@ final class SubscriptionEndpointServiceTests: XCTestCase {
 
         static let mostRecentTransactionJWS = "dGhpcyBpcyBub3QgYSByZWFsIEFw(...)cCBTdG9yZSB0cmFuc2FjdGlvbiBKV1M="
 
-        static let subscription = SubscriptionMockFactory.subscription
+        static let subscription = SubscriptionMockFactory.appleSubscription
 
         static let customerPortalURL = "https://billing.stripe.com/p/session/test_ABC"
 

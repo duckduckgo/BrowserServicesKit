@@ -26,6 +26,7 @@ public enum OAuthClientError: Error, LocalizedError, Equatable {
     case unauthenticated
     /// When both access token and refresh token are expired
     case refreshTokenExpired
+    case invalidTokenRequest
 
     public var errorDescription: String? {
         switch self {
@@ -39,6 +40,8 @@ public enum OAuthClientError: Error, LocalizedError, Equatable {
             return "The account is not authenticated, please re-authenticate"
         case .refreshTokenExpired:
             return "The refresh token is expired, the token is unrecoverable please re-authenticate"
+        case .invalidTokenRequest:
+            return "Invalid token request"
         }
     }
 }
@@ -126,6 +129,13 @@ final public class DefaultOAuthClient: OAuthClient {
         static let clientID = "f4311287-0121-40e6-8bbd-85c36daf1837"
         static let redirectURI = "com.duckduckgo:/authcb"
         static let availableScopes = [ "privacypro" ]
+
+#if DEBUG
+        /// The seconds before the expiry date when we consider a token effectively expired
+        static let tokenExpiryBufferInterval: Int = 30
+#else
+        static let tokenExpiryBufferInterval: Int = 60*10
+#endif
     }
 
     // MARK: -
@@ -204,7 +214,15 @@ final public class DefaultOAuthClient: OAuthClient {
     public func getTokens(policy: AuthTokensCachePolicy) async throws -> TokenContainer {
         let localTokenContainer = tokenStorage.tokenContainer
 
+        if policy != .local,
+           let localTokenContainer,
+            localTokenContainer.decodedRefreshToken.isExpired() {
+            // The refresh token is expired, the token is un-refreshable
+            throw OAuthClientError.refreshTokenExpired
+        }
+
         switch policy {
+
         case .local:
             guard let localTokenContainer else {
                 Logger.OAuthClient.debug("Tokens not found")
@@ -212,18 +230,24 @@ final public class DefaultOAuthClient: OAuthClient {
             }
             Logger.OAuthClient.debug("Local tokens found, expiry: \(localTokenContainer.decodedAccessToken.exp.value, privacy: .public)")
             return localTokenContainer
+
         case .localValid:
             guard let localTokenContainer else {
                 Logger.OAuthClient.debug("Tokens not found")
                 throw OAuthClientError.missingTokens
             }
-            Logger.OAuthClient.debug("Local tokens found, expiry: \(localTokenContainer.decodedAccessToken.exp.value, privacy: .public)")
-            if localTokenContainer.decodedAccessToken.isExpired() {
+            let tokenExpiryDate = localTokenContainer.decodedAccessToken.exp.value
+            Logger.OAuthClient.debug("Local tokens found, expiry: \(tokenExpiryDate, privacy: .public)")
+
+            // If the token expires in less than `Constants.tokenExpiryBufferInterval` minutes we treat it as already expired
+            let expiresSoon = tokenExpiryDate.secondsFromNow() < Constants.tokenExpiryBufferInterval
+            if localTokenContainer.decodedAccessToken.isExpired() || expiresSoon {
                 Logger.OAuthClient.debug("Local access token is expired, refreshing it")
                 return try await getTokens(policy: .localForceRefresh)
             } else {
                 return localTokenContainer
             }
+
         case .localForceRefresh:
             guard let refreshToken = localTokenContainer?.refreshToken else {
                 Logger.OAuthClient.debug("Refresh token not found")
@@ -237,11 +261,12 @@ final public class DefaultOAuthClient: OAuthClient {
                 return refreshedTokens
             } catch OAuthServiceError.authAPIError(let code) where code == OAuthRequest.BodyErrorCode.invalidTokenRequest {
                 Logger.OAuthClient.error("Failed to refresh token: invalidTokenRequest")
-                throw OAuthClientError.refreshTokenExpired
+                throw OAuthClientError.invalidTokenRequest
             } catch OAuthServiceError.authAPIError(let code) {
                 Logger.OAuthClient.error("Failed to refresh token: \(code.rawValue, privacy: .public), \(code.description, privacy: .public)")
                 throw OAuthServiceError.authAPIError(code: code)
             }
+
         case .createIfNeeded:
             do {
                 return try await getTokens(policy: .localValid)

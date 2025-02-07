@@ -128,7 +128,7 @@ public struct DefaultSubscriptionEndpointServiceV2: SubscriptionEndpointServiceV
 
     @discardableResult
     private func storeAndAddFeaturesIfNeededTo(subscription: PrivacyProSubscription) async throws -> PrivacyProSubscription {
-        let cachedSubscription: PrivacyProSubscription? = subscriptionCache.get()
+        let cachedSubscription = getCachedSubscription()
         var subscription = subscription
         // fetch remote features
         Logger.subscriptionEndpointService.log("Getting features for subscription: \(subscription.productId, privacy: .public)")
@@ -148,7 +148,14 @@ New: \(subscription.debugDescription, privacy: .public)
 
     func updateCache(with subscription: PrivacyProSubscription) {
         cacheSerialQueue.sync {
-            subscriptionCache.set(subscription)
+            let expiryDate = subscription.expiresOrRenewsAt
+            if expiryDate.isInTheFuture() {
+                Logger.subscriptionEndpointService.debug("Subscription cache set with expiration date: \(expiryDate, privacy: .public)")
+                subscriptionCache.set(subscription, expires: expiryDate)
+            } else {
+                Logger.subscriptionEndpointService.debug("Subscription cache set with default expiration date")
+                subscriptionCache.set(subscription)
+            }
             Logger.subscriptionEndpointService.debug("Notifying subscription changed")
             NotificationCenter.default.post(name: .subscriptionDidChange, object: self, userInfo: [UserDefaultsCacheKey.subscription: subscription])
         }
