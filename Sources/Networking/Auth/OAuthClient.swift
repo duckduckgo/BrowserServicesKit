@@ -132,9 +132,9 @@ final public class DefaultOAuthClient: OAuthClient {
 
 #if DEBUG
         /// The seconds before the expiry date when we consider a token effectively expired
-        static let tokenExpiryBufferInterval: TimeInterval = 30
+        static let tokenExpiryBufferInterval: TimeInterval = .seconds(30)
 #else
-        static let tokenExpiryBufferInterval: TimeInterval = 600
+        static let tokenExpiryBufferInterval: TimeInterval = .minutes(10)
 #endif
     }
 
