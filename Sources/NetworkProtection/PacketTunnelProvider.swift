@@ -99,9 +99,10 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
     public enum TunnelError: LocalizedError, CustomNSError, SilentErrorConvertible {
         // Tunnel Setup Errors - 0+
-        case startingTunnelWithoutAuthToken
+        case startingTunnelWithoutAuthToken(internalError: Error)
         case couldNotGenerateTunnelConfiguration(internalError: Error)
         case simulateTunnelFailureError
+        case tokenReset
 
         // Subscription Errors - 100+
         case vpnAccessRevoked
@@ -111,14 +112,16 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
         public var errorDescription: String? {
             switch self {
-            case .startingTunnelWithoutAuthToken:
-                return "Missing auth token at startup"
+            case .startingTunnelWithoutAuthToken(let internalError):
+                return "Missing auth token at startup: \(internalError)"
             case .vpnAccessRevoked:
                 return "VPN disconnected due to expired subscription"
             case .couldNotGenerateTunnelConfiguration(let internalError):
                 return "Failed to generate a tunnel configuration: \(internalError.localizedDescription)"
             case .simulateTunnelFailureError:
                 return "Simulated a tunnel error as requested"
+            case .tokenReset:
+                return "Abnormal situation caused the token to be reset"
             case .appRequestedCancellation:
                 return nil
             }
@@ -130,6 +133,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             case .startingTunnelWithoutAuthToken: return 0
             case .couldNotGenerateTunnelConfiguration: return 1
             case .simulateTunnelFailureError: return 2
+            case .tokenReset: return 3
                 // Subscription Errors - 100+
             case .vpnAccessRevoked: return 100
                 // State Reset - 200+
@@ -139,12 +143,13 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
 
         public var errorUserInfo: [String: Any] {
             switch self {
-            case .startingTunnelWithoutAuthToken,
-                    .simulateTunnelFailureError,
+            case .simulateTunnelFailureError,
                     .vpnAccessRevoked,
-                    .appRequestedCancellation:
+                    .appRequestedCancellation,
+                    .tokenReset:
                 return [:]
-            case .couldNotGenerateTunnelConfiguration(let underlyingError):
+            case .couldNotGenerateTunnelConfiguration(let underlyingError),
+                    .startingTunnelWithoutAuthToken(let underlyingError):
                 return [NSUnderlyingErrorKey: underlyingError]
             }
         }
@@ -581,13 +586,13 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             do {
                 try await tokenHandler.getToken()
             } catch {
-                throw TunnelError.startingTunnelWithoutAuthToken
+                throw TunnelError.startingTunnelWithoutAuthToken(internalError: error)
             }
         case .reset:
             // This case should in theory not be possible, but it's ideal to have this in place
             // in case an error in the controller on the client side allows it.
-            try await tokenHandler.removeToken()
-            throw TunnelError.startingTunnelWithoutAuthToken
+            try? await tokenHandler.removeToken()
+            throw TunnelError.tokenReset
         }
     }
 
@@ -603,7 +608,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 try await tokenHandler.refreshToken()
             } catch {
                 Logger.networkProtection.fault("Error force-refreshing token container: \(error, privacy: .public)\n \(newTokenContainer.refreshToken, privacy: .public)")
-                throw TunnelError.startingTunnelWithoutAuthToken
+                throw TunnelError.startingTunnelWithoutAuthToken(internalError: error)
             }
         case .useExisting:
             Logger.networkProtection.log("Use existing token")
@@ -611,14 +616,14 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
                 try await tokenHandler.getToken()
             } catch {
                 Logger.networkProtection.fault("Error loading token container: \(error, privacy: .public)")
-                throw TunnelError.startingTunnelWithoutAuthToken
+                throw TunnelError.startingTunnelWithoutAuthToken(internalError: error)
             }
         case .reset:
             Logger.networkProtection.log("Reset token")
             // This case should in theory not be possible, but it's ideal to have this in place
             // in case an error in the controller on the client side allows it.
             try await tokenHandler.removeToken()
-            throw TunnelError.startingTunnelWithoutAuthToken
+            throw TunnelError.tokenReset
         }
     }
 #endif
@@ -700,18 +705,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             }
 
             Logger.networkProtection.error("🔴 Stopping VPN due to no auth token")
-            await cancelTunnel(with: TunnelError.startingTunnelWithoutAuthToken)
-
-            // Check that the error is valid and able to be re-thrown to the OS before shutting the tunnel down
-            if let wrappedError = wrapped(error: error) {
-                // Wait for the provider to complete its pixel request.
-                try? await Task.sleep(interval: .seconds(2))
-                throw wrappedError
-            } else {
-                // Wait for the provider to complete its pixel request.
-                try? await Task.sleep(interval: .seconds(2))
-                throw error
-            }
+            throw error
         }
 
         do {
@@ -740,17 +734,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             self.knownFailureStore.lastKnownFailure = KnownFailure(error)
 
             providerEvents.fire(.tunnelStartAttempt(.failure(error)))
-
-            // Check that the error is valid and able to be re-thrown to the OS before shutting the tunnel down
-            if let wrappedError = wrapped(error: error) {
-                // Wait for the provider to complete its pixel request.
-                try? await Task.sleep(interval: .seconds(2))
-                throw wrappedError
-            } else {
-                // Wait for the provider to complete its pixel request.
-                try? await Task.sleep(interval: .seconds(2))
-                throw error
-            }
+            throw error
         }
     }
 
@@ -1825,29 +1809,6 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
             }
         }
     }
-
-    /// Wraps an error instance in a new error type in cases where it is malformed; i.e., doesn't use an `NSError` instance for its underlying error, etc.
-    private func wrapped(error: Error) -> Error? {
-        if containsValidUnderlyingError(error) {
-            return nil
-        } else {
-            return InvalidDiagnosticError.errorWithInvalidUnderlyingError(error)
-        }
-    }
-
-    private func containsValidUnderlyingError(_ error: Error) -> Bool {
-        let nsError = error as NSError
-
-        if let underlyingError = nsError.userInfo[NSUnderlyingErrorKey] as? Error {
-            return containsValidUnderlyingError(underlyingError)
-        } else if nsError.userInfo[NSUnderlyingErrorKey] != nil {
-            // If `NSUnderlyingErrorKey` exists but is not an `Error`, return false
-            return false
-        }
-
-        return true
-    }
-
 }
 
 extension WireGuardAdapterError: LocalizedError, CustomDebugStringConvertible {
