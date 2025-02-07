@@ -211,7 +211,7 @@ class SecureVaultManagerTests: XCTestCase {
             }
         }
 
-        self.manager = SecureVaultManager(vault: self.testVault, includePartialAccountMatches: true, tld: TLD())
+        self.manager = SecureVaultManager(vault: self.testVault, tld: TLD())
         self.secureVaultManagerDelegate = SecureVaultDelegate()
         self.manager.delegate = self.secureVaultManagerDelegate
 
@@ -256,7 +256,7 @@ class SecureVaultManagerTests: XCTestCase {
             }
         }
 
-        self.manager = SecureVaultManager(vault: self.testVault, includePartialAccountMatches: true, tld: TLD())
+        self.manager = SecureVaultManager(vault: self.testVault, tld: TLD())
         self.secureVaultManagerDelegate = SecureVaultDelegate()
         self.manager.delegate = self.secureVaultManagerDelegate
 
@@ -286,13 +286,8 @@ class SecureVaultManagerTests: XCTestCase {
         waitForExpectations(timeout: 0.1)
     }
 
-    func testWhenRequestingAutofillInitDataWithDomainAndPort_withPartialMatches_ThenDataIsReturned() throws {
-        self.manager = SecureVaultManager(vault: self.testVault, includePartialAccountMatches: true, tld: TLD())
-        try assertWhenRequestingAutofillInitDataWithDomainAndPort_ThenDataIsReturned()
-    }
-
-    func testWhenRequestingAutofillInitDataWithDomainAndPort_withoutPartialMatches_ThenDataIsReturned() throws {
-        self.manager = SecureVaultManager(vault: self.testVault, includePartialAccountMatches: false, tld: TLD())
+    func testWhenRequestingAutofillInitDataWithDomainAndPort_ThenDataIsReturned() throws {
+        self.manager = SecureVaultManager(vault: self.testVault, tld: TLD())
         try assertWhenRequestingAutofillInitDataWithDomainAndPort_ThenDataIsReturned()
     }
 
@@ -347,7 +342,7 @@ class SecureVaultManagerTests: XCTestCase {
             }
         }
 
-        self.manager = SecureVaultManager(vault: self.testVault, includePartialAccountMatches: true, tld: TLD())
+        self.manager = SecureVaultManager(vault: self.testVault, tld: TLD())
         self.secureVaultManagerDelegate = SecureVaultDelegate()
         self.manager.delegate = self.secureVaultManagerDelegate
 
