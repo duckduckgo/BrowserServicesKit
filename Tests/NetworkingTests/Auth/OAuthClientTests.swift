@@ -108,10 +108,7 @@ final class OAuthClientTests: XCTestCase {
         mockOAuthService.refreshAccessTokenResponse = .success( OAuthTokensFactory.makeValidOAuthTokenResponse())
         tokenStorage.tokenContainer = OAuthTokensFactory.makeExpiredTokenContainer()
 
-        oAuthClient.testingDecodedTokenContainer = TokenContainer(accessToken: "accessToken",
-                                                                  refreshToken: "refreshToken",
-                                                                  decodedAccessToken: JWTAccessToken.mock,
-                                                                  decodedRefreshToken: JWTRefreshToken.mock)
+        oAuthClient.testingDecodedTokenContainer = OAuthTokensFactory.makeValidTokenContainer()
 
         let localContainer = try await oAuthClient.getTokens(policy: .localValid)
         XCTAssertNotNil(localContainer.accessToken)
@@ -119,6 +116,23 @@ final class OAuthClientTests: XCTestCase {
         XCTAssertNotNil(localContainer.decodedAccessToken)
         XCTAssertNotNil(localContainer.decodedRefreshToken)
         XCTAssertFalse(localContainer.decodedAccessToken.isExpired())
+    }
+
+    /// If a token expires in less that *Constants.tokenExpiryBufferInterval* then is treated as expired and refreshed
+    func testGetToken_localValid_expiresIn5minutes_refreshSuccess() async throws {
+
+        mockOAuthService.getJWTSignersResponse = .success(JWTSigners())
+        tokenStorage.tokenContainer = OAuthTokensFactory.makeTokenContainer(thatExpiresIn: .seconds(25))
+        mockOAuthService.refreshAccessTokenResponse = .success(OAuthTokensFactory.makeValidOAuthTokenResponse())
+        oAuthClient.testingDecodedTokenContainer = OAuthTokensFactory.makeValidTokenContainer()
+
+        let localContainer = try await oAuthClient.getTokens(policy: .localValid)
+        XCTAssertNotNil(localContainer.accessToken)
+        XCTAssertNotNil(localContainer.refreshToken)
+        XCTAssertNotNil(localContainer.decodedAccessToken)
+        XCTAssertNotNil(localContainer.decodedRefreshToken)
+        XCTAssertFalse(localContainer.decodedAccessToken.isExpired())
+        XCTAssertTrue(localContainer.decodedAccessToken.exp.value.timeIntervalSinceNow > .minutes(10))
     }
 
     /// An expired local token exists but refresh fails

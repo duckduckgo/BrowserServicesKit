@@ -54,9 +54,9 @@ public struct OAuthTokensFactory {
         )
     }
 
-    public static func makeAccessToken(thatExpiresIn minutes: Int, scope: String, email: String = "test@example.com") -> JWTAccessToken {
+    public static func makeAccessToken(thatExpiresIn timeInterval: TimeInterval, scope: String, email: String = "test@example.com") -> JWTAccessToken {
         return JWTAccessToken(
-            exp: ExpirationClaim(value: Date().addingTimeInterval(3600)), // 1 hour from now
+            exp: ExpirationClaim(value: Date().addingTimeInterval(timeInterval)),
             iat: IssuedAtClaim(value: Date()),
             sub: SubjectClaim(value: "test-subject"),
             aud: AudienceClaim(value: ["test-audience"]),
@@ -103,10 +103,10 @@ public struct OAuthTokensFactory {
                                decodedRefreshToken: OAuthTokensFactory.makeRefreshToken(scope: "refresh"))
     }
 
-    public static func makeTokenContainer(thatExpiresIn minutes: Int) -> TokenContainer {
-        return TokenContainer(accessToken: "AccessTokenExpiringIn\(minutes)Minutes",
+    public static func makeTokenContainer(thatExpiresIn timeInterval: TimeInterval) -> TokenContainer {
+        return TokenContainer(accessToken: "AccessTokenExpiringIn\(timeInterval)seconds",
                                refreshToken: "refreshToken",
-                              decodedAccessToken: OAuthTokensFactory.makeAccessToken(thatExpiresIn: minutes, scope: "privacypro"),
+                              decodedAccessToken: OAuthTokensFactory.makeAccessToken(thatExpiresIn: timeInterval, scope: "privacypro"),
                                decodedRefreshToken: OAuthTokensFactory.makeRefreshToken(scope: "refresh"))
     }
 

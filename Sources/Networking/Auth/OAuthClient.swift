@@ -132,9 +132,9 @@ final public class DefaultOAuthClient: OAuthClient {
 
 #if DEBUG
         /// The seconds before the expiry date when we consider a token effectively expired
-        static let tokenExpiryBufferInterval: Int = 30
+        static let tokenExpiryBufferInterval: TimeInterval = .seconds(30)
 #else
-        static let tokenExpiryBufferInterval: Int = 60*10
+        static let tokenExpiryBufferInterval: TimeInterval = .minutes(10)
 #endif
     }
 
@@ -240,7 +240,7 @@ final public class DefaultOAuthClient: OAuthClient {
             Logger.OAuthClient.debug("Local tokens found, expiry: \(tokenExpiryDate, privacy: .public)")
 
             // If the token expires in less than `Constants.tokenExpiryBufferInterval` minutes we treat it as already expired
-            let expiresSoon = tokenExpiryDate.secondsFromNow() < Constants.tokenExpiryBufferInterval
+            let expiresSoon = tokenExpiryDate.timeIntervalSinceNow < Constants.tokenExpiryBufferInterval
             if localTokenContainer.decodedAccessToken.isExpired() || expiresSoon {
                 Logger.OAuthClient.debug("Local access token is expired, refreshing it")
                 return try await getTokens(policy: .localForceRefresh)
