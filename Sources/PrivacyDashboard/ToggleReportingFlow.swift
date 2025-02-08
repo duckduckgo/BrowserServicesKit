@@ -49,6 +49,11 @@ final class ToggleReportingFlow {
 
     let entryPoint: EntryPoint
 
+    // We need to know if the user chose to send a report. On macOS browser, the "Thank You" prompt is shown afterward.
+    // If the user dismisses that prompt, handleDismissal is triggered,
+    // but calling recordDismissal within it would be incorrect at that stage.
+    private var didSendReport = false
+
     init(entryPoint: EntryPoint,
          toggleReportingManager: ToggleReportingManaging,
          controller: PrivacyDashboardController?) {
@@ -74,7 +79,9 @@ final class ToggleReportingFlow {
     }
 
     private func handleDismissal(isUserAction: Bool = false) {
-        toggleReportingManager.recordDismissal(date: Date())
+        if !didSendReport {
+            toggleReportingManager.recordDismissal(date: Date())
+        }
         switch entryPoint {
         case .appMenuProtectionsOff(let completionHandler):
             completionHandler(false)
@@ -89,6 +96,7 @@ final class ToggleReportingFlow {
     private func handleSendReport() {
         privacyDashboardController?.didRequestSubmitToggleReport(with: entryPoint.source)
         toggleReportingManager.recordPrompt(date: Date())
+        didSendReport = true
         switch entryPoint {
         case .appMenuProtectionsOff(let completionHandler):
             completionHandler(true)
