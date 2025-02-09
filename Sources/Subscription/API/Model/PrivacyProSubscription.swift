@@ -93,6 +93,11 @@ public struct PrivacyProSubscription: Codable, Equatable, CustomDebugStringConve
         status != .expired && status != .inactive
     }
 
+    /// Returns `true` is the Subscription has an active `Offer` with a type of `trial`. False otherwise.
+    public var hasActiveTrialOffer: Bool {
+        activeOffers.contains(where: { $0.type == .trial })
+    }
+
     public var debugDescription: String {
         return """
         Subscription:

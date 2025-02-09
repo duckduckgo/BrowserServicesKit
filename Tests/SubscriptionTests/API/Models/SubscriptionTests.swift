@@ -204,6 +204,66 @@ final class SubscriptionTests: XCTestCase {
         let subscriptionWithUnknownOffers = try decoder.decode(PrivacyProSubscription.self, from: Data(rawSubscriptionWithUnknownOffers.utf8))
         XCTAssertEqual(subscriptionWithUnknownOffers.activeOffers, [PrivacyProSubscription.Offer(type: .unknown)])
     }
+
+    func testHasActiveTrialOffer_WithTrialOffer_ReturnsTrue() {
+        // Given
+        let subscription = PrivacyProSubscription.make(
+            withStatus: .autoRenewable,
+            activeOffers: [PrivacyProSubscription.Offer(type: .trial)]
+        )
+
+        // When
+        let hasActiveTrialOffer = subscription.hasActiveTrialOffer
+
+        // Then
+        XCTAssertTrue(hasActiveTrialOffer)
+    }
+
+    func testHasActiveTrialOffer_WithNoOffers_ReturnsFalse() {
+        // Given
+        let subscription = PrivacyProSubscription.make(
+            withStatus: .autoRenewable,
+            activeOffers: []
+        )
+
+        // When
+        let hasActiveTrialOffer = subscription.hasActiveTrialOffer
+
+        // Then
+        XCTAssertFalse(hasActiveTrialOffer)
+    }
+
+    func testHasActiveTrialOffer_WithNonTrialOffer_ReturnsFalse() {
+        // Given
+        let subscription = PrivacyProSubscription.make(
+            withStatus: .autoRenewable,
+            activeOffers: [PrivacyProSubscription.Offer(type: .unknown)]
+        )
+
+        // When
+        let hasActiveTrialOffer = subscription.hasActiveTrialOffer
+
+        // Then
+        XCTAssertFalse(hasActiveTrialOffer)
+    }
+
+    func testHasActiveTrialOffer_WithMultipleOffersIncludingTrial_ReturnsTrue() {
+        // Given
+        let subscription = PrivacyProSubscription.make(
+            withStatus: .autoRenewable,
+            activeOffers: [
+                PrivacyProSubscription.Offer(type: .unknown),
+                PrivacyProSubscription.Offer(type: .trial),
+                PrivacyProSubscription.Offer(type: .unknown)
+            ]
+        )
+
+        // When
+        let hasActiveTrialOffer = subscription.hasActiveTrialOffer
+
+        // Then
+        XCTAssertTrue(hasActiveTrialOffer)
+    }
 }
 
 extension PrivacyProSubscription {
