@@ -89,7 +89,7 @@ final class DefaultFeatureFlaggerTests: XCTestCase {
         XCTAssertFalse(featureFlagger.isFeatureOn(for: FeatureFlagSource.disabled))
     }
 
-    func testWhenDisabled_sourceDisabled_returnsTrue() {
+    func testWhenEnabled_sourceDisabled_returnsTrue() {
         let featureFlagger = createFeatureFlagger()
         XCTAssertTrue(featureFlagger.isFeatureOn(for: FeatureFlagSource.enabled))
     }
