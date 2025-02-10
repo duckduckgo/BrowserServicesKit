@@ -28,14 +28,16 @@ public struct SubscriptionMockFactory {
                                                   startedAt: Date(),
                                                   expiresOrRenewsAt: Date().addingTimeInterval(TimeInterval.days(+30)),
                                                   platform: .apple,
-                                                  status: .autoRenewable)
+                                                  status: .autoRenewable,
+                                                  activeOffers: [])
     public static let expiredSubscription = PrivacyProSubscription(productId: UUID().uuidString,
                                                          name: "Subscription test #2",
                                                          billingPeriod: .monthly,
                                                          startedAt: Date().addingTimeInterval(TimeInterval.days(-31)),
                                                          expiresOrRenewsAt: Date().addingTimeInterval(TimeInterval.days(-1)),
                                                          platform: .apple,
-                                                         status: .expired)
+                                                         status: .expired,
+                                                         activeOffers: [])
 
     public static let expiredStripeSubscription = PrivacyProSubscription(productId: UUID().uuidString,
                                                          name: "Subscription test #2",
@@ -43,7 +45,8 @@ public struct SubscriptionMockFactory {
                                                          startedAt: Date().addingTimeInterval(TimeInterval.days(-31)),
                                                          expiresOrRenewsAt: Date().addingTimeInterval(TimeInterval.days(-1)),
                                                          platform: .stripe,
-                                                         status: .expired)
+                                                         status: .expired,
+                                                         activeOffers: [])
 
     public static let productsItems: [GetProductsItem] = [GetProductsItem(productId: appleSubscription.productId,
                                                                           productLabel: appleSubscription.name,

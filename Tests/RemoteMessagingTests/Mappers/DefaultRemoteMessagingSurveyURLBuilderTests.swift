@@ -90,12 +90,13 @@ class DefaultRemoteMessagingSurveyURLBuilderTests: XCTestCase {
         )
 
         let subscription = PrivacyProSubscription(productId: "product-id",
-                                                  name: "product-name",
-                                                  billingPeriod: .monthly,
-                                                  startedAt: Date(timeIntervalSince1970: 1000),
-                                                  expiresOrRenewsAt: Date(timeIntervalSince1970: 2000),
-                                                  platform: .apple,
-                                                  status: .autoRenewable)
+                                           name: "product-name",
+                                           billingPeriod: .monthly,
+                                           startedAt: Date(timeIntervalSince1970: 1000),
+                                           expiresOrRenewsAt: Date(timeIntervalSince1970: 2000),
+                                           platform: .apple,
+                                           status: .autoRenewable,
+                                           activeOffers: [])
 
         return DefaultRemoteMessagingSurveyURLBuilder(
             statisticsStore: mockStatisticsStore,
