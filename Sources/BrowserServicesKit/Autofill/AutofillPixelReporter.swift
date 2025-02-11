@@ -38,10 +38,11 @@ public enum AutofillPixelEvent {
 
 public final class AutofillPixelReporter {
 
-    enum Keys {
+    public enum Keys {
         static let autofillSearchDauDateKey = "com.duckduckgo.app.autofill.SearchDauDate"
         static let autofillFillDateKey = "com.duckduckgo.app.autofill.FillDate"
         static let autofillOnboardedUserKey = "com.duckduckgo.app.autofill.OnboardedUser"
+        static public let autofillDauMigratedKey = "com.duckduckgo.app.autofill.DauDataMigrated"
     }
 
     enum BucketName: String {
@@ -70,8 +71,10 @@ public final class AutofillPixelReporter {
     private var autofillSearchDauDate: Date? { userDefaults.object(forKey: Keys.autofillSearchDauDateKey) as? Date ?? .distantPast }
     private var autofillFillDate: Date? { userDefaults.object(forKey: Keys.autofillFillDateKey) as? Date ?? .distantPast }
     private var autofillOnboardedUser: Bool { userDefaults.object(forKey: Keys.autofillOnboardedUserKey) as? Bool ?? false }
+    private var autofillDauMigrated: Bool { userDefaults.object(forKey: Keys.autofillDauMigratedKey) as? Bool ?? false }
 
-    public init(userDefaults: UserDefaults,
+    public init(standardUserDefaults: UserDefaults,
+                appGroupUserDefaults: UserDefaults?,
                 autofillEnabled: Bool,
                 deviceAuthEnabled: Bool,
                 eventMapping: EventMapping<AutofillPixelEvent>,
@@ -80,7 +83,7 @@ public final class AutofillPixelReporter {
                 passwordManager: PasswordManager? = nil,
                 installDate: Date? = nil
     ) {
-        self.userDefaults = userDefaults
+        self.userDefaults = appGroupUserDefaults ?? standardUserDefaults
         self.autofillEnabled = autofillEnabled
         self.deviceAuthEnabled = deviceAuthEnabled
         self.eventMapping = eventMapping
@@ -89,6 +92,9 @@ public final class AutofillPixelReporter {
         self.passwordManager = passwordManager
         self.installDate = installDate
 
+        if let appGroupUserDefaults {
+            migrateDataIfNeeded(from: standardUserDefaults, to: appGroupUserDefaults)
+        }
         createNotificationObservers()
     }
 
@@ -106,6 +112,27 @@ public final class AutofillPixelReporter {
         NotificationCenter.default.addObserver(self, selector: #selector(didReceiveSearchDAU), name: .searchDAU, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(didReceiveFillEvent), name: .autofillFillEvent, object: nil)
         NotificationCenter.default.addObserver(self, selector: #selector(didReceiveSaveEvent), name: .autofillSaveEvent, object: nil)
+    }
+
+    private func migrateDataIfNeeded(from source: UserDefaults, to destination: UserDefaults) {
+        guard autofillDauMigrated == false else {
+            return
+        }
+
+        let keysToMigrate = [
+            Keys.autofillSearchDauDateKey,
+            Keys.autofillFillDateKey,
+            Keys.autofillOnboardedUserKey
+        ]
+
+        for key in keysToMigrate {
+            if let value = source.object(forKey: key) {
+                destination.set(value, forKey: key)
+                source.removeObject(forKey: key)  // Delete from source after migration
+            }
+        }
+
+        destination.set(true, forKey: Keys.autofillDauMigratedKey)
     }
 
     @objc

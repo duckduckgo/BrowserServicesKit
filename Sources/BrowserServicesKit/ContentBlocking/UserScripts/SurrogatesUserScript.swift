@@ -16,11 +16,11 @@
 //  limitations under the License.
 //
 
-import WebKit
+import Common
+import ContentBlocking
 import TrackerRadarKit
 import UserScript
-import ContentBlocking
-import Common
+@preconcurrency import WebKit
 
 public protocol SurrogatesUserScriptDelegate: NSObjectProtocol {
 

@@ -23,6 +23,7 @@ import os.log
 public enum AppStoreAccountManagementFlowError: Swift.Error {
     case noPastTransaction
     case authenticatingWithTransactionFailed
+    case missingAuthTokenOnRefresh
 }
 
 @available(macOS 12.0, iOS 15.0, *)
@@ -46,7 +47,8 @@ public final class DefaultAppStoreAccountManagementFlow: AppStoreAccountManageme
     @discardableResult
     public func refreshAuthTokenIfNeeded() async -> Result<String, AppStoreAccountManagementFlowError> {
         Logger.subscription.info("[AppStoreAccountManagementFlow] refreshAuthTokenIfNeeded")
-        var authToken = accountManager.authToken ?? ""
+
+        guard let authToken = accountManager.authToken else { return .failure(.missingAuthTokenOnRefresh) }
 
         // Check if auth token if still valid
         if case let .failure(validateTokenError) = await authEndpointService.validateToken(accessToken: authToken) {
@@ -58,8 +60,9 @@ public final class DefaultAppStoreAccountManagementFlow: AppStoreAccountManageme
             switch await authEndpointService.storeLogin(signature: lastTransactionJWSRepresentation) {
             case .success(let response):
                 if response.externalID == accountManager.externalID {
-                    authToken = response.authToken
-                    accountManager.storeAuthToken(token: authToken)
+                    let refreshedAuthToken = response.authToken
+                    accountManager.storeAuthToken(token: refreshedAuthToken)
+                    return .success(refreshedAuthToken)
                 }
             case .failure(let storeLoginError):
                 Logger.subscription.error("[AppStoreAccountManagementFlow] storeLogin error: \(String(reflecting: storeLoginError), privacy: .public)")

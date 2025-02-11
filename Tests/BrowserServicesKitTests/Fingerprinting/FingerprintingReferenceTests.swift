@@ -16,6 +16,9 @@
 //  limitations under the License.
 //
 
+// Tests are disabled on iOS due to WKWebView stability issues on the iOS 17.5+ simulator.
+#if os(macOS)
+
 import XCTest
 @testable import TrackerRadarKit
 @testable import BrowserServicesKit
@@ -216,10 +219,12 @@ final class FingerprintingReferenceTests: XCTestCase {
                                                              passwordGeneration: false,
                                                              inlineIconCredentials: false,
                                                              thirdPartyCredentialsProvider: false,
-                                                             unknownUsernameCategorization: false)
+                                                             unknownUsernameCategorization: false,
+                                                             partialFormSaves: false)
 
         let contentScopeProperties = ContentScopeProperties(gpcEnabled: false,
                                                             sessionKey: UUID().uuidString,
+                                                            messageSecret: UUID().uuidString,
                                                             featureToggles: configFeatureToggle)
 
         let contentScopeScript = ContentScopeUserScript(self.privacyManager,
@@ -260,3 +265,5 @@ private struct Test: Codable {
     let property, expectPropertyValue: String
     let exceptPlatforms: [String]
 }
+
+#endif

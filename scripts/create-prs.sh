@@ -88,7 +88,7 @@ read_arguments_as_needed() {
 	fi
 
 	if [[ -z "$asana_task_url" ]]; then
-	    local task_url_regex='^https://app.asana.com/[0-9]/[0-9]*/[0-9]*/f$'
+	    local task_url_regex='^https://app.asana.com/[0-9]/[0-9]*/[0-9]*$'
         while ! [[ "$asana_task_url" =~ ${task_url_regex} ]]; do
 			read -rp "Asana task URL: " asana_task_url
         done

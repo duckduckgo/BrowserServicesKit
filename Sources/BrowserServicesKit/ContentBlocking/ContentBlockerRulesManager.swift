@@ -79,7 +79,7 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
             self.identifier = identifier
         }
 
-        internal init(compilationResult: (compiledRulesList: WKContentRuleList, model: ContentBlockerRulesSourceModel)) {
+        internal init(compilationResult: CompilationResult) {
             let surrogateTDS = ContentBlockerRulesManager.extractSurrogates(from: compilationResult.model.tds)
             let encodedData = try? JSONEncoder().encode(surrogateTDS)
             let encodedTrackerData = String(data: encodedData!, encoding: .utf8)!
@@ -130,7 +130,6 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
     public var sourceManagers = [String: ContentBlockerRulesSourceManager]()
 
     private var currentTasks = [CompilationTask]()
-    private var compilationStartTime: TimeInterval?
 
     private let workQueue = DispatchQueue(label: "ContentBlockerManagerQueue", qos: .userInitiated)
 
@@ -152,10 +151,17 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
 
             if !self.lookupCompiledRules() {
                 if let lastCompiledRules = lastCompiledRulesStore?.rules, !lastCompiledRules.isEmpty {
-                    self.fetchLastCompiledRules(with: lastCompiledRules)
+                    if self.fetchLastCompiledRules(with: lastCompiledRules) {
+                        self.errorReporting?.fire(.contentBlockingFetchLRCSucceeded)
+                    } else {
+                        self.errorReporting?.fire(.contentBlockingNoMatchInLRC)
+                    }
                 } else {
+                    self.errorReporting?.fire(.contentBlockingLRCMissing)
                     self.startCompilationProcess()
                 }
+            } else {
+                self.errorReporting?.fire(.contentBlockingLookupRulesSucceeded)
             }
         }
     }
@@ -222,7 +228,6 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
         }
 
         state = .recompiling(currentTokens: [token])
-        compilationStartTime = compilationStartTime ?? CACurrentMediaTime()
         lock.unlock()
         return true
     }
@@ -235,46 +240,32 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
         Logger.contentBlocking.debug("Lookup compiled rules")
         prepareSourceManagers()
         let initialCompilationTask = LookupRulesTask(sourceManagers: Array(sourceManagers.values))
-        let mutex = DispatchSemaphore(value: 0)
 
-        Task {
-            do {
-                try await initialCompilationTask.lookupCachedRulesLists()
-            } catch {
-                Logger.contentBlocking.debug("❌ Lookup failed: \(error.localizedDescription, privacy: .public)")
-            }
-            mutex.signal()
-        }
-        // We want to confine Compilation work to WorkQueue, so we wait to come back from async Task
-        mutex.wait()
+        do {
+            let result = try initialCompilationTask.lookupCachedRulesLists()
 
-        if let result = initialCompilationTask.result {
             let rules = result.map(Rules.init(compilationResult:))
-            Logger.contentBlocking.debug("🟩 Found \(rules.count, privacy: .public) rules")
+            Logger.contentBlocking.debug("🟩 Lookup Found \(rules.count, privacy: .public) rules")
             applyRules(rules)
             return true
+        } catch {
+            Logger.contentBlocking.debug("❌ Lookup failed: \(error.localizedDescription, privacy: .public)")
+            return false
         }
-        return false
     }
 
     /*
      Go through source managers and check if there are already compiled rules in the WebKit rule cache.
      Returns true if rules were found, false otherwise.
      */
-    private func fetchLastCompiledRules(with lastCompiledRules: [LastCompiledRules]) {
+    private func fetchLastCompiledRules(with lastCompiledRules: [LastCompiledRules]) -> Bool {
         Logger.contentBlocking.debug("Fetch last compiled rules: \(lastCompiledRules.count, privacy: .public)")
 
         let initialCompilationTask = LastCompiledRulesLookupTask(sourceRules: rulesSource.contentBlockerRulesLists,
                                                                  lastCompiledRules: lastCompiledRules)
-        let mutex = DispatchSemaphore(value: 0)
-        Task {
-            try? await initialCompilationTask.fetchCachedRulesLists()
-            mutex.signal()
-        }
-        // We want to confine Compilation work to WorkQueue, so we wait to come back from async Task
-        mutex.wait()
+        let rules = initialCompilationTask.fetchCachedRulesLists()
 
-        if let rules = initialCompilationTask.getFetchedRules() {
+        if let rules {
             applyRules(rules)
         } else {
             lock.lock()
@@ -284,6 +275,8 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
 
         // No matter if rules were found or not, we need to schedule recompilation, after all
         scheduleCompilation()
+
+        return rules != nil
     }
 
     private func prepareSourceManagers() {
@@ -304,7 +297,6 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
     }
 
     private func startCompilationProcess() {
-        Logger.contentBlocking.debug("Starting compilataion process")
         prepareSourceManagers()
 
         // Prepare compilation tasks based on the sources
@@ -364,10 +356,11 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
                 Logger.contentBlocking.debug("Failed to complete task \(task.rulesList.name, privacy: .public)")
                 return nil
             }
+
             let rules = Rules(compilationResult: result)
 
             let diff: ContentBlockerRulesIdentifier.Difference
-            if let id = _currentRules.first(where: {$0.name == task.rulesList.name })?.identifier {
+            if let id = _currentRules.first(where: { $0.name == task.rulesList.name })?.identifier {
                 diff = id.compare(with: result.model.rulesIdentifier)
             } else {
                 diff = result.model.rulesIdentifier.compare(with: ContentBlockerRulesIdentifier(name: task.rulesList.name,
@@ -375,6 +368,15 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
                                                                                                 tempListId: nil,
                                                                                                 allowListId: nil,
                                                                                                 unprotectedSitesHash: nil))
+            }
+
+            if task.rulesList.name == DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName &&
+                result.resultType == .rulesCompilation {
+                if let perfInfo = result.performanceInfo {
+                    self.errorReporting?.fire(.contentBlockingCompilationTaskPerformance(iterationCount: perfInfo.iterationCount,
+                                                                                         timeBucketAggregation: perfInfo.compilationTime),
+                                              parameters: ["compilationTime": String(perfInfo.compilationTime)])
+                }
             }
 
             changes[task.rulesList.name] = diff
@@ -393,7 +395,6 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
         _currentRules = rules
 
         let completionTokens: [CompletionToken]
-        let compilationTime = compilationStartTime.map { start in CACurrentMediaTime() - start }
         switch state {
         case .recompilingAndScheduled(let currentTokens, let pendingTokens):
             // New work has been scheduled - prepare for execution.
@@ -403,12 +404,10 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
 
             completionTokens = currentTokens
             state = .recompiling(currentTokens: pendingTokens)
-            compilationStartTime = CACurrentMediaTime()
 
         case .recompiling(let currentTokens):
             completionTokens = currentTokens
             state = .idle
-            compilationStartTime = nil
 
         case .idle:
             assertionFailure("Unexpected state")
@@ -421,10 +420,6 @@ public class ContentBlockerRulesManager: CompiledRuleListsSource {
         updatesSubject.send(UpdateEvent(rules: rules, changes: changes, completionTokens: completionTokens))
 
         DispatchQueue.main.async {
-            if let compilationTime = compilationTime {
-                self.errorReporting?.fire(.contentBlockingCompilationTime, parameters: ["compilationTime": String(compilationTime)])
-            }
-
             self.cleanup(currentIdentifiers: currentIdentifiers)
         }
     }

@@ -316,6 +316,43 @@ class HistoryCoordinatorTests: XCTestCase {
         return bookmarksDatabase
     }
 
+    func testWhenRemoveUrlEntryCalledWithExistingUrl_ThenEntryIsRemovedAndNoError() {
+        let (historyStoringMock, historyCoordinator) = HistoryCoordinator.aHistoryCoordinator
+
+        let url = URL(string: "https://duckduckgo.com")!
+        historyCoordinator.addVisit(of: url)
+
+        XCTAssertTrue(historyCoordinator.history!.contains(where: { $0.url == url }))
+
+        let removalExpectation = expectation(description: "Entry removed without error")
+        historyCoordinator.removeUrlEntry(url) { error in
+            XCTAssertNil(error, "Expected no error when removing an existing URL entry")
+            removalExpectation.fulfill()
+        }
+
+        waitForExpectations(timeout: 1.0)
+
+        XCTAssertFalse(historyCoordinator.history!.contains(where: { $0.url == url }))
+        XCTAssertTrue(historyStoringMock.removeEntriesCalled, "Expected removeEntries to be called")
+        XCTAssertEqual(historyStoringMock.removeEntriesArray.count, 1)
+        XCTAssertEqual(historyStoringMock.removeEntriesArray.first?.url, url)
+    }
+
+    func testWhenRemoveUrlEntryCalledWithNonExistingUrl_ThenEntryRemovalFailsWithNotAvailableError() {
+        let (_, historyCoordinator) = HistoryCoordinator.aHistoryCoordinator
+
+        let nonExistentUrl = URL(string: "https://nonexistent.com")!
+
+        let removalExpectation = expectation(description: "Entry removal fails with notAvailable error")
+        historyCoordinator.removeUrlEntry(nonExistentUrl) { error in
+            XCTAssertNotNil(error, "Expected an error when removing a non-existent URL entry")
+            XCTAssertEqual(error as? HistoryCoordinator.EntryRemovalError, .notAvailable, "Expected notAvailable error")
+            removalExpectation.fulfill()
+        }
+
+        waitForExpectations(timeout: 1.0)
+    }
+
 }
 
 fileprivate extension HistoryCoordinator {

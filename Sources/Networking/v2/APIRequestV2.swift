@@ -18,13 +18,27 @@
 
 import Foundation
 
-public struct APIRequestV2: CustomDebugStringConvertible {
+public struct APIRequestV2: Hashable, CustomDebugStringConvertible {
 
-    public typealias QueryItems = [String: String]
+    private(set) var urlRequest: URLRequest
+
+    public struct RetryPolicy: Hashable, CustomDebugStringConvertible {
+        public let maxRetries: Int
+        public let delay: TimeInterval
+
+        public init(maxRetries: Int, delay: TimeInterval = 0) {
+            self.maxRetries = maxRetries
+            self.delay = delay
+        }
+
+        public var debugDescription: String {
+            "MaxRetries: \(maxRetries), delay: \(delay)"
+        }
+    }
 
     let timeoutInterval: TimeInterval
     let responseConstraints: [APIResponseConstraints]?
-    public let urlRequest: URLRequest
+    let retryPolicy: RetryPolicy?
 
     /// Designated initialiser
     /// - Parameters:
@@ -37,24 +51,33 @@ public struct APIRequestV2: CustomDebugStringConvertible {
     ///   - cachePolicy: The request cache policy, default is `.useProtocolCachePolicy`
     ///   - responseRequirements: The response requirements
     ///   - allowedQueryReservedCharacters: The characters in this character set will not be URL encoded in the query parameters
+    /// - Note: The init can return nil if the URLComponents fails to parse the provided URL
     public init?(url: URL,
                  method: HTTPRequestMethod = .get,
                  queryItems: QueryItems? = nil,
                  headers: APIRequestV2.HeadersV2? = APIRequestV2.HeadersV2(),
                  body: Data? = nil,
                  timeoutInterval: TimeInterval = 60.0,
+                 retryPolicy: RetryPolicy? = nil,
                  cachePolicy: URLRequest.CachePolicy? = nil,
                  responseConstraints: [APIResponseConstraints]? = nil,
                  allowedQueryReservedCharacters: CharacterSet? = nil) {
+
         self.timeoutInterval = timeoutInterval
         self.responseConstraints = responseConstraints
 
         // Generate URL request
         guard var urlComps = URLComponents(url: url, resolvingAgainstBaseURL: true) else {
+            assertionFailure("Malformed URL: \(url)")
             return nil
         }
-        urlComps.queryItems = queryItems?.toURLQueryItems(allowedReservedCharacters: allowedQueryReservedCharacters)
+        if let queryItems {
+            // we append both the query items already added to the URL and the new passed as parameters
+            let originalQI = urlComps.queryItems ?? []
+            urlComps.queryItems = originalQI + queryItems.toURLQueryItems(allowedReservedCharacters: allowedQueryReservedCharacters)
+        }
         guard let finalURL = urlComps.url else {
+            assertionFailure("Malformed URL from URLComponents: \(urlComps)")
             return nil
         }
         var request = URLRequest(url: finalURL, timeoutInterval: timeoutInterval)
@@ -65,6 +88,7 @@ public struct APIRequestV2: CustomDebugStringConvertible {
             request.cachePolicy = cachePolicy
         }
         self.urlRequest = request
+        self.retryPolicy = retryPolicy
     }
 
     public var debugDescription: String {
@@ -77,6 +101,35 @@ public struct APIRequestV2: CustomDebugStringConvertible {
         Timeout Interval: \(timeoutInterval)s
         Cache Policy: \(urlRequest.cachePolicy)
         Response Constraints: \(responseConstraints?.map { $0.rawValue } ?? [])
+        Retry Policy: \(retryPolicy?.debugDescription ?? "None")
         """
+    }
+
+    public mutating func updateAuthorizationHeader(_ token: String) {
+        self.urlRequest.allHTTPHeaderFields?[HTTPHeaderKey.authorization] = "Bearer \(token)"
+    }
+
+    public var isAuthenticated: Bool {
+        return urlRequest.allHTTPHeaderFields?[HTTPHeaderKey.authorization] != nil
+    }
+
+    // MARK: Hashable Conformance
+
+    public static func == (lhs: APIRequestV2, rhs: APIRequestV2) -> Bool {
+        let urlLhs = lhs.urlRequest.url?.pathComponents.joined(separator: "/")
+        let urlRhs = rhs.urlRequest.url?.pathComponents.joined(separator: "/")
+
+        return urlLhs == urlRhs &&
+        lhs.timeoutInterval == rhs.timeoutInterval &&
+        lhs.responseConstraints == rhs.responseConstraints &&
+        lhs.retryPolicy == rhs.retryPolicy
+    }
+
+    public func hash(into hasher: inout Hasher) {
+        let urlPath = urlRequest.url?.pathComponents.joined(separator: "/")
+        hasher.combine(urlPath)
+        hasher.combine(timeoutInterval)
+        hasher.combine(responseConstraints)
+        hasher.combine(retryPolicy)
     }
 }

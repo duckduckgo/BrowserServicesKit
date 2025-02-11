@@ -96,7 +96,8 @@ open class DefaultConfigurationManager: NSObject {
 
     public func start() {
         Logger.config.debug("Starting configuration refresh timer")
-        refreshTask = Task.periodic(interval: Constants.refreshCheckIntervalSeconds) {
+        refreshTask = Task.periodic(delay: Constants.refreshCheckIntervalSeconds, // add initial delay as we‘re firing `refreshNow`
+                                    interval: Constants.refreshCheckIntervalSeconds) { [weak self] in
             Self.queue.async { [weak self] in
                 self?.lastRefreshCheckTime = Date()
                 self?.refreshIfNeeded()

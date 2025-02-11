@@ -374,7 +374,6 @@ class NavigationResponderMock: NavigationResponder {
 
     var onDidTerminate: (@MainActor (WKProcessTerminationReason?) -> Void)?
     func webContentProcessDidTerminate(with reason: WKProcessTerminationReason?) {
-        let event = append(.didTerminate(reason))
         onDidTerminate?(reason)
     }
 

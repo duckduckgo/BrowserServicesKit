@@ -22,6 +22,10 @@ import os.log
 
 public protocol NetworkProtectionKeyStore {
 
+    /// Obtain the current expiration date
+    ///
+    var currentExpirationDate: Date? { get }
+
     /// Obtain the current `KeyPair`.
     ///
     func currentKeyPair() -> KeyPair?
@@ -75,17 +79,17 @@ public final class NetworkProtectionKeychainKeyStore: NetworkProtectionKeyStore 
     // MARK: - NetworkProtectionKeyStore
 
     public func currentKeyPair() -> KeyPair? {
-        Logger.networkProtectionKeyManagement.debug("Querying the current key pair (publicKey: \(String(describing: self.currentPublicKey), privacy: .public), expirationDate: \(String(describing: self.currentExpirationDate), privacy: .public))")
+        Logger.networkProtectionKeyManagement.log("Querying the current key pair (publicKey: \(String(describing: self.currentPublicKey), privacy: .public), expirationDate: \(String(describing: self.currentExpirationDate), privacy: .public))")
 
         guard let currentPrivateKey = currentPrivateKey else {
-            Logger.networkProtectionKeyManagement.debug("There's no current private key.")
+            Logger.networkProtectionKeyManagement.log("There's no current private key.")
             return nil
         }
 
         guard let currentExpirationDate = currentExpirationDate,
               Date().addingTimeInterval(validityInterval) >= currentExpirationDate else {
 
-            Logger.networkProtectionKeyManagement.debug("The expirationDate date is missing, or we're past it (now: \(String(describing: Date()), privacy: .public), expirationDate: \(String(describing: self.currentExpirationDate), privacy: .public))")
+            Logger.networkProtectionKeyManagement.log("The expirationDate date is missing, or we're past it (now: \(String(describing: Date()), privacy: .public), expirationDate: \(String(describing: self.currentExpirationDate), privacy: .public))")
             return nil
         }
 
@@ -145,7 +149,7 @@ public final class NetworkProtectionKeychainKeyStore: NetworkProtectionKeyStore 
 
     // MARK: - UserDefaults
 
-    var currentExpirationDate: Date? {
+    public var currentExpirationDate: Date? {
         get {
             return userDefaults.object(forKey: UserDefaultKeys.expirationDate) as? Date
         }
@@ -218,6 +222,8 @@ public final class NetworkProtectionKeychainKeyStore: NetworkProtectionKeyStore 
     // MARK: - EventMapping
 
     private func handle(_ error: Error) {
+        Logger.networkProtectionKeyManagement.error("Failed to perform operation: \(error, privacy: .public)")
+
         guard let error = error as? NetworkProtectionKeychainStoreError else {
             assertionFailure("Failed to cast Network Protection Keychain store error")
             errorEvents?.fire(NetworkProtectionError.unhandledError(function: #function, line: #line, error: error))

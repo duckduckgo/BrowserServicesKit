@@ -30,12 +30,17 @@ public struct DefaultRemoteMessagingSurveyURLBuilder: RemoteMessagingSurveyActio
 
     private let statisticsStore: StatisticsStore
     private let vpnActivationDateStore: VPNActivationDateProviding
-    private let subscription: Subscription?
+    private let subscription: PrivacyProSubscription?
+    private let localeIdentifier: String
 
-    public init(statisticsStore: StatisticsStore, vpnActivationDateStore: VPNActivationDateProviding, subscription: Subscription?) {
+    public init(statisticsStore: StatisticsStore,
+                vpnActivationDateStore: VPNActivationDateProviding,
+                subscription: PrivacyProSubscription?,
+                localeIdentifier: String = Locale.current.identifier) {
         self.statisticsStore = statisticsStore
         self.vpnActivationDateStore = vpnActivationDateStore
         self.subscription = subscription
+        self.localeIdentifier = localeIdentifier
     }
 
     // swiftlint:disable:next cyclomatic_complexity
@@ -72,6 +77,9 @@ public struct DefaultRemoteMessagingSurveyURLBuilder: RemoteMessagingSurveyActio
                    let daysSinceInstall = Calendar.current.numberOfDaysBetween(installDate, and: Date()) {
                     queryItems.append(URLQueryItem(name: parameter.rawValue, value: String(describing: daysSinceInstall)))
                 }
+            case .locale:
+                let formattedLocale = LocaleMatchingAttribute.localeIdentifierAsJsonFormat(localeIdentifier)
+                queryItems.append(URLQueryItem(name: parameter.rawValue, value: formattedLocale))
             case .privacyProStatus:
                 if let privacyProStatusSurveyParameter = subscription?.privacyProStatusSurveyParameter {
                     queryItems.append(URLQueryItem(name: parameter.rawValue, value: privacyProStatusSurveyParameter))
@@ -126,7 +134,7 @@ public struct DefaultRemoteMessagingSurveyURLBuilder: RemoteMessagingSurveyActio
 
 }
 
-extension Subscription {
+extension PrivacyProSubscription {
     var privacyProStatusSurveyParameter: String {
         switch status {
         case .autoRenewable:

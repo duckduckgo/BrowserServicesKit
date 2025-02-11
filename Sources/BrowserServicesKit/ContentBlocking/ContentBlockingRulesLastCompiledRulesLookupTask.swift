@@ -41,32 +41,49 @@ extension ContentBlockerRulesManager {
             self.lastCompiledRules = lastCompiledRules
         }
 
-        func fetchCachedRulesLists() async throws {
+        func fetchCachedRulesLists() -> [Rules]? {
             let sourceRulesNames = sourceRules.map { $0.name }
             let filteredBySourceLastCompiledRules = lastCompiledRules.filter { sourceRulesNames.contains($0.name) }
 
             guard filteredBySourceLastCompiledRules.count == sourceRules.count else {
                 // We should only load rule lists from cache, in case we can match every one of these
-                throw WKError(.contentRuleListStoreLookUpFailed)
+                return nil
             }
 
             var result: [CachedRulesList] = []
-            for rules in filteredBySourceLastCompiledRules {
-                guard let ruleList = try await Task(operation: { @MainActor in
-                    try await WKContentRuleListStore.default().contentRuleList(forIdentifier: rules.identifier.stringValue)
-                }).value else { throw WKError(.contentRuleListStoreLookUpFailed) }
+            let group = DispatchGroup()
 
-                result.append(CachedRulesList(name: rules.name,
-                                              rulesList: ruleList,
-                                              tds: rules.trackerData,
-                                              rulesIdentifier: rules.identifier))
+            for rules in filteredBySourceLastCompiledRules {
+                group.enter()
+
+                DispatchQueue.main.async {
+                    // This needs to be called from the main thread.
+                    WKContentRuleListStore.default().lookUpContentRuleList(forIdentifier: rules.identifier.stringValue) { ruleList, error in
+                        guard let ruleList, error == nil else {
+                            group.leave()
+                            return
+                        }
+
+                        result.append(CachedRulesList(name: rules.name,
+                                                      rulesList: ruleList,
+                                                      tds: rules.trackerData,
+                                                      rulesIdentifier: rules.identifier))
+                        group.leave()
+                    }
+                }
             }
-            self.result = result
+
+            let operationResult = group.wait(timeout: .now() + 6)
+
+            guard operationResult == .success, result.count == filteredBySourceLastCompiledRules.count else {
+                return nil
+            }
+
+            return getRules(from: result)
         }
 
-        public func getFetchedRules() -> [Rules]? {
-            guard let result else { return nil }
-            return result.map {
+        public func getRules(from cached: [CachedRulesList]) -> [Rules] {
+            return cached.map {
                 let surrogateTDS = ContentBlockerRulesManager.extractSurrogates(from: $0.tds)
                 let encodedData = try? JSONEncoder().encode(surrogateTDS)
                 let encodedTrackerData = String(data: encodedData!, encoding: .utf8)!

@@ -18,7 +18,7 @@
 
 import Foundation
 import Persistence
-import TestUtils
+import PersistenceTestingUtils
 @testable import Configuration
 
 final class MockStoreWithStorage: ConfigurationStoring {

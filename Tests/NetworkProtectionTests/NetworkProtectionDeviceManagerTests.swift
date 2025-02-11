@@ -22,7 +22,7 @@ import XCTest
 @testable import NetworkProtectionTestUtils
 
 final class NetworkProtectionDeviceManagerTests: XCTestCase {
-    var tokenStore: NetworkProtectionTokenStoreMock!
+    var tokenHandler: SubscriptionTokenHandlingMock!
     var keyStore: NetworkProtectionKeyStoreMock!
     var networkClient: MockNetworkProtectionClient!
     var temporaryURL: URL!
@@ -30,22 +30,22 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
 
     override func setUp() {
         super.setUp()
-        tokenStore = NetworkProtectionTokenStoreMock()
-        tokenStore.token = "initialtoken"
+        tokenHandler = SubscriptionTokenHandlingMock()
+        tokenHandler.token = "initialtoken"
         keyStore = NetworkProtectionKeyStoreMock()
         networkClient = MockNetworkProtectionClient()
         temporaryURL = temporaryFileURL()
 
         manager = NetworkProtectionDeviceManager(
             networkClient: networkClient,
-            tokenStore: tokenStore,
+            tokenHandler: tokenHandler,
             keyStore: keyStore,
             errorEvents: nil
         )
     }
 
     override func tearDown() {
-        tokenStore = nil
+        tokenHandler = nil
         keyStore = nil
         temporaryURL = nil
         manager = nil
@@ -112,21 +112,21 @@ final class NetworkProtectionDeviceManagerTests: XCTestCase {
         _ = NetworkProtectionServer.mockRegisteredServer
         networkClient.stubRegister = .failure(.invalidAuthToken)
 
-        XCTAssertNotNil(tokenStore.token)
+        XCTAssertNotNil(tokenHandler.token)
 
         _ = try? await manager.generateTunnelConfiguration(selectionMethod: .automatic, regenerateKey: false)
 
-        XCTAssertNil(tokenStore.token)
+        XCTAssertNil(tokenHandler.token)
     }
 
     func testWhenGeneratingTunnelConfig_storedAuthTokenIsInvalidOnRegisteringServer_deletesToken() async {
         networkClient.stubRegister = .failure(.invalidAuthToken)
 
-        XCTAssertNotNil(tokenStore.token)
+        XCTAssertNotNil(tokenHandler.token)
 
         _ = try? await manager.generateTunnelConfiguration(selectionMethod: .automatic, regenerateKey: false)
 
-        XCTAssertNil(tokenStore.token)
+        XCTAssertNil(tokenHandler.token)
     }
 
     func testDecodingServers() throws {
@@ -212,10 +212,8 @@ extension NetworkProtectionDeviceManager {
                                      regenerateKey: Bool) async throws -> NetworkProtectionDeviceManager.GenerateTunnelConfigurationResult {
         try await generateTunnelConfiguration(
             resolvedSelectionMethod: selectionMethod,
-            includedRoutes: [],
-            excludedRoutes: [],
+            excludeLocalNetworks: false,
             dnsSettings: .default,
-            isKillSwitchEnabled: false,
             regenerateKey: regenerateKey
         )
     }

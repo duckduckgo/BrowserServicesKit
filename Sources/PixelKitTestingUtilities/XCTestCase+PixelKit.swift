@@ -97,7 +97,7 @@ public extension XCTestCase {
         let knownExpectedParameters = knownExpectedParameters(for: event)
         let callbackExecutedExpectation = expectation(description: "The PixelKit callback has been executed")
 
-        if frequency == .dailyAndCount {
+        if frequency == .legacyDailyAndCount {
             callbackExecutedExpectation.expectedFulfillmentCount = 2
         }
 
@@ -123,7 +123,7 @@ public extension XCTestCase {
                 firedParameters[key] == value
             }, file: file, line: line)
 
-            if frequency == .dailyAndCount {
+            if frequency == .legacyDailyAndCount {
                 XCTAssertTrue(firedPixelName.hasPrefix(expectations.pixelName))
                 XCTAssertTrue(firedPixelName.hasSuffix("_c") || firedPixelName.hasSuffix("_d"))
                 XCTAssertEqual(firedPixelName.count, expectations.pixelName.count + 2)
@@ -149,15 +149,23 @@ public extension XCTestCase {
             expectedPixelNames.append(originalName)
         case .legacyInitial:
             expectedPixelNames.append(originalName)
-        case .unique:
+        case .uniqueByName:
             expectedPixelNames.append(originalName)
         case .legacyDaily:
             expectedPixelNames.append(originalName)
         case .daily:
             expectedPixelNames.append(originalName.appending("_d"))
-        case .dailyAndCount:
+        case .legacyDailyAndCount:
             expectedPixelNames.append(originalName.appending("_d"))
             expectedPixelNames.append(originalName.appending("_c"))
+        case .dailyAndCount:
+            expectedPixelNames.append(originalName.appending("_daily"))
+            expectedPixelNames.append(originalName.appending("_count"))
+        case .dailyAndStandard:
+            expectedPixelNames.append(originalName.appending("_daily"))
+            expectedPixelNames.append(originalName)
+        case .uniqueByNameAndParameters:
+            expectedPixelNames.append(originalName)
         }
         return expectedPixelNames
     }

@@ -223,7 +223,16 @@ final class SuggestionProcessing {
             // Filter not relevant
             .filter { $0.score > 0 }
             // Sort according to the score
-            .sorted { $0.score > $1.score }
+            .sorted {
+                switch ($0.item, $1.item) {
+                // place open tab suggestions on top
+                case (.openTab, .openTab): break
+                case (.openTab, _): return true
+                case (_, .openTab): return false
+                default: break
+                }
+                return $0.score > $1.score
+            }
             // Create suggestion array
             .compactMap {
                 switch $0.item {

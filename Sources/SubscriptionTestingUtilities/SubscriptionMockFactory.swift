@@ -22,32 +22,35 @@ import Foundation
 /// Provides all mocks needed for testing subscription initialised with positive outcomes and basic configurations. All mocks can be partially reconfigured with failures or incorrect data
 public struct SubscriptionMockFactory {
 
-    public static let subscription = Subscription(productId: UUID().uuidString,
+    public static let appleSubscription = PrivacyProSubscription(productId: UUID().uuidString,
                                                   name: "Subscription test #1",
                                                   billingPeriod: .monthly,
                                                   startedAt: Date(),
                                                   expiresOrRenewsAt: Date().addingTimeInterval(TimeInterval.days(+30)),
                                                   platform: .apple,
-                                                  status: .autoRenewable)
-    public static let expiredSubscription = Subscription(productId: UUID().uuidString,
+                                                  status: .autoRenewable,
+                                                  activeOffers: [])
+    public static let expiredSubscription = PrivacyProSubscription(productId: UUID().uuidString,
                                                          name: "Subscription test #2",
                                                          billingPeriod: .monthly,
                                                          startedAt: Date().addingTimeInterval(TimeInterval.days(-31)),
                                                          expiresOrRenewsAt: Date().addingTimeInterval(TimeInterval.days(-1)),
                                                          platform: .apple,
-                                                         status: .expired)
+                                                         status: .expired,
+                                                         activeOffers: [])
 
-    public static let expiredStripeSubscription = Subscription(productId: UUID().uuidString,
+    public static let expiredStripeSubscription = PrivacyProSubscription(productId: UUID().uuidString,
                                                          name: "Subscription test #2",
                                                          billingPeriod: .monthly,
                                                          startedAt: Date().addingTimeInterval(TimeInterval.days(-31)),
                                                          expiresOrRenewsAt: Date().addingTimeInterval(TimeInterval.days(-1)),
                                                          platform: .stripe,
-                                                         status: .expired)
+                                                         status: .expired,
+                                                         activeOffers: [])
 
-    public static let productsItems: [GetProductsItem] = [GetProductsItem(productId: subscription.productId,
-                                                                          productLabel: subscription.name,
-                                                                          billingPeriod: subscription.billingPeriod.rawValue,
+    public static let productsItems: [GetProductsItem] = [GetProductsItem(productId: appleSubscription.productId,
+                                                                          productLabel: appleSubscription.name,
+                                                                          billingPeriod: appleSubscription.billingPeriod.rawValue,
                                                                           price: "0.99",
                                                                           currency: "USD")]
 }

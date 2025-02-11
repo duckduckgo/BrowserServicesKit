@@ -23,7 +23,19 @@ import os.log
 
 public typealias BrowsingHistory = [HistoryEntry]
 
-public protocol HistoryCoordinating: AnyObject {
+/**
+ * This protocol allows for debugging History.
+ */
+public protocol HistoryCoordinatingDebuggingSupport {
+    /**
+     * Adds visit at an arbitrary time, rather than current timestamp.
+     *
+     * > This function shouldn't be used in production code. Instead, `addVisit(of: URL)` should be used.
+     */
+    @discardableResult func addVisit(of url: URL, at date: Date) -> Visit?
+}
+
+public protocol HistoryCoordinating: AnyObject, HistoryCoordinatingDebuggingSupport {
 
     func loadHistory(onCleanFinished: @escaping () -> Void)
 
@@ -44,6 +56,13 @@ public protocol HistoryCoordinating: AnyObject {
     func burnDomains(_ baseDomains: Set<String>, tld: TLD, completion: @escaping (Set<URL>) -> Void)
     func burnVisits(_ visits: [Visit], completion: @escaping () -> Void)
 
+    func removeUrlEntry(_ url: URL, completion: ((Error?) -> Void)?)
+}
+
+extension HistoryCoordinating {
+    public func addVisit(of url: URL) -> Visit? {
+        addVisit(of: url, at: Date())
+    }
 }
 
 /// Coordinates access to History. Uses its own queue with high qos for all operations.
@@ -85,14 +104,14 @@ final public class HistoryCoordinator: HistoryCoordinating {
 
     private var cancellables = Set<AnyCancellable>()
 
-    @discardableResult public func addVisit(of url: URL) -> Visit? {
+    @discardableResult public func addVisit(of url: URL, at date: Date) -> Visit? {
         guard let historyDictionary = historyDictionary else {
             Logger.history.debug("Visit of \(url.absoluteString) ignored")
             return nil
         }
 
         let entry = historyDictionary[url] ?? HistoryEntry(url: url)
-        let visit = entry.addVisit()
+        let visit = entry.addVisit(at: date)
         entry.failedToLoad = false
 
         self.historyDictionary?[url] = entry
@@ -189,6 +208,20 @@ final public class HistoryCoordinator: HistoryCoordinating {
         removeVisits(visits) { _ in
             completion()
         }
+    }
+
+    public enum EntryRemovalError: Error {
+        case notAvailable
+    }
+
+    public func removeUrlEntry(_ url: URL, completion: ((Error?) -> Void)? = nil) {
+        guard let historyDictionary = historyDictionary else { return }
+        guard let entry = historyDictionary[url] else {
+            completion?(EntryRemovalError.notAvailable)
+            return
+        }
+
+        removeEntries([entry], completionHandler: completion)
     }
 
     var cleaningDate: Date { .monthAgo }

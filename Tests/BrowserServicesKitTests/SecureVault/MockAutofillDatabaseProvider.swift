@@ -19,6 +19,7 @@
 import Foundation
 import GRDB
 import SecureStorage
+import Common
 
 @testable import BrowserServicesKit
 
@@ -57,8 +58,11 @@ internal class MockAutofillDatabaseProvider: AutofillDatabaseProvider {
             _credentialsDict[accountID] = credentials
             return accountID
         } else {
+            var credentialsToStore = credentials
             let id = Int64(_credentialsDict.count + 1)
-            _credentialsDict[id] = credentials
+            credentialsToStore.account.id = String(id)
+            _credentialsDict[id] = credentialsToStore
+            _accounts.append(credentialsToStore.account)
             return id
         }
     }
@@ -68,11 +72,15 @@ internal class MockAutofillDatabaseProvider: AutofillDatabaseProvider {
     }
 
     func websiteCredentialsForDomain(_ domain: String) throws -> [BrowserServicesKit.SecureVaultModels.WebsiteCredentials] {
-        return _credentialsForDomainDict[domain] ?? []
+        return _credentialsForDomainDict[domain] ?? _credentialsDict.values.filter {
+            $0.account.domain == domain
+        }
     }
 
     func websiteCredentialsForTopLevelDomain(_ eTLDplus1: String) throws -> [BrowserServicesKit.SecureVaultModels.WebsiteCredentials] {
-        return _credentialsForDomainDict[eTLDplus1] ?? []
+        return _credentialsForDomainDict[eTLDplus1] ?? _credentialsDict.values.filter {
+            TLD().eTLDplus1($0.account.domain) == eTLDplus1
+        }
     }
 
     func websiteAccountsForDomain(_ domain: String) throws -> [SecureVaultModels.WebsiteAccount] {

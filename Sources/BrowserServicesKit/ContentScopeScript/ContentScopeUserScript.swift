@@ -27,13 +27,15 @@ public final class ContentScopeProperties: Encodable {
     public let globalPrivacyControlValue: Bool
     public let debug: Bool = false
     public let sessionKey: String
+    public let messageSecret: String
     public let languageCode: String
     public let platform = ContentScopePlatform()
     public let features: [String: ContentScopeFeature]
 
-    public init(gpcEnabled: Bool, sessionKey: String, featureToggles: ContentScopeFeatureToggles) {
+    public init(gpcEnabled: Bool, sessionKey: String, messageSecret: String, featureToggles: ContentScopeFeatureToggles) {
         self.globalPrivacyControlValue = gpcEnabled
         self.sessionKey = sessionKey
+        self.messageSecret = messageSecret
         languageCode = Locale.current.languageCode ?? "en"
         features = [
             "autofill": ContentScopeFeature(featureToggles: featureToggles)
@@ -47,6 +49,7 @@ public final class ContentScopeProperties: Encodable {
         case globalPrivacyControlValue
         case debug
         case sessionKey
+        case messageSecret
         case platform
         case features
     }
@@ -79,6 +82,8 @@ public struct ContentScopeFeatureToggles: Encodable {
 
     public let unknownUsernameCategorization: Bool
 
+    public let partialFormSaves: Bool
+
     // Explicitly defined memberwise init only so it can be public
     public init(emailProtection: Bool,
                 emailProtectionIncontextSignup: Bool,
@@ -89,7 +94,8 @@ public struct ContentScopeFeatureToggles: Encodable {
                 passwordGeneration: Bool,
                 inlineIconCredentials: Bool,
                 thirdPartyCredentialsProvider: Bool,
-                unknownUsernameCategorization: Bool) {
+                unknownUsernameCategorization: Bool,
+                partialFormSaves: Bool) {
 
         self.emailProtection = emailProtection
         self.emailProtectionIncontextSignup = emailProtectionIncontextSignup
@@ -101,6 +107,7 @@ public struct ContentScopeFeatureToggles: Encodable {
         self.inlineIconCredentials = inlineIconCredentials
         self.thirdPartyCredentialsProvider = thirdPartyCredentialsProvider
         self.unknownUsernameCategorization = unknownUsernameCategorization
+        self.partialFormSaves = partialFormSaves
     }
 
     enum CodingKeys: String, CodingKey {
@@ -118,6 +125,7 @@ public struct ContentScopeFeatureToggles: Encodable {
         case inlineIconCredentials = "inlineIcon_credentials"
         case thirdPartyCredentialsProvider = "third_party_credentials_provider"
         case unknownUsernameCategorization = "unknown_username_categorization"
+        case partialFormSaves = "partial_form_saves"
     }
 }
 

@@ -16,6 +16,9 @@
 //  limitations under the License.
 //
 
+// Tests are disabled on iOS due to WKWebView stability issues on the iOS 17.5+ simulator.
+#if os(macOS)
+
 import XCTest
 import TrackerRadarKit
 import BrowserServicesKit
@@ -200,7 +203,8 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
 
         let errorExp = expectation(description: "No error reported")
         errorExp.isInverted = true
-        let compilationTimeExp = expectation(description: "Compilation Time reported")
+
+        let lookupAndFetchExp =  expectation(description: "Look and Fetch rules failed")
         let errorHandler = EventMapping<ContentBlockerDebugEvents> { event, _, params, _ in
             if case .contentBlockingCompilationFailed(let listName, let component) = event {
                 XCTAssertEqual(listName, DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName)
@@ -211,9 +215,10 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                     XCTFail("Unexpected component: \(component)")
                 }
 
-            } else if case .contentBlockingCompilationTime = event {
-                XCTAssertNotNil(params?["compilationTime"])
-                compilationTimeExp.fulfill()
+            } else if case .contentBlockingLRCMissing = event {
+                lookupAndFetchExp.fulfill()
+            } else if case .contentBlockingCompilationTaskPerformance(let iterationCount, _) = event {
+                XCTAssertEqual(iterationCount, 1)
             } else {
                 XCTFail("Unexpected event: \(event)")
             }
@@ -224,7 +229,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                                               updateListener: rulesUpdateListener,
                                               errorReporting: errorHandler)
 
-        wait(for: [exp, errorExp, compilationTimeExp], timeout: 15.0)
+        wait(for: [exp, errorExp, lookupAndFetchExp], timeout: 15.0)
 
         XCTAssertNotNil(cbrm.currentRules)
         XCTAssertEqual(cbrm.currentRules.first?.etag, mockRulesSource.trackerData?.etag)
@@ -251,6 +256,8 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         }
 
         let errorExp = expectation(description: "Error reported")
+        let lookupAndFetchExp =  expectation(description: "Look and Fetch rules failed")
+
         let errorHandler = EventMapping<ContentBlockerDebugEvents> { event, _, params, _ in
             if case .contentBlockingCompilationFailed(let listName, let component) = event {
                 XCTAssertEqual(listName, DefaultContentBlockerRulesListsSource.Constants.trackerDataSetRulesListName)
@@ -261,8 +268,10 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                     XCTFail("Unexpected component: \(component)")
                 }
 
-            } else if case .contentBlockingCompilationTime = event {
-                XCTAssertNotNil(params?["compilationTime"])
+            } else if case .contentBlockingCompilationTaskPerformance(let iterationCount, _) = event {
+                XCTAssertEqual(iterationCount, 2)
+            } else if case .contentBlockingLRCMissing = event {
+                lookupAndFetchExp.fulfill()
             } else {
                 XCTFail("Unexpected event: \(event)")
             }
@@ -273,7 +282,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                                               updateListener: rulesUpdateListener,
                                               errorReporting: errorHandler)
 
-        wait(for: [exp, errorExp], timeout: 15.0)
+        wait(for: [exp, errorExp, lookupAndFetchExp], timeout: 15.0)
 
         XCTAssertNotNil(cbrm.currentRules)
         XCTAssertEqual(cbrm.currentRules.first?.etag, mockRulesSource.embeddedTrackerData.etag)
@@ -535,7 +544,10 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         }
 
         let errorExp = expectation(description: "Error reported")
-        errorExp.expectedFulfillmentCount = 5
+        errorExp.expectedFulfillmentCount = 4
+
+        let lookupAndFetchExp =  expectation(description: "Look and Fetch rules failed")
+
         var errorEvents = [ContentBlockerDebugEvents.Component]()
         let errorHandler = EventMapping<ContentBlockerDebugEvents> { event, _, params, _ in
             if case .contentBlockingCompilationFailed(let listName, let component) = event {
@@ -548,9 +560,10 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                     XCTFail("Unexpected component: \(component)")
                 }
 
-            } else if case .contentBlockingCompilationTime = event {
-                XCTAssertNotNil(params?["compilationTime"])
-                errorExp.fulfill()
+            } else if case .contentBlockingLRCMissing = event {
+                lookupAndFetchExp.fulfill()
+            } else if case .contentBlockingCompilationTaskPerformance(let iterationCount, _) = event {
+                XCTAssertEqual(iterationCount, 5)
             } else {
                 XCTFail("Unexpected event: \(event)")
             }
@@ -561,7 +574,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                                               updateListener: rulesUpdateListener,
                                               errorReporting: errorHandler)
 
-        wait(for: [exp, errorExp], timeout: 15.0)
+        wait(for: [exp, errorExp, lookupAndFetchExp], timeout: 15.0)
 
         XCTAssertEqual(Set(errorEvents), Set([.tds,
                                               .tempUnprotected,
@@ -615,7 +628,10 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
         }
 
         let errorExp = expectation(description: "Error reported")
-        errorExp.expectedFulfillmentCount = 4
+        errorExp.expectedFulfillmentCount = 3
+
+        let lookupAndFetchExp =  expectation(description: "Look and Fetch rules failed")
+
         var errorEvents = [ContentBlockerDebugEvents.Component]()
         let errorHandler = EventMapping<ContentBlockerDebugEvents> { event, _, params, _ in
             if case .contentBlockingCompilationFailed(let listName, let component) = event {
@@ -628,10 +644,12 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                     XCTFail("Unexpected component: \(component)")
                 }
 
-            } else if case .contentBlockingCompilationTime = event {
-                XCTAssertNotNil(params?["compilationTime"])
-                errorExp.fulfill()
-            } else {
+            } else if case .contentBlockingCompilationTaskPerformance(let iterationCount, _) = event {
+                XCTAssertEqual(iterationCount, 4)
+            } else if case .contentBlockingLRCMissing = event {
+                lookupAndFetchExp.fulfill()
+            } else
+            {
                 XCTFail("Unexpected event: \(event)")
             }
         }
@@ -641,7 +659,7 @@ class ContentBlockerRulesManagerLoadingTests: ContentBlockerRulesManagerTests {
                                               updateListener: rulesUpdateListener,
                                               errorReporting: errorHandler)
 
-        wait(for: [exp, errorExp], timeout: 15.0)
+        wait(for: [exp, errorExp, lookupAndFetchExp], timeout: 15.0)
 
         XCTAssertEqual(Set(errorEvents), Set([.tempUnprotected,
                                               .allowlist,
@@ -1243,3 +1261,5 @@ extension ContentBlockerRulesManager {
     }
 
 }
+
+#endif

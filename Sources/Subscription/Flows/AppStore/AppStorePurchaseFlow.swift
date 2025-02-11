@@ -20,24 +20,41 @@ import Foundation
 import StoreKit
 import os.log
 
-public enum AppStorePurchaseFlowError: Swift.Error {
-    case noProductsFound
-    case activeSubscriptionAlreadyPresent
-    case authenticatingWithTransactionFailed
-    case accountCreationFailed
-    case purchaseFailed
-    case cancelledByUser
-    case missingEntitlements
-    case internalError
-}
-
 @available(macOS 12.0, iOS 15.0, *)
 public protocol AppStorePurchaseFlow {
     typealias TransactionJWS = String
     func purchaseSubscription(with subscriptionIdentifier: String, emailAccessToken: String?) async -> Result<AppStorePurchaseFlow.TransactionJWS, AppStorePurchaseFlowError>
-    @discardableResult
-    func completeSubscriptionPurchase(with transactionJWS: AppStorePurchaseFlow.TransactionJWS) async -> Result<PurchaseUpdate, AppStorePurchaseFlowError>
-}
+
+    /// Completes the subscription purchase by validating the transaction.
+      ///
+      /// - Parameters:
+      ///   - transactionJWS: The JWS representation of the transaction to be validated.
+      ///   - additionalParams: Optional additional parameters to send with the transaction validation request.
+      /// - Returns: A `Result` containing either a `PurchaseUpdate` object on success or an `AppStorePurchaseFlowError` on failure.
+      @discardableResult
+      func completeSubscriptionPurchase(
+          with transactionJWS: TransactionJWS,
+          additionalParams: [String: String]?
+      ) async -> Result<PurchaseUpdate, AppStorePurchaseFlowError>
+  }
+
+  @available(macOS 12.0, iOS 15.0, *)
+  public extension AppStorePurchaseFlow {
+
+      /// Completes the subscription purchase by validating the transaction without additional parameters.
+      ///
+      /// This is a convenience method that calls the main `completeSubscriptionPurchase(with:additionalParams:)` method
+      /// with `nil` as the value for `additionalParams`.
+      ///
+      /// - Parameters:
+      ///   - transactionJWS: The JWS representation of the transaction to be validated.
+      /// - Returns: A `Result` containing either a `PurchaseUpdate` object on success or an `AppStorePurchaseFlowError` on failure.
+      func completeSubscriptionPurchase(
+          with transactionJWS: TransactionJWS
+      ) async -> Result<PurchaseUpdate, AppStorePurchaseFlowError> {
+          await completeSubscriptionPurchase(with: transactionJWS, additionalParams: nil)
+      }
+  }
 
 @available(macOS 12.0, iOS 15.0, *)
 public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
@@ -93,7 +110,7 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
                         }
                     case .failure(let error):
                         Logger.subscription.error("[AppStorePurchaseFlow] createAccount error: \(String(reflecting: error), privacy: .public)")
-                        return .failure(.accountCreationFailed)
+                        return .failure(.accountCreationFailed(error))
                     }
                 }
             }
@@ -110,13 +127,13 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
             case .purchaseCancelledByUser:
                 return .failure(.cancelledByUser)
             default:
-                return .failure(.purchaseFailed)
+                return .failure(.purchaseFailed(error))
             }
         }
     }
 
     @discardableResult
-    public func completeSubscriptionPurchase(with transactionJWS: TransactionJWS) async -> Result<PurchaseUpdate, AppStorePurchaseFlowError> {
+    public func completeSubscriptionPurchase(with transactionJWS: TransactionJWS, additionalParams: [String: String]?) async -> Result<PurchaseUpdate, AppStorePurchaseFlowError> {
 
         // Clear subscription Cache
         subscriptionEndpointService.signOut()
@@ -126,7 +143,7 @@ public final class DefaultAppStorePurchaseFlow: AppStorePurchaseFlow {
         guard let accessToken = accountManager.accessToken else { return .failure(.missingEntitlements) }
 
         let result = await callWithRetries(retry: 5, wait: 2.0) {
-            switch await subscriptionEndpointService.confirmPurchase(accessToken: accessToken, signature: transactionJWS) {
+            switch await subscriptionEndpointService.confirmPurchase(accessToken: accessToken, signature: transactionJWS, additionalParams: additionalParams) {
             case .success(let confirmation):
                 subscriptionEndpointService.updateCache(with: confirmation.subscription)
                 accountManager.updateCache(with: confirmation.entitlements)

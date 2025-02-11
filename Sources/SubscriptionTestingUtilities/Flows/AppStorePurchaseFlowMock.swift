@@ -22,14 +22,18 @@ import Subscription
 public final class AppStorePurchaseFlowMock: AppStorePurchaseFlow {
     public var purchaseSubscriptionResult: Result<TransactionJWS, AppStorePurchaseFlowError>?
     public var completeSubscriptionPurchaseResult: Result<PurchaseUpdate, AppStorePurchaseFlowError>?
+    public var purchaseSubscriptionBlock: (() -> Void)?
+    public var completeSubscriptionAdditionalParams: [String: String]?
 
     public init() { }
 
     public func purchaseSubscription(with subscriptionIdentifier: String, emailAccessToken: String?) async -> Result<TransactionJWS, AppStorePurchaseFlowError> {
-        purchaseSubscriptionResult!
+        purchaseSubscriptionBlock?()
+        return purchaseSubscriptionResult!
     }
 
-    public func completeSubscriptionPurchase(with transactionJWS: TransactionJWS) async -> Result<PurchaseUpdate, AppStorePurchaseFlowError> {
-        completeSubscriptionPurchaseResult!
+    public func completeSubscriptionPurchase(with transactionJWS: TransactionJWS, additionalParams: [String: String]?) async -> Result<PurchaseUpdate, AppStorePurchaseFlowError> {
+        completeSubscriptionAdditionalParams = additionalParams
+        return completeSubscriptionPurchaseResult!
     }
 }

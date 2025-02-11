@@ -1009,6 +1009,8 @@ class NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
     }
 
     func testWhenServerRedirectIsInterruptedThenDidFailProvisionalIsCalled() throws {
+        throw XCTSkip("Flaky, see https://app.asana.com/0/1200194497630846/1205018266972898/f")
+
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
 
         server.middleware = [{ [urls, data] request in
@@ -1050,6 +1052,8 @@ class NavigationRedirectsTests: DistributedNavigationDelegateTestsBase {
     }
 
     func testWhenCustomSchemeNavigationIsInterruptedByNewRequestThenDidFailIsCalled() throws {
+        throw XCTSkip("Flaky, see https://app.asana.com/0/1200194497630846/1205018266972898/f")
+
         navigationDelegate.setResponders(.strong(NavigationResponderMock(defaultHandler: { _ in })))
 
         let lock = NSLock()

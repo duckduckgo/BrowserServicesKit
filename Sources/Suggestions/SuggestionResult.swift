@@ -24,9 +24,9 @@ public struct SuggestionResult: Equatable {
         SuggestionResult(topHits: [], duckduckgoSuggestions: [], localSuggestions: [])
     }
 
-    private(set) public var topHits: [Suggestion]
-    private(set) public var duckduckgoSuggestions: [Suggestion]
-    private(set) public var localSuggestions: [Suggestion]
+    public let topHits: [Suggestion]
+    public let duckduckgoSuggestions: [Suggestion]
+    public let localSuggestions: [Suggestion]
 
     public init(topHits: [Suggestion],
                 duckduckgoSuggestions: [Suggestion],
@@ -49,7 +49,16 @@ public struct SuggestionResult: Equatable {
     }
 
     public var canBeAutocompleted: Bool {
-        !topHits.isEmpty
+        guard let firstTopHit = topHits.first else {
+            return false
+        }
+
+        // Disable autocompletion for website suggestions
+        if case .website = firstTopHit {
+            return false
+        }
+
+        return true
     }
 
 }

@@ -49,13 +49,13 @@ public actor NetworkProtectionServerStatusMonitor {
     }
 
     private let networkClient: NetworkProtectionClient
-    private let tokenStore: NetworkProtectionTokenStore
+    private let tokenHandler: any SubscriptionTokenHandling
 
     // MARK: - Init & deinit
 
-    init(networkClient: NetworkProtectionClient, tokenStore: NetworkProtectionTokenStore) {
+    init(networkClient: NetworkProtectionClient, tokenHandler: any SubscriptionTokenHandling) {
         self.networkClient = networkClient
-        self.tokenStore = tokenStore
+        self.tokenHandler = tokenHandler
 
         Logger.networkProtectionMemory.debug("[+] \(String(describing: self), privacy: .public)")
     }
@@ -69,7 +69,7 @@ public actor NetworkProtectionServerStatusMonitor {
     // MARK: - Start/Stop monitoring
 
     public func start(serverName: String, callback: @escaping (ServerStatusResult) -> Void) {
-        Logger.networkProtectionServerStatusMonitor.debug("⚫️ Starting server status monitor for \(serverName, privacy: .public)")
+        Logger.networkProtectionServerStatusMonitor.log("⚫️ Starting server status monitor for \(serverName, privacy: .public)")
 
         task = Task.periodic(delay: Self.monitoringInterval, interval: Self.monitoringInterval) {
             let result = await self.checkServerStatus(for: serverName)
@@ -77,10 +77,10 @@ public actor NetworkProtectionServerStatusMonitor {
             switch result {
             case .success(let serverStatus):
                 if serverStatus.shouldMigrate {
-                    Logger.networkProtectionMemory.debug("⚫️ Initiating server migration away from \(serverName, privacy: .public)")
+                    Logger.networkProtectionMemory.log("⚫️ Initiating server migration away from \(serverName, privacy: .public)")
                     callback(.serverMigrationRequested)
                 } else {
-                    Logger.networkProtectionMemory.debug("⚫️ No migration requested for \(serverName, privacy: .public)")
+                    Logger.networkProtectionMemory.log("⚫️ No migration requested for \(serverName, privacy: .public)")
                 }
             case .failure(let error):
                 Logger.networkProtectionMemory.error("⚫️ Error retrieving server status: \(error.localizedDescription, privacy: .public)")
@@ -90,7 +90,7 @@ public actor NetworkProtectionServerStatusMonitor {
     }
 
     public func stop() {
-        Logger.networkProtectionMemory.error("⚫️ Stopping server status monitor")
+        Logger.networkProtectionMemory.log("⚫️ Stopping server status monitor")
 
         task?.cancel()
         task = nil
@@ -99,11 +99,11 @@ public actor NetworkProtectionServerStatusMonitor {
     // MARK: - Server Status Check
 
     private func checkServerStatus(for serverName: String) async -> Result<NetworkProtectionServerStatus, NetworkProtectionClientError> {
-        guard let accessToken = try? tokenStore.fetchToken() else {
+        guard let accessToken = try? await VPNAuthTokenBuilder.getVPNAuthToken(from: tokenHandler) else {
+            Logger.networkProtection.fault("Failed to check server status due to lack of access token")
             assertionFailure("Failed to check server status due to lack of access token")
             return .failure(.invalidAuthToken)
         }
-
         return await networkClient.getServerStatus(authToken: accessToken, serverName: serverName)
     }
 

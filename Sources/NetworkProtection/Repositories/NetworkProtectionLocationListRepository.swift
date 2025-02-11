@@ -18,6 +18,7 @@
 
 import Foundation
 import Common
+import Networking
 
 public enum NetworkProtectionLocationListCachePolicy {
     case returnCacheElseLoad
@@ -36,24 +37,24 @@ final public class NetworkProtectionLocationListCompositeRepository: NetworkProt
     @MainActor private static var cacheTimestamp = Date()
     private static let cacheValidity = TimeInterval(60) // Refreshes at most once per minute
     private let client: NetworkProtectionClient
-    private let tokenStore: NetworkProtectionTokenStore
+    private let tokenHandler: any SubscriptionTokenHandling
     private let errorEvents: EventMapping<NetworkProtectionError>
 
     convenience public init(environment: VPNSettings.SelectedEnvironment,
-                            tokenStore: NetworkProtectionTokenStore,
+                            tokenHandler: any SubscriptionTokenHandling,
                             errorEvents: EventMapping<NetworkProtectionError>) {
         self.init(
             client: NetworkProtectionBackendClient(environment: environment),
-            tokenStore: tokenStore,
+            tokenHandler: tokenHandler,
             errorEvents: errorEvents
         )
     }
 
     init(client: NetworkProtectionClient,
-         tokenStore: NetworkProtectionTokenStore,
+         tokenHandler: any SubscriptionTokenHandling,
          errorEvents: EventMapping<NetworkProtectionError>) {
         self.client = client
-        self.tokenStore = tokenStore
+        self.tokenHandler = tokenHandler
         self.errorEvents = errorEvents
     }
 
@@ -87,7 +88,7 @@ final public class NetworkProtectionLocationListCompositeRepository: NetworkProt
     @discardableResult
     func fetchLocationListFromRemote() async throws -> [NetworkProtectionLocation] {
         do {
-            guard let authToken = try tokenStore.fetchToken() else {
+            guard let authToken = try? await VPNAuthTokenBuilder.getVPNAuthToken(from: tokenHandler) else {
                 throw NetworkProtectionError.noAuthTokenFound
             }
             Self.locationList = try await client.getLocations(authToken: authToken).get()

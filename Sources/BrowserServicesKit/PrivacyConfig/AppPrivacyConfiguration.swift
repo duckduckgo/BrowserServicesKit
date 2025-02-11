@@ -33,19 +33,23 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     private let locallyUnprotected: DomainsProtectionStore
     private let internalUserDecider: InternalUserDecider
     private let userDefaults: UserDefaults
+    private let locale: Locale
     private let installDate: Date?
+    static let experimentManagerQueue = DispatchQueue(label: "com.experimentManager.queue")
 
     public init(data: PrivacyConfigurationData,
                 identifier: String,
                 localProtection: DomainsProtectionStore,
                 internalUserDecider: InternalUserDecider,
                 userDefaults: UserDefaults = UserDefaults(),
+                locale: Locale = Locale.current,
                 installDate: Date? = nil) {
         self.data = data
         self.identifier = identifier
         self.locallyUnprotected = localProtection
         self.internalUserDecider = internalUserDecider
         self.userDefaults = userDefaults
+        self.locale = locale
         self.installDate = installDate
     }
 
@@ -137,13 +141,14 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         }
     }
 
-    private func isRolloutEnabled(subfeature: any PrivacySubfeature,
+    private func isRolloutEnabled(subfeatureID: SubfeatureID,
+                                  parentID: ParentFeatureID,
                                   rolloutSteps: [PrivacyConfigurationData.PrivacyFeature.Feature.RolloutStep],
                                   randomizer: (Range<Double>) -> Double) -> Bool {
         // Empty rollouts should be default enabled
         guard !rolloutSteps.isEmpty else { return true }
 
-        let defsPrefix = "config.\(subfeature.parent.rawValue).\(subfeature.rawValue)"
+        let defsPrefix = "config.\(parentID).\(subfeatureID)"
         if userDefaults.bool(forKey: "\(defsPrefix).\(Constants.enabledKey)") {
             return true
         }
@@ -182,7 +187,6 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     public func isSubfeatureEnabled(_ subfeature: any PrivacySubfeature,
                                     versionProvider: AppVersionProvider,
                                     randomizer: (Range<Double>) -> Double) -> Bool {
-
         switch stateFor(subfeature, versionProvider: versionProvider, randomizer: randomizer) {
         case .enabled:
             return true
@@ -191,17 +195,30 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         }
     }
 
-    public func stateFor(_ subfeature: any PrivacySubfeature, versionProvider: AppVersionProvider, randomizer: (Range<Double>) -> Double) -> PrivacyConfigurationFeatureState {
+    public func stateFor(_ subfeature: any PrivacySubfeature,
+                         versionProvider: AppVersionProvider,
+                         randomizer: (Range<Double>) -> Double) -> PrivacyConfigurationFeatureState {
+        guard let subfeatureData = subfeatures(for: subfeature.parent)[subfeature.rawValue] else {
+            return .disabled(.featureMissing)
+        }
 
-        let parentState = stateFor(featureKey: subfeature.parent, versionProvider: versionProvider)
+        return stateFor(subfeatureID: subfeature.rawValue, subfeatureData: subfeatureData, parentFeature: subfeature.parent, versionProvider: versionProvider, randomizer: randomizer)
+    }
+
+    private func stateFor(subfeatureID: SubfeatureID,
+                          subfeatureData: PrivacyConfigurationData.PrivacyFeature.Feature,
+                          parentFeature: PrivacyFeature,
+                          versionProvider: AppVersionProvider,
+                          randomizer: (Range<Double>) -> Double) -> PrivacyConfigurationFeatureState {
+        // Step 1: Check parent feature state
+        let parentState = stateFor(featureKey: parentFeature, versionProvider: versionProvider)
         guard case .enabled = parentState else { return parentState }
 
-        let subfeatures = subfeatures(for: subfeature.parent)
-        let subfeatureData = subfeatures[subfeature.rawValue]
+        // Step 2: Check  version
+        let satisfiesMinVersion = satisfiesMinVersion(subfeatureData.minSupportedVersion, versionProvider: versionProvider)
 
-        let satisfiesMinVersion = satisfiesMinVersion(subfeatureData?.minSupportedVersion, versionProvider: versionProvider)
-
-        switch subfeatureData?.state {
+        // Step 3: Check sub-feature state
+        switch subfeatureData.state {
         case PrivacyConfigurationData.State.enabled:
             guard satisfiesMinVersion else { return .disabled(.appVersionNotSupported) }
         case PrivacyConfigurationData.State.internal:
@@ -210,13 +227,29 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         default: return .disabled(.disabledInConfig)
         }
 
-        // Handle Rollouts
-        if let rollout = subfeatureData?.rollout,
-           !isRolloutEnabled(subfeature: subfeature, rolloutSteps: rollout.steps, randomizer: randomizer) {
+        // Step 4: Handle Rollouts
+        if let rollout = subfeatureData.rollout,
+           !isRolloutEnabled(subfeatureID: subfeatureID, parentID: parentFeature.rawValue, rolloutSteps: rollout.steps, randomizer: randomizer) {
             return .disabled(.stillInRollout)
         }
 
+        // Step 5: Check Targets
+        return checkTargets(subfeatureData)
+    }
+
+    private func checkTargets(_ subfeatureData: PrivacyConfigurationData.PrivacyFeature.Feature?) -> PrivacyConfigurationFeatureState {
+        // Check Targets
+        if let targets = subfeatureData?.targets, !matchTargets(targets: targets){
+            return .disabled(.targetDoesNotMatch)
+        }
         return .enabled
+    }
+
+    private func matchTargets(targets: [PrivacyConfigurationData.PrivacyFeature.Feature.Target]) -> Bool {
+        targets.contains { target in
+            (target.localeCountry == nil || target.localeCountry == locale.regionCode) &&
+            (target.localeLanguage == nil || target.localeLanguage == locale.languageCode)
+        }
     }
 
     private func subfeatures(for feature: PrivacyFeature) -> PrivacyConfigurationData.PrivacyFeature.Features {
@@ -247,7 +280,7 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         guard let domain = domain else { return true }
 
         return !isTempUnprotected(domain: domain) && !isUserUnprotected(domain: domain) &&
-            !isInExceptionList(domain: domain, forFeature: .contentBlocking)
+        !isInExceptionList(domain: domain, forFeature: .contentBlocking)
     }
 
     public func isUserUnprotected(domain: String?) -> Bool {
@@ -287,6 +320,13 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
         return data.features[feature.rawValue]?.settings ?? [:]
     }
 
+    public func settings(for subfeature: any PrivacySubfeature) -> PrivacyConfigurationData.PrivacyFeature.SubfeatureSettings? {
+        guard let subfeatureData = subfeatures(for: subfeature.parent)[subfeature.rawValue] else {
+            return nil
+        }
+        return subfeatureData.settings
+    }
+
     public func userEnabledProtection(forDomain domain: String) {
         let domainToRemove = locallyUnprotected.unprotectedDomains.first { unprotectedDomain in
             unprotectedDomain.punycodeEncodedHostname.lowercased() == domain
@@ -297,7 +337,25 @@ public struct AppPrivacyConfiguration: PrivacyConfiguration {
     public func userDisabledProtection(forDomain domain: String) {
         locallyUnprotected.disableProtection(forDomain: domain.punycodeEncodedHostname.lowercased())
     }
+}
 
+extension AppPrivacyConfiguration {
+
+    public func stateFor(subfeatureID: SubfeatureID, parentFeatureID: ParentFeatureID, versionProvider: AppVersionProvider,
+                         randomizer: (Range<Double>) -> Double) -> PrivacyConfigurationFeatureState {
+        guard let parentFeature = PrivacyFeature(rawValue: parentFeatureID) else { return .disabled(.featureMissing) }
+        guard let subfeatureData = subfeatures(for: parentFeature)[subfeatureID] else { return .disabled(.featureMissing) }
+        return stateFor(subfeatureID: subfeatureID, subfeatureData: subfeatureData, parentFeature: parentFeature, versionProvider: versionProvider, randomizer: randomizer)
+    }
+
+    public func cohorts(for subfeature: any PrivacySubfeature) -> [PrivacyConfigurationData.Cohort]? {
+        subfeatures(for: subfeature.parent)[subfeature.rawValue]?.cohorts
+    }
+
+    public func cohorts(subfeatureID: SubfeatureID, parentFeatureID: ParentFeatureID) -> [PrivacyConfigurationData.Cohort]? {
+        guard let parentFeature = PrivacyFeature(rawValue: parentFeatureID) else { return nil }
+        return subfeatures(for: parentFeature)[subfeatureID]?.cohorts
+    }
 }
 
 extension Array where Element == String {

@@ -18,7 +18,33 @@
 
 import Foundation
 
+public typealias HTTPHeaders = [String: String]
+
 public extension APIRequestV2 {
+
+    /// All possible request content types
+    enum ContentType: String, Codable {
+        case json = "application/json"
+        case xml = "application/xml"
+        case formURLEncoded = "application/x-www-form-urlencoded"
+        case multipartFormData = "multipart/form-data"
+        case html = "text/html"
+        case plainText = "text/plain"
+        case css = "text/css"
+        case javascript = "application/javascript"
+        case octetStream = "application/octet-stream"
+        case png = "image/png"
+        case jpeg = "image/jpeg"
+        case gif = "image/gif"
+        case svg = "image/svg+xml"
+        case pdf = "application/pdf"
+        case zip = "application/zip"
+        case csv = "text/csv"
+        case rtf = "application/rtf"
+        case mp4 = "video/mp4"
+        case webm = "video/webm"
+        case ogg = "application/ogg"
+    }
 
     struct HeadersV2 {
 
@@ -32,13 +58,22 @@ public extension APIRequestV2 {
             }.joined(separator: ", ")
         }()
         let etag: String?
-        let additionalHeaders: HTTPHeaders?
+        let cookies: [HTTPCookie]?
+        let authToken: String?
+        let additionalHeaders: [String: String]?
+        let contentType: ContentType?
 
         public init(userAgent: String? = nil,
                     etag: String? = nil,
-                    additionalHeaders: HTTPHeaders? = nil) {
+                    cookies: [HTTPCookie]? = nil,
+                    authToken: String? = nil,
+                    contentType: ContentType? = nil,
+                    additionalHeaders: [String: String]? = nil) {
             self.userAgent = userAgent
             self.etag = etag
+            self.cookies = cookies
+            self.authToken = authToken
+            self.contentType = contentType
             self.additionalHeaders = additionalHeaders
         }
 
@@ -52,6 +87,19 @@ public extension APIRequestV2 {
             }
             if let etag {
                 headers[HTTPHeaderKey.ifNoneMatch] = etag
+            }
+            if let cookies, cookies.isEmpty == false {
+                let cookieHeaders = HTTPCookie.requestHeaderFields(with: cookies)
+                headers.merge(cookieHeaders) { lx, _ in
+                    assertionFailure("Duplicated values in HTTPHeaders")
+                    return lx
+                }
+            }
+            if let authToken {
+                headers[HTTPHeaderKey.authorization] = "Bearer \(authToken)"
+            }
+            if let contentType {
+                headers[HTTPHeaderKey.contentType] = contentType.rawValue
             }
             if let additionalHeaders {
                 headers.merge(additionalHeaders) { old, _ in old }

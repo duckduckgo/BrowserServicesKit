@@ -23,17 +23,19 @@ import SubscriptionTestingUtilities
 final class SubscriptionOptionsTests: XCTestCase {
 
     func testEncoding() throws {
-        let subscriptionOptions = SubscriptionOptions(platform: "macos",
+        let monthlySubscriptionOffer = SubscriptionOptionOffer(type: .freeTrial, id: "1", durationInDays: 7, isUserEligible: true)
+        let yearlySubscriptionOffer = SubscriptionOptionOffer(type: .freeTrial, id: "2", durationInDays: 7, isUserEligible: true)
+        let subscriptionOptions = SubscriptionOptions(platform: .macos,
                                                       options: [
                                                         SubscriptionOption(id: "1",
-                                                                           cost: SubscriptionOptionCost(displayPrice: "9 USD", recurrence: "monthly")),
+                                                                           cost: SubscriptionOptionCost(displayPrice: "9 USD", recurrence: "monthly"), offer: monthlySubscriptionOffer),
                                                         SubscriptionOption(id: "2",
-                                                                           cost: SubscriptionOptionCost(displayPrice: "99 USD", recurrence: "yearly"))
+                                                                           cost: SubscriptionOptionCost(displayPrice: "99 USD", recurrence: "yearly"), offer: yearlySubscriptionOffer)
                                                       ],
                                                       features: [
-                                                        SubscriptionFeature(name: "vpn"),
-                                                        SubscriptionFeature(name: "personal-information-removal"),
-                                                        SubscriptionFeature(name: "identity-theft-restoration")
+                                                        SubscriptionFeature(name: .networkProtection),
+                                                        SubscriptionFeature(name: .dataBrokerProtection),
+                                                        SubscriptionFeature(name: .identityTheftRestoration)
                                                       ])
 
         let jsonEncoder = JSONEncoder()
@@ -45,13 +47,13 @@ final class SubscriptionOptionsTests: XCTestCase {
 {
   "features" : [
     {
-      "name" : "vpn"
+      "name" : "Network Protection"
     },
     {
-      "name" : "personal-information-removal"
+      "name" : "Data Broker Protection"
     },
     {
-      "name" : "identity-theft-restoration"
+      "name" : "Identity Theft Restoration"
     }
   ],
   "options" : [
@@ -60,14 +62,26 @@ final class SubscriptionOptionsTests: XCTestCase {
         "displayPrice" : "9 USD",
         "recurrence" : "monthly"
       },
-      "id" : "1"
+      "id" : "1",
+      "offer" : {
+        "durationInDays" : 7,
+        "id" : "1",
+        "isUserEligible" : true,
+        "type" : "freeTrial"
+      }
     },
     {
       "cost" : {
         "displayPrice" : "99 USD",
         "recurrence" : "yearly"
       },
-      "id" : "2"
+      "id" : "2",
+      "offer" : {
+        "durationInDays" : 7,
+        "id" : "2",
+        "isUserEligible" : true,
+        "type" : "freeTrial"
+      }
     }
   ],
   "platform" : "macos"
@@ -87,12 +101,12 @@ final class SubscriptionOptionsTests: XCTestCase {
     }
 
     func testSubscriptionFeatureEncoding() throws {
-        let subscriptionFeature = SubscriptionFeature(name: "identity-theft-restoration")
+        let subscriptionFeature = SubscriptionFeature(name: .identityTheftRestoration)
 
         let data = try? JSONEncoder().encode(subscriptionFeature)
         let subscriptionFeatureString = String(data: data!, encoding: .utf8)!
 
-        XCTAssertEqual(subscriptionFeatureString, "{\"name\":\"identity-theft-restoration\"}")
+        XCTAssertEqual(subscriptionFeatureString, "{\"name\":\"Identity Theft Restoration\"}")
     }
 
     func testEmptySubscriptionOptions() throws {
@@ -105,8 +119,8 @@ final class SubscriptionOptionsTests: XCTestCase {
         platform = .macos
 #endif
 
-        XCTAssertEqual(empty.platform, platform.rawValue)
+        XCTAssertEqual(empty.platform, platform)
         XCTAssertTrue(empty.options.isEmpty)
-        XCTAssertEqual(empty.features.count, SubscriptionFeatureName.allCases.count)
+        XCTAssertEqual(empty.features.count, 3)
     }
 }

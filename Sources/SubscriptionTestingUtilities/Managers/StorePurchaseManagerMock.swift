@@ -20,10 +20,14 @@ import Foundation
 import Subscription
 
 public final class StorePurchaseManagerMock: StorePurchaseManager {
+
     public var purchasedProductIDs: [String] = []
     public var purchaseQueue: [String] = []
     public var areProductsAvailable: Bool = false
+    public var currentStorefrontRegion: SubscriptionRegion = .usa
+
     public var subscriptionOptionsResult: SubscriptionOptions?
+    public var freeTrialSubscriptionOptionsResult: SubscriptionOptions?
     public var syncAppleIDAccountResultError: Error?
 
     public var mostRecentTransactionResult: String?
@@ -40,6 +44,10 @@ public final class StorePurchaseManagerMock: StorePurchaseManager {
 
     public func subscriptionOptions() async -> SubscriptionOptions? {
         subscriptionOptionsResult
+    }
+
+    public func freeTrialSubscriptionOptions() async -> SubscriptionOptions? {
+        freeTrialSubscriptionOptionsResult
     }
 
     public func syncAppleIDAccount() async throws {

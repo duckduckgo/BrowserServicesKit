@@ -19,7 +19,6 @@
 import Combine
 import Common
 import XCTest
-import TestUtils
 @testable import DDGSync
 
 final class DDGSyncLifecycleTests: XCTestCase {
@@ -50,7 +49,7 @@ final class DDGSyncLifecycleTests: XCTestCase {
         XCTAssertEqual(syncService.authState, .initializing)
         syncService.initializeIfNeeded()
         XCTAssertEqual(syncService.authState, .inactive)
-        XCTAssertEqual(mockErrorHandler.handledErrors, [])
+        XCTAssertEqual(mockErrorHandler.handledErrors, [.accountRemoved(.notFoundInSecureStorage)])
     }
 
     func testWhenInitializingAndOnThenStateIsActive() {
@@ -72,7 +71,7 @@ final class DDGSyncLifecycleTests: XCTestCase {
         syncService.initializeIfNeeded()
         XCTAssertEqual(syncService.authState, .inactive)
         XCTAssertNil(secureStorageStub.theAccount)
-        XCTAssertEqual(mockErrorHandler.handledErrors, [])
+        XCTAssertEqual(mockErrorHandler.handledErrors, [.accountRemoved(.syncEnabledNotSetOnKeyValueStore)])
     }
 
     func testWhenInitializingAndKeysBeenRemovedThenStateIsInactive() {
@@ -88,7 +87,7 @@ final class DDGSyncLifecycleTests: XCTestCase {
         // XCTAssertNil(mockKeyValueStore.isSyncEnabled)
 
         XCTAssertNil(secureStorageStub.theAccount)
-        XCTAssertEqual(mockErrorHandler.handledErrors, [])
+        XCTAssertEqual(mockErrorHandler.handledErrors, [.accountRemoved(.notFoundInSecureStorage)])
     }
 
     func testWhenInitializingAndCannotReadAccountThenErrorIsReportedAndInitializationIsPostponed() {

@@ -78,18 +78,12 @@ public protocol AutofillSecureVaultDelegate: AnyObject {
 
 }
 
-public protocol AutofillLoginImportStateProvider {
-    var isNewDDGUser: Bool { get }
-    var hasImportedLogins: Bool { get }
-    var credentialsImportPromptPresentationCount: Int { get }
-    var isAutofillEnabled: Bool { get }
-    func hasNeverPromptWebsitesFor(_ domain: String) -> Bool
-}
-
 public protocol AutofillPasswordImportDelegate: AnyObject {
+    func autofillUserScriptShouldShowPasswordImportDialog(domain: String, credentials: [SecureVaultModels.WebsiteCredentials], credentialsProvider: SecureVaultModels.CredentialsProvider, totalCredentialsCount: Int) -> Bool
     func autofillUserScriptDidRequestPasswordImportFlow(_ completion: @escaping () -> Void)
     func autofillUserScriptDidFinishImportWithImportedCredentialForCurrentDomain()
-    func autofillUserScriptWillDisplayOverlay(_ serializedInputContext: String)
+    func autofillUserScriptShouldDisplayOverlay(_ serializedInputContext: String, for domain: String) -> Bool
+    func autofillUserScriptDidRequestPermanentCredentialsImportPromptDismissal()
 }
 
 extension AutofillUserScript {
@@ -458,7 +452,7 @@ extension AutofillUserScript {
                 replyHandler("")
                 return
             }
-            let credentialsImport = self.shouldShowPasswordImportDialog(domain: domain, credentials: credentials, credentialsProvider: credentialsProvider, totalCredentialsCount: totalCredentialsCount)
+            let credentialsImport = self.passwordImportDelegate?.autofillUserScriptShouldShowPasswordImportDialog(domain: domain, credentials: credentials, credentialsProvider: credentialsProvider, totalCredentialsCount: totalCredentialsCount) ?? false
             let response = RequestAvailableInputTypesResponse(credentials: credentials,
                                                               identities: identities,
                                                               cards: cards,
@@ -469,37 +463,6 @@ extension AutofillUserScript {
                 replyHandler(jsonString)
             }
         }
-    }
-
-    private func shouldShowPasswordImportDialog(domain: String, credentials: [SecureVaultModels.WebsiteCredentials], credentialsProvider: SecureVaultModels.CredentialsProvider, totalCredentialsCount: Int) -> Bool {
-        guard loginImportStateProvider.isAutofillEnabled else {
-            return false
-        }
-        guard credentialsProvider.name != .bitwarden else {
-            return false
-        }
-        guard !isBurnerWindow else {
-            return false
-        }
-        guard loginImportStateProvider.credentialsImportPromptPresentationCount < 5 else {
-            return false
-        }
-        guard credentials.isEmpty else {
-            return false
-        }
-        guard totalCredentialsCount < 10 else {
-            return false
-        }
-        guard !loginImportStateProvider.hasImportedLogins else {
-            return false
-        }
-        guard loginImportStateProvider.isNewDDGUser else {
-            return false
-        }
-        guard !loginImportStateProvider.hasNeverPromptWebsitesFor(domain) else {
-            return false
-        }
-        return true
     }
 
     // https://github.com/duckduckgo/duckduckgo-autofill/blob/main/src/deviceApiCalls/schemas/getAutofillData.params.json
@@ -528,6 +491,7 @@ extension AutofillUserScript {
         case userInitiated
         case autoprompt
         case formSubmission
+        case partialSave
         case passwordGeneration
         case emailProtection
     }
@@ -785,9 +749,14 @@ extension AutofillUserScript {
                 if !credentials.isEmpty {
                     self?.passwordImportDelegate?.autofillUserScriptDidFinishImportWithImportedCredentialForCurrentDomain()
                 }
-                replyHandler(nil)
             })
         }
+    }
+
+    func credentialsImportFlowPermanentlyDismissed(_ message: UserScriptMessage, replyHandler: @escaping MessageReplyHandler) {
+        passwordImportDelegate?.autofillUserScriptDidRequestPermanentCredentialsImportPromptDismissal()
+        replyHandler(nil)
+        NotificationCenter.default.post(name: .passwordImportDidCloseImportDialog, object: nil)
     }
 
     // MARK: Pixels

@@ -39,14 +39,14 @@ enum NetworkProtectionKeychainStoreError: Error, NetworkProtectionErrorConvertib
 }
 
 /// General Keychain access helper class for the NetworkProtection module. Should be used for specific KeychainStore types.
-final class NetworkProtectionKeychainStore {
+public final class NetworkProtectionKeychainStore {
     private let label: String
     private let serviceName: String
     private let keychainType: KeychainType
 
-    init(label: String,
-         serviceName: String,
-         keychainType: KeychainType) {
+    public init(label: String,
+                serviceName: String,
+                keychainType: KeychainType) {
 
         self.label = label
         self.serviceName = serviceName
@@ -55,7 +55,8 @@ final class NetworkProtectionKeychainStore {
 
     // MARK: - Keychain Interaction
 
-    func readData(named name: String) throws -> Data? {
+    public func readData(named name: String) throws -> Data? {
+        Logger.networkProtectionKeyManagement.debug("Reading key \(name, privacy: .public) from keychain")
         var query = defaultAttributes()
         query[kSecAttrAccount] = name
         query[kSecReturnData] = true
@@ -78,7 +79,8 @@ final class NetworkProtectionKeychainStore {
         }
     }
 
-    func writeData(_ data: Data, named name: String) throws {
+    public func writeData(_ data: Data, named name: String) throws {
+        Logger.networkProtectionKeyManagement.debug("Writing key \(name, privacy: .public) to keychain")
         var query = defaultAttributes()
         query[kSecAttrAccount] = name
         query[kSecAttrAccessible] = kSecAttrAccessibleAfterFirstUnlock
@@ -101,18 +103,20 @@ final class NetworkProtectionKeychainStore {
     }
 
     private func updateData(_ data: Data, named name: String) -> OSStatus {
+        Logger.networkProtectionKeyManagement.debug("Updating key \(name, privacy: .public) in keychain")
         var query = defaultAttributes()
         query[kSecAttrAccount] = name
 
         let newAttributes = [
-          kSecValueData: data,
-          kSecAttrAccessible: kSecAttrAccessibleAfterFirstUnlock
+            kSecValueData: data,
+            kSecAttrAccessible: kSecAttrAccessibleAfterFirstUnlock
         ] as [CFString: Any]
 
         return SecItemUpdate(query as CFDictionary, newAttributes as CFDictionary)
     }
 
-    func deleteAll() throws {
+    public func deleteAll() throws {
+        Logger.networkProtectionKeyManagement.debug("Deleting all keys from keychain")
         var query = defaultAttributes()
 #if os(macOS)
         // This line causes the delete to error with status -50 on iOS. Needs investigation but, for now, just delete the first item
@@ -125,6 +129,7 @@ final class NetworkProtectionKeychainStore {
         case errSecItemNotFound, errSecSuccess:
             break
         default:
+            Logger.networkProtectionKeyManagement.error("🔴 Failed to delete all keys, SecItemDelete status \(String(describing: status), privacy: .public)")
             throw NetworkProtectionKeychainStoreError.keychainDeleteError(status: status)
         }
     }

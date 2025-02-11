@@ -20,11 +20,6 @@ import Foundation
 import StoreKit
 import os.log
 
-public enum StripePurchaseFlowError: Swift.Error {
-    case noProductsFound
-    case accountCreationFailed
-}
-
 public protocol StripePurchaseFlow {
     func subscriptionOptions() async -> Result<SubscriptionOptions, StripePurchaseFlowError>
     func prepareSubscriptionPurchase(emailAccessToken: String?) async -> Result<PurchaseUpdate, StripePurchaseFlowError>
@@ -62,7 +57,7 @@ public final class DefaultStripePurchaseFlow: StripePurchaseFlow {
             var displayPrice = "\($0.price) \($0.currency)"
 
             if let price = Float($0.price), let formattedPrice = formatter.string(from: price as NSNumber) {
-                 displayPrice = formattedPrice
+                displayPrice = formattedPrice
             }
 
             let cost = SubscriptionOptionCost(displayPrice: displayPrice, recurrence: $0.billingPeriod.lowercased())
@@ -71,9 +66,11 @@ public final class DefaultStripePurchaseFlow: StripePurchaseFlow {
                                       cost: cost)
         }
 
-        let features = SubscriptionFeatureName.allCases.map { SubscriptionFeature(name: $0.rawValue) }
+        let features = [SubscriptionFeature(name: .networkProtection),
+                        SubscriptionFeature(name: .dataBrokerProtection),
+                        SubscriptionFeature(name: .identityTheftRestoration)]
 
-        return .success(SubscriptionOptions(platform: SubscriptionPlatformName.stripe.rawValue,
+        return .success(SubscriptionOptions(platform: SubscriptionPlatformName.stripe,
                                             options: options,
                                             features: features))
     }

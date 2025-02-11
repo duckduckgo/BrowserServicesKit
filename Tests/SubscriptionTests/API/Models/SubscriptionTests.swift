@@ -23,58 +23,72 @@ import SubscriptionTestingUtilities
 final class SubscriptionTests: XCTestCase {
 
     func testEquality() throws {
-        let a = DDGSubscription(productId: "1",
+        let a = PrivacyProSubscription(productId: "1",
                                 name: "a",
                                 billingPeriod: .monthly,
                                 startedAt: Date(timeIntervalSince1970: 1000),
                                 expiresOrRenewsAt: Date(timeIntervalSince1970: 2000),
                                 platform: .apple,
-                                status: .autoRenewable)
-        let b = DDGSubscription(productId: "1",
+                                status: .autoRenewable,
+                                activeOffers: [PrivacyProSubscription.Offer(type: .trial)])
+        let b = PrivacyProSubscription(productId: "1",
                                 name: "a",
                                 billingPeriod: .monthly,
                                 startedAt: Date(timeIntervalSince1970: 1000),
                                 expiresOrRenewsAt: Date(timeIntervalSince1970: 2000),
                                 platform: .apple,
-                                status: .autoRenewable)
-        let c = DDGSubscription(productId: "2",
+                                status: .autoRenewable,
+                                activeOffers: [PrivacyProSubscription.Offer(type: .trial)])
+        let c = PrivacyProSubscription(productId: "2",
                                 name: "a",
                                 billingPeriod: .monthly,
                                 startedAt: Date(timeIntervalSince1970: 1000),
                                 expiresOrRenewsAt: Date(timeIntervalSince1970: 2000),
                                 platform: .apple,
-                                status: .autoRenewable)
+                                status: .autoRenewable,
+                                activeOffers: [])
         XCTAssertEqual(a, b)
         XCTAssertNotEqual(a, c)
     }
 
     func testIfSubscriptionWithGivenStatusIsActive() throws {
-        let autoRenewableSubscription = Subscription.make(withStatus: .autoRenewable)
+        let autoRenewableSubscription = PrivacyProSubscription.make(withStatus: .autoRenewable)
         XCTAssertTrue(autoRenewableSubscription.isActive)
 
-        let notAutoRenewableSubscription = Subscription.make(withStatus: .notAutoRenewable)
+        let notAutoRenewableSubscription = PrivacyProSubscription.make(withStatus: .notAutoRenewable)
         XCTAssertTrue(notAutoRenewableSubscription.isActive)
 
-        let gracePeriodSubscription = Subscription.make(withStatus: .gracePeriod)
+        let gracePeriodSubscription = PrivacyProSubscription.make(withStatus: .gracePeriod)
         XCTAssertTrue(gracePeriodSubscription.isActive)
 
-        let inactiveSubscription = Subscription.make(withStatus: .inactive)
+        let inactiveSubscription = PrivacyProSubscription.make(withStatus: .inactive)
         XCTAssertFalse(inactiveSubscription.isActive)
 
-        let expiredSubscription = Subscription.make(withStatus: .expired)
+        let expiredSubscription = PrivacyProSubscription.make(withStatus: .expired)
         XCTAssertFalse(expiredSubscription.isActive)
 
-        let unknownSubscription = Subscription.make(withStatus: .unknown)
+        let unknownSubscription = PrivacyProSubscription.make(withStatus: .unknown)
         XCTAssertTrue(unknownSubscription.isActive)
     }
 
     func testDecoding() throws {
-        let rawSubscription = "{\"productId\":\"ddg-privacy-pro-sandbox-monthly-renews-us\",\"name\":\"Monthly Subscription\",\"billingPeriod\":\"Monthly\",\"startedAt\":1718104783000,\"expiresOrRenewsAt\":1723375183000,\"platform\":\"stripe\",\"status\":\"Auto-Renewable\"}"
+        let rawSubscription = """
+        {
+            \"productId\": \"ddg-privacy-pro-sandbox-monthly-renews-us\",
+            \"name\": \"Monthly Subscription\",
+            \"billingPeriod\": \"Monthly\",
+            \"startedAt\": 1718104783000,
+            \"expiresOrRenewsAt\": 1723375183000,
+            \"platform\": \"stripe\",
+            \"status\": \"Auto-Renewable\",
+            \"activeOffers\": []
+        }
+        """
 
         let decoder = JSONDecoder()
         decoder.keyDecodingStrategy = .convertFromSnakeCase
         decoder.dateDecodingStrategy = .millisecondsSince1970
-        let subscription = try decoder.decode(Subscription.self, from: Data(rawSubscription.utf8))
+        let subscription = try decoder.decode(PrivacyProSubscription.self, from: Data(rawSubscription.utf8))
 
         XCTAssertEqual(subscription.productId, "ddg-privacy-pro-sandbox-monthly-renews-us")
         XCTAssertEqual(subscription.name, "Monthly Subscription")
@@ -85,60 +99,183 @@ final class SubscriptionTests: XCTestCase {
     }
 
     func testBillingPeriodDecoding() throws {
-        let monthly = try JSONDecoder().decode(Subscription.BillingPeriod.self, from: Data("\"Monthly\"".utf8))
-        XCTAssertEqual(monthly, Subscription.BillingPeriod.monthly)
+        let monthly = try JSONDecoder().decode(PrivacyProSubscription.BillingPeriod.self, from: Data("\"Monthly\"".utf8))
+        XCTAssertEqual(monthly, PrivacyProSubscription.BillingPeriod.monthly)
 
-        let yearly = try JSONDecoder().decode(Subscription.BillingPeriod.self, from: Data("\"Yearly\"".utf8))
-        XCTAssertEqual(yearly, Subscription.BillingPeriod.yearly)
+        let yearly = try JSONDecoder().decode(PrivacyProSubscription.BillingPeriod.self, from: Data("\"Yearly\"".utf8))
+        XCTAssertEqual(yearly, PrivacyProSubscription.BillingPeriod.yearly)
 
-        let unknown = try JSONDecoder().decode(Subscription.BillingPeriod.self, from: Data("\"something unexpected\"".utf8))
-        XCTAssertEqual(unknown, Subscription.BillingPeriod.unknown)
+        let unknown = try JSONDecoder().decode(PrivacyProSubscription.BillingPeriod.self, from: Data("\"something unexpected\"".utf8))
+        XCTAssertEqual(unknown, PrivacyProSubscription.BillingPeriod.unknown)
     }
 
     func testPlatformDecoding() throws {
-        let apple = try JSONDecoder().decode(Subscription.Platform.self, from: Data("\"apple\"".utf8))
-        XCTAssertEqual(apple, Subscription.Platform.apple)
+        let apple = try JSONDecoder().decode(PrivacyProSubscription.Platform.self, from: Data("\"apple\"".utf8))
+        XCTAssertEqual(apple, PrivacyProSubscription.Platform.apple)
 
-        let google = try JSONDecoder().decode(Subscription.Platform.self, from: Data("\"google\"".utf8))
-        XCTAssertEqual(google, Subscription.Platform.google)
+        let google = try JSONDecoder().decode(PrivacyProSubscription.Platform.self, from: Data("\"google\"".utf8))
+        XCTAssertEqual(google, PrivacyProSubscription.Platform.google)
 
-        let stripe = try JSONDecoder().decode(Subscription.Platform.self, from: Data("\"stripe\"".utf8))
-        XCTAssertEqual(stripe, Subscription.Platform.stripe)
+        let stripe = try JSONDecoder().decode(PrivacyProSubscription.Platform.self, from: Data("\"stripe\"".utf8))
+        XCTAssertEqual(stripe, PrivacyProSubscription.Platform.stripe)
 
-        let unknown = try JSONDecoder().decode(Subscription.Platform.self, from: Data("\"something unexpected\"".utf8))
-        XCTAssertEqual(unknown, Subscription.Platform.unknown)
+        let unknown = try JSONDecoder().decode(PrivacyProSubscription.Platform.self, from: Data("\"something unexpected\"".utf8))
+        XCTAssertEqual(unknown, PrivacyProSubscription.Platform.unknown)
     }
 
     func testStatusDecoding() throws {
-        let autoRenewable = try JSONDecoder().decode(Subscription.Status.self, from: Data("\"Auto-Renewable\"".utf8))
-        XCTAssertEqual(autoRenewable, Subscription.Status.autoRenewable)
+        let autoRenewable = try JSONDecoder().decode(PrivacyProSubscription.Status.self, from: Data("\"Auto-Renewable\"".utf8))
+        XCTAssertEqual(autoRenewable, PrivacyProSubscription.Status.autoRenewable)
 
-        let notAutoRenewable = try JSONDecoder().decode(Subscription.Status.self, from: Data("\"Not Auto-Renewable\"".utf8))
-        XCTAssertEqual(notAutoRenewable, Subscription.Status.notAutoRenewable)
+        let notAutoRenewable = try JSONDecoder().decode(PrivacyProSubscription.Status.self, from: Data("\"Not Auto-Renewable\"".utf8))
+        XCTAssertEqual(notAutoRenewable, PrivacyProSubscription.Status.notAutoRenewable)
 
-        let gracePeriod = try JSONDecoder().decode(Subscription.Status.self, from: Data("\"Grace Period\"".utf8))
-        XCTAssertEqual(gracePeriod, Subscription.Status.gracePeriod)
+        let gracePeriod = try JSONDecoder().decode(PrivacyProSubscription.Status.self, from: Data("\"Grace Period\"".utf8))
+        XCTAssertEqual(gracePeriod, PrivacyProSubscription.Status.gracePeriod)
 
-        let inactive = try JSONDecoder().decode(Subscription.Status.self, from: Data("\"Inactive\"".utf8))
-        XCTAssertEqual(inactive, Subscription.Status.inactive)
+        let inactive = try JSONDecoder().decode(PrivacyProSubscription.Status.self, from: Data("\"Inactive\"".utf8))
+        XCTAssertEqual(inactive, PrivacyProSubscription.Status.inactive)
 
-        let expired = try JSONDecoder().decode(Subscription.Status.self, from: Data("\"Expired\"".utf8))
-        XCTAssertEqual(expired, Subscription.Status.expired)
+        let expired = try JSONDecoder().decode(PrivacyProSubscription.Status.self, from: Data("\"Expired\"".utf8))
+        XCTAssertEqual(expired, PrivacyProSubscription.Status.expired)
 
-        let unknown = try JSONDecoder().decode(Subscription.Status.self, from: Data("\"something unexpected\"".utf8))
-        XCTAssertEqual(unknown, Subscription.Status.unknown)
+        let unknown = try JSONDecoder().decode(PrivacyProSubscription.Status.self, from: Data("\"something unexpected\"".utf8))
+        XCTAssertEqual(unknown, PrivacyProSubscription.Status.unknown)
+    }
+
+    func testOfferTypeDecoding() throws {
+        let trial = try JSONDecoder().decode(PrivacyProSubscription.OfferType.self, from: Data("\"Trial\"".utf8))
+        XCTAssertEqual(trial, PrivacyProSubscription.OfferType.trial)
+
+        let unknown = try JSONDecoder().decode(PrivacyProSubscription.OfferType.self, from: Data("\"something unexpected\"".utf8))
+        XCTAssertEqual(unknown, PrivacyProSubscription.OfferType.unknown)
+    }
+
+    func testDecodingWithActiveOffers() throws {
+        let rawSubscriptionWithOffers = """
+        {
+            \"productId\": \"ddg-privacy-pro-sandbox-monthly-renews-us\",
+            \"name\": \"Monthly Subscription\",
+            \"billingPeriod\": \"Monthly\",
+            \"startedAt\": 1718104783000,
+            \"expiresOrRenewsAt\": 1723375183000,
+            \"platform\": \"stripe\",
+            \"status\": \"Auto-Renewable\",
+            \"activeOffers\": [{ \"type\": \"Trial\"}]
+        }
+        """
+
+        let rawSubscriptionWithoutOffers = """
+        {
+            \"productId\": \"ddg-privacy-pro-sandbox-monthly-renews-us\",
+            \"name\": \"Monthly Subscription\",
+            \"billingPeriod\": \"Monthly\",
+            \"startedAt\": 1718104783000,
+            \"expiresOrRenewsAt\": 1723375183000,
+            \"platform\": \"stripe\",
+            \"status\": \"Auto-Renewable\",
+            \"activeOffers\": []
+        }
+        """
+
+        let rawSubscriptionWithUnknownOffers = """
+        {
+            \"productId\": \"ddg-privacy-pro-sandbox-monthly-renews-us\",
+            \"name\": \"Monthly Subscription\",
+            \"billingPeriod\": \"Monthly\",
+            \"startedAt\": 1718104783000,
+            \"expiresOrRenewsAt\": 1723375183000,
+            \"platform\": \"stripe\",
+            \"status\": \"Auto-Renewable\",
+            \"activeOffers\": [{ \"type\": \"SpecialOffer\"}]
+        }
+        """
+
+        let decoder = JSONDecoder()
+        decoder.keyDecodingStrategy = .convertFromSnakeCase
+        decoder.dateDecodingStrategy = .millisecondsSince1970
+
+        let subscriptionWithOffers = try decoder.decode(PrivacyProSubscription.self, from: Data(rawSubscriptionWithOffers.utf8))
+        XCTAssertEqual(subscriptionWithOffers.activeOffers, [PrivacyProSubscription.Offer(type: .trial)])
+
+        let subscriptionWithoutOffers = try decoder.decode(PrivacyProSubscription.self, from: Data(rawSubscriptionWithoutOffers.utf8))
+        XCTAssertEqual(subscriptionWithoutOffers.activeOffers, [])
+
+        let subscriptionWithUnknownOffers = try decoder.decode(PrivacyProSubscription.self, from: Data(rawSubscriptionWithUnknownOffers.utf8))
+        XCTAssertEqual(subscriptionWithUnknownOffers.activeOffers, [PrivacyProSubscription.Offer(type: .unknown)])
+    }
+
+    func testHasActiveTrialOffer_WithTrialOffer_ReturnsTrue() {
+        // Given
+        let subscription = PrivacyProSubscription.make(
+            withStatus: .autoRenewable,
+            activeOffers: [PrivacyProSubscription.Offer(type: .trial)]
+        )
+
+        // When
+        let hasActiveTrialOffer = subscription.hasActiveTrialOffer
+
+        // Then
+        XCTAssertTrue(hasActiveTrialOffer)
+    }
+
+    func testHasActiveTrialOffer_WithNoOffers_ReturnsFalse() {
+        // Given
+        let subscription = PrivacyProSubscription.make(
+            withStatus: .autoRenewable,
+            activeOffers: []
+        )
+
+        // When
+        let hasActiveTrialOffer = subscription.hasActiveTrialOffer
+
+        // Then
+        XCTAssertFalse(hasActiveTrialOffer)
+    }
+
+    func testHasActiveTrialOffer_WithNonTrialOffer_ReturnsFalse() {
+        // Given
+        let subscription = PrivacyProSubscription.make(
+            withStatus: .autoRenewable,
+            activeOffers: [PrivacyProSubscription.Offer(type: .unknown)]
+        )
+
+        // When
+        let hasActiveTrialOffer = subscription.hasActiveTrialOffer
+
+        // Then
+        XCTAssertFalse(hasActiveTrialOffer)
+    }
+
+    func testHasActiveTrialOffer_WithMultipleOffersIncludingTrial_ReturnsTrue() {
+        // Given
+        let subscription = PrivacyProSubscription.make(
+            withStatus: .autoRenewable,
+            activeOffers: [
+                PrivacyProSubscription.Offer(type: .unknown),
+                PrivacyProSubscription.Offer(type: .trial),
+                PrivacyProSubscription.Offer(type: .unknown)
+            ]
+        )
+
+        // When
+        let hasActiveTrialOffer = subscription.hasActiveTrialOffer
+
+        // Then
+        XCTAssertTrue(hasActiveTrialOffer)
     }
 }
 
-extension Subscription {
+extension PrivacyProSubscription {
 
-    static func make(withStatus status: Subscription.Status) -> Subscription {
-        Subscription(productId: UUID().uuidString,
+    static func make(withStatus status: PrivacyProSubscription.Status, activeOffers: [PrivacyProSubscription.Offer] = []) -> PrivacyProSubscription {
+        PrivacyProSubscription(productId: UUID().uuidString,
                      name: "Subscription test #1",
                      billingPeriod: .monthly,
                      startedAt: Date(),
                      expiresOrRenewsAt: Date().addingTimeInterval(TimeInterval.days(+30)),
                      platform: .apple,
-                     status: status)
+                     status: status,
+                     activeOffers: activeOffers)
     }
 }

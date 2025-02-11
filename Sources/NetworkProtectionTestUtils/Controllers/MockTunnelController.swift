@@ -34,6 +34,11 @@ public final class MockTunnelController: TunnelController, TunnelSessionProvider
         didCallStop = true
     }
 
+    public var calledCommand: VPNCommand?
+    public func command(_ command: VPNCommand) async throws {
+        calledCommand = command
+    }
+
     public var isConnected: Bool {
         true
     }

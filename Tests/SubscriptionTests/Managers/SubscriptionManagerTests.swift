@@ -34,6 +34,7 @@ final class SubscriptionManagerTests: XCTestCase {
     var accountManager: AccountManagerMock!
     var subscriptionService: SubscriptionEndpointServiceMock!
     var authService: AuthEndpointServiceMock!
+    var subscriptionFeatureMappingCache: SubscriptionFeatureMappingCacheMock!
     var subscriptionEnvironment: SubscriptionEnvironment!
 
     var subscriptionManager: SubscriptionManager!
@@ -43,6 +44,7 @@ final class SubscriptionManagerTests: XCTestCase {
         accountManager = AccountManagerMock()
         subscriptionService = SubscriptionEndpointServiceMock()
         authService = AuthEndpointServiceMock()
+        subscriptionFeatureMappingCache = SubscriptionFeatureMappingCacheMock()
         subscriptionEnvironment = SubscriptionEnvironment(serviceEnvironment: .production,
                                                           purchasePlatform: .appStore)
 
@@ -50,6 +52,7 @@ final class SubscriptionManagerTests: XCTestCase {
                                                          accountManager: accountManager,
                                                          subscriptionEndpointService: subscriptionService,
                                                          authEndpointService: authService,
+                                                         subscriptionFeatureMappingCache: subscriptionFeatureMappingCache,
                                                          subscriptionEnvironment: subscriptionEnvironment)
 
     }
@@ -110,7 +113,7 @@ final class SubscriptionManagerTests: XCTestCase {
         subscriptionService.onGetSubscription = { _, cachePolicy in
             XCTAssertEqual(cachePolicy, .reloadIgnoringLocalCacheData)
         }
-        subscriptionService.getSubscriptionResult = .success(SubscriptionMockFactory.subscription)
+        subscriptionService.getSubscriptionResult = .success(SubscriptionMockFactory.appleSubscription)
 
         accountManager.onFetchEntitlements = { cachePolicy in
             XCTAssertEqual(cachePolicy, .reloadIgnoringLocalCacheData)
@@ -143,7 +146,7 @@ final class SubscriptionManagerTests: XCTestCase {
 
     func testForRefreshCachedSubscriptionAndEntitlements() async throws {
         // Given
-        let subscription = SubscriptionMockFactory.subscription
+        let subscription = SubscriptionMockFactory.appleSubscription
 
         accountManager.accessToken = Constants.accessToken
 
@@ -202,6 +205,7 @@ final class SubscriptionManagerTests: XCTestCase {
                                                                        accountManager: accountManager,
                                                                        subscriptionEndpointService: subscriptionService,
                                                                        authEndpointService: authService,
+                                                                       subscriptionFeatureMappingCache: subscriptionFeatureMappingCache,
                                                                        subscriptionEnvironment: productionEnvironment)
 
         // When
@@ -219,6 +223,7 @@ final class SubscriptionManagerTests: XCTestCase {
                                                                     accountManager: accountManager,
                                                                     subscriptionEndpointService: subscriptionService,
                                                                     authEndpointService: authService,
+                                                                    subscriptionFeatureMappingCache: subscriptionFeatureMappingCache,
                                                                     subscriptionEnvironment: stagingEnvironment)
 
         // When
