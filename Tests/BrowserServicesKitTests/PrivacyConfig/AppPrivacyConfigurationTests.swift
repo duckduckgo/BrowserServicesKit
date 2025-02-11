@@ -882,7 +882,7 @@ class AppPrivacyConfigurationTests: XCTestCase {
         mockRandomValue = 0.99
         enabled = config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, randomizer: mockRandom(in:))
 
-        XCTAssertFalse(enabled, "Subfeature should be still enabled when rollout count does not changes")
+        XCTAssertFalse(enabled, "Subfeature should still be disabled when rollout count does not change")
         XCTAssertEqual(config.stateFor(AutofillSubfeature.credentialsSaving), .disabled(.stillInRollout))
     }
 
