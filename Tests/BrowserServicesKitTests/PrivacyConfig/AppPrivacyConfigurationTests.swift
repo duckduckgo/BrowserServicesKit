@@ -867,7 +867,7 @@ class AppPrivacyConfigurationTests: XCTestCase {
         // This won't allocate
         mockRandomValue = 60
         var enabled = config.isSubfeatureEnabled(AutofillSubfeature.credentialsSaving, randomizer: mockRandom(in:))
-        XCTAssertFalse(enabled, "Subfeature should be enabled")
+        XCTAssertFalse(enabled, "Subfeature should not be enabled")
 
         let newMockEmbeddedData = MockEmbeddedDataProvider(data: Self.exampleSubfeatureWithRolloutsConfigTemplate(percent: 5.0),
                                                            etag: "test")
