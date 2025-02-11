@@ -376,6 +376,14 @@ public final class VPNSettings {
         defaults.dnsSettingsPublisher
     }
 
+    public var isProtectionEnabledPublisher: AnyPublisher<Bool, Never> {
+        defaults.isProtectionEnabledPublisher
+    }
+
+    public var isProtectionEnabled: Bool {
+        defaults.isProtectionEnabled
+    }
+
     public var dnsSettings: NetworkProtectionDNSSettings {
         get {
             defaults.dnsSettings

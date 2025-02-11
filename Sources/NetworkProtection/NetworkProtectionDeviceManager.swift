@@ -45,7 +45,7 @@ public enum NetworkProtectionServerSelectionMethod: CustomDebugStringConvertible
 }
 
 public enum NetworkProtectionDNSSettings: Codable, Equatable, CustomStringConvertible {
-    case `default`
+    case ddg(maliciousSiteProtection: Bool)
     case custom([String])
 
     public var usesCustomDNS: Bool {
@@ -55,7 +55,7 @@ public enum NetworkProtectionDNSSettings: Codable, Equatable, CustomStringConver
 
     public var description: String {
         switch self {
-        case .default: return "DuckDuckGo"
+        case .ddg: return "DuckDuckGo"
         case .custom(let servers): return servers.joined(separator: ", ")
         }
     }
@@ -277,9 +277,20 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
         }
 
         let dns: [DNSServer]
+        Logger.networkProtection.log("🐩 DNS settings: \(dnsSettings, privacy: .public)")
+        Logger.networkProtection.error("🐩 Test ERROR: DNS settings = \(dnsSettings)")
+        Logger.networkProtection.log("🐩 DEBUG: Before logging DNS settings")
+        Logger.networkProtection.log("🐩 DNS settings: \(dnsSettings, privacy: .public)")
+        Logger.networkProtection.log("🐩 DEBUG: After logging DNS settings")
         switch dnsSettings {
-        case .default:
-            dns = [DNSServer(address: server.serverInfo.internalIP.ipAddress)]
+        case .ddg(let protectionActive):
+            var ipAddress: IPAddress = server.serverInfo.internalIP.ipAddress
+            if protectionActive {
+                ipAddress = ipAddress.computeBlockMaliciousSitesDnsOrSame()
+            }
+            dns = [DNSServer(address: ipAddress)]
+            print("ipAddress: \(ipAddress)")
+            Logger.networkProtection.log("🐩 DNS settings: \(dns, privacy: .public)")
         case .custom(let servers):
             dns = servers
                 .compactMap { IPv4Address($0) }
@@ -289,8 +300,8 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
         let routingTableResolver = VPNRoutingTableResolver(
             dnsServers: dns,
             excludeLocalNetworks: excludeLocalNetworks)
-
-        Logger.networkProtection.log("Routing table information:\nL Included Routes: \(routingTableResolver.includedRoutes, privacy: .public)\nL Excluded Routes: \(routingTableResolver.excludedRoutes, privacy: .public)")
+        Logger.networkProtection.log("🔵 DEBUG: After logging DNS settings")
+        Logger.networkProtection.log("🐩 Routing table information:\nL Included Routes: \(routingTableResolver.includedRoutes, privacy: .public)\nL Excluded Routes: \(routingTableResolver.excludedRoutes, privacy: .public)")
 
         let interface = InterfaceConfiguration(privateKey: interfacePrivateKey,
                                                addresses: [interfaceAddressRange],
@@ -331,5 +342,31 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
         default:
             break
         }
+    }
+}
+
+extension IPAddress {
+    /// Returns a new IP address by left-shifting the last octet of the IPv4 address.
+    ///
+    /// if the new address cannot be created, the original address is returned.
+    func computeBlockMaliciousSitesDnsOrSame() -> Self {
+        // Extracts the last byte
+        let data = self.rawValue
+        var bytes = [UInt8](data)
+        guard let lastOctet = bytes.last else { return self }
+
+        // Perform a left-shift on the last octet.
+        // We cast to UInt16 to avoid overflow, then mask with 0xFF to ensure the result fits in 8 bits.
+        let shiftedOctet = UInt8((UInt16(lastOctet) << 1) & 0xFF)
+
+        // Update the last element with the shifted value.
+        bytes[bytes.count - 1] = shiftedOctet
+
+        // Recreate the Data object from the modified bytes.
+        let newData = Data(bytes)
+
+        // Attempt to create a new IPAddress with the updated raw data, preserving the interface.
+        // If creation fails, return the original address.
+        return Self(newData, self.interface) ?? self
     }
 }
