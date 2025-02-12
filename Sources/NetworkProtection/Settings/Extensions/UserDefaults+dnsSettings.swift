@@ -23,12 +23,12 @@ extension UserDefaults {
     final class StorableDNSSettings: NSObject, Codable {
         let usesCustomDNS: Bool
         let dnsServers: [String]
-        let isMaliciousSiteProtectionEnabled: Bool?
+        let isBlockRiskyDomainsOn: Bool?
 
-        init(usesCustomDNS: Bool = false, dnsServers: [String] = [], isMaliciousSiteProtectionEnabled: Bool? = nil) {
+        init(usesCustomDNS: Bool = false, dnsServers: [String] = [], isBlockRiskyDomainsOn: Bool? = nil) {
             self.usesCustomDNS = usesCustomDNS
             self.dnsServers = dnsServers
-            self.isMaliciousSiteProtectionEnabled = isMaliciousSiteProtectionEnabled
+            self.isBlockRiskyDomainsOn = isBlockRiskyDomainsOn
         }
     }
 
@@ -37,7 +37,7 @@ extension UserDefaults {
     }
 
     private static func dnsSettingsFromStorageValue(_ value: StorableDNSSettings) -> NetworkProtectionDNSSettings {
-        guard value.usesCustomDNS, !value.dnsServers.isEmpty else { return .ddg(blockRiskyDomains: value.isMaliciousSiteProtectionEnabled ?? false) }
+        guard value.usesCustomDNS, !value.dnsServers.isEmpty else { return .ddg(blockRiskyDomains: value.isBlockRiskyDomainsOn ?? false) }
         return .custom(value.dnsServers)
     }
 
@@ -55,8 +55,8 @@ extension UserDefaults {
         }
     }
 
-    var isProtectionEnabled: Bool? {
-        dnsSettingStorageValue.isMaliciousSiteProtectionEnabled
+    var isBlockRiskyDomainsOn: Bool? {
+        dnsSettingStorageValue.isBlockRiskyDomainsOn
     }
 
     var dnsSettings: NetworkProtectionDNSSettings {
@@ -66,15 +66,15 @@ extension UserDefaults {
 
         set {
             switch newValue {
-            case .ddg(let isMaliciousSiteProtectionEnabled):
-                dnsSettingStorageValue = StorableDNSSettings(isMaliciousSiteProtectionEnabled: isMaliciousSiteProtectionEnabled)
+            case .ddg(let isBlockRiskyDomainsOn):
+                dnsSettingStorageValue = StorableDNSSettings(isBlockRiskyDomainsOn: isBlockRiskyDomainsOn)
             case .custom(let dnsServers):
                 let hosts = dnsServers.compactMap(\.toIPv4Host)
-                let isMaliciousSiteProtectionEnabled = dnsSettingStorageValue.isMaliciousSiteProtectionEnabled ?? false
+                let isBlockRiskyDomainsOn = dnsSettingStorageValue.isBlockRiskyDomainsOn ?? true
                 if hosts.isEmpty {
-                    dnsSettingStorageValue = StorableDNSSettings(isMaliciousSiteProtectionEnabled: isMaliciousSiteProtectionEnabled)
+                    dnsSettingStorageValue = StorableDNSSettings(isBlockRiskyDomainsOn: isBlockRiskyDomainsOn)
                 } else {
-                    dnsSettingStorageValue = StorableDNSSettings(usesCustomDNS: true, dnsServers: hosts, isMaliciousSiteProtectionEnabled: isMaliciousSiteProtectionEnabled)
+                    dnsSettingStorageValue = StorableDNSSettings(usesCustomDNS: true, dnsServers: hosts, isBlockRiskyDomainsOn: isBlockRiskyDomainsOn)
                 }
             }
         }
@@ -86,14 +86,14 @@ extension UserDefaults {
             .eraseToAnyPublisher()
     }
 
-    var isProtectionEnabledPublisher: AnyPublisher<Bool, Never> {
+    var isBlockRiskyDomainsOnPublisher: AnyPublisher<Bool?, Never> {
         publisher(for: \.dnsSettingStorageValue)
-            .map { $0.isMaliciousSiteProtectionEnabled ?? false }
+            .map { $0.isBlockRiskyDomainsOn }
             .eraseToAnyPublisher()
     }
 
     func resetDNSSettings() {
-        let isMaliciousSiteProtectionEnabled = dnsSettingStorageValue.isMaliciousSiteProtectionEnabled ?? false
-        dnsSettings = .ddg(blockRiskyDomains: isMaliciousSiteProtectionEnabled)
+        let isBlockRiskyDomainsOn = dnsSettingStorageValue.isBlockRiskyDomainsOn ?? true
+        dnsSettings = .ddg(blockRiskyDomains: isBlockRiskyDomainsOn)
     }
 }

@@ -376,12 +376,12 @@ public final class VPNSettings {
         defaults.dnsSettingsPublisher
     }
 
-    public var isProtectionEnabledPublisher: AnyPublisher<Bool, Never> {
-        defaults.isProtectionEnabledPublisher
+    public var isBlockRiskyDomainsOnPublisher: AnyPublisher<Bool?, Never> {
+        defaults.isBlockRiskyDomainsOnPublisher
     }
 
-    public var isProtectionEnabled: Bool {
-        defaults.isProtectionEnabled ?? true
+    public var isBlockRiskyDomainsOn: Bool {
+        defaults.isBlockRiskyDomainsOn ?? true
     }
 
     public var dnsSettings: NetworkProtectionDNSSettings {
