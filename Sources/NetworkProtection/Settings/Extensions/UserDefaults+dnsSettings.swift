@@ -25,7 +25,7 @@ extension UserDefaults {
         let dnsServers: [String]
         let isMaliciousSiteProtectionEnabled: Bool?
 
-        init(usesCustomDNS: Bool = false, dnsServers: [String] = [], isMaliciousSiteProtectionEnabled: Bool = false) {
+        init(usesCustomDNS: Bool = false, dnsServers: [String] = [], isMaliciousSiteProtectionEnabled: Bool? = nil) {
             self.usesCustomDNS = usesCustomDNS
             self.dnsServers = dnsServers
             self.isMaliciousSiteProtectionEnabled = isMaliciousSiteProtectionEnabled
@@ -55,8 +55,8 @@ extension UserDefaults {
         }
     }
 
-    var isProtectionEnabled: Bool {
-        dnsSettingStorageValue.isMaliciousSiteProtectionEnabled ?? false
+    var isProtectionEnabled: Bool? {
+        dnsSettingStorageValue.isMaliciousSiteProtectionEnabled
     }
 
     var dnsSettings: NetworkProtectionDNSSettings {

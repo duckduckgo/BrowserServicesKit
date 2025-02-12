@@ -381,7 +381,7 @@ public final class VPNSettings {
     }
 
     public var isProtectionEnabled: Bool {
-        defaults.isProtectionEnabled
+        defaults.isProtectionEnabled ?? true
     }
 
     public var dnsSettings: NetworkProtectionDNSSettings {
