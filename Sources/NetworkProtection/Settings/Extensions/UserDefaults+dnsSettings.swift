@@ -37,7 +37,7 @@ extension UserDefaults {
     }
 
     private static func dnsSettingsFromStorageValue(_ value: StorableDNSSettings) -> NetworkProtectionDNSSettings {
-        guard value.usesCustomDNS, !value.dnsServers.isEmpty else { return .ddg(maliciousSiteProtection: value.isMaliciousSiteProtectionEnabled ?? false) }
+        guard value.usesCustomDNS, !value.dnsServers.isEmpty else { return .ddg(blockRiskyDomains: value.isMaliciousSiteProtectionEnabled ?? false) }
         return .custom(value.dnsServers)
     }
 
@@ -94,6 +94,6 @@ extension UserDefaults {
 
     func resetDNSSettings() {
         let isMaliciousSiteProtectionEnabled = dnsSettingStorageValue.isMaliciousSiteProtectionEnabled ?? false
-        dnsSettings = .ddg(maliciousSiteProtection: isMaliciousSiteProtectionEnabled)
+        dnsSettings = .ddg(blockRiskyDomains: isMaliciousSiteProtectionEnabled)
     }
 }

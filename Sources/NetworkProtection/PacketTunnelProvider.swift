@@ -558,7 +558,7 @@ open class PacketTunnelProvider: NEPacketTunnelProvider {
         case .useExisting:
             break
         case .reset:
-            settings.dnsSettings = .ddg(maliciousSiteProtection: settings.isProtectionEnabled)
+            settings.dnsSettings = .ddg(blockRiskyDomains: settings.isProtectionEnabled)
         }
     }
 
