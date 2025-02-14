@@ -78,6 +78,10 @@ extension UserDefaults {
         dnsSettingStorageValue.isBlockRiskyDomainsOn
     }
 
+    var customDnsServers: [String] {
+        dnsSettingStorageValue.dnsServers
+    }
+
     var dnsSettings: NetworkProtectionDNSSettings {
         get {
             Self.dnsSettingsFromStorageValue(dnsSettingStorageValue)
@@ -86,7 +90,8 @@ extension UserDefaults {
         set {
             switch newValue {
             case .ddg(let isBlockRiskyDomainsOn):
-                dnsSettingStorageValue = StorableDNSSettings(isBlockRiskyDomainsOn: isBlockRiskyDomainsOn)
+                let dnsServers = dnsSettingStorageValue.dnsServers
+                dnsSettingStorageValue = StorableDNSSettings(dnsServers: dnsServers, isBlockRiskyDomainsOn: isBlockRiskyDomainsOn)
             case .custom(let dnsServers):
                 let hosts = dnsServers.compactMap(\.toIPv4Host)
                 let isBlockRiskyDomainsOn = dnsSettingStorageValue.isBlockRiskyDomainsOn
@@ -102,12 +107,6 @@ extension UserDefaults {
     var dnsSettingsPublisher: AnyPublisher<NetworkProtectionDNSSettings, Never> {
         publisher(for: \.dnsSettingStorageValue)
             .map(Self.dnsSettingsFromStorageValue(_:))
-            .eraseToAnyPublisher()
-    }
-
-    var isBlockRiskyDomainsOnPublisher: AnyPublisher<Bool, Never> {
-        publisher(for: \.dnsSettingStorageValue)
-            .map { $0.isBlockRiskyDomainsOn }
             .eraseToAnyPublisher()
     }
 
