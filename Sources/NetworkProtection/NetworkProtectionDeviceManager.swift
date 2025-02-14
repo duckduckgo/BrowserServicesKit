@@ -277,7 +277,6 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
         }
 
         let dns: [DNSServer]
-        Logger.networkProtection.log("🐩 DNS settings: \(dnsSettings, privacy: .public)")
         switch dnsSettings {
         case .ddg(let blockRiskyDomains):
             var ipAddress: IPAddress = server.serverInfo.internalIP.ipAddress
@@ -285,7 +284,6 @@ public actor NetworkProtectionDeviceManager: NetworkProtectionDeviceManagement {
                 ipAddress = ipAddress.computeBlockRiskyDomainsDnsOrSame()
             }
             dns = [DNSServer(address: ipAddress)]
-            Logger.networkProtection.log("🐩 DNS: \(dns, privacy: .public)")
         case .custom(let servers):
             dns = servers
                 .compactMap { IPv4Address($0) }
@@ -355,11 +353,9 @@ extension IPAddress {
         // Update the last element with the shifted value.
         bytes[bytes.count - 1] = shiftedOctet
 
-        // Recreate the Data object from the modified bytes.
-        let newData = Data(bytes)
-
         // Attempt to create a new IPAddress with the updated raw data, preserving the interface.
         // If creation fails, return the original address.
+        let newData = Data(bytes)
         return Self(newData, self.interface) ?? self
     }
 }

@@ -153,6 +153,7 @@ public enum NetworkProtectionSubfeature: String, Equatable, PrivacySubfeature {
     case enforceRoutes
 
     /// Risky Domain Protection for VPN
+    /// https://app.asana.com/0/1204186595873227/1206489252288889
     case riskyDomainsProtection
 }
 

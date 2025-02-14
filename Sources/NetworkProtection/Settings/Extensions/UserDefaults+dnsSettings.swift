@@ -39,7 +39,6 @@ extension UserDefaults {
             let container = try decoder.container(keyedBy: CodingKeys.self)
             self.usesCustomDNS = try container.decodeIfPresent(Bool.self, forKey: .usesCustomDNS) ?? false
             self.dnsServers = try container.decodeIfPresent([String].self, forKey: .dnsServers) ?? []
-            // Provide a default value if key is missing (e.g., true)
             self.isBlockRiskyDomainsOn = try container.decodeIfPresent(Bool.self, forKey: .isBlockRiskyDomainsOn) ?? true
         }
 
