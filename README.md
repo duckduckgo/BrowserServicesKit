@@ -1,5 +1,8 @@
 # BrowserServicesKit
  
+> [!IMPORTANT]  
+> 👋 Thanks for your interest in DuckDuckGo! The source code for this project has been moved to https://github.com/duckduckgo/apple-browsers and this repo no longer accepts contributions - please file any bug reports or feature requests in the new repo.
+
 ## We are hiring!
 
 DuckDuckGo is growing fast and we continue to expand our fully distributed team. We embrace diverse perspectives, and seek out passionate, self-motivated people, committed to our shared vision of raising the standard of trust online. If you are a senior software engineer capable in either iOS or Android, visit our [careers](https://duckduckgo.com/hiring/#open) page to find out more about our openings!
