@@ -140,6 +140,16 @@ final class AutofillPixelReporterTests: XCTestCase {
         XCTAssertEqual(MockEventMapping.loginsParam, AutofillPixelReporter.BucketName.none.rawValue)
     }
 
+    func testWhenFirstSearchDauAndDeviceAuthDisabledAndFillDateIsNotTodayAndAccountsCountIsZeroThenNoEventIsFired() throws {
+        let autofillPixelReporter = createAutofillPixelReporter(deviceAuthEnabled: false)
+        autofillPixelReporter.resetStoreDefaults()
+        createAccountsInVault(count: 0)
+
+        NotificationCenter.default.post(name: .searchDAU, object: nil)
+
+        XCTAssertEqual(MockEventMapping.events.count, 0)
+    }
+
     func testWhenFirstSearchDauAndAutofillDisabledAndFillDateIsNotTodayAndAndAccountsCountIsTenThenThenOneEventIsFired() throws {
         let autofillPixelReporter = createAutofillPixelReporter(autofillEnabled: false)
         autofillPixelReporter.resetStoreDefaults()
@@ -559,10 +569,11 @@ final class AutofillPixelReporterTests: XCTestCase {
         XCTAssertNil(appGroupDefaults.object(forKey: AutofillPixelReporter.Keys.autofillDauMigratedKey))
     }
 
-    private func createAutofillPixelReporter(appGroupUserDefaults: UserDefaults? = nil, installDate: Date? = Date(), autofillEnabled: Bool = true) -> AutofillPixelReporter {
+    private func createAutofillPixelReporter(appGroupUserDefaults: UserDefaults? = nil, installDate: Date? = Date(), autofillEnabled: Bool = true, deviceAuthEnabled: Bool = true) -> AutofillPixelReporter {
         return AutofillPixelReporter(standardUserDefaults: standardDefaults,
                                      appGroupUserDefaults: appGroupUserDefaults,
                                      autofillEnabled: autofillEnabled,
+                                     deviceAuthEnabled: deviceAuthEnabled,
                                      eventMapping: eventMapping,
                                      secureVault: vault,
                                      installDate: installDate)
